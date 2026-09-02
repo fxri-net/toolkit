@@ -1,5 +1,12 @@
 # @fxri/toolkit
 
+## 1.1.1
+> 2026-09-03 发布
+
+### 🐛 补丁修复
+
+- CLI 改用 Commander 实现，新增 --help/--version 与 tasks/changelog 子命令帮助，changelog 透传子命令支持未知选项；commander@^14 作为运行时依赖。
+
 ## 1.1.0
 > 2026-09-03 发布
 

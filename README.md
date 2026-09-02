@@ -146,7 +146,9 @@ export const languages = {
 | 能力 | Node 20 | Node 18 |
 | --- | --- | --- |
 | 安装 | ✅ | ✅（npm 报 EBADENGINE 警告） |
+| 帮助 / 版本（--help / --version） | ✅ | ✅ |
 | tasks（总览 / 归档） | ✅ | ✅ |
+| 隐私脱敏（含 --no-redact 开关） | ✅ | ✅ |
 | changelog format（纯格式化） | ✅ | ✅ |
 | changelog init/add/version/publish | ✅ | ❌ |
 
