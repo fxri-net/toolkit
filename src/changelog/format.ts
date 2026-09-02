@@ -14,7 +14,9 @@ export function formatChangelog(file: string, today: string, lang: ChangelogLang
   const raw = readFileSync(file, "utf8")
   // 记录原换行符（LF/CRLF），统一按 LF 处理后原样还原，避免 Windows 下出现混合换行
   const eol = raw.includes("\r\n") ? "\r\n" : "\n"
-  let content = raw.replace(/\r\n/g, "\n")
+  // 归一化后的原始内容作为「是否有净改动」的判定基线
+  const baseline = raw.replace(/\r\n/g, "\n")
+  let content = baseline
   // 标题替换（多语言）
   for (const [from, to] of Object.entries(lang.replacements)) {
     content = content.replaceAll(from, to)
@@ -29,17 +31,22 @@ export function formatChangelog(file: string, today: string, lang: ChangelogLang
     if (merged === content) break
     content = merged
   }
-  // 版本标题下补发布日期（后缀文案随语言）
+  // 版本标题下补发布日期：已存在的日期行（紧跟标题或隔空行）保留，缺失时才补今日
   const lines = content.split("\n")
   const result: string[] = []
   for (let i = 0; i < lines.length; i++) {
     result.push(lines[i])
-    if (/^## \d+\.\d+\.\d+/.test(lines[i]) && !lines[i + 1]?.startsWith("> ")) {
-      result.push(`> ${today} ${lang.released}`)
+    if (/^## \d+\.\d+\.\d+/.test(lines[i])) {
+      // 跳过标题后的空行，取首个非空行判断是否已带日期标记
+      let j = i + 1
+      while (j < lines.length && lines[j].trim() === "") j++
+      const hasDate =
+        lines[j]?.startsWith("> ") && /^> \d{4}-\d{2}-\d{2} (?:发布|released)$/.test(lines[j].trim())
+      if (!hasDate) result.push(`> ${today} ${lang.released}`)
     }
   }
   const next = result.join("\n")
-  if (next !== content) {
+  if (next !== baseline) {
     writeFileSync(file, next.replace(/\n/g, eol), "utf8")
     return true
   }
