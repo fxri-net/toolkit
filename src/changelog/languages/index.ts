@@ -23,7 +23,12 @@ export const languages: Record<string, ChangelogLanguage> = {
     deps: "- 更新依赖",
   },
   en: {
-    replacements: {},
+    replacements: {
+      "### Major Changes": "### 🚨 Major Changes",
+      "### Minor Changes": "### ✨ Minor Changes",
+      "### Patch Changes": "### 🐛 Patch Changes",
+      "### Dependent Changes": "### 🔗 Dependent Changes",
+    },
     deps: "- Updated dependencies",
   },
 }

@@ -8,9 +8,15 @@
     "email": "tqy@fxri.net",
     "url": "https://fxri.net:444/"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://git.fxy.ink:444/fxri/develop/0001.base/toolkit.git"
+  },
   "type": "module",
   "main": "./dist/index.js",
-  "bin": "./dist/cli.js",
+  "bin": {
+    "toolkit": "dist/cli.js"
+  },
   "files": [
     "dist",
     "README.md",
@@ -47,6 +53,7 @@
     "node": ">=20"
   },
   "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   }
 }
