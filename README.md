@@ -71,6 +71,16 @@ npx toolkit changelog status / publish    # 其余 changeset 子命令透传
 - **校验与归档**：写入方案文件后执行 `toolkit tasks` 校验总览；任务完成后执行 `toolkit tasks archive` 归档
 - **版本管理**：涉及发版时先 `toolkit changelog` 创建变更集，再 `toolkit changelog version` 发版并格式化 CHANGELOG
 
+### 归档与提交约束
+
+项目内任务（含 AI 工作流）完成后，遵循**先归档、后提交**的顺序，保证任务记录与代码变更落在**同一个 git 提交**：
+
+1. 任务完成后，在任务文件 frontmatter 标记 `status: 已完成` 并填写 `completed` 完成时间
+2. 执行 `toolkit tasks archive` 归档，任务从 `active/` 移入 `archive/`
+3. 归档后再将代码变更与归档文件一起 `git commit`
+
+避免两种情形：任务完成但文件长期滞留 `active/` 未归档；或代码已提交、归档又单独形成一条提交记录。
+
 ## 📚 库 API
 
 ```typescript
