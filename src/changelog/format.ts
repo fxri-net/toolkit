@@ -11,7 +11,10 @@ export function localDate(): string {
 
 // 格式化单个 CHANGELOG 文件，返回是否有改动
 export function formatChangelog(file: string, today: string, lang: ChangelogLanguage): boolean {
-  let content = readFileSync(file, "utf8")
+  const raw = readFileSync(file, "utf8")
+  // 记录原换行符（LF/CRLF），统一按 LF 处理后原样还原，避免 Windows 下出现混合换行
+  const eol = raw.includes("\r\n") ? "\r\n" : "\n"
+  let content = raw.replace(/\r\n/g, "\n")
   // 标题替换（多语言）
   for (const [from, to] of Object.entries(lang.replacements)) {
     content = content.replaceAll(from, to)
@@ -20,24 +23,24 @@ export function formatChangelog(file: string, today: string, lang: ChangelogLang
   while (content.includes(`${lang.deps}\n${lang.deps}`)) {
     content = content.replace(`${lang.deps}\n${lang.deps}`, lang.deps)
   }
-  // 合并连续完全相同的条目
+  // 合并任意位置连续完全相同的条目（/m 使 ^、$ 按行生效）
   while (true) {
-    const merged = content.replace(/^- (.+)\n- \1$/m, "- $1")
+    const merged = content.replace(/^- (.+)\n- \1$/gm, "- $1")
     if (merged === content) break
     content = merged
   }
-  // 版本标题下补发布日期
+  // 版本标题下补发布日期（后缀文案随语言）
   const lines = content.split("\n")
   const result: string[] = []
   for (let i = 0; i < lines.length; i++) {
     result.push(lines[i])
     if (/^## \d+\.\d+\.\d+/.test(lines[i]) && !lines[i + 1]?.startsWith("> ")) {
-      result.push(`> ${today} 发布`)
+      result.push(`> ${today} ${lang.released}`)
     }
   }
   const next = result.join("\n")
   if (next !== content) {
-    writeFileSync(file, next, "utf8")
+    writeFileSync(file, next.replace(/\n/g, eol), "utf8")
     return true
   }
   return false

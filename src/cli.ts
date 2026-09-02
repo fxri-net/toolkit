@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { createRequire } from "node:module"
-import { execSync } from "node:child_process"
+import { spawnSync } from "node:child_process"
 import { printTasks } from "./tasks/list"
 import { archiveTasks } from "./tasks/archive"
 import { languages, DEFAULT_LANG } from "./changelog/languages"
@@ -13,8 +13,11 @@ const require = createRequire(import.meta.url)
 const changesetBin = require.resolve("@changesets/cli/bin.js")
 
 // 调用 changesets（子进程执行，继承 stdio）
+// process.execPath + 数组传参：规避 shell 转义差异，不依赖 PATH 中的 node 版本
 const runChangeset = (cmd: string[]) => {
-  execSync(`node "${changesetBin}" ${cmd.join(" ")}`, { stdio: "inherit" })
+  const res = spawnSync(process.execPath, [changesetBin, ...cmd], { stdio: "inherit" })
+  // 透传子进程退出码，失败时不静默吞掉
+  if (res.status !== 0) process.exit(res.status ?? 1)
 }
 
 const args = process.argv.slice(2)

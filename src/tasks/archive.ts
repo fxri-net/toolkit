@@ -1,9 +1,24 @@
-import { readFileSync, writeFileSync, mkdirSync, unlinkSync, existsSync } from "node:fs"
-import { join, basename } from "node:path"
+import { readFileSync, writeFileSync, mkdirSync, unlinkSync, existsSync, readdirSync, rmdirSync } from "node:fs"
+import { join, basename, dirname, resolve, sep } from "node:path"
 import { parseFrontmatter, stripFrontmatter } from "./parse"
 import { listTaskFiles } from "./scan"
 import { DONE_STATUSES } from "./types"
 import type { ArchiveBlock, ArchiveResult } from "./types"
+
+// 删除空目录，并从父目录往上递归清理，直到 stopDir 或遇到非空目录
+function removeEmptyDirs(dir: string, stopDir: string) {
+  let current = resolve(dir)
+  const stop = resolve(stopDir)
+  while (current !== stop && current.startsWith(stop + sep)) {
+    try {
+      if (readdirSync(current).length > 0) break
+      rmdirSync(current)
+    } catch {
+      break
+    }
+    current = dirname(current)
+  }
+}
 
 // 解析归档文件里的任务块，返回 { block, completed } 数组
 export function parseArchiveTasks(file: string): ArchiveBlock[] {
@@ -86,6 +101,8 @@ export function archiveTasks(tasksDir = ".tasks"): ArchiveResult {
 
     // 删除本次已归档的 active 文件
     for (const t of newTasks) unlinkSync(t.file)
+    // 清理空目录（active/年月/ 及其上层 active/）
+    removeEmptyDirs(dirname(newTasks[0].file), tasksDir)
     console.log(`已归档 ${newTasks.length} 个任务 → ${date}.md`)
   }
 

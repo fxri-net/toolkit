@@ -5,6 +5,7 @@ export type LanguageMap = Record<string, string>
 export interface ChangelogLanguage {
   replacements: LanguageMap
   deps: string
+  released: string
 }
 
 export const languages: Record<string, ChangelogLanguage> = {
@@ -21,6 +22,7 @@ export const languages: Record<string, ChangelogLanguage> = {
       "- Updated dependencies": "- 更新依赖",
     },
     deps: "- 更新依赖",
+    released: "发布",
   },
   en: {
     replacements: {
@@ -30,6 +32,7 @@ export const languages: Record<string, ChangelogLanguage> = {
       "### Dependent Changes": "### 🔗 Dependent Changes",
     },
     deps: "- Updated dependencies",
+    released: "released",
   },
 }
 
