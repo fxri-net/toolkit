@@ -1,12 +1,16 @@
 {
   "name": "@fxri/toolkit",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "开发工程化工具集：任务管理 + 多语言 CHANGELOG 发布。",
   "license": "MIT",
   "author": {
     "name": "唐启云",
     "email": "tqy@fxri.net",
     "url": "https://fxri.net:444/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fxri-net/toolkit.git"
   },
   "type": "module",
   "main": "./dist/index.js",
