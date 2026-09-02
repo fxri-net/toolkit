@@ -54,6 +54,15 @@ npx toolkit changelog status / publish    # 其余 changeset 子命令透传
 }
 ```
 
+## 📋 方案落盘（任务区）
+
+把已确认的实施/修复方案登记为 `.tasks/` 下的任务文件，由 toolkit 统一校验与归档，配合 AI 工作流在任意语言项目落地：
+
+- **调用优先级**：`npx toolkit`（项目本地依赖）→ `toolkit`（全局安装）；两者均不可用时直接以 Markdown 输出方案，不阻塞执行
+- **规范来源**：优先读取项目根 `SPEC.md`，缺失时读取包内 `SPEC.md`（目录结构、文件命名与 frontmatter 字段均以该规范为准）
+- **校验与归档**：写入方案文件后执行 `toolkit tasks` 校验总览；任务完成后执行 `toolkit tasks archive` 归档
+- **版本管理**：涉及发版时先 `toolkit changelog` 创建变更集，再 `toolkit changelog version` 发版并格式化 CHANGELOG
+
 ## 📚 库 API
 
 ```typescript

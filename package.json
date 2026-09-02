@@ -1,6 +1,6 @@
 {
   "name": "@fxri/toolkit",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "开发工程化工具集：任务管理 + 多语言 CHANGELOG 发布。",
   "license": "MIT",
   "author": {
