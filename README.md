@@ -131,7 +131,18 @@ export const languages = {
 
 ## ⚙️ 环境要求
 
-- Node.js >= 20
+- Node.js >= 20（正式支持）
+
+### 版本兼容性实测
+
+| 能力 | Node 20 | Node 18 |
+| --- | --- | --- |
+| 安装 | ✅ | ✅（npm 报 EBADENGINE 警告） |
+| tasks（总览 / 归档） | ✅ | ✅ |
+| changelog format（纯格式化） | ✅ | ✅ |
+| changelog init/add/version/publish | ✅ | ❌ |
+
+⚠️ Node 18 下依赖 changesets 的 changelog 子命令因上游 `human-id@4`（ESM-only）无法被 `require()`，报 `ERR_REQUIRE_ESM`；属 changesets 生态限制，非本工具代码问题。
 
 ## 📄 版权信息
 
