@@ -1,0 +1,52 @@
+{
+  "name": "@fxri/toolkit",
+  "version": "1.0.0",
+  "description": "开发工程化工具集：任务管理 + 多语言 CHANGELOG 发布。",
+  "license": "MIT",
+  "author": {
+    "name": "唐启云",
+    "email": "tqy@fxri.net",
+    "url": "https://fxri.net:444/"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": "./dist/cli.js",
+  "files": [
+    "dist",
+    "README.md",
+    "SPEC.md",
+    "LICENSE",
+    "TRADEMARK.md",
+    "NOTICE",
+    "package.json"
+  ],
+  "scripts": {
+    "dev": "pnpm build:debug && node ./dist/cli.js",
+    "build": "cross-env NODE_ENV=production tsup",
+    "build:debug": "cross-env NODE_ENV=development tsup --config tsup.dev.config.ts",
+    "release": "pnpm build && pnpm publish"
+  },
+  "keywords": [
+    "toolkit",
+    "task",
+    "changelog",
+    "changesets",
+    "i18n"
+  ],
+  "dependencies": {
+    "@changesets/cli": "^2.31.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.21",
+    "cross-env": "^10.1.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
+  },
+  "packageManager": "pnpm@10.34.4",
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  }
+}

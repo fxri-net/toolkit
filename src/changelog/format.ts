@@ -1,0 +1,58 @@
+import { readFileSync, writeFileSync } from "node:fs"
+import { collectChangelogs } from "./collect"
+import type { ChangelogLanguage } from "./languages"
+
+// 生成本地时区日期 YYYY-MM-DD
+export function localDate(): string {
+  const now = new Date()
+  const p = (n: number) => String(n).padStart(2, "0")
+  return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`
+}
+
+// 格式化单个 CHANGELOG 文件，返回是否有改动
+export function formatChangelog(file: string, today: string, lang: ChangelogLanguage): boolean {
+  let content = readFileSync(file, "utf8")
+  // 标题替换（多语言）
+  for (const [from, to] of Object.entries(lang.replacements)) {
+    content = content.replaceAll(from, to)
+  }
+  // 合并连续重复的「依赖更新」
+  while (content.includes(`${lang.deps}\n${lang.deps}`)) {
+    content = content.replace(`${lang.deps}\n${lang.deps}`, lang.deps)
+  }
+  // 合并连续完全相同的条目
+  while (true) {
+    const merged = content.replace(/^- (.+)\n- \1$/m, "- $1")
+    if (merged === content) break
+    content = merged
+  }
+  // 版本标题下补发布日期
+  const lines = content.split("\n")
+  const result: string[] = []
+  for (let i = 0; i < lines.length; i++) {
+    result.push(lines[i])
+    if (/^## \d+\.\d+\.\d+/.test(lines[i]) && !lines[i + 1]?.startsWith("> ")) {
+      result.push(`> ${today} 发布`)
+    }
+  }
+  const next = result.join("\n")
+  if (next !== content) {
+    writeFileSync(file, next, "utf8")
+    return true
+  }
+  return false
+}
+
+// 格式化目录下所有 CHANGELOG.md
+export function formatChangelogs(dir: string, today: string, lang: ChangelogLanguage): string[] {
+  const changed: string[] = []
+  for (const file of collectChangelogs(dir)) {
+    if (formatChangelog(file, today, lang)) changed.push(file)
+  }
+  if (changed.length === 0) {
+    console.log("无 CHANGELOG 需要更新")
+  } else {
+    for (const file of changed) console.log(`changelog 已更新：${file}`)
+  }
+  return changed
+}
