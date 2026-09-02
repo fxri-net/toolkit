@@ -1,6 +1,6 @@
 {
   "name": "@fxri/toolkit",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "开发工程化工具集：任务管理 + 多语言 CHANGELOG 发布。",
   "license": "MIT",
   "author": {
@@ -8,16 +8,18 @@
     "email": "tqy@fxri.net",
     "url": "https://fxri.net:444/"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://git.fxy.ink:444/fxri/develop/0001.base/toolkit.git"
-  },
   "type": "module",
   "main": "./dist/index.js",
   "exports": {
     ".": {
-      "import": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
-      "require": { "types": "./dist/index.d.cts", "default": "./dist/index.cjs" }
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./package.json": "./package.json"
   },
@@ -28,6 +30,7 @@
     "dist",
     "README.md",
     "SPEC.md",
+    "CHANGELOG.md",
     "LICENSE",
     "TRADEMARK.md",
     "NOTICE",

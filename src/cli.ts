@@ -35,7 +35,8 @@ if (domain === "tasks") {
   // changelog 域
   const langIdx = rest.indexOf("--lang")
   const lang = langIdx >= 0 && rest[langIdx + 1] ? rest[langIdx + 1] : DEFAULT_LANG
-  const cmd = rest.filter((_, i) => i !== langIdx && i !== langIdx + 1)
+  // 有 --lang 时剔除语言参数；无 --lang 时 rest 即命令列表（langIdx=-1 会误删下标 0 的命令词）
+  const cmd = langIdx >= 0 ? rest.filter((_, i) => i !== langIdx && i !== langIdx + 1) : rest
   const command = cmd[0]
   if (command === "version") {
     runChangeset(["version"])
