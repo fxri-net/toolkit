@@ -3,6 +3,7 @@ import { join, basename, dirname, resolve, sep } from "node:path"
 import { parseFrontmatter, stripFrontmatter } from "./parse"
 import { listTaskFiles } from "./scan"
 import { DONE_STATUSES } from "./types"
+import { redactText } from "../privacy/redact"
 import type { ArchiveBlock, ArchiveResult } from "./types"
 
 // 删除空目录，并从父目录往上递归清理，直到 stopDir 或遇到非空目录
@@ -40,7 +41,7 @@ export function parseArchiveTasks(file: string): ArchiveBlock[] {
 }
 
 // 归档：任务级，将「已完成/已放弃」的任务按完成时间归组排序后写入归档文件
-export function archiveTasks(tasksDir = ".tasks"): ArchiveResult {
+export function archiveTasks(tasksDir = ".tasks", redact = true): ArchiveResult {
   const activeDir = join(tasksDir, "active")
   const archiveDir = join(tasksDir, "archive")
   const files = listTaskFiles(activeDir)
@@ -94,7 +95,7 @@ export function archiveTasks(tasksDir = ".tasks"): ArchiveResult {
     const all: ArchiveBlock[] = existsSync(archiveFile) ? parseArchiveTasks(archiveFile) : []
     all.push(
       ...newTasks.map((t) => ({
-        block: `## ${t.name}\n\n> 负责人：${t.owner}　状态：${t.status}　范围：${t.scope}　完成时间：${t.completed}\n\n${t.body}`,
+        block: `## ${t.name}\n\n> 负责人：${t.owner}　状态：${t.status}　范围：${t.scope}　完成时间：${t.completed}\n\n${redactText(t.body, redact)}`,
         completed: t.completed,
       })),
     )

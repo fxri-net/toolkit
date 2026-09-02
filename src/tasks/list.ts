@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs"
 import { join, basename } from "node:path"
 import { parseFrontmatter, stripFrontmatter } from "./parse"
 import { listTaskFiles, dateFromFileName } from "./scan"
+import { redactText } from "../privacy/redact"
 import type { Task } from "./types"
 
 // 读取 active 目录下的任务列表
@@ -27,7 +28,7 @@ export function listTasks(tasksDir = ".tasks"): Task[] {
 }
 
 // 输出任务总览
-export function printTasks(tasksDir = ".tasks"): void {
+export function printTasks(tasksDir = ".tasks", redact = true): void {
   const tasks = listTasks(tasksDir)
   if (tasks.length === 0) {
     console.log("当前无活跃任务")
@@ -49,7 +50,7 @@ export function printTasks(tasksDir = ".tasks"): void {
     total += list.length
     console.log(`【${status}】${list.length} 项`)
     for (const t of list) {
-      console.log(`  ${t.date}  ${(t.frontmatter.owner || "未标注").padEnd(8)}  ${t.title}`)
+      console.log(`  ${t.date}  ${(t.frontmatter.owner || "未标注").padEnd(8)}  ${redactText(t.title, redact)}`)
     }
     console.log("")
   }

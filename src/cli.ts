@@ -6,6 +6,7 @@ import { printTasks } from "./tasks/list"
 import { archiveTasks } from "./tasks/archive"
 import { languages, DEFAULT_LANG } from "./changelog/languages"
 import { localDate, formatChangelogs } from "./changelog/format"
+import { resolveRedactEnabled } from "./privacy/redact"
 
 const require = createRequire(import.meta.url)
 
@@ -23,26 +24,30 @@ const runChangeset = (cmd: string[]) => {
 const args = process.argv.slice(2)
 const domain = args[0]
 const rest = args.slice(1)
+// 隐私脱敏开关：默认开启；--no-redact / FX_REDACT=0 / .toolkitrc.json 的 enabled=false 均可关闭
+const redact = resolveRedactEnabled(args)
 
 if (domain === "tasks") {
   // 任务管理域
   const dirIdx = rest.indexOf("--dir")
   const dir = dirIdx >= 0 && rest[dirIdx + 1] ? rest[dirIdx + 1] : ".tasks"
   const command = rest.find((a) => !a.startsWith("--") && a !== dir) || "list"
-  if (command === "archive") archiveTasks(dir)
-  else printTasks(dir)
+  if (command === "archive") archiveTasks(dir, redact)
+  else printTasks(dir, redact)
 } else if (domain === "changelog") {
   // changelog 域
   const langIdx = rest.indexOf("--lang")
   const lang = langIdx >= 0 && rest[langIdx + 1] ? rest[langIdx + 1] : DEFAULT_LANG
-  // 有 --lang 时剔除语言参数；无 --lang 时 rest 即命令列表（langIdx=-1 会误删下标 0 的命令词）
-  const cmd = langIdx >= 0 ? rest.filter((_, i) => i !== langIdx && i !== langIdx + 1) : rest
+  // 有 --lang 时剔除语言参数；无 --lang 时 rest 即命令列表（langIdx=-1 会误删下标 0 的命令词）；再剔除 --no-redact
+  const cmd = (langIdx >= 0 ? rest.filter((_, i) => i !== langIdx && i !== langIdx + 1) : rest).filter(
+    (a) => a !== "--no-redact",
+  )
   const command = cmd[0]
   if (command === "version") {
     runChangeset(["version"])
-    formatChangelogs(".", localDate(), languages[lang] ?? languages[DEFAULT_LANG])
+    formatChangelogs(".", localDate(), languages[lang] ?? languages[DEFAULT_LANG], redact)
   } else if (command === "format") {
-    formatChangelogs(".", localDate(), languages[lang] ?? languages[DEFAULT_LANG])
+    formatChangelogs(".", localDate(), languages[lang] ?? languages[DEFAULT_LANG], redact)
   } else if (command) {
     runChangeset(cmd)
   } else {

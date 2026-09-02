@@ -9,3 +9,6 @@ export { parseArchiveTasks, archiveTasks } from "./tasks/archive"
 export * from "./changelog/languages"
 export { collectChangelogs } from "./changelog/collect"
 export { localDate, formatChangelog, formatChangelogs } from "./changelog/format"
+
+// privacy 域
+export { redactText } from "./privacy/redact"

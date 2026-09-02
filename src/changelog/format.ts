@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs"
 import { collectChangelogs } from "./collect"
+import { redactText } from "../privacy/redact"
 import type { ChangelogLanguage } from "./languages"
 
 // 生成本地时区日期 YYYY-MM-DD
@@ -10,7 +11,7 @@ export function localDate(): string {
 }
 
 // 格式化单个 CHANGELOG 文件，返回是否有改动
-export function formatChangelog(file: string, today: string, lang: ChangelogLanguage): boolean {
+export function formatChangelog(file: string, today: string, lang: ChangelogLanguage, redact = true): boolean {
   const raw = readFileSync(file, "utf8")
   // 记录原换行符（LF/CRLF），统一按 LF 处理后原样还原，避免 Windows 下出现混合换行
   const eol = raw.includes("\r\n") ? "\r\n" : "\n"
@@ -46,18 +47,20 @@ export function formatChangelog(file: string, today: string, lang: ChangelogLang
     }
   }
   const next = result.join("\n")
-  if (next !== baseline) {
-    writeFileSync(file, next.replace(/\n/g, eol), "utf8")
+  // 写回前对变更条目等自由文本脱敏（redact=false 时原样返回）
+  const output = redactText(next, redact)
+  if (output !== baseline) {
+    writeFileSync(file, output.replace(/\n/g, eol), "utf8")
     return true
   }
   return false
 }
 
 // 格式化目录下所有 CHANGELOG.md
-export function formatChangelogs(dir: string, today: string, lang: ChangelogLanguage): string[] {
+export function formatChangelogs(dir: string, today: string, lang: ChangelogLanguage, redact = true): string[] {
   const changed: string[] = []
   for (const file of collectChangelogs(dir)) {
-    if (formatChangelog(file, today, lang)) changed.push(file)
+    if (formatChangelog(file, today, lang, redact)) changed.push(file)
   }
   if (changed.length === 0) {
     console.log("无 CHANGELOG 需要更新")

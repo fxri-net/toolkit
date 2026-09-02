@@ -68,7 +68,7 @@ npx toolkit changelog status / publish    # 其余 changeset 子命令透传
 ```typescript
 import {
   listTasks, printTasks, archiveTasks, parseFrontmatter,
-  languages, DEFAULT_LANG, localDate, formatChangelogs,
+  languages, DEFAULT_LANG, localDate, formatChangelogs, redactText,
 } from "@fxri/toolkit"
 
 // 任务管理
@@ -79,7 +79,12 @@ const result = archiveTasks(".tasks")
 // CHANGELOG 格式化（默认中文）
 formatChangelogs(".", localDate(), languages[DEFAULT_LANG])
 formatChangelogs(".", localDate(), languages.en)
+
+// 隐私脱敏（printTasks/archiveTasks/formatChangelog(s) 的第 2/4 个参数 redact 默认 true）
+const masked = redactText("联系 tqy@fxri.net", true) // → "联系 t***@***.net"
 ```
+
+`printTasks` / `archiveTasks` / `formatChangelog` / `formatChangelogs` 均提供可选 `redact` 参数（默认 `true`），传 `false` 可关闭本次脱敏。
 
 ### 语言扩展
 
@@ -87,9 +92,32 @@ formatChangelogs(".", localDate(), languages.en)
 
 ```typescript
 export const languages = {
-  zh: { replacements: { "### Major Changes": "### 🚨 重大变更", ... }, deps: "- 更新依赖" },
-  en: { replacements: {}, deps: "- Updated dependencies" },
+  zh: { replacements: { "### Major Changes": "### 🚨 重大变更", ... }, deps: "- 更新依赖", released: "发布" },
+  en: { replacements: {}, deps: "- Updated dependencies", released: "released" },
   // 未来：ja / ko / ...
+}
+```
+
+## 🔒 隐私脱敏
+
+落盘记录自由文本（任务正文/标题、CHANGELOG 条目）时默认脱敏敏感信息，`owner` 等结构化 frontmatter 字段不脱敏。
+
+- **内置规则**：邮箱、手机号、身份证、IPv4、AWS/GitHub/OpenAI/Slack 密钥、JWT、含端口内网 URL
+- **关闭开关**（默认开启，优先级从高到低）：
+  - CLI 参数 `--no-redact`
+  - 环境变量 `FX_REDACT=0`
+  - 配置文件 `redact.enabled: false`
+- **自定义规则**：项目根 `.toolkitrc.json`，追加规则（优先于内置）或按 `name` 禁用内置规则：
+
+```json
+{
+  "redact": {
+    "enabled": true,
+    "disable": ["手机号"],
+    "rules": [
+      { "name": "自定义码", "pattern": "cod-[0-9]{6}", "flags": "i", "replacement": "cod-******" }
+    ]
+  }
 }
 ```
 
