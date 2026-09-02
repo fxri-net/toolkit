@@ -20,6 +20,13 @@ function removeEmptyDirs(dir: string, stopDir: string) {
   }
 }
 
+// 统一完成时间为 YYYY-MM-DD HH:mm 定宽格式（年月日时分不足两位补零），解析失败返回原值
+function normalizeCompleted(completed: string): string {
+  const m = completed.trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T\s](\d{1,2}):(\d{2})(?::\d{2})?$/)
+  if (!m) return completed
+  return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")} ${m[4].padStart(2, "0")}:${m[5]}`
+}
+
 // 解析归档文件里的任务块，返回 { block, completed } 数组
 export function parseArchiveTasks(file: string): ArchiveBlock[] {
   const content = readFileSync(file, "utf8")
@@ -49,7 +56,7 @@ export function archiveTasks(tasksDir = ".tasks"): ArchiveResult {
     const content = readFileSync(file, "utf8")
     const fm = parseFrontmatter(content)
     if (!DONE_STATUSES.includes(fm.status as never)) continue
-    const completed = fm.completed
+    const completed = normalizeCompleted(fm.completed || "")
     if (!completed) {
       skipped.push(basename(file, ".md"))
       console.log(`跳过 ${basename(file, ".md")}：缺少 completed 完成时间`)
@@ -83,7 +90,7 @@ export function archiveTasks(tasksDir = ".tasks"): ArchiveResult {
     mkdirSync(monthDir, { recursive: true })
     const archiveFile = join(monthDir, `${date}.md`)
 
-    // 合并已有归档任务 + 本次新任务，按完成时间排序
+    // 合并已有归档任务 + 本次新任务，排序键统一定宽规范化后按完成时间降序（最新在前）
     const all: ArchiveBlock[] = existsSync(archiveFile) ? parseArchiveTasks(archiveFile) : []
     all.push(
       ...newTasks.map((t) => ({
@@ -91,7 +98,8 @@ export function archiveTasks(tasksDir = ".tasks"): ArchiveResult {
         completed: t.completed,
       })),
     )
-    all.sort((a, b) => a.completed.localeCompare(b.completed))
+    for (const item of all) item.completed = normalizeCompleted(item.completed)
+    all.sort((a, b) => b.completed.localeCompare(a.completed))
 
     writeFileSync(
       archiveFile,
