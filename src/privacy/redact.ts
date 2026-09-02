@@ -103,9 +103,9 @@ export function redactText(text: string, enabled: boolean): string {
   return out
 }
 
-// 解析脱敏总开关：CLI --no-redact > 环境变量 FX_REDACT=0 > 配置 enabled=false > 默认开启
-export function resolveRedactEnabled(args: string[]): boolean {
-  if (args.includes("--no-redact")) return false
+// 解析脱敏总开关：CLI 开关（commander 解析的 --no-redact）> 环境变量 FX_REDACT=0 > 配置 enabled=false > 默认开启
+export function resolveRedactEnabled(cliEnabled: boolean): boolean {
+  if (!cliEnabled) return false
   if (process.env.FX_REDACT === "0") return false
   if (loadConfig()?.enabled === false) return false
   return true

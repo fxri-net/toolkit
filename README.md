@@ -40,6 +40,14 @@ npx toolkit changelog format              # 仅格式化已有 CHANGELOG
 npx toolkit changelog status / publish    # 其余 changeset 子命令透传
 ```
 
+### 通用选项
+
+```bash
+-h, --help      显示帮助（全局或子命令）
+-v, --version   显示版本号
+--no-redact     关闭隐私脱敏（tasks / changelog 均可用）
+```
+
 ### 接入 package.json
 
 ```json
