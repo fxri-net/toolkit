@@ -243,6 +243,11 @@ program
             console.log(toJSON(rows, summary, redact))
           } else {
             printTaskBoard(dir, view as TaskView, filter, redact)
+            // 默认视图提示：带过滤但落在待完成视图无结果时，提示归档需要显式 --view（避免误以为过滤不生效）
+            const hasFilter = Boolean(options.owner || options.scope || options.status || options.date || options.since || options.until)
+            if (!options.view && hasFilter && rows.length === 0) {
+              console.log("（提示：过滤默认作用于待完成视图，查看归档请加 --view archived 或 --view all）")
+            }
           }
         } catch (e) {
           console.error(`⚠️ 操作失败：${(e as Error).message}`)

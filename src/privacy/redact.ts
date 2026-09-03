@@ -64,9 +64,6 @@ const BUILTIN_RULES: RedactRule[] = [
   { name: "IPv4", pattern: /(?<![\d.])(\d{1,3}\.\d{1,3})\.\d{1,3}\.\d{1,3}(?![\d.])/g, replacement: "$1.***.***" },
 ]
 
-// 规则缓存（自定义规则 + 内置规则合成后的结果）
-let cachedRules: RedactRule[] | null = null
-
 // 读取 .toolkitrc.json 的 redact 段（配置加载与缓存由 config.ts 统一处理）
 function loadConfig(): RedactConfig | null {
   const section = getConfigSection("redact")
@@ -78,9 +75,9 @@ function loadConfig(): RedactConfig | null {
   }
 }
 
-// 合成最终规则集：自定义规则优先，内置规则可按 name 禁用
+// 规则缓存（自定义规则 + 内置规则合成后的结果）；库形态长驻进程/测试中需响应配置变更，故不缓存
+// （正则编译开销可忽略，配置本身由 config.ts 统一缓存，变更后可 resetToolkitConfigCache 失效）
 function getRules(): RedactRule[] {
-  if (cachedRules) return cachedRules
   const cfg = loadConfig()
   const disabled = new Set(cfg?.disable ?? [])
   const custom: RedactRule[] = []
@@ -91,8 +88,7 @@ function getRules(): RedactRule[] {
       // 单条规则正则非法：跳过，不影响其余规则
     }
   }
-  cachedRules = [...custom, ...BUILTIN_RULES.filter((r) => !disabled.has(r.name))]
-  return cachedRules
+  return [...custom, ...BUILTIN_RULES.filter((r) => !disabled.has(r.name))]
 }
 
 // 按需对文本脱敏（enabled=false 原样返回）

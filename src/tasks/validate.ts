@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs"
 import { join, basename } from "node:path"
 import { listTaskFiles } from "./scan"
 import { parseFrontmatter, stripFrontmatter } from "./parse"
+import { getConfigSection } from "../config"
 import type { TaskStatus } from "./types"
 
 // 问题级别：error 硬性错误 / warn 软告警
@@ -33,6 +34,10 @@ const PENDING_MARKERS = /待办|待实施|待核对|待确认|待开始|待评�
 
 // completed 合法格式：YYYY-M-D（时分秒可选，非定宽也接受）
 const COMPLETED_RE = /^\d{4}-\d{1,2}-\d{1,2}(?:[T\s]\d{1,2}:\d{2}(?::\d{2})?)?$/
+// completed 完整时间格式：日期 + 时分（可带秒/T 分隔）
+const COMPLETED_FULL_RE = /^\d{4}-\d{1,2}-\d{1,2}[T\s]\d{1,2}:\d{2}(?::\d{2})?$/
+// active 文件名规范：{YYYYMMDD}-{负责人}-{简述}.md
+const ACTIVE_NAME_RE = /^\d{8}-[^-]+-.+\.md$/
 
 // 校验单个任务文件，返回问题列表
 export function validateTaskFile(file: string): CheckIssue[] {
@@ -60,6 +65,24 @@ export function validateTaskFile(file: string): CheckIssue[] {
 
   if (fm.completed && !COMPLETED_RE.test(fm.completed.trim())) {
     issues.push({ level: "warn", file: name, message: `completed「${fm.completed}」格式非法，应为 YYYY-MM-DD HH:mm` })
+  } else if (fm.completed && !COMPLETED_FULL_RE.test(fm.completed.trim())) {
+    issues.push({ level: "warn", file: name, message: `completed「${fm.completed}」建议补全为完整时间 YYYY-MM-DD HH:mm` })
+  }
+
+  // 元数据完整性（软告警）：负责人 / 创建日期 / 文件命名规范
+  if (!fm.owner) {
+    issues.push({ level: "warn", file: name, message: "缺少 owner 负责人字段" })
+  }
+  if (!fm.created) {
+    issues.push({ level: "warn", file: name, message: "缺少 created 创建日期字段" })
+  } else if (!/^\d{8}$/.test(fm.created.trim())) {
+    issues.push({ level: "warn", file: name, message: `created「${fm.created}」格式非法，应为 YYYYMMDD` })
+  }
+  const nameMatch = name.match(/^(\d{8})-/)
+  if (!ACTIVE_NAME_RE.test(name)) {
+    issues.push({ level: "warn", file: name, message: "文件名不符合规范 {YYYYMMDD}-{负责人}-{简述}.md" })
+  } else if (fm.created && /^\d{8}$/.test(fm.created.trim()) && nameMatch && fm.created.trim() !== nameMatch[1]) {
+    issues.push({ level: "warn", file: name, message: `文件名日期 ${nameMatch[1]} 与 created ${fm.created.trim()} 不一致` })
   }
 
   // 方案正文子项未闭合扫描（软告警，不阻断）
@@ -67,6 +90,12 @@ export function validateTaskFile(file: string): CheckIssue[] {
   const pending = body.match(PENDING_MARKERS)
   if (pending) {
     issues.push({ level: "warn", file: name, message: `正文含未闭合待办标记「${pending[0]}」，建议拆分为独立 active 任务或明确闭环` })
+  }
+
+  // 未勾选的 Markdown 任务复选框（软告警，默认开；.toolkitrc.json 的 check.includeCheckbox=false 可关）
+  const includeCheckbox = getConfigSection("check")?.includeCheckbox !== false
+  if (includeCheckbox && /^[-*]\s*\[ \]\s/m.test(body)) {
+    issues.push({ level: "warn", file: name, message: "正文含未勾选待办项「- [ ]」，建议拆分为独立 active 任务或勾选完成" })
   }
 
   return issues
@@ -110,17 +139,19 @@ function parseDeps(raw: unknown): string[] {
   return []
 }
 
-// 校验 depends_on 依赖：目标存在性 + 成环检测
+// 校验 depends_on 依赖：目标存在性 + 成环检测（引用带 .md 扩展名时自动归一化比对）
 function validateDependencies(files: string[]): CheckIssue[] {
   const issues: CheckIssue[] = []
   const nameSet = new Set(files.map((f) => basename(f, ".md")))
   const depsMap = new Map<string, string[]>()
+  // 引用名归一化：去空白与 .md 后缀，统一为任务文件 basename（不含扩展名）
+  const normDep = (d: string) => d.trim().replace(/\.md$/, "").trim()
 
   for (const file of files) {
     const name = basename(file, ".md")
     const content = readFileSync(file, "utf8")
     const fm = parseFrontmatter(content)
-    const deps = parseDeps((fm as Record<string, unknown>).depends_on)
+    const deps = parseDeps((fm as Record<string, unknown>).depends_on).map(normDep)
     depsMap.set(name, deps)
     for (const d of deps) {
       if (!nameSet.has(d)) {

@@ -23,4 +23,4 @@ export { redactText } from "./privacy/redact"
 
 // 开关与配置域
 export { parseBool, resolveEnabled } from "./switch"
-export { loadToolkitConfig, getConfigSection } from "./config"
+export { loadToolkitConfig, getConfigSection, resetToolkitConfigCache } from "./config"

@@ -10,11 +10,15 @@ export interface ArchiveBlockInfo {
   body: string
 }
 
-// 统一完成时间为 YYYY-MM-DD HH:mm 定宽格式（年月日时分不足两位补零），解析失败返回原值
+// 统一完成时间为 YYYY-MM-DD HH:mm 定宽格式（年月日时分不足两位补零；纯日期补 00:00），解析失败返回原值
 export function normalizeCompleted(completed: string): string {
-  const m = completed.trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T\s](\d{1,2}):(\d{2})(?::\d{2})?$/)
-  if (!m) return completed
-  return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")} ${m[4].padStart(2, "0")}:${m[5]}`
+  const t = completed.trim()
+  let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T\s](\d{1,2}):(\d{2})(?::\d{2})?$/)
+  if (!m) m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+  if (!m) return t
+  const date = `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`
+  if (m.length === 4) return `${date} 00:00`
+  return `${date} ${m[4].padStart(2, "0")}:${m[5]}`
 }
 
 // 从块标题提取负责人：形如 `20260903-唐启云-xxx` 取中段，否则返回空
@@ -62,9 +66,36 @@ export function parseArchiveBlocks(content: string): { header: string; blocks: A
         break
       }
     }
-    blocks.push({ title, metaLine, completed, body: chunkLines.slice(bodyStart).join("\n").trim() })
+    blocks.push({ title, metaLine, completed, body: trimBlockBody(chunkLines.slice(bodyStart)) })
   }
   return { header, blocks }
+}
+
+// 清理块正文：去掉块尾作为任务分隔符的 `---` 及其前后空行（可能残留多段），避免重复归档时分隔符累加
+function trimBlockBody(lines: string[]): string {
+  const out = [...lines]
+  for (;;) {
+    while (out.length > 0 && out[out.length - 1].trim() === "") out.pop()
+    if (out.length > 0 && /^---+\s*$/.test(out[out.length - 1].trim())) out.pop()
+    else break
+  }
+  return out.join("\n").trim()
+}
+
+// 疑似任务块扫描：形如 `## {YYYYMMDD}-{负责人}-{简述}` 的标题，其后首个非空行为 `> ` 元数据但缺「完成时间」，
+// 说明该块可能因元数据不完整被解析器归入前一块正文，需要人工确认（不自动修复，避免误判正文小节）
+export function scanOrphanBlocks(content: string): string[] {
+  const lines = content.split(/\r?\n/)
+  const orphans: string[] = []
+  for (let i = 0; i < lines.length; i++) {
+    const title = lines[i].match(/^## (\d{8}-[^-]+-.+)$/)?.[1]
+    if (!title) continue
+    let j = i + 1
+    while (j < lines.length && lines[j].trim() === "") j++
+    const first = lines[j]?.trim() ?? ""
+    if (first.startsWith("> ") && !first.includes("完成时间")) orphans.push(title)
+  }
+  return orphans
 }
 
 // 组装块文本（无元数据行且无完成时间时，保持无元数据行的原始结构）

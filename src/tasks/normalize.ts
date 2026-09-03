@@ -1,9 +1,10 @@
 // archive 归档归一化：检查历史归档块的元数据完整性、完成时间漂移、排序，并按需修复
-// 供 tasks normalize --check（只读）与 --fix（补齐元数据 + 降序重排）使用
-import { readFileSync, writeFileSync, openSync, closeSync, unlinkSync } from "node:fs"
-import { join, basename } from "node:path"
-import { normalizeCompleted, parseArchiveBlocks, renderBlock, buildMetaLine } from "./archive-block"
+// 供 tasks normalize --check（只读）与 --fix（补齐元数据 + 降序重排 + 漂移块迁移）使用
+import { readFileSync, writeFileSync, openSync, closeSync, unlinkSync, existsSync, mkdirSync, readdirSync, rmdirSync } from "node:fs"
+import { join, basename, dirname } from "node:path"
+import { normalizeCompleted, parseArchiveBlocks, renderBlock, buildMetaLine, scanOrphanBlocks } from "./archive-block"
 import { listTaskFiles } from "./scan"
+import type { ArchiveBlockInfo } from "./archive-block"
 
 // 归一化问题
 export interface NormalizeIssue {
@@ -36,6 +37,15 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
     const fileDate = name.replace(/\.md$/, "")
     const content = readFileSync(file, "utf8")
     const { blocks } = parseArchiveBlocks(content)
+
+    // 疑似任务块（元数据缺「完成时间」被归入前一块正文），提示人工确认
+    for (const title of scanOrphanBlocks(content)) {
+      issues.push({
+        file: name,
+        message: `疑似任务块「${title}」元数据缺「完成时间」，已被归入前一块正文（需人工确认）`,
+        fixable: false,
+      })
+    }
 
     // 排序检查：completed 定宽后是否降序
     for (let i = 1; i < blocks.length; i++) {
@@ -76,7 +86,27 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
   return issues
 }
 
-// 修复可自动修复的问题（补元数据 + 降序重排），返回修复数
+// 把漂移任务块迁移到与完成日期一致的目标归档文件（不存在则新建，已存在则合并降序）
+function migrateArchiveBlock(tasksDir: string, block: ArchiveBlockInfo, targetDate: string): void {
+  const monthDir = join(tasksDir, "archive", targetDate.slice(0, 6))
+  const targetFile = join(monthDir, `${targetDate}.md`)
+  mkdirSync(monthDir, { recursive: true })
+  let header = `# ${targetDate} 归档\n\n> 本文件由 \`toolkit tasks archive\` 自动生成。`
+  const target: ArchiveBlockInfo[] = []
+  if (existsSync(targetFile)) {
+    const parsed = parseArchiveBlocks(readFileSync(targetFile, "utf8"))
+    if (parsed.header) header = parsed.header
+    target.push(...parsed.blocks)
+  }
+  target.push(block)
+  target.sort((a, b) => normalizeCompleted(b.completed).localeCompare(normalizeCompleted(a.completed)))
+  const eol = existsSync(targetFile) && readFileSync(targetFile, "utf8").includes("\r\n") ? "\r\n" : "\n"
+  const next = `${header}\n\n${target.map(renderBlock).join("\n\n---\n\n")}\n`.replace(/\n/g, eol)
+  writeFileSync(targetFile, next, "utf8")
+  console.log(`  块「${block.title}」迁移 → ${targetDate}.md`)
+}
+
+// 修复可自动修复的问题（补元数据 + 漂移迁移 + 降序重排），返回修复数
 export function fixArchive(tasksDir = ".tasks"): NormalizeResult {
   const archiveDir = join(tasksDir, "archive")
   const files = listTaskFiles(archiveDir)
@@ -108,27 +138,43 @@ export function fixArchive(tasksDir = ".tasks"): NormalizeResult {
           changed = true
           fixed++
         }
-        // 漂移仅报告不修复
-        const norm = normalizeCompleted(b.completed)
-        const blockDate = norm.replace(/-/g, "").slice(0, 8)
-        if (blockDate && fileDate && blockDate !== fileDate) {
-          issues.push({ file: name, message: `块「${b.title}」完成时间 ${norm} 与归档日期 ${fileDate} 不一致（需人工确认是否迁移）`, fixable: false })
+      }
+
+      // 完成时间漂移迁移：把块迁到与 completed 日期一致的归档文件（原文件日期不再匹配的块全部迁出）
+      const keep: ArchiveBlockInfo[] = []
+      for (const b of blocks) {
+        const bd = b.completed ? normalizeCompleted(b.completed).replace(/-/g, "").slice(0, 8) : ""
+        if (bd && bd !== fileDate) {
+          migrateArchiveBlock(tasksDir, b, bd)
+          fixed++
+          changed = true
+        } else {
+          keep.push(b)
         }
       }
 
       // 降序重排（仅对 completed 可解析的块；缺失 completed 的块保持末尾）
-      const dated = blocks.filter((b) => b.completed)
-      const undated = blocks.filter((b) => !b.completed)
+      const dated = keep.filter((b) => b.completed)
+      const undated = keep.filter((b) => !b.completed)
       const sorted = [...dated].sort((a, b) => normalizeCompleted(b.completed).localeCompare(normalizeCompleted(a.completed)))
       if (JSON.stringify(sorted.map((b) => b.title)) !== JSON.stringify(dated.map((b) => b.title))) {
-        blocks.splice(0, blocks.length, ...sorted, ...undated)
+        keep.splice(0, keep.length, ...sorted, ...undated)
         changed = true
       }
 
-      if (changed) {
+      const eol = content.includes("\r\n") ? "\r\n" : "\n"
+      if (blocks.length > 0 && keep.length === 0) {
+        // 块全部迁走后删除空归档文件并尝试清理空目录
+        if (existsSync(file)) unlinkSync(file)
+        try {
+          rmdirSync(dirname(file))
+        } catch {
+          // 目录非空（当月还有其他日期文件），忽略
+        }
+        changed = true
+      } else if (changed) {
         // 文件头与首个任务块之间补空行分隔（header 已去掉末尾空行）；保留原文件行尾，避免 CRLF 文件整文件 diff
-        const eol = content.includes("\r\n") ? "\r\n" : "\n"
-        const next = ((header ? header + "\n\n" : "") + blocks.map(renderBlock).join("\n\n---\n\n") + "\n").replace(/\n/g, eol)
+        const next = ((header ? header + "\n\n" : "") + keep.map(renderBlock).join("\n\n---\n\n") + "\n").replace(/\n/g, eol)
         writeFileSync(file, next, "utf8")
       }
     }

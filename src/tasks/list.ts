@@ -58,13 +58,17 @@ export function printTasks(tasksDir = ".tasks", redact = true): void {
   console.log(`共 ${total} 个任务文件`)
 }
 
-// 按视图打印任务（分组展示 + 汇总）；视图过滤结果为空时提示
+// 按视图打印任务（分组展示 + 汇总）；视图过滤结果为空时区分「有过滤」与「视图本身为空」
 export function printTaskBoard(tasksDir = ".tasks", view: TaskView = "active", filter: TaskFilter = {}, redact = true): void {
   const { rows, summary } = queryTasks(tasksDir, view, filter)
   const viewName = view === "active" ? "待完成" : view === "archived" ? "已归档" : "待完成 + 已归档"
   console.log(`任务总览（${viewName}）：\n`)
   if (rows.length === 0) {
-    console.log("无匹配任务")
+    const hasFilter = Object.values(filter).some((v) => (Array.isArray(v) ? v.length > 0 : Boolean(v)))
+    if (hasFilter) console.log("无匹配任务")
+    else if (view === "archived") console.log("当前无已归档任务")
+    else if (view === "all") console.log("当前无任务")
+    else console.log("当前无待完成任务")
     return
   }
   const grouped: Record<string, TaskRow[]> = {}

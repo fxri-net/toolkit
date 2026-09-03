@@ -30,3 +30,8 @@ export function getConfigSection(name: string): Record<string, unknown> | undefi
   const section = cfg[name]
   return typeof section === "object" && section !== null ? (section as Record<string, unknown>) : undefined
 }
+
+// 失效配置缓存：库形态长驻进程 / 测试中修改 .toolkitrc.json 后调用，使下次读取重新加载
+export function resetToolkitConfigCache(): void {
+  cached = undefined
+}

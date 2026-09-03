@@ -174,10 +174,12 @@ function toYmdRaw(v: string): string {
   return m ? `${m[1]}${m[2].padStart(2, "0")}${m[3].padStart(2, "0")}` : v.trim().replace(/[-/]/g, "")
 }
 
-// 文件名简述：去文件系统非法字符，压缩空白，限长 24
-function slugify(title: string): string {
-  const brief = title.trim().replace(/[\\/:*?"<>|]/g, " ").replace(/\s+/g, " ").slice(0, 24).trim()
-  return brief.replace(/\s+/g, "-") || "任务"
+// 文件名简述：去文件系统非法字符，压缩空白，限长 24；超长返回 truncated 供调用方告警
+function slugTitle(title: string): { slug: string; truncated: boolean } {
+  const clean = title.trim().replace(/[\\/:*?"<>|]/g, " ").replace(/\s+/g, " ")
+  const truncated = clean.length > 24
+  const brief = clean.slice(0, 24).trim()
+  return { slug: brief.replace(/\s+/g, "-") || "任务", truncated }
 }
 
 // 规范化一条导入记录：返回可写任务字段，非法/缺失项进入 warnings
@@ -226,13 +228,15 @@ function today(): string {
   return `${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}`
 }
 
-// 生成 active 任务文件（冲突自动追加序号，不覆盖）
-function writeActiveTask(tasksDir: string, t: TaskWrite, dryRun: boolean): string {
+// 生成 active 任务文件（冲突自动追加序号从 -1 起，不覆盖）
+function writeActiveTask(tasksDir: string, t: TaskWrite, dryRun: boolean, warnings: string[]): string {
   const created = t.created || today()
   const monthDir = join(tasksDir, "active", created.slice(0, 6))
-  const base = `${created}-${t.owner}-${slugify(t.title)}`
+  const { slug, truncated } = slugTitle(t.title)
+  if (truncated) warnings.push(`任务「${t.title}」标题过长，文件名已截断`)
+  const base = `${created}-${t.owner}-${slug}`
+  let seq = 1
   let file = join(monthDir, `${base}.md`)
-  let seq = 2
   while (existsSync(file)) file = join(monthDir, `${base}-${seq++}.md`)
   const content = [
     "---",
@@ -324,7 +328,7 @@ export async function importTasks(file: string, tasksDir = ".tasks", opts: Impor
       }
       console.log(`${dryRun ? "[预演] 将写入归档" : "已写入归档"} → ${targetFile}`)
     } else {
-      const targetFile = writeActiveTask(tasksDir, t, dryRun)
+      const targetFile = writeActiveTask(tasksDir, t, dryRun, warnings)
       console.log(`${dryRun ? "[预演] 将创建" : "已创建"} → ${targetFile}`)
     }
     created++
