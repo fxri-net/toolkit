@@ -25,9 +25,13 @@ pnpm install -g @fxri/toolkit
 ### 任务管理（tasks）
 
 ```bash
-npx toolkit tasks               # 任务总览
-npx toolkit tasks archive       # 归档已完成任务
-npx toolkit tasks --dir <path>  # 指定任务目录（默认 .tasks）
+npx toolkit tasks                     # 任务总览
+npx toolkit tasks archive             # 归档已完成任务
+npx toolkit tasks archive --dry-run   # 归档预演（只预览，不落盘）
+npx toolkit tasks check               # 校验 active（frontmatter/重名/依赖闭环/未闭合待办）
+npx toolkit tasks normalize           # 检查归档块（元数据/日期漂移/排序）
+npx toolkit tasks normalize --fix     # 补齐元数据 + 降序重排
+npx toolkit tasks --dir <path>        # 指定任务目录（默认 .tasks）
 ```
 
 ### CHANGELOG（changelog）
@@ -45,8 +49,17 @@ npx toolkit changelog status / publish    # 其余 changeset 子命令透传
 ```bash
 -h, --help      显示帮助（全局或子命令）
 -v, --version   显示版本号
---no-redact     关闭隐私脱敏（tasks / changelog 均可用）
+--redact / --no-redact   开启/关闭隐私脱敏（默认开启）
+--warn  / --no-warn      开启/关闭软告警（默认开启）
 ```
+
+开关为**双向三档**，优先级从高到低：CLI 参数 > 环境变量 > 配置文件 > 默认开启。例如关闭软告警可任选其一：
+
+- 本次命令：`toolkit tasks archive --no-warn`
+- 环境变量：`FX_CHECK_WARN=0`
+- 配置文件：`.toolkitrc.json` 写 `{ "check": { "warnings": false } }`
+
+隐私脱敏同理，环境变量 `FX_REDACT`（`0` 关 / `1` 开）、配置 `redact.enabled`。
 
 ### 接入 package.json
 
@@ -68,7 +81,9 @@ npx toolkit changelog status / publish    # 其余 changeset 子命令透传
 
 - **调用优先级**：`npx toolkit`（项目本地依赖）→ `toolkit`（全局安装）；两者均不可用时直接以 Markdown 输出方案，不阻塞执行
 - **规范来源**：优先读取项目根 `SPEC.md`，缺失时读取包内 `SPEC.md`（目录结构、文件命名与 frontmatter 字段均以该规范为准）
-- **校验与归档**：写入方案文件后执行 `toolkit tasks` 校验总览；任务完成后执行 `toolkit tasks archive` 归档
+- **多人协作（先查后写）**：`.tasks/` 是多写者共享区，新建/更新任务前先 `toolkit tasks` 查 active 总览并核对 archive，避免重复建档；同一需求共用一个任务文件
+- **校验**：`toolkit tasks check` 校验 active（frontmatter 合法性、重名、depends_on 闭环、未闭合待办）；`toolkit tasks normalize` 检查归档块（元数据/漂移/排序），`--fix` 补齐
+- **归档**：任务完成后执行 `toolkit tasks archive`（可 `--dry-run` 预演）；归档采用排他锁防并发覆盖
 - **版本管理**：涉及发版时先 `toolkit changelog` 创建变更集，再 `toolkit changelog version` 发版并格式化 CHANGELOG
 
 ### 归档与提交约束
@@ -86,6 +101,8 @@ npx toolkit changelog status / publish    # 其余 changeset 子命令透传
 ```typescript
 import {
   listTasks, printTasks, archiveTasks, parseFrontmatter,
+  validateTasks, checkArchive, fixArchive, normalizeCompleted,
+  resolveEnabled, parseBool, loadToolkitConfig,
   languages, DEFAULT_LANG, localDate, formatChangelogs, redactText,
 } from "@fxri/toolkit"
 
@@ -93,6 +110,9 @@ import {
 const tasks = listTasks(".tasks")
 printTasks(".tasks")
 const result = archiveTasks(".tasks")
+const check = validateTasks(".tasks")            // 校验 active
+const issues = checkArchive(".tasks")            // 检查归档
+const fixed = fixArchive(".tasks")               // 归一化修复
 
 // CHANGELOG 格式化（默认中文）
 formatChangelogs(".", localDate(), languages[DEFAULT_LANG])
@@ -121,10 +141,10 @@ export const languages = {
 落盘记录自由文本（任务正文/标题、CHANGELOG 条目）时默认脱敏敏感信息，`owner` 等结构化 frontmatter 字段不脱敏。
 
 - **内置规则**：邮箱、手机号、身份证、IPv4、AWS/GitHub/OpenAI/Slack 密钥、JWT、含端口内网 URL
-- **关闭开关**（默认开启，优先级从高到低）：
-  - CLI 参数 `--no-redact`
-  - 环境变量 `FX_REDACT=0`
-  - 配置文件 `redact.enabled: false`
+- **开关**（双向三档，默认开启，优先级从高到低）：
+  - CLI 参数 `--redact` / `--no-redact`
+  - 环境变量 `FX_REDACT=1`（开）/ `FX_REDACT=0`（关，也认 true/on、false/off）
+  - 配置文件 `redact.enabled: true` / `false`
 - **自定义规则**：项目根 `.toolkitrc.json`，追加规则（优先于内置）或按 `name` 禁用内置规则：
 
 ```json

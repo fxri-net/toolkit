@@ -1,6 +1,22 @@
 # @fxri/toolkit
 
+## 1.2.0
+> 2026-09-03 发布
+
+### ✨ 新增功能
+
+- 新增任务校验与归档归一化能力：
+
+  - 新增 `tasks check` 校验 active（frontmatter 合法性、跨文件重名、depends_on 依赖闭环、未闭合待办）
+  - 新增 `tasks normalize --check/--fix` 检查与修复归档块（元数据四字段、日期漂移、降序）
+  - `tasks archive` 新增 `--dry-run` 预演与排他锁防并发覆盖
+  - 软告警双向三档开关（`--warn/--no-warn`、`FX_CHECK_WARN`、`.toolkitrc.json`），默认开启
+  - 隐私脱敏开关升级为双向（`--redact/--no-redact`、`FX_REDACT=0/1`）
+  - changelog 协同软告警：归档时无变更集提示、发版时未归档提示
+  - 统一配置读取（.toolkitrc.json）与开关解析，供各能力域复用
+
 ## 1.1.3
+
 > 2026-09-03 发布
 
 ### 🐛 补丁修复
@@ -8,6 +24,7 @@
 - README 与 .tasks/SPEC 文档补充「归档与提交约束」：任务完成后先归档再提交，保证任务记录与代码变更同批入库。
 
 ## 1.1.2
+
 > 2026-09-03 发布
 
 ### 🐛 补丁修复

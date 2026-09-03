@@ -40,6 +40,8 @@ scope: toolkit          # 影响范围
 ## 归档
 
 - `toolkit tasks` 输出任务总览
-- `toolkit tasks archive` 归档已完成任务（`status` 为「已完成 / 已放弃」且带 `completed`）
+- `toolkit tasks check` 校验 active（frontmatter 合法性、重名、依赖闭环、未闭合待办）
+- `toolkit tasks archive` 归档已完成任务（`status` 为「已完成 / 已放弃」且带 `completed`）；`--dry-run` 预演
+- `toolkit tasks normalize` 检查归档块（元数据四字段、日期漂移、排序）；`--fix` 补齐元数据 + 降序重排
 - 归档文件按完成时间日期划分，文件内任务按完成时间**降序**排序（最新在前）
 - 归档应先于 git 提交，保证任务记录与代码变更同批入库，不产生孤立提交
