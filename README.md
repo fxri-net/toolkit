@@ -1,6 +1,6 @@
 # @fxri/toolkit
 
-开发工程化工具集：任务管理 + 多语言 CHANGELOG 发布。
+专为多人 + AI 跨项目协作打造：任务管理 + 多语言 CHANGELOG。
 
 ## ✨ 特性
 

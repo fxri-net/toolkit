@@ -1,6 +1,6 @@
 // archive 归档归一化：检查历史归档块的元数据完整性、完成时间漂移、排序，并按需修复
 // 供 tasks normalize --check（只读）与 --fix（补齐元数据 + 降序重排）使用
-import { readFileSync, writeFileSync } from "node:fs"
+import { readFileSync, writeFileSync, openSync, closeSync, unlinkSync } from "node:fs"
 import { join, basename } from "node:path"
 import { normalizeCompleted } from "./archive"
 import { listTaskFiles } from "./scan"
@@ -139,42 +139,64 @@ export function fixArchive(tasksDir = ".tasks"): NormalizeResult {
   const issues: NormalizeIssue[] = []
   let fixed = 0
 
-  for (const file of files) {
-    const name = basename(file)
-    const fileDate = name.replace(/\.md$/, "")
-    const content = readFileSync(file, "utf8")
-    const { header, blocks } = parseArchiveFile(content)
-
-    let changed = false
-    // 补元数据行（缺行或不完整时，用完成时间 + 标题推导补齐四字段）
-    for (const b of blocks) {
-      if (b.completed && (!b.metaLine || !metaComplete(b.metaLine))) {
-        b.metaLine = buildMetaLine(b.title, b.completed)
-        changed = true
-        fixed++
-      }
-      // 漂移仅报告不修复
-      const norm = normalizeCompleted(b.completed)
-      const blockDate = norm.replace(/-/g, "").slice(0, 8)
-      if (blockDate && fileDate && blockDate !== fileDate) {
-        issues.push({ file: name, message: `块「${b.title}」完成时间 ${norm} 与归档日期 ${fileDate} 不一致（需人工确认是否迁移）`, fixable: false })
-      }
-    }
-
-    // 降序重排（仅对 completed 可解析的块；缺失 completed 的块保持末尾）
-    const dated = blocks.filter((b) => b.completed)
-    const undated = blocks.filter((b) => !b.completed)
-    const sorted = [...dated].sort((a, b) => normalizeCompleted(b.completed).localeCompare(normalizeCompleted(a.completed)))
-    if (JSON.stringify(sorted.map((b) => b.title)) !== JSON.stringify(dated.map((b) => b.title))) {
-      blocks.splice(0, blocks.length, ...sorted, ...undated)
-      changed = true
-    }
-
-    if (changed) {
-      const next = header + blocks.map(renderBlock).join("\n\n---\n\n") + "\n"
-      writeFileSync(file, next, "utf8")
-    }
+  // 获取排他锁，防止与归档、并发归一化修复互相覆盖（与 archive.ts 共用 .archive.lock）
+  let lockFd: number | null = null
+  const lockPath = join(tasksDir, ".archive.lock")
+  try {
+    lockFd = openSync(lockPath, "wx")
+  } catch {
+    console.warn("⚠️ 检测到归档锁，可能有并发写操作正在进行，本次已跳过修复")
+    return { issues, fixed }
   }
 
-  return { issues, fixed }
+  try {
+    for (const file of files) {
+      const name = basename(file)
+      const fileDate = name.replace(/\.md$/, "")
+      const content = readFileSync(file, "utf8")
+      const { header, blocks } = parseArchiveFile(content)
+
+      let changed = false
+      // 补元数据行（缺行或不完整时，用完成时间 + 标题推导补齐四字段）
+      for (const b of blocks) {
+        if (b.completed && (!b.metaLine || !metaComplete(b.metaLine))) {
+          b.metaLine = buildMetaLine(b.title, b.completed)
+          changed = true
+          fixed++
+        }
+        // 漂移仅报告不修复
+        const norm = normalizeCompleted(b.completed)
+        const blockDate = norm.replace(/-/g, "").slice(0, 8)
+        if (blockDate && fileDate && blockDate !== fileDate) {
+          issues.push({ file: name, message: `块「${b.title}」完成时间 ${norm} 与归档日期 ${fileDate} 不一致（需人工确认是否迁移）`, fixable: false })
+        }
+      }
+
+      // 降序重排（仅对 completed 可解析的块；缺失 completed 的块保持末尾）
+      const dated = blocks.filter((b) => b.completed)
+      const undated = blocks.filter((b) => !b.completed)
+      const sorted = [...dated].sort((a, b) => normalizeCompleted(b.completed).localeCompare(normalizeCompleted(a.completed)))
+      if (JSON.stringify(sorted.map((b) => b.title)) !== JSON.stringify(dated.map((b) => b.title))) {
+        blocks.splice(0, blocks.length, ...sorted, ...undated)
+        changed = true
+      }
+
+      if (changed) {
+        const next = header + blocks.map(renderBlock).join("\n\n---\n\n") + "\n"
+        writeFileSync(file, next, "utf8")
+      }
+    }
+
+    return { issues, fixed }
+  } finally {
+    // 释放排他锁
+    if (lockFd !== null) {
+      closeSync(lockFd)
+      try {
+        unlinkSync(lockPath)
+      } catch {
+        // 锁文件已被清理，忽略
+      }
+    }
+  }
 }
