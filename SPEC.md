@@ -53,13 +53,15 @@ scope: app
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
-| owner | string | 负责人（git 用户名） |
+| owner | string | 负责人（git 用户名）；缺失时 `check` 软告警 |
 | status | enum | `待办` / `进行中` / `已完成` / `阻塞` / `已放弃` |
-| created | string | 创建日 `YYYYMMDD` |
+| created | string | 创建日 `YYYYMMDD`，应等于文件名日期前缀；缺失/不一致/格式错误时 `check` 软告警 |
 | updated | string | 更新日 `YYYYMMDD` |
-| completed | string | 完成时间 `YYYY-MM-DD HH:mm`，`status` 为 `已完成`/`已放弃` 时必填 |
-| depends_on | array | 依赖的任务文件 |
+| completed | string | 完成时间 `YYYY-MM-DD HH:mm`，`status` 为 `已完成`/`已放弃` 时必填；纯日期写法（`YYYY-MM-DD`）会被补齐 `00:00`，仅日期未补全完整时间会软告警 |
+| depends_on | array | 依赖任务文件名，引用可带 `.md` 扩展名（校验时自动归一为不含扩展名的 basename） |
 | scope | string | 影响范围 |
+
+> 文件名命名 `{年月日}-{用户名}-{任务简述}.md`（`年月日` = 创建日），不符规范或与 created 不一致时 `check` 软告警。
 
 ## 3. archive 归档文件
 
@@ -97,8 +99,9 @@ scope: app
 3. `待办` / `进行中` / `阻塞` 均不归档。
 4. 归档文件按 `completed` 的日期（`YYYYMMDD`）划分。
 5. 归档文件内任务按 `completed` **降序**排序（最新在前，`YYYY-MM-DD HH:mm` 定宽字符串比较即时间序）。
-6. **完成时间口径**：`completed` 只填真实收工时间，日期应与归档文件日期一致；不一致属「日期漂移」，`toolkit tasks archive` 会软告警提示核对。
-7. **并发归档防护**：归档采用排他锁（`.archive.lock`），检测到并发归档时跳过并告警；`--dry-run` 可预演归档动作而不落盘。
+6. **完成时间口径**：`completed` 只填真实收工时间，日期应与归档文件日期一致；不一致属「日期漂移」，`toolkit tasks normalize` 会检出，`--fix` 自动把漂移块迁移到对应日期文件（迁移前可用 `normalize` 只读检查）。
+7. **疑似任务块**：任务块判定要求标题后首个非空行为含「完成时间」的元数据行；形如 `{年月日}-{负责人}-{简述}` 的 `## ` 标题后跟 `> ` 元数据但缺「完成时间」时，会被视为疑似任务块并在 `normalize` 检出提示人工确认（不自动修复）。
+8. **并发归档防护**：归档采用排他锁（`.archive.lock`），检测到并发归档时跳过并告警；`--dry-run` 可预演归档动作而不落盘。
 
 ## 5. 其他语言实现要点
 

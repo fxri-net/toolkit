@@ -30,9 +30,9 @@ npx toolkit tasks --view archived     # 仅已归档
 npx toolkit tasks --view all          # 待完成 + 已归档（状态分组，来源可辨）
 npx toolkit tasks archive             # 归档已完成任务
 npx toolkit tasks archive --dry-run   # 归档预演（只预览，不落盘）
-npx toolkit tasks check               # 校验 active（frontmatter/重名/依赖闭环/未闭合待办）
-npx toolkit tasks normalize           # 检查归档块（元数据/日期漂移/排序）
-npx toolkit tasks normalize --fix     # 补齐元数据 + 降序重排
+npx toolkit tasks check               # 校验 active（frontmatter/命名规范/重名/依赖闭环/未闭合待办与 - [ ]）
+npx toolkit tasks normalize           # 检查归档块（元数据/疑似任务块/日期漂移/排序）
+npx toolkit tasks normalize --fix     # 补齐元数据 + 漂移块迁移到对应日期文件 + 降序重排
 npx toolkit tasks --dir <path>        # 指定任务目录（默认 .tasks）
 ```
 
@@ -44,6 +44,8 @@ npx toolkit tasks --view archived --status 已完成,已放弃
 npx toolkit tasks --scope 工程化 --since 2026-09-01 --until 2026-09-03
 npx toolkit tasks --date 2026-09-03       # 单日（与 --since/--until 互斥）
 ```
+
+⚠️ **过滤与视图**：`--owner/--scope/--status/--date/--since/--until` 只作用于所选视图，不指定 `--view` 时默认只查待完成（active）。想看归档需显式 `--view archived` 或 `--view all`；过滤落在空视图时会提示「无匹配任务」，并附 `--view` 引导提示。
 
 导入导出（扩展名驱动，均受过滤与脱敏开关影响）：
 
@@ -58,7 +60,7 @@ npx toolkit tasks --import tasks.json --target archive   # 直接写归档
 ```
 
 - 导入兼容本工具三种导出产物；表头自动识别（中文/英文别名），`.toolkitrc.json` 的 `tasks.importColumns` 可自定义列映射，优先级高于内置
-- 文件名冲突自动追加序号，不覆盖已有任务
+- 文件名冲突自动追加序号（`-1`、`-2`…），不覆盖已有任务；标题过长导致文件名截断时会告警
 
 ### 任务视图与导出结构
 
@@ -107,7 +109,7 @@ npx toolkit tasks --import tasks.json --target archive   # 直接写归档
 | `scope` 范围 | 范围 / 项目 / 模块；scope / project |
 | `created` 创建日期 | 创建日期 / 创建时间；created / created_at / createdAt |
 | `updated` 更新日期 | 更新日期 / 更新时间；updated / updated_at / updatedAt |
-| `completed` 完成时间 | 完成时间 / 完成日期 / 截止时间 / 截止日期 / 结束时间；completed / done / finished / due |
+| `completed` 完成时间 | 完成时间 / 完成日期 / 截止时间 / 截止日期 / 结束时间；completed / done / finished / completedAt / due |
 | `depends` 依赖 | 依赖 / 依赖任务；depends / depends_on / dependency / dependencies |
 | `body` 正文 | 备注 / 描述 / 正文 / 说明；description / body / note / notes |
 | 忽略列（元信息） | 视图 / 来源文件 / 文件；view / file / path |
@@ -139,7 +141,7 @@ npx toolkit changelog status / publish      # 其余 changeset 子命令透传
 - 环境变量：`FX_CHECK_WARN=0`
 - 配置文件：`.toolkitrc.json` 写 `{ "check": { "warnings": false } }`
 
-隐私脱敏同理，环境变量 `FX_REDACT`（`0` 关 / `1` 开）、配置 `redact.enabled`。
+隐私脱敏同理，环境变量 `FX_REDACT`（`0` 关 / `1` 开）、配置 `redact.enabled`。`toolkit tasks check` 默认把正文未勾选的 `- [ ]` 当作未闭合待办扫描，可用 `{ "check": { "includeCheckbox": false } }` 关闭。
 
 ### 接入 package.json
 
@@ -162,8 +164,8 @@ npx toolkit changelog status / publish      # 其余 changeset 子命令透传
 - **调用优先级**：`npx toolkit`（项目本地依赖）→ `toolkit`（全局安装）；两者均不可用时直接以 Markdown 输出方案，不阻塞执行
 - **规范来源**：优先读取项目根 `SPEC.md`，缺失时读取包内 `SPEC.md`（目录结构、文件命名与 frontmatter 字段均以该规范为准）
 - **多人协作（先查后写）**：`.tasks/` 是多写者共享区，新建/更新任务前先 `toolkit tasks` 查 active 总览并核对 archive，避免重复建档；同一需求共用一个任务文件
-- **校验**：`toolkit tasks check` 校验 active（frontmatter 合法性、重名、depends_on 闭环、未闭合待办）；`toolkit tasks normalize` 检查归档块（元数据/漂移/排序），`--fix` 补齐
-- **归档**：任务完成后执行 `toolkit tasks archive`（可 `--dry-run` 预演）；归档采用排他锁防并发覆盖
+- **校验**：`toolkit tasks check` 校验 active（frontmatter 合法性、owner/created/文件命名规范、重名、depends_on 闭环与引用归一、未闭合待办与 `- [ ]`，可配置关闭复选框扫描）；`toolkit tasks normalize` 检查归档块（元数据完整性/疑似任务块/漂移/排序），`--fix` 补齐元数据并将漂移块迁移到对应日期文件
+- **归档**：任务完成后执行 `toolkit tasks archive`（可 `--dry-run` 预演）；归档采用排他锁防并发覆盖。归档完成后若 `.changeset`（相对当前目录）无待发布变更集会有提示，仅为提醒，不影响归档
 - **版本管理**：涉及发版时先 `toolkit changelog` 创建变更集，再 `toolkit changelog version` 发版并格式化 CHANGELOG
 
 ### 归档与提交约束
@@ -232,6 +234,16 @@ const masked = redactText("联系 tqy@fxri.net", true) // → "联系 t***@***.n
 使用 `--lang ja` 指定（选项前置）：`toolkit changelog --lang ja format`。
 
 每个语言的 `ChangelogLanguage` 结构：`replacements`（标题替换映射，源标题 → 目标标题）、`deps`（依赖更新条目文案）、`released`（发布日期后缀）。库 API 侧也可直接操作 `languages` 对象追加语言。
+
+## 🧭 维护者发版（本仓库自举 changesets）
+
+本仓库（toolkit 自身）与对外用法一致，用 changesets 驱动发版，配合中文格式转换：
+
+1. 记录变更：`pnpm changeset`（或 `pnpm build && node ./dist/cli.js changelog`），选择版本类型并填写变更描述
+2. 消费变更集：`pnpm build && node ./dist/cli.js changelog version`——changesets 写版本号与英文 CHANGELOG 后，工具自动做中文标题格式化
+3. 微调：将变更条目润色为中文说明（与既有 CHANGELOG 风格一致），删除已消费的 `.changeset/*.md`
+4. 提交：代码与 CHANGELOG/版本改动分两次提交（如「修复：…」「文档：发布 vX.Y.Z」）
+5. 标签与发布：`git tag vX.Y.Z` 并推送各 remote，再执行 `pnpm publish`（`pnpm release` = build + publish）
 
 ## 🔒 隐私脱敏
 
