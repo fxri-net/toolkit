@@ -1,6 +1,19 @@
 # @fxri/toolkit
 
+## 1.5.2
+> 2026-09-03 发布
+
+### 🐛 补丁修复
+
+- `.toolkitrc.json` 改为从当前目录向上查找最近一份（支持 monorepo 子目录运行）；脱敏作用范围与配置查找写入 README
+- `printTasks` 分组顺序统一为 STATUS_ORDER；`check.pendingMarkers=false` 可关闭词标记扫描（复选框开关保留）
+- `normalize` 检出放错月份目录的归档文件（如 archive/202608/20260903.md）
+- archive / import / 归一化写文件原子化（临时文件 + rename），降低半截文件风险
+- `tasks --strict`：任务目录不存在时报错退出（默认仍容错为空结果）
+- 工程化：vitest v8 coverage（`test:coverage`）、eslint `--cache`、CI 增加自身 `.tasks` 体检、README 增加 CI badge
+
 ## 1.5.1
+
 > 2026-09-03 发布
 
 ### 🐛 补丁修复
