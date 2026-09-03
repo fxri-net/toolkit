@@ -1,5 +1,26 @@
 # @fxri/toolkit
 
+## 1.5.6
+> 2026-09-03 发布
+
+### ✨ 新增功能
+
+- JSON 导出携带 `schemaVersion`，导入端读取更高版本时告警（仍按当前字段尽力解析）
+- 测试补强：CSV/XLSX/JSON 往返、开关解析、时间过滤、底层模块（原子写/扫描/路径）直接用例，单测 71 例全绿
+- vitest 覆盖率门槛（thresholds）接入 CI（新增 coverage job）
+- CI 增加 Windows 回归 job 与 CLI `--help` 冒烟
+- README 新增公共 API 表与「任务状态单一事实源」说明
+
+### 🐛 补丁修复
+
+- archive 合并写回按原文件换行风格还原（LF/CRLF），避免 Windows 仓库追加新块产生混合换行
+- 导出（CSV/JSON/XLSX）改原子写，中断不再残留半截文件
+- 展示路径统一走公共 helper（`displayRel`），跨命令输出一致
+- check 已归档索引增加 mtime 感知缓存，重复校验不重复读盘
+- `normalize --fix` 错月迁移后清理遗留空月份目录
+- 标题提取 / 状态枚举 / 日期解析收口到公共实现（list/query/validate/import/changelog 共用），消除多份近似代码
+- tsconfig 开启 `noUncheckedIndexedAccess`，数组与索引访问显式兜底
+
 ## 1.5.5
 > 2026-09-03 发布
 
