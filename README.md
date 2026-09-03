@@ -60,6 +60,33 @@ npx toolkit tasks --import tasks.json --target archive   # 直接写归档
 - 导入兼容本工具三种导出产物；表头自动识别（中文/英文别名），`.toolkitrc.json` 的 `tasks.importColumns` 可自定义列映射，优先级高于内置
 - 文件名冲突自动追加序号，不覆盖已有任务
 
+### 任务视图与导出结构
+
+统一字段全集（各视图/格式按下表取子集，空字段留空）：
+
+| 字段 | 含义 | 待完成（active） | 已归档（archived） |
+| --- | --- | --- | --- |
+| `view` 视图 | 来源 | 待完成 | 已归档 |
+| `title` 任务名 | `# 标题`（回退文件名）/ 块标题 | ✅ | ✅ |
+| `status` 状态 | 待办/进行中/阻塞/已完成/已放弃 | ✅ | ✅（已完成/已放弃） |
+| `owner` 负责人 | — | ✅ | ✅ |
+| `scope` 范围 | — | ✅ | ✅ |
+| `created` 创建日期 | — | ✅ | ❌ |
+| `updated` 更新日期 | — | ✅ | ❌ |
+| `completed` 完成时间 | — | ✅（可空） | ✅ |
+| `depends` 依赖 | 数组 | ✅ | ❌ |
+| `file` 来源文件 | 相对 `.tasks` 路径 | ✅ | ✅ |
+
+- **终端分组视图**（`toolkit tasks`）：按状态分组（待办→进行中→阻塞→已完成→已放弃→未标注），行显示 `日期 | 视图来源(all 时) | 负责人 | 任务名（范围）`，末尾输出按状态/负责人汇总；日期 = 待完成创建日 / 已归档完成时间
+- **CSV**（`.csv`，UTF-8 BOM，超集列，一次一视图）：`视图, 任务名, 状态, 负责人, 范围, 创建日期, 更新日期, 完成时间, 依赖, 来源文件`
+- **XLSX**（`.xlsx`，固定三 sheet）：
+  - `待完成` sheet：任务名/状态/负责人/范围/创建日期/更新日期/完成时间/依赖/来源文件
+  - `已归档` sheet：任务名/状态/负责人/范围/完成时间/来源文件
+  - `汇总` sheet：顶部统计（任务总数 / 按状态 / 按负责人）+ 公共列明细（同 CSV 超集列）
+- **JSON**（`.json` 或 `--format json`）：`{ summary: { total, byStatus, byOwner }, items: [...] }`；`items` 每项为英文 key 完整字段：`view("active"|"archived") / title / status / owner / scope / created / updated / completed / depends[] / file`
+- 排序统一：按状态分组顺序平铺、组内时间倒序（导出与终端一致）；视图/过滤后无匹配时导出仅表头（JSON 空 items），不报错
+- 日期口径与过滤一致：待完成看创建/更新，已归档看完成时间；CSV/JSON 中 `created` 按 `YYYY-MM-DD` 输出
+
 ### 任务导入列别名（内置表）
 
 导入时表头自动映射到任务字段，内置别名表如下（**列名不区分大小写**，中文列原文匹配；`custom` 段示例见下方）。自定义映射在 `.toolkitrc.json` 的 `tasks.importColumns` 配置，键为实际表头列名，值为标准字段：
