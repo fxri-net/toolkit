@@ -1,9 +1,10 @@
 // active 任务校验：frontmatter 合法性、完成时间格式、重名、方案正文子项未闭合
 // 供 tasks check 使用，输出问题清单；error 为硬性错误，warn 为软告警（默认开启可关）
 import { readFileSync } from "node:fs"
-import { join, basename, dirname } from "node:path"
+import { join, basename, dirname, relative, sep } from "node:path"
 import { listTaskFiles } from "./scan"
 import { parseFrontmatter, stripFrontmatter } from "./parse"
+import { parseArchiveBlocks } from "./archive-block"
 import { getConfigSection } from "../config"
 import { ALL_STATUSES } from "./types"
 import { parseDepends } from "./depends"
@@ -110,7 +111,8 @@ export function validateTaskFile(file: string): CheckIssue[] {
   }
 
   // 方案正文子项未闭合扫描（软告警，不阻断；check.pendingMarkers=false 可关闭词标记扫描）
-  const body = stripFrontmatter(content)
+  // 跳过首行 H1 标题，避免标题含「待办」等词被误报
+  const body = stripFrontmatter(content).replace(/^# .*\r?\n?/m, "")
   const pendingOn = getConfigSection("check")?.pendingMarkers !== false
   const pending = pendingOn ? body.match(PENDING_MARKERS) : null
   if (pending) {
@@ -154,20 +156,32 @@ export function validateTasks(tasksDir = ".tasks"): CheckResult {
   }
 
   // depends_on 依赖闭环校验
-  issues.push(...validateDependencies(files))
+  issues.push(...validateDependencies(files, tasksDir))
 
   const errorCount = issues.filter((i) => i.level === "error").length
   const warnCount = issues.length - errorCount
   return { issues, errorCount, warnCount }
 }
 
-// 校验 depends_on 依赖：目标存在性 + 成环检测（引用带 .md 扩展名时自动归一化比对）
-function validateDependencies(files: string[]): CheckIssue[] {
+// 校验 depends_on 依赖：目标存在性 + 成环检测（引用带 .md 扩展名时自动归一化比对；已归档给出精确去向）
+function validateDependencies(files: string[], tasksDir: string): CheckIssue[] {
   const issues: CheckIssue[] = []
   const nameSet = new Set(files.map((f) => basename(f, ".md")))
   const depsMap = new Map<string, string[]>()
   // 引用名归一化：去空白与 .md 后缀，统一为任务文件 basename（不含扩展名）
   const normDep = (d: string) => d.trim().replace(/\.md$/, "").trim()
+
+  // 已归档索引：任务块标题 → 相对归档文件路径（供缺失依赖精确提示去向，M3）
+  const archivedAt = new Map<string, string>()
+  for (const af of listTaskFiles(join(tasksDir, "archive"))) {
+    try {
+      for (const b of parseArchiveBlocks(readFileSync(af, "utf8")).blocks) {
+        if (b.title && !archivedAt.has(b.title)) archivedAt.set(b.title, relative(tasksDir, af).split(sep).join("/"))
+      }
+    } catch {
+      // 归档文件损坏时跳过索引，仅影响去向提示的精确度
+    }
+  }
 
   for (const file of files) {
     const name = basename(file, ".md")
@@ -177,7 +191,14 @@ function validateDependencies(files: string[]): CheckIssue[] {
     depsMap.set(name, deps)
     for (const d of deps) {
       if (!nameSet.has(d)) {
-        issues.push({ level: "warn", file: name, message: `依赖的任务「${d}」不在 active 中（可能已归档或文件名拼写错误）` })
+        const where = archivedAt.get(d)
+        issues.push({
+          level: "warn",
+          file: name,
+          message: where
+            ? `依赖的任务「${d}」不在 active 中（已归档于 ${where}，无需再依赖）`
+            : `依赖的任务「${d}」不在 active 中（可能已归档或文件名拼写错误）`,
+        })
       }
     }
   }

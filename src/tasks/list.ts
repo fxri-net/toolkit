@@ -3,7 +3,7 @@ import { join, basename } from "node:path"
 import { parseFrontmatter, stripFrontmatter } from "./parse"
 import { listTaskFiles, dateFromFileName } from "./scan"
 import { redactText } from "../privacy/redact"
-import { STATUS_ORDER, queryTasks, displayDate, toYmd } from "./query"
+import { STATUS_ORDER, queryTasks, displayDate } from "./query"
 import type { Task, TaskRow, TaskView, TaskFilter, TaskSummary } from "./types"
 
 // 读取 active 目录下的任务列表
@@ -28,35 +28,9 @@ export function listTasks(tasksDir = ".tasks"): Task[] {
   })
 }
 
-// 输出任务总览
+// 输出任务总览（active）：复用 board 渲染，保证分组顺序/日期口径/文案与 CLI 一致
 export function printTasks(tasksDir = ".tasks", redact = true): void {
-  const tasks = listTasks(tasksDir)
-  if (tasks.length === 0) {
-    console.log("当前无活跃任务")
-    return
-  }
-
-  const grouped: Record<string, Task[]> = {}
-  for (const t of tasks) {
-    const key = STATUS_ORDER.includes(t.frontmatter.status) ? t.frontmatter.status : "未标注"
-    ;(grouped[key] ||= []).push(t)
-  }
-
-  console.log("任务总览：\n")
-  let total = 0
-  for (const status of STATUS_ORDER) {
-    const list = grouped[status] || []
-    if (list.length === 0) continue
-    total += list.length
-    console.log(`【${status}】${list.length} 项`)
-    for (const t of list) {
-      // 日期口径与 board/导出一致：created（frontmatter）优先，缺失回退文件名日期
-      const date = t.frontmatter.created ? toYmd(t.frontmatter.created) : t.date
-      console.log(`  ${date}  ${(t.frontmatter.owner || "未标注").padEnd(8)}  ${redactText(t.title, redact)}`)
-    }
-    console.log("")
-  }
-  console.log(`共 ${total} 个任务文件`)
+  printTaskBoard(tasksDir, "active", {}, redact)
 }
 
 // 按视图打印任务（分组展示 + 汇总）；视图过滤结果为空时区分「有过滤」与「视图本身为空」

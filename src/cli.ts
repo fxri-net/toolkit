@@ -192,38 +192,53 @@ program
       }
 
       if (command === "archive") {
-        const result = archiveTasks(dir, redact, { dryRun: options.dryRun, warn })
-        // 软告警：归档了任务但无待发布变更集（仅真实归档时提示，预演不提示）
-        if (warn && !options.dryRun && result.archived > 0 && !hasPendingChangeset()) {
-          console.warn("⚠️ 本次归档了任务，但 .changeset 无待发布变更集，如需发版请先创建变更集")
+        try {
+          const result = archiveTasks(dir, redact, { dryRun: options.dryRun, warn })
+          // 软告警：归档了任务但无待发布变更集（仅真实归档时提示，预演不提示）
+          if (warn && !options.dryRun && result.archived > 0 && !hasPendingChangeset()) {
+            console.warn("⚠️ 本次归档了任务，但 .changeset 无待发布变更集，如需发版请先创建变更集")
+          }
+        } catch (e) {
+          console.error(`⚠️ 操作失败：${(e as Error).message}`)
+          process.exitCode = 1
         }
       } else if (command === "check") {
-        const result = validateTasks(dir)
-        console.log("任务校验：")
-        console.log(`【error】${result.errorCount} 项`)
-        printIssues(result.issues.filter((i) => i.level === "error"))
-        if (warn) {
-          console.log(`【warn】${result.warnCount} 项`)
-          printIssues(result.issues.filter((i) => i.level === "warn"))
-        } else {
-          console.log("（软告警已关闭，warn 不展示）")
-        }
-        if (result.errorCount > 0) process.exitCode = 1
-      } else if (command === "normalize") {
-        if (options.fix && options.check) {
-          console.error("⚠️ --fix 与 --check 不能同时使用")
-          process.exitCode = 1
-        } else if (options.fix) {
-          const result = fixArchive(dir)
-          console.log(`已修复 ${result.fixed} 处`)
-          if (result.issues.length > 0) {
-            console.log("以下问题需人工确认：")
-            printIssues(result.issues)
+        try {
+          const result = validateTasks(dir)
+          console.log("任务校验：")
+          console.log(`【error】${result.errorCount} 项`)
+          printIssues(result.issues.filter((i) => i.level === "error"))
+          if (warn) {
+            console.log(`【warn】${result.warnCount} 项`)
+            printIssues(result.issues.filter((i) => i.level === "warn"))
+          } else {
+            console.log("（软告警已关闭，warn 不展示）")
           }
-        } else {
-          const issues = checkArchive(dir)
-          console.log(`归档归一化检查：发现 ${issues.length} 处问题`)
-          printIssues(issues)
+          if (result.errorCount > 0) process.exitCode = 1
+        } catch (e) {
+          console.error(`⚠️ 操作失败：${(e as Error).message}`)
+          process.exitCode = 1
+        }
+      } else if (command === "normalize") {
+        try {
+          if (options.fix && options.check) {
+            console.error("⚠️ --fix 与 --check 不能同时使用")
+            process.exitCode = 1
+          } else if (options.fix) {
+            const result = fixArchive(dir)
+            console.log(`已修复 ${result.fixed} 处`)
+            if (result.issues.length > 0) {
+              console.log("以下问题需人工确认：")
+              printIssues(result.issues)
+            }
+          } else {
+            const issues = checkArchive(dir)
+            console.log(`归档归一化检查：发现 ${issues.length} 处问题`)
+            printIssues(issues)
+          }
+        } catch (e) {
+          console.error(`⚠️ 操作失败：${(e as Error).message}`)
+          process.exitCode = 1
         }
       } else {
         // 总览：视图 + 过滤 + 终端表格 / 导出

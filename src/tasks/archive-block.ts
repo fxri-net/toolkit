@@ -1,6 +1,7 @@
 // 归档块统一解析与渲染：归档合并（archive.ts）与归一化检查/修复（normalize.ts）共用同一实现，
 // 保证对同一归档文件解析出的任务块集合一致。
 // 任务块判定：`## 标题` 后首个非空行为含「完成时间」的元数据行；正文内部的 `## ` 小节（后无元数据行）归属前一块正文，避免误判为任务边界。
+import { parseMetaSegments } from "./meta"
 
 // 归档块结构
 export interface ArchiveBlockInfo {
@@ -35,16 +36,10 @@ export function buildMetaLine(title: string, completed: string): string {
 
 // 补齐元数据行：保留原行已有的 负责人/状态/范围 段，仅补缺失项，避免整行重写改错状态（如 已放弃→已完成）
 export function completeMetaLine(title: string, completed: string, metaLine: string | null): string {
-  const seg: Record<string, string> = {}
-  if (metaLine) {
-    for (const part of metaLine.replace(/^>\s*/, "").split(/\s*　\s*/)) {
-      const m = part.match(/^(负责人|状态|范围|完成时间)[：:]\s*(.+)$/)
-      if (m) seg[m[1]] = m[2].trim()
-    }
-  }
-  const owner = seg["负责人"] || ownerFromTitle(title) || "未标注"
-  const status = seg["状态"] || "已完成"
-  const scope = seg["范围"] || "-"
+  const seg = parseMetaSegments(metaLine)
+  const owner = seg.owner || ownerFromTitle(title) || "未标注"
+  const status = seg.status || "已完成"
+  const scope = seg.scope || "-"
   return `> 负责人：${owner}　状态：${status}　范围：${scope}　完成时间：${normalizeCompleted(completed)}`
 }
 

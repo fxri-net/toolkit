@@ -6,6 +6,7 @@ import { listTaskFiles, dateFromFileName } from "./scan"
 import { parseArchiveBlocks } from "./archive-block"
 import { parseFrontmatter } from "./parse"
 import { parseDepends } from "./depends"
+import { parseMetaSegments } from "./meta"
 import type { TaskRow, TaskView, TaskFilter, TaskSummary } from "./types"
 
 // 终端展示与导出的状态分组顺序
@@ -49,19 +50,10 @@ export function listActiveTasks(tasksDir = ".tasks"): TaskRow[] {
   })
 }
 
-// 从块元数据行提取 负责人/状态/范围（形如 `> 负责人：唐启云　状态：已完成　范围：全局`）
+// 从块元数据行提取 负责人/状态/范围（复用公共解析，缺省兜底）
 function parseMetaLine(metaLine: string | null): { owner: string; status: string; scope: string } {
-  const out = { owner: "未标注", status: "已完成", scope: "-" }
-  if (!metaLine) return out
-  for (const seg of metaLine.replace(/^>\s*/, "").split(/\s*　\s*/)) {
-    const [k, ...rest] = seg.split(/[：:]/)
-    const v = rest.join("").trim()
-    if (!v) continue
-    if (k.includes("负责人")) out.owner = v
-    else if (k.includes("状态")) out.status = v
-    else if (k.includes("范围")) out.scope = v
-  }
-  return out
+  const seg = parseMetaSegments(metaLine)
+  return { owner: seg.owner || "未标注", status: seg.status || "已完成", scope: seg.scope || "-" }
 }
 
 // 读取已归档任务（archive/**/*.md 的任务块）为统一行

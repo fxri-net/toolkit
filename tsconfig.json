@@ -6,7 +6,8 @@
     "moduleResolution": "Bundler",
     "outDir": "dist",
     "esModuleInterop": true,
-    "declaration": true
+    "declaration": true,
+    "strict": true
   },
   "include": ["./src"],
   "exclude": ["node_modules", "dist", "**/__tests__", "**/*.test.ts", "**/*.spec.ts"]

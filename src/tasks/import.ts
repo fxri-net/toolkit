@@ -2,7 +2,7 @@
 // 列映射：内置别名表 + .toolkitrc.json 的 tasks.importColumns 自定义（配置优先）
 // 目标：active（默认，生成待完成任务文件）或 archive（直接写归档块）
 import { readFileSync, existsSync, mkdirSync } from "node:fs"
-import { join } from "node:path"
+import { join, relative, sep } from "node:path"
 import { createRequire } from "node:module"
 import { normalizeCompleted, parseArchiveBlocks } from "./archive-block"
 import type { ArchiveBlockInfo } from "./archive-block"
@@ -10,8 +10,14 @@ import { toYmd } from "./query"
 import { DONE_STATUSES } from "./types"
 import type { ImportOptions, ImportResult } from "./types"
 import { writeFileAtomic } from "../write-atomic"
+import { acquireArchiveLock, releaseArchiveLock } from "./lock"
 
 const require = createRequire(import.meta.url)
+
+// 展示路径：相对任务目录并统一 / 分隔，避免跨平台输出混用反斜杠
+function displayPath(tasksDir: string, file: string): string {
+  return relative(tasksDir, file).split(sep).join("/")
+}
 
 // 内置列别名表：列名（小写后匹配）→ 标准字段；空字符串 = 元信息列（忽略）
 const COLUMN_ALIASES: Record<string, string> = {
@@ -315,25 +321,47 @@ export async function importTasks(file: string, tasksDir = ".tasks", opts: Impor
   let created = 0
   let skipped = 0
   const target = opts.target ?? "active"
-  for (const rec of records) {
-    const norm = normalizeRecord(rec, opts, warnings)
-    if (!norm.ok) {
-      skipped++
-      continue
+
+  // 非预演时获取写锁（与 archive/归一化共用 .archive.lock，陈旧锁自动清理），防止并发导入互相覆盖
+  let lockFd: number | null = null
+  if (!dryRun && existsSync(tasksDir)) {
+    lockFd = acquireArchiveLock(tasksDir)
+    if (lockFd === null) {
+      const msg = "检测到写入锁 .archive.lock，可能有并发写入正在进行，本次已跳过"
+      console.warn(`⚠️ ${msg}`)
+      return { created: 0, skipped: records.length, warnings: [...warnings, msg], dryRun }
     }
-    const t = norm.t
-    if (target === "archive") {
-      const targetFile = writeArchiveTask(tasksDir, t, dryRun, warnings)
-      if (!targetFile) {
+  }
+
+  try {
+    for (const rec of records) {
+      const norm = normalizeRecord(rec, opts, warnings)
+      if (!norm.ok) {
         skipped++
         continue
       }
-      console.log(`${dryRun ? "[预演] 将写入归档" : "已写入归档"} → ${targetFile}`)
-    } else {
-      const targetFile = writeActiveTask(tasksDir, t, dryRun, warnings)
-      console.log(`${dryRun ? "[预演] 将创建" : "已创建"} → ${targetFile}`)
+      const t = norm.t
+      if (target === "archive") {
+        const targetFile = writeArchiveTask(tasksDir, t, dryRun, warnings)
+        if (!targetFile) {
+          skipped++
+          continue
+        }
+        console.log(`${dryRun ? "[预演] 将写入归档" : "已写入归档"} → ${displayPath(tasksDir, targetFile)}`)
+      } else {
+        const targetFile = writeActiveTask(tasksDir, t, dryRun, warnings)
+        console.log(`${dryRun ? "[预演] 将创建" : "已创建"} → ${displayPath(tasksDir, targetFile)}`)
+      }
+      created++
     }
-    created++
+  } finally {
+    if (lockFd !== null) {
+      try {
+        releaseArchiveLock(tasksDir, lockFd)
+      } catch {
+        // 锁文件已被清理，忽略
+      }
+    }
   }
   for (const w of warnings) console.warn(`⚠️ ${w}`)
   const kind = dryRun ? "预演可导入" : "已导入"

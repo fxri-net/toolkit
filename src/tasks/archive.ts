@@ -144,7 +144,7 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
         continue
       }
 
-      // 单日归档写盘 + 清理 active；失败时记入 failures 并继续处理其余日期，收尾统一汇总（K5）
+      // 单日归档写盘 + 清理 active；失败时记入 failures 并继续处理其余日期，收尾统一汇总
       try {
         mkdirSync(monthDir, { recursive: true })
         writeFileAtomic(archiveFile, `${header}\n\n${all.map((t) => t.block).join("\n\n---\n\n")}\n`)
@@ -154,7 +154,8 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
         // 清理空目录（active/年月/ 及其上层 active/）
         removeEmptyDirs(dirname(newTasks[0].file), tasksDir)
         console.log(`已归档 ${newTasks.length} 个任务 → ${date}.md`)
-        archivedOk++
+        // 计数口径为「任务数」（一个日期文件可含多个任务块）
+        archivedOk += newTasks.length
       } catch (e) {
         failures.push(`${date}.md：${(e as Error).message}`)
       }
