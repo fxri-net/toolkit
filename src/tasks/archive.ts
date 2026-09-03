@@ -1,10 +1,10 @@
-import { readFileSync, writeFileSync, mkdirSync, unlinkSync, existsSync, readdirSync, rmdirSync } from "node:fs"
+import { readFileSync, writeFileSync, mkdirSync, unlinkSync, existsSync, readdirSync, rmdirSync, openSync, closeSync } from "node:fs"
 import { join, basename, dirname, resolve, sep } from "node:path"
 import { parseFrontmatter, stripFrontmatter } from "./parse"
-import { listTaskFiles } from "./scan"
+import { listTaskFiles, dateFromFileName } from "./scan"
 import { DONE_STATUSES } from "./types"
 import { redactText } from "../privacy/redact"
-import type { ArchiveBlock, ArchiveResult } from "./types"
+import type { ArchiveBlock, ArchiveResult, ArchiveOptions } from "./types"
 
 // 删除空目录，并从父目录往上递归清理，直到 stopDir 或遇到非空目录
 function removeEmptyDirs(dir: string, stopDir: string) {
@@ -22,7 +22,7 @@ function removeEmptyDirs(dir: string, stopDir: string) {
 }
 
 // 统一完成时间为 YYYY-MM-DD HH:mm 定宽格式（年月日时分不足两位补零），解析失败返回原值
-function normalizeCompleted(completed: string): string {
+export function normalizeCompleted(completed: string): string {
   const m = completed.trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T\s](\d{1,2}):(\d{2})(?::\d{2})?$/)
   if (!m) return completed
   return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")} ${m[4].padStart(2, "0")}:${m[5]}`
@@ -41,13 +41,15 @@ export function parseArchiveTasks(file: string): ArchiveBlock[] {
 }
 
 // 归档：任务级，将「已完成/已放弃」的任务按完成时间归组排序后写入归档文件
-export function archiveTasks(tasksDir = ".tasks", redact = true): ArchiveResult {
+export function archiveTasks(tasksDir = ".tasks", redact = true, options: ArchiveOptions = {}): ArchiveResult {
+  const { dryRun = false, warn = true } = options
   const activeDir = join(tasksDir, "active")
   const archiveDir = join(tasksDir, "archive")
+  const warnings: string[] = []
   const files = listTaskFiles(activeDir)
   if (files.length === 0) {
     console.log("当前无活跃任务，无需归档")
-    return { archived: 0, skipped: [] }
+    return { archived: 0, skipped: [], warnings }
   }
 
   // 收集本次可归档的任务（状态已终结且带完成时间）
@@ -76,7 +78,18 @@ export function archiveTasks(tasksDir = ".tasks", redact = true): ArchiveResult 
 
   if (doneTasks.length === 0) {
     console.log("本次无可归档任务")
-    return { archived: 0, skipped }
+    return { archived: 0, skipped, warnings }
+  }
+
+  // 软告警：完成时间与创建日不一致（日期漂移）
+  if (warn) {
+    for (const t of doneTasks) {
+      const completedDate = t.completed.replace(/-/g, "").slice(0, 8)
+      const createdDate = dateFromFileName(t.file)
+      if (createdDate && completedDate !== createdDate) {
+        warnings.push(`任务「${t.name}」完成时间 ${t.completed} 与创建日 ${createdDate} 不一致，请确认 completed 是否填错`)
+      }
+    }
   }
 
   // 按完成时间日期（YYYYMMDD）分组
@@ -86,35 +99,82 @@ export function archiveTasks(tasksDir = ".tasks", redact = true): ArchiveResult 
     ;(byDate[date] ||= []).push(t)
   }
 
-  for (const [date, newTasks] of Object.entries(byDate)) {
-    const monthDir = join(archiveDir, date.slice(0, 6))
-    mkdirSync(monthDir, { recursive: true })
-    const archiveFile = join(monthDir, `${date}.md`)
-
-    // 合并已有归档任务 + 本次新任务，排序键统一定宽规范化后按完成时间降序（最新在前）
-    const all: ArchiveBlock[] = existsSync(archiveFile) ? parseArchiveTasks(archiveFile) : []
-    all.push(
-      ...newTasks.map((t) => ({
-        block: `## ${t.name}\n\n> 负责人：${t.owner}　状态：${t.status}　范围：${t.scope}　完成时间：${t.completed}\n\n${redactText(t.body, redact)}`,
-        completed: t.completed,
-      })),
-    )
-    for (const item of all) item.completed = normalizeCompleted(item.completed)
-    all.sort((a, b) => b.completed.localeCompare(a.completed))
-
-    writeFileSync(
-      archiveFile,
-      `# ${date} 归档\n\n> 本文件由 \`toolkit tasks archive\` 自动生成。\n\n${all.map((t) => t.block).join("\n\n---\n\n")}\n`,
-      "utf8",
-    )
-
-    // 删除本次已归档的 active 文件
-    for (const t of newTasks) unlinkSync(t.file)
-    // 清理空目录（active/年月/ 及其上层 active/）
-    removeEmptyDirs(dirname(newTasks[0].file), tasksDir)
-    console.log(`已归档 ${newTasks.length} 个任务 → ${date}.md`)
+  // 非预演时获取排他锁，防止并发归档互相覆盖（排他创建失败说明已有归档在进行）
+  let lockFd: number | null = null
+  const lockPath = join(tasksDir, ".archive.lock")
+  if (!dryRun) {
+    try {
+      lockFd = openSync(lockPath, "wx")
+    } catch {
+      const msg = "检测到归档锁 .archive.lock，可能有并发归档正在进行，本次已跳过"
+      console.warn(`⚠️ ${msg}`)
+      return { archived: 0, skipped, warnings: [...warnings, msg] }
+    }
   }
 
-  console.log(`共归档 ${doneTasks.length} 个任务`)
-  return { archived: doneTasks.length, skipped }
+  try {
+    for (const [date, newTasks] of Object.entries(byDate)) {
+      const monthDir = join(archiveDir, date.slice(0, 6))
+      const archiveFile = join(monthDir, `${date}.md`)
+
+      // 合并已有归档任务 + 本次新任务，排序键统一定宽规范化后按完成时间降序（最新在前）
+      const all: ArchiveBlock[] = existsSync(archiveFile) ? parseArchiveTasks(archiveFile) : []
+
+      // 软告警：归档文件已存在同名任务（疑似重复归档）
+      if (warn) {
+        const existingNames = new Set(all.map((b) => b.block.match(/^## (.+)/)?.[1] ?? ""))
+        for (const t of newTasks) {
+          if (existingNames.has(t.name)) {
+            warnings.push(`归档文件已存在同名任务「${t.name}」，疑似重复归档`)
+          }
+        }
+      }
+
+      all.push(
+        ...newTasks.map((t) => ({
+          block: `## ${t.name}\n\n> 负责人：${t.owner}　状态：${t.status}　范围：${t.scope}　完成时间：${t.completed}\n\n${redactText(t.body, redact)}`,
+          completed: t.completed,
+        })),
+      )
+      for (const item of all) item.completed = normalizeCompleted(item.completed)
+      all.sort((a, b) => b.completed.localeCompare(a.completed))
+
+      // 预演模式：只打印将要写入的内容，不落盘、不删除 active
+      if (dryRun) {
+        console.log(`[预演] 将归档 ${newTasks.length} 个任务 → ${date}.md`)
+        for (const t of newTasks) console.log(`[预演]   - ${t.name}`)
+        continue
+      }
+
+      mkdirSync(monthDir, { recursive: true })
+      writeFileSync(
+        archiveFile,
+        `# ${date} 归档\n\n> 本文件由 \`toolkit tasks archive\` 自动生成。\n\n${all.map((t) => t.block).join("\n\n---\n\n")}\n`,
+        "utf8",
+      )
+
+      // 删除本次已归档的 active 文件
+      for (const t of newTasks) unlinkSync(t.file)
+      // 清理空目录（active/年月/ 及其上层 active/）
+      removeEmptyDirs(dirname(newTasks[0].file), tasksDir)
+      console.log(`已归档 ${newTasks.length} 个任务 → ${date}.md`)
+    }
+
+    // 软告警输出（不阻断）
+    for (const w of warnings) console.warn(`⚠️ ${w}`)
+
+    if (dryRun) console.log(`[预演] 共 ${doneTasks.length} 个任务可归档（未落盘）`)
+    else console.log(`共归档 ${doneTasks.length} 个任务`)
+    return { archived: doneTasks.length, skipped, warnings }
+  } finally {
+    // 释放归档锁
+    if (lockFd !== null) {
+      closeSync(lockFd)
+      try {
+        unlinkSync(lockPath)
+      } catch {
+        // 锁文件已被清理，忽略
+      }
+    }
+  }
 }

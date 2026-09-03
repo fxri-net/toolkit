@@ -1,7 +1,7 @@
 // 隐私脱敏：内置掩码规则 + 项目根 .toolkitrc.json 自定义规则
 // 自定义规则追加（且优先于内置），可用 disable 按 name 禁用内置规则；enabled=false 时整体关闭
-import { readFileSync } from "node:fs"
-import { join } from "node:path"
+import { getConfigSection } from "../config"
+import { resolveEnabled } from "../switch"
 
 interface RedactRule {
   name: string
@@ -58,22 +58,18 @@ const BUILTIN_RULES: RedactRule[] = [
   { name: "IPv4", pattern: /(?<![\d.])(\d{1,3}\.\d{1,3})\.\d{1,3}\.\d{1,3}(?![\d.])/g, replacement: "$1.***.***" },
 ]
 
-// 配置缓存：undefined=未加载，null=无配置文件
-let cachedConfig: RedactConfig | null | undefined
+// 规则缓存（自定义规则 + 内置规则合成后的结果）
 let cachedRules: RedactRule[] | null = null
 
-// 读取项目根 .toolkitrc.json 的 redact 段，文件缺失或解析失败返回 null
+// 读取 .toolkitrc.json 的 redact 段（配置加载与缓存由 config.ts 统一处理）
 function loadConfig(): RedactConfig | null {
-  if (cachedConfig !== undefined) return cachedConfig
-  cachedConfig = null
-  try {
-    const raw = readFileSync(join(process.cwd(), ".toolkitrc.json"), "utf8")
-    const json = JSON.parse(raw) as { redact?: RedactConfig }
-    cachedConfig = json.redact ?? null
-  } catch {
-    // 无配置文件或 JSON 非法：忽略，走内置规则
+  const section = getConfigSection("redact")
+  if (!section) return null
+  return {
+    enabled: typeof section.enabled === "boolean" ? section.enabled : undefined,
+    disable: Array.isArray(section.disable) ? (section.disable.filter((x) => typeof x === "string") as string[]) : undefined,
+    rules: Array.isArray(section.rules) ? (section.rules as CustomRule[]) : undefined,
   }
-  return cachedConfig
 }
 
 // 合成最终规则集：自定义规则优先，内置规则可按 name 禁用
@@ -103,10 +99,7 @@ export function redactText(text: string, enabled: boolean): string {
   return out
 }
 
-// 解析脱敏总开关：CLI 开关（commander 解析的 --no-redact）> 环境变量 FX_REDACT=0 > 配置 enabled=false > 默认开启
-export function resolveRedactEnabled(cliEnabled: boolean): boolean {
-  if (!cliEnabled) return false
-  if (process.env.FX_REDACT === "0") return false
-  if (loadConfig()?.enabled === false) return false
-  return true
+// 解析脱敏总开关：CLI > 环境变量 FX_REDACT > 配置 enabled > 默认开启（双向，见 switch.resolveEnabled）
+export function resolveRedactEnabled(cliEnabled: boolean | undefined): boolean {
+  return resolveEnabled(cliEnabled, "FX_REDACT", loadConfig()?.enabled, true)
 }

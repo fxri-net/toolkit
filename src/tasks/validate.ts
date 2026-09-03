@@ -1,0 +1,160 @@
+// active 任务校验：frontmatter 合法性、完成时间格式、重名、方案正文子项未闭合
+// 供 tasks check 使用，输出问题清单；error 为硬性错误，warn 为软告警（默认开启可关）
+import { readFileSync } from "node:fs"
+import { join, basename } from "node:path"
+import { listTaskFiles } from "./scan"
+import { parseFrontmatter, stripFrontmatter } from "./parse"
+import type { TaskStatus } from "./types"
+
+// 问题级别：error 硬性错误 / warn 软告警
+export type IssueLevel = "error" | "warn"
+
+// 单条校验问题
+export interface CheckIssue {
+  level: IssueLevel
+  file: string
+  message: string
+}
+
+// 校验结果
+export interface CheckResult {
+  issues: CheckIssue[]
+  errorCount: number
+  warnCount: number
+}
+
+// 合法任务状态
+const VALID_STATUSES: TaskStatus[] = ["待办", "进行中", "已完成", "阻塞", "已放弃"]
+// 可归档（终结）状态
+const DONE_STATUSES: TaskStatus[] = ["已完成", "已放弃"]
+
+// 未闭合待办标记：方案正文里出现这些词说明有游离的待办子项未拆成独立任务
+const PENDING_MARKERS = /待办|待实施|待核对|待确认|待开始|待评估|待排期|待做|TODO/
+
+// completed 合法格式：YYYY-M-D（时分秒可选，非定宽也接受）
+const COMPLETED_RE = /^\d{4}-\d{1,2}-\d{1,2}(?:[T\s]\d{1,2}:\d{2}(?::\d{2})?)?$/
+
+// 校验单个任务文件，返回问题列表
+export function validateTaskFile(file: string): CheckIssue[] {
+  const issues: CheckIssue[] = []
+  const name = basename(file)
+  const content = readFileSync(file, "utf8")
+  const hasFrontmatter = /^---\r?\n[\s\S]*?\r?\n---/.test(content)
+
+  if (!hasFrontmatter) {
+    issues.push({ level: "error", file: name, message: "缺少 frontmatter" })
+    return issues
+  }
+
+  const fm = parseFrontmatter(content)
+
+  if (!fm.status) {
+    issues.push({ level: "error", file: name, message: "frontmatter 缺少 status 字段" })
+  } else if (!VALID_STATUSES.includes(fm.status as TaskStatus)) {
+    issues.push({ level: "error", file: name, message: `status 非法值「${fm.status}」，应为 ${VALID_STATUSES.join(" / ")}` })
+  }
+
+  if (DONE_STATUSES.includes(fm.status as TaskStatus) && !fm.completed) {
+    issues.push({ level: "error", file: name, message: `status 为「${fm.status}」但缺少 completed 完成时间` })
+  }
+
+  if (fm.completed && !COMPLETED_RE.test(fm.completed.trim())) {
+    issues.push({ level: "warn", file: name, message: `completed「${fm.completed}」格式非法，应为 YYYY-MM-DD HH:mm` })
+  }
+
+  // 方案正文子项未闭合扫描（软告警，不阻断）
+  const body = stripFrontmatter(content)
+  const pending = body.match(PENDING_MARKERS)
+  if (pending) {
+    issues.push({ level: "warn", file: name, message: `正文含未闭合待办标记「${pending[0]}」，建议拆分为独立 active 任务或明确闭环` })
+  }
+
+  return issues
+}
+
+// 校验 active 目录全部任务（含跨文件重名检测）
+export function validateTasks(tasksDir = ".tasks"): CheckResult {
+  const files = listTaskFiles(join(tasksDir, "active"))
+  const issues: CheckIssue[] = []
+  for (const f of files) issues.push(...validateTaskFile(f))
+
+  // 跨文件重名检测：同名任务文件疑似重复建档
+  const seen = new Map<string, string[]>()
+  for (const f of files) {
+    const name = basename(f, ".md")
+    const list = seen.get(name)
+    if (list) list.push(f)
+    else seen.set(name, [f])
+  }
+  for (const [name, list] of seen) {
+    if (list.length > 1) {
+      issues.push({ level: "warn", file: name, message: `存在 ${list.length} 个同名任务文件，疑似重复建档` })
+    }
+  }
+
+  // depends_on 依赖闭环校验
+  issues.push(...validateDependencies(files))
+
+  const errorCount = issues.filter((i) => i.level === "error").length
+  const warnCount = issues.length - errorCount
+  return { issues, errorCount, warnCount }
+}
+
+// 解析 depends_on 字段为数组（兼容伪 YAML 解析出的 "[]" / "[a, b]" 字符串与真实数组）
+function parseDeps(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.filter((x) => typeof x === "string") as string[]
+  if (typeof raw === "string") {
+    const m = raw.trim().match(/^\[(.*)\]$/)
+    if (m) return m[1].split(",").map((s) => s.trim().replace(/^['"]|['"]$/g, "")).filter(Boolean)
+  }
+  return []
+}
+
+// 校验 depends_on 依赖：目标存在性 + 成环检测
+function validateDependencies(files: string[]): CheckIssue[] {
+  const issues: CheckIssue[] = []
+  const nameSet = new Set(files.map((f) => basename(f, ".md")))
+  const depsMap = new Map<string, string[]>()
+
+  for (const file of files) {
+    const name = basename(file, ".md")
+    const content = readFileSync(file, "utf8")
+    const fm = parseFrontmatter(content)
+    const deps = parseDeps((fm as Record<string, unknown>).depends_on)
+    depsMap.set(name, deps)
+    for (const d of deps) {
+      if (!nameSet.has(d)) {
+        issues.push({ level: "warn", file: name, message: `依赖的任务「${d}」不在 active 中（可能已归档或文件名拼写错误）` })
+      }
+    }
+  }
+
+  // 成环检测：DFS 沿依赖边遍历，命中灰色节点即为环
+  const WHITE = 0, GRAY = 1, BLACK = 2
+  const color = new Map<string, number>()
+  const visit = (node: string, path: string[]): string[] | null => {
+    color.set(node, GRAY)
+    for (const dep of depsMap.get(node) ?? []) {
+      if (!nameSet.has(dep)) continue
+      const c = color.get(dep) ?? WHITE
+      if (c === GRAY) return [...path, dep]
+      if (c === WHITE) {
+        const loop = visit(dep, [...path, dep])
+        if (loop) return loop
+      }
+    }
+    color.set(node, BLACK)
+    return null
+  }
+  for (const name of depsMap.keys()) {
+    if ((color.get(name) ?? WHITE) === WHITE) {
+      const loop = visit(name, [name])
+      if (loop) {
+        issues.push({ level: "warn", file: name, message: `depends_on 存在循环依赖：${loop.join(" → ")}` })
+        break
+      }
+    }
+  }
+
+  return issues
+}

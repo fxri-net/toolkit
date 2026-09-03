@@ -35,4 +35,13 @@ export interface ArchiveBlock {
 export interface ArchiveResult {
   archived: number
   skipped: string[]
+  warnings: string[]
+}
+
+// 归档选项
+export interface ArchiveOptions {
+  // 预演：只预览归档动作，不写文件、不删除 active 任务
+  dryRun?: boolean
+  // 软告警开关：是否打印告警（日期漂移、重复归档等），默认 true
+  warn?: boolean
 }
