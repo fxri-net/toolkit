@@ -293,7 +293,8 @@ function writeArchiveTask(tasksDir: string, t: TaskWrite, dryRun: boolean, warni
 export async function importTasks(file: string, tasksDir = ".tasks", opts: ImportOptions = {}): Promise<ImportResult> {
   const dryRun = !!opts.dryRun
   const warnings: string[] = []
-  const custom = opts.importColumns ?? {}
+  // 自定义列映射与内置别名一致按小写匹配（列名不区分大小写），避免英文大写键失效
+  const custom = Object.fromEntries(Object.entries(opts.importColumns ?? {}).map(([k, v]) => [String(k).trim().toLowerCase(), String(v)]))
   const ext = file.split(".").pop()?.toLowerCase()
   let records: Record<string, string>[]
   if (ext === "csv") {
