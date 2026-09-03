@@ -5,6 +5,7 @@ import { listTaskFiles, dateFromFileName } from "./scan"
 import { DONE_STATUSES } from "./types"
 import { redactText } from "../privacy/redact"
 import type { ArchiveBlock, ArchiveResult, ArchiveOptions } from "./types"
+import { normalizeCompleted, parseArchiveBlocks, renderBlock } from "./archive-block"
 
 // 删除空目录，并从父目录往上递归清理，直到 stopDir 或遇到非空目录
 function removeEmptyDirs(dir: string, stopDir: string) {
@@ -21,23 +22,11 @@ function removeEmptyDirs(dir: string, stopDir: string) {
   }
 }
 
-// 统一完成时间为 YYYY-MM-DD HH:mm 定宽格式（年月日时分不足两位补零），解析失败返回原值
-export function normalizeCompleted(completed: string): string {
-  const m = completed.trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T\s](\d{1,2}):(\d{2})(?::\d{2})?$/)
-  if (!m) return completed
-  return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")} ${m[4].padStart(2, "0")}:${m[5]}`
-}
-
-// 解析归档文件里的任务块，返回 { block, completed } 数组
+// 解析归档文件里的任务块，返回 { block, completed } 数组（统一解析 + 渲染，块集合与 normalize 一致）
 export function parseArchiveTasks(file: string): ArchiveBlock[] {
   const content = readFileSync(file, "utf8")
-  const tasks: ArchiveBlock[] = []
-  const re = /## (.+?)\n\n> [^\n]*完成时间：([^\n]+)\n\n([\s\S]*?)(?=\n\n---\n\n## |$)/g
-  let m
-  while ((m = re.exec(content))) {
-    tasks.push({ block: m[0].trim(), completed: m[2].trim() })
-  }
-  return tasks
+  const { blocks } = parseArchiveBlocks(content)
+  return blocks.map((b) => ({ block: renderBlock(b), completed: b.completed }))
 }
 
 // 归档：任务级，将「已完成/已放弃」的任务按完成时间归组排序后写入归档文件
