@@ -5,6 +5,8 @@ import { join, basename, dirname } from "node:path"
 import { listTaskFiles } from "./scan"
 import { parseFrontmatter, stripFrontmatter } from "./parse"
 import { getConfigSection } from "../config"
+import { ALL_STATUSES } from "./types"
+import { parseDepends } from "./depends"
 import type { TaskStatus } from "./types"
 
 // 问题级别：error 硬性错误 / warn 软告警
@@ -24,8 +26,8 @@ export interface CheckResult {
   warnCount: number
 }
 
-// 合法任务状态
-const VALID_STATUSES: TaskStatus[] = ["待办", "进行中", "已完成", "阻塞", "已放弃"]
+// 合法任务状态（单一事实源 ALL_STATUSES）
+const VALID_STATUSES = ALL_STATUSES
 // 可归档（终结）状态
 const DONE_STATUSES: TaskStatus[] = ["已完成", "已放弃"]
 
@@ -159,16 +161,6 @@ export function validateTasks(tasksDir = ".tasks"): CheckResult {
   return { issues, errorCount, warnCount }
 }
 
-// 解析 depends_on 字段为数组（兼容伪 YAML 解析出的 "[]" / "[a, b]" 字符串与真实数组）
-function parseDeps(raw: unknown): string[] {
-  if (Array.isArray(raw)) return raw.filter((x) => typeof x === "string") as string[]
-  if (typeof raw === "string") {
-    const m = raw.trim().match(/^\[(.*)\]$/)
-    if (m) return m[1].split(",").map((s) => s.trim().replace(/^['"]|['"]$/g, "")).filter(Boolean)
-  }
-  return []
-}
-
 // 校验 depends_on 依赖：目标存在性 + 成环检测（引用带 .md 扩展名时自动归一化比对）
 function validateDependencies(files: string[]): CheckIssue[] {
   const issues: CheckIssue[] = []
@@ -181,7 +173,7 @@ function validateDependencies(files: string[]): CheckIssue[] {
     const name = basename(file, ".md")
     const content = readFileSync(file, "utf8")
     const fm = parseFrontmatter(content)
-    const deps = parseDeps((fm as Record<string, unknown>).depends_on).map(normDep)
+    const deps = parseDepends((fm as Record<string, unknown>).depends_on).map(normDep)
     depsMap.set(name, deps)
     for (const d of deps) {
       if (!nameSet.has(d)) {

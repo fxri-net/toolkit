@@ -1,6 +1,9 @@
 // 任务状态
 export type TaskStatus = "待办" | "进行中" | "已完成" | "阻塞" | "已放弃"
 
+// 全部合法状态（check 校验与 CLI --status 过滤共用）
+export const ALL_STATUSES: TaskStatus[] = ["待办", "进行中", "已完成", "阻塞", "已放弃"]
+
 // 已终结状态（可归档）
 export const DONE_STATUSES: TaskStatus[] = ["已完成", "已放弃"]
 

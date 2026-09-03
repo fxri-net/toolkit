@@ -74,7 +74,9 @@ export function printTaskBoard(tasksDir = ".tasks", view: TaskView = "active", f
   }
   const grouped: Record<string, TaskRow[]> = {}
   for (const r of rows) (grouped[r.status] ||= []).push(r)
-  for (const status of STATUS_ORDER) {
+  // 已知状态按 STATUS_ORDER 顺序展示，未知状态（如笔误）按字典序兜底分组，避免静默丢弃
+  const extras = Object.keys(grouped).filter((s) => !STATUS_ORDER.includes(s)).sort()
+  for (const status of [...STATUS_ORDER, ...extras]) {
     const list = grouped[status] || []
     if (list.length === 0) continue
     console.log(`【${status}】${list.length} 项`)
@@ -90,8 +92,13 @@ export function printTaskBoard(tasksDir = ".tasks", view: TaskView = "active", f
 // 打印汇总统计（终端末尾）
 function printBoardSummary(summary: TaskSummary): void {
   const statuses = STATUS_ORDER.filter((s) => summary.byStatus[s])
+  const extras = Object.keys(summary.byStatus).filter((s) => !STATUS_ORDER.includes(s))
   const owners = Object.keys(summary.byOwner).sort((a, b) => summary.byOwner[b] - summary.byOwner[a])
   console.log(`共 ${summary.total} 个任务`)
-  if (statuses.length > 0) console.log(`按状态：${statuses.map((s) => `${s} ${summary.byStatus[s]}`).join("　")}`)
+  if (statuses.length > 0 || extras.length > 0) {
+    const parts = statuses.map((s) => `${s} ${summary.byStatus[s]}`)
+    if (extras.length > 0) parts.push(`其他 ${extras.reduce((a, k) => a + summary.byStatus[k], 0)}`)
+    console.log(`按状态：${parts.join("　")}`)
+  }
   if (owners.length > 0) console.log(`按负责人：${owners.map((o) => `${o} ${summary.byOwner[o]}`).join("　")}`)
 }

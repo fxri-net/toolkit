@@ -102,6 +102,8 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
   }
 
   try {
+    let archivedOk = 0
+    const failures: string[] = []
     for (const [date, newTasks] of Object.entries(byDate)) {
       const monthDir = join(archiveDir, date.slice(0, 6))
       const archiveFile = join(monthDir, `${date}.md`)
@@ -142,22 +144,32 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
         continue
       }
 
-      mkdirSync(monthDir, { recursive: true })
-      writeFileAtomic(archiveFile, `${header}\n\n${all.map((t) => t.block).join("\n\n---\n\n")}\n`)
+      // 单日归档写盘 + 清理 active；失败时记入 failures 并继续处理其余日期，收尾统一汇总（K5）
+      try {
+        mkdirSync(monthDir, { recursive: true })
+        writeFileAtomic(archiveFile, `${header}\n\n${all.map((t) => t.block).join("\n\n---\n\n")}\n`)
 
-      // 删除本次已归档的 active 文件
-      for (const t of newTasks) unlinkSync(t.file)
-      // 清理空目录（active/年月/ 及其上层 active/）
-      removeEmptyDirs(dirname(newTasks[0].file), tasksDir)
-      console.log(`已归档 ${newTasks.length} 个任务 → ${date}.md`)
+        // 删除本次已归档的 active 文件
+        for (const t of newTasks) unlinkSync(t.file)
+        // 清理空目录（active/年月/ 及其上层 active/）
+        removeEmptyDirs(dirname(newTasks[0].file), tasksDir)
+        console.log(`已归档 ${newTasks.length} 个任务 → ${date}.md`)
+        archivedOk++
+      } catch (e) {
+        failures.push(`${date}.md：${(e as Error).message}`)
+      }
     }
 
     // 软告警输出（不阻断）
     for (const w of warnings) console.warn(`⚠️ ${w}`)
 
+    if (failures.length > 0) {
+      console.error(`归档失败 ${failures.length} 个日期文件（active 未删除，可重试）：`)
+      for (const f of failures) console.error(`  - ${f}`)
+    }
     if (dryRun) console.log(`[预演] 共 ${doneTasks.length} 个任务可归档（未落盘）`)
-    else console.log(`共归档 ${doneTasks.length} 个任务`)
-    return { archived: doneTasks.length, skipped, warnings }
+    else console.log(`共归档 ${archivedOk} 个任务${failures.length > 0 ? `，失败 ${failures.length} 个` : ""}`)
+    return { archived: dryRun ? doneTasks.length : archivedOk, skipped, warnings }
   } finally {
     // 释放归档锁
     if (lockFd !== null) {

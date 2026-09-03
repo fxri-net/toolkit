@@ -33,8 +33,9 @@ npx toolkit tasks --view all          # 待完成 + 已归档（状态分组，�
 npx toolkit tasks archive             # 归档已完成任务
 npx toolkit tasks archive --dry-run   # 归档预演（只预览，不落盘）
 npx toolkit tasks check               # 校验 active（frontmatter/命名规范/重名/依赖闭环/未闭合待办与 - [ ]）
-npx toolkit tasks normalize           # 检查归档块（元数据/疑似任务块/日期漂移/排序）
-npx toolkit tasks normalize --fix     # 补齐元数据 + 漂移块迁移到对应日期文件 + 降序重排
+npx toolkit tasks normalize           # 检查归档块（元数据/疑似任务块/日期漂移/排序/月份目录）
+npx toolkit tasks normalize --check   # 只读检查（normalize 默认行为，可显式声明；与 --fix 互斥）
+npx toolkit tasks normalize --fix     # 修复：补元数据 + 漂移块/错月文件迁移 + 降序重排 + 分隔清理
 npx toolkit tasks --dir <path>        # 指定任务目录（默认 .tasks）
 npx toolkit tasks check --strict      # 任务目录不存在时报错退出（默认容错为空结果）
 ```
@@ -48,7 +49,7 @@ npx toolkit tasks --scope 工程化 --since 2026-09-01 --until 2026-09-03
 npx toolkit tasks --date 2026-09-03       # 单日（与 --since/--until 互斥）
 ```
 
-⚠️ **过滤与视图**：`--owner/--scope/--status/--date/--since/--until` 只作用于所选视图，不指定 `--view` 时默认只查待完成（active）。想看归档需显式 `--view archived` 或 `--view all`；过滤落在空视图时会提示「无匹配任务」，并附 `--view` 引导提示。
+⚠️ **过滤与视图**：`--owner/--scope/--status/--date/--since/--until` 只作用于所选视图，不指定 `--view` 时默认只查待完成（active）。想看归档需显式 `--view archived` 或 `--view all`；过滤落在空视图时会提示「无匹配任务」，并附 `--view` 引导提示。`--owner/--scope/--status` 均支持逗号多值；`--status` 的非法值会告警并忽略。
 
 导入导出（扩展名驱动，均受过滤与脱敏开关影响）：
 
@@ -64,6 +65,7 @@ npx toolkit tasks --import tasks.json --target archive   # 直接写归档
 
 - 导入兼容本工具三种导出产物；表头自动识别（中文/英文别名），`.toolkitrc.json` 的 `tasks.importColumns` 可自定义列映射，优先级高于内置
 - 文件名冲突自动追加序号（`-1`、`-2`…），不覆盖已有任务；标题过长导致文件名截断时会告警
+- 导出目标目录不存在时自动创建（`.csv` / `.xlsx` / `.json` 均适用）
 
 ### 任务视图与导出结构
 
@@ -82,7 +84,7 @@ npx toolkit tasks --import tasks.json --target archive   # 直接写归档
 | `depends` 依赖 | 数组 | ✅ | ❌ |
 | `file` 来源文件 | 相对 `.tasks` 路径 | ✅ | ✅ |
 
-- **终端分组视图**（`toolkit tasks`）：按状态分组（待办→进行中→阻塞→已完成→已放弃→未标注），行显示 `日期 | 视图来源(all 时) | 负责人 | 任务名（范围）`，末尾输出按状态/负责人汇总；日期 = 待完成创建日 / 已归档完成时间
+- **终端分组视图**（`toolkit tasks`）：按状态分组（待办→进行中→阻塞→已完成→已放弃→未标注），行显示 `日期 | 视图来源(all 时) | 负责人 | 任务名（范围）`，末尾输出按状态/负责人汇总；日期 = 待完成创建日 / 已归档完成时间；`STATUS_ORDER` 之外的未知状态（如笔误）会以兜底分组展示并在汇总计入「其他」
 - **CSV**（`.csv`，UTF-8 BOM，超集列，一次一视图）：`视图, 任务名, 状态, 负责人, 范围, 创建日期, 更新日期, 完成时间, 依赖, 来源文件`
 - **XLSX**（`.xlsx`，固定三 sheet）：
   - `待完成` sheet：任务名/状态/负责人/范围/创建日期/更新日期/完成时间/依赖/来源文件
@@ -178,7 +180,7 @@ npx toolkit changelog status / publish      # 其余 changeset 子命令透传
 - **调用优先级**：`npx toolkit`（项目本地依赖）→ `toolkit`（全局安装）；两者均不可用时直接以 Markdown 输出方案，不阻塞执行
 - **规范来源**：优先读取项目根 `SPEC.md`，缺失时读取包内 `SPEC.md`（目录结构、文件命名与 frontmatter 字段均以该规范为准）
 - **多人协作（先查后写）**：`.tasks/` 是多写者共享区，新建/更新任务前先 `toolkit tasks` 查 active 总览并核对 archive，避免重复建档；同一需求共用一个任务文件
-- **校验**：`toolkit tasks check` 校验 active（frontmatter 合法性、owner/created/文件命名规范、重名、depends_on 闭环与引用归一、未闭合待办与 `- [ ]`，复选框/词标记均可配置关闭）；`toolkit tasks normalize` 检查归档块（元数据完整性/疑似任务块/漂移/排序/月份目录），`--fix` 补齐元数据并将漂移块迁移到对应日期文件
+- **校验**：`toolkit tasks check` 校验 active（frontmatter 合法性、owner/created/文件命名规范、重名、depends_on 闭环与引用归一、未闭合待办与 `- [ ]`，复选框/词标记均可配置关闭）；`toolkit tasks normalize` 检查归档块（元数据完整性/疑似任务块/漂移/排序/月份目录），`--fix` 补齐元数据、把漂移块迁移到对应日期文件、并把放错月份目录的归档文件移动到正确月份目录
 - **归档**：任务完成后执行 `toolkit tasks archive`（可 `--dry-run` 预演）；归档采用排他锁防并发覆盖。归档完成后若 `.changeset`（相对当前目录）无待发布变更集会有提示，仅为提醒，不影响归档
 - **版本管理**：涉及发版时先 `toolkit changelog` 创建变更集，再 `toolkit changelog version` 发版并格式化 CHANGELOG
 

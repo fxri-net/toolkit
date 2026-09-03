@@ -5,25 +5,11 @@ import { join, basename, relative, sep } from "node:path"
 import { listTaskFiles, dateFromFileName } from "./scan"
 import { parseArchiveBlocks } from "./archive-block"
 import { parseFrontmatter } from "./parse"
+import { parseDepends } from "./depends"
 import type { TaskRow, TaskView, TaskFilter, TaskSummary } from "./types"
 
 // 终端展示与导出的状态分组顺序
 export const STATUS_ORDER = ["待办", "进行中", "阻塞", "已完成", "已放弃", "未标注"]
-
-// 解析 frontmatter 的 depends_on 字段：可能为 JSON 数组文本（[]）或空，统一返回数组
-function parseDepends(value: unknown): string[] {
-  if (Array.isArray(value)) return value.map(String)
-  if (typeof value !== "string" || !value.trim()) return []
-  const raw = value.trim()
-  if (raw === "[]") return []
-  try {
-    const parsed = JSON.parse(raw)
-    if (Array.isArray(parsed)) return parsed.map(String)
-  } catch {
-    // 兼容 ['a', 'b'] 之外的手写格式，走正则兜底
-  }
-  return [...raw.matchAll(/'([^']*)'|"([^"]*)"/g)].map((m) => m[1] ?? m[2])
-}
 
 // 日期归一化为 YYYY-MM-DD（兼容 YYYYMMDD / YYYY-MM-DD / YYYY-M-D），无法解析返回空
 export function toYmd(value: string): string {

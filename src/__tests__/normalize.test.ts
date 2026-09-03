@@ -177,7 +177,7 @@ describe("元数据补全保留原状态（F7）", () => {
   })
 })
 
-describe("月份目录不一致（E9）", () => {
+describe("月份目录不一致（E9/K4）", () => {
   it("checkArchive 检出放错月份目录的归档文件", () => {
     const dir = makeDir()
     mkdirSync(join(dir, "archive", "202608"), { recursive: true })
@@ -187,6 +187,20 @@ describe("月份目录不一致（E9）", () => {
       "utf8",
     )
     expect(checkArchive(dir).some((i) => i.message.includes("月份目录"))).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("--fix 把放错月份目录的文件移到正确月份目录（K4）", () => {
+    const dir = makeDir()
+    mkdirSync(join(dir, "archive", "202608"), { recursive: true })
+    const content =
+      "# 20260903 归档\n\n## 20260903-唐启云-a\n\n> 负责人：唐启云　状态：已完成　范围：x　完成时间：2026-09-03 10:00\n\na\n"
+    writeFileSync(join(dir, "archive", "202608", "20260903.md"), content, "utf8")
+    const res = fixArchive(dir)
+    expect(res.fixed).toBeGreaterThan(0)
+    expect(existsSync(join(dir, "archive", "202609", "20260903.md"))).toBe(true)
+    expect(existsSync(join(dir, "archive", "202608", "20260903.md"))).toBe(false)
+    expect(checkArchive(dir).some((i) => i.message.includes("月份目录"))).toBe(false)
     rmSync(dir, { recursive: true, force: true })
   })
 })

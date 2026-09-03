@@ -1,6 +1,6 @@
 // archive 归档归一化：检查历史归档块的元数据完整性、完成时间漂移、排序，并按需修复
 // 供 tasks normalize --check（只读）与 --fix（补齐元数据 + 降序重排 + 漂移块迁移）使用
-import { readFileSync, unlinkSync, existsSync, mkdirSync, rmdirSync } from "node:fs"
+import { readFileSync, unlinkSync, existsSync, mkdirSync, rmdirSync, renameSync } from "node:fs"
 import { join, basename, dirname } from "node:path"
 import { normalizeCompleted, parseArchiveBlocks, renderBlock, completeMetaLine, scanOrphanBlocks } from "./archive-block"
 import { listTaskFiles } from "./scan"
@@ -139,14 +139,32 @@ export function fixArchive(tasksDir = ".tasks"): NormalizeResult {
   }
 
   try {
-    for (const file of files) {
+    for (const file0 of files) {
+      let file = file0
       const name = basename(file)
       const fileDate = name.replace(/\.md$/, "")
+      // K4：文件所在月份目录与文件名日期前缀不一致时，移到正确月份目录（目标已有同名则跳过并告警）
+      const dirMonth = basename(dirname(file))
+      const correctMonth = /^\d{8}$/.test(fileDate) ? fileDate.slice(0, 6) : ""
+      if (correctMonth && dirMonth !== correctMonth) {
+        const targetFile = join(archiveDir, correctMonth, name)
+        if (existsSync(targetFile)) {
+          console.warn(`⚠️ ${name}：目标月份目录 ${correctMonth} 已存在同名文件，未自动移动（需人工处理）`)
+        } else {
+          mkdirSync(join(archiveDir, correctMonth), { recursive: true })
+          renameSync(file, targetFile)
+          file = targetFile
+        }
+      }
       const content = readFileSync(file, "utf8")
       const { header, blocks } = parseArchiveBlocks(content)
 
       const actions: string[] = []
-      let changed = false
+      let changed = file !== file0
+      if (file !== file0) {
+        actions.push(`移动至 ${basename(dirname(file))} 月份目录`)
+        fixed++
+      }
       // 补元数据行（缺行或不完整时，保留原行已有字段，仅补缺失项，避免改错状态）
       for (const b of blocks) {
         if (b.completed && (!b.metaLine || !metaComplete(b.metaLine))) {

@@ -14,6 +14,7 @@ import { validateTasks } from "./tasks/validate"
 import { checkArchive, fixArchive } from "./tasks/normalize"
 import { listTaskFiles } from "./tasks/scan"
 import type { TaskView, TaskFilter, ImportTarget } from "./tasks/types"
+import { ALL_STATUSES } from "./tasks/types"
 import { languages, DEFAULT_LANG, type ChangelogLanguage } from "./changelog/languages"
 import { localDate, formatChangelogs } from "./changelog/format"
 import { resolveRedactEnabled } from "./privacy/redact"
@@ -96,6 +97,7 @@ interface TasksOptions {
   warn: boolean | undefined
   dryRun: boolean
   fix: boolean
+  check: boolean
   view?: string
   owner?: string
   scope?: string
@@ -129,6 +131,7 @@ program
   .option("--no-warn", "关闭软告警")
   .option("--dry-run", "预演（archive 归档 / import 导入只预览，不落盘）")
   .option("--fix", "归一化修复（仅 normalize 有效）")
+  .option("--check", "归一化只读检查（normalize 默认行为，可显式声明；不能与 --fix 同用）")
   .option("--view <view>", "任务视图：active / archived / all（默认 active）")
   .option("--owner <name>", "按负责人过滤（逗号分隔多值）")
   .option("--scope <scope>", "按范围过滤（逗号分隔多值）")
@@ -207,7 +210,10 @@ program
         }
         if (result.errorCount > 0) process.exitCode = 1
       } else if (command === "normalize") {
-        if (options.fix) {
+        if (options.fix && options.check) {
+          console.error("⚠️ --fix 与 --check 不能同时使用")
+          process.exitCode = 1
+        } else if (options.fix) {
           const result = fixArchive(dir)
           console.log(`已修复 ${result.fixed} 处`)
           if (result.issues.length > 0) {
@@ -246,7 +252,15 @@ program
         const multi = (v?: string): string[] | undefined => (v ? v.split(/[,，]/).map((s) => s.trim()).filter(Boolean) : undefined)
         filter.owner = multi(options.owner)
         filter.scope = multi(options.scope)
-        filter.status = multi(options.status)
+        const rawStatus = multi(options.status)
+        if (rawStatus) {
+          // 非法状态值告警并忽略（不静默、不中断）
+          const invalid = rawStatus.filter((s) => !(ALL_STATUSES as readonly string[]).includes(s))
+          if (invalid.length > 0) {
+            console.warn(`⚠️ 忽略非法状态值：${invalid.join("、")}（合法：待办/进行中/已完成/阻塞/已放弃）`)
+          }
+          filter.status = rawStatus.filter((s) => (ALL_STATUSES as readonly string[]).includes(s))
+        }
         if (options.date) filter.date = options.date
         if (options.since) filter.since = options.since
         if (options.until) filter.until = options.until

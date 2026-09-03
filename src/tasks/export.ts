@@ -1,12 +1,18 @@
 // 任务导出：CSV(UTF-8 BOM 超集列) / XLSX(exceljs 多 sheet) / JSON 三种格式，由文件扩展名驱动
 // 三种格式均为可回读结构：导入端（import.ts）内置对应解析与列映射
-import { writeFileSync } from "node:fs"
+import { writeFileSync, mkdirSync } from "node:fs"
+import { dirname } from "node:path"
 import { createRequire } from "node:module"
 import { toYmd } from "./query"
 import { redactText } from "../privacy/redact"
 import type { TaskRow, TaskSummary } from "./types"
 
 const require = createRequire(import.meta.url)
+
+// 确保导出文件父目录存在（不存在自动创建），避免裸 ENOENT
+function ensureExportDir(file: string): void {
+  mkdirSync(dirname(file), { recursive: true })
+}
 
 // 超集列：统一展示/CSV/汇总明细使用（缺字段留空）
 export const PUBLIC_COLUMNS: Array<{ label: string; value: (r: TaskRow) => string }> = [
@@ -135,10 +141,13 @@ async function toXLSXBuffer(rows: TaskRow[], summary: TaskSummary, redact = true
 export async function exportTasks(file: string, rows: TaskRow[], summary: TaskSummary, redact = true): Promise<void> {
   const ext = file.split(".").pop()?.toLowerCase()
   if (ext === "csv") {
+    ensureExportDir(file)
     writeFileSync(file, toCSV(rows, redact), "utf8")
   } else if (ext === "json") {
+    ensureExportDir(file)
     writeFileSync(file, toJSON(rows, summary, redact), "utf8")
   } else if (ext === "xlsx") {
+    ensureExportDir(file)
     writeFileSync(file, await toXLSXBuffer(rows, summary, redact))
   } else {
     throw new Error(`不支持的导出格式「${ext || ""}」，仅支持 .csv / .xlsx / .json`)
