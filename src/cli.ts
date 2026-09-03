@@ -10,7 +10,7 @@ import { archiveTasks } from "./tasks/archive"
 import { validateTasks } from "./tasks/validate"
 import { checkArchive, fixArchive } from "./tasks/normalize"
 import { listTaskFiles } from "./tasks/scan"
-import { languages, DEFAULT_LANG } from "./changelog/languages"
+import { languages, DEFAULT_LANG, type ChangelogLanguage } from "./changelog/languages"
 import { localDate, formatChangelogs } from "./changelog/format"
 import { resolveRedactEnabled } from "./privacy/redact"
 import { resolveEnabled } from "./switch"
@@ -45,6 +45,18 @@ function ensureUtf8() {
 function getCheckWarnings(): boolean | undefined {
   const section = getConfigSection("check")
   return typeof section?.warnings === "boolean" ? section.warnings : undefined
+}
+
+// 合并 .toolkitrc.json 配置的语言到内置（配置同名 key 覆盖内置，新 key 追加，实现全语言支持）
+function resolveLanguages(): Record<string, ChangelogLanguage> {
+  const section = getConfigSection("changelog")
+  const custom = section?.languages
+  if (!custom || typeof custom !== "object") return languages
+  const merged: Record<string, ChangelogLanguage> = { ...languages }
+  for (const [key, value] of Object.entries(custom)) {
+    if (value && typeof value === "object") merged[key] = value as ChangelogLanguage
+  }
+  return merged
 }
 
 // 检测 .changeset 下是否有待发布变更集（排除 README/config）
@@ -157,7 +169,9 @@ program
     ) => {
       const redact = resolveRedactEnabled(options.redact)
       const warn = resolveEnabled(options.warn, "FX_CHECK_WARN", getCheckWarnings(), true)
-      const lang = languages[options.lang] ?? languages[DEFAULT_LANG]
+      // 合并配置语言（支持自定义语言与覆盖内置），实现全语言
+      const merged = resolveLanguages()
+      const lang = merged[options.lang] ?? merged[DEFAULT_LANG]
       const command = operands[0]
       if (command === "version") {
         // 软告警：发版前存在未归档任务
