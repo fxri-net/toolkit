@@ -237,7 +237,7 @@ const masked = redactText("联系 tqy@fxri.net", true) // → "联系 t***@***.n
 
 落盘记录自由文本（任务正文/标题、CHANGELOG 条目）时默认脱敏敏感信息，`owner` 等结构化 frontmatter 字段不脱敏。
 
-- **内置规则**：邮箱、手机号、身份证、IPv4、AWS/GitHub/OpenAI/Slack 密钥、JWT、含端口内网 URL
+- **内置规则**：邮箱、手机号、身份证、IPv4、含端口内网 URL、JWT（eyJ 三段）、AWS 访问密钥（AKIA/ASIA）、GitHub Token（ghp/gho/ghu/ghs/ghr 经典与 github_pat_ 细粒度）、OpenAI API Key（sk- 经典与 sk-proj- 项目）、Slack Token（xox 系与 xapp app 级）
 - **开关**（双向三档，默认开启，优先级从高到低）：
   - CLI 参数 `--redact` / `--no-redact`
   - 环境变量 `FX_REDACT=1`（开）/ `FX_REDACT=0`（关，也认 true/on、false/off）
@@ -262,7 +262,11 @@ const masked = redactText("联系 tqy@fxri.net", true) // → "联系 t***@***.n
 | --- | --- | --- |
 | 邮箱（内置） | `tqy@fxri.net` | `t***@***.net` |
 | 手机号（已禁用） | `13812345678` | `13812345678` |
+| GitHub 细粒度 Token（内置） | `github_pat_11AABB22CCDD33EE_FFGG…（长串）` | `github_pat_****` |
+| OpenAI 项目 Key（内置） | `sk-proj-AAAAAAAA…（长串）` | `sk-proj-****` |
 | 自定义码（自定义，flags i） | `COD-123456` | `cod-******` |
+
+密钥类规则带长度门槛（如经典 ghp_ 需 ≥40 字符、github_pat_ 需 ≥92 字符、sk- 需 ≥23 字符、sk-proj- 需 ≥48 字符），避免误伤正常文本。
 
 ## ⚙️ 环境要求
 

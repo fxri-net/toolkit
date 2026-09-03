@@ -36,20 +36,26 @@ const BUILTIN_RULES: RedactRule[] = [
     pattern: /([a-zA-Z0-9._%+-])[a-zA-Z0-9._%+-]*@(?:[a-zA-Z0-9-]+\.)+([a-zA-Z]{2,})/g,
     replacement: "$1***@***.$2",
   },
-  // JWT：保留结构分段，掩码载荷
+  // JWT：保留 eyJ 头标记，掩码载荷（仅头段需 eyJ 前缀，载荷/签名允许任意 base64url）
   {
     name: "JWT",
-    pattern: /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g,
-    replacement: "eyJ***.eyJ***.***",
+    pattern: /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g,
+    replacement: "eyJ***.***.***",
   },
   // AWS Access Key：保留前缀标识
   { name: "AWS密钥", pattern: /\b(AKIA|ASIA)[A-Z0-9]{16}\b/g, replacement: "$1****" },
-  // GitHub Token：保留类型前缀
+  // GitHub Token：经典格式（ghp/gho/ghu/ghs/ghr + 36 位）
   { name: "GitHub密钥", pattern: /\b(ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36,}\b/g, replacement: "$1_****" },
-  // OpenAI API Key
+  // GitHub Token：细粒度格式（github_pat_ + 82 位，形如 22 位 + 下划线 + 59 位）
+  { name: "GitHub细粒度密钥", pattern: /\bgithub_pat_[A-Za-z0-9_]{80,}\b/g, replacement: "github_pat_****" },
+  // OpenAI API Key：经典格式（sk- + 48 位）
   { name: "OpenAI密钥", pattern: /\bsk-[A-Za-z0-9]{20,}\b/g, replacement: "sk-****" },
-  // Slack Token：保留 xox 前缀
+  // OpenAI API Key：项目格式（sk-proj- + 40 位以上，允许连字符）
+  { name: "OpenAI项目密钥", pattern: /\bsk-proj-[A-Za-z0-9_-]{40,}\b/g, replacement: "sk-proj-****" },
+  // Slack Token：xox 系（bot/user/app 等，xox[baprs]）
   { name: "Slack密钥", pattern: /\b(xox[baprs])-[A-Za-z0-9-]{10,}\b/g, replacement: "$1-****" },
+  // Slack Token：app 级（xapp-<workspace>-<id>-<secret> 长串）
+  { name: "Slack应用令牌", pattern: /\bxapp-\d+-[A-Za-z0-9-]{15,}\b/g, replacement: "xapp-****" },
   // 手机号（中国 1xx）：保留前 3 后 4
   { name: "手机号", pattern: /(?<!\d)(1[3-9]\d)\d{4}(\d{4})(?!\d)/g, replacement: "$1****$2" },
   // 身份证号（18 位）：保留前 6 后 4
