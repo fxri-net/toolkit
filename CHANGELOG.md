@@ -1,6 +1,22 @@
 # @fxri/toolkit
 
+## 1.5.5
+> 2026-09-03 发布
+
+### 🐛 补丁修复
+
+- archive/check/normalize 子命令统一「操作失败」兜底，不再抛原始 Node 堆栈
+- `printTasks`（库 API）复用 board 渲染，分组顺序/日期口径/文案与 CLI 完全一致
+- import 获取共享写锁（.archive.lock），防止并发导入互相覆盖
+- 归档元数据段解析抽公共 `parseMetaSegments`（query 展示与补全复用）
+- tsconfig 开启 `strict`（存量零错误基线）
+- check 的待办词标记扫描跳过标题行，避免标题含「待办」等词误报
+- import 输出路径统一为相对任务目录的 `/` 分隔
+- 缺失 `depends_on` 指向已归档任务时，提示精确归档位置
+- 修复 archive 汇总计数口径：按任务数统计（此前按日期文件数误报）
+
 ## 1.5.4
+
 > 2026-09-03 发布
 
 ### 🐛 补丁修复
