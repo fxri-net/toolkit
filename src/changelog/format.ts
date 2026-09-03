@@ -22,6 +22,8 @@ export function formatChangelog(file: string, today: string, lang: ChangelogLang
   for (const [from, to] of Object.entries(lang.replacements)) {
     content = content.replaceAll(from, to)
   }
+  // 去掉 changesets 默认 changelog-git 写入的 commit hash 前缀（如「800a1cf: 」），保持条目纯文案
+  content = content.replace(/^- [0-9a-f]{7}: /gm, "- ")
   // 合并连续重复的「依赖更新」
   while (content.includes(`${lang.deps}\n${lang.deps}`)) {
     content = content.replace(`${lang.deps}\n${lang.deps}`, lang.deps)
