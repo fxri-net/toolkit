@@ -4,8 +4,8 @@
 
 ## ✨ 特性
 
-- 📋 **任务管理** - 扫描、总览、按完成时间归档 Markdown 任务文件（语言无关，见 [SPEC.md](./SPEC.md)）
-- 🌍 **多语言 CHANGELOG** - 封装 changesets，标题中文化/英文，语言通过 `--lang` 选择，可扩展
+- 📋 **任务管理** - 扫描、总览、按完成时间归档 Markdown 任务文件（全语言支持，见 [SPEC.md](./SPEC.md)）
+- 🌍 **全语言 CHANGELOG** - 封装 changesets，内置 zh/en，任意语言通过配置扩展或覆盖
 - 🚀 **CLI + 库 API 双形态** - 可命令行使用，也可作为库引入
 
 ## 📦 安装
@@ -37,11 +37,11 @@ npx toolkit tasks --dir <path>        # 指定任务目录（默认 .tasks）
 ### CHANGELOG（changelog）
 
 ```bash
-npx toolkit changelog                     # 创建变更集（等价 changeset）
-npx toolkit changelog version             # 发版 + 格式化（默认中文）
-npx toolkit changelog version --lang en   # 指定语言（当前 zh / en）
-npx toolkit changelog format              # 仅格式化已有 CHANGELOG
-npx toolkit changelog status / publish    # 其余 changeset 子命令透传
+npx toolkit changelog                       # 创建变更集（等价 changeset）
+npx toolkit changelog version               # 发版 + 格式化（默认中文）
+npx toolkit changelog --lang en version     # 指定语言
+npx toolkit changelog format                # 仅格式化已有 CHANGELOG
+npx toolkit changelog status / publish      # 其余 changeset 子命令透传
 ```
 
 ### 通用选项
@@ -124,17 +124,27 @@ const masked = redactText("联系 tqy@fxri.net", true) // → "联系 t***@***.n
 
 `printTasks` / `archiveTasks` / `formatChangelog` / `formatChangelogs` 均提供可选 `redact` 参数（默认 `true`），传 `false` 可关闭本次脱敏。
 
-### 语言扩展
+### 全语言支持
 
-新增语言只需在 `languages` 里追加一个映射项：
+内置 `zh` / `en`，其余任意语言通过 `.toolkitrc.json` 的 `changelog.languages` 配置扩展，配置的同名 key 覆盖内置：
 
-```typescript
-export const languages = {
-  zh: { replacements: { "### Major Changes": "### 🚨 重大变更", ... }, deps: "- 更新依赖", released: "发布" },
-  en: { replacements: {}, deps: "- Updated dependencies", released: "released" },
-  // 未来：ja / ko / ...
+```json
+{
+  "changelog": {
+    "languages": {
+      "ja": {
+        "replacements": { "### Major Changes": "### 🚨 重大変更" },
+        "deps": "- 依存関係を更新",
+        "released": "リリース"
+      }
+    }
+  }
 }
 ```
+
+使用 `--lang ja` 指定（选项前置）：`toolkit changelog --lang ja format`。
+
+每个语言的 `ChangelogLanguage` 结构：`replacements`（标题替换映射，源标题 → 目标标题）、`deps`（依赖更新条目文案）、`released`（发布日期后缀）。库 API 侧也可直接操作 `languages` 对象追加语言。
 
 ## 🔒 隐私脱敏
 

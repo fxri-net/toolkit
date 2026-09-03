@@ -1,6 +1,16 @@
 # @fxri/toolkit
 
+## 1.3.0
+> 2026-09-03 发布
+
+### ✨ 新增功能
+
+- 依赖升级：commander 14 → 15，changelog 自有选项改为置于子命令之前
+- changelog 全语言化：.toolkitrc.json 的 changelog.languages 支持自定义语言与覆盖内置 zh/en
+- 文档：SPEC/README 语言描述改为「全语言支持」
+
 ## 1.2.0
+
 > 2026-09-03 发布
 
 ### ✨ 新增功能
