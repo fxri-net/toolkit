@@ -1,6 +1,19 @@
 # @fxri/toolkit
 
+## 1.5.3
+> 2026-09-03 发布
+
+### 🐛 补丁修复
+
+- 修复补元数据整行重写改错状态：`normalize --fix` 现在保留原行已有的 负责人/状态/范围 段，仅补缺失项（防 `已放弃` 被误改成 `已完成`）
+- `normalize --fix` 计数与行为对齐：降序重排、冗余分隔符清理计入修复数，并输出按文件的动作明细
+- `printTasks` 日期列改为 created 优先（与 board/导出口径一致）
+- `check` 对 active 根目录直放任务文件给出 {YYYYMM} 月份子目录软告警
+- `--owner/--scope` 支持逗号分隔多值过滤
+- changelog 域补单测（标题转换/去 hash/去重/补日期/脱敏/collect 排除），collect 排除 coverage；README 补充 changelog 中文润色示例
+
 ## 1.5.2
+
 > 2026-09-03 发布
 
 ### 🐛 补丁修复
