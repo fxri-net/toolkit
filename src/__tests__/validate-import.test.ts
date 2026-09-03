@@ -68,6 +68,16 @@ describe("validateTasks 依赖与命名校验", () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
+  it("created/completed 非真实日期软告警（E5）", () => {
+    const dir = taskDir()
+    putFile(dir, "20260903-唐启云-a.md", valid().replace("created: 20260903", "created: 20261399"))
+    putFile(dir, "20260903-唐启云-b.md", valid().replace("completed: ''", "completed: '2026-02-31 08:00'"))
+    const warns = warnTexts(dir)
+    expect(warns.some((m) => m.includes("created「20261399」日期不存在"))).toBe(true)
+    expect(warns.some((m) => m.includes("completed「2026-02-31 08:00」日期不存在"))).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
   it("- [ ] 默认作为未闭合待办扫描，配置关闭后不报（A6）", () => {
     const dir = taskDir()
     putFile(dir, "20260903-唐启云-box.md", valid("", "\n- [ ] 待勾选\n"))

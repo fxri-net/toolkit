@@ -39,6 +39,18 @@ const COMPLETED_FULL_RE = /^\d{4}-\d{1,2}-\d{1,2}[T\s]\d{1,2}:\d{2}(?::\d{2})?$/
 // active 文件名规范：{YYYYMMDD}-{负责人}-{简述}.md
 const ACTIVE_NAME_RE = /^\d{8}-[^-]+-.+\.md$/
 
+// 校验 YYYY-MM-DD / YYYYMMDD（允许非补零月日）是否为真实存在日期
+function isRealDate(ymd: string): boolean {
+  const m = ymd.match(/^(\d{4})-?(\d{1,2})-?(\d{1,2})/)
+  if (!m) return false
+  const y = +m[1]
+  const mo = +m[2]
+  const d = +m[3]
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return false
+  const dt = new Date(Date.UTC(y, mo - 1, d))
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d
+}
+
 // 校验单个任务文件，返回问题列表
 export function validateTaskFile(file: string): CheckIssue[] {
   const issues: CheckIssue[] = []
@@ -63,10 +75,18 @@ export function validateTaskFile(file: string): CheckIssue[] {
     issues.push({ level: "error", file: name, message: `status 为「${fm.status}」但缺少 completed 完成时间` })
   }
 
-  if (fm.completed && !COMPLETED_RE.test(fm.completed.trim())) {
-    issues.push({ level: "warn", file: name, message: `completed「${fm.completed}」格式非法，应为 YYYY-MM-DD HH:mm` })
-  } else if (fm.completed && !COMPLETED_FULL_RE.test(fm.completed.trim())) {
-    issues.push({ level: "warn", file: name, message: `completed「${fm.completed}」建议补全为完整时间 YYYY-MM-DD HH:mm` })
+  if (fm.completed) {
+    const c = fm.completed.trim()
+    if (!COMPLETED_RE.test(c)) {
+      issues.push({ level: "warn", file: name, message: `completed「${fm.completed}」格式非法，应为 YYYY-MM-DD HH:mm` })
+    } else {
+      const datePart = c.match(/^\d{4}-\d{1,2}-\d{1,2}/)?.[0] ?? c
+      if (!isRealDate(datePart)) {
+        issues.push({ level: "warn", file: name, message: `completed「${fm.completed}」日期不存在，请核对` })
+      } else if (!COMPLETED_FULL_RE.test(c)) {
+        issues.push({ level: "warn", file: name, message: `completed「${fm.completed}」建议补全为完整时间 YYYY-MM-DD HH:mm` })
+      }
+    }
   }
 
   // 元数据完整性（软告警）：负责人 / 创建日期 / 文件命名规范
@@ -77,6 +97,8 @@ export function validateTaskFile(file: string): CheckIssue[] {
     issues.push({ level: "warn", file: name, message: "缺少 created 创建日期字段" })
   } else if (!/^\d{8}$/.test(fm.created.trim())) {
     issues.push({ level: "warn", file: name, message: `created「${fm.created}」格式非法，应为 YYYYMMDD` })
+  } else if (!isRealDate(fm.created.trim())) {
+    issues.push({ level: "warn", file: name, message: `created「${fm.created}」日期不存在，请核对` })
   }
   const nameMatch = name.match(/^(\d{8})-/)
   if (!ACTIVE_NAME_RE.test(name)) {

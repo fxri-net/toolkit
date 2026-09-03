@@ -1,10 +1,11 @@
 // archive 归档归一化：检查历史归档块的元数据完整性、完成时间漂移、排序，并按需修复
 // 供 tasks normalize --check（只读）与 --fix（补齐元数据 + 降序重排 + 漂移块迁移）使用
-import { readFileSync, writeFileSync, openSync, closeSync, unlinkSync, existsSync, mkdirSync, rmdirSync } from "node:fs"
+import { readFileSync, writeFileSync, unlinkSync, existsSync, mkdirSync, rmdirSync } from "node:fs"
 import { join, basename, dirname } from "node:path"
 import { normalizeCompleted, parseArchiveBlocks, renderBlock, buildMetaLine, scanOrphanBlocks } from "./archive-block"
 import { listTaskFiles } from "./scan"
 import type { ArchiveBlockInfo } from "./archive-block"
+import { acquireArchiveLock, releaseArchiveLock } from "./lock"
 
 // 归一化问题
 export interface NormalizeIssue {
@@ -98,6 +99,10 @@ function migrateArchiveBlock(tasksDir: string, block: ArchiveBlockInfo, targetDa
     if (parsed.header) header = parsed.header
     target.push(...parsed.blocks)
   }
+  // 目标文件已存在同名块时告警（迁移会并入产生重复，供人工确认）
+  if (target.some((b) => b.title === block.title)) {
+    console.warn(`⚠️ 目标 ${targetDate}.md 已存在同名块「${block.title}」，迁移将产生重复`)
+  }
   target.push(block)
   target.sort((a, b) => normalizeCompleted(b.completed).localeCompare(normalizeCompleted(a.completed)))
   const eol = existsSync(targetFile) && readFileSync(targetFile, "utf8").includes("\r\n") ? "\r\n" : "\n"
@@ -113,12 +118,10 @@ export function fixArchive(tasksDir = ".tasks"): NormalizeResult {
   const issues: NormalizeIssue[] = []
   let fixed = 0
 
-  // 获取排他锁，防止与归档、并发归一化修复互相覆盖（与 archive.ts 共用 .archive.lock）
+  // 获取排他锁，防止与归档、并发归一化修复互相覆盖（与 archive.ts 共用 .archive.lock，陈旧锁自动清理）
   let lockFd: number | null = null
-  const lockPath = join(tasksDir, ".archive.lock")
-  try {
-    lockFd = openSync(lockPath, "wx")
-  } catch {
+  lockFd = acquireArchiveLock(tasksDir)
+  if (lockFd === null) {
     console.warn("⚠️ 检测到归档锁，可能有并发写操作正在进行，本次已跳过修复")
     return { issues, fixed }
   }
@@ -183,9 +186,8 @@ export function fixArchive(tasksDir = ".tasks"): NormalizeResult {
   } finally {
     // 释放排他锁
     if (lockFd !== null) {
-      closeSync(lockFd)
       try {
-        unlinkSync(lockPath)
+        releaseArchiveLock(tasksDir, lockFd)
       } catch {
         // 锁文件已被清理，忽略
       }

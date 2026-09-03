@@ -158,11 +158,17 @@ program
         }
         const section = getConfigSection("tasks")
         const custom = section?.importColumns && typeof section.importColumns === "object" ? (section.importColumns as Record<string, string>) : undefined
+        const target = (options.target ?? "active") as string
+        if (!["active", "archive"].includes(target)) {
+          console.error(`⚠️ 非法导入目标「${target}」，仅支持 active / archive`)
+          process.exitCode = 1
+          return
+        }
         try {
           await importTasks(options.import, dir, {
             owner: options.owner,
             scope: options.scope,
-            target: (options.target ?? "active") as ImportTarget,
+            target: target as ImportTarget,
             dryRun: options.dryRun,
             importColumns: custom,
           })

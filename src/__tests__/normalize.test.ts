@@ -1,10 +1,11 @@
 // 归档块解析与归一化单测：normalizeCompleted 补位、分隔符清理、孤儿块扫描、漂移迁移与排序
 import { describe, it, expect } from "vitest"
-import { mkdtempSync, writeFileSync, readFileSync, mkdirSync, rmSync, existsSync, readdirSync } from "node:fs"
+import { mkdtempSync, writeFileSync, readFileSync, mkdirSync, rmSync, existsSync, readdirSync, utimesSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { normalizeCompleted, parseArchiveBlocks, scanOrphanBlocks } from "../tasks/archive-block"
 import { checkArchive, fixArchive } from "../tasks/normalize"
+import { archiveTasks } from "../tasks/archive"
 
 // 建临时任务目录
 function makeDir(): string {
@@ -146,6 +147,59 @@ describe("orphan 仅报告不自动修复", () => {
     fixArchive(dir)
     expect(checkArchive(dir).some((i) => i.message.includes("疑似任务块"))).toBe(true)
     expect(readdirSync(month).includes("20260903.md")).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+})
+
+describe("archiveTasks 锁与 header（E1/E2）", () => {
+  // 建含已完成 active 任务的任务目录
+  function withDone(): { dir: string; date: string } {
+    const dir = makeDir()
+    mkdirSync(join(dir, "active", "202609"), { recursive: true })
+    writeFileSync(
+      join(dir, "active", "202609", "20260904-唐启云-done.md"),
+      "---\nowner: 唐启云\nstatus: 已完成\ncreated: 20260904\nupdated: 20260904\ncompleted: '2026-09-04 09:00'\ndepends_on: []\nscope: 测\n---\n\n# done\n",
+      "utf8",
+    )
+    return { dir, date: "2026-09-04" }
+  }
+
+  it("归档合并保留自定义 header（E1）", () => {
+    const { dir } = withDone()
+    const month = join(dir, "archive", "202609")
+    mkdirSync(month, { recursive: true })
+    writeFileSync(
+      join(month, "20260904.md"),
+      "# custom 头部\n\n> 手工引言，归档时不可覆盖。\n\n## 20260904-唐启云-old\n\n> 负责人：唐启云　状态：已完成　范围：x　完成时间：2026-09-04 08:00\n\nold\n",
+      "utf8",
+    )
+    const res = archiveTasks(dir)
+    expect(res.archived).toBe(1)
+    const text = readFileSync(join(month, "20260904.md"), "utf8")
+    expect(text.startsWith("# custom 头部")).toBe(true)
+    expect(text).toContain("手工引言")
+    expect(text).toContain("## 20260904-唐启云-done")
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("陈旧归档锁自动接管（E2）", () => {
+    const { dir } = withDone()
+    const lock = join(dir, ".archive.lock")
+    writeFileSync(lock, "stale", "utf8")
+    const old = new Date(Date.now() - 11 * 60 * 1000)
+    utimesSync(lock, old, old)
+    const res = archiveTasks(dir)
+    expect(res.archived).toBe(1)
+    expect(existsSync(lock)).toBe(false)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("并发新鲜锁仍跳过（E2）", () => {
+    const { dir } = withDone()
+    writeFileSync(join(dir, ".archive.lock"), "fresh", "utf8")
+    const res = archiveTasks(dir)
+    expect(res.archived).toBe(0)
+    expect(res.warnings.some((w) => w.includes("归档锁"))).toBe(true)
     rmSync(dir, { recursive: true, force: true })
   })
 })

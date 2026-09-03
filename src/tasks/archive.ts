@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync, unlinkSync, existsSync, readdirSync, rmdirSync, openSync, closeSync } from "node:fs"
+import { readFileSync, writeFileSync, mkdirSync, unlinkSync, existsSync, readdirSync, rmdirSync } from "node:fs"
 import { join, basename, dirname, resolve, sep } from "node:path"
 import { parseFrontmatter, stripFrontmatter } from "./parse"
 import { listTaskFiles, dateFromFileName } from "./scan"
@@ -6,6 +6,7 @@ import { DONE_STATUSES } from "./types"
 import { redactText } from "../privacy/redact"
 import type { ArchiveBlock, ArchiveResult, ArchiveOptions } from "./types"
 import { normalizeCompleted, parseArchiveBlocks, renderBlock } from "./archive-block"
+import { acquireArchiveLock, releaseArchiveLock } from "./lock"
 
 // 删除空目录，并从父目录往上递归清理，直到 stopDir 或遇到非空目录
 function removeEmptyDirs(dir: string, stopDir: string) {
@@ -88,13 +89,11 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
     ;(byDate[date] ||= []).push(t)
   }
 
-  // 非预演时获取排他锁，防止并发归档互相覆盖（排他创建失败说明已有归档在进行）
+  // 非预演时获取排他锁（陈旧锁自动清理），防止并发归档互相覆盖
   let lockFd: number | null = null
-  const lockPath = join(tasksDir, ".archive.lock")
   if (!dryRun) {
-    try {
-      lockFd = openSync(lockPath, "wx")
-    } catch {
+    lockFd = acquireArchiveLock(tasksDir)
+    if (lockFd === null) {
       const msg = "检测到归档锁 .archive.lock，可能有并发归档正在进行，本次已跳过"
       console.warn(`⚠️ ${msg}`)
       return { archived: 0, skipped, warnings: [...warnings, msg] }
@@ -106,8 +105,15 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
       const monthDir = join(archiveDir, date.slice(0, 6))
       const archiveFile = join(monthDir, `${date}.md`)
 
-      // 合并已有归档任务 + 本次新任务，排序键统一定宽规范化后按完成时间降序（最新在前）
-      const all: ArchiveBlock[] = existsSync(archiveFile) ? parseArchiveTasks(archiveFile) : []
+      // 合并已有归档任务 + 本次新任务；文件已存在时保留其自定义 header（不覆盖导入/手写引言）
+      // 排序键统一定宽规范化后按完成时间降序（最新在前）
+      let header = `# ${date} 归档\n\n> 本文件由 \`toolkit tasks archive\` 自动生成。`
+      const all: ArchiveBlock[] = []
+      if (existsSync(archiveFile)) {
+        const parsed = parseArchiveBlocks(readFileSync(archiveFile, "utf8"))
+        if (parsed.header) header = parsed.header
+        for (const b of parsed.blocks) all.push({ block: renderBlock(b), completed: b.completed })
+      }
 
       // 软告警：归档文件已存在同名任务（疑似重复归档）
       if (warn) {
@@ -136,11 +142,7 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
       }
 
       mkdirSync(monthDir, { recursive: true })
-      writeFileSync(
-        archiveFile,
-        `# ${date} 归档\n\n> 本文件由 \`toolkit tasks archive\` 自动生成。\n\n${all.map((t) => t.block).join("\n\n---\n\n")}\n`,
-        "utf8",
-      )
+      writeFileSync(archiveFile, `${header}\n\n${all.map((t) => t.block).join("\n\n---\n\n")}\n`, "utf8")
 
       // 删除本次已归档的 active 文件
       for (const t of newTasks) unlinkSync(t.file)
@@ -158,9 +160,8 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
   } finally {
     // 释放归档锁
     if (lockFd !== null) {
-      closeSync(lockFd)
       try {
-        unlinkSync(lockPath)
+        releaseArchiveLock(tasksDir, lockFd)
       } catch {
         // 锁文件已被清理，忽略
       }
