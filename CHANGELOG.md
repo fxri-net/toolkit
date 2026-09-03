@@ -1,6 +1,20 @@
 # @fxri/toolkit
 
+## 1.5.4
+> 2026-09-03 发布
+
+### 🐛 补丁修复
+
+- `tasks normalize` 增加 `--check` 显式只读别名，并与 `--fix` 互斥报错
+- `--status` 非法值改为告警并忽略，不再静默
+- 任务总览对 `STATUS_ORDER` 之外的未知状态以兜底分组展示，并在汇总计入「其他」（不再“数得到看不到”）
+- `depends_on` 解析抽公共 `parseDepends`（validate/query 复用），消除双实现漂移
+- 导出目标目录不存在时自动创建（CSV / XLSX / JSON）
+- `normalize --fix` 会把放错月份目录的归档文件移动到正确月份目录
+- archive 多日期归档逐日失败汇总（失败日不删除 active，可安全重试）
+
 ## 1.5.3
+
 > 2026-09-03 发布
 
 ### 🐛 补丁修复
