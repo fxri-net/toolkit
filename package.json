@@ -44,6 +44,12 @@
     "dev": "pnpm build:debug && node ./dist/cli.js",
     "build": "cross-env NODE_ENV=production tsup",
     "build:debug": "cross-env NODE_ENV=development tsup --config tsup.dev.config.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "changeset": "changeset",
     "release": "pnpm build && pnpm publish"
   },
   "keywords": [
@@ -59,10 +65,14 @@
     "exceljs": "^4.4.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^20.19.21",
     "cross-env": "^10.1.0",
+    "eslint": "^10.9.1",
     "tsup": "^8.5.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.69.0",
+    "vitest": "^4.1.11"
   },
   "packageManager": "pnpm@10.34.4",
   "engines": {
