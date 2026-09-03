@@ -1,6 +1,6 @@
 // archive 归档归一化：检查历史归档块的元数据完整性、完成时间漂移、排序，并按需修复
 // 供 tasks normalize --check（只读）与 --fix（补齐元数据 + 降序重排 + 漂移块迁移）使用
-import { readFileSync, writeFileSync, openSync, closeSync, unlinkSync, existsSync, mkdirSync, readdirSync, rmdirSync } from "node:fs"
+import { readFileSync, writeFileSync, openSync, closeSync, unlinkSync, existsSync, mkdirSync, rmdirSync } from "node:fs"
 import { join, basename, dirname } from "node:path"
 import { normalizeCompleted, parseArchiveBlocks, renderBlock, buildMetaLine, scanOrphanBlocks } from "./archive-block"
 import { listTaskFiles } from "./scan"
