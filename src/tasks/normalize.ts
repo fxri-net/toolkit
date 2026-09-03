@@ -2,7 +2,7 @@
 // 供 tasks normalize --check（只读）与 --fix（补齐元数据 + 降序重排 + 漂移块迁移）使用
 import { readFileSync, unlinkSync, existsSync, mkdirSync, rmdirSync } from "node:fs"
 import { join, basename, dirname } from "node:path"
-import { normalizeCompleted, parseArchiveBlocks, renderBlock, buildMetaLine, scanOrphanBlocks } from "./archive-block"
+import { normalizeCompleted, parseArchiveBlocks, renderBlock, completeMetaLine, scanOrphanBlocks } from "./archive-block"
 import { listTaskFiles } from "./scan"
 import type { ArchiveBlockInfo } from "./archive-block"
 import { acquireArchiveLock, releaseArchiveLock } from "./lock"
@@ -145,11 +145,13 @@ export function fixArchive(tasksDir = ".tasks"): NormalizeResult {
       const content = readFileSync(file, "utf8")
       const { header, blocks } = parseArchiveBlocks(content)
 
+      const actions: string[] = []
       let changed = false
-      // 补元数据行（缺行或不完整时，用完成时间 + 标题推导补齐四字段）
+      // 补元数据行（缺行或不完整时，保留原行已有字段，仅补缺失项，避免改错状态）
       for (const b of blocks) {
         if (b.completed && (!b.metaLine || !metaComplete(b.metaLine))) {
-          b.metaLine = buildMetaLine(b.title, b.completed)
+          b.metaLine = completeMetaLine(b.title, b.completed, b.metaLine)
+          actions.push(`补元数据「${b.title}」`)
           changed = true
           fixed++
         }
@@ -157,24 +159,39 @@ export function fixArchive(tasksDir = ".tasks"): NormalizeResult {
 
       // 完成时间漂移迁移：把块迁到与 completed 日期一致的归档文件（原文件日期不再匹配的块全部迁出）
       const keep: ArchiveBlockInfo[] = []
+      let migrated = 0
       for (const b of blocks) {
         const bd = b.completed ? normalizeCompleted(b.completed).replace(/-/g, "").slice(0, 8) : ""
         if (bd && bd !== fileDate) {
           migrateArchiveBlock(tasksDir, b, bd)
-          fixed++
+          migrated++
           changed = true
         } else {
           keep.push(b)
         }
       }
+      if (migrated > 0) {
+        actions.push(`迁移 ${migrated} 个漂移块`)
+        fixed += migrated
+      }
 
-      // 降序重排（仅对 completed 可解析的块；缺失 completed 的块保持末尾）
+      // 降序重排（仅对 completed 可解析的块；缺失 completed 的块保持末尾）；顺序确需调整时计一次修复
       const dated = keep.filter((b) => b.completed)
       const undated = keep.filter((b) => !b.completed)
       const sorted = [...dated].sort((a, b) => normalizeCompleted(b.completed).localeCompare(normalizeCompleted(a.completed)))
-      if (JSON.stringify(sorted.map((b) => b.title)) !== JSON.stringify(dated.map((b) => b.title))) {
+      const needSort = JSON.stringify(sorted.map((b) => b.title)) !== JSON.stringify(dated.map((b) => b.title))
+      if (needSort) {
         keep.splice(0, keep.length, ...sorted, ...undated)
+        actions.push("降序重排")
+        fixed++
         changed = true
+      }
+
+      // 冗余分隔符（`---` 空行对）检测：存在则随本次重写一并清理，计一次修复
+      const hasDupSep = /^---\s*\r?\n\r?\n---/m.test(content)
+      if (hasDupSep) {
+        actions.push("清理冗余分隔符")
+        fixed++
       }
 
       const eol = content.includes("\r\n") ? "\r\n" : "\n"
@@ -186,12 +203,14 @@ export function fixArchive(tasksDir = ".tasks"): NormalizeResult {
         } catch {
           // 目录非空（当月还有其他日期文件），忽略
         }
+        actions.push("删除空归档文件")
         changed = true
-      } else if (changed) {
+      } else if (changed || hasDupSep) {
         // 文件头与首个任务块之间补空行分隔（header 已去掉末尾空行）；保留原文件行尾，避免 CRLF 文件整文件 diff
         const next = ((header ? header + "\n\n" : "") + keep.map(renderBlock).join("\n\n---\n\n") + "\n").replace(/\n/g, eol)
         writeFileAtomic(file, next)
       }
+      if (actions.length > 0) console.log(`  ${name}: ${actions.join("、")}`)
     }
 
     return { issues, fixed }

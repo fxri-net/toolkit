@@ -3,7 +3,7 @@ import { join, basename } from "node:path"
 import { parseFrontmatter, stripFrontmatter } from "./parse"
 import { listTaskFiles, dateFromFileName } from "./scan"
 import { redactText } from "../privacy/redact"
-import { STATUS_ORDER, queryTasks, displayDate } from "./query"
+import { STATUS_ORDER, queryTasks, displayDate, toYmd } from "./query"
 import type { Task, TaskRow, TaskView, TaskFilter, TaskSummary } from "./types"
 
 // 读取 active 目录下的任务列表
@@ -50,7 +50,9 @@ export function printTasks(tasksDir = ".tasks", redact = true): void {
     total += list.length
     console.log(`【${status}】${list.length} 项`)
     for (const t of list) {
-      console.log(`  ${t.date}  ${(t.frontmatter.owner || "未标注").padEnd(8)}  ${redactText(t.title, redact)}`)
+      // 日期口径与 board/导出一致：created（frontmatter）优先，缺失回退文件名日期
+      const date = t.frontmatter.created ? toYmd(t.frontmatter.created) : t.date
+      console.log(`  ${date}  ${(t.frontmatter.owner || "未标注").padEnd(8)}  ${redactText(t.title, redact)}`)
     }
     console.log("")
   }

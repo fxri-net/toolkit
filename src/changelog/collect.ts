@@ -4,7 +4,7 @@ import { join } from "node:path"
 // 递归收集目录下所有 CHANGELOG.md（排除 node_modules / .git / dist）
 export function collectChangelogs(dir: string): string[] {
   const results: string[] = []
-  const exclude = new Set(["node_modules", ".git", "dist"])
+  const exclude = new Set(["node_modules", ".git", "dist", "coverage"])
   const walk = (current: string) => {
     let entries
     try {

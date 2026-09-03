@@ -72,8 +72,10 @@ export interface TaskRow {
 
 // 过滤条件
 export interface TaskFilter {
-  owner?: string
-  scope?: string
+  // 负责人（支持逗号多值精确匹配）
+  owner?: string | string[]
+  // 范围（支持逗号多值精确匹配）
+  scope?: string | string[]
   status?: string[]
   // 单日（YYYY-MM-DD，与 since/until 互斥）
   date?: string

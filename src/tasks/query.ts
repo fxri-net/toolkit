@@ -103,11 +103,17 @@ export function listArchivedTasks(tasksDir = ".tasks"): TaskRow[] {
   return rows
 }
 
+// 命中集合式过滤（owner/scope/status 支持多值）
+function inMatch(v: string | string[] | undefined, target: string): boolean {
+  if (v === undefined) return true
+  return Array.isArray(v) ? v.includes(target) : v === target
+}
+
 // 单行是否命中过滤条件（owner/scope/status 精确匹配；时间：待完成看创建/更新，已归档看完成时间）
 function matchRow(r: TaskRow, f: TaskFilter): boolean {
-  if (f.owner && r.owner !== f.owner) return false
-  if (f.scope && r.scope !== f.scope) return false
-  if (f.status?.length && !f.status.includes(r.status)) return false
+  if (!inMatch(f.owner, r.owner)) return false
+  if (!inMatch(f.scope, r.scope)) return false
+  if (!inMatch(f.status, r.status)) return false
   if (f.date || f.since || f.until) {
     const since = f.date ? toYmd(f.date) : toYmd(f.since || "")
     const until = f.date ? toYmd(f.date) : toYmd(f.until || "")

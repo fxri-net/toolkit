@@ -151,6 +151,32 @@ describe("orphan 仅报告不自动修复", () => {
   })
 })
 
+describe("元数据补全保留原状态（F7）", () => {
+  it("缺负责人但带 状态/范围 的块修复后状态不变", () => {
+    const dir = makeDir()
+    const month = join(dir, "archive", "202609")
+    mkdirSync(month, { recursive: true })
+    const content = [
+      "# 20260903 归档",
+      "",
+      "## 20260903-唐启云-giveup",
+      "",
+      "> 状态：已放弃　范围：内容　完成时间：2026-09-03 10:00",
+      "",
+      "正文",
+      "",
+    ].join("\n")
+    writeFileSync(join(month, "20260903.md"), content, "utf8")
+    fixArchive(dir)
+    const text = readFileSync(join(month, "20260903.md"), "utf8")
+    expect(text).toContain("状态：已放弃")
+    expect(text).not.toContain("状态：已完成")
+    expect(text).toContain("负责人：唐启云")
+    expect(text).toContain("范围：内容")
+    rmSync(dir, { recursive: true, force: true })
+  })
+})
+
 describe("月份目录不一致（E9）", () => {
   it("checkArchive 检出放错月份目录的归档文件", () => {
     const dir = makeDir()

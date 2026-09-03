@@ -68,6 +68,14 @@ describe("validateTasks 依赖与命名校验", () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
+  it("active 根目录直放任务文件软告警（F1）", () => {
+    const dir = taskDir()
+    mkdirSync(join(dir, "active"), { recursive: true })
+    writeFileSync(join(dir, "active", "20260903-唐启云-root.md"), valid(), "utf8")
+    expect(warnTexts(dir).some((m) => m.includes("月份子目录"))).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
   it("created/completed 非真实日期软告警（E5）", () => {
     const dir = taskDir()
     putFile(dir, "20260903-唐启云-a.md", valid().replace("created: 20260903", "created: 20261399"))

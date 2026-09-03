@@ -129,6 +129,17 @@ npx toolkit changelog format                # 仅格式化已有 CHANGELOG
 npx toolkit changelog status / publish      # 其余 changeset 子命令透传
 ```
 
+消费变更集后 `changelog version` 会自动把分组标题转为中文（如 `### Patch Changes` → `### 🐛 补丁修复`）并补发布日期；变更条目本身建议**再润色为中文**，与仓库既有 CHANGELOG 风格一致：
+
+```markdown
+## 1.5.3
+> 2026-09-03 发布
+
+### 🐛 补丁修复
+
+- 修复 xxx：……（中文描述，可含多个条目）
+```
+
 ### 通用选项
 
 ```bash

@@ -130,8 +130,8 @@ program
   .option("--dry-run", "预演（archive 归档 / import 导入只预览，不落盘）")
   .option("--fix", "归一化修复（仅 normalize 有效）")
   .option("--view <view>", "任务视图：active / archived / all（默认 active）")
-  .option("--owner <name>", "按负责人过滤")
-  .option("--scope <scope>", "按范围过滤")
+  .option("--owner <name>", "按负责人过滤（逗号分隔多值）")
+  .option("--scope <scope>", "按范围过滤（逗号分隔多值）")
   .option("--status <status>", "按状态过滤（逗号分隔多值）")
   .option("--date <date>", "按单日过滤（YYYY-MM-DD，与 --since/--until 互斥）")
   .option("--since <date>", "起始日期（含当天）")
@@ -243,9 +243,10 @@ program
           return
         }
         const filter: TaskFilter = {}
-        if (options.owner) filter.owner = options.owner
-        if (options.scope) filter.scope = options.scope
-        if (options.status) filter.status = options.status.split(/[,，]/).map((s) => s.trim()).filter(Boolean)
+        const multi = (v?: string): string[] | undefined => (v ? v.split(/[,，]/).map((s) => s.trim()).filter(Boolean) : undefined)
+        filter.owner = multi(options.owner)
+        filter.scope = multi(options.scope)
+        filter.status = multi(options.status)
         if (options.date) filter.date = options.date
         if (options.since) filter.since = options.since
         if (options.until) filter.until = options.until

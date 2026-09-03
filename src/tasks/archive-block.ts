@@ -33,6 +33,21 @@ export function buildMetaLine(title: string, completed: string): string {
   return `> 负责人：${owner}　状态：已完成　范围：-　完成时间：${normalizeCompleted(completed)}`
 }
 
+// 补齐元数据行：保留原行已有的 负责人/状态/范围 段，仅补缺失项，避免整行重写改错状态（如 已放弃→已完成）
+export function completeMetaLine(title: string, completed: string, metaLine: string | null): string {
+  const seg: Record<string, string> = {}
+  if (metaLine) {
+    for (const part of metaLine.replace(/^>\s*/, "").split(/\s*　\s*/)) {
+      const m = part.match(/^(负责人|状态|范围|完成时间)[：:]\s*(.+)$/)
+      if (m) seg[m[1]] = m[2].trim()
+    }
+  }
+  const owner = seg["负责人"] || ownerFromTitle(title) || "未标注"
+  const status = seg["状态"] || "已完成"
+  const scope = seg["范围"] || "-"
+  return `> 负责人：${owner}　状态：${status}　范围：${scope}　完成时间：${normalizeCompleted(completed)}`
+}
+
 // 解析归档文件，返回文件头（首块之前的内容，末尾无空行）与任务块列表
 export function parseArchiveBlocks(content: string): { header: string; blocks: ArchiveBlockInfo[] } {
   const lines = content.split(/\r?\n/)

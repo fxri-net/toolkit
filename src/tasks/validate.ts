@@ -1,7 +1,7 @@
 // active 任务校验：frontmatter 合法性、完成时间格式、重名、方案正文子项未闭合
 // 供 tasks check 使用，输出问题清单；error 为硬性错误，warn 为软告警（默认开启可关）
 import { readFileSync } from "node:fs"
-import { join, basename } from "node:path"
+import { join, basename, dirname } from "node:path"
 import { listTaskFiles } from "./scan"
 import { parseFrontmatter, stripFrontmatter } from "./parse"
 import { getConfigSection } from "../config"
@@ -126,9 +126,16 @@ export function validateTaskFile(file: string): CheckIssue[] {
 
 // 校验 active 目录全部任务（含跨文件重名检测）
 export function validateTasks(tasksDir = ".tasks"): CheckResult {
-  const files = listTaskFiles(join(tasksDir, "active"))
+  const activeDir = join(tasksDir, "active")
+  const files = listTaskFiles(activeDir)
   const issues: CheckIssue[] = []
-  for (const f of files) issues.push(...validateTaskFile(f))
+  for (const f of files) {
+    issues.push(...validateTaskFile(f))
+    // 按规范 active 任务应放在 {YYYYMM}/ 月份子目录，直放 active 根目录给出软告警
+    if (dirname(f) === activeDir) {
+      issues.push({ level: "warn", file: basename(f), message: "active 任务应放入 {YYYYMM} 月份子目录（当前直放 active 根目录）" })
+    }
+  }
 
   // 跨文件重名检测：同名任务文件疑似重复建档
   const seen = new Map<string, string[]>()
