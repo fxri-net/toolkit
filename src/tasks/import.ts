@@ -1,7 +1,7 @@
 // 任务导入：读取 CSV / XLSX / JSON（兼容本工具三种导出与常见外部列名），生成任务文件
 // 列映射：内置别名表 + .toolkitrc.json 的 tasks.importColumns 自定义（配置优先）
 // 目标：active（默认，生成待完成任务文件）或 archive（直接写归档块）
-import { readFileSync, existsSync, writeFileSync, mkdirSync } from "node:fs"
+import { readFileSync, existsSync, mkdirSync } from "node:fs"
 import { join } from "node:path"
 import { createRequire } from "node:module"
 import { normalizeCompleted, parseArchiveBlocks } from "./archive-block"
@@ -9,6 +9,7 @@ import type { ArchiveBlockInfo } from "./archive-block"
 import { toYmd } from "./query"
 import { DONE_STATUSES } from "./types"
 import type { ImportOptions, ImportResult } from "./types"
+import { writeFileAtomic } from "../write-atomic"
 
 const require = createRequire(import.meta.url)
 
@@ -254,7 +255,7 @@ function writeActiveTask(tasksDir: string, t: TaskWrite, dryRun: boolean, warnin
   const full = content + (t.body ? `\n\n${t.body}\n` : "\n")
   if (!dryRun) {
     mkdirSync(monthDir, { recursive: true })
-    writeFileSync(file, full, "utf8")
+    writeFileAtomic(file, full)
   }
   return file
 }
@@ -285,7 +286,7 @@ function writeArchiveTask(tasksDir: string, t: TaskWrite, dryRun: boolean, warni
   blocks.push(block)
   blocks.sort((a, b) => normalizeCompleted(b.completed).localeCompare(normalizeCompleted(a.completed)))
   const parts = blocks.map((b) => `## ${b.title}\n\n${b.metaLine}\n\n${b.body}`)
-  writeFileSync(file, `${header}\n\n${parts.join("\n\n---\n\n")}\n`, "utf8")
+  writeFileAtomic(file, `${header}\n\n${parts.join("\n\n---\n\n")}\n`)
   return file
 }
 

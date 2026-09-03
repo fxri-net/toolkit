@@ -107,6 +107,7 @@ interface TasksOptions {
   format?: string
   import?: string
   target?: string
+  strict?: boolean
 }
 
 const program = new Command()
@@ -139,6 +140,7 @@ program
   .option("--format <format>", "输出格式（json，输出到 stdout）")
   .option("--import <file>", "从文件导入任务（.csv / .xlsx / .json）")
   .option("--target <target>", "导入目标：active / archive（默认 active）")
+  .option("--strict", "任务目录不存在时报错退出（默认容错为空结果）")
   .argument("[command]", "子命令：archive / check / normalize，留空为总览（含导入用 --import）")
   .action(
     async (
@@ -148,6 +150,13 @@ program
       const redact = resolveRedactEnabled(options.redact)
       const warn = resolveEnabled(options.warn, "FX_CHECK_WARN", getCheckWarnings(), true)
       const dir = options.dir
+
+      // 严格模式：任务目录不存在时直接报错（默认容错为空结果）
+      if (options.strict && !existsSync(dir)) {
+        console.error(`⚠️ 任务目录不存在：${dir}`)
+        process.exitCode = 1
+        return
+      }
 
       // 导入模式：独立于归档/校验/归一化与查询导出
       if (options.import) {

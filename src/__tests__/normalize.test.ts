@@ -151,6 +151,20 @@ describe("orphan 仅报告不自动修复", () => {
   })
 })
 
+describe("月份目录不一致（E9）", () => {
+  it("checkArchive 检出放错月份目录的归档文件", () => {
+    const dir = makeDir()
+    mkdirSync(join(dir, "archive", "202608"), { recursive: true })
+    writeFileSync(
+      join(dir, "archive", "202608", "20260903.md"),
+      "# 20260903 归档\n\n## 20260903-唐启云-a\n\n> 负责人：唐启云　状态：已完成　范围：x　完成时间：2026-09-03 10:00\n\na\n",
+      "utf8",
+    )
+    expect(checkArchive(dir).some((i) => i.message.includes("月份目录"))).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+})
+
 describe("archiveTasks 锁与 header（E1/E2）", () => {
   // 建含已完成 active 任务的任务目录
   function withDone(): { dir: string; date: string } {

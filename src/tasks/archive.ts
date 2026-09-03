@@ -1,9 +1,10 @@
-import { readFileSync, writeFileSync, mkdirSync, unlinkSync, existsSync, readdirSync, rmdirSync } from "node:fs"
+import { readFileSync, mkdirSync, unlinkSync, existsSync, readdirSync, rmdirSync } from "node:fs"
 import { join, basename, dirname, resolve, sep } from "node:path"
 import { parseFrontmatter, stripFrontmatter } from "./parse"
 import { listTaskFiles, dateFromFileName } from "./scan"
 import { DONE_STATUSES } from "./types"
 import { redactText } from "../privacy/redact"
+import { writeFileAtomic } from "../write-atomic"
 import type { ArchiveBlock, ArchiveResult, ArchiveOptions } from "./types"
 import { normalizeCompleted, parseArchiveBlocks, renderBlock } from "./archive-block"
 import { acquireArchiveLock, releaseArchiveLock } from "./lock"
@@ -142,7 +143,7 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
       }
 
       mkdirSync(monthDir, { recursive: true })
-      writeFileSync(archiveFile, `${header}\n\n${all.map((t) => t.block).join("\n\n---\n\n")}\n`, "utf8")
+      writeFileAtomic(archiveFile, `${header}\n\n${all.map((t) => t.block).join("\n\n---\n\n")}\n`)
 
       // 删除本次已归档的 active 文件
       for (const t of newTasks) unlinkSync(t.file)

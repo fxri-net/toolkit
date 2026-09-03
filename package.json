@@ -45,10 +45,11 @@
     "build": "cross-env NODE_ENV=production tsup",
     "build:debug": "cross-env NODE_ENV=development tsup --config tsup.dev.config.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint .",
+    "lint": "eslint . --cache",
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "changeset": "changeset",
     "release": "pnpm build && pnpm publish"
   },
@@ -67,6 +68,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^20.19.21",
+    "@vitest/coverage-v8": "^4.1.11",
     "cross-env": "^10.1.0",
     "eslint": "^10.9.1",
     "tsup": "^8.5.0",

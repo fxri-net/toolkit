@@ -2,6 +2,8 @@
 
 专为多人 + AI 跨项目协作打造：任务管理 + 多语言 CHANGELOG。
 
+[![CI](https://github.com/fxri-net/toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/fxri-net/toolkit/actions/workflows/ci.yml)
+
 ## ✨ 特性
 
 - 📋 **任务管理** - 扫描、总览、按完成时间归档 Markdown 任务文件；支持待完成 / 已归档 / 合并视图与过滤汇总，任务可导入导出 CSV / XLSX / JSON（全语言支持，见 [SPEC.md](./SPEC.md)）
@@ -34,6 +36,7 @@ npx toolkit tasks check               # 校验 active（frontmatter/命名规范
 npx toolkit tasks normalize           # 检查归档块（元数据/疑似任务块/日期漂移/排序）
 npx toolkit tasks normalize --fix     # 补齐元数据 + 漂移块迁移到对应日期文件 + 降序重排
 npx toolkit tasks --dir <path>        # 指定任务目录（默认 .tasks）
+npx toolkit tasks check --strict      # 任务目录不存在时报错退出（默认容错为空结果）
 ```
 
 视图过滤（待完成看创建/更新，已归档看完成时间）：
@@ -141,7 +144,7 @@ npx toolkit changelog status / publish      # 其余 changeset 子命令透传
 - 环境变量：`FX_CHECK_WARN=0`
 - 配置文件：`.toolkitrc.json` 写 `{ "check": { "warnings": false } }`
 
-隐私脱敏同理，环境变量 `FX_REDACT`（`0` 关 / `1` 开）、配置 `redact.enabled`。`toolkit tasks check` 默认把正文未勾选的 `- [ ]` 当作未闭合待办扫描，可用 `{ "check": { "includeCheckbox": false } }` 关闭。
+隐私脱敏同理，环境变量 `FX_REDACT`（`0` 关 / `1` 开）、配置 `redact.enabled`。`toolkit tasks check` 默认把正文未勾选的 `- [ ]` 当作未闭合待办扫描，可用 `{ "check": { "includeCheckbox": false } }` 关闭；词标记扫描（待办/待实施/…）可用 `{ "check": { "pendingMarkers": false } }` 关闭。
 
 ### 接入 package.json
 
@@ -164,7 +167,7 @@ npx toolkit changelog status / publish      # 其余 changeset 子命令透传
 - **调用优先级**：`npx toolkit`（项目本地依赖）→ `toolkit`（全局安装）；两者均不可用时直接以 Markdown 输出方案，不阻塞执行
 - **规范来源**：优先读取项目根 `SPEC.md`，缺失时读取包内 `SPEC.md`（目录结构、文件命名与 frontmatter 字段均以该规范为准）
 - **多人协作（先查后写）**：`.tasks/` 是多写者共享区，新建/更新任务前先 `toolkit tasks` 查 active 总览并核对 archive，避免重复建档；同一需求共用一个任务文件
-- **校验**：`toolkit tasks check` 校验 active（frontmatter 合法性、owner/created/文件命名规范、重名、depends_on 闭环与引用归一、未闭合待办与 `- [ ]`，可配置关闭复选框扫描）；`toolkit tasks normalize` 检查归档块（元数据完整性/疑似任务块/漂移/排序），`--fix` 补齐元数据并将漂移块迁移到对应日期文件
+- **校验**：`toolkit tasks check` 校验 active（frontmatter 合法性、owner/created/文件命名规范、重名、depends_on 闭环与引用归一、未闭合待办与 `- [ ]`，复选框/词标记均可配置关闭）；`toolkit tasks normalize` 检查归档块（元数据完整性/疑似任务块/漂移/排序/月份目录），`--fix` 补齐元数据并将漂移块迁移到对应日期文件
 - **归档**：任务完成后执行 `toolkit tasks archive`（可 `--dry-run` 预演）；归档采用排他锁防并发覆盖。归档完成后若 `.changeset`（相对当前目录）无待发布变更集会有提示，仅为提醒，不影响归档
 - **版本管理**：涉及发版时先 `toolkit changelog` 创建变更集，再 `toolkit changelog version` 发版并格式化 CHANGELOG
 
@@ -248,6 +251,8 @@ const masked = redactText("联系 tqy@fxri.net", true) // → "联系 t***@***.n
 ## 🔒 隐私脱敏
 
 落盘记录自由文本（任务正文/标题、CHANGELOG 条目）时默认脱敏敏感信息，`owner` 等结构化 frontmatter 字段不脱敏。
+
+> 作用范围：脱敏应用于**终端展示、导出文件与归档落盘**；`.tasks/active` 下的源任务文件按原样保存，不改动原始正文与标题。`.toolkitrc.json` 从当前目录向上查找最近一份，支持在 monorepo 子目录运行。
 
 - **内置规则**：邮箱、手机号、身份证、IPv4、含端口内网 URL、JWT（eyJ 三段）、AWS 访问密钥（AKIA/ASIA）、GitHub Token（ghp/gho/ghu/ghs/ghr 经典与 github_pat_ 细粒度）、OpenAI API Key（sk- 经典与 sk-proj- 项目）、Slack Token（xox 系与 xapp app 级）
 - **开关**（双向三档，默认开启，优先级从高到低）：

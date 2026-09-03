@@ -27,3 +27,5 @@ jobs:
         run: pnpm test
       - name: 构建
         run: pnpm build
+      - name: 自身 .tasks 体检
+        run: node dist/cli.js tasks check && node dist/cli.js tasks normalize

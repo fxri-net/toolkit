@@ -107,9 +107,10 @@ export function validateTaskFile(file: string): CheckIssue[] {
     issues.push({ level: "warn", file: name, message: `文件名日期 ${nameMatch[1]} 与 created ${fm.created.trim()} 不一致` })
   }
 
-  // 方案正文子项未闭合扫描（软告警，不阻断）
+  // 方案正文子项未闭合扫描（软告警，不阻断；check.pendingMarkers=false 可关闭词标记扫描）
   const body = stripFrontmatter(content)
-  const pending = body.match(PENDING_MARKERS)
+  const pendingOn = getConfigSection("check")?.pendingMarkers !== false
+  const pending = pendingOn ? body.match(PENDING_MARKERS) : null
   if (pending) {
     issues.push({ level: "warn", file: name, message: `正文含未闭合待办标记「${pending[0]}」，建议拆分为独立 active 任务或明确闭环` })
   }

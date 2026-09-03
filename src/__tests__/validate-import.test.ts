@@ -78,6 +78,24 @@ describe("validateTasks 依赖与命名校验", () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
+  it("check.pendingMarkers=false 关闭词标记扫描（E8）", () => {
+    const dir = taskDir()
+    putFile(dir, "20260903-唐启云-m.md", valid("", "\n说明：仍有待办收尾项。\n"))
+    // 默认开：词标记「待办」会告警
+    expect(warnTexts(dir).some((m) => m.includes("未闭合待办标记"))).toBe(true)
+
+    // 配置关闭：词标记不再告警
+    const cfgDir = mkdtempSync(join(tmpdir(), "tk-cfg-pm-"))
+    writeFileSync(join(cfgDir, ".toolkitrc.json"), JSON.stringify({ check: { pendingMarkers: false } }), "utf8")
+    process.chdir(cfgDir)
+    resetToolkitConfigCache()
+    expect(warnTexts(dir).some((m) => m.includes("未闭合待办标记"))).toBe(false)
+    process.chdir(cwd)
+    resetToolkitConfigCache()
+    rmSync(dir, { recursive: true, force: true })
+    rmSync(cfgDir, { recursive: true, force: true })
+  })
+
   it("- [ ] 默认作为未闭合待办扫描，配置关闭后不报（A6）", () => {
     const dir = taskDir()
     putFile(dir, "20260903-唐启云-box.md", valid("", "\n- [ ] 待勾选\n"))

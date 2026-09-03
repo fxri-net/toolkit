@@ -1,11 +1,12 @@
 // archive 归档归一化：检查历史归档块的元数据完整性、完成时间漂移、排序，并按需修复
 // 供 tasks normalize --check（只读）与 --fix（补齐元数据 + 降序重排 + 漂移块迁移）使用
-import { readFileSync, writeFileSync, unlinkSync, existsSync, mkdirSync, rmdirSync } from "node:fs"
+import { readFileSync, unlinkSync, existsSync, mkdirSync, rmdirSync } from "node:fs"
 import { join, basename, dirname } from "node:path"
 import { normalizeCompleted, parseArchiveBlocks, renderBlock, buildMetaLine, scanOrphanBlocks } from "./archive-block"
 import { listTaskFiles } from "./scan"
 import type { ArchiveBlockInfo } from "./archive-block"
 import { acquireArchiveLock, releaseArchiveLock } from "./lock"
+import { writeFileAtomic } from "../write-atomic"
 
 // 归一化问题
 export interface NormalizeIssue {
@@ -38,6 +39,17 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
     const fileDate = name.replace(/\.md$/, "")
     const content = readFileSync(file, "utf8")
     const { blocks } = parseArchiveBlocks(content)
+
+    // 归档文件所在月份目录与文件名日期前缀不一致（如 archive/202608/20260903.md）
+    const dirMonth = basename(dirname(file))
+    const nameDate = name.replace(/\.md$/, "")
+    if (dirMonth && nameDate && dirMonth !== nameDate.slice(0, 6)) {
+      issues.push({
+        file: name,
+        message: `归档文件位于 ${dirMonth} 月份目录，与文件名日期 ${nameDate.slice(0, 6)} 不一致`,
+        fixable: false,
+      })
+    }
 
     // 疑似任务块（元数据缺「完成时间」被归入前一块正文），提示人工确认
     for (const title of scanOrphanBlocks(content)) {
@@ -107,7 +119,7 @@ function migrateArchiveBlock(tasksDir: string, block: ArchiveBlockInfo, targetDa
   target.sort((a, b) => normalizeCompleted(b.completed).localeCompare(normalizeCompleted(a.completed)))
   const eol = existsSync(targetFile) && readFileSync(targetFile, "utf8").includes("\r\n") ? "\r\n" : "\n"
   const next = `${header}\n\n${target.map(renderBlock).join("\n\n---\n\n")}\n`.replace(/\n/g, eol)
-  writeFileSync(targetFile, next, "utf8")
+  writeFileAtomic(targetFile, next)
   console.log(`  块「${block.title}」迁移 → ${targetDate}.md`)
 }
 
@@ -178,7 +190,7 @@ export function fixArchive(tasksDir = ".tasks"): NormalizeResult {
       } else if (changed) {
         // 文件头与首个任务块之间补空行分隔（header 已去掉末尾空行）；保留原文件行尾，避免 CRLF 文件整文件 diff
         const next = ((header ? header + "\n\n" : "") + keep.map(renderBlock).join("\n\n---\n\n") + "\n").replace(/\n/g, eol)
-        writeFileSync(file, next, "utf8")
+        writeFileAtomic(file, next)
       }
     }
 

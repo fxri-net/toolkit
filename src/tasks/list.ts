@@ -36,16 +36,15 @@ export function printTasks(tasksDir = ".tasks", redact = true): void {
     return
   }
 
-  const order = ["进行中", "阻塞", "待办", "已完成", "已放弃", "未标注"]
   const grouped: Record<string, Task[]> = {}
   for (const t of tasks) {
-    const key = order.includes(t.frontmatter.status) ? t.frontmatter.status : "未标注"
+    const key = STATUS_ORDER.includes(t.frontmatter.status) ? t.frontmatter.status : "未标注"
     ;(grouped[key] ||= []).push(t)
   }
 
   console.log("任务总览：\n")
   let total = 0
-  for (const status of order) {
+  for (const status of STATUS_ORDER) {
     const list = grouped[status] || []
     if (list.length === 0) continue
     total += list.length
