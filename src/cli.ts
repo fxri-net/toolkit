@@ -5,11 +5,15 @@ import { createRequire } from "node:module"
 import { spawnSync } from "node:child_process"
 import { existsSync, readdirSync } from "node:fs"
 import { join } from "node:path"
-import { printTasks } from "./tasks/list"
+import { printTaskBoard } from "./tasks/list"
+import { queryTasks } from "./tasks/query"
+import { exportTasks, toJSON } from "./tasks/export"
+import { importTasks } from "./tasks/import"
 import { archiveTasks } from "./tasks/archive"
 import { validateTasks } from "./tasks/validate"
 import { checkArchive, fixArchive } from "./tasks/normalize"
 import { listTaskFiles } from "./tasks/scan"
+import type { TaskView, TaskFilter, ImportTarget } from "./tasks/types"
 import { languages, DEFAULT_LANG, type ChangelogLanguage } from "./changelog/languages"
 import { localDate, formatChangelogs } from "./changelog/format"
 import { resolveRedactEnabled } from "./privacy/redact"
@@ -85,6 +89,26 @@ function printIssues(issues: Array<{ file: string; message: string }>) {
   }
 }
 
+// tasks 子命令与查询/导出/导入的选项集合
+interface TasksOptions {
+  dir: string
+  redact: boolean | undefined
+  warn: boolean | undefined
+  dryRun: boolean
+  fix: boolean
+  view?: string
+  owner?: string
+  scope?: string
+  status?: string
+  date?: string
+  since?: string
+  until?: string
+  export?: string
+  format?: string
+  import?: string
+  target?: string
+}
+
 const program = new Command()
 
 program
@@ -102,17 +126,52 @@ program
   .option("--no-redact", "关闭隐私脱敏")
   .option("--warn", "开启软告警")
   .option("--no-warn", "关闭软告警")
-  .option("--dry-run", "归档预演（仅 archive 有效）")
+  .option("--dry-run", "预演（archive 归档 / import 导入只预览，不落盘）")
   .option("--fix", "归一化修复（仅 normalize 有效）")
-  .argument("[command]", "子命令：archive / check / normalize，留空为总览")
+  .option("--view <view>", "任务视图：active / archived / all（默认 active）")
+  .option("--owner <name>", "按负责人过滤")
+  .option("--scope <scope>", "按范围过滤")
+  .option("--status <status>", "按状态过滤（逗号分隔多值）")
+  .option("--date <date>", "按单日过滤（YYYY-MM-DD，与 --since/--until 互斥）")
+  .option("--since <date>", "起始日期（含当天）")
+  .option("--until <date>", "结束日期（含当天）")
+  .option("--export <path>", "导出到文件（.csv / .xlsx / .json）")
+  .option("--format <format>", "输出格式（json，输出到 stdout）")
+  .option("--import <file>", "从文件导入任务（.csv / .xlsx / .json）")
+  .option("--target <target>", "导入目标：active / archive（默认 active）")
+  .argument("[command]", "子命令：archive / check / normalize，留空为总览（含导入用 --import）")
   .action(
-    (
+    async (
       command: string | undefined,
-      options: { dir: string; redact: boolean | undefined; warn: boolean | undefined; dryRun: boolean; fix: boolean },
+      options: TasksOptions,
     ) => {
       const redact = resolveRedactEnabled(options.redact)
       const warn = resolveEnabled(options.warn, "FX_CHECK_WARN", getCheckWarnings(), true)
       const dir = options.dir
+
+      // 导入模式：独立于归档/校验/归一化与查询导出
+      if (options.import) {
+        if (command || options.export || options.format) {
+          console.error("⚠️ --import 为独立模式，不能与子命令、--export、--format 同时使用")
+          process.exitCode = 1
+          return
+        }
+        const section = getConfigSection("tasks")
+        const custom = section?.importColumns && typeof section.importColumns === "object" ? (section.importColumns as Record<string, string>) : undefined
+        try {
+          await importTasks(options.import, dir, {
+            owner: options.owner,
+            scope: options.scope,
+            target: (options.target ?? "active") as ImportTarget,
+            dryRun: options.dryRun,
+            importColumns: custom,
+          })
+        } catch (e) {
+          console.error(`⚠️ 导入失败：${(e as Error).message}`)
+          process.exitCode = 1
+        }
+        return
+      }
 
       if (command === "archive") {
         const result = archiveTasks(dir, redact, { dryRun: options.dryRun, warn })
@@ -146,7 +205,49 @@ program
           printIssues(issues)
         }
       } else {
-        printTasks(dir, redact)
+        // 总览：视图 + 过滤 + 终端表格 / 导出
+        const view = (options.view ?? "active") as string
+        if (!["active", "archived", "all"].includes(view)) {
+          console.error(`⚠️ 非法视图「${view}」，仅支持 active / archived / all`)
+          process.exitCode = 1
+          return
+        }
+        if (options.date && (options.since || options.until)) {
+          console.error("⚠️ --date 不能与 --since / --until 同时使用")
+          process.exitCode = 1
+          return
+        }
+        if (options.export && options.format) {
+          console.error("⚠️ --export 与 --format 不能同时使用（--format json 输出到 stdout）")
+          process.exitCode = 1
+          return
+        }
+        if (options.format && options.format !== "json") {
+          console.error(`⚠️ 不支持的输出格式「${options.format}」，仅支持 json`)
+          process.exitCode = 1
+          return
+        }
+        const filter: TaskFilter = {}
+        if (options.owner) filter.owner = options.owner
+        if (options.scope) filter.scope = options.scope
+        if (options.status) filter.status = options.status.split(/[,，]/).map((s) => s.trim()).filter(Boolean)
+        if (options.date) filter.date = options.date
+        if (options.since) filter.since = options.since
+        if (options.until) filter.until = options.until
+        try {
+          const { rows, summary } = queryTasks(dir, view as TaskView, filter)
+          if (options.export) {
+            await exportTasks(options.export, rows, summary, redact)
+            console.log(`已导出 ${rows.length} 个任务 → ${options.export}`)
+          } else if (options.format === "json") {
+            console.log(toJSON(rows, summary, redact))
+          } else {
+            printTaskBoard(dir, view as TaskView, filter, redact)
+          }
+        } catch (e) {
+          console.error(`⚠️ 操作失败：${(e as Error).message}`)
+          process.exitCode = 1
+        }
       }
     },
   )

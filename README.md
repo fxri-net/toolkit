@@ -4,7 +4,7 @@
 
 ## ✨ 特性
 
-- 📋 **任务管理** - 扫描、总览、按完成时间归档 Markdown 任务文件（全语言支持，见 [SPEC.md](./SPEC.md)）
+- 📋 **任务管理** - 扫描、总览、按完成时间归档 Markdown 任务文件；支持待完成 / 已归档 / 合并视图与过滤汇总，任务可导入导出 CSV / XLSX / JSON（全语言支持，见 [SPEC.md](./SPEC.md)）
 - 🌍 **全语言 CHANGELOG** - 封装 changesets，内置 zh/en，任意语言通过配置扩展或覆盖
 - 🚀 **CLI + 库 API 双形态** - 可命令行使用，也可作为库引入
 
@@ -25,7 +25,9 @@ pnpm install -g @fxri/toolkit
 ### 任务管理（tasks）
 
 ```bash
-npx toolkit tasks                     # 任务总览
+npx toolkit tasks                     # 待完成总览（默认）
+npx toolkit tasks --view archived     # 仅已归档
+npx toolkit tasks --view all          # 待完成 + 已归档（状态分组，来源可辨）
 npx toolkit tasks archive             # 归档已完成任务
 npx toolkit tasks archive --dry-run   # 归档预演（只预览，不落盘）
 npx toolkit tasks check               # 校验 active（frontmatter/重名/依赖闭环/未闭合待办）
@@ -33,6 +35,57 @@ npx toolkit tasks normalize           # 检查归档块（元数据/日期漂移
 npx toolkit tasks normalize --fix     # 补齐元数据 + 降序重排
 npx toolkit tasks --dir <path>        # 指定任务目录（默认 .tasks）
 ```
+
+视图过滤（待完成看创建/更新，已归档看完成时间）：
+
+```bash
+npx toolkit tasks --view all --owner 唐启云
+npx toolkit tasks --view archived --status 已完成,已放弃
+npx toolkit tasks --scope 工程化 --since 2026-09-01 --until 2026-09-03
+npx toolkit tasks --date 2026-09-03       # 单日（与 --since/--until 互斥）
+```
+
+导入导出（扩展名驱动，均受过滤与脱敏开关影响）：
+
+```bash
+npx toolkit tasks --view all --export tasks.csv    # UTF-8 BOM CSV（超集列）
+npx toolkit tasks --view all --export tasks.xlsx   # Excel 三 sheet（待完成/已归档/汇总）
+npx toolkit tasks --view all --export tasks.json   # { summary, items } 完整字段
+npx toolkit tasks --view all --format json         # JSON 输出到 stdout
+npx toolkit tasks --import tasks.csv --dry-run     # 导入预演（不落盘）
+npx toolkit tasks --import tasks.xlsx              # 导入，默认生成待完成任务
+npx toolkit tasks --import tasks.json --target archive   # 直接写归档
+```
+
+- 导入兼容本工具三种导出产物；表头自动识别（中文/英文别名），`.toolkitrc.json` 的 `tasks.importColumns` 可自定义列映射，优先级高于内置
+- 文件名冲突自动追加序号，不覆盖已有任务
+
+### 任务导入列别名（内置表）
+
+导入时表头自动映射到任务字段，内置别名表如下（**列名不区分大小写**，中文列原文匹配；`custom` 段示例见下方）。自定义映射在 `.toolkitrc.json` 的 `tasks.importColumns` 配置，键为实际表头列名，值为标准字段：
+
+```json
+{
+  "tasks": {
+    "importColumns": { "我的标题": "title", "Deadline": "completed" }
+  }
+}
+```
+
+| 标准字段 | 内置别名（含导出表头） |
+| --- | --- |
+| `title` 任务名（必填） | 任务名 / 标题 / 事项 / 任务 / 任务标题 / 事项名称；title / name / task / subject / summary |
+| `status` 状态 | 状态；status / state（非法值导入时归为「待办」） |
+| `owner` 负责人 | 负责人 / 经办人 / 处理人 / 执行人 / 指派给；owner / assignee / handler |
+| `scope` 范围 | 范围 / 项目 / 模块；scope / project |
+| `created` 创建日期 | 创建日期 / 创建时间；created / created_at / createdAt |
+| `updated` 更新日期 | 更新日期 / 更新时间；updated / updated_at / updatedAt |
+| `completed` 完成时间 | 完成时间 / 完成日期 / 截止时间 / 截止日期 / 结束时间；completed / done / finished / due |
+| `depends` 依赖 | 依赖 / 依赖任务；depends / depends_on / dependency / dependencies |
+| `body` 正文 | 备注 / 描述 / 正文 / 说明；description / body / note / notes |
+| 忽略列（元信息） | 视图 / 来源文件 / 文件；view / file / path |
+
+带完成时间的行若状态非「已完成/已放弃」，导入时自动置为「已完成」并告警；`--target active`（默认）生成待完成任务文件，`--target archive` 直接写归档块。
 
 ### CHANGELOG（changelog）
 
@@ -100,7 +153,8 @@ npx toolkit changelog status / publish      # 其余 changeset 子命令透传
 
 ```typescript
 import {
-  listTasks, printTasks, archiveTasks, parseFrontmatter,
+  listTasks, printTasks, printTaskBoard, archiveTasks, parseFrontmatter,
+  listArchivedTasks, queryTasks, exportTasks, importTasks,
   validateTasks, checkArchive, fixArchive, normalizeCompleted,
   resolveEnabled, parseBool, loadToolkitConfig,
   languages, DEFAULT_LANG, localDate, formatChangelogs, redactText,
@@ -113,6 +167,12 @@ const result = archiveTasks(".tasks")
 const check = validateTasks(".tasks")            // 校验 active
 const issues = checkArchive(".tasks")            // 检查归档
 const fixed = fixArchive(".tasks")               // 归一化修复
+
+// 查询 / 导入导出（1.4.0）
+const { rows, summary } = queryTasks(".tasks", "all", { owner: "唐启云", since: "2026-08-01" })
+printTaskBoard(".tasks", "all")                  // 终端分组视图（待完成/已归档/all）
+await exportTasks("tasks.xlsx", rows, summary)   // .csv / .xlsx / .json
+const imported = await importTasks("tasks.csv", ".tasks", { target: "active" })
 
 // CHANGELOG 格式化（默认中文）
 formatChangelogs(".", localDate(), languages[DEFAULT_LANG])
