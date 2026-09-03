@@ -1,13 +1,14 @@
 // active 任务校验：frontmatter 合法性、完成时间格式、重名、方案正文子项未闭合
 // 供 tasks check 使用，输出问题清单；error 为硬性错误，warn 为软告警（默认开启可关）
-import { readFileSync } from "node:fs"
-import { join, basename, dirname, relative, sep } from "node:path"
+import { readFileSync, statSync } from "node:fs"
+import { join, basename, dirname } from "node:path"
 import { listTaskFiles } from "./scan"
-import { parseFrontmatter, stripFrontmatter } from "./parse"
+import { parseFrontmatter, stripFrontmatter, bodyWithoutTitle } from "./parse"
 import { parseArchiveBlocks } from "./archive-block"
 import { getConfigSection } from "../config"
-import { ALL_STATUSES } from "./types"
+import { ALL_STATUSES, DONE_STATUSES } from "./types"
 import { parseDepends } from "./depends"
+import { displayRel } from "./paths"
 import type { TaskStatus } from "./types"
 
 // 问题级别：error 硬性错误 / warn 软告警
@@ -27,10 +28,7 @@ export interface CheckResult {
   warnCount: number
 }
 
-// 合法任务状态（单一事实源 ALL_STATUSES）
-const VALID_STATUSES = ALL_STATUSES
-// 可归档（终结）状态
-const DONE_STATUSES: TaskStatus[] = ["已完成", "已放弃"]
+// 合法任务状态与可归档状态直接复用 types.ts 单一事实源（ALL_STATUSES / DONE_STATUSES），避免别名漂移
 
 // 未闭合待办标记：方案正文里出现这些词说明有游离的待办子项未拆成独立任务
 const PENDING_MARKERS = /待办|待实施|待核对|待确认|待开始|待评估|待排期|待做|TODO/
@@ -46,12 +44,14 @@ const ACTIVE_NAME_RE = /^\d{8}-[^-]+-.+\.md$/
 function isRealDate(ymd: string): boolean {
   const m = ymd.match(/^(\d{4})-?(\d{1,2})-?(\d{1,2})/)
   if (!m) return false
-  const y = +m[1]
-  const mo = +m[2]
-  const d = +m[3]
-  if (mo < 1 || mo > 12 || d < 1 || d > 31) return false
-  const dt = new Date(Date.UTC(y, mo - 1, d))
-  return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d
+  const [, y, mo, d] = m
+  if (!y || !mo || !d) return false
+  const yy = +y
+  const mm = +mo
+  const dd = +d
+  if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return false
+  const dt = new Date(Date.UTC(yy, mm - 1, dd))
+  return dt.getUTCFullYear() === yy && dt.getUTCMonth() === mm - 1 && dt.getUTCDate() === dd
 }
 
 // 校验单个任务文件，返回问题列表
@@ -70,8 +70,8 @@ export function validateTaskFile(file: string): CheckIssue[] {
 
   if (!fm.status) {
     issues.push({ level: "error", file: name, message: "frontmatter 缺少 status 字段" })
-  } else if (!VALID_STATUSES.includes(fm.status as TaskStatus)) {
-    issues.push({ level: "error", file: name, message: `status 非法值「${fm.status}」，应为 ${VALID_STATUSES.join(" / ")}` })
+  } else if (!ALL_STATUSES.includes(fm.status as TaskStatus)) {
+    issues.push({ level: "error", file: name, message: `status 非法值「${fm.status}」，应为 ${ALL_STATUSES.join(" / ")}` })
   }
 
   if (DONE_STATUSES.includes(fm.status as TaskStatus) && !fm.completed) {
@@ -111,8 +111,8 @@ export function validateTaskFile(file: string): CheckIssue[] {
   }
 
   // 方案正文子项未闭合扫描（软告警，不阻断；check.pendingMarkers=false 可关闭词标记扫描）
-  // 跳过首行 H1 标题，避免标题含「待办」等词被误报
-  const body = stripFrontmatter(content).replace(/^# .*\r?\n?/m, "")
+  // 跳过 H1 标题，避免标题含「待办」等词被误报（去标题逻辑与展示层收口于 parse.ts）
+  const body = bodyWithoutTitle(stripFrontmatter(content))
   const pendingOn = getConfigSection("check")?.pendingMarkers !== false
   const pending = pendingOn ? body.match(PENDING_MARKERS) : null
   if (pending) {
@@ -163,6 +163,27 @@ export function validateTasks(tasksDir = ".tasks"): CheckResult {
   return { issues, errorCount, warnCount }
 }
 
+// 已归档索引缓存：键为归档文件路径，值为 { mtimeMs, titles }；
+// 同一进程内多次 check（库调用 / 连续触发）复用未变更文件的解析结果，避免重复读盘（N2）
+const archivedIndexCache = new Map<string, { mtimeMs: number; titles: string[] }>()
+
+// 读单个归档文件的任务块标题集（mtime 感知缓存；文件损坏时按空集处理，仅影响去向提示精确度）
+function archivedTitles(file: string): string[] {
+  const st = statSync(file)
+  const hit = archivedIndexCache.get(file)
+  if (hit && hit.mtimeMs === st.mtimeMs) return hit.titles
+  const titles: string[] = []
+  try {
+    for (const b of parseArchiveBlocks(readFileSync(file, "utf8")).blocks) {
+      if (b.title && !titles.includes(b.title)) titles.push(b.title)
+    }
+  } catch {
+    // 忽略损坏文件
+  }
+  archivedIndexCache.set(file, { mtimeMs: st.mtimeMs, titles })
+  return titles
+}
+
 // 校验 depends_on 依赖：目标存在性 + 成环检测（引用带 .md 扩展名时自动归一化比对；已归档给出精确去向）
 function validateDependencies(files: string[], tasksDir: string): CheckIssue[] {
   const issues: CheckIssue[] = []
@@ -174,12 +195,8 @@ function validateDependencies(files: string[], tasksDir: string): CheckIssue[] {
   // 已归档索引：任务块标题 → 相对归档文件路径（供缺失依赖精确提示去向，M3）
   const archivedAt = new Map<string, string>()
   for (const af of listTaskFiles(join(tasksDir, "archive"))) {
-    try {
-      for (const b of parseArchiveBlocks(readFileSync(af, "utf8")).blocks) {
-        if (b.title && !archivedAt.has(b.title)) archivedAt.set(b.title, relative(tasksDir, af).split(sep).join("/"))
-      }
-    } catch {
-      // 归档文件损坏时跳过索引，仅影响去向提示的精确度
+    for (const t of archivedTitles(af)) {
+      if (!archivedAt.has(t)) archivedAt.set(t, displayRel(tasksDir, af))
     }
   }
 

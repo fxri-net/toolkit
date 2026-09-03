@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs"
 import { join, basename } from "node:path"
-import { parseFrontmatter, stripFrontmatter } from "./parse"
+import { parseFrontmatter, stripFrontmatter, titleOf } from "./parse"
 import { listTaskFiles, dateFromFileName } from "./scan"
 import { redactText } from "../privacy/redact"
 import { STATUS_ORDER, queryTasks, displayDate } from "./query"
@@ -12,11 +12,7 @@ export function listTasks(tasksDir = ".tasks"): Task[] {
   return listTaskFiles(activeDir).map((file) => {
     const content = readFileSync(file, "utf8")
     const fm = parseFrontmatter(content)
-    const title =
-      content
-        .split(/\r?\n/)
-        .find((l) => l.startsWith("# ") && !l.startsWith("#!"))
-        ?.replace(/^#\s*/, "") || basename(file, ".md")
+    const title = titleOf(content) || basename(file, ".md")
     return {
       file,
       name: basename(file, ".md"),
@@ -67,11 +63,11 @@ export function printTaskBoard(tasksDir = ".tasks", view: TaskView = "active", f
 function printBoardSummary(summary: TaskSummary): void {
   const statuses = STATUS_ORDER.filter((s) => summary.byStatus[s])
   const extras = Object.keys(summary.byStatus).filter((s) => !STATUS_ORDER.includes(s))
-  const owners = Object.keys(summary.byOwner).sort((a, b) => summary.byOwner[b] - summary.byOwner[a])
+  const owners = Object.keys(summary.byOwner).sort((a, b) => (summary.byOwner[b] ?? 0) - (summary.byOwner[a] ?? 0))
   console.log(`共 ${summary.total} 个任务`)
   if (statuses.length > 0 || extras.length > 0) {
     const parts = statuses.map((s) => `${s} ${summary.byStatus[s]}`)
-    if (extras.length > 0) parts.push(`其他 ${extras.reduce((a, k) => a + summary.byStatus[k], 0)}`)
+    if (extras.length > 0) parts.push(`其他 ${extras.reduce((a, k) => a + (summary.byStatus[k] ?? 0), 0)}`)
     console.log(`按状态：${parts.join("　")}`)
   }
   if (owners.length > 0) console.log(`按负责人：${owners.map((o) => `${o} ${summary.byOwner[o]}`).join("　")}`)

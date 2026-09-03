@@ -90,9 +90,13 @@ npx toolkit tasks --import tasks.json --target archive   # 直接写归档
   - `待完成` sheet：任务名/状态/负责人/范围/创建日期/更新日期/完成时间/依赖/来源文件
   - `已归档` sheet：任务名/状态/负责人/范围/完成时间/来源文件
   - `汇总` sheet：顶部统计（任务总数 / 按状态 / 按负责人）+ 公共列明细（同 CSV 超集列）
-- **JSON**（`.json` 或 `--format json`）：`{ summary: { total, byStatus, byOwner }, items: [...] }`；`items` 每项为英文 key 完整字段：`view("active"|"archived") / title / status / owner / scope / created / updated / completed / depends[] / file`
+- **JSON**（`.json` 或 `--format json`）：`{ schemaVersion: 1, summary: { total, byStatus, byOwner }, items: [...] }`；`items` 每项为英文 key 完整字段：`view("active"|"archived") / title / status / owner / scope / created / updated / completed / depends[] / file`；导入端读到更高 `schemaVersion` 会告警（仍尽力按当前字段映射解析）
 - 排序统一：按状态分组顺序平铺、组内时间倒序（导出与终端一致）；视图/过滤后无匹配时导出仅表头（JSON 空 items），不报错
 - 日期口径与过滤一致：待完成看创建/更新，已归档看完成时间；CSV/JSON 中 `created` 按 `YYYY-MM-DD` 输出
+
+### 任务状态（单一事实源）
+
+`status` 取值固定为五种：`待办` / `进行中` / `已完成` / `阻塞` / `已放弃`，其中 `已完成` / `已放弃` 为可归档（终结）状态。校验（`tasks check`）、导入非法值兜底、`--status` 过滤、归档判定统一引用 `src/tasks/types.ts` 的 `ALL_STATUSES` / `DONE_STATUSES` 常量——各域禁止再自建枚举副本，避免取值漂移（1.5.6 起已收口）。终端分组展示顺序（含展示用 `未标注`）另由 `STATUS_ORDER` 控制；未知状态不会静默丢弃，以兜底分组展示并计入汇总「其他」。
 
 ### 任务导入列别名（内置表）
 
@@ -230,6 +234,33 @@ const masked = redactText("联系 tqy@fxri.net", true) // → "联系 t***@***.n
 ```
 
 `printTasks` / `archiveTasks` / `formatChangelog` / `formatChangelogs` 均提供可选 `redact` 参数（默认 `true`），传 `false` 可关闭本次脱敏。
+
+公共导出函数（`@fxri/toolkit` 入口）按领域：
+
+| 领域 | 函数 | 说明 |
+| --- | --- | --- |
+| 任务读取 | `listTasks(dir?)` | 读 active 为 `Task[]`（含 frontmatter/正文） |
+| | `listActiveTasks(dir?)` / `listArchivedTasks(dir?)` | 读为统一 `TaskRow[]` |
+| | `parseArchiveTasks(file)` | 解析归档文件为块列表 |
+| | `parseFrontmatter(content)` / `stripFrontmatter(content)` | frontmatter 解析/剥离 |
+| | `listTaskFiles(dir)` / `dateFromFileName(file)` | 目录扫描 / 文件名日期提取 |
+| 查询/展示 | `queryTasks(dir?, view?, filter?)` | 过滤 + 排序 + 汇总 |
+| | `orderRows(rows)` / `buildSummary(rows)` | 排序 / 汇总统计 |
+| | `printTasks(dir?, redact?)` / `printTaskBoard(dir?, view?, filter?, redact?)` | 终端分组总览 |
+| 归档/校验 | `archiveTasks(dir?, redact?, options?)` | 任务级归档（`dryRun`/`warn` 可配） |
+| | `validateTaskFile(file)` / `validateTasks(dir?)` | active 校验，返回 `CheckResult` |
+| | `checkArchive(dir?)` / `fixArchive(dir?)` | 归档归一化检查 / 修复 |
+| | `normalizeCompleted(completed)` | 完成时间定宽化 `YYYY-MM-DD HH:mm` |
+| 导入导出 | `exportTasks(file, rows, summary, redact?)` | 按扩展名导出 `.csv` / `.xlsx` / `.json` |
+| | `toCSV(rows, redact?)` / `toJSON(rows, summary, redact?)` | 直接取文本（`.xlsx` 无纯文本形态） |
+| | `importTasks(file, dir?, opts?)` | 回读三种格式生成任务 |
+| CHANGELOG | `collectChangelogs(dir)` / `formatChangelog(file, today, lang, redact?)` / `formatChangelogs(dir, today, lang, redact?)` | 收集/格式化 |
+| | `localDate()` / `languages` / `DEFAULT_LANG` | 本地日期 / 语言表 / 默认语言键 |
+| 其他 | `redactText(text, enabled)` | 隐私脱敏 |
+| | `parseBool(value, fallback)` / `resolveEnabled(cli, envKey, config, fallback)` | 布尔与三档开关解析 |
+| | `loadToolkitConfig(dir?)` / `getConfigSection(key)` / `resetToolkitConfigCache()` | 配置加载（带向上查找与缓存失效） |
+
+类型（`Task` / `TaskRow` / `TaskFilter` / `TaskSummary` / `CheckIssue` 等）由同名模块导出，随函数返回值推断即可，无需单独引入。
 
 ### 全语言支持
 

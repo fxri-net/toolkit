@@ -9,8 +9,8 @@ import type { ArchiveBlock, ArchiveResult, ArchiveOptions } from "./types"
 import { normalizeCompleted, parseArchiveBlocks, renderBlock } from "./archive-block"
 import { acquireArchiveLock, releaseArchiveLock } from "./lock"
 
-// 删除空目录，并从父目录往上递归清理，直到 stopDir 或遇到非空目录
-function removeEmptyDirs(dir: string, stopDir: string) {
+// 删除空目录，并从父目录往上递归清理，直到 stopDir 或遇到非空目录（archive/normalize 共用，供错月迁移后清空目录）
+export function removeEmptyDirs(dir: string, stopDir: string) {
   let current = resolve(dir)
   const stop = resolve(stopDir)
   while (current !== stop && current.startsWith(stop + sep)) {
@@ -110,10 +110,11 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
 
       // 合并已有归档任务 + 本次新任务；文件已存在时保留其自定义 header（不覆盖导入/手写引言）
       // 排序键统一定宽规范化后按完成时间降序（最新在前）
+      const raw = existsSync(archiveFile) ? readFileSync(archiveFile, "utf8") : ""
       let header = `# ${date} 归档\n\n> 本文件由 \`toolkit tasks archive\` 自动生成。`
       const all: ArchiveBlock[] = []
-      if (existsSync(archiveFile)) {
-        const parsed = parseArchiveBlocks(readFileSync(archiveFile, "utf8"))
+      if (raw) {
+        const parsed = parseArchiveBlocks(raw)
         if (parsed.header) header = parsed.header
         for (const b of parsed.blocks) all.push({ block: renderBlock(b), completed: b.completed })
       }
@@ -147,12 +148,15 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
       // 单日归档写盘 + 清理 active；失败时记入 failures 并继续处理其余日期，收尾统一汇总
       try {
         mkdirSync(monthDir, { recursive: true })
-        writeFileAtomic(archiveFile, `${header}\n\n${all.map((t) => t.block).join("\n\n---\n\n")}\n`)
+        // 保留原文件换行风格（LF/CRLF），避免 Windows 仓库追加新块产生混合换行与 diff 噪音
+        const eol = raw.includes("\r\n") ? "\r\n" : "\n"
+        writeFileAtomic(archiveFile, `${header}\n\n${all.map((t) => t.block).join("\n\n---\n\n")}\n`.replace(/\n/g, eol))
 
         // 删除本次已归档的 active 文件
         for (const t of newTasks) unlinkSync(t.file)
         // 清理空目录（active/年月/ 及其上层 active/）
-        removeEmptyDirs(dirname(newTasks[0].file), tasksDir)
+        const first = newTasks[0]
+        if (first) removeEmptyDirs(dirname(first.file), tasksDir)
         console.log(`已归档 ${newTasks.length} 个任务 → ${date}.md`)
         // 计数口径为「任务数」（一个日期文件可含多个任务块）
         archivedOk += newTasks.length

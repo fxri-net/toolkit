@@ -22,5 +22,5 @@ export function listTaskFiles(dir: string): string[] {
 export function dateFromFileName(file: string): string {
   const name = basename(file, extname(file))
   const match = name.match(/^(\d{8})/)
-  return match ? match[1] : ""
+  return match?.[1] ?? ""
 }

@@ -1,10 +1,11 @@
 // 任务导出：CSV(UTF-8 BOM 超集列) / XLSX(exceljs 多 sheet) / JSON 三种格式，由文件扩展名驱动
 // 三种格式均为可回读结构：导入端（import.ts）内置对应解析与列映射
-import { writeFileSync, mkdirSync } from "node:fs"
+import { mkdirSync } from "node:fs"
 import { dirname } from "node:path"
 import { createRequire } from "node:module"
 import { toYmd } from "./query"
 import { redactText } from "../privacy/redact"
+import { writeFileAtomic } from "../write-atomic"
 import type { TaskRow, TaskSummary } from "./types"
 
 const require = createRequire(import.meta.url)
@@ -14,8 +15,8 @@ function ensureExportDir(file: string): void {
   mkdirSync(dirname(file), { recursive: true })
 }
 
-// 超集列：统一展示/CSV/汇总明细使用（缺字段留空）
-export const PUBLIC_COLUMNS: Array<{ label: string; value: (r: TaskRow) => string }> = [
+// 超集列：统一展示/CSV/汇总明细使用（缺字段留空）；仅模块内使用，不必对外导出
+const PUBLIC_COLUMNS: Array<{ label: string; value: (r: TaskRow) => string }> = [
   { label: "视图", value: (r) => (r.view === "已归档" ? "已归档" : "待完成") },
   { label: "任务名", value: (r) => r.title },
   { label: "状态", value: (r) => r.status },
@@ -84,7 +85,7 @@ export function toJSON(rows: TaskRow[], summary: TaskSummary, redact = true): st
     depends: r.depends,
     file: r.file,
   }))
-  return JSON.stringify({ summary, items }, null, 2)
+  return JSON.stringify({ schemaVersion: 1, summary, items }, null, 2)
 }
 
 // 生成 xlsx 工作簿 Buffer：固定三 sheet（待完成 / 已归档 / 汇总）
@@ -137,18 +138,18 @@ async function toXLSXBuffer(rows: TaskRow[], summary: TaskSummary, redact = true
   return Buffer.from(await wb.xlsx.writeBuffer())
 }
 
-// 导出入口：按扩展名写文件（.csv/.xlsx/.json），其余扩展名报错
+// 导出入口：按扩展名写文件（.csv/.xlsx/.json），其余扩展名报错；原子写避免中断残留半截文件
 export async function exportTasks(file: string, rows: TaskRow[], summary: TaskSummary, redact = true): Promise<void> {
   const ext = file.split(".").pop()?.toLowerCase()
   if (ext === "csv") {
     ensureExportDir(file)
-    writeFileSync(file, toCSV(rows, redact), "utf8")
+    writeFileAtomic(file, toCSV(rows, redact))
   } else if (ext === "json") {
     ensureExportDir(file)
-    writeFileSync(file, toJSON(rows, summary, redact), "utf8")
+    writeFileAtomic(file, toJSON(rows, summary, redact))
   } else if (ext === "xlsx") {
     ensureExportDir(file)
-    writeFileSync(file, await toXLSXBuffer(rows, summary, redact))
+    writeFileAtomic(file, await toXLSXBuffer(rows, summary, redact))
   } else {
     throw new Error(`不支持的导出格式「${ext || ""}」，仅支持 .csv / .xlsx / .json`)
   }

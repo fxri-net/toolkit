@@ -25,7 +25,35 @@ jobs:
         run: pnpm lint
       - name: 单元测试
         run: pnpm test
+      - name: 覆盖率门槛
+        run: pnpm test:coverage
       - name: 构建
         run: pnpm build
+      - name: CLI 冒烟（--help / 子命令帮助）
+        run: |
+          node dist/cli.js --help
+          node dist/cli.js tasks --help
+          node dist/cli.js changelog --help
       - name: 自身 .tasks 体检
         run: node dist/cli.js tasks check && node dist/cli.js tasks normalize
+
+  # Windows 回归：类型/单测/构建与主平台并行，避免跨平台路径与换行问题漏网（O1/O5）
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+      - name: 类型检查
+        run: pnpm typecheck
+      - name: 单元测试
+        run: pnpm test
+      - name: 构建
+        run: pnpm build

@@ -5,7 +5,7 @@ export function parseFrontmatter(content: string): Partial<TaskFrontmatter> {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
   if (!match) return {}
   const fm: Record<string, string> = {}
-  for (const line of match[1].split(/\r?\n/)) {
+  for (const line of (match[1] ?? "").split(/\r?\n/)) {
     const idx = line.indexOf(":")
     if (idx === -1) continue
     const key = line.slice(0, idx).trim()
@@ -23,4 +23,23 @@ export function parseFrontmatter(content: string): Partial<TaskFrontmatter> {
 export function stripFrontmatter(content: string): string {
   const match = content.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/)
   return match ? content.slice(match[0].length) : content
+}
+
+// 提取首个 H1 标题文本（跳过 #! 指令行）；无标题返回空串（list / query 展示标题共用，避免实现漂移）
+export function titleOf(content: string): string {
+  return (
+    content
+      .split(/\r?\n/)
+      .find((l) => l.startsWith("# ") && !l.startsWith("#!"))
+      ?.replace(/^#\s*/, "") ?? ""
+  )
+}
+
+// 去掉正文首个 H1 标题行（供正文未闭合待办扫描；无 H1 时原样返回）
+export function bodyWithoutTitle(body: string): string {
+  const lines = body.split(/\r?\n/)
+  const idx = lines.findIndex((l) => /^# /.test(l))
+  if (idx === -1) return body
+  lines.splice(idx, 1)
+  return lines.join("\n")
 }

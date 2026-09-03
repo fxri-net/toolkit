@@ -1,28 +1,22 @@
 // 任务查询层：读取待完成 / 已归档任务为统一行结构，支持过滤、排序、汇总
 // 供 CLI 总览、导出（export.ts）与库 API 复用
 import { readFileSync } from "node:fs"
-import { join, basename, relative, sep } from "node:path"
+import { join, basename } from "node:path"
 import { listTaskFiles, dateFromFileName } from "./scan"
 import { parseArchiveBlocks } from "./archive-block"
-import { parseFrontmatter } from "./parse"
+import { parseFrontmatter, titleOf } from "./parse"
 import { parseDepends } from "./depends"
 import { parseMetaSegments } from "./meta"
+import { displayRel } from "./paths"
+import { toYmd } from "../date"
 import type { TaskRow, TaskView, TaskFilter, TaskSummary } from "./types"
 
 // 终端展示与导出的状态分组顺序
 export const STATUS_ORDER = ["待办", "进行中", "阻塞", "已完成", "已放弃", "未标注"]
 
 // 日期归一化为 YYYY-MM-DD（兼容 YYYYMMDD / YYYY-MM-DD / YYYY-M-D），无法解析返回空
-export function toYmd(value: string): string {
-  const m = value.trim().match(/^(\d{4})[-/]?(\d{1,2})[-/]?(\d{1,2})/)
-  if (!m) return ""
-  return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`
-}
-
-// 取相对 tasksDir 的展示路径（统一 / 分隔）
-function relFile(tasksDir: string, file: string): string {
-  return relative(tasksDir, file).split(sep).join("/")
-}
+// 实现统一收口于 ../date（展示/导出/导入共用），此处保留导出名兼容既有引用
+export { toYmd }
 
 // 读取待完成任务（active）为统一行
 export function listActiveTasks(tasksDir = ".tasks"): TaskRow[] {
@@ -30,11 +24,7 @@ export function listActiveTasks(tasksDir = ".tasks"): TaskRow[] {
   return listTaskFiles(activeDir).map((file) => {
     const content = readFileSync(file, "utf8")
     const fm = parseFrontmatter(content)
-    const title =
-      content
-        .split(/\r?\n/)
-        .find((l) => l.startsWith("# ") && !l.startsWith("#!"))
-        ?.replace(/^#\s*/, "") || basename(file, ".md")
+    const title = titleOf(content) || basename(file, ".md")
     return {
       view: "待完成",
       title,
@@ -45,7 +35,7 @@ export function listActiveTasks(tasksDir = ".tasks"): TaskRow[] {
       updated: fm.updated || "",
       completed: fm.completed || "",
       depends: parseDepends(fm.depends_on),
-      file: relFile(tasksDir, file),
+      file: displayRel(tasksDir, file),
     }
   })
 }
@@ -74,7 +64,7 @@ export function listArchivedTasks(tasksDir = ".tasks"): TaskRow[] {
         updated: "",
         completed: b.completed,
         depends: [],
-        file: relFile(tasksDir, file),
+        file: displayRel(tasksDir, file),
       })
     }
   }
@@ -115,7 +105,9 @@ function timeKey(r: TaskRow): string {
   const date = toYmd(raw)
   if (!date) return ""
   const hm = raw.match(/(\d{1,2}):(\d{2})/)
-  return date.replace(/-/g, "") + (hm ? `${hm[1].padStart(2, "0")}${hm[2]}` : "0000")
+  const hh = hm?.[1] ?? ""
+  const mm = hm?.[2] ?? ""
+  return date.replace(/-/g, "") + (hm ? `${hh.padStart(2, "0")}${mm}` : "0000")
 }
 
 // 按状态分组顺序平铺（组内时间倒序），终端与导出统一使用该顺序

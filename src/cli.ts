@@ -322,7 +322,8 @@ program
       const warn = resolveEnabled(options.warn, "FX_CHECK_WARN", getCheckWarnings(), true)
       // 合并配置语言（支持自定义语言与覆盖内置），实现全语言
       const merged = resolveLanguages()
-      const lang = merged[options.lang] ?? merged[DEFAULT_LANG]
+      // languages 始终内置 DEFAULT_LANG（zh），此处仅收窄 undefined 联合类型
+      const lang = (merged[options.lang] ?? merged[DEFAULT_LANG] ?? languages[DEFAULT_LANG]) as ChangelogLanguage
       const command = operands[0]
       if (command === "version") {
         // 软告警：发版前存在未归档任务

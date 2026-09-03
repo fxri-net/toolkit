@@ -2,22 +2,19 @@
 // 列映射：内置别名表 + .toolkitrc.json 的 tasks.importColumns 自定义（配置优先）
 // 目标：active（默认，生成待完成任务文件）或 archive（直接写归档块）
 import { readFileSync, existsSync, mkdirSync } from "node:fs"
-import { join, relative, sep } from "node:path"
+import { join } from "node:path"
 import { createRequire } from "node:module"
 import { normalizeCompleted, parseArchiveBlocks } from "./archive-block"
 import type { ArchiveBlockInfo } from "./archive-block"
 import { toYmd } from "./query"
-import { DONE_STATUSES } from "./types"
+import { ALL_STATUSES, DONE_STATUSES } from "./types"
+import { toYmdCompact, todayCompact } from "../date"
 import type { ImportOptions, ImportResult } from "./types"
 import { writeFileAtomic } from "../write-atomic"
 import { acquireArchiveLock, releaseArchiveLock } from "./lock"
+import { displayRel } from "./paths"
 
 const require = createRequire(import.meta.url)
-
-// 展示路径：相对任务目录并统一 / 分隔，避免跨平台输出混用反斜杠
-function displayPath(tasksDir: string, file: string): string {
-  return relative(tasksDir, file).split(sep).join("/")
-}
 
 // 内置列别名表：列名（小写后匹配）→ 标准字段；空字符串 = 元信息列（忽略）
 const COLUMN_ALIASES: Record<string, string> = {
@@ -45,9 +42,6 @@ const COLUMN_ALIASES: Record<string, string> = {
   // 元信息列：忽略
   "视图": "", "来源文件": "", "文件": "", view: "", file: "", path: "",
 }
-
-// 标准状态枚举（非法值导入时归为待办）
-const VALID_STATUS = ["待办", "进行中", "阻塞", "已完成", "已放弃"]
 
 // 表头 → 标准字段映射（自定义配置优先于内置别名）
 function mapHeaders(headers: string[], custom: Record<string, string> = {}): Map<string, number> {
@@ -102,11 +96,12 @@ function parseCsv(text: string): string[][] {
 function readRowsCSV(content: string, custom: Record<string, string>): Record<string, string>[] {
   const rows = parseCsv(content)
   if (rows.length === 0) return []
-  const map = mapHeaders(rows[0], custom)
+  const map = mapHeaders(rows[0] ?? [], custom)
   const out: Record<string, string>[] = []
   for (let i = 1; i < rows.length; i++) {
     const rec: Record<string, string> = {}
-    for (const [field, idx] of map) rec[field] = (rows[i][idx] ?? "").trim()
+    const row = rows[i] ?? []
+    for (const [field, idx] of map) rec[field] = (row[idx] ?? "").trim()
     if (rec.title || Object.keys(rec).length > 0) out.push(rec)
   }
   return out
@@ -153,9 +148,14 @@ async function readRowsXLSX(file: string, custom: Record<string, string>): Promi
   return out
 }
 
-// JSON 读取：兼容 { summary, items } 与裸数组，字段英文 key + 中文别名（小写）
+// JSON 读取：兼容 { schemaVersion, summary, items } / { summary, items } 与裸数组，字段英文 key + 中文别名（小写）
 function readRowsJSON(content: string, custom: Record<string, string>): Record<string, string>[] {
-  const data = JSON.parse(content) as { items?: unknown } | unknown[]
+  const data = JSON.parse(content) as { schemaVersion?: number; items?: unknown } | unknown[]
+  // 导出自更高 schema 版本时提示（仍尽力按当前字段映射解析）
+  if (!Array.isArray(data) && typeof (data as { schemaVersion?: number }).schemaVersion === "number") {
+    const sv = (data as { schemaVersion: number }).schemaVersion
+    if (sv > 1) console.warn(`⚠️ 导入 JSON 来自更高 schema 版本 v${sv}，字段解析可能不完整`)
+  }
   const items = Array.isArray(data) ? data : Array.isArray((data as { items?: unknown }).items) ? (data as { items: unknown[] }).items : []
   const out: Record<string, string>[] = []
   for (const it of items) {
@@ -175,12 +175,6 @@ function readRowsJSON(content: string, custom: Record<string, string>): Record<s
   return out
 }
 
-// YYYY-MM-DD → YYYYMMDD（已有 YYYYMMDD 原样）
-function toYmdRaw(v: string): string {
-  const m = v.trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)
-  return m ? `${m[1]}${m[2].padStart(2, "0")}${m[3].padStart(2, "0")}` : v.trim().replace(/[-/]/g, "")
-}
-
 // 文件名简述：去文件系统非法字符，压缩空白，限长 24；超长返回 truncated 供调用方告警
 function slugTitle(title: string): { slug: string; truncated: boolean } {
   const clean = title.trim().replace(/[\\/:*?"<>|]/g, " ").replace(/\s+/g, " ")
@@ -197,7 +191,7 @@ function normalizeRecord(rec: Record<string, string>, opts: ImportOptions, warni
     return { ok: false }
   }
   let status = (rec.status || "").trim() || "待办"
-  if (!VALID_STATUS.includes(status)) {
+  if (!(ALL_STATUSES as readonly string[]).includes(status)) {
     warnings.push(`任务「${title}」状态「${status}」非法，已归为待办`)
     status = "待办"
   }
@@ -212,7 +206,7 @@ function normalizeRecord(rec: Record<string, string>, opts: ImportOptions, warni
   const depends = (rec.depends || "").split(/[,，;；]/).map((s) => s.trim()).filter(Boolean)
   return {
     ok: true,
-    t: { title, status, owner: owner || "未标注", scope, created: toYmdRaw(rec.created || ""), completed, depends, body: rec.body?.trim() || "" },
+    t: { title, status, owner: owner || "未标注", scope, created: toYmdCompact(rec.created || ""), completed, depends, body: rec.body?.trim() || "" },
   }
 }
 
@@ -228,16 +222,9 @@ interface TaskWrite {
   body: string
 }
 
-// 当前本地日期
-function today(): string {
-  const now = new Date()
-  const p = (n: number) => String(n).padStart(2, "0")
-  return `${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}`
-}
-
 // 生成 active 任务文件（冲突自动追加序号从 -1 起，不覆盖）
 function writeActiveTask(tasksDir: string, t: TaskWrite, dryRun: boolean, warnings: string[]): string {
-  const created = t.created || today()
+  const created = t.created || todayCompact()
   const monthDir = join(tasksDir, "active", created.slice(0, 6))
   const { slug, truncated } = slugTitle(t.title)
   if (truncated) warnings.push(`任务「${t.title}」标题过长，文件名已截断`)
@@ -250,7 +237,7 @@ function writeActiveTask(tasksDir: string, t: TaskWrite, dryRun: boolean, warnin
     `owner: ${t.owner}`,
     `status: ${t.status}`,
     `created: ${created}`,
-    `updated: ${today()}`,
+    `updated: ${todayCompact()}`,
     `completed: ${t.completed ? `'${t.completed}'` : "''"}`,
     `depends_on: ${JSON.stringify(t.depends)}`,
     `scope: ${t.scope}`,
@@ -268,7 +255,7 @@ function writeActiveTask(tasksDir: string, t: TaskWrite, dryRun: boolean, warnin
 
 // 写入归档（按完成时间落到对应日期文件，与旧块合并排序）
 function writeArchiveTask(tasksDir: string, t: TaskWrite, dryRun: boolean, warnings: string[]): string | null {
-  const completed = t.completed || (t.status === "已完成" ? "" : "")
+  const completed = t.completed || ""
   const dateStr = completed ? toYmd(completed) : ""
   if (!dateStr) {
     warnings.push(`任务「${t.title}」缺少完成时间，无法直接归档（可改用 active 目标）`)
@@ -347,10 +334,10 @@ export async function importTasks(file: string, tasksDir = ".tasks", opts: Impor
           skipped++
           continue
         }
-        console.log(`${dryRun ? "[预演] 将写入归档" : "已写入归档"} → ${displayPath(tasksDir, targetFile)}`)
+        console.log(`${dryRun ? "[预演] 将写入归档" : "已写入归档"} → ${displayRel(tasksDir, targetFile)}`)
       } else {
         const targetFile = writeActiveTask(tasksDir, t, dryRun, warnings)
-        console.log(`${dryRun ? "[预演] 将创建" : "已创建"} → ${displayPath(tasksDir, targetFile)}`)
+        console.log(`${dryRun ? "[预演] 将创建" : "已创建"} → ${displayRel(tasksDir, targetFile)}`)
       }
       created++
     }

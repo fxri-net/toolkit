@@ -1,13 +1,12 @@
 import { readFileSync, writeFileSync } from "node:fs"
 import { collectChangelogs } from "./collect"
 import { redactText } from "../privacy/redact"
+import { todayDash } from "../date"
 import type { ChangelogLanguage } from "./languages"
 
-// 生成本地时区日期 YYYY-MM-DD
+// 本地当天日期 YYYY-MM-DD（实现收口于 ../date，避免 tasks/changelog 双份时区逻辑漂移）
 export function localDate(): string {
-  const now = new Date()
-  const p = (n: number) => String(n).padStart(2, "0")
-  return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`
+  return todayDash()
 }
 
 // 格式化单个 CHANGELOG 文件，返回是否有改动
@@ -38,13 +37,14 @@ export function formatChangelog(file: string, today: string, lang: ChangelogLang
   const lines = content.split("\n")
   const result: string[] = []
   for (let i = 0; i < lines.length; i++) {
-    result.push(lines[i])
-    if (/^## \d+\.\d+\.\d+/.test(lines[i])) {
+    const line = lines[i] ?? ""
+    result.push(line)
+    if (/^## \d+\.\d+\.\d+/.test(line)) {
       // 跳过标题后的空行，取首个非空行判断是否已带日期标记
       let j = i + 1
-      while (j < lines.length && lines[j].trim() === "") j++
-      const hasDate =
-        lines[j]?.startsWith("> ") && /^> \d{4}-\d{2}-\d{2} (?:发布|released)$/.test(lines[j].trim())
+      while (j < lines.length && (lines[j] ?? "").trim() === "") j++
+      const next = lines[j] ?? ""
+      const hasDate = next.startsWith("> ") && /^> \d{4}-\d{2}-\d{2} (?:发布|released)$/.test(next.trim())
       if (!hasDate) result.push(`> ${today} ${lang.released}`)
     }
   }

@@ -7,7 +7,9 @@
     "outDir": "dist",
     "esModuleInterop": true,
     "declaration": true,
-    "strict": true
+    "strict": true,
+    // 数组/索引访问结果带 undefined，强制显式兜底（N6 加固）
+    "noUncheckedIndexedAccess": true
   },
   "include": ["./src"],
   "exclude": ["node_modules", "dist", "**/__tests__", "**/*.test.ts", "**/*.spec.ts"]

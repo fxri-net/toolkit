@@ -14,7 +14,9 @@ export function parseDepends(value: unknown): string[] {
     // 非严格 JSON，继续走手写格式兜底
   }
   // 带引号列表（单/双引号均可）
-  const quoted = [...t.matchAll(/'([^']*)'|"([^"]*)"/g)].map((m) => m[1] ?? m[2]).filter(Boolean)
+  const quoted = [...t.matchAll(/'([^']*)'|"([^"]*)"/g)]
+    .map((m) => m[1] ?? m[2])
+    .filter((x): x is string => Boolean(x))
   if (quoted.length > 0) return quoted
   // 无引号中括号列表（[a, b]）
   const inner = t.match(/^\[(.*)\]$/)?.[1]

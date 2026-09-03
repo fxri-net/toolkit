@@ -14,18 +14,20 @@ export interface ArchiveBlockInfo {
 // 统一完成时间为 YYYY-MM-DD HH:mm 定宽格式（年月日时分不足两位补零；纯日期补 00:00），解析失败返回原值
 export function normalizeCompleted(completed: string): string {
   const t = completed.trim()
-  let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T\s](\d{1,2}):(\d{2})(?::\d{2})?$/)
-  if (!m) m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+  const m =
+    t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T\s](\d{1,2}):(\d{2})(?::\d{2})?$/) ??
+    t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
   if (!m) return t
-  const date = `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`
+  const pad = (s: string | undefined) => s?.padStart(2, "0") ?? ""
+  const date = `${m[1] ?? ""}-${pad(m[2])}-${pad(m[3])}`
   if (m.length === 4) return `${date} 00:00`
-  return `${date} ${m[4].padStart(2, "0")}:${m[5]}`
+  return `${date} ${pad(m[4])}:${pad(m[5])}`
 }
 
 // 从块标题提取负责人：形如 `20260903-唐启云-xxx` 取中段，否则返回空
 function ownerFromTitle(title: string): string {
   const m = title.match(/^\d{8}-(.+?)-/)
-  return m ? m[1] : ""
+  return m?.[1] ?? ""
 }
 
 // 生成规范的元数据行
@@ -49,29 +51,31 @@ export function parseArchiveBlocks(content: string): { header: string; blocks: A
   // 定位任务块标题行：跳过其后空行，首个非空行需为含「完成时间」的元数据行
   const blockStarts: number[] = []
   for (let i = 0; i < lines.length; i++) {
-    if (!/^## .+/.test(lines[i])) continue
+    const line = lines[i]
+    if (!line || !/^## .+/.test(line)) continue
     let j = i + 1
-    while (j < lines.length && lines[j].trim() === "") j++
+    while (j < lines.length && (lines[j] ?? "").trim() === "") j++
     const first = lines[j]?.trim() ?? ""
     if (first.startsWith("> ") && first.includes("完成时间")) blockStarts.push(i)
   }
   if (blockStarts.length === 0) return { header: content, blocks: [] }
-  const header = lines.slice(0, blockStarts[0]).join("\n").trimEnd()
+  const header = lines.slice(0, blockStarts[0] ?? 0).join("\n").trimEnd()
   const blocks: ArchiveBlockInfo[] = []
   for (let k = 0; k < blockStarts.length; k++) {
-    const start = blockStarts[k]
-    const end = k + 1 < blockStarts.length ? blockStarts[k + 1] : lines.length
+    const start = blockStarts[k] ?? 0
+    const end = k + 1 < blockStarts.length ? (blockStarts[k + 1] ?? lines.length) : lines.length
     const chunkLines = lines.slice(start, end).join("\n").trim().split("\n")
-    const title = chunkLines[0].replace(/^## /, "")
+    const title = (chunkLines[0] ?? "").replace(/^## /, "")
     let metaLine: string | null = null
     let completed = ""
     let bodyStart = 1
     for (let i = 1; i < chunkLines.length; i++) {
-      const t = chunkLines[i].trim()
+      const raw = chunkLines[i] ?? ""
+      const t = raw.trim()
       if (t.startsWith("> ") && t.includes("完成时间")) {
-        metaLine = chunkLines[i]
+        metaLine = raw
         const m = t.match(/完成时间：(.+)$/)
-        if (m) completed = m[1].trim()
+        if (m) completed = (m[1] ?? "").trim()
         bodyStart = i + 1
         break
       }
@@ -85,8 +89,9 @@ export function parseArchiveBlocks(content: string): { header: string; blocks: A
 function trimBlockBody(lines: string[]): string {
   const out = [...lines]
   for (;;) {
-    while (out.length > 0 && out[out.length - 1].trim() === "") out.pop()
-    if (out.length > 0 && /^---+\s*$/.test(out[out.length - 1].trim())) out.pop()
+    while (out.length > 0 && (out[out.length - 1] ?? "").trim() === "") out.pop()
+    const tail = out[out.length - 1] ?? ""
+    if (out.length > 0 && /^---+\s*$/.test(tail.trim())) out.pop()
     else break
   }
   return out.join("\n").trim()
@@ -98,10 +103,10 @@ export function scanOrphanBlocks(content: string): string[] {
   const lines = content.split(/\r?\n/)
   const orphans: string[] = []
   for (let i = 0; i < lines.length; i++) {
-    const title = lines[i].match(/^## (\d{8}-[^-]+-.+)$/)?.[1]
+    const title = lines[i]?.match(/^## (\d{8}-[^-]+-.+)$/)?.[1]
     if (!title) continue
     let j = i + 1
-    while (j < lines.length && lines[j].trim() === "") j++
+    while (j < lines.length && (lines[j] ?? "").trim() === "") j++
     const first = lines[j]?.trim() ?? ""
     if (first.startsWith("> ") && !first.includes("完成时间")) orphans.push(title)
   }

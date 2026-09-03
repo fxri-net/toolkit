@@ -1,8 +1,9 @@
 // archive 归档归一化：检查历史归档块的元数据完整性、完成时间漂移、排序，并按需修复
 // 供 tasks normalize --check（只读）与 --fix（补齐元数据 + 降序重排 + 漂移块迁移）使用
-import { readFileSync, unlinkSync, existsSync, mkdirSync, rmdirSync, renameSync } from "node:fs"
+import { readFileSync, unlinkSync, existsSync, mkdirSync, renameSync } from "node:fs"
 import { join, basename, dirname } from "node:path"
 import { normalizeCompleted, parseArchiveBlocks, renderBlock, completeMetaLine, scanOrphanBlocks } from "./archive-block"
+import { removeEmptyDirs } from "./archive"
 import { listTaskFiles } from "./scan"
 import type { ArchiveBlockInfo } from "./archive-block"
 import { acquireArchiveLock, releaseArchiveLock } from "./lock"
@@ -62,8 +63,11 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
 
     // 排序检查：completed 定宽后是否降序
     for (let i = 1; i < blocks.length; i++) {
-      const prev = normalizeCompleted(blocks[i - 1].completed)
-      const cur = normalizeCompleted(blocks[i].completed)
+      const prevBlock = blocks[i - 1]
+      const curBlock = blocks[i]
+      if (!prevBlock || !curBlock) continue
+      const prev = normalizeCompleted(prevBlock.completed)
+      const cur = normalizeCompleted(curBlock.completed)
       if (prev && cur && prev < cur) {
         issues.push({ file: name, message: "任务块未按完成时间降序排列", fixable: true })
         break
@@ -154,6 +158,8 @@ export function fixArchive(tasksDir = ".tasks"): NormalizeResult {
           mkdirSync(join(archiveDir, correctMonth), { recursive: true })
           renameSync(file, targetFile)
           file = targetFile
+          // O2：源错月目录迁空后向上清理，避免遗留空月份目录
+          removeEmptyDirs(dirname(file0), archiveDir)
         }
       }
       const content = readFileSync(file, "utf8")
@@ -214,13 +220,9 @@ export function fixArchive(tasksDir = ".tasks"): NormalizeResult {
 
       const eol = content.includes("\r\n") ? "\r\n" : "\n"
       if (blocks.length > 0 && keep.length === 0) {
-        // 块全部迁走后删除空归档文件并尝试清理空目录
+        // 块全部迁走后删除空归档文件并向上清理空月份目录（当月还有其他日期文件时自动停在非空目录）
         if (existsSync(file)) unlinkSync(file)
-        try {
-          rmdirSync(dirname(file))
-        } catch {
-          // 目录非空（当月还有其他日期文件），忽略
-        }
+        removeEmptyDirs(dirname(file), archiveDir)
         actions.push("删除空归档文件")
         changed = true
       } else if (changed || hasDupSep) {
