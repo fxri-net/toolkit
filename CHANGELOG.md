@@ -1,5 +1,13 @@
 # @fxri/toolkit
 
+## 1.6.5
+
+> 2026-09-04 发布
+
+### 🐛 补丁修复
+
+- 文档：同步 skills 与最新工具能力——fxri-release-changelog 的 changelog-format.md 版本块示例与规则补「标题与日期行间保留空行」（对齐 1.6.4 空行修复后的真实输出）；fxri-plan-to-task 的 task-spec.md 自查清单补「active 根目录直放」与「游离于 active/ 之外」两项软告警（对齐 1.5.3/1.6.3 的 check 能力）；两 SKILL.md metadata.version 递增至 1.0.1
+
 ## 1.6.4
 
 > 2026-09-04 发布

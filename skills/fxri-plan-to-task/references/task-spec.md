@@ -75,6 +75,8 @@ scope: app            # 影响范围
 - [ ] completed 为 `YYYY-MM-DD HH:mm` 且日期真实存在
 - [ ] created 为 YYYYMMDD 且等于文件名日期前缀
 - [ ] 文件名符合 `{YYYYMMDD}-{用户名}-{任务简述}.md`
+- [ ] 任务文件放在 `active/{YYYYMM}/` 月份子目录，不直放 active 根目录
+- [ ] `.tasks/` 下无游离于 active/ 之外的任务文件（直放 `.tasks` 根目录或漏建 active/ 层的 `{YYYYMM}/` 均不会被校验与归档）
 - [ ] active 内无跨文件同名任务
 - [ ] depends_on 目标存在且无循环依赖
 - [ ] 正文无「待实施 / 待核对 / 待评估 / TODO」等游离标记与未勾选的 `- [ ]`
