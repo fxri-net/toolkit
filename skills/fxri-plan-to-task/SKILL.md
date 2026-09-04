@@ -3,7 +3,7 @@ name: fxri-plan-to-task
 description: 将已确认的实施方案落盘为标准任务文件并跟踪至归档：先查后写防重复建档、按模板建档、状态机更新、自查校验与手工归档。当用户确认方案后要求登记或落盘任务、提到建档、任务登记、归档、任务校验时使用。不用于与方案落盘无关的普通 TODO、issue 管理或日常提交信息撰写。
 license: MIT
 metadata:
-  version: "1.0.3"
+  version: "1.0.4"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
@@ -25,6 +25,7 @@ metadata:
 
 ### 1. 先查后写（防重复建档）
 
+- 无 `.tasks/` 任务区时先执行 `toolkit init` 建骨架（幂等，已存在不覆盖）
 - 列出任务目录 `active/` 下全部 `.md`（含一层 `{YYYYMM}/` 月份子目录），并核对 `archive/` 是否已有同主题任务
 - 已有同主题任务：更新原文件，禁止新建
 - 任务唯一键：`{年月日}-{用户名}-{任务简述}`；多人对同一需求共用一个文件
