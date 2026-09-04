@@ -187,7 +187,7 @@ npx toolkit changelog status / publish      # 其余 changeset 子命令透传
 - **调用优先级**：`npx toolkit`（项目本地依赖）→ `toolkit`（全局安装）；两者均不可用时直接以 Markdown 输出方案，不阻塞执行
 - **规范来源**：优先读取项目根 `SPEC.md`，缺失时读取包内 `SPEC.md`（目录结构、文件命名与 frontmatter 字段均以该规范为准）
 - **多人协作（先查后写）**：`.tasks/` 是多写者共享区，新建/更新任务前先 `toolkit tasks` 查 active 总览并核对 archive，避免重复建档；同一需求共用一个任务文件
-- **校验**：`toolkit tasks check` 校验 active（frontmatter 合法性、owner/created/文件命名规范、重名、depends_on 闭环与引用归一——缺失依赖若已归档会给出精确归档位置；未闭合待办与 `- [ ]`，词标记不扫标题，复选框/词标记均可配置关闭）；`toolkit tasks normalize` 检查归档块（元数据完整性/疑似任务块/漂移/排序/月份目录），`--fix` 补齐元数据、把漂移块迁移到对应日期文件、并把放错月份目录的归档文件移动到正确月份目录
+- **校验**：`toolkit tasks check` 校验 active（frontmatter 合法性、owner/created/文件命名规范、重名、depends_on 闭环与引用归一——缺失依赖若已归档会给出精确归档位置；未闭合待办与 `- [ ]`，词标记不扫标题，复选框/词标记均可配置关闭），并对游离于 `active/` 之外、带 `{YYYYMMDD}-` 日期前缀的任务文件软告警（此类文件不被 tasks/check/archive 读取，典型成因是建档时漏掉 `active/{YYYYMM}/` 层级）；`toolkit tasks normalize` 检查归档块（元数据完整性/疑似任务块/漂移/排序/月份目录），`--fix` 补齐元数据、把漂移块迁移到对应日期文件、并把放错月份目录的归档文件移动到正确月份目录
 - **归档**：任务完成后执行 `toolkit tasks archive`（可 `--dry-run` 预演）；归档采用排他锁防并发覆盖。归档完成后若 `.changeset`（相对当前目录）无待发布变更集会有提示，仅为提醒，不影响归档
 - **版本管理**：涉及发版时先 `toolkit changelog` 创建变更集，再 `toolkit changelog version` 发版并格式化 CHANGELOG
 

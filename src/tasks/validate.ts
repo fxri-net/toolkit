@@ -1,6 +1,6 @@
 // active 任务校验：frontmatter 合法性、完成时间格式、重名、方案正文子项未闭合
 // 供 tasks check 使用，输出问题清单；error 为硬性错误，warn 为软告警（默认开启可关）
-import { readFileSync, statSync } from "node:fs"
+import { readFileSync, statSync, readdirSync, existsSync } from "node:fs"
 import { join, basename, dirname } from "node:path"
 import { listTaskFiles } from "./scan"
 import { parseFrontmatter, stripFrontmatter, bodyWithoutTitle } from "./parse"
@@ -128,6 +128,26 @@ export function validateTaskFile(file: string): CheckIssue[] {
   return issues
 }
 
+// 游离任务文件扫描：active/archive 之外、带 {YYYYMMDD}- 日期前缀的 .md 视为疑似任务
+// 这类文件不被 tasks/check/archive 任何命令读取，典型成因是建档时漏掉 active/{YYYYMM}/ 层级
+function strayTaskFiles(tasksDir: string): string[] {
+  const results: string[] = []
+  if (!existsSync(tasksDir)) return results
+  for (const entry of readdirSync(tasksDir, { withFileTypes: true })) {
+    if (entry.name === "active" || entry.name === "archive") continue
+    if (entry.isFile()) {
+      // 日期前缀启发式：README 等说明文档不带日期前缀，不误报
+      if (entry.name.endsWith(".md") && /^\d{8}-/.test(entry.name)) results.push(entry.name)
+    } else if (entry.isDirectory()) {
+      // 只扫一层，覆盖漏建 active 层的 .tasks/202609/xxx.md（口径与 listTaskFiles 一致）
+      for (const sub of readdirSync(join(tasksDir, entry.name))) {
+        if (sub.endsWith(".md") && /^\d{8}-/.test(sub)) results.push(`${entry.name}/${sub}`)
+      }
+    }
+  }
+  return results
+}
+
 // 校验 active 目录全部任务（含跨文件重名检测）
 export function validateTasks(tasksDir = ".tasks"): CheckResult {
   const activeDir = join(tasksDir, "active")
@@ -139,6 +159,11 @@ export function validateTasks(tasksDir = ".tasks"): CheckResult {
     if (dirname(f) === activeDir) {
       issues.push({ level: "warn", file: basename(f), message: "active 任务应放入 {YYYYMM} 月份子目录（当前直放 active 根目录）" })
     }
+  }
+
+  // 游离于 active/ 之外的任务文件对 check/archive 均不可见，单独提示其修正位置
+  for (const s of strayTaskFiles(tasksDir)) {
+    issues.push({ level: "warn", file: s, message: "任务文件游离于 active/ 之外，tasks/check/archive 均不会读取，应移入 active/{YYYYMM}/ 月份子目录" })
   }
 
   // 跨文件重名检测：同名任务文件疑似重复建档

@@ -1,6 +1,14 @@
 # @fxri/toolkit
 
+## 1.6.3
+> 2026-09-04 发布
+
+### 🐛 补丁修复
+
+- 新增：tasks check 检出游离于 active/ 之外的任务文件并软告警——对带 {YYYYMMDD}- 日期前缀且位于 .tasks 根目录或漏建 active 层的 {YYYYMM}/ 子目录下的 .md 给出提示（此类文件不被 tasks/check/archive 读取），避免建档错位后无任何反馈
+
 ## 1.6.2
+
 > 2026-09-04 发布
 
 ### 🐛 补丁修复
