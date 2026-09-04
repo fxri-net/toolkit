@@ -54,8 +54,8 @@ bun i -g @fxri/toolkit    # bun
 ### 方式三：不安装、临时执行
 
 ```bash
-npx @fxri/toolkit tasks       # npm / yarn
 pnpm dlx @fxri/toolkit tasks  # pnpm
+npx @fxri/toolkit tasks       # npm / yarn
 bunx @fxri/toolkit tasks      # bun
 ```
 
