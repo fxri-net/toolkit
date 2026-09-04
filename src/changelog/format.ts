@@ -34,7 +34,7 @@ export function formatChangelog(file: string, today: string, lang: ChangelogLang
     content = merged
   }
   // 版本标题下补发布日期：标题与日期行之间始终保留一个空行；
-  // 已有日期（含历史上补日期曾把日期贴在标题后的数据）保留并自愈空行，缺失时才补今日
+  // 已有日期行保留（缺空行时补齐），缺失时才补今日日期
   const lines = content.split("\n")
   const result: string[] = []
   let i = 0
