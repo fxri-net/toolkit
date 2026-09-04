@@ -20,7 +20,9 @@ export function loadToolkitConfig(): Record<string, unknown> | null {
     const candidate = join(dir, ".toolkitrc.json")
     if (existsSync(candidate)) {
       try {
-        cached = JSON.parse(readFileSync(candidate, "utf8")) as Record<string, unknown>
+        // 剥离 UTF-8 BOM：Windows 下 PowerShell Set-Content 默认写 BOM，不处理会导致配置被静默跳过
+        const raw = readFileSync(candidate, "utf8").replace(/^\uFEFF/, "")
+        cached = JSON.parse(raw) as Record<string, unknown>
         break
       } catch {
         // 该级配置文件非法：继续向上查找上级目录的配置
@@ -39,6 +41,14 @@ export function getConfigSection(name: string): Record<string, unknown> | undefi
   if (!cfg) return undefined
   const section = cfg[name]
   return typeof section === "object" && section !== null ? (section as Record<string, unknown>) : undefined
+}
+
+// 解析任务目录三档：CLI --dir 显式传参 > 配置 tasks.dir > 默认 .tasks
+// 支持 .tasks 放项目外（绝对路径或 ../ 相对路径），配合独立文档仓库管理任务
+export function resolveTasksDir(cliValue?: string): string {
+  if (cliValue) return cliValue
+  const dir = getConfigSection("tasks")?.dir
+  return typeof dir === "string" && dir !== "" ? dir : ".tasks"
 }
 
 // 失效配置缓存：库形态长驻进程 / 测试中修改 .toolkitrc.json 后调用，使下次读取重新加载

@@ -3,7 +3,7 @@ import js from "@eslint/js"
 import tseslint from "typescript-eslint"
 
 export default tseslint.config(
-  { ignores: ["dist/**", "node_modules/**", "coverage/**", ".toolkit-verify/**"] },
+  { ignores: ["dist/**", "node_modules/**", "coverage/**", ".toolkit-verify/**", "docs/.vitepress/dist/**", "docs/.vitepress/cache/**"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

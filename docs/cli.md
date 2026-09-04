@@ -30,6 +30,8 @@ toolkit <command> [options]
 
 开关为**双向三档**，优先级从高到低：CLI 参数 > 环境变量 > 配置文件 > 默认开启。对应环境变量：`FX_REDACT`、`FX_CHECK_WARN`（认 `0/1`、`true/false`、`on/off`）；配置项见[配置参考](./config)。
 
+另有一个独立环境变量 `FX_NO_UPDATE_CHECK`：设为真值时关闭升级检查提示（1.7.0 新增，行为详见[配置参考 · updateCheck](./config#updatecheck升级检查提示-170-新增)）。
+
 ## tasks
 
 ```bash
@@ -41,7 +43,7 @@ toolkit tasks archive --dry-run   # 归档预演（只预览，不落盘）
 toolkit tasks check               # 校验 active
 toolkit tasks normalize           # 检查归档块（默认只读）
 toolkit tasks normalize --fix     # 修复归档问题
-toolkit tasks --dir <path>        # 指定任务目录（默认 .tasks）
+toolkit tasks --dir <path>        # 指定任务目录（CLI 参数 > 配置 tasks.dir > 默认 .tasks）
 toolkit tasks check --strict      # 任务目录不存在时报错退出（默认容错为空结果）
 ```
 
@@ -102,15 +104,18 @@ toolkit changelog status / publish      # 其余 changeset 子命令透传
 
 ```bash
 toolkit init
+toolkit init --dir ../my-tasks-repo   # 任务区放项目外（独立仓库管理）
 ```
 
 在当前目录初始化任务区：
 
-- 创建 `.tasks/active/{YYYYMM}/`、`.tasks/archive/` 目录骨架
+- 创建 `<任务目录>/active/{YYYYMM}/`、`<任务目录>/archive/` 目录骨架（默认 `.tasks`，优先级与 `tasks` 同口径：CLI 参数 > 配置 `tasks.dir` > 默认 `.tasks`）
 - 向 `.gitignore` 追加忽略片段（含 `.archive.lock`；已有则跳过）
 - 输出后续步骤与文档站链接
 
 ⚠️ 重复执行安全：已存在的目录与配置不覆盖、不报错。
+
+⚠️ 任务区放项目外（独立文档仓库）：配置 `"tasks": { "dir": "../my-tasks-repo" }` 后，`init` 与全部 `tasks` 子命令都作用于该目录，一次配置永久生效；`.gitignore` 片段仍写入当前项目。
 
 ## 退出码
 

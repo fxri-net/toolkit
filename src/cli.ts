@@ -19,7 +19,9 @@ import { languages, DEFAULT_LANG, type ChangelogLanguage } from "./changelog/lan
 import { localDate, formatChangelogs } from "./changelog/format"
 import { resolveRedactEnabled } from "./privacy/redact"
 import { resolveEnabled } from "./switch"
-import { getConfigSection } from "./config"
+import { getConfigSection, resolveTasksDir } from "./config"
+import { initWorkspace, INIT_LINKS } from "./init"
+import { startUpdateCheck } from "./update-check"
 
 const require = createRequire(import.meta.url)
 
@@ -92,7 +94,7 @@ function printIssues(issues: Array<{ file: string; message: string }>) {
 
 // tasks 子命令与查询/导出/导入的选项集合
 interface TasksOptions {
-  dir: string
+  dir?: string
   redact: boolean | undefined
   warn: boolean | undefined
   dryRun: boolean
@@ -120,11 +122,45 @@ program
   .version(version, "-v, --version", "显示版本号")
   .enablePositionalOptions(true)
 
+// help footer：指向文档站，降低新用户查找成本
+program.addHelpText(
+  "after",
+  [
+    "",
+    "文档站：",
+    `  新手指南 ${INIT_LINKS.gettingStarted}`,
+    `  完整攻略 ${INIT_LINKS.guide}`,
+    `  全部文档 ${INIT_LINKS.site}`,
+  ].join("\n"),
+)
+
+// init：初始化项目任务区（生成 .tasks/ 骨架与 .gitignore 片段，幂等可重复执行）
+program
+  .command("init")
+  .description("初始化项目任务区（生成 .tasks/ 骨架与 .gitignore 片段）")
+  .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）")
+  .action((options: { dir?: string }) => {
+    try {
+      // 与 tasks 命令同口径：初始化时也尊重配置中已声明的外置任务目录
+      const dir = resolveTasksDir(options.dir)
+      initWorkspace(dir)
+      console.log(`已初始化任务区：${dir}/active/{YYYYMM}/、${dir}/archive/（已存在的目录保持不变）`)
+      console.log("已确保 .gitignore 含 .archive.lock 忽略片段（已存在或无 .gitignore 时自动处理）")
+      console.log("")
+      console.log("下一步：")
+      console.log(`  新手指南：${INIT_LINKS.gettingStarted}`)
+      console.log(`  完整攻略：${INIT_LINKS.guide}`)
+    } catch (e) {
+      console.error(`⚠️ 初始化失败：${(e as Error).message}`)
+      process.exitCode = 1
+    }
+  })
+
 // tasks 域：任务总览 / 归档 / 校验 / 归一化
 program
   .command("tasks")
   .description("任务管理")
-  .option("--dir <path>", "任务目录", ".tasks")
+  .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）")
   .option("--redact", "开启隐私脱敏")
   .option("--no-redact", "关闭隐私脱敏")
   .option("--warn", "开启软告警")
@@ -152,7 +188,8 @@ program
     ) => {
       const redact = resolveRedactEnabled(options.redact)
       const warn = resolveEnabled(options.warn, "FX_CHECK_WARN", getCheckWarnings(), true)
-      const dir = options.dir
+      // 任务目录三档解析：CLI --dir > 配置 tasks.dir > 默认 .tasks
+      const dir = resolveTasksDir(options.dir)
 
       // 严格模式：任务目录不存在时直接报错（默认容错为空结果）
       if (options.strict && !existsSync(dir)) {
@@ -343,4 +380,9 @@ program
   )
 
 ensureUtf8()
-program.parse()
+// main 包装：兼容 CJS 产物（顶层 await 仅 ESM 支持）；主命令完成后 fire-and-forget 升级检查（不阻塞输出、不影响退出码）
+async function main(): Promise<void> {
+  await program.parseAsync(process.argv)
+  void startUpdateCheck(version)
+}
+void main()

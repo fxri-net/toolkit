@@ -72,6 +72,8 @@
 
 ⚠️ 活跃任务不提交（长期只在本机）是常见反模式：换机器/换会话后任务记录即丢失，且 `check`/归档流程依赖的上下文无从恢复。
 
+**任务区放项目外**：不想把 `.tasks/` 放在项目里的团队，可配置 `"tasks": { "dir": "../my-tasks-repo" }`（1.7.0 新增）把任务区指向独立文档仓库（支持绝对路径或 `../` 相对路径）；任务记录提交到该独立仓库，`.toolkitrc.json` 仍在项目内提交并声明外置路径。
+
 ## 项目级激活模板
 
 需求：**只在公司项目激活 toolkit 技能，个人项目不被插入**（全局安装 skills 会污染所有项目）。
@@ -193,4 +195,4 @@ git push -f origin docs-pages              # 全量覆盖式推送
 - 环境要求 Node.js >= 20
 - Node 18 可安装，但 `changelog` 依赖 changesets 的子命令不可用（上游 `human-id` ESM-only 限制）
 - 升级：`pnpm i -g @fxri/toolkit && pnpm dlx skills update --global`（npm 用户把 `pnpm i -g` 换成 `npm i -g`、`pnpm dlx` 换成 `npx` 即可），**升级后开新会话**使 AI 侧技能与 CLI 版本对齐
-- 1.7.0 起 CLI 内置升级检查提示（命令末尾异步查询 registry，静默失败不打扰）
+- 1.7.0 起 CLI 内置升级检查提示（命令末尾异步查询 registry，静默失败不打扰）；不希望发起请求时设 `FX_NO_UPDATE_CHECK=1` 或配置 `updateCheck.enabled: false`（见[配置参考](./config#updatecheck升级检查提示-170-新增)）

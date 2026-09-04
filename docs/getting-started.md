@@ -118,6 +118,8 @@ pnpm exec toolkit tasks archive
 
 ⚠️ `toolkit init` 为 1.7.0 新增；旧版本请手工建 `.tasks/active/{YYYYMM}/` 目录结构。
 
+> 不想把 `.tasks/` 放项目里？配置 `"tasks": { "dir": "../my-tasks-repo" }` 指向独立仓库（或每次用 `--dir` 传参），详见[配置参考](./config#tasks任务目录与导入列映射)。
+
 ## AI 用户（让 AI 替你操作）
 
 不需要懂命令，直接对 AI 说：
