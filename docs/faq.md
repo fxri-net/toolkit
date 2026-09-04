@@ -30,7 +30,7 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 
 ### 用 nvm 切了 Node 版本，全局装的 toolkit 不见了？
 
-全局包绑定在安装时的 Node 版本上，切版本后各版本的 `node_modules` 相互独立，这是 nvm 类工具的机制，不是本工具的问题。处理：新版本下重新 `npm i -g @fxri/toolkit`；团队项目建议改用项目 devDependency 方式（见[新手指南 · 安装](./getting-started#安装)），不受切版本影响。
+全局包绑定在安装时的 Node 版本上，切版本后各版本的 `node_modules` 相互独立，这是 nvm 类工具的机制，不是本工具的问题。处理：新版本下重新安装（`pnpm i -g @fxri/toolkit` 或 `npm i -g @fxri/toolkit`）；改用 pnpm 全局安装可规避（pnpm 全局目录独立于 Node 版本）；团队项目建议改用项目 devDependency 方式（见[新手指南 · 安装](./getting-started#安装)），不受切版本影响。
 
 ### Node 18 能用吗？
 
@@ -57,7 +57,7 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 
 ### 为什么 AI 建的档 check 不过？
 
-常见原因：文件放错层级（必须在 `active/{YYYYMM}/` 下，漏掉月份目录会软告警且不被读取）、`created` 与文件名日期前缀不一致、终结态缺 `completed`。跑 `npx toolkit tasks check`，按输出逐条修即可；建档交给 AI 时说「按 fxri-plan-to-task 技能建档」可从源头避免。
+常见原因：文件放错层级（必须在 `active/{YYYYMM}/` 下，漏掉月份目录会软告警且不被读取）、`created` 与文件名日期前缀不一致、终结态缺 `completed`。跑 `pnpm exec toolkit tasks check`，按输出逐条修即可；建档交给 AI 时说「按 fxri-plan-to-task 技能建档」可从源头避免。
 
 ### 归档提示「本次无可归档任务」？
 
@@ -85,7 +85,7 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 
 ### 升级后要注意什么？
 
-CLI 升级后 skills 也要同步升级（`npx skills update`），并且**开新会话**——旧会话加载的技能内容还是旧版，新会话才会读到新技能。1.7.0 起 CLI 会在检测到新版本时提示。按安装方式选择升级命令：项目 devDep 在项目内 `pnpm up @fxri/toolkit`（或对应包管理器）；全局 `pnpm i -g` / `npm i -g` 重装最新版；yarn v2+ 全局安装受限，建议迁移到 pnpm。
+CLI 升级后 skills 也要同步升级（`pnpm dlx skills update`），并且**开新会话**——旧会话加载的技能内容还是旧版，新会话才会读到新技能。1.7.0 起 CLI 会在检测到新版本时提示。按安装方式选择升级命令：项目 devDep 在项目内 `pnpm up @fxri/toolkit`（或对应包管理器）；全局 `pnpm i -g` / `npm i -g` 重装最新版；yarn v2+ 全局安装受限，建议迁移到 pnpm。
 
 ### fork 本仓库怎么部署文档站？
 

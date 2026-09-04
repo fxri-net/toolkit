@@ -37,23 +37,26 @@
 pnpm add -D @fxri/toolkit
 ```
 
-- 任务记录、校验、归档随仓库走，团队成员与 AI 会话内 `npx toolkit` 即可用
+- 任务记录、校验、归档随仓库走，团队成员与 AI 会话内 `pnpm exec toolkit`（npm 用户 `npx toolkit`）即可用
 - 版本随项目锁定，升级由项目统一决定
 
 ### 方式二：全局安装
 
 ```bash
-npm i -g @fxri/toolkit
+pnpm i -g @fxri/toolkit   # pnpm（bin 落在 pnpm home，不受 nvm 切版本影响）
+npm i -g @fxri/toolkit    # npm（bin 硬链在 Node 目录，切版本需重装）
+yarn global add @fxri/toolkit   # 仅 yarn 1.x；v2+ 默认禁用 global，建议改用 pnpm
+bun i -g @fxri/toolkit    # bun
 ```
 
-适合个人在多个项目间快速使用。⚠️ 使用 nvm/fnm 等切换 Node 版本的工具时，全局包**绑定在安装时的 Node 版本上**，切版本后会「消失」——重新执行安装命令即可（或用方式三规避）。
+适合个人在多个项目间快速使用。⚠️ 使用 nvm/fnm 等切换 Node 版本的工具时，npm 的全局包**绑定在安装时的 Node 版本上**，切版本后会「消失」——重新执行安装命令即可（pnpm 全局目录独立于 Node 版本，或用方式三规避）。
 
 ### 方式三：不安装、临时执行
 
 ```bash
-npx @fxri/toolkit tasks     # npm / pnpm / yarn 均可
-pnpm dlx @fxri/toolkit tasks  # pnpm 专用，下载缓存更快
-bunx @fxri/toolkit tasks    # bun
+npx @fxri/toolkit tasks       # npm / yarn
+pnpm dlx @fxri/toolkit tasks  # pnpm
+bunx @fxri/toolkit tasks      # bun
 ```
 
 零安装先体验。⚠️ 首次执行有下载耗时，且每次都解析最新版本，不适合高频使用。
@@ -76,26 +79,26 @@ bunx @fxri/toolkit tasks    # bun
 - 只装 skills：AI 仍能跑通全流程（手工执行规范步骤）
 - 只装 CLI：人可以用，但 AI 侧没有规范指引
 
-安装 skills：`npx skills add fxri-net/toolkit`（详见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)）。
+安装 skills：`pnpm dlx skills add fxri-net/toolkit`（npm 用户 `npx skills add fxri-net/toolkit`，详见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)）。
 
 ## 30 秒上手
 
 ```bash
 # 1. 初始化任务区（生成 .tasks/ 骨架与 .gitignore 片段）
-npx toolkit init
+pnpm exec toolkit init
 
 # 2. 查看任务总览（当前为空）
-npx toolkit tasks
+pnpm exec toolkit tasks
 
 # 3. 方案确认后，把方案登记为任务文件（.tasks/active/202609/ 下）
 #    文件名：{年月日}-{用户名}-{任务简述}.md
 #    手工建档模板见「完整攻略」；装了 AI 技能包可直接让 AI 建档
 
 # 4. 校验
-npx toolkit tasks check
+pnpm exec toolkit tasks check
 
 # 5. 任务完成后：frontmatter 标记 status: 已完成 + completed 时间，然后归档
-npx toolkit tasks archive
+pnpm exec toolkit tasks archive
 ```
 
 ⚠️ `toolkit init` 为 1.7.0 新增；旧版本请手工建 `.tasks/active/{YYYYMM}/` 目录结构。

@@ -2,7 +2,7 @@
 
 > 本规范**全语言支持**，面向**多人 + AI 跨项目协作**，定义任务文件的目录结构、文件格式与归档规则。任何编程语言均可按本规范实现读写；@fxri/toolkit 的 `tasks` 域仅为参考实现。
 >
-> AI 工作流的技能化封装见 [skills/fxri-plan-to-task](./skills/fxri-plan-to-task/SKILL.md)（零依赖、跨项目复用）；本规范仍是任务文件格式的单一事实源。
+> 本文是**摘要**。字段说明、示例与各语言实现要点不变，交互式阅读与逐条校验说明见文档站 [完整攻略 · 任务文件规范](https://fxri-net.github.io/toolkit/guide.html#任务文件规范)；规范内容的单一事实源即本文件。
 
 ## 0. 协作模型
 
@@ -62,8 +62,6 @@ scope: app
 | completed | string | 完成时间 `YYYY-MM-DD HH:mm`，`status` 为 `已完成`/`已放弃` 时必填；纯日期写法（`YYYY-MM-DD`）会被补齐 `00:00`，仅日期未补全完整时间会软告警 |
 | depends_on | array | 依赖任务文件名，引用可带 `.md` 扩展名（校验时自动归一为不含扩展名的 basename） |
 | scope | string | 影响范围 |
-
-> 文件名命名 `{年月日}-{用户名}-{任务简述}.md`（`年月日` = 创建日），不符规范或与 created 不一致时 `check` 软告警。
 
 ## 3. archive 归档文件
 

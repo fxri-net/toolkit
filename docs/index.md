@@ -31,7 +31,7 @@ AI 参与开发后，产出与决策散落在对话记录里，会话结束即�
 pnpm add -D @fxri/toolkit
 
 # 查看当前任务
-npx toolkit tasks
+pnpm exec toolkit tasks
 ```
 
 详细步骤见[新手指南](./getting-started)。

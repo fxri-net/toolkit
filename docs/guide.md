@@ -84,14 +84,14 @@
 <!-- AGENTS.md（Claude Code / Codex 等通用）或各 agent 的项目 rules 文件 -->
 # 本项目协作约定
 
-- 本项目启用 @fxri/toolkit 任务工作流，技能清单见 .agents/skills/（npx skills add fxri-net/toolkit 安装后生成）
+- 本项目启用 @fxri/toolkit 任务工作流，技能清单见 .agents/skills/（pnpm dlx skills add fxri-net/toolkit 安装后生成，npm 用户的等价命令是 npx skills add）
 - 方案确认后必须落盘为 .tasks/ 任务文件；归档与代码变更同一提交
 - 提交信息使用中文格式「类型：描述」
 ```
 
 **个人项目**：不放上述文件即可，全局技能目录里的 fxri 技能不会被引用（agent 按 description 按需加载，未在项目 rules 中声明的技能不会自动介入）。
 
-团队项目推荐把 `npx skills add fxri-net/toolkit` 生成的 `skills-lock.json` 一并提交，保证成员与 AI 侧技能版本一致。
+团队项目推荐把 `pnpm dlx skills add fxri-net/toolkit` 生成的 `skills-lock.json` 一并提交，保证成员与 AI 侧技能版本一致。
 
 ## AI 技能包 skills
 
@@ -155,9 +155,9 @@
 ```
 
 ```bash
-npx toolkit changelog                    # 创建变更集（等价 changeset）
-npx toolkit changelog version            # 发版 + 自动分组标题格式化（默认中文）
-npx toolkit changelog --lang ja format   # 指定语言仅格式化
+pnpm exec toolkit changelog                    # 创建变更集（等价 changeset）
+pnpm exec toolkit changelog version            # 发版 + 自动分组标题格式化（默认中文）
+pnpm exec toolkit changelog --lang ja format   # 指定语言仅格式化
 ```
 
 每个语言的三段结构：`replacements`（标题替换映射）、`deps`（依赖更新条目文案）、`released`（发布日期后缀）。`version` 消费变更集后自动转换分组标题（如 `### Patch Changes` → `### 🐛 补丁修复`）并补发布日期；变更条目建议人工再润色，与仓库既有风格一致。
@@ -178,5 +178,5 @@ npx toolkit changelog --lang ja format   # 指定语言仅格式化
 
 - 环境要求 Node.js >= 20
 - Node 18 可安装，但 `changelog` 依赖 changesets 的子命令不可用（上游 `human-id` ESM-only 限制）
-- 升级：`pnpm i -g @fxri/toolkit && npx skills update --global`（npm 用户把 `pnpm i -g` 换成 `npm i -g` 即可），**升级后开新会话**使 AI 侧技能与 CLI 版本对齐
+- 升级：`pnpm i -g @fxri/toolkit && pnpm dlx skills update --global`（npm 用户把 `pnpm i -g` 换成 `npm i -g`、`pnpm dlx` 换成 `npx` 即可），**升级后开新会话**使 AI 侧技能与 CLI 版本对齐
 - 1.7.0 起 CLI 内置升级检查提示（命令末尾异步查询 registry，静默失败不打扰）

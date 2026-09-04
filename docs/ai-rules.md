@@ -30,7 +30,7 @@ AI 助手的能力上限取决于给它什么规则。没有规则时：方案�
 - 等待用户明确确认方案后，再动手执行
 
 - **方案落盘**（可选，依赖 @fxri/toolkit）：
-  - 执行顺序：先尝试 `npx toolkit`（优先项目级），失败则尝试 `toolkit`（全局）
+  - 执行顺序：先尝试 `pnpm exec toolkit`（npm 用户 `npx toolkit`，优先项目级），失败则尝试 `toolkit`（全局）
   - 可用时：
     1. 先查后写：执行 `toolkit tasks` 查 active 总览并核对 archive，避免重复建档；同一需求共用一个任务文件
     2. 创建/更新方案文件：在 `.tasks/` 目录下按 SPEC 规范建档（frontmatter 含 owner/status/created/scope 等字段）
@@ -56,14 +56,14 @@ AI 助手的能力上限取决于给它什么规则。没有规则时：方案�
 规则里引用的命令来自本工具，一次性安装（全局，所有项目可用）：
 
 ```bash
-pnpm i -g @fxri/toolkit    # 主推 pnpm；npm 用户：npm i -g @fxri/toolkit
-npx skills add fxri-net/toolkit --global
+pnpm i -g @fxri/toolkit                   # 主推 pnpm；npm 用户：npm i -g @fxri/toolkit
+pnpm dlx skills add fxri-net/toolkit --global   # npm 用户：npx skills add fxri-net/toolkit --global
 ```
 
 升级：
 
 ```bash
-pnpm i -g @fxri/toolkit && npx skills update --global && 开启新会话
+pnpm i -g @fxri/toolkit && pnpm dlx skills update --global && 开启新会话
 ```
 
 ⚠️ **升级后必须开新会话**：旧会话加载的技能内容还是旧版，新会话才会读到与 CLI 版本一致的新技能。

@@ -8,6 +8,8 @@ README 只给最常用示例；本篇是完整的命令字典，覆盖全部参�
 
 ## 全局
 
+**调用方式**：下文示例统一用 `toolkit <command>` 直调（已全局安装）或 `pnpm exec toolkit <command>`（项目 devDependency，npm 用户 `npx toolkit`）；不安装临时执行用 `pnpm dlx @fxri/toolkit <command>`。
+
 ```text
 toolkit <command> [options]
 
@@ -31,16 +33,16 @@ toolkit <command> [options]
 ## tasks
 
 ```bash
-npx toolkit tasks                     # 待完成总览（默认）
-npx toolkit tasks --view archived     # 仅已归档
-npx toolkit tasks --view all          # 待完成 + 已归档（状态分组，来源可辨）
-npx toolkit tasks archive             # 归档已完成任务
-npx toolkit tasks archive --dry-run   # 归档预演（只预览，不落盘）
-npx toolkit tasks check               # 校验 active
-npx toolkit tasks normalize           # 检查归档块（默认只读）
-npx toolkit tasks normalize --fix     # 修复归档问题
-npx toolkit tasks --dir <path>        # 指定任务目录（默认 .tasks）
-npx toolkit tasks check --strict      # 任务目录不存在时报错退出（默认容错为空结果）
+toolkit tasks                     # 待完成总览（默认）
+toolkit tasks --view archived     # 仅已归档
+toolkit tasks --view all          # 待完成 + 已归档（状态分组，来源可辨）
+toolkit tasks archive             # 归档已完成任务
+toolkit tasks archive --dry-run   # 归档预演（只预览，不落盘）
+toolkit tasks check               # 校验 active
+toolkit tasks normalize           # 检查归档块（默认只读）
+toolkit tasks normalize --fix     # 修复归档问题
+toolkit tasks --dir <path>        # 指定任务目录（默认 .tasks）
+toolkit tasks check --strict      # 任务目录不存在时报错退出（默认容错为空结果）
 ```
 
 ### 子命令
@@ -79,11 +81,11 @@ npx toolkit tasks check --strict      # 任务目录不存在时报错退出（�
 ## changelog
 
 ```bash
-npx toolkit changelog                       # 创建变更集（等价 changeset）
-npx toolkit changelog version               # 发版 + 格式化（默认中文）
-npx toolkit changelog --lang en version     # 指定语言
-npx toolkit changelog format                # 仅格式化已有 CHANGELOG
-npx toolkit changelog status / publish      # 其余 changeset 子命令透传
+toolkit changelog                       # 创建变更集（等价 changeset）
+toolkit changelog version               # 发版 + 格式化（默认中文）
+toolkit changelog --lang en version     # 指定语言
+toolkit changelog format                # 仅格式化已有 CHANGELOG
+toolkit changelog status / publish      # 其余 changeset 子命令透传
 ```
 
 | 选项 | 说明 |
@@ -99,7 +101,7 @@ npx toolkit changelog status / publish      # 其余 changeset 子命令透传
 ## init（1.7.0 新增）
 
 ```bash
-npx toolkit init
+toolkit init
 ```
 
 在当前目录初始化任务区：

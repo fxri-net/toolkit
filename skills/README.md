@@ -18,9 +18,9 @@
 本仓库遵循 Agent Skills 开放标准，兼容 [vercel-labs/skills](https://github.com/vercel-labs/skills) 安装器（自动识别本机 agent、写锁定文件）：
 
 ```bash
-npx skills add fxri-net/toolkit                          # 安装全部技能
+npx skills add fxri-net/toolkit                           # 官方写法（npm）；pnpm 用户：pnpm dlx skills add fxri-net/toolkit
 npx skills add fxri-net/toolkit --skill fxri-plan-to-task # 只装单个技能
-npx skills list / update / remove                        # 查看 / 升级 / 卸载
+npx skills list / update / remove                         # 查看 / 升级 / 卸载
 ```
 
 - 项目级安装默认写 `.agents/skills/` 并对各 agent（Claude Code / Cursor / Codex 等 75+）目录建立符号链接；团队项目把生成的 `skills-lock.json` 提交进仓库以对齐版本，单人可加 `-g` 全局安装
