@@ -3,7 +3,7 @@ name: fxri-release-changelog
 description: 基于 changesets 的发版与多语言 CHANGELOG 维护流程：创建变更集、消费发版、把分组标题与条目转为项目语言风格、清理变更集、打标签发布；无 changesets 的项目提供同格式手工模式。当用户提到创建变更集、changeset、发版、version、整理或格式化 CHANGELOG 时使用。不用于日常 commit message 撰写或与发版无关的文档修改。
 license: MIT
 metadata:
-  version: "1.0.1"
+  version: "1.0.2"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
@@ -46,7 +46,7 @@ metadata:
 
 ## 可选加速（不构成依赖）
 
-项目已安装 @fxri/toolkit 时，可用命令替代对应手工步骤，缺失不影响主流程：
+⚠️ 工具探测顺序（先项目内、后全局）：先 `pnpm exec toolkit --help`（项目 devDependency，npm 项目等价 `npx toolkit`），失败再 `toolkit --help`（全局安装）；两者都不可用即工具未安装，按各步手工继续，**不安装、不阻塞**。探测成功后用对应前缀执行下列命令：
 
 - `toolkit changelog`：创建变更集（等价 changeset）
 - `toolkit changelog version`：发版并自动做中文分组标题格式化

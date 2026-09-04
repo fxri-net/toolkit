@@ -3,7 +3,7 @@ name: fxri-session-recap
 description: 会话收尾与新会话开场的工作记忆交接：结束时把本次会话的结论、决策、改动与未尽事项沉淀进 .tasks/ 任务文件并走归档流程；新会话开头读取任务区与最近归档重建工作现场。当用户说会话要结束了、归档本次会话、总结本次、恢复上下文、继续上次的工作时使用。不用于会话中途的常规方案落盘（那是 fxri-plan-to-task 的职责）。
 license: MIT
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
@@ -58,7 +58,7 @@ metadata:
 
 ## 可选加速（不构成依赖）
 
-项目已安装 @fxri/toolkit 时，可用命令替代对应手工步骤，缺失不影响主流程：
+⚠️ 工具探测顺序（先项目内、后全局）：先 `pnpm exec toolkit --help`（项目 devDependency，npm 项目等价 `npx toolkit`），失败再 `toolkit --help`（全局安装）；两者都不可用即工具未安装，按各步手工继续，**不安装、不阻塞**。探测成功后用对应前缀执行下列命令：
 
 - `toolkit tasks`：恢复模式查总览（替代人工翻目录）
 - `toolkit tasks archive`：归档模式第 4 步自动化（含排他锁防并发；可 `--dry-run` 预演）

@@ -3,7 +3,7 @@ name: fxri-plan-to-task
 description: 将已确认的实施方案落盘为标准任务文件并跟踪至归档：先查后写防重复建档、按模板建档、状态机更新、自查校验、手工归档与归档提交同批。当用户确认方案后要求登记或落盘任务、提到建档、任务登记、归档、任务校验时使用。不用于与方案落盘无关的普通 TODO、issue 管理或日常提交信息撰写。
 license: MIT
 metadata:
-  version: "1.0.1"
+  version: "1.0.2"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
@@ -64,7 +64,7 @@ metadata:
 
 ## 可选加速（不构成依赖）
 
-项目已安装 @fxri/toolkit 时，可用命令替代对应手工步骤，缺失不影响主流程：
+⚠️ 工具探测顺序（先项目内、后全局）：先 `pnpm exec toolkit --help`（项目 devDependency，npm 项目等价 `npx toolkit`），失败再 `toolkit --help`（全局安装）；两者都不可用即工具未安装，按各步手工继续，**不安装、不阻塞**。探测成功后用对应前缀执行下列命令：
 
 - `toolkit tasks`：查 active 总览（替代第 1 步人工翻目录）
 - `toolkit tasks check`：自动校验（替代第 4 步自查清单）
