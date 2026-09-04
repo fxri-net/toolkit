@@ -29,6 +29,8 @@ jobs:
         run: pnpm test:coverage
       - name: 构建
         run: pnpm build
+      - name: 文档站构建（死链检查）
+        run: pnpm docs:build
       - name: CLI 冒烟（--help / 子命令帮助）
         run: |
           node dist/cli.js --help

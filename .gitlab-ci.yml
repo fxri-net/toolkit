@@ -1,0 +1,21 @@
+# GitLab Pages：文档站构建部署
+# VITEPRESS_BASE 按平台域名注入：gitlab.io 项目页为 /toolkit/（可按实际仓库名调整），自托管域名可设为 /
+pages:
+  image: node:20
+  stage: deploy
+  before_script:
+    - corepack enable
+  script:
+    - pnpm install --frozen-lockfile
+    - VITEPRESS_BASE=/toolkit/ pnpm docs:build
+    - rm -rf public && mv docs/.vitepress/dist public
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - docs/**/*
+        - package.json
+        - pnpm-lock.yaml
+        - .gitlab-ci.yml
