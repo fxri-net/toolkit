@@ -87,7 +87,7 @@ npm / yarn / bun 用户与各方式对比见 [新手指南 · 安装](./docs/get
 
 出品：方弦研究所
 
-版权：Copyright (c) 2026 唐启云. All rights reserved.
+版权：Copyright © 2026 唐启云. All rights reserved.
 
 网站：[方弦研究信息网](https://fxri.net:444/)
 
