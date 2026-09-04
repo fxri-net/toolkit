@@ -33,20 +33,32 @@ export function formatChangelog(file: string, today: string, lang: ChangelogLang
     if (merged === content) break
     content = merged
   }
-  // 版本标题下补发布日期：已存在的日期行（紧跟标题或隔空行）保留，缺失时才补今日
+  // 版本标题下补发布日期：标题与日期行之间始终保留一个空行；
+  // 已有日期（含历史上补日期曾把日期贴在标题后的数据）保留并自愈空行，缺失时才补今日
   const lines = content.split("\n")
   const result: string[] = []
-  for (let i = 0; i < lines.length; i++) {
+  let i = 0
+  while (i < lines.length) {
     const line = lines[i] ?? ""
-    result.push(line)
     if (/^## \d+\.\d+\.\d+/.test(line)) {
-      // 跳过标题后的空行，取首个非空行判断是否已带日期标记
+      // 跳过标题后的连续空行，定位首个非空行判断是否已带日期标记
       let j = i + 1
       while (j < lines.length && (lines[j] ?? "").trim() === "") j++
       const next = lines[j] ?? ""
-      const hasDate = next.startsWith("> ") && /^> \d{4}-\d{2}-\d{2} (?:发布|released)$/.test(next.trim())
-      if (!hasDate) result.push(`> ${today} ${lang.released}`)
+      const isDate = next.startsWith("> ") && /^> \d{4}-\d{2}-\d{2} (?:发布|released)$/.test(next.trim())
+      if (isDate) {
+        // 已带日期：标题与日期行间补空行分隔
+        result.push(line, "", next)
+        i = j + 1
+        continue
+      }
+      // 缺发布日期：标题后补空行 + 日期 + 空行，日期与后续分类标题间亦留空行
+      result.push(line, "", `> ${today} ${lang.released}`, "")
+      i = j
+      continue
     }
+    result.push(line)
+    i++
   }
   const next = result.join("\n")
   // 写回前对变更条目等自由文本脱敏（redact=false 时原样返回）

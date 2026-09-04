@@ -41,10 +41,11 @@ describe("formatChangelog", () => {
   it("日期行已存在时不重复插入", () => {
     const dir = mkdtempSync(join(tmpdir(), "tk-cl-"))
     const file = join(dir, "CHANGELOG.md")
+    // 日期行紧贴版本标题（无空行）时自愈补齐，且不重复插入新日期
     writeFileSync(file, "# pkg\n\n## 1.0.0\n> 2026-09-02 发布\n\n### Patch Changes\n\n- a\n", "utf8")
     formatChangelog(file, "2026-09-03", zh)
     const out = readFileSync(file, "utf8")
-    expect(out).toContain("> 2026-09-02 发布")
+    expect(out).toContain("## 1.0.0\n\n> 2026-09-02 发布")
     expect(out).not.toContain("> 2026-09-03 发布")
     rmSync(dir, { recursive: true, force: true })
   })
