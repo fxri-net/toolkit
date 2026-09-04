@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest"
 import { mkdtempSync, writeFileSync, readFileSync, mkdirSync, rmSync, existsSync, readdirSync, utimesSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { normalizeCompleted, parseArchiveBlocks, scanOrphanBlocks } from "../tasks/archive-block"
+import { normalizeCompleted, parseArchiveBlocks, renderBlock, scanOrphanBlocks } from "../tasks/archive-block"
 import { checkArchive, fixArchive } from "../tasks/normalize"
 import { archiveTasks } from "../tasks/archive"
 
@@ -254,6 +254,43 @@ describe("archiveTasks 锁与 header（E1/E2）", () => {
     const res = archiveTasks(dir)
     expect(res.archived).toBe(0)
     expect(res.warnings.some((w) => w.includes("归档锁"))).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+})
+
+describe("换行风格回归", () => {
+  // 建已完成 active 任务，正文行尾写死 CRLF（模拟 Windows 编辑器写入）
+  function withCrlfBody(): string {
+    const dir = makeDir()
+    mkdirSync(join(dir, "active", "202609"), { recursive: true })
+    const fm = "---\nowner: 唐启云\nstatus: 已完成\ncreated: 20260904\nupdated: 20260904\ncompleted: '2026-09-04 09:00'\ndepends_on: []\nscope: 测\n---\n\n# done\n\n正文第一行\n\n正文第二行\n"
+    writeFileSync(join(dir, "active", "202609", "20260904-唐启云-crlf.md"), fm.replace(/\n/g, "\r\n"), "utf8")
+    return dir
+  }
+
+  it("归档 CRLF 源文件不产生双重 CR（写入 LF 风格归档）", () => {
+    const dir = withCrlfBody()
+    const res = archiveTasks(dir)
+    expect(res.archived).toBe(1)
+    const text = readFileSync(join(dir, "archive", "202609", "20260904.md"), "utf8")
+    // LF 风格归档文件中不允许出现任何 CR（正文 CRLF 已被归一，写盘仅按 eol 转换一次）
+    expect(text).not.toMatch(/\r/)
+    expect(text).toContain("正文第一行")
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("解析已污染的双重 CR 归档文件，渲染后剥离孤立 CR", () => {
+    const dir = makeDir()
+    const month = join(dir, "archive", "202609")
+    mkdirSync(month, { recursive: true })
+    // 历史污染样本：块分隔与正文行尾均为 \r\r\n
+    const polluted = "# 20260904 归档\r\r\n\r\r\n## 20260904-唐启云-a\r\r\n\r\r\n> 负责人：唐启云　状态：已完成　范围：测　完成时间：2026-09-04 08:00\r\r\n\r\r\n正文行\r\r\n"
+    writeFileSync(join(month, "20260904.md"), polluted, "utf8")
+    const { header, blocks } = parseArchiveBlocks(readFileSync(join(month, "20260904.md"), "utf8"))
+    expect(header).toBe("# 20260904 归档")
+    expect(blocks).toHaveLength(1)
+    // 渲染结果不应再携带孤立 CR，写回后即为干净行尾
+    expect(renderBlock(blocks[0]!)).not.toMatch(/\r/)
     rmSync(dir, { recursive: true, force: true })
   })
 })

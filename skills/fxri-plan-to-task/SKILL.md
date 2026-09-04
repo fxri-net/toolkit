@@ -69,4 +69,5 @@ metadata:
 - `toolkit tasks`：查 active 总览（替代第 1 步人工翻目录）
 - `toolkit tasks check`：自动校验（替代第 4 步自查清单）
 - `toolkit tasks archive`：自动归档（替代第 5 步，含排他锁防并发；可 `--dry-run` 预演）
+- `toolkit tasks normalize`：归档后核验归档块（元数据完整性/日期漂移/排序），可 `--fix` 自动修复
 - 任务目录非默认 `.tasks` 时加 `--dir <path>`

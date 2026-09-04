@@ -47,7 +47,8 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
   const doneTasks: Array<{ file: string; name: string; owner: string; status: string; scope: string; completed: string; body: string }> = []
   const skipped: string[] = []
   for (const file of files) {
-    const content = readFileSync(file, "utf8")
+    // 统一换行为 LF：正文可能携带 CRLF（Windows 编辑器写入），若不归一，写盘时 `\n → eol` 会把已有 `\r\n` 二次转换成 `\r\r\n`
+    const content = readFileSync(file, "utf8").replace(/\r\n?/g, "\n")
     const fm = parseFrontmatter(content)
     if (!DONE_STATUSES.includes(fm.status as never)) continue
     const completed = normalizeCompleted(fm.completed || "")

@@ -28,6 +28,7 @@ npx skills list / update / remove                        # 查看 / 升级 / 卸
 
 ### 方式二：手工复制 / 软链
 
+- 已安装 `@fxri/toolkit` 的项目可直接使用包内自带的技能目录：`node_modules/@fxri/toolkit/skills/`，复制或软链到 agent 的 skills 目录即可
 - 复制或软链技能目录到 agent 的 skills 目录（如 Claude Code 的 `.claude/skills/`）
 - 支持自定义 rules 的工具（如 Trae）：链接 SKILL.md 为规则
 - 通用兜底：在项目根 `AGENTS.md` 中引用本目录路径

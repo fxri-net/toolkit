@@ -9,6 +9,7 @@
 - 📋 **任务管理** - 扫描、总览、按完成时间归档 Markdown 任务文件；支持待完成 / 已归档 / 合并视图与过滤汇总，任务可导入导出 CSV / XLSX / JSON（全语言支持，见 [SPEC.md](./SPEC.md)）
 - 🌍 **全语言 CHANGELOG** - 封装 changesets，内置 zh/en，任意语言通过配置扩展或覆盖
 - 🚀 **CLI + 库 API 双形态** - 可命令行使用，也可作为库引入
+- 🧩 **零依赖 AI 技能包** - 方案落盘、发版 CHANGELOG 两套工作流沉淀为 Agent Skills 标准技能，不绑定工具与语言；`npx skills add fxri-net/toolkit` 一条命令安装（见 [skills/README.md](./skills/README.md)）
 
 ## 📦 安装
 
