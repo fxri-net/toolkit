@@ -13,7 +13,20 @@
 
 ## 安装
 
-按所用 agent 选择其一：
+### 方式一：`npx skills` 自动安装（推荐）
+
+本仓库遵循 Agent Skills 开放标准，兼容 [vercel-labs/skills](https://github.com/vercel-labs/skills) 安装器（自动识别本机 agent、写锁定文件）：
+
+```bash
+npx skills add fxri-net/toolkit                          # 安装全部技能
+npx skills add fxri-net/toolkit --skill fxri-plan-to-task # 只装单个技能
+npx skills list / update / remove                        # 查看 / 升级 / 卸载
+```
+
+- 项目级安装默认写 `.agents/skills/` 并对各 agent（Claude Code / Cursor / Codex 等 75+）目录建立符号链接；团队项目把生成的 `skills-lock.json` 提交进仓库以对齐版本，单人可加 `-g` 全局安装
+- ⚠️ 已知上游行为（v1.5.x）：项目级安装时若 `.claude/` 目录不存在，Claude Code 目标会被静默跳过——先创建 `.claude/skills/` 空目录或改用 `-g`
+
+### 方式二：手工复制 / 软链
 
 - 复制或软链技能目录到 agent 的 skills 目录（如 Claude Code 的 `.claude/skills/`）
 - 支持自定义 rules 的工具（如 Trae）：链接 SKILL.md 为规则
