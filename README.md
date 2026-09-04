@@ -306,7 +306,7 @@ const masked = redactText("联系 tqy@fxri.net", true) // → "联系 t***@***.n
   - CLI 参数 `--redact` / `--no-redact`
   - 环境变量 `FX_REDACT=1`（开）/ `FX_REDACT=0`（关，也认 true/on、false/off）
   - 配置文件 `redact.enabled: true` / `false`
-- **自定义规则**：项目根 `.toolkitrc.json`，追加规则（优先于内置）或按 `name` 禁用内置规则：
+- **自定义规则**：项目根 `.toolkitrc.json`，追加规则（优先于内置）或按 `name` 禁用内置规则；被禁用的规则不再参与匹配，对应敏感信息原样保留：
 
 ```json
 {
@@ -320,15 +320,18 @@ const masked = redactText("联系 tqy@fxri.net", true) // → "联系 t***@***.n
 }
 ```
 
-**效果示例**：以上配置下，任务正文 `联系 tqy@fxri.net，电话 13812345678，验证码 COD-123456` 归档后：
+**效果示例**：以上配置下（手机号已禁用，其余内置规则照常生效），任务正文 `联系 tqy@fxri.net，电话 13812345678，验证码 COD-123456` 归档后：
 
 | 类型 | 原文 | 归档后 |
 | --- | --- | --- |
 | 邮箱（内置） | `tqy@fxri.net` | `t***@***.net` |
-| 手机号（已禁用） | `13812345678` | `13812345678` |
+| 手机号（默认未禁用，对照） | `13812345678` | `138****5678` |
+| 手机号（本例已禁用） | `13812345678` | `13812345678` |
 | GitHub 细粒度 Token（内置） | `github_pat_11AABB22CCDD33EE_FFGG…（长串）` | `github_pat_****` |
 | OpenAI 项目 Key（内置） | `sk-proj-AAAAAAAA…（长串）` | `sk-proj-****` |
 | 自定义码（自定义，flags i） | `COD-123456` | `cod-******` |
+
+禁用规则只影响该类匹配：如上例禁用「手机号」后号码原样落盘，其余内置规则不受影响；移除 `disable` 项后即恢复默认脱敏。
 
 密钥类规则带长度门槛（如经典 ghp_ 需 ≥40 字符、github_pat_ 需 ≥92 字符、sk- 需 ≥23 字符、sk-proj- 需 ≥48 字符），避免误伤正常文本。
 
