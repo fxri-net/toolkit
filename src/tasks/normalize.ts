@@ -98,6 +98,14 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
           fixable: false,
         })
       }
+      // 未来时间检测：完成时间晚于系统时间说明写入时时间源有误；定宽格式校验通过才可比对，无法自动修复需人工核实
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(norm) && new Date(norm.replace(" ", "T")).getTime() > Date.now() + 60_000) {
+        issues.push({
+          file: name,
+          message: `块「${b.title}」完成时间 ${norm} 晚于当前系统时间，疑似时间源错误（需人工确认）`,
+          fixable: false,
+        })
+      }
     }
   }
   return issues

@@ -258,6 +258,46 @@ describe("archiveTasks 锁与 header（E1/E2）", () => {
   })
 })
 
+describe("未来时间检测", () => {
+  // 建含远期未来完成时间的归档块（固定 2099 年，不随执行时间漂移）
+  function withFutureArchive(): string {
+    const dir = makeDir()
+    const month = join(dir, "archive", "209901")
+    mkdirSync(month, { recursive: true })
+    writeFileSync(
+      join(month, "20990101.md"),
+      "# 20990101 归档\n\n## 20990101-唐启云-a\n\n> 负责人：唐启云　状态：已完成　范围：x　完成时间：2099-01-01 00:00\n\na\n",
+      "utf8",
+    )
+    return dir
+  }
+
+  it("checkArchive 检出未来时间且标记不可自动修复，fix 后保留原值", () => {
+    const dir = withFutureArchive()
+    const hits = checkArchive(dir).filter((i) => i.message.includes("晚于当前系统时间"))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]?.fixable).toBe(false)
+    fixArchive(dir)
+    // 未来时间不可自动修复：fix 后仍被检出，等待人工核实
+    expect(checkArchive(dir).some((i) => i.message.includes("晚于当前系统时间"))).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("archiveTasks 归档未来时间任务产生软告警", () => {
+    const dir = makeDir()
+    mkdirSync(join(dir, "active", "209901"), { recursive: true })
+    writeFileSync(
+      join(dir, "active", "209901", "20990101-唐启云-future.md"),
+      "---\nowner: 唐启云\nstatus: 已完成\ncreated: 20990101\nupdated: 20990101\ncompleted: '2099-01-01 00:00'\ndepends_on: []\nscope: 测\n---\n\n# future\n",
+      "utf8",
+    )
+    const res = archiveTasks(dir)
+    expect(res.archived).toBe(1)
+    expect(res.warnings.some((w) => w.includes("晚于当前系统时间"))).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+})
+
 describe("换行风格回归", () => {
   // 建已完成 active 任务，正文行尾写死 CRLF（模拟 Windows 编辑器写入）
   function withCrlfBody(): string {

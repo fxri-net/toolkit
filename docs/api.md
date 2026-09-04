@@ -45,7 +45,7 @@ ESM 与 CJS 双形态入口（`import` / `require` 均可）；类型随函数�
 | --- | --- |
 | `archiveTasks(dir?, redact?, options?)` | 任务级归档；`options.dryRun` 预演、`options.warn` 软告警开关；内部含排他锁 |
 | `validateTaskFile(file)` / `validateTasks(dir?)` | active 校验，返回 `CheckResult`（`errorCount`/`warnCount`/`issues[]`） |
-| `checkArchive(dir?)` / `fixArchive(dir?)` | 归档归一化检查 / 修复 |
+| `checkArchive(dir?)` / `fixArchive(dir?)` | 归档归一化检查 / 修复（检查含时间异常：完成时间晚于当前系统时间仅报告，不自动改值） |
 | `normalizeCompleted(completed)` | 完成时间定宽化 `YYYY-MM-DD HH:mm` |
 
 ## 导入导出

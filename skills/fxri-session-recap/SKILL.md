@@ -3,7 +3,7 @@ name: fxri-session-recap
 description: 会话收尾与新会话开场的工作记忆交接：结束时把本次会话的结论、决策、改动与未尽事项沉淀进 .tasks/ 任务文件并走归档流程；新会话开头读取任务区与最近归档重建工作现场。当用户说会话要结束了、归档本次会话、总结本次、恢复上下文、继续上次的工作时使用。不用于会话中途的常规方案落盘（那是 fxri-plan-to-task 的职责）。
 license: MIT
 metadata:
-  version: "1.0.2"
+  version: "1.0.3"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
@@ -33,7 +33,7 @@ metadata:
    - 会话工作有对应任务 → 更新原文件：正文追加结论与决策，`updated` 同步
    - 无对应任务但有独立成果 → 按 fxri-plan-to-task 规范建档
    - 未尽事项 → 拆独立任务文件（`status: 待办`），不在正文留游离待办
-3. **状态收尾**：整场完成且验收过的任务置 `status: 已完成` 并补 `completed: YYYY-MM-DD HH:mm`；未做完的保持原状态并写清当前进展
+3. **状态收尾**：整场完成且验收过的任务置 `status: 已完成` 并补 `completed: YYYY-MM-DD HH:mm`——completed 必须当场执行命令取真实系统时间（Windows `Get-Date -Format "yyyy-MM-dd HH:mm"`，macOS/Linux `date "+%Y-%m-%d %H:%M"`），禁止凭记忆估算或做时区换算；未做完的保持原状态并写清当前进展
 4. **归档**：终结态任务按 task-spec「手工归档步骤」执行（合并归档块 → 降序重排 → 写回 → 删源文件 → 清理空月份目录）
 5. **收尾边界（硬约束到归档）**：任务归档即本技能流程终点。提交、发版、推送不是必经步骤，是否执行取决于用户的全局 / 个人 / 项目规则；若提交代码，先归档、后提交，任务归档文件必须与本次代码变更落在**同一个 git 提交**（顺序不可颠倒）
 6. **回报**：向用户列出本次沉淀的任务清单与归档位置，确认无遗漏后再结束会话

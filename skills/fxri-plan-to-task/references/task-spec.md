@@ -39,7 +39,7 @@ scope: app            # 影响范围
 ---
 ```
 
-- `已完成` / `已放弃` 为终结态：进入时必须补 `completed`（真实收工时间）
+- `已完成` / `已放弃` 为终结态：进入时必须补 `completed`（真实收工时间）。⚠️ `completed` 必须当场执行命令取真实系统时间（Windows `Get-Date -Format "yyyy-MM-dd HH:mm"`，macOS/Linux `date "+%Y-%m-%d %H:%M"`），禁止凭记忆估算、取对话时间或做时区换算——工具对「完成时间晚于当前系统时间」会告警（时间源错误的典型症状）
 - 正文以 `# 任务标题` 开头；游离待办子项必须拆为独立任务文件
 
 ## 3. 归档文件
@@ -72,7 +72,7 @@ scope: app            # 影响范围
 
 - [ ] frontmatter 存在且七字段齐全
 - [ ] status 为五枚举之一；终结态已填 completed
-- [ ] completed 为 `YYYY-MM-DD HH:mm` 且日期真实存在
+- [ ] completed 为 `YYYY-MM-DD HH:mm` 且日期真实存在，且不晚于当前系统时间（时间须来自当场命令输出，非估算）
 - [ ] created 为 YYYYMMDD 且等于文件名日期前缀
 - [ ] 文件名符合 `{YYYYMMDD}-{用户名}-{任务简述}.md`
 - [ ] 任务文件放在 `active/{YYYYMM}/` 月份子目录，不直放 active 根目录

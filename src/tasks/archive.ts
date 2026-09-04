@@ -73,13 +73,17 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
     return { archived: 0, skipped, warnings }
   }
 
-  // 软告警：完成时间与创建日不一致（日期漂移）
+  // 软告警：完成时间与创建日不一致（日期漂移）、完成时间晚于系统时间（时间源错误）
   if (warn) {
     for (const t of doneTasks) {
       const completedDate = t.completed.replace(/-/g, "").slice(0, 8)
       const createdDate = dateFromFileName(t.file)
       if (createdDate && completedDate !== createdDate) {
         warnings.push(`任务「${t.name}」完成时间 ${t.completed} 与创建日 ${createdDate} 不一致，请确认 completed 是否填错`)
+      }
+      // 未来时间检测：写入时刻晚于系统时间说明时间源有误，归档前最后一道关口提醒；留 1 分钟容差避免当场取整截断秒误报
+      if (new Date(t.completed.replace(" ", "T")).getTime() > Date.now() + 60_000) {
+        warnings.push(`任务「${t.name}」完成时间 ${t.completed} 晚于当前系统时间，疑似时间源错误，请核实后再归档`)
       }
     }
   }

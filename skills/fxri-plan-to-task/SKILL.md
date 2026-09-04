@@ -3,7 +3,7 @@ name: fxri-plan-to-task
 description: 将已确认的实施方案落盘为标准任务文件并跟踪至归档：先查后写防重复建档、按模板建档、状态机更新、自查校验与手工归档。当用户确认方案后要求登记或落盘任务、提到建档、任务登记、归档、任务校验时使用。不用于与方案落盘无关的普通 TODO、issue 管理或日常提交信息撰写。
 license: MIT
 metadata:
-  version: "1.0.4"
+  version: "1.0.5"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
