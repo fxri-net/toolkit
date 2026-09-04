@@ -26,7 +26,7 @@ pnpm dlx skills list / update / remove                         # 查看 / 升级
 # npx skills add fxri-net/toolkit / npx skills add fxri-net/toolkit --skill fxri-plan-to-task / npx skills list / update / remove
 ```
 
-- 项目级安装默认写 `.agents/skills/` 并对各 agent（Claude Code / Cursor / Codex 等 75+）目录建立符号链接；团队项目把生成的 `skills-lock.json` 提交进仓库以对齐版本，单人可加 `-g` 全局安装
+- 项目级安装默认写 `.agents/skills/` 并对各 agent（Claude Code / Cursor / Codex 等 75+）目录建立符号链接；团队项目把生成的 `skills-lock.json` 提交进仓库以对齐版本；**单人/个人多项目推荐 `-g` 全局安装**，所有项目直接可用，升级一条 `skills update -g`
 - ⚠️ 已知上游行为（v1.5.x）：项目级安装时若 `.claude/` 目录不存在，Claude Code 目标会被静默跳过——先创建 `.claude/skills/` 空目录或改用 `-g`
 
 ### 方式二：手工复制 / 软链
