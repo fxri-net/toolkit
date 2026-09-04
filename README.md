@@ -57,7 +57,7 @@ pnpm exec toolkit tasks
 pnpm dlx skills add fxri-net/toolkit   # npm 用户：npx skills add fxri-net/toolkit
 ```
 
-- [fxri-plan-to-task](./skills/fxri-plan-to-task/SKILL.md)：方案确认后落盘为任务文件（先查后写、check、归档与提交同批）
+- [fxri-plan-to-task](./skills/fxri-plan-to-task/SKILL.md)：方案确认后落盘为任务文件（先查后写、check、归档即强制终点）
 - [fxri-release-changelog](./skills/fxri-release-changelog/SKILL.md)：发版时创建变更集、格式化多语言 CHANGELOG
 - [fxri-session-recap](./skills/fxri-session-recap/SKILL.md)：会话结束前归档结论，新会话开头恢复上下文（1.7.0）
 

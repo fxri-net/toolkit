@@ -3,7 +3,7 @@ name: fxri-release-changelog
 description: 基于 changesets 的发版与多语言 CHANGELOG 维护流程：创建变更集、消费发版、把分组标题与条目转为项目语言风格、清理变更集、打标签发布；无 changesets 的项目提供同格式手工模式。当用户提到创建变更集、changeset、发版、version、整理或格式化 CHANGELOG 时使用。不用于日常 commit message 撰写或与发版无关的文档修改。
 license: MIT
 metadata:
-  version: "1.0.2"
+  version: "1.0.3"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
@@ -19,6 +19,8 @@ metadata:
 
 ## 前置检查
 
+- ⚠️ 发版不是必经步骤：仅在用户明确要求，或用户全局 / 个人 / 项目规则约定时才进入本技能，不主动发版
+- `.tasks/active/` 存在未归档任务 → 先完成归档再发版（任务归档是发版的前置顺序）
 - 项目根存在 `.changeset/` 目录 → 走「changesets 流程」
 - 不存在 → 走「手工模式」（规范见 `references/changelog-format.md`）
 

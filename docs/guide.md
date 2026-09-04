@@ -10,8 +10,13 @@
 
 ```
 方案确认 → 落盘建档(.tasks/active/) → 执行开发 → tasks check 校验
-        → 任务完成：标记 status/completed → tasks archive 归档 → git commit（同一提交）
-        → 发版：changelog 建变更集 → changelog version → tag → publish
+        → 任务完成：标记 status/completed → tasks archive 归档（强制终点）
+```
+
+后续动作（项目自主，非必经步骤，是否执行取决于全局 / 个人 / 项目规则约定）：
+
+```
+提交代码（先归档、后 git commit，同一提交） → changelog 建变更集 → changelog version → tag → publish
 ```
 
 人可以直接执行命令；AI 侧装了技能包后，上述每一步都有对应的技能流程（见 [AI 技能包](#ai-技能包)）。
@@ -46,7 +51,7 @@
 
 ### 归档规则要点
 
-- 归档触发是人工/事件驱动（通常在 git 提交前），`已完成`/`已放弃` 且带 `completed` 才可归档
+- 归档触发是人工/事件驱动（若提交代码，须在 git 提交前），`已完成`/`已放弃` 且带 `completed` 才可归档
 - 归档文件按完成日期聚合、任务块按完成时间降序；`toolkit tasks archive` 自动完成并加排他锁防并发
 - `toolkit tasks normalize` 检查归档块元数据、日期漂移、排序，`--fix` 自动修复
 
@@ -57,7 +62,7 @@
 1. **先查后写**：新建任务前先 `toolkit tasks` 查 active 总览、核对 archive，同一需求共用一个任务文件，禁止重复建档
 2. **建档**：在 `active/{YYYYMM}/` 下按命名规范创建任务文件，frontmatter 用模板填空（AI 用户直接说「把方案落盘为任务」）
 3. **过程更新**：状态沿 待办 → 进行中 → 阻塞 →（已完成 | 已放弃）流转；方案里的「待实施/待核对」子项拆为独立任务，不留游离待办（`check` 会扫描）
-4. **收口**：终结态补 `completed`，归档，归档文件与代码变更放同一个 git 提交
+4. **收口**：终结态补 `completed`，归档即工作流强制终点；提交、发版、推送不是必经步骤，由全局 / 个人 / 项目规则约定决定
 
 ## Git 纳管范围
 
@@ -87,7 +92,7 @@
 # 本项目协作约定
 
 - 本项目启用 @fxri/toolkit 任务工作流，技能清单见 .agents/skills/（pnpm dlx skills add fxri-net/toolkit 安装后生成，npm 用户的等价命令是 npx skills add）
-- 方案确认后必须落盘为 .tasks/ 任务文件；归档与代码变更同一提交
+- 方案确认后必须落盘为 .tasks/ 任务文件；若提交代码：先归档、后提交，归档文件与代码变更同一提交
 - 提交信息使用中文格式「类型：描述」
 ```
 
@@ -101,7 +106,7 @@
 
 | 技能 | 用途 |
 | --- | --- |
-| `fxri-plan-to-task` | 方案落盘：先查后写 → 建档 → 校验 → 归档 → 归档提交同批 |
+| `fxri-plan-to-task` | 方案落盘：先查后写 → 建档 → 校验 → 归档（强制终点） |
 | `fxri-release-changelog` | changesets 发版与多语言 CHANGELOG 维护 |
 | `fxri-session-recap`（1.7.0 新增） | 一句话归档本次会话结论 / 新会话恢复任务上下文 |
 
