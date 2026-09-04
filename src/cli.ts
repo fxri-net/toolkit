@@ -10,6 +10,7 @@ import { queryTasks } from "./tasks/query"
 import { exportTasks, toJSON } from "./tasks/export"
 import { importTasks } from "./tasks/import"
 import { archiveTasks } from "./tasks/archive"
+import { computeStats, renderStats } from "./tasks/stats"
 import { validateTasks } from "./tasks/validate"
 import { checkArchive, fixArchive } from "./tasks/normalize"
 import { listTaskFiles } from "./tasks/scan"
@@ -180,7 +181,7 @@ program
   .option("--import <file>", "从文件导入任务（.csv / .xlsx / .json）")
   .option("--target <target>", "导入目标：active / archive（默认 active）")
   .option("--strict", "任务目录不存在时报错退出（默认容错为空结果）")
-  .argument("[command]", "子命令：archive / check / normalize，留空为总览（含导入用 --import）")
+  .argument("[command]", "子命令：archive / check / normalize / stats，留空为总览（含导入用 --import）")
   .action(
     async (
       command: string | undefined,
@@ -252,6 +253,26 @@ program
             console.log("（软告警已关闭，warn 不展示）")
           }
           if (result.errorCount > 0) process.exitCode = 1
+        } catch (e) {
+          console.error(`⚠️ 操作失败：${(e as Error).message}`)
+          process.exitCode = 1
+        }
+      } else if (command === "stats") {
+        // 统计视图：复用查询过滤参数，输出周期 / 滞留 / 吞吐三类指标
+        try {
+          const filter: TaskFilter = {}
+          const multi = (v?: string): string[] | undefined => (v ? v.split(/[,，]/).map((s) => s.trim()).filter(Boolean) : undefined)
+          filter.owner = multi(options.owner)
+          filter.scope = multi(options.scope)
+          if (options.date) filter.date = options.date
+          if (options.since) filter.since = options.since
+          if (options.until) filter.until = options.until
+          const stats = computeStats(dir, filter)
+          if (options.format === "json") {
+            console.log(JSON.stringify(stats, null, 2))
+          } else {
+            for (const line of renderStats(stats)) console.log(line)
+          }
         } catch (e) {
           console.error(`⚠️ 操作失败：${(e as Error).message}`)
           process.exitCode = 1

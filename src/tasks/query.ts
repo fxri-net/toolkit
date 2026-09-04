@@ -60,7 +60,8 @@ export function listArchivedTasks(tasksDir = ".tasks"): TaskRow[] {
         status: meta.status,
         owner: meta.owner,
         scope: meta.scope,
-        created: "",
+        // 创建日期从块标题恢复（YYYYMMDD-负责人-简述 命名规范，与 active 行同格式）；标题不规范的块为空
+        created: b.title.match(/^(\d{8})-/)?.[1] ?? "",
         updated: "",
         completed: b.completed,
         depends: [],
