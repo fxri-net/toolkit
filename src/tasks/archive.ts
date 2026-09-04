@@ -84,6 +84,9 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
       // 未来时间检测：写入时刻晚于系统时间说明时间源有误，归档前最后一道关口提醒；留 1 分钟容差避免当场取整截断秒误报
       if (new Date(t.completed.replace(" ", "T")).getTime() > Date.now() + 60_000) {
         warnings.push(`任务「${t.name}」完成时间 ${t.completed} 晚于当前系统时间，疑似时间源错误，请核实后再归档`)
+      } else if (t.completed.endsWith(" 00:00")) {
+        // 零点整检测：恰为 00:00 通常是只填日期被自动补零的特征（真实午夜收工属少量误报），归档前最后一道关口提醒
+        warnings.push(`任务「${t.name}」完成时间 ${t.completed} 恰为零点整，疑似只填了日期被补零，请核实后再归档`)
       }
     }
   }

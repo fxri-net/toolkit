@@ -2,7 +2,8 @@ import type { TaskFrontmatter } from "./types"
 
 // 解析文件顶部 frontmatter，返回键值对象；无 frontmatter 返回空对象
 export function parseFrontmatter(content: string): Partial<TaskFrontmatter> {
-  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+  // 剥离 UTF-8 BOM：Windows 下 PowerShell Set-Content 默认写 BOM，不剥离会被 frontmatter 正则误判为「缺少 frontmatter」
+  const match = content.replace(/^\uFEFF/, "").match(/^---\r?\n([\s\S]*?)\r?\n---/)
   if (!match) return {}
   const fm: Record<string, string> = {}
   for (const line of (match[1] ?? "").split(/\r?\n/)) {
@@ -21,8 +22,8 @@ export function parseFrontmatter(content: string): Partial<TaskFrontmatter> {
 
 // 去掉 frontmatter 后返回正文
 export function stripFrontmatter(content: string): string {
-  const match = content.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/)
-  return match ? content.slice(match[0].length) : content
+  const match = content.replace(/^\uFEFF/, "").match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/)
+  return match ? content.replace(/^\uFEFF/, "").slice(match[0].length) : content
 }
 
 // 提取首个 H1 标题文本（跳过 #! 指令行）；无标题返回空串（list / query 展示标题共用，避免实现漂移）

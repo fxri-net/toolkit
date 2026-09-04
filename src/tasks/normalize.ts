@@ -105,6 +105,13 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
           message: `块「${b.title}」完成时间 ${norm} 晚于当前系统时间，疑似时间源错误（需人工确认）`,
           fixable: false,
         })
+      } else if (norm.endsWith(" 00:00")) {
+        // 零点整检测：恰为 00:00 通常是只填日期被自动补零的特征（真实午夜收工属少量误报），无法自动修复需人工核实
+        issues.push({
+          file: name,
+          message: `块「${b.title}」完成时间 ${norm} 恰为零点整，疑似只填了日期被补零（需人工确认）`,
+          fixable: false,
+        })
       }
     }
   }

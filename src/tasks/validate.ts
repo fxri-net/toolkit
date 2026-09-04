@@ -58,7 +58,8 @@ function isRealDate(ymd: string): boolean {
 export function validateTaskFile(file: string): CheckIssue[] {
   const issues: CheckIssue[] = []
   const name = basename(file)
-  const content = readFileSync(file, "utf8")
+  // 剥离 UTF-8 BOM：Windows 下 PowerShell Set-Content 默认写 BOM，不剥离会被 frontmatter 探测正则误判为「缺少 frontmatter」
+  const content = readFileSync(file, "utf8").replace(/^\uFEFF/, "")
   const hasFrontmatter = /^---\r?\n[\s\S]*?\r?\n---/.test(content)
 
   if (!hasFrontmatter) {
@@ -91,6 +92,9 @@ export function validateTaskFile(file: string): CheckIssue[] {
       } else if (new Date(c.replace(" ", "T")).getTime() > Date.now() + 60_000) {
         // 未来时间检测：写入时刻晚于系统时间说明时间源有误；留 1 分钟容差避免「当场补时间取整截断秒」误报
         issues.push({ level: "warn", file: name, message: `completed「${fm.completed}」晚于当前系统时间，疑似时间源错误，请当场取系统时间核实` })
+      } else if (/(?:[T\s]00:00(?::00)?)$/.test(c)) {
+        // 零点整检测：恰为 00:00 通常是只填日期被自动补零的特征（真实午夜收工属少量误报，warn 级可接受）
+        issues.push({ level: "warn", file: name, message: `completed「${fm.completed}」恰为零点整，疑似只填了日期被补零，请核实实际完成时间` })
       }
     }
   }

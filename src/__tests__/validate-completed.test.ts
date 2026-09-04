@@ -27,8 +27,28 @@ describe("completed 未来时间检测", () => {
   })
 
   it("过去时间不触发未来时间告警", () => {
-    const dir = withCompleted("2000-01-01 00:00")
+    const dir = withCompleted("2000-01-01 12:30")
     expect(warnTexts(dir).some((m) => m.includes("晚于当前系统时间"))).toBe(false)
+    rmSync(dir, { recursive: true, force: true })
+  })
+})
+
+describe("completed 零点整检测", () => {
+  it("completed 恰为 00:00 告警（疑似只填日期被补零）", () => {
+    const dir = withCompleted("2000-01-01 00:00")
+    expect(warnTexts(dir).some((m) => m.includes("恰为零点整"))).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("带秒的零点值同样告警", () => {
+    const dir = withCompleted("2000-01-01 00:00:00")
+    expect(warnTexts(dir).some((m) => m.includes("恰为零点整"))).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("非零点时间不触发零点告警", () => {
+    const dir = withCompleted("2000-01-01 00:01")
+    expect(warnTexts(dir).some((m) => m.includes("恰为零点整"))).toBe(false)
     rmSync(dir, { recursive: true, force: true })
   })
 })

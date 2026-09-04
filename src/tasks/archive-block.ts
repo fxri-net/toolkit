@@ -47,6 +47,8 @@ export function completeMetaLine(title: string, completed: string, metaLine: str
 
 // 解析归档文件，返回文件头（首块之前的内容，末尾无空行）与任务块列表
 export function parseArchiveBlocks(content: string): { header: string; blocks: ArchiveBlockInfo[] } {
+  // 剥离 UTF-8 BOM：Windows 下 PowerShell Set-Content 默认写 BOM，不剥离会影响首行标题与元数据识别
+  content = content.replace(/^\uFEFF/, "")
   // 剥掉行尾孤立 `\r`（历史污染的 `\r\r\n` 按 `\r?\n` 切分后残留），避免渲染写回时再次产生双重 CR
   const lines = content.split(/\r?\n/).map((l) => l.replace(/\r$/, ""))
   // 定位任务块标题行：跳过其后空行，首个非空行需为含「完成时间」的元数据行
