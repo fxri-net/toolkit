@@ -9,6 +9,7 @@
 1. **能力自身**：代码实际行为、单元测试、CLI help 文案三者一致。
 2. **文档**：`docs/` 逐篇过触达面（README、getting-started、guide、faq、cli、api、ai-rules），凡触达处措辞必须与实际行为严格一致，包括「不自动修复」「需人工确认」等限制细节；确认无触达的内容须在对话中明确说明，不得静默跳过。
 3. **skills**：`skills/` 下 SKILL.md 与 references 同步新能力/新流程；frontmatter `version` 随内容变更递增（小修 +patch，能力级 +minor）。
+4. **变更集**：凡影响对外行为的变更，任务归档前必须在 `.changeset/` 建变更集（标注 patch/minor/major 并写用户可感知的变更描述）；归档时出现「无变更集」提示即视为本质量门未过。
 
 ## 验收方式
 

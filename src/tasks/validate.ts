@@ -3,7 +3,7 @@
 import { readFileSync, statSync, readdirSync, existsSync } from "node:fs"
 import { join, basename, dirname } from "node:path"
 import { listTaskFiles } from "./scan"
-import { parseFrontmatter, stripFrontmatter, bodyWithoutTitle } from "./parse"
+import { parseFrontmatter, stripFrontmatter, bodyWithoutTitle, FRONTMATTER_RE } from "./parse"
 import { parseArchiveBlocks } from "./archive-block"
 import { getConfigSection } from "../config"
 import { ALL_STATUSES, DONE_STATUSES } from "./types"
@@ -60,7 +60,7 @@ export function validateTaskFile(file: string): CheckIssue[] {
   const name = basename(file)
   // 剥离 UTF-8 BOM：Windows 下 PowerShell Set-Content 默认写 BOM，不剥离会被 frontmatter 探测正则误判为「缺少 frontmatter」
   const content = readFileSync(file, "utf8").replace(/^\uFEFF/, "")
-  const hasFrontmatter = /^---\r?\n[\s\S]*?\r?\n---/.test(content)
+  const hasFrontmatter = FRONTMATTER_RE.test(content)
 
   if (!hasFrontmatter) {
     issues.push({ level: "error", file: name, message: "缺少 frontmatter" })

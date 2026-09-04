@@ -1,9 +1,12 @@
 import type { TaskFrontmatter } from "./types"
 
+// frontmatter 探测与解析共用正则：三处（parseFrontmatter / stripFrontmatter / validate 探测）同源，避免语义漂移
+export const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/
+
 // 解析文件顶部 frontmatter，返回键值对象；无 frontmatter 返回空对象
 export function parseFrontmatter(content: string): Partial<TaskFrontmatter> {
   // 剥离 UTF-8 BOM：Windows 下 PowerShell Set-Content 默认写 BOM，不剥离会被 frontmatter 正则误判为「缺少 frontmatter」
-  const match = content.replace(/^\uFEFF/, "").match(/^---\r?\n([\s\S]*?)\r?\n---/)
+  const match = content.replace(/^\uFEFF/, "").match(FRONTMATTER_RE)
   if (!match) return {}
   const fm: Record<string, string> = {}
   for (const line of (match[1] ?? "").split(/\r?\n/)) {
@@ -22,8 +25,9 @@ export function parseFrontmatter(content: string): Partial<TaskFrontmatter> {
 
 // 去掉 frontmatter 后返回正文
 export function stripFrontmatter(content: string): string {
-  const match = content.replace(/^\uFEFF/, "").match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/)
-  return match ? content.replace(/^\uFEFF/, "").slice(match[0].length) : content
+  const body = content.replace(/^\uFEFF/, "")
+  const match = body.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/)
+  return match ? body.slice(match[0].length) : body
 }
 
 // 提取首个 H1 标题文本（跳过 #! 指令行）；无标题返回空串（list / query 展示标题共用，避免实现漂移）
