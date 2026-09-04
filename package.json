@@ -52,6 +52,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "changeset": "changeset",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
     "release": "pnpm build && pnpm publish"
   },
   "keywords": [
@@ -75,6 +78,7 @@
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.69.0",
+    "vitepress": "^1.6.4",
     "vitest": "^4.1.11"
   },
   "packageManager": "pnpm@10.34.4",
