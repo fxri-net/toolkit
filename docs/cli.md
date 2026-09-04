@@ -19,7 +19,7 @@ toolkit <command> [options]
   toolkit init        初始化项目任务区（1.7.0 新增）
 ```
 
-全局开关（`tasks` 与 `changelog` 均支持）：
+全局开关（顶层命令支持；`-h` 全局与子命令均可用）：
 
 | 参数 | 说明 |
 | --- | --- |
@@ -28,7 +28,7 @@ toolkit <command> [options]
 | `--redact` / `--no-redact` | 开启/关闭隐私脱敏（默认开启） |
 | `--warn` / `--no-warn` | 开启/关闭软告警（默认开启） |
 
-开关为**双向三档**，优先级从高到低：CLI 参数 > 环境变量 > 配置文件 > 默认开启。对应环境变量：`FX_REDACT`、`FX_CHECK_WARN`（认 `0/1`、`true/false`、`on/off`）；配置项见[配置参考](./config)。
+开关为**双向三档**，优先级从高到低：CLI 参数 > 环境变量 > 配置文件 > 默认开启。对应环境变量：`FX_REDACT`、`FX_CHECK_WARN`（认 `0/1`、`true/false`、`on/off`、`yes/no`）；配置项见[配置参考](./config)。
 
 另有一个独立环境变量 `FX_NO_UPDATE_CHECK`：设为真值时关闭升级检查提示（1.7.0 新增，行为详见[配置参考 · updateCheck](./config#updatecheck升级检查提示-170-新增)）。
 
@@ -76,12 +76,12 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 
 | 选项 | 说明 |
 | --- | --- |
-| `--export <path>` | 导出到文件，按扩展名驱动：`.csv`（UTF-8 BOM 超集列）/ `.xlsx`（三 sheet）/ `.json`（`{ summary, items }`）；目录不存在自动创建 |
+| `--export <path>` | 导出到文件，按扩展名驱动：`.csv`（UTF-8 BOM 超集列）/ `.xlsx`（三 sheet）/ `.json`（`{ schemaVersion: 1, summary, items }`）；目录不存在自动创建 |
 | `--format json` | JSON 输出到 stdout；与 `--export` 互斥 |
-| `--import <file>` | 从 `.csv`/`.xlsx`/`.json` 导入；独立模式，不能与子命令、`--export`、`--format` 同用 |
+| `--import <file>` | 从 `.csv`/`.xlsx`/`.json` 导入；独立模式，不能与子命令、`--export`、`--format` 同用；`--owner`/`--scope` 可同用，作为导入行缺失字段的默认值 |
 | `--target <target>` | 导入目标 `active`（默认，生成任务文件）/ `archive`（直接写归档块） |
 
-导入细节：兼容本工具三种导出产物；表头自动识别中英文别名（不区分大小写），`.toolkitrc.json` 的 `tasks.importColumns` 自定义映射优先级最高；文件名冲突自动追加序号不覆盖；带完成时间的行状态非终结态时自动置「已完成」并告警。
+导入细节：兼容本工具三种导出产物（JSON 另兼容裸数组格式）；XLSX 自动跳过名为「汇总」的 sheet、支持表头不在首行；表头自动识别中英文别名（不区分大小写），`.toolkitrc.json` 的 `tasks.importColumns` 自定义映射优先级最高；文件名冲突自动追加序号不覆盖；带完成时间的行状态非终结态时自动置「已完成」并告警。
 
 ## changelog
 

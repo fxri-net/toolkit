@@ -75,7 +75,7 @@ npm / yarn / bun 用户与各方式对比见 [新手指南 · 安装](./docs/get
 
 ## 🔒 隐私脱敏
 
-落盘记录默认脱敏敏感信息：内置邮箱、手机号、身份证、内网 URL、JWT、AWS / GitHub / OpenAI / Slack 密钥等规则，支持自定义规则与禁用。开关三档（CLI 参数 > 环境变量 > 配置文件），详见 [配置参考](./docs/config.md)。
+落盘记录默认脱敏敏感信息：内置邮箱、手机号、身份证、IPv4、内网 URL、JWT、AWS / GitHub / OpenAI / Slack 密钥等 13 类规则，支持自定义规则与禁用。开关三档（CLI 参数 > 环境变量 > 配置文件），详见 [配置参考](./docs/config.md)。
 
 ## ⚙️ 环境要求
 
@@ -85,10 +85,14 @@ npm / yarn / bun 用户与各方式对比见 [新手指南 · 安装](./docs/get
 
 作者：唐启云 <tqy@fxri.net>
 
-版权：Copyright © 2026 方弦研究所. All rights reserved.
+出品：方弦研究所
+
+版权：Copyright (c) 2026 唐启云. All rights reserved.
 
 网站：[方弦研究信息网](https://fxri.net:444/)
 
 协议：[MIT License](./LICENSE)
 
 商标："方弦®"为第42类注册商标（注册号89648411），本开源许可不授予商标使用权，详见 [TRADEMARK.md](./TRADEMARK.md)
+
+> 方弦研究所为唐启云个人项目品牌与出品方，非独立法人实体；本软件著作权归唐启云所有。
