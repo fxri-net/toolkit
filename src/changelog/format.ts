@@ -23,6 +23,18 @@ export function formatChangelog(file: string, today: string, lang: ChangelogLang
   }
   // 去掉 changesets 默认 changelog-git 写入的 commit hash 前缀（如「800a1cf: 」），保持条目纯文案
   content = content.replace(/^- [0-9a-f]{7}: /gm, "- ")
+  // 清理 changesets 对以「- 」开头的变更集条目二次加前缀产生的伪影：
+  // 首行「- - x」还原为「- x」，紧跟的连续「  - 」缩进续行还原为顶层条目；
+  // 首行非该形态的缩进列表（正常嵌套）不受影响
+  const flat = content.split("\n")
+  for (let i = 0; i < flat.length; i++) {
+    if (!/^- - .+/.test(flat[i] ?? "")) continue
+    flat[i] = (flat[i] ?? "").replace(/^- - /, "- ")
+    for (let j = i + 1; j < flat.length && /^ {2}- /.test(flat[j] ?? ""); j++) {
+      flat[j] = (flat[j] ?? "").slice(2)
+    }
+  }
+  content = flat.join("\n")
   // 合并连续重复的「依赖更新」
   while (content.includes(`${lang.deps}\n${lang.deps}`)) {
     content = content.replace(`${lang.deps}\n${lang.deps}`, lang.deps)

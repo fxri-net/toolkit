@@ -99,7 +99,7 @@ toolkit changelog status / publish      # 其余 changeset 子命令透传
 
 行为细节：
 
-- `version`：先透传 changesets 消费变更集，再对 CHANGELOG 做分组标题格式化并补发布日期；存在未归档 active 任务时软告警
+- `version`：先透传 changesets 消费变更集，再对 CHANGELOG 做分组标题格式化、清理变更集条目双前缀伪影（以 `- ` 开头的条目会被 changesets 二次加前缀为 `- - 条目` 并缩进续行，格式化时还原为顶层条目）并补发布日期；存在未归档 active 任务时软告警
 - 其余子命令（`add`/`status`/`publish`/…）原样透传给 changesets
 - ⚠️ Node 18 下依赖 changesets 的子命令不可用（上游 ESM-only 限制），`format` 等纯格式化不受影响
 

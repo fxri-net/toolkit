@@ -3,7 +3,7 @@ name: fxri-release-changelog
 description: 基于 changesets 的发版与多语言 CHANGELOG 维护流程：创建变更集、消费发版、把分组标题与条目转为项目语言风格、清理变更集、打标签发布；无 changesets 的项目提供同格式手工模式。当用户提到创建变更集、changeset、发版、version、整理或格式化 CHANGELOG 时使用。不用于日常 commit message 撰写或与发版无关的文档修改。
 license: MIT
 metadata:
-  version: "1.0.3"
+  version: "1.0.4"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
@@ -43,6 +43,7 @@ metadata:
 | 症状 | 处置 |
 | --- | --- |
 | version 后 CHANGELOG 分组标题仍是英文 | 按 references 的映射表补一次格式化 |
+| CHANGELOG 出现「- - 条目」双前缀伪影（变更集条目以 `- ` 开头） | `toolkit changelog version/format` 已自动还原为顶层条目；手工模式按 references 规则手动清理 |
 | 条目与仓库既有风格不一致 | 人工润色为项目语言与句式，勿保留机器直译 |
 | 变更集遗漏（发版后才发现功能未记录） | 补建变更集随下次发版；本次在发布说明中人工补充 |
 

@@ -38,6 +38,33 @@ describe("formatChangelog", () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
+  it("清理 changesets 双前缀伪影：首行 - - 与缩进续行还原为顶层条目", () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-cl-"))
+    const file = join(dir, "CHANGELOG.md")
+    // 模拟 changesets 对以「- 」开头的变更集条目二次加前缀的实际产物
+    writeFileSync(
+      file,
+      "# pkg\n\n## 1.0.0\n\n### Patch Changes\n\n- - 文档：统一品牌中文名\n  - 第二条描述\n\n## 0.9.0\n",
+      "utf8",
+    )
+    expect(formatChangelog(file, "2026-09-05", zh)).toBe(true)
+    const out = readFileSync(file, "utf8")
+    expect(out).toContain("- 文档：统一品牌中文名\n- 第二条描述")
+    expect(out).not.toContain("- - ")
+    expect(out).not.toContain("\n  - ")
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("正常嵌套列表（首行非 - - 形态）不受伪影清理影响", () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-cl-"))
+    const file = join(dir, "CHANGELOG.md")
+    writeFileSync(file, "# pkg\n\n## 1.0.0\n\n- 总述：包含子项\n  - 子项甲\n  - 子项乙\n", "utf8")
+    formatChangelog(file, "2026-09-05", zh)
+    const out = readFileSync(file, "utf8")
+    expect(out).toContain("- 总述：包含子项\n  - 子项甲\n  - 子项乙")
+    rmSync(dir, { recursive: true, force: true })
+  })
+
   it("日期行已存在时不重复插入", () => {
     const dir = mkdtempSync(join(tmpdir(), "tk-cl-"))
     const file = join(dir, "CHANGELOG.md")
