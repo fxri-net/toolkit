@@ -23,7 +23,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # 完整克隆：docs:build 的 lastUpdated 依赖 git 提交时间，浅克隆会失真
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v6
         with:
           version: 10.34.4

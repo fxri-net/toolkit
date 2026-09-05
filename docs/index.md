@@ -1,5 +1,7 @@
 ---
 layout: home
+# 首页无正文 h1，显式给 title 避免浏览器标签出现「方弦工具集 - 方弦工具集」重复
+title: 任务管理 + 多语言 CHANGELOG
 
 hero:
   name: '@fxri/toolkit'
@@ -37,6 +39,37 @@ features:
     details: 不装本工具，也能让 AI 按同一套规范干活——零依赖 Agent Skills，各 agent 全局技能目录通用。
 ---
 
+## 30 秒上手
+
+按你的包管理器选一条安装，随后查看当前任务：
+
+::: code-group
+
+```sh [pnpm]
+pnpm add -D @fxri/toolkit
+```
+
+```sh [npm]
+npm install -D @fxri/toolkit
+```
+
+```sh [yarn]
+yarn add -D @fxri/toolkit
+```
+
+```sh [bun]
+bun add -D @fxri/toolkit
+```
+
+:::
+
+```sh
+# 查看当前任务
+pnpm exec toolkit tasks
+```
+
+详细步骤见[新手指南](./getting-started)。
+
 ## 解决什么痛点
 
 | 痛点 | 本工具的做法 |
@@ -46,18 +79,6 @@ features:
 | 任务散落各处，总览、过滤、统计靠人肉 | 一条命令扫 `.tasks/` 全目录，按状态/负责人/范围/日期过滤，可导出 CSV / XLSX / JSON |
 | 发版 CHANGELOG 分组标题是英文，多语言项目要人肉翻译 | 封装 changesets，内置中文格式化，任意语言可配置扩展 |
 
-## 30 秒上手
-
-```bash
-# 项目内安装（推荐）
-pnpm add -D @fxri/toolkit
-
-# 查看当前任务
-pnpm exec toolkit tasks
-```
-
-详细步骤见[新手指南](./getting-started)。
-
 ## 文档索引
 
 | 文档 | 适合谁 |
@@ -65,7 +86,7 @@ pnpm exec toolkit tasks
 | [新手指南](./getting-started) | 第一次接触，想 30 秒跑起来 |
 | [完整攻略](./guide) | 日常使用：工作流、Git 纳管范围、项目级激活、多语言 CHANGELOG |
 | [CLI 参考](./cli) | 查命令、参数、默认值、退出码 |
-| [API 参考](./api) | 文档站 base 为 /toolkit/，跳转按子路径解析 |
+| [API 参考](./api) | 作为库引入 Node 项目，写脚本或二次开发 |
 | [配置参考](./config) | 查 `.toolkitrc.json` 字段 |
 | [FAQ](./faq) | 遇到问题先来这里找 |
 | [推荐 AI 全局规则](./ai-rules) | 想让 AI 助手按本工具的最佳实践协作 |

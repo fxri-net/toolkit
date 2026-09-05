@@ -52,6 +52,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "changeset": "changeset",
+    "sync:changelog-doc": "node scripts/sync-changelog-doc.mjs",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",

@@ -63,6 +63,18 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 
 能安装、能跑 tasks 总览/归档和 CHANGELOG 格式化；但 `changelog` 走 changesets 的子命令（add/version/publish）不可用——上游依赖 `human-id` 仅支持 ESM，属 changesets 生态限制。正式支持 Node >= 20。
 
+### 内网或离线环境怎么装？
+
+先判断你的网络卡在哪一档：
+
+- **只卡 GitHub（npm registry 可达，最常见）**：CLI 照常用 `pnpm add -g @fxri/toolkit` 装；skills 不从 GitHub 拉，直接以已装 CLI 包的本地目录为源（skills 随包分发在 `skills/`）：
+  ```bash
+  pnpm dlx skills add "$(pnpm root -g)/@fxri/toolkit" --global
+  ```
+  `pnpm root -g` 取全局包根目录，skills 安装器会识别本地路径直接拷贝（已实测验证）。npm 用户对应写法：`npm i -g @fxri/toolkit && npx skills add "$(npm root -g)/@fxri/toolkit" --global`。
+- **registry 也不可达（完全离线）**：换一台能联网的机器执行 `pnpm pack @fxri/toolkit`（npm 用户 `npm pack`），把打出的 tgz 拷进内网后 `pnpm add -g <tgz 路径>` 离线装 CLI；skills 再从装好的包目录走上面那条本地路径命令。
+- **GitHub 有代理或镜像**：`pnpm dlx skills add fxri-net/toolkit --global` 直连即可，与正常安装无异。
+
 ## 任务管理
 
 ### `.tasks/` 要提交到 git 吗？哪些文件该提交？

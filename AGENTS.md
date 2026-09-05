@@ -31,7 +31,7 @@
 
 发版按以下顺序分步执行，每步产物检查无误后再进行下一步：
 
-1. **消费变更集**：`node dist/cli.js changelog version`——按 bump 类型合并 `.changeset/` 全部变更集，生成 CHANGELOG 新版本块（中文分组标题 + 发布日期）并升级 package.json 版本号；生成后人工检查润色条目再继续；
+1. **消费变更集**：`node dist/cli.js changelog version`——按 bump 类型合并 `.changeset/` 全部变更集，生成 CHANGELOG 新版本块（中文分组标题 + 发布日期）并升级 package.json 版本号；生成后人工检查润色条目，再执行 `pnpm sync:changelog-doc` 把新版本块镜像进 docs/changelog.md 更新日志页，与版本/CHANGELOG 改动同批提交；
 2. **构建**：`pnpm build`——版本号从 package.json 读取进产物；
 3. **提交**：版本与 CHANGELOG 改动单独提交；
 4. **打标签**：提交落盘后立即打 `vX.Y.Z` 标签并用 `git tag` 核对存在；发现历史版本漏打时，在对应发版提交上补打轻量标签；

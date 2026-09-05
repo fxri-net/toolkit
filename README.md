@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./docs/public/logo.png" width="128" alt="方弦工具集">
+</p>
+
 # @fxri/toolkit
 
 [![CI](https://github.com/fxri-net/toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/fxri-net/toolkit/actions/workflows/ci.yml)
