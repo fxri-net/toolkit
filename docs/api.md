@@ -88,7 +88,7 @@ languages.ja = { replacements: { "### Major Changes": "### 🚨 重大変更" },
 
 | 函数 | 说明 |
 | --- | --- |
-| `loadToolkitConfig()` | 从 `process.cwd()` 向上查找最近 `.toolkitrc.json` 并缓存 |
+| `loadToolkitConfig()` | 加载配置并缓存：项目级从 `process.cwd()` 向上查找最近 `.toolkitrc.json`，与全局 `~/.toolkitrc.json` 按段合并（项目覆盖全局） |
 | `getConfigSection(key)` | 取某能力域配置段（对象），不存在返回 `undefined` |
 | `resetToolkitConfigCache()` | 失效缓存（长驻进程 / 测试中改配置后调用） |
 
