@@ -6,6 +6,14 @@ outline: false
 
 > 完整变更历史以随包发布的 CHANGELOG.md 为准，本页由 `pnpm sync:changelog-doc` 从根 CHANGELOG.md 自动同步，请勿手改。
 
+## 1.7.4
+
+> 2026-09-05 发布
+
+### 🐛 补丁修复
+
+- 文档：简化文档站部署指引——收敛为 GitHub Pages 单一自动构建方案，移除多平台部署表格与手动部署步骤
+
 ## 1.7.3
 
 > 2026-09-05 发布
