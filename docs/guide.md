@@ -169,33 +169,17 @@ pnpm exec toolkit changelog --lang ja format   # 指定语言仅格式化
 
 每个语言的三段结构：`replacements`（标题替换映射）、`deps`（依赖更新条目文案）、`released`（发布日期后缀）。`version` 消费变更集后自动转换分组标题（如 `### Patch Changes` → `### 🐛 补丁修复`）并补发布日期；变更条目建议人工再润色，与仓库既有风格一致。
 
-## 文档站部署三平台
+## 文档站部署
 
-本仓库文档站（VitePress）可部署到三种平台，fork/仿照时按平台选：
+文档站（VitePress）固定部署在 GitHub Pages，push main 自动构建发布：
 
 | 平台 | 站点 | 方式 |
 | --- | --- | --- |
 | GitHub Pages | https://fxri-net.github.io/toolkit/ | `deploy-docs.yml` workflow，push main 自动构建部署（`VITEPRESS_BASE=/toolkit/`） |
-| GitLab Pages（含自托管） | 自托管域名（内部站点，地址不入公开文档） | `.gitlab-ci.yml` 的 `pages` job，构建产物放 `public/` |
-| Gitee | https://fxri.gitee.io/toolkit/ | 无 CI 自动构建，本地构建后推 `docs-pages` 分支，在 Gitee Pages 服务中选该分支构建 |
 
-构建统一为 `pnpm docs:build`，站点根路径通过 `VITEPRESS_BASE` 环境变量适配各平台的子路径要求。
+构建统一为 `pnpm docs:build`，站点根路径由 `VITEPRESS_BASE` 环境变量适配子路径要求。
 
-**平台回链注入**：默认（GitHub Pages）「在 GitHub 上编辑此页」与 sitemap/og 自动回链 GitHub 主仓库；部署到 Gitee Pages 或自托管 GitLab Pages 时，构建前注入 `SITE_URL`（规范地址）与 `REPO_URL`（编辑回链仓库）环境变量，产物即指向对应平台——私有站的值由平台 CI/CD 变量提供，不写进仓库源码。
-
-**Gitee 手动部署步骤**（构建在本地完成后推送到专用分支）：
-
-```bash
-VITEPRESS_BASE=/toolkit/ pnpm docs:build   # 本地构建（Windows PowerShell：先 $env:VITEPRESS_BASE="/toolkit/"）
-cd docs/.vitepress/dist
-git init -b docs-pages                     # 产物目录初始化为部署专用分支
-git add -A
-git commit -m "docs: 构建产物"
-git remote add origin <Gitee 仓库地址>
-git push -f origin docs-pages              # 全量覆盖式推送
-```
-
-推送后到 Gitee 仓库「服务 → Gitee Pages」，部署分支选 `docs-pages`、目录选 `/`；后续每次重新构建推送即更新站点。
+**站点回链**：默认「在 GitHub 上编辑此页」与 sitemap/og 回链 GitHub 主仓库，值经 `SITE_URL` / `REPO_URL` 环境变量注入，不写进仓库源码。
 
 ## 升级与版本兼容
 

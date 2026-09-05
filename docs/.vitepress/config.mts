@@ -1,14 +1,14 @@
 import { defineConfig } from 'vitepress'
 
-// 站点基础路径：默认按 GitHub Pages 子路径 /toolkit/，GitLab/Gitee 等平台经 VITEPRESS_BASE 环境变量覆盖
+// 站点基础路径：默认按 GitHub Pages 子路径 /toolkit/，其他部署场景经 VITEPRESS_BASE 环境变量覆盖
 const base = process.env.VITEPRESS_BASE || '/toolkit/'
 
 // GitHub 主仓库：社交链接与默认回链共用（对外主品牌渠道，不随部署平台变）
 const githubRepo = 'https://github.com/fxri-net/toolkit'
 
 // 站点规范地址（sitemap hostname 与 og:image 用）与编辑回链仓库：默认 GitHub Pages / GitHub 主站，
-// Gitee Pages、私有 GitLab Pages 部署时经 SITE_URL / REPO_URL 环境变量注入（私有站的值由对应 CI/CD
-// 变量提供，只出现在该站构建产物，不进仓库源码）
+// 其他部署场景经 SITE_URL / REPO_URL 环境变量注入（值由对应 CI/CD 变量提供，只出现在该站构建产物，
+// 不进仓库源码）
 const siteUrl = process.env.SITE_URL || 'https://fxri-net.github.io' + base
 const repo = process.env.REPO_URL || githubRepo
 

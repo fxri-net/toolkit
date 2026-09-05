@@ -87,7 +87,6 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
   ```
 - **CLI 本体**：走 npm registry，与镜像无关；npm 源提速可 `pnpm config set registry https://registry.npmmirror.com`（npm 用户把 `pnpm config` 换成 `npm config`）
 - **问题反馈**：[Gitee Issues](https://gitee.com/fxri/toolkit/issues)
-- **文档站**：https://fxri.gitee.io/toolkit/（Gitee Pages，与 GitHub Pages 同源部署）
 
 ## 任务管理
 
@@ -146,7 +145,7 @@ CLI 升级后 skills 也要同步升级（`pnpm dlx skills update`），并且**
 
 ### fork 本仓库怎么部署文档站？
 
-三种平台方案（GitHub Pages 自动部署 / GitLab Pages CI / Gitee 手动构建）见[完整攻略 · 文档站部署三平台](./guide#文档站部署三平台)。
+文档站固定部署 GitHub Pages，fork 后调整 `VITEPRESS_BASE` 即可自动构建发布，详见[完整攻略 · 文档站部署](./guide#文档站部署)。
 
 ## 相关页面
 
