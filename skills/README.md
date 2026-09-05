@@ -29,6 +29,17 @@ pnpm dlx skills list / update / remove                         # 查看 / 升级
 - 项目级安装默认写 `.agents/skills/` 并对各 agent（Claude Code / Cursor / Codex 等 75+）目录建立符号链接；团队项目把生成的 `skills-lock.json` 提交进仓库以对齐版本；**单人/个人多项目推荐 `-g` 全局安装**，所有项目直接可用，升级一条 `skills update -g`
 - ⚠️ 已知上游行为（v1.5.x）：项目级安装时若 `.claude/` 目录不存在，Claude Code 目标会被静默跳过——先创建 `.claude/skills/` 空目录或改用 `-g`
 
+### GitHub 拉取受限时（国内网络 / 内网）
+
+skills 安装器只认 GitHub 源与本地路径；GitHub 不稳定时改从 [Gitee 镜像](https://gitee.com/fxri/toolkit)（同源同步）克隆后走本地路径源：
+
+```bash
+git clone https://gitee.com/fxri/toolkit fxri-toolkit
+pnpm dlx skills add fxri-toolkit --global       # npm 用户把 pnpm dlx 换成 npx
+```
+
+完全离线场景：用随包分发目录或 npm pack（见下方「方式二」与文档站 [FAQ · 内网或离线环境怎么装](https://fxri-net.github.io/toolkit/faq)）。
+
 ### 方式二：手工复制 / 软链
 
 - 已安装 `@fxri/toolkit` 的项目可直接使用包内自带的技能目录：`node_modules/@fxri/toolkit/skills/`，复制或软链到 agent 的 skills 目录即可

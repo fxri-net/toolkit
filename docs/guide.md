@@ -112,7 +112,7 @@
 
 **与 CLI 的关系**：skills 是规范与流程（独立可用），CLI 是自动校验/归档/发版的加速器。技能文件末尾的「可选加速」节列出了对应 CLI 命令——装了就用，没装技能流程照跑。
 
-安装与共存、命名规范、发布核对清单见 [skills/README.md](https://github.com/fxri-net/toolkit/blob/main/skills/README.md)。
+安装与共存、命名规范、发布核对清单见 [skills/README.md](https://github.com/fxri-net/toolkit/blob/main/skills/README.md)；GitHub 拉取受限（国内网络/内网）时见 [FAQ · 国内网络优先走哪条渠道](./faq#国内网络优先走哪条渠道)。
 
 ## 会话归档
 
@@ -173,13 +173,15 @@ pnpm exec toolkit changelog --lang ja format   # 指定语言仅格式化
 
 本仓库文档站（VitePress）可部署到三种平台，fork/仿照时按平台选：
 
-| 平台 | 方式 |
-| --- | --- |
-| GitHub Pages | `deploy-docs.yml` workflow，push main 自动构建部署（`VITEPRESS_BASE=/toolkit/`） |
-| GitLab Pages（含自托管） | `.gitlab-ci.yml` 的 `pages` job，构建产物放 `public/` |
-| Gitee | 无 CI 自动构建，本地构建后推 `docs-pages` 分支，在 Gitee Pages 服务中选该分支构建 |
+| 平台 | 站点 | 方式 |
+| --- | --- | --- |
+| GitHub Pages | https://fxri-net.github.io/toolkit/ | `deploy-docs.yml` workflow，push main 自动构建部署（`VITEPRESS_BASE=/toolkit/`） |
+| GitLab Pages（含自托管） | 自托管域名（内部站点，地址不入公开文档） | `.gitlab-ci.yml` 的 `pages` job，构建产物放 `public/` |
+| Gitee | https://fxri.gitee.io/toolkit/ | 无 CI 自动构建，本地构建后推 `docs-pages` 分支，在 Gitee Pages 服务中选该分支构建 |
 
 构建统一为 `pnpm docs:build`，站点根路径通过 `VITEPRESS_BASE` 环境变量适配各平台的子路径要求。
+
+**平台回链注入**：默认（GitHub Pages）「在 GitHub 上编辑此页」与 sitemap/og 自动回链 GitHub 主仓库；部署到 Gitee Pages 或自托管 GitLab Pages 时，构建前注入 `SITE_URL`（规范地址）与 `REPO_URL`（编辑回链仓库）环境变量，产物即指向对应平台——私有站的值由平台 CI/CD 变量提供，不写进仓库源码。
 
 **Gitee 手动部署步骤**（构建在本地完成后推送到专用分支）：
 

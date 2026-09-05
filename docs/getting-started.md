@@ -96,7 +96,7 @@ bunx @fxri/toolkit tasks      # bun
 
 安装 skills：`pnpm dlx skills add fxri-net/toolkit`（npm 用户 `npx skills add fxri-net/toolkit`，详见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)）。
 
-GitHub 拉不下来？内网 / 离线安装见 [FAQ · 内网或离线环境怎么装](./faq#内网或离线环境怎么装)。
+GitHub 拉不下来？国内网络走 [Gitee 镜像渠道](./faq#国内网络优先走哪条渠道)，内网 / 离线安装见 [FAQ · 内网或离线环境怎么装](./faq#内网或离线环境怎么装)。
 
 ## 30 秒上手
 

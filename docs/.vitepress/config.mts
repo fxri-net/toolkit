@@ -3,11 +3,14 @@ import { defineConfig } from 'vitepress'
 // 站点基础路径：默认按 GitHub Pages 子路径 /toolkit/，GitLab/Gitee 等平台经 VITEPRESS_BASE 环境变量覆盖
 const base = process.env.VITEPRESS_BASE || '/toolkit/'
 
-// 站点规范地址：供 sitemap hostname 与社交分享 og:image 使用；若启用自定义域名，改此常量即可
-const siteUrl = 'https://fxri-net.github.io' + base
+// GitHub 主仓库：社交链接与默认回链共用（对外主品牌渠道，不随部署平台变）
+const githubRepo = 'https://github.com/fxri-net/toolkit'
 
-// 源码编辑仓库：editLink「在 GitHub 上编辑此页」跳转 GitHub（多远端中以 GitHub 为协作主源）
-const repo = 'https://github.com/fxri-net/toolkit'
+// 站点规范地址（sitemap hostname 与 og:image 用）与编辑回链仓库：默认 GitHub Pages / GitHub 主站，
+// Gitee Pages、私有 GitLab Pages 部署时经 SITE_URL / REPO_URL 环境变量注入（私有站的值由对应 CI/CD
+// 变量提供，只出现在该站构建产物，不进仓库源码）
+const siteUrl = process.env.SITE_URL || 'https://fxri-net.github.io' + base
+const repo = process.env.REPO_URL || githubRepo
 
 export default defineConfig({
   lang: 'zh-CN',
@@ -104,6 +107,6 @@ export default defineConfig({
     },
     returnToTopLabel: '回到顶部',
     sidebarMenuLabel: '菜单',
-    socialLinks: [{ icon: 'github', link: 'https://github.com/fxri-net/toolkit' }],
+    socialLinks: [{ icon: 'github', link: githubRepo }],
   },
 })

@@ -9,6 +9,8 @@
 [![Node](https://img.shields.io/badge/node-%E2%89%A520-brightgreen)](./docs/getting-started.md#安装)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
+> 国内网络建议优先 [Gitee 镜像](https://gitee.com/fxri/toolkit)（与 GitHub 同源同步，仓库/文档/issues/skills 全渠道可用）；问题反馈走 [GitHub Issues](https://github.com/fxri-net/toolkit/issues) 或 [Gitee Issues](https://gitee.com/fxri/toolkit/issues)。
+
 专为**多人 + AI 跨项目协作**打造：任务管理 + 多语言 CHANGELOG。
 
 AI 参与开发后，方案与决策散落在对话记录里，会话一关什么都不剩；任务记录零散，谁在做、做到哪，无从查起；发版 CHANGELOG 还要人肉维护多语言。本工具把这条链路沉淀为**仓库内可检索、可校验、可归档的文件**——人离开会话，记忆留在仓库里。

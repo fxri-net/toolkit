@@ -1,5 +1,28 @@
-# GitLab Pages：文档站构建部署
+# GitLab CI：完整检查（test）+ 文档站构建部署（pages）
+# ⚠️ 需 GitLab runner 已注册；runner 未启用时 job 停留在 pending 属预期
 # VITEPRESS_BASE 按平台域名注入：gitlab.io 项目页为 /toolkit/（可按实际仓库名调整），自托管域名可设为 /
+# 私有站回链/canonical 由 SITE_URL/REPO_URL 注入（值放 GitLab CI/CD 变量，不写进仓库；不注入则回链 GitHub 主仓库）
+stages:
+  - test
+  - deploy
+
+test:
+  image: node:20
+  stage: test
+  before_script:
+    - corepack enable
+  script:
+    - pnpm install --frozen-lockfile
+    - pnpm typecheck
+    - pnpm lint
+    - pnpm test
+    - pnpm build
+    - pnpm docs:build
+    - node dist/cli.js --help
+    - node dist/cli.js tasks check
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
 pages:
   image: node:20
   stage: deploy

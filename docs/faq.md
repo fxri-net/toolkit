@@ -4,7 +4,7 @@
 
 ## 解决什么问题
 
-新手指南讲最短路径、完整攻略讲全流程，但真实使用中的疑问是碎片化的——本篇按「问题 → 答案」直给。没找到答案可去 [GitHub Issues](https://github.com/fxri-net/toolkit/issues) 提问。
+新手指南讲最短路径、完整攻略讲全流程，但真实使用中的疑问是碎片化的——本篇按「问题 → 答案」直给。没找到答案可去 [GitHub Issues](https://github.com/fxri-net/toolkit/issues) 或 [Gitee Issues](https://gitee.com/fxri/toolkit/issues) 提问。
 
 ## 安装与环境
 
@@ -74,6 +74,20 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
   `pnpm root -g` 取全局包根目录，skills 安装器会识别本地路径直接拷贝（已实测验证）。npm 用户对应写法：`npm i -g @fxri/toolkit && npx skills add "$(npm root -g)/@fxri/toolkit" --global`。
 - **registry 也不可达（完全离线）**：换一台能联网的机器执行 `pnpm pack @fxri/toolkit`（npm 用户 `npm pack`），把打出的 tgz 拷进内网后 `pnpm add -g <tgz 路径>` 离线装 CLI；skills 再从装好的包目录走上面那条本地路径命令。
 - **GitHub 有代理或镜像**：`pnpm dlx skills add fxri-net/toolkit --global` 直连即可，与正常安装无异。
+
+### 国内网络优先走哪条渠道？
+
+[Gitee 镜像](https://gitee.com/fxri/toolkit) 与 GitHub 同源同步，国内访问最省心：
+
+- **源码浏览 / 克隆**：`https://gitee.com/fxri/toolkit`
+- **skills 安装**：skills 安装器只认 GitHub 源与本地路径，GitHub 不稳时先 clone 镜像、再对本地目录安装：
+  ```bash
+  git clone https://gitee.com/fxri/toolkit fxri-toolkit
+  pnpm dlx skills add fxri-toolkit --global    # npm 用户把 pnpm dlx 换成 npx
+  ```
+- **CLI 本体**：走 npm registry，与镜像无关；npm 源提速可 `pnpm config set registry https://registry.npmmirror.com`（npm 用户把 `pnpm config` 换成 `npm config`）
+- **问题反馈**：[Gitee Issues](https://gitee.com/fxri/toolkit/issues)
+- **文档站**：https://fxri.gitee.io/toolkit/（Gitee Pages，与 GitHub Pages 同源部署）
 
 ## 任务管理
 
