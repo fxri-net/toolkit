@@ -2,7 +2,7 @@
   <img src="./docs/public/logo.png" width="128" alt="方弦工具集">
 </p>
 
-# @fxri/toolkit
+# 方弦工具集
 
 [![CI](https://github.com/fxri-net/toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/fxri-net/toolkit/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@fxri/toolkit)](https://www.npmjs.com/package/@fxri/toolkit)

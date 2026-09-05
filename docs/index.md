@@ -4,7 +4,7 @@ layout: home
 title: 任务管理 + 多语言 CHANGELOG
 
 hero:
-  name: '@fxri/toolkit'
+  name: 方弦工具集
   text: 任务管理 + 多语言 CHANGELOG
   tagline: 专为多人 + AI 跨项目协作打造。把方案确认、任务校验、归档链路沉淀为仓库内可检索、可校验的文件，顺手解决发版 CHANGELOG 的多语言维护问题。
   actions:
