@@ -37,7 +37,8 @@
 2. **构建**：`pnpm build`——版本号从 package.json 读取进产物；
 3. **提交**：版本与 CHANGELOG 改动单独提交；
 4. **打标签**：提交落盘后立即打 `vX.Y.Z` 标签并用 `git tag` 核对存在；发现历史版本漏打时，在对应发版提交上补打轻量标签；
-5. **发布**：`pnpm publish`。
+5. **发布**：`pnpm publish`；
+6. **推送**：`git remote` 遍历当前**全部已配置远端**逐一推送（配几个推几个，数量不固定）——推送前先向用户列出将推送的远端清单，经确认后执行；用户显式指定单端（如「先推 github」）时按其字面只推该端，不套用全量。
 
 ⚠️ package.json 的 `release` script 仅含 `build && publish`，不含 version 步骤——禁止直接跑 `pnpm release` 发版。
 
