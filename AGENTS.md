@@ -7,9 +7,10 @@
 任何影响对外行为的变更——新增/修改/删除 CLI 命令、参数、输出与告警口径、skills 内容、文档中对其的结构性描述——在任务归档前必须完成三方复核，与 `toolkit tasks check` 同为不可绕过的质量门：
 
 1. **能力自身**：代码实际行为、单元测试、CLI help 文案三者一致。
-2. **文档**：`docs/` 逐篇过触达面（README、getting-started、guide、faq、cli、api、ai-rules），凡触达处措辞必须与实际行为严格一致，包括「不自动修复」「需人工确认」等限制细节；确认无触达的内容须在对话中明确说明，不得静默跳过。
+2. **文档**：`docs/` 逐篇过触达面（README、getting-started、handbook、guide、faq、cli、api、ai-rules），凡触达处措辞必须与实际行为严格一致，包括「不自动修复」「需人工确认」等限制细节；确认无触达的内容须在对话中明确说明，不得静默跳过。
 3. **skills**：`skills/` 下 SKILL.md 与 references 同步新能力/新流程；frontmatter `version` 随内容变更递增（小修 +patch，能力级 +minor）。
 4. **变更集**：凡影响对外行为的变更，任务归档前必须在 `.changeset/` 建变更集（标注 patch/minor/major 并写用户可感知的变更描述）；归档时出现「无变更集」提示即视为本质量门未过。
+5. **全局规则薄引用**：可变流程细节只进 skills（SKILL.md / references），`docs/ai-rules.md` 的「规则全文」保持薄壳——只承载稳定纪律与对 fxri-* skill 的引用，不复述可变细节；凡在 ai-rules.md 复述了可变细节的改动即视为违背本规则，须收敛回 skill。原因：全局规则是用户手动复制的快照，细节复述会让能力升级后用户侧规则失同步；收敛进 skills 后升级只需 `pnpm dlx skills update`。
 
 ## 验收方式
 

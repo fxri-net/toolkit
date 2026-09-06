@@ -150,5 +150,6 @@ CLI 升级后 skills 也要同步升级（`pnpm dlx skills update`），并且**
 ## 相关页面
 
 - [新手指南](./getting-started)：术语科普与最短路径
+- [操作手册](./handbook)：每个场景该说什么、做什么
 - [完整攻略](./guide)：全流程细节
 - [CLI 参考](./cli)：命令字典

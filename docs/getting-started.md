@@ -149,6 +149,7 @@ pnpm exec toolkit tasks archive
 
 ## 下一步
 
+- 每个场景该说什么、做什么 → [操作手册](./handbook)
 - 日常完整工作流 → [完整攻略](./guide)
 - 查命令参数 → [CLI 参考](./cli)
 - 配置脱敏、告警等 → [配置参考](./config)

@@ -49,6 +49,7 @@ pnpm exec toolkit tasks
 | 文档 | 适合谁 |
 | --- | --- |
 | [新手指南](./docs/getting-started.md) | 第一次接触，想 30 秒跑起来（含零基础术语表） |
+| [操作手册](./docs/handbook.md) | 日常照着做：每个场景该说什么、做什么 |
 | [完整攻略](./docs/guide.md) | 日常使用：工作流、Git 纳管、项目级激活、多语言 CHANGELOG |
 | [CLI 参考](./docs/cli.md) | 查命令、参数、默认值、退出码 |
 | [API 参考](./docs/api.md) | 作为库引入 Node 项目 |

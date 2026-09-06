@@ -40,6 +40,7 @@ export default defineConfig({
     logo: '/logo.png',
     nav: [
       { text: '指南', link: '/getting-started' },
+      { text: '操作手册', link: '/handbook' },
       {
         text: '参考',
         items: [
@@ -58,6 +59,7 @@ export default defineConfig({
         items: [
           { text: '首页', link: '/' },
           { text: '新手指南', link: '/getting-started' },
+          { text: '操作手册', link: '/handbook' },
           { text: '完整攻略', link: '/guide' },
         ],
       },
