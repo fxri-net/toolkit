@@ -65,3 +65,5 @@ pnpm dlx skills add fxri-toolkit --global       # npm 用户把 pnpm dlx 换成 
 - [ ] metadata.version：内容变更即递增
 - [ ] 主干 SKILL.md < 200 行，细节下沉 `references/`，可复制资产放 `assets/`
 - [ ] 引用的 references / assets 相对路径有效
+- [ ] 技能用途描述已同步 docs/guide 技能表与本文「技能列表」表（含版本标注）
+- [ ] 变更已走本仓库质量门：三方一致 + tasks check + pnpm test
