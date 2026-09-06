@@ -8,9 +8,9 @@
 
 | 技能 | 用途 |
 | --- | --- |
-| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 方案落盘：先查后写 → 建档 → 校验 → 归档（强制终点） |
+| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 方案落盘：先查后写 → 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点） |
 | [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | changesets 发版与多语言 CHANGELOG 维护 |
-| [fxri-session-recap](./fxri-session-recap/SKILL.md) | 会话收尾归档结论 / 新会话恢复任务上下文 |
+| [fxri-session-recap](./fxri-session-recap/SKILL.md) | 会话收尾全量沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 
 ## 安装
 

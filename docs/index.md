@@ -21,7 +21,7 @@ hero:
 features:
   - icon: ✅
     title: 方案落盘即约束
-    details: 方案确认完就丢、AI 会话一关什么都不剩？任务文件落在仓库 .tasks/，toolkit tasks check 校验、tasks archive 归档，强制约束到归档为止。
+    details: 方案确认完就丢、AI 会话一关什么都不剩？任务文件落在仓库 .tasks/，toolkit tasks check 校验、tasks archive 归档，沉淀规范进 conventions.md，能力终点到沉淀为止。
   - icon: 🔒
     title: 多人协作不互踩
     details: 任务唯一键 + 先查后写约定 + 归档排他锁，多人（含多个 AI）同时维护任务不会互相覆盖。
@@ -74,7 +74,7 @@ pnpm exec toolkit tasks
 
 | 痛点 | 本工具的做法 |
 | --- | --- |
-| 方案确认完就丢，AI 会话一关什么都不剩 | 方案落盘为标准任务文件，`toolkit tasks check` 校验、`toolkit tasks archive` 归档，强制约束到归档为止 |
+| 方案确认完就丢，AI 会话一关什么都不剩 | 方案落盘为标准任务文件，`toolkit tasks check` 校验、`toolkit tasks archive` 归档、规范沉淀进 conventions.md，能力终点到沉淀为止 |
 | 多人（含多个 AI）同时维护任务，互相覆盖 | 任务唯一键 + 「先查后写」约定 + 归档排他锁 |
 | 任务散落各处，总览、过滤、统计靠人肉 | 一条命令扫 `.tasks/` 全目录，按状态/负责人/范围/日期过滤，可导出 CSV / XLSX / JSON |
 | 发版 CHANGELOG 分组标题是英文，多语言项目要人肉翻译 | 封装 changesets，内置中文格式化，任意语言可配置扩展 |

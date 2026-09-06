@@ -1,9 +1,9 @@
 ---
 name: fxri-release-changelog
-description: 基于 changesets 的发版与多语言 CHANGELOG 维护流程：创建变更集、消费发版、把分组标题与条目转为项目语言风格、清理变更集、打标签发布；无 changesets 的项目提供同格式手工模式。当用户提到创建变更集、changeset、发版、version、整理或格式化 CHANGELOG 时使用。不用于日常 commit message 撰写或与发版无关的文档修改。
+description: 基于 changesets 的发版与多语言 CHANGELOG 维护流程：创建变更集、消费发版、把分组标题与条目转为项目语言风格、清理变更集、打标签发布；无 changesets 的项目提供同格式手工模式。当用户表达发版或记录变更意图——含创建变更集、changeset、发版、version、CHANGELOG 格式化等说法及其口语近义表达（如发一版、出个版本、记一下这次改动、生成更新日志）时使用。不用于日常 commit message 撰写或与发版无关的文档修改。
 license: MIT
 metadata:
-  version: "1.0.4"
+  version: "1.0.5"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
@@ -12,8 +12,8 @@ metadata:
 
 ## 何时使用
 
-- 记录变更（创建变更集）、消费变更集发版、格式化 CHANGELOG
-- 触发词：changeset / 变更集 / 发版 / version / CHANGELOG 格式化
+- 记录变更（创建变更集）、消费变更集发版、格式化 CHANGELOG（语义触发，不要求字面一致）：changeset / 变更集 / 发版 / version / CHANGELOG 格式化 / 发一版 / 出个版本 / 记一下这次改动 / 生成更新日志
+- 触发前置条件：**用户明确表达发版或记录变更意图**。纯日常对话出现「版本」字样不触发
 
 **何时不使用**：日常 commit message 撰写、与发版无关的文档修改。
 
