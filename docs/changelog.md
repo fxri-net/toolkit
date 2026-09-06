@@ -6,6 +6,14 @@ outline: false
 
 > 完整变更历史以随包发布的 CHANGELOG.md 为准，本页由 `pnpm sync:changelog-doc` 从根 CHANGELOG.md 自动同步，请勿手改。
 
+## 1.8.2
+
+> 2026-09-06 发布
+
+### 🐛 补丁修复
+
+- 修复「未提交任务文件无法恢复会话」的过度归因：恢复读磁盘 `.tasks/` 文件而非 git，同机同目录下未提交也能恢复；git 提交仅保障跨环境（换机/工作区清理）持久性。fxri-session-recap 失败模式表与 docs/guide 反模式句同步修正并补边界说明。
+
 ## 1.8.1
 
 > 2026-09-06 发布
