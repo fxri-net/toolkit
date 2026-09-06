@@ -6,6 +6,16 @@ outline: false
 
 > 完整变更历史以随包发布的 CHANGELOG.md 为准，本页由 `pnpm sync:changelog-doc` 从根 CHANGELOG.md 自动同步，请勿手改。
 
+## 1.8.1
+
+> 2026-09-06 发布
+
+### 🐛 补丁修复
+
+- 文档：guide.md「conventions.md 规范沉淀地」补两种形态说明——条文式（无规则层项目存全文）/ 溯源索引式（有 AGENTS/全局规则项目指向单一事实源），skill 写入读取机制两种形态均支持
+- 技能：fxri-plan-to-task 升级 1.1.1——状态机补阻塞解除归属：进入阻塞记录原因，解除阻塞须用户确认并转回进行中
+- 文档：skills/README 发布前核对清单补强——技能用途描述须同步 docs/guide 技能表与「技能列表」表；变更走本仓库质量门（三方一致 + tasks check + pnpm test）
+
 ## 1.8.0
 
 > 2026-09-06 发布
