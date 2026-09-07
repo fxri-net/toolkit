@@ -334,3 +334,45 @@ describe("换行风格回归", () => {
     rmSync(dir, { recursive: true, force: true })
   })
 })
+
+describe("范围形态归一与人工提示", () => {
+  it("顿号分隔范围 check 报可修、--fix 归一为半角加号", () => {
+    const dir = makeDir()
+    const month = join(dir, "archive", "202609")
+    mkdirSync(month, { recursive: true })
+    writeFileSync(
+      join(month, "20260905.md"),
+      "# 20260905 归档\n\n## 20260905-张三-复合\n\n> 负责人：张三　状态：已完成　范围：core、docs　完成时间：2026-09-05 10:00\n\n正文\n",
+      "utf8",
+    )
+    const hits = checkArchive(dir).filter((i) => i.message.includes("顿号"))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]?.fixable).toBe(true)
+    const res = fixArchive(dir)
+    expect(res.fixed).toBeGreaterThan(0)
+    const text = readFileSync(join(month, "20260905.md"), "utf8")
+    expect(text).toContain("范围：core+docs")
+    // 修复后不再检出
+    expect(checkArchive(dir).some((i) => i.message.includes("顿号"))).toBe(false)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("括号注释范围仅提示人工、--fix 不自动删留", () => {
+    const dir = makeDir()
+    const month = join(dir, "archive", "202609")
+    mkdirSync(month, { recursive: true })
+    writeFileSync(
+      join(month, "20260905.md"),
+      "# 20260905 归档\n\n## 20260905-张三-带注\n\n> 负责人：张三　状态：已完成　范围：pub-facade(注释)　完成时间：2026-09-05 10:00\n\n正文\n",
+      "utf8",
+    )
+    const hits = checkArchive(dir).filter((i) => i.message.includes("括号"))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]?.fixable).toBe(false)
+    const res = fixArchive(dir)
+    expect(res.fixed).toBe(0)
+    expect(res.issues.some((i) => i.message.includes("括号"))).toBe(true)
+    expect(readFileSync(join(month, "20260905.md"), "utf8")).toContain("范围：pub-facade(注释)")
+    rmSync(dir, { recursive: true, force: true })
+  })
+})

@@ -45,7 +45,7 @@ ESM 与 CJS 双形态入口（`import` / `require` 均可）；类型随函数�
 | --- | --- |
 | `archiveTasks(dir?, redact?, options?)` | 任务级归档；`options.dryRun` 预演、`options.warn` 软告警开关；内部含排他锁 |
 | `validateTaskFile(file)` / `validateTasks(dir?)` | active 校验，返回 `CheckResult`（`errorCount`/`warnCount`/`issues[]`） |
-| `checkArchive(dir?)` / `fixArchive(dir?)` | 归档归一化检查 / 修复：补元数据、`--fix`（options 无关，直接修复）把日期漂移块迁移到与完成时间一致的归档文件、降序重排、清理空文件；检查含时间异常：完成时间晚于当前系统时间或恰为零点整（疑似只填日期被补零）仅报告，不自动改值 |
+| `checkArchive(dir?)` / `fixArchive(dir?)` | 归档归一化检查 / 修复：补元数据、`--fix`（options 无关，直接修复）把日期漂移块迁移到与完成时间一致的归档文件、降序重排、清理空文件；检查含时间异常（完成时间晚于当前系统时间或恰为零点整，疑似只填日期被补零）仅报告不自动改值，范围字段形态同理（顿号/逗号分隔 `--fix` 自动归一为半角加号，括号疑似注释仅报告需人工） |
 | `normalizeCompleted(completed)` | 完成时间定宽化 `YYYY-MM-DD HH:mm` |
 
 ## 导入导出

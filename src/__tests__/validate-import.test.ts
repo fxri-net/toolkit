@@ -86,6 +86,21 @@ describe("validateTasks 依赖与命名校验", () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
+  it("scope 含顿号/逗号/括号软告警，加号多值与干净单值不报", () => {
+    const dir = taskDir()
+    putFile(dir, "20260903-唐启云-d.md", valid().replace("scope: 测", "scope: a、b"))
+    putFile(dir, "20260903-唐启云-e.md", valid().replace("scope: 测", "scope: x(注释)"))
+    putFile(dir, "20260903-唐启云-f.md", valid().replace("scope: 测", "scope: a,b"))
+    putFile(dir, "20260903-唐启云-g.md", valid().replace("scope: 测", "scope: toolkit+lxgl-web"))
+    putFile(dir, "20260903-唐启云-h.md", valid())
+    const warns = warnTexts(dir)
+    expect(warns.some((m) => m.includes("scope「a、b」") && m.includes("半角加号"))).toBe(true)
+    expect(warns.some((m) => m.includes("scope「x(注释)」") && m.includes("移入正文"))).toBe(true)
+    expect(warns.some((m) => m.includes("scope「a,b」") && m.includes("半角加号"))).toBe(true)
+    expect(warns.filter((m) => m.includes("scope「toolkit+lxgl-web」") || m.includes("scope「测」"))).toHaveLength(0)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
   it("check.pendingMarkers=false 关闭词标记扫描（E8）", () => {
     const dir = taskDir()
     putFile(dir, "20260903-唐启云-m.md", valid("", "\n说明：仍有待办收尾项。\n"))
@@ -161,6 +176,19 @@ describe("importTasks 写入与映射", () => {
     const text = readFileSync(join(dir, "active", "202609", "20260903-甲-大写映射任务.md"), "utf8")
     expect(text).toContain("# 大写映射任务")
     expect(text).toContain("completed: '2026-09-02 08:00'")
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("导入范围含顿号/括号给单值提示（入口防线，不自动转换）", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-import4-"))
+    mkdirSync(join(dir, "active"), { recursive: true })
+    mkdirSync(join(dir, "archive"), { recursive: true })
+    const csv = join(dir, "in.csv")
+    writeFileSync(csv, "任务名,负责人,状态,范围,创建日期\n模块任务,甲,待办,service-job、admin-facade,20260903\n注释放错位,甲,待办,pub-facade(注释),20260903\n", "utf8")
+    const res = await importTasks(csv, dir, {})
+    expect(res.warnings.some((w) => w.includes("按单值写入"))).toBe(true)
+    // 只提示不改值：原样落盘，交由 check 口径约束
+    expect(readFileSync(join(dir, "active", "202609", "20260903-甲-模块任务.md"), "utf8")).toContain("scope: service-job、admin-facade")
     rmSync(dir, { recursive: true, force: true })
   })
 })

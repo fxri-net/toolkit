@@ -3,6 +3,7 @@
 import { readFileSync, unlinkSync, existsSync, mkdirSync, renameSync } from "node:fs"
 import { join, basename, dirname } from "node:path"
 import { normalizeCompleted, parseArchiveBlocks, renderBlock, completeMetaLine, scanOrphanBlocks } from "./archive-block"
+import { parseMetaSegments } from "./meta"
 import { removeEmptyDirs } from "./archive"
 import { listTaskFiles } from "./scan"
 import type { ArchiveBlockInfo } from "./archive-block"
@@ -28,6 +29,19 @@ const META_FIELDS = ["负责人", "状态", "范围", "完成时间"]
 // 判断元数据行是否含全部四字段
 function metaComplete(line: string): boolean {
   return META_FIELDS.every((f) => line.includes(f))
+}
+
+// 范围字段多值分隔符归一：顿号/全半角逗号列表归一为半角加号（与 scope 存储口径一致，格式归一不改语义）；
+// 不含需归一分隔符时返回 null
+function normalizeScopeSeparator(scope: string): string | null {
+  if (!/[、，,]/.test(scope)) return null
+  const parts = scope.split(/[、，,]/).map((s) => s.trim()).filter(Boolean)
+  return parts.length > 0 ? parts.join("+") : null
+}
+
+// 仅替换元数据行中的「范围」段值，其余段落原样保留（避免整行重建丢失未识别段）
+function replaceScopeValue(metaLine: string, scope: string): string {
+  return metaLine.replace(/(范围[：:])[^　]*/, `$1${scope}`)
 }
 
 // 只读检查 archive 目录，返回问题清单
@@ -87,6 +101,24 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
           message: `块「${b.title}」元数据行不完整（缺负责人/状态/范围之一）`,
           fixable: !!b.completed,
         })
+      }
+      // 范围字段形态检测：顿号/逗号分隔可 `--fix` 自动归一半角加号；括号疑似注释无法自动决定去留，需人工
+      if (b.metaLine) {
+        const seg = parseMetaSegments(b.metaLine)
+        if (seg.scope && /[、，,]/.test(seg.scope)) {
+          issues.push({
+            file: name,
+            message: `块「${b.title}」范围「${seg.scope}」含顿号/逗号疑似多值分隔，可 --fix 归一为半角加号`,
+            fixable: true,
+          })
+        }
+        if (seg.scope && /[()（）]/.test(seg.scope)) {
+          issues.push({
+            file: name,
+            message: `块「${b.title}」范围「${seg.scope}」含括号疑似注释，删留需人工确认`,
+            fixable: false,
+          })
+        }
       }
       // 完成时间漂移：completed 日期与归档文件日期不一致
       const norm = normalizeCompleted(b.completed)
@@ -193,6 +225,23 @@ export function fixArchive(tasksDir = ".tasks"): NormalizeResult {
           actions.push(`补元数据「${b.title}」`)
           changed = true
           fixed++
+        }
+      }
+
+      // 范围分隔符归一：顿号/逗号列表 → 半角加号（格式归一不改语义）；括号疑似注释无法自动删留，仅提示人工
+      for (const b of blocks) {
+        if (!b.metaLine) continue
+        const seg = parseMetaSegments(b.metaLine)
+        if (!seg.scope) continue
+        const norm = normalizeScopeSeparator(seg.scope)
+        if (norm) {
+          b.metaLine = replaceScopeValue(b.metaLine, norm)
+          actions.push(`范围分隔归一「${b.title}」`)
+          changed = true
+          fixed++
+        }
+        if (/[()（）]/.test(seg.scope)) {
+          issues.push({ file: name, message: `块「${b.title}」范围「${seg.scope}」含括号疑似注释，删留需人工确认`, fixable: false })
         }
       }
 

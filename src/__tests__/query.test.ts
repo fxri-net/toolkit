@@ -35,4 +35,30 @@ describe("queryTasks 过滤", () => {
     expect(queryTasks(dir, "all", { owner: "王五", scope: "工程化" }).rows).toHaveLength(1)
     rmSync(dir, { recursive: true, force: true })
   })
+
+  it("scope 加号复合值按任一段命中（存储多值口径，active 与归档同逻辑）", () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-query-"))
+    mkdirSync(join(dir, "active", "202609"), { recursive: true })
+    mkdirSync(join(dir, "archive", "202609"), { recursive: true })
+    const put = (name: string, scope: string) =>
+      writeFileSync(
+        join(dir, "active", "202609", name),
+        `---\nowner: 唐启云\nstatus: 待办\ncreated: 20260903\nupdated: 20260903\ncompleted: ''\ndepends_on: []\nscope: ${scope}\n---\n\n# ${name}\n`,
+        "utf8",
+      )
+    put("20260903-唐启云-active复合.md", "toolkit+lxgl-web")
+    put("20260903-唐启云-active单值.md", "cli")
+    writeFileSync(
+      join(dir, "archive", "202609", "20260905.md"),
+      "# 20260905 归档\n\n## 20260905-唐启云-archived复合\n\n> 负责人：唐启云　状态：已完成　范围：toolkit+lxgl-web　完成时间：2026-09-05 10:00\n\n正文\n",
+      "utf8",
+    )
+    // 过滤值命中复合范围的任一段即中，不再要求整串相等
+    expect(queryTasks(dir, "all", { scope: ["toolkit"] }).rows).toHaveLength(2)
+    expect(queryTasks(dir, "all", { scope: ["lxgl-web", "cli"] }).rows).toHaveLength(3)
+    expect(queryTasks(dir, "all", { scope: ["docs"] }).rows).toHaveLength(0)
+    expect(queryTasks(dir, "active", { scope: ["toolkit"] }).rows).toHaveLength(1)
+    expect(queryTasks(dir, "archived", { scope: ["lxgl-web"] }).rows).toHaveLength(1)
+    rmSync(dir, { recursive: true, force: true })
+  })
 })

@@ -97,6 +97,16 @@ describe("computeStats", () => {
     expect(stats.byScope).toEqual({ core: 1, docs: 1 })
   })
 
+  it("范围多值拆段各计（core+docs 计入 core 与 docs 双桶）", () => {
+    const dir = makeDir()
+    writeArchive(dir, "20260905", [
+      "## 20260905-张三-复合范围\n\n> 负责人：张三　状态：已完成　范围：core+docs　完成时间：2026-09-05 10:00\n\n正文\n",
+      "## 20260905-李四-单范围\n\n> 负责人：李四　状态：已完成　范围：docs　完成时间：2026-09-05 09:00\n\n正文\n",
+    ])
+    const stats = computeStats(dir)
+    expect(stats.byScope).toEqual({ core: 1, docs: 2 })
+  })
+
   it("滞留时长 = 统计日 − 创建日，不含已完结状态", () => {
     freezeToday("2026-09-05")
     const dir = makeDir()

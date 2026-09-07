@@ -203,6 +203,10 @@ function normalizeRecord(rec: Record<string, string>, opts: ImportOptions, warni
   let owner = (rec.owner || "").trim() || opts.owner || ""
   owner = owner.replace(/\s+/g, "")
   const scope = (rec.scope || "").trim() || opts.scope || "-"
+  // 范围字段形态入口提示：表格单元格常见顿号/逗号列表写法，此处只提示不自动转换（转换存在「分隔还是内容」的语义二义）
+  if (rec.scope && /[、，,()（）]/.test(rec.scope.trim())) {
+    warnings.push(`任务「${title}」范围「${rec.scope.trim()}」含顿号/逗号/括号，将按单值写入；多值请用半角加号（如 toolkit+lxgl-web），括号注释请移入正文`)
+  }
   const depends = (rec.depends || "").split(/[,，;；]/).map((s) => s.trim()).filter(Boolean)
   return {
     ok: true,

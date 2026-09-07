@@ -117,6 +117,18 @@ export function validateTaskFile(file: string): CheckIssue[] {
     issues.push({ level: "warn", file: name, message: `文件名日期 ${nameMatch[1]} 与 created ${fm.created.trim()} 不一致` })
   }
 
+  // 范围字段形态软告警：scope 为分类短词，多值以半角加号分隔；
+  // 顿号/逗号疑似多值分隔误写、括号疑似注释污染，均给出修复指引（高置信项才提示，斜杠/空格不纳入避免噪音）
+  if (fm.scope) {
+    const s = fm.scope.trim()
+    if (/[、，,]/.test(s)) {
+      issues.push({ level: "warn", file: name, message: `scope「${fm.scope}」含顿号/逗号疑似多值分隔，多值请改用半角加号连接（如 scope: toolkit+lxgl-web）` })
+    }
+    if (/[()（）]/.test(s)) {
+      issues.push({ level: "warn", file: name, message: `scope「${fm.scope}」含括号疑似注释性文字，说明请移入正文` })
+    }
+  }
+
   // 方案正文子项未闭合扫描（软告警，不阻断；check.pendingMarkers=false 可关闭词标记扫描）
   // 跳过 H1 标题，避免标题含「待办」等词被误报（去标题逻辑与展示层收口于 parse.ts）
   const body = bodyWithoutTitle(stripFrontmatter(content))

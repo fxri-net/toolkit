@@ -72,16 +72,30 @@ export function listArchivedTasks(tasksDir = ".tasks"): TaskRow[] {
   return rows
 }
 
-// 命中集合式过滤（owner/scope/status 支持多值）
+// 范围字段多值拆分：scope 以半角加号分隔多值（toolkit+lxgl-web），逐段去首尾空白并忽略空段
+export function splitScope(value: string): string[] {
+  return value.split("+").map((s) => s.trim()).filter(Boolean)
+}
+
+// scope 命中：过滤值（CLI 侧已按逗号拆多值）与任务范围任一段相等即命中；
+// 覆盖单段标签（scope: toolkit）与加号复合标签（scope: toolkit+lxgl-web），避免整串精确匹配漏掉复合归属
+function scopeHit(v: string | string[] | undefined, target: string): boolean {
+  if (v === undefined) return true
+  const want = Array.isArray(v) ? v : [v]
+  const have = splitScope(target)
+  return want.some((w) => have.includes(w))
+}
+
+// 命中集合式过滤（owner/status 整串精确；scope 走分段命中；三者均支持多值）
 function inMatch(v: string | string[] | undefined, target: string): boolean {
   if (v === undefined) return true
   return Array.isArray(v) ? v.includes(target) : v === target
 }
 
-// 单行是否命中过滤条件（owner/scope/status 精确匹配；时间：待完成看创建/更新，已归档看完成时间）
+// 单行是否命中过滤条件（owner/status 精确匹配、scope 分段命中任一；时间：待完成看创建/更新，已归档看完成时间）
 function matchRow(r: TaskRow, f: TaskFilter): boolean {
   if (!inMatch(f.owner, r.owner)) return false
-  if (!inMatch(f.scope, r.scope)) return false
+  if (!scopeHit(f.scope, r.scope)) return false
   if (!inMatch(f.status, r.status)) return false
   if (f.date || f.since || f.until) {
     const since = f.date ? toYmd(f.date) : toYmd(f.since || "")

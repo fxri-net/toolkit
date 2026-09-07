@@ -5,7 +5,7 @@
 import { toYmd, todayDash } from "../date"
 import { DONE_STATUSES } from "./types"
 import type { TaskRow, TaskFilter } from "./types"
-import { queryTasks } from "./query"
+import { queryTasks, splitScope } from "./query"
 
 // 单条周期样本（天）
 interface DurationSample {
@@ -98,14 +98,14 @@ export function computeStats(tasksDir: string, filter: TaskFilter = {}): TaskSta
   for (const b of DURATION_BUCKETS) buckets[b.label] = 0
   for (const s of samples) bump(buckets, bucketOf(s.days))
 
-  // 吞吐汇总（按完成月 YYYY-MM / 负责人 / 范围）
+  // 吞吐汇总（按完成月 YYYY-MM / 负责人 / 范围）；范围多值拆段各计（toolkit+lxgl-web 双桶各 +1）
   const byMonth: Record<string, number> = {}
   const byOwner: Record<string, number> = {}
   const byScope: Record<string, number> = {}
   for (const s of samples) {
     bump(byMonth, s.doneDate.slice(0, 7))
     bump(byOwner, s.owner)
-    bump(byScope, s.scope)
+    for (const seg of splitScope(s.scope)) bump(byScope, seg)
   }
 
   // 活跃滞留：统计日 − 创建日（缺创建日期的行跳过）

@@ -38,7 +38,7 @@ created: 20260902     # 创建日 YYYYMMDD，须等于文件名日期前缀
 updated: 20260902     # 最近更新日 YYYYMMDD
 completed: ''         # 完成时间 YYYY-MM-DD HH:mm；仅终结态必填
 depends_on: []        # 依赖的任务文件名（可带 .md），目标必须存在且不得成环
-scope: app            # 影响范围
+scope: app            # 影响范围；多值以半角加号分隔（toolkit+lxgl-web），标签内不使用加号；顿号/逗号列表属误写会触发 check 软告警，中文列表请改用加号
 ---
 ```
 
