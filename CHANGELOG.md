@@ -1,5 +1,37 @@
 # 方弦工具集
 
+## 1.9.0
+
+> 2026-09-12 发布
+
+### ✨ 新增功能
+
+- 新增 `toolkit skills` 命令域：技能随包分发、与 CLI 同源同版本，升级只需 `pnpm add -g @fxri/toolkit`，告别「CLI 走 npm、技能走 GitHub」两条供应链的版本漂移
+
+  - `toolkit skills install [--copy] [--dir <path>] [--dry-run] [--force] [--format json]`：取自包内 `skills/` 唯一真源，默认软链（升级自动跟随）；链接创建失败自动降级为副本并打印 ⚠️。目标三层：主目标 `~/.agents/skills/`（多家 agent 共读）→ 内置表内已安装的各 agent 全局技能目录 → `--dir` 兜底表外 agent
+  - `toolkit skills status [--format json]`：报告链接与副本现场——软链正常 / 悬空 / 指向别处 / 副本已同步 / 副本已漂移 / 缺失 / 同名冲突
+  - `toolkit skills remove [--dry-run] [--format json]`：只清理本包状态文件登记的产物，绝不误删用户自装技能；卸载 CLI 前先跑它可避免留下悬空链接
+  - `toolkit skills path [--format json]`：输出包根路径，便于委托上游安装器覆盖表外 agent
+  - `--format json` 输出机器可读报告到 stdout，四个子命令统一携带 `schemaVersion: 1` 锚点；`install` / `remove` 另带 `dryRun` 字段区分预演与实跑
+  - 新增配置 `skills.autoLink`（默认 `true`）：每次运行 CLI 时自动补链并修复指向错误的链接（CI 环境跳过、失败静默，可用 `.toolkitrc.json` 关闭）
+  - 新增配置 `skills.autoLinkReplaceForeign`（默认 `true`）：自愈遇到同名实体目录 / 普通文件时先清理再重建为软链；设为 `false` 则一律不动，交由 `toolkit skills install --force` 显式处置
+  - 升级提示与文档口径统一为一条命令：升级后开新会话即可加载最新技能
+  - 文档补充「从上游安装器迁移到内置命令」的指引：旧流程在 `~/.agents/skills/` 残留的实体副本会被报为同名冲突，`toolkit skills install --force` 一键接管；并提示不要与上游安装器混用，否则升级时冲突复发
+
+### 🐛 补丁修复
+
+- 优化技能链接自愈的开销与稳定性，并修正 `toolkit skills status` 的处置指引
+
+  - 自愈改为一次列目录取现场条目类型，不再逐条 `lstatSync`，稳态开销明显下降
+  - `toolkit skills status` 末尾汇总按型给出指引：缺失 / 悬空 / 指向错误 / 副本漂移用 `install` 补齐，同名冲突用 `install --force` 覆盖
+  - 收窄状态分类口径：同名实体目录只有登记为本包副本时才算「副本已漂移」（裸 `install` 即可刷新），未登记的属用户 / 上游产物，报「同名冲突」并需 `--force` 覆盖
+  - 修复自愈「重建失败」时状态记录被静默写掉的问题：失败条目保留在 `~/.agents/.toolkit-skills.json`，下次运行仍会重试
+
+- 修复诊断提示污染机器可读输出：链接自愈提示与升级提示改走 stderr，stdout 保持纯 JSON
+
+  - `toolkit tasks --format json` 等机器可读输出不再被追加提示文本，可安全 `JSON.parse` 与管道消费
+  - `updateCheck` 的缓存文件带 BOM 时不再误判为损坏而重复联网（与配置文件、技能状态文件同口径剥离 BOM）
+
 ## 1.8.3
 
 > 2026-09-07 发布
