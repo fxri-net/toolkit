@@ -12,3 +12,4 @@
 - 新增配置 `skills.autoLink`（默认 `true`）：每次运行 CLI 时自动补链并修复指向错误的链接（CI 环境跳过、失败静默，可用 `.toolkitrc.json` 关闭）
 - 新增配置 `skills.autoLinkReplaceForeign`（默认 `true`）：自愈遇到同名实体目录 / 普通文件时先清理再重建为软链；设为 `false` 则一律不动，交由 `toolkit skills install --force` 显式处置
 - 升级提示与文档口径统一为一条命令：升级后开新会话即可加载最新技能
+- 文档补充「从上游安装器迁移到内置命令」的指引：旧流程在 `~/.agents/skills/` 残留的实体副本会被报为同名冲突，`toolkit skills install --force` 一键接管；并提示不要与上游安装器混用，否则升级时冲突复发

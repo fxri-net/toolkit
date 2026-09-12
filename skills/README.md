@@ -44,6 +44,8 @@ pnpm dlx skills list / update / remove                         # 查看 / 升级
 
 - 项目级安装默认写 `.agents/skills/` 并对各 agent 目录建立符号链接；团队项目把生成的 `skills-lock.json` 提交进仓库以对齐版本；单人多项目加 `-g` 全局安装
 - 内置命令已覆盖的场景优先用方式一：方式二的技能走 GitHub、CLI 走 npm，两条供应链易出现版本漂移
+- ⚠️ 两条路径不要混用：上游安装器把技能落成**实体副本**，且不在本包状态文件 `~/.agents/.toolkit-skills.json` 的登记内，内置命令会把它判为「同名非本包产物」——混用后 `toolkit skills status` 报「同名冲突」，且再跑一次 `pnpm dlx skills update -g` 会把 `~/.agents/skills/` 重写回实体副本，冲突复发
+- 已用方式二装过、想换回方式一：`toolkit skills install --force` 一键接管同名旧副本，详见 [FAQ](https://fxri-net.github.io/toolkit/faq)
 
 #### GitHub 拉取受限时（国内网络 / 内网）
 

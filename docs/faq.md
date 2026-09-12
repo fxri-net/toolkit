@@ -88,6 +88,16 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 - **CLI 本体**：走 npm registry，与镜像无关；npm 源提速可 `pnpm config set registry https://registry.npmmirror.com`（npm 用户把 `pnpm config` 换成 `npm config`）
 - **问题反馈**：[Gitee Issues](https://gitee.com/fxri/toolkit/issues)
 
+### 之前用 `npx skills` 装过，改用内置命令提示同名冲突怎么办？
+
+上游安装器把技能落成 `~/.agents/skills/` 下的**实体副本**，且不在本包状态文件 `~/.agents/.toolkit-skills.json` 的登记内，内置命令因此把它判为「同名非本包产物」并报成「同名冲突」。一条命令接管：
+
+```bash
+toolkit skills install --force   # 把各目标下的同名旧副本重建为软链（无权限建链时降级为副本）
+```
+
+⚠️ 迁移后两条路径不要混用：再跑 `pnpm dlx skills update -g`（npm 用户 `npx skills update -g`）会把该目录重写回实体副本，冲突复发。迁移后 `skills-lock.json` 不再被任何一方维护，可删除，避免与内置命令的真实状态不一致。
+
 ### 卸载工具时 skills 怎么办？
 
 **先清技能、再卸工具**：
