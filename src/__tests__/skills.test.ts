@@ -285,6 +285,23 @@ describe("skillsStatus 现场状态", () => {
     expect(stateOf(primaryDir(), gone)).toBe("missing")
   })
 
+  it("未登记的同名目录报同名冲突（裸 install 跳过、--force 才覆盖），登记为本包副本的漂移才报副本漂移", () => {
+    const name = listPackageSkills()[0].name
+    const dest = join(primaryDir(), name)
+    mkdirSync(dest, { recursive: true })
+    writeFileSync(join(dest, "SKILL.md"), "foreign", "utf8")
+    // 未登记来源：报同名冲突，裸 install 按冲突跳过，--force 才重建
+    expect(stateOf(primaryDir(), name)).toBe("conflict")
+    expect(targetOf(installSkills(), "primary").conflicts).toContain(name)
+    expect(targetOf(installSkills({ force: true }), "primary").updated).toContain(name)
+    // 同一现场登记为本包副本后，内容不一致才归为副本漂移
+    writeState([{ dir: primaryDir(), copies: [name] }])
+    rmSync(dest, { recursive: true, force: true })
+    mkdirSync(dest, { recursive: true })
+    writeFileSync(join(dest, "SKILL.md"), "changed", "utf8")
+    expect(stateOf(primaryDir(), name)).toBe("copy-drift")
+  })
+
   it("未安装的 agent 汇总进 pendingAgents，供 --dir 兜底提示", () => {
     const status = skillsStatus()
     expect(status.pendingAgents.some((a) => a.dir === agentDir("claude-code"))).toBe(true)

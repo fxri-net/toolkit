@@ -175,7 +175,7 @@ function printStatusReport(report: SkillsStatusReport): void {
   console.log("")
   console.log(
     problems > 0
-      ? `共 ${problems} 处需处理：缺失 / 悬空 / 指向错误执行 toolkit skills install 补齐，副本漂移 / 同名冲突执行 toolkit skills install --force 覆盖`
+      ? `共 ${problems} 处需处理：缺失 / 悬空 / 指向错误 / 副本漂移用 toolkit skills install 补齐，同名冲突用 toolkit skills install --force 覆盖`
       : "所有已纳入的目标均正常",
   )
 }

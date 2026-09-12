@@ -585,7 +585,7 @@ export function removeSkills(options: { dryRun?: boolean } = {}): SkillsRemoveRe
   return { stateFile, stateExists: true, targets: results, stateRemoved }
 }
 
-// 现场状态：目标目录存在或状态文件有记录时逐技能判定，供 status 报告悬空 / 指向错误 / 副本漂移
+// 现场状态：目标目录存在或状态文件有记录时逐技能判定，供 status 报告悬空 / 指向错误 / 副本漂移 / 同名冲突
 export function skillsStatus(): SkillsStatusReport {
   const skills = listPackageSkills()
   const targets = resolveSkillTargets([])
@@ -614,8 +614,12 @@ export function skillsStatus(): SkillsStatusReport {
       else if (kind === "dangling") state = "dangling"
       else if (kind === "wrong") state = "wrong"
       else if (kind === "file") state = "conflict"
-      else if (kind === "dir") state = existsSync(source) && dirsEqual(source, dest) ? "copy" : "copy-drift"
-      else state = "missing"
+      else if (kind === "dir") {
+        // 实体目录按来源分流：状态文件登记为本包副本才叫漂移（裸 install 可刷新），
+        // 未登记的同名目录属用户/上游产物，裸 install 会按冲突跳过、需 --force
+        if (existsSync(source) && dirsEqual(source, dest)) state = "copy"
+        else state = recorded?.copies.includes(name) ? "copy-drift" : "conflict"
+      } else state = "missing"
       items.push({ name, state })
     }
     out.push({ dir: target.dir, label: target.label, kind: target.kind, available: target.available, dirExists: target.dirExists, recorded: Boolean(recorded), items })
