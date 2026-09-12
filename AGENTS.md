@@ -20,6 +20,7 @@
 ## 验收方式
 
 - grep 确认文档与 skills 措辞落地；
+- `pnpm lint` 通过（静态检查，不得只跑测试与任务校验）；
 - `toolkit tasks check` 通过（error 与 warn 均应为 0，除非任务规格另有豁免）；
 - `pnpm test` 通过。
 

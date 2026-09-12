@@ -29,7 +29,6 @@ import {
   removeSkills,
   skillsPackageDir,
   skillsSourceDir,
-  skillsStateFile,
   skillsStatus,
   type InstallReport,
   type SkillItemState,

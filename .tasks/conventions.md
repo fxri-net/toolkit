@@ -19,6 +19,7 @@
 | 10 | 修订留痕（元规则） | 规则语义变更不覆盖丢史：先在「演进记录」小节留痕，再更新表内当前语义 | 20260906-conventions修订留痕元规则 | 本文件「演进记录」节 |
 | 11 | 技能单一真源与同源分发 | 包内 `skills/` 为技能唯一真源，随包分发、与 CLI 同源同版本；改 skills 须发版才触达用户，不得再以上游安装器为主路径（仅作表外 agent 兜底） | 20260912-skills包内分发与全局安装 | skills/README.md（安装方式）+ AGENTS.md 质量门第 5 条 |
 | 12 | 机器可读输出与诊断提示分流 | stdout 只承载机器可读内容（如 `--format json`），提示与诊断（升级提示、链接自愈提示）一律走 stderr，不得混入 stdout | 20260912-修复提示污染标准输出 | docs/cli.md（`--format json` 行）+ docs/config.md（updateCheck / skills 段） |
+| 13 | 验收含静态检查 | 本仓库验收门禁含 `pnpm lint`，与 `toolkit tasks check`、`pnpm test` 并列；不得只跑测试与任务校验 | 20260912-修复技能域未使用导入 | AGENTS.md「验收方式」 |
 
 ## 二、演进记录（修订留痕）
 
