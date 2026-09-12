@@ -318,6 +318,24 @@ describe("skillsStatus 现场状态", () => {
     writeFileSync(skillsStateFile(), JSON.stringify({ version: 1, updatedAt: "", targets: "broken" }), "utf8")
     expect(readSkillsState()).toBeNull()
   })
+
+  it("现场报告 JSON 可序列化且字段齐备（--format json 契约）", () => {
+    const name = listPackageSkills()[0].name
+    mkdirSync(join(primaryDir(), name), { recursive: true })
+    writeFileSync(join(primaryDir(), name, "SKILL.md"), "foreign", "utf8")
+    const payload = JSON.parse(JSON.stringify(skillsStatus())) as {
+      source: string
+      stateFile: string
+      skills: string[]
+      pendingAgents: Array<{ dir: string }>
+      targets: Array<{ kind: string; dir: string; items: Array<{ name: string; state: string }> }>
+    }
+    expect(payload.skills).toHaveLength(listPackageSkills().length)
+    expect(payload.source).toBe(skillsSourceDir())
+    expect(payload.stateFile).toBe(skillsStateFile())
+    const primary = payload.targets.find((t) => t.kind === "primary")
+    expect(primary?.items.find((i) => i.name === name)?.state).toBe("conflict")
+  })
 })
 
 describe("removeSkills 精确清理", () => {

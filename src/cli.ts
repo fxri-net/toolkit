@@ -291,10 +291,18 @@ skillsCmd
 // 状态：报告悬空 / 指向错误 / 副本漂移 / 同名冲突 / 缺失，供人工决定是否重跑 install
 skillsCmd
   .command("status")
-  .description("查看各全局技能目录的现场状态（悬空 / 指向错误 / 副本漂移 / 缺失 / 冲突）")
-  .action(() => {
+  .description("查看各全局技能目录的现场状态（悬空 / 指向错误 / 副本漂移 / 缺失 / 同名冲突）")
+  .option("--format <format>", "输出格式（json，输出到 stdout）")
+  .action((options: { format?: string }) => {
     try {
-      printStatusReport(skillsStatus())
+      if (options.format && options.format !== "json") {
+        console.error(`⚠️ 不支持的输出格式「${options.format}」，仅支持 json`)
+        process.exitCode = 1
+        return
+      }
+      const report = skillsStatus()
+      if (options.format === "json") console.log(JSON.stringify(report, null, 2))
+      else printStatusReport(report)
     } catch (e) {
       console.error(`⚠️ 读取状态失败：${(e as Error).message}`)
       process.exitCode = 1
@@ -319,10 +327,15 @@ skillsCmd
 skillsCmd
   .command("path")
   .description("输出包根路径（内含 skills/，可委托上游安装器安装到表外 agent）")
-  .option("--json", "以 JSON 输出（包根、技能源目录、技能清单）")
-  .action((options: { json?: boolean }) => {
+  .option("--format <format>", "输出格式（json：包根、技能源目录、技能清单）")
+  .action((options: { format?: string }) => {
     try {
-      if (options.json) {
+      if (options.format && options.format !== "json") {
+        console.error(`⚠️ 不支持的输出格式「${options.format}」，仅支持 json`)
+        process.exitCode = 1
+        return
+      }
+      if (options.format === "json") {
         console.log(
           JSON.stringify({ package: skillsPackageDir(), source: skillsSourceDir(), skills: listPackageSkills().map((s) => s.name) }, null, 2),
         )

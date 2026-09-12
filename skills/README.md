@@ -21,7 +21,8 @@
 ```bash
 pnpm add -g @fxri/toolkit   # 1. 装 CLI（npm 用户 npm i -g @fxri/toolkit）
 toolkit skills install      # 2. 把包内技能装到各 agent 的全局技能目录
-toolkit skills status       # 查现场状态（悬空 / 指向错误 / 副本漂移 / 缺失 / 冲突）
+toolkit skills status       # 查现场状态（悬空 / 指向错误 / 副本漂移 / 缺失 / 同名冲突）
+                            # 前四类重跑 toolkit skills install 补齐，同名冲突需 toolkit skills install --force 覆盖
 toolkit skills remove       # 卸载本包装的产物（只清自己装的，不碰用户自装技能）
 ```
 

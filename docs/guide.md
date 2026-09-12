@@ -96,7 +96,7 @@
 <!-- AGENTS.md（Claude Code / Codex 等通用）或各 agent 的项目 rules 文件 -->
 # 本项目协作约定
 
-- 本项目启用 @fxri/toolkit 任务工作流，技能已由 `toolkit skills install` 分发到全局技能目录（`toolkit skills path --json` 可查包根、真源目录与技能清单）
+- 本项目启用 @fxri/toolkit 任务工作流，技能已由 `toolkit skills install` 分发到全局技能目录（`toolkit skills path --format json` 可查包根、真源目录与技能清单）
 - 方案确认后必须落盘为 .tasks/ 任务文件；若提交代码：先归档与沉淀、后提交，归档文件与代码变更同一提交
 ```
 

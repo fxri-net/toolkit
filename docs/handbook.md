@@ -99,7 +99,8 @@ pnpm exec toolkit changelog --lang en format # 其他语言格式化
 ```bash
 # 全局安装（推荐）
 pnpm add -g @fxri/toolkit
-toolkit skills status   # 可选：检查现场（悬空 / 指向错误 / 副本漂移 / 缺失 / 冲突）
+toolkit skills status   # 可选：检查现场（悬空 / 指向错误 / 副本漂移 / 缺失 / 同名冲突）
+                        # 前四类重跑 toolkit skills install 补齐，同名冲突需 toolkit skills install --force 覆盖
 
 # 项目内（版本随仓库锁定）
 pnpm up @fxri/toolkit
