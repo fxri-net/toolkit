@@ -78,7 +78,7 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 | 选项 | 说明 |
 | --- | --- |
 | `--export <path>` | 导出到文件，按扩展名驱动：`.csv`（UTF-8 BOM 超集列）/ `.xlsx`（三 sheet）/ `.json`（`{ schemaVersion: 1, summary, items }`）；目录不存在自动创建 |
-| `--format json` | JSON 输出到 stdout；与 `--export` 互斥 |
+| `--format json` | JSON 输出到 stdout；诊断与提示信息（升级提示、链接自愈提示）一律走 stderr，不干扰机器解析；与 `--export` 互斥 |
 | `--import <file>` | 从 `.csv`/`.xlsx`/`.json` 导入；独立模式，不能与子命令、`--export`、`--format` 同用；`--owner`/`--scope` 可同用，作为导入行缺失字段的默认值 |
 | `--target <target>` | 导入目标 `active`（默认，生成任务文件）/ `archive`（直接写归档块） |
 

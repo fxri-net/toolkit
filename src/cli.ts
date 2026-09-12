@@ -584,7 +584,8 @@ ensureUtf8()
 async function main(): Promise<void> {
   // 链接自愈先于命令执行：升级后旧链接悬空时本次命令即复位（开关 skills.autoLink，CI 环境自动跳过）
   const repaired = autoLinkSkills()
-  if (repaired > 0) console.log(`已自动修复 ${repaired} 个技能链接（如不需要可配置 .toolkitrc.json 的 skills.autoLink: false 关闭）`)
+  // 提示走 stderr：stdout 为机器可读输出（--format json）的专用通道，不得混入诊断信息
+  if (repaired > 0) console.error(`已自动修复 ${repaired} 个技能链接（如不需要可配置 .toolkitrc.json 的 skills.autoLink: false 关闭）`)
   await program.parseAsync(process.argv)
   void startUpdateCheck(version)
 }

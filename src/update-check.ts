@@ -22,7 +22,8 @@ function readCache(): { latest: string } | null {
   const file = cacheFile()
   try {
     if (!existsSync(file)) return null
-    const data = JSON.parse(readFileSync(file, "utf8")) as { ts?: unknown; latest?: unknown }
+    // 与 config.ts / skills.ts 同口径：先剥 BOM 再解析，避免带 BOM 缓存被误判为损坏
+    const data = JSON.parse(readFileSync(file, "utf8").replace(/^\uFEFF/, "")) as { ts?: unknown; latest?: unknown }
     const ts = typeof data.ts === "number" ? data.ts : 0
     const latest = typeof data.latest === "string" ? data.latest : ""
     if (!latest) return null
@@ -80,9 +81,9 @@ export async function startUpdateCheck(currentVersion: string): Promise<void> {
   if (versionGt(fetched, currentVersion)) notify(fetched, currentVersion)
 }
 
-// 输出一行升级提示（异步回调中执行，可能与后续输出交错但间隔极短，不影响可读性）
+// 输出一行升级提示到 stderr：stdout 为机器可读输出（--format json）的专用通道，不得混入诊断信息
 function notify(latest: string, current: string): void {
-  console.log(
+  console.error(
     `⬆️ 发现新版本 ${latest}（当前 ${current}）：pnpm add -g @fxri/toolkit 升级后请开新会话加载最新 skills 规则；` +
       "本地技能可用 toolkit skills status 检查（软链自动跟随，副本形式需重跑 toolkit skills install）",
   )

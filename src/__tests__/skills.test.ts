@@ -1,6 +1,6 @@
 // skills 包内分发：目标解析、安装（软链 / 副本 / 幂等 / 冲突）、现场状态、卸载与链接自愈
 // 用例统一把 home 注入独立临时目录，产物只落在临时目录，绝不触碰真实用户全局技能目录
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -410,5 +410,21 @@ describe("autoLinkSkills 链接自愈", () => {
     process.env.CI = "1"
     expect(autoLinkSkills()).toBe(0)
     expect(existsSync(join(primaryDir(), "fxri-plan-to-task"))).toBe(false)
+  })
+
+  it("自愈只返回计数，不向 stdout 写任何内容（提示由调用方走 stderr）", () => {
+    const out: string[] = []
+    const log = vi.spyOn(console, "log").mockImplementation((...a: unknown[]) => out.push(a.join(" ")))
+    const err = vi.spyOn(console, "error").mockImplementation((...a: unknown[]) => out.push(a.join(" ")))
+    try {
+      mkdirSync(primaryDir(), { recursive: true })
+      writeState([{ dir: primaryDir(), links: ["fxri-plan-to-task"] }])
+      expect(autoLinkSkills()).toBe(1)
+      // 修链提示在 CLI 层输出，函数本身必须静默，避免混入 --format json 的 stdout
+      expect(out).toHaveLength(0)
+    } finally {
+      log.mockRestore()
+      err.mockRestore()
+    }
   })
 })
