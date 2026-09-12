@@ -4,7 +4,8 @@
 // 结构示例：
 // {
 //   "redact": { "enabled": true, "disable": [], "rules": [] },
-//   "check":  { "warnings": true }
+//   "check":  { "warnings": true },
+//   "skills": { "autoLink": true }
 // }
 import { existsSync, readFileSync } from "node:fs"
 import { join, dirname } from "node:path"
@@ -17,6 +18,11 @@ let cached: Record<string, unknown> | null | undefined
 let homeOverride: string | undefined
 export function setHomeDirForTest(dir: string | undefined): void {
   homeOverride = dir
+}
+
+// 当前生效的用户 home：测试注入优先，生产为 os.homedir()；供配置读取与 skills 分发等需要 home 的能力统一复用
+export function getHomeDir(): string {
+  return homeOverride ?? homedir()
 }
 
 // 读取并解析单个配置文件：不存在、JSON 非法（含顶层非对象）返回 null；BOM 一并剥离
@@ -47,7 +53,7 @@ function mergeSectioned(
 // 段级合并后返回；都没有返回 null
 export function loadToolkitConfig(): Record<string, unknown> | null {
   if (cached !== undefined) return cached
-  const globalCfg = readConfigFile(join(homeOverride ?? homedir(), ".toolkitrc.json"))
+  const globalCfg = readConfigFile(join(getHomeDir(), ".toolkitrc.json"))
   let projectCfg: Record<string, unknown> | null = null
   let dir = process.cwd()
   for (;;) {

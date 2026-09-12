@@ -128,3 +128,4 @@ metadata:
 - `toolkit tasks normalize`：模式三迁移核验（`--fix` 迁移 / 只读检查）
 - `toolkit tasks check`：落盘后校验
 - 任务目录非默认 `.tasks` 时加 `--dir <path>`
+- `toolkit skills install` / `toolkit skills status`：把本包 fxri-* 技能分发到各 agent 全局技能目录 / 查看链接与副本现场（技能与 CLI 同源同版本）

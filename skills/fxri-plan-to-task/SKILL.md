@@ -3,7 +3,7 @@ name: fxri-plan-to-task
 description: 将已确认的实施方案落盘为标准任务文件并跟踪至归档：动手前建档评估（查 active/archive 判同主题）、按模板建档、状态机更新、四级时间源取证、自查校验、任务级规范沉淀与手工归档。当用户确认方案后表达「开始落地/登记记录」的意图，或即将动手改仓库文件时使用——含建档、任务登记、落盘、归档、任务校验等说法及其口语近义表达（如按这个做吧、记一下、建个任务跟踪）均触发。不用于方案未确认的对话、会话收尾整场沉淀（fxri-session-recap 模式一）、与任务记录无关的普通 TODO、issue 管理或日常提交信息撰写。
 license: MIT
 metadata:
-  version: "1.1.2"
+  version: "1.1.3"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---

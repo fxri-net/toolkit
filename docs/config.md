@@ -25,7 +25,8 @@
   "check":       { "warnings": true, "includeCheckbox": true, "pendingMarkers": true },
   "tasks":       { "importColumns": {} },
   "changelog":   { "languages": {} },
-  "updateCheck": { "enabled": true }
+  "updateCheck": { "enabled": true },
+  "skills":      { "autoLink": true }
 }
 ```
 
@@ -117,6 +118,25 @@
 | `enabled` | boolean | `true` | 升级检查总开关；`false` 时 CLI 不发起任何网络请求 |
 
 CLI 每次命令执行末尾会异步查询 npm registry 最新版本（1 秒超时，离线/内网/超时静默失败），检测到新版本时输出一行升级提示；查询结果在系统临时目录缓存 24 小时，避免重复请求。关闭方式二选一：环境变量 `FX_NO_UPDATE_CHECK` 设为真值（`0/false/off/no` 视为未关闭，其余视为关闭），或本配置项设为 `false`。该检查不阻塞命令、不影响退出码。
+
+## skills：技能分发（1.9.0 新增）
+
+| 字段 | 类型 | 默认 | 说明 |
+| --- | --- | --- | --- |
+| `autoLink` | boolean | `true` | 链接自愈开关：每次执行 `toolkit` 命令时，对状态文件 `~/.agents/.toolkit-skills.json` 记载的**软链**做补链与修链（悬空、指向错误的链接重建） |
+
+**作用边界**（护栏）：
+
+- **只补链与修链**：不含首次安装（未安装过、无状态文件时不动作），不含副本刷新（副本形式的技能不自动升级，需重跑 `toolkit skills install`）
+- **`CI` 环境自动跳过**：检测到 `CI` 环境变量时不执行，避免污染流水线
+- **任何失败静默**：修链失败不影响命令本身，条目留在状态文件里下次再试
+- 修复发生时标准输出会打印一行 `已自动修复 N 个技能链接`；不需要可设 `false` 关闭
+
+```json
+{
+  "skills": { "autoLink": false }
+}
+```
 
 ## 相关页面
 

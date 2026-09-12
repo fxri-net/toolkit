@@ -83,6 +83,7 @@ export async function startUpdateCheck(currentVersion: string): Promise<void> {
 // 输出一行升级提示（异步回调中执行，可能与后续输出交错但间隔极短，不影响可读性）
 function notify(latest: string, current: string): void {
   console.log(
-    `⬆️ 发现新版本 ${latest}（当前 ${current}）：pnpm add -g @fxri/toolkit 升级后请开新会话加载最新 skills 规则`,
+    `⬆️ 发现新版本 ${latest}（当前 ${current}）：pnpm add -g @fxri/toolkit 升级后请开新会话加载最新 skills 规则；` +
+      "本地技能可用 toolkit skills status 检查（软链自动跟随，副本形式需重跑 toolkit skills install）",
   )
 }

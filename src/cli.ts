@@ -22,6 +22,20 @@ import { resolveRedactEnabled } from "./privacy/redact"
 import { resolveEnabled } from "./switch"
 import { getConfigSection, resolveTasksDir } from "./config"
 import { initWorkspace, INIT_LINKS } from "./init"
+import {
+  autoLinkSkills,
+  installSkills,
+  listPackageSkills,
+  removeSkills,
+  skillsPackageDir,
+  skillsSourceDir,
+  skillsStateFile,
+  skillsStatus,
+  type InstallReport,
+  type SkillItemState,
+  type SkillsRemoveReport,
+  type SkillsStatusReport,
+} from "./skills"
 import { startUpdateCheck } from "./update-check"
 
 const require = createRequire(import.meta.url)
@@ -93,6 +107,96 @@ function printIssues(issues: Array<{ file: string; message: string }>) {
   }
 }
 
+// 收集可多次出现的 --dir（commander collect 范式：默认 [] 逐个累积）
+function collectDir(value: string, previous: string[]): string[] {
+  return [...previous, value]
+}
+
+// 技能现场状态的中文文案（status 逐项输出用）
+const SKILL_STATE_LABEL: Record<SkillItemState, string> = {
+  link: "软链正常",
+  dangling: "软链悬空（真源缺失或升级后旧路径失效）",
+  wrong: "软链指向别处",
+  copy: "副本已同步",
+  "copy-drift": "副本已漂移（与真源不一致）",
+  missing: "缺失",
+  conflict: "同名冲突（非本包产物）",
+}
+
+// 需要处理的异常状态：status 汇总提示与 install 修复范围
+const SKILL_PROBLEM_STATES: SkillItemState[] = ["dangling", "wrong", "copy-drift", "missing", "conflict"]
+
+// 打印安装报告：按目标分组列出新建/更新/跳过/降级/失败，并给出未纳入目标的处理入口
+function printInstallReport(report: InstallReport, dryRun: boolean): void {
+  const tag = dryRun ? "[预演] " : ""
+  console.log(`${tag}技能源：${report.source}`)
+  console.log(`${tag}包内技能（${report.skills.length}）：${report.skills.join("、") || "无"}`)
+  for (const t of report.targets) {
+    console.log("")
+    console.log(`${t.label}：${t.dir}`)
+    if (t.created.length > 0) console.log(`  新建：${t.created.join("、")}`)
+    if (t.updated.length > 0) console.log(`  重建/更新：${t.updated.join("、")}`)
+    if (t.skipped.length > 0) console.log(`  跳过（已就绪）：${t.skipped.join("、")}`)
+    if (t.conflicts.length > 0) console.log(`  跳过（同名非本包产物，如需覆盖加 --force）：${t.conflicts.join("、")}`)
+    for (const d of t.degraded) console.log(`  ⚠️ 降级为副本：${d.name}（链接创建失败：${d.reason}）`)
+    for (const f of t.failed) console.log(`  ⚠️ 失败：${f.name}（${f.reason}）`)
+    const modes: string[] = []
+    if (t.links.length > 0) modes.push(`软链 ${t.links.length} 个`)
+    if (t.copies.length > 0) modes.push(`副本 ${t.copies.length} 个`)
+    if (modes.length > 0) console.log(`  产物形态：${modes.join(" / ")}`)
+  }
+  console.log("")
+  if (report.skippedTargets.length > 0) {
+    console.log(
+      `未安装的 agent ${report.skippedTargets.length} 个已跳过（不在用户机器上凭空造目录）；如需装到未识别的 agent：toolkit skills install --dir <其全局技能目录>`,
+    )
+  }
+  console.log(`${tag}状态文件：${report.stateFile}`)
+  if (dryRun) console.log("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行")
+}
+
+// 打印现场状态：逐目标逐技能标注状态，末尾汇总需处理的条目
+function printStatusReport(report: SkillsStatusReport): void {
+  console.log(`技能源：${report.source}`)
+  console.log(`状态文件：${report.stateFile}${report.stateExists ? "" : "（未记录，尚未执行过 toolkit skills install）"}`)
+  let problems = 0
+  for (const t of report.targets) {
+    console.log("")
+    console.log(`${t.label}：${t.dir}${t.dirExists ? "" : "（目录未创建）"}`)
+    for (const item of t.items) {
+      if (SKILL_PROBLEM_STATES.includes(item.state)) problems += 1
+      console.log(`  ${item.name}：${SKILL_STATE_LABEL[item.state]}`)
+    }
+  }
+  if (report.pendingAgents.length > 0) {
+    console.log("")
+    console.log(`未安装的 agent ${report.pendingAgents.length} 个未纳入分发（需要时用 toolkit skills install --dir <路径> 指定）`)
+  }
+  console.log("")
+  console.log(problems > 0 ? `共 ${problems} 处需处理：执行 toolkit skills install 可补齐缺失、重建悬空或指向错误的链接` : "所有已纳入的目标均正常")
+}
+
+// 打印卸载报告：按目标区分已移除 / 已不存在 / 需人工确认三类，并说明状态文件处置
+function printRemoveReport(report: SkillsRemoveReport, dryRun: boolean): void {
+  const tag = dryRun ? "[预演] " : ""
+  if (!report.stateExists) {
+    console.log("未找到本包的状态文件，没有由本包安装的产物需要清理（其他方式安装的技能不受影响）")
+    return
+  }
+  console.log(`${tag}状态文件：${report.stateFile}`)
+  for (const t of report.targets) {
+    console.log("")
+    console.log(`${t.dir}`)
+    if (t.removed.length > 0) console.log(`  ${dryRun ? "将移除" : "已移除"}：${t.removed.join("、")}`)
+    if (t.missing.length > 0) console.log(`  已不存在：${t.missing.join("、")}`)
+    if (t.skippedForeign.length > 0) console.log(`  ⚠️ 跳过（非本包产物或内容已被改动，请人工确认）：${t.skippedForeign.join("、")}`)
+  }
+  console.log("")
+  if (dryRun) console.log("[预演] 未执行删除；无遗留条目时将同时删除状态文件")
+  else if (report.stateRemoved) console.log("状态文件已删除，本包产物清理完毕")
+  else console.log("状态文件已保留（存在需人工确认或未移除的条目）")
+}
+
 // tasks 子命令与查询/导出/导入的选项集合
 interface TasksOptions {
   dir?: string
@@ -156,6 +260,81 @@ program
       process.exitCode = 1
     }
   })
+
+// skills 域：把包内 skills/ 分发到各 agent 的全局技能目录（真源唯一，默认软链以便升级自动跟随）
+const skillsCmd = program
+  .command("skills")
+  .description("AI 技能包分发：安装 / 状态 / 卸载 / 路径（包内 skills/ 为唯一真源）")
+
+// 安装：默认软链真源，链接创建失败自动降级副本；只写入「已安装」的 agent 目录，不凭空造目录
+skillsCmd
+  .command("install")
+  .description("安装包内技能到全局技能目录（默认软链真源，链接失败自动降级副本）")
+  .option("--copy", "强制以副本形式写入（不建软链）")
+  .option("--dir <path>", "额外目标目录（可多次指定，兜底内置表未收录的 agent）", collectDir, [])
+  .option("--dry-run", "预演（只预览将要执行的动作，不写文件）")
+  .option("--force", "覆盖同名非本包产物（默认跳过，避免破坏用户自装技能）")
+  .action((options: { copy?: boolean; dir: string[]; dryRun?: boolean; force?: boolean }) => {
+    try {
+      const report = installSkills({ copy: options.copy, dirs: options.dir, dryRun: options.dryRun, force: options.force })
+      printInstallReport(report, Boolean(options.dryRun))
+    } catch (e) {
+      console.error(`⚠️ 安装失败：${(e as Error).message}`)
+      process.exitCode = 1
+    }
+  })
+
+// 状态：报告悬空 / 指向错误 / 副本漂移 / 同名冲突 / 缺失，供人工决定是否重跑 install
+skillsCmd
+  .command("status")
+  .description("查看各全局技能目录的现场状态（悬空 / 指向错误 / 副本漂移 / 缺失 / 冲突）")
+  .action(() => {
+    try {
+      printStatusReport(skillsStatus())
+    } catch (e) {
+      console.error(`⚠️ 读取状态失败：${(e as Error).message}`)
+      process.exitCode = 1
+    }
+  })
+
+// 卸载：只清理状态文件记载的本包产物，绝不触碰用户自装技能或其他方式安装的技能
+skillsCmd
+  .command("remove")
+  .description("卸载由本包安装的技能产物（只清理状态文件记载的条目，不碰用户自装技能）")
+  .option("--dry-run", "预演（只预览将要移除的条目，不删文件）")
+  .action((options: { dryRun?: boolean }) => {
+    try {
+      printRemoveReport(removeSkills({ dryRun: options.dryRun }), Boolean(options.dryRun))
+    } catch (e) {
+      console.error(`⚠️ 卸载失败：${(e as Error).message}`)
+      process.exitCode = 1
+    }
+  })
+
+// 路径：输出包根（内含 skills/），便于委托上游安装器覆盖内置表未收录的 agent
+skillsCmd
+  .command("path")
+  .description("输出包根路径（内含 skills/，可委托上游安装器安装到表外 agent）")
+  .option("--json", "以 JSON 输出（包根、技能源目录、技能清单）")
+  .action((options: { json?: boolean }) => {
+    try {
+      if (options.json) {
+        console.log(
+          JSON.stringify({ package: skillsPackageDir(), source: skillsSourceDir(), skills: listPackageSkills().map((s) => s.name) }, null, 2),
+        )
+      } else {
+        console.log(skillsPackageDir())
+      }
+    } catch (e) {
+      console.error(`⚠️ 定位包路径失败：${(e as Error).message}`)
+      process.exitCode = 1
+    }
+  })
+
+// 裸 `toolkit skills`：打印本域帮助，列出 4 个子命令
+skillsCmd.action(() => {
+  skillsCmd.help()
+})
 
 // tasks 域：任务总览 / 归档 / 校验 / 归一化
 program
@@ -403,6 +582,9 @@ program
 ensureUtf8()
 // main 包装：兼容 CJS 产物（顶层 await 仅 ESM 支持）；主命令完成后 fire-and-forget 升级检查（不阻塞输出、不影响退出码）
 async function main(): Promise<void> {
+  // 链接自愈先于命令执行：升级后旧链接悬空时本次命令即复位（开关 skills.autoLink，CI 环境自动跳过）
+  const repaired = autoLinkSkills()
+  if (repaired > 0) console.log(`已自动修复 ${repaired} 个技能链接（如不需要可配置 .toolkitrc.json 的 skills.autoLink: false 关闭）`)
   await program.parseAsync(process.argv)
   void startUpdateCheck(version)
 }

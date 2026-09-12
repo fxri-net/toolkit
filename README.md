@@ -41,7 +41,7 @@ pnpm exec toolkit tasks
 | 多语言 CHANGELOG（changelog） | 封装 changesets 发版、分组标题本地化 | [CLI 参考](./docs/cli.md#changelog-changelog) |
 | Node API | 把上述能力嵌进脚本或平台 | [API 参考](./docs/api.md) |
 | 隐私脱敏 | 落盘前自动掩码邮箱、手机号、密钥等 | [配置参考](./docs/config.md) |
-| AI 技能包（skills） | 不装本工具也能让 AI 按同一套规范干活 | [完整攻略](./docs/guide.md#ai-技能包-skills) · [FAQ](./docs/faq.md#工具和-skills-都得装吗) |
+| AI 技能包（skills） | 不装本工具也能让 AI 按同一套规范干活；装了可一键分发技能 | [完整攻略](./docs/guide.md#ai-技能包-skills) · [FAQ](./docs/faq.md#工具和-skills-都得装吗) |
 | 配置文件 | 按项目定制脱敏、告警、导入列映射、语言表 | [配置参考](./docs/config.md) |
 
 ## 📚 文档
@@ -61,8 +61,11 @@ pnpm exec toolkit tasks
 ## 🧩 AI 技能包（skills）
 
 ```bash
-pnpm dlx skills add fxri-net/toolkit   # npm 用户：npx skills add fxri-net/toolkit
+pnpm add -g @fxri/toolkit && toolkit skills install   # 装了 CLI 一键分发（npm 用户：npm i -g @fxri/toolkit）
+pnpm dlx skills add fxri-net/toolkit                  # 也可用上游安装器（npm 用户：npx skills add fxri-net/toolkit）
 ```
+
+技能随包分发（真源为包内 `skills/`），与 CLI 同源、版本一致；`toolkit skills install` 默认软链，链接创建失败自动降级副本，`toolkit skills status` 查现场，`toolkit skills remove` 卸载。
 
 - [fxri-plan-to-task](./skills/fxri-plan-to-task/SKILL.md)：方案确认后落盘为任务文件（动手前建档评估、check、归档 + 任务级规范沉淀为强制终点）
 - [fxri-release-changelog](./skills/fxri-release-changelog/SKILL.md)：发版时创建变更集、格式化多语言 CHANGELOG

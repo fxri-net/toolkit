@@ -14,33 +14,48 @@
 
 ## 安装
 
-### 方式一：`npx skills` 自动安装（推荐）
+### 方式一：内置命令（推荐，技能随包分发）
 
-本仓库遵循 Agent Skills 开放标准，兼容 [vercel-labs/skills](https://github.com/vercel-labs/skills) 安装器（自动识别本机 agent、写锁定文件）：
+安装了 CLI 后，技能取自包内 `skills/`，与 CLI 同版本，**不需要第二条供应链、不需要访问 GitHub**：
+
+```bash
+pnpm add -g @fxri/toolkit   # 1. 装 CLI（npm 用户 npm i -g @fxri/toolkit）
+toolkit skills install      # 2. 把包内技能装到各 agent 的全局技能目录
+toolkit skills status       # 查现场状态（悬空 / 指向错误 / 副本漂移 / 缺失 / 冲突）
+toolkit skills remove       # 卸载本包装的产物（只清自己装的，不碰用户自装技能）
+```
+
+- 真源唯一：技能取自已装 CLI 包内的 `skills/`，升级 CLI 后重跑 `toolkit skills install` 即同步
+- 目标三层：主目标 `~/.agents/skills/`（多家 agent 共读）→ 内置表内**已安装**的各 agent 全局技能目录 → `--dir <path>` 兜底（可多次指定，给表外 agent 用）
+- 默认软链到真源（升级自动跟随）；链接创建失败自动降级为副本并打印 ⚠️（如无权限建链）；`--copy` 强制副本、`--dry-run` 预演、`--force` 覆盖同名非本包产物
+- 产物记录在状态文件 `~/.agents/.toolkit-skills.json`；卸载 CLI 前先跑 `toolkit skills remove`，避免留下悬空链接
+
+### 方式二：上游安装器 `npx skills`（需锁定文件或覆盖表外 agent 时）
+
+本仓库遵循 Agent Skills 开放标准，兼容 [vercel-labs/skills](https://github.com/vercel-labs/skills) 安装器（自动识别本机 agent、写锁定文件；技能从 GitHub 拉取）：
 
 ```bash
 pnpm dlx skills add fxri-net/toolkit                           # pnpm 用户（官方命令为 npx skills）
 pnpm dlx skills add fxri-net/toolkit --skill fxri-plan-to-task # 只装单个技能
 pnpm dlx skills list / update / remove                         # 查看 / 升级 / 卸载
-# npm 用户把上述 pnpm dlx 换成 npx 即可：
-# npx skills add fxri-net/toolkit / npx skills add fxri-net/toolkit --skill fxri-plan-to-task / npx skills list / update / remove
+# npm 用户把上述 pnpm dlx 换成 npx 即可
 ```
 
-- 项目级安装默认写 `.agents/skills/` 并对各 agent（Claude Code / Cursor / Codex 等 75+）目录建立符号链接；团队项目把生成的 `skills-lock.json` 提交进仓库以对齐版本；**单人/个人多项目推荐 `-g` 全局安装**，所有项目直接可用，升级一条 `skills update -g`
-- ⚠️ 已知上游行为（v1.5.x）：项目级安装时若 `.claude/` 目录不存在，Claude Code 目标会被静默跳过——先创建 `.claude/skills/` 空目录或改用 `-g`
+- 项目级安装默认写 `.agents/skills/` 并对各 agent 目录建立符号链接；团队项目把生成的 `skills-lock.json` 提交进仓库以对齐版本；单人多项目加 `-g` 全局安装
+- 内置命令已覆盖的场景优先用方式一：方式二的技能走 GitHub、CLI 走 npm，两条供应链易出现版本漂移
 
-### GitHub 拉取受限时（国内网络 / 内网）
+#### GitHub 拉取受限时（国内网络 / 内网）
 
-skills 安装器只认 GitHub 源与本地路径；GitHub 不稳定时改从 [Gitee 镜像](https://gitee.com/fxri/toolkit)（同源同步）克隆后走本地路径源：
+`npx skills` 只认 GitHub 源与本地路径；GitHub 不稳时改从 [Gitee 镜像](https://gitee.com/fxri/toolkit)（同源同步）克隆后走本地路径源：
 
 ```bash
 git clone https://gitee.com/fxri/toolkit fxri-toolkit
 pnpm dlx skills add fxri-toolkit --global       # npm 用户把 pnpm dlx 换成 npx
 ```
 
-完全离线场景：用随包分发目录或 npm pack（见下方「方式二」与文档站 [FAQ · 内网或离线环境怎么装](https://fxri-net.github.io/toolkit/faq)）。
+完全离线场景：先用 `pnpm pack @fxri/toolkit` 打出 tgz 拷进内网 `pnpm add -g <tgz>` 离线装 CLI，再 `toolkit skills install`（技能随包分发，全程不碰 GitHub）；详见 [FAQ · 内网或离线环境怎么装](https://fxri-net.github.io/toolkit/faq)。
 
-### 方式二：手工复制 / 软链
+### 方式三：手工复制 / 软链
 
 - 已安装 `@fxri/toolkit` 的项目可直接使用包内自带的技能目录：`node_modules/@fxri/toolkit/skills/`，复制或软链到 agent 的 skills 目录即可
 - 复制或软链技能目录到 agent 的 skills 目录（如 Claude Code 的 `.claude/skills/`）

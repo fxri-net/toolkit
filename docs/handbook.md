@@ -9,7 +9,7 @@
 | 步骤 | 该做什么 | 会发生什么 |
 | --- | --- | --- |
 | 1 装 CLI | 团队项目：`pnpm add -D @fxri/toolkit`（npm 用 `npx`）；个人多项目：`pnpm i -g @fxri/toolkit` | 得到 `toolkit` 命令 |
-| 2 装 skills | `pnpm dlx skills add fxri-net/toolkit`（全局加 `--global`；npm 用户 `npx`） | AI 侧获得三份岗位说明书，遇到对应场景自动触发 |
+| 2 装 skills | `toolkit skills install`（装了 CLI 一键分发，默认软链；npm 用户需先 `npm i -g @fxri/toolkit`）；也可用上游安装器 `pnpm dlx skills add fxri-net/toolkit --global` | AI 侧获得三份岗位说明书，遇到对应场景自动触发 |
 | 3 建任务区 | `pnpm exec toolkit init` | 生成 `.tasks/active/{YYYYMM}/`、`archive/` 骨架与 `.gitignore` 片段 |
 | 4 配全局规则（可选） | 从 [AI 全局规则](./ai-rules) 复制模板到你的 agent 全局 rules | AI 按你的纪律协作 |
 
@@ -90,24 +90,39 @@ pnpm exec toolkit changelog --lang en format # 其他语言格式化
 
 ⚠️ 发版不是必经步骤：由你的规则约定是否执行；未归档的 active 任务存在时会提醒先归档。无 changesets 的项目走手工模式。完整链路见[完整攻略 · 多语言 CHANGELOG](./guide#多语言-changelog)。
 
-## 六、升级
+## 六、升级与卸载
 
-**目标**：CLI + skills + 全局规则对齐到最新。
+**目标**：CLI + skills + 全局规则对齐到最新；卸载时不留残渣。
+
+### 升级
 
 ```bash
+# 全局安装（推荐）
+pnpm add -g @fxri/toolkit
+toolkit skills status   # 可选：检查现场（悬空 / 指向错误 / 副本漂移 / 缺失 / 冲突）
+
 # 项目内（版本随仓库锁定）
-pnpm up @fxri/toolkit && pnpm dlx skills update
-# 全局安装
-pnpm i -g @fxri/toolkit && pnpm dlx skills update --global
+pnpm up @fxri/toolkit
 ```
 
 升级三步检查：
 
 1. **CLI** 更新（上面命令）
-2. **skills** 同步（同上命令，装 skills 后无需手动同步全局规则全文——规则细节已收敛进 skills）
+2. **skills** 同步：默认**软链**直接指向包内真源，CLI 升级后技能即新版，无需额外命令；若是**副本**形式（`--copy` 安装，或链接创建失败自动降级），需重跑 `toolkit skills install` 刷新
 3. **开新会话**：旧会话加载的技能内容还是旧版，新会话才读到新版
 
-CLI 会在检测到新版本时提示；关闭提示：`FX_NO_UPDATE_CHECK=1` 或配置 `updateCheck.enabled: false`。
+装 skills 后无需手动同步全局规则全文——规则细节已收敛进 skills。CLI 检测到新版本时会提示；关闭提示：`FX_NO_UPDATE_CHECK=1` 或配置 `updateCheck.enabled: false`。
+
+### 卸载
+
+```bash
+toolkit skills remove            # 1. 先摘技能产物（只清本包装的，不碰你自己装的技能）
+pnpm remove -g @fxri/toolkit     # 2. 再卸 CLI
+```
+
+⚠️ **顺序别反**：`skills remove` 依赖本工具（CLI + 包内真源）才能定位产物；先卸了 CLI，清技能就没工具可用——重装一次再执行 `toolkit skills remove` 即可。
+
+⚠️ **软链会悬空**：软链形式的技能指向包内目录，CLI 一卸就成悬空链接（agent 读到空目录）。`toolkit skills remove` 会把悬空链接一并摘除；若已漏摘，手工删除 `~/.agents/skills/` 与各 agent 全局技能目录下的 `fxri-*` 链接。
 
 ## 七、隐私与安全
 

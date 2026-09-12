@@ -17,6 +17,7 @@ toolkit <command> [options]
   toolkit tasks       任务管理（总览 / 归档 / 校验 / 归一化 / 导入导出）
   toolkit changelog   多语言 CHANGELOG（封装 changesets）
   toolkit init        初始化项目任务区（1.7.0 新增）
+  toolkit skills      AI 技能包分发（安装 / 状态 / 卸载 / 路径，1.9.0 新增）
 ```
 
 全局开关（顶层命令支持；`-h` 全局与子命令均可用）：
@@ -119,6 +120,43 @@ toolkit init --dir ../my-tasks-repo   # 任务区放项目外（独立仓库管�
 ⚠️ 重复执行安全：已存在的目录与配置不覆盖、不报错。
 
 ⚠️ 任务区放项目外（独立文档仓库）：配置 `"tasks": { "dir": "../my-tasks-repo" }` 后，`init` 与全部 `tasks` 子命令都作用于该目录，一次配置永久生效；`.gitignore` 片段仍写入当前项目。
+
+## skills（1.9.0 新增）
+
+```bash
+toolkit skills install              # 安装包内技能到各全局技能目录（默认软链真源）
+toolkit skills install --copy       # 强制副本形式（不建软链）
+toolkit skills install --dry-run    # 预演：只预览将执行的动作，不写文件
+toolkit skills install --force      # 覆盖同名非本包产物（默认跳过，避免破坏用户自装技能）
+toolkit skills install --dir <path> # 额外目标目录（可多次指定，兜底内置表未收录的 agent）
+toolkit skills status               # 查看各全局技能目录的现场状态
+toolkit skills remove               # 卸载本包安装的技能产物
+toolkit skills remove --dry-run     # 卸载预演（只预览将移除的条目）
+toolkit skills path                 # 输出包根路径（内含 skills/）
+toolkit skills path --json          # JSON 输出：包根、技能源目录、技能清单
+```
+
+裸 `toolkit skills` 打印本域帮助（列出 4 个子命令）。
+
+| 子命令 | 行为 |
+| --- | --- |
+| `install` | 以包内 `skills/`（含 `SKILL.md` 者计为技能）为唯一真源分发：逐技能幂等——指向正确跳过、指向错误或悬空重建、同名实体目录默认跳过（`--force` 覆盖）；未安装的 agent 只报告、不凭空造目录 |
+| `status` | 逐目标逐技能报告 7 态：软链正常 / 软链悬空 / 软链指向别处 / 副本已同步 / 副本已漂移 / 缺失 / 同名冲突；末尾汇总需处理条目并提示 `install` 可补齐缺失、重建悬空或指向错误的链接 |
+| `remove` | 只清理状态文件 `~/.agents/.toolkit-skills.json` 记载的本包产物：链接（含悬空）摘除、副本内容与真源一致才删，其余交人工确认；清理干净后删除状态文件 |
+| `path` | 输出包根（内含 `skills/`），便于委托上游安装器安装到内置表未收录的 agent |
+
+**分发目标三层**（按顺序去重）：
+
+1. 主目标 `~/.agents/skills/`（上游 canonical 目录，多家 agent 共读）
+2. 内置表中「已安装」的各 agent 全局技能目录（判据：agent 配置目录存在或探测路径命中）
+3. `--dir <path>` 指定的兜底目录
+
+**行为细节**：
+
+- 产物形态默认**软链**（Windows 用 `junction`，免管理员、免开发者模式）；链接创建失败**自动降级副本**并在报告里标注 ⚠️，不静默跳过
+- 卸载链接时**只摘链、不碰真源**（包内原始文件完好）
+- 配置 `skills.autoLink`（默认 `true`）：命令启动时对状态文件记载的**链接**做补链与修链；**不含首次安装、不含副本升级**；`CI` 环境自动跳过（见[配置参考 · skills](./config#skills技能分发)）
+- 状态文件为**用户级**（`~/.agents/.toolkit-skills.json`），与上游安装器的 `skills-lock.json` 相互独立
 
 ## 退出码
 

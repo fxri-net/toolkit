@@ -94,7 +94,17 @@ bunx @fxri/toolkit tasks      # bun
 - 只装 skills：AI 仍能跑通全流程（手工执行规范步骤）
 - 只装 CLI：人可以用，但 AI 侧没有规范指引
 
-安装 skills：`pnpm dlx skills add fxri-net/toolkit`（npm 用户 `npx skills add fxri-net/toolkit`，详见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)）。
+安装 skills（两种方式，选一）：
+
+```bash
+# 方式一：装了 CLI 一键分发（推荐，技能随包分发，与 CLI 同源、版本一致）
+pnpm add -g @fxri/toolkit && toolkit skills install   # npm 用户：npm i -g @fxri/toolkit
+
+# 方式二：上游安装器（技能走 GitHub 拉取，与 CLI 是两条供应链，易出现版本漂移）
+pnpm dlx skills add fxri-net/toolkit --global   # npm 用户：npx skills add fxri-net/toolkit --global
+```
+
+`toolkit skills install` 默认软链真源、链接创建失败自动降级副本，另有 `toolkit skills status`（查现场）与 `toolkit skills remove`（卸载）；细节见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)。
 
 GitHub 拉不下来？国内网络走 [Gitee 镜像渠道](./faq#国内网络优先走哪条渠道)，内网 / 离线安装见 [FAQ · 内网或离线环境怎么装](./faq#内网或离线环境怎么装)。
 

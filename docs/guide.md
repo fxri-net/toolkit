@@ -96,13 +96,13 @@
 <!-- AGENTS.md（Claude Code / Codex 等通用）或各 agent 的项目 rules 文件 -->
 # 本项目协作约定
 
-- 本项目启用 @fxri/toolkit 任务工作流，技能清单见 .agents/skills/（pnpm dlx skills add fxri-net/toolkit 安装后生成，npm 用户的等价命令是 npx skills add）
+- 本项目启用 @fxri/toolkit 任务工作流，技能已由 `toolkit skills install` 分发到全局技能目录（`toolkit skills path --json` 可查包根、真源目录与技能清单）
 - 方案确认后必须落盘为 .tasks/ 任务文件；若提交代码：先归档与沉淀、后提交，归档文件与代码变更同一提交
 ```
 
 **个人项目**：不放上述文件即可，全局技能目录里的 fxri 技能不会被引用（agent 按 description 按需加载，未在项目 rules 中声明的技能不会自动介入）。
 
-团队项目推荐把 `pnpm dlx skills add fxri-net/toolkit` 生成的 `skills-lock.json` 一并提交，保证成员与 AI 侧技能版本一致。
+团队项目推荐把上游安装器（`pnpm dlx skills add fxri-net/toolkit`）生成的 `skills-lock.json` 一并提交，保证成员与 AI 侧技能版本一致；用内置 `toolkit skills install` 分发时技能与 CLI 同源同版本，无需额外锁文件。
 
 ## AI 技能包 skills
 
@@ -113,6 +113,19 @@
 | `fxri-plan-to-task` | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点） |
 | `fxri-release-changelog` | changesets 发版与多语言 CHANGELOG 维护 |
 | `fxri-session-recap`（1.7.0 新增，1.8.0 扩展） | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
+
+**安装**（两种方式，选一）：
+
+```bash
+# 方式一：装了 CLI 一键分发（推荐，技能随包分发，与 CLI 同源同版本）
+toolkit skills install     # 默认软链真源，链接创建失败自动降级副本；--copy 强制副本、--dry-run 预演
+toolkit skills status      # 查现场；toolkit skills remove 卸载；toolkit skills path 输出包根
+
+# 方式二：上游安装器（技能走 GitHub 拉取，与 CLI 是两条供应链）
+pnpm dlx skills add fxri-net/toolkit --global
+```
+
+分发目标三层：主目标 `~/.agents/skills/`（多家 agent 共读）→ 内置表中「已安装」的各 agent 全局技能目录 → `--dir` 兜底；未安装的 agent 只报告、不凭空造目录。默认软链（Windows 用 junction，免管理员、免开发者模式），可被各 agent 直接读取。
 
 **与 CLI 的关系**：skills 是规范与流程（独立可用），CLI 是自动校验/归档/发版的加速器。技能文件末尾的「可选加速」节列出了对应 CLI 命令——装了就用，没装技能流程照跑。
 
@@ -229,5 +242,5 @@ pnpm exec toolkit changelog --lang ja format   # 指定语言仅格式化
 
 - 环境要求 Node.js >= 20
 - Node 18 可安装，但 `changelog` 依赖 changesets 的子命令不可用（上游 `human-id` ESM-only 限制）
-- 升级：`pnpm i -g @fxri/toolkit && pnpm dlx skills update --global`（npm 用户把 `pnpm i -g` 换成 `npm i -g`、`pnpm dlx` 换成 `npx` 即可），**升级后开新会话**使 AI 侧技能与 CLI 版本对齐
+- 升级：`pnpm add -g @fxri/toolkit`（npm 用户换成 `npm i -g @fxri/toolkit`）——默认软链模式下技能指向包内真源，随 CLI 自动更新；副本形式需重跑 `toolkit skills install`；**升级后开新会话**使 AI 侧技能与 CLI 版本对齐
 - 1.7.0 起 CLI 内置升级检查提示（命令末尾异步查询 registry，静默失败不打扰）；不希望发起请求时设 `FX_NO_UPDATE_CHECK=1` 或配置 `updateCheck.enabled: false`（见[配置参考](./config#updatecheck升级检查提示-170-新增)）

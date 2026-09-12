@@ -36,7 +36,7 @@ features:
     details: 任务正文与 CHANGELOG 落盘前自动掩码邮箱、手机号、密钥等敏感信息，多人协作不泄密。
   - icon: 🧩
     title: AI 技能包
-    details: 不装本工具，也能让 AI 按同一套规范干活——零依赖 Agent Skills，各 agent 全局技能目录通用。
+    details: 不装本工具，也能让 AI 按同一套规范干活——零依赖 Agent Skills，各 agent 全局技能目录通用；装了 CLI 可 `toolkit skills install` 一键分发，与 CLI 同源同版本。
 ---
 
 ## 30 秒上手
@@ -99,4 +99,4 @@ pnpm exec toolkit tasks
 ## 相关仓库文件
 
 - [任务文件规范 SPEC.md](https://github.com/fxri-net/toolkit/blob/main/SPEC.md)：任务文件格式的单一事实源
-- [AI 技能包 skills/](https://github.com/fxri-net/toolkit/tree/main/skills)：零依赖 Agent Skills
+- [AI 技能包 skills/](https://github.com/fxri-net/toolkit/tree/main/skills)：零依赖 Agent Skills，可用 `toolkit skills install` 分发到各 agent 全局技能目录
