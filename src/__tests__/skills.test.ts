@@ -428,3 +428,71 @@ describe("autoLinkSkills 链接自愈", () => {
     }
   })
 })
+
+describe("autoLinkSkills 实体产物开关", () => {
+  // 关闭替换：写入 skills.autoLinkReplaceForeign=false 并清缓存使配置立即生效
+  function disableReplaceForeign(): void {
+    writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ skills: { autoLinkReplaceForeign: false } }), "utf8")
+    resetToolkitConfigCache()
+  }
+
+  // 把某技能的链接换成同名的实体目录（模拟用户自装技能占用同名路径）
+  function replaceWithDir(name: string, content = "user made"): string {
+    const dest = join(primaryDir(), name)
+    rmSync(dest, { recursive: true, force: true })
+    mkdirSync(dest, { recursive: true })
+    writeFileSync(join(dest, "SKILL.md"), content, "utf8")
+    return dest
+  }
+
+  it("开关关闭时实体目录一律不动，记录照留", () => {
+    const installed = installSkills()
+    const dest = replaceWithDir(installed.skills[0], "user dir")
+    disableReplaceForeign()
+    expect(autoLinkSkills()).toBe(0)
+    expect(lstatSync(dest).isSymbolicLink()).toBe(false)
+    expect(readFileSync(join(dest, "SKILL.md"), "utf8")).toBe("user dir")
+    expect(readSkillsState()?.targets[0].links).toContain(installed.skills[0])
+  })
+
+  it("开关关闭时普通文件一律不动", () => {
+    const installed = installSkills()
+    const dest = join(primaryDir(), installed.skills[0])
+    rmSync(dest, { recursive: true, force: true })
+    writeFileSync(dest, "plain file", "utf8")
+    disableReplaceForeign()
+    expect(autoLinkSkills()).toBe(0)
+    expect(lstatSync(dest).isSymbolicLink()).toBe(false)
+    expect(readFileSync(dest, "utf8")).toBe("plain file")
+    expect(readSkillsState()?.targets[0].links).toContain(installed.skills[0])
+  })
+
+  it("开关关闭只豁免实体产物：悬空与指向错误仍重建，实体记录随写盘保留", () => {
+    const installed = installSkills()
+    const [dirName, goneName, wrongName] = installed.skills
+    const foreign = replaceWithDir(dirName, "user dir")
+    rmSync(join(primaryDir(), goneName), { recursive: true, force: true })
+    rmSync(join(primaryDir(), wrongName), { recursive: true, force: true })
+    const other = join(home, "other")
+    mkdirSync(other, { recursive: true })
+    symlinkSync(other, join(primaryDir(), wrongName), LINK_TYPE)
+    disableReplaceForeign()
+    expect(autoLinkSkills()).toBe(2)
+    // 同轮有修复落盘时，被豁免的实体目录记录不能被写掉
+    const links = readSkillsState()?.targets[0].links ?? []
+    expect(links).toContain(dirName)
+    expect(links).toContain(goneName)
+    expect(links).toContain(wrongName)
+    expect(lstatSync(foreign).isSymbolicLink()).toBe(false)
+    expect(readFileSync(join(foreign, "SKILL.md"), "utf8")).toBe("user dir")
+    expect(isLinkTo(join(primaryDir(), goneName), join(skillsSourceDir(), goneName))).toBe(true)
+    expect(isLinkTo(join(primaryDir(), wrongName), join(skillsSourceDir(), wrongName))).toBe(true)
+  })
+
+  it("未配置开关时实体目录仍被清理重建（默认行为回归）", () => {
+    const installed = installSkills()
+    const dest = replaceWithDir(installed.skills[0], "user dir")
+    expect(autoLinkSkills()).toBe(1)
+    expect(isLinkTo(dest, join(skillsSourceDir(), installed.skills[0]))).toBe(true)
+  })
+})

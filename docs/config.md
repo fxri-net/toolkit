@@ -26,7 +26,7 @@
   "tasks":       { "importColumns": {} },
   "changelog":   { "languages": {} },
   "updateCheck": { "enabled": true },
-  "skills":      { "autoLink": true }
+  "skills":      { "autoLink": true, "autoLinkReplaceForeign": true }
 }
 ```
 
@@ -124,17 +124,19 @@ CLI 每次命令执行末尾会异步查询 npm registry 最新版本（1 秒超
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
 | `autoLink` | boolean | `true` | 链接自愈开关：每次执行 `toolkit` 命令时，对状态文件 `~/.agents/.toolkit-skills.json` 记载的**软链**做补链与修链（悬空、指向错误的链接重建） |
+| `autoLinkReplaceForeign` | boolean | `true` | 自愈遇到同名**实体目录 / 普通文件**时是否先清理再重建为软链：`true` 清理重建，`false` 一律不动（状态记录保留，需处置时用 `toolkit skills install --force`）；只影响自愈，不影响显式 `install` |
 
 **作用边界**（护栏）：
 
 - **只补链与修链**：不含首次安装（未安装过、无状态文件时不动作），不含副本刷新（副本形式的技能不自动升级，需重跑 `toolkit skills install`）
+- **只对状态文件记载的链接生效**：现场被替换成实体目录 / 普通文件时，默认清理后重建为软链；`autoLinkReplaceForeign: false` 改为一律不动——该开关**只豁免实体产物**，悬空与指向错误的链接仍照常修复
 - **`CI` 环境自动跳过**：检测到 `CI` 环境变量时不执行，避免污染流水线
 - **任何失败静默**：修链失败不影响命令本身，条目留在状态文件里下次再试
-- 修复发生时向 **stderr** 输出一行 `已自动修复 N 个技能链接`（stdout 留给机器可读输出）；不需要可设 `false` 关闭
+- 修复发生时向 **stderr** 输出一行 `已自动修复 N 个技能链接`（stdout 留给机器可读输出）；不需要自愈可把 `autoLink` 设为 `false` 关闭
 
 ```json
 {
-  "skills": { "autoLink": false }
+  "skills": { "autoLink": true, "autoLinkReplaceForeign": false }
 }
 ```
 

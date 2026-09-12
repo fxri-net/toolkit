@@ -5,7 +5,7 @@
 // {
 //   "redact": { "enabled": true, "disable": [], "rules": [] },
 //   "check":  { "warnings": true },
-//   "skills": { "autoLink": true }
+//   "skills": { "autoLink": true, "autoLinkReplaceForeign": true }
 // }
 import { existsSync, readFileSync } from "node:fs"
 import { join, dirname } from "node:path"

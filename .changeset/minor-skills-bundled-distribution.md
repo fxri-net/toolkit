@@ -9,4 +9,5 @@
 - `toolkit skills remove [--dry-run]`：只清理本包状态文件登记的产物，绝不误删用户自装技能；卸载 CLI 前先跑它可避免留下悬空链接
 - `toolkit skills path [--json]`：输出包根路径，便于委托上游安装器覆盖表外 agent
 - 新增配置 `skills.autoLink`（默认 `true`）：每次运行 CLI 时自动补链并修复指向错误的链接（CI 环境跳过、失败静默，可用 `.toolkitrc.json` 关闭）
+- 新增配置 `skills.autoLinkReplaceForeign`（默认 `true`）：自愈遇到同名实体目录 / 普通文件时先清理再重建为软链；设为 `false` 则一律不动，交由 `toolkit skills install --force` 显式处置
 - 升级提示与文档口径统一为一条命令：升级后开新会话即可加载最新技能

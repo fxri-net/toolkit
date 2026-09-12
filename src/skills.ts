@@ -2,6 +2,7 @@
 // 真源唯一（包内目录），目标默认软链到真源（升级随链接跟随）；链接创建失败自动降级为副本并写入状态文件
 // 状态文件 ~/.agents/.toolkit-skills.json：记录本包写入的产物，供 status 报告副本漂移、remove 精确清理（绝不碰用户自装技能）
 import { cpSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync } from "node:fs"
+import type { Dirent } from "node:fs"
 import { dirname, isAbsolute, join, normalize, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { getConfigSection, getHomeDir } from "./config"
@@ -179,7 +180,6 @@ export interface InstallReport {
 
 export interface RemoveResult {
   dir: string
-  label: string
   removed: string[]
   missing: string[]
   // 指向其他位置或内容与本包不一致，出于安全跳过，交人工确认
@@ -283,14 +283,26 @@ function stripTailSep(p: string): string {
 // 分类现场产物：不存在 / 链接且指向真源 / 链接但指向别处 / 悬空链接 / 实体目录 / 普通文件
 type ExistingKind = "absent" | "link-ok" | "wrong" | "dangling" | "dir" | "file"
 
-function classifyExisting(dest: string, source: string): ExistingKind {
-  let lst
-  try {
-    lst = lstatSync(dest)
-  } catch {
-    return "absent"
+// 条目判型所需的最小结构：Dirent（readdirSync withFileTypes）与 Stats（lstatSync）均满足
+interface EntryType {
+  isSymbolicLink(): boolean
+  isDirectory(): boolean
+}
+
+// entry：调用方已列出的目录条目，省略则此处现查一次（查不到即视为不存在）
+// sourceExists：调用方已确认真源存在，此时指向真源的链接必然可解析，无需再探活 dest
+function classifyExisting(dest: string, source: string, entry?: EntryType, sourceExists = false): ExistingKind {
+  let dirent: EntryType
+  if (entry) {
+    dirent = entry
+  } else {
+    try {
+      dirent = lstatSync(dest)
+    } catch {
+      return "absent"
+    }
   }
-  if (lst.isSymbolicLink()) {
+  if (dirent.isSymbolicLink()) {
     let target = ""
     try {
       target = readlinkSync(dest)
@@ -299,10 +311,10 @@ function classifyExisting(dest: string, source: string): ExistingKind {
     }
     const absTarget = stripTailSep(isAbsolute(target) ? target : resolve(dirname(dest), target))
     if (pathKey(absTarget) !== pathKey(source)) return "wrong"
-    // 链接指向正确但要区分悬空（真源缺失时 existsSync 为 false，而 lstat 仍认它是链接）
-    return existsSync(dest) ? "link-ok" : "dangling"
+    // 指向真源时：真源存在即为正常，否则悬空（真源缺失时 existsSync 为 false，而 lstat 仍认它是链接）
+    return sourceExists || existsSync(dest) ? "link-ok" : "dangling"
   }
-  return lst.isDirectory() ? "dir" : "file"
+  return dirent.isDirectory() ? "dir" : "file"
 }
 
 // 递归比对两个目录内容是否一致（用于副本幂等判断与漂移检测），任何读取失败按「不一致」处理
@@ -530,7 +542,7 @@ export function removeSkills(options: { dryRun?: boolean } = {}): SkillsRemoveRe
   const results: RemoveResult[] = []
   let failed = false
   for (const entry of state.targets) {
-    const result: RemoveResult = { dir: entry.dir, label: entry.dir, removed: [], missing: [], skippedForeign: [] }
+    const result: RemoveResult = { dir: entry.dir, removed: [], missing: [], skippedForeign: [] }
     const names = [...new Set([...entry.links, ...entry.copies])]
     for (const name of names) {
       const dest = join(entry.dir, name)
@@ -613,6 +625,7 @@ export function skillsStatus(): SkillsStatusReport {
 
 // 链接自愈（skills.autoLink，默认 true）：只对状态文件记载的链接做补链与修链
 // 不含首次安装、不含升级副本；CI 环境跳过，任何失败静默（不阻塞用户命令）
+// 现场被替换为实体目录/普通文件时默认清理重建；skills.autoLinkReplaceForeign=false 则一律不动
 export function autoLinkSkills(): number {
   const section = getConfigSection("skills")
   if (section?.autoLink === false) return 0
@@ -620,27 +633,49 @@ export function autoLinkSkills(): number {
   const state = readSkillsState()
   if (!state) return 0
 
+  // 真源技能名集合：一次列目录替代循环内逐条探活，且只收真实存在（可解析）的名字
+  const sourceRoot = skillsSourceDir()
+  let sourceNames: Set<string>
+  try {
+    sourceNames = new Set(readdirSync(sourceRoot).filter((name) => existsSync(join(sourceRoot, name))))
+  } catch {
+    return 0
+  }
+
+  const replaceForeign = section?.autoLinkReplaceForeign !== false
+  const linkType = process.platform === "win32" ? "junction" : "dir"
+
   let repaired = 0
   const nextEntries: StateEntry[] = []
   for (const entry of state.targets) {
-    if (!existsSync(entry.dir)) {
+    // 一次列出现场条目及其类型，替代逐条 lstatSync（Windows junction 同样报为符号链接）
+    let dirents: Dirent[]
+    try {
+      dirents = readdirSync(entry.dir, { withFileTypes: true })
+    } catch {
       nextEntries.push(entry)
       continue
     }
+    const present = new Map(dirents.map((d) => [d.name, d]))
     const links = entry.links.filter((name) => {
-      const source = join(skillsSourceDir(), name)
-      if (!existsSync(source)) return false
+      // 已不在包内：剔除记录
+      if (!sourceNames.has(name)) return false
+      const source = join(sourceRoot, name)
       const dest = join(entry.dir, name)
-      const kind = classifyExisting(dest, source)
+      const dirent = present.get(name)
+      const kind: ExistingKind = dirent ? classifyExisting(dest, source, dirent, true) : "absent"
       if (kind === "link-ok") return true
-      // 悬空或指向错误：重建链接；失败则本轮放弃该条，留在状态里下次再试
+      // 非替换模式：现场是实体目录/普通文件时一律不动，记录照留（用户可显式 install --force 处置）
+      if (!replaceForeign && (kind === "dir" || kind === "file")) return true
+      // 悬空或指向错误：删链重建；实体目录/文件按开关先清理
       try {
         if (kind !== "absent") removeArtifact(dest)
-        symlinkSync(source, dest, process.platform === "win32" ? "junction" : "dir")
+        symlinkSync(source, dest, linkType)
         repaired += 1
         return true
       } catch {
-        return false
+        // 重建失败不改记账：本条仍是本包登记的产物，留着下次再试
+        return true
       }
     })
     nextEntries.push({ ...entry, links, updatedAt: new Date().toISOString() })

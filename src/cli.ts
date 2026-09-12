@@ -173,7 +173,11 @@ function printStatusReport(report: SkillsStatusReport): void {
     console.log(`未安装的 agent ${report.pendingAgents.length} 个未纳入分发（需要时用 toolkit skills install --dir <路径> 指定）`)
   }
   console.log("")
-  console.log(problems > 0 ? `共 ${problems} 处需处理：执行 toolkit skills install 可补齐缺失、重建悬空或指向错误的链接` : "所有已纳入的目标均正常")
+  console.log(
+    problems > 0
+      ? `共 ${problems} 处需处理：缺失 / 悬空 / 指向错误执行 toolkit skills install 补齐，副本漂移 / 同名冲突执行 toolkit skills install --force 覆盖`
+      : "所有已纳入的目标均正常",
+  )
 }
 
 // 打印卸载报告：按目标区分已移除 / 已不存在 / 需人工确认三类，并说明状态文件处置
