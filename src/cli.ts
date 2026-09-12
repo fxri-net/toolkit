@@ -112,6 +112,16 @@ function collectDir(value: string, previous: string[]): string[] {
   return [...previous, value]
 }
 
+// 校验 --format 取值：仅支持 json，非法值告警并置退出码 1；返回 false 时调用方直接 return
+function assertJsonFormat(format: string | undefined): boolean {
+  if (format && format !== "json") {
+    console.error(`⚠️ 不支持的输出格式「${format}」，仅支持 json`)
+    process.exitCode = 1
+    return false
+  }
+  return true
+}
+
 // 技能现场状态的中文文案（status 逐项输出用）
 const SKILL_STATE_LABEL: Record<SkillItemState, string> = {
   link: "软链正常",
@@ -125,6 +135,11 @@ const SKILL_STATE_LABEL: Record<SkillItemState, string> = {
 
 // 需要处理的异常状态：status 汇总提示与 install 修复范围
 const SKILL_PROBLEM_STATES: SkillItemState[] = ["dangling", "wrong", "copy-drift", "missing", "conflict"]
+
+// 技能域 JSON 输出统一出口：前置 schemaVersion 锚点，与 tasks --export 的 schemaVersion: 1 同口径
+function printSkillsJson(payload: object): void {
+  console.log(JSON.stringify({ schemaVersion: 1, ...payload }, null, 2))
+}
 
 // 打印安装报告：按目标分组列出新建/更新/跳过/降级/失败，并给出未纳入目标的处理入口
 function printInstallReport(report: InstallReport, dryRun: boolean): void {
@@ -278,10 +293,13 @@ skillsCmd
   .option("--dir <path>", "额外目标目录（可多次指定，兜底内置表未收录的 agent）", collectDir, [])
   .option("--dry-run", "预演（只预览将要执行的动作，不写文件）")
   .option("--force", "覆盖同名非本包产物（默认跳过，避免破坏用户自装技能）")
-  .action((options: { copy?: boolean; dir: string[]; dryRun?: boolean; force?: boolean }) => {
+  .option("--format <format>", "输出格式（json，输出到 stdout）")
+  .action((options: { copy?: boolean; dir: string[]; dryRun?: boolean; force?: boolean; format?: string }) => {
     try {
+      if (!assertJsonFormat(options.format)) return
       const report = installSkills({ copy: options.copy, dirs: options.dir, dryRun: options.dryRun, force: options.force })
-      printInstallReport(report, Boolean(options.dryRun))
+      if (options.format === "json") printSkillsJson({ dryRun: Boolean(options.dryRun), ...report })
+      else printInstallReport(report, Boolean(options.dryRun))
     } catch (e) {
       console.error(`⚠️ 安装失败：${(e as Error).message}`)
       process.exitCode = 1
@@ -295,13 +313,9 @@ skillsCmd
   .option("--format <format>", "输出格式（json，输出到 stdout）")
   .action((options: { format?: string }) => {
     try {
-      if (options.format && options.format !== "json") {
-        console.error(`⚠️ 不支持的输出格式「${options.format}」，仅支持 json`)
-        process.exitCode = 1
-        return
-      }
+      if (!assertJsonFormat(options.format)) return
       const report = skillsStatus()
-      if (options.format === "json") console.log(JSON.stringify(report, null, 2))
+      if (options.format === "json") printSkillsJson(report)
       else printStatusReport(report)
     } catch (e) {
       console.error(`⚠️ 读取状态失败：${(e as Error).message}`)
@@ -314,9 +328,13 @@ skillsCmd
   .command("remove")
   .description("卸载由本包安装的技能产物（只清理状态文件记载的条目，不碰用户自装技能）")
   .option("--dry-run", "预演（只预览将要移除的条目，不删文件）")
-  .action((options: { dryRun?: boolean }) => {
+  .option("--format <format>", "输出格式（json，输出到 stdout）")
+  .action((options: { dryRun?: boolean; format?: string }) => {
     try {
-      printRemoveReport(removeSkills({ dryRun: options.dryRun }), Boolean(options.dryRun))
+      if (!assertJsonFormat(options.format)) return
+      const report = removeSkills({ dryRun: options.dryRun })
+      if (options.format === "json") printSkillsJson({ dryRun: Boolean(options.dryRun), ...report })
+      else printRemoveReport(report, Boolean(options.dryRun))
     } catch (e) {
       console.error(`⚠️ 卸载失败：${(e as Error).message}`)
       process.exitCode = 1
@@ -330,15 +348,9 @@ skillsCmd
   .option("--format <format>", "输出格式（json：包根、技能源目录、技能清单）")
   .action((options: { format?: string }) => {
     try {
-      if (options.format && options.format !== "json") {
-        console.error(`⚠️ 不支持的输出格式「${options.format}」，仅支持 json`)
-        process.exitCode = 1
-        return
-      }
+      if (!assertJsonFormat(options.format)) return
       if (options.format === "json") {
-        console.log(
-          JSON.stringify({ package: skillsPackageDir(), source: skillsSourceDir(), skills: listPackageSkills().map((s) => s.name) }, null, 2),
-        )
+        printSkillsJson({ package: skillsPackageDir(), source: skillsSourceDir(), skills: listPackageSkills().map((s) => s.name) })
       } else {
         console.log(skillsPackageDir())
       }
@@ -512,11 +524,7 @@ program
           process.exitCode = 1
           return
         }
-        if (options.format && options.format !== "json") {
-          console.error(`⚠️ 不支持的输出格式「${options.format}」，仅支持 json`)
-          process.exitCode = 1
-          return
-        }
+        if (!assertJsonFormat(options.format)) return
         const filter: TaskFilter = {}
         const multi = (v?: string): string[] | undefined => (v ? v.split(/[,，]/).map((s) => s.trim()).filter(Boolean) : undefined)
         filter.owner = multi(options.owner)
