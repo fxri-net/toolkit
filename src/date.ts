@@ -18,7 +18,7 @@ export function toYmd(value: string): string {
   return p ? `${p.y}-${p.m}-${p.d}` : ""
 }
 
-// 任意常见日期串 → YYYYMMDD（用于任务文件名/归档日期；解析失败原样去分隔符，兼容历史 toYmdRaw 语义）
+// 任意常见日期串 → YYYYMMDD（用于任务文件名/归档日期；解析失败原样去分隔符）
 export function toYmdCompact(value: string): string {
   const p = parseYmd(value)
   return p ? `${p.y}${p.m}${p.d}` : value.trim().replace(/[-/]/g, "")

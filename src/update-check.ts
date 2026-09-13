@@ -38,8 +38,7 @@ function readCache(): UpdateCache | null {
     }
     const ts = typeof data.ts === "number" ? data.ts : 0
     const latest = typeof data.latest === "string" ? data.latest : ""
-    // 兼容旧版缓存：历史实现仅在成功时写缓存，缺 ok 字段时按成功态处理
-    const ok = data.ok === undefined ? true : data.ok === true
+    const ok = data.ok === true
     const ttl = ok ? CACHE_TTL : FAIL_TTL
     if (Date.now() - ts >= ttl) {
       // 缓存过期：删除文件让下次重新请求

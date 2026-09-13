@@ -14,10 +14,6 @@ import type { TaskRow, TaskView, TaskFilter, TaskSummary } from "./types"
 // 终端展示与导出的状态分组顺序
 export const STATUS_ORDER = ["待办", "进行中", "阻塞", "已完成", "已放弃", "未标注"]
 
-// 日期归一化为 YYYY-MM-DD（兼容 YYYYMMDD / YYYY-MM-DD / YYYY-M-D），无法解析返回空
-// 实现统一收口于 ../date（展示/导出/导入共用），此处保留导出名兼容既有引用
-export { toYmd }
-
 // 读取待完成任务（active）为统一行
 export function listActiveTasks(tasksDir = ".tasks"): TaskRow[] {
   const activeDir = join(tasksDir, "active")

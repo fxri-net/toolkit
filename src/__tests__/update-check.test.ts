@@ -120,14 +120,6 @@ describe("startUpdateCheck 父进程分支", () => {
     expect(mockedSpawn).not.toHaveBeenCalled()
   })
 
-  it("旧版缓存缺 ok 字段：按成功态处理，命中即提示", () => {
-    writeFileSync(cacheFile, JSON.stringify({ ts: Date.now(), latest: "9.9.9" }), "utf8")
-    const out = captureOutput()
-    startUpdateCheck("1.6.5")
-    expect(out.err.join("\n")).toContain("9.9.9")
-    expect(mockedSpawn).not.toHaveBeenCalled()
-  })
-
   it("无缓存：同步返回不提示，派生后台 worker 且解除引用（父进程零网络）", () => {
     const out = captureOutput()
     startUpdateCheck("1.6.5")

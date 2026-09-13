@@ -3,7 +3,7 @@
 import { mkdirSync } from "node:fs"
 import { dirname } from "node:path"
 import { createRequire } from "node:module"
-import { toYmd } from "./query"
+import { toYmd } from "../date"
 import { redactText } from "../privacy/redact"
 import { writeFileAtomic } from "../write-atomic"
 import type { TaskRow, TaskSummary } from "./types"
