@@ -243,4 +243,4 @@ pnpm exec toolkit changelog --lang ja format   # 指定语言仅格式化
 - 环境要求 Node.js >= 20
 - Node 18 可安装，但 `changelog` 依赖 changesets 的子命令不可用（上游 `human-id` ESM-only 限制）
 - 升级：`pnpm add -g @fxri/toolkit`（npm 用户换成 `npm i -g @fxri/toolkit`）——默认软链模式下技能指向包内真源，随 CLI 自动更新；副本形式需重跑 `toolkit skills install`；**升级后开新会话**使 AI 侧技能与 CLI 版本对齐
-- 1.7.0 起 CLI 内置升级检查提示（命令末尾异步查询 registry，静默失败不打扰）；不希望发起请求时设 `FX_NO_UPDATE_CHECK=1` 或配置 `updateCheck.enabled: false`（见[配置参考](./config#updatecheck升级检查提示-170-新增)）
+- 1.7.0 起 CLI 内置升级检查提示（同步读本地缓存提示，缓存不新鲜时由分离的后台子进程静默刷新 registry，不阻塞命令、静默失败不打扰）；不希望发起请求时设 `FX_NO_UPDATE_CHECK=1` 或配置 `updateCheck.enabled: false`（见[配置参考](./config#updatecheck升级检查提示-170-新增)）

@@ -35,7 +35,7 @@ import {
   type SkillsRemoveReport,
   type SkillsStatusReport,
 } from "./skills"
-import { startUpdateCheck } from "./update-check"
+import { startUpdateCheck, runUpdateCheckWorker, UPDATE_CHECK_WORKER_ARG } from "./update-check"
 
 const require = createRequire(import.meta.url)
 
@@ -604,13 +604,18 @@ program
   )
 
 ensureUtf8()
-// main 包装：兼容 CJS 产物（顶层 await 仅 ESM 支持）；主命令完成后 fire-and-forget 升级检查（不阻塞输出、不影响退出码）
+// main 包装：兼容 CJS 产物（顶层 await 仅 ESM 支持）；主命令完成后同步读缓存提示升级（零网络、不影响退出码）
 async function main(): Promise<void> {
+  // 内部升级检查 worker：仅联网刷新缓存后退出，不执行命令、不做技能自愈（参数由 startUpdateCheck 派生时注入）
+  if (process.argv[2] === UPDATE_CHECK_WORKER_ARG) {
+    await runUpdateCheckWorker()
+    return
+  }
   // 链接自愈先于命令执行：升级后旧链接悬空时本次命令即复位（开关 skills.autoLink，CI 环境自动跳过）
   const repaired = autoLinkSkills()
   // 提示走 stderr：stdout 为机器可读输出（--format json）的专用通道，不得混入诊断信息
   if (repaired > 0) console.error(`已自动修复 ${repaired} 个技能链接（如不需要可配置 .toolkitrc.json 的 skills.autoLink: false 关闭）`)
   await program.parseAsync(process.argv)
-  void startUpdateCheck(version)
+  startUpdateCheck(version)
 }
 void main()
