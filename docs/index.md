@@ -30,7 +30,7 @@ features:
     details: 一条命令扫 .tasks/ 全目录，按状态/负责人/范围/日期过滤，可导出 CSV / XLSX / JSON。
   - icon: 🌍
     title: 多语言 CHANGELOG
-    details: 封装 changesets，内置中文格式化，分组标题不再被英文格式头绑架，任意语言可配置扩展。
+    details: 封装 changesets，条目按变更类型（新增/修复/优化…）语义分组，分组标题不再被英文格式头绑架，任意语言可配置扩展。
   - icon: 🛡️
     title: 隐私脱敏
     details: 任务正文与 CHANGELOG 落盘前自动掩码邮箱、手机号、密钥等敏感信息，多人协作不泄密。
@@ -77,7 +77,7 @@ pnpm exec toolkit tasks
 | 方案确认完就丢，AI 会话一关什么都不剩 | 方案落盘为标准任务文件，`toolkit tasks check` 校验、`toolkit tasks archive` 归档、规范沉淀进 conventions.md，能力终点到沉淀为止 |
 | 多人（含多个 AI）同时维护任务，互相覆盖 | 任务唯一键 + 「先查后写」约定 + 归档排他锁 |
 | 任务散落各处，总览、过滤、统计靠人肉 | 一条命令扫 `.tasks/` 全目录，按状态/负责人/范围/日期过滤，可导出 CSV / XLSX / JSON |
-| 发版 CHANGELOG 分组标题是英文，多语言项目要人肉翻译 | 封装 changesets，内置中文格式化，任意语言可配置扩展 |
+| 发版 CHANGELOG 分组标题是英文，且分组维度与变更类型对不上 | 封装 changesets，条目按变更类型语义分组并内置中文格式化，任意语言可配置扩展 |
 
 ## 文档索引
 

@@ -209,6 +209,12 @@ conventions.md 可按项目规则体系选形态：
   "changelog": {
     "languages": {
       "ja": {
+        "groups": [
+          { "slot": "breaking", "title": "### 🚨 重大変更" },
+          { "slot": "added", "title": "### ✨ 新規機能" },
+          { "slot": "fixed", "title": "### 🐛 不具合修正" },
+          { "slot": "other", "title": "### 📦 その他" }
+        ],
         "replacements": { "### Major Changes": "### 🚨 重大変更" },
         "deps": "- 依存関係を更新",
         "released": "リリース"
@@ -220,11 +226,11 @@ conventions.md 可按项目规则体系选形态：
 
 ```bash
 pnpm exec toolkit changelog                    # 创建变更集（等价 changeset）
-pnpm exec toolkit changelog version            # 发版 + 自动分组标题格式化（默认中文）
+pnpm exec toolkit changelog version            # 发版 + 自动语义分组归类与组标题格式化（默认中文）
 pnpm exec toolkit changelog --lang ja format   # 指定语言仅格式化
 ```
 
-每个语言的三段结构：`replacements`（标题替换映射）、`deps`（依赖更新条目文案）、`released`（发布日期后缀）。`version` 消费变更集后自动转换分组标题（如 `### Patch Changes` → `### 🐛 补丁修复`）并补发布日期；变更条目建议人工再润色，与仓库既有风格一致。
+每个语言为四段结构：`groups`（语义分组表，可选）/ `replacements`（兜底替换映射）/ `deps`（依赖更新条目文案）/ `released`（发布日期后缀）。`version` 消费变更集后按条目自带的 `类型：` 前缀做语义分组（如 `- 修复：xxx` → `### 🐛 问题修复`），无前缀条目按所属源组标题兜底；分组维度与版本号维度正交，分组标题集合随版本演进、历史版本块不追溯改写；变更条目建议人工再润色，与仓库既有风格一致。变更集条目缺 `类型：` 前缀时软告警提示。
 
 ## 文档站部署
 

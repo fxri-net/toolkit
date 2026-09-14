@@ -7,36 +7,62 @@
 
 > 2026-09-03 发布
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
-- 修复 xxx：……
+- 修复xxx：……
+
+### 📦 其他变更
+
+- 补齐某处兜底逻辑
 ```
 
 规则：
 
 - 版本标题 `## {版本号}`；隔一行后接引用行 `> {YYYY-MM-DD} 发布`（标题与日期行之间保留一个空行）
-- 分组标题 = emoji + 组名，一行一组，按 major → minor → patch 顺序
+- 分组标题 = emoji + 组名，一行一组，按**语义分组顺序**输出——重大变更 → 新增功能 → 功能调整 → 优化改进 → 问题修复 → 文档更新 → 清理移除 → 依赖变更 → 其他变更；空组省略
 - 条目一行一条，项目语言句式（中文条目句末不加句号），与仓库既有风格一致
 - ⚠️ 变更集条目以 `- ` 开头时，changesets 会写入 `- - 条目` 首行并把后续行缩进 2 空格（伪影）；`toolkit changelog version/format` 会自动还原为顶层条目，手工模式需手动清理
+- 分组标题集合随版本演进而变化；**历史版本块保留当时口径，`toolkit changelog format` 不追溯改写**（只归类 changesets 本次新写入的英文源标题块）
 
-## 2. 分组标题映射（zh 内置）
+## 2. 语义分组归类
 
-| 源标题（changesets 输出） | 目标标题 |
+分组维度（条目**变更类型**）与版本号维度（bump）正交：条目归入哪一组，只看条目自带的**类型前缀**，与它来自 `Major/Minor/Patch Changes` 哪一块无关。
+
+**类型前缀 → 语义槽位**（全局一份、全语言共用，故任一语言的条目在任何输出语言下都能正确归组）：
+
+| 类型前缀（中 / 英） | 语义槽位 | zh 组标题 | en 组标题 |
+| --- | --- | --- | --- |
+| `重大：` / `Breaking:` | `breaking` | `### 🚨 重大变更` | `### 🚨 Breaking Changes` |
+| `新增：` / `Added:` | `added` | `### ✨ 新增功能` | `### ✨ Added` |
+| `修改：` / `Changed:` | `changed` | `### 🔧 功能调整` | `### 🔧 Changed` |
+| `优化：` / `Improved:` | `improved` | `### ⚡ 优化改进` | `### ⚡ Improved` |
+| `修复：` / `Fixed:` | `fixed` | `### 🐛 问题修复` | `### 🐛 Fixed` |
+| `文档：` / `Docs:` | `docs` | `### 📝 文档更新` | `### 📝 Docs` |
+| `清理：` / `Removed:` | `removed` | `### 🧹 清理移除` | `### 🧹 Removed` |
+| 源文本 `- Updated dependencies` | `deps` | `### 🔗 依赖变更` | `### 🔗 Dependency Updates` |
+| 无前缀兜底 | `other` | `### 📦 其他变更` | `### 📦 Other` |
+
+**无前缀条目的兜底规则**：按条目**所属源组标题**声明的影响级别归组——`### Major Changes` → `breaking`、`### Minor Changes` → `added`、`### Patch Changes` → `other`；不从版本号推导。
+
+**依赖条目不走前缀解析**：源组标题 `### Dependent Changes` 整块，以及源文本 `- Updated dependencies`（含缩进子项）一律归入 `deps` 槽位。
+
+同一槽位来自多个源块时合并为单组，组内保持条目原出现顺序；缩进续行随父条目整体迁移。
+
+**类型 → 建议 bump**（撰写变更集时按此选影响级别）：
+
+| 类型前缀 | 建议 bump |
 | --- | --- |
-| `### Major Changes` | `### 🚨 重大变更` |
-| `### Minor Changes` | `### ✨ 新增功能` |
-| `### Patch Changes` | `### 🐛 补丁修复` |
-| `### Dependent Changes` | `### 🔗 依赖变更` |
-| `- Updated dependencies` | `- 更新依赖` |
-
-英文基准分组：`### Major Changes` / `### Minor Changes` / `### Patch Changes` / `### Dependent Changes`。
+| `重大：` | major |
+| `新增：` / `修改：` | minor |
+| `优化：` / `修复：` / `清理：` / `文档：` | patch |
 
 ## 3. 多语言扩展
 
-每种语言约定三段结构：
+每种语言约定四段结构：
 
-- `replacements`：源标题 → 目标标题映射表（覆盖分组标题与依赖条目）
+- `groups`（可选）：语义分组表，每项 `{ slot, title, prefixes? }`——`slot` 取自全局语义槽位，`title` 为本语言组标题，`prefixes` 为本语言自有前缀（可选，识别时与全局前缀表取并集）；缺省时退化为纯替换（仅 `replacements` 生效）
+- `replacements`：兜底替换映射表（源标题 → 目标标题）
 - `deps`：依赖更新条目固定文案
-- `released`：发布日期行后缀（中文为「发布」，英文为「released」）
+- `released`：发布日期行后缀（中文为「发布」，英文为「released」；同时用于识别既有日期行，故自定义语言填非「发布/released」值也能幂等）
 
-新增语言时先补全三段，再按映射转换标题、润色条目。
+新增语言时先补全四段，再按映射转换标题、润色条目。

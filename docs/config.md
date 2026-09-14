@@ -63,7 +63,7 @@
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
-| `warnings` | boolean | `true` | 软告警总开关（`tasks check` 的 warn 输出、归档/发版提醒）；被 `--warn/--no-warn` 与 `FX_CHECK_WARN` 覆盖 |
+| `warnings` | boolean | `true` | 软告警总开关（`tasks check` 的 warn 输出、归档/发版提醒、changelog 无类型前缀条目告警）；被 `--warn/--no-warn` 与 `FX_CHECK_WARN` 覆盖 |
 | `includeCheckbox` | boolean | `true` | `tasks check` 是否把正文未勾选的 `- [ ]` 扫为未闭合待办 |
 | `pendingMarkers` | boolean | `true` | `tasks check` 是否扫描词标记（待办/待实施/…）；只扫正文不扫标题 |
 
@@ -87,15 +87,21 @@
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
-| `languages` | object | 无 | 追加或覆盖语言；内置 `zh`/`en`，配置同名 key 覆盖内置，新 key 追加 |
+| `languages` | object | 无 | 追加或覆盖语言；内置 `zh`/`en`，配置同名 key 覆盖内置，新 key 追加（同名 key 为**整体覆盖**，非字段级深合并：配了某语言，其未写的段也不会落到内置） |
 
-每个语言为三段结构：
+每个语言为四段结构：
 
 ```json
 {
   "changelog": {
     "languages": {
       "ja": {
+        "groups": [
+          { "slot": "breaking", "title": "### 🚨 重大変更" },
+          { "slot": "added", "title": "### ✨ 新規機能" },
+          { "slot": "fixed", "title": "### 🐛 不具合修正" },
+          { "slot": "other", "title": "### 📦 その他" }
+        ],
         "replacements": { "### Major Changes": "### 🚨 重大変更" },
         "deps": "- 依存関係を更新",
         "released": "リリース"
@@ -107,9 +113,10 @@
 
 | 字段 | 说明 |
 | --- | --- |
-| `replacements` | 分组标题替换映射（源标题 → 目标标题） |
+| `groups` | 语义分组表（可选、有序，组序即输出顺序）：每项 `{ slot, title, prefixes? }`——`slot` 取全局语义槽位（`breaking`/`added`/`changed`/`improved`/`fixed`/`docs`/`removed`/`deps`/`other`），`title` 为本语言组标题，`prefixes` 为本语言自有类型前缀（可选，识别时与全局前缀表取并集）；缺省时退化为纯替换（仅 `replacements` 生效） |
+| `replacements` | 兜底替换映射（源标题 → 目标标题） |
 | `deps` | 依赖更新条目文案 |
-| `released` | 发布日期后缀 |
+| `released` | 发布日期后缀（同时用于识别既有日期行） |
 
 ## updateCheck：升级检查提示（1.7.0 新增）
 

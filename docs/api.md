@@ -66,15 +66,26 @@ JSON 结构：`{ schemaVersion: 1, summary, items }`；`items` 为英文 key 完
 | `formatChangelog(file, today, lang, redact?)` | 格式化单个文件 |
 | `formatChangelogs(dir, today, lang, redact?)` | 格式化目录下全部 |
 | `localDate()` / `languages` / `DEFAULT_LANG` | 本地日期 / 语言表 / 默认语言键（`zh`） |
+| `SLOT_PREFIXES` / `SemanticSlot` / `LanguageGroup` / `ChangelogLanguage` | 全局语义槽位前缀表 / 槽位联合类型（`breaking`/`added`/`changed`/`improved`/`fixed`/`docs`/`removed`/`deps`/`other`）/ 语义分组项 / 语言配置 |
 
 ```typescript
-// 发版后把分组标题转为中文
+// 发版后按语义分组归类并把组标题转为中文
 formatChangelogs(".", localDate(), languages[DEFAULT_LANG])
-// 自定义语言直接挂到 languages 对象
-languages.ja = { replacements: { "### Major Changes": "### 🚨 重大変更" }, deps: "- 依存関係を更新", released: "リリース" }
+// 自定义语言直接挂到 languages 对象（groups 可选，缺省时退化为纯替换）
+languages.ja = {
+  groups: [
+    { slot: "breaking", title: "### 🚨 重大変更" },
+    { slot: "added", title: "### ✨ 新規機能", prefixes: ["新規："] },
+    { slot: "fixed", title: "### 🐛 不具合修正" },
+    { slot: "other", title: "### 📦 その他" },
+  ],
+  replacements: { "### Major Changes": "### 🚨 重大変更" },
+  deps: "- 依存関係を更新",
+  released: "リリース",
+}
 ```
 
-`ChangelogLanguage` 三段结构：`replacements`（标题替换映射）/ `deps`（依赖更新条目文案）/ `released`（发布日期后缀）。
+`ChangelogLanguage` 四段结构：`groups`（语义分组表，每项 `{ slot, title, prefixes? }`，可选）/ `replacements`（兜底替换映射）/ `deps`（依赖更新条目文案）/ `released`（发布日期后缀，同时用于识别既有日期行）。
 
 ## 隐私脱敏与开关
 

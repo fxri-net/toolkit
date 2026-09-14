@@ -27,7 +27,7 @@ toolkit <command> [options]
 | `-h, --help` | 显示帮助（全局或子命令） |
 | `-v, --version` | 显示版本号 |
 | `--redact` / `--no-redact` | 开启/关闭隐私脱敏（默认开启） |
-| `--warn` / `--no-warn` | 开启/关闭软告警（默认开启） |
+| `--warn` / `--no-warn` | 开启/关闭软告警（默认开启；作用于 `tasks check` 的 warn 输出、归档/发版提醒与 changelog 无类型前缀条目告警） |
 
 开关为**双向三档**，优先级从高到低：CLI 参数 > 环境变量 > 配置文件 > 默认开启。对应环境变量：`FX_REDACT`、`FX_CHECK_WARN`（认 `0/1`、`true/false`、`on/off`、`yes/no`）；配置项见[配置参考](./config)。
 
@@ -100,7 +100,8 @@ toolkit changelog status / publish      # 其余 changeset 子命令透传
 
 行为细节：
 
-- `version`：先透传 changesets 消费变更集，再对 CHANGELOG 做分组标题格式化、清理变更集条目双前缀伪影（以 `- ` 开头的条目会被 changesets 二次加前缀为 `- - 条目` 并缩进续行，格式化时还原为顶层条目）并补发布日期；存在未归档 active 任务时软告警
+- `version`：先透传 changesets 消费变更集，再对 CHANGELOG 做语义分组归类（条目按 `类型：` 前缀归入「新增功能 / 问题修复 / …」等分组，无前缀条目按所属源组标题兜底）、清理变更集条目双前缀伪影（以 `- ` 开头的条目会被 changesets 二次加前缀为 `- - 条目` 并缩进续行，格式化时还原为顶层条目）并补发布日期；分组标题集合随版本演进，历史版本块保留当时口径、不追溯改写；存在未归档 active 任务时软告警，变更集条目缺 `类型：` 前缀时计数软告警
+- `format`：仅对既有 CHANGELOG 做同样的语义分组归类与格式化（历史版本块不追溯改写）；变更集条目缺类型前缀时同样计数软告警
 - 其余子命令（`add`/`status`/`publish`/…）原样透传给 changesets
 - ⚠️ Node 18 下依赖 changesets 的子命令不可用（上游 ESM-only 限制），`format` 等纯格式化不受影响
 

@@ -17,7 +17,7 @@ import { listTaskFiles } from "./tasks/scan"
 import type { TaskView, TaskFilter, ImportTarget } from "./tasks/types"
 import { ALL_STATUSES } from "./tasks/types"
 import { languages, DEFAULT_LANG, type ChangelogLanguage } from "./changelog/languages"
-import { localDate, formatChangelogs } from "./changelog/format"
+import { localDate, formatChangelogs, countUntypedEntries } from "./changelog/format"
 import { resolveRedactEnabled } from "./privacy/redact"
 import { resolveEnabled } from "./switch"
 import { getConfigSection, resolveTasksDir } from "./config"
@@ -93,6 +93,14 @@ function hasPendingChangeset(dir = ".changeset"): boolean {
 // 检测 active 是否有未归档任务
 function hasActiveTasks(dir = ".tasks"): boolean {
   return listTaskFiles(join(dir, "active")).length > 0
+}
+
+// changelog 软告警：提示缺类型前缀的变更集条目（须在归类前取数，归类后前缀缺失信息即丢失）
+function warnUntypedEntries(lang: ChangelogLanguage) {
+  const count = countUntypedEntries(".", lang)
+  if (count > 0) {
+    console.warn(`⚠️ ${count} 条变更集条目缺类型前缀，建议按「类型：描述」撰写`)
+  }
 }
 
 // 打印校验结果（check / normalize --check 共用）
@@ -599,8 +607,13 @@ program
           console.warn("⚠️ 存在未归档的 active 任务，建议先归档再发版")
         }
         runChangeset(["version"])
+        // 软告警须前置于归类（须待 changesets 写入新块后再取数，否则无英文源标题块可扫）；
+        // 归类后无前缀条目即并入兜底组，前缀缺失无从统计
+        if (warn) warnUntypedEntries(lang)
         formatChangelogs(".", localDate(), lang, redact)
       } else if (command === "format") {
+        // 手工 format 路径与 version 同源同开关，告警口径保持一致
+        if (warn) warnUntypedEntries(lang)
         formatChangelogs(".", localDate(), lang, redact)
       } else if (command) {
         runChangeset(operands)
