@@ -12,6 +12,7 @@
 3. **skills**：`skills/` 下 SKILL.md 与 references 同步新能力/新流程；每个 SKILL.md 的版本写两处且须一致——frontmatter `metadata.version`（机器读取位，`toolkit skills status` / `skills install` 打印的真源版本）与正文首部 `> 本技能版本 x.y.z（随 @fxri/toolkit 同批分发）`（进上下文的自证位）；内容变更时同步递增（小修 +patch，能力级 +minor）。
 4. **变更集**：凡影响对外行为的变更，任务归档前必须在 `.changeset/` 建变更集（标注 patch/minor/major 并写用户可感知的变更描述）；归档时出现「无变更集」提示即视为本质量门未过。
 5. **全局规则薄引用**：可变流程细节只进 skills（SKILL.md / references），`docs/ai-rules.md` 的「规则全文」保持薄壳——只承载稳定纪律与对 fxri-* skill 的引用，不复述可变细节；凡在 ai-rules.md 复述了可变细节的改动即视为违背本规则，须收敛回 skill。原因：全局规则是用户手动复制的快照，细节复述会让能力升级后用户侧规则失同步；收敛进 skills 后技能随包同源分发（与 CLI 同一发布批次），升级只需 `pnpm add -g @fxri/toolkit`（软链自动跟随，副本形式再跑一次 `toolkit skills install`）。
+6. **规则层版本锚点**：`SPEC.md` 与 `docs/ai-rules.md` 各自独立编号并在首部声明版本号（`SPEC.md` 为 `> 规范版本 x.y`，`docs/ai-rules.md` 为规则全文首行 `> 规则版本 x.y`）；两文件内容变更时须同批递增该版本号，且只随内容变更递增、不随发版例行抬高。原因：用户会把全局规则复制成个人快照，快照落后于最新版时无从自查；版本锚点是用户侧比对失同步的唯一凭据。
 
 ### conventions 同步（独立机制，随上述质量门一并执行）
 
