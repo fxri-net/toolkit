@@ -22,6 +22,7 @@ import { resolveRedactEnabled } from "./privacy/redact"
 import { resolveEnabled } from "./switch"
 import { getConfigSection, resolveTasksDir } from "./config"
 import { initWorkspace, INIT_LINKS } from "./init"
+import { toJsonText } from "./json-output"
 import {
   autoLinkSkills,
   installSkills,
@@ -143,9 +144,9 @@ const SKILL_STATE_LABEL: Record<SkillItemState, string> = {
 // 需要处理的异常状态：status 汇总提示与 install 修复范围
 const SKILL_PROBLEM_STATES: SkillItemState[] = ["dangling", "wrong", "copy-drift", "missing", "conflict"]
 
-// 技能域 JSON 输出统一出口：前置 schemaVersion 锚点，与 tasks --export 的 schemaVersion: 1 同口径
-function printSkillsJson(payload: object): void {
-  console.log(JSON.stringify({ schemaVersion: 1, ...payload }, null, 2))
+// JSON 输出统一出口：技能域与任务统计域共用，序列化口径见 toJsonText
+function printJson(payload: object): void {
+  console.log(toJsonText(payload))
 }
 
 // 技能标签：名称 + 真源声明版本（未声明版本时只显示名称）
@@ -312,7 +313,7 @@ skillsCmd
     try {
       if (!assertJsonFormat(options.format)) return
       const report = installSkills({ copy: options.copy, dirs: options.dir, dryRun: options.dryRun, force: options.force })
-      if (options.format === "json") printSkillsJson({ dryRun: Boolean(options.dryRun), ...report })
+      if (options.format === "json") printJson({ dryRun: Boolean(options.dryRun), ...report })
       else printInstallReport(report, Boolean(options.dryRun))
     } catch (e) {
       console.error(`⚠️ 安装失败：${(e as Error).message}`)
@@ -329,7 +330,7 @@ skillsCmd
     try {
       if (!assertJsonFormat(options.format)) return
       const report = skillsStatus()
-      if (options.format === "json") printSkillsJson(report)
+      if (options.format === "json") printJson(report)
       else printStatusReport(report)
     } catch (e) {
       console.error(`⚠️ 读取状态失败：${(e as Error).message}`)
@@ -347,7 +348,7 @@ skillsCmd
     try {
       if (!assertJsonFormat(options.format)) return
       const report = removeSkills({ dryRun: options.dryRun })
-      if (options.format === "json") printSkillsJson({ dryRun: Boolean(options.dryRun), ...report })
+      if (options.format === "json") printJson({ dryRun: Boolean(options.dryRun), ...report })
       else printRemoveReport(report, Boolean(options.dryRun))
     } catch (e) {
       console.error(`⚠️ 卸载失败：${(e as Error).message}`)
@@ -364,7 +365,7 @@ skillsCmd
     try {
       if (!assertJsonFormat(options.format)) return
       if (options.format === "json") {
-        printSkillsJson({ package: skillsPackageDir(), source: skillsSourceDir(), skills: listPackageSkills().map((s) => s.name) })
+        printJson({ package: skillsPackageDir(), source: skillsSourceDir(), skills: listPackageSkills().map((s) => s.name) })
       } else {
         console.log(skillsPackageDir())
       }
@@ -491,7 +492,7 @@ program
           if (options.until) filter.until = options.until
           const stats = computeStats(dir, filter)
           if (options.format === "json") {
-            console.log(JSON.stringify(stats, null, 2))
+            printJson(stats)
           } else {
             for (const line of renderStats(stats)) console.log(line)
           }

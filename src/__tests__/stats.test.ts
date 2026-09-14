@@ -1,9 +1,10 @@
-// 任务周期统计单测：周期计算边界（同日、跨月、缺日期跳过、已放弃排除）、滞留口径、分布分段、过滤联动
+// 任务周期统计单测：周期计算边界（同日、跨月、缺日期跳过、已放弃排除）、滞留口径、分布分段、过滤联动、JSON 输出契约
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { computeStats, renderStats } from "../tasks/stats"
+import { toJsonText } from "../json-output"
 
 // 临时目录收集，用例结束后统一清理
 const dirs: string[] = []
@@ -138,6 +139,24 @@ describe("computeStats", () => {
     expect(computeStats(dir, { scope: ["docs"] }).duration.count).toBe(1)
     expect(computeStats(dir, { since: "2026-09-02" }).duration.count).toBe(1)
     expect(computeStats(dir, { status: ["待办"] }).duration.count).toBe(0)
+  })
+})
+
+describe("stats JSON 输出", () => {
+  it("顶层前置 schemaVersion，统计字段保持原位与语义不变（--format json 契约）", () => {
+    freezeToday("2026-09-05")
+    const dir = makeDir()
+    writeArchive(dir, "20260905", ["## 20260901-张三-任务甲\n\n> 负责人：张三　状态：已完成　范围：core　完成时间：2026-09-05 10:00\n\n正文\n"])
+    writeTask(dir, "20260901-李四-滞留任务", { owner: "李四", status: "待办", created: "20260901", updated: "20260901", completed: "", depends_on: "[]", scope: "core" })
+    const stats = computeStats(dir)
+    const parsed = JSON.parse(toJsonText(stats)) as Record<string, unknown>
+    expect(parsed.schemaVersion).toBe(1)
+    expect(parsed.duration).toEqual(stats.duration)
+    expect(parsed.active).toEqual(stats.active)
+    expect(parsed.byMonth).toEqual(stats.byMonth)
+    expect(parsed.byOwner).toEqual(stats.byOwner)
+    expect(parsed.byScope).toEqual(stats.byScope)
+    expect(parsed.skipped).toBe(stats.skipped)
   })
 })
 
