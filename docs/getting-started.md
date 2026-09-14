@@ -97,7 +97,7 @@ bunx @fxri/toolkit tasks      # bun
 安装 skills（两种方式，选一）：
 
 ```bash
-# 方式一：装了 CLI 一键分发（推荐，技能随包分发，与 CLI 同源、版本一致）
+# 方式一：装了 CLI 一键分发（推荐，技能随包分发，与 CLI 同一发布批次）
 pnpm add -g @fxri/toolkit && toolkit skills install   # npm 用户：npm i -g @fxri/toolkit
 
 # 方式二：上游安装器（技能走 GitHub 拉取，与 CLI 是两条供应链，易出现版本漂移）

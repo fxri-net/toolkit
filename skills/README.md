@@ -16,7 +16,7 @@
 
 ### 方式一：内置命令（推荐，技能随包分发）
 
-安装了 CLI 后，技能取自包内 `skills/`，与 CLI 同版本，**不需要第二条供应链、不需要访问 GitHub**：
+安装了 CLI 后，技能取自包内 `skills/`，随包同源分发（与 CLI 同一发布批次；技能内容版本独立编号，看的是各 SKILL.md 自己的版本），**不需要第二条供应链、不需要访问 GitHub**：
 
 ```bash
 pnpm add -g @fxri/toolkit   # 1. 装 CLI（npm 用户 npm i -g @fxri/toolkit）
@@ -67,6 +67,15 @@ pnpm dlx skills add fxri-toolkit --global       # npm 用户把 pnpm dlx 换成 
 
 复制副本以 frontmatter `metadata.version` 判断是否需要同步上游（`metadata.source` 指向本仓库）。
 
+## 版本声明与一致性
+
+每个 SKILL.md 的版本写两处，须保持一致：
+
+- frontmatter `metadata.version`：机器读取位，`toolkit skills status` / `skills install` 打印的真源版本取自这里
+- **正文首部**的 `> 本技能版本 x.y.z（随 @fxri/toolkit 同批分发）`：进上下文的自证位——agent 加载技能正文即见到它，被问版本时报这个值（不读磁盘、不跑 CLI），与 `toolkit skills status` 的磁盘基准值一比对，就能判断当前会话上下文是否已过期
+
+两处不一致会误导版本比对，故内容变更时同步递增、发布前逐项核对（见下方核对清单）。
+
 ## 与其他 skills 共存
 
 每个技能是独立目录、独立激活单元：agent 按 `description` 匹配任务按需加载，不用到的技能零上下文占用。唯一约束是目录名（即 `name`）不重复；`description` 已含反向排除，与常见通用技能重叠概率低。
@@ -80,7 +89,7 @@ pnpm dlx skills add fxri-toolkit --global       # npm 用户把 pnpm dlx 换成 
 
 - [ ] name：kebab-case、与目录名一致、≤64 字符
 - [ ] description：≤1024 字符，含做什么 + 何时用 + 正向触发词 + 反向排除
-- [ ] metadata.version：内容变更即递增
+- [ ] metadata.version：内容变更即递增，且与正文首部版本声明一致
 - [ ] 主干 SKILL.md < 200 行，细节下沉 `references/`，可复制资产放 `assets/`
 - [ ] 引用的 references / assets 相对路径有效
 - [ ] 技能用途描述已同步 docs/guide 技能表与本文「技能列表」表（含版本标注）

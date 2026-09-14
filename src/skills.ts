@@ -115,6 +115,8 @@ export const AGENT_SKILL_DIRS: AgentEntry[] = [
 export interface PackageSkill {
   name: string
   dir: string
+  // SKILL.md frontmatter metadata.version；未声明版本时为空串（兼容第三方技能）
+  version: string
 }
 
 // 解析后的目标目录
@@ -133,6 +135,8 @@ export type SkillItemState = "link" | "dangling" | "wrong" | "copy" | "copy-drif
 export interface SkillStatusItem {
   name: string
   state: SkillItemState
+  // 真源声明版本（与现场状态无关），供与旧会话上下文中已加载的技能内容比对
+  version: string
 }
 
 export interface TargetStatus {
@@ -148,6 +152,8 @@ export interface TargetStatus {
 export interface SkillsStatusReport {
   source: string
   skills: string[]
+  // 各技能真源版本，作为「会话上下文已过期」判定的磁盘基准值
+  skillVersions: Record<string, string>
   stateFile: string
   stateExists: boolean
   targets: TargetStatus[]
@@ -249,6 +255,19 @@ export function skillsPackageDir(): string {
   return resolvePackageRoot()
 }
 
+// 读取技能真源版本：SKILL.md frontmatter 内 metadata.version（缩进键）；文件缺失、无 frontmatter 或未声明版本一律返回空串，不抛错
+export function readSkillVersion(dir: string): string {
+  try {
+    const content = readFileSync(join(dir, SKILL_ENTRY), "utf8").replace(/^\uFEFF/, "")
+    const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+    if (!frontmatter) return ""
+    const matched = (frontmatter[1] ?? "").match(/^[ \t]+version:[ \t]*"?([^"\r\n]+?)"?[ \t]*$/m)
+    return matched ? (matched[1] ?? "").trim() : ""
+  } catch {
+    return ""
+  }
+}
+
 // 列出包内技能（含 SKILL.md 的目录），按名称排序
 export function listPackageSkills(): PackageSkill[] {
   const root = skillsSourceDir()
@@ -262,7 +281,7 @@ export function listPackageSkills(): PackageSkill[] {
       continue
     }
     if (!existsSync(join(dir, SKILL_ENTRY))) continue
-    out.push({ name, dir })
+    out.push({ name, dir, version: readSkillVersion(dir) })
   }
   return out
 }
@@ -604,6 +623,7 @@ export function skillsStatus(): SkillsStatusReport {
     // 主目标即使未创建也要报告（提示执行 install）；agent 目标仅在目录已存在或有本包记录时展开
     if (target.kind !== "primary" && !target.dirExists && !recorded) continue
     const names = [...new Set([...skills.map((s) => s.name), ...(recorded ? [...recorded.links, ...recorded.copies] : [])])].sort()
+    const versionByName = new Map(skills.map((s) => [s.name, s.version]))
     const items: SkillStatusItem[] = []
     for (const name of names) {
       const source = join(skillsSourceDir(), name)
@@ -620,11 +640,19 @@ export function skillsStatus(): SkillsStatusReport {
         if (existsSync(source) && dirsEqual(source, dest)) state = "copy"
         else state = recorded?.copies.includes(name) ? "copy-drift" : "conflict"
       } else state = "missing"
-      items.push({ name, state })
+      items.push({ name, state, version: versionByName.get(name) ?? "" })
     }
     out.push({ dir: target.dir, label: target.label, kind: target.kind, available: target.available, dirExists: target.dirExists, recorded: Boolean(recorded), items })
   }
-  return { source: skillsSourceDir(), skills: skills.map((s) => s.name), stateFile: skillsStateFile(), stateExists: Boolean(state), targets: out, pendingAgents }
+  return {
+    source: skillsSourceDir(),
+    skills: skills.map((s) => s.name),
+    skillVersions: Object.fromEntries(skills.map((s) => [s.name, s.version])),
+    stateFile: skillsStateFile(),
+    stateExists: Boolean(state),
+    targets: out,
+    pendingAgents,
+  }
 }
 
 // 链接自愈（skills.autoLink，默认 true）：只对状态文件记载的链接做补链与修链

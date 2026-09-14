@@ -3,12 +3,14 @@ name: fxri-session-recap
 description: 会话收尾的工作记忆沉淀 + 新会话开场恢复 + 历史任务时间修正：收尾时把整场会话的全部任务完整建档归档，按四级时间源还原真实完成时间，沉淀规范进 conventions.md；新会话开场按三层恢复（全量索引 + active 精读 + 近窗归档）重建现场并核对规范；也可批量修正历史归档时间。当用户表达会话收尾意图（如今天先到这、收个尾、归档本次会话、把结论记下来）、接续意图（如恢复上下文、继续上次、上次做到哪）、或修正历史任务时间时使用。不用于会话中途的常规方案建档（那是 fxri-plan-to-task 的职责）、与工作交接无关的代码技术总结。
 license: MIT
 metadata:
-  version: "1.1.1"
+  version: "1.1.2"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
 
 # 会话归档、上下文恢复与历史修正
+
+> 本技能版本 1.1.2（随 @fxri/toolkit 同批分发）。被问版本时即报此值——不读磁盘、不跑 CLI：报出的值就是本会话上下文里已加载内容的版本，可与 `toolkit skills status` 打印的磁盘基准值对照，不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -128,4 +130,4 @@ metadata:
 - `toolkit tasks normalize`：模式三迁移核验（`--fix` 迁移 / 只读检查）
 - `toolkit tasks check`：落盘后校验
 - 任务目录非默认 `.tasks` 时加 `--dir <path>`
-- `toolkit skills install` / `toolkit skills status`：把本包 fxri-* 技能分发到各 agent 全局技能目录 / 查看链接与副本现场（技能与 CLI 同源同版本）
+- `toolkit skills install` / `toolkit skills status`：把本包 fxri-* 技能分发到各 agent 全局技能目录 / 查看链接与副本现场（技能随包同源分发，与 CLI 同一发布批次；技能内容版本独立编号，`skills status` 会打印各技能真源版本）

@@ -27,7 +27,7 @@ pnpm i -g @fxri/toolkit   # 工具全局（npm 用户：npm i -g @fxri/toolkit�
 toolkit skills install    # skills 一键分发到各 agent 全局技能目录
 ```
 
-升级一条命令：`pnpm add -g @fxri/toolkit`（软链模式下技能随包自动更新；副本形式需重跑 `toolkit skills install`），skills 升级后开新会话，见「升级后要注意什么」。诚实代价：全局装的版本**不随项目锁定**，团队里会出现「各装各的」版本漂移——所以团队项目推荐工具走项目 devDependency（版本随仓库锁定，成员与 CI 自动一致）；skills 可用内置命令全局分发（与 CLI 同源同版本），也可用上游安装器项目级安装并把 `skills-lock.json` 提交进仓库锁版本；只想在公司项目生效见下文「只在公司项目激活」。
+升级一条命令：`pnpm add -g @fxri/toolkit`（软链模式下技能随包自动更新；副本形式需重跑 `toolkit skills install`），skills 升级后开新会话，见「升级后要注意什么」。诚实代价：全局装的版本**不随项目锁定**，团队里会出现「各装各的」版本漂移——所以团队项目推荐工具走项目 devDependency（版本随仓库锁定，成员与 CI 自动一致）；skills 可用内置命令全局分发（与 CLI 同一发布批次；技能内容版本独立编号），也可用上游安装器项目级安装并把 `skills-lock.json` 提交进仓库锁版本；只想在公司项目生效见下文「只在公司项目激活」。
 
 ### skills 是什么？和插件、脚本有什么区别？
 

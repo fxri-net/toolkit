@@ -102,7 +102,7 @@
 
 **个人项目**：不放上述文件即可，全局技能目录里的 fxri 技能不会被引用（agent 按 description 按需加载，未在项目 rules 中声明的技能不会自动介入）。
 
-团队项目推荐把上游安装器（`pnpm dlx skills add fxri-net/toolkit`）生成的 `skills-lock.json` 一并提交，保证成员与 AI 侧技能版本一致；用内置 `toolkit skills install` 分发时技能与 CLI 同源同版本，无需额外锁文件。
+团队项目推荐把上游安装器（`pnpm dlx skills add fxri-net/toolkit`）生成的 `skills-lock.json` 一并提交，保证成员与 AI 侧技能版本一致；用内置 `toolkit skills install` 分发时技能随包同一发布批次分发（技能内容版本独立编号），无需额外锁文件。
 
 ## AI 技能包 skills
 
@@ -117,7 +117,7 @@
 **安装**（两种方式，选一）：
 
 ```bash
-# 方式一：装了 CLI 一键分发（推荐，技能随包分发，与 CLI 同源同版本）
+# 方式一：装了 CLI 一键分发（推荐，技能随包分发，与 CLI 同一发布批次）
 toolkit skills install     # 默认软链真源，链接创建失败自动降级副本；--copy 强制副本、--dry-run 预演
 toolkit skills status      # 查现场；toolkit skills remove 卸载；toolkit skills path 输出包根
 

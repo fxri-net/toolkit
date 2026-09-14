@@ -10,6 +10,7 @@ import {
   autoLinkSkills,
   installSkills,
   listPackageSkills,
+  readSkillVersion,
   readSkillsState,
   removeSkills,
   resetSkillsRootCache,
@@ -102,6 +103,41 @@ describe("包根与技能真源定位", () => {
     for (const skill of listPackageSkills()) {
       expect(existsSync(join(skill.dir, "SKILL.md"))).toBe(true)
     }
+  })
+
+  it("每个技能带真源声明版本，与 SKILL.md frontmatter 一致且为语义化版本", () => {
+    const skills = listPackageSkills()
+    expect(skills.length).toBeGreaterThan(0)
+    for (const skill of skills) {
+      // 版本随技能进 `skills install` / `skills status` 报告，供与会话上下文已加载内容比对
+      expect(skill.version).toMatch(/^\d+\.\d+\.\d+$/)
+      expect(readSkillVersion(skill.dir)).toBe(skill.version)
+    }
+  })
+})
+
+describe("readSkillVersion 版本解析", () => {
+  // 造一个只含 SKILL.md 的技能目录，返回其路径
+  function skillDir(name: string, content: string): string {
+    const dir = join(home, name)
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, "SKILL.md"), content, "utf8")
+    return dir
+  }
+
+  it("取 frontmatter metadata.version（带或不带引号均可）", () => {
+    expect(readSkillVersion(skillDir("quoted", '---\nname: quoted\nmetadata:\n  version: "1.2.3"\n  author: fxri\n---\n\n# quoted\n'))).toBe("1.2.3")
+    expect(readSkillVersion(skillDir("plain", "---\nname: plain\nmetadata:\n  version: 2.0.0\n---\n"))).toBe("2.0.0")
+  })
+
+  it("容忍 UTF-8 BOM", () => {
+    expect(readSkillVersion(skillDir("bom", "\uFEFF---\nname: bom\nmetadata:\n  version: 3.1.4\n---\n"))).toBe("3.1.4")
+  })
+
+  it("无 frontmatter / 未声明 metadata.version / 文件缺失时返回空串，不抛错", () => {
+    expect(readSkillVersion(skillDir("no-fm", "# 无 frontmatter\n"))).toBe("")
+    expect(readSkillVersion(skillDir("no-version", "---\nname: no-version\nmetadata:\n  author: fxri\n---\n"))).toBe("")
+    expect(readSkillVersion(join(home, "not-exists"))).toBe("")
   })
 })
 
@@ -327,14 +363,19 @@ describe("skillsStatus 现场状态", () => {
       source: string
       stateFile: string
       skills: string[]
+      skillVersions: Record<string, string>
       pendingAgents: Array<{ dir: string }>
-      targets: Array<{ kind: string; dir: string; items: Array<{ name: string; state: string }> }>
+      targets: Array<{ kind: string; dir: string; items: Array<{ name: string; state: string; version: string }> }>
     }
     expect(payload.skills).toHaveLength(listPackageSkills().length)
     expect(payload.source).toBe(skillsSourceDir())
     expect(payload.stateFile).toBe(skillsStateFile())
+    // 磁盘基准值：与会话上下文里技能正文声明的版本比对，判断上下文是否已过期
+    expect(payload.skillVersions).toEqual(Object.fromEntries(listPackageSkills().map((s) => [s.name, s.version])))
+    expect(payload.skillVersions[name]).toMatch(/^\d+\.\d+\.\d+$/)
     const primary = payload.targets.find((t) => t.kind === "primary")
     expect(primary?.items.find((i) => i.name === name)?.state).toBe("conflict")
+    expect(primary?.items.find((i) => i.name === name)?.version).toBe(payload.skillVersions[name])
   })
 })
 

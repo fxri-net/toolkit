@@ -140,11 +140,17 @@ function printSkillsJson(payload: object): void {
   console.log(JSON.stringify({ schemaVersion: 1, ...payload }, null, 2))
 }
 
+// 技能标签：名称 + 真源声明版本（未声明版本时只显示名称）
+function skillLabel(name: string, version: string): string {
+  return version ? `${name}@${version}` : name
+}
+
 // 打印安装报告：按目标分组列出新建/更新/跳过/降级/失败，并给出未纳入目标的处理入口
 function printInstallReport(report: InstallReport, dryRun: boolean): void {
   const tag = dryRun ? "[预演] " : ""
+  const versionByName = new Map(listPackageSkills().map((s) => [s.name, s.version]))
   console.log(`${tag}技能源：${report.source}`)
-  console.log(`${tag}包内技能（${report.skills.length}）：${report.skills.join("、") || "无"}`)
+  console.log(`${tag}包内技能（${report.skills.length}）：${report.skills.map((name) => skillLabel(name, versionByName.get(name) ?? "")).join("、") || "无"}`)
   for (const t of report.targets) {
     console.log("")
     console.log(`${t.label}：${t.dir}`)
@@ -169,9 +175,10 @@ function printInstallReport(report: InstallReport, dryRun: boolean): void {
   if (dryRun) console.log("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行")
 }
 
-// 打印现场状态：逐目标逐技能标注状态，末尾汇总需处理的条目
+// 打印现场状态：先列技能真源版本基准，再逐目标逐技能标注状态，末尾汇总需处理的条目
 function printStatusReport(report: SkillsStatusReport): void {
   console.log(`技能源：${report.source}`)
+  console.log(`技能版本：${report.skills.map((name) => skillLabel(name, report.skillVersions[name] ?? "")).join("、") || "无"}`)
   console.log(`状态文件：${report.stateFile}${report.stateExists ? "" : "（未记录，尚未执行过 toolkit skills install）"}`)
   let problems = 0
   for (const t of report.targets) {
@@ -287,7 +294,7 @@ const skillsCmd = program
 // 安装：默认软链真源，链接创建失败自动降级副本；只写入「已安装」的 agent 目录，不凭空造目录
 skillsCmd
   .command("install")
-  .description("安装包内技能到全局技能目录（默认软链真源，链接失败自动降级副本）")
+  .description("安装包内技能到全局技能目录（默认软链真源，链接失败自动降级副本；报告含技能版本）")
   .option("--copy", "强制以副本形式写入（不建软链）")
   .option("--dir <path>", "额外目标目录（可多次指定，兜底内置表未收录的 agent）", collectDir, [])
   .option("--dry-run", "预演（只预览将要执行的动作，不写文件）")
@@ -308,7 +315,7 @@ skillsCmd
 // 状态：报告悬空 / 指向错误 / 副本漂移 / 同名冲突 / 缺失，供人工决定是否重跑 install
 skillsCmd
   .command("status")
-  .description("查看各全局技能目录的现场状态（悬空 / 指向错误 / 副本漂移 / 缺失 / 同名冲突）")
+  .description("查看各全局技能目录的现场状态与技能真源版本（含版本清单；悬空 / 指向错误 / 副本漂移 / 缺失 / 同名冲突）")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
   .action((options: { format?: string }) => {
     try {

@@ -65,7 +65,7 @@ pnpm add -g @fxri/toolkit && toolkit skills install   # 装了 CLI 一键分发�
 pnpm dlx skills add fxri-net/toolkit                  # 也可用上游安装器（npm 用户：npx skills add fxri-net/toolkit）
 ```
 
-技能随包分发（真源为包内 `skills/`），与 CLI 同源、版本一致；`toolkit skills install` 默认软链，链接创建失败自动降级副本，`toolkit skills status` 查现场，`toolkit skills remove` 卸载。
+技能随包分发（真源为包内 `skills/`），与 CLI 同一发布批次（技能内容版本独立编号）；`toolkit skills install` 默认软链，链接创建失败自动降级副本，`toolkit skills status` 查现场，`toolkit skills remove` 卸载。
 
 - [fxri-plan-to-task](./skills/fxri-plan-to-task/SKILL.md)：方案确认后落盘为任务文件（动手前建档评估、check、归档 + 任务级规范沉淀为强制终点）
 - [fxri-release-changelog](./skills/fxri-release-changelog/SKILL.md)：发版时创建变更集、格式化多语言 CHANGELOG
