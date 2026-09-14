@@ -24,9 +24,16 @@ describe("文档一致性：脱敏内置规则清单", () => {
   })
 })
 
+// 读取文档并归一换行：Windows 检出（core.autocrlf）会把文本文件转为 CRLF，直接逐字节比对会误判为未同步
+function readDoc(file: string): string {
+  return readFileSync(join(process.cwd(), file), "utf8")
+    .replace(/^\uFEFF/, "")
+    .replace(/\r\n/g, "\n")
+}
+
 // 站点更新日志镜像页的期望内容，与 scripts/sync-changelog-doc.mjs 的转换口径一致
 function expectedChangelogPage(): string {
-  const raw = readFileSync(join(process.cwd(), "CHANGELOG.md"), "utf8").replace(/^\uFEFF/, "")
+  const raw = readDoc("CHANGELOG.md")
   const body = raw.replace(/^#\s+[^\n]*\n+/, "").trimEnd() + "\n"
   return (
     "---\n" +
@@ -40,7 +47,7 @@ function expectedChangelogPage(): string {
 
 describe("文档一致性：更新日志镜像", () => {
   it("docs/changelog.md 与根 CHANGELOG.md 同步（漏跑同步脚本或手改镜像页即失败）", () => {
-    expect(readFileSync(join(process.cwd(), "docs/changelog.md"), "utf8")).toBe(expectedChangelogPage())
+    expect(readDoc("docs/changelog.md")).toBe(expectedChangelogPage())
   })
 })
 
