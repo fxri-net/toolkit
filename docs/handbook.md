@@ -11,7 +11,7 @@
 | 1 装 CLI | 团队项目：`pnpm add -D @fxri/toolkit`（npm 用 `npx`）；个人多项目：`pnpm i -g @fxri/toolkit` | 得到 `toolkit` 命令 |
 | 2 装 skills | `toolkit skills install`（装了 CLI 一键分发，默认软链；npm 用户需先 `npm i -g @fxri/toolkit`）；也可用上游安装器 `pnpm dlx skills add fxri-net/toolkit --global` | AI 侧获得三份岗位说明书，遇到对应场景自动触发 |
 | 3 建任务区 | `pnpm exec toolkit init` | 生成 `.tasks/active/{YYYYMM}/`、`archive/` 骨架与 `.gitignore` 片段 |
-| 4 配全局规则（可选） | 从 [AI 全局规则](./ai-rules) 复制模板到你的 agent 全局 rules | AI 按你的纪律协作 |
+| 4 配全局规则（可选） | 从 [AI 全局规则](./ai-rules) 复制模板到你的 agent 全局 rules；提交习惯想统一再取[提交信息规则](./commit-rules) | AI 按你的纪律协作 |
 
 三种安装方式对比、离线/内网装法见[新手指南 · 安装](./getting-started#安装)。
 

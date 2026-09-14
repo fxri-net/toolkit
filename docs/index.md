@@ -91,6 +91,7 @@ pnpm exec toolkit tasks
 | [配置参考](./config) | 查 `.toolkitrc.json` 字段 |
 | [FAQ](./faq) | 遇到问题先来这里找 |
 | [推荐 AI 全局规则](./ai-rules) | 想让 AI 助手按本工具的最佳实践协作 |
+| [推荐提交信息规则](./commit-rules) | 想让 AI 按统一格式写 git 提交信息 |
 
 ## 环境要求
 

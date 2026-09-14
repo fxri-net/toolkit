@@ -51,7 +51,13 @@ export default defineConfig({
       },
       { text: 'FAQ', link: '/faq' },
       { text: '更新日志', link: '/changelog' },
-      { text: 'AI 全局规则', link: '/ai-rules' },
+      {
+        text: '规则',
+        items: [
+          { text: 'AI 全局规则', link: '/ai-rules' },
+          { text: '提交信息规则', link: '/commit-rules' },
+        ],
+      },
     ],
     sidebar: [
       {
@@ -77,6 +83,7 @@ export default defineConfig({
         items: [
           { text: 'FAQ', link: '/faq' },
           { text: 'AI 全局规则', link: '/ai-rules' },
+          { text: '提交信息规则', link: '/commit-rules' },
         ],
       },
     ],
