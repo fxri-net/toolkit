@@ -32,6 +32,11 @@ export function printTasks(tasksDir = ".tasks", redact = true): void {
 // 按视图打印任务（分组展示 + 汇总）；视图过滤结果为空时区分「有过滤」与「视图本身为空」
 export function printTaskBoard(tasksDir = ".tasks", view: TaskView = "active", filter: TaskFilter = {}, redact = true): void {
   const { rows, summary } = queryTasks(tasksDir, view, filter)
+  renderTaskBoard(rows, summary, view, filter, redact)
+}
+
+// 渲染任务总览：接收已算好的查询结果，供调用方复用（避免同一视图重复查询）
+export function renderTaskBoard(rows: TaskRow[], summary: TaskSummary, view: TaskView = "active", filter: TaskFilter = {}, redact = true): void {
   const viewName = view === "active" ? "待完成" : view === "archived" ? "已归档" : "待完成 + 已归档"
   console.log(`任务总览（${viewName}）：\n`)
   if (rows.length === 0) {

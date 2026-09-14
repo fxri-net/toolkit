@@ -48,6 +48,13 @@ ESM 与 CJS 双形态入口（`import` / `require` 均可）；类型随函数�
 | `checkArchive(dir?)` / `fixArchive(dir?)` | 归档归一化检查 / 修复：补元数据、`--fix`（options 无关，直接修复）把日期漂移块迁移到与完成时间一致的归档文件、降序重排、清理空文件；检查含时间异常（完成时间晚于当前系统时间或恰为零点整，疑似只填日期被补零）仅报告不自动改值，范围字段形态同理（顿号/逗号分隔 `--fix` 自动归一为半角加号，括号疑似注释仅报告需人工） |
 | `normalizeCompleted(completed)` | 完成时间定宽化 `YYYY-MM-DD HH:mm` |
 
+校验与归一化的类型导出（与上述函数配对的 TS 类型，随 `src/index.ts` 同源导出）：
+
+| 类型 | 说明 |
+| --- | --- |
+| `CheckIssue` / `IssueLevel` | 单条校验问题的结构（`level`/`file`/`line?`/`message`）与级别联合（`error`/`warn`）；`CheckResult.issues[]` 的元素类型 |
+| `NormalizeIssue` / `NormalizeResult` | 单条归一化问题的结构（`file`/`message`/`fixable`）与结果结构（`issues[]`/`fixed`） |
+
 ## 导入导出
 
 | 函数 | 说明 |
@@ -92,7 +99,7 @@ languages.ja = {
 | 函数 | 说明 |
 | --- | --- |
 | `redactText(text, enabled)` | 按内置 + 自定义规则掩码自由文本 |
-| `parseBool(value, fallback)` | 布尔解析（认 `0/1`、`true/false`、`on/off`） |
+| `parseBool(value, fallback)` | 布尔解析（认 `0/1`、`true/false`、`on/off`、`yes/no`） |
 | `resolveEnabled(cli, envKey, config, fallback)` | 三档开关合并：CLI 参数 > 环境变量 > 配置 > 默认 |
 
 ## 配置

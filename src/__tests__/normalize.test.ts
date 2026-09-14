@@ -62,7 +62,7 @@ describe("parseArchiveBlocks", () => {
       "b 正文",
       "b 正文\n\n## 20260903-唐启云-orphan\n\n> 负责人：唐启云　状态：已完成　范围：x\n\n无完成时间的孤儿块",
     )
-    const orphans = scanOrphanBlocks(withOrphan)
+    const orphans = scanOrphanBlocks(parseArchiveBlocks(withOrphan).blocks)
     expect(orphans).toEqual(["20260903-唐启云-orphan"])
   })
 
@@ -99,7 +99,7 @@ describe("parseArchiveBlocks", () => {
     expect(blocks[1]?.body).toContain("## 执行记录")
     expect(blocks[1]?.body).toContain("b 正文")
     // 正文小节不得被扫成疑似任务块
-    expect(scanOrphanBlocks(withSection)).toEqual([])
+    expect(scanOrphanBlocks(blocks)).toEqual([])
   })
 
   it("块缺元数据行时仍按 `---` 解析为独立块（标题/元数据降为校验项）（B5）", () => {
@@ -318,16 +318,29 @@ describe("archiveTasks 锁与 header（E1/E2）", () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
-  it("持有进程仍存活时，超时的锁文件不被接管", () => {
+  it("持有进程仍存活且未超绝对上限时，超兜底阈值的锁文件不被接管", () => {
     const { dir } = withDone()
     const lock = join(dir, ".archive.lock")
-    // 锁记录本进程（存活），并把 mtime 调到远超旧阈值，验证不再按时间误抢
-    writeFileSync(lock, JSON.stringify({ pid: process.pid, startedAt: Date.now() - 60 * 60 * 1000 }), "utf8")
-    const old = new Date(Date.now() - 60 * 60 * 1000)
+    // 锁记录本进程（存活），mtime 超过 10 分钟兜底阈值但未达绝对上限：验证识别到持有者时不再按时间误抢
+    writeFileSync(lock, JSON.stringify({ pid: process.pid, startedAt: Date.now() - 11 * 60 * 1000 }), "utf8")
+    const old = new Date(Date.now() - 11 * 60 * 1000)
     utimesSync(lock, old, old)
     const res = archiveTasks(dir)
     expect(res.archived).toBe(0)
     expect(existsSync(lock)).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("持有进程看似存活但锁龄超过绝对上限时强制接管（兜底 pid 复用）", () => {
+    const { dir } = withDone()
+    const lock = join(dir, ".archive.lock")
+    // pid 取本进程（必然存活）模拟 pid 被无关进程占用的残留锁，锁龄超 30 分钟绝对上限应被强制接管
+    writeFileSync(lock, JSON.stringify({ pid: process.pid, startedAt: Date.now() - 60 * 60 * 1000 }), "utf8")
+    const old = new Date(Date.now() - 60 * 60 * 1000)
+    utimesSync(lock, old, old)
+    const res = archiveTasks(dir)
+    expect(res.archived).toBe(1)
+    expect(existsSync(lock)).toBe(false)
     rmSync(dir, { recursive: true, force: true })
   })
 

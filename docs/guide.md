@@ -52,11 +52,12 @@
 | `updated` | 更新日 `YYYYMMDD` |
 | `completed` | 完成时间 `YYYY-MM-DD HH:mm`，终结态必填；按四级时间源取证（当场打点 / 聊天记录时间戳 / git 提交时间 / 系统当前时间兜底并标注「收尾补记」） |
 | `depends_on` | 依赖任务文件名数组 |
+| `scope` | 影响范围；多值以半角加号分隔（如 `toolkit+lxgl-web`），顿号/逗号列表属误写会触发 check 软告警 |
 
 ### 归档规则要点
 
 - 归档触发是人工/事件驱动（若提交代码，须在 git 提交前），`已完成`/`已放弃` 且带 `completed` 才可归档
-- 归档文件按完成日期聚合、任务块按完成时间降序；`toolkit tasks archive` 自动完成并加排他锁防并发
+- 归档文件按完成日期聚合、任务块按完成时间降序；**块间的 `---` 是任务块的唯一权威边界**（块标题行与元数据行均为校验项，不承担分块职责），`toolkit tasks archive` 自动完成并加排他锁防并发（检测到并发时跳过并告警；持有进程已退出或锁龄超上限的残留锁自动接管，不会永久阻塞）
 - 归档块完成时间可以早于归档动作时间（补档 / 历史修正场景），`toolkit tasks normalize --fix` 会把漂移块自动迁移到与完成时间一致的归档文件
 - `toolkit tasks normalize` 检查归档块元数据、日期漂移、排序、时间异常（完成时间晚于当前系统时间或恰为零点整），`--fix` 自动修复（时间异常需人工确认，不自动改值）
 
@@ -108,11 +109,13 @@
 
 零依赖 Agent Skills（纯 Markdown），遵循 [Agent Skills 开放标准](https://agentskills.io)，可被 Claude Code、Cursor、Codex、Gemini CLI、Trae 等兼容 agent 按需加载。
 
-| 技能 | 用途 |
-| --- | --- |
-| `fxri-plan-to-task` | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点） |
-| `fxri-release-changelog` | changesets 发版与多语言 CHANGELOG 维护 |
-| `fxri-session-recap`（1.7.0 新增，1.8.0 扩展） | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
+| 技能 | 版本 | 用途 |
+| --- | --- | --- |
+| `fxri-plan-to-task` | 1.1.4 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点） |
+| `fxri-release-changelog` | 1.0.9 | changesets 发版与多语言 CHANGELOG 维护 |
+| `fxri-session-recap` | 1.1.3 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
+
+版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` 打印的真源版本），随技能内容变更递增；`fxri-session-recap` 为 1.7.0 新增
 
 **安装**（两种方式，选一）：
 

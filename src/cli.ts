@@ -5,7 +5,7 @@ import { createRequire } from "node:module"
 import { spawnSync } from "node:child_process"
 import { existsSync, readdirSync } from "node:fs"
 import { join } from "node:path"
-import { printTaskBoard } from "./tasks/list"
+import { renderTaskBoard } from "./tasks/list"
 import { queryTasks } from "./tasks/query"
 import { exportTasks, toJSON } from "./tasks/export"
 import { importTasks } from "./tasks/import"
@@ -22,7 +22,7 @@ import { resolveRedactEnabled } from "./privacy/redact"
 import { resolveEnabled } from "./switch"
 import { getConfigSection, resolveTasksDir } from "./config"
 import { initWorkspace, INIT_LINKS } from "./init"
-import { toJsonText } from "./json-output"
+import { toJsonText, assertJsonFormat } from "./json-output"
 import {
   autoLinkSkills,
   installSkills,
@@ -118,16 +118,6 @@ function printIssues(issues: Array<{ file: string; line?: number; message: strin
 // 收集可多次出现的 --dir（commander collect 范式：默认 [] 逐个累积）
 function collectDir(value: string, previous: string[]): string[] {
   return [...previous, value]
-}
-
-// 校验 --format 取值：仅支持 json，非法值告警并置退出码 1；返回 false 时调用方直接 return
-function assertJsonFormat(format: string | undefined): boolean {
-  if (format && format !== "json") {
-    console.error(`⚠️ 不支持的输出格式「${format}」，仅支持 json`)
-    process.exitCode = 1
-    return false
-  }
-  return true
 }
 
 // 技能现场状态的中文文案（status 逐项输出用）
@@ -486,6 +476,7 @@ program
         }
       } else if (command === "stats") {
         // 统计视图：复用查询过滤参数，输出周期 / 滞留 / 吞吐三类指标
+        if (!assertJsonFormat(options.format)) return
         try {
           const filter: TaskFilter = {}
           const multi = (v?: string): string[] | undefined => (v ? v.split(/[,，]/).map((s) => s.trim()).filter(Boolean) : undefined)
@@ -568,7 +559,7 @@ program
           } else if (options.format === "json") {
             console.log(toJSON(rows, summary, redact))
           } else {
-            printTaskBoard(dir, view as TaskView, filter, redact)
+            renderTaskBoard(rows, summary, view as TaskView, filter, redact)
             // 默认视图提示：带过滤但落在待完成视图无结果时，提示归档需要显式 --view（避免误以为过滤不生效）
             const hasFilter = Boolean(options.owner || options.scope || options.status || options.date || options.since || options.until)
             if (!options.view && hasFilter && rows.length === 0) {

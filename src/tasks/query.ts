@@ -3,6 +3,7 @@
 import { readFileSync } from "node:fs"
 import { join, basename } from "node:path"
 import { listTaskFiles, dateFromFileName } from "./scan"
+import type { MonthRange } from "./scan"
 import { parseArchiveBlocks } from "./archive-block"
 import { parseFrontmatter, titleOf } from "./parse"
 import { parseDepends } from "./depends"
@@ -42,11 +43,11 @@ function parseMetaLine(metaLine: string | null): { owner: string; status: string
   return { owner: seg.owner || "未标注", status: seg.status || "已完成", scope: seg.scope || "-" }
 }
 
-// 读取已归档任务（archive/**/*.md 的任务块）为统一行
-export function listArchivedTasks(tasksDir = ".tasks"): TaskRow[] {
+// 读取已归档任务（archive/**/*.md 的任务块）为统一行；months 为月份目录白名单（日期过滤下推，跳过范围外目录）
+export function listArchivedTasks(tasksDir = ".tasks", months?: MonthRange): TaskRow[] {
   const archiveDir = join(tasksDir, "archive")
   const rows: TaskRow[] = []
-  for (const file of listTaskFiles(archiveDir)) {
+  for (const file of listTaskFiles(archiveDir, months)) {
     const content = readFileSync(file, "utf8")
     for (const b of parseArchiveBlocks(content).blocks) {
       const meta = parseMetaLine(b.metaLine)
@@ -143,11 +144,22 @@ export function buildSummary(rows: TaskRow[]): TaskSummary {
   return { total: rows.length, byStatus, byOwner }
 }
 
+// 由时间过滤推导归档月份目录白名单（YYYYMM 闭区间）：命中判定仍由 matchRow 负责，
+// 这里只做读盘范围收窄；无时间条件或条件均不可解析时返回 undefined（退回全量读取，语义不变）
+function monthRangeFrom(f: TaskFilter): MonthRange | undefined {
+  if (!f.date && !f.since && !f.until) return undefined
+  const since = f.date ? toYmd(f.date) : toYmd(f.since || "")
+  const until = f.date ? toYmd(f.date) : toYmd(f.until || "")
+  if (!since && !until) return undefined
+  const toMonth = (d: string) => d.slice(0, 7).replace("-", "")
+  return { since: since ? toMonth(since) : undefined, until: until ? toMonth(until) : undefined }
+}
+
 // 查询主入口：按视图读取 + 过滤 + 排序，返回行与汇总
 export function queryTasks(tasksDir = ".tasks", view: TaskView = "active", filter: TaskFilter = {}): { rows: TaskRow[]; summary: TaskSummary } {
   let rows: TaskRow[] = []
   if (view === "active" || view === "all") rows.push(...listActiveTasks(tasksDir))
-  if (view === "archived" || view === "all") rows.push(...listArchivedTasks(tasksDir))
+  if (view === "archived" || view === "all") rows.push(...listArchivedTasks(tasksDir, monthRangeFrom(filter)))
   rows = rows.filter((r) => matchRow(r, filter))
   const ordered = orderRows(rows)
   return { rows: ordered, summary: buildSummary(ordered) }

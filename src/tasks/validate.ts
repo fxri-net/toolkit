@@ -271,9 +271,13 @@ function archivedTitles(file: string): string[] {
   const hit = archivedIndexCache.get(file)
   if (hit && hit.mtimeMs === st.mtimeMs) return hit.titles
   const titles: string[] = []
+  const seen = new Set<string>()
   try {
     for (const b of parseArchiveBlocks(readTextFile(file)).blocks) {
-      if (b.title && !titles.includes(b.title)) titles.push(b.title)
+      if (b.title && !seen.has(b.title)) {
+        seen.add(b.title)
+        titles.push(b.title)
+      }
     }
   } catch {
     // 忽略损坏文件
@@ -290,23 +294,34 @@ function validateDependencies(files: string[], tasksDir: string): CheckIssue[] {
   // 引用名归一化：去空白与 .md 后缀，统一为任务文件 basename（不含扩展名）
   const normDep = (d: string) => d.trim().replace(/\.md$/, "").trim()
 
-  // 已归档索引：任务块标题 → 相对归档文件路径（供缺失依赖精确提示去向，M3）
-  const archivedAt = new Map<string, string>()
-  for (const af of listTaskFiles(join(tasksDir, "archive"))) {
-    for (const t of archivedTitles(af)) {
-      if (!archivedAt.has(t)) archivedAt.set(t, displayRel(tasksDir, af))
-    }
-  }
-
   for (const file of files) {
     const name = basename(file, ".md")
     const content = readTextFile(file)
     const fm = parseFrontmatterRaw(content)
-    const deps = parseDepends(fm.depends_on).map(normDep)
-    depsMap.set(name, deps)
+    depsMap.set(name, parseDepends(fm.depends_on).map(normDep))
+  }
+
+  // 全库无任何依赖声明时无需成环检测与归档索引（建索引须扫遍 archive，惰性化避免空转）
+  if (![...depsMap.values()].some((d) => d.length > 0)) return issues
+
+  // 已归档索引：任务块标题 → 相对归档文件路径，仅在确有依赖缺失时构建（供缺失依赖精确提示去向，M3）
+  let archivedAt: Map<string, string> | null = null
+  const archivedLocation = (title: string): string | undefined => {
+    if (!archivedAt) {
+      archivedAt = new Map<string, string>()
+      for (const af of listTaskFiles(join(tasksDir, "archive"))) {
+        for (const t of archivedTitles(af)) {
+          if (!archivedAt.has(t)) archivedAt.set(t, displayRel(tasksDir, af))
+        }
+      }
+    }
+    return archivedAt.get(title)
+  }
+
+  for (const [name, deps] of depsMap) {
     for (const d of deps) {
       if (!nameSet.has(d)) {
-        const where = archivedAt.get(d)
+        const where = archivedLocation(d)
         issues.push({
           level: "warn",
           file: name,

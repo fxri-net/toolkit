@@ -298,8 +298,8 @@ function writeActiveTask(tasksDir: string, t: TaskWrite, dryRun: boolean, warnin
   return file
 }
 
-// 写入归档（按完成时间落到对应日期文件，与旧块合并排序）
-function writeArchiveTask(tasksDir: string, t: TaskWrite, dryRun: boolean, warnings: string[]): string | null {
+// 构造归档块：缺完成时间无法落到日期文件、自定义列在归档块无承载位时告警并返回 null（跳过该条）
+function buildArchiveBlock(t: TaskWrite, warnings: string[]): { date: string; block: ArchiveBlockInfo } | null {
   const completed = t.completed || ""
   const dateStr = completed ? toYmd(completed) : ""
   if (!dateStr) {
@@ -312,12 +312,20 @@ function writeArchiveTask(tasksDir: string, t: TaskWrite, dryRun: boolean, warni
     warnings.push(`任务「${t.title}」自定义列「${extraKeys.join("、")}」在 archive 目标无承载位置，未写入（需保留请改用 active 目标）`)
   }
   const date = dateStr.replace(/-/g, "")
-  const monthDir = join(tasksDir, "archive", date.slice(0, 6))
-  const file = join(monthDir, `${date}.md`)
   const metaLine = `> 负责人：${t.owner}　状态：${t.status}　范围：${t.scope}　完成时间：${completed}`
   const body = `# ${t.title}${t.body ? `\n\n${t.body}` : ""}`
-  const block = { title: t.title, metaLine, completed, body }
-  if (dryRun) return file
+  return { date, block: { title: t.title, metaLine, completed, body } }
+}
+
+// 归档块目标文件路径（按完成日期落到 archive/<YYYYMM>/<YYYYMMDD>.md）
+function archiveFilePath(tasksDir: string, date: string): string {
+  return join(tasksDir, "archive", date.slice(0, 6), `${date}.md`)
+}
+
+// 写入同一目标日期的一批归档块：整文件只读一次、改写一次，与旧块合并排序
+function writeArchiveGroup(tasksDir: string, date: string, incoming: ArchiveBlockInfo[]): void {
+  const monthDir = join(tasksDir, "archive", date.slice(0, 6))
+  const file = join(monthDir, `${date}.md`)
   mkdirSync(monthDir, { recursive: true })
   let header = `# ${date} 归档\n\n> 本文件由 \`toolkit tasks import --target archive\` 自动生成。\n`
   let blocks: ArchiveBlockInfo[] = []
@@ -327,9 +335,8 @@ function writeArchiveTask(tasksDir: string, t: TaskWrite, dryRun: boolean, warni
     blocks = parsed.blocks
   }
   // 按标题去重 + 完成时间降序 + 块间 `---` 分隔统一由 renderArchiveFile 保证（重复导入同名任务幂等）
-  blocks.push(block)
+  blocks.push(...incoming)
   writeFileAtomic(file, renderArchiveFile(header, blocks))
-  return file
 }
 
 // 导入主入口：file 扩展名决定解析方式（csv/xlsx/json），返回创建/跳过统计
@@ -357,6 +364,8 @@ export async function importTasks(file: string, tasksDir = ".tasks", opts: Impor
   let created = 0
   let skipped = 0
   const target = opts.target ?? "active"
+  // archive 目标按目标日期聚合，循环结束后逐日期整文件写一次（同日多记录不再逐条 read→render→write）
+  const archiveGroups = new Map<string, ArchiveBlockInfo[]>()
 
   // 非预演时获取写锁（与 archive/归一化共用 .archive.lock，陈旧锁自动清理），防止并发导入互相覆盖
   let lockFd: number | null = null
@@ -378,17 +387,25 @@ export async function importTasks(file: string, tasksDir = ".tasks", opts: Impor
       }
       const t = norm.t
       if (target === "archive") {
-        const targetFile = writeArchiveTask(tasksDir, t, dryRun, warnings)
-        if (!targetFile) {
+        const built = buildArchiveBlock(t, warnings)
+        if (!built) {
           skipped++
           continue
         }
-        console.log(`${dryRun ? "[预演] 将写入归档" : "已写入归档"} → ${displayRel(tasksDir, targetFile)}`)
+        // 同日期同标题以记录中的最后一条为准（与 renderArchiveFile 的「后写覆盖」口径一致）
+        const group = archiveGroups.get(built.date)
+        if (group) group.push(built.block)
+        else archiveGroups.set(built.date, [built.block])
+        console.log(`${dryRun ? "[预演] 将写入归档" : "已写入归档"} → ${displayRel(tasksDir, archiveFilePath(tasksDir, built.date))}`)
       } else {
         const targetFile = writeActiveTask(tasksDir, t, dryRun, warnings)
         console.log(`${dryRun ? "[预演] 将创建" : "已创建"} → ${displayRel(tasksDir, targetFile)}`)
       }
       created++
+    }
+    // 落盘：每个目标日期文件只读改写一次；锁已持有，写盘期间不会被并发导入穿插
+    if (!dryRun) {
+      for (const [date, blocks] of archiveGroups) writeArchiveGroup(tasksDir, date, blocks)
     }
   } finally {
     if (lockFd !== null) {

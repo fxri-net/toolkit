@@ -120,10 +120,11 @@ function appendToLastBody(blocks: ArchiveBlockInfo[], text: string): void {
 }
 
 // 疑似任务块扫描：正文内部出现形如 `## {YYYYMMDD}-{负责人}-{简述}` 的标题，说明该块缺少块间 `---` 分隔符，
-// 已被归入前一块正文，需要人工确认（不自动修复，避免误判正文小节）
-export function scanOrphanBlocks(content: string): string[] {
+// 已被归入前一块正文，需要人工确认（不自动修复，避免误判正文小节）；
+// 接收已解析的块集合，避免调用方为同一文件重复解析
+export function scanOrphanBlocks(blocks: ArchiveBlockInfo[]): string[] {
   const orphans: string[] = []
-  for (const b of parseArchiveBlocks(content).blocks) {
+  for (const b of blocks) {
     for (const m of b.body.matchAll(/^## (\d{8}-[^-]+-.+)$/gm)) {
       if (m[1]) orphans.push(m[1])
     }

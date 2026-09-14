@@ -40,6 +40,23 @@ describe("scan.listTaskFiles", () => {
     expect(listTaskFiles(join(tmpdir(), "tk-absent-" + Date.now()))).toEqual([])
   })
 
+  it("months 白名单跳过范围外年月目录，非年月目录与根目录文件不被误伤", () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-scan-range-"))
+    mkdirSync(join(dir, "202601"), { recursive: true })
+    mkdirSync(join(dir, "202609"), { recursive: true })
+    mkdirSync(join(dir, "legacy"), { recursive: true })
+    writeFileSync(join(dir, "202601", "a.md"), "x", "utf8")
+    writeFileSync(join(dir, "202609", "b.md"), "x", "utf8")
+    writeFileSync(join(dir, "legacy", "c.md"), "x", "utf8")
+    writeFileSync(join(dir, "root.md"), "x", "utf8")
+    const names = listTaskFiles(dir, { since: "202609", until: "202609" }).map((f) => f.split(/[\\/]/).pop() ?? f)
+    expect(names).toContain("b.md")
+    expect(names).not.toContain("a.md")
+    expect(names).toContain("c.md")
+    expect(names).toContain("root.md")
+    rmSync(dir, { recursive: true, force: true })
+  })
+
   it("dateFromFileName 提取 8 位日期前缀", () => {
     expect(dateFromFileName(join("a", "20260903-唐启云-x.md"))).toBe("20260903")
     expect(dateFromFileName("无日期.md")).toBe("")

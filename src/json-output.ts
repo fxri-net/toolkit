@@ -5,3 +5,13 @@
 export function toJsonText(payload: object): string {
   return JSON.stringify({ schemaVersion: 1, ...payload }, null, 2)
 }
+
+// 校验 --format 取值：仅支持 json，非法值告警并置退出码 1；返回 false 时调用方直接 return
+export function assertJsonFormat(format: string | undefined): boolean {
+  if (format && format !== "json") {
+    console.error(`⚠️ 不支持的输出格式「${format}」，仅支持 json`)
+    process.exitCode = 1
+    return false
+  }
+  return true
+}

@@ -225,6 +225,35 @@ describe("importTasks 写入与映射", () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
+  it("归档导入按目标日期分组写入：同日多记录一次落盘仍保持去重与降序", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-import-arch3-"))
+    mkdirSync(join(dir, "active"), { recursive: true })
+    mkdirSync(join(dir, "archive"), { recursive: true })
+    const csv = join(dir, "in.csv")
+    writeFileSync(
+      csv,
+      "任务名,负责人,状态,完成时间\n" +
+        "同日早,甲,已完成,2026-09-03 09:00\n" +
+        "同日中,甲,已完成,2026-09-03 11:00\n" +
+        "同名覆盖,甲,已完成,2026-09-03 08:00\n" +
+        "同名覆盖,乙,已完成,2026-09-03 12:00\n" +
+        "隔日任务,甲,已完成,2026-09-02 10:00\n",
+      "utf8",
+    )
+    const res = await importTasks(csv, dir, { target: "archive" })
+    expect(res.created).toBe(5)
+    const sameDay = readFileSync(join(dir, "archive", "202609", "20260903.md"), "utf8")
+    // 同日多记录合并为一个文件，块集合仍按完成时间降序
+    expect(sameDay.indexOf("## 同名覆盖")).toBeLessThan(sameDay.indexOf("## 同日中"))
+    expect(sameDay.indexOf("## 同日中")).toBeLessThan(sameDay.indexOf("## 同日早"))
+    // 同日同名以记录中的最后一条为准（乙覆盖甲），且只留一个块
+    expect(sameDay).toContain("负责人：乙")
+    expect(sameDay.match(/^## 同名覆盖$/gm) ?? []).toHaveLength(1)
+    // 不同完成日期各自落到对应日期文件
+    expect(readFileSync(join(dir, "archive", "202609", "20260902.md"), "utf8")).toContain("## 隔日任务")
+    rmSync(dir, { recursive: true, force: true })
+  })
+
   it("自定义列映射到非标准字段时透传为 frontmatter 扩展字段，且排在已知字段之后", async () => {
     const dir = mkdtempSync(join(tmpdir(), "tk-import-extra1-"))
     mkdirSync(join(dir, "active"), { recursive: true })

@@ -6,6 +6,11 @@ import { join } from "node:path"
 // 兜底陈旧阈值：仅在无法识别锁文件持有者（旧格式残留或内容损坏）时按时间判定（10 分钟）
 const STALE_MS = 10 * 60 * 1000
 
+// 绝对接管上限：持有进程看似存活但锁龄超过该值时仍强制接管。
+// 用于兜底 pid 复用（原持有进程已退出、pid 被无关进程占用，liveness 判定会永久为真导致锁永不释放）；
+// 取值远高于任何一次归档/归一化/导入的正常耗时，不会误夺正在运行的合法长任务
+const MAX_LOCK_MS = 30 * 60 * 1000
+
 // 锁文件内容：持有进程的 pid 与其启动时间（毫秒时间戳）
 interface LockOwner {
   /** 持有进程 id */
@@ -39,15 +44,21 @@ function isProcessAlive(pid: number): boolean {
   }
 }
 
-// 判定锁是否可接管：能识别持有者则以其进程存活为准，识别不了再退回时间阈值
-function isStale(lockPath: string, owner: LockOwner | null, staleMs: number): boolean {
-  if (owner) return !isProcessAlive(owner.pid)
+// 锁文件已存在时长；无法读取（刚被其他进程释放）视为无上限，交由调用方判定可接管
+function lockAge(lockPath: string): number {
   try {
-    return Date.now() - statSync(lockPath).mtimeMs > staleMs
+    return Date.now() - statSync(lockPath).mtimeMs
   } catch {
-    // 锁文件刚被其他进程释放，视为可接管
-    return true
+    return Number.POSITIVE_INFINITY
   }
+}
+
+// 判定锁是否可接管：超过绝对上限一律接管（兜底 pid 复用）；否则能识别持有者时以其进程存活为准，识别不了再退回时间阈值
+function isStale(lockPath: string, owner: LockOwner | null, staleMs: number): boolean {
+  const age = lockAge(lockPath)
+  if (age > MAX_LOCK_MS) return true
+  if (owner) return !isProcessAlive(owner.pid)
+  return age > staleMs
 }
 
 // 获取排他锁，成功返回 fd；被存活进程占用或重试仍失败返回 null

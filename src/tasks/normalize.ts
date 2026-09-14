@@ -67,7 +67,7 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
     }
 
     // 疑似任务块（缺块间 `---` 分隔符，被归入前一块正文），提示人工确认
-    for (const title of scanOrphanBlocks(content)) {
+    for (const title of scanOrphanBlocks(blocks)) {
       issues.push({
         file: name,
         message: `疑似任务块「${title}」缺少块间 \`---\` 分隔符，已被归入前一块正文（需人工确认）`,
