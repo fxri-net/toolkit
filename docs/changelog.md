@@ -6,6 +6,34 @@ outline: false
 
 > 完整变更历史以随包发布的 CHANGELOG.md 为准，本页由 `pnpm sync:changelog-doc` 从根 CHANGELOG.md 自动同步，请勿手改。
 
+## 1.9.2
+
+> 2026-09-14 发布
+
+### ✨ 新增功能
+
+- 新增：CHANGELOG 按变更类型语义分组，分组维度与版本号维度解耦
+
+  - 变更集条目以 `类型：` 前缀开头（`新增：`/`修改：`/`修复：`/`优化：`/`清理：`/`文档：`/`重大：`），`toolkit changelog version/format` 据此把条目归入语义分组；`文档：` 条目出现在 patch 版本里即进「📝 文档更新」，不再被版本号绑架
+  - 分组标题由 4 组扩为 8 组 + 1 兜底组，空组省略：🚨 重大变更 / ✨ 新增功能 / 🔧 功能调整 / ⚡ 优化改进 / 🐛 问题修复 / 📝 文档更新 / 🧹 清理移除 / 🔗 依赖变更 / 📦 其他变更
+  - 无前缀条目按所属源组标题兜底：Major 块 → 重大变更、Minor 块 → 新增功能、Patch 块 → 其他变更；⚠️ patch 无前缀条目的落点由「🐛 补丁修复」改为中性的「📦 其他变更」，不再把非修复改动误标为修复
+  - 历史版本块保留当时口径，`changelog format` 不追溯改写；前缀识别与输出语言解耦（全局前缀表全语言共用），变更集条目语言与输出语言不一致时仍正确归组
+  - 自定义语言新增可选 `groups`（`[{ slot, title, prefixes? }]`）声明本语言标题与自有前缀；未声明时退化为纯替换，既有配置无需改动
+  - ⚠️ 对外契约变化：`--lang en` 的组标题文本变化（如 `### ✨ Minor Changes` → `### ✨ Added`）；`--warn` / `FX_CHECK_WARN` / `check.warnings` 适用范围由任务校验告警扩为「任务校验告警 + 变更集条目缺类型前缀告警」，同一开关一并开关闭；新增公共导出 `SLOT_PREFIXES` / `SemanticSlot`
+  - 修复：发布日期行识别由硬编码「发布/released」改为「当前语言 `released` ∪ 全部内置语言 `released`」后缀集合——自定义语言（日文等）按自身 `released` 识别，内置 zh / en 互跑（如中文日志用 `--lang en` 输出）也不再重复追加日期行
+- 新增：技能版本可视化，旧会话可自校验技能内容是否过期
+
+  - `toolkit skills status` 常驻打印包内各技能真源版本，`--format json` 新增 `skillVersions` 字段与逐项 `version`，作为磁盘基准值；`toolkit skills install` 报告同样逐项带版本
+  - 每个 SKILL.md 正文首部显式声明版本（与 frontmatter `metadata.version` 一致），版本随技能内容进会话上下文；被问版本时报上下文声明值，与 `skills status` 打印的磁盘值对照，不一致即说明会话上下文已过期，开新会话即可
+  - 措辞澄清：技能随包同源分发（与 CLI 同一发布批次），技能内容版本独立编号
+
+### 🔧 功能调整
+
+- 修改：任务统计 JSON 输出补齐 schemaVersion 锚点
+
+  - `toolkit tasks stats --format json` 顶层新增 `schemaVersion: 1`，与 `tasks --export`、`skills --format json` 统一口径；既有统计字段保持原位与语义不变，按旧 key 读取的消费方不受影响
+  - 序列化收敛为技能域与任务统计域共用的单一出口，schemaVersion 锚点位置不再分散维护
+
 ## 1.9.1
 
 > 2026-09-13 发布
