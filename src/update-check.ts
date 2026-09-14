@@ -1,11 +1,12 @@
 // 升级检查：父进程同步读缓存并提示，缓存过期时派生分离子进程联网刷新（参考 update-notifier 的成熟设计）
 // 设计原则：父进程零网络、不阻塞进程退出；任何失败（离线/内网/超时）静默忽略、失败也记负缓存；默认开启且可关闭
-import { readFileSync, existsSync, mkdirSync, rmSync } from "node:fs"
+import { existsSync, mkdirSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { spawn } from "node:child_process"
 import { fetchLatestVersion, versionGt } from "./version"
 import { loadToolkitConfig } from "./config"
+import { readTextFile } from "./read-text"
 import { writeFileAtomic } from "./write-atomic"
 
 // 成功缓存有效期：24 小时内不重复请求 registry
@@ -30,8 +31,8 @@ function readCache(): UpdateCache | null {
   const file = cacheFile()
   try {
     if (!existsSync(file)) return null
-    // 与 config.ts / skills.ts 同口径：先剥 BOM 再解析，避免带 BOM 缓存被误判为损坏
-    const data = JSON.parse(readFileSync(file, "utf8").replace(/^\uFEFF/, "")) as {
+    // 与 config.ts / skills.ts 同口径：走 readTextFile 剥 BOM，避免带 BOM 缓存被误判为损坏
+    const data = JSON.parse(readTextFile(file)) as {
       ts?: unknown
       ok?: unknown
       latest?: unknown

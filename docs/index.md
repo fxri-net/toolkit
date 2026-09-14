@@ -89,6 +89,7 @@ pnpm exec toolkit tasks
 | [CLI 参考](./cli) | 查命令、参数、默认值、退出码 |
 | [API 参考](./api) | 作为库引入 Node 项目，写脚本或二次开发 |
 | [配置参考](./config) | 查 `.toolkitrc.json` 字段 |
+| [更新日志](./changelog) | 查各版本变更内容 |
 | [FAQ](./faq) | 遇到问题先来这里找 |
 | [推荐 AI 全局规则](./ai-rules) | 想让 AI 助手按本工具的最佳实践协作 |
 | [推荐提交信息规则](./commit-rules) | 想让 AI 按统一格式写 git 提交信息 |

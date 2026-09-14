@@ -1,6 +1,8 @@
 // 归档块统一解析与渲染：归档合并（archive.ts）与归一化检查/修复（normalize.ts）共用同一实现，
 // 保证对同一归档文件解析出的任务块集合一致。
-// 任务块判定：`## 标题` 后首个非空行为含「完成时间」的元数据行；正文内部的 `## ` 小节（后无元数据行）归属前一块正文，避免误判为任务边界。
+// 任务块边界：块间 `---` 分隔符为唯一权威边界；`## 标题` 与 `> 元数据` 行降为校验项（缺失时仍解析为块，交由 normalize 报告），
+// 正文内部的 `## ` 小节因此不会被误判为任务边界。
+import { stripBom } from "../read-text"
 import { parseMetaSegments } from "./meta"
 
 // 归档块结构
@@ -47,71 +49,84 @@ export function completeMetaLine(title: string, completed: string, metaLine: str
 
 // 解析归档文件，返回文件头（首块之前的内容，末尾无空行）与任务块列表
 export function parseArchiveBlocks(content: string): { header: string; blocks: ArchiveBlockInfo[] } {
-  // 剥离 UTF-8 BOM：Windows 下 PowerShell Set-Content 默认写 BOM，不剥离会影响首行标题与元数据识别
-  content = content.replace(/^\uFEFF/, "")
+  // 先剥 BOM：否则首个 `## ` 标题行与元数据行会因前导字节序识别失败
+  content = stripBom(content)
   // 剥掉行尾孤立 `\r`（历史污染的 `\r\r\n` 按 `\r?\n` 切分后残留），避免渲染写回时再次产生双重 CR
   const lines = content.split(/\r?\n/).map((l) => l.replace(/\r$/, ""))
-  // 定位任务块标题行：跳过其后空行，首个非空行需为含「完成时间」的元数据行
-  const blockStarts: number[] = []
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-    if (!line || !/^## .+/.test(line)) continue
-    let j = i + 1
-    while (j < lines.length && (lines[j] ?? "").trim() === "") j++
-    const first = lines[j]?.trim() ?? ""
-    if (first.startsWith("> ") && first.includes("完成时间")) blockStarts.push(i)
-  }
-  if (blockStarts.length === 0) return { header: content, blocks: [] }
-  const header = lines.slice(0, blockStarts[0] ?? 0).join("\n").trimEnd()
-  const blocks: ArchiveBlockInfo[] = []
-  for (let k = 0; k < blockStarts.length; k++) {
-    const start = blockStarts[k] ?? 0
-    const end = k + 1 < blockStarts.length ? (blockStarts[k + 1] ?? lines.length) : lines.length
-    const chunkLines = lines.slice(start, end).join("\n").trim().split("\n")
-    const title = (chunkLines[0] ?? "").replace(/^## /, "")
-    let metaLine: string | null = null
-    let completed = ""
-    let bodyStart = 1
-    for (let i = 1; i < chunkLines.length; i++) {
-      const raw = chunkLines[i] ?? ""
-      const t = raw.trim()
-      if (t.startsWith("> ") && t.includes("完成时间")) {
-        metaLine = raw
-        const m = t.match(/完成时间：(.+)$/)
-        if (m) completed = (m[1] ?? "").trim()
-        bodyStart = i + 1
-        break
-      }
+  // 以块间 `---` 分隔符为唯一权威边界切段：标题行与元数据行不再参与边界判定，正文内部的 `## ` 小节不会被误切
+  const chunks: string[][] = []
+  let cur: string[] = []
+  for (const line of lines) {
+    if (/^-{3,}$/.test(line.trim())) {
+      chunks.push(cur)
+      cur = []
+    } else {
+      cur.push(line)
     }
-    blocks.push({ title, metaLine, completed, body: trimBlockBody(chunkLines.slice(bodyStart)) })
   }
-  return { header, blocks }
+  chunks.push(cur)
+
+  const blocks: ArchiveBlockInfo[] = []
+  // 首段含文件头与首块，以第一个 `## ` 标题行分界，其前内容为文件头
+  const first = trimBlankLines(chunks[0] ?? [])
+  const firstTitle = first.findIndex((l) => /^## .+/.test(l))
+  if (firstTitle >= 0) blocks.push(toBlock(first.slice(firstTitle)))
+  // 其余各段各为一个任务块；段首无标题行时并入前一块正文，避免历史数据被静默丢弃
+  for (let i = 1; i < chunks.length; i++) {
+    const chunk = trimBlankLines(chunks[i] ?? [])
+    if (chunk.length === 0) continue
+    if (/^## .+/.test(chunk[0] ?? "")) blocks.push(toBlock(chunk))
+    else appendToLastBody(blocks, chunk.join("\n").trim())
+  }
+  if (blocks.length === 0) return { header: content, blocks: [] }
+  const headerEnd = firstTitle >= 0 ? firstTitle : first.length
+  return { header: first.slice(0, headerEnd).join("\n").trimEnd(), blocks }
 }
 
-// 清理块正文：去掉块尾作为任务分隔符的 `---` 及其前后空行（可能残留多段），避免重复归档时分隔符累加
-function trimBlockBody(lines: string[]): string {
-  const out = [...lines]
-  for (;;) {
-    while (out.length > 0 && (out[out.length - 1] ?? "").trim() === "") out.pop()
-    const tail = out[out.length - 1] ?? ""
-    if (out.length > 0 && /^---+\s*$/.test(tail.trim())) out.pop()
-    else break
-  }
-  return out.join("\n").trim()
+// 去除行段首尾的空行（段内空行保留，用于块正文）
+function trimBlankLines(lines: string[]): string[] {
+  let start = 0
+  let end = lines.length
+  while (start < end && (lines[start] ?? "").trim() === "") start++
+  while (end > start && (lines[end - 1] ?? "").trim() === "") end--
+  return lines.slice(start, end)
 }
 
-// 疑似任务块扫描：形如 `## {YYYYMMDD}-{负责人}-{简述}` 的标题，其后首个非空行为 `> ` 元数据但缺「完成时间」，
-// 说明该块可能因元数据不完整被解析器归入前一块正文，需要人工确认（不自动修复，避免误判正文小节）
+// 行段 → 任务块：首行为标题，其后首个含「完成时间」的 `> ` 行为元数据行，余下为正文
+function toBlock(lines: string[]): ArchiveBlockInfo {
+  const title = (lines[0] ?? "").replace(/^## /, "").trim()
+  let metaLine: string | null = null
+  let completed = ""
+  let bodyStart = 1
+  for (let i = 1; i < lines.length; i++) {
+    const raw = lines[i] ?? ""
+    const t = raw.trim()
+    if (t.startsWith("> ") && t.includes("完成时间")) {
+      metaLine = raw
+      const m = t.match(/完成时间：(.+)$/)
+      if (m) completed = (m[1] ?? "").trim()
+      bodyStart = i + 1
+      break
+    }
+  }
+  return { title, metaLine, completed, body: lines.slice(bodyStart).join("\n").trim() }
+}
+
+// 段首无任务标题时并入前一块正文（历史数据兜底，避免内容丢失）
+function appendToLastBody(blocks: ArchiveBlockInfo[], text: string): void {
+  const last = blocks[blocks.length - 1]
+  if (!last || !text) return
+  last.body = last.body ? `${last.body}\n\n${text}` : text
+}
+
+// 疑似任务块扫描：正文内部出现形如 `## {YYYYMMDD}-{负责人}-{简述}` 的标题，说明该块缺少块间 `---` 分隔符，
+// 已被归入前一块正文，需要人工确认（不自动修复，避免误判正文小节）
 export function scanOrphanBlocks(content: string): string[] {
-  const lines = content.split(/\r?\n/)
   const orphans: string[] = []
-  for (let i = 0; i < lines.length; i++) {
-    const title = lines[i]?.match(/^## (\d{8}-[^-]+-.+)$/)?.[1]
-    if (!title) continue
-    let j = i + 1
-    while (j < lines.length && (lines[j] ?? "").trim() === "") j++
-    const first = lines[j]?.trim() ?? ""
-    if (first.startsWith("> ") && !first.includes("完成时间")) orphans.push(title)
+  for (const b of parseArchiveBlocks(content).blocks) {
+    for (const m of b.body.matchAll(/^## (\d{8}-[^-]+-.+)$/gm)) {
+      if (m[1]) orphans.push(m[1])
+    }
   }
   return orphans
 }
@@ -120,4 +135,24 @@ export function scanOrphanBlocks(content: string): string[] {
 export function renderBlock(b: ArchiveBlockInfo): string {
   const meta = b.metaLine ?? (b.completed ? buildMetaLine(b.title, b.completed) : null)
   return meta ? `## ${b.title}\n\n${meta}\n\n${b.body}` : `## ${b.title}\n\n${b.body}`
+}
+
+// 块集合写盘前的规范化：按块标题去重（同一日期文件内标题唯一，同标题以最后写入者为准，
+// 保证重复归档/重复导入幂等），再按完成时间降序排列（不可解析完成时间的块保持原相对顺序落到末尾）
+export function orderBlocks(blocks: ArchiveBlockInfo[]): ArchiveBlockInfo[] {
+  const byTitle = new Map<string, ArchiveBlockInfo>()
+  for (const b of blocks) byTitle.set(b.title, b)
+  const unique = [...byTitle.values()]
+  const dated = unique.filter((b) => normalizeCompleted(b.completed))
+  const undated = unique.filter((b) => !normalizeCompleted(b.completed))
+  dated.sort((a, b) => normalizeCompleted(b.completed).localeCompare(normalizeCompleted(a.completed)))
+  return [...dated, ...undated]
+}
+
+// 组装归档文件全文：header + 规范化块集合（去重 + 降序 + 块间 `---` 分隔），统一换行风格；
+// 归档、归一化、导入三处写盘共用，避免各自拼接导致块集合不变量漂移
+export function renderArchiveFile(header: string, blocks: ArchiveBlockInfo[], eol = "\n"): string {
+  const body = orderBlocks(blocks).map(renderBlock).join("\n\n---\n\n")
+  const text = header ? `${header}\n\n${body}\n` : `${body}\n`
+  return text.replace(/\n/g, eol)
 }

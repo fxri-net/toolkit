@@ -64,6 +64,11 @@ const BUILTIN_RULES: RedactRule[] = [
   { name: "IPv4", pattern: /(?<![\d.])(\d{1,3}\.\d{1,3})\.\d{1,3}\.\d{1,3}(?![\d.])/g, replacement: "$1.***.***" },
 ]
 
+// 内置规则名单（供文档一致性测试断言，顺序与 BUILTIN_RULES 一致）
+export function listBuiltinRuleNames(): string[] {
+  return BUILTIN_RULES.map((r) => r.name)
+}
+
 // 读取 .toolkitrc.json 的 redact 段（配置加载与缓存由 config.ts 统一处理）
 function loadConfig(): RedactConfig | null {
   const section = getConfigSection("redact")

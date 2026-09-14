@@ -7,6 +7,16 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    // scripts/ 下的 Node 脚本（非 TS 源码）直接跑在 Node 环境，未引入 globals 包故按需声明
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      globals: {
+        console: "readonly",
+        process: "readonly",
+      },
+    },
+  },
+  {
     rules: {
       // exceljs 为 CJS namespace 类型，跨模块 interop 需 any 兜底（import.ts / export.ts 已注释说明用途）
       "@typescript-eslint/no-explicit-any": "off",

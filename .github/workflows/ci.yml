@@ -28,6 +28,7 @@ jobs:
         run: pnpm lint
       - name: 单元测试
         run: pnpm test
+      # 覆盖率仅在 ubuntu 采集：v8 provider 的统计结果存在跨平台差异，双平台跑只会引入抖动，且覆盖率是增幅门槛而非回归指标，单平台足够
       - name: 覆盖率门槛
         run: pnpm test:coverage
       - name: 构建
@@ -42,7 +43,7 @@ jobs:
       - name: 自身 .tasks 体检
         run: node dist/cli.js tasks check && node dist/cli.js tasks normalize
 
-  # Windows 回归：类型/单测/构建与主平台并行，避免跨平台路径与换行问题漏网（O1/O5）
+  # Windows 回归：类型/静态检查/单测/构建与主平台并行，避免跨平台路径与换行问题漏网（O1/O5）
   windows:
     runs-on: windows-latest
     steps:
@@ -58,6 +59,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: 类型检查
         run: pnpm typecheck
+      - name: Lint
+        run: pnpm lint
       - name: 单元测试
         run: pnpm test
       - name: 构建

@@ -2,7 +2,7 @@
 // 供 tasks normalize --check（只读）与 --fix（补齐元数据 + 降序重排 + 漂移块迁移）使用
 import { readFileSync, unlinkSync, existsSync, mkdirSync, renameSync } from "node:fs"
 import { join, basename, dirname } from "node:path"
-import { normalizeCompleted, parseArchiveBlocks, renderBlock, completeMetaLine, scanOrphanBlocks } from "./archive-block"
+import { normalizeCompleted, parseArchiveBlocks, completeMetaLine, scanOrphanBlocks, renderArchiveFile } from "./archive-block"
 import { parseMetaSegments } from "./meta"
 import { removeEmptyDirs } from "./archive"
 import { listTaskFiles } from "./scan"
@@ -66,11 +66,11 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
       })
     }
 
-    // 疑似任务块（元数据缺「完成时间」被归入前一块正文），提示人工确认
+    // 疑似任务块（缺块间 `---` 分隔符，被归入前一块正文），提示人工确认
     for (const title of scanOrphanBlocks(content)) {
       issues.push({
         file: name,
-        message: `疑似任务块「${title}」元数据缺「完成时间」，已被归入前一块正文（需人工确认）`,
+        message: `疑似任务块「${title}」缺少块间 \`---\` 分隔符，已被归入前一块正文（需人工确认）`,
         fixable: false,
       })
     }
@@ -162,15 +162,13 @@ function migrateArchiveBlock(tasksDir: string, block: ArchiveBlockInfo, targetDa
     if (parsed.header) header = parsed.header
     target.push(...parsed.blocks)
   }
-  // 目标文件已存在同名块时告警（迁移会并入产生重复，供人工确认）
+  // 目标文件已存在同名块时告警（写盘按标题去重，本次迁移块会覆盖目标同名块，供人工确认）
   if (target.some((b) => b.title === block.title)) {
-    console.warn(`⚠️ 目标 ${targetDate}.md 已存在同名块「${block.title}」，迁移将产生重复`)
+    console.warn(`⚠️ 目标 ${targetDate}.md 已存在同名块「${block.title}」，迁移将以本次块覆盖同名块`)
   }
   target.push(block)
-  target.sort((a, b) => normalizeCompleted(b.completed).localeCompare(normalizeCompleted(a.completed)))
   const eol = existsSync(targetFile) && readFileSync(targetFile, "utf8").includes("\r\n") ? "\r\n" : "\n"
-  const next = `${header}\n\n${target.map(renderBlock).join("\n\n---\n\n")}\n`.replace(/\n/g, eol)
-  writeFileAtomic(targetFile, next)
+  writeFileAtomic(targetFile, renderArchiveFile(header, target, eol))
   console.log(`  块「${block.title}」迁移 → ${targetDate}.md`)
 }
 
@@ -191,110 +189,12 @@ export function fixArchive(tasksDir = ".tasks"): NormalizeResult {
 
   try {
     for (const file0 of files) {
-      let file = file0
-      const name = basename(file)
-      const fileDate = name.replace(/\.md$/, "")
-      // K4：文件所在月份目录与文件名日期前缀不一致时，移到正确月份目录（目标已有同名则跳过并告警）
-      const dirMonth = basename(dirname(file))
-      const correctMonth = /^\d{8}$/.test(fileDate) ? fileDate.slice(0, 6) : ""
-      if (correctMonth && dirMonth !== correctMonth) {
-        const targetFile = join(archiveDir, correctMonth, name)
-        if (existsSync(targetFile)) {
-          console.warn(`⚠️ ${name}：目标月份目录 ${correctMonth} 已存在同名文件，未自动移动（需人工处理）`)
-        } else {
-          mkdirSync(join(archiveDir, correctMonth), { recursive: true })
-          renameSync(file, targetFile)
-          file = targetFile
-          // O2：源错月目录迁空后向上清理，避免遗留空月份目录
-          removeEmptyDirs(dirname(file0), archiveDir)
-        }
+      try {
+        fixed += fixArchiveFile(tasksDir, archiveDir, file0, issues)
+      } catch (e) {
+        // 单文件异常（文件损坏、权限、写盘失败等）不中断整轮，记入问题清单供人工处理
+        issues.push({ file: basename(file0), message: `归一化失败，已跳过该文件：${(e as Error).message}`, fixable: false })
       }
-      const content = readFileSync(file, "utf8")
-      const { header, blocks } = parseArchiveBlocks(content)
-
-      const actions: string[] = []
-      let changed = file !== file0
-      if (file !== file0) {
-        actions.push(`移动至 ${basename(dirname(file))} 月份目录`)
-        fixed++
-      }
-      // 补元数据行（缺行或不完整时，保留原行已有字段，仅补缺失项，避免改错状态）
-      for (const b of blocks) {
-        if (b.completed && (!b.metaLine || !metaComplete(b.metaLine))) {
-          b.metaLine = completeMetaLine(b.title, b.completed, b.metaLine)
-          actions.push(`补元数据「${b.title}」`)
-          changed = true
-          fixed++
-        }
-      }
-
-      // 范围分隔符归一：顿号/逗号列表 → 半角加号（格式归一不改语义）；括号疑似注释无法自动删留，仅提示人工
-      for (const b of blocks) {
-        if (!b.metaLine) continue
-        const seg = parseMetaSegments(b.metaLine)
-        if (!seg.scope) continue
-        const norm = normalizeScopeSeparator(seg.scope)
-        if (norm) {
-          b.metaLine = replaceScopeValue(b.metaLine, norm)
-          actions.push(`范围分隔归一「${b.title}」`)
-          changed = true
-          fixed++
-        }
-        if (/[()（）]/.test(seg.scope)) {
-          issues.push({ file: name, message: `块「${b.title}」范围「${seg.scope}」含括号疑似注释，删留需人工确认`, fixable: false })
-        }
-      }
-
-      // 完成时间漂移迁移：把块迁到与 completed 日期一致的归档文件（原文件日期不再匹配的块全部迁出）
-      const keep: ArchiveBlockInfo[] = []
-      let migrated = 0
-      for (const b of blocks) {
-        const bd = b.completed ? normalizeCompleted(b.completed).replace(/-/g, "").slice(0, 8) : ""
-        if (bd && bd !== fileDate) {
-          migrateArchiveBlock(tasksDir, b, bd)
-          migrated++
-          changed = true
-        } else {
-          keep.push(b)
-        }
-      }
-      if (migrated > 0) {
-        actions.push(`迁移 ${migrated} 个漂移块`)
-        fixed += migrated
-      }
-
-      // 降序重排（仅对 completed 可解析的块；缺失 completed 的块保持末尾）；顺序确需调整时计一次修复
-      const dated = keep.filter((b) => b.completed)
-      const undated = keep.filter((b) => !b.completed)
-      const sorted = [...dated].sort((a, b) => normalizeCompleted(b.completed).localeCompare(normalizeCompleted(a.completed)))
-      const needSort = JSON.stringify(sorted.map((b) => b.title)) !== JSON.stringify(dated.map((b) => b.title))
-      if (needSort) {
-        keep.splice(0, keep.length, ...sorted, ...undated)
-        actions.push("降序重排")
-        fixed++
-        changed = true
-      }
-
-      // 冗余分隔符（`---` 空行对）检测：存在则随本次重写一并清理，计一次修复
-      const hasDupSep = /^---\s*\r?\n\r?\n---/m.test(content)
-      if (hasDupSep) {
-        actions.push("清理冗余分隔符")
-        fixed++
-      }
-
-      const eol = content.includes("\r\n") ? "\r\n" : "\n"
-      if (blocks.length > 0 && keep.length === 0) {
-        // 块全部迁走后删除空归档文件并向上清理空月份目录（当月还有其他日期文件时自动停在非空目录）
-        if (existsSync(file)) unlinkSync(file)
-        removeEmptyDirs(dirname(file), archiveDir)
-        actions.push("删除空归档文件")
-        changed = true
-      } else if (changed || hasDupSep) {
-        // 文件头与首个任务块之间补空行分隔（header 已去掉末尾空行）；保留原文件行尾，避免 CRLF 文件整文件 diff
-        const next = ((header ? header + "\n\n" : "") + keep.map(renderBlock).join("\n\n---\n\n") + "\n").replace(/\n/g, eol)
-        writeFileAtomic(file, next)
-      }
-      if (actions.length > 0) console.log(`  ${name}: ${actions.join("、")}`)
     }
 
     return { issues, fixed }
@@ -308,4 +208,113 @@ export function fixArchive(tasksDir = ".tasks"): NormalizeResult {
       }
     }
   }
+}
+
+// 归一化单个归档文件（错月移动 + 补元数据 + 范围归一 + 漂移迁移 + 降序重排），返回该文件修复数
+function fixArchiveFile(tasksDir: string, archiveDir: string, file0: string, issues: NormalizeIssue[]): number {
+  let fixed = 0
+  let file = file0
+  const name = basename(file)
+  const fileDate = name.replace(/\.md$/, "")
+  // K4：文件所在月份目录与文件名日期前缀不一致时，移到正确月份目录（目标已有同名则跳过并告警）
+  const dirMonth = basename(dirname(file))
+  const correctMonth = /^\d{8}$/.test(fileDate) ? fileDate.slice(0, 6) : ""
+  if (correctMonth && dirMonth !== correctMonth) {
+    const targetFile = join(archiveDir, correctMonth, name)
+    if (existsSync(targetFile)) {
+      console.warn(`⚠️ ${name}：目标月份目录 ${correctMonth} 已存在同名文件，未自动移动（需人工处理）`)
+    } else {
+      mkdirSync(join(archiveDir, correctMonth), { recursive: true })
+      renameSync(file, targetFile)
+      file = targetFile
+      // O2：源错月目录迁空后向上清理，避免遗留空月份目录
+      removeEmptyDirs(dirname(file0), archiveDir)
+    }
+  }
+  const content = readFileSync(file, "utf8")
+  const { header, blocks } = parseArchiveBlocks(content)
+
+  const actions: string[] = []
+  let changed = file !== file0
+  if (file !== file0) {
+    actions.push(`移动至 ${basename(dirname(file))} 月份目录`)
+    fixed++
+  }
+  // 补元数据行（缺行或不完整时，保留原行已有字段，仅补缺失项，避免改错状态）
+  for (const b of blocks) {
+    if (b.completed && (!b.metaLine || !metaComplete(b.metaLine))) {
+      b.metaLine = completeMetaLine(b.title, b.completed, b.metaLine)
+      actions.push(`补元数据「${b.title}」`)
+      changed = true
+      fixed++
+    }
+  }
+
+  // 范围分隔符归一：顿号/逗号列表 → 半角加号（格式归一不改语义）；括号疑似注释无法自动删留，仅提示人工
+  for (const b of blocks) {
+    if (!b.metaLine) continue
+    const seg = parseMetaSegments(b.metaLine)
+    if (!seg.scope) continue
+    const norm = normalizeScopeSeparator(seg.scope)
+    if (norm) {
+      b.metaLine = replaceScopeValue(b.metaLine, norm)
+      actions.push(`范围分隔归一「${b.title}」`)
+      changed = true
+      fixed++
+    }
+    if (/[()（）]/.test(seg.scope)) {
+      issues.push({ file: name, message: `块「${b.title}」范围「${seg.scope}」含括号疑似注释，删留需人工确认`, fixable: false })
+    }
+  }
+
+  // 完成时间漂移迁移：把块迁到与 completed 日期一致的归档文件（原文件日期不再匹配的块全部迁出）
+  const keep: ArchiveBlockInfo[] = []
+  let migrated = 0
+  for (const b of blocks) {
+    const bd = b.completed ? normalizeCompleted(b.completed).replace(/-/g, "").slice(0, 8) : ""
+    if (bd && bd !== fileDate) {
+      migrateArchiveBlock(tasksDir, b, bd)
+      migrated++
+      changed = true
+    } else {
+      keep.push(b)
+    }
+  }
+  if (migrated > 0) {
+    actions.push(`迁移 ${migrated} 个漂移块`)
+    fixed += migrated
+  }
+
+  // 降序重排（仅对 completed 可解析的块；缺失 completed 的块保持末尾）；顺序确需调整时计一次修复
+  const dated = keep.filter((b) => b.completed)
+  const undated = keep.filter((b) => !b.completed)
+  const sorted = [...dated].sort((a, b) => normalizeCompleted(b.completed).localeCompare(normalizeCompleted(a.completed)))
+  const needSort = JSON.stringify(sorted.map((b) => b.title)) !== JSON.stringify(dated.map((b) => b.title))
+  if (needSort) {
+    keep.splice(0, keep.length, ...sorted, ...undated)
+    actions.push("降序重排")
+    fixed++
+    changed = true
+  }
+
+  // 冗余分隔符（`---` 空行对）检测：存在则随本次重写一并清理，计一次修复
+  const hasDupSep = /^---\s*\r?\n\r?\n---/m.test(content)
+  if (hasDupSep) {
+    actions.push("清理冗余分隔符")
+    fixed++
+  }
+
+  const eol = content.includes("\r\n") ? "\r\n" : "\n"
+  if (blocks.length > 0 && keep.length === 0) {
+    // 块全部迁走后删除空归档文件并向上清理空月份目录（当月还有其他日期文件时自动停在非空目录）
+    if (existsSync(file)) unlinkSync(file)
+    removeEmptyDirs(dirname(file), archiveDir)
+    actions.push("删除空归档文件")
+    changed = true
+  } else if (changed || hasDupSep) {
+    // 写盘统一走 renderArchiveFile：库内按块标题去重并降序排列，与归档、导入保持同一块集合不变量
+    writeFileAtomic(file, renderArchiveFile(header, keep, eol))
+  }
+  if (actions.length > 0) console.log(`  ${name}: ${actions.join("、")}`)
+  return fixed
 }

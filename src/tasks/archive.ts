@@ -6,7 +6,8 @@ import { DONE_STATUSES } from "./types"
 import { redactText } from "../privacy/redact"
 import { writeFileAtomic } from "../write-atomic"
 import type { ArchiveBlock, ArchiveResult, ArchiveOptions } from "./types"
-import { normalizeCompleted, parseArchiveBlocks, renderBlock } from "./archive-block"
+import { normalizeCompleted, parseArchiveBlocks, renderBlock, renderArchiveFile } from "./archive-block"
+import type { ArchiveBlockInfo } from "./archive-block"
 import { acquireArchiveLock, releaseArchiveLock } from "./lock"
 
 // 删除空目录，并从父目录往上递归清理，直到 stopDir 或遇到非空目录（archive/normalize 共用，供错月迁移后清空目录）
@@ -117,34 +118,34 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
       const archiveFile = join(monthDir, `${date}.md`)
 
       // 合并已有归档任务 + 本次新任务；文件已存在时保留其自定义 header（不覆盖导入/手写引言）
-      // 排序键统一定宽规范化后按完成时间降序（最新在前）
+      // 块集合由 renderArchiveFile 统一去重（同标题以本次新任务为准）并按完成时间降序排列
       const raw = existsSync(archiveFile) ? readFileSync(archiveFile, "utf8") : ""
       let header = `# ${date} 归档\n\n> 本文件由 \`toolkit tasks archive\` 自动生成。`
-      const all: ArchiveBlock[] = []
+      const all: ArchiveBlockInfo[] = []
       if (raw) {
         const parsed = parseArchiveBlocks(raw)
         if (parsed.header) header = parsed.header
-        for (const b of parsed.blocks) all.push({ block: renderBlock(b), completed: b.completed })
+        all.push(...parsed.blocks)
       }
 
-      // 软告警：归档文件已存在同名任务（疑似重复归档）
+      // 软告警：归档文件已存在同名任务（本次写入会覆盖同名块，提示确认是否重复归档）
       if (warn) {
-        const existingNames = new Set(all.map((b) => b.block.match(/^## (.+)/)?.[1] ?? ""))
+        const existingNames = new Set(all.map((b) => b.title))
         for (const t of newTasks) {
           if (existingNames.has(t.name)) {
-            warnings.push(`归档文件已存在同名任务「${t.name}」，疑似重复归档`)
+            warnings.push(`归档文件已存在同名任务「${t.name}」，本次以新内容覆盖同名块，疑似重复归档`)
           }
         }
       }
 
       all.push(
         ...newTasks.map((t) => ({
-          block: `## ${t.name}\n\n> 负责人：${t.owner}　状态：${t.status}　范围：${t.scope}　完成时间：${t.completed}\n\n${redactText(t.body, redact)}`,
+          title: t.name,
+          metaLine: `> 负责人：${t.owner}　状态：${t.status}　范围：${t.scope}　完成时间：${t.completed}`,
           completed: t.completed,
+          body: redactText(t.body, redact),
         })),
       )
-      for (const item of all) item.completed = normalizeCompleted(item.completed)
-      all.sort((a, b) => b.completed.localeCompare(a.completed))
 
       // 预演模式：只打印将要写入的内容，不落盘、不删除 active
       if (dryRun) {
@@ -158,7 +159,7 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
         mkdirSync(monthDir, { recursive: true })
         // 保留原文件换行风格（LF/CRLF），避免 Windows 仓库追加新块产生混合换行与 diff 噪音
         const eol = raw.includes("\r\n") ? "\r\n" : "\n"
-        writeFileAtomic(archiveFile, `${header}\n\n${all.map((t) => t.block).join("\n\n---\n\n")}\n`.replace(/\n/g, eol))
+        writeFileAtomic(archiveFile, renderArchiveFile(header, all, eol))
 
         // 删除本次已归档的 active 文件
         for (const t of newTasks) unlinkSync(t.file)

@@ -6,6 +6,7 @@ import { join } from "node:path"
 import { normalizeCompleted, parseArchiveBlocks, renderBlock, scanOrphanBlocks } from "../tasks/archive-block"
 import { checkArchive, fixArchive } from "../tasks/normalize"
 import { archiveTasks } from "../tasks/archive"
+import { acquireArchiveLock, releaseArchiveLock } from "../tasks/lock"
 
 // 建临时任务目录
 function makeDir(): string {
@@ -63,6 +64,66 @@ describe("parseArchiveBlocks", () => {
     )
     const orphans = scanOrphanBlocks(withOrphan)
     expect(orphans).toEqual(["20260903-唐启云-orphan"])
+  })
+
+  it("以 `---` 为唯一权威边界：正文内部 `## ` 小节不被误切（B5）", () => {
+    const withSection = [
+      "# 20260903 归档",
+      "",
+      "## 20260903-唐启云-a",
+      "",
+      "> 负责人：唐启云　状态：已完成　范围：x　完成时间：2026-09-03 10:00",
+      "",
+      "# a 标题",
+      "",
+      "## 目标",
+      "",
+      "a 正文",
+      "",
+      "---",
+      "",
+      "## 20260903-唐启云-b",
+      "",
+      "> 负责人：唐启云　状态：已完成　范围：x　完成时间：2026-09-03 09:00",
+      "",
+      "## 执行记录",
+      "",
+      "b 正文",
+      "",
+    ].join("\n")
+    const { header, blocks } = parseArchiveBlocks(withSection)
+    expect(header).toBe("# 20260903 归档")
+    expect(blocks.map((b) => b.title)).toEqual(["20260903-唐启云-a", "20260903-唐启云-b"])
+    expect(blocks[0]?.body).toContain("## 目标")
+    expect(blocks[0]?.body).toContain("a 正文")
+    expect(blocks[1]?.body).toContain("## 执行记录")
+    expect(blocks[1]?.body).toContain("b 正文")
+    // 正文小节不得被扫成疑似任务块
+    expect(scanOrphanBlocks(withSection)).toEqual([])
+  })
+
+  it("块缺元数据行时仍按 `---` 解析为独立块（标题/元数据降为校验项）（B5）", () => {
+    const noMeta = [
+      "# 20260903 归档",
+      "",
+      "## 20260903-唐启云-a",
+      "",
+      "> 负责人：唐启云　状态：已完成　范围：x　完成时间：2026-09-03 10:00",
+      "",
+      "a 正文",
+      "",
+      "---",
+      "",
+      "## 20260903-唐启云-noMeta",
+      "",
+      "无元数据行的块正文",
+      "",
+    ].join("\n")
+    const { blocks } = parseArchiveBlocks(noMeta)
+    expect(blocks.map((b) => b.title)).toEqual(["20260903-唐启云-a", "20260903-唐启云-noMeta"])
+    expect(blocks[1]?.metaLine).toBeNull()
+    expect(blocks[1]?.completed).toBe("")
+    expect(blocks[1]?.body).toBe("无元数据行的块正文")
   })
 })
 
@@ -254,6 +315,54 @@ describe("archiveTasks 锁与 header（E1/E2）", () => {
     const res = archiveTasks(dir)
     expect(res.archived).toBe(0)
     expect(res.warnings.some((w) => w.includes("归档锁"))).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("持有进程仍存活时，超时的锁文件不被接管", () => {
+    const { dir } = withDone()
+    const lock = join(dir, ".archive.lock")
+    // 锁记录本进程（存活），并把 mtime 调到远超旧阈值，验证不再按时间误抢
+    writeFileSync(lock, JSON.stringify({ pid: process.pid, startedAt: Date.now() - 60 * 60 * 1000 }), "utf8")
+    const old = new Date(Date.now() - 60 * 60 * 1000)
+    utimesSync(lock, old, old)
+    const res = archiveTasks(dir)
+    expect(res.archived).toBe(0)
+    expect(existsSync(lock)).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("持有进程已消失时，锁被接管", () => {
+    const { dir } = withDone()
+    // 取一个必然不存在的 pid，模拟上次进程异常退出的残留锁
+    writeFileSync(join(dir, ".archive.lock"), JSON.stringify({ pid: 999999999, startedAt: Date.now() }), "utf8")
+    const res = archiveTasks(dir)
+    expect(res.archived).toBe(1)
+    expect(existsSync(join(dir, ".archive.lock"))).toBe(false)
+    rmSync(dir, { recursive: true, force: true })
+  })
+})
+
+describe("归档锁持有者校验", () => {
+  it("获取锁写入 pid 与启动时间，正常释放后锁文件消失", () => {
+    const dir = makeDir()
+    const fd = acquireArchiveLock(dir)
+    expect(fd).not.toBeNull()
+    const raw = JSON.parse(readFileSync(join(dir, ".archive.lock"), "utf8"))
+    expect(raw.pid).toBe(process.pid)
+    expect(typeof raw.startedAt).toBe("number")
+    releaseArchiveLock(dir, fd as number)
+    expect(existsSync(join(dir, ".archive.lock"))).toBe(false)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("锁已被他人接管时，释放不误删对方的锁", () => {
+    const dir = makeDir()
+    const fd = acquireArchiveLock(dir)
+    expect(fd).not.toBeNull()
+    const lock = join(dir, ".archive.lock")
+    writeFileSync(lock, JSON.stringify({ pid: process.pid + 1, startedAt: 1 }), "utf8")
+    releaseArchiveLock(dir, fd as number)
+    expect(existsSync(lock)).toBe(true)
     rmSync(dir, { recursive: true, force: true })
   })
 })

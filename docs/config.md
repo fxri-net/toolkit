@@ -57,7 +57,7 @@
 | `flags` | 正则标志（可选，如 `i`） |
 | `replacement` | 替换文本（可选，默认整体掩码） |
 
-内置规则：邮箱、手机号、身份证、IPv4、含端口内网 URL、JWT、GitHub Token（经典与细粒度）、OpenAI API Key（经典与项目级）、Slack Token。密钥类带长度门槛避免误伤。
+内置规则：`内网URL`（含端口）、`邮箱`、`JWT`、`AWS密钥`、`GitHub密钥`、`GitHub细粒度密钥`、`OpenAI密钥`、`OpenAI项目密钥`、`Slack密钥`、`Slack应用令牌`、`手机号`、`身份证`、`IPv4`。密钥类带长度门槛避免误伤。
 
 ## check：校验与告警
 

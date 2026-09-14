@@ -1,23 +1,25 @@
 // active 任务校验：frontmatter 合法性、完成时间格式、重名、方案正文子项未闭合
 // 供 tasks check 使用，输出问题清单；error 为硬性错误，warn 为软告警（默认开启可关）
-import { readFileSync, statSync, readdirSync, existsSync } from "node:fs"
+import { statSync, readdirSync, existsSync } from "node:fs"
 import { join, basename, dirname } from "node:path"
+import { readTextFile } from "../read-text"
 import { listTaskFiles } from "./scan"
-import { parseFrontmatter, stripFrontmatter, bodyWithoutTitle, FRONTMATTER_RE } from "./parse"
+import { parseFrontmatterRaw, stripFrontmatter, bodyWithoutTitle, FRONTMATTER_RE } from "./parse"
 import { parseArchiveBlocks } from "./archive-block"
 import { getConfigSection } from "../config"
-import { ALL_STATUSES, DONE_STATUSES } from "./types"
+import { ALL_STATUSES, DONE_STATUSES, FRONTMATTER_KEYS } from "./types"
 import { parseDepends } from "./depends"
 import { displayRel } from "./paths"
-import type { TaskStatus } from "./types"
+import type { TaskFrontmatter, TaskStatus } from "./types"
 
 // 问题级别：error 硬性错误 / warn 软告警
 export type IssueLevel = "error" | "warn"
 
-// 单条校验问题
+// 单条校验问题；line 为文件内 1 基行号（文件级问题如重名、游离文件无对应行，故可选）
 export interface CheckIssue {
   level: IssueLevel
   file: string
+  line?: number
   message: string
 }
 
@@ -32,6 +34,11 @@ export interface CheckResult {
 
 // 未闭合待办标记：方案正文里出现这些词说明有游离的待办子项未拆成独立任务
 const PENDING_MARKERS = /待办|待实施|待核对|待确认|待开始|待评估|待排期|待做|TODO/
+
+// 未勾选的 Markdown 任务复选框：正文级探测（行首标志，尾随空白可跨行）
+const CHECKBOX_RE = /^[-*]\s*\[ \]\s/m
+// 复选框行定位：逐行匹配时不带尾随空白要求，便于定位到具体行号
+const CHECKBOX_LINE_RE = /^[-*]\s*\[ \]/
 
 // completed 合法格式：YYYY-M-D（时分秒可选，非定宽也接受）
 const COMPLETED_RE = /^\d{4}-\d{1,2}-\d{1,2}(?:[T\s]\d{1,2}:\d{2}(?::\d{2})?)?$/
@@ -54,61 +61,97 @@ function isRealDate(ymd: string): boolean {
   return dt.getUTCFullYear() === yy && dt.getUTCMonth() === mm - 1 && dt.getUTCDate() === dd
 }
 
+// frontmatter 键所在行号（1 基）；键缺失时回落到起始行，保证问题总能指向文件头
+function fmKeyLine(lines: string[], fmEnd: number, key: string): number {
+  for (let i = 0; i < fmEnd; i++) {
+    if ((lines[i] ?? "").trimStart().startsWith(`${key}:`)) return i + 1
+  }
+  return 1
+}
+
+// 正文中首个命中行的行号（1 基）；跳过首个 H1 标题行（与 PENDING_MARKERS 扫描口径一致，避免标题含关键词被误报）
+function bodyLine(lines: string[], fmEnd: number, re: RegExp): number {
+  let skippedTitle = false
+  for (let i = fmEnd; i < lines.length; i++) {
+    const line = lines[i] ?? ""
+    if (!skippedTitle && /^# /.test(line)) {
+      skippedTitle = true
+      continue
+    }
+    if (re.test(line)) return i + 1
+  }
+  return fmEnd + 1
+}
+
 // 校验单个任务文件，返回问题列表
 export function validateTaskFile(file: string): CheckIssue[] {
   const issues: CheckIssue[] = []
   const name = basename(file)
-  // 剥离 UTF-8 BOM：Windows 下 PowerShell Set-Content 默认写 BOM，不剥离会被 frontmatter 探测正则误判为「缺少 frontmatter」
-  const content = readFileSync(file, "utf8").replace(/^\uFEFF/, "")
+  const content = readTextFile(file)
+  const lines = content.split(/\r?\n/)
+  // frontmatter 块占用的行数：正则匹配不含收尾换行，故该值即正文首行的 0 基行号
+  const fmEnd = FRONTMATTER_RE.exec(content)?.[0].split(/\r?\n/).length ?? 0
   const hasFrontmatter = FRONTMATTER_RE.test(content)
 
   if (!hasFrontmatter) {
-    issues.push({ level: "error", file: name, message: "缺少 frontmatter" })
+    issues.push({ level: "error", file: name, line: 1, message: "缺少 frontmatter" })
     return issues
   }
 
-  const fm = parseFrontmatter(content)
+  const fm = parseFrontmatterRaw(content) as Partial<TaskFrontmatter>
+
+  // 自定义扩展字段软告警：本工具只按已知字段读取，归档与归一化不保留其余字段，提示人工自行维护
+  for (const key of Object.keys(fm)) {
+    if ((FRONTMATTER_KEYS as readonly string[]).includes(key)) continue
+    issues.push({
+      level: "warn",
+      file: name,
+      line: fmKeyLine(lines, fmEnd, key),
+      message: `frontmatter 含未知字段「${key}」，本工具不读取（归档与归一化不会保留，请自行维护）`,
+    })
+  }
 
   if (!fm.status) {
-    issues.push({ level: "error", file: name, message: "frontmatter 缺少 status 字段" })
+    issues.push({ level: "error", file: name, line: fmKeyLine(lines, fmEnd, "status"), message: "frontmatter 缺少 status 字段" })
   } else if (!ALL_STATUSES.includes(fm.status as TaskStatus)) {
-    issues.push({ level: "error", file: name, message: `status 非法值「${fm.status}」，应为 ${ALL_STATUSES.join(" / ")}` })
+    issues.push({ level: "error", file: name, line: fmKeyLine(lines, fmEnd, "status"), message: `status 非法值「${fm.status}」，应为 ${ALL_STATUSES.join(" / ")}` })
   }
 
   if (DONE_STATUSES.includes(fm.status as TaskStatus) && !fm.completed) {
-    issues.push({ level: "error", file: name, message: `status 为「${fm.status}」但缺少 completed 完成时间` })
+    issues.push({ level: "error", file: name, line: fmKeyLine(lines, fmEnd, "completed"), message: `status 为「${fm.status}」但缺少 completed 完成时间` })
   }
 
   if (fm.completed) {
     const c = fm.completed.trim()
+    const line = fmKeyLine(lines, fmEnd, "completed")
     if (!COMPLETED_RE.test(c)) {
-      issues.push({ level: "warn", file: name, message: `completed「${fm.completed}」格式非法，应为 YYYY-MM-DD HH:mm` })
+      issues.push({ level: "warn", file: name, line, message: `completed「${fm.completed}」格式非法，应为 YYYY-MM-DD HH:mm` })
     } else {
       const datePart = c.match(/^\d{4}-\d{1,2}-\d{1,2}/)?.[0] ?? c
       if (!isRealDate(datePart)) {
-        issues.push({ level: "warn", file: name, message: `completed「${fm.completed}」日期不存在，请核对` })
+        issues.push({ level: "warn", file: name, line, message: `completed「${fm.completed}」日期不存在，请核对` })
       } else if (!COMPLETED_FULL_RE.test(c)) {
-        issues.push({ level: "warn", file: name, message: `completed「${fm.completed}」建议补全为完整时间 YYYY-MM-DD HH:mm` })
+        issues.push({ level: "warn", file: name, line, message: `completed「${fm.completed}」建议补全为完整时间 YYYY-MM-DD HH:mm` })
       } else if (new Date(c.replace(" ", "T")).getTime() > Date.now() + 60_000) {
         // 未来时间检测：写入时刻晚于系统时间说明时间源有误；留 1 分钟容差避免「当场补时间取整截断秒」误报
-        issues.push({ level: "warn", file: name, message: `completed「${fm.completed}」晚于当前系统时间，疑似时间源错误，请当场取系统时间核实` })
+        issues.push({ level: "warn", file: name, line, message: `completed「${fm.completed}」晚于当前系统时间，疑似时间源错误，请当场取系统时间核实` })
       } else if (/(?:[T\s]00:00(?::00)?)$/.test(c)) {
         // 零点整检测：恰为 00:00 通常是只填日期被自动补零的特征（真实午夜收工属少量误报，warn 级可接受）
-        issues.push({ level: "warn", file: name, message: `completed「${fm.completed}」恰为零点整，疑似只填了日期被补零，请核实实际完成时间` })
+        issues.push({ level: "warn", file: name, line, message: `completed「${fm.completed}」恰为零点整，疑似只填了日期被补零，请核实实际完成时间` })
       }
     }
   }
 
   // 元数据完整性（软告警）：负责人 / 创建日期 / 文件命名规范
   if (!fm.owner) {
-    issues.push({ level: "warn", file: name, message: "缺少 owner 负责人字段" })
+    issues.push({ level: "warn", file: name, line: fmKeyLine(lines, fmEnd, "owner"), message: "缺少 owner 负责人字段" })
   }
   if (!fm.created) {
-    issues.push({ level: "warn", file: name, message: "缺少 created 创建日期字段" })
+    issues.push({ level: "warn", file: name, line: fmKeyLine(lines, fmEnd, "created"), message: "缺少 created 创建日期字段" })
   } else if (!/^\d{8}$/.test(fm.created.trim())) {
-    issues.push({ level: "warn", file: name, message: `created「${fm.created}」格式非法，应为 YYYYMMDD` })
+    issues.push({ level: "warn", file: name, line: fmKeyLine(lines, fmEnd, "created"), message: `created「${fm.created}」格式非法，应为 YYYYMMDD` })
   } else if (!isRealDate(fm.created.trim())) {
-    issues.push({ level: "warn", file: name, message: `created「${fm.created}」日期不存在，请核对` })
+    issues.push({ level: "warn", file: name, line: fmKeyLine(lines, fmEnd, "created"), message: `created「${fm.created}」日期不存在，请核对` })
   }
   const nameMatch = name.match(/^(\d{8})-/)
   if (!ACTIVE_NAME_RE.test(name)) {
@@ -121,11 +164,12 @@ export function validateTaskFile(file: string): CheckIssue[] {
   // 顿号/逗号疑似多值分隔误写、括号疑似注释污染，均给出修复指引（高置信项才提示，斜杠/空格不纳入避免噪音）
   if (fm.scope) {
     const s = fm.scope.trim()
+    const line = fmKeyLine(lines, fmEnd, "scope")
     if (/[、，,]/.test(s)) {
-      issues.push({ level: "warn", file: name, message: `scope「${fm.scope}」含顿号/逗号疑似多值分隔，多值请改用半角加号连接（如 scope: toolkit+lxgl-web）` })
+      issues.push({ level: "warn", file: name, line, message: `scope「${fm.scope}」含顿号/逗号疑似多值分隔，多值请改用半角加号连接（如 scope: toolkit+lxgl-web）` })
     }
     if (/[()（）]/.test(s)) {
-      issues.push({ level: "warn", file: name, message: `scope「${fm.scope}」含括号疑似注释性文字，说明请移入正文` })
+      issues.push({ level: "warn", file: name, line, message: `scope「${fm.scope}」含括号疑似注释性文字，说明请移入正文` })
     }
   }
 
@@ -135,13 +179,23 @@ export function validateTaskFile(file: string): CheckIssue[] {
   const pendingOn = getConfigSection("check")?.pendingMarkers !== false
   const pending = pendingOn ? body.match(PENDING_MARKERS) : null
   if (pending) {
-    issues.push({ level: "warn", file: name, message: `正文含未闭合待办标记「${pending[0]}」，建议拆分为独立 active 任务或明确闭环` })
+    issues.push({
+      level: "warn",
+      file: name,
+      line: bodyLine(lines, fmEnd, PENDING_MARKERS),
+      message: `正文含未闭合待办标记「${pending[0]}」，建议拆分为独立 active 任务或明确闭环`,
+    })
   }
 
   // 未勾选的 Markdown 任务复选框（软告警，默认开；.toolkitrc.json 的 check.includeCheckbox=false 可关）
   const includeCheckbox = getConfigSection("check")?.includeCheckbox !== false
-  if (includeCheckbox && /^[-*]\s*\[ \]\s/m.test(body)) {
-    issues.push({ level: "warn", file: name, message: "正文含未勾选待办项「- [ ]」，建议拆分为独立 active 任务或勾选完成" })
+  if (includeCheckbox && CHECKBOX_RE.test(body)) {
+    issues.push({
+      level: "warn",
+      file: name,
+      line: bodyLine(lines, fmEnd, CHECKBOX_LINE_RE),
+      message: "正文含未勾选待办项「- [ ]」，建议拆分为独立 active 任务或勾选完成",
+    })
   }
 
   return issues
@@ -218,7 +272,7 @@ function archivedTitles(file: string): string[] {
   if (hit && hit.mtimeMs === st.mtimeMs) return hit.titles
   const titles: string[] = []
   try {
-    for (const b of parseArchiveBlocks(readFileSync(file, "utf8")).blocks) {
+    for (const b of parseArchiveBlocks(readTextFile(file)).blocks) {
       if (b.title && !titles.includes(b.title)) titles.push(b.title)
     }
   } catch {
@@ -246,9 +300,9 @@ function validateDependencies(files: string[], tasksDir: string): CheckIssue[] {
 
   for (const file of files) {
     const name = basename(file, ".md")
-    const content = readFileSync(file, "utf8")
-    const fm = parseFrontmatter(content)
-    const deps = parseDepends((fm as Record<string, unknown>).depends_on).map(normDep)
+    const content = readTextFile(file)
+    const fm = parseFrontmatterRaw(content)
+    const deps = parseDepends(fm.depends_on).map(normDep)
     depsMap.set(name, deps)
     for (const d of deps) {
       if (!nameSet.has(d)) {

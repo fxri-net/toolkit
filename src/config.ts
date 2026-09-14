@@ -7,9 +7,10 @@
 //   "check":  { "warnings": true },
 //   "skills": { "autoLink": true, "autoLinkReplaceForeign": true }
 // }
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync } from "node:fs"
 import { join, dirname } from "node:path"
 import { homedir } from "node:os"
+import { readTextFile } from "./read-text"
 
 // 缓存：undefined=尚未加载，null=无配置文件（或全部解析失败）
 let cached: Record<string, unknown> | null | undefined
@@ -29,8 +30,8 @@ export function getHomeDir(): string {
 function readConfigFile(filePath: string): Record<string, unknown> | null {
   if (!existsSync(filePath)) return null
   try {
-    // 剥离 UTF-8 BOM：Windows 下 PowerShell Set-Content 默认写 BOM，不处理会导致配置被静默跳过
-    const parsed: unknown = JSON.parse(readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""))
+    // 读盘即剥离 BOM，否则配置会被静默跳过
+    const parsed: unknown = JSON.parse(readTextFile(filePath))
     return typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>) : null
   } catch {
     return null

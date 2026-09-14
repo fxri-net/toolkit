@@ -104,14 +104,14 @@ function warnUntypedEntries(lang: ChangelogLanguage) {
   }
 }
 
-// 打印校验结果（check / normalize --check 共用）
-function printIssues(issues: Array<{ file: string; message: string }>) {
+// 打印校验结果（check / normalize --check 共用）；带行号的问题输出 file:line 便于编辑器跳转
+function printIssues(issues: Array<{ file: string; line?: number; message: string }>) {
   if (issues.length === 0) {
     console.log("未发现问题")
     return
   }
   for (const i of issues) {
-    console.log(`  ${i.file}: ${i.message}`)
+    console.log(`  ${i.file}${i.line ? `:${i.line}` : ""}: ${i.message}`)
   }
 }
 
@@ -188,6 +188,10 @@ function printInstallReport(report: InstallReport, dryRun: boolean): void {
 function printStatusReport(report: SkillsStatusReport): void {
   console.log(`技能源：${report.source}`)
   console.log(`技能版本：${report.skills.map((name) => skillLabel(name, report.skillVersions[name] ?? "")).join("、") || "无"}`)
+  // 软告警：真源内版本双写位（frontmatter / 正文）不一致，提示按规则同步递增
+  for (const m of report.versionMismatches) {
+    console.warn(`⚠️ 技能版本双写位不一致：${m.name}（frontmatter ${m.frontmatter} / 正文 ${m.body || "未声明"}）`)
+  }
   console.log(`状态文件：${report.stateFile}${report.stateExists ? "" : "（未记录，尚未执行过 toolkit skills install）"}`)
   let problems = 0
   for (const t of report.targets) {

@@ -7,8 +7,21 @@ import { fileURLToPath } from "node:url"
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const changelog = readFileSync(join(root, "CHANGELOG.md"), "utf8").replace(/^\uFEFF/, "")
 
-// 丢弃源文件标题行（# @fxri/toolkit），保留首个版本块起的全部历史
+// 首行必须是 H1 标题：剥离规则失效时镜像页会把标题带进去，故直接失败而非静默产出错页
+const titleLine = changelog.split(/\r?\n/, 1)[0] ?? ""
+if (!/^#\s+\S/.test(titleLine)) {
+  console.error(`⚠️ CHANGELOG.md 首行不是 H1 标题，无法安全剥离：${JSON.stringify(titleLine)}`)
+  process.exit(1)
+}
+
+// 丢弃源文件标题行（# 方弦工具集），保留首个版本块起的全部历史
 const body = changelog.replace(/^#\s+[^\n]*\n+/, "").trimEnd() + "\n"
+
+// 版本块存在性校验：镜像页至少含一个「## x.y.z」版本块，否则说明 CHANGELOG 结构异常
+if (!/^##\s+\d+\.\d+\.\d+/.test(body)) {
+  console.error("⚠️ CHANGELOG.md 未发现「## x.y.z」版本块，镜像已中止")
+  process.exit(1)
+}
 
 const page =
   "---\n" +

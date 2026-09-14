@@ -1,12 +1,13 @@
 // 任务导入：读取 CSV / XLSX / JSON（兼容本工具三种导出与常见外部列名），生成任务文件
 // 列映射：内置别名表 + .toolkitrc.json 的 tasks.importColumns 自定义（配置优先）
 // 目标：active（默认，生成待完成任务文件）或 archive（直接写归档块）
-import { readFileSync, existsSync, mkdirSync } from "node:fs"
+import { existsSync, mkdirSync } from "node:fs"
 import { join } from "node:path"
 import { createRequire } from "node:module"
-import { normalizeCompleted, parseArchiveBlocks } from "./archive-block"
+import { readTextFile, stripBom } from "../read-text"
+import { normalizeCompleted, parseArchiveBlocks, renderArchiveFile } from "./archive-block"
 import type { ArchiveBlockInfo } from "./archive-block"
-import { ALL_STATUSES, DONE_STATUSES } from "./types"
+import { ALL_STATUSES, DONE_STATUSES, FRONTMATTER_KEYS } from "./types"
 import { toYmd, toYmdCompact, todayCompact } from "../date"
 import type { ImportOptions, ImportResult } from "./types"
 import { writeFileAtomic } from "../write-atomic"
@@ -42,6 +43,12 @@ const COLUMN_ALIASES: Record<string, string> = {
   "视图": "", "来源文件": "", "文件": "", view: "", file: "", path: "",
 }
 
+// 来源列专用字段：已由固定逻辑消费，不作为 frontmatter 扩展字段透传
+const SOURCE_ONLY_FIELDS = new Set(["title", "depends", "body"])
+
+// 扩展字段名合法形态：字母开头 + 字母/数字/下划线/中划线/点，避免脏列名破坏 frontmatter 结构
+const EXTRA_KEY_RE = /^[A-Za-z][A-Za-z0-9_.-]*$/
+
 // 表头 → 标准字段映射（自定义配置优先于内置别名）
 function mapHeaders(headers: string[], custom: Record<string, string> = {}): Map<string, number> {
   const map = new Map<string, number>()
@@ -57,10 +64,10 @@ function mapHeaders(headers: string[], custom: Record<string, string> = {}): Map
   return map
 }
 
-// 简易 CSV 解析（支持引号 / 转义引号 / 逗号 / 换行，自动剥离 BOM）
+// 简易 CSV 解析（支持引号 / 转义引号 / 逗号 / 换行）
 function parseCsv(text: string): string[][] {
   const rows: string[][] = []
-  const s = text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n")
+  const s = stripBom(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n")
   let row: string[] = []
   let cur = ""
   let inQ = false
@@ -182,6 +189,27 @@ function slugTitle(title: string): { slug: string; truncated: boolean } {
   return { slug: brief.replace(/\s+/g, "-") || "任务", truncated }
 }
 
+// 收集自定义列：已知字段之外的原样透传为 frontmatter 扩展字段（键序沿用来源列序）；
+// 列名非简单标识符或值含换行时不写入并告警——脏数据会破坏 frontmatter 结构
+function collectExtraFields(rec: Record<string, string>, title: string, warnings: string[]): Record<string, string> {
+  const extra: Record<string, string> = {}
+  for (const [key, raw] of Object.entries(rec)) {
+    if (SOURCE_ONLY_FIELDS.has(key) || (FRONTMATTER_KEYS as readonly string[]).includes(key)) continue
+    const value = (raw ?? "").trim()
+    if (!value) continue
+    if (!EXTRA_KEY_RE.test(key)) {
+      warnings.push(`任务「${title}」自定义列名「${key}」非法（须以字母开头，仅含字母/数字/下划线/中划线/点），未写入 frontmatter`)
+      continue
+    }
+    if (/[\r\n]/.test(value)) {
+      warnings.push(`任务「${title}」自定义列「${key}」值含换行，未写入 frontmatter`)
+      continue
+    }
+    extra[key] = value
+  }
+  return extra
+}
+
 // 规范化一条导入记录：返回可写任务字段，非法/缺失项进入 warnings
 function normalizeRecord(rec: Record<string, string>, opts: ImportOptions, warnings: string[]): { ok: true; t: TaskWrite } | { ok: false } {
   const title = (rec.title || "").trim()
@@ -209,7 +237,17 @@ function normalizeRecord(rec: Record<string, string>, opts: ImportOptions, warni
   const depends = (rec.depends || "").split(/[,，;；]/).map((s) => s.trim()).filter(Boolean)
   return {
     ok: true,
-    t: { title, status, owner: owner || "未标注", scope, created: toYmdCompact(rec.created || ""), completed, depends, body: rec.body?.trim() || "" },
+    t: {
+      title,
+      status,
+      owner: owner || "未标注",
+      scope,
+      created: toYmdCompact(rec.created || ""),
+      completed,
+      depends,
+      body: rec.body?.trim() || "",
+      extra: collectExtraFields(rec, title, warnings),
+    },
   }
 }
 
@@ -223,6 +261,8 @@ interface TaskWrite {
   completed: string
   depends: string[]
   body: string
+  // frontmatter 扩展字段（自定义列原样透传，键序沿用来源列序）；archive 目标无 frontmatter，不写入
+  extra: Record<string, string>
 }
 
 // 生成 active 任务文件（冲突自动追加序号从 -1 起，不覆盖）
@@ -244,6 +284,8 @@ function writeActiveTask(tasksDir: string, t: TaskWrite, dryRun: boolean, warnin
     `completed: ${t.completed ? `'${t.completed}'` : "''"}`,
     `depends_on: ${JSON.stringify(t.depends)}`,
     `scope: ${t.scope}`,
+    // 自定义列原样透传为扩展字段：追加在已知字段之后，键序与来源列一致
+    ...Object.entries(t.extra).map(([key, value]) => `${key}: ${value}`),
     "---",
     "",
     `# ${t.title}`,
@@ -264,10 +306,15 @@ function writeArchiveTask(tasksDir: string, t: TaskWrite, dryRun: boolean, warni
     warnings.push(`任务「${t.title}」缺少完成时间，无法直接归档（可改用 active 目标）`)
     return null
   }
+  // 归档块只有元数据四字段，无 frontmatter 承载位：自定义列不落盘，显式告知避免静默丢字段
+  const extraKeys = Object.keys(t.extra)
+  if (extraKeys.length > 0) {
+    warnings.push(`任务「${t.title}」自定义列「${extraKeys.join("、")}」在 archive 目标无承载位置，未写入（需保留请改用 active 目标）`)
+  }
   const date = dateStr.replace(/-/g, "")
   const monthDir = join(tasksDir, "archive", date.slice(0, 6))
   const file = join(monthDir, `${date}.md`)
-  const metaLine = `> 负责人：${t.owner}　状态：已完成　范围：${t.scope}　完成时间：${completed}`
+  const metaLine = `> 负责人：${t.owner}　状态：${t.status}　范围：${t.scope}　完成时间：${completed}`
   const body = `# ${t.title}${t.body ? `\n\n${t.body}` : ""}`
   const block = { title: t.title, metaLine, completed, body }
   if (dryRun) return file
@@ -275,14 +322,13 @@ function writeArchiveTask(tasksDir: string, t: TaskWrite, dryRun: boolean, warni
   let header = `# ${date} 归档\n\n> 本文件由 \`toolkit tasks import --target archive\` 自动生成。\n`
   let blocks: ArchiveBlockInfo[] = []
   if (existsSync(file)) {
-    const parsed = parseArchiveBlocks(readFileSync(file, "utf8"))
+    const parsed = parseArchiveBlocks(readTextFile(file))
     if (parsed.header) header = parsed.header
     blocks = parsed.blocks
   }
+  // 按标题去重 + 完成时间降序 + 块间 `---` 分隔统一由 renderArchiveFile 保证（重复导入同名任务幂等）
   blocks.push(block)
-  blocks.sort((a, b) => normalizeCompleted(b.completed).localeCompare(normalizeCompleted(a.completed)))
-  const parts = blocks.map((b) => `## ${b.title}\n\n${b.metaLine}\n\n${b.body}`)
-  writeFileAtomic(file, `${header}\n\n${parts.join("\n\n---\n\n")}\n`)
+  writeFileAtomic(file, renderArchiveFile(header, blocks))
   return file
 }
 
@@ -295,11 +341,11 @@ export async function importTasks(file: string, tasksDir = ".tasks", opts: Impor
   const ext = file.split(".").pop()?.toLowerCase()
   let records: Record<string, string>[]
   if (ext === "csv") {
-    records = readRowsCSV(readFileSync(file, "utf8"), custom)
+    records = readRowsCSV(readTextFile(file), custom)
   } else if (ext === "xlsx") {
     records = await readRowsXLSX(file, custom)
   } else if (ext === "json") {
-    records = readRowsJSON(readFileSync(file, "utf8"), custom)
+    records = readRowsJSON(readTextFile(file), custom)
   } else {
     throw new Error(`不支持的导入格式「${ext || ""}」，仅支持 .csv / .xlsx / .json`)
   }

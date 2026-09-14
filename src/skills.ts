@@ -6,6 +6,7 @@ import type { Dirent } from "node:fs"
 import { dirname, isAbsolute, join, normalize, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { getConfigSection, getHomeDir } from "./config"
+import { readTextFile } from "./read-text"
 import { writeFileAtomic } from "./write-atomic"
 
 // 本包名：从模块位置向上定位包根，npm / pnpm / yarn / bun 装的都通用，不依赖 pnpm root -g 之类猜路径
@@ -119,6 +120,13 @@ export interface PackageSkill {
   version: string
 }
 
+// 技能版本双写位不一致条目：frontmatter 声明值与正文声明值（正文未声明时为空串）
+export interface SkillVersionMismatch {
+  name: string
+  frontmatter: string
+  body: string
+}
+
 // 解析后的目标目录
 export interface SkillTarget {
   dir: string
@@ -154,6 +162,8 @@ export interface SkillsStatusReport {
   skills: string[]
   // 各技能真源版本，作为「会话上下文已过期」判定的磁盘基准值
   skillVersions: Record<string, string>
+  // 版本双写位（frontmatter / 正文）不一致的技能，供软告警提示同步递增
+  versionMismatches: SkillVersionMismatch[]
   stateFile: string
   stateExists: boolean
   targets: TargetStatus[]
@@ -224,7 +234,7 @@ function resolvePackageRoot(): string {
     const pkgFile = join(dir, "package.json")
     if (existsSync(pkgFile)) {
       try {
-        const data = JSON.parse(readFileSync(pkgFile, "utf8").replace(/^\uFEFF/, "")) as { name?: unknown }
+        const data = JSON.parse(readTextFile(pkgFile)) as { name?: unknown }
         if (data.name === PKG_NAME) {
           cachedRoot = dir
           return dir
@@ -258,7 +268,7 @@ export function skillsPackageDir(): string {
 // 读取技能真源版本：SKILL.md frontmatter 内 metadata.version（缩进键）；文件缺失、无 frontmatter 或未声明版本一律返回空串，不抛错
 export function readSkillVersion(dir: string): string {
   try {
-    const content = readFileSync(join(dir, SKILL_ENTRY), "utf8").replace(/^\uFEFF/, "")
+    const content = readTextFile(join(dir, SKILL_ENTRY))
     const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
     if (!frontmatter) return ""
     const matched = (frontmatter[1] ?? "").match(/^[ \t]+version:[ \t]*"?([^"\r\n]+?)"?[ \t]*$/m)
@@ -266,6 +276,29 @@ export function readSkillVersion(dir: string): string {
   } catch {
     return ""
   }
+}
+
+// 读取技能正文版本：正文首部 `> 本技能版本 x.y.z（…）` 声明值；文件缺失或未声明返回空串，不抛错
+export function readSkillBodyVersion(dir: string): string {
+  try {
+    const content = readTextFile(join(dir, SKILL_ENTRY))
+    const matched = content.match(/^>[ \t]*本技能版本[ \t]*([^ \t（(]+)/m)
+    return matched ? (matched[1] ?? "").trim() : ""
+  } catch {
+    return ""
+  }
+}
+
+// 版本双写位比对：frontmatter metadata.version 与正文「本技能版本」声明不一致的条目（含正文漏写，供软告警）
+export function findSkillVersionMismatches(skills: PackageSkill[]): SkillVersionMismatch[] {
+  const out: SkillVersionMismatch[] = []
+  for (const skill of skills) {
+    // 未声明 frontmatter 版本（兼容第三方技能）无从比对，跳过
+    if (!skill.version) continue
+    const body = readSkillBodyVersion(skill.dir)
+    if (body !== skill.version) out.push({ name: skill.name, frontmatter: skill.version, body })
+  }
+  return out
 }
 
 // 列出包内技能（含 SKILL.md 的目录），按名称排序
@@ -382,7 +415,7 @@ export function readSkillsState(): SkillsState | null {
   const file = skillsStateFile()
   if (!existsSync(file)) return null
   try {
-    const data = JSON.parse(readFileSync(file, "utf8").replace(/^\uFEFF/, "")) as SkillsState
+    const data = JSON.parse(readTextFile(file)) as SkillsState
     if (!data || !Array.isArray(data.targets)) return null
     return data
   } catch {
@@ -648,6 +681,7 @@ export function skillsStatus(): SkillsStatusReport {
     source: skillsSourceDir(),
     skills: skills.map((s) => s.name),
     skillVersions: Object.fromEntries(skills.map((s) => [s.name, s.version])),
+    versionMismatches: findSkillVersionMismatches(skills),
     stateFile: skillsStateFile(),
     stateExists: Boolean(state),
     targets: out,

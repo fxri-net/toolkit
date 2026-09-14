@@ -18,6 +18,9 @@ export interface TaskFrontmatter {
   scope: string
 }
 
+// TaskFrontmatter 的全部字段名（解析层据此识别自定义扩展字段；增删字段时须同步本表）
+export const FRONTMATTER_KEYS: readonly (keyof TaskFrontmatter)[] = ["owner", "status", "created", "updated", "completed", "depends_on", "scope"]
+
 // 任务
 export interface Task {
   file: string

@@ -20,7 +20,7 @@
 提交代码（先归档与沉淀、后 git commit，同一提交） → changelog 建变更集 → changelog version → tag → publish
 ```
 
-人可以直接执行命令；AI 侧装了技能包后，上述每一步都有对应的技能流程（见 [AI 技能包](#ai-技能包)）。
+人可以直接执行命令；AI 侧装了技能包后，上述每一步都有对应的技能流程（见 [AI 技能包](#ai-技能包-skills)）。
 
 ## 任务文件规范
 
@@ -183,7 +183,7 @@ conventions.md 可按项目规则体系选形态：
 
 落盘记录自由文本（任务正文/标题、CHANGELOG 条目）时默认脱敏敏感信息，`owner` 等结构化字段不脱敏。作用范围：**终端展示、导出文件与归档落盘**；`.tasks/active/` 源文件保持原样。
 
-内置规则：邮箱、手机号、身份证、IPv4、含端口内网 URL、JWT、GitHub Token（经典与细粒度）、OpenAI API Key（经典与项目级）、Slack Token。密钥类规则带长度门槛，避免误伤正常文本。
+内置规则：`内网URL`（含端口）、`邮箱`、`JWT`、`AWS密钥`、`GitHub密钥`、`GitHub细粒度密钥`、`OpenAI密钥`、`OpenAI项目密钥`、`Slack密钥`、`Slack应用令牌`、`手机号`、`身份证`、`IPv4`。密钥类规则带长度门槛，避免误伤正常文本。
 
 ```json
 // .toolkitrc.json：追加自定义规则（优先于内置）或按 name 禁用内置规则

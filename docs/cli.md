@@ -1,6 +1,6 @@
 # CLI 参考
 
-> 目标读者：需要查命令、参数、默认值、退出码的用户。全部内容与 `toolkit --help` 及各子命令 `--help` 输出同源。
+> 目标读者：需要查命令、参数、默认值、退出码的用户。命令与参数口径取自 `toolkit --help` 与各子命令 `--help`（两者冲突时以 `--help` 为准）。
 
 ## 解决什么问题
 
@@ -20,14 +20,14 @@ toolkit <command> [options]
   toolkit skills      AI 技能包分发（安装 / 状态 / 卸载 / 路径，1.9.0 新增）
 ```
 
-全局开关（顶层命令支持；`-h` 全局与子命令均可用）：
+顶层命令支持的开关（`-h` 全局与子命令均可用）：
 
 | 参数 | 说明 |
 | --- | --- |
 | `-h, --help` | 显示帮助（全局或子命令） |
 | `-v, --version` | 显示版本号 |
-| `--redact` / `--no-redact` | 开启/关闭隐私脱敏（默认开启） |
-| `--warn` / `--no-warn` | 开启/关闭软告警（默认开启；作用于 `tasks check` 的 warn 输出、归档/发版提醒与 changelog 无类型前缀条目告警） |
+
+`--redact` / `--warn` 为**域级开关**：仅 `tasks` 与 `changelog` 两个域支持（`init` / `skills` 域不提供），清单见下方各域的选项表。
 
 开关为**双向三档**，优先级从高到低：CLI 参数 > 环境变量 > 配置文件 > 默认开启。对应环境变量：`FX_REDACT`、`FX_CHECK_WARN`（认 `0/1`、`true/false`、`on/off`、`yes/no`）；配置项见[配置参考](./config)。
 
@@ -49,6 +49,18 @@ toolkit tasks stats --format json # 统计结果 JSON 输出
 toolkit tasks --dir <path>        # 指定任务目录（CLI 参数 > 配置 tasks.dir > 默认 .tasks）
 toolkit tasks check --strict      # 任务目录不存在时报错退出（默认容错为空结果）
 ```
+
+### 任务域选项
+
+| 选项 | 说明 |
+| --- | --- |
+| `--dir <path>` | 任务目录（优先级：CLI 参数 > 配置 `tasks.dir` > 默认 `.tasks`） |
+| `--redact` / `--no-redact` | 开启/关闭隐私脱敏（默认开启） |
+| `--warn` / `--no-warn` | 开启/关闭软告警（默认开启；作用于 `tasks check` 的 warn 输出、归档时的变更集提醒） |
+| `--dry-run` | 预演：`archive` 归档 / `import` 导入只预览，不落盘 |
+| `--fix` | 归一化修复（仅 `normalize` 有效） |
+| `--check` | 归一化只读检查（`normalize` 默认行为，可显式声明；不能与 `--fix` 同用） |
+| `--strict` | 任务目录不存在时报错退出（默认容错为空结果） |
 
 ### 子命令
 
@@ -84,6 +96,8 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 
 导入细节：兼容本工具三种导出产物（JSON 另兼容裸数组格式）；XLSX 自动跳过名为「汇总」的 sheet、支持表头不在首行；表头自动识别中英文别名（不区分大小写），`.toolkitrc.json` 的 `tasks.importColumns` 自定义映射优先级最高；文件名冲突自动追加序号不覆盖；带完成时间的行状态非终结态时自动置「已完成」并告警；范围列含顿号/逗号/括号时提示按单值写入、多值请用半角加号（只提示不自动转换）。
 
+`--target archive` 的归档契约：按块标题去重——同名任务以**本次导入的内容覆盖**同名块，重复导入同一份文件不会产生重复块（幂等）；块内元数据状态**取自数据**（如源行状态为「已放弃」则写「已放弃」，不强制改写为「已完成」）；缺完成时间的行无法直接归档，跳过并提示改用 `active` 目标。
+
 ## changelog
 
 ```bash
@@ -97,6 +111,8 @@ toolkit changelog status / publish      # 其余 changeset 子命令透传
 | 选项 | 说明 |
 | --- | --- |
 | `--lang <lang>` | 输出语言，默认 `zh`；内置 `zh`/`en`，其余经配置扩展 |
+| `--redact` / `--no-redact` | 开启/关闭隐私脱敏（默认开启；作用于 CHANGELOG 终端展示与落盘） |
+| `--warn` / `--no-warn` | 开启/关闭软告警（默认开启；作用于发版前未归档任务提醒与无类型前缀条目计数告警） |
 
 行为细节：
 

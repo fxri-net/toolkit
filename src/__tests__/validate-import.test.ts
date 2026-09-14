@@ -1,4 +1,4 @@
-// active 校验与导入单测：依赖引用归一、元数据/命名软告警、复选框开关、冲突序号与截断告警、自定义列映射
+// active 校验与导入单测：依赖引用归一、元数据/命名软告警、复选框开关、冲突序号与截断告警、自定义列映射、扩展字段透传
 import { describe, it, expect, afterEach } from "vitest"
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync, existsSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -135,6 +135,13 @@ describe("validateTasks 依赖与命名校验", () => {
     rmSync(dir, { recursive: true, force: true })
     rmSync(cfgDir, { recursive: true, force: true })
   })
+
+  it("frontmatter 未知自定义字段软告警（本工具只读已知字段）", () => {
+    const dir = taskDir()
+    putFile(dir, "20260903-唐启云-a.md", valid().replace("scope: 测", "scope: 测\npriority: 高"))
+    expect(warnTexts(dir).some((m) => m.includes("未知字段「priority」"))).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
 })
 
 describe("importTasks 写入与映射", () => {
@@ -189,6 +196,76 @@ describe("importTasks 写入与映射", () => {
     expect(res.warnings.some((w) => w.includes("按单值写入"))).toBe(true)
     // 只提示不改值：原样落盘，交由 check 口径约束
     expect(readFileSync(join(dir, "active", "202609", "20260903-甲-模块任务.md"), "utf8")).toContain("scope: service-job、admin-facade")
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("归档导入的状态取自数据，不硬编码已完成", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-import-arch1-"))
+    mkdirSync(join(dir, "active"), { recursive: true })
+    mkdirSync(join(dir, "archive"), { recursive: true })
+    const csv = join(dir, "in.csv")
+    writeFileSync(csv, "任务名,负责人,状态,完成时间\n放弃任务,甲,已放弃,2026-09-03 10:00\n", "utf8")
+    const res = await importTasks(csv, dir, { target: "archive" })
+    expect(res.created).toBe(1)
+    const text = readFileSync(join(dir, "archive", "202609", "20260903.md"), "utf8")
+    expect(text).toContain("状态：已放弃")
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("重复导入同名归档任务不产生重复块（幂等）", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-import-arch2-"))
+    mkdirSync(join(dir, "active"), { recursive: true })
+    mkdirSync(join(dir, "archive"), { recursive: true })
+    const csv = join(dir, "in.csv")
+    writeFileSync(csv, "任务名,负责人,状态,完成时间\n重复任务,甲,已完成,2026-09-03 10:00\n", "utf8")
+    await importTasks(csv, dir, { target: "archive" })
+    await importTasks(csv, dir, { target: "archive" })
+    const text = readFileSync(join(dir, "archive", "202609", "20260903.md"), "utf8")
+    expect(text.match(/^## 重复任务$/gm) ?? []).toHaveLength(1)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("自定义列映射到非标准字段时透传为 frontmatter 扩展字段，且排在已知字段之后", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-import-extra1-"))
+    mkdirSync(join(dir, "active"), { recursive: true })
+    mkdirSync(join(dir, "archive"), { recursive: true })
+    const csv = join(dir, "in.csv")
+    writeFileSync(csv, "任务名,负责人,状态,创建日期,Priority\n透传任务,甲,待办,20260903,高\n", "utf8")
+    const res = await importTasks(csv, dir, { importColumns: { Priority: "priority" } })
+    expect(res.created).toBe(1)
+    expect(res.warnings).toHaveLength(0)
+    const text = readFileSync(join(dir, "active", "202609", "20260903-甲-透传任务.md"), "utf8")
+    expect(text).toContain("priority: 高")
+    expect(text.indexOf("scope: -")).toBeLessThan(text.indexOf("priority: 高"))
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("扩展字段列名非法或值含换行时不写入 frontmatter 并告警", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-import-extra2-"))
+    mkdirSync(join(dir, "active"), { recursive: true })
+    mkdirSync(join(dir, "archive"), { recursive: true })
+    const csv = join(dir, "in.csv")
+    writeFileSync(csv, "任务名,负责人,状态,创建日期,Bad Key,Note\n非法列任务,甲,待办,20260903,值,\"第一行\n第二行\"\n", "utf8")
+    const res = await importTasks(csv, dir, { importColumns: { "Bad Key": "bad key", Note: "note" } })
+    expect(res.created).toBe(1)
+    expect(res.warnings.some((w) => w.includes("自定义列名「bad key」非法"))).toBe(true)
+    expect(res.warnings.some((w) => w.includes("自定义列「note」值含换行"))).toBe(true)
+    const text = readFileSync(join(dir, "active", "202609", "20260903-甲-非法列任务.md"), "utf8")
+    expect(text).not.toContain("bad key")
+    expect(text).not.toContain("note:")
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("archive 目标无 frontmatter 承载位：扩展字段不落盘并显式告警", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-import-extra3-"))
+    mkdirSync(join(dir, "active"), { recursive: true })
+    mkdirSync(join(dir, "archive"), { recursive: true })
+    const csv = join(dir, "in.csv")
+    writeFileSync(csv, "任务名,负责人,状态,完成时间,Priority\n归档透传任务,甲,已完成,2026-09-03 10:00,高\n", "utf8")
+    const res = await importTasks(csv, dir, { target: "archive", importColumns: { Priority: "priority" } })
+    expect(res.created).toBe(1)
+    expect(res.warnings.some((w) => w.includes("在 archive 目标无承载位置"))).toBe(true)
+    expect(readFileSync(join(dir, "archive", "202609", "20260903.md"), "utf8")).not.toContain("priority")
     rmSync(dir, { recursive: true, force: true })
   })
 })

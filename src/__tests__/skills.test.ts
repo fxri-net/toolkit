@@ -8,8 +8,10 @@ import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import {
   AGENT_SKILL_DIRS,
   autoLinkSkills,
+  findSkillVersionMismatches,
   installSkills,
   listPackageSkills,
+  readSkillBodyVersion,
   readSkillVersion,
   readSkillsState,
   removeSkills,
@@ -138,6 +140,51 @@ describe("readSkillVersion 版本解析", () => {
     expect(readSkillVersion(skillDir("no-fm", "# 无 frontmatter\n"))).toBe("")
     expect(readSkillVersion(skillDir("no-version", "---\nname: no-version\nmetadata:\n  author: fxri\n---\n"))).toBe("")
     expect(readSkillVersion(join(home, "not-exists"))).toBe("")
+  })
+})
+
+describe("readSkillBodyVersion / findSkillVersionMismatches 版本双写位", () => {
+  // 造一个只含 SKILL.md 的技能目录，返回其路径
+  function bodySkillDir(name: string, content: string): string {
+    const dir = join(home, name)
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, "SKILL.md"), content, "utf8")
+    return dir
+  }
+
+  it("读取正文首部「> 本技能版本 x.y.z」声明值", () => {
+    const dir = bodySkillDir("body-ok", "# 技能\n\n> 本技能版本 1.2.3（随 @fxri/toolkit 同批分发）。内容变更时同步递增。\n")
+    expect(readSkillBodyVersion(dir)).toBe("1.2.3")
+  })
+
+  it("容忍 UTF-8 BOM，未声明 / 文件缺失时返回空串，不抛错", () => {
+    expect(readSkillBodyVersion(bodySkillDir("body-bom", "\uFEFF# 技能\n\n> 本技能版本 3.1.4（随包分发）\n"))).toBe("3.1.4")
+    expect(readSkillBodyVersion(bodySkillDir("body-none", "# 技能\n\n无版本声明\n"))).toBe("")
+    expect(readSkillBodyVersion(join(home, "not-exists"))).toBe("")
+  })
+
+  it("双写位一致时不出项，不一致（含正文漏写）时报出比对值", () => {
+    const ok = bodySkillDir("mm-ok", '---\nname: mm-ok\nmetadata:\n  version: "1.0.0"\n---\n\n> 本技能版本 1.0.0（随包分发）\n')
+    const diff = bodySkillDir("mm-diff", '---\nname: mm-diff\nmetadata:\n  version: "1.0.1"\n---\n\n> 本技能版本 1.0.0（随包分发）\n')
+    const missing = bodySkillDir("mm-missing", '---\nname: mm-missing\nmetadata:\n  version: "2.0.0"\n---\n\n无版本声明\n')
+    const mismatches = findSkillVersionMismatches([
+      { name: "mm-ok", dir: ok, version: "1.0.0" },
+      { name: "mm-diff", dir: diff, version: "1.0.1" },
+      { name: "mm-missing", dir: missing, version: "2.0.0" },
+    ])
+    expect(mismatches).toEqual([
+      { name: "mm-diff", frontmatter: "1.0.1", body: "1.0.0" },
+      { name: "mm-missing", frontmatter: "2.0.0", body: "" },
+    ])
+  })
+
+  it("未声明 frontmatter 版本（第三方技能）跳过比对，不误报", () => {
+    const dir = bodySkillDir("mm-third", "# 第三方技能\n\n无版本声明\n")
+    expect(findSkillVersionMismatches([{ name: "mm-third", dir, version: "" }])).toEqual([])
+  })
+
+  it("包内全部技能双写位一致（仓库现场无漂移）", () => {
+    expect(findSkillVersionMismatches(listPackageSkills())).toEqual([])
   })
 })
 
