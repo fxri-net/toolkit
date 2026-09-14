@@ -6,6 +6,48 @@ outline: false
 
 > 完整变更历史以随包发布的 CHANGELOG.md 为准，本页由 `pnpm sync:changelog-doc` 从根 CHANGELOG.md 自动同步，请勿手改。
 
+## 1.9.3
+
+> 2026-09-14 发布
+
+### ⚡ 优化改进
+
+- 优化：治理设计审计发现的 14 处不成熟点（写盘事务性、文本协议脆弱性、三方一致性）
+
+  - 写盘更稳：归档前按块标题去重（重跑幂等）；`normalize --fix` 逐文件容错，单个文件异常不再中断整轮
+  - 写入锁记 pid 与进程启动时间：接管前校验持有进程是否存活，释放时校验持有者为自身，降低陈旧锁被误接管的风险
+  - 导入契约明确并落地：`--target archive` 按块标题去重（同一份文件重复导入幂等），块内状态取自数据（不再强制改写为「已完成」）；契约已写进 `docs/cli.md`
+  - frontmatter 未知字段不再被丢弃：解析时原样透传并软告警，导入回写按原顺序重建
+  - 归档块判定改以块间 `---` 为唯一权威边界：`## 标题` 与 `> 元数据` 行降为校验项，正文内部的 `## ` 小节不再可能被误切（`SPEC.md` 同步）
+  - `tasks check` 与 `tasks normalize --check` 的问题输出带 `file:line`，便于编辑器跳转；库导出 `CheckIssue` 新增可选 `line` 字段
+  - 文档补齐：内置脱敏规则清单（`docs/config.md`、`docs/guide.md`）、`--redact` / `--warn` 的域级作用域与 `tasks` 域选项表（`docs/cli.md`）、站点导航与更新日志入口
+  - skills 状态检查新增版本双写位比对（frontmatter `metadata.version` 与正文声明值），不一致时软告警
+  - 新增机器化质量门测试：脱敏规则清单 ↔ 文档一致、`docs/*.md` 内锚点可解析、`docs/changelog.md` 与 `CHANGELOG.md` 一致、`CheckIssue.line` 行号定位
+- 优化：降低任务区随年限增长的全库线性扫描与整文件重写开销
+
+  - `tasks check`：依赖索引改惰性构建（active 无 `depends_on` 时不再扫全量归档），重名检测与依赖命中改 `Set`、命中即早退
+  - `tasks --import --target archive`：按目标日期分组写入，同一归档文件只读改写一次（去重、降序、块间 `---` 分隔口径不变）
+  - `tasks --view all` 与终端总览：复用同一次查询结果，不再对同一视图重复扫描
+  - `tasks normalize`：归档文件只解析一次，消除同一文件双解析
+  - 归档读取按时间过滤下推月份目录白名单，跳过范围外年月目录（命中判定不变，条件不可解析时退回全量）
+  - 归档锁新增绝对接管上限：持有进程看似存活但锁龄超过上限时强制接管，兜底 pid 复用导致的归档永久静默跳过（正常并发仍跳过并告警）；`SPEC.md` 与 `docs/guide.md` 同步该自愈语义
+
+### 📝 文档更新
+
+- 文档：回补三方一致性核对发现的 8 处失同步，`tasks stats --format` 与其余命令对齐
+
+  - `docs/api.md`：`parseBool` 认值补 `yes/no`；补列 `CheckIssue` / `IssueLevel` / `NormalizeIssue` / `NormalizeResult` 四个类型导出
+  - `docs/guide.md`：frontmatter 字段表补 `scope`；归档规则补「块间 `---` 是任务块唯一权威边界」；技能表补版本列
+  - `docs/cli.md`：补 `check` / `normalize` 问题清单的 `文件:行号: 描述` 输出形态
+  - `skills/README.md`：技能表补版本列（取自各 SKILL.md 的 frontmatter `metadata.version`）
+  - `toolkit tasks stats --format` 补取值校验：非法值告警并置退出码 1，与其余命令同口径
+  - `AGENTS.md`：规则层锚点纪律明确 `SPEC.md` 无 fenced 包裹、整篇即快照，锚点位于正文首行即合规
+- 文档：规则层锚点由数字版本号改为更新时刻，提交信息规则拆为独立页
+
+  - 锚点由 `> 规范版本 x.y` / `> 规则版本 x.y` 改为 `> 规范更新时间 YYYY-MM-DD HH:mm`（`SPEC.md`）与 `> 规则更新时间 YYYY-MM-DD HH:mm`（`docs/ai-rules.md`、`docs/commit-rules.md`）——两个规则页锚点位于 fenced 可复制块内部首行，`SPEC.md` 无 fenced 包裹、整篇文件即快照，锚点位于正文首行；复制过旧规则的快照首行格式不同即说明需重新复制对应页面
+  - 更新纪律写全：任何内容变更（含错别字、标点、链接）以变更时刻更新所属文件锚点，未变更的文件不得刷新，同一批改动取同一时间，只随内容变更递增、不随发版例行抬高
+  - 提交信息规则从 AI 全局规则中拆出为独立页 `docs/commit-rules.md`，与 AI 全局规则相互独立、可只取其一（该规则替换既有提交惯例，与 Conventional Commits、commitlint 直接互斥，故单独成页）
+
 ## 1.9.2
 
 > 2026-09-14 发布
@@ -21,6 +63,7 @@ outline: false
   - 自定义语言新增可选 `groups`（`[{ slot, title, prefixes? }]`）声明本语言标题与自有前缀；未声明时退化为纯替换，既有配置无需改动
   - ⚠️ 对外契约变化：`--lang en` 的组标题文本变化（如 `### ✨ Minor Changes` → `### ✨ Added`）；`--warn` / `FX_CHECK_WARN` / `check.warnings` 适用范围由任务校验告警扩为「任务校验告警 + 变更集条目缺类型前缀告警」，同一开关一并开关闭；新增公共导出 `SLOT_PREFIXES` / `SemanticSlot`
   - 修复：发布日期行识别由硬编码「发布/released」改为「当前语言 `released` ∪ 全部内置语言 `released`」后缀集合——自定义语言（日文等）按自身 `released` 识别，内置 zh / en 互跑（如中文日志用 `--lang en` 输出）也不再重复追加日期行
+
 - 新增：技能版本可视化，旧会话可自校验技能内容是否过期
 
   - `toolkit skills status` 常驻打印包内各技能真源版本，`--format json` 新增 `skillVersions` 字段与逐项 `version`，作为磁盘基准值；`toolkit skills install` 报告同样逐项带版本
