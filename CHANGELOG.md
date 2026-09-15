@@ -1,5 +1,43 @@
 # 方弦工具集
 
+## 1.9.4
+
+> 2026-09-15 发布
+
+### ✨ 新增功能
+
+- CHANGELOG 支持追溯改写历史版本块
+
+  - `toolkit changelog version/format` 新增 `--history`：历史版本块内条目按其类型前缀与既有组标题归位、组标题转写为当前语言口径；无法识别的分组连同标题原样保留，不臆造归属（不加该选项时仍不动历史块）
+  - 条目类型前缀表补充 `技能：` / `skills：`（归入「优化改进」）与 `依赖：`（归入「依赖变更」），历史组标题（如 `补丁修复`）也能识别归位
+  - 修复 Windows 检出（`core.autocrlf`）下 `pnpm sync:changelog-doc` 因 CRLF 误判「未发现版本块」而中止
+- CHANGELOG 归类后剥离条目已识别的类型前缀
+
+  - 条目归入语义分组后，已识别的 `类型：` 前缀被剥离（`- 修复：xxx` → `- xxx`），类型由分组标题承接，明细不再与之重复
+  - 未识别的前缀（如正文里的 `说明：`）与依赖源条目 `- 更新依赖`（缩进续行承载包版本）原样保留；剥离后文本为空也不改动
+  - 既有历史块本无前缀，剥离是回归原生形态；1.9.0–1.9.3 块经 `toolkit changelog --history format` 一并统一
+  - ⚠️ 按条目类型检索（`grep "^- 修复："`）不再可用：前缀只作归类信号，分组后不再保留
+  - `changelog` 域选项透传曾导致 `--history` 写在子命令之后被静默忽略，文档与技能中的 `toolkit changelog format --history` 写法已更正为 `toolkit changelog --history format`
+
+### ⚡ 优化改进
+
+- skills remove 报告目标改用显示名标识
+
+  - 卸载报告的目标行由绝对路径改为 `显示名：路径`，与 `skills install` / `skills status` 同口径；canonical 目录优先判为「canonical（多家 agent 共读）」，内置快照表内的 agent 目录打印其显示名
+  - 表外目标（自定义 `--dir`）无显示名可反查，回落为绝对路径；`--format json` 的每个目标新增 `label` 字段（反查不到为 `null`）
+
+### 🐛 问题修复
+
+- 修复文档站内跨页锚点死链并补全守门覆盖
+
+  - 修正 README 与 docs 中 11 处跨页锚点死链（标题改名后未同步，点击不跳转），涉及 `README.md`、`docs/cli.md`、`docs/faq.md`、`docs/getting-started.md`、`docs/guide.md`、`docs/handbook.md`
+  - 文档一致性测试的锚点用例此前会跳过全部跨页链接（VitePress 把 `.md` 渲染为 `.html` 后被扩展名判断排除），现归一回 `.md` 并按所在目录相对解析
+  - 扫描范围由 `docs/*.md` 扩至仓库根 `*.md` 与 `skills/**/*.md`，跨页锚点写错、标题改名漏同步均会拦下
+- 修复 Windows 检出环境下文档一致性测试的换行误判
+
+  - 「更新日志镜像」用例比较前统一把 CRLF 归一为 LF，Windows 检出（`core.autocrlf`）不再把换行差异误报成「漏跑同步脚本或手改镜像页」
+  - 内容差异（漏跑 `pnpm sync:changelog-doc` 或手改镜像页）仍照常拦截
+
 ## 1.9.3
 
 > 2026-09-14 发布
