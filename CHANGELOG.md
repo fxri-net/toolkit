@@ -57,7 +57,6 @@
   - 自定义语言新增可选 `groups`（`[{ slot, title, prefixes? }]`）声明本语言标题与自有前缀；未声明时退化为纯替换，既有配置无需改动
   - ⚠️ 对外契约变化：`--lang en` 的组标题文本变化（如 `### ✨ Minor Changes` → `### ✨ Added`）；`--warn` / `FX_CHECK_WARN` / `check.warnings` 适用范围由任务校验告警扩为「任务校验告警 + 变更集条目缺类型前缀告警」，同一开关一并开关闭；新增公共导出 `SLOT_PREFIXES` / `SemanticSlot`
   - 修复：发布日期行识别由硬编码「发布/released」改为「当前语言 `released` ∪ 全部内置语言 `released`」后缀集合——自定义语言（日文等）按自身 `released` 识别，内置 zh / en 互跑（如中文日志用 `--lang en` 输出）也不再重复追加日期行
-
 - 新增：技能版本可视化，旧会话可自校验技能内容是否过期
 
   - `toolkit skills status` 常驻打印包内各技能真源版本，`--format json` 新增 `skillVersions` 字段与逐项 `version`，作为磁盘基准值；`toolkit skills install` 报告同样逐项带版本
@@ -75,9 +74,9 @@
 
 > 2026-09-13 发布
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
-- 修复 CLI 命令输出完成后卡顿约 1 秒才退出：升级检查改为「同步读缓存 + 分离子进程后台刷新」，父进程零网络、立即退出。
+- 修复：CLI 命令输出完成后卡顿约 1 秒才退出：升级检查改为「同步读缓存 + 分离子进程后台刷新」，父进程零网络、立即退出。
 
   - 消除尾部卡顿：所有命令退出耗时回落到 ~100 ms（此前每条命令固定多等 0.8–1.4 s）
   - 升级检查不再阻塞进程退出：网络查询移入 detached 后台子进程，父进程只读系统临时目录缓存
@@ -90,7 +89,7 @@
 
 ### ✨ 新增功能
 
-- 新增 `toolkit skills` 命令域：技能随包分发、与 CLI 同源同版本，升级只需 `pnpm add -g @fxri/toolkit`，告别「CLI 走 npm、技能走 GitHub」两条供应链的版本漂移
+- 新增：`toolkit skills` 命令域：技能随包分发、与 CLI 同源同版本，升级只需 `pnpm add -g @fxri/toolkit`，告别「CLI 走 npm、技能走 GitHub」两条供应链的版本漂移
 
   - `toolkit skills install [--copy] [--dir <path>] [--dry-run] [--force] [--format json]`：取自包内 `skills/` 唯一真源，默认软链（升级自动跟随）；链接创建失败自动降级为副本并打印 ⚠️。目标三层：主目标 `~/.agents/skills/`（多家 agent 共读）→ 内置表内已安装的各 agent 全局技能目录 → `--dir` 兜底表外 agent
   - `toolkit skills status [--format json]`：报告链接与副本现场——软链正常 / 悬空 / 指向别处 / 副本已同步 / 副本已漂移 / 缺失 / 同名冲突
@@ -102,16 +101,18 @@
   - 升级提示与文档口径统一为一条命令：升级后开新会话即可加载最新技能
   - 文档补充「从上游安装器迁移到内置命令」的指引：旧流程在 `~/.agents/skills/` 残留的实体副本会被报为同名冲突，`toolkit skills install --force` 一键接管；并提示不要与上游安装器混用，否则升级时冲突复发
 
-### 🐛 补丁修复
+### ⚡ 优化改进
 
-- 优化技能链接自愈的开销与稳定性，并修正 `toolkit skills status` 的处置指引
+- 优化：技能链接自愈的开销与稳定性，并修正 `toolkit skills status` 的处置指引
 
   - 自愈改为一次列目录取现场条目类型，不再逐条 `lstatSync`，稳态开销明显下降
   - `toolkit skills status` 末尾汇总按型给出指引：缺失 / 悬空 / 指向错误 / 副本漂移用 `install` 补齐，同名冲突用 `install --force` 覆盖
   - 收窄状态分类口径：同名实体目录只有登记为本包副本时才算「副本已漂移」（裸 `install` 即可刷新），未登记的属用户 / 上游产物，报「同名冲突」并需 `--force` 覆盖
   - 修复自愈「重建失败」时状态记录被静默写掉的问题：失败条目保留在 `~/.agents/.toolkit-skills.json`，下次运行仍会重试
 
-- 修复诊断提示污染机器可读输出：链接自愈提示与升级提示改走 stderr，stdout 保持纯 JSON
+### 🐛 问题修复
+
+- 修复：诊断提示污染机器可读输出：链接自愈提示与升级提示改走 stderr，stdout 保持纯 JSON
 
   - `toolkit tasks --format json` 等机器可读输出不再被追加提示文本，可安全 `JSON.parse` 与管道消费
   - `updateCheck` 的缓存文件带 BOM 时不再误判为损坏而重复联网（与配置文件、技能状态文件同口径剥离 BOM）
@@ -120,7 +121,7 @@
 
 > 2026-09-07 发布
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
 - 修复：范围字段多值口径落地——scope 多值以半角加号分隔（如 `toolkit+lxgl-web`），`--scope` 过滤改按任一段命中，`tasks stats` 按范围拆段统计
 - 修复：`tasks check` 对范围含顿号/逗号/括号软告警并给修复指引
@@ -131,42 +132,45 @@
 
 > 2026-09-06 发布
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
-- 修复「未提交任务文件无法恢复会话」的过度归因：恢复读磁盘 `.tasks/` 文件而非 git，同机同目录下未提交也能恢复；git 提交仅保障跨环境（换机/工作区清理）持久性。fxri-session-recap 失败模式表与 docs/guide 反模式句同步修正并补边界说明。
+- 修复：「未提交任务文件无法恢复会话」的过度归因：恢复读磁盘 `.tasks/` 文件而非 git，同机同目录下未提交也能恢复；git 提交仅保障跨环境（换机/工作区清理）持久性。fxri-session-recap 失败模式表与 docs/guide 反模式句同步修正并补边界说明。
 
 ## 1.8.1
 
 > 2026-09-06 发布
 
-### 🐛 补丁修复
+### ⚡ 优化改进
+
+- 技能：fxri-plan-to-task 升级 1.1.1——状态机补阻塞解除归属：进入阻塞记录原因，解除阻塞须用户确认并转回进行中
+
+### 📝 文档更新
 
 - 文档：guide.md「conventions.md 规范沉淀地」补两种形态说明——条文式（无规则层项目存全文）/ 溯源索引式（有 AGENTS/全局规则项目指向单一事实源），skill 写入读取机制两种形态均支持
-- 技能：fxri-plan-to-task 升级 1.1.1——状态机补阻塞解除归属：进入阻塞记录原因，解除阻塞须用户确认并转回进行中
 - 文档：skills/README 发布前核对清单补强——技能用途描述须同步 docs/guide 技能表与「技能列表」表；变更走本仓库质量门（三方一致 + tasks check + pnpm test）
 
 ## 1.8.0
 
 > 2026-09-06 发布
 
-### ✨ 新增功能
+### ⚡ 优化改进
 
 - 技能：fxri-plan-to-task 升级 1.0.7——completed 按四级时间源取证；归档后做任务级规范沉淀（写入 conventions.md），能力终点由「归档」升级为「归档 + 沉淀」；先查后写时读取并遵守 conventions.md
 - 技能：fxri-plan-to-task 升级 1.1.0——「先查后写」强化为「动手前置建档评估」流程落点（所有仓库改动前必做），补同主题判别表：active 同主题更新原文件、archive 同主题无增量提示不重复建档、有增量重建并标注来源链、归档任务不可变
 - 技能：fxri-session-recap 升级 1.1.0——会话收尾全量沉淀（先核对清单防漏档）、四级时间源还原真实完成时间、新会话三层恢复覆盖全部任务（含已归档，近窗超阈值自动降级统计）、历史任务时间批量修正、规范沉淀进 `.tasks/conventions.md`
+- 技能：fxri-release-changelog 升级 1.0.5——触发词扩充为语义化意图描述（发一版/出个版本/记一下这次改动等近义表达均可触发，不要求字面一致）
+- 技能：fxri-release-changelog 升级 1.0.6——description 与「何时使用」补反例排除：「提交个版本/先提交一版/commit」指 git 提交当前改动而非发版，仅在用户明确表达发布/生成 CHANGELOG 时才进入本技能
 
-### 🐛 补丁修复
+### 📝 文档更新
 
 - 文档：AI 全局规则模板收尾改自动提交——任务收尾的 git 提交自动执行（作者个人收紧，可参考可裁剪），推送与发版仍需用户明确
 - 文档：新增独立「操作手册」页（按场景列出该说什么/做什么，覆盖首次使用到发版升级全闭环）；ai-rules.md 全局规则收敛为薄壳——可变细节进 skills，升级 skills 后无需再手动同步规则全文
-- 技能：fxri-release-changelog 升级 1.0.5——触发词扩充为语义化意图描述（发一版/出个版本/记一下这次改动等近义表达均可触发，不要求字面一致）
-- 技能：fxri-release-changelog 升级 1.0.6——description 与「何时使用」补反例排除：「提交个版本/先提交一版/commit」指 git 提交当前改动而非发版，仅在用户明确表达发布/生成 CHANGELOG 时才进入本技能
 
 ## 1.7.4
 
 > 2026-09-05 发布
 
-### 🐛 补丁修复
+### 📝 文档更新
 
 - 文档：简化文档站部署指引——收敛为 GitHub Pages 单一自动构建方案，移除多平台部署表格与手动部署步骤
 
@@ -174,16 +178,19 @@
 
 > 2026-09-05 发布
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
 - 修复：清理 CHANGELOG 双前缀伪影——变更集条目以 `- ` 开头时 changesets 会写入 `- - 条目` 首行并缩进续行，`changelog version/format` 现自动还原为顶层条目，无需人工润色
+
+### 📝 文档更新
+
 - 文档：品牌展示位统一中文名——文档站首页 hero 主视觉、README 与 CHANGELOG 的标题从 npm 包名 `@fxri/toolkit` 改为中文品牌「方弦工具集」，与站点标题、导航 logo、页脚一致；安装命令、代码示例等技术指称位置的包名保持不变
 
 ## 1.7.2
 
 > 2026-09-05 发布
 
-### 🐛 补丁修复
+### 📝 文档更新
 
 - 文档：新增 Gitee 镜像渠道并推荐国内网络优先——README 顶部加 GitHub/Gitee 双入口（issues 反馈同双平台），FAQ 新增「国内网络优先走哪条渠道」（源码克隆、skills 走 Gitee 镜像本地源安装、CLI 走 npm 并给 npmmirror 提速、Gitee Issues 反馈），skills/README、新手指南与完整攻略补对应入口链接
 - 文档：文档站「在 GitHub 上编辑此页」与站点规范地址（sitemap/og:image）支持按部署平台注入 `SITE_URL`/`REPO_URL` 环境变量——默认 GitHub，Gitee Pages / 私有 GitLab Pages 构建时各注入自己的仓库与域名（值由平台 CI/CD 变量提供，不进仓库源码）
@@ -192,9 +199,12 @@
 
 > 2026-09-05 发布
 
-### 🐛 补丁修复
+### ✨ 新增功能
 
-- 新增 `.toolkitrc.json` 全局配置层：读取 `~/.toolkitrc.json` 存放个人偏好（关升级提示、个人脱敏规则、自定义语言表等），与项目配置按配置段合并——项目出现的段整体覆盖全局同名段，未配的段取全局；覆盖链为 CLI > 环境变量 > 项目 > 全局 > 默认值；全局文件非法或带 BOM 同样忽略不报错
+- 新增：`.toolkitrc.json` 全局配置层：读取 `~/.toolkitrc.json` 存放个人偏好（关升级提示、个人脱敏规则、自定义语言表等），与项目配置按配置段合并——项目出现的段整体覆盖全局同名段，未配的段取全局；覆盖链为 CLI > 环境变量 > 项目 > 全局 > 默认值；全局文件非法或带 BOM 同样忽略不报错
+
+### 📝 文档更新
+
 - 文档：推荐的 AI 全局规则模板升级——代码规范补验证纪律（改动后跑测试/类型检查，失败先修复再交付）；方案落盘并入执行顺序（先项目级 `pnpm exec toolkit` 后全局）与「先查后写」，保留质量门 normalize 指引、「三口径冲突以 check 为准」与不可用双分支处理；配套安装节与规则全文去重，逐段说明补齐对应条目
 - 文档：文档站首页改版为 VitePress home 布局——新增 hero 标语与行动按钮、六张 features 能力卡片，正文精简为痛点能力速览并入卡片，保留 30 秒上手与文档索引；快速开始改为 code-group 四包管理器标签（pnpm/npm/yarn/bun）并前移至首节，浏览器标签补首页专属标题，文档索引 API 参考文案修正为「作为库引入 Node 项目」
 - 文档：FAQ 新增「内网或离线环境怎么装」指引——按网络受限程度分三档给出 CLI 与 skills 的安装路径（GitHub 不可达时改以已装 CLI 包目录为 skills 本地源，实测验证），新手指南安装节末尾补入口链接
@@ -206,25 +216,34 @@
 
 ### ✨ 新增功能
 
-- 新增 `toolkit init` 命令，一键初始化 .tasks 任务区
-- 新增 `tasks stats` 任务周期统计视图
-- 新增完成时间检测：晚于当前系统时间与恰为零点整（疑似只填日期被补零），check/normalize/archive 三道关口告警
+- 新增：`toolkit init` 命令，一键初始化 .tasks 任务区
+- 新增：`tasks stats` 任务周期统计视图
+- 新增：完成时间检测：晚于当前系统时间与恰为零点整（疑似只填日期被补零），check/normalize/archive 三道关口告警
 - CLI help 底部新增文档链接，运行时新增版本升级检查提示
-- 新增 fxri-session-recap 会话归档技能
+- 新增：fxri-session-recap 会话归档技能
 
-### 🐛 补丁修复
+### ⚡ 优化改进
+
+- skills：补充多包管理器下 pnpm 置前的探测顺序，收尾边界口径与文档同步
+
+### 🐛 问题修复
 
 - 修复：任务文件解析兼容 UTF-8 BOM（Windows PowerShell 写盘不再误报缺少 frontmatter）
 - 修正版权主体与版权符号
-- 依赖：commander 降级至 Node 20 兼容版本
+
+### 📝 文档更新
+
 - 文档：新增 VitePress 文档站点与 docs 八篇文档体系，README 重构为入口页，全文档统一 pnpm 命令
-- skills：补充多包管理器下 pnpm 置前的探测顺序，收尾边界口径与文档同步
+
+### 🔗 依赖变更
+
+- 依赖：commander 降级至 Node 20 兼容版本
 
 ## 1.6.5
 
 > 2026-09-04 发布
 
-### 🐛 补丁修复
+### 📝 文档更新
 
 - 文档：同步 skills 与最新工具能力——fxri-release-changelog 的 changelog-format.md 版本块示例与规则补「标题与日期行间保留空行」（对齐 1.6.4 空行修复后的真实输出）；fxri-plan-to-task 的 task-spec.md 自查清单补「active 根目录直放」与「游离于 active/ 之外」两项软告警（对齐 1.5.3/1.6.3 的 check 能力）；两 SKILL.md metadata.version 递增至 1.0.1
 
@@ -232,16 +251,19 @@
 
 > 2026-09-04 发布
 
-### 🐛 补丁修复
+### 🔧 功能调整
 
 - 修改：CLI `--help` 描述文案与 README 首行对齐——由「开发工程化工具集：任务管理 + 多语言 CHANGELOG 发布」改为「专为多人 + AI 跨项目协作打造：任务管理 + 多语言 CHANGELOG」（纯文案，无逻辑变化）
+
+### 🐛 问题修复
+
 - 修复：changelog format 补发布日期时把日期行紧贴版本标题（缺空行）——现在版本标题与日期行间始终保留空行，并对历史已存在的缺空行数据自动自愈
 
 ## 1.6.3
 
 > 2026-09-04 发布
 
-### 🐛 补丁修复
+### ✨ 新增功能
 
 - 新增：tasks check 检出游离于 active/ 之外的任务文件并软告警——对带 {YYYYMMDD}- 日期前缀且位于 .tasks 根目录或漏建 active 层的 {YYYYMM}/ 子目录下的 .md 给出提示（此类文件不被 tasks/check/archive 读取），避免建档错位后无任何反馈
 
@@ -249,7 +271,7 @@
 
 > 2026-09-04 发布
 
-### 🐛 补丁修复
+### 📝 文档更新
 
 - 文档：补充隐私脱敏禁用行为说明——README 自定义规则说明明确被禁用规则不参与匹配、敏感信息原样保留；效果示例增加手机号默认脱敏与禁用保留的对照行，并注明禁用仅影响该类匹配
 
@@ -257,7 +279,7 @@
 
 > 2026-09-04 发布
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
 - 修复：tasks archive 对 CRLF 源文件做换行还原时二次转换产生双重 CR（`\r\r\n`），读取 active 任务统一归一为 LF、解析归档块剥离孤立 CR；文档修订：根 README 特性列表补零依赖 AI 技能包条目；skills/README.md 补 npm 包自带技能目录路径（node_modules/@fxri/toolkit/skills/）；fxri-plan-to-task 可选加速节补 `toolkit tasks normalize`
 
@@ -285,7 +307,7 @@
 - CI 增加 Windows 回归 job 与 CLI `--help` 冒烟
 - README 新增公共 API 表与「任务状态单一事实源」说明
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
 - archive 合并写回按原文件换行风格还原（LF/CRLF），避免 Windows 仓库追加新块产生混合换行
 - 导出（CSV/JSON/XLSX）改原子写，中断不再残留半截文件
@@ -299,7 +321,7 @@
 
 > 2026-09-03 发布
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
 - archive/check/normalize 子命令统一「操作失败」兜底，不再抛原始 Node 堆栈
 - `printTasks`（库 API）复用 board 渲染，分组顺序/日期口径/文案与 CLI 完全一致
@@ -309,13 +331,13 @@
 - check 的待办词标记扫描跳过标题行，避免标题含「待办」等词误报
 - import 输出路径统一为相对任务目录的 `/` 分隔
 - 缺失 `depends_on` 指向已归档任务时，提示精确归档位置
-- 修复 archive 汇总计数口径：按任务数统计（此前按日期文件数误报）
+- 修复：archive 汇总计数口径：按任务数统计（此前按日期文件数误报）
 
 ## 1.5.4
 
 > 2026-09-03 发布
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
 - `tasks normalize` 增加 `--check` 显式只读别名，并与 `--fix` 互斥报错
 - `--status` 非法值改为告警并忽略，不再静默
@@ -329,9 +351,9 @@
 
 > 2026-09-03 发布
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
-- 修复补元数据整行重写改错状态：`normalize --fix` 现在保留原行已有的 负责人/状态/范围 段，仅补缺失项（防 `已放弃` 被误改成 `已完成`）
+- 修复：补元数据整行重写改错状态：`normalize --fix` 现在保留原行已有的 负责人/状态/范围 段，仅补缺失项（防 `已放弃` 被误改成 `已完成`）
 - `normalize --fix` 计数与行为对齐：降序重排、冗余分隔符清理计入修复数，并输出按文件的动作明细
 - `printTasks` 日期列改为 created 优先（与 board/导出口径一致）
 - `check` 对 active 根目录直放任务文件给出 {YYYYMM} 月份子目录软告警
@@ -342,7 +364,7 @@
 
 > 2026-09-03 发布
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
 - `.toolkitrc.json` 改为从当前目录向上查找最近一份（支持 monorepo 子目录运行）；脱敏作用范围与配置查找写入 README
 - `printTasks` 分组顺序统一为 STATUS_ORDER；`check.pendingMarkers=false` 可关闭词标记扫描（复选框开关保留）
@@ -355,10 +377,10 @@
 
 > 2026-09-03 发布
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
-- 修复 archive 合并覆盖归档文件自定义 header（改为保留既有头部，仅新文件用默认文案）
-- 修复陈旧归档锁阻塞：锁文件超过 10 分钟视为进程残留自动清理接管，正常并发仍跳过
+- 修复：archive 合并覆盖归档文件自定义 header（改为保留既有头部，仅新文件用默认文案）
+- 修复：陈旧归档锁阻塞：锁文件超过 10 分钟视为进程残留自动清理接管，正常并发仍跳过
 - `--target` 非法值校验报错退出（对齐 --view/--format 校验）
 - 漂移块迁移到已含同名块的目标归档文件时给出重复告警
 - `created`/`completed` 增加真实日期校验（月份/日期越界软告警，如 2026-02-31）
@@ -380,15 +402,15 @@
 
 > 2026-09-03 发布
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
-- 修复隐私脱敏对密钥新格式覆盖不全：补充 GitHub 细粒度 `github_pat_`、OpenAI 项目 `sk-proj-`、Slack app 级 `xapp-` 规则（均带长度门槛防误伤）；JWT 放宽为仅头段要求 `eyJ` 前缀，载荷/签名允许任意 base64url，避免真实载荷起始非 `eyJ` 时漏掩。
+- 修复：隐私脱敏对密钥新格式覆盖不全：补充 GitHub 细粒度 `github_pat_`、OpenAI 项目 `sk-proj-`、Slack app 级 `xapp-` 规则（均带长度门槛防误伤）；JWT 放宽为仅头段要求 `eyJ` 前缀，载荷/签名允许任意 base64url，避免真实载荷起始非 `eyJ` 时漏掩。
 
 ## 1.4.1
 
 > 2026-09-03 发布
 
-### 🐛 补丁修复
+### 📝 文档更新
 
 - 文档：README 补齐任务导出结构（终端 / CSV / XLSX / JSON 列定义与字段全集、排序与日期口径）、任务导入列别名内置表与 `.toolkitrc.json` 自定义示例、库 API 增补，供用户与 AI 查阅。
 
@@ -398,31 +420,31 @@
 
 ### ✨ 新增功能
 
-- 新增 tasks 多视图查询与导入导出：`--view active/archived/all` 查看待完成/已归档/合并（状态分组 + 汇总），支持 `--owner/--scope/--status/--date/--since/--until` 过滤；`--export` 导出 CSV / XLSX（三 sheet）/ JSON，`--import` 从 CSV / XLSX / JSON 回读生成任务（内置列别名 + `.toolkitrc.json` 的 `tasks.importColumns` 自定义，目标 active/archive、可 dry-run、冲突自动加序号）。默认 `toolkit tasks` 行为不变。
+- 新增：tasks 多视图查询与导入导出：`--view active/archived/all` 查看待完成/已归档/合并（状态分组 + 汇总），支持 `--owner/--scope/--status/--date/--since/--until` 过滤；`--export` 导出 CSV / XLSX（三 sheet）/ JSON，`--import` 从 CSV / XLSX / JSON 回读生成任务（内置列别名 + `.toolkitrc.json` 的 `tasks.importColumns` 自定义，目标 active/archive、可 dry-run、冲突自动加序号）。默认 `toolkit tasks` 行为不变。
 
 ## 1.3.3
 
 > 2026-09-03 发布
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
-- 修复 `tasks` 归档块解析缺陷：`normalize` 将归档正文 `## ` 小节误判为任务块（`--fix` 会打散正文）、`archive` 合并时块体在正文 `---` 处被截断丢正文。统一为共享解析（标题后紧跟含「完成时间」元数据行才算任务块），并保留原文件行尾。
+- 修复：`tasks` 归档块解析缺陷：`normalize` 将归档正文 `## ` 小节误判为任务块（`--fix` 会打散正文）、`archive` 合并时块体在正文 `---` 处被截断丢正文。统一为共享解析（标题后紧跟含「完成时间」元数据行才算任务块），并保留原文件行尾。
 
 ## 1.3.2
 
 > 2026-09-03 发布
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
-- 修复 `changelog format`（及 `version` 自带格式化）未去掉 changesets changelog-git 写入的 commit hash 前缀，导致中文 CHANGELOG 条目带 `800a1cf: ` 这类前缀。
+- 修复：`changelog format`（及 `version` 自带格式化）未去掉 changesets changelog-git 写入的 commit hash 前缀，导致中文 CHANGELOG 条目带 `800a1cf: ` 这类前缀。
 
 ## 1.3.1
 
 > 2026-09-03 发布
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
-- 修复 `tasks normalize --fix` 缺少排他锁，与归档并发时可能互相覆盖归档文件；收敛 README/SPEC/package.json 定位文案，融入「多人 + AI + 跨项目」。
+- 修复：`tasks normalize --fix` 缺少排他锁，与归档并发时可能互相覆盖归档文件；收敛 README/SPEC/package.json 定位文案，融入「多人 + AI + 跨项目」。
 
 ## 1.3.0
 
@@ -432,6 +454,9 @@
 
 - 依赖升级：commander 14 → 15，changelog 自有选项改为置于子命令之前
 - changelog 全语言化：.toolkitrc.json 的 changelog.languages 支持自定义语言与覆盖内置 zh/en
+
+### 📝 文档更新
+
 - 文档：SPEC/README 语言描述改为「全语言支持」
 
 ## 1.2.0
@@ -440,7 +465,7 @@
 
 ### ✨ 新增功能
 
-- 新增任务校验与归档归一化能力：
+- 新增：任务校验与归档归一化能力：
 
   - 新增 `tasks check` 校验 active（frontmatter 合法性、跨文件重名、depends_on 依赖闭环、未闭合待办）
   - 新增 `tasks normalize --check/--fix` 检查与修复归档块（元数据四字段、日期漂移、降序）
@@ -454,7 +479,7 @@
 
 > 2026-09-03 发布
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
 - README 与 .tasks/SPEC 文档补充「归档与提交约束」：任务完成后先归档再提交，保证任务记录与代码变更同批入库。
 
@@ -462,7 +487,7 @@
 
 > 2026-09-03 发布
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
 - package.json 补充 repository 字段，npm 包详情页展示 GitHub 仓库地址。
 
@@ -470,7 +495,7 @@
 
 > 2026-09-03 发布
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
 - CLI 改用 Commander 实现，新增 --help/--version 与 tasks/changelog 子命令帮助，changelog 透传子命令支持未知选项；commander@^14 作为运行时依赖。
 
@@ -480,13 +505,13 @@
 
 ### ✨ 新增功能
 
-- 新增隐私脱敏能力：落盘记录自由文本时默认对邮箱、手机号、身份证、IPv4、密钥、JWT、内网 URL 做掩码，支持 --no-redact / FX_REDACT / .toolkitrc.json 三档开关与自定义规则；归档任务改为按完成时间降序并规范化 completed；修复 CHANGELOG 日期补全重复插入。
+- 新增：隐私脱敏能力：落盘记录自由文本时默认对邮箱、手机号、身份证、IPv4、密钥、JWT、内网 URL 做掩码，支持 --no-redact / FX_REDACT / .toolkitrc.json 三档开关与自定义规则；归档任务改为按完成时间降序并规范化 completed；修复 CHANGELOG 日期补全重复插入。
 
 ## 1.0.2
 
 > 2026-09-03 发布
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
 - README 新增「方案落盘（任务区）」章节，明确 npx→ 全局 → 兜底输出的调用优先级，以及 toolkit tasks 校验/归档与 changelog 变更集/发版的使用流程。
 
@@ -494,13 +519,16 @@
 
 > 2026-09-02 发布
 
-### 🐛 补丁修复
+### ✨ 新增功能
 
-- 修复 CHANGELOG 格式化在 CRLF 文件下失效及正文中段重复条目无法合并的问题
+- 新增：exports 条件导出，CJS 消费方可正常 require
+
+### 🐛 问题修复
+
+- 修复：CHANGELOG 格式化在 CRLF 文件下失效及正文中段重复条目无法合并的问题
 - 发布日期后缀文案随语言切换，英文 CHANGELOG 不再混入中文「发布」
-- 新增 exports 条件导出，CJS 消费方可正常 require
 - changesets 调用改走进程内 node 与数组参数，规避跨平台 shell 差异
-- 修复 changelog 域不带 --lang 时首命令被误删的问题
+- 修复：changelog 域不带 --lang 时首命令被误删的问题
 - 移除公开包元数据中的私有仓库地址
 
 ## 1.0.0
@@ -509,9 +537,9 @@
 
 ### ✨ 新增功能
 
-- 新增任务管理域（tasks）：扫描、总览、归档 Markdown 任务文件
-- 新增多语言 CHANGELOG 域（changelog）：封装 changesets，支持中英文标题格式化
+- 新增：任务管理域（tasks）：扫描、总览、归档 Markdown 任务文件
+- 新增：多语言 CHANGELOG 域（changelog）：封装 changesets，支持中英文标题格式化
 
-### 🐛 补丁修复
+### 🐛 问题修复
 
 - 完善 npm 发布配置并为英文变更日志补充分类图标
