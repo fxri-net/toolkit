@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { createMarkdownRenderer } from "vitepress"
 import { listBuiltinRuleNames } from "../privacy/redact"
+import { buildPage } from "../../scripts/sync-changelog-doc.mjs"
 
 // 提取文档「内置规则：」行的规则名（名称以反引号包裹，括号内为补充说明）
 function docRuleNames(file: string): string[] {
@@ -31,23 +32,11 @@ function readDoc(file: string): string {
     .replace(/\r\n/g, "\n")
 }
 
-// 站点更新日志镜像页的期望内容，与 scripts/sync-changelog-doc.mjs 的转换口径一致
-function expectedChangelogPage(): string {
-  const raw = readDoc("CHANGELOG.md")
-  const body = raw.replace(/^#\s+[^\n]*\n+/, "").trimEnd() + "\n"
-  return (
-    "---\n" +
-    "outline: false\n" +
-    "---\n\n" +
-    "# 更新日志\n\n" +
-    "> 完整变更历史以随包发布的 CHANGELOG.md 为准，本页由 `pnpm sync:changelog-doc` 从根 CHANGELOG.md 自动同步，请勿手改。\n\n" +
-    body
-  )
-}
-
+// 站点更新日志镜像页的期望内容：直接调用镜像脚本的转换函数，不在测试内复刻同一份逻辑
+// （复刻会让脚本缺陷被同样的错误实现掩盖，CRLF 误报即由此漏过）
 describe("文档一致性：更新日志镜像", () => {
   it("docs/changelog.md 与根 CHANGELOG.md 同步（漏跑同步脚本或手改镜像页即失败）", () => {
-    expect(readDoc("docs/changelog.md")).toBe(expectedChangelogPage())
+    expect(readDoc("docs/changelog.md")).toBe(buildPage(readFileSync(join(process.cwd(), "CHANGELOG.md"), "utf8")))
   })
 })
 

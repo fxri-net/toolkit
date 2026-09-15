@@ -583,15 +583,17 @@ program
   .option("--no-redact", "关闭隐私脱敏")
   .option("--warn", "开启软告警")
   .option("--no-warn", "关闭软告警")
+  .option("--history", "追溯改写历史版本块（默认保留）")
   .argument("[command...]", "子命令及参数（透传给 changesets）")
   .passThroughOptions(true)
   .action(
     (
       operands: string[],
-      options: { lang: string; redact: boolean | undefined; warn: boolean | undefined },
+      options: { lang: string; redact: boolean | undefined; warn: boolean | undefined; history: boolean | undefined },
     ) => {
       const redact = resolveRedactEnabled(options.redact)
       const warn = resolveEnabled(options.warn, "FX_CHECK_WARN", getCheckWarnings(), true)
+      const history = options.history === true
       // 合并配置语言（支持自定义语言与覆盖内置），实现全语言
       const merged = resolveLanguages()
       // languages 始终内置 DEFAULT_LANG（zh），此处仅收窄 undefined 联合类型
@@ -606,11 +608,11 @@ program
         // 软告警须前置于归类（须待 changesets 写入新块后再取数，否则无英文源标题块可扫）；
         // 归类后无前缀条目即并入兜底组，前缀缺失无从统计
         if (warn) warnUntypedEntries(lang)
-        formatChangelogs(".", localDate(), lang, redact)
+        formatChangelogs(".", localDate(), lang, redact, history)
       } else if (command === "format") {
         // 手工 format 路径与 version 同源同开关，告警口径保持一致
         if (warn) warnUntypedEntries(lang)
-        formatChangelogs(".", localDate(), lang, redact)
+        formatChangelogs(".", localDate(), lang, redact, history)
       } else if (command) {
         runChangeset(operands)
       } else {

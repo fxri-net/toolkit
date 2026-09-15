@@ -9,12 +9,18 @@ export const SLOT_PREFIXES: Record<SemanticSlot, string[]> = {
   breaking: ["重大：", "Breaking:"],
   added: ["新增：", "Added:"],
   changed: ["修改：", "Changed:"],
-  improved: ["优化：", "Improved:"],
+  improved: ["优化：", "Improved:", "技能：", "skills："],
   fixed: ["修复：", "Fixed:"],
   docs: ["文档：", "Docs:"],
   removed: ["清理：", "Removed:"],
-  deps: [],
+  deps: ["依赖："],
   other: [],
+}
+
+// 历史组标题 → 槽位：早期版本的组标题与当前语言标题不同（如「🐛 补丁修复」已被「🐛 问题修复」取代）。
+// 与 SLOT_PREFIXES 同属全局一份、全语言共用，供 --history 追溯历史块时按组标题归位
+export const LEGACY_TITLE_SLOTS: Record<string, SemanticSlot> = {
+  "### 🐛 补丁修复": "fixed",
 }
 
 // 一个语义分组：槽位 + 本地化标题；prefixes 为可选追加的本语言自有前缀（识别时与全局表取并集）
@@ -55,7 +61,7 @@ export const languages: Record<string, ChangelogLanguage> = {
     replacements: {
       "### 重大变更": "### 🚨 重大变更",
       "### 新增功能": "### ✨ 新增功能",
-      "### 补丁修复": "### 🐛 补丁修复",
+      "### 补丁修复": "### 🐛 问题修复",
       "- Updated dependencies": "- 更新依赖",
     },
     deps: "- 更新依赖",

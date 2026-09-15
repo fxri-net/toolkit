@@ -112,7 +112,7 @@
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
 | `fxri-plan-to-task` | 1.1.4 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点） |
-| `fxri-release-changelog` | 1.0.9 | changesets 发版与多语言 CHANGELOG 维护 |
+| `fxri-release-changelog` | 1.0.10 | changesets 发版与多语言 CHANGELOG 维护 |
 | `fxri-session-recap` | 1.1.3 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 
 版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` 打印的真源版本），随技能内容变更递增；`fxri-session-recap` 为 1.7.0 新增
@@ -233,7 +233,7 @@ pnpm exec toolkit changelog version            # 发版 + 自动语义分组归�
 pnpm exec toolkit changelog --lang ja format   # 指定语言仅格式化
 ```
 
-每个语言为四段结构：`groups`（语义分组表，可选）/ `replacements`（兜底替换映射）/ `deps`（依赖更新条目文案）/ `released`（发布日期后缀）。`version` 消费变更集后按条目自带的 `类型：` 前缀做语义分组（如 `- 修复：xxx` → `### 🐛 问题修复`），无前缀条目按所属源组标题兜底；分组维度与版本号维度正交，分组标题集合随版本演进、历史版本块不追溯改写；变更条目建议人工再润色，与仓库既有风格一致。变更集条目缺 `类型：` 前缀时软告警提示。
+每个语言为四段结构：`groups`（语义分组表，可选）/ `replacements`（兜底替换映射）/ `deps`（依赖更新条目文案）/ `released`（发布日期后缀）。`version` 消费变更集后按条目自带的 `类型：` 前缀做语义分组（如 `- 修复：xxx` → `### 🐛 问题修复`），无前缀条目按所属源组标题兜底；分组维度与版本号维度正交，分组标题集合随版本演进、历史版本块默认不追溯改写（加 `--history` 可把历史块一并追溯重排为当前口径）；变更条目建议人工再润色，与仓库既有风格一致。变更集条目缺 `类型：` 前缀时软告警提示。
 
 ## 文档站部署
 

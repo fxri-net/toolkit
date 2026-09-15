@@ -39,10 +39,12 @@
 | `修复：` / `Fixed:` | `fixed` | `### 🐛 问题修复` | `### 🐛 Fixed` |
 | `文档：` / `Docs:` | `docs` | `### 📝 文档更新` | `### 📝 Docs` |
 | `清理：` / `Removed:` | `removed` | `### 🧹 清理移除` | `### 🧹 Removed` |
-| 源文本 `- Updated dependencies` | `deps` | `### 🔗 依赖变更` | `### 🔗 Dependency Updates` |
+| `依赖：` / 源文本 `- Updated dependencies` | `deps` | `### 🔗 依赖变更` | `### 🔗 Dependency Updates` |
 | 无前缀兜底 | `other` | `### 📦 其他变更` | `### 📦 Other` |
 
 **无前缀条目的兜底规则**：按条目**所属源组标题**声明的影响级别归组——`### Major Changes` → `breaking`、`### Minor Changes` → `added`、`### Patch Changes` → `other`；不从版本号推导。
+
+**追溯历史块的兜底规则**（`--history`）：历史块没有英文源组标题，改按**所属既有组标题**查槽位——先查当前语言组标题，再查历史组标题表（如 `### 🐛 补丁修复` → `fixed`）；两处都识别不出则整组连同标题原样保留。
 
 **依赖条目不走前缀解析**：源组标题 `### Dependent Changes` 整块，以及源文本 `- Updated dependencies`（含缩进子项）一律归入 `deps` 槽位。
 

@@ -70,14 +70,16 @@ JSON 结构：`{ schemaVersion: 1, summary, items }`；`items` 为英文 key 完
 | 函数 | 说明 |
 | --- | --- |
 | `collectChangelogs(dir)` | 收集 CHANGELOG 文件 |
-| `formatChangelog(file, today, lang, redact?)` | 格式化单个文件 |
-| `formatChangelogs(dir, today, lang, redact?)` | 格式化目录下全部 |
+| `formatChangelog(file, today, lang, redact?, history?)` | 格式化单个文件；`history` 为真时追溯改写历史版本块（默认 `false`，保留历史块当时口径） |
+| `formatChangelogs(dir, today, lang, redact?, history?)` | 格式化目录下全部 |
 | `localDate()` / `languages` / `DEFAULT_LANG` | 本地日期 / 语言表 / 默认语言键（`zh`） |
-| `SLOT_PREFIXES` / `SemanticSlot` / `LanguageGroup` / `ChangelogLanguage` | 全局语义槽位前缀表 / 槽位联合类型（`breaking`/`added`/`changed`/`improved`/`fixed`/`docs`/`removed`/`deps`/`other`）/ 语义分组项 / 语言配置 |
+| `SLOT_PREFIXES` / `LEGACY_TITLE_SLOTS` / `SemanticSlot` / `LanguageGroup` / `ChangelogLanguage` | 全局语义槽位前缀表 / 历史组标题 → 槽位表（供追溯历史块时按旧组标题归位）/ 槽位联合类型（`breaking`/`added`/`changed`/`improved`/`fixed`/`docs`/`removed`/`deps`/`other`）/ 语义分组项 / 语言配置 |
 
 ```typescript
 // 发版后按语义分组归类并把组标题转为中文
 formatChangelogs(".", localDate(), languages[DEFAULT_LANG])
+// 追溯改写历史版本块（把旧口径组标题与条目一次性重排为当前口径）
+formatChangelogs(".", localDate(), languages[DEFAULT_LANG], true, true)
 // 自定义语言直接挂到 languages 对象（groups 可选，缺省时退化为纯替换）
 languages.ja = {
   groups: [

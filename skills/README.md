@@ -9,7 +9,7 @@
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
 | [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.1.4 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点） |
-| [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.0.9 | changesets 发版与多语言 CHANGELOG 维护 |
+| [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.0.10 | changesets 发版与多语言 CHANGELOG 维护 |
 | [fxri-session-recap](./fxri-session-recap/SKILL.md) | 1.1.3 | 会话收尾全量沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 
 版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` / `skills install` 打印的真源版本），与正文首部版本声明双写一致。

@@ -3,6 +3,7 @@ import { collectChangelogs } from "./collect"
 import { redactText } from "../privacy/redact"
 import { todayDash } from "../date"
 import {
+  LEGACY_TITLE_SLOTS,
   SLOT_PREFIXES,
   languages,
   type ChangelogLanguage,
@@ -47,15 +48,21 @@ export function localDate(): string {
   return todayDash()
 }
 
-// 格式化单个 CHANGELOG 文件，返回是否有改动
-export function formatChangelog(file: string, today: string, lang: ChangelogLanguage, redact = true): boolean {
+// 格式化单个 CHANGELOG 文件，返回是否有改动；history=true 时追溯改写历史版本块（默认保留）
+export function formatChangelog(
+  file: string,
+  today: string,
+  lang: ChangelogLanguage,
+  redact = true,
+  history = false,
+): boolean {
   const raw = readFileSync(file, "utf8")
   // 记录原换行符（LF/CRLF），统一按 LF 处理后原样还原，避免 Windows 下出现混合换行
   const eol = raw.includes("\r\n") ? "\r\n" : "\n"
   // 归一化后的原始内容作为「是否有净改动」的判定基线
   const baseline = raw.replace(/\r\n/g, "\n")
   // 先归一再归类：归类须前置于多语言替换，替换后英文源组标题即不可辨、历史块会被误重排
-  let content = regroupSemantic(normalize(baseline), lang)
+  let content = regroupSemantic(normalize(baseline), lang, history)
   // 标题替换（多语言兜底）
   for (const [from, to] of Object.entries(lang.replacements)) {
     content = content.replaceAll(from, to)
@@ -112,10 +119,16 @@ export function formatChangelog(file: string, today: string, lang: ChangelogLang
 }
 
 // 格式化目录下所有 CHANGELOG.md
-export function formatChangelogs(dir: string, today: string, lang: ChangelogLanguage, redact = true): string[] {
+export function formatChangelogs(
+  dir: string,
+  today: string,
+  lang: ChangelogLanguage,
+  redact = true,
+  history = false,
+): string[] {
   const changed: string[] = []
   for (const file of collectChangelogs(dir)) {
-    if (formatChangelog(file, today, lang, redact)) changed.push(file)
+    if (formatChangelog(file, today, lang, redact, history)) changed.push(file)
   }
   if (changed.length === 0) {
     console.log("无 CHANGELOG 需要更新")
@@ -233,20 +246,31 @@ function parseBlocks(lines: string[]): { lead: string[]; blocks: Block[] } {
   return { lead, blocks }
 }
 
-// 归类单个版本块：仅英文源组块参与；块内历史分组保持原序附后
-function regroupBlock(block: Block, groups: LanguageGroup[]): string[] {
+// 归类单个版本块：默认仅英文源组块参与（即本轮发版新写入的块）；
+// history=true 时块内全部分组一并追溯归类，历史分组标题按其槽位反查后以当前语言 canonical 标题输出
+function regroupBlock(block: Block, groups: LanguageGroup[], history: boolean): string[] {
   const source = block.sections.filter((section) => SOURCE_GROUP_SLOTS[section.title] !== undefined)
-  // 无英文源组块即历史版本块，原样输出、不追溯改写
-  if (source.length === 0) return block.lines
-  // 源组含顶层正文时判据不成立，整块保持原样以免丢内容
-  if (source.some((section) => hasLeadingProse(section.body))) return block.lines
+  // 无英文源组块即历史版本块，默认原样输出、不追溯改写
+  if (!history && source.length === 0) return block.lines
+  const candidates = history ? block.sections : source
+  if (candidates.length === 0) return block.lines
+  // 待归类分组含顶层正文时判据不成立，整块保持原样以免丢内容
+  if (candidates.some((section) => hasLeadingProse(section.body))) return block.lines
   // 本语言未声明所需槽位时放弃归类，避免条目丢失
   const slots = new Set<SemanticSlot>(groups.map((group) => group.slot))
   const extra = extraPrefixes(groups)
-  // 按源组出现顺序收集条目：同槽位合并为一组，组内保持原序
+  // 当前语言组标题 → 槽位，供追溯历史块时按既有组标题归位
+  const titleSlots = new Map<string, SemanticSlot>(groups.map((group): [string, SemanticSlot] => [group.title, group.slot]))
+  // 按分组原出现顺序收集条目：同槽位合并为一组，组内保持原序
   const buckets = new Map<SemanticSlot, string[][]>()
-  for (const section of source) {
-    const fallback = SOURCE_GROUP_SLOTS[section.title] as SemanticSlot
+  // 标题无法识别为任何槽位的分组（非源组、非当前语言组、非历史组）：不臆造归属，原样附后
+  const kept: Section[] = []
+  for (const section of candidates) {
+    const fallback = sectionSlot(section.title, titleSlots)
+    if (fallback === null) {
+      kept.push(section)
+      continue
+    }
     for (const item of splitItems(section.body)) {
       const slot = explicitSlot(item[0] ?? "", extra) ?? fallback
       const bucket = buckets.get(slot)
@@ -265,19 +289,22 @@ function regroupBlock(block: Block, groups: LanguageGroup[]): string[] {
     if (!items) continue
     lines.push(...renderSection({ title: group.title, body: renderItems(items) }))
   }
-  for (const section of block.sections) {
-    if (SOURCE_GROUP_SLOTS[section.title] === undefined) lines.push(...renderSection(section))
-  }
+  for (const section of kept) lines.push(...renderSection(section))
   return lines
 }
 
+// 组标题 → 槽位：当前语言组标题优先，其次历史组标题，最后英文源组标题（追溯历史块时三者都需认）
+function sectionSlot(title: string, titleSlots: Map<string, SemanticSlot>): SemanticSlot | null {
+  return titleSlots.get(title) ?? LEGACY_TITLE_SLOTS[title] ?? SOURCE_GROUP_SLOTS[title] ?? null
+}
+
 // 归类全文件的英文源组块；语言未声明 groups 时退化为纯替换（即既有行为）
-function regroupSemantic(content: string, lang: ChangelogLanguage): string {
+function regroupSemantic(content: string, lang: ChangelogLanguage, history: boolean): string {
   const groups = lang.groups
   if (!groups || groups.length === 0) return content
   const { lead, blocks } = parseBlocks(content.split("\n"))
   const lines = [...lead]
-  for (const block of blocks) lines.push(...regroupBlock(block, groups))
+  for (const block of blocks) lines.push(...regroupBlock(block, groups, history))
   return lines.join("\n")
 }
 
