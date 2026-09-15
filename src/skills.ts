@@ -15,6 +15,8 @@ const PKG_NAME = "@fxri/toolkit"
 const SKILL_ENTRY = "SKILL.md"
 // 主目标：上游 canonical 目录（多家 agent 共读），与下方表中 .agents/skills 条目同路径，靠去重合并
 const CANONICAL_DIR = ".agents/skills"
+// 主目标显示名：解析与反查共用一份，避免两处字面量漂移
+const CANONICAL_LABEL = "canonical（多家 agent 共读）"
 // 状态文件名：与上游 .skill-lock.json 分开命名，避免互相覆盖
 export const SKILLS_STATE_FILE = ".toolkit-skills.json"
 
@@ -196,6 +198,8 @@ export interface InstallReport {
 
 export interface RemoveResult {
   dir: string
+  // 目标显示名，与 install / status 报告同口径；表外目标（自定义 --dir）为 null，打印时回落路径
+  label: string | null
   removed: string[]
   missing: string[]
   // 指向其他位置或内容与本包不一致，出于安全跳过，交人工确认
@@ -443,7 +447,7 @@ export function resolveSkillTargets(extraDirs: string[] = []): SkillTarget[] {
     seen.add(key)
     out.push({ dir: abs, label, kind, available, dirExists: existsSync(abs) })
   }
-  push(join(home, CANONICAL_DIR), "canonical（多家 agent 共读）", "primary", true)
+  push(join(home, CANONICAL_DIR), CANONICAL_LABEL, "primary", true)
   for (const agent of AGENT_SKILL_DIRS) {
     // 判据：技能目录的父目录（即 agent 配置目录）存在，或任一 detect 路径存在
     const configDir = join(home, dirname(agent.dir))
@@ -453,6 +457,14 @@ export function resolveSkillTargets(extraDirs: string[] = []): SkillTarget[] {
   }
   for (const dir of extraDirs) push(dir, "自定义 --dir", "custom", true)
   return out
+}
+
+// 反查目标显示名：canonical 优先（多家 agent 共读，须先于 agent 循环判定），其次内置快照表；表外目标（自定义 --dir）返回 null
+export function skillTargetLabel(dir: string): string | null {
+  const key = pathKey(resolve(dir))
+  if (key === pathKey(join(getHomeDir(), CANONICAL_DIR))) return CANONICAL_LABEL
+  const agent = AGENT_SKILL_DIRS.find((a) => pathKey(join(getHomeDir(), a.dir)) === key)
+  return agent?.label ?? null
 }
 
 // 删除现场产物：链接只摘链（不碰真源）、副本整目录删除
@@ -594,7 +606,7 @@ export function removeSkills(options: { dryRun?: boolean } = {}): SkillsRemoveRe
   const results: RemoveResult[] = []
   let failed = false
   for (const entry of state.targets) {
-    const result: RemoveResult = { dir: entry.dir, removed: [], missing: [], skippedForeign: [] }
+    const result: RemoveResult = { dir: entry.dir, label: skillTargetLabel(entry.dir), removed: [], missing: [], skippedForeign: [] }
     const names = [...new Set([...entry.links, ...entry.copies])]
     for (const name of names) {
       const dest = join(entry.dir, name)

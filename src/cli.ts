@@ -214,7 +214,8 @@ function printRemoveReport(report: SkillsRemoveReport, dryRun: boolean): void {
   console.log(`${tag}状态文件：${report.stateFile}`)
   for (const t of report.targets) {
     console.log("")
-    console.log(`${t.dir}`)
+    // 与 install / status 同口径：显示名 + 路径；表外目标（自定义 --dir）无显示名，回落路径
+    console.log(t.label ? `${t.label}：${t.dir}` : t.dir)
     if (t.removed.length > 0) console.log(`  ${dryRun ? "将移除" : "已移除"}：${t.removed.join("、")}`)
     if (t.missing.length > 0) console.log(`  已不存在：${t.missing.join("、")}`)
     if (t.skippedForeign.length > 0) console.log(`  ⚠️ 跳过（非本包产物或内容已被改动，请人工确认）：${t.skippedForeign.join("、")}`)

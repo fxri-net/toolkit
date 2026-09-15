@@ -107,19 +107,24 @@ toolkit changelog                       # 创建变更集（等价 changeset）
 toolkit changelog version               # 发版 + 格式化（默认中文）
 toolkit changelog --lang en version     # 指定语言
 toolkit changelog format                # 仅格式化已有 CHANGELOG
+toolkit changelog --history format      # 连带追溯改写历史版本块
 toolkit changelog status / publish      # 其余 changeset 子命令透传
 ```
+
+⚠️ `changelog` 域开了选项透传（`passThroughOptions`），自有选项必须放在子命令**之前**：写 `toolkit changelog --history format` 生效，写成 `toolkit changelog format --history` 会把 `--history` 当作 changesets 的参数静默忽略。
 
 | 选项 | 说明 |
 | --- | --- |
 | `--lang <lang>` | 输出语言，默认 `zh`；内置 `zh`/`en`，其余经配置扩展 |
 | `--redact` / `--no-redact` | 开启/关闭隐私脱敏（默认开启；作用于 CHANGELOG 终端展示与落盘） |
 | `--warn` / `--no-warn` | 开启/关闭软告警（默认开启；作用于发版前未归档任务提醒与无类型前缀条目计数告警） |
+| `--history` | 追溯改写历史版本块（默认保留其当时口径） |
 
 行为细节：
 
 - `version`：先透传 changesets 消费变更集，再对 CHANGELOG 做语义分组归类（条目按 `类型：` 前缀归入「新增功能 / 问题修复 / …」等分组，无前缀条目按所属源组标题兜底）、清理变更集条目双前缀伪影（以 `- ` 开头的条目会被 changesets 二次加前缀为 `- - 条目` 并缩进续行，格式化时还原为顶层条目）并补发布日期；分组标题集合随版本演进，历史版本块默认保留当时口径、不追溯改写（加 `--history` 追溯：历史块内条目按其类型前缀归位、无前缀条目按既有组标题归位，组标题转写为当前语言口径，无法识别的分组连同标题原样保留、不臆造归属）；存在未归档 active 任务时软告警，变更集条目缺 `类型：` 前缀时计数软告警
 - `format`：仅对既有 CHANGELOG 做同样的语义分组归类与格式化（历史版本块默认不追溯改写，加 `--history` 可追溯）；变更集条目缺类型前缀时同样计数软告警
+- 类型前缀只作归类信号：归类后条目已识别的 `类型：` 前缀被剥离（`- 修复：xxx` → `- xxx`），类型由分组标题承接，避免重复；未识别的前缀（如正文里的 `说明：`）与依赖源条目 `- Updated dependencies`（续行承载包版本）原样保留
 - 其余子命令（`add`/`status`/`publish`/…）原样透传给 changesets
 - ⚠️ Node 18 下依赖 changesets 的子命令不可用（上游 ESM-only 限制），`format` 等纯格式化不受影响
 

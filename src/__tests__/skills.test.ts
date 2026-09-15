@@ -21,6 +21,7 @@ import {
   skillsSourceDir,
   skillsStateFile,
   skillsStatus,
+  skillTargetLabel,
 } from "../skills"
 
 // 软链类型：Windows 必须用 junction（免管理员、免开发者模式）
@@ -426,12 +427,33 @@ describe("skillsStatus 现场状态", () => {
   })
 })
 
+describe("skillTargetLabel 反查显示名", () => {
+  it("canonical 优先、agent 目录命中快照表、表外目标返回 null", () => {
+    // 期望值取自真实解析结果，避免测试内复刻一份标签表
+    expect(skillTargetLabel(primaryDir())).toBe(resolveSkillTargets()[0].label)
+    const codex = AGENT_SKILL_DIRS.find((a) => a.name === "codex")
+    if (!codex) throw new Error("内置快照表缺少 agent：codex")
+    expect(skillTargetLabel(agentDir("codex"))).toBe(codex.label)
+    expect(skillTargetLabel(join(home, "custom-skills"))).toBeNull()
+  })
+})
+
 describe("removeSkills 精确清理", () => {
   it("无状态文件时为空操作", () => {
     const report = removeSkills()
     expect(report.stateExists).toBe(false)
     expect(report.targets).toHaveLength(0)
     expect(report.stateRemoved).toBe(false)
+  })
+
+  it("报告目标带显示名，与 install / status 同口径；表外目标回落为 null", () => {
+    writeState([
+      { dir: primaryDir(), copies: [] },
+      { dir: join(home, "custom-skills"), copies: [] },
+    ])
+    const report = removeSkills({ dryRun: true })
+    expect(report.targets[0].label).toBe(resolveSkillTargets()[0].label)
+    expect(report.targets[1].label).toBeNull()
   })
 
   it("预演只报告不删除，正式卸载清空产物并删除状态文件", () => {

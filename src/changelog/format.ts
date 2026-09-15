@@ -172,17 +172,34 @@ function extraPrefixes(groups: LanguageGroup[]): [SemanticSlot, string][] {
   return extra
 }
 
+// 条目首行的类型前缀匹配：返回命中槽位与前缀文本，未命中返回 null；归类与剥离共用，避免两处匹配逻辑漂移
+function matchSlotPrefix(head: string, extra: [SemanticSlot, string][]): [SemanticSlot, string] | null {
+  const text = head.slice(2)
+  for (const [slot, prefixes] of Object.entries(SLOT_PREFIXES) as [SemanticSlot, string[]][]) {
+    const hit = prefixes.find((prefix) => text.startsWith(prefix))
+    if (hit) return [slot, hit]
+  }
+  for (const [slot, prefix] of extra) {
+    if (text.startsWith(prefix)) return [slot, prefix]
+  }
+  return null
+}
+
 // 条目的显式归类信号：依赖条目源文本 → deps；类型前缀命中 → 对应槽位；两者皆无 → null
 function explicitSlot(head: string, extra: [SemanticSlot, string][]): SemanticSlot | null {
   if (head.startsWith(DEPS_SOURCE)) return "deps"
-  const text = head.slice(2)
-  for (const [slot, prefixes] of Object.entries(SLOT_PREFIXES) as [SemanticSlot, string[]][]) {
-    if (prefixes.some((prefix) => text.startsWith(prefix))) return slot
-  }
-  for (const [slot, prefix] of extra) {
-    if (text.startsWith(prefix)) return slot
-  }
-  return null
+  return matchSlotPrefix(head, extra)?.[0] ?? null
+}
+
+// 剥离条目已识别的类型前缀：类型已由分组标题承接，明细再带前缀属冗余。
+// 只剥离显式命中的前缀，未识别前缀与依赖源条目（其续行承载包版本）原样保留
+function stripSlotPrefix(item: string[], extra: [SemanticSlot, string][]): string[] {
+  const hit = matchSlotPrefix(item[0] ?? "", extra)
+  if (!hit) return item
+  const rest = (item[0] ?? "").slice(2 + hit[1].length).trim()
+  // 剥离后只剩空白说明该行本就无正文，不改变原样
+  if (rest === "") return item
+  return [`- ${rest}`, ...item.slice(1)]
 }
 
 // 源组标题下若在首个条目之前出现非空行，则「纯条目块」判据不成立，归类时整块保持原样以免丢内容
@@ -273,9 +290,10 @@ function regroupBlock(block: Block, groups: LanguageGroup[], history: boolean): 
     }
     for (const item of splitItems(section.body)) {
       const slot = explicitSlot(item[0] ?? "", extra) ?? fallback
+      const entry = stripSlotPrefix(item, extra)
       const bucket = buckets.get(slot)
-      if (bucket) bucket.push(item)
-      else buckets.set(slot, [item])
+      if (bucket) bucket.push(entry)
+      else buckets.set(slot, [entry])
     }
   }
   for (const slot of buckets.keys()) {
