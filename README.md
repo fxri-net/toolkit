@@ -16,7 +16,7 @@
 AI 参与开发后，方案与决策散落在对话记录里，会话一关什么都不剩；任务记录零散，谁在做、做到哪，无从查起；发版 CHANGELOG 还要人肉维护多语言。本工具把这条链路沉淀为**仓库内可检索、可校验、可归档的文件**——人离开会话，记忆留在仓库里。
 
 - **零依赖 AI 技能包（skills）**：方案落盘、发版 CHANGELOG 两套工作流沉淀为 Agent Skills，不绑定任何 AI 工具；skills 可以独立工作，CLI 是可选加速——推荐都装，体验最完整（[什么关系？](./docs/faq.md#工具和-skills-都得装吗)）
-- **不懂 AI 也能用**：任务管理与 CHANGELOG 是纯 CLI 能力；术语都说了人话（[先看术语表](./docs/getting-started.md#几个术语先说人话)）
+- **不懂 AI 也能用**：任务管理与 CHANGELOG 是纯 CLI 能力；术语都说了人话（[先看术语表](./docs/getting-started.md#几个术语-先说人话)）
 
 ## 🚀 30 秒上手
 
@@ -38,7 +38,7 @@ pnpm exec toolkit tasks
 | 能力 | 适用场景 | 文档 |
 | --- | --- | --- |
 | 任务管理（tasks） | 方案落盘、总览过滤、校验归档、导入导出 CSV / XLSX / JSON | [CLI 参考](./docs/cli.md) · [任务文件规范](./docs/guide.md#任务文件规范) |
-| 多语言 CHANGELOG（changelog） | 封装 changesets 发版、分组标题本地化 | [CLI 参考](./docs/cli.md#changelog-changelog) |
+| 多语言 CHANGELOG（changelog） | 封装 changesets 发版、分组标题本地化 | [CLI 参考](./docs/cli.md#changelog) |
 | Node API | 把上述能力嵌进脚本或平台 | [API 参考](./docs/api.md) |
 | 隐私脱敏 | 落盘前自动掩码邮箱、手机号、密钥等 | [配置参考](./docs/config.md) |
 | AI 技能包（skills） | 不装本工具也能让 AI 按同一套规范干活；装了可一键分发技能 | [完整攻略](./docs/guide.md#ai-技能包-skills) · [FAQ](./docs/faq.md#工具和-skills-都得装吗) |

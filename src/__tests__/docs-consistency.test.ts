@@ -1,7 +1,7 @@
 // 文档一致性：代码内的能力清单/结构须与 docs 列举严格一致，防文档漂移
 import { describe, it, expect } from "vitest"
 import { readdirSync, readFileSync } from "node:fs"
-import { join } from "node:path"
+import { dirname, join, normalize } from "node:path"
 import { createMarkdownRenderer } from "vitepress"
 import { listBuiltinRuleNames } from "../privacy/redact"
 import { buildPage } from "../../scripts/sync-changelog-doc.mjs"
@@ -40,16 +40,31 @@ describe("文档一致性：更新日志镜像", () => {
   })
 })
 
-describe("文档一致性：docs 内链锚点可解析", () => {
-  it("docs/*.md 里的 #锚点都能在目标页标题中找到（标题改名后旧链接即失败）", async () => {
+// 递归收集目录下的 md 文件，返回以仓库根为基准的 posix 路径（锚点比对需要稳定的键）
+function collectMarkdown(dir: string, found: string[]): string[] {
+  for (const entry of readdirSync(join(process.cwd(), dir), { withFileTypes: true })) {
+    const rel = `${dir}/${entry.name}`
+    if (entry.isDirectory()) collectMarkdown(rel, found)
+    else if (entry.name.endsWith(".md")) found.push(rel)
+  }
+  return found
+}
+
+describe("文档一致性：站内链接锚点可解析", () => {
+  it("README / docs / skills 里的 #锚点都能在目标页标题中找到（标题改名或锚点写错即失败）", async () => {
     const docsDir = join(process.cwd(), "docs")
     // 用 VitePress 自身的 markdown 渲染器产锚点：与站点实际 slugify 规则同源，不复刻规则
     const md = await createMarkdownRenderer(docsDir)
-    const files = readdirSync(docsDir).filter((f) => f.endsWith(".md"))
+    // 受检范围：仓库根 md（README 等入口页指向 docs 的外链锚点）、docs 全量、skills 全量
+    const files = [
+      ...readdirSync(process.cwd()).filter((f) => f.endsWith(".md")),
+      ...collectMarkdown("docs", []),
+      ...collectMarkdown("skills", []),
+    ]
     const anchorsOf = new Map<string, Set<string>>()
     const htmlOf = new Map<string, string>()
     for (const file of files) {
-      const html = md.render(readFileSync(join(docsDir, file), "utf8"))
+      const html = md.render(readFileSync(join(process.cwd(), file), "utf8"))
       htmlOf.set(file, html)
       anchorsOf.set(file, new Set([...html.matchAll(/<h[1-6][^>]*\sid="([^"]*)"/g)].map((m) => m[1] as string)))
     }
@@ -65,12 +80,18 @@ describe("文档一致性：docs 内链锚点可解析", () => {
         }
         // 跳过外链（含协议或协议相对）与非 md 资源
         if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("//")) continue
-        const [target, anchor] = href.split("#")
-        if (target !== "" && /\.[a-z0-9]+$/i.test(target) && !target.endsWith(".md")) continue
-        const page = `${(target === "" ? file : target).replace(/^\.?\//, "").replace(/\.md$/, "")}.md`
+        const [rawTarget, anchor] = href.split("#")
+        if (!anchor) continue
+        // 渲染器把站内 .md 链接改写为 .html，判定前归一回 .md
+        const target = (rawTarget as string).split("?")[0] as string
+        const pageTarget = target.replace(/\.html$/i, ".md")
+        if (pageTarget !== "" && /\.[a-z0-9]+$/i.test(pageTarget) && !pageTarget.endsWith(".md")) continue
+        // 链接按所在文件目录做相对解析（README 写 ./docs/x.md、docs 内写 ./x.md、skills 子目录同理）
+        const page =
+          pageTarget === "" ? file : normalize(join(dirname(file), pageTarget)).replace(/\\/g, "/")
         const anchors = anchorsOf.get(page)
-        // 目标页不在 docs/ 根层（站外或子目录）时不判定
-        if (!anchors || !anchor) continue
+        // 目标页不在受检范围（站外站点页面等）时不判定
+        if (!anchors) continue
         if (!anchors.has(anchor)) problems.push(`${file}：链接「${href}」的锚点在 ${page} 中不存在`)
       }
     }
