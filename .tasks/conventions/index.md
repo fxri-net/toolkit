@@ -1,7 +1,7 @@
 # 项目协作规范（conventions）
 
 > 本载体为「规范溯源簿」：记录本项目确立的每条规则、适用面（归属）、确立时的来源任务、演进历史，以及条文的单一事实源位置。条文内容一律以各单一事实源最新版为准（skills / task-spec / ai-rules / AGENTS），本载体不复制条文，避免版本漂移。
-> 非任务文件，`toolkit tasks` 不读取内容、`check` 不告警。由任务归档（任务级）与会话收尾（会话级）维护，写入前经用户确认。载体结构、端名规则、读写判定与存量迁移见 `skills/fxri-plan-to-task/references/conventions-spec.md`。
+> 非任务文件，`toolkit tasks` 不读取内容、`check` 不因内容告警；仅载体形态异常（旧单文件残留、缺 `index.md`）时软告警。由任务归档（任务级）与会话收尾（会话级）维护，写入前经用户确认。载体结构、端名规则、读写判定与存量迁移见 `skills/fxri-plan-to-task/references/conventions-spec.md`。
 
 ## 一、端清单
 
