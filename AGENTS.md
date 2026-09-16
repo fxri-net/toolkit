@@ -21,6 +21,7 @@
 ## 验收方式
 
 - grep 确认文档与 skills 措辞落地；
+- `pnpm typecheck` 通过（类型检查门禁；`pnpm lint` 是 eslint 不做类型检查、`pnpm build` 亦不拦截类型错误，不得以二者替代，CI 的 `check` / `windows` job 均卡此关）；
 - `pnpm lint` 通过（静态检查，不得只跑测试与任务校验）；
 - `toolkit tasks check` 通过（error 与 warn 均应为 0，除非任务规格另有豁免）；
 - `pnpm test` 通过。

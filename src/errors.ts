@@ -10,7 +10,7 @@ const HELP_HINT = "运行 toolkit --help 查看可用命令"
 function translateSuggestion(message: string): string {
   const matched = /\n\(Did you mean (one of )?([^)]*?)\?\)$/.exec(message)
   if (!matched) return ""
-  const names = matched[2].split(", ").join("、")
+  const names = (matched[2] ?? "").split(", ").join("、")
   return matched[1] ? `（是否想输入 ${names} 之一？）` : `（是否想输入 ${names}？）`
 }
 

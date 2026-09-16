@@ -25,6 +25,7 @@ export function setupHelp(cmd: Command): void {
 // version / format 后的帮助标志会被透传语义当作操作数丢弃，命令照跑（真发版 / 真改写 CHANGELOG），故须拦截；
 // 其余子命令（add / status 等）的帮助标志仍透传给 changesets，由后者输出自己的帮助
 export function shouldPrintChangelogHelp(operands: string[]): boolean {
-  if (!SELF_HANDLED_SUBCOMMANDS.includes(operands[0])) return false
+  const [sub] = operands
+  if (!sub || !SELF_HANDLED_SUBCOMMANDS.includes(sub)) return false
   return operands.slice(1).some((v) => v === "-h" || v === "--help")
 }
