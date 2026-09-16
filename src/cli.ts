@@ -37,6 +37,7 @@ import {
   type SkillsStatusReport,
 } from "./skills"
 import { startUpdateCheck, runUpdateCheckWorker, UPDATE_CHECK_WORKER_ARG } from "./update-check"
+import { setupHelp, shouldPrintChangelogHelp } from "./help"
 
 const require = createRequire(import.meta.url)
 
@@ -248,6 +249,9 @@ interface TasksOptions {
   strict?: boolean
 }
 
+// tasks 域自有子命令白名单：与 `.argument` 描述同源，避免两处手写漂移；留空即任务总览
+const TASKS_SUBCOMMANDS = ["archive", "check", "normalize", "stats"]
+
 const program = new Command()
 
 program
@@ -399,12 +403,19 @@ program
   .option("--import <file>", "从文件导入任务（.csv / .xlsx / .json）")
   .option("--target <target>", "导入目标：active / archive（默认 active）")
   .option("--strict", "任务目录不存在时报错退出（默认容错为空结果）")
-  .argument("[command]", "子命令：archive / check / normalize / stats，留空为总览（含导入用 --import）")
+  .argument("[command]", `子命令：${TASKS_SUBCOMMANDS.join(" / ")}，留空为总览（含导入用 --import）`)
   .action(
     async (
       command: string | undefined,
       options: TasksOptions,
     ) => {
+      // 子命令白名单：表外值直接报错，避免静默回落任务总览（如 `tasks bogus` 原本无提示地打印总览）
+      if (command && !TASKS_SUBCOMMANDS.includes(command)) {
+        console.error(`⚠️ 非法子命令「${command}」，仅支持 ${TASKS_SUBCOMMANDS.join(" / ")}（留空查看任务总览）`)
+        process.exitCode = 1
+        return
+      }
+
       const redact = resolveRedactEnabled(options.redact)
       const warn = resolveEnabled(options.warn, "FX_CHECK_WARN", getCheckWarnings(), true)
       // 任务目录三档解析：CLI --dir > 配置 tasks.dir > 默认 .tasks
@@ -576,7 +587,7 @@ program
   )
 
 // changelog 域：version/format 自处理，其余子命令透传给 changesets
-program
+const changelogCmd = program
   .command("changelog")
   .description("多语言 CHANGELOG（封装 changesets）")
   .option("--lang <lang>", "语言 zh/en", DEFAULT_LANG)
@@ -592,6 +603,12 @@ program
       operands: string[],
       options: { lang: string; redact: boolean | undefined; warn: boolean | undefined; history: boolean | undefined },
     ) => {
+      // 帮助标志紧跟自处理子命令时会被透传语义当作操作数丢弃、命令照跑（真发版 / 真改写 CHANGELOG），此处拦截并打印本域帮助
+      if (shouldPrintChangelogHelp(operands)) {
+        changelogCmd.help()
+        return
+      }
+
       const redact = resolveRedactEnabled(options.redact)
       const warn = resolveEnabled(options.warn, "FX_CHECK_WARN", getCheckWarnings(), true)
       const history = options.history === true
@@ -621,6 +638,11 @@ program
       }
     },
   )
+
+// 帮助口径统一：命令声明完毕后递归换中文帮助文案并对齐父级清单
+// ⚠️ 顺序：须先 setupHelp 再 helpCommand——help 子命令自带 helpOption(false)，反过来会把它的 Usage 撑成 [options] [command]
+setupHelp(program)
+program.helpCommand("help [command]", "显示帮助")
 
 ensureUtf8()
 // main 包装：兼容 CJS 产物（顶层 await 仅 ESM 支持）；主命令完成后同步读缓存提示升级（零网络、不影响退出码）

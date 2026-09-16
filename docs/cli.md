@@ -113,6 +113,8 @@ toolkit changelog status / publish      # 其余 changeset 子命令透传
 
 ⚠️ `changelog` 域开了选项透传（`passThroughOptions`），自有选项必须放在子命令**之前**：写 `toolkit changelog --history format` 生效，写成 `toolkit changelog format --history` 会把 `--history` 当作 changesets 的参数静默忽略。
 
+⚠️ 帮助标志为例外：`-h` / `--help` 紧跟 `version` / `format` 时打印 changelog 本域帮助并退出，不落入透传（其余子命令的帮助标志仍透传给 changesets 输出其自身帮助）。
+
 | 选项 | 说明 |
 | --- | --- |
 | `--lang <lang>` | 输出语言，默认 `zh`；内置 `zh`/`en`，其余经配置扩展 |
@@ -192,7 +194,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 | 退出码 | 含义 |
 | --- | --- |
 | `0` | 成功（含 check 通过、归档跳过等正常路径） |
-| `1` | 操作失败或校验存在 error 级问题（check 有 error、参数冲突、文件/目录异常等） |
+| `1` | 操作失败或校验存在 error 级问题（check 有 error、参数冲突、非法子命令、文件/目录异常等） |
 
 软告警（warn 级）不影响退出码。
 
