@@ -221,6 +221,27 @@ function strayTaskFiles(tasksDir: string): string[] {
   return results
 }
 
+// 规范载体形态检查（软告警，不读内容）：旧单文件残留提示迁移、目录形态缺 index.md 提示补齐
+// 载体细则见 skills/fxri-plan-to-task/references/conventions-spec.md
+function validateConventions(tasksDir: string): CheckIssue[] {
+  const issues: CheckIssue[] = []
+  const dir = join(tasksDir, "conventions")
+  const hasDir = existsSync(dir)
+  if (existsSync(join(tasksDir, "conventions.md"))) {
+    issues.push({
+      level: "warn",
+      file: "conventions.md",
+      message: hasDir
+        ? "旧单文件规范载体已被 conventions/ 目录形态取代，建议清理（两者并存时以目录形态为准）"
+        : "旧单文件规范载体，建议迁移为 conventions/ 目录形态（index.md 作唯一入口 + common.md / 端分册按需创建）",
+    })
+  }
+  if (hasDir && !existsSync(join(dir, "index.md"))) {
+    issues.push({ level: "warn", file: "conventions/index.md", message: "规范载体缺 index.md（唯一入口与唯一权威），请补齐" })
+  }
+  return issues
+}
+
 // 校验 active 目录全部任务（含跨文件重名检测）
 export function validateTasks(tasksDir = ".tasks"): CheckResult {
   const activeDir = join(tasksDir, "active")
@@ -238,6 +259,9 @@ export function validateTasks(tasksDir = ".tasks"): CheckResult {
   for (const s of strayTaskFiles(tasksDir)) {
     issues.push({ level: "warn", file: s, message: "任务文件游离于 active/ 之外，tasks/check/archive 均不会读取，应移入 active/{YYYYMM}/ 月份子目录" })
   }
+
+  // 规范载体形态：仅查形态不读内容，故不影响任务校验的语义判断
+  issues.push(...validateConventions(tasksDir))
 
   // 跨文件重名检测：同名任务文件疑似重复建档
   const seen = new Map<string, string[]>()

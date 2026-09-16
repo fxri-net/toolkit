@@ -63,6 +63,35 @@ describe("initWorkspace 骨架生成", () => {
   })
 })
 
+describe("initWorkspace 规范载体骨架", () => {
+  it("空目录生成 conventions/index.md，含端清单与索引表四节", () => {
+    const { cwd } = track(runInDir("tk-init-conv-"))
+    initWorkspace(".tasks", cwd)
+    const index = readFileSync(join(cwd, ".tasks", "conventions", "index.md"), "utf8")
+    expect(index).toContain("## 一、端清单")
+    expect(index).toContain("## 二、索引")
+    expect(index).toContain("## 三、演进记录")
+    expect(index).toContain("## 四、用法说明")
+  })
+
+  it("重复执行与已有索引均不覆盖", () => {
+    const { cwd } = track(runInDir("tk-init-conv-keep-"))
+    const index = join(cwd, ".tasks", "conventions", "index.md")
+    mkdirSync(join(cwd, ".tasks", "conventions"), { recursive: true })
+    writeFileSync(index, "custom", "utf8")
+    initWorkspace(".tasks", cwd)
+    expect(readFileSync(index, "utf8")).toBe("custom")
+  })
+
+  it("旧单文件 conventions.md 存在时不建空骨架（迁移由迁移流程接管）", () => {
+    const { cwd } = track(runInDir("tk-init-conv-legacy-"))
+    mkdirSync(join(cwd, ".tasks"), { recursive: true })
+    writeFileSync(join(cwd, ".tasks", "conventions.md"), "# 旧规范\n", "utf8")
+    initWorkspace(".tasks", cwd)
+    expect(existsSync(join(cwd, ".tasks", "conventions"))).toBe(false)
+  })
+})
+
 describe("initWorkspace .gitignore 处理", () => {
   it("已有 .gitignore 且结尾无换行：追加片段并保留原内容", () => {
     const { cwd, gitignore } = track(runInDir("tk-init-append-"))

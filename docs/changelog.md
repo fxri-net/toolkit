@@ -48,7 +48,6 @@ outline: false
   - `toolkit changelog version/format` 新增 `--history`：历史版本块内条目按其类型前缀与既有组标题归位、组标题转写为当前语言口径；无法识别的分组连同标题原样保留，不臆造归属（不加该选项时仍不动历史块）
   - 条目类型前缀表补充 `技能：` / `skills：`（归入「优化改进」）与 `依赖：`（归入「依赖变更」），历史组标题（如 `补丁修复`）也能识别归位
   - 修复 Windows 检出（`core.autocrlf`）下 `pnpm sync:changelog-doc` 因 CRLF 误判「未发现版本块」而中止
-
 - CHANGELOG 归类后剥离条目已识别的类型前缀
 
   - 条目归入语义分组后，已识别的 `类型：` 前缀被剥离（`- 修复：xxx` → `- xxx`），类型由分组标题承接，明细不再与之重复
@@ -71,7 +70,6 @@ outline: false
   - 修正 README 与 docs 中 11 处跨页锚点死链（标题改名后未同步，点击不跳转），涉及 `README.md`、`docs/cli.md`、`docs/faq.md`、`docs/getting-started.md`、`docs/guide.md`、`docs/handbook.md`
   - 文档一致性测试的锚点用例此前会跳过全部跨页链接（VitePress 把 `.md` 渲染为 `.html` 后被扩展名判断排除），现归一回 `.md` 并按所在目录相对解析
   - 扫描范围由 `docs/*.md` 扩至仓库根 `*.md` 与 `skills/**/*.md`，跨页锚点写错、标题改名漏同步均会拦下
-
 - 修复 Windows 检出环境下文档一致性测试的换行误判
 
   - 「更新日志镜像」用例比较前统一把 CRLF 归一为 LF，Windows 检出（`core.autocrlf`）不再把换行差异误报成「漏跑同步脚本或手改镜像页」
@@ -94,7 +92,6 @@ outline: false
   - 文档补齐：内置脱敏规则清单（`docs/config.md`、`docs/guide.md`）、`--redact` / `--warn` 的域级作用域与 `tasks` 域选项表（`docs/cli.md`）、站点导航与更新日志入口
   - skills 状态检查新增版本双写位比对（frontmatter `metadata.version` 与正文声明值），不一致时软告警
   - 新增机器化质量门测试：脱敏规则清单 ↔ 文档一致、`docs/*.md` 内锚点可解析、`docs/changelog.md` 与 `CHANGELOG.md` 一致、`CheckIssue.line` 行号定位
-
 - 降低任务区随年限增长的全库线性扫描与整文件重写开销
 
   - `tasks check`：依赖索引改惰性构建（active 无 `depends_on` 时不再扫全量归档），重名检测与依赖命中改 `Set`、命中即早退
@@ -114,7 +111,6 @@ outline: false
   - `skills/README.md`：技能表补版本列（取自各 SKILL.md 的 frontmatter `metadata.version`）
   - `toolkit tasks stats --format` 补取值校验：非法值告警并置退出码 1，与其余命令同口径
   - `AGENTS.md`：规则层锚点纪律明确 `SPEC.md` 无 fenced 包裹、整篇即快照，锚点位于正文首行即合规
-
 - 规则层锚点由数字版本号改为更新时刻，提交信息规则拆为独立页
 
   - 锚点由 `> 规范版本 x.y` / `> 规则版本 x.y` 改为 `> 规范更新时间 YYYY-MM-DD HH:mm`（`SPEC.md`）与 `> 规则更新时间 YYYY-MM-DD HH:mm`（`docs/ai-rules.md`、`docs/commit-rules.md`）——两个规则页锚点位于 fenced 可复制块内部首行，`SPEC.md` 无 fenced 包裹、整篇文件即快照，锚点位于正文首行；复制过旧规则的快照首行格式不同即说明需重新复制对应页面
@@ -136,7 +132,6 @@ outline: false
   - 自定义语言新增可选 `groups`（`[{ slot, title, prefixes? }]`）声明本语言标题与自有前缀；未声明时退化为纯替换，既有配置无需改动
   - ⚠️ 对外契约变化：`--lang en` 的组标题文本变化（如 `### ✨ Minor Changes` → `### ✨ Added`）；`--warn` / `FX_CHECK_WARN` / `check.warnings` 适用范围由任务校验告警扩为「任务校验告警 + 变更集条目缺类型前缀告警」，同一开关一并开关闭；新增公共导出 `SLOT_PREFIXES` / `SemanticSlot`
   - 修复：发布日期行识别由硬编码「发布/released」改为「当前语言 `released` ∪ 全部内置语言 `released`」后缀集合——自定义语言（日文等）按自身 `released` 识别，内置 zh / en 互跑（如中文日志用 `--lang en` 输出）也不再重复追加日期行
-
 - 技能版本可视化，旧会话可自校验技能内容是否过期
 
   - `toolkit skills status` 常驻打印包内各技能真源版本，`--format json` 新增 `skillVersions` 字段与逐项 `version`，作为磁盘基准值；`toolkit skills install` 报告同样逐项带版本

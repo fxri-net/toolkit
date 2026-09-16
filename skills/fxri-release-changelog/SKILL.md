@@ -3,14 +3,14 @@ name: fxri-release-changelog
 description: 基于 changesets 的发版与多语言 CHANGELOG 维护流程：创建变更集、消费发版、把分组标题与条目转为项目语言风格、清理变更集、打标签发布；无 changesets 的项目提供同格式手工模式。当用户表达发版或记录变更意图——含创建变更集、changeset、发版、version、CHANGELOG 格式化等说法及其口语近义表达（如发一版、出个版本、记一下这次改动、生成更新日志）时使用。⚠️ 注意区分：用户说「提交个版本 / 先提交一版 / commit」通常指 git 提交当前改动（走任务收尾后提交），**不是发版**。不用于日常 commit message 撰写、git 提交操作或与发版无关的文档修改。
 license: MIT
 metadata:
-  version: "1.0.11"
+  version: "1.0.12"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
 
 # 发版与 CHANGELOG
 
-> 本技能版本 1.0.11（随 @fxri/toolkit 同批分发）。被问版本时即报此值——不读磁盘、不跑 CLI：报出的值就是本会话上下文里已加载内容的版本，可与 `toolkit skills status` 打印的磁盘基准值对照，不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.0.12（随 @fxri/toolkit 同批分发）。被问版本时即报此值——不读磁盘、不跑 CLI：报出的值就是本会话上下文里已加载内容的版本，可与 `toolkit skills status` 打印的磁盘基准值对照，不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -32,8 +32,9 @@ metadata:
 1. 记录变更：`npx changeset`（或项目包管理器等价脚本）——**变更描述一律以 `类型：` 前缀开头**（如 `新增：` / `修复：` / `优化：`），并按类型选影响级别（重大→major、新增/修改→minor、优化/修复/清理/文档→patch，完整对照见 `references/changelog-format.md`）
 2. 消费发版：`npx changeset version`——自动写版本号与 CHANGELOG
 3. 格式化：按 `references/changelog-format.md` 的语义分组规则归类条目、转换分组标题、润色为项目语言风格（中文示例：`### Patch Changes` 下的 `- 修复：xxx` → `### 🐛 问题修复` 下的 `- xxx`——归类后类型前缀被剥离，类型由分组标题承接）；分组维度与 bump 维度正交，条目归组只看类型前缀
-4. 清理：删除已消费的 `.changeset/*.md`
-5. 发布：提交版本与 CHANGELOG 改动 → 打 `vX.Y.Z` 标签 → 按项目渠道发布（如 `npm publish`）
+4. 归一：润色后跑一次 `toolkit changelog --history format`——人工润色（含补写历史块明细）容易在条目之间留空行，该命令按「同组顶层条目逐行相邻」重排历史块；项目另有更新日志镜像页（如 `docs/changelog.md`）时再跑一次同步脚本，否则镜像一致性校验会失败
+5. 清理：删除已消费的 `.changeset/*.md`
+6. 发布：提交版本与 CHANGELOG 改动 → 打 `vX.Y.Z` 标签 → 按项目渠道发布（如 `npm publish`）
 
 ⚠️ 自动生成的条目必须人工核对润色，与仓库既有 CHANGELOG 风格保持一致。
 
@@ -49,6 +50,7 @@ metadata:
 | CHANGELOG 出现「- - 条目」双前缀伪影（变更集条目以 `- ` 开头） | `toolkit changelog version/format` 已自动还原为顶层条目；手工模式按 references 规则手动清理 |
 | 条目与仓库既有风格不一致 | 人工润色为项目语言与句式，勿保留机器直译 |
 | 变更集遗漏（发版后才发现功能未记录） | 补建变更集随下次发版；本次在发布说明中人工补充 |
+| 发版后历史块内出现多余空行（`自举一致性` 类零改动用例失败） | 跑 `toolkit changelog --history format` 归一（**必须带 `--history`**，默认模式不动历史块），再补跑一次镜像页同步脚本 |
 
 ## 可选加速（不构成依赖）
 

@@ -16,7 +16,7 @@
 
 ### conventions 同步（独立机制，随上述质量门一并执行）
 
-`.tasks/conventions.md` 溯源索引与 AGENTS / ai-rules / skills 条文存在对应关系：修改 AGENTS.md、docs/ai-rules.md 或 skills 条文的变更，须同步检查溯源索引对应行的「当前语义」是否需要更新；语义变更先在「演进记录」留痕、再更新表内当前语义，随该变更同批落盘。
+`.tasks/conventions/` 载体的索引表与 AGENTS / ai-rules / skills 条文存在对应关系：修改 AGENTS.md、docs/ai-rules.md 或 skills 条文的变更，须同步检查索引对应行的「当前语义」是否需要更新；语义变更先在 `index.md` 的「演进记录」留痕、再更新表内当前语义，随该变更同批落盘。
 
 ## 验收方式
 
@@ -42,7 +42,7 @@
 
 发版按以下顺序分步执行，每步产物检查无误后再进行下一步：
 
-1. **消费变更集**：`node dist/cli.js changelog version`——按 bump 类型合并 `.changeset/` 全部变更集，生成 CHANGELOG 新版本块（中文分组标题 + 发布日期）并升级 package.json 版本号；生成后人工检查润色条目，再执行 `pnpm sync:changelog-doc` 把新版本块镜像进 docs/changelog.md 更新日志页，与版本/CHANGELOG 改动同批提交；
+1. **消费变更集**：`node dist/cli.js changelog version`——按 bump 类型合并 `.changeset/` 全部变更集，生成 CHANGELOG 新版本块（中文分组标题 + 发布日期）并升级 package.json 版本号；生成后人工检查润色条目，再执行 `node dist/cli.js changelog --history format` 归一历史块（人工润色易在条目之间留空行；默认模式不动历史块，必须带 `--history`），最后 `pnpm sync:changelog-doc` 把新版本块镜像进 docs/changelog.md 更新日志页，与版本/CHANGELOG 改动同批提交；
 2. **构建**：`pnpm build`——版本号从 package.json 读取进产物；
 3. **提交**：版本与 CHANGELOG 改动单独提交——发版提交是链路内置动作，独立于任务收尾自动提交（即使全局规则开启任务收尾自动提交，发版提交仍按本链路单独执行，不与普通任务收尾混批）；
 4. **打标签**：提交落盘后立即打 `vX.Y.Z` 标签并用 `git tag` 核对存在；发现历史版本漏打时，在对应发版提交上补打轻量标签；

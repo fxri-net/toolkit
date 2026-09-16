@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | 1 装 CLI | 团队项目：`pnpm add -D @fxri/toolkit`（npm 用 `npx`）；个人多项目：`pnpm i -g @fxri/toolkit` | 得到 `toolkit` 命令 |
 | 2 装 skills | `toolkit skills install`（装了 CLI 一键分发，默认软链；npm 用户需先 `npm i -g @fxri/toolkit`）；也可用上游安装器 `pnpm dlx skills add fxri-net/toolkit --global` | AI 侧获得三份岗位说明书，遇到对应场景自动触发 |
-| 3 建任务区 | `pnpm exec toolkit init` | 生成 `.tasks/active/{YYYYMM}/`、`archive/` 骨架与 `.gitignore` 片段 |
+| 3 建任务区 | `pnpm exec toolkit init` | 生成 `.tasks/active/{YYYYMM}/`、`archive/`、`conventions/index.md` 骨架与 `.gitignore` 片段 |
 | 4 配全局规则（可选） | 从 [AI 全局规则](./ai-rules) 复制模板到你的 agent 全局 rules；提交习惯想统一再取[提交信息规则](./commit-rules) | AI 按你的纪律协作 |
 
 三种安装方式对比、离线/内网装法见[新手指南 · 安装](./getting-started#安装)。
@@ -53,13 +53,29 @@ pnpm exec toolkit tasks stats           # 完成周期 / 滞留 / 吞吐统计
 
 | 场景 | 你该说 | 会发生什么 |
 | --- | --- | --- |
-| 会话收尾 | 「今天先到这 / 收个尾 / 把结论记下来」 | AI 全量回放本会话 → **任务清单先给你核对无遗漏** → 逐条落盘归档 → 规范沉淀进 conventions.md → 回报 |
+| 会话收尾 | 「今天先到这 / 收个尾 / 把结论记下来」 | AI 全量回放本会话 → **任务清单先给你核对无遗漏** → 逐条落盘归档 → 规范沉淀进 conventions 载体 → 回报 |
 | 新会话开始 | 「恢复上下文 / 上次做到哪了」 | AI 读 active 全部 + 近窗归档（≥1 年空洞旧档仅入索引），输出全部任务索引 + 进行中/搁置 + 规范现场 + 建议下一步 |
 | 历史时间不准 | 「修正历史任务时间」 | AI 对照 git log/聊天记录取证 → 清单给你逐条确认 → 修正 → `normalize --fix` 迁移核验 |
 
 时间取证的完整口径（四级时间源）见[完整攻略 · 会话沉淀、恢复与历史修正](./guide#会话沉淀、恢复与历史修正)。
 
-## 四、数据进出（报表 / 迁移）
+## 四、规范载体迁移
+
+**目标**：把项目里旧的单文件 `.tasks/conventions.md` 升到 `conventions/` 目录形态（`index.md` 唯一入口 + `common.md` / 各端分册按需创建），让规范能按端分类、按需加载。
+
+| 场景 | 你该说 | 会发生什么 |
+| --- | --- | --- |
+| 形态迁移（单文件 → 目录） | 「把项目里的 conventions.md 迁到新形态」 | AI 走三段式：建 `conventions/` 并把旧文件**整体**搬为 `index.md`（原文不丢）→ 逐条给出「`common` / 某端」归属建议 → 你逐条确认后拆成索引行 + 分册 |
+| 只修订内容（不换形态） | 「第 3 条规范改成 …」 | AI 在 `index.md` 的「演进记录」留痕 → 更新该行「当前语义」；作废的把「状态」改 `已废弃`（不删行），条文在分册内的同步改分册 |
+
+- **入口**：`pnpm exec toolkit tasks check` 报旧单文件 `conventions.md` 存在、或报 `conventions/` 缺 `index.md` 时按提示处理；新项目 `toolkit init` 已预生成 `index.md` 骨架
+- **可中断**：三段式任一步停下都不丢内容——旧文件整体搬为 `index.md` 后，该文件即原文快照，功能上与旧文件等价；未确认归属的条目保持原样留在 `index.md`
+- **端名**：与任务 frontmatter 的 `scope` 取值**逐字一致**（任务写 `scope: web+server` → 读 `web.md` + `server.md`）；端清单在 `index.md` 顶部声明，是端的唯一权威，不扫目录
+- **迁移期间兼容读**：先找 `conventions/index.md`，不存在再看旧单文件；两者并存时以目录形态为准
+
+原理与细则见[完整攻略 · 存量规范载体迁移](./guide#存量规范载体迁移)。
+
+## 五、数据进出（报表 / 迁移）
 
 **目标**：任务数据与 Excel/CSV/JSON 互转，方便汇报或从旧系统迁入。
 
@@ -76,7 +92,7 @@ pnpm exec toolkit tasks --import 需求清单.csv --target active
 - 落盘自动脱敏：手机号、邮箱、密钥等掩码后再写归档
 - 列名映射定制、脱敏规则见[配置参考](./config)
 
-## 五、发版
+## 六、发版
 
 **目标**：变更集 → CHANGELOG → 发布，多语言分组标题不手翻。
 
@@ -90,7 +106,7 @@ pnpm exec toolkit changelog --lang en format # 其他语言格式化
 
 ⚠️ 发版不是必经步骤：由你的规则约定是否执行；未归档的 active 任务存在时会提醒先归档。无 changesets 的项目走手工模式。完整链路见[完整攻略 · 多语言 CHANGELOG](./guide#多语言-changelog)。
 
-## 六、升级与卸载
+## 七、升级与卸载
 
 **目标**：CLI + skills + 全局规则对齐到最新；卸载时不留残渣。
 
@@ -125,7 +141,7 @@ pnpm remove -g @fxri/toolkit     # 2. 再卸 CLI
 
 ⚠️ **软链会悬空**：软链形式的技能指向包内目录，CLI 一卸就成悬空链接（agent 读到空目录）。`toolkit skills remove` 会把悬空链接一并摘除；若已漏摘，手工删除 `~/.agents/skills/` 与各 agent 全局技能目录下的 `fxri-*` 链接。
 
-## 七、隐私与安全
+## 八、隐私与安全
 
 - 默认脱敏开启：终端展示、导出文件、归档落盘都会掩码敏感信息；`.tasks/active/` 源文件保持原样（设计如此）
 - 不想某类信息被掩码、或要加自定义规则：`.toolkitrc.json` 的 `redact` 段（见[配置参考](./config#redact-隐私脱敏)）

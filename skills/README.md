@@ -8,9 +8,9 @@
 
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
-| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.1.4 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点） |
-| [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.0.11 | changesets 发版与多语言 CHANGELOG 维护 |
-| [fxri-session-recap](./fxri-session-recap/SKILL.md) | 1.1.3 | 会话收尾全量沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
+| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.2.0 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点） |
+| [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.0.12 | changesets 发版与多语言 CHANGELOG 维护 |
+| [fxri-session-recap](./fxri-session-recap/SKILL.md) | 1.2.0 | 会话收尾全量沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 
 版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` / `skills install` 打印的真源版本），与正文首部版本声明双写一致。
 
@@ -95,4 +95,6 @@ pnpm dlx skills add fxri-toolkit --global       # npm 用户把 pnpm dlx 换成 
 - [ ] 主干 SKILL.md < 200 行，细节下沉 `references/`，可复制资产放 `assets/`
 - [ ] 引用的 references / assets 相对路径有效
 - [ ] 技能用途描述已同步 docs/guide 技能表与本文「技能列表」表（含版本标注）
+- [ ] 涉规范载体（conventions）的改动：`fxri-session-recap/SKILL.md` 的 R3 压缩要点已与 `fxri-plan-to-task/references/conventions-spec.md` 同步（跨 skill 不可引用，只能受控重复，两处不一致即失一致）
+- [ ] 涉规范载体（conventions）的改动：`src/init.ts` 的 `index.md` 骨架模板与 `src/tasks/validate.ts` 的形态告警口径已同步（CLI 侧与 skills 细则同源）
 - [ ] 变更已走本仓库质量门：三方一致 + tasks check + pnpm test

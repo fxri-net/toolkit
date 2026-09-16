@@ -294,6 +294,7 @@ program
       initWorkspace(dir)
       console.log(`已初始化任务区：${dir}/active/{YYYYMM}/、${dir}/archive/（已存在的目录保持不变）`)
       console.log("已确保 .gitignore 含 .archive.lock 忽略片段（已存在或无 .gitignore 时自动处理）")
+      console.log(`规范载体：${dir}/conventions/index.md（缺失则新建；已存在，或存在待迁移的旧 ${dir}/conventions.md 时保持不变）`)
       console.log("")
       console.log("下一步：")
       console.log(`  新手指南：${INIT_LINKS.gettingStarted}`)
