@@ -67,7 +67,7 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 | 子命令 | 行为 |
 | --- | --- |
 | `archive` | 将 `status` 为 `已完成`/`已放弃` 且带 `completed` 的任务按完成日期聚合归档；排他锁防并发；缺 `completed` 的终结态任务跳过并提示；完成时间晚于当前系统时间或恰为零点整（疑似只填日期被补零）时软告警 |
-| `check` | 校验 active：frontmatter 合法性、owner/created/命名规范、重名、`depends_on` 闭环、未闭合待办与 `- [ ]`；completed 晚于当前系统时间或恰为零点整（疑似只填日期被补零）软告警；范围字段形态软告警（顿号/逗号疑似多值分隔请改半角加号、括号疑似注释请移入正文）；游离于 `active/` 层级外的日期前缀文件软告警 |
+| `check` | 校验 active：frontmatter 合法性、owner/created/命名规范、重名、`depends_on` 闭环、未闭合待办与 `- [ ]`；completed 晚于当前系统时间或恰为零点整（疑似只填日期被补零）软告警；范围字段形态软告警（顿号/逗号疑似多值分隔请改半角加号、括号疑似注释请移入正文）；游离于 `active/` 层级外的日期前缀文件软告警；规范载体形态软告警（旧单文件 `conventions.md` 残留待迁移、`conventions/` 缺 `index.md`；只看形态不读内容） |
 | `normalize` | 检查归档块：元数据四字段完整性、疑似任务块、完成时间与归档日期漂移、完成时间晚于当前系统时间或恰为零点整（仅报告，不自动改值）、降序排序、月份目录归属、范围字段形态（顿号/逗号分隔可 `--fix` 归一为半角加号，括号疑似注释仅提示人工）；`--fix` 自动补齐/迁移/重排/范围归一；`--fix` 与 `--check` 互斥 |
 | `stats` | 周期统计（仅人用视图，不落盘）：完成周期与分布（仅「已完成」，已归档任务创建日期从块标题恢复，缺失者跳过并计数）、未完成任务滞留时长、按完成月/负责人/范围吞吐汇总；`--format json` 输出 JSON（顶层携带 `schemaVersion: 1` 锚点，与 `tasks --export` 及各域 `--format json` 同口径），过滤选项与查询一致（不含 `--status`） |
 
@@ -140,6 +140,7 @@ toolkit init --dir ../my-tasks-repo   # 任务区放项目外（独立仓库管�
 在当前目录初始化任务区：
 
 - 创建 `<任务目录>/active/{YYYYMM}/`、`<任务目录>/archive/` 目录骨架（默认 `.tasks`，优先级与 `tasks` 同口径：CLI 参数 > 配置 `tasks.dir` > 默认 `.tasks`）
+- 创建 `<任务目录>/conventions/index.md` 规范载体骨架（已存在 `index.md`、或存在待迁移的旧 `<任务目录>/conventions.md` 时保持不变）
 - 向 `.gitignore` 追加忽略片段（含 `.archive.lock`；已有则跳过）
 - 输出后续步骤与文档站链接
 
