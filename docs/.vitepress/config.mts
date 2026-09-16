@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import { DESCRIPTION } from '../../src/about'
 
 // 站点基础路径：默认按 GitHub Pages 子路径 /toolkit/，其他部署场景经 VITEPRESS_BASE 环境变量覆盖
 const base = process.env.VITEPRESS_BASE || '/toolkit/'
@@ -18,7 +19,7 @@ export default defineConfig({
   title: '方弦工具集',
   // 内页标签统一为「当前页 - 方弦工具集」
   titleTemplate: ':title - 方弦工具集',
-  description: '专为多人 + AI 跨项目协作打造：任务管理 + 多语言 CHANGELOG。',
+  description: DESCRIPTION,
   base,
   // 顶级开关：按 git 提交时间生成「最后更新于」（themeConfig.lastUpdated 仅控制文案）
   lastUpdated: true,
@@ -27,7 +28,7 @@ export default defineConfig({
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:site_name', content: '方弦工具集' }],
     ['meta', { property: 'og:title', content: '方弦工具集' }],
-    ['meta', { property: 'og:description', content: '专为多人 + AI 跨项目协作打造：任务管理 + 多语言 CHANGELOG。' }],
+    ['meta', { property: 'og:description', content: DESCRIPTION }],
     // og:image 必须为绝对地址，社交平台据此抓取分享卡片
     ['meta', { property: 'og:image', content: `${siteUrl}og-image.png` }],
     ['meta', { property: 'og:url', content: siteUrl }],

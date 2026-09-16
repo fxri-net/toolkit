@@ -198,6 +198,8 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 软告警（warn 级）不影响退出码。
 
+未知命令、未知选项、参数个数不符等解析错误统一输出 `⚠️` 开头的中文提示，并附一行 `运行 toolkit --help 查看可用命令` 指引（退出码 `1`），不再混出 commander 的英文原文。`changelog` 透传给 changesets 的英文输出不在其列——那属第三方 CLI 自身的报错通道。
+
 ## 相关页面
 
 - [完整攻略](./guide)：工作流与任务文件规范

@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from "node:fs"
 import { dirname, join, normalize } from "node:path"
 import { createMarkdownRenderer } from "vitepress"
 import { listBuiltinRuleNames } from "../privacy/redact"
+import { DESCRIPTION } from "../about"
 import { buildPage } from "../../scripts/sync-changelog-doc.mjs"
 
 // 提取文档「内置规则：」行的规则名（名称以反引号包裹，括号内为补充说明）
@@ -96,5 +97,30 @@ describe("文档一致性：站内链接锚点可解析", () => {
       }
     }
     expect(problems).toEqual([])
+  })
+})
+
+// 根描述多处以手写形式出现，易随改动漂移：源码侧统一引用 src/about.ts 的 DESCRIPTION，
+// 无法 import 的触达面（package.json / README / 首页 tagline）在此锁死，改一处漏改其余即失败
+describe("文档一致性：根描述文案单一真源", () => {
+  // 首页 tagline 在前半句后自行展开，故只锁各触达面共用的主句前缀（从 DESCRIPTION 取「：」之前）
+  const sharedPrefix = DESCRIPTION.split("：")[0] as string
+
+  it("package.json 的 description 与 DESCRIPTION 字面一致", () => {
+    const pkg = JSON.parse(readDoc("package.json")) as { description?: string }
+    expect(pkg.description).toBe(DESCRIPTION)
+  })
+
+  it("README 首段描述与 DESCRIPTION 一致（剔除加粗标记后比对）", () => {
+    // README 用加粗强调描述中的协作定位，比对前去掉 ** 标记，其余须与真源逐字一致
+    const lines = readDoc("README.md")
+      .split("\n")
+      .map((l) => l.replace(/\*\*/g, ""))
+    expect(lines).toContain(DESCRIPTION)
+  })
+
+  it("docs/index.md 的 tagline 以 DESCRIPTION 主句开头", () => {
+    const tagline = /^ {2}tagline: (.*)$/m.exec(readDoc("docs/index.md"))?.[1]
+    expect(tagline?.startsWith(sharedPrefix)).toBe(true)
   })
 })

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { Command } from "commander"
+import { Command, CommanderError } from "commander"
 import { createRequire } from "node:module"
 import { spawnSync } from "node:child_process"
 import { existsSync, readdirSync } from "node:fs"
@@ -38,6 +38,8 @@ import {
 } from "./skills"
 import { startUpdateCheck, runUpdateCheckWorker, UPDATE_CHECK_WORKER_ARG } from "./update-check"
 import { setupHelp, shouldPrintChangelogHelp } from "./help"
+import { formatCommanderError } from "./errors"
+import { DESCRIPTION } from "./about"
 
 const require = createRequire(import.meta.url)
 
@@ -254,11 +256,19 @@ const TASKS_SUBCOMMANDS = ["archive", "check", "normalize", "stats"]
 
 const program = new Command()
 
+// commander 解析失败时会自行把英文错误写到 stderr 后才抛异常，此处先缓存：
+// 命中中文映射时丢弃原文案改由 main 统一输出，未命中（帮助/版本/未收录 code）则原样放行
+let commanderErrBuffer = ""
+
 program
   .name("toolkit")
-  .description("专为多人 + AI 跨项目协作打造：任务管理 + 多语言 CHANGELOG")
+  .description(DESCRIPTION)
   .version(version, "-v, --version", "显示版本号")
   .enablePositionalOptions(true)
+  // 交回解析错误的控制权（否则 commander 自行 process.exit，异常捕不到）
+  // ⚠️ 须在声明任何子命令之前调用：_exitCallback 只在 .command() 建子命令时按引用复制，之后再设不回溯
+  .exitOverride()
+  .configureOutput({ writeErr: (str) => { commanderErrBuffer += str } })
 
 // help footer：指向文档站，降低新用户查找成本
 program.addHelpText(
@@ -656,7 +666,18 @@ async function main(): Promise<void> {
   const repaired = autoLinkSkills()
   // 提示走 stderr：stdout 为机器可读输出（--format json）的专用通道，不得混入诊断信息
   if (repaired > 0) console.error(`已自动修复 ${repaired} 个技能链接（如不需要可配置 .toolkitrc.json 的 skills.autoLink: false 关闭）`)
-  await program.parseAsync(process.argv)
+  try {
+    await program.parseAsync(process.argv)
+  } catch (err) {
+    // exitOverride 后 commander 把「解析失败」与「已输出帮助/版本」统一改为抛异常，均经此收口
+    if (!(err instanceof CommanderError)) throw err
+    const zh = formatCommanderError(err)
+    // 命中映射：丢弃 commander 英文原文，改输出中文提示；未命中（帮助/版本等）：原样放行
+    if (zh) console.error(zh)
+    else process.stderr.write(commanderErrBuffer)
+    process.exitCode = err.exitCode
+    return
+  }
   startUpdateCheck(version)
 }
 void main()
