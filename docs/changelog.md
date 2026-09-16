@@ -1,5 +1,5 @@
 ---
-outline: false
+outline: [2, 2]
 ---
 
 # 更新日志

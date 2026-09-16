@@ -7,9 +7,10 @@ import { fileURLToPath } from "node:url"
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 
 // 镜像页固定页头：三行 frontmatter + H1 + 来源说明，正文全部由根 CHANGELOG.md 派生
+// outline 只列 H2（版本号）：本页是全量历史镜像，若沿用全站默认的 [2, 3]，各版本的分组标题会一并铺进目录且随版本持续膨胀
 const PAGE_HEADER =
   "---\n" +
-  "outline: false\n" +
+  "outline: [2, 2]\n" +
   "---\n\n" +
   "# 更新日志\n\n" +
   "> 完整变更历史以随包发布的 CHANGELOG.md 为准，本页由 `pnpm sync:changelog-doc` 从根 CHANGELOG.md 自动同步，请勿手改。\n\n"
