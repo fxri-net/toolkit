@@ -1,0 +1,2 @@
+# Git 钩子由 sh 执行：锁定 LF，避免 Windows 下 core.autocrlf 转 CRLF 后脚本解析失败（如 `set -e` 行带 \r）
+/.githooks/** text eol=lf

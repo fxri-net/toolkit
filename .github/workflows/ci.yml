@@ -6,6 +6,7 @@ on:
   pull_request:
 
 jobs:
+  # 验收步骤清单的唯一真源是 scripts/verify.mjs：两个 job 都只调用它，不在 CI 里另写一份步骤，避免清单漂移
   check:
     runs-on: ubuntu-latest
     steps:
@@ -18,32 +19,13 @@ jobs:
           version: 10.34.4
       - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version-file: .node-version
           cache: pnpm
-      - name: 安装依赖
-        run: pnpm install --frozen-lockfile
-      - name: 类型检查
-        run: pnpm typecheck
-      - name: Lint
-        run: pnpm lint
-      - name: 单元测试
-        run: pnpm test
       # 覆盖率仅在 ubuntu 采集：v8 provider 的统计结果存在跨平台差异，双平台跑只会引入抖动，且覆盖率是增幅门槛而非回归指标，单平台足够
-      - name: 覆盖率门槛
-        run: pnpm test:coverage
-      - name: 构建
-        run: pnpm build
-      - name: 文档站构建（死链检查）
-        run: pnpm docs:build
-      - name: CLI 冒烟（--help / 子命令帮助）
-        run: |
-          node dist/cli.js --help
-          node dist/cli.js tasks --help
-          node dist/cli.js changelog --help
-      - name: 自身 .tasks 体检
-        run: node dist/cli.js tasks check && node dist/cli.js tasks normalize
+      - name: 门禁校验（全量）
+        run: pnpm verify
 
-  # Windows 回归：类型/静态检查/单测/构建与主平台并行，避免跨平台路径与换行问题漏网（O1/O5）
+  # Windows 回归：类型 / 静态检查 / 单测 / 构建与主平台并行，避免跨平台路径与换行问题漏网（O1/O5）
   windows:
     runs-on: windows-latest
     steps:
@@ -53,15 +35,7 @@ jobs:
           version: 10.34.4
       - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version-file: .node-version
           cache: pnpm
-      - name: 安装依赖
-        run: pnpm install --frozen-lockfile
-      - name: 类型检查
-        run: pnpm typecheck
-      - name: Lint
-        run: pnpm lint
-      - name: 单元测试
-        run: pnpm test
-      - name: 构建
-        run: pnpm build
+      - name: 门禁校验（Windows 裁剪）
+        run: pnpm verify --skip-coverage --skip-docs

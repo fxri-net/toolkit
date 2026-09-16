@@ -1,0 +1,6 @@
+#!/bin/sh
+# 推送前本地跑一遍与 CI 完全同源的门禁（scripts/verify.mjs），把「CI 才暴露」的问题挡在推送之前。
+# 启用方式（每人本机执行一次）：git config core.hooksPath .githooks
+set -e
+
+pnpm verify
