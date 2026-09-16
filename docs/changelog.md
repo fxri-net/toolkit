@@ -6,6 +6,37 @@ outline: false
 
 > 完整变更历史以随包发布的 CHANGELOG.md 为准，本页由 `pnpm sync:changelog-doc` 从根 CHANGELOG.md 自动同步，请勿手改。
 
+## 1.9.5
+
+> 2026-09-16 发布
+
+### 🔧 功能调整
+
+- CLI 解析错误文案改为中文并附帮助指引
+
+  - 未知命令、未知选项、参数个数不符统一输出 `⚠️` 开头的中文提示（如「未知命令「zzzz」。」），并附一行 `运行 toolkit --help 查看可用命令`；相似命令/选项提示（原 `(Did you mean skills?)`）一并转中文，退出码仍为 `1`
+  - 修掉 commander 自行写 stderr 导致的英文原文残留，解析错误不再出现英文与中文两行并排
+  - `changelog` 透传给 changesets 的英文输出不受影响
+
+### ⚡ 优化改进
+
+- CLI 帮助清单条目与子命令自身 Usage 行对齐
+
+  - 帮助清单条目统一为「命令名 + 该命令自身 Usage 行」，消除同一命令两套渲染规则：无自有选项但有子命令的域（如 `skills`）不再只剩光杆名字，现与 `skills --help` 的 Usage 行同形（`skills [options] [command]`）
+  - 帮助选项与隐式帮助子命令的描述由 commander 英文默认值改为中文：`-h, --help` 与 `help [command]` 均为「显示帮助」，与 `-v, --version 显示版本号` 及 `docs/cli.md` 既有表述对齐
+- 根描述文案收敛为单一真源
+
+  - 新增 `src/about.ts` 导出 `DESCRIPTION`，CLI 根描述、站点 `description` 与 `og:description` 改为引用该常量，消除同一句话多处手写
+  - `toolkit --help` 首行描述补上句末句号，与 `package.json` / 文档既有文案对齐（原缺句号即由此漂移导致）
+  - 文档一致性用例新增根描述断言：`package.json`、`README.md` 与 `docs/index.md` 首页 tagline 的共用文案改一处漏改其余即失败
+
+### 🐛 问题修复
+
+- 修复 changelog 与 tasks 两条静默误执行路径
+
+  - `toolkit changelog version --help` / `toolkit changelog format --help`：`--help` 原本被选项透传语义当作操作数丢弃，命令照跑——`version` 会真发版、`format` 会真改写 CHANGELOG；现改为打印 changelog 本域帮助并正常退出。`changelog --help` 与 `changelog add --help` 等不受影响，仍交由 changesets 输出其帮助
+  - `toolkit tasks <未知子命令>`：原本静默回落为「任务总览」且 exit 0 无任何提示，现报 `⚠️ 非法子命令「x」，仅支持 archive / check / normalize / stats（留空查看任务总览）` 并 exit 1
+
 ## 1.9.4
 
 > 2026-09-15 发布
@@ -17,6 +48,7 @@ outline: false
   - `toolkit changelog version/format` 新增 `--history`：历史版本块内条目按其类型前缀与既有组标题归位、组标题转写为当前语言口径；无法识别的分组连同标题原样保留，不臆造归属（不加该选项时仍不动历史块）
   - 条目类型前缀表补充 `技能：` / `skills：`（归入「优化改进」）与 `依赖：`（归入「依赖变更」），历史组标题（如 `补丁修复`）也能识别归位
   - 修复 Windows 检出（`core.autocrlf`）下 `pnpm sync:changelog-doc` 因 CRLF 误判「未发现版本块」而中止
+
 - CHANGELOG 归类后剥离条目已识别的类型前缀
 
   - 条目归入语义分组后，已识别的 `类型：` 前缀被剥离（`- 修复：xxx` → `- xxx`），类型由分组标题承接，明细不再与之重复
@@ -39,6 +71,7 @@ outline: false
   - 修正 README 与 docs 中 11 处跨页锚点死链（标题改名后未同步，点击不跳转），涉及 `README.md`、`docs/cli.md`、`docs/faq.md`、`docs/getting-started.md`、`docs/guide.md`、`docs/handbook.md`
   - 文档一致性测试的锚点用例此前会跳过全部跨页链接（VitePress 把 `.md` 渲染为 `.html` 后被扩展名判断排除），现归一回 `.md` 并按所在目录相对解析
   - 扫描范围由 `docs/*.md` 扩至仓库根 `*.md` 与 `skills/**/*.md`，跨页锚点写错、标题改名漏同步均会拦下
+
 - 修复 Windows 检出环境下文档一致性测试的换行误判
 
   - 「更新日志镜像」用例比较前统一把 CRLF 归一为 LF，Windows 检出（`core.autocrlf`）不再把换行差异误报成「漏跑同步脚本或手改镜像页」
@@ -61,6 +94,7 @@ outline: false
   - 文档补齐：内置脱敏规则清单（`docs/config.md`、`docs/guide.md`）、`--redact` / `--warn` 的域级作用域与 `tasks` 域选项表（`docs/cli.md`）、站点导航与更新日志入口
   - skills 状态检查新增版本双写位比对（frontmatter `metadata.version` 与正文声明值），不一致时软告警
   - 新增机器化质量门测试：脱敏规则清单 ↔ 文档一致、`docs/*.md` 内锚点可解析、`docs/changelog.md` 与 `CHANGELOG.md` 一致、`CheckIssue.line` 行号定位
+
 - 降低任务区随年限增长的全库线性扫描与整文件重写开销
 
   - `tasks check`：依赖索引改惰性构建（active 无 `depends_on` 时不再扫全量归档），重名检测与依赖命中改 `Set`、命中即早退
@@ -80,6 +114,7 @@ outline: false
   - `skills/README.md`：技能表补版本列（取自各 SKILL.md 的 frontmatter `metadata.version`）
   - `toolkit tasks stats --format` 补取值校验：非法值告警并置退出码 1，与其余命令同口径
   - `AGENTS.md`：规则层锚点纪律明确 `SPEC.md` 无 fenced 包裹、整篇即快照，锚点位于正文首行即合规
+
 - 规则层锚点由数字版本号改为更新时刻，提交信息规则拆为独立页
 
   - 锚点由 `> 规范版本 x.y` / `> 规则版本 x.y` 改为 `> 规范更新时间 YYYY-MM-DD HH:mm`（`SPEC.md`）与 `> 规则更新时间 YYYY-MM-DD HH:mm`（`docs/ai-rules.md`、`docs/commit-rules.md`）——两个规则页锚点位于 fenced 可复制块内部首行，`SPEC.md` 无 fenced 包裹、整篇文件即快照，锚点位于正文首行；复制过旧规则的快照首行格式不同即说明需重新复制对应页面
@@ -101,6 +136,7 @@ outline: false
   - 自定义语言新增可选 `groups`（`[{ slot, title, prefixes? }]`）声明本语言标题与自有前缀；未声明时退化为纯替换，既有配置无需改动
   - ⚠️ 对外契约变化：`--lang en` 的组标题文本变化（如 `### ✨ Minor Changes` → `### ✨ Added`）；`--warn` / `FX_CHECK_WARN` / `check.warnings` 适用范围由任务校验告警扩为「任务校验告警 + 变更集条目缺类型前缀告警」，同一开关一并开关闭；新增公共导出 `SLOT_PREFIXES` / `SemanticSlot`
   - 修复：发布日期行识别由硬编码「发布/released」改为「当前语言 `released` ∪ 全部内置语言 `released`」后缀集合——自定义语言（日文等）按自身 `released` 识别，内置 zh / en 互跑（如中文日志用 `--lang en` 输出）也不再重复追加日期行
+
 - 技能版本可视化，旧会话可自校验技能内容是否过期
 
   - `toolkit skills status` 常驻打印包内各技能真源版本，`--format json` 新增 `skillVersions` 字段与逐项 `version`，作为磁盘基准值；`toolkit skills install` 报告同样逐项带版本
