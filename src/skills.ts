@@ -281,17 +281,18 @@ export function skillsPackageDir(): string {
 }
 
 // pnpm 稳定入口：从包根推出不随版本段漂移的入口目录
-// pnpm 把包实体放在 <node_modules>/.pnpm/<包目录>/node_modules/<包名>，并在 <node_modules>/<包名> 建指向它的入口，
+// pnpm 把包实体放在 <模块目录>/.pnpm/<包目录>/node_modules/<包名>，并在 <模块目录>/<包名> 建指向它的入口，
 // 升级时只重写该入口；软链锚在入口上即跨版本存活。非 pnpm 布局（包实体即真实目录）返回空串
+// 模块目录（.pnpm 所在层）随安装方式变化：项目内即 <项目>/node_modules，全局安装为 <pnpm 全局>/<global 段>（.pnpm 与 node_modules 并列），故按目录名判定并补 node_modules 层
 export function pnpmStableEntry(pkgRoot: string): string {
   let dir = resolve(pkgRoot)
   for (;;) {
     const parent = dirname(dir)
     if (parent === dir) return ""
     if (basename(parent) === ".pnpm") {
-      // .pnpm 恒位于某 node_modules 之下，其上即稳定入口所在层
-      const virtualRoot = dirname(parent)
-      return basename(virtualRoot) === "node_modules" ? join(virtualRoot, PKG_NAME) : ""
+      const container = dirname(parent)
+      const moduleDir = basename(container) === "node_modules" ? container : join(container, "node_modules")
+      return join(moduleDir, PKG_NAME)
     }
     dir = parent
   }
