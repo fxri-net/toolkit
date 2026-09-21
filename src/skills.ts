@@ -1,9 +1,10 @@
 // skills 包内分发：把包内 <包根>/skills/ 安装到各 agent 的全局技能目录，消除 CLI 与 skills 两条供应链的版本漂移
-// 真源唯一（包内目录），目标默认软链到真源（升级随链接跟随）；链接创建失败自动降级为副本并写入状态文件
+// 真源唯一（包内目录），目标默认软链到稳定锚点（pnpm 全局入口，升级时由 pnpm 重写，链接不随版本段失效）
+// 链接创建失败自动降级为副本并写入状态文件
 // 状态文件 ~/.agents/.toolkit-skills.json：记录本包写入的产物，供 status 报告副本漂移、remove 精确清理（绝不碰用户自装技能）
-import { cpSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync } from "node:fs"
+import { cpSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync } from "node:fs"
 import type { Dirent } from "node:fs"
-import { dirname, isAbsolute, join, normalize, resolve } from "node:path"
+import { basename, dirname, isAbsolute, join, normalize, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { getConfigSection, getHomeDir } from "./config"
 import { readTextFile } from "./read-text"
@@ -230,6 +231,9 @@ export interface SkillsState {
 // 包根定位结果缓存（一次进程内不变）
 let cachedRoot: string | undefined
 
+// 链接锚点缓存：与包根同批解析，一次进程内不变
+let cachedLinkRoot: string | undefined
+
 // 从当前模块位置逐级向上找 name 为 @fxri/toolkit 的 package.json，得到包根绝对路径
 function resolvePackageRoot(): string {
   if (cachedRoot) return cachedRoot
@@ -254,9 +258,16 @@ function resolvePackageRoot(): string {
   throw new Error(`未能从模块位置向上定位 ${PKG_NAME} 的包根目录`)
 }
 
-// 重置包根缓存（测试用：不改变结果，仅保证跨用例干净）
+// 重置包根与链接锚点缓存（测试用：不改变结果，仅保证跨用例干净）
 export function resetSkillsRootCache(): void {
   cachedRoot = undefined
+  cachedLinkRoot = undefined
+}
+
+// 仅测试用：注入包根，使真源与链接锚点解析落在临时目录上
+export function setPackageRootForTest(dir: string): void {
+  cachedRoot = dir
+  cachedLinkRoot = undefined
 }
 
 // 真源目录：包内 skills/
@@ -267,6 +278,44 @@ export function skillsSourceDir(): string {
 // 包根目录（供 skills path 输出，便于委托上游安装器：pnpm dlx skills add "$(toolkit skills path)" -g）
 export function skillsPackageDir(): string {
   return resolvePackageRoot()
+}
+
+// pnpm 稳定入口：从包根推出不随版本段漂移的入口目录
+// pnpm 把包实体放在 <node_modules>/.pnpm/<包目录>/node_modules/<包名>，并在 <node_modules>/<包名> 建指向它的入口，
+// 升级时只重写该入口；软链锚在入口上即跨版本存活。非 pnpm 布局（包实体即真实目录）返回空串
+export function pnpmStableEntry(pkgRoot: string): string {
+  let dir = resolve(pkgRoot)
+  for (;;) {
+    const parent = dirname(dir)
+    if (parent === dir) return ""
+    if (basename(parent) === ".pnpm") {
+      // .pnpm 恒位于某 node_modules 之下，其上即稳定入口所在层
+      const virtualRoot = dirname(parent)
+      return basename(virtualRoot) === "node_modules" ? join(virtualRoot, PKG_NAME) : ""
+    }
+    dir = parent
+  }
+}
+
+// 链接锚点：优先 pnpm 稳定入口，不可用则回落包根真源
+// 必须校验候选的真实路径与包根一致——锚到别的版本或别的包上不会当场报错，只会在升级后断链
+function resolveLinkRoot(): string {
+  if (cachedLinkRoot) return cachedLinkRoot
+  const root = resolvePackageRoot()
+  let anchor = ""
+  try {
+    const candidate = pnpmStableEntry(root)
+    if (candidate && existsSync(candidate) && pathKey(realpathSync(candidate)) === pathKey(realpathSync(root))) anchor = candidate
+  } catch {
+    // 探活失败（权限、竞态删除等）不作为锚点，静默回落真源
+  }
+  cachedLinkRoot = anchor || root
+  return cachedLinkRoot
+}
+
+// 链接锚点目录：期望写进软链的目标（pnpm 布局下为稳定入口的 skills/，其余布局下即真源）
+export function skillsLinkDir(): string {
+  return join(resolveLinkRoot(), "skills")
 }
 
 // 读取技能真源版本：SKILL.md frontmatter 内 metadata.version（缩进键）；文件缺失、无 frontmatter 或未声明版本一律返回空串，不抛错
@@ -347,7 +396,8 @@ interface EntryType {
 
 // entry：调用方已列出的目录条目，省略则此处现查一次（查不到即视为不存在）
 // sourceExists：调用方已确认真源存在，此时指向真源的链接必然可解析，无需再探活 dest
-function classifyExisting(dest: string, source: string, entry?: EntryType, sourceExists = false): ExistingKind {
+// altSource：可接受的另一指向——升级迁移期链接可能指向稳定锚点或真源，两种都算正常
+function classifyExisting(dest: string, source: string, entry?: EntryType, sourceExists = false, altSource = ""): ExistingKind {
   let dirent: EntryType
   if (entry) {
     dirent = entry
@@ -366,7 +416,8 @@ function classifyExisting(dest: string, source: string, entry?: EntryType, sourc
       return "dangling"
     }
     const absTarget = stripTailSep(isAbsolute(target) ? target : resolve(dirname(dest), target))
-    if (pathKey(absTarget) !== pathKey(source)) return "wrong"
+    const targetKey = pathKey(absTarget)
+    if (targetKey !== pathKey(source) && !(altSource && targetKey === pathKey(altSource))) return "wrong"
     // 指向真源时：真源存在即为正常，否则悬空（真源缺失时 existsSync 为 false，而 lstat 仍认它是链接）
     return sourceExists || existsSync(dest) ? "link-ok" : "dangling"
   }
@@ -479,17 +530,18 @@ function copyArtifact(source: string, dest: string): void {
 }
 
 // 写入产物：默认软链（Windows 用 junction，免管理员、免开发者模式）；链接失败降级副本并回传原因
-function writeArtifact(source: string, dest: string, forceCopy: boolean): { mode: ArtifactMode; reason?: string } {
+// linkTarget 为软链指向（稳定锚点），copySource 为副本内容来源（真源）——pnpm 布局下二者不是同一路径
+function writeArtifact(linkTarget: string, copySource: string, dest: string, forceCopy: boolean): { mode: ArtifactMode; reason?: string } {
   if (forceCopy) {
-    copyArtifact(source, dest)
+    copyArtifact(copySource, dest)
     return { mode: "copy" }
   }
   try {
     mkdirSync(dirname(dest), { recursive: true })
-    symlinkSync(source, dest, process.platform === "win32" ? "junction" : "dir")
+    symlinkSync(linkTarget, dest, process.platform === "win32" ? "junction" : "dir")
     return { mode: "link" }
   } catch (e) {
-    copyArtifact(source, dest)
+    copyArtifact(copySource, dest)
     return { mode: "copy", reason: (e as Error).message }
   }
 }
@@ -505,6 +557,8 @@ export interface InstallOptions {
 export function installSkills(options: InstallOptions = {}): InstallReport {
   const skills = listPackageSkills()
   const targets = resolveSkillTargets(options.dirs ?? [])
+  // 期望链接目标：锚点目录下逐技能一项；判型与写链都用它，保证链接指向跨版本存活的入口
+  const linkDir = skillsLinkDir()
   const previous = readSkillsState()
   const previousByDir = new Map<string, StateEntry>()
   for (const entry of previous?.targets ?? []) previousByDir.set(pathKey(entry.dir), entry)
@@ -534,7 +588,8 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
     }
     for (const skill of skills) {
       const dest = join(target.dir, skill.name)
-      const kind = classifyExisting(dest, skill.dir)
+      const linkTarget = join(linkDir, skill.name)
+      const kind = classifyExisting(dest, linkTarget)
       if (kind === "link-ok") {
         result.skipped.push(skill.name)
         result.links.push(skill.name)
@@ -567,7 +622,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
       }
       try {
         if (!(kind === "absent")) removeArtifact(dest)
-        const written = writeArtifact(skill.dir, dest, Boolean(options.copy))
+        const written = writeArtifact(linkTarget, skill.dir, dest, Boolean(options.copy))
         if (kind === "absent") result.created.push(skill.name)
         else result.updated.push(skill.name)
         if (written.mode === "link") {
@@ -611,7 +666,8 @@ export function removeSkills(options: { dryRun?: boolean } = {}): SkillsRemoveRe
     for (const name of names) {
       const dest = join(entry.dir, name)
       const source = join(skillsSourceDir(), name)
-      const kind = classifyExisting(dest, source)
+      // 链接锚点改造前后的两种指向都算本包产物，避免 autoLink 关闭时漏摘旧锚点链接；副本比对仍以真源为准
+      const kind = classifyExisting(dest, source, undefined, false, join(skillsLinkDir(), name))
       if (kind === "absent") {
         result.missing.push(name)
         continue
@@ -673,7 +729,8 @@ export function skillsStatus(): SkillsStatusReport {
     for (const name of names) {
       const source = join(skillsSourceDir(), name)
       const dest = join(target.dir, name)
-      const kind = classifyExisting(dest, source)
+      // 链接接受稳定锚点与真源两种指向（新链接锚在入口、旧链接直指真源），只把指向别处的判为错误；副本比对仍以真源为准
+      const kind = classifyExisting(dest, join(skillsLinkDir(), name), undefined, false, source)
       let state: SkillItemState
       if (kind === "link-ok") state = "link"
       else if (kind === "dangling") state = "dangling"
@@ -720,6 +777,8 @@ export function autoLinkSkills(): number {
     return 0
   }
 
+  // 期望链接目标：稳定锚点（升级时锚点由 pnpm 重写，链接不随版本段失效）
+  const linkDir = skillsLinkDir()
   const replaceForeign = section?.autoLinkReplaceForeign !== false
   const linkType = process.platform === "win32" ? "junction" : "dir"
 
@@ -738,17 +797,17 @@ export function autoLinkSkills(): number {
     const links = entry.links.filter((name) => {
       // 已不在包内：剔除记录
       if (!sourceNames.has(name)) return false
-      const source = join(sourceRoot, name)
+      const linkTarget = join(linkDir, name)
       const dest = join(entry.dir, name)
       const dirent = present.get(name)
-      const kind: ExistingKind = dirent ? classifyExisting(dest, source, dirent, true) : "absent"
+      const kind: ExistingKind = dirent ? classifyExisting(dest, linkTarget, dirent, true) : "absent"
       if (kind === "link-ok") return true
       // 非替换模式：现场是实体目录/普通文件时一律不动，记录照留（用户可显式 install --force 处置）
       if (!replaceForeign && (kind === "dir" || kind === "file")) return true
-      // 悬空或指向错误：删链重建；实体目录/文件按开关先清理
+      // 悬空或指向错误（含锚点改造前的旧指向）：删链重建；实体目录/文件按开关先清理
       try {
         if (kind !== "absent") removeArtifact(dest)
-        symlinkSync(source, dest, linkType)
+        symlinkSync(linkTarget, dest, linkType)
         repaired += 1
         return true
       } catch {

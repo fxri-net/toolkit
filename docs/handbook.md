@@ -125,7 +125,7 @@ pnpm up @fxri/toolkit
 升级三步检查：
 
 1. **CLI** 更新（上面命令）
-2. **skills** 同步：默认**软链**直接指向包内真源，CLI 升级后技能即新版，无需额外命令；若是**副本**形式（`--copy` 安装，或链接创建失败自动降级），需重跑 `toolkit skills install` 刷新
+2. **skills** 同步：默认**软链**锚在 pnpm 稳定入口（升级时由 pnpm 重写该入口，链接不随版本段失效），CLI 升级后技能即新版，无需额外命令；若是**副本**形式（`--copy` 安装，或链接创建失败自动降级），需重跑 `toolkit skills install` 刷新
 3. **开新会话**：旧会话加载的技能内容还是旧版，新会话才读到新版
 
 装 skills 后无需手动同步全局规则全文——规则细节已收敛进 skills。CLI 检测到新版本时会提示；关闭提示：`FX_NO_UPDATE_CHECK=1` 或配置 `updateCheck.enabled: false`。

@@ -28,9 +28,9 @@ toolkit skills status       # 查现场状态（悬空 / 指向错误 / 副本�
 toolkit skills remove       # 卸载本包装的产物（只清自己装的，不碰用户自装技能）
 ```
 
-- 真源唯一：技能取自已装 CLI 包内的 `skills/`，升级 CLI 后重跑 `toolkit skills install` 即同步
+- 真源唯一：技能取自已装 CLI 包内的 `skills/`；软链锚在 pnpm 稳定入口，升级 CLI 后自动指向新版（副本形式需重跑 `toolkit skills install`）
 - 目标三层：主目标 `~/.agents/skills/`（多家 agent 共读）→ 内置表内**已安装**的各 agent 全局技能目录 → `--dir <path>` 兜底（可多次指定，给表外 agent 用）
-- 默认软链到真源（升级自动跟随）；链接创建失败自动降级为副本并打印 ⚠️（如无权限建链）；`--copy` 强制副本、`--dry-run` 预演、`--force` 覆盖同名非本包产物
+- 默认软链（锚在 pnpm 稳定入口，升级不失效）；链接创建失败自动降级为副本并打印 ⚠️（如无权限建链）；`--copy` 强制副本、`--dry-run` 预演、`--force` 覆盖同名非本包产物
 - 产物记录在状态文件 `~/.agents/.toolkit-skills.json`；卸载 CLI 前先跑 `toolkit skills remove`，避免留下悬空链接
 
 ### 方式二：上游安装器 `npx skills`（需锁定文件或覆盖表外 agent 时）

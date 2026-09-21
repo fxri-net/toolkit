@@ -185,7 +185,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 **行为细节**：
 
-- 产物形态默认**软链**（Windows 用 `junction`，免管理员、免开发者模式）；链接创建失败**自动降级副本**并在报告里标注 ⚠️，不静默跳过
+- 产物形态默认**软链**（Windows 用 `junction`，免管理员、免开发者模式）；软链锚在 pnpm 稳定入口（`<node_modules>/@fxri/toolkit`，升级时由 pnpm 重写），不随版本段失效；链接创建失败**自动降级副本**并在报告里标注 ⚠️，不静默跳过
 - 卸载链接时**只摘链、不碰真源**（包内原始文件完好）
 - 配置 `skills.autoLink`（默认 `true`）：命令启动时对状态文件记载的**链接**做补链与修链；现场被替换为同名实体目录 / 普通文件时默认清理重建为软链，置 `skills.autoLinkReplaceForeign: false` 可改为一律不动（**不含首次安装、不含副本升级**；`CI` 环境自动跳过。见[配置参考 · skills](./config#skills-技能分发-1-9-0-新增)）
 - 状态文件为**用户级**（`~/.agents/.toolkit-skills.json`），与上游安装器的 `skills-lock.json` 相互独立

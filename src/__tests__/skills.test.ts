@@ -11,12 +11,15 @@ import {
   findSkillVersionMismatches,
   installSkills,
   listPackageSkills,
+  pnpmStableEntry,
   readSkillBodyVersion,
   readSkillVersion,
   readSkillsState,
   removeSkills,
   resetSkillsRootCache,
   resolveSkillTargets,
+  setPackageRootForTest,
+  skillsLinkDir,
   skillsPackageDir,
   skillsSourceDir,
   skillsStateFile,
@@ -116,6 +119,84 @@ describe("包根与技能真源定位", () => {
       expect(skill.version).toMatch(/^\d+\.\d+\.\d+$/)
       expect(readSkillVersion(skill.dir)).toBe(skill.version)
     }
+  })
+})
+
+describe("pnpmStableEntry 稳定入口解析", () => {
+  it("pnpm 布局下推出不含版本段的入口目录", () => {
+    const pkgRoot = join(home, "node_modules", ".pnpm", "@fxri+toolkit@1.10.3", "node_modules", "@fxri", "toolkit")
+    mkdirSync(pkgRoot, { recursive: true })
+    expect(pnpmStableEntry(pkgRoot)).toBe(join(home, "node_modules", "@fxri", "toolkit"))
+  })
+
+  it("非 pnpm 布局（包实体即真实目录）返回空串", () => {
+    const pkgRoot = join(home, "node_modules", "@fxri", "toolkit")
+    mkdirSync(pkgRoot, { recursive: true })
+    expect(pnpmStableEntry(pkgRoot)).toBe("")
+  })
+
+  it("本仓库根不在 node_modules/.pnpm 之下，锚点回落真源（两者等价）", () => {
+    const pkgRoot = skillsPackageDir()
+    expect(pnpmStableEntry(pkgRoot)).toBe("")
+    expect(skillsLinkDir()).toBe(skillsSourceDir())
+  })
+})
+
+describe("链接锚点跨版本存活", () => {
+  // 假技能名：与包内真实技能不重名，避免与真实真源混淆
+  const FAKE_SKILL = "fxri-fake-skill"
+
+  // 在临时目录造一个 pnpm 全局布局的假包实体：.pnpm/<包目录>/node_modules/@fxri/toolkit/skills/<技能>/
+  function layout(version: string): { entry: string; pkgRoot: string } {
+    const pkgRoot = join(home, "node_modules", ".pnpm", `@fxri+toolkit@${version}`, "node_modules", "@fxri", "toolkit")
+    const skillDir = join(pkgRoot, "skills", FAKE_SKILL)
+    mkdirSync(skillDir, { recursive: true })
+    writeFileSync(join(skillDir, "SKILL.md"), `---\nname: ${FAKE_SKILL}\nmetadata:\n  version: ${version}\n---\n\n# ${FAKE_SKILL} ${version}\n`, "utf8")
+    return { entry: join(home, "node_modules", "@fxri", "toolkit"), pkgRoot }
+  }
+
+  // 把稳定入口重指到指定包实体（先摘旧链，模拟 pnpm 升级时对入口的改写）
+  function pointEntry(entry: string, pkgRoot: string): void {
+    rmSync(entry, { recursive: true, force: true })
+    mkdirSync(join(home, "node_modules", "@fxri"), { recursive: true })
+    symlinkSync(pkgRoot, entry, LINK_TYPE)
+  }
+
+  it("升级换版本段后链接不悬空：仅查询现场即报正常，无需任何修复命令", () => {
+    const v1 = layout("9.9.9")
+    pointEntry(v1.entry, v1.pkgRoot)
+    setPackageRootForTest(v1.pkgRoot)
+
+    // 安装：链接锚在稳定入口而非含版本段的包实体路径——后者会随 pnpm 剪除旧目录而失效
+    installSkills()
+    const dest = join(primaryDir(), FAKE_SKILL)
+    expect(isLinkTo(dest, join(v1.entry, "skills", FAKE_SKILL))).toBe(true)
+    expect(readlinkSync(dest)).not.toContain("@fxri+toolkit@")
+    expect(stateOf(primaryDir(), FAKE_SKILL)).toBe("link")
+
+    // 模拟 pnpm 升级：新版本段落盘 → 稳定入口重指新版本 → 旧版本段被剪除
+    const v2 = layout("10.0.0")
+    pointEntry(v2.entry, v2.pkgRoot)
+    rmSync(join(home, "node_modules", ".pnpm", "@fxri+toolkit@9.9.9"), { recursive: true, force: true })
+    setPackageRootForTest(v2.pkgRoot)
+
+    expect(skillsLinkDir()).toBe(join(v2.entry, "skills"))
+    expect(stateOf(primaryDir(), FAKE_SKILL)).toBe("link")
+    expect(readFileSync(join(dest, "SKILL.md"), "utf8")).toContain("10.0.0")
+  })
+
+  it("存量旧指向（直指包实体）不误报，下次运行即迁移到稳定入口", () => {
+    const fake = layout("9.9.9")
+    pointEntry(fake.entry, fake.pkgRoot)
+    setPackageRootForTest(fake.pkgRoot)
+    // 造锚点改造前的现场：链接直指包实体路径，且已登记在本包状态文件
+    mkdirSync(primaryDir(), { recursive: true })
+    symlinkSync(join(fake.pkgRoot, "skills", FAKE_SKILL), join(primaryDir(), FAKE_SKILL), LINK_TYPE)
+    writeState([{ dir: primaryDir(), links: [FAKE_SKILL] }])
+    // status 接受新旧两种锚点，升级瞬间不刷错误；自愈则把旧指向迁到稳定入口
+    expect(stateOf(primaryDir(), FAKE_SKILL)).toBe("link")
+    expect(autoLinkSkills()).toBe(1)
+    expect(isLinkTo(join(primaryDir(), FAKE_SKILL), join(fake.entry, "skills", FAKE_SKILL))).toBe(true)
   })
 })
 

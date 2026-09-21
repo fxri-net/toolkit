@@ -170,7 +170,7 @@ pnpm remove -g @fxri/toolkit   # 2. 再卸 CLI
 
 ### 升级后要注意什么？
 
-CLI 升级后技能**默认自动跟随**（软链直接指向包内真源，无需额外命令）；若当初用了 `--copy`、或链接创建失败被自动降级为副本，需重跑 `toolkit skills install` 刷新，并且**开新会话**——旧会话加载的技能内容还是旧版，新会话才会读到新技能。升级命令按安装方式选：全局 `pnpm add -g @fxri/toolkit`（npm 用户 `npm i -g @fxri/toolkit`）；项目 devDep 在项目内 `pnpm up @fxri/toolkit`；yarn v2+ 全局安装受限，建议迁移到 pnpm。1.7.0 起 CLI 会在检测到新版本时提示。
+CLI 升级后技能**默认自动跟随**（软链锚在 pnpm 稳定入口，升级不失效，无需额外命令）；若当初用了 `--copy`、或链接创建失败被自动降级为副本，需重跑 `toolkit skills install` 刷新，并且**开新会话**——旧会话加载的技能内容还是旧版，新会话才会读到新技能。升级命令按安装方式选：全局 `pnpm add -g @fxri/toolkit`（npm 用户 `npm i -g @fxri/toolkit`）；项目 devDep 在项目内 `pnpm up @fxri/toolkit`；yarn v2+ 全局安装受限，建议迁移到 pnpm。1.7.0 起 CLI 会在检测到新版本时提示。
 
 ### fork 本仓库怎么部署文档站？
 
