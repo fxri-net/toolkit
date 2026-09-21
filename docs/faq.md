@@ -61,7 +61,7 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 
 ### Node 18 能用吗？
 
-能安装、能跑 tasks 总览/归档和 CHANGELOG 格式化；但 `changelog` 走 changesets 的子命令（add/version/publish）不可用——上游依赖 `human-id` 仅支持 ESM，属 changesets 生态限制。正式支持 Node >= 20。
+能安装、能跑 tasks 总览/归档和 CHANGELOG 格式化；但 `changelog` 走 changesets 的子命令（add/version/publish）不可用——上游依赖 `human-id` 仅支持 ESM，需宿主 Node 默认开启 `require(esm)`（Node ≥ 20.19.0 / 22 线 ≥ 22.12.0），属 changesets 生态限制。正式支持 Node >= 20.19.0。
 
 ### 内网或离线环境怎么装？
 

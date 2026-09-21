@@ -91,7 +91,7 @@ npm / yarn / bun 用户与各方式对比见 [新手指南 · 安装](./docs/get
 
 ## ⚙️ 环境要求
 
-- Node.js >= 20（Node 18 可安装，changesets 相关子命令不可用，见 [FAQ](./docs/faq.md#node-18-能用吗)）
+- Node.js >= 20.19.0（更低版本可安装，changesets 相关子命令不可用，见 [FAQ](./docs/faq.md#node-18-能用吗)）
 
 ## 📄 版权信息
 
