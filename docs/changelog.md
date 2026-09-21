@@ -6,6 +6,18 @@ outline: [2, 2]
 
 > 完整变更历史以随包发布的 CHANGELOG.md 为准，本页由 `pnpm sync:changelog-doc` 从根 CHANGELOG.md 自动同步，请勿手改。
 
+## 1.10.5
+
+> 2026-09-21 发布
+
+### 🐛 问题修复
+
+- 技能软链锚点在 pnpm 全局布局下解析失效，升级后链接仍会悬空
+
+  - 稳定入口解析原以「`.pnpm` 所在层目录名为 `node_modules`」为判据，该条件只在项目内安装时成立；pnpm 全局安装下 `.pnpm` 与 `node_modules` 并列（同在 `<pnpm 全局>/<global 段>/` 内），判据恒假 → 解析不出候选而静默回落含版本段的包实体路径，1.10.4 声称的悬空修复对全局安装实际未生效
+  - 改为按目录名判定并补齐 `node_modules` 层：项目内取 `<项目>/node_modules/@fxri/toolkit`，全局取 `<pnpm 全局>/<global 段>/node_modules/@fxri/toolkit`，两种布局都锚在 pnpm 稳定入口（升级时由 pnpm 重写该入口）
+  - 1.10.4 的发布描述与全局安装实际行为不符，建议直接升级至本版，勿停留在 1.10.4
+
 ## 1.10.4
 
 > 2026-09-21 发布
