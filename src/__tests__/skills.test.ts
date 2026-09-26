@@ -122,6 +122,64 @@ describe("包根与技能真源定位", () => {
   })
 })
 
+// 从技能表格提取「技能名 → 版本」映射：兼容 README 的 markdown 链接写法与 guide 的反引号写法
+function skillTableVersions(file: string): Map<string, string> {
+  const map = new Map<string, string>()
+  for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
+    if (!line.startsWith("|")) continue
+    const cells = line.split("|").map((c) => c.trim())
+    const version = cells[2] ?? ""
+    if (!/^\d+\.\d+\.\d+$/.test(version)) continue
+    const rawName = cells[1] ?? ""
+    const linked = rawName.match(/\[([^\]]+)\]\([^)]*\)/)
+    map.set((linked ? linked[1] : rawName).replace(/`/g, "").trim(), version)
+  }
+  return map
+}
+
+// 取 SKILL.md frontmatter 块正文（去掉首尾分隔线）：供命名约定用例读顶层 name / description
+function skillFrontmatter(dir: string): string {
+  const content = readFileSync(join(dir, "SKILL.md"), "utf8").replace(/^\uFEFF/, "")
+  const matched = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+  return matched ? (matched[1] ?? "") : ""
+}
+
+// 读 frontmatter 顶层单行字段（键从列 0 起，排除 metadata 下的缩进键）
+function frontmatterField(frontmatter: string, key: string): string {
+  const matched = frontmatter.match(new RegExp(`^${key}:[ \\t]*(.*)$`, "m"))
+  return matched ? (matched[1] ?? "").trim() : ""
+}
+
+describe("技能作者侧核对清单项门禁", () => {
+  it("两张技能版本表与 SKILL.md 真源版本一致（skills/README.md、docs/guide.md）", () => {
+    const truth = new Map(listPackageSkills().map((s) => [s.name, s.version]))
+    expect(truth.size).toBeGreaterThan(0)
+    for (const file of ["skills/README.md", "docs/guide.md"]) {
+      const table = skillTableVersions(file)
+      // 行数守卫：整表被删或改名时逐项比对本会失去意义，须先卡住规模
+      expect(table.size, `${file} 技能表行数与包内技能数不一致`).toBe(truth.size)
+      for (const [name, version] of truth) {
+        expect(table.get(name), `${file} 缺失或错记技能 ${name} 的版本`).toBe(version)
+      }
+    }
+  })
+
+  it("每个技能 frontmatter 命名合规：name 与目录名一致且 kebab-case ≤64、description ≤1024", () => {
+    const skills = listPackageSkills()
+    expect(skills.length).toBeGreaterThan(0)
+    for (const skill of skills) {
+      const frontmatter = skillFrontmatter(skill.dir)
+      const name = frontmatterField(frontmatter, "name")
+      expect(name, `${skill.name} 的 frontmatter name 与目录名不一致`).toBe(skill.name)
+      expect(name, `${skill.name} 的 name 非 kebab-case`).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+      expect(name.length, `${skill.name} 的 name 超过 64 字符`).toBeLessThanOrEqual(64)
+      const description = frontmatterField(frontmatter, "description")
+      expect(description.length, `${skill.name} 的 description 为空`).toBeGreaterThan(0)
+      expect(description.length, `${skill.name} 的 description 超过 1024 字符`).toBeLessThanOrEqual(1024)
+    }
+  })
+})
+
 describe("pnpmStableEntry 稳定入口解析", () => {
   it("项目内布局（.pnpm 位于 node_modules 下）推出不含版本段的入口目录", () => {
     const pkgRoot = join(home, "node_modules", ".pnpm", "@fxri+toolkit@1.10.3", "node_modules", "@fxri", "toolkit")
