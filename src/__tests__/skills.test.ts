@@ -5,6 +5,7 @@ import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, rea
 import { tmpdir } from "node:os"
 import { join, normalize } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
+import { CARRIER_VERSION, ENTRY_VERSION } from "../conventions/format"
 import {
   AGENT_SKILL_DIRS,
   autoLinkSkills,
@@ -122,9 +123,15 @@ describe("包根与技能真源定位", () => {
   })
 })
 
-// 从技能表格提取「技能名 → 版本」映射：兼容 README 的 markdown 链接写法与 guide 的反引号写法
-function skillTableVersions(file: string): Map<string, string> {
-  const map = new Map<string, string>()
+// 技能表一行的两列内容：版本与用途
+interface SkillTableRow {
+  version: string
+  usage: string
+}
+
+// 从技能表格提取「技能名 → { 版本, 用途 }」：兼容 README 的 markdown 链接写法与 guide 的反引号写法
+function skillTableRows(file: string): Map<string, SkillTableRow> {
+  const map = new Map<string, SkillTableRow>()
   for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
     if (!line.startsWith("|")) continue
     const cells = line.split("|").map((c) => c.trim())
@@ -132,7 +139,7 @@ function skillTableVersions(file: string): Map<string, string> {
     if (!/^\d+\.\d+\.\d+$/.test(version)) continue
     const rawName = cells[1] ?? ""
     const linked = rawName.match(/\[([^\]]+)\]\([^)]*\)/)
-    map.set((linked ? linked[1] : rawName).replace(/`/g, "").trim(), version)
+    map.set((linked ? linked[1] : rawName).replace(/`/g, "").trim(), { version, usage: cells[3] ?? "" })
   }
   return map
 }
@@ -190,11 +197,11 @@ describe("技能作者侧核对清单项门禁", () => {
     const truth = new Map(listPackageSkills().map((s) => [s.name, s.version]))
     expect(truth.size).toBeGreaterThan(0)
     for (const file of ["skills/README.md", "docs/guide.md"]) {
-      const table = skillTableVersions(file)
+      const table = skillTableRows(file)
       // 行数守卫：整表被删或改名时逐项比对本会失去意义，须先卡住规模
       expect(table.size, `${file} 技能表行数与包内技能数不一致`).toBe(truth.size)
       for (const [name, version] of truth) {
-        expect(table.get(name), `${file} 缺失或错记技能 ${name} 的版本`).toBe(version)
+        expect(table.get(name)?.version, `${file} 缺失或错记技能 ${name} 的版本`).toBe(version)
       }
     }
   })
@@ -229,6 +236,38 @@ describe("技能作者侧核对清单项门禁", () => {
         }
       }
     }
+  })
+
+  it("两张技能表的用途列逐字一致（skills/README.md ↔ docs/guide.md）", () => {
+    const readme = skillTableRows("skills/README.md")
+    const guide = skillTableRows("docs/guide.md")
+    expect(readme.size).toBeGreaterThan(0)
+    // 行数守卫：整表被删或改名时逐项比对本会失去意义，须先卡住规模
+    expect(guide.size, "docs/guide.md 技能表行数与 skills/README.md 不一致").toBe(readme.size)
+    for (const [name, row] of readme) {
+      expect(guide.get(name)?.usage, `docs/guide.md 中 ${name} 的用途描述与 skills/README.md 不一致`).toBe(row.usage)
+    }
+  })
+
+  it("技能文档中的规范载体 / 入口壳标记版本与代码常量一致", () => {
+    // 两类标记的命中数：全部消失时逐项比对本会沦为无断言，须先卡住存在性
+    let carrierHits = 0
+    let entryHits = 0
+    for (const skill of listPackageSkills()) {
+      for (const doc of collectSkillDocs(skill.dir)) {
+        const content = readFileSync(join(skill.dir, doc), "utf8")
+        for (const matched of content.matchAll(/<!--\s*toolkit-conventions:\s*v(\d+)\s*-->/g)) {
+          carrierHits += 1
+          expect(Number(matched[1]), `${skill.name}/${doc} 的载体标记版本与 CARRIER_VERSION 不一致`).toBe(CARRIER_VERSION)
+        }
+        for (const matched of content.matchAll(/<!--\s*toolkit-conventions-entry:\s*v(\d+)\s*-->/g)) {
+          entryHits += 1
+          expect(Number(matched[1]), `${skill.name}/${doc} 的入口壳标记版本与 ENTRY_VERSION 不一致`).toBe(ENTRY_VERSION)
+        }
+      }
+    }
+    expect(carrierHits, "技能文档中未见任何规范载体标记，同源校验已失效").toBeGreaterThan(0)
+    expect(entryHits, "技能文档中未见任何入口壳标记，同源校验已失效").toBeGreaterThan(0)
   })
 })
 
