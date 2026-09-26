@@ -16,7 +16,7 @@
 
 ### conventions 同步（独立机制，随上述质量门一并执行）
 
-`.tasks/conventions/` 载体的索引表与 AGENTS / ai-rules / skills 条文存在对应关系：修改 AGENTS.md、docs/ai-rules.md 或 skills 条文的变更，须同步检查索引对应行的「当前语义」是否需要更新；语义变更先在 `index.md` 的「演进记录」留痕、再更新表内当前语义，随该变更同批落盘。
+`.tasks/conventions/` 载体的索引表与 AGENTS / ai-rules / skills 条文存在对应关系：修改 AGENTS.md、docs/ai-rules.md 或 skills 条文的变更，须同步检查索引对应行的「当前语义」是否需要更新；语义变更先在 `history.md` 留痕、再更新索引表内当前语义，随该变更同批落盘。
 
 ## 验收方式
 

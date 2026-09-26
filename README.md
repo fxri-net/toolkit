@@ -24,7 +24,7 @@ AI 参与开发后，方案与决策散落在对话记录里，会话一关什�
 # 1. 项目内安装（推荐，团队共享版本）
 pnpm add -D @fxri/toolkit
 
-# 2. 初始化任务区（生成 .tasks/ 骨架，1.7.0 新增）
+# 2. 初始化任务区（生成 .tasks/ 骨架、conventions/ 规范载体与技能入口壳，1.7.0 新增）
 pnpm exec toolkit init
 
 # 3. 查看任务总览
@@ -39,6 +39,7 @@ pnpm exec toolkit tasks
 | --- | --- | --- |
 | 任务管理（tasks） | 方案落盘、总览过滤、校验归档、导入导出 CSV / XLSX / JSON | [CLI 参考](./docs/cli.md) · [任务文件规范](./docs/guide.md#任务文件规范) |
 | 多语言 CHANGELOG（changelog） | 封装 changesets 发版、分组标题本地化 | [CLI 参考](./docs/cli.md#changelog) |
+| 协作规范载体（conventions） | 把任务里提炼的规范收进 `.tasks/conventions/`，成为可检索、可校验的项目规范源；支持结构升级与只读体检 | [CLI 参考](./docs/cli.md) · [完整攻略](./docs/guide.md#conventions-规范沉淀地) |
 | Node API | 把上述能力嵌进脚本或平台 | [API 参考](./docs/api.md) |
 | 隐私脱敏 | 落盘前自动掩码邮箱、手机号、密钥等 | [配置参考](./docs/config.md) |
 | AI 技能包（skills） | 不装本工具也能让 AI 按同一套规范干活；装了可一键分发技能 | [完整攻略](./docs/guide.md#ai-技能包-skills) · [FAQ](./docs/faq.md#工具和-skills-都得装吗) |
