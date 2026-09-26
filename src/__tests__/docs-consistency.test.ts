@@ -152,17 +152,64 @@ describe("文档一致性：站点导航与侧边栏链接目标存在", () => {
   })
 })
 
+// 站点静态资源引用同样不在 VitePress 检查范围内（实测移除 docs/public/logo.png 后 build 仍成功）：
+// themeConfig.logo 与 head 的 favicon / og:image 指向 docs/public/ 下的文件，缺失时构建全绿、图标静默失效
+describe("文档一致性：站点配置引用的静态资源存在", () => {
+  it("config.mts 的 logo / favicon / og:image 都指向 docs/public 下存在的文件（改名或删除即失败）", () => {
+    const config = readDoc("docs/.vitepress/config.mts")
+    // 三种写法分别取值：logo 为引号路径；favicon / og:image 为 `${base}` / `${siteUrl}` 模板前缀 + 文件名
+    const refs = [
+      /logo:\s*'\/([^']+)'/.exec(config)?.[1],
+      /rel:\s*'icon',\s*href:\s*`\$\{base\}([^`]+)`/.exec(config)?.[1],
+      /property:\s*'og:image',\s*content:\s*`\$\{siteUrl\}([^`]+)`/.exec(config)?.[1],
+    ]
+    expect(refs.every(Boolean), "config.mts 未取到 logo / favicon / og:image 三处引用").toBe(true)
+    for (const ref of refs) {
+      const target = join("docs", "public", ref as string)
+      expect(existsSync(join(process.cwd(), target)), `config.mts 引用的静态资源 ${target} 不存在`).toBe(true)
+    }
+  })
+})
+
 // 提交信息规则在两处并存：.trae/rules/git-commit-message.md（本仓库自用真源）与 docs/commit-rules.md
 // 的可复制围栏块（用户侧投影）。两者正文须逐字一致（规范 C-16），此前无任何检测入口
 describe("文档一致性：提交信息规则两处真源镜像", () => {
   it("docs/commit-rules.md 围栏块正文与 .trae/rules/git-commit-message.md 逐字一致（只改一处即失败）", () => {
     const fenced = /^````markdown\n([\s\S]*?)^````/m.exec(readDoc("docs/commit-rules.md"))?.[1]
     expect(fenced, "docs/commit-rules.md 缺少 ````markdown 规则全文围栏块").toBeTruthy()
-    // 围栏块首行是只存在于用户侧投影的更新时间锚点，比对时剔除
+    // 围栏块首行是只存在于用户侧投影的更新时间锚点（C-15），比对时剔除；
+    // 先断言其存在再剥离——锚点缺失时该正则静默不匹配，比对照样通过
+    expect(fenced as string, "docs/commit-rules.md 围栏块首行缺少规则更新时间锚点").toMatch(/^> 规则更新时间 [^\n]*\n/)
     const projection = (fenced as string).replace(/^> 规则更新时间 [^\n]*\n/, "").trim()
     // 真源文件的 frontmatter 是 agent 规则元数据，不进用户侧投影，比对时剔除
     const source = readDoc(".trae/rules/git-commit-message.md").replace(/^---\n[\s\S]*?\n---\n/, "").trim()
     expect(projection).toBe(source)
+  })
+})
+
+// 规则层三处更新锚点（C-15）此前无任何检测入口：锚点行是用户侧规则快照的自查依据，
+// 整行被删或格式走样都会让快照失同步无从识别
+describe("文档一致性：规则层更新锚点", () => {
+  // 两个规则页的锚点位于 4 反引号 markdown 规则全文围栏块的首行
+  const fenceAnchor = (file: string) => {
+    const fenced = /^````markdown\n([^\n]*)/m.exec(readDoc(file))
+    expect(fenced, `${file} 缺少 4 反引号 markdown 规则全文围栏块`).toBeTruthy()
+    return fenced?.[1] as string
+  }
+
+  it("docs/commit-rules.md 与 docs/ai-rules.md 的规则全文首行为合法更新时间锚点", () => {
+    for (const file of ["docs/commit-rules.md", "docs/ai-rules.md"]) {
+      expect(fenceAnchor(file), `${file} 的规则全文首行不是合法更新时间锚点`).toMatch(/^> 规则更新时间 \d{4}-\d{2}-\d{2} \d{2}:\d{2}。/)
+    }
+  })
+
+  it("SPEC.md 正文首行为合法规范更新时间锚点", () => {
+    // 无围栏包裹，整篇即快照：标题行之后的首个非空行即锚点
+    const body = readDoc("SPEC.md")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l !== "" && !l.startsWith("#"))
+    expect(body[0], "SPEC.md 正文首行不是合法规范更新时间锚点").toMatch(/^> 规范更新时间 \d{4}-\d{2}-\d{2} \d{2}:\d{2}。/)
   })
 })
 
