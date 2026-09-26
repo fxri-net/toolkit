@@ -7,6 +7,16 @@ import { listTaskFiles } from "./scan"
 import { parseFrontmatterRaw, stripFrontmatter, bodyWithoutTitle, FRONTMATTER_RE } from "./parse"
 import { parseArchiveBlocks } from "./archive-block"
 import { getConfigSection } from "../config"
+import {
+  CARRIER_VERSION,
+  ENTRY_VERSION,
+  HISTORY_FILE,
+  ID_HEADER,
+  INDEX_FILE,
+  LEGACY_FILE,
+  readCarrier,
+} from "../conventions/format"
+import { findEntryShells, isGitIgnored } from "../conventions/entry"
 import { ALL_STATUSES, DONE_STATUSES, FRONTMATTER_KEYS } from "./types"
 import { parseDepends } from "./depends"
 import { displayRel } from "./paths"
@@ -221,29 +231,52 @@ function strayTaskFiles(tasksDir: string): string[] {
   return results
 }
 
-// 规范载体形态检查（软告警，不读内容）：旧单文件残留提示迁移、目录形态缺 index.md 提示补齐
+// 规范载体形态检查（软告警，不读内容）：只读首行标记与文件存在性，形态判据走 format.ts 的单一实现
+// 三态：v1（有 index.md、无 history.md、无标记）为合法存量不告警；形态异常（标记 / history.md / 首列 ID 三者不一致）告警
+// 入口层：壳标记版本落后、壳被 gitignore 覆盖各告警一条；无壳时不探测（避免无壳项目的进程开销）
 // 载体细则见 skills/fxri-plan-to-task/references/conventions-spec.md
-function validateConventions(tasksDir: string): CheckIssue[] {
+function validateConventions(tasksDir: string, cwd: string): CheckIssue[] {
   const issues: CheckIssue[] = []
-  const dir = join(tasksDir, "conventions")
-  const hasDir = existsSync(dir)
-  if (existsSync(join(tasksDir, "conventions.md"))) {
+  const state = readCarrier(tasksDir)
+  if (state.hasLegacy) {
     issues.push({
       level: "warn",
-      file: "conventions.md",
-      message: hasDir
+      file: LEGACY_FILE,
+      message: state.hasDir
         ? "旧单文件规范载体已被 conventions/ 目录形态取代，建议清理（两者并存时以目录形态为准）"
         : "旧单文件规范载体，建议迁移为 conventions/ 目录形态（index.md 作唯一入口 + common.md / 端分册按需创建）",
     })
   }
-  if (hasDir && !existsSync(join(dir, "index.md"))) {
-    issues.push({ level: "warn", file: "conventions/index.md", message: "规范载体缺 index.md（唯一入口与唯一权威），请补齐" })
+  if (state.hasDir && !state.hasIndex) {
+    issues.push({ level: "warn", file: `conventions/${INDEX_FILE}`, message: "规范载体缺 index.md（唯一入口与唯一权威），请补齐" })
+  }
+  if (state.form === "abnormal") {
+    issues.push({
+      level: "warn",
+      file: `conventions/${INDEX_FILE}`,
+      message:
+        state.markerVersion === CARRIER_VERSION
+          ? `规范载体标为 v${CARRIER_VERSION} 但缺 ${HISTORY_FILE} 或索引表首列非 ${ID_HEADER}，请补齐或执行 toolkit conventions upgrade`
+          : `规范载体存在 ${HISTORY_FILE} 但索引表首列仍非 ${ID_HEADER}（形态异常），请人工确认`,
+    })
+  }
+  for (const shell of findEntryShells(cwd)) {
+    if (shell.version !== ENTRY_VERSION) {
+      issues.push({
+        level: "warn",
+        file: shell.file,
+        message: `入口壳标记版本为 ${shell.version ?? "无"}，与当前 toolkit 的 v${ENTRY_VERSION} 不一致：重跑 toolkit init 可补齐`,
+      })
+    }
+    if (isGitIgnored(cwd, shell.file)) {
+      issues.push({ level: "warn", file: shell.file, message: "入口壳被 gitignore 覆盖：不会随 git 分发，请把该路径从忽略规则中排除" })
+    }
   }
   return issues
 }
 
 // 校验 active 目录全部任务（含跨文件重名检测）
-export function validateTasks(tasksDir = ".tasks"): CheckResult {
+export function validateTasks(tasksDir = ".tasks", cwd = process.cwd()): CheckResult {
   const activeDir = join(tasksDir, "active")
   const files = listTaskFiles(activeDir)
   const issues: CheckIssue[] = []
@@ -261,7 +294,7 @@ export function validateTasks(tasksDir = ".tasks"): CheckResult {
   }
 
   // 规范载体形态：仅查形态不读内容，故不影响任务校验的语义判断
-  issues.push(...validateConventions(tasksDir))
+  issues.push(...validateConventions(tasksDir, cwd))
 
   // 跨文件重名检测：同名任务文件疑似重复建档
   const seen = new Map<string, string[]>()

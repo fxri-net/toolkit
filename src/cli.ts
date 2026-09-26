@@ -21,7 +21,9 @@ import { localDate, formatChangelogs, countUntypedEntries } from "./changelog/fo
 import { resolveRedactEnabled } from "./privacy/redact"
 import { resolveEnabled } from "./switch"
 import { getConfigSection, resolveTasksDir } from "./config"
-import { initWorkspace, INIT_LINKS } from "./init"
+import { initWorkspace, INIT_LINKS, type InitAction, type InitReport } from "./init"
+import { upgradeConventions, type UpgradeReport } from "./conventions/upgrade"
+import { conventionsStatus, type ConventionsStatusReport } from "./conventions/status"
 import { toJsonText, assertJsonFormat } from "./json-output"
 import {
   autoLinkSkills,
@@ -282,23 +284,36 @@ program.addHelpText(
   ].join("\n"),
 )
 
-// init：初始化项目任务区（生成 .tasks/ 骨架与 .gitignore 片段，幂等可重复执行）
+// init 动作标签：逐项如实报告实际动作，替代只讲「会做什么」的固定话术
+const INIT_ACTION_LABEL: Record<InitAction, string> = {
+  created: "新建",
+  kept: "保持",
+  appended: "追加",
+  skipped: "跳过",
+}
+
+// 打印 init 报告：逐项列出实际动作与原因，hint 另起一行提示后续可选操作
+function printInitReport(report: InitReport): void {
+  console.log(`任务区：${report.tasksDir}`)
+  for (const p of report.products) {
+    console.log(`  ${INIT_ACTION_LABEL[p.action]} ${p.target}${p.detail ? `（${p.detail}）` : ""}`)
+    if (p.hint) console.log(`    提示：${p.hint}`)
+  }
+  console.log("")
+  console.log("下一步：")
+  console.log(`  新手指南：${INIT_LINKS.gettingStarted}`)
+  console.log(`  完整攻略：${INIT_LINKS.guide}`)
+}
+
+// init：初始化项目任务区（生成任务区骨架、规范载体与技能入口壳，幂等可重复执行）
 program
   .command("init")
-  .description("初始化项目任务区（生成 .tasks/ 骨架与 .gitignore 片段）")
+  .description("初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐 .gitignore 片段）")
   .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）")
   .action((options: { dir?: string }) => {
     try {
       // 与 tasks 命令同口径：初始化时也尊重配置中已声明的外置任务目录
-      const dir = resolveTasksDir(options.dir)
-      initWorkspace(dir)
-      console.log(`已初始化任务区：${dir}/active/{YYYYMM}/、${dir}/archive/（已存在的目录保持不变）`)
-      console.log("已确保 .gitignore 含 .archive.lock 忽略片段（已存在或无 .gitignore 时自动处理）")
-      console.log(`规范载体：${dir}/conventions/index.md（缺失则新建；已存在，或存在待迁移的旧 ${dir}/conventions.md 时保持不变）`)
-      console.log("")
-      console.log("下一步：")
-      console.log(`  新手指南：${INIT_LINKS.gettingStarted}`)
-      console.log(`  完整攻略：${INIT_LINKS.guide}`)
+      printInitReport(initWorkspace(resolveTasksDir(options.dir)))
     } catch (e) {
       console.error(`⚠️ 初始化失败：${(e as Error).message}`)
       process.exitCode = 1
@@ -388,6 +403,99 @@ skillsCmd
 // 裸 `toolkit skills`：打印本域帮助，列出 4 个子命令
 skillsCmd.action(() => {
   skillsCmd.help()
+})
+
+// 打印升级报告：ID 映射（不落盘）+ 逐项结构动作 + 内部引用改写清单，风格与 skills install 预演一致
+function printUpgradeReport(report: UpgradeReport, dryRun: boolean): void {
+  const tag = dryRun ? "[预演] " : ""
+  console.log(`${tag}任务区：${report.tasksDir}`)
+  console.log(`${tag}载体：${report.dir}（形态 ${report.form}）`)
+  if (report.status === "already-v2") {
+    console.log(`${tag}已是 v2 形态，无需升级`)
+    return
+  }
+  console.log("")
+  console.log(`${tag}ID 映射（序号 → 稳定 ID，仅随报告输出，不落盘）：`)
+  for (const row of report.idMap) console.log(`  ${row.seq} → ${row.id}  ${row.name}`)
+  console.log("")
+  console.log(`${tag}结构动作：`)
+  for (const c of report.changes) console.log(`  ${c.target}：${c.detail}`)
+  if (report.refs.length > 0) {
+    console.log("")
+    console.log(`${tag}内部引用改写：`)
+    for (const r of report.refs) console.log(`  ${r.file}：${r.from} → ${r.to}`)
+  }
+  console.log("")
+  if (dryRun) console.log("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行")
+  else console.log("已写入；v1 原件可由本次迁移提交的父提交复现")
+}
+
+// 打印体检报告：先给一句话结论，再列载体 / 入口壳现场与逐项待处理项（warn 带 ⚠️，info 带 ·）
+function printConventionsStatus(report: ConventionsStatusReport): void {
+  console.log(report.summary)
+  if (!report.initialized) return
+  const marker = report.carrierVersion === null ? "无" : `v${report.carrierVersion}`
+  console.log(`任务区：${report.tasksDir}`)
+  console.log(`载体：${report.dir}（形态 ${report.form}，形态标记 ${marker}，条目 ${report.entries}）`)
+  console.log(
+    `入口壳：${
+      report.shells.length > 0
+        ? report.shells.map((s) => `${s.file}（标记 ${s.version === null ? "无" : `v${s.version}`}${s.ignored ? "，被 gitignore 覆盖" : ""}）`).join("、")
+        : "无"
+    }`,
+  )
+  console.log("")
+  if (report.items.length === 0) {
+    console.log("无待处理项")
+    return
+  }
+  for (const item of report.items) console.log(`${item.level === "warn" ? "⚠️" : "·"} [${item.scope}] ${item.message}`)
+}
+
+// conventions 域：规范载体的结构升级与只读体检（载体细则见 skills/fxri-plan-to-task/references/conventions-spec.md）
+const conventionsCmd = program
+  .command("conventions")
+  .description("项目协作规范载体：结构升级（v1 → v2）与只读体检（形态 / 索引 / 入口层）")
+
+// 升级：纯机械结构升级，先判后写；形态异常或未初始化时拒绝执行并给非 0 退出码（异常态不写任何文件）
+conventionsCmd
+  .command("upgrade")
+  .description("把 v1 规范载体升级为 v2（发稳定 ID / 切 history.md / 内部引用改 ID；幂等，先判后写）")
+  .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）")
+  .option("--dry-run", "预演（只预览将要执行的动作，不写文件）")
+  .option("--format <format>", "输出格式（json，输出到 stdout）")
+  .action((options: { dir?: string; dryRun?: boolean; format?: string }) => {
+    try {
+      if (!assertJsonFormat(options.format)) return
+      const report = upgradeConventions(resolveTasksDir(options.dir), { dryRun: options.dryRun })
+      if (options.format === "json") printJson({ dryRun: Boolean(options.dryRun), ...report })
+      else printUpgradeReport(report, Boolean(options.dryRun))
+    } catch (e) {
+      console.error(`⚠️ 升级失败：${(e as Error).message}`)
+      process.exitCode = 1
+    }
+  })
+
+// 状态：只读体检，只报不改（不给 --fix），结论以报告与退出码 0 呈现，便于当 CI 信息源
+conventionsCmd
+  .command("status")
+  .description("规范载体只读体检：形态 / 索引 / 入口层三块（只报不改，退出码恒 0）")
+  .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）")
+  .option("--format <format>", "输出格式（json，输出到 stdout）")
+  .action((options: { dir?: string; format?: string }) => {
+    try {
+      if (!assertJsonFormat(options.format)) return
+      const report = conventionsStatus(resolveTasksDir(options.dir))
+      if (options.format === "json") printJson(report)
+      else printConventionsStatus(report)
+    } catch (e) {
+      console.error(`⚠️ 读取状态失败：${(e as Error).message}`)
+    }
+  })
+
+// 裸 `toolkit conventions`：打印本域帮助，列出 2 个子命令
+conventionsCmd.action(() => {
+  conventionsCmd.help()
 })
 
 // tasks 域：任务总览 / 归档 / 校验 / 归一化

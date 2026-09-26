@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | 1 装 CLI | 团队项目：`pnpm add -D @fxri/toolkit`（npm 用 `npx`）；个人多项目：`pnpm i -g @fxri/toolkit` | 得到 `toolkit` 命令 |
 | 2 装 skills | `toolkit skills install`（装了 CLI 一键分发，默认软链；npm 用户需先 `npm i -g @fxri/toolkit`）；也可用上游安装器 `pnpm dlx skills add fxri-net/toolkit --global` | AI 侧获得三份岗位说明书，遇到对应场景自动触发 |
-| 3 建任务区 | `pnpm exec toolkit init` | 生成 `.tasks/active/{YYYYMM}/`、`archive/`、`conventions/index.md` 骨架与 `.gitignore` 片段 |
+| 3 建任务区 | `pnpm exec toolkit init` | 生成 `.tasks/active/{YYYYMM}/`、`archive/`、`conventions/index.md` + `history.md` 骨架与 `.gitignore` 片段，并在项目级技能目录生成规范入口壳（逐项报告实际动作） |
 | 4 配全局规则（可选） | 从 [AI 全局规则](./ai-rules) 复制模板到你的 agent 全局 rules；提交习惯想统一再取[提交信息规则](./commit-rules) | AI 按你的纪律协作 |
 
 三种安装方式对比、离线/内网装法见[新手指南 · 安装](./getting-started#安装)。
@@ -61,15 +61,16 @@ pnpm exec toolkit tasks stats           # 完成周期 / 滞留 / 吞吐统计
 
 ## 四、规范载体迁移
 
-**目标**：把项目里旧的单文件 `.tasks/conventions.md` 升到 `conventions/` 目录形态（`index.md` 唯一入口 + `common.md` / 各端分册按需创建），让规范能按端分类、按需加载。
+**目标**：把项目里旧的单文件 `.tasks/conventions.md` 升到 `conventions/` 目录形态（`index.md` 唯一入口 + `common.md` / 各端分册按需创建），让规范能按端分类、按需加载；已有目录形态但结构为 v1 的载体升到 v2。
 
 | 场景 | 你该说 | 会发生什么 |
 | --- | --- | --- |
 | 形态迁移（单文件 → 目录） | 「把项目里的 conventions.md 迁到新形态」 | AI 走三段式：建 `conventions/` 并把旧文件**整体**搬为 `index.md`（原文不丢）→ 逐条给出「`common` / 某端」归属建议 → 你逐条确认后拆成索引行 + 分册 |
-| 只修订内容（不换形态） | 「第 3 条规范改成 …」 | AI 在 `index.md` 的「演进记录」留痕 → 更新该行「当前语义」；作废的把「状态」改 `已废弃`（不删行），条文在分册内的同步改分册 |
+| 结构升级（v1 → v2） | 「把规范载体升到 v2」 | 载体从 v1（无形态标记、索引表首列为序号 `#`、演进记录与索引同文件）升到 v2（首行形态标记、索引表首列为稳定 ID `C-<n>`、演进记录抽独立 `history.md`）：优先 `pnpm exec toolkit conventions upgrade`（`--dry-run` 预演、幂等、先判后写，异常形态拒绝写盘），亦可按链路手工执行 |
+| 只修订内容（不换形态） | 「第 3 条规范改成 …」 | AI 在 `history.md` 追加留痕（只追加、不改旧行）→ 更新 `index.md` 该行「当前语义」；作废的把「状态」改 `已废弃`（不删行），条文在分册内的同步改分册 |
 
-- **入口**：`pnpm exec toolkit tasks check` 报旧单文件 `conventions.md` 存在、或报 `conventions/` 缺 `index.md` 时按提示处理；新项目 `toolkit init` 已预生成 `index.md` 骨架
-- **可中断**：三段式任一步停下都不丢内容——旧文件整体搬为 `index.md` 后，该文件即原文快照，功能上与旧文件等价；未确认归属的条目保持原样留在 `index.md`
+- **入口**：`pnpm exec toolkit tasks check` 报旧单文件 `conventions.md` 存在、`conventions/` 缺 `index.md` 或载体形态异常时按提示处理；`pnpm exec toolkit conventions status` 可查载体形态、索引与入口层现场；新项目 `toolkit init` 已预生成 `index.md` 与 `history.md` 骨架
+- **可中断**：三段式与 v1 → v2 升级任一步停下都不丢内容——旧文件整体搬为 `index.md` 后，该文件即原文快照，功能上与旧文件等价；未确认归属的条目保持原样留在 `index.md`
 - **端名**：与任务 frontmatter 的 `scope` 取值**逐字一致**（任务写 `scope: web+server` → 读 `web.md` + `server.md`）；端清单在 `index.md` 顶部声明，是端的唯一权威，不扫目录
 - **迁移期间兼容读**：先找 `conventions/index.md`，不存在再看旧单文件；两者并存时以目录形态为准
 

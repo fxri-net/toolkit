@@ -14,10 +14,11 @@ README 只给最常用示例；本篇是完整的命令字典，覆盖全部参�
 toolkit <command> [options]
 
 命令：
-  toolkit tasks       任务管理（总览 / 归档 / 校验 / 归一化 / 导入导出）
-  toolkit changelog   多语言 CHANGELOG（封装 changesets）
-  toolkit init        初始化项目任务区（1.7.0 新增）
-  toolkit skills      AI 技能包分发（安装 / 状态 / 卸载 / 路径，1.9.0 新增）
+  toolkit tasks         任务管理（总览 / 归档 / 校验 / 归一化 / 导入导出）
+  toolkit changelog     多语言 CHANGELOG（封装 changesets）
+  toolkit init          初始化项目任务区（1.7.0 新增）
+  toolkit skills        AI 技能包分发（安装 / 状态 / 卸载 / 路径，1.9.0 新增）
+  toolkit conventions   项目协作规范载体（v1 → v2 结构升级 / 只读体检，1.11.0 新增）
 ```
 
 顶层命令支持的开关（`-h` 全局与子命令均可用）：
@@ -27,7 +28,7 @@ toolkit <command> [options]
 | `-h, --help` | 显示帮助（全局或子命令） |
 | `-v, --version` | 显示版本号 |
 
-`--redact` / `--warn` 为**域级开关**：仅 `tasks` 与 `changelog` 两个域支持（`init` / `skills` 域不提供），清单见下方各域的选项表。
+`--redact` / `--warn` 为**域级开关**：仅 `tasks` 与 `changelog` 两个域支持（`init` / `skills` / `conventions` 域不提供），清单见下方各域的选项表。
 
 开关为**双向三档**，优先级从高到低：CLI 参数 > 环境变量 > 配置文件 > 默认开启。对应环境变量：`FX_REDACT`、`FX_CHECK_WARN`（认 `0/1`、`true/false`、`on/off`、`yes/no`）；配置项见[配置参考](./config)。
 
@@ -67,7 +68,7 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 | 子命令 | 行为 |
 | --- | --- |
 | `archive` | 将 `status` 为 `已完成`/`已放弃` 且带 `completed` 的任务按完成日期聚合归档；排他锁防并发；缺 `completed` 的终结态任务跳过并提示；完成时间晚于当前系统时间或恰为零点整（疑似只填日期被补零）时软告警 |
-| `check` | 校验 active：frontmatter 合法性、owner/created/命名规范、重名、`depends_on` 闭环、未闭合待办与 `- [ ]`；completed 晚于当前系统时间或恰为零点整（疑似只填日期被补零）软告警；范围字段形态软告警（顿号/逗号疑似多值分隔请改半角加号、括号疑似注释请移入正文）；游离于 `active/` 层级外的日期前缀文件软告警；规范载体形态软告警（旧单文件 `conventions.md` 残留待迁移、`conventions/` 缺 `index.md`；只看形态不读内容） |
+| `check` | 校验 active：frontmatter 合法性、owner/created/命名规范、重名、`depends_on` 闭环、未闭合待办与 `- [ ]`；completed 晚于当前系统时间或恰为零点整（疑似只填日期被补零）软告警；范围字段形态软告警（顿号/逗号疑似多值分隔请改半角加号、括号疑似注释请移入正文）；游离于 `active/` 层级外的日期前缀文件软告警；规范载体形态软告警（旧单文件 `conventions.md` 残留待迁移、`conventions/` 缺 `index.md`、v2 标记与 `history.md` / 索引表首列 ID 三者不一致）；技能入口壳软告警（壳标记版本与当前 toolkit 不一致、或被 gitignore 覆盖不会随 git 分发）；只看形态不读条文内容 |
 | `normalize` | 检查归档块：元数据四字段完整性、疑似任务块、完成时间与归档日期漂移、完成时间晚于当前系统时间或恰为零点整（仅报告，不自动改值）、降序排序、月份目录归属、范围字段形态（顿号/逗号分隔可 `--fix` 归一为半角加号，括号疑似注释仅提示人工）；`--fix` 自动补齐/迁移/重排/范围归一；`--fix` 与 `--check` 互斥 |
 | `stats` | 周期统计（仅人用视图，不落盘）：完成周期与分布（仅「已完成」，已归档任务创建日期从块标题恢复，缺失者跳过并计数）、未完成任务滞留时长、按完成月/负责人/范围吞吐汇总；`--format json` 输出 JSON（顶层携带 `schemaVersion: 1` 锚点，与 `tasks --export` 及各域 `--format json` 同口径），过滤选项与查询一致（不含 `--status`） |
 
@@ -137,14 +138,17 @@ toolkit init
 toolkit init --dir ../my-tasks-repo   # 任务区放项目外（独立仓库管理）
 ```
 
-在当前目录初始化任务区：
+在当前目录初始化任务区，逐项如实报告实际动作（新建 / 保持 / 追加 / 跳过）：
 
 - 创建 `<任务目录>/active/{YYYYMM}/`、`<任务目录>/archive/` 目录骨架（默认 `.tasks`，优先级与 `tasks` 同口径：CLI 参数 > 配置 `tasks.dir` > 默认 `.tasks`）
-- 创建 `<任务目录>/conventions/index.md` 规范载体骨架（已存在 `index.md`、或存在待迁移的旧 `<任务目录>/conventions.md` 时保持不变）
+- 创建规范载体骨架 `<任务目录>/conventions/index.md`（v2 三节：端清单 / 索引 / 用法说明）与 `<任务目录>/conventions/history.md`（演进记录）；已存在 `index.md` 时保持不动（v1 形态另给升级提示）；存在待迁移的旧单文件 `<任务目录>/conventions.md` 时不建空骨架
+- 在项目级技能目录生成规范入口壳（如 `.agents/skills/toolkit-conventions/SKILL.md`，目录名与 frontmatter `name` 同名；只作入口、不承载条文），并在**已存在**的 `AGENTS.md` 内幂等追加规范入口指针块（`AGENTS.md` 不存在时不新建）
 - 向 `.gitignore` 追加忽略片段（含 `.archive.lock`；已有则跳过）
 - 输出后续步骤与文档站链接
 
-⚠️ 重复执行安全：已存在的目录与配置不覆盖、不报错。
+⚠️ 入口壳写入项目级技能目录（`.agents/skills/`、`.trae/skills/` 等）属**侵入性行为**，`init` 在报告中逐项列出实际写入的路径与动作；落点被 `.gitignore` 覆盖时报告给出否定规则提示（**不代改 `.gitignore`**）。入口壳可安全删除，重跑 `init` 会补回。
+
+⚠️ 重复执行安全：已存在的文件一律保持不覆盖、不报错（逐项报告为「保持」）。
 
 ⚠️ 任务区放项目外（独立文档仓库）：配置 `"tasks": { "dir": "../my-tasks-repo" }` 后，`init` 与全部 `tasks` 子命令都作用于该目录，一次配置永久生效；`.gitignore` 片段仍写入当前项目。
 
@@ -189,6 +193,27 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - 卸载链接时**只摘链、不碰真源**（包内原始文件完好）
 - 配置 `skills.autoLink`（默认 `true`）：命令启动时对状态文件记载的**链接**做补链与修链；现场被替换为同名实体目录 / 普通文件时默认清理重建为软链，置 `skills.autoLinkReplaceForeign: false` 可改为一律不动（**不含首次安装、不含副本升级**；`CI` 环境自动跳过。见[配置参考 · skills](./config#skills-技能分发-1-9-0-新增)）
 - 状态文件为**用户级**（`~/.agents/.toolkit-skills.json`），与上游安装器的 `skills-lock.json` 相互独立
+
+## conventions（1.11.0 新增）
+
+```bash
+toolkit conventions upgrade               # 把 v1 规范载体升级为 v2（幂等，先判后写）
+toolkit conventions upgrade --dry-run     # 预演：只预览将执行的动作，不写文件
+toolkit conventions upgrade --format json # JSON 输出：ID 映射、内部引用改写、结构动作清单
+toolkit conventions status                # 只读体检：形态 / 索引 / 入口层三块（只报不改，退出码恒 0）
+toolkit conventions status --format json  # JSON 输出：形态、条目数、入口壳现场与逐条体检项
+```
+
+裸 `toolkit conventions` 打印本域帮助（列出 2 个子命令）。
+
+| 子命令 | 行为 |
+| --- | --- |
+| `upgrade` | 把 v1 载体升为 v2：首行补形态标记、标题归一、「演进记录」节抽为独立 `history.md`、索引表首列 `#` → `ID`（序号 → 稳定 ID `C-<n>`）、节号重编、内部引用改写为稳定 ID（裸「第 N 条」且 N ≤ 索引表最大序号；带外部文档限定词前缀的引用不动）。**幂等**——已是 v2 返回 `already-v2`、不改动；未初始化（缺 `index.md`）或形态异常（标记 / `history.md` / 索引表首列三者不一致）在**写盘前**拒绝执行并给非 0 退出码，不写任何文件。`--dry-run` 只报告不改动；`--format json` 输出 `status`、`idMap`、`refs`、`changes`（ID 映射只随报告输出、不落盘） |
+| `status` | 只读体检、只报不修（无 `--fix`）：**形态**（v1 提示可升级、形态异常、旧单文件与目录并存）、**索引**（ID 形态与重复、归属不在端清单内、分册小节在索引表无对应条目）、**入口层**（壳标记版本落后、壳被 gitignore 覆盖；无壳仅提示）三块，逐条按 `[形态]` / `[索引]` / `[入口层]` 前缀输出；一句话结论为 `载体 <形态>，<n> 条规范，入口壳 <m> 个，无待处理项 / <k> 项待处理`；未初始化只回单条结论。**退出码恒 0**（异常不阻断，便于当 CI 信息源） |
+
+⚠️ `upgrade` 只做机械结构升级，不改条文语义；升级过程可中断、重复执行安全。
+
+载体结构（v1 / v2 形态、稳定 ID、`history.md`）与读写细则见[完整攻略 · conventions/：规范沉淀地](./guide#conventions-规范沉淀地)。
 
 ## 退出码
 

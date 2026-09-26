@@ -13,14 +13,17 @@
 │   └── {YYYYMM}/
 │       └── {YYYYMMDD}.md      # 按完成日期归组的归档文件
 └── conventions/               # 项目协作规范载体（可选，从任务提炼的规范沉淀地）
-    ├── index.md               # 唯一入口与唯一权威：端清单 + 每条一行指针
+    ├── index.md               # 唯一入口与唯一权威（首行为形态标记）：端清单 + 每条一行指针（首列稳定 ID）
+    ├── history.md             # 规范演进记录（仅追加、不改旧行；只记规范语义变更）
     ├── common.md              # 全端通用条文（按需创建）
     └── <端名>.md              # 各端专有条文，端名 = 任务 scope 取值（按需创建）
 ```
 
 目录名 `.tasks` 为默认约定，项目可自定（如集中式任务库按项目分子目录），内部子结构不变。
 
-`conventions/` 不是任务文件：tasks 各子命令不读其内容，check 不会因内容告警（仅在载体形态异常时软告警）；它只作为 AI 协作时的规范源，由 fxri-plan-to-task 归档时与 fxri-session-recap 收尾时维护（写入前需用户确认）。载体结构、端名规则、读写判定与存量迁移见 `conventions-spec.md`。
+`index.md` 首行为形态标记（`<!-- toolkit-conventions: v2 -->`），索引表首列是稳定 ID（`C-<n>`）；无标记的旧形态（v1）仍合法、`check` 不告警，可用 `toolkit conventions upgrade` 升级。载体结构、端名规则、读写判定与存量迁移见 `conventions-spec.md`。
+
+`conventions/` 不是任务文件：tasks 各子命令不读其内容，check 不会因内容告警（仅在载体形态异常时软告警）；它只作为 AI 协作时的规范源，由 fxri-plan-to-task 归档时与 fxri-session-recap 收尾时维护（写入前需用户确认）。
 
 ## 2. active 任务文件
 

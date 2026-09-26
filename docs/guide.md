@@ -37,12 +37,13 @@
 │   └── {YYYYMM}/
 │       └── {YYYYMMDD}.md      # 按完成日期聚合，任务块降序
 └── conventions/               # 项目协作规范载体（可选）：从任务提炼的规范沉淀地
-    ├── index.md               # 唯一入口与唯一权威：端清单 + 每条规范一行指针（常驻读）
+    ├── index.md               # 唯一入口与唯一权威：端清单 + 每条规范一行指针（常驻读）；首行为形态标记、索引表首列为稳定 ID
+    ├── history.md             # 规范演进记录（只追加、不改旧行；写入与读取频次低，按需读）
     ├── common.md              # 全端通用条文（按需创建）
     └── <端名>.md              # 各端专有条文，端名 = 任务 scope 取值（按需创建）
 ```
 
-`conventions/` 不是任务文件：tasks 各子命令不读其内容、check 不因内容告警；它只作 AI 协作时的规范源，由 fxri-plan-to-task 归档时与 fxri-session-recap 收尾时维护，写入前需用户确认。
+`conventions/` 不是任务文件：tasks 各子命令不读其内容、check 不因内容告警；它只作 AI 协作时的规范源，由 fxri-plan-to-task 归档时与 fxri-session-recap 收尾时维护，写入前需用户确认。check 只在**载体形态异常**时软告警（旧单文件残留、缺 `index.md`、v2 标记与 `history.md` / 索引表首列 ID 不一致、入口壳被 gitignore 覆盖），不读条文内容。
 
 ### frontmatter 字段
 
@@ -114,9 +115,9 @@
 
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
-| `fxri-plan-to-task` | 1.3.2 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移 |
+| `fxri-plan-to-task` | 1.4.0 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
 | `fxri-release-changelog` | 1.1.1 | changesets 发版与多语言 CHANGELOG 维护 |
-| `fxri-session-recap` | 1.2.2 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
+| `fxri-session-recap` | 1.2.3 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 
 版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` 打印的真源版本），随技能内容变更递增；`fxri-session-recap` 为 1.7.0 新增
 
@@ -169,7 +170,7 @@ pnpm dlx skills add fxri-net/toolkit --global
 - **三层恢复**：L0 全量索引（active + archived 全部，一行一条 + 统计）→ L1 active 全文精读 → L2 近窗归档精读
 - **近窗按时间连续性判定**：只精读从最新归档向前连续活跃的一段（月份 ≤6 或块 ≤200）；被 ≥1 年空洞隔断的旧归档只入 L0 索引、不精读、不列为「最近完成」
 - **搁置识别**：active 任务 `updated` 距今 >1 年标注「疑似搁置」，不当进行中呈现
-- 更早历史按需拉取；读 conventions 载体（常驻只读 `index.md`，再按任务 `scope` 命中加载分册与 `common.md`）纳入「规范现场」；全程只读
+- 更早历史按需拉取；读 conventions 载体（常驻只读 `index.md`，`history.md` 与各分册按需读；再按任务 `scope` 命中加载分册与 `common.md`）纳入「规范现场」；全程只读
 - 提示词示例：「新会话开始，恢复上下文」「上次做到哪了」
 
 ### 批量修正历史任务时间
@@ -183,7 +184,8 @@ pnpm dlx skills add fxri-net/toolkit --global
 
 ```
 .tasks/conventions/
-├── index.md      # 唯一入口与唯一权威（常驻读）：端清单 + 每条规范一行指针
+├── index.md      # 唯一入口与唯一权威（常驻读）：首行为形态标记 + 端清单 + 每条规范一行指针（首列为稳定 ID）
+├── history.md    # 规范演进记录（只追加、不改旧行；按需读）
 ├── common.md     # 全端通用条文（按需创建）
 └── <端名>.md     # 各端专有条文（按需创建）
 ```
@@ -196,7 +198,7 @@ pnpm dlx skills add fxri-net/toolkit --global
 - **条文式**（无其他规则文件的项目）：条文全文写入对应归属分册，本载体即项目唯一规范载体
 - **溯源索引式**（已用 AGENTS / 全局规则的项目）：不复制条文，只记「确立了什么、谁确立的、条文去哪看」，内容以各单一事实源（skills / AGENTS / 全局规则）最新版为准
 
-**内容修订**：语义变更先在 `index.md` 的「演进记录」留痕、再更新索引行当前语义；规则作废把索引行状态改 `已废弃`，不删行、不删分册条目。
+**内容修订**：语义变更先在 `history.md` 追加一行留痕、再更新索引行当前语义（`history.md` 只追加、不改旧行）；规则作废把索引行状态改 `已废弃`，不删行、不删分册条目。
 
 ### 存量规范载体迁移
 
@@ -206,7 +208,9 @@ pnpm dlx skills add fxri-net/toolkit --global
 2. **AI 提归属建议**：读原有条目，逐条给出「`common` / 某端」建议与理由（旧文件无端信息，语义分流无法机械完成），形成待确认清单
 3. **用户逐条确认**：确认后写索引行、把条文全文拆入对应分册；**未确认的条目保持原样留在 `index.md`**，不强推
 
-迁移期间新旧兼容读：先找 `conventions/index.md`，不存在再看旧单文件 `conventions.md`（存在则提示可迁移）；两者并存时以目录形态为准并提示清理旧文件。`toolkit tasks check` 在旧单文件残留或 `conventions/` 缺 `index.md` 时给软告警，即为迁移入口；`toolkit init` 在无旧单文件时预先生成 `index.md` 骨架。
+**v1 → v2 升级**：载体结构从 v1（无首行标记、索引表首列为序号 `#`、演进记录与索引同文件）升到 v2（首行形态标记、索引表首列为稳定 ID `C-<n>`、演进记录抽独立 `history.md`），优先用 `toolkit conventions upgrade`（`--dry-run` 预演、幂等、先判后写，异常形态拒绝写盘），亦可按链路手工执行；内部引用改写为稳定 ID 且**映射关系不落盘**（`history.md` 只记语义修订，不记 ID 对照）。`toolkit conventions status` 可查载体形态与待处理项。
+
+迁移期间新旧兼容读：先找 `conventions/index.md`，不存在再看旧单文件 `conventions.md`（存在则提示可迁移）；两者并存时以目录形态为准并提示清理旧文件。`toolkit tasks check` 在旧单文件残留、`conventions/` 缺 `index.md` 或载体形态异常（v2 标记与 `history.md` / 索引表首列 ID 不一致）时给软告警，即为迁移入口；`toolkit init` 在无旧单文件时预先生成 `index.md` 与 `history.md` 骨架。
 
 ## 隐私脱敏
 
