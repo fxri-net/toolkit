@@ -129,7 +129,7 @@ function collectDir(value: string, previous: string[]): string[] {
 const SKILL_STATE_LABEL: Record<SkillItemState, string> = {
   link: "软链正常",
   dangling: "软链悬空（真源缺失或升级后旧路径失效）",
-  wrong: "软链指向别处",
+  wrong: "软链指向其他版本",
   copy: "副本已同步",
   "copy-drift": "副本已漂移（与真源不一致）",
   missing: "缺失",
@@ -179,7 +179,8 @@ function printInstallReport(report: InstallReport, dryRun: boolean): void {
   if (dryRun) console.log("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行")
 }
 
-// 打印现场状态：先列技能真源版本基准，再逐目标逐技能标注状态，末尾汇总需处理的条目
+// 打印现场状态：先列技能真源版本基准，再逐目标报状态——健康目标折叠为一行，仅异常目标逐条展开，末尾汇总
+// 多 agent 机器上目标数可达十余个，逐技能刷「软链正常」会把真正的问题淹没在噪音里
 function printStatusReport(report: SkillsStatusReport): void {
   console.log(`技能源：${report.source}`)
   console.log(`技能版本：${report.skills.map((name) => skillLabel(name, report.skillVersions[name] ?? "")).join("、") || "无"}`)
@@ -190,12 +191,19 @@ function printStatusReport(report: SkillsStatusReport): void {
   console.log(`状态文件：${report.stateFile}${report.stateExists ? "" : "（未记录，尚未执行过 toolkit skills install）"}`)
   let problems = 0
   for (const t of report.targets) {
+    const head = `${t.label}：${t.dir}${t.dirExists ? "" : "（目录未创建）"}`
+    const bad = t.items.filter((item) => SKILL_PROBLEM_STATES.includes(item.state))
+    problems += bad.length
     console.log("")
-    console.log(`${t.label}：${t.dir}${t.dirExists ? "" : "（目录未创建）"}`)
-    for (const item of t.items) {
-      if (SKILL_PROBLEM_STATES.includes(item.state)) problems += 1
-      console.log(`  ${item.name}：${SKILL_STATE_LABEL[item.state]}`)
+    // 健康目标折叠为一行：逐技能刷「软链正常」在目标多时纯属噪音（完整信息另见 --format json）
+    if (bad.length === 0) {
+      console.log(`${head}　${t.items.length} 项正常`)
+      continue
     }
+    console.log(head)
+    for (const item of bad) console.log(`  ${item.name}：${SKILL_STATE_LABEL[item.state]}`)
+    const ok = t.items.length - bad.length
+    if (ok > 0) console.log(`  其余 ${ok} 项正常`)
   }
   if (report.pendingAgents.length > 0) {
     console.log("")
@@ -204,7 +212,7 @@ function printStatusReport(report: SkillsStatusReport): void {
   console.log("")
   console.log(
     problems > 0
-      ? `共 ${problems} 处需处理：缺失 / 悬空 / 指向错误 / 副本漂移用 toolkit skills install 补齐，同名冲突用 toolkit skills install --force 覆盖`
+      ? `共 ${problems} 处需处理：缺失 / 悬空 / 指向其他版本 / 副本漂移用 toolkit skills install 补齐，同名冲突用 toolkit skills install --force 覆盖`
       : "所有已纳入的目标均正常",
   )
 }
@@ -287,6 +295,7 @@ program.addHelpText(
 // init 动作标签：逐项如实报告实际动作，替代只讲「会做什么」的固定话术
 const INIT_ACTION_LABEL: Record<InitAction, string> = {
   created: "新建",
+  updated: "更新",
   kept: "保持",
   appended: "追加",
   skipped: "跳过",
@@ -350,10 +359,10 @@ skillsCmd
     }
   })
 
-// 状态：报告悬空 / 指向错误 / 副本漂移 / 同名冲突 / 缺失，供人工决定是否重跑 install
+// 状态：报告悬空 / 指向其他版本 / 副本漂移 / 同名冲突 / 缺失，供人工决定是否重跑 install
 skillsCmd
   .command("status")
-  .description("查看各全局技能目录的现场状态与技能真源版本（含版本清单；悬空 / 指向错误 / 副本漂移 / 缺失 / 同名冲突）")
+  .description("查看各全局技能目录的现场状态与技能真源版本（含版本清单；悬空 / 指向其他版本 / 副本漂移 / 缺失 / 同名冲突）")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
   .action((options: { format?: string }) => {
     try {

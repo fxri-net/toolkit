@@ -218,7 +218,7 @@ describe("链接锚点跨版本存活", () => {
     runUpgrade(projectLayout())
   })
 
-  it("存量旧指向（直指包实体）不误报，下次运行即迁移到稳定入口", () => {
+  it("存量旧指向（直指包实体）内容一致时不误报，也不破坏性重指", () => {
     const l = globalLayout()
     const pkgRoot = layout(l.moduleDir, "9.9.9")
     pointEntry(l.entryDir, pkgRoot)
@@ -227,8 +227,25 @@ describe("链接锚点跨版本存活", () => {
     mkdirSync(primaryDir(), { recursive: true })
     symlinkSync(join(pkgRoot, "skills", FAKE_SKILL), join(primaryDir(), FAKE_SKILL), LINK_TYPE)
     writeState([{ dir: primaryDir(), links: [FAKE_SKILL] }])
-    // status 接受新旧两种锚点，升级瞬间不刷错误；自愈则把旧指向迁到稳定入口
+    // 内容与真源逐字一致即视为健康：既不误报，也不被自愈重指到当前运行源
     expect(stateOf(primaryDir(), FAKE_SKILL)).toBe("link")
+    expect(autoLinkSkills()).toBe(0)
+    expect(isLinkTo(join(primaryDir(), FAKE_SKILL), join(pkgRoot, "skills", FAKE_SKILL))).toBe(true)
+  })
+
+  it("异地软链内容不一致时仍判异常，由自愈重指回稳定入口", () => {
+    const l = globalLayout()
+    const pkgRoot = layout(l.moduleDir, "9.9.9")
+    pointEntry(l.entryDir, pkgRoot)
+    setPackageRootForTest(pkgRoot)
+    // 另一处安装的同名技能（内容为旧版本）：路径不同且内容不一致，应判异常而非放行
+    const other = join(home, "other-install", FAKE_SKILL)
+    mkdirSync(other, { recursive: true })
+    writeFileSync(join(other, "SKILL.md"), `---\nname: ${FAKE_SKILL}\nmetadata:\n  version: 0.0.1\n---\n\n# ${FAKE_SKILL} 0.0.1\n`, "utf8")
+    mkdirSync(primaryDir(), { recursive: true })
+    symlinkSync(other, join(primaryDir(), FAKE_SKILL), LINK_TYPE)
+    writeState([{ dir: primaryDir(), links: [FAKE_SKILL] }])
+    expect(stateOf(primaryDir(), FAKE_SKILL)).toBe("wrong")
     expect(autoLinkSkills()).toBe(1)
     expect(isLinkTo(join(primaryDir(), FAKE_SKILL), join(l.entryDir, "@fxri", "toolkit", "skills", FAKE_SKILL))).toBe(true)
   })

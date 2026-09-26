@@ -17,7 +17,7 @@ import {
   type CarrierState,
   type ConventionsForm,
 } from "./format"
-import { findEntryShells, ignoredShellAlert, isGitIgnored, isToolkitSourceRepo, staleShellAlert, type EntryShell } from "./entry"
+import { findEntryShells, gitIgnoredSet, ignoredShellAlert, isToolkitSourceRepo, mismatchedShellAlert, type EntryShell } from "./entry"
 
 // 体检项：level 只分「待处理（warn）」与「提示（info）」，info 不计入问题数
 export interface ConventionsStatusItem {
@@ -133,18 +133,20 @@ function checkIndex(state: CarrierState, items: ConventionsStatusItem[]): void {
   }
 }
 
-// 入口层块：壳版本落后、壳被 gitignore 覆盖各合并为一条告警（多落点内联路径，不按壳重复）；无壳仅提示（本包源仓库除外，其本就不生成壳）
+// 入口层块：壳版本不一致、壳被 gitignore 覆盖各合并为一条告警（多落点内联路径，不按壳重复）；无壳仅提示（本包源仓库除外，其本就不生成壳）
 function checkEntryLayer(cwd: string, items: ConventionsStatusItem[]): EntryShellState[] {
   const shells = findEntryShells(cwd)
-  const staleShells: EntryShell[] = []
+  // 一次批量判定全部落点的 gitignore 状态，避免逐壳各起一个 git 子进程
+  const ignored = gitIgnoredSet(cwd, shells.map((s) => s.file))
+  const mismatchedShells: EntryShell[] = []
   const ignoredShells: EntryShell[] = []
   const states = shells.map((shell) => {
-    const ignored = isGitIgnored(cwd, shell.file)
-    if (shell.version !== ENTRY_VERSION) staleShells.push(shell)
-    if (ignored) ignoredShells.push(shell)
-    return { file: shell.file, version: shell.version, ignored }
+    const isIgnored = ignored.has(shell.file)
+    if (shell.version !== ENTRY_VERSION) mismatchedShells.push(shell)
+    if (isIgnored) ignoredShells.push(shell)
+    return { file: shell.file, version: shell.version, ignored: isIgnored }
   })
-  for (const alert of [staleShellAlert(staleShells), ignoredShellAlert(ignoredShells)]) {
+  for (const alert of [mismatchedShellAlert(mismatchedShells), ignoredShellAlert(ignoredShells)]) {
     if (alert) items.push({ level: "warn", scope: "入口层", message: alert.message })
   }
   if (shells.length === 0) {

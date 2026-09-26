@@ -71,21 +71,23 @@ export function findEntryShells(cwd: string): EntryShell[] {
   return shells
 }
 
-// 版本落后告警：多落点合并为一条并逐壳标注标记版本，避免同一问题按壳数重复刷屏
+// 版本不一致告警：多落点合并为一条并逐壳标注标记版本，避免同一问题按壳数重复刷屏
+// 措辞中性：标记可能落后也可能超前（壳由更新版本 toolkit 生成后被旧版检出），不预设方向
 // 供 check 与 status 共用同一构造器，防止两处文案各自漂移
-export function staleShellAlert(shells: EntryShell[]): EntryShellAlert | null {
+export function mismatchedShellAlert(shells: EntryShell[]): EntryShellAlert | null {
   const [first] = shells
   if (!first) return null
+  const mark = (s: EntryShell) => (s.version === null ? "无" : `v${s.version}`)
   if (shells.length === 1) {
     return {
       file: first.file,
-      message: `入口壳标记版本为 ${first.version ?? "无"}，与当前 toolkit 的 v${ENTRY_VERSION} 不一致：重跑 toolkit init 可补齐`,
+      message: `入口壳标记 ${mark(first)}，与当前 toolkit 的 v${ENTRY_VERSION} 不一致：重跑 toolkit init 可补齐`,
     }
   }
-  const list = shells.map((s) => `${s.file}（标记 ${s.version === null ? "无" : `v${s.version}`}）`).join("、")
+  const list = shells.map((s) => `${s.file}（标记 ${mark(s)}）`).join("、")
   return {
     file: first.file,
-    message: `入口壳标记版本落后于当前 toolkit 的 v${ENTRY_VERSION}，共 ${shells.length} 处：${list}；重跑 toolkit init 可一次性补齐`,
+    message: `入口壳标记与当前 toolkit 的 v${ENTRY_VERSION} 不一致，共 ${shells.length} 处：${list}；重跑 toolkit init 可一次性补齐`,
   }
 }
 
@@ -103,10 +105,18 @@ export function ignoredShellAlert(shells: EntryShell[]): EntryShellAlert | null 
   }
 }
 
-// 判路径是否被 git 忽略：git check-ignore 退出码 0 真 / 1 假 / 128 非仓库或出错，仅 0 视为被忽略
-export function isGitIgnored(cwd: string, rel: string): boolean {
-  const res = spawnSync("git", ["check-ignore", "-q", "--", rel], { cwd, stdio: "ignore" })
-  return res.status === 0
+// 批量判路径是否被 git 忽略：一次 git check-ignore --stdin -z 判定全部落点，免去逐壳各起一个子进程
+// 返回被忽略的路径集合（入参原样回填，调用方据此 O(1) 查询）；非 git 仓库或执行出错按「均未忽略」处理
+export function gitIgnoredSet(cwd: string, rels: string[]): Set<string> {
+  const ignored = new Set<string>()
+  if (rels.length === 0) return ignored
+  const res = spawnSync("git", ["check-ignore", "--stdin", "-z"], { cwd, input: rels.map((r) => `${r}\0`).join(""), encoding: "utf8" })
+  // exit 0 有命中 / 1 无命中，均属正常；其余（128 非仓库等）视为未忽略
+  if (res.status !== 0 && res.status !== 1) return ignored
+  for (const line of (res.stdout ?? "").split("\0")) {
+    if (line) ignored.add(line)
+  }
+  return ignored
 }
 
 // 判是否为本包源仓库：源仓库靠 fxri-* 技能自举，不生成自己的入口壳

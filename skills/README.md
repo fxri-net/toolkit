@@ -8,7 +8,7 @@
 
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
-| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.4.2 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
+| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.4.3 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
 | [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.1.1 | changesets 发版与多语言 CHANGELOG 维护 |
 | [fxri-session-recap](./fxri-session-recap/SKILL.md) | 1.2.3 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 
@@ -23,7 +23,7 @@
 ```bash
 pnpm add -g @fxri/toolkit   # 1. 装 CLI（npm 用户 npm i -g @fxri/toolkit）
 toolkit skills install      # 2. 把包内技能装到各 agent 的全局技能目录
-toolkit skills status       # 查现场状态（悬空 / 指向错误 / 副本漂移 / 缺失 / 同名冲突）
+toolkit skills status       # 查现场状态（悬空 / 指向其他版本 / 副本漂移 / 缺失 / 同名冲突）
                             # 前四类重跑 toolkit skills install 补齐，同名冲突需 toolkit skills install --force 覆盖
 toolkit skills remove       # 卸载本包装的产物（只清自己装的，不碰用户自装技能）
 ```
@@ -96,5 +96,5 @@ pnpm dlx skills add fxri-toolkit --global       # npm 用户把 pnpm dlx 换成 
 - [ ] 引用的 references / assets 相对路径有效
 - [ ] 技能用途描述已同步 docs/guide 技能表与本文「技能列表」表（含版本标注）
 - [ ] 涉规范载体（conventions）的改动：`fxri-session-recap/SKILL.md` 的 R3 压缩要点已与 `fxri-plan-to-task/references/conventions-spec.md` 同步（跨 skill 不可引用，只能受控重复，两处不一致即失一致）
-- [ ] 涉规范载体（conventions）的改动：`src/init.ts` 的 `index.md` / `history.md` 骨架模板、`src/tasks/validate.ts` 的形态告警口径、`src/conventions/` 的形态识别与升级链路、`src/conventions/entry.ts` 的入口壳生成已同步（CLI 侧与 skills 细则同源）
+- [ ] 涉规范载体（conventions）的改动：`src/init.ts` 的 `index.md` / `history.md` 骨架模板与入口壳版本分流、`src/tasks/validate.ts` 的形态告警口径、`src/conventions/` 的形态识别与升级链路、`src/conventions/entry.ts` 的入口壳生成与版本告警已同步（CLI 侧与 skills 细则同源）
 - [ ] 变更已走本仓库质量门：三方一致 + tasks check + pnpm test

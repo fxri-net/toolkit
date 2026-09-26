@@ -1,5 +1,5 @@
 // init 命令实现：生成任务区骨架、规范载体与技能入口壳，补齐 .gitignore 片段
-// 重复执行幂等（已存在一律保持不覆盖），逐项返回实际动作供 CLI 如实报告
+// 重复执行幂等：业务文件已存在一律保持不覆盖；仅入口壳按标记版本分流（落后或无标记就地更新为当前版本）
 import { existsSync, readFileSync, mkdirSync } from "node:fs"
 import { join, resolve } from "node:path"
 import { writeFileAtomic } from "./write-atomic"
@@ -7,12 +7,14 @@ import { readTextFile } from "./read-text"
 import {
   CARRIER_MARKER,
   CONVENTIONS_DIR,
+  ENTRY_VERSION,
   HISTORY_FILE,
   HISTORY_SKELETON,
   INDEX_FILE,
   INDEX_TITLE,
   LEGACY_FILE,
   readCarrier,
+  readEntryVersion,
 } from "./conventions/format"
 import {
   AGENTS_POINTER_START,
@@ -20,7 +22,7 @@ import {
   SKILL_ENTRY,
   buildAgentsPointer,
   buildEntryShell,
-  isGitIgnored,
+  gitIgnoredSet,
   isToolkitSourceRepo,
   resolveProjectSkillDirs,
 } from "./conventions/entry"
@@ -60,8 +62,8 @@ ${INDEX_TITLE}
 （在此写明本项目采用溯源索引式还是条文式、读写判定要点、规则层源头变更时的同步纪律）
 `
 
-// init 实际动作：新建 / 保持 / 追加 / 跳过（跳过必带原因）
-export type InitAction = "created" | "kept" | "appended" | "skipped"
+// init 实际动作：新建 / 更新 / 保持 / 追加 / 跳过（跳过必带原因）
+export type InitAction = "created" | "updated" | "kept" | "appended" | "skipped"
 
 // 单条初始化产物：target 为展示用路径或区块名，detail 说明做了什么或为何没做，hint 提示后续可选操作
 export interface InitProduct {
@@ -165,21 +167,43 @@ function scaffoldEntryLayer(cwd: string): InitProduct[] {
   }
   const skillDirs = resolveProjectSkillDirs(cwd)
   const products: InitProduct[] = []
+  // 一次批量判定全部落点的 gitignore 状态，避免逐壳各起一个 git 子进程
+  const ignored = gitIgnoredSet(cwd, skillDirs.map((skillDir) => `${skillDir}/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}`))
+  const gitHint = "该路径被 .gitignore 覆盖，团队无法共享；需要共享时自行补否定规则（如 !.agents/skills/），toolkit 不代改 .gitignore"
   for (const skillDir of skillDirs) {
     const dir = join(cwd, skillDir, ENTRY_SHELL_NAME)
     const file = join(dir, SKILL_ENTRY)
     const rel = `${skillDir}/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}`
+    const ignoredHere = ignored.has(rel)
     if (existsSync(file)) {
-      products.push({ target: rel, action: "kept", detail: "已存在，保持不变" })
+      const version = readEntryVersion(readTextFile(file))
+      // 标记不旧于当前版本：保持不动（标记超前说明壳由更新版 toolkit 生成，本版不降级覆盖）
+      if (version !== null && version >= ENTRY_VERSION) {
+        const product: InitProduct = {
+          target: rel,
+          action: "kept",
+          detail: version === ENTRY_VERSION ? "已存在，标记版本一致，保持不变" : `已存在，标记 v${version} 较当前 v${ENTRY_VERSION} 更新，保持不变（不降级覆盖）`,
+        }
+        if (ignoredHere) product.hint = gitHint
+        products.push(product)
+        continue
+      }
+      // 标记缺失或落后：就地重写为当前版本壳，兑现「重跑 toolkit init 即可补齐」
+      mkdirSync(dir, { recursive: true })
+      writeFileAtomic(file, buildEntryShell())
+      const product: InitProduct = {
+        target: rel,
+        action: "updated",
+        detail: version === null ? `无标记，已就地更新为 v${ENTRY_VERSION}` : `标记 v${version} 落后，已就地更新为 v${ENTRY_VERSION}`,
+      }
+      if (ignoredHere) product.hint = gitHint
+      products.push(product)
       continue
     }
     mkdirSync(dir, { recursive: true })
     writeFileAtomic(file, buildEntryShell())
     const product: InitProduct = { target: rel, action: "created", detail: "已创建（只作入口，不承载条文）" }
-    // 落点被忽略时团队看不到：给否定规则提示，是否改 .gitignore 交由用户决定
-    if (isGitIgnored(cwd, rel)) {
-      product.hint = "该路径被 .gitignore 覆盖，团队无法共享；需要共享时自行补否定规则（如 !.agents/skills/），toolkit 不代改 .gitignore"
-    }
+    if (ignoredHere) product.hint = gitHint
     products.push(product)
   }
   // 指针块只指入口壳形态、不写死落点；多候选目录并存时每份壳内容逐字等价

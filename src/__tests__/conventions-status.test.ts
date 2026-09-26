@@ -257,7 +257,7 @@ describe("入口层体检", () => {
 
     const report = conventionsStatus(root, cwd)
     expect(report.shells).toHaveLength(2)
-    const versionItems = report.items.filter((i) => i.message.includes("入口壳标记版本落后"))
+    const versionItems = report.items.filter((i) => i.message.includes("入口壳标记与当前 toolkit"))
     expect(versionItems).toHaveLength(1)
     expect(versionItems[0].message).toContain("共 2 处")
     expect(versionItems[0].message).toContain(`.trae/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 v${ENTRY_VERSION - 1}）`)

@@ -1,5 +1,5 @@
 // 规范载体形态告警：旧单文件提示迁移、目录形态缺 index.md 提示补齐、v2 良构不告警、形态异常交人工确认
-// 入口层告警：壳标记版本落后 / 壳被 gitignore 覆盖；均软告警，不读条文内容
+// 入口层告警：壳标记与当前 toolkit 不一致 / 壳被 gitignore 覆盖；均软告警，不读条文内容
 import { describe, it, expect } from "vitest"
 import { execSync } from "node:child_process"
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs"
@@ -124,7 +124,7 @@ describe("规范载体 v2 形态告警", () => {
 })
 
 describe("入口壳告警", () => {
-  it("多壳版本落后或无标记时合并为一条，逐壳内联仓库相对路径与标记版本", () => {
+  it("多壳标记与当前 toolkit 不一致（含无标记）时合并为一条，逐壳内联仓库相对路径与标记版本", () => {
     const dir = makeTmp("tk-conv-shell-")
     const cwd = makeTmp("tk-conv-shell-cwd-")
     mkdirSync(join(dir, "active"), { recursive: true })
@@ -138,7 +138,7 @@ describe("入口壳告警", () => {
     writeShell(".claude/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n${ENTRY_MARKER}\n`)
 
     const warns = warnTexts(dir, cwd)
-    const versionWarns = warns.filter((m) => m.includes("入口壳标记版本落后"))
+    const versionWarns = warns.filter((m) => m.includes("入口壳标记与当前 toolkit"))
     expect(versionWarns).toHaveLength(1)
     expect(versionWarns[0]).toContain("共 2 处")
     expect(versionWarns[0]).toContain(`.trae/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 v${ENTRY_VERSION - 1}）`)
@@ -151,7 +151,7 @@ describe("入口壳告警", () => {
     rmSync(cwd, { recursive: true, force: true })
   })
 
-  it("单壳版本不一致时保留逐壳文案", () => {
+  it("单壳标记版本不一致时保留逐壳文案", () => {
     const dir = makeTmp("tk-conv-shellone-")
     const cwd = makeTmp("tk-conv-shellone-cwd-")
     mkdirSync(join(dir, "active"), { recursive: true })
@@ -160,7 +160,7 @@ describe("入口壳告警", () => {
     writeFileSync(join(target, SKILL_ENTRY), `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n<!-- toolkit-conventions-entry: v${ENTRY_VERSION - 1} -->\n`, "utf8")
 
     const warns = warnTexts(dir, cwd)
-    expect(warns.filter((m) => m.includes(`入口壳标记版本为 ${ENTRY_VERSION - 1}`))).toHaveLength(1)
+    expect(warns.filter((m) => m.includes(`入口壳标记 v${ENTRY_VERSION - 1}，与当前 toolkit`))).toHaveLength(1)
     rmSync(dir, { recursive: true, force: true })
     rmSync(cwd, { recursive: true, force: true })
   })

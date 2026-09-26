@@ -379,14 +379,14 @@ function pathKey(p: string): string {
   return process.platform === "win32" ? n.toLowerCase() : n
 }
 
-// 剥离尾部分隔符：Windows junction 的 readlink 结果形如 C:\x\target\，直接比较会误判为「指向错误」
+// 剥离尾部分隔符：Windows junction 的 readlink 结果形如 C:\x\target\，直接比较会因尾部分隔符导致路径判定失配
 function stripTailSep(p: string): string {
   const n = normalize(p)
   if (/^[a-zA-Z]:[\\/]$/.test(n)) return n
   return n.replace(/[\\/]+$/, "") || n
 }
 
-// 分类现场产物：不存在 / 链接且指向真源 / 链接但指向别处 / 悬空链接 / 实体目录 / 普通文件
+// 分类现场产物：不存在 / 链接且指向真源或同内容目录 / 链接但指向其他版本 / 悬空链接 / 实体目录 / 普通文件
 type ExistingKind = "absent" | "link-ok" | "wrong" | "dangling" | "dir" | "file"
 
 // 条目判型所需的最小结构：Dirent（readdirSync withFileTypes）与 Stats（lstatSync）均满足
@@ -418,11 +418,22 @@ function classifyExisting(dest: string, source: string, entry?: EntryType, sourc
     }
     const absTarget = stripTailSep(isAbsolute(target) ? target : resolve(dirname(dest), target))
     const targetKey = pathKey(absTarget)
-    if (targetKey !== pathKey(source) && !(altSource && targetKey === pathKey(altSource))) return "wrong"
+    if (targetKey !== pathKey(source) && !(altSource && targetKey === pathKey(altSource))) {
+      // 路径不同不等于内容不同：链接锚在别的安装（如 pnpm 稳定入口）时路径天然不相等，
+      // 只要其指向内容与真源逐字一致即视为正常，避免体检假警与自愈把健康链接重指到当前运行源
+      const sameAsSource = sameDirContent(source, absTarget)
+      const sameAsAlt = altSource !== "" && sameDirContent(altSource, absTarget)
+      if (!sameAsSource && !sameAsAlt) return "wrong"
+    }
     // 指向真源时：真源存在即为正常，否则悬空（真源缺失时 existsSync 为 false，而 lstat 仍认它是链接）
     return sourceExists || existsSync(dest) ? "link-ok" : "dangling"
   }
   return dirent.isDirectory() ? "dir" : "file"
+}
+
+// 两目录内容是否逐字一致（任一侧缺失即按不一致处理）
+function sameDirContent(a: string, b: string): boolean {
+  return existsSync(a) && existsSync(b) && dirsEqual(a, b)
 }
 
 // 递归比对两个目录内容是否一致（用于副本幂等判断与漂移检测），任何读取失败按「不一致」处理
@@ -560,7 +571,7 @@ export interface InstallOptions {
   force?: boolean
 }
 
-// 安装：对每个可用目标逐个技能做幂等处理——指向正确跳过、指向错误或悬空重建、非本包实体目录默认跳过（--force 覆盖）
+// 安装：对每个可用目标逐个技能做幂等处理——指向正确（含同内容异地锚点）跳过、指向其他版本或悬空重建、非本包实体目录默认跳过（--force 覆盖）
 export function installSkills(options: InstallOptions = {}): InstallReport {
   const skills = listPackageSkills()
   const targets = resolveSkillTargets(options.dirs ?? [])
@@ -712,7 +723,7 @@ export function removeSkills(options: { dryRun?: boolean } = {}): SkillsRemoveRe
   return { stateFile, stateExists: true, targets: results, stateRemoved }
 }
 
-// 现场状态：目标目录存在或状态文件有记录时逐技能判定，供 status 报告悬空 / 指向错误 / 副本漂移 / 同名冲突
+// 现场状态：目标目录存在或状态文件有记录时逐技能判定，供 status 报告悬空 / 指向其他版本 / 副本漂移 / 同名冲突
 export function skillsStatus(): SkillsStatusReport {
   const skills = listPackageSkills()
   const targets = resolveSkillTargets([])
@@ -736,7 +747,7 @@ export function skillsStatus(): SkillsStatusReport {
     for (const name of names) {
       const source = join(skillsSourceDir(), name)
       const dest = join(target.dir, name)
-      // 链接接受稳定锚点与真源两种指向（新链接锚在入口、旧链接直指真源），只把指向别处的判为错误；副本比对仍以真源为准
+      // 链接接受稳定锚点与真源两种指向（新链接锚在入口、旧链接直指真源），只把指向别处且内容与真源不一致的判为错误；副本比对仍以真源为准
       const kind = classifyExisting(dest, join(skillsLinkDir(), name), undefined, false, source)
       let state: SkillItemState
       if (kind === "link-ok") state = "link"
@@ -811,7 +822,7 @@ export function autoLinkSkills(): number {
       if (kind === "link-ok") return true
       // 非替换模式：现场是实体目录/普通文件时一律不动，记录照留（用户可显式 install --force 处置）
       if (!replaceForeign && (kind === "dir" || kind === "file")) return true
-      // 悬空或指向错误（含锚点改造前的旧指向）：删链重建；实体目录/文件按开关先清理
+      // 悬空或指向其他版本（内容与真源不一致）：删链重建；实体目录/文件按开关先清理
       try {
         if (kind !== "absent") removeArtifact(dest)
         symlinkSync(linkTarget, dest, linkType)

@@ -3,7 +3,7 @@
 
 > 演进记录见 `history.md`；超长条目升级见分册。
 > 本载体为「规范溯源簿」：记录本项目确立的每条规则、适用面（归属）、确立时的来源任务、演进历史，以及条文的单一事实源位置。条文内容一律以各单一事实源最新版为准（skills / task-spec / ai-rules / AGENTS），本载体不复制条文，避免版本漂移。
-> 非任务文件，`toolkit tasks` 不读取内容、`check` 不因内容告警；`check` 只对**载体形态异常**与**入口层现场异常**软告警——载体侧：旧单文件残留、缺 `index.md`、v2 标记与 `history.md` / 索引表首列 ID 不一致；入口壳侧：壳标记版本落后于当前 toolkit、壳被 gitignore 覆盖。v1 形态（有 `index.md`、无 `history.md`、无标记）属合法存量、不告警，可执行 `toolkit conventions upgrade` 升 v2。由任务归档（任务级）与会话收尾（会话级）维护，写入前经用户确认。载体结构、端名规则、读写判定与存量迁移见 `skills/fxri-plan-to-task/references/conventions-spec.md`。
+> 非任务文件，`toolkit tasks` 不读取内容、`check` 不因内容告警；`check` 只对**载体形态异常**与**入口层现场异常**软告警——载体侧：旧单文件残留、缺 `index.md`、v2 标记与 `history.md` / 索引表首列 ID 不一致；入口壳侧：壳标记与当前 toolkit 不一致、壳被 gitignore 覆盖。v1 形态（有 `index.md`、无 `history.md`、无标记）属合法存量、不告警，可执行 `toolkit conventions upgrade` 升 v2。由任务归档（任务级）与会话收尾（会话级）维护，写入前经用户确认。载体结构、端名规则、读写判定与存量迁移见 `skills/fxri-plan-to-task/references/conventions-spec.md`。
 
 ## 一、端清单
 
@@ -41,7 +41,7 @@
 | C-21 | 归档块不可变 + 事实更正例外 | 已归档块不追加新的工作内容、不追加新范围，元数据行冻结；唯一例外是事实更正——后续核实推翻原块结论时在正文末尾追加「修订记录」（保留原结论、不动元数据行、附更正时刻与依据） | common | 生效 | 20260916-建档判据通用化与收尾动作边界 | `SPEC.md` 协作模型第 1 条 + `skills/fxri-plan-to-task/references/task-spec.md`（第 6 节） |
 | C-22 | 门禁单源与时点 | 验收步骤清单唯一真源为 `scripts/verify.mjs`，以 `pnpm verify` 单条命令暴露，本地与三处 CI（GitHub `check` / `windows`、GitLab `test`）共用；禁止在规则文件或 CI 配置里另写步骤枚举（多份手写清单必然漂移，征兆是「本地自检通过、CI 才报错」）；跨平台裁剪用 `--skip-coverage --skip-docs`；门禁关卡设在**发布前**——发布到包仓库 / 制品库不可逆，推送失败重推即可（CI 仍会拦），故拦在不可逆动作之前，且须先于发版提交、避免失败时留下半成品提交；任务收尾链路另有**验收须晚于归档**的时点要求——归档会改写 `.tasks/`（写归档文件、删 active 源文件、清理空月份目录）而自身不做阻断式校验，验收早于归档就覆盖不到终态、归档产物无人校验，故收尾顺序为「归档与沉淀 → 验收 → 提交」，归档块「完成情况」只记改动事实与验证命令、不抄门禁结果 | common | 生效 | 20260916-门禁单源化与CI收敛；20260916-收尾链路验收时点 | `AGENTS.md`「验收方式」+「发版链路」+「协作流程约束」+ `scripts/verify.mjs` + `skills/fxri-release-changelog/SKILL.md` + `skills/fxri-plan-to-task/references/task-spec.md`（第 6 节） |
 | C-23 | 测试假现场须与真实现场形态一致 | 模拟现场（安装布局 / 目录结构 / 路径形态等）的测试假数据须与真实形态一致；被测逻辑对现场形态存在分支判据时，每种真实存在的形态都要有对应用例覆盖，不得只造一种（假现场失真时测试通过仅证明该形态正确，对未覆盖形态零信息量） | common | 生效 | 20260921-稳定入口兼容pnpm全局布局 | `common.md` |
-| C-24 | conventions 入口壳（一阶触发面） | 载体可另配项目级技能入口壳 `<项目级技能目录>/toolkit-conventions/SKILL.md`（目录名与 frontmatter `name` 同名），只作入口、不承载条文，正文指回任务区 `conventions/index.md`；由 `toolkit init` 幂等生成、可安全删除重跑补回；壳被 gitignore 覆盖时 `check` 告警（不会随 git 分发） | common | 生效 | 20260926-规范载体v2与入口壳 | `skills/fxri-plan-to-task/references/conventions-spec.md`（§1 载体结构） |
+| C-24 | conventions 入口壳（一阶触发面） | 载体可另配项目级技能入口壳 `<项目级技能目录>/toolkit-conventions/SKILL.md`（目录名与 frontmatter `name` 同名），只作入口、不承载条文，正文指回任务区 `conventions/index.md`；由 `toolkit init` 幂等生成——已存在壳按标记版本分流：标记不旧于当前版本保持不变，落后或无标记就地更新为当前版本、可安全删除重跑补回；壳标记与当前 toolkit 不一致时 `check` / `conventions status` 告警、可重跑 `toolkit init` 就地更新；壳被 gitignore 覆盖时 `check` 告警（不会随 git 分发） | common | 生效 | 20260926-规范载体v2与入口壳 | `skills/fxri-plan-to-task/references/conventions-spec.md`（§1 载体结构） |
 | C-25 | 版本括注口径（本仓库治理） | 文档中 `（x.y.z 新增）` 类版本括注只标注命令 / 技能 / 配置项 / 单一能力点的首次引入版本且紧邻该对象；描述跨版本演进的产物清单时不得在句末挂版本括注；后续扩展史由 `CHANGELOG.md` 承载，文档不复述 | common | 生效 | 20260926-版本标注口径对齐 | `common.md` |
 
 ## 三、用法说明
