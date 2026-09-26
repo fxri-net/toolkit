@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest"
 import { mkdtempSync, writeFileSync, mkdirSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { formatChangelog, formatChangelogs, localDate, countUntypedEntries } from "../changelog/format"
+import { formatChangelog, formatChangelogs, localDate, countUntypedEntries, findUntypedChangesetEntries } from "../changelog/format"
 import { collectChangelogs } from "../changelog/collect"
 import { languages, DEFAULT_LANG, resolveLang, type ChangelogLanguage } from "../changelog/languages"
 
@@ -502,6 +502,98 @@ describe("countUntypedEntries", () => {
   it("纯历史 CHANGELOG 返回 0（历史块零告警的计数依据）", () => {
     withChangelog("# pkg\n\n## 1.0.0\n\n> 2026-09-01 发布\n\n### 🐛 补丁修复\n\n- 历史条目一\n- 历史条目二\n", (_file, dir) => {
       expect(countUntypedEntries(dir, zh)).toBe(0)
+    })
+  })
+})
+
+// 造临时 .changeset 目录样本并在用例结束后清理（缺前缀早期检测用例统一走此入口）
+function withChangesets(files: Record<string, string>, run: (dir: string) => void) {
+  const dir = mkdtempSync(join(tmpdir(), "tk-cs-"))
+  for (const [name, content] of Object.entries(files)) writeFileSync(join(dir, name), content, "utf8")
+  try {
+    run(dir)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+}
+
+// 声明本语言自有前缀的自定义语言：验证并集识别，避免自定义前缀被误判为缺前缀
+const customPrefixLang: ChangelogLanguage = {
+  groups: [{ slot: "added", title: "### 新增", prefixes: ["特性："] }],
+  replacements: {},
+  deps: "- 更新依赖",
+  released: "发布",
+}
+
+describe("findUntypedChangesetEntries", () => {
+  it("目录不存在返回空数组（未使用 changesets 的项目零打扰）", () => {
+    const missing = join(tmpdir(), `tk-cs-missing-${process.pid}-${Date.now()}`)
+    expect(findUntypedChangesetEntries(missing, Object.values(languages))).toEqual([])
+  })
+
+  it("排除 README.md，只扫待发布变更集", () => {
+    withChangesets(
+      {
+        "README.md": "# 说明\n\n- 缺前缀但不是待发布变更集\n",
+        "calm-yaks-wander.md": "- 修复：有前缀条目\n",
+      },
+      (dir) => {
+        expect(findUntypedChangesetEntries(dir, Object.values(languages))).toEqual([])
+      },
+    )
+  })
+
+  it("跳 YAML frontmatter 后判顶层条目，file/line/count 与原文对齐", () => {
+    withChangesets(
+      { "brave-melons-sing.md": '---\n"@fxri/toolkit": patch\n---\n\n- 修复：有前缀\n- 无前缀甲\n- 无前缀乙\n' },
+      (dir) => {
+        const found = findUntypedChangesetEntries(dir, Object.values(languages))
+        expect(found).toHaveLength(1)
+        expect(found[0]).toEqual({ file: `${dir}/brave-melons-sing.md`, line: 6, count: 2 })
+      },
+    )
+  })
+
+  it("缩进续行随父条目迁属，不参与前缀识别", () => {
+    withChangesets(
+      { "quiet-llamas-repeat.md": '---\n"@fxri/toolkit": minor\n---\n\n- 新增：顶层条目\n  - 缩进子条目（缺前缀）\n' },
+      (dir) => {
+        expect(findUntypedChangesetEntries(dir, Object.values(languages))).toEqual([])
+      },
+    )
+  })
+
+  it("「- - x」双前缀伪影归一后按顶层条目判前缀", () => {
+    withChangesets(
+      { "lucky-pandas-shine.md": '---\n"@fxri/toolkit": minor\n---\n\n- - 新增：有前缀\n- 无前缀条目\n' },
+      (dir) => {
+        const found = findUntypedChangesetEntries(dir, Object.values(languages))
+        expect(found).toHaveLength(1)
+        expect(found[0].count).toBe(1)
+        expect(found[0].line).toBe(6)
+      },
+    )
+  })
+
+  it("依赖源条目不误报，且无缺前缀的文件不出现在结果中", () => {
+    withChangesets(
+      {
+        "merry-lynx-roam.md": '---\n"@fxri/toolkit": patch\n---\n\n- Updated dependencies\n- 修复：有前缀\n',
+        "tidy-otters-listen.md": '---\n"@fxri/toolkit": patch\n---\n\n- 无前缀甲\n- 无前缀乙\n- 无前缀丙\n',
+      },
+      (dir) => {
+        const found = findUntypedChangesetEntries(dir, Object.values(languages))
+        expect(found.map((e) => e.file.split("/").pop())).toEqual(["tidy-otters-listen.md"])
+        expect(found[0].count).toBe(3)
+      },
+    )
+  })
+
+  it("自定义语言的自有前缀经并集识别，不误报", () => {
+    withChangesets({ "custom-lang.md": '---\n"pkg": patch\n---\n\n- 特性：自定义前缀条目\n' }, (dir) => {
+      expect(findUntypedChangesetEntries(dir, [customPrefixLang])).toEqual([])
+      // 未纳入该语言的调用方仍按全局表识别，自定义前缀缺省即为缺前缀
+      expect(findUntypedChangesetEntries(dir, [plainJa])).toHaveLength(1)
     })
   })
 })

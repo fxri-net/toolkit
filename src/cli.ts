@@ -11,13 +11,13 @@ import { exportTasks, toJSON } from "./tasks/export"
 import { importTasks } from "./tasks/import"
 import { archiveTasks } from "./tasks/archive"
 import { computeStats, renderStats } from "./tasks/stats"
-import { validateTasks } from "./tasks/validate"
+import { validateTasks, type CheckIssue } from "./tasks/validate"
 import { checkArchive, fixArchive } from "./tasks/normalize"
 import { listTaskFiles } from "./tasks/scan"
 import type { TaskView, TaskFilter, ImportTarget } from "./tasks/types"
 import { ALL_STATUSES } from "./tasks/types"
 import { languages, DEFAULT_LANG, resolveLang, type ChangelogLanguage } from "./changelog/languages"
-import { localDate, formatChangelogs, countUntypedEntries } from "./changelog/format"
+import { localDate, formatChangelogs, countUntypedEntries, findUntypedChangesetEntries } from "./changelog/format"
 import { resolveRedactEnabled } from "./privacy/redact"
 import { resolveEnabled } from "./switch"
 import { getConfigSection, resolveTasksDir } from "./config"
@@ -107,6 +107,17 @@ function warnUntypedEntries(lang: ChangelogLanguage) {
   if (count > 0) {
     console.warn(`⚠️ ${count} 条变更集条目缺类型前缀，建议按「类型：描述」撰写`)
   }
+}
+
+// 变更集缺前缀检测（tasks check 早期检测）：扫 .changeset 下待发布变更集，缺前缀文件各转一条 warn 级问题
+// 前缀识别遍历全部配置语言，自定义语言不误报；与 changelog 侧 warnUntypedEntries 互补，不在同一命令内重复触发
+function changesetPrefixIssues(): CheckIssue[] {
+  return findUntypedChangesetEntries(".changeset", Object.values(resolveLanguages())).map((entry) => ({
+    level: "warn" as const,
+    file: entry.file,
+    line: entry.line,
+    message: `变更集条目缺类型前缀（本文件 ${entry.count} 条），建议按「类型：描述」撰写`,
+  }))
 }
 
 // 打印校验结果（check / normalize --check 共用）；带行号的问题输出 file:line 便于编辑器跳转
@@ -633,16 +644,19 @@ program
       } else if (command === "check") {
         try {
           const result = validateTasks(dir)
+          // 变更集缺前缀检测并入同一份问题清单（软告警关闭时不计不报）
+          const issues = warn ? [...result.issues, ...changesetPrefixIssues()] : result.issues
+          const errorCount = issues.filter((i) => i.level === "error").length
           console.log("任务校验：")
-          console.log(`【error】${result.errorCount} 项`)
-          printIssues(result.issues.filter((i) => i.level === "error"))
+          console.log(`【error】${errorCount} 项`)
+          printIssues(issues.filter((i) => i.level === "error"))
           if (warn) {
-            console.log(`【warn】${result.warnCount} 项`)
-            printIssues(result.issues.filter((i) => i.level === "warn"))
+            console.log(`【warn】${issues.length - errorCount} 项`)
+            printIssues(issues.filter((i) => i.level === "warn"))
           } else {
             console.log("（软告警已关闭，warn 不展示）")
           }
-          if (result.errorCount > 0) process.exitCode = 1
+          if (errorCount > 0) process.exitCode = 1
         } catch (e) {
           console.error(`⚠️ 操作失败：${(e as Error).message}`)
           process.exitCode = 1

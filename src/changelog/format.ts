@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs"
+import { readFileSync, readdirSync, writeFileSync } from "node:fs"
 import { collectChangelogs } from "./collect"
 import { redactText } from "../privacy/redact"
 import { todayDash } from "../date"
@@ -165,6 +165,56 @@ export function countUntypedEntries(dir: string, lang: ChangelogLanguage): numbe
     }
   }
   return count
+}
+
+// 单个变更集文件的缺前缀扫描结果
+export interface UntypedChangesetEntry {
+  // 变更集文件路径（以 / 拼接，便于编辑器跳转）
+  file: string
+  // 文件内首个缺前缀顶层条目的 1 基行号
+  line: number
+  // 该文件缺前缀的顶层条目数
+  count: number
+}
+
+// 扫描 .changeset 下待发布变更集（.md 且非 README.md，口径同 cli 的 hasPendingChangeset），
+// 按顶层条目判类型前缀、按文件聚合缺前缀结果（tasks check 的早期检测用）：
+// 前缀识别取全局表与各配置语言自有前缀的并集，自定义语言不误报；
+// 依赖源条目经 explicitSlot 归 deps 不计缺前缀；缩进续行随父条目迁属，不参与识别
+export function findUntypedChangesetEntries(dir: string, langs: ChangelogLanguage[]): UntypedChangesetEntry[] {
+  const extra = extraPrefixes(langs.flatMap((lang) => lang.groups ?? []))
+  const found: UntypedChangesetEntry[] = []
+  let names: string[]
+  try {
+    names = readdirSync(dir).filter((name) => name.endsWith(".md") && name !== "README.md")
+  } catch {
+    // 目录不存在（未使用 changesets 的项目）时无变更集可查
+    return found
+  }
+  for (const name of names.sort()) {
+    const file = `${dir}/${name}`
+    const lines = readFileSync(file, "utf8").replace(/\r\n/g, "\n").split("\n")
+    // 跳过 YAML frontmatter（首行 --- 到其配对 ---），使行号与原文对齐
+    let start = 0
+    if ((lines[0] ?? "").trim() === "---") {
+      let end = 1
+      while (end < lines.length && (lines[end] ?? "").trim() !== "---") end++
+      start = end + 1
+    }
+    // 复用归类前归一，使「- - x」双前缀伪影与紧随的缩进续行按同一口径还原为顶层条目
+    const body = normalize(lines.slice(start).join("\n")).split("\n")
+    let line = 0
+    let count = 0
+    for (let i = 0; i < body.length; i++) {
+      const item = body[i] ?? ""
+      if (!item.startsWith("- ")) continue
+      if (explicitSlot(item, extra) !== null) continue
+      if (line === 0) line = start + i + 1
+      count++
+    }
+    if (count > 0) found.push({ file, line, count })
+  }
+  return found
 }
 
 // 顶层条目行计数（仅用于归类前后丢内容自检）

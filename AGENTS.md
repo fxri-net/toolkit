@@ -10,7 +10,7 @@
 2. **文档**：`docs/` 逐篇过触达面（README、getting-started、handbook、guide、faq、cli、api、ai-rules）。凡触达处措辞必须与实际行为严格一致，包括「不自动修复」「需人工确认」等限制细节；确认无触达的内容须在对话中明确说明，不得静默跳过。
    ⚠️ **时点约束**：触达面核对在**变更方案确认时**即按此清单逐篇走查、将结论列入任务文件「影响范围」节（每篇标注 已同步 / 无触达及理由），不延迟到归档时才复核。涉及术语或措辞变更时，先 grep 全仓库定位旧措辞触达点再列清单。
 3. **skills**：`skills/` 下 SKILL.md 与 references 同步新能力/新流程；每个 SKILL.md 的版本写两处且须一致——frontmatter `metadata.version`（机器读取位，`toolkit skills status` / `skills install` 打印的真源版本）与正文首部 `> 本技能版本 x.y.z（随 @fxri/toolkit 同批分发）`（进上下文的自证位）；内容变更时同步递增（小修 +patch，能力级 +minor）。
-4. **变更集**：凡影响对外行为的变更，任务归档前必须在 `.changeset/` 建变更集（标注 patch/minor/major 并写用户可感知的变更描述）；归档时出现「无变更集」提示即视为本质量门未过。
+4. **变更集**：凡影响对外行为的变更，任务归档前必须在 `.changeset/` 建变更集（标注 patch/minor/major 并写用户可感知的变更描述，条目须以 `类型：` 前缀开头，前缀表见 `skills/fxri-release-changelog/SKILL.md`）；归档时出现「无变更集」提示即视为本质量门未过。
 5. **全局规则薄引用**：可变流程细节只进 skills（SKILL.md / references），`docs/ai-rules.md` 的「规则全文」保持薄壳——只承载稳定纪律与对 fxri-* skill 的引用，不复述可变细节；凡在 ai-rules.md 复述了可变细节的改动即视为违背本规则，须收敛回 skill。原因：全局规则是用户手动复制的快照，细节复述会让能力升级后用户侧规则失同步；收敛进 skills 后技能随包同源分发（与 CLI 同一发布批次），升级只需 `pnpm add -g @fxri/toolkit`（软链自动跟随，副本形式再跑一次 `toolkit skills install`）。
 6. **规则层更新锚点**：`SPEC.md`、`docs/ai-rules.md`、`docs/commit-rules.md` 三处各有一行更新锚点，`SPEC.md` 为 `> 规范更新时间 YYYY-MM-DD HH:mm`，两个规则页为 `> 规则更新时间 YYYY-MM-DD HH:mm`（24 小时制、本机时区、精确到分、不带秒）；锚点行必须位于**规则全文可复制块内部首行**——两个规则页以 fenced 代码块作可复制块，`SPEC.md` 无 fenced 包裹、整篇文件即快照，其锚点位于文件正文首行即合规；放块外则用户快照不含锚点、无从自查。纪律：任何内容变更（含错别字、标点、链接）须以变更时刻更新所属文件锚点；未变更的文件不得刷新；同一批改动取同一时间；只随内容变更递增、不随发版例行抬高。原因：用户会把规则复制成个人快照，快照首行与页面当前值不一致即说明已失同步，时间戳还能看出落后多久。
 

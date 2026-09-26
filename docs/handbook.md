@@ -34,7 +34,7 @@
 
 ```bash
 pnpm exec toolkit tasks                 # 待完成总览
-pnpm exec toolkit tasks check           # 校验 active（建错会告诉你错哪）
+pnpm exec toolkit tasks check           # 校验 active 与变更集前缀（建错会告诉你错哪）
 pnpm exec toolkit tasks archive --dry-run  # 归档预演，先看会归档什么
 pnpm exec toolkit tasks archive         # 正式归档
 pnpm exec toolkit tasks normalize       # 检查归档块（可 --fix 修复）

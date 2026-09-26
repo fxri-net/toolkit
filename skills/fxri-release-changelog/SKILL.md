@@ -3,14 +3,14 @@ name: fxri-release-changelog
 description: 基于 changesets 的发版与多语言 CHANGELOG 维护流程：创建变更集、消费发版、把分组标题与条目转为项目语言风格、清理变更集、打标签发布；无 changesets 的项目提供同格式手工模式。当用户表达发版或记录变更意图——含创建变更集、changeset、发版、version、CHANGELOG 格式化等说法及其口语近义表达（如发一版、出个版本、记一下这次改动、生成更新日志）时使用。⚠️ 注意区分：用户说「提交个版本 / 先提交一版 / commit」通常指 git 提交当前改动（走任务收尾后提交），**不是发版**。不用于日常 commit message 撰写、git 提交操作或与发版无关的文档修改。
 license: MIT
 metadata:
-  version: "1.1.2"
+  version: "1.1.3"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
 
 # 发版与 CHANGELOG
 
-> 本技能版本 1.1.2（随 @fxri/toolkit 同批分发）。被问版本时即报此值——不读磁盘、不跑 CLI：报出的值就是本会话上下文里已加载内容的版本，可与 `toolkit skills status` 打印的磁盘基准值对照，不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.1.3（随 @fxri/toolkit 同批分发）。被问版本时即报此值——不读磁盘、不跑 CLI：报出的值就是本会话上下文里已加载内容的版本，可与 `toolkit skills status` 打印的磁盘基准值对照，不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -31,7 +31,7 @@ metadata:
 
 ## changesets 流程
 
-1. 记录变更：`npx changeset`（或项目包管理器等价脚本）——**变更描述一律以 `类型：` 前缀开头**（如 `新增：` / `修复：` / `优化：`），并按类型选影响级别（重大→major、新增/修改→minor、优化/修复/清理/文档→patch，完整对照见 `references/changelog-format.md`）
+1. 记录变更：`npx changeset`（或项目包管理器等价脚本）——**变更描述一律以 `类型：` 前缀开头**（如 `新增：` / `修复：` / `优化：`），并按类型选影响级别（重大→major、新增/修改→minor、优化/修复/清理/文档→patch，完整对照见 `references/changelog-format.md`）。写完可跑 `toolkit tasks check` 早期自查：它扫 `.changeset/` 下待发布变更集，逐文件报出缺前缀条目与条数（免得到发版、变更集源被消费删除后才由 changelog 侧兜底告警——那时已无从补写）
 2. 消费发版：`npx changeset version`——自动写版本号与 CHANGELOG
 3. 格式化：按 `references/changelog-format.md` 的语义分组规则归类条目、转换分组标题、润色为项目语言风格（中文示例：`### Patch Changes` 下的 `- 修复：xxx` → `### 🐛 问题修复` 下的 `- xxx`——归类后类型前缀被剥离，类型由分组标题承接）；分组维度与 bump 维度正交，条目归组只看类型前缀
 4. 归一：润色后跑一次 `toolkit changelog --history format`——人工润色（含补写历史块明细）容易在条目之间留空行，该命令按「同组顶层条目逐行相邻」重排历史块；项目另有更新日志镜像页（如 `docs/changelog.md`）时再跑一次同步脚本，否则镜像一致性校验会失败
@@ -53,6 +53,7 @@ metadata:
 | CHANGELOG 出现「- - 条目」双前缀伪影（变更集条目以 `- ` 开头） | `toolkit changelog version/format` 已自动还原为顶层条目；手工模式按 references 规则手动清理 |
 | 条目与仓库既有风格不一致 | 人工润色为项目语言与句式，勿保留机器直译 |
 | 变更集遗漏（发版后才发现功能未记录） | 补建变更集随下次发版；本次在发布说明中人工补充 |
+| `toolkit tasks check` 报「变更集条目缺类型前缀」 | 打开所列文件，给缺前缀的**顶层条目**按「类型：描述」补前缀（缩进续行随父条目迁属、无需加）；补前缀只改分类信号，不改变 bump 级别 |
 | 改动已发布却无归档记录（有提交、无任务档） | 先补归档（fxri-session-recap 模式一）再继续发布后续步骤；发版本身不补建档 |
 | 发版后历史块内出现多余空行（`自举一致性` 类零改动用例失败） | 跑 `toolkit changelog --history format` 归一（**必须带 `--history`**，默认模式不动历史块），再补跑一次镜像页同步脚本 |
 | 格式化时 stderr 报「归类后条目数由 N 降为 M，疑似丢失内容」 | 归类只应搬移条目，减少即疑似丢内容：核对该版本块是否含非纯条目分组（标题下先出现正文）或被保留分组；确认属正常去重可忽略，否则按 references 的归类规则修回 |
@@ -66,5 +67,6 @@ metadata:
 - `toolkit changelog format`：仅格式化既有 CHANGELOG
 - `toolkit changelog --history format`：连带追溯改写历史版本块（用户主动要求修正历史块时才加，默认不动）
 - `toolkit changelog --lang <语言> …`：切换输出语言（内置 zh / en，其余可配置扩展）
+- `toolkit tasks check`：扫 `.changeset/` 下待发布变更集并逐文件报出缺前缀条目（流程第 1 步的早期自查入口，归档前的 `tasks check` 即含此项）
 - ⚠️ `changelog` 域开了选项透传，自有选项（`--lang` / `--history` / `--redact` / `--warn`）必须写在子命令**之前**：`toolkit changelog --history format` 生效，写成 `toolkit changelog format --history` 会被 changesets 静默忽略（表现为「无 CHANGELOG 需要更新」）
 - `toolkit skills install` / `toolkit skills status`：把本包 fxri-* 技能分发到各 agent 全局技能目录 / 查看链接与副本现场（技能随包同源分发，与 CLI 同一发布批次；技能内容版本独立编号，`skills status` 会打印各技能真源版本）
