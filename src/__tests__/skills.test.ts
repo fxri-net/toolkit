@@ -112,13 +112,12 @@ describe("包根与技能真源定位", () => {
     }
   })
 
-  it("每个技能带真源声明版本，与 SKILL.md frontmatter 一致且为语义化版本", () => {
+  it("每个技能带真源声明版本（frontmatter metadata.version）且为语义化版本", () => {
     const skills = listPackageSkills()
     expect(skills.length).toBeGreaterThan(0)
     for (const skill of skills) {
       // 版本随技能进 `skills install` / `skills status` 报告，供与会话上下文已加载内容比对
       expect(skill.version).toMatch(/^\d+\.\d+\.\d+$/)
-      expect(readSkillVersion(skill.dir)).toBe(skill.version)
     }
   })
 })

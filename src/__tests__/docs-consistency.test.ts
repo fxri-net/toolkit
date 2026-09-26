@@ -95,8 +95,8 @@ describe("文档一致性：站内链接目标与锚点可解析", () => {
         const target = (rawTarget as string).split("?")[0] as string
         const cleanTarget = target.replace(/\.html$/i, "")
         // 纯锚点链接的目标页即当前页；相对链接按所在文件目录解析（README 写 ./docs/x.md、docs 内写 ./x.md、
-        // skills 子目录同理），以 / 开头视为仓库根绝对路径
-        const toRepoPath = (p: string) => normalize(p.startsWith("/") ? p.slice(1) : join(dirname(file), p)).replace(/\\/g, "/")
+        // skills 子目录同理）；以 / 开头的站内绝对链接按站点根解析——本站 srcDir 即 docs/，故落到 docs/ 下
+        const toRepoPath = (p: string) => normalize(p.startsWith("/") ? join("docs", p.slice(1)) : join(dirname(file), p)).replace(/\\/g, "/")
         const page = cleanTarget === "" ? file : toRepoPath(cleanTarget)
         const resolved = resolvePage(page, anchorsOf)
         if (!resolved) {
@@ -109,8 +109,60 @@ describe("文档一致性：站内链接目标与锚点可解析", () => {
           problems.push(`${file}：链接「${href}」的锚点在 ${resolved} 中不存在`)
         }
       }
+      // 资源引用（markdown 图片与原始 HTML <img src>）不在 VitePress 死链检查范围，按磁盘存在性校验；
+      // 外链与 data: 内联资源由协议正则一并跳过
+      for (const matched of (htmlOf.get(file) as string).matchAll(/src="([^"]*)"/g)) {
+        let src = ""
+        try {
+          src = decodeURIComponent(matched[1] as string)
+        } catch {
+          continue
+        }
+        if (/^[a-z][a-z0-9+.-]*:/i.test(src) || src.startsWith("//")) continue
+        const cleanSrc = (src.split("#")[0] as string).split("?")[0] as string
+        if (cleanSrc === "") continue
+        // 以 / 开头的资源按站点根解析（docs/ 下），其余按所在文件目录解析
+        const resolved = cleanSrc.startsWith("/") ? join("docs", cleanSrc.slice(1)) : join(dirname(file), cleanSrc)
+        if (!existsSync(join(process.cwd(), resolved))) {
+          problems.push(`${file}：资源引用「${src}」指向的文件 ${normalize(resolved).replace(/\\/g, "/")} 不存在`)
+        }
+      }
     }
     expect(problems).toEqual([])
+  })
+})
+
+// 站点导航/侧边栏链接不在 VitePress 死链检查范围内（实测改坏 nav 后 build 仍成功），
+// 故从配置里提取引号包裹的站内 link，落到 docs/ 下做存在性校验
+describe("文档一致性：站点导航与侧边栏链接目标存在", () => {
+  it("docs/.vitepress/config.mts 的 nav / sidebar 站内链接都指向存在的文档页（路径打错或页面被删即失败）", () => {
+    // 只取引号包裹的 '/...' 写法：天然排除 socialLinks 的变量写法与 editLink.pattern 的 :path 模板
+    const pages = new Map<string, Set<string>>(collectMarkdown("docs", []).map((p) => [p, new Set<string>()]))
+    const problems: string[] = []
+    for (const matched of readDoc("docs/.vitepress/config.mts").matchAll(/link:\s*'(\/[^']*)'/g)) {
+      const href = matched[1] as string
+      const clean = (href.split("#")[0] as string).replace(/^\/+/, "")
+      // 站点根链接（'/'）视作首页 docs/index.md
+      const page = normalize(join("docs", clean === "" ? "index.md" : clean)).replace(/\\/g, "/")
+      if (!resolvePage(page, pages)) {
+        problems.push(`docs/.vitepress/config.mts：导航链接「${href}」指向的页面 ${page} 不存在`)
+      }
+    }
+    expect(problems).toEqual([])
+  })
+})
+
+// 提交信息规则在两处并存：.trae/rules/git-commit-message.md（本仓库自用真源）与 docs/commit-rules.md
+// 的可复制围栏块（用户侧投影）。两者正文须逐字一致（规范 C-16），此前无任何检测入口
+describe("文档一致性：提交信息规则两处真源镜像", () => {
+  it("docs/commit-rules.md 围栏块正文与 .trae/rules/git-commit-message.md 逐字一致（只改一处即失败）", () => {
+    const fenced = /^````markdown\n([\s\S]*?)^````/m.exec(readDoc("docs/commit-rules.md"))?.[1]
+    expect(fenced, "docs/commit-rules.md 缺少 ````markdown 规则全文围栏块").toBeTruthy()
+    // 围栏块首行是只存在于用户侧投影的更新时间锚点，比对时剔除
+    const projection = (fenced as string).replace(/^> 规则更新时间 [^\n]*\n/, "").trim()
+    // 真源文件的 frontmatter 是 agent 规则元数据，不进用户侧投影，比对时剔除
+    const source = readDoc(".trae/rules/git-commit-message.md").replace(/^---\n[\s\S]*?\n---\n/, "").trim()
+    expect(projection).toBe(source)
   })
 })
 
