@@ -234,6 +234,20 @@ describe("入口层体检", () => {
     expect(report.summary).toContain("无待处理项")
   })
 
+  it("源仓库现场（package.json 的 name 为 @fxri/toolkit）不给补生成入口壳的提示", () => {
+    const root = makeDir("tk-status-src-")
+    const cwd = makeDir("tk-status-src-cwd-")
+    makeV2(root, cleanRows)
+    writeFileSync(join(cwd, "package.json"), JSON.stringify({ name: "@fxri/toolkit", version: "0.0.0" }), "utf8")
+
+    const report = conventionsStatus(root, cwd)
+    expect(report.shells).toEqual([])
+    expect(report.warnings).toBe(0)
+    // 源仓库不生成壳属预期，不得提示跑注定空转的 toolkit init
+    expect(report.items.filter((i) => i.scope === "入口层" && i.message.includes("toolkit init"))).toEqual([])
+    expect(report.items.filter((i) => i.scope === "入口层" && i.message.includes("本包源仓库不生成入口壳"))).toHaveLength(1)
+  })
+
   it("壳标记版本与当前 toolkit 不一致（含无标记）时逐壳告警", () => {
     const root = makeDir("tk-status-shellver-")
     const cwd = makeDir("tk-status-shellver-cwd-")

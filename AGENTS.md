@@ -18,6 +18,8 @@
 
 `.tasks/conventions/` 载体的索引表与 AGENTS / ai-rules / skills 条文存在对应关系：修改 AGENTS.md、docs/ai-rules.md 或 skills 条文的变更，须同步检查索引对应行的「当前语义」是否需要更新；语义变更先在 `history.md` 留痕、再更新索引表内当前语义，随该变更同批落盘。
 
+**动手前先读 `.tasks/conventions/index.md`**：本包源仓库不生成入口壳，AGENTS.md 即其规范触发面——先看端清单与索引了解本项目已确立哪些规范，条文以各文件的单一事实源为准。
+
 ## 验收方式
 
 - 跑 `pnpm verify`——**单一步骤清单真源**，步骤定义在 `scripts/verify.mjs`（类型检查 → 冷缓存静态检查 → 单测 → 覆盖率 → 构建 → 文档站构建 → CLI 冒烟 → 任务区体检），本地与三处 CI（GitHub `check` / `windows`、GitLab `test`）调用同一份；**禁止在本文件或 CI 配置里另写步骤枚举**，那是清单漂移的根因。跨平台裁剪用 `pnpm verify --skip-coverage --skip-docs`（windows job 即此路径）。任一步失败即不得交付，注意 `pnpm lint` 是 eslint 不做类型检查、`pnpm build` 亦不拦截类型错误，单跑二者不能替代本门禁；

@@ -17,7 +17,7 @@ import {
   type CarrierState,
   type ConventionsForm,
 } from "./format"
-import { findEntryShells, isGitIgnored } from "./entry"
+import { findEntryShells, isGitIgnored, isToolkitSourceRepo } from "./entry"
 
 // 体检项：level 只分「待处理（warn）」与「提示（info）」，info 不计入问题数
 export interface ConventionsStatusItem {
@@ -133,7 +133,7 @@ function checkIndex(state: CarrierState, items: ConventionsStatusItem[]): void {
   }
 }
 
-// 入口层块：壳版本落后于当前 toolkit 告警；壳被 gitignore 覆盖告警（不分发等于只在本机生效）；无壳仅提示
+// 入口层块：壳版本落后于当前 toolkit 告警；壳被 gitignore 覆盖告警（不分发等于只在本机生效）；无壳仅提示（本包源仓库除外，其本就不生成壳）
 function checkEntryLayer(cwd: string, items: ConventionsStatusItem[]): EntryShellState[] {
   const shells: EntryShellState[] = []
   for (const shell of findEntryShells(cwd)) {
@@ -155,7 +155,11 @@ function checkEntryLayer(cwd: string, items: ConventionsStatusItem[]): EntryShel
     }
   }
   if (shells.length === 0) {
-    items.push({ level: "info", scope: "入口层", message: "未找到入口壳：执行 toolkit init 可生成（项目级技能目录）" })
+    items.push(
+      isToolkitSourceRepo(cwd)
+        ? { level: "info", scope: "入口层", message: "本包源仓库不生成入口壳（靠 fxri-* 技能自举）：无需补生成" }
+        : { level: "info", scope: "入口层", message: "未找到入口壳：执行 toolkit init 可生成（项目级技能目录）" },
+    )
   }
   return shells
 }
