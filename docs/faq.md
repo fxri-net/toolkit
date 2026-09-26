@@ -170,7 +170,7 @@ pnpm remove -g @fxri/toolkit   # 2. 再卸 CLI
 
 ### `toolkit init` 生成的「规范入口壳」是什么？必须留着吗？
 
-它是在项目级技能目录（如 `.agents/skills/toolkit-conventions/SKILL.md`）生成的一个**只作入口、不承载条文**的小技能壳，让 AI 在项目里能按需发现 `.tasks/conventions/` 载体，正文指回 `index.md`。它属侵入性写入，`init` 会逐项报告实际动作；落点被 `.gitignore` 覆盖时报告会提示（**不代改 `.gitignore`**），因为那样壳不会随 git 分发。不需要可直接删除，重跑 `init` 会补回。
+它是在**已存在的**项目级技能目录（如 `.agents/skills/toolkit-conventions/SKILL.md`；多个候选目录并存时每处各写一份，一个都不存在则回落 `.agents/skills/`）生成的一个**只作入口、不承载条文**的小技能壳，让 AI 在项目里能按需发现 `.tasks/conventions/` 载体，正文指回 `index.md`。它属侵入性写入，`init` 会逐项报告实际动作；落点被 `.gitignore` 覆盖时报告会提示（**不代改 `.gitignore`**），因为那样壳不会随 git 分发。不需要可直接删除，重跑 `init` 会补回。
 
 ⚠️ 若只是某条旧规范过时（不换形态），走内容修订而非迁移：`history.md` 追加留痕（只追加、不改旧行）→ 更新 `index.md` 索引行「当前语义」→ 作废的把「状态」改 `已废弃`（不删行）。详见[操作手册 · 规范载体迁移](./handbook#四、规范载体迁移)与[完整攻略 · 存量规范载体迁移](./guide#存量规范载体迁移)。
 

@@ -18,11 +18,12 @@ import {
   AGENTS_POINTER_START,
   ENTRY_SHELL_NAME,
   SKILL_ENTRY,
+  FALLBACK_SKILL_DIR,
   buildAgentsPointer,
   buildEntryShell,
   isGitIgnored,
   isToolkitSourceRepo,
-  resolveProjectSkillDir,
+  resolveProjectSkillDirs,
 } from "./conventions/entry"
 import { todayCompact } from "./date"
 
@@ -161,14 +162,16 @@ function scaffoldEntryLayer(cwd: string): InitProduct[] {
       },
     ]
   }
-  const skillDir = resolveProjectSkillDir(cwd)
-  const dir = join(cwd, skillDir, ENTRY_SHELL_NAME)
-  const file = join(dir, SKILL_ENTRY)
-  const rel = `${skillDir}/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}`
+  const skillDirs = resolveProjectSkillDirs(cwd)
   const products: InitProduct[] = []
-  if (existsSync(file)) {
-    products.push({ target: rel, action: "kept", detail: "已存在，保持不变" })
-  } else {
+  for (const skillDir of skillDirs) {
+    const dir = join(cwd, skillDir, ENTRY_SHELL_NAME)
+    const file = join(dir, SKILL_ENTRY)
+    const rel = `${skillDir}/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}`
+    if (existsSync(file)) {
+      products.push({ target: rel, action: "kept", detail: "已存在，保持不变" })
+      continue
+    }
     mkdirSync(dir, { recursive: true })
     writeFileAtomic(file, buildEntryShell())
     const product: InitProduct = { target: rel, action: "created", detail: "已创建（只作入口，不承载条文）" }
@@ -178,7 +181,9 @@ function scaffoldEntryLayer(cwd: string): InitProduct[] {
     }
     products.push(product)
   }
-  products.push(...upsertAgentsPointer(cwd, skillDir))
+  // 指针块只指首个落点；resolveProjectSkillDirs 保证非空，解构兜底消除索引可选类型
+  const [primarySkillDir = FALLBACK_SKILL_DIR] = skillDirs
+  products.push(...upsertAgentsPointer(cwd, primarySkillDir))
   return products
 }
 
@@ -186,7 +191,14 @@ function scaffoldEntryLayer(cwd: string): InitProduct[] {
 function upsertAgentsPointer(cwd: string, skillDir: string): InitProduct[] {
   const file = join(cwd, "AGENTS.md")
   if (!existsSync(file)) {
-    return [{ target: "AGENTS.md", action: "skipped", detail: "文件不存在；不新建，需要时手工添加或先建文件再重跑 toolkit init" }]
+    return [
+      {
+        target: "AGENTS.md",
+        action: "skipped",
+        detail: "文件不存在；不新建，需要时手工添加或先建文件再重跑 toolkit init",
+        hint: "无该指针块不影响规范可用：本项目规范仍可经全局技能 fxri-plan-to-task 触达（其工作流第一步即读 conventions/index.md）",
+      },
+    ]
   }
   const raw = readTextFile(file)
   if (raw.includes(AGENTS_POINTER_START)) {

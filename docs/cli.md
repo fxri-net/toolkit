@@ -143,11 +143,11 @@ toolkit init --dir ../my-tasks-repo   # 任务区放项目外（独立仓库管�
 
 - 创建 `<任务目录>/active/{YYYYMM}/`、`<任务目录>/archive/` 目录骨架（默认 `.tasks`，优先级与 `tasks` 同口径：CLI 参数 > 配置 `tasks.dir` > 默认 `.tasks`）
 - 创建规范载体骨架 `<任务目录>/conventions/index.md`（v2 三节：端清单 / 索引 / 用法说明）与 `<任务目录>/conventions/history.md`（演进记录）；已存在 `index.md` 时保持不动（v1 形态另给升级提示）；存在待迁移的旧单文件 `<任务目录>/conventions.md` 时不建空骨架
-- 在项目级技能目录生成规范入口壳（如 `.agents/skills/toolkit-conventions/SKILL.md`，目录名与 frontmatter `name` 同名；只作入口、不承载条文），并在**已存在**的 `AGENTS.md` 内幂等追加规范入口指针块（`AGENTS.md` 不存在时不新建）
+- 在**已存在的**项目级技能目录各生成一份规范入口壳（如 `.agents/skills/toolkit-conventions/SKILL.md`，目录名与 frontmatter `name` 同名；只作入口、不承载条文）——多 agent 混用团队多个候选目录并存时每处各写一份、互不覆盖，一个都不存在时回落 `.agents/skills/`，不为未安装的 agent 凭空建目录；并在**已存在**的 `AGENTS.md` 内幂等追加规范入口指针块（`AGENTS.md` 不存在时不新建，仅在报告中提示规范仍可经全局技能触达）
 - 向 `.gitignore` 追加忽略片段（含 `.archive.lock`；已有则跳过）
 - 输出后续步骤与文档站链接
 
-⚠️ 入口壳写入项目级技能目录（`.agents/skills/`、`.trae/skills/` 等）属**侵入性行为**，`init` 在报告中逐项列出实际写入的路径与动作；落点被 `.gitignore` 覆盖时报告给出否定规则提示（**不代改 `.gitignore`**）。入口壳可安全删除，重跑 `init` 会补回。
+⚠️ 入口壳写入项目级技能目录（`.agents/skills/`、`.trae/skills/` 等）属**侵入性行为**，`init` 在报告中逐项列出实际写入的路径与动作（存在几个候选目录就各写一份）；落点被 `.gitignore` 覆盖时报告给出否定规则提示（**不代改 `.gitignore`**）。入口壳可安全删除，重跑 `init` 会补回。
 
 ⚠️ 重复执行安全：已存在的文件一律保持不覆盖、不报错（逐项报告为「保持」）。
 

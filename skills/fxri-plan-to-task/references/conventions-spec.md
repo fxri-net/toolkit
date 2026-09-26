@@ -19,9 +19,11 @@
 - `history.md` 是修订留痕：规则语义变更在此追加；与 `index.md` 分离，避免「每次语义变更追加」的写与「每次建档常驻读」的读两类频次互相陪绑
 - 分册**按需创建**，判据是「该归属下有无需独立承载的条文」，不设条数阈值——溯源索引式项目可能始终只有 `index.md`
 - 目录与任务目录同在 `.tasks/` 根层，纯 Markdown 随 git 走；默认 `.tasks` 目录名可随任务区自定而变，内部结构不变
-- 非任务文件：`toolkit tasks` 各子命令不读其内容，`check` 不因内容告警；仅在**载体形态异常**时给软告警（旧单文件残留、缺 `index.md`、标记与结构不一致）
+- 非任务文件：`toolkit tasks` 各子命令不读其内容，`check` 不因内容告警；仅在**载体形态异常**时给软告警（旧单文件残留、缺 `index.md`、标记与结构不一致）；**入口层现场异常**（壳标记版本落后、壳被 gitignore 覆盖）另见下段入口壳
 
-载体可另配套**入口壳（一阶触发面）**：在项目级技能目录（`.agents/skills/`、`.trae/skills/`、`.trae-cn/skills/`、`.cursor/skills/`、`.claude/skills/` 中首个已存在者，都缺失时回落 `.agents/skills/`）下生成 `toolkit-conventions/SKILL.md`，目录名与 frontmatter `name` 同名（Agent Skills 标准要求）。壳只作入口、不承载条文，正文指回任务区 `conventions/index.md`；由 `toolkit init` 幂等生成（可安全删除，重跑补回），本包源仓库自身不生成。壳首部为 frontmatter，故其形态标记 `<!-- toolkit-conventions-entry: v2 -->` 退居其后、须全文件扫描（区别于载体标记只看首行）。
+载体可另配套**入口壳（一阶触发面）**：在**已存在的**项目级技能目录（`.agents/skills/`、`.trae/skills/`、`.trae-cn/skills/`、`.cursor/skills/`、`.claude/skills/`；多 agent 混用团队多个并存时**每处各写一份**、互不覆盖，一个都不存在时回落 `.agents/skills/`）下生成 `toolkit-conventions/SKILL.md`，目录名与 frontmatter `name` 同名（Agent Skills 标准要求）。壳只作入口、不承载条文，正文指回任务区 `conventions/index.md`；由 `toolkit init` 幂等生成（可安全删除，重跑补回），只在已有目录内落盘、不为使用者未安装的 agent 凭空建目录，本包源仓库自身不生成。壳首部为 frontmatter，故其形态标记 `<!-- toolkit-conventions-entry: v2 -->` 退居其后、须全文件扫描（区别于载体标记只看首行）；壳标记版本落后于当前 toolkit、或被 `.gitignore` 覆盖时，`toolkit conventions status` 与 `toolkit tasks check` 软告警。
+
+规范触发面共三层，**任一层可用即可触达**：① 全局技能 `fxri-plan-to-task`（随包分发到各 agent 全局技能目录，其工作流第 1 步即要求读 `conventions/index.md`）——**不依赖项目内任何文件、恒在兜底**；② 上述项目级入口壳（用户不主动发问也能被 agent 读到）；③ `AGENTS.md` 指针块（仅在文件已存在时幂等追加，不存在不新建，跳过时提示仍有第 1 层可触达）。三层同时缺席的唯一情形：装包后未跑 `toolkit skills install`（或 agent 不加载全局技能），且项目既无 `AGENTS.md` 又未跑 `toolkit init`。
 
 ## 2. index.md 结构
 

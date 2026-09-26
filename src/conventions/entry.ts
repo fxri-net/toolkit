@@ -10,7 +10,7 @@ import { ENTRY_MARKER, readEntryVersion } from "./format"
 export const ENTRY_SHELL_NAME = "toolkit-conventions"
 // 技能标识文件：目录内含该文件才计为一个技能
 export const SKILL_ENTRY = "SKILL.md"
-// 项目级技能目录候选：首个已存在者优先；全部缺失时回落到中立共识目录
+// 项目级技能目录候选：全部已存在者各写一份（多 agent 混用团队都能读到）；全部缺失时回落到中立共识目录
 export const PROJECT_SKILL_DIRS = [".agents/skills", ".trae/skills", ".trae-cn/skills", ".cursor/skills", ".claude/skills"]
 // 回落落点：无任一候选目录时的默认目录（多家 agent 共读的中立共识目录）
 export const FALLBACK_SKILL_DIR = ".agents/skills"
@@ -45,12 +45,11 @@ export function buildEntryShell(): string {
   ].join("\n")
 }
 
-// 解析落点：首个已存在的项目级技能目录；都没有时回落到中立共识目录（多家 agent 共读）
-export function resolveProjectSkillDir(cwd: string): string {
-  for (const rel of PROJECT_SKILL_DIRS) {
-    if (existsSync(join(cwd, rel))) return rel
-  }
-  return FALLBACK_SKILL_DIR
+// 解析落点：全部已存在的项目级技能目录（多 agent 混用团队各写一份，互不覆盖）；一个都不存在时回落中立共识目录
+// 只在已有目录内落盘，不为使用者未安装的 agent 凭空创建目录
+export function resolveProjectSkillDirs(cwd: string): string[] {
+  const dirs = PROJECT_SKILL_DIRS.filter((rel) => existsSync(join(cwd, rel)))
+  return dirs.length > 0 ? dirs : [FALLBACK_SKILL_DIR]
 }
 
 // 列出各候选目录下已有的入口壳（供体检与告警复用，不写盘）

@@ -43,7 +43,7 @@
     └── <端名>.md              # 各端专有条文，端名 = 任务 scope 取值（按需创建）
 ```
 
-`conventions/` 不是任务文件：tasks 各子命令不读其内容、check 不因内容告警；它只作 AI 协作时的规范源，由 fxri-plan-to-task 归档时与 fxri-session-recap 收尾时维护，写入前需用户确认。check 只在**载体形态异常**时软告警（旧单文件残留、缺 `index.md`、v2 标记与 `history.md` / 索引表首列 ID 不一致、入口壳被 gitignore 覆盖），不读条文内容。
+`conventions/` 不是任务文件：tasks 各子命令不读其内容、check 不因内容告警；它只作 AI 协作时的规范源，由 fxri-plan-to-task 归档时与 fxri-session-recap 收尾时维护，写入前需用户确认。check 只对**载体形态异常**与**入口层现场异常**软告警（载体侧：旧单文件残留、缺 `index.md`、v2 标记与 `history.md` / 索引表首列 ID 不一致；入口壳侧：壳标记版本落后于当前 toolkit、壳被 gitignore 覆盖），不读条文内容。
 
 ### frontmatter 字段
 
@@ -115,7 +115,7 @@
 
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
-| `fxri-plan-to-task` | 1.4.0 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
+| `fxri-plan-to-task` | 1.4.1 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
 | `fxri-release-changelog` | 1.1.1 | changesets 发版与多语言 CHANGELOG 维护 |
 | `fxri-session-recap` | 1.2.3 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 

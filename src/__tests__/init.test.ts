@@ -131,9 +131,9 @@ describe("initWorkspace 技能入口层", () => {
     expect(report.products.some((p) => p.action === "appended" && p.target === "AGENTS.md")).toBe(true)
   })
 
-  it("已有项目级技能目录时优先落到该目录，不另造 .agents/", () => {
+  it("只落到已存在的候选目录，不另造 .agents/", () => {
     const { cwd } = track(runInDir("tk-init-shelldir-"))
-    // 候选目录存在与否是假现场输入，落点路径按约定拼装
+    // 候选目录存在与否是假现场输入，落点路径按约定拼装；此处只存在非首个候选目录
     const skillDir = ".trae/skills"
     mkdirSync(join(cwd, skillDir), { recursive: true })
 
@@ -142,6 +142,21 @@ describe("initWorkspace 技能入口层", () => {
     expect(existsSync(join(cwd, rel))).toBe(true)
     expect(existsSync(join(cwd, FALLBACK_SKILL_DIR))).toBe(false)
     expect(report.products.some((p) => p.target === rel && p.action === "created")).toBe(true)
+  })
+
+  it("多个候选目录并存时各落一份入口壳，指针块只指首个", () => {
+    const { cwd } = track(runInDir("tk-init-shellmulti-"))
+    const skillDirs = [".agents/skills", ".trae/skills"]
+    for (const rel of skillDirs) mkdirSync(join(cwd, rel), { recursive: true })
+    writeFileSync(join(cwd, "AGENTS.md"), "# AGENTS\n", "utf8")
+
+    const report = initWorkspace(".tasks", cwd)
+    for (const rel of skillDirs) {
+      const target = `${rel}/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}`
+      expect(existsSync(join(cwd, target))).toBe(true)
+      expect(report.products.some((p) => p.target === target && p.action === "created")).toBe(true)
+    }
+    expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(`\`${skillDirs[0]}/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}\``)
   })
 
   it("重复执行幂等：入口壳与指针块均保持不动", () => {
@@ -155,11 +170,13 @@ describe("initWorkspace 技能入口层", () => {
     expect(second.products.filter((p) => p.action === "created")).toHaveLength(0)
   })
 
-  it("AGENTS.md 不存在时不新建，指针块记为跳过", () => {
+  it("AGENTS.md 不存在时不新建，指针块记为跳过并提示全局技能仍可触达", () => {
     const { cwd } = track(runInDir("tk-init-noagents-"))
     const report = initWorkspace(".tasks", cwd)
     expect(existsSync(join(cwd, "AGENTS.md"))).toBe(false)
-    expect(report.products.find((p) => p.target === "AGENTS.md")?.action).toBe("skipped")
+    const skipped = report.products.find((p) => p.target === "AGENTS.md")
+    expect(skipped?.action).toBe("skipped")
+    expect(skipped?.hint).toContain("fxri-plan-to-task")
   })
 
   it("源仓库（package.json name 为 @fxri/toolkit）不生成入口壳与指针块", () => {
