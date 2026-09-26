@@ -7,6 +7,7 @@ import { parseMetaSegments } from "./meta"
 import { removeEmptyDirs } from "./archive"
 import { listTaskFiles } from "./scan"
 import { displayRel } from "./paths"
+import { isBeyondTzFuture } from "../date"
 import type { ArchiveBlockInfo } from "./archive-block"
 import { acquireArchiveLock, releaseArchiveLock } from "./lock"
 import { writeFileAtomic } from "../write-atomic"
@@ -141,8 +142,8 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
           fixable: false,
         })
       }
-      // 未来时间检测：完成时间晚于系统时间说明写入时时间源有误；定宽格式校验通过才可比对，无法自动修复需人工核实
-      if (recognizable && new Date(norm.replace(" ", "T")).getTime() > Date.now() + 60_000) {
+      // 未来时间检测：完成时间晚于系统时间说明写入时时间源有误；定宽格式校验通过才可比对，留跨时区容差（详见 src/date.ts）避免 UTC 运行环境误报，无法自动修复需人工核实
+      if (recognizable && isBeyondTzFuture(norm)) {
         issues.push({
           file: display,
           message: `块「${b.title}」完成时间 ${norm} 晚于当前系统时间，疑似时间源错误（需人工确认）`,

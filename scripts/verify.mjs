@@ -40,13 +40,14 @@ function reportToolchain() {
 }
 
 // 步骤清单即门禁定义：顺序有依赖（build 先于冒烟与任务区体检），增删步骤只改这里
+// 测试类步骤注入 TZ=UTC：本地与 CI（UTC 运行环境）同轴，避免「本地绿、CI 红」的时区耦合回归（墙上时间解析随运行环境时区漂移）
 const steps = [
   { label: "安装依赖（frozen 锁文件）", command: "pnpm", args: ["install", "--frozen-lockfile"], fatal: true },
   { label: "类型检查", command: "pnpm", args: ["typecheck"] },
   // 冷缓存：本地 eslint --cache 会跳过未变文件，CI 每次全量跑，门禁必须与 CI 对齐才可比
   { label: "静态检查（冷缓存）", command: "pnpm", args: ["exec", "eslint", ".", "--no-cache"] },
-  { label: "单元测试", command: "pnpm", args: ["test"] },
-  { label: "覆盖率门槛", command: "pnpm", args: ["test:coverage"], skip: skipCoverage },
+  { label: "单元测试", command: "pnpm", args: ["test"], env: { TZ: "UTC" } },
+  { label: "覆盖率门槛", command: "pnpm", args: ["test:coverage"], skip: skipCoverage, env: { TZ: "UTC" } },
   { label: "构建", command: "pnpm", args: ["build"] },
   { label: "文档站构建（死链检查）", command: "pnpm", args: ["docs:build"], skip: skipDocs },
   { label: "CLI 冒烟 --help", args: ["dist/cli.js", "--help"] },
@@ -67,7 +68,7 @@ for (const step of steps) {
   executed += 1
   // pnpm 在 Windows 上是 .cmd，需经 shell 调用；node 用 process.execPath 直呼，避免路径含空格时被 shell 拆断
   const command = step.command ?? process.execPath
-  const result = spawnSync(command, step.args, { cwd: root, stdio: "inherit", shell: command === "pnpm" && isWindows })
+  const result = spawnSync(command, step.args, { cwd: root, stdio: "inherit", shell: command === "pnpm" && isWindows, env: { ...process.env, ...step.env } })
 
   if (result.status === 0) continue
   failures.push(step.label)

@@ -8,6 +8,7 @@ import { parseFrontmatterRaw, stripFrontmatter, bodyWithoutTitle, FRONTMATTER_RE
 import { parseArchiveBlocks } from "./archive-block"
 import { checkArchive } from "./normalize"
 import { getConfigSection } from "../config"
+import { isBeyondTzFuture } from "../date"
 import {
   CARRIER_VERSION,
   ENTRY_VERSION,
@@ -173,8 +174,8 @@ export function validateTaskFile(file: string): CheckIssue[] {
         issues.push({ level: "warn", file: name, line, message: `completed「${fm.completed}」日期不存在，请核对` })
       } else if (!COMPLETED_FULL_RE.test(c)) {
         issues.push({ level: "warn", file: name, line, message: `completed「${fm.completed}」建议补全为完整时间 YYYY-MM-DD HH:mm` })
-      } else if (new Date(c.replace(" ", "T")).getTime() > Date.now() + 60_000) {
-        // 未来时间检测：写入时刻晚于系统时间说明时间源有误；留 1 分钟容差避免「当场补时间取整截断秒」误报
+      } else if (isBeyondTzFuture(c)) {
+        // 未来时间检测：写入时刻晚于系统时间说明时间源有误；留跨时区容差（详见 src/date.ts）避免 UTC 运行环境误报
         issues.push({ level: "warn", file: name, line, message: `completed「${fm.completed}」晚于当前系统时间，疑似时间源错误，请当场取系统时间核实` })
       } else if (/(?:[T\s]00:00(?::00)?)$/.test(c)) {
         // 零点整检测：恰为 00:00 通常是只填日期被自动补零的特征（真实午夜收工属少量误报，warn 级可接受）

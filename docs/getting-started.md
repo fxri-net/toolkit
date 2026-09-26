@@ -118,7 +118,7 @@ pnpm exec toolkit init
 pnpm exec toolkit tasks
 
 # 3. 方案确认后，把方案登记为任务文件（.tasks/active/202609/ 下）
-#    文件名：{年月日}-{用户名}-{任务简述}.md
+#    文件名：{YYYYMMDD}-{用户名}-{任务简述}.md
 #    手工建档模板见「完整攻略」；装了 AI 技能包可直接让 AI 建档
 
 # 4. 校验

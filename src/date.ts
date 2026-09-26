@@ -35,3 +35,13 @@ export function todayCompact(): string {
   const now = new Date()
   return `${now.getFullYear()}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}`
 }
+
+// 未来时间检测的跨时区容差：取全球最大正偏移 UTC+14
+// 墙上时间串不含时区，按运行环境时区解析后与当前时刻比对会随环境漂移：本地（UTC+8）写入的时间在 UTC 运行环境下被整体前移 8 小时而落进「未来」，产生误报
+// 留 14 小时容差后 UTC 环境不再误报，错填日期（超前 ≥24 小时）仍被捕获
+export const MAX_UTC_OFFSET_MS = 14 * 60 * 60 * 1000
+
+// 完成时间是否超出跨时区容差的未来（值须为 YYYY-MM-DD HH:mm 墙上时间；now 可注入便于测试与边界校验）
+export function isBeyondTzFuture(value: string, now: number = Date.now()): boolean {
+  return new Date(value.replace(" ", "T")).getTime() > now + MAX_UTC_OFFSET_MS
+}

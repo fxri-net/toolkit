@@ -4,6 +4,7 @@ import { parseFrontmatter, stripFrontmatter } from "./parse"
 import { listTaskFiles, dateFromFileName } from "./scan"
 import { DONE_STATUSES } from "./types"
 import { redactText } from "../privacy/redact"
+import { isBeyondTzFuture } from "../date"
 import { writeFileAtomic } from "../write-atomic"
 import type { ArchiveBlock, ArchiveResult, ArchiveOptions } from "./types"
 import { normalizeCompleted, isRecognizableCompleted, parseArchiveBlocks, renderBlock, renderArchiveFile } from "./archive-block"
@@ -91,8 +92,8 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
       if (createdDate && completedDate !== createdDate) {
         drift.push(`${t.name}（完成时间 ${t.completed}，创建日 ${createdDate}）`)
       }
-      // 未来时间检测：写入时刻晚于系统时间说明时间源有误，归档前最后一道关口提醒；留 1 分钟容差避免当场取整截断秒误报
-      if (new Date(t.completed.replace(" ", "T")).getTime() > Date.now() + 60_000) {
+      // 未来时间检测：写入时刻晚于系统时间说明时间源有误，归档前最后一道关口提醒；留跨时区容差（详见 src/date.ts）避免 UTC 运行环境误报
+      if (isBeyondTzFuture(t.completed)) {
         future.push(`${t.name}（完成时间 ${t.completed}）`)
       } else if (t.completed.endsWith(" 00:00")) {
         // 零点整检测：恰为 00:00 通常是只填日期被自动补零的特征（真实午夜收工属少量误报），归档前最后一道关口提醒
