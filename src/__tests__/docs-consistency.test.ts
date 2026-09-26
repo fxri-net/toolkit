@@ -1,6 +1,6 @@
 // 文档一致性：代码内的能力清单/结构须与 docs 列举严格一致，防文档漂移
 import { describe, it, expect } from "vitest"
-import { readdirSync, readFileSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { dirname, join, normalize } from "node:path"
 import { createMarkdownRenderer } from "vitepress"
 import { listBuiltinRuleNames } from "../privacy/redact"
@@ -51,8 +51,17 @@ function collectMarkdown(dir: string, found: string[]): string[] {
   return found
 }
 
-describe("文档一致性：站内链接锚点可解析", () => {
-  it("README / docs / skills 里的 #锚点都能在目标页标题中找到（标题改名或锚点写错即失败）", async () => {
+// 站内链接目标归一：VitePress 允许省略 .md、或写目录（视作 index.md），按三种写法在受检页集合内回退匹配
+function resolvePage(page: string, anchorsOf: Map<string, Set<string>>): string | null {
+  for (const candidate of [page, `${page}.md`, `${page}/index.md`]) {
+    const norm = normalize(candidate).replace(/\\/g, "/")
+    if (anchorsOf.has(norm)) return norm
+  }
+  return null
+}
+
+describe("文档一致性：站内链接目标与锚点可解析", () => {
+  it("README / docs / skills 里的链接目标页都存在、#锚点都能在目标页标题中找到（路径打错、页面被删或锚点写错即失败）", async () => {
     const docsDir = join(process.cwd(), "docs")
     // 用 VitePress 自身的 markdown 渲染器产锚点：与站点实际 slugify 规则同源，不复刻规则
     const md = await createMarkdownRenderer(docsDir)
@@ -71,7 +80,7 @@ describe("文档一致性：站内链接锚点可解析", () => {
     }
     const problems: string[] = []
     for (const file of files) {
-      for (const matched of (htmlOf.get(file) as string).matchAll(/href="([^"]*#[^"]*)"/g)) {
+      for (const matched of (htmlOf.get(file) as string).matchAll(/href="([^"]*)"/g)) {
         // markdown-it 会把链接里的非 ASCII 百分号编码，先还原再比对
         let href = ""
         try {
@@ -79,21 +88,26 @@ describe("文档一致性：站内链接锚点可解析", () => {
         } catch {
           continue
         }
-        // 跳过外链（含协议或协议相对）与非 md 资源
+        // 跳过外链（含协议或协议相对）
         if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("//")) continue
         const [rawTarget, anchor] = href.split("#")
-        if (!anchor) continue
-        // 渲染器把站内 .md 链接改写为 .html，判定前归一回 .md
+        // 渲染器把站内链接统一改写为 .html（原 .md 与无扩展名资源皆然），去掉查询串后剥离 .html 还原原写法
         const target = (rawTarget as string).split("?")[0] as string
-        const pageTarget = target.replace(/\.html$/i, ".md")
-        if (pageTarget !== "" && /\.[a-z0-9]+$/i.test(pageTarget) && !pageTarget.endsWith(".md")) continue
-        // 链接按所在文件目录做相对解析（README 写 ./docs/x.md、docs 内写 ./x.md、skills 子目录同理）
-        const page =
-          pageTarget === "" ? file : normalize(join(dirname(file), pageTarget)).replace(/\\/g, "/")
-        const anchors = anchorsOf.get(page)
-        // 目标页不在受检范围（站外站点页面等）时不判定
-        if (!anchors) continue
-        if (!anchors.has(anchor)) problems.push(`${file}：链接「${href}」的锚点在 ${page} 中不存在`)
+        const cleanTarget = target.replace(/\.html$/i, "")
+        // 纯锚点链接的目标页即当前页；相对链接按所在文件目录解析（README 写 ./docs/x.md、docs 内写 ./x.md、
+        // skills 子目录同理），以 / 开头视为仓库根绝对路径
+        const toRepoPath = (p: string) => normalize(p.startsWith("/") ? p.slice(1) : join(dirname(file), p)).replace(/\\/g, "/")
+        const page = cleanTarget === "" ? file : toRepoPath(cleanTarget)
+        const resolved = resolvePage(page, anchorsOf)
+        if (!resolved) {
+          // 非 md 资源（LICENSE / 图片等）随磁盘存在性放行；真正断链（路径打错或页面被删）即失败
+          if (existsSync(join(process.cwd(), page)) || existsSync(join(process.cwd(), `${page}.html`))) continue
+          problems.push(`${file}：链接「${href}」指向的页面 ${page} 不存在`)
+          continue
+        }
+        if (anchor && !anchorsOf.get(resolved)!.has(anchor)) {
+          problems.push(`${file}：链接「${href}」的锚点在 ${resolved} 中不存在`)
+        }
       }
     }
     expect(problems).toEqual([])

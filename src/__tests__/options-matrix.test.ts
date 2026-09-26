@@ -265,6 +265,28 @@ describe("顶层命令与外部域", () => {
   })
 })
 
+describe("tasks check 装配位：变更集缺前缀并入软告警", () => {
+  it("缺前缀条目随 warn 清单输出且不阻断；--no-warn 时不计不报（装配位被摘除即失败）", async () => {
+    // 对扫描函数打桩而非写真 .changeset 探针文件：探针文件会与并行执行的 warn-threshold.test.ts 抢同一目录造成偶发失败
+    vi.doMock("../changelog/format", async (importOriginal) => {
+      const actual = await importOriginal<typeof import("../changelog/format")>()
+      return { ...actual, findUntypedChangesetEntries: () => [{ file: ".changeset/probe.md", line: 1, count: 2 }] }
+    })
+    try {
+      const on = await runCli(["tasks", "check", "--dir", missingTasksDir])
+      expect(on.log.join("\n")).toContain("【warn】1 项")
+      expect(on.log.join("\n")).toContain(".changeset/probe.md:1: 变更集条目缺类型前缀（本文件 2 条）")
+      expect(on.code).toBe(0)
+
+      const off = await runCli(["tasks", "check", "--dir", missingTasksDir, "--no-warn"])
+      expect(off.log.join("\n")).not.toContain("缺类型前缀")
+      expect(off.log.join("\n")).toContain("（软告警已关闭，warn 不展示）")
+    } finally {
+      vi.doUnmock("../changelog/format")
+    }
+  })
+})
+
 describe("升级检查在所有路径一致触发（缺陷 13）", () => {
   beforeEach(() => {
     // 打开升级检查：其余路径（帮助 / 解析失败 / 业务失败）都应读到缓存并提示
