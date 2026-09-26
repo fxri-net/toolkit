@@ -14,11 +14,11 @@ README 只给最常用示例；本篇是完整的命令字典，覆盖全部参�
 toolkit <command> [options]
 
 命令：
-  toolkit tasks         任务管理（总览 / 归档 / 校验 / 归一化 / 导入导出）
+  toolkit init          初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐 .gitignore 片段）
+  toolkit skills        AI 技能包分发：安装 / 状态 / 卸载 / 路径（包内 skills/ 为唯一真源）
+  toolkit conventions   项目协作规范载体：结构升级（v1 → v2）与只读体检（形态 / 索引 / 入口层）
+  toolkit tasks         任务管理
   toolkit changelog     多语言 CHANGELOG（封装 changesets）
-  toolkit init          初始化项目任务区（1.7.0 新增）
-  toolkit skills        AI 技能包分发（安装 / 状态 / 卸载 / 路径，1.9.0 新增）
-  toolkit conventions   项目协作规范载体（v1 → v2 结构升级 / 只读体检，1.11.0 新增）
 ```
 
 顶层命令支持的开关（`-h` 全局与子命令均可用）：

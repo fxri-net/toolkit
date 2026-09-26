@@ -24,7 +24,7 @@ AI 参与开发后，方案与决策散落在对话记录里，会话一关什�
 # 1. 项目内安装（推荐，团队共享版本）
 pnpm add -D @fxri/toolkit
 
-# 2. 初始化任务区（生成 .tasks/ 骨架、conventions/ 规范载体与技能入口壳，1.7.0 新增）
+# 2. 初始化任务区（生成 .tasks/ 骨架、conventions/ 规范载体与技能入口壳）
 pnpm exec toolkit init
 
 # 3. 查看任务总览
@@ -72,7 +72,7 @@ pnpm dlx skills add fxri-net/toolkit                  # 也可用上游安装器
 
 - [fxri-plan-to-task](./skills/fxri-plan-to-task/SKILL.md)：方案确认后落盘为任务文件（动手前建档评估、check、归档 + 任务级规范沉淀为强制终点）
 - [fxri-release-changelog](./skills/fxri-release-changelog/SKILL.md)：发版时创建变更集、格式化多语言 CHANGELOG
-- [fxri-session-recap](./skills/fxri-session-recap/SKILL.md)：会话收尾全量沉淀、新会话三层恢复、历史任务时间批量修正（1.7.0 新增，1.8.0 扩展）
+- [fxri-session-recap](./skills/fxri-session-recap/SKILL.md)：会话收尾全量沉淀、新会话三层恢复、历史任务时间批量修正（1.7.0 新增技能）
 
 skills 与工具的关系、只在公司项目激活等说明见 [FAQ](./docs/faq.md) 与 [完整攻略](./docs/guide.md#ai-技能包-skills)。
 
