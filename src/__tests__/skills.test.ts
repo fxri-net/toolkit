@@ -1,9 +1,9 @@
 // skills 包内分发：目标解析、安装（软链 / 副本 / 幂等 / 冲突）、现场状态、卸载与链接自愈
 // 用例统一把 home 注入独立临时目录，产物只落在临时目录，绝不触碰真实用户全局技能目录
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
-import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
+import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { join, normalize } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import {
   AGENT_SKILL_DIRS,
@@ -150,6 +150,41 @@ function frontmatterField(frontmatter: string, key: string): string {
   return matched ? (matched[1] ?? "").trim() : ""
 }
 
+// 统计文本行数：末尾换行不额外计行，避免 CRLF/EOF 差异造成行数飘移
+function countLines(content: string): number {
+  const lines = content.split(/\r?\n/)
+  if (lines[lines.length - 1] === "") lines.pop()
+  return lines.length
+}
+
+// 递归收集技能目录下的 md 文件，返回相对技能根的 posix 路径（SKILL.md 与 references/、assets/ 内的文档一并纳入）
+function collectSkillDocs(root: string, rel = "", found: string[] = []): string[] {
+  for (const entry of readdirSync(join(root, rel), { withFileTypes: true })) {
+    const next = rel ? `${rel}/${entry.name}` : entry.name
+    if (entry.isDirectory()) collectSkillDocs(root, next, found)
+    else if (entry.name.endsWith(".md")) found.push(next)
+  }
+  return found
+}
+
+// 提取文档内反引号包裹的 references / assets 相对引用（含 ../ 跨技能形态）；跳过含占位符的示例路径
+function skillFileRefs(content: string): string[] {
+  const refs = new Set<string>()
+  for (const matched of content.matchAll(/`([^`\s]+)`/g)) {
+    const token = matched[1] as string
+    if (!/(^|\/)(references|assets)\//.test(token)) continue
+    if (/[{}*<>]/.test(token)) continue
+    refs.add(token)
+  }
+  return [...refs]
+}
+
+// 解析技能文档中的引用路径：同技能内 references/ 相对文档目录，`<技能>/references/…` 形态相对 skills 根
+function resolveSkillRef(skillDir: string, doc: string, ref: string): string | null {
+  const candidates = [normalize(join(skillDir, doc, "..", ref)), normalize(join(skillsSourceDir(), ref))]
+  return candidates.find((p) => existsSync(p)) ?? null
+}
+
 describe("技能作者侧核对清单项门禁", () => {
   it("两张技能版本表与 SKILL.md 真源版本一致（skills/README.md、docs/guide.md）", () => {
     const truth = new Map(listPackageSkills().map((s) => [s.name, s.version]))
@@ -176,6 +211,23 @@ describe("技能作者侧核对清单项门禁", () => {
       const description = frontmatterField(frontmatter, "description")
       expect(description.length, `${skill.name} 的 description 为空`).toBeGreaterThan(0)
       expect(description.length, `${skill.name} 的 description 超过 1024 字符`).toBeLessThanOrEqual(1024)
+    }
+  })
+
+  it("每份主干 SKILL.md 行数小于 200（细节应下沉 references/）", () => {
+    for (const skill of listPackageSkills()) {
+      const lines = countLines(readFileSync(join(skill.dir, "SKILL.md"), "utf8"))
+      expect(lines, `${skill.name} 的 SKILL.md 达 ${lines} 行，超过 200 行上限`).toBeLessThan(200)
+    }
+  })
+
+  it("技能文档引用的 references / assets 相对路径均指向真实文件", () => {
+    for (const skill of listPackageSkills()) {
+      for (const doc of collectSkillDocs(skill.dir)) {
+        for (const ref of skillFileRefs(readFileSync(join(skill.dir, doc), "utf8"))) {
+          expect(resolveSkillRef(skill.dir, doc, ref), `${skill.name}/${doc} 引用的 ${ref} 不存在`).not.toBeNull()
+        }
+      }
     }
   })
 })
