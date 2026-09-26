@@ -1,5 +1,5 @@
 // changelog 域单测：语义分组归类、标题多语言替换、commit hash 前缀清理、重复条目/依赖合并、发布日期补齐、脱敏
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, vi } from "vitest"
 import { mkdtempSync, writeFileSync, mkdirSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -489,19 +489,49 @@ describe("formatChangelog", () => {
   })
 })
 
+// 归类自检（O2）：归类只增不减条目数，正常输入不得触发「疑似丢失内容」防御性告警
+describe("formatChangelog 归类自检（O2）", () => {
+  it("正常归类不减少条目数，且不误报「疑似丢失内容」", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    try {
+      withChangelog(
+        ["# pkg", "", "## 1.1.0", "", "### Minor Changes", "", "- 新增：功能甲", "- 无前缀乙", "- Updated dependencies", ""].join("\n"),
+        (file) => {
+          const beforeCount = readFileSync(file, "utf8").split("\n").filter((l) => l.startsWith("- ")).length
+          expect(formatChangelog(file, "2026-09-03", zh)).toBe(true)
+          const afterCount = readFileSync(file, "utf8").split("\n").filter((l) => l.startsWith("- ")).length
+          // 不变式：归类后条目数不减少（若减少即触发下方防御性告警）
+          expect(afterCount).toBeGreaterThanOrEqual(beforeCount)
+        },
+      )
+      expect(spy.mock.calls.some((c) => String(c[0]).includes("疑似丢失内容"))).toBe(false)
+    } finally {
+      spy.mockRestore()
+    }
+  })
+})
+
 describe("countUntypedEntries", () => {
   it("只计英文源组块内缺前缀条目，历史块不参与", () => {
     withChangelog(
       "# pkg\n\n## 1.1.0\n\n### Patch Changes\n\n- 修复：有前缀\n- 无前缀条目\n\n## 1.0.0\n\n> 2026-09-01 发布\n\n### 🐛 补丁修复\n\n- 历史无前缀条目\n",
       (_file, dir) => {
-        expect(countUntypedEntries(dir, zh)).toBe(1)
+        expect(countUntypedEntries(dir, [zh])).toBe(1)
       },
     )
   })
 
   it("纯历史 CHANGELOG 返回 0（历史块零告警的计数依据）", () => {
     withChangelog("# pkg\n\n## 1.0.0\n\n> 2026-09-01 发布\n\n### 🐛 补丁修复\n\n- 历史条目一\n- 历史条目二\n", (_file, dir) => {
-      expect(countUntypedEntries(dir, zh)).toBe(0)
+      expect(countUntypedEntries(dir, [zh])).toBe(0)
+    })
+  })
+
+  it("自定义语言的自有前缀经并集识别，不误报（与 findUntypedChangesetEntries 口径一致）", () => {
+    withChangelog("# pkg\n\n## 1.1.0\n\n### Patch Changes\n\n- 特性：自定义前缀条目\n", (_file, dir) => {
+      expect(countUntypedEntries(dir, [customPrefixLang])).toBe(0)
+      // 未纳入该语言的调用方仍按全局表识别，自定义前缀缺省即为缺前缀
+      expect(countUntypedEntries(dir, [plainJa])).toBe(1)
     })
   })
 })

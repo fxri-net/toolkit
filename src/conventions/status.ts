@@ -1,4 +1,4 @@
-// 规范载体只读体检：形态 / 索引 / 入口层三块，只报问题不修（不给 --fix），异常不阻断、退出码恒 0
+// 规范载体只读体检：形态 / 索引 / 入口层三块，只报问题不修（不给 --fix），体检本身异常不阻断、退出码恒 0（非法 --format 由 CLI 层按参数错误处理）
 // 判据全部走 format.ts / entry.ts 的既有实现在，不在本模块另写一份结构解析
 import { basename, join } from "node:path"
 import { readTextFile } from "../read-text"

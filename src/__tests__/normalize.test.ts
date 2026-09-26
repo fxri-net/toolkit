@@ -297,6 +297,25 @@ describe("archiveTasks 锁与 header（E1/E2）", () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
+  it("归档文件已存在同名块时发软告警但不阻断（F7）", () => {
+    const { dir } = withDone()
+    const month = join(dir, "archive", "202609")
+    mkdirSync(month, { recursive: true })
+    // 预置与待归档任务同名的块，模拟重复归档
+    writeFileSync(
+      join(month, "20260904.md"),
+      "## 20260904-唐启云-done\n\n> 负责人：唐启云　状态：已完成　范围：x　完成时间：2026-09-04 08:00\n\n旧内容\n",
+      "utf8",
+    )
+    const res = archiveTasks(dir)
+    // 软告警不阻断，仍完成归档
+    expect(res.archived).toBe(1)
+    const dups = res.warnings.filter((w) => w.includes("归档文件已存在同名任务"))
+    expect(dups).toHaveLength(1)
+    expect(dups[0]).toContain("20260904-唐启云-done")
+    rmSync(dir, { recursive: true, force: true })
+  })
+
   it("陈旧归档锁自动接管（E2）", () => {
     const { dir } = withDone()
     const lock = join(dir, ".archive.lock")

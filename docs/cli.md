@@ -69,7 +69,7 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 | 子命令 | 行为 |
 | --- | --- |
 | `archive` | 将 `status` 为 `已完成`/`已放弃` 且带 `completed` 的任务按完成日期聚合归档；排他锁防并发；缺 `completed` 的终结态任务跳过并提示；完成时间晚于当前系统时间或恰为零点整（疑似只填日期被补零）时软告警 |
-| `check` | 校验 active：frontmatter 合法性、owner/created/命名规范、重名、`depends_on` 闭环、未闭合待办与 `- [ ]`；completed 晚于当前系统时间或恰为零点整（疑似只填日期被补零）软告警；范围字段形态软告警（顿号/逗号疑似多值分隔请改半角加号、括号疑似注释请移入正文）；游离于 `active/` 层级外的日期前缀文件软告警；规范载体形态软告警（旧单文件 `conventions.md` 残留待迁移、`conventions/` 缺 `index.md`、v2 标记与 `history.md` / 索引表首列 ID 三者不一致）；技能入口壳软告警（壳标记版本与当前 toolkit 不一致、或被 gitignore 覆盖不会随 git 分发，多落点并存时各合并为一条并内联落点路径）；变更集缺类型前缀软告警（扫 `.changeset` 下待发布变更集顶层条目，缺前缀文件各转一条并内联条数，提示按「类型：描述」撰写；前缀识别取全局表与各配置语言自有前缀的并集，缩进续行随父条目迁属不参与）；文件卫生软告警（含 UTF-8 BOM、行尾多余空白、换行符 CRLF/LF 混用，统一软告警不阻断）；只看形态不读条文内容 |
+| `check` | 校验 active：frontmatter 合法性、owner/created/命名规范、重名、`updated` 早于 `created`（error 级，时间线矛盾）、`depends_on` 闭环、未闭合待办与 `- [ ]`；completed 晚于当前系统时间或恰为零点整（疑似只填日期被补零）软告警；范围字段形态软告警（顿号/逗号疑似多值分隔请改半角加号、括号疑似注释请移入正文）；游离于 `active/` 层级外的日期前缀文件软告警；规范载体形态软告警（旧单文件 `conventions.md` 残留待迁移、`conventions/` 缺 `index.md`、v2 标记与 `history.md` / 索引表首列 ID 三者不一致）；技能入口壳软告警（壳标记版本与当前 toolkit 不一致、或被 gitignore 覆盖不会随 git 分发，多落点并存时各合并为一条并内联落点路径）；变更集缺类型前缀软告警（扫 `.changeset` 下待发布变更集顶层条目，缺前缀文件各转一条并内联条数，提示按「类型：描述」撰写；前缀识别取全局表与各配置语言自有前缀的并集，缩进续行随父条目迁属不参与）；归档块软告警（复用 `tasks normalize` 的同一检查实现：月份目录归属、元数据行缺失/不完整、范围字段形态、完成时间不可识别/漂移/超前/零点整、降序排序、疑似任务块）；文件卫生软告警（含 UTF-8 BOM、行尾多余空白、换行符 CRLF/LF 混用，统一软告警不阻断）；只看形态不读条文内容 |
 | `normalize` | 检查归档块：元数据四字段完整性、疑似任务块、完成时间与归档日期漂移、完成时间晚于当前系统时间或恰为零点整（仅报告，不自动改值）、降序排序、月份目录归属、范围字段形态（顿号/逗号分隔可 `--fix` 归一为半角加号，括号疑似注释仅提示人工）；`--fix` 自动补齐/迁移/重排/范围归一；`--fix` 与 `--check` 互斥 |
 | `stats` | 周期统计（仅人用视图，不落盘）：完成周期与分布（仅「已完成」，已归档任务创建日期从块标题恢复，缺失者跳过并计数）、未完成任务滞留时长、按完成月/负责人/范围吞吐汇总；`--format json` 输出 JSON（顶层携带 `schemaVersion: 1` 锚点，与 `tasks --export` 及各域 `--format json` 同口径），过滤选项与视图查询一致（`--view` 默认 `all`，含归档） |
 
@@ -93,8 +93,8 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 
 | 选项 | 说明 |
 | --- | --- |
-| `--export <path>` | 导出到文件，按扩展名驱动：`.csv`（UTF-8 BOM 超集列）/ `.xlsx`（三 sheet）/ `.json`（`{ schemaVersion: 1, summary, items }`）；目录不存在自动创建 |
-| `--format json` | JSON 输出到 stdout；诊断与提示信息（升级提示、链接自愈提示）一律走 stderr，不干扰机器解析；与 `--export` 互斥 |
+| `--export <path>` | 导出到文件（**仅任务总览 `toolkit tasks` 消费**；`archive`/`check`/`normalize`/`stats` 传入时 stderr 告警忽略、命令继续），按扩展名驱动：`.csv`（UTF-8 BOM 超集列）/ `.xlsx`（三 sheet）/ `.json`（`{ schemaVersion: 1, summary, items }`）；目录不存在自动创建 |
+| `--format json` | JSON 输出到 stdout（**任务总览与 `stats` 消费**；`archive`/`check`/`normalize` 传入时 stderr 告警忽略、命令继续）；诊断与提示信息（升级提示、链接自愈提示）一律走 stderr，不干扰机器解析；与 `--export` 互斥（仅任务总览下判定） |
 | `--import <file>` | 从 `.csv`/`.xlsx`/`.json` 导入；独立模式，不能与子命令、`--export`、`--format` 同用；`--owner`/`--scope` 可同用，作为导入行缺失字段的默认值 |
 | `--target <target>` | 导入目标 `active`（默认，生成任务文件）/ `archive`（直接写归档块） |
 
@@ -202,7 +202,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 toolkit conventions upgrade               # 把 v1 规范载体升级为 v2（幂等，先判后写）
 toolkit conventions upgrade --dry-run     # 预演：只预览将执行的动作，不写文件
 toolkit conventions upgrade --format json # JSON 输出：ID 映射、内部引用改写、结构动作清单
-toolkit conventions status                # 只读体检：形态 / 索引 / 入口层三块（只报不改，退出码恒 0）
+toolkit conventions status                # 只读体检：形态 / 索引 / 入口层三块（只报不改，体检不阻断、退出码恒 0；仅 --format 传非法值时按参数错误退出）
 toolkit conventions status --format json  # JSON 输出：形态、条目数、入口壳现场与逐条体检项
 ```
 
@@ -211,7 +211,7 @@ toolkit conventions status --format json  # JSON 输出：形态、条目数、�
 | 子命令 | 行为 |
 | --- | --- |
 | `upgrade` | 把 v1 载体升为 v2：首行补形态标记、标题归一、「演进记录」节抽为独立 `history.md`、索引表首列 `#` → `ID`（序号 → 稳定 ID `C-<n>`）、节号重编、内部引用改写为稳定 ID（裸「第 N 条」且 N ≤ 索引表最大序号；带外部文档限定词前缀的引用不动）。**幂等**——已是 v2 返回 `already-v2`、不改动；未初始化（缺 `index.md`）或形态异常（标记 / `history.md` / 索引表首列三者不一致）在**写盘前**拒绝执行并给非 0 退出码，不写任何文件。`--dry-run` 只报告不改动；`--format json` 输出 `status`、`idMap`、`refs`、`changes`（ID 映射只随报告输出、不落盘） |
-| `status` | 只读体检、只报不修（无 `--fix`）：**形态**（v1 提示可升级、形态异常、旧单文件与目录并存）、**索引**（ID 形态与重复、归属不在端清单内、分册小节在索引表无对应条目）、**入口层**（壳标记与当前 toolkit 不一致、壳被 gitignore 覆盖，多落点并存时各合并为一条并内联全部落点路径；标记不一致可重跑 `toolkit init` 就地更新为当前版本；无壳仅提示，本包源仓库除外——其不生成入口壳）三块，逐条按 `[形态]` / `[索引]` / `[入口层]` 前缀输出；一句话结论为 `载体 <形态>，<n> 条规范，入口壳 <m> 个，无待处理项 / <k> 项待处理`；未初始化只回单条结论。**退出码恒 0**（异常不阻断，便于当 CI 信息源） |
+| `status` | 只读体检、只报不修（无 `--fix`）：**形态**（v1 提示可升级、形态异常、旧单文件与目录并存）、**索引**（ID 形态与重复、归属不在端清单内、分册小节在索引表无对应条目）、**入口层**（壳标记与当前 toolkit 不一致、壳被 gitignore 覆盖，多落点并存时各合并为一条并内联全部落点路径；标记不一致可重跑 `toolkit init` 就地更新为当前版本；无壳仅提示，本包源仓库除外——其不生成入口壳）三块，逐条按 `[形态]` / `[索引]` / `[入口层]` 前缀输出；一句话结论为 `载体 <形态>，<n> 条规范，入口壳 <m> 个，无待处理项 / <k> 项待处理`；未初始化只回单条结论。**体检不阻断、退出码恒 0**（异常不阻断，便于当 CI 信息源；仅 `--format` 传非法值时按参数错误报错退出） |
 
 ⚠️ `upgrade` 只做机械结构升级，不改条文语义；升级过程可中断、重复执行安全。
 

@@ -147,10 +147,11 @@ export function formatChangelogs(
   return changed
 }
 
-// 统计英文源组块内缺类型前缀的条目数（cli 软告警预扫用，属内部工具、不对外导出）：
-// 归类完成即前缀缺失信息丢失，故须在归类前取数；历史版本块不参与计数
-export function countUntypedEntries(dir: string, lang: ChangelogLanguage): number {
-  const extra = extraPrefixes(lang.groups ?? [])
+// 统计变更集源组块内缺类型前缀的条目数（cli 软告警预扫用，属内部工具、不对外导出）：
+// 归类完成即前缀缺失信息丢失，故须在归类前取数；历史版本块不参与计数；
+// 前缀识别与 findUntypedChangesetEntries 口径一致，取全局表与各配置语言自有前缀的并集，自定义语言不误报
+export function countUntypedEntries(dir: string, langs: ChangelogLanguage[]): number {
+  const extra = extraPrefixes(langs.flatMap((lang) => lang.groups ?? []))
   let count = 0
   for (const file of collectChangelogs(dir)) {
     const { blocks } = parseBlocks(normalize(readFileSync(file, "utf8")).split("\n"))

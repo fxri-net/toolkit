@@ -17,10 +17,10 @@ vi.mock("node:os", async (importOriginal) => {
   return { ...actual, tmpdir: () => sandbox }
 })
 
-// 子进程派生注入：避免单测真的拉起升级检查 worker
+// 子进程派生注入：spawn 避免单测真的拉起升级检查 worker；spawnSync 避免 changelog 透传时真的调用 changesets 改仓库文件
 vi.mock("node:child_process", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:child_process")>()
-  return { ...actual, spawn: vi.fn() }
+  return { ...actual, spawn: vi.fn(), spawnSync: vi.fn(() => ({ status: 0 })) }
 })
 
 // 沙箱内固定路径
@@ -162,6 +162,18 @@ describe("tasks 域其余选项与互斥", () => {
     expect(r.err.join("\n")).toContain("仅支持 json")
   })
 
+  it("子命令不消费的 --export / --format：stderr 告警忽略，命令继续（降级不静默）", async () => {
+    const archive = await runCli(["tasks", "archive", "--dir", missingTasksDir, "--export", join(sandbox, "out.csv"), "--format", "json"])
+    expect(archive.warn.join("\n")).toContain("子命令「archive」不支持 --export")
+    expect(archive.warn.join("\n")).toContain("子命令「archive」不支持 --format")
+    const normalize = await runCli(["tasks", "normalize", "--dir", missingTasksDir, "--format", "json"])
+    expect(normalize.warn.join("\n")).toContain("子命令「normalize」不支持 --format")
+    // stats 消费 --format、仅 --export 被忽略（不得误报 --format 不支持）
+    const stats = await runCli(["tasks", "stats", "--dir", missingTasksDir, "--export", join(sandbox, "out.json"), "--format", "json"])
+    expect(stats.warn.join("\n")).toContain("子命令「stats」不支持 --export")
+    expect(stats.warn.join("\n")).not.toContain("不支持 --format")
+  })
+
   it("非法子命令：报错退出且不静默回落总览", async () => {
     const r = await runCli(["tasks", "bogus", "--dir", missingTasksDir])
     expect(r.code).toBe(1)
@@ -257,11 +269,39 @@ describe("顶层命令与外部域", () => {
     expect(r.code).toBe(0)
   })
 
-  it("init：在指定目录建出任务区骨架", async () => {
+  it("tasks --help：--fix / --check 描述如实反映「检查项与 tasks check 同源」（F2）", async () => {
+    const r = await runCli(["tasks", "--help"])
+    expect(r.code).toBe(0)
+    // commander 按宽度折行，去掉全部空白后比对以规避换行差异
+    const help = r.out.join("").replace(/\s+/g, "")
+    expect(help).toContain("归一化修复（仅normalize有效；检查项与taskscheck同源，check只读不改）")
+    expect(help).toContain("归一化只读检查（normalize默认行为，可显式声明；检查项与taskscheck同源、不能与--fix同用）")
+  })
+
+  it("changelog --lang 未知取值：告警回落默认语言，命令继续（F8）", async () => {
+    const r = await runCli(["changelog", "--lang", "bogus"])
+    expect(r.code).toBe(0)
+    expect(r.warn.join("\n")).toContain("未知语言")
+    expect(r.warn.join("\n")).toContain("bogus")
+  })
+
+  it("init：建出任务区骨架，且未安装全局技能时提示 toolkit skills install（N9）", async () => {
     const r = await runCli(["init", "--dir", initTasksDir])
     expect(r.code).toBe(0)
     expect(existsSync(join(initTasksDir, "active"))).toBe(true)
     expect(existsSync(join(initTasksDir, "archive"))).toBe(true)
+    expect(r.log.join("\n")).toContain("toolkit skills install")
+  })
+
+  // ⚠️ 顺序约束：本例真实写入状态文件，须置于依赖「未安装」态的 init 用例之后
+  it("skills install → status：健康目标折叠为「项正常」并点明「软链落点」（O7/F5）", async () => {
+    const install = await runCli(["skills", "install"])
+    expect(install.code).toBe(0)
+    const status = await runCli(["skills", "status"])
+    expect(status.code).toBe(0)
+    const text = status.log.join("\n")
+    expect(text).toContain("项正常")
+    expect(text).toContain("软链落点")
   })
 })
 

@@ -102,8 +102,9 @@ function hasActiveTasks(dir = ".tasks"): boolean {
 }
 
 // changelog 软告警：提示缺类型前缀的变更集条目（须在归类前取数，归类后前缀缺失信息即丢失）
-function warnUntypedEntries(lang: ChangelogLanguage) {
-  const count = countUntypedEntries(".", lang)
+// 传全部配置语言，前缀识别与 tasks check 侧 changesetPrefixIssues 同一并集口径
+function warnUntypedEntries(langs: ChangelogLanguage[]) {
+  const count = countUntypedEntries(".", langs)
   if (count > 0) {
     console.warn(`⚠️ ${count} 条变更集条目缺类型前缀，建议按「类型：描述」撰写`)
   }
@@ -118,6 +119,13 @@ function changesetPrefixIssues(): CheckIssue[] {
     line: entry.line,
     message: `变更集条目缺类型前缀（本文件 ${entry.count} 条），建议按「类型：描述」撰写`,
   }))
+}
+
+// 降级不静默：子命令不消费的域级输出选项（--export / --format）须 stderr 告警「忽略了什么」，不得静默吞掉
+// 消费面：仅任务总览支持 --export；任务总览与 stats 支持 --format（stats 不消费 --export）
+function warnUnsupportedOutput(command: string, options: { export?: string; format?: string }): void {
+  if (options.export) console.warn(`⚠️ 子命令「${command}」不支持 --export，已忽略（仅任务总览支持导出）`)
+  if (options.format) console.warn(`⚠️ 子命令「${command}」不支持 --format，已忽略（仅任务总览与 stats 支持 JSON 输出）`)
 }
 
 // 打印校验结果（check / normalize --check 共用）；带行号的问题输出 file:line 便于编辑器跳转
@@ -529,10 +537,10 @@ conventionsCmd
     }
   })
 
-// 状态：只读体检，只报不改（不给 --fix），结论以报告与退出码 0 呈现，便于当 CI 信息源
+// 状态：只读体检，只报不改（不给 --fix）；体检本身不阻断、退出码恒 0，仅 --format 传非法值时按参数错误报错退出
 conventionsCmd
   .command("status")
-  .description("规范载体只读体检：形态 / 索引 / 入口层三块（只报不改，退出码恒 0）")
+  .description("规范载体只读体检：形态 / 索引 / 入口层三块（只报不改，体检不阻断、退出码恒 0；仅 --format 传非法值时按参数错误报错退出）")
   .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
   .action((options: { dir?: string; format?: string }) => {
@@ -628,6 +636,13 @@ program
           process.exitCode = 1
         }
         return
+      }
+
+      // 降级不静默：子命令不消费的 --export / --format 告警忽略（stats 消费 --format、仅总览消费 --export）
+      if (command === "stats") {
+        if (options.export) console.warn("⚠️ 子命令「stats」不支持 --export，已忽略（仅任务总览支持导出）")
+      } else if (command) {
+        warnUnsupportedOutput(command, options)
       }
 
       if (command === "archive") {
@@ -803,11 +818,11 @@ const changelogCmd = program
         runChangeset(["version"])
         // 软告警须前置于归类（须待 changesets 写入新块后再取数，否则无英文源标题块可扫）；
         // 归类后无前缀条目即并入兜底组，前缀缺失无从统计
-        if (warn) warnUntypedEntries(lang)
+        if (warn) warnUntypedEntries(Object.values(merged))
         formatChangelogs(".", localDate(), lang, redact, history)
       } else if (command === "format") {
         // 手工 format 路径与 version 同源同开关，告警口径保持一致
-        if (warn) warnUntypedEntries(lang)
+        if (warn) warnUntypedEntries(Object.values(merged))
         formatChangelogs(".", localDate(), lang, redact, history)
       } else if (command) {
         runChangeset(operands)
