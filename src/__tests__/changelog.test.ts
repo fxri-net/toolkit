@@ -5,7 +5,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { formatChangelog, formatChangelogs, localDate, countUntypedEntries } from "../changelog/format"
 import { collectChangelogs } from "../changelog/collect"
-import { languages, DEFAULT_LANG, type ChangelogLanguage } from "../changelog/languages"
+import { languages, DEFAULT_LANG, resolveLang, type ChangelogLanguage } from "../changelog/languages"
 
 const zh = languages[DEFAULT_LANG]
 const en = languages.en
@@ -167,6 +167,22 @@ describe("formatChangelog", () => {
     )
   })
 
+  it("默认模式：源组块内未识别分组原位保留，不被静默丢弃", () => {
+    withChangelog(
+      "# pkg\n\n## 1.2.3\n\n### Minor Changes\n\n- 新增导出能力\n\n### 🐛 修复\n\n- 修复金额计算\n",
+      (file) => {
+        formatChangelog(file, "2026-09-03", zh)
+        const out = readFileSync(file, "utf8")
+        // 源组归入当前语言语义组
+        expect(out).toContain("### ✨ 新增功能")
+        expect(out).toContain("- 新增导出能力")
+        // 未识别分组标题与其条目均不得丢失
+        expect(out).toContain("### 🐛 修复")
+        expect(out).toContain("- 修复金额计算")
+      },
+    )
+  })
+
   it("剥离只命中已识别前缀：未识别的「词：」正文与依赖源条目原样保留", () => {
     withChangelog(
       "# pkg\n\n## 1.1.0\n\n### Patch Changes\n\n- 修复：真前缀\n- 说明：这是正文里的冒号\n- Updated dependencies\n  - pkg-a@1.0.1\n",
@@ -296,6 +312,21 @@ describe("formatChangelog", () => {
       (file) => {
         expect(formatChangelog(file, "2026-09-03", zh, true, true)).toBe(true)
         const once = readFileSync(file, "utf8")
+        expect(formatChangelog(file, "2026-09-04", zh, true, true)).toBe(false)
+        expect(readFileSync(file, "utf8")).toBe(once)
+      },
+    )
+  })
+
+  it("history=true：块内含保留分组时二次运行零 churn（保留分组不累积空行）", () => {
+    withChangelog(
+      "# pkg\n\n## 1.0.0\n\n> 2026-09-01 发布\n\n### Minor Changes\n\n- 新增：甲\n\n### 🐛 修复\n\n- 修复：乙\n",
+      (file) => {
+        expect(formatChangelog(file, "2026-09-03", zh, true, true)).toBe(true)
+        const once = readFileSync(file, "utf8")
+        expect(once).toContain("### 🐛 修复")
+        expect(once).toContain("- 修复：乙")
+        // 二次运行：保留分组按去空边重建，标题下只留一个空行、零改动
         expect(formatChangelog(file, "2026-09-04", zh, true, true)).toBe(false)
         expect(readFileSync(file, "utf8")).toBe(once)
       },
@@ -489,5 +520,27 @@ describe("collectChangelogs", () => {
     expect(found.sort()).toEqual(["/CHANGELOG.md", "/pkg/CHANGELOG.md"])
     expect(formatChangelogs(dir, "2026-09-03", zh)).toHaveLength(0)
     rmSync(dir, { recursive: true, force: true })
+  })
+})
+
+describe("resolveLang", () => {
+  it("命中合并表：采用请求语言且不带 unknown 标记", () => {
+    const merged = { ...languages }
+    const r = resolveLang(merged, "en", DEFAULT_LANG)
+    expect(r.lang).toBe(languages.en)
+    expect(r.unknown).toBeUndefined()
+  })
+
+  it("未命中：回落默认语言并携带请求值（供调用方 stderr 告警）", () => {
+    const merged = { ...languages }
+    const r = resolveLang(merged, "de", DEFAULT_LANG)
+    expect(r.lang).toBe(languages[DEFAULT_LANG])
+    expect(r.unknown).toBe("de")
+  })
+
+  it("合并表覆盖内置时以覆盖值为准", () => {
+    const custom: ChangelogLanguage = { ...zh, title: "自定义" }
+    const merged = { ...languages, zh: custom }
+    expect(resolveLang(merged, "zh", DEFAULT_LANG).lang).toBe(custom)
   })
 })

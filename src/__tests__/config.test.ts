@@ -1,5 +1,5 @@
 // 配置查找与合并：项目级向上查找最近的 .toolkitrc.json（E6），全局 ~/.toolkitrc.json 段级合并
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -7,6 +7,7 @@ import {
   loadToolkitConfig,
   resetToolkitConfigCache,
   resolveTasksDir,
+  getConfigSection,
   setHomeDirForTest,
 } from "../config"
 
@@ -183,6 +184,73 @@ describe("全局配置段级合并", () => {
     writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ updateCheck: { enabled: false } }), "utf8")
     resetToolkitConfigCache()
     expect(loadToolkitConfig()?.updateCheck?.enabled).toBe(false)
+    cleanupTmpDir(dir)
+  })
+})
+
+// 缺陷 12：显式配置无法采纳时须 stderr 告警（保留回落行为，不阻断）
+describe("配置降级告警", () => {
+  let warn: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    warn.mockRestore()
+  })
+
+  // 汇总 console.warn 收到的告警文本
+  function warnTexts(): string[] {
+    return warn.mock.calls.map((c) => String(c[0]))
+  }
+
+  it("配置段类型不符：告警一次并视为未配置", () => {
+    const dir = chdirIntoEmptyProject()
+    writeFileSync(join(dir, ".toolkitrc.json"), JSON.stringify({ tasks: "oops" }), "utf8")
+    resetToolkitConfigCache()
+    expect(getConfigSection("tasks")).toBeUndefined()
+    // 同一键重复读取不刷屏
+    expect(getConfigSection("tasks")).toBeUndefined()
+    expect(warnTexts()).toHaveLength(1)
+    expect(warnTexts()[0]).toContain("配置段须为对象")
+    cleanupTmpDir(dir)
+  })
+
+  it("tasks.dir 类型不符：告警并回落默认值", () => {
+    const dir = chdirIntoEmptyProject()
+    writeFileSync(join(dir, ".toolkitrc.json"), JSON.stringify({ tasks: { dir: 123 } }), "utf8")
+    resetToolkitConfigCache()
+    expect(resolveTasksDir()).toBe(".tasks")
+    expect(warnTexts()).toHaveLength(1)
+    expect(warnTexts()[0]).toContain("tasks.dir")
+    cleanupTmpDir(dir)
+  })
+
+  it("顶层非对象：告警并视为未配置", () => {
+    const dir = chdirIntoEmptyProject()
+    writeFileSync(join(dir, ".toolkitrc.json"), "null", "utf8")
+    resetToolkitConfigCache()
+    expect(loadToolkitConfig()).toBeNull()
+    expect(warnTexts()[0]).toContain("顶层须为对象")
+    cleanupTmpDir(dir)
+  })
+
+  it("JSON 解析失败：告警并视为未配置", () => {
+    const dir = chdirIntoEmptyProject()
+    writeFileSync(join(dir, ".toolkitrc.json"), "{ 非法 json", "utf8")
+    resetToolkitConfigCache()
+    expect(loadToolkitConfig()).toBeNull()
+    expect(warnTexts()[0]).toContain("JSON 解析失败")
+    cleanupTmpDir(dir)
+  })
+
+  it("空字符串仍按未配置静默处理（不告警）", () => {
+    const dir = chdirIntoEmptyProject()
+    writeFileSync(join(dir, ".toolkitrc.json"), JSON.stringify({ tasks: { dir: "" } }), "utf8")
+    resetToolkitConfigCache()
+    expect(resolveTasksDir()).toBe(".tasks")
+    expect(warn).not.toHaveBeenCalled()
     cleanupTmpDir(dir)
   })
 })

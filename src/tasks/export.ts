@@ -61,29 +61,24 @@ function csvCell(v: string): string {
 export function toCSV(rows: TaskRow[], redact = true): string {
   const header = PUBLIC_COLUMNS.map((c) => c.label).join(",")
   const body = rows
-    .map((r) =>
-      PUBLIC_COLUMNS.map((c) => {
-        const v = c.label === "任务名" ? redactText(c.value(r), redact) : c.value(r)
-        return csvCell(v)
-      }).join(","),
-    )
+    .map((r) => PUBLIC_COLUMNS.map((c) => csvCell(redactText(c.value(r), redact))).join(","))
     .join("\r\n")
   return `\uFEFF${header}${body ? `\r\n${body}` : ""}`
 }
 
-// 生成 JSON 文本：{ summary, items }，items 为英文 key 完整字段（可回读）
+// 生成 JSON 文本：{ summary, items }，items 为英文 key 完整字段（可回读）；所有文本字段统一脱敏，避免漏网列
 export function toJSON(rows: TaskRow[], summary: TaskSummary, redact = true): string {
   const items = rows.map((r) => ({
     view: r.view === "已归档" ? "archived" : "active",
     title: redactText(r.title, redact),
-    status: r.status,
-    owner: r.owner,
-    scope: r.scope,
-    created: r.created,
-    updated: r.updated,
-    completed: r.completed,
-    depends: r.depends,
-    file: r.file,
+    status: redactText(r.status, redact),
+    owner: redactText(r.owner, redact),
+    scope: redactText(r.scope, redact),
+    created: redactText(r.created, redact),
+    updated: redactText(r.updated, redact),
+    completed: redactText(r.completed, redact),
+    depends: r.depends.map((d) => redactText(d, redact)),
+    file: redactText(r.file, redact),
   }))
   return JSON.stringify({ schemaVersion: 1, summary, items }, null, 2)
 }
@@ -106,7 +101,7 @@ async function toXLSXBuffer(rows: TaskRow[], summary: TaskSummary, redact = true
     ws.columns = cols.map((c) => ({ header: c.label, key: c.label, width: Math.max(c.label.length + 4, 14) }))
     ws.getRow(1).font = { bold: true }
     for (const r of data) {
-      ws.addRow(cols.map((c) => (c.label === "任务名" ? redactText(c.value(r), redact) : c.value(r))))
+      ws.addRow(cols.map((c) => redactText(c.value(r), redact)))
     }
   }
 
@@ -133,7 +128,7 @@ async function toXLSXBuffer(rows: TaskRow[], summary: TaskSummary, redact = true
   const headRow = wsSummary.addRow(PUBLIC_COLUMNS.map((c) => c.label))
   headRow.font = { bold: true }
   for (const r of rows) {
-    wsSummary.addRow(PUBLIC_COLUMNS.map((c) => (c.label === "任务名" ? redactText(c.value(r), redact) : c.value(r))))
+    wsSummary.addRow(PUBLIC_COLUMNS.map((c) => redactText(c.value(r), redact)))
   }
   return Buffer.from(await wb.xlsx.writeBuffer())
 }

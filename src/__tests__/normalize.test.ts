@@ -420,6 +420,32 @@ describe("未来时间检测", () => {
   })
 })
 
+describe("完成时间无法识别（缺陷 2）", () => {
+  it("checkArchive 报不可识别且不可自动修复；fix 不迁移、不生成垃圾路径归档", () => {
+    const dir = makeDir()
+    const month = join(dir, "archive", "202609")
+    mkdirSync(month, { recursive: true })
+    writeFileSync(
+      join(month, "20260903.md"),
+      "# 20260903 归档\n\n## 20260903-唐启云-bad\n\n> 负责人：唐启云　状态：已完成　范围：x　完成时间：乱写的\n\nbad 正文\n",
+      "utf8",
+    )
+
+    const hit = checkArchive(dir).find((i) => i.message.includes("无法识别为日期或日期+时分"))
+    expect(hit).toBeTruthy()
+    expect(hit?.fixable).toBe(false)
+
+    const res = fixArchive(dir)
+    expect(res.issues.some((i) => i.message.includes("无法识别，未迁移"))).toBe(true)
+    // 归档目录不得新增任何文件（尤其不得出现以自由文本命名的垃圾归档路径）
+    expect(readdirSync(month)).toEqual(["20260903.md"])
+    expect(existsSync(join(dir, "archive", "乱写的.md"))).toBe(false)
+    // 原块保留原位等待人工确认
+    expect(readFileSync(join(month, "20260903.md"), "utf8")).toContain("20260903-唐启云-bad")
+    rmSync(dir, { recursive: true, force: true })
+  })
+})
+
 describe("换行风格回归", () => {
   // 建已完成 active 任务，正文行尾写死 CRLF（模拟 Windows 编辑器写入）
   function withCrlfBody(): string {

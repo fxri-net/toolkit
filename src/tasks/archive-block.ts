@@ -13,12 +13,21 @@ export interface ArchiveBlockInfo {
   body: string
 }
 
+// 完成时间识别正则：带时分（YYYY-MM-DD HH:mm）与前缀补齐秒；纯日期（YYYY-MM-DD）
+const COMPLETED_DT_RE = /^(\d{4})-(\d{1,2})-(\d{1,2})[T\s](\d{1,2}):(\d{2})(?::\d{2})?$/
+const COMPLETED_DATE_RE = /^(\d{4})-(\d{1,2})-(\d{1,2})$/
+
+// 判断完成时间是否为可识别的规整时间：仅日期或带时分均为可识别，其余为自由文本一律不可识别；
+// 供排序、迁移、落盘路径判定共用，避免把垃圾串当有效时间参与排序/漂移判断而生成非法路径
+export function isRecognizableCompleted(completed: string): boolean {
+  const t = completed.trim()
+  return COMPLETED_DT_RE.test(t) || COMPLETED_DATE_RE.test(t)
+}
+
 // 统一完成时间为 YYYY-MM-DD HH:mm 定宽格式（年月日时分不足两位补零；纯日期补 00:00），解析失败返回原值
 export function normalizeCompleted(completed: string): string {
   const t = completed.trim()
-  const m =
-    t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T\s](\d{1,2}):(\d{2})(?::\d{2})?$/) ??
-    t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+  const m = t.match(COMPLETED_DT_RE) ?? t.match(COMPLETED_DATE_RE)
   if (!m) return t
   const pad = (s: string | undefined) => s?.padStart(2, "0") ?? ""
   const date = `${m[1] ?? ""}-${pad(m[2])}-${pad(m[3])}`
@@ -132,20 +141,20 @@ export function scanOrphanBlocks(blocks: ArchiveBlockInfo[]): string[] {
   return orphans
 }
 
-// 组装块文本（无元数据行且无完成时间时，保持无元数据行的原始结构）
+// 组装块文本（无元数据行且无可识别完成时间时，保持无元数据行的原始结构，避免为垃圾串生成伪造元数据行）
 export function renderBlock(b: ArchiveBlockInfo): string {
-  const meta = b.metaLine ?? (b.completed ? buildMetaLine(b.title, b.completed) : null)
+  const meta = b.metaLine ?? (isRecognizableCompleted(b.completed) ? buildMetaLine(b.title, b.completed) : null)
   return meta ? `## ${b.title}\n\n${meta}\n\n${b.body}` : `## ${b.title}\n\n${b.body}`
 }
 
 // 块集合写盘前的规范化：按块标题去重（同一日期文件内标题唯一，同标题以最后写入者为准，
-// 保证重复归档/重复导入幂等），再按完成时间降序排列（不可解析完成时间的块保持原相对顺序落到末尾）
+// 保证重复归档/重复导入幂等），再按完成时间降序排列（完成时间不可识别的块保持原相对顺序落到末尾）
 export function orderBlocks(blocks: ArchiveBlockInfo[]): ArchiveBlockInfo[] {
   const byTitle = new Map<string, ArchiveBlockInfo>()
   for (const b of blocks) byTitle.set(b.title, b)
   const unique = [...byTitle.values()]
-  const dated = unique.filter((b) => normalizeCompleted(b.completed))
-  const undated = unique.filter((b) => !normalizeCompleted(b.completed))
+  const dated = unique.filter((b) => isRecognizableCompleted(b.completed))
+  const undated = unique.filter((b) => !isRecognizableCompleted(b.completed))
   dated.sort((a, b) => normalizeCompleted(b.completed).localeCompare(normalizeCompleted(a.completed)))
   return [...dated, ...undated]
 }

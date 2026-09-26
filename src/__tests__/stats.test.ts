@@ -140,6 +140,21 @@ describe("computeStats", () => {
     expect(computeStats(dir, { since: "2026-09-02" }).duration.count).toBe(1)
     expect(computeStats(dir, { status: ["待办"] }).duration.count).toBe(0)
   })
+
+  // 缺陷 10：view 默认 all 保持历史口径（含归档），显式传 active / archived 可分别取数
+  it("view 默认 all 含归档；active 排除归档、archived 只看归档", () => {
+    const dir = makeDir()
+    writeArchive(dir, "20260905", ["## 20260905-张三-归档完成\n\n> 负责人：张三　状态：已完成　范围：core　完成时间：2026-09-05 10:00\n\n正文\n"])
+    writeTask(dir, "20260901-李四-活跃未完成", { owner: "李四", status: "待办", created: "20260901", updated: "20260901", completed: "", depends_on: "[]", scope: "core" })
+    // 默认 all：含归档，周期样本 1 个
+    expect(computeStats(dir).duration.count).toBe(1)
+    // active：排除归档，周期样本归零；滞留样本仍统计活跃未完成任务
+    const activeOnly = computeStats(dir, {}, "active")
+    expect(activeOnly.duration.count).toBe(0)
+    expect(activeOnly.active.count).toBe(1)
+    // archived：只取归档
+    expect(computeStats(dir, {}, "archived").duration.count).toBe(1)
+  })
 })
 
 describe("stats JSON 输出", () => {

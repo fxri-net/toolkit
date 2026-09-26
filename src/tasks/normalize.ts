@@ -2,10 +2,11 @@
 // 供 tasks normalize --check（只读）与 --fix（补齐元数据 + 降序重排 + 漂移块迁移）使用
 import { readFileSync, unlinkSync, existsSync, mkdirSync, renameSync } from "node:fs"
 import { join, basename, dirname } from "node:path"
-import { normalizeCompleted, parseArchiveBlocks, completeMetaLine, scanOrphanBlocks, renderArchiveFile } from "./archive-block"
+import { normalizeCompleted, isRecognizableCompleted, parseArchiveBlocks, completeMetaLine, scanOrphanBlocks, renderArchiveFile } from "./archive-block"
 import { parseMetaSegments } from "./meta"
 import { removeEmptyDirs } from "./archive"
 import { listTaskFiles } from "./scan"
+import { displayRel } from "./paths"
 import type { ArchiveBlockInfo } from "./archive-block"
 import { acquireArchiveLock, releaseArchiveLock } from "./lock"
 import { writeFileAtomic } from "../write-atomic"
@@ -50,18 +51,18 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
   const files = listTaskFiles(archiveDir)
   const issues: NormalizeIssue[] = []
   for (const file of files) {
-    const name = basename(file)
-    const fileDate = name.replace(/\.md$/, "")
+    // 展示路径取相对任务目录（如 archive/202609/20260903.md），便于 validate 复用后直接指明文件位置
+    const display = displayRel(tasksDir, file)
+    const fileDate = basename(file).replace(/\.md$/, "")
     const content = readFileSync(file, "utf8")
     const { blocks } = parseArchiveBlocks(content)
 
     // 归档文件所在月份目录与文件名日期前缀不一致（如 archive/202608/20260903.md）
     const dirMonth = basename(dirname(file))
-    const nameDate = name.replace(/\.md$/, "")
-    if (dirMonth && nameDate && dirMonth !== nameDate.slice(0, 6)) {
+    if (dirMonth && fileDate && dirMonth !== fileDate.slice(0, 6)) {
       issues.push({
-        file: name,
-        message: `归档文件位于 ${dirMonth} 月份目录，与文件名日期 ${nameDate.slice(0, 6)} 不一致`,
+        file: display,
+        message: `归档文件位于 ${dirMonth} 月份目录，与文件名日期 ${fileDate.slice(0, 6)} 不一致`,
         fixable: false,
       })
     }
@@ -69,21 +70,22 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
     // 疑似任务块（缺块间 `---` 分隔符，被归入前一块正文），提示人工确认
     for (const title of scanOrphanBlocks(blocks)) {
       issues.push({
-        file: name,
+        file: display,
         message: `疑似任务块「${title}」缺少块间 \`---\` 分隔符，已被归入前一块正文（需人工确认）`,
         fixable: false,
       })
     }
 
-    // 排序检查：completed 定宽后是否降序
-    for (let i = 1; i < blocks.length; i++) {
-      const prevBlock = blocks[i - 1]
-      const curBlock = blocks[i]
+    // 排序检查：仅对完成时间可识别的块两两比较（自由文本块无法定序，不参与），completed 定宽后是否降序
+    const ordered = blocks.filter((b) => isRecognizableCompleted(b.completed))
+    for (let i = 1; i < ordered.length; i++) {
+      const prevBlock = ordered[i - 1]
+      const curBlock = ordered[i]
       if (!prevBlock || !curBlock) continue
       const prev = normalizeCompleted(prevBlock.completed)
       const cur = normalizeCompleted(curBlock.completed)
-      if (prev && cur && prev < cur) {
-        issues.push({ file: name, message: "任务块未按完成时间降序排列", fixable: true })
+      if (prev < cur) {
+        issues.push({ file: display, message: "任务块未按完成时间降序排列", fixable: true })
         break
       }
     }
@@ -91,15 +93,15 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
     for (const b of blocks) {
       if (!b.metaLine) {
         issues.push({
-          file: name,
+          file: display,
           message: `块「${b.title}」缺少元数据行（负责人/状态/范围/完成时间）`,
-          fixable: !!b.completed,
+          fixable: isRecognizableCompleted(b.completed),
         })
       } else if (!metaComplete(b.metaLine)) {
         issues.push({
-          file: name,
+          file: display,
           message: `块「${b.title}」元数据行不完整（缺负责人/状态/范围之一）`,
-          fixable: !!b.completed,
+          fixable: isRecognizableCompleted(b.completed),
         })
       }
       // 范围字段形态检测：顿号/逗号分隔可 `--fix` 自动归一半角加号；括号疑似注释无法自动决定去留，需人工
@@ -107,40 +109,49 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
         const seg = parseMetaSegments(b.metaLine)
         if (seg.scope && /[、，,]/.test(seg.scope)) {
           issues.push({
-            file: name,
+            file: display,
             message: `块「${b.title}」范围「${seg.scope}」含顿号/逗号疑似多值分隔，可 --fix 归一为半角加号`,
             fixable: true,
           })
         }
         if (seg.scope && /[()（）]/.test(seg.scope)) {
           issues.push({
-            file: name,
+            file: display,
             message: `块「${b.title}」范围「${seg.scope}」含括号疑似注释，删留需人工确认`,
             fixable: false,
           })
         }
       }
-      // 完成时间漂移：completed 日期与归档文件日期不一致
+      // 完成时间可识别性：自由文本（既非日期也非日期+时分）无法参与排序与漂移比对，需人工确认
+      const recognizable = isRecognizableCompleted(b.completed)
+      if (b.completed && !recognizable) {
+        issues.push({
+          file: display,
+          message: `块「${b.title}」完成时间「${b.completed}」无法识别为日期或日期+时分（需人工确认）`,
+          fixable: false,
+        })
+      }
+      // 完成时间漂移：completed 日期与归档文件日期不一致（仅可识别时间参与比对，避免垃圾串误报漂移）
       const norm = normalizeCompleted(b.completed)
-      const blockDate = norm.replace(/-/g, "").slice(0, 8)
+      const blockDate = recognizable ? norm.replace(/-/g, "").slice(0, 8) : ""
       if (blockDate && fileDate && blockDate !== fileDate) {
         issues.push({
-          file: name,
+          file: display,
           message: `块「${b.title}」完成时间 ${norm} 与归档文件日期 ${fileDate} 不一致`,
           fixable: false,
         })
       }
       // 未来时间检测：完成时间晚于系统时间说明写入时时间源有误；定宽格式校验通过才可比对，无法自动修复需人工核实
-      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(norm) && new Date(norm.replace(" ", "T")).getTime() > Date.now() + 60_000) {
+      if (recognizable && new Date(norm.replace(" ", "T")).getTime() > Date.now() + 60_000) {
         issues.push({
-          file: name,
+          file: display,
           message: `块「${b.title}」完成时间 ${norm} 晚于当前系统时间，疑似时间源错误（需人工确认）`,
           fixable: false,
         })
-      } else if (norm.endsWith(" 00:00")) {
+      } else if (recognizable && norm.endsWith(" 00:00")) {
         // 零点整检测：恰为 00:00 通常是只填日期被自动补零的特征（真实午夜收工属少量误报），无法自动修复需人工核实
         issues.push({
-          file: name,
+          file: display,
           message: `块「${b.title}」完成时间 ${norm} 恰为零点整，疑似只填了日期被补零（需人工确认）`,
           fixable: false,
         })
@@ -240,9 +251,10 @@ function fixArchiveFile(tasksDir: string, archiveDir: string, file0: string, iss
     actions.push(`移动至 ${basename(dirname(file))} 月份目录`)
     fixed++
   }
-  // 补元数据行（缺行或不完整时，保留原行已有字段，仅补缺失项，避免改错状态）
+  // 补元数据行（缺行或不完整时，保留原行已有字段，仅补缺失项，避免改错状态）；
+  // 完成时间不可识别时跳过，避免为自由文本生成伪造的「完成时间」元数据
   for (const b of blocks) {
-    if (b.completed && (!b.metaLine || !metaComplete(b.metaLine))) {
+    if (isRecognizableCompleted(b.completed) && (!b.metaLine || !metaComplete(b.metaLine))) {
       b.metaLine = completeMetaLine(b.title, b.completed, b.metaLine)
       actions.push(`补元数据「${b.title}」`)
       changed = true
@@ -267,10 +279,16 @@ function fixArchiveFile(tasksDir: string, archiveDir: string, file0: string, iss
     }
   }
 
-  // 完成时间漂移迁移：把块迁到与 completed 日期一致的归档文件（原文件日期不再匹配的块全部迁出）
+  // 完成时间漂移迁移：把块迁到与 completed 日期一致的归档文件（原文件日期不再匹配的块全部迁出）；
+  // 完成时间不可识别的块不迁移、不落路径，仅告警并保留原文件，避免生成非法归档路径
   const keep: ArchiveBlockInfo[] = []
   let migrated = 0
   for (const b of blocks) {
+    if (b.completed && !isRecognizableCompleted(b.completed)) {
+      issues.push({ file: name, message: `块「${b.title}」完成时间「${b.completed}」无法识别，未迁移（需人工确认）`, fixable: false })
+      keep.push(b)
+      continue
+    }
     const bd = b.completed ? normalizeCompleted(b.completed).replace(/-/g, "").slice(0, 8) : ""
     if (bd && bd !== fileDate) {
       migrateArchiveBlock(tasksDir, b, bd)
@@ -285,9 +303,9 @@ function fixArchiveFile(tasksDir: string, archiveDir: string, file0: string, iss
     fixed += migrated
   }
 
-  // 降序重排（仅对 completed 可解析的块；缺失 completed 的块保持末尾）；顺序确需调整时计一次修复
-  const dated = keep.filter((b) => b.completed)
-  const undated = keep.filter((b) => !b.completed)
+  // 降序重排（仅对 completed 可识别的块；不可识别的块保持末尾相对顺序）；顺序确需调整时计一次修复
+  const dated = keep.filter((b) => isRecognizableCompleted(b.completed))
+  const undated = keep.filter((b) => !isRecognizableCompleted(b.completed))
   const sorted = [...dated].sort((a, b) => normalizeCompleted(b.completed).localeCompare(normalizeCompleted(a.completed)))
   const needSort = JSON.stringify(sorted.map((b) => b.title)) !== JSON.stringify(dated.map((b) => b.title))
   if (needSort) {

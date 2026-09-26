@@ -26,14 +26,29 @@ export function getHomeDir(): string {
   return homeOverride ?? homedir()
 }
 
-// 读取并解析单个配置文件：不存在、JSON 非法（含顶层非对象）返回 null；BOM 一并剥离
+// 配置降级告警去重集合：同一进程内同一个键只提示一次（getConfigSection 有多个落点调用，不去重会刷屏）
+const warnedConfigFallbacks = new Set<string>()
+
+// 配置降级告警：显式配置却无法采纳时提示一次（走 stderr，stdout 留给机器可读输出）
+function warnConfigFallback(key: string, detail: string): void {
+  if (warnedConfigFallbacks.has(key)) return
+  warnedConfigFallbacks.add(key)
+  console.warn(`⚠️ 忽略配置项「${key}」：${detail}，已按未配置处理`)
+}
+
+// 读取并解析单个配置文件：不存在返回 null；JSON 非法（含顶层非对象）告警后按未配置处理；BOM 一并剥离
 function readConfigFile(filePath: string): Record<string, unknown> | null {
   if (!existsSync(filePath)) return null
   try {
     // 读盘即剥离 BOM，否则配置会被静默跳过
     const parsed: unknown = JSON.parse(readTextFile(filePath))
-    return typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>) : null
+    if (typeof parsed !== "object" || parsed === null) {
+      warnConfigFallback(filePath, `顶层须为对象（实际：${parsed === null ? "null" : typeof parsed}）`)
+      return null
+    }
+    return parsed as Record<string, unknown>
   } catch {
+    warnConfigFallback(filePath, "JSON 解析失败")
     return null
   }
 }
@@ -71,12 +86,15 @@ export function loadToolkitConfig(): Record<string, unknown> | null {
   return cached
 }
 
-// 取某个能力域的配置段（对象），不存在返回 undefined
+// 取某个能力域的配置段（对象）：不存在返回 undefined；显式配置但类型不符时告警后按未配置处理
 export function getConfigSection(name: string): Record<string, unknown> | undefined {
   const cfg = loadToolkitConfig()
   if (!cfg) return undefined
   const section = cfg[name]
-  return typeof section === "object" && section !== null ? (section as Record<string, unknown>) : undefined
+  if (section === undefined) return undefined
+  if (typeof section === "object" && section !== null) return section as Record<string, unknown>
+  warnConfigFallback(name, `配置段须为对象（实际：${typeof section}）`)
+  return undefined
 }
 
 // 解析任务目录三档：CLI --dir 显式传参 > 配置 tasks.dir > 默认 .tasks
@@ -84,10 +102,15 @@ export function getConfigSection(name: string): Record<string, unknown> | undefi
 export function resolveTasksDir(cliValue?: string): string {
   if (cliValue) return cliValue
   const dir = getConfigSection("tasks")?.dir
-  return typeof dir === "string" && dir !== "" ? dir : ".tasks"
+  // 空字符串按「视为未配置」静默处理；其他类型不符才是显式配错，须告警
+  if (typeof dir === "string") return dir !== "" ? dir : ".tasks"
+  if (dir !== undefined) warnConfigFallback("tasks.dir", `须为非空字符串（实际：${typeof dir}）`)
+  return ".tasks"
 }
 
 // 失效配置缓存：库形态长驻进程 / 测试中修改 .toolkitrc.json 后调用，使下次读取重新加载
 export function resetToolkitConfigCache(): void {
   cached = undefined
+  // 告警去重集合同步清空，使重新加载后的降级问题仍能提示
+  warnedConfigFallbacks.clear()
 }

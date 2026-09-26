@@ -62,7 +62,16 @@ export function formatChangelog(
   // 归一化后的原始内容作为「是否有净改动」的判定基线
   const baseline = raw.replace(/\r\n/g, "\n")
   // 先归一再归类：归类须前置于多语言替换，替换后英文源组标题即不可辨、历史块会被误重排
-  let content = regroupSemantic(normalize(baseline), lang, history)
+  const normalized = normalize(baseline)
+  const regrouped = regroupSemantic(normalized, lang, history)
+  // 归类前后条目数自检：归类只应搬移条目、不应减少，减少即疑似丢内容；
+  // 该判据只覆盖归类工序（脱敏只改文本、相邻去重属预期合并，均不参与比对）
+  const before = countItems(normalized)
+  const after = countItems(regrouped)
+  if (after < before) {
+    console.error(`⚠️ ${file}：归类后条目数由 ${before} 降为 ${after}，疑似丢失内容，请人工核对`)
+  }
+  let content = regrouped
   // 标题替换（多语言兜底）
   for (const [from, to] of Object.entries(lang.replacements)) {
     content = content.replaceAll(from, to)
@@ -156,6 +165,11 @@ export function countUntypedEntries(dir: string, lang: ChangelogLanguage): numbe
     }
   }
   return count
+}
+
+// 顶层条目行计数（仅用于归类前后丢内容自检）
+function countItems(text: string): number {
+  return text.split("\n").filter((line) => line.startsWith("- ")).length
 }
 
 // 转义正则元字符，供按语言的发布日期后缀构造识别正则
@@ -264,51 +278,69 @@ function parseBlocks(lines: string[]): { lead: string[]; blocks: Block[] } {
 }
 
 // 归类单个版本块：默认仅英文源组块参与（即本轮发版新写入的块）；
-// history=true 时块内全部分组一并追溯归类，历史分组标题按其槽位反查后以当前语言 canonical 标题输出
+// history=true 时块内全部可识别分组一并追溯归类，历史分组标题按其槽位反查后以当前语言 canonical 标题输出。
+// 标题无法识别为任何槽位的分组不臆造归属，原位保留、不参与重排，避免被静默丢弃。
 function regroupBlock(block: Block, groups: LanguageGroup[], history: boolean): string[] {
   const source = block.sections.filter((section) => SOURCE_GROUP_SLOTS[section.title] !== undefined)
   // 无英文源组块即历史版本块，默认原样输出、不追溯改写
   if (!history && source.length === 0) return block.lines
-  const candidates = history ? block.sections : source
-  if (candidates.length === 0) return block.lines
-  // 待归类分组含顶层正文时判据不成立，整块保持原样以免丢内容
-  if (candidates.some((section) => hasLeadingProse(section.body))) return block.lines
   // 本语言未声明所需槽位时放弃归类，避免条目丢失
   const slots = new Set<SemanticSlot>(groups.map((group) => group.slot))
   const extra = extraPrefixes(groups)
   // 当前语言组标题 → 槽位，供追溯历史块时按既有组标题归位
   const titleSlots = new Map<string, SemanticSlot>(groups.map((group): [string, SemanticSlot] => [group.title, group.slot]))
+  // 逐分组反查槽位：默认模式只认英文源组，追溯模式认全部可识别标题；其余分组原位保留
+  const scoped = block.sections.map((section) => ({ section, slot: sectionSlot(section.title, titleSlots) }))
+  const candidates = scoped.filter((item): item is { section: Section; slot: SemanticSlot } => isRegrouped(item, history))
+  if (candidates.length === 0) return block.lines
+  // 参与重组的分组集合（按引用比对，供重建时判定原位保留）
+  const regrouped = new Set(candidates.map((item) => item.section))
+  // 待归类分组含顶层正文时判据不成立，整块保持原样以免丢内容
+  if (candidates.some((item) => hasLeadingProse(item.section.body))) return block.lines
   // 按分组原出现顺序收集条目：同槽位合并为一组，组内保持原序
   const buckets = new Map<SemanticSlot, string[][]>()
-  // 标题无法识别为任何槽位的分组（非源组、非当前语言组、非历史组）：不臆造归属，原样附后
-  const kept: Section[] = []
-  for (const section of candidates) {
-    const fallback = sectionSlot(section.title, titleSlots)
-    if (fallback === null) {
-      kept.push(section)
-      continue
-    }
-    for (const item of splitItems(section.body)) {
-      const slot = explicitSlot(item[0] ?? "", extra) ?? fallback
-      const entry = stripSlotPrefix(item, extra)
+  for (const item of candidates) {
+    for (const entry of splitItems(item.section.body)) {
+      const slot = explicitSlot(entry[0] ?? "", extra) ?? item.slot
+      const stripped = stripSlotPrefix(entry, extra)
       const bucket = buckets.get(slot)
-      if (bucket) bucket.push(entry)
-      else buckets.set(slot, [entry])
+      if (bucket) bucket.push(stripped)
+      else buckets.set(slot, [stripped])
     }
   }
   for (const slot of buckets.keys()) {
     if (!slots.has(slot)) return block.lines
   }
+  // 重组结果按语言声明顺序排列，整体置于块首；未识别分组连同标题按原相对顺序附后
+  const merged: Section[] = []
+  for (const group of groups) {
+    const items = buckets.get(group.slot)
+    if (items) merged.push({ title: group.title, body: renderItems(items) })
+  }
   const header = [...block.header]
   while (header.length > 0 && (header[header.length - 1] ?? "").trim() === "") header.pop()
   const lines = [...header, ""]
-  for (const group of groups) {
-    const items = buckets.get(group.slot)
-    if (!items) continue
-    lines.push(...renderSection({ title: group.title, body: renderItems(items) }))
+  for (const section of merged) lines.push(...renderSection(section))
+  for (const item of scoped) {
+    if (regrouped.has(item.section)) continue
+    lines.push(...renderSection(trimBlankEdges(item.section)))
   }
-  for (const section of kept) lines.push(...renderSection(section))
   return lines
+}
+
+// 分组是否参与重组：标题须能反查到槽位；默认模式只认英文源组，追溯模式认全部可识别标题
+function isRegrouped(item: { section: Section; slot: SemanticSlot | null }, history: boolean): boolean {
+  if (item.slot === null) return false
+  return history || SOURCE_GROUP_SLOTS[item.section.title] !== undefined
+}
+
+// 分组去首尾空行：标题与正文间的空行统一由 renderSection 重建，
+// 否则被保留分组的首行空行会随每次格式化累积（`--history format` 非幂等）
+function trimBlankEdges(section: Section): Section {
+  const body = [...section.body]
+  while (body.length > 0 && (body[0] ?? "").trim() === "") body.shift()
+  while (body.length > 0 && (body[body.length - 1] ?? "").trim() === "") body.pop()
+  return { title: section.title, body }
 }
 
 // 组标题 → 槽位：当前语言组标题优先，其次历史组标题，最后英文源组标题（追溯历史块时三者都需认）

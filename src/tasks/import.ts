@@ -243,6 +243,8 @@ function normalizeRecord(rec: Record<string, string>, opts: ImportOptions, warni
       owner: owner || "未标注",
       scope,
       created: toYmdCompact(rec.created || ""),
+      // 来源缺更新日期时留空，由写入端回退为当天（保留来源真实时间，不因导入抹平）
+      updated: toYmdCompact(rec.updated || ""),
       completed,
       depends,
       body: rec.body?.trim() || "",
@@ -258,6 +260,7 @@ interface TaskWrite {
   owner: string
   scope: string
   created: string
+  updated: string
   completed: string
   depends: string[]
   body: string
@@ -280,7 +283,7 @@ function writeActiveTask(tasksDir: string, t: TaskWrite, dryRun: boolean, warnin
     `owner: ${t.owner}`,
     `status: ${t.status}`,
     `created: ${created}`,
-    `updated: ${todayCompact()}`,
+    `updated: ${t.updated || todayCompact()}`,
     `completed: ${t.completed ? `'${t.completed}'` : "''"}`,
     `depends_on: ${JSON.stringify(t.depends)}`,
     `scope: ${t.scope}`,
@@ -313,8 +316,8 @@ function buildArchiveBlock(t: TaskWrite, warnings: string[]): { date: string; bl
   }
   const date = dateStr.replace(/-/g, "")
   const metaLine = `> 负责人：${t.owner}　状态：${t.status}　范围：${t.scope}　完成时间：${completed}`
-  const body = `# ${t.title}${t.body ? `\n\n${t.body}` : ""}`
-  return { date, block: { title: t.title, metaLine, completed, body } }
+  // 块标题已由 renderBlock 以 `## {title}` 渲染，正文只保留描述，避免重复 H1 标题
+  return { date, block: { title: t.title, metaLine, completed, body: t.body } }
 }
 
 // 归档块目标文件路径（按完成日期落到 archive/<YYYYMM>/<YYYYMMDD>.md）

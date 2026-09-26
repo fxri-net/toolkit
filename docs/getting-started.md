@@ -104,7 +104,7 @@ pnpm add -g @fxri/toolkit && toolkit skills install   # npm 用户：npm i -g @f
 pnpm dlx skills add fxri-net/toolkit --global   # npm 用户：npx skills add fxri-net/toolkit --global
 ```
 
-`toolkit skills install` 默认软链真源、链接创建失败自动降级副本，另有 `toolkit skills status`（查现场）与 `toolkit skills remove`（卸载）；细节见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)。
+`toolkit skills install` 默认软链真源、链接创建失败自动降级副本，另有 `toolkit skills status`（查现场）与 `toolkit skills remove`（卸载）；⚠️ 软链落点是**写入穿透**形态（改落点文件即改真源），要改技能内容请改真源，`status` 报告末尾也会提示；细节见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)。
 
 GitHub 拉不下来？国内网络走 [Gitee 镜像渠道](./faq#国内网络优先走哪条渠道)，内网 / 离线安装见 [FAQ · 内网或离线环境怎么装](./faq#内网或离线环境怎么装)。
 

@@ -96,6 +96,8 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 toolkit skills install --force   # 把各目标下的同名旧副本重建为软链（无权限建链时降级为副本）
 ```
 
+`--force` 只解除「同名非本包产物」的跳过判定，按默认形态重建这些未登记的目录；本包自己以 `--copy` 装出、且已在状态文件登记的副本不受影响，仍保持副本。
+
 ⚠️ 迁移后两条路径不要混用：再跑 `pnpm dlx skills update -g`（npm 用户 `npx skills update -g`）会把该目录重写回实体副本，冲突复发。迁移后 `skills-lock.json` 不再被任何一方维护，可删除，避免与内置命令的真实状态不一致。
 
 ### 卸载工具时 skills 怎么办？
@@ -103,7 +105,7 @@ toolkit skills install --force   # 把各目标下的同名旧副本重建为软
 **先清技能、再卸工具**：
 
 ```bash
-toolkit skills remove          # 1. 只清本包装的产物（不碰你自己装的技能）
+toolkit skills remove          # 1. 只清本包装的产物（不碰你自己装的技能；目标目录清空后一并回收）
 pnpm remove -g @fxri/toolkit   # 2. 再卸 CLI
 ```
 

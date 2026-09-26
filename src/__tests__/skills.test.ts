@@ -1,7 +1,7 @@
 // skills 包内分发：目标解析、安装（软链 / 副本 / 幂等 / 冲突）、现场状态、卸载与链接自愈
 // 用例统一把 home 注入独立临时目录，产物只落在临时目录，绝不触碰真实用户全局技能目录
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
+import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
@@ -792,5 +792,101 @@ describe("autoLinkSkills 实体产物开关", () => {
     const dest = replaceWithDir(installed.skills[0], "user dir")
     expect(autoLinkSkills()).toBe(1)
     expect(isLinkTo(dest, join(skillsSourceDir(), installed.skills[0]))).toBe(true)
+  })
+})
+
+describe("悬空链接判定与自动清理", () => {
+  it("指向别处且该处已不存在的链接报悬空，卸载可自动清理而不交人工确认", () => {
+    const installed = installSkills({ copy: true })
+    const name = installed.skills[0]
+    // 模拟指向已失效的旧版本段：目标目录不存在，无从判其内容归属，应归为悬空（而非指向其他版本）
+    rmSync(join(primaryDir(), name), { recursive: true, force: true })
+    symlinkSync(join(home, "stale-segment", name), join(primaryDir(), name), LINK_TYPE)
+    expect(stateOf(primaryDir(), name)).toBe("dangling")
+    const report = removeSkills()
+    expect(report.targets[0].removed).toContain(name)
+    expect(report.targets[0].skippedForeign).toHaveLength(0)
+  })
+
+  it("自愈重建指向已失效旧版本段的悬空链接", () => {
+    const installed = installSkills()
+    const name = installed.skills[0]
+    rmSync(join(primaryDir(), name), { recursive: true, force: true })
+    symlinkSync(join(home, "stale-segment", name), join(primaryDir(), name), LINK_TYPE)
+    expect(autoLinkSkills()).toBe(1)
+    expect(isLinkTo(join(primaryDir(), name), join(skillsSourceDir(), name))).toBe(true)
+  })
+
+  it("指向别处且内容仍一致的健康链接不受影响（路径不同不等于内容不同）", () => {
+    const name = listPackageSkills()[0].name
+    // 整目录复制真源到异地再链接过去：内容逐字一致即视为正常，避免体检假警
+    const mirror = join(home, "mirror", name)
+    cpSync(join(skillsSourceDir(), name), mirror, { recursive: true })
+    mkdirSync(primaryDir(), { recursive: true })
+    symlinkSync(mirror, join(primaryDir(), name), LINK_TYPE)
+    expect(stateOf(primaryDir(), name)).toBe("link")
+  })
+})
+
+describe("落点形态保持与卸载回收", () => {
+  it("--force 只解除冲突判定，已登记的副本仍是副本、不翻回软链", () => {
+    const installed = installSkills({ copy: true })
+    const name = installed.skills[0]
+    expect(lstatSync(join(primaryDir(), name)).isSymbolicLink()).toBe(false)
+    const forced = installSkills({ force: true })
+    expect(forced.targets[0].copies).toContain(name)
+    expect(lstatSync(join(primaryDir(), name)).isSymbolicLink()).toBe(false)
+    expect(stateOf(primaryDir(), name)).toBe("copy")
+  })
+
+  it("裸 install 刷新已登记副本时同样保持副本形态", () => {
+    const installed = installSkills({ copy: true })
+    const name = installed.skills[0]
+    const again = installSkills()
+    expect(again.targets[0].copies).toContain(name)
+    expect(lstatSync(join(primaryDir(), name)).isSymbolicLink()).toBe(false)
+  })
+
+  it("卸载清空产物后一并回收空目录并回报 dirReclaimed", () => {
+    const installed = installSkills({ copy: true })
+    const report = removeSkills()
+    expect(report.targets[0].dirReclaimed).toBe(true)
+    expect(existsSync(primaryDir())).toBe(false)
+    expect(existsSync(join(primaryDir(), installed.skills[0]))).toBe(false)
+  })
+
+  it("目录中留有非本包内容时不回收，dirReclaimed 为假", () => {
+    installSkills({ copy: true })
+    writeFileSync(join(primaryDir(), "user-note.md"), "keep me", "utf8")
+    const report = removeSkills()
+    expect(report.targets[0].dirReclaimed).toBe(false)
+    expect(existsSync(join(primaryDir(), "user-note.md"))).toBe(true)
+  })
+
+  it("预演不回收目录，也不标记已回收", () => {
+    installSkills({ copy: true })
+    const preview = removeSkills({ dryRun: true })
+    expect(preview.targets[0].dirReclaimed).toBe(false)
+    expect(existsSync(primaryDir())).toBe(true)
+  })
+})
+
+describe("status 目标纳入口径", () => {
+  it("状态文件登记但本次未解析到的目标仍如实呈现，不被静默丢弃", () => {
+    const extra = join(home, "custom-skills")
+    installSkills({ dirs: [extra] })
+    // 不带 --dir 再查：该目录已不在解析结果里，但既有登记必须保留在报告中
+    const custom = skillsStatus().targets.find((t) => t.dir === extra)
+    expect(custom?.recorded).toBe(true)
+    expect(custom?.kind).toBe("custom")
+    expect(custom?.items.every((i) => i.state === "link")).toBe(true)
+  })
+
+  it("有目录但无本包记录且为空时不占版面，登记后照常呈现", () => {
+    const dir = agentDir("claude-code")
+    mkdirSync(dir, { recursive: true })
+    expect(skillsStatus().targets.some((t) => t.dir === dir)).toBe(false)
+    writeState([{ dir, links: [listPackageSkills()[0].name] }])
+    expect(skillsStatus().targets.some((t) => t.dir === dir)).toBe(true)
   })
 })

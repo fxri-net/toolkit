@@ -4,7 +4,7 @@
 // 活跃任务只统计滞留时长（统计日 − 创建日，不含已完结状态）。
 import { toYmd, todayDash } from "../date"
 import { DONE_STATUSES } from "./types"
-import type { TaskRow, TaskFilter } from "./types"
+import type { TaskRow, TaskFilter, TaskView } from "./types"
 import { queryTasks, splitScope } from "./query"
 
 // 单条周期样本（天）
@@ -74,9 +74,10 @@ function durationDays(r: TaskRow): number | null {
   return days < 0 ? null : days
 }
 
-// 统计主入口：复用 query 层（全量视图 + 过滤），推导周期 / 滞留 / 吞吐三类指标
-export function computeStats(tasksDir: string, filter: TaskFilter = {}): TaskStats {
-  const { rows } = queryTasks(tasksDir, "all", filter)
+// 统计主入口：复用 query 层（可指定视图 + 过滤），推导周期 / 滞留 / 吞吐三类指标；
+// view 默认 all（含归档，保持历史口径），需要排除归档时由调用方显式传入 active
+export function computeStats(tasksDir: string, filter: TaskFilter = {}, view: TaskView = "all"): TaskStats {
+  const { rows } = queryTasks(tasksDir, view, filter)
   const today = todayDash()
   const done = rows.filter((r) => r.status === "已完成")
   const open = rows.filter((r) => r.view === "待完成" && !(DONE_STATUSES as readonly string[]).includes(r.status))

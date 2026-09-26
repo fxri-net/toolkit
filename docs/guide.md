@@ -115,8 +115,8 @@
 
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
-| `fxri-plan-to-task` | 1.4.2 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
-| `fxri-release-changelog` | 1.1.1 | changesets 发版与多语言 CHANGELOG 维护 |
+| `fxri-plan-to-task` | 1.4.3 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
+| `fxri-release-changelog` | 1.1.2 | changesets 发版与多语言 CHANGELOG 维护 |
 | `fxri-session-recap` | 1.2.3 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 
 版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` 打印的真源版本），随技能内容变更递增；`fxri-session-recap` 为 1.7.0 新增
@@ -127,12 +127,13 @@
 # 方式一：装了 CLI 一键分发（推荐，技能随包分发，与 CLI 同一发布批次）
 toolkit skills install     # 默认软链真源，链接创建失败自动降级副本；--copy 强制副本、--dry-run 预演
 toolkit skills status      # 查现场；toolkit skills remove 卸载；toolkit skills path 输出包根
+                           # --force 覆盖同名非本包产物（不改本包已登记副本的形态）
 
 # 方式二：上游安装器（技能走 GitHub 拉取，与 CLI 是两条供应链）
 pnpm dlx skills add fxri-net/toolkit --global
 ```
 
-分发目标三层：主目标 `~/.agents/skills/`（多家 agent 共读）→ 内置表中「已安装」的各 agent 全局技能目录 → `--dir` 兜底；未安装的 agent 只报告、不凭空造目录。默认软链（Windows 用 junction，免管理员、免开发者模式），可被各 agent 直接读取。
+分发目标三层：主目标 `~/.agents/skills/`（多家 agent 共读）→ 内置表中「已安装」的各 agent 全局技能目录 → `--dir` 兜底；未安装的 agent 只报告、不凭空造目录。默认软链（Windows 用 junction，免管理员、免开发者模式），可被各 agent 直接读取；⚠️ 软链落点是**写入穿透**形态（改落点文件即改真源），要改技能内容请改真源，`toolkit skills status` 报告末尾也会提示；`toolkit skills remove` 清理后目标目录若已空会一并回收。
 
 **与 CLI 的关系**：skills 是规范与流程（独立可用），CLI 是自动校验/归档/发版的加速器。技能文件末尾的「可选加速」节列出了对应 CLI 命令——装了就用，没装技能流程照跑。
 
@@ -268,7 +269,7 @@ pnpm exec toolkit changelog --history format   # 连带追溯改写历史版本�
 
 ⚠️ `changelog` 域开了选项透传，自有选项须写在子命令**之前**（`toolkit changelog --history format` 生效，`toolkit changelog format --history` 会被静默忽略）。
 
-⚠️ 跨语言边界：语言在**首次归组时确定**——标题→槽位的反查只认目标语言自己的 `groups[].title` 与历史组标题表（无跨语言别名），故换语言重跑时，既有块的组标题不会被重新归组，识别不到的分组原样保留（`--history` 追溯同理）。确需把既有块标题改成另一种语言，只能在 `replacements` 里写死「源标题 → 目标标题」的原文映射（纯文本替换，不参与语义归组）。
+⚠️ 跨语言边界：语言在**首次归组时确定**——标题→槽位的反查只认目标语言自己的 `groups[].title` 与历史组标题表（无跨语言别名），故换语言重跑时，既有块的组标题不会被重新归组。重排只发生在含英文源组（`### Major/Minor/Patch/Dependent Changes`）的块上（`--history` 时放宽为含任一可识别组标题的块）；块内识别不到槽位的分组不臆造归属，连同标题原样附于块末，不会被静默丢弃。确需把既有块标题改成另一种语言，只能在 `replacements` 里写死「源标题 → 目标标题」的原文映射（纯文本替换，不参与语义归组）。
 
 ## 文档站部署
 

@@ -6,7 +6,7 @@ import { DONE_STATUSES } from "./types"
 import { redactText } from "../privacy/redact"
 import { writeFileAtomic } from "../write-atomic"
 import type { ArchiveBlock, ArchiveResult, ArchiveOptions } from "./types"
-import { normalizeCompleted, parseArchiveBlocks, renderBlock, renderArchiveFile } from "./archive-block"
+import { normalizeCompleted, isRecognizableCompleted, parseArchiveBlocks, renderBlock, renderArchiveFile } from "./archive-block"
 import type { ArchiveBlockInfo } from "./archive-block"
 import { acquireArchiveLock, releaseArchiveLock } from "./lock"
 
@@ -52,10 +52,15 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
     const content = readFileSync(file, "utf8").replace(/\r\n?/g, "\n")
     const fm = parseFrontmatter(content)
     if (!DONE_STATUSES.includes(fm.status as never)) continue
-    const completed = normalizeCompleted(fm.completed || "")
-    if (!completed) {
+    const raw = (fm.completed || "").trim()
+    // 完成时间缺失或无法识别（自由文本既非日期也非日期+时分）时不归档：避免按垃圾串切片生成非法归档路径
+    if (!isRecognizableCompleted(raw)) {
       skipped.push(basename(file, ".md"))
-      console.log(`跳过 ${basename(file, ".md")}：缺少 completed 完成时间`)
+      console.log(
+        raw
+          ? `跳过 ${basename(file, ".md")}：completed「${raw}」无法识别为日期或日期+时分`
+          : `跳过 ${basename(file, ".md")}：缺少 completed 完成时间`,
+      )
       continue
     }
     doneTasks.push({
@@ -64,7 +69,7 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
       owner: fm.owner || "未标注",
       status: fm.status || "未标注",
       scope: fm.scope || "-",
-      completed,
+      completed: normalizeCompleted(raw),
       body: stripFrontmatter(content).trim(),
     })
   }
@@ -74,21 +79,34 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
     return { archived: 0, skipped, warnings }
   }
 
-  // 软告警：完成时间与创建日不一致（日期漂移）、完成时间晚于系统时间（时间源错误）
+  // 软告警：完成时间与创建日不一致（日期漂移）、晚于系统时间（时间源错误）、恰为零点整（疑似只填日期被补零）；
+  // 同类问题合并为一条，避免任务多时逐条刷屏
   if (warn) {
+    const drift: string[] = []
+    const future: string[] = []
+    const midnight: string[] = []
     for (const t of doneTasks) {
       const completedDate = t.completed.replace(/-/g, "").slice(0, 8)
       const createdDate = dateFromFileName(t.file)
       if (createdDate && completedDate !== createdDate) {
-        warnings.push(`任务「${t.name}」完成时间 ${t.completed} 与创建日 ${createdDate} 不一致，请确认 completed 是否填错`)
+        drift.push(`${t.name}（完成时间 ${t.completed}，创建日 ${createdDate}）`)
       }
       // 未来时间检测：写入时刻晚于系统时间说明时间源有误，归档前最后一道关口提醒；留 1 分钟容差避免当场取整截断秒误报
       if (new Date(t.completed.replace(" ", "T")).getTime() > Date.now() + 60_000) {
-        warnings.push(`任务「${t.name}」完成时间 ${t.completed} 晚于当前系统时间，疑似时间源错误，请核实后再归档`)
+        future.push(`${t.name}（完成时间 ${t.completed}）`)
       } else if (t.completed.endsWith(" 00:00")) {
         // 零点整检测：恰为 00:00 通常是只填日期被自动补零的特征（真实午夜收工属少量误报），归档前最后一道关口提醒
-        warnings.push(`任务「${t.name}」完成时间 ${t.completed} 恰为零点整，疑似只填了日期被补零，请核实后再归档`)
+        midnight.push(`${t.name}（完成时间 ${t.completed}）`)
       }
+    }
+    if (drift.length > 0) {
+      warnings.push(`完成时间与创建日不一致、请确认 completed 是否填错的 ${drift.length} 个任务：${drift.join("；")}`)
+    }
+    if (future.length > 0) {
+      warnings.push(`完成时间晚于当前系统时间、疑似时间源错误的 ${future.length} 个任务：${future.join("；")}`)
+    }
+    if (midnight.length > 0) {
+      warnings.push(`完成时间恰为零点整、疑似只填了日期被补零的 ${midnight.length} 个任务：${midnight.join("；")}`)
     }
   }
 
@@ -128,13 +146,12 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
         all.push(...parsed.blocks)
       }
 
-      // 软告警：归档文件已存在同名任务（本次写入会覆盖同名块，提示确认是否重复归档）
+      // 软告警：归档文件已存在同名任务（本次写入会覆盖同名块，提示确认是否重复归档）；同名多个合并为一条
       if (warn) {
         const existingNames = new Set(all.map((b) => b.title))
-        for (const t of newTasks) {
-          if (existingNames.has(t.name)) {
-            warnings.push(`归档文件已存在同名任务「${t.name}」，本次以新内容覆盖同名块，疑似重复归档`)
-          }
+        const dups = newTasks.filter((t) => existingNames.has(t.name)).map((t) => t.name)
+        if (dups.length > 0) {
+          warnings.push(`归档文件已存在同名任务，疑似重复归档、本次以新内容覆盖同名块的 ${dups.length} 个任务：${dups.join("、")}`)
         }
       }
 

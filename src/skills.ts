@@ -205,6 +205,8 @@ export interface RemoveResult {
   missing: string[]
   // 指向其他位置或内容与本包不一致，出于安全跳过，交人工确认
   skippedForeign: string[]
+  // 清理后目标目录变为空并被一并回收（仅实际执行且目录确已清空时为真）
+  dirReclaimed: boolean
 }
 
 export interface SkillsRemoveReport {
@@ -396,9 +398,8 @@ interface EntryType {
 }
 
 // entry：调用方已列出的目录条目，省略则此处现查一次（查不到即视为不存在）
-// sourceExists：调用方已确认真源存在，此时指向真源的链接必然可解析，无需再探活 dest
 // altSource：可接受的另一指向——升级迁移期链接可能指向稳定锚点或真源，两种都算正常
-function classifyExisting(dest: string, source: string, entry?: EntryType, sourceExists = false, altSource = ""): ExistingKind {
+function classifyExisting(dest: string, source: string, entry?: EntryType, altSource = ""): ExistingKind {
   let dirent: EntryType
   if (entry) {
     dirent = entry
@@ -417,6 +418,9 @@ function classifyExisting(dest: string, source: string, entry?: EntryType, sourc
       return "dangling"
     }
     const absTarget = stripTailSep(isAbsolute(target) ? target : resolve(dirname(dest), target))
+    // 悬空优先判定：链接指向已不存在的位置（如指向已失效的旧版本段或已卸载的别处安装）时，
+    // 无论指向何处都算悬空——此时无法判其内容归属，按「可自动清理」处理，避免误归入「指向别处」交人工
+    if (!existsSync(absTarget)) return "dangling"
     const targetKey = pathKey(absTarget)
     if (targetKey !== pathKey(source) && !(altSource && targetKey === pathKey(altSource))) {
       // 路径不同不等于内容不同：链接锚在别的安装（如 pnpm 稳定入口）时路径天然不相等，
@@ -425,10 +429,18 @@ function classifyExisting(dest: string, source: string, entry?: EntryType, sourc
       const sameAsAlt = altSource !== "" && sameDirContent(altSource, absTarget)
       if (!sameAsSource && !sameAsAlt) return "wrong"
     }
-    // 指向真源时：真源存在即为正常，否则悬空（真源缺失时 existsSync 为 false，而 lstat 仍认它是链接）
-    return sourceExists || existsSync(dest) ? "link-ok" : "dangling"
+    return "link-ok"
   }
   return dirent.isDirectory() ? "dir" : "file"
+}
+
+// 目录是否存在且为空（不存在 / 不可读按「非空」处理，避免误删有内容的目录）
+function isEmptyDir(dir: string): boolean {
+  try {
+    return readdirSync(dir).length === 0
+  } catch {
+    return false
+  }
 }
 
 // 两目录内容是否逐字一致（任一侧缺失即按不一致处理）
@@ -608,6 +620,8 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
       const dest = join(target.dir, skill.name)
       const linkTarget = join(linkDir, skill.name)
       const kind = classifyExisting(dest, linkTarget)
+      // 既有登记：本目标下该技能此前是否由本包以副本形式写入——决定 --force 与裸 install 的落点形态
+      const recordedCopy = previousByDir.get(pathKey(target.dir))?.copies.includes(skill.name) ?? false
       if (kind === "link-ok") {
         result.skipped.push(skill.name)
         result.links.push(skill.name)
@@ -615,9 +629,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
       }
       if (kind === "dir" && !options.force) {
         // 实体目录：若状态文件记载为本包副本则比对内容，否则视为用户自装技能不覆盖
-        const old = previousByDir.get(pathKey(target.dir))
-        const mine = old?.copies.includes(skill.name) ?? false
-        if (!mine) {
+        if (!recordedCopy) {
           result.conflicts.push(skill.name)
           continue
         }
@@ -631,16 +643,18 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
         result.conflicts.push(skill.name)
         continue
       }
+      // 落点形态沿用既有登记：已登记的副本仍是副本，--force 只解除冲突判定、不把副本翻回软链
+      const useCopy = Boolean(options.copy) || (kind === "dir" && recordedCopy)
       if (options.dryRun) {
         if (kind === "absent") result.created.push(skill.name)
         else result.updated.push(skill.name)
-        if (options.copy) result.copies.push(skill.name)
+        if (useCopy) result.copies.push(skill.name)
         else result.links.push(skill.name)
         continue
       }
       try {
         if (!(kind === "absent")) removeArtifact(dest)
-        const written = writeArtifact(linkTarget, skill.dir, dest, Boolean(options.copy))
+        const written = writeArtifact(linkTarget, skill.dir, dest, useCopy)
         if (kind === "absent") result.created.push(skill.name)
         else result.updated.push(skill.name)
         if (written.mode === "link") {
@@ -679,13 +693,13 @@ export function removeSkills(options: { dryRun?: boolean } = {}): SkillsRemoveRe
   const results: RemoveResult[] = []
   let failed = false
   for (const entry of state.targets) {
-    const result: RemoveResult = { dir: entry.dir, label: skillTargetLabel(entry.dir), removed: [], missing: [], skippedForeign: [] }
+    const result: RemoveResult = { dir: entry.dir, label: skillTargetLabel(entry.dir), removed: [], missing: [], skippedForeign: [], dirReclaimed: false }
     const names = [...new Set([...entry.links, ...entry.copies])]
     for (const name of names) {
       const dest = join(entry.dir, name)
       const source = join(skillsSourceDir(), name)
       // 链接锚点改造前后的两种指向都算本包产物，避免 autoLink 关闭时漏摘旧锚点链接；副本比对仍以真源为准
-      const kind = classifyExisting(dest, source, undefined, false, join(skillsLinkDir(), name))
+      const kind = classifyExisting(dest, source, undefined, join(skillsLinkDir(), name))
       if (kind === "absent") {
         result.missing.push(name)
         continue
@@ -714,6 +728,16 @@ export function removeSkills(options: { dryRun?: boolean } = {}): SkillsRemoveRe
         result.skippedForeign.push(name)
       }
     }
+    // 清理后目标目录已空则一并回收，避免留下空壳目录（dryRun 不动现场；非空或不可读时跳过）
+    // 仅在 isEmptyDir 为真时进入，故递归删除不会误删已存在的其他内容
+    if (!options.dryRun && isEmptyDir(entry.dir)) {
+      try {
+        rmSync(entry.dir, { recursive: true, force: true })
+        result.dirReclaimed = true
+      } catch {
+        // 回收失败不影响卸载结果：产物已清理，仅多留一个空目录
+      }
+    }
     results.push(result)
   }
 
@@ -723,6 +747,35 @@ export function removeSkills(options: { dryRun?: boolean } = {}): SkillsRemoveRe
   return { stateFile, stateExists: true, targets: results, stateRemoved }
 }
 
+// 状态判定的技能名集合：包内全部技能名并上该目标的既有登记（含已不在包内的历史记录，如实呈现不丢）
+function statusNames(skills: PackageSkill[], recorded?: StateEntry): string[] {
+  return [...new Set([...skills.map((s) => s.name), ...(recorded ? [...recorded.links, ...recorded.copies] : [])])].sort()
+}
+
+// 逐技能判定现场状态：真源存在与否、现场形态、既有登记三者共同决定
+function statusItems(dir: string, names: string[], versionByName: Map<string, string>, recorded?: StateEntry): SkillStatusItem[] {
+  const items: SkillStatusItem[] = []
+  for (const name of names) {
+    const source = join(skillsSourceDir(), name)
+    const dest = join(dir, name)
+    // 链接接受稳定锚点与真源两种指向（新链接锚在入口、旧链接直指真源），只把指向别处且内容与真源不一致的判为错误；副本比对仍以真源为准
+    const kind = classifyExisting(dest, join(skillsLinkDir(), name), undefined, source)
+    let state: SkillItemState
+    if (kind === "link-ok") state = "link"
+    else if (kind === "dangling") state = "dangling"
+    else if (kind === "wrong") state = "wrong"
+    else if (kind === "file") state = "conflict"
+    else if (kind === "dir") {
+      // 实体目录按来源分流：状态文件登记为本包副本才叫漂移（裸 install 可刷新），
+      // 未登记的同名目录属用户/上游产物，裸 install 会按冲突跳过、需 --force
+      if (existsSync(source) && dirsEqual(source, dest)) state = "copy"
+      else state = recorded?.copies.includes(name) ? "copy-drift" : "conflict"
+    } else state = "missing"
+    items.push({ name, state, version: versionByName.get(name) ?? "" })
+  }
+  return items
+}
+
 // 现场状态：目标目录存在或状态文件有记录时逐技能判定，供 status 报告悬空 / 指向其他版本 / 副本漂移 / 同名冲突
 export function skillsStatus(): SkillsStatusReport {
   const skills = listPackageSkills()
@@ -730,39 +783,44 @@ export function skillsStatus(): SkillsStatusReport {
   const state = readSkillsState()
   const stateByDir = new Map<string, StateEntry>()
   for (const entry of state?.targets ?? []) stateByDir.set(pathKey(entry.dir), entry)
+  const versionByName = new Map(skills.map((s) => [s.name, s.version]))
 
   const out: TargetStatus[] = []
   const pendingAgents: Array<{ dir: string; label: string }> = []
+  // 已纳入报告的目录，用于循环后补报「状态文件登记但不在解析结果里」的目标
+  const resolved = new Set<string>()
   for (const target of targets) {
     const recorded = stateByDir.get(pathKey(target.dir))
     if (!target.available && target.kind === "agent") {
       pendingAgents.push({ dir: target.dir, label: target.label })
       continue
     }
-    // 主目标即使未创建也要报告（提示执行 install）；agent 目标仅在目录已存在或有本包记录时展开
-    if (target.kind !== "primary" && !target.dirExists && !recorded) continue
-    const names = [...new Set([...skills.map((s) => s.name), ...(recorded ? [...recorded.links, ...recorded.copies] : [])])].sort()
-    const versionByName = new Map(skills.map((s) => [s.name, s.version]))
-    const items: SkillStatusItem[] = []
-    for (const name of names) {
-      const source = join(skillsSourceDir(), name)
-      const dest = join(target.dir, name)
-      // 链接接受稳定锚点与真源两种指向（新链接锚在入口、旧链接直指真源），只把指向别处且内容与真源不一致的判为错误；副本比对仍以真源为准
-      const kind = classifyExisting(dest, join(skillsLinkDir(), name), undefined, false, source)
-      let state: SkillItemState
-      if (kind === "link-ok") state = "link"
-      else if (kind === "dangling") state = "dangling"
-      else if (kind === "wrong") state = "wrong"
-      else if (kind === "file") state = "conflict"
-      else if (kind === "dir") {
-        // 实体目录按来源分流：状态文件登记为本包副本才叫漂移（裸 install 可刷新），
-        // 未登记的同名目录属用户/上游产物，裸 install 会按冲突跳过、需 --force
-        if (existsSync(source) && dirsEqual(source, dest)) state = "copy"
-        else state = recorded?.copies.includes(name) ? "copy-drift" : "conflict"
-      } else state = "missing"
-      items.push({ name, state, version: versionByName.get(name) ?? "" })
-    }
-    out.push({ dir: target.dir, label: target.label, kind: target.kind, available: target.available, dirExists: target.dirExists, recorded: Boolean(recorded), items })
+    // 主目标即使未创建也要报告（提示执行 install）；agent / custom 目标仅在目录已有内容或有本包记录时展开，
+    // 空壳目录（如卸载后残留）与无记录目标不占版面无噪音
+    if (target.kind !== "primary" && !recorded && (!target.dirExists || isEmptyDir(target.dir))) continue
+    resolved.add(pathKey(target.dir))
+    out.push({
+      dir: target.dir,
+      label: target.label,
+      kind: target.kind,
+      available: target.available,
+      dirExists: target.dirExists,
+      recorded: Boolean(recorded),
+      items: statusItems(target.dir, statusNames(skills, recorded), versionByName, recorded),
+    })
+  }
+  // 补报状态文件登记但本次未解析到的目标（如 --dir 安装后不再传参、agent 目录已被移除）：如实呈现，避免静默丢弃
+  for (const entry of state?.targets ?? []) {
+    if (resolved.has(pathKey(entry.dir))) continue
+    out.push({
+      dir: entry.dir,
+      label: skillTargetLabel(entry.dir) ?? "自定义 --dir",
+      kind: "custom",
+      available: true,
+      dirExists: existsSync(entry.dir),
+      recorded: true,
+      items: statusItems(entry.dir, statusNames(skills, entry), versionByName, entry),
+    })
   }
   return {
     source: skillsSourceDir(),
@@ -818,7 +876,7 @@ export function autoLinkSkills(): number {
       const linkTarget = join(linkDir, name)
       const dest = join(entry.dir, name)
       const dirent = present.get(name)
-      const kind: ExistingKind = dirent ? classifyExisting(dest, linkTarget, dirent, true) : "absent"
+      const kind: ExistingKind = dirent ? classifyExisting(dest, linkTarget, dirent) : "absent"
       if (kind === "link-ok") return true
       // 非替换模式：现场是实体目录/普通文件时一律不动，记录照留（用户可显式 install --force 处置）
       if (!replaceForeign && (kind === "dir" || kind === "file")) return true

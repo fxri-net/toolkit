@@ -1,11 +1,12 @@
 // active 任务校验：frontmatter 合法性、完成时间格式、重名、方案正文子项未闭合
 // 供 tasks check 使用，输出问题清单；error 为硬性错误，warn 为软告警（默认开启可关）
-import { statSync, readdirSync, existsSync } from "node:fs"
+import { statSync, readdirSync, existsSync, readFileSync } from "node:fs"
 import { join, basename, dirname } from "node:path"
-import { readTextFile } from "../read-text"
+import { readTextFile, stripBom } from "../read-text"
 import { listTaskFiles } from "./scan"
 import { parseFrontmatterRaw, stripFrontmatter, bodyWithoutTitle, FRONTMATTER_RE } from "./parse"
 import { parseArchiveBlocks } from "./archive-block"
+import { checkArchive } from "./normalize"
 import { getConfigSection } from "../config"
 import {
   CARRIER_VERSION,
@@ -93,11 +94,41 @@ function bodyLine(lines: string[], fmEnd: number, re: RegExp): number {
   return fmEnd + 1
 }
 
+// 文件卫生软告警：BOM / 行尾空白 / 换行符混用（统一软告警，不阻断）
+// 说明：readTextFile 已剥 BOM，故卫生检查须在原始文本上判定；换行混用指同文件同时含 CRLF 与 LF——
+// 统一 CRLF 是 Windows（core.autocrlf=true）检出常态、且各处按 /\r?\n/ 容错读取，故不告警以免跨平台误报
+function hygieneIssues(name: string, raw: string): CheckIssue[] {
+  const issues: CheckIssue[] = []
+  if (raw.startsWith("\uFEFF")) {
+    issues.push({ level: "warn", file: name, line: 1, message: "文件含 UTF-8 BOM，建议去除（部分解析工具会异常）" })
+  }
+  const rawLines = raw.split(/\r?\n/)
+  const twIdx = rawLines.findIndex((l) => /[ \t]+$/.test(l))
+  if (twIdx >= 0) {
+    issues.push({ level: "warn", file: name, line: twIdx + 1, message: "行尾有多余空白（空格或制表符），建议去除" })
+  }
+  // 定位首个孤立 LF（其前一字符非 CR）：存在即有混用
+  let loneAt = -1
+  for (let i = 0; i < raw.length; i++) {
+    if (raw[i] === "\n" && (i === 0 || raw[i - 1] !== "\r")) {
+      loneAt = i
+      break
+    }
+  }
+  if (loneAt >= 0 && raw.includes("\r\n")) {
+    issues.push({ level: "warn", file: name, line: raw.slice(0, loneAt).split("\n").length, message: "换行符混用（同文件同时含 CRLF 与 LF），建议统一为 LF" })
+  }
+  return issues
+}
+
 // 校验单个任务文件，返回问题列表
 export function validateTaskFile(file: string): CheckIssue[] {
   const issues: CheckIssue[] = []
   const name = basename(file)
-  const content = readTextFile(file)
+  // 卫生检查在原始文本上判定（stripBom 后的文本无从发现 BOM），且须早于 frontmatter 早退：无 frontmatter 也要报
+  const raw = readFileSync(file, "utf8")
+  issues.push(...hygieneIssues(name, raw))
+  const content = stripBom(raw)
   const lines = content.split(/\r?\n/)
   // frontmatter 块占用的行数：正则匹配不含收尾换行，故该值即正文首行的 0 基行号
   const fmEnd = FRONTMATTER_RE.exec(content)?.[0].split(/\r?\n/).length ?? 0
@@ -162,6 +193,15 @@ export function validateTaskFile(file: string): CheckIssue[] {
     issues.push({ level: "warn", file: name, line: fmKeyLine(lines, fmEnd, "created"), message: `created「${fm.created}」格式非法，应为 YYYYMMDD` })
   } else if (!isRealDate(fm.created.trim())) {
     issues.push({ level: "warn", file: name, line: fmKeyLine(lines, fmEnd, "created"), message: `created「${fm.created}」日期不存在，请核对` })
+  }
+  // 更新日早于创建日：时间线自相矛盾（两者均为合法 YYYYMMDD 时才可比对），属硬性错误
+  if (fm.updated && fm.created && /^\d{8}$/.test(fm.updated.trim()) && /^\d{8}$/.test(fm.created.trim()) && fm.updated.trim() < fm.created.trim()) {
+    issues.push({
+      level: "error",
+      file: name,
+      line: fmKeyLine(lines, fmEnd, "updated"),
+      message: `updated ${fm.updated.trim()} 早于 created ${fm.created.trim()}，时间线矛盾`,
+    })
   }
   const nameMatch = name.match(/^(\d{8})-/)
   if (!ACTIVE_NAME_RE.test(name)) {
@@ -293,6 +333,12 @@ export function validateTasks(tasksDir = ".tasks", cwd = process.cwd()): CheckRe
 
   // 规范载体形态：仅查形态不读内容，故不影响任务校验的语义判断
   issues.push(...validateConventions(tasksDir, cwd))
+
+  // 归档块检查：复用 normalize 的单一实现（月份目录归属、元数据完整性、完成时间漂移/异常、排序、疑似任务块），
+  // 避免 validate 与 normalize 各写一套导致判据漂移；归档问题一律 warn 级（明细与修复走 tasks normalize / normalize --fix）
+  for (const i of checkArchive(tasksDir)) {
+    issues.push({ level: "warn", file: i.file, message: i.message })
+  }
 
   // 跨文件重名检测：同名任务文件疑似重复建档
   const seen = new Map<string, string[]>()

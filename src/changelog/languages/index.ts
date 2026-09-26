@@ -86,3 +86,22 @@ export const languages: Record<string, ChangelogLanguage> = {
 }
 
 export const DEFAULT_LANG = "zh"
+
+// 语言解析结果：命中合并表返回 lang；未命中时回落默认语言并携带 unknown 标记（供调用方 stderr 告警）
+export interface LangResolution {
+  // 实际采用的语言配置
+  lang: ChangelogLanguage
+  // 未命中的请求值（仅在未命中时存在）
+  unknown?: string
+}
+
+// 语言解析：命中合并表直接采用；未命中回落默认语言并标记请求值（纯函数，便于单测）
+export function resolveLang(
+  merged: Record<string, ChangelogLanguage>,
+  requested: string,
+  fallback: string,
+): LangResolution {
+  const hit = merged[requested]
+  if (hit) return { lang: hit }
+  return { lang: (merged[fallback] ?? languages[fallback]) as ChangelogLanguage, unknown: requested }
+}

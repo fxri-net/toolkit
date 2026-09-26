@@ -6,6 +6,7 @@ import { join } from "node:path"
 import { validateTasks } from "../tasks/validate"
 import { importTasks } from "../tasks/import"
 import { resetToolkitConfigCache } from "../config"
+import { todayCompact } from "../date"
 
 const cwd = process.cwd()
 
@@ -31,6 +32,7 @@ function valid(extra = "", body = ""): string {
 }
 
 const warnTexts = (dir: string) => validateTasks(dir).issues.filter((i) => i.level === "warn").map((i) => i.message)
+const errTexts = (dir: string) => validateTasks(dir).issues.filter((i) => i.level === "error").map((i) => i.message)
 
 describe("validateTasks 依赖与命名校验", () => {
   it("合法文件 0 问题", () => {
@@ -144,6 +146,36 @@ describe("validateTasks 依赖与命名校验", () => {
   })
 })
 
+describe("validateTasks 新增校验（缺陷 16、17）", () => {
+  // 缺陷 16：updated 早于 created 属时间线矛盾，硬性错误（两者均为合法 YYYYMMDD 时才比对）
+  it("updated 早于 created 报 error", () => {
+    const dir = taskDir()
+    putFile(dir, "20260903-唐启云-a.md", valid().replace("updated: 20260903", "updated: 20260901"))
+    expect(errTexts(dir).some((m) => m.includes("早于 created"))).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("updated 合法（等于 / 晚于 created）不报错", () => {
+    const dir = taskDir()
+    putFile(dir, "20260903-唐启云-a.md", valid().replace("updated: 20260903", "updated: 20260909"))
+    expect(errTexts(dir).some((m) => m.includes("早于 created"))).toBe(false)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  // 缺陷 17：validate 复用 normalize 的归档检查，归档问题经 tasks check 以 warn 暴露（与 normalize 同源）
+  it("归档块问题经 validateTasks 以 warn 暴露（错月目录）", () => {
+    const dir = taskDir()
+    mkdirSync(join(dir, "archive", "202608"), { recursive: true })
+    writeFileSync(
+      join(dir, "archive", "202608", "20260903.md"),
+      "# 20260903 归档\n\n## 20260903-唐启云-a\n\n> 负责人：唐启云　状态：已完成　范围：x　完成时间：2026-09-03 10:00\n\n正文\n",
+      "utf8",
+    )
+    expect(warnTexts(dir).some((m) => m.includes("月份目录"))).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+})
+
 describe("importTasks 写入与映射", () => {
   it("冲突序号从 -1 起、超长标题截断告警（A7）", async () => {
     const dir = mkdtempSync(join(tmpdir(), "tk-import-"))
@@ -169,6 +201,39 @@ describe("importTasks 写入与映射", () => {
     await importTasks(csv, dir, {})
     const text = readFileSync(join(dir, "active", "202609", "20260903-甲-补全时间.md"), "utf8")
     expect(text).toContain("completed: '2026-09-03 00:00'")
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("来源含更新日期时按原值写入；缺省回退当天（缺陷 20）", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-import-upd-"))
+    mkdirSync(join(dir, "active"), { recursive: true })
+    mkdirSync(join(dir, "archive"), { recursive: true })
+    // 含更新日期列：按来源真实时间写入，不被导入抹平为当天
+    const csv1 = join(dir, "with-updated.csv")
+    writeFileSync(csv1, "任务名,负责人,状态,创建日期,更新日期\n带回填,甲,待办,20260903,20260910\n", "utf8")
+    await importTasks(csv1, dir, {})
+    expect(readFileSync(join(dir, "active", "202609", "20260903-甲-带回填.md"), "utf8")).toContain("updated: 20260910")
+    // 缺更新日期列：回退当天，保证 frontmatter 字段完整
+    const csv2 = join(dir, "no-updated.csv")
+    writeFileSync(csv2, "任务名,负责人,状态,创建日期\n无回填,甲,待办,20260903\n", "utf8")
+    await importTasks(csv2, dir, {})
+    expect(readFileSync(join(dir, "active", "202609", "20260903-甲-无回填.md"), "utf8")).toContain(`updated: ${todayCompact()}`)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("归档块正文不含重复 H1 标题（缺陷 21）", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-import-h1-"))
+    mkdirSync(join(dir, "active"), { recursive: true })
+    mkdirSync(join(dir, "archive"), { recursive: true })
+    const csv = join(dir, "in.csv")
+    writeFileSync(csv, "任务名,负责人,状态,完成时间,备注\n去重任务,甲,已完成,2026-09-03 10:00,补充说明\n", "utf8")
+    await importTasks(csv, dir, { target: "archive" })
+    const text = readFileSync(join(dir, "archive", "202609", "20260903.md"), "utf8")
+    // 块标题由 renderBlock 以 `## 标题` 渲染，正文不再前置 `# 标题`，避免重复
+    expect(text.match(/^## 去重任务$/gm) ?? []).toHaveLength(1)
+    expect(text).not.toMatch(/^# 去重任务$/m)
+    // 备注仍作为正文保留
+    expect(text).toContain("补充说明")
     rmSync(dir, { recursive: true, force: true })
   })
 

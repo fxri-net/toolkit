@@ -1,11 +1,12 @@
-// 展示层：未知状态兜底分组、导出目录自动创建
+// 展示层：未知状态兜底分组、导出目录自动创建、导出脱敏覆盖面
 import { describe, it, expect, vi, afterEach } from "vitest"
 import { mkdtempSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { printTaskBoard } from "../tasks/list"
-import { exportTasks } from "../tasks/export"
+import { exportTasks, toCSV, toJSON } from "../tasks/export"
 import { queryTasks } from "../tasks/query"
+import type { TaskRow } from "../tasks/types"
 
 afterEach(() => vi.restoreAllMocks())
 
@@ -38,5 +39,46 @@ describe("exportTasks 目录自动创建（K3）", () => {
     await exportTasks(target, rows, { total: 0, byStatus: {}, byOwner: {} })
     expect(existsSync(target)).toBe(true)
     rmSync(dir, { recursive: true, force: true })
+  })
+})
+
+// 缺陷 9：任务名此前有特判绕过脱敏，现全部文本列统一走 redactText，不再有漏网列
+describe("导出脱敏覆盖面（缺陷 9）", () => {
+  const phone = "13812345678"
+  // 真实形态：敏感信息出现在标题/负责人/范围/依赖/来源文件等文本列
+  const row = (): TaskRow => ({
+    view: "待完成",
+    title: `对接${phone}`,
+    status: "待办",
+    owner: phone,
+    scope: `svc${phone}`,
+    created: "20260903",
+    updated: "20260903",
+    completed: "",
+    depends: [`dep${phone}`],
+    file: `active/202609/20260903-${phone}-对接.md`,
+  })
+
+  it("CSV 全部文本列走脱敏，原始值不落盘", () => {
+    const csv = toCSV([row()], true)
+    expect(csv).not.toContain(phone)
+    expect(csv).toContain("对接138****5678")
+    expect(csv).toContain("svc138****5678")
+    expect(csv).toContain("dep138****5678")
+    expect(csv).toContain("20260903-138****5678-对接.md")
+  })
+
+  it("JSON 全部文本列走脱敏（含依赖数组逐元素）", () => {
+    const text = toJSON([row()], { total: 1, byStatus: {}, byOwner: {} }, true)
+    const item = JSON.parse(text).items[0] as Record<string, unknown>
+    expect(item.title).toBe("对接138****5678")
+    expect(item.owner).toBe("138****5678")
+    expect(item.scope).toBe("svc138****5678")
+    expect(item.depends).toEqual(["dep138****5678"])
+    expect(item.file).toBe("active/202609/20260903-138****5678-对接.md")
+  })
+
+  it("redact=false 时原样导出（脱敏开关可关）", () => {
+    expect(toCSV([row()], false)).toContain(phone)
   })
 })

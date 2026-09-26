@@ -9,7 +9,7 @@
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
 | [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.4.3 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
-| [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.1.1 | changesets 发版与多语言 CHANGELOG 维护 |
+| [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.1.2 | changesets 发版与多语言 CHANGELOG 维护 |
 | [fxri-session-recap](./fxri-session-recap/SKILL.md) | 1.2.3 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 
 版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` / `skills install` 打印的真源版本），与正文首部版本声明双写一致。
@@ -30,8 +30,8 @@ toolkit skills remove       # 卸载本包装的产物（只清自己装的，�
 
 - 真源唯一：技能取自已装 CLI 包内的 `skills/`；软链锚在 pnpm 稳定入口，升级 CLI 后自动指向新版（副本形式需重跑 `toolkit skills install`）
 - 目标三层：主目标 `~/.agents/skills/`（多家 agent 共读）→ 内置表内**已安装**的各 agent 全局技能目录 → `--dir <path>` 兜底（可多次指定，给表外 agent 用）
-- 默认软链（锚在 pnpm 稳定入口，升级不失效）；链接创建失败自动降级为副本并打印 ⚠️（如无权限建链）；`--copy` 强制副本、`--dry-run` 预演、`--force` 覆盖同名非本包产物
-- 产物记录在状态文件 `~/.agents/.toolkit-skills.json`；卸载 CLI 前先跑 `toolkit skills remove`，避免留下悬空链接
+- 默认软链（锚在 pnpm 稳定入口，升级不失效）；链接创建失败自动降级为副本并打印 ⚠️（如无权限建链）；`--copy` 强制副本、`--dry-run` 预演、`--force` 覆盖同名非本包产物（不改本包已登记副本的形态）
+- 产物记录在状态文件 `~/.agents/.toolkit-skills.json`；卸载 CLI 前先跑 `toolkit skills remove`，避免留下悬空链接（清理后目标目录若已空会一并回收）
 
 ### 方式二：上游安装器 `npx skills`（需锁定文件或覆盖表外 agent 时）
 

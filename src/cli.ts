@@ -16,7 +16,7 @@ import { checkArchive, fixArchive } from "./tasks/normalize"
 import { listTaskFiles } from "./tasks/scan"
 import type { TaskView, TaskFilter, ImportTarget } from "./tasks/types"
 import { ALL_STATUSES } from "./tasks/types"
-import { languages, DEFAULT_LANG, type ChangelogLanguage } from "./changelog/languages"
+import { languages, DEFAULT_LANG, resolveLang, type ChangelogLanguage } from "./changelog/languages"
 import { localDate, formatChangelogs, countUntypedEntries } from "./changelog/format"
 import { resolveRedactEnabled } from "./privacy/redact"
 import { resolveEnabled } from "./switch"
@@ -120,6 +120,31 @@ function printIssues(issues: Array<{ file: string; line?: number; message: strin
   }
 }
 
+// 多值参数解析（--owner / --scope / --status 共用）：仅按半角/全角逗号分隔，顿号与分号不作分隔符
+function splitMulti(v?: string): string[] | undefined {
+  return v ? v.split(/[,，]/).map((s) => s.trim()).filter(Boolean) : undefined
+}
+
+// 状态过滤解析与应用：未传 → 跳过；部分非法 → stderr 告警并剔除；全部非法 → 报错退出（返回 false 由调用方 return）
+// 合法清单与 ALL_STATUSES 同源，避免两处漂移；告警走 stderr，stdout 留给机器可读输出
+function applyStatusFilter(filter: TaskFilter, v?: string): boolean {
+  const raw = splitMulti(v)
+  if (!raw) return true
+  const legal = ALL_STATUSES as readonly string[]
+  const values = raw.filter((s) => legal.includes(s))
+  const invalid = raw.filter((s) => !legal.includes(s))
+  if (values.length === 0) {
+    console.error(`⚠️ --status 全部取值非法：${invalid.join("、")}（合法：${ALL_STATUSES.join("/")}）`)
+    process.exitCode = 1
+    return false
+  }
+  if (invalid.length > 0) {
+    console.warn(`⚠️ 忽略非法状态值：${invalid.join("、")}（合法：${ALL_STATUSES.join("/")}）`)
+  }
+  filter.status = values
+  return true
+}
+
 // 收集可多次出现的 --dir（commander collect 范式：默认 [] 逐个累积）
 function collectDir(value: string, previous: string[]): string[] {
   return [...previous, value]
@@ -215,6 +240,9 @@ function printStatusReport(report: SkillsStatusReport): void {
       ? `共 ${problems} 处需处理：缺失 / 悬空 / 指向其他版本 / 副本漂移用 toolkit skills install 补齐，同名冲突用 toolkit skills install --force 覆盖`
       : "所有已纳入的目标均正常",
   )
+  // 软链落点是写入穿透形态：改落点文件等于改真源，需在报告末尾点明纪律，避免用户误在落点上编辑
+  const linkCount = report.targets.reduce((n, t) => n + t.items.filter((i) => i.state === "link").length, 0)
+  if (linkCount > 0) console.log(`软链落点 ${linkCount} 项：写入将穿透至技能真源目录，改内容请改真源`)
 }
 
 // 打印卸载报告：按目标区分已移除 / 已不存在 / 需人工确认三类，并说明状态文件处置
@@ -232,6 +260,7 @@ function printRemoveReport(report: SkillsRemoveReport, dryRun: boolean): void {
     if (t.removed.length > 0) console.log(`  ${dryRun ? "将移除" : "已移除"}：${t.removed.join("、")}`)
     if (t.missing.length > 0) console.log(`  已不存在：${t.missing.join("、")}`)
     if (t.skippedForeign.length > 0) console.log(`  ⚠️ 跳过（非本包产物或内容已被改动，请人工确认）：${t.skippedForeign.join("、")}`)
+    if (t.dirReclaimed) console.log("  目标目录已空，已一并回收")
   }
   console.log("")
   if (dryRun) console.log("[预演] 未执行删除；无遗留条目时将同时删除状态文件")
@@ -345,7 +374,7 @@ skillsCmd
   .option("--copy", "强制以副本形式写入（不建软链）")
   .option("--dir <path>", "额外目标目录（可多次指定，兜底内置表未收录的 agent）", collectDir, [])
   .option("--dry-run", "预演（只预览将要执行的动作，不写文件）")
-  .option("--force", "覆盖同名非本包产物（默认跳过，避免破坏用户自装技能）")
+  .option("--force", "覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
   .action((options: { copy?: boolean; dir: string[]; dryRun?: boolean; force?: boolean; format?: string }) => {
     try {
@@ -521,9 +550,9 @@ program
   .option("--warn", "开启软告警")
   .option("--no-warn", "关闭软告警")
   .option("--dry-run", "预演（archive 归档 / import 导入只预览，不落盘）")
-  .option("--fix", "归一化修复（仅 normalize 有效）")
-  .option("--check", "归一化只读检查（normalize 默认行为，可显式声明；不能与 --fix 同用）")
-  .option("--view <view>", "任务视图：active / archived / all（默认 active）")
+  .option("--fix", "归一化修复（仅 normalize 有效；检查项与 tasks check 同源，check 只读不改）")
+  .option("--check", "归一化只读检查（normalize 默认行为，可显式声明；检查项与 tasks check 同源、不能与 --fix 同用）")
+  .option("--view <view>", "任务视图：active / archived / all（总览默认 active，stats 默认 all 含归档）")
   .option("--owner <name>", "按负责人过滤（逗号分隔多值）")
   .option("--scope <scope>", "按范围过滤（逗号分隔多值）")
   .option("--status <status>", "按状态过滤（逗号分隔多值）")
@@ -621,15 +650,26 @@ program
       } else if (command === "stats") {
         // 统计视图：复用查询过滤参数，输出周期 / 滞留 / 吞吐三类指标
         if (!assertJsonFormat(options.format)) return
+        const statView = (options.view ?? "all") as string
+        if (!["active", "archived", "all"].includes(statView)) {
+          console.error(`⚠️ 非法视图「${statView}」，仅支持 active / archived / all`)
+          process.exitCode = 1
+          return
+        }
+        if (options.date && (options.since || options.until)) {
+          console.error("⚠️ --date 不能与 --since / --until 同时使用")
+          process.exitCode = 1
+          return
+        }
         try {
           const filter: TaskFilter = {}
-          const multi = (v?: string): string[] | undefined => (v ? v.split(/[,，]/).map((s) => s.trim()).filter(Boolean) : undefined)
-          filter.owner = multi(options.owner)
-          filter.scope = multi(options.scope)
+          filter.owner = splitMulti(options.owner)
+          filter.scope = splitMulti(options.scope)
+          if (!applyStatusFilter(filter, options.status)) return
           if (options.date) filter.date = options.date
           if (options.since) filter.since = options.since
           if (options.until) filter.until = options.until
-          const stats = computeStats(dir, filter)
+          const stats = computeStats(dir, filter, statView as TaskView)
           if (options.format === "json") {
             printJson(stats)
           } else {
@@ -680,18 +720,9 @@ program
         }
         if (!assertJsonFormat(options.format)) return
         const filter: TaskFilter = {}
-        const multi = (v?: string): string[] | undefined => (v ? v.split(/[,，]/).map((s) => s.trim()).filter(Boolean) : undefined)
-        filter.owner = multi(options.owner)
-        filter.scope = multi(options.scope)
-        const rawStatus = multi(options.status)
-        if (rawStatus) {
-          // 非法状态值告警并忽略（不静默、不中断）
-          const invalid = rawStatus.filter((s) => !(ALL_STATUSES as readonly string[]).includes(s))
-          if (invalid.length > 0) {
-            console.warn(`⚠️ 忽略非法状态值：${invalid.join("、")}（合法：待办/进行中/已完成/阻塞/已放弃）`)
-          }
-          filter.status = rawStatus.filter((s) => (ALL_STATUSES as readonly string[]).includes(s))
-        }
+        filter.owner = splitMulti(options.owner)
+        filter.scope = splitMulti(options.scope)
+        if (!applyStatusFilter(filter, options.status)) return
         if (options.date) filter.date = options.date
         if (options.since) filter.since = options.since
         if (options.until) filter.until = options.until
@@ -746,8 +777,9 @@ const changelogCmd = program
       const history = options.history === true
       // 合并配置语言（支持自定义语言与覆盖内置），实现全语言
       const merged = resolveLanguages()
-      // languages 始终内置 DEFAULT_LANG（zh），此处仅收窄 undefined 联合类型
-      const lang = (merged[options.lang] ?? merged[DEFAULT_LANG] ?? languages[DEFAULT_LANG]) as ChangelogLanguage
+      // 语言解析：未知取值回落默认语言，但显式传入却无法采纳的值必须告警（走 stderr，stdout 留给机器可读输出）
+      const { lang, unknown: unknownLang } = resolveLang(merged, options.lang, DEFAULT_LANG)
+      if (unknownLang) console.warn(`⚠️ 未知语言「${unknownLang}」，已回落 ${DEFAULT_LANG}`)
       const command = operands[0]
       if (command === "version") {
         // 软告警：发版前存在未归档任务
@@ -798,8 +830,10 @@ async function main(): Promise<void> {
     if (zh) console.error(zh)
     else process.stderr.write(commanderErrBuffer)
     process.exitCode = err.exitCode
-    return
+  } finally {
+    // 所有路径（成功 / 帮助 / 版本 / 解析失败）一致触发升级检查；命中缓存仅读盘提示，零网络
+    startUpdateCheck(version)
   }
-  startUpdateCheck(version)
 }
-void main()
+// 执行语义不变，仅导出 Promise 供测试 await 主流程（cli.ts 无法被静态 import，见 src/__tests__/options-matrix.test.ts）
+export const cliReady = main()
