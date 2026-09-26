@@ -56,7 +56,7 @@ describe("isBeyondTzFuture 跨时区容差边界", () => {
     expect(isBeyondTzFuture(wallString(now + 15 * HOUR), now)).toBe(true)
   })
 
-  it("错填日期（超前 ≥24 小时）仍被捕获", () => {
+  it("错填日期（超前 14 小时以上）仍被捕获", () => {
     expect(isBeyondTzFuture(wallString(now + 48 * HOUR), now)).toBe(true)
   })
 

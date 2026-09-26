@@ -1,6 +1,7 @@
 // 门禁阈值自检：AGENTS.md 声明本源仓库 tasks check 的 error / warn 均应为 0，
 // 但 check 仅按 error 置退出码、verify 只按退出码判定，warn 在聚合门禁里并不阻断。
-// 本测试把「双零」阈值锁进单测（verify 的单元测试步骤），不改用户侧 CLI 语义
+// 本测试读真实 .tasks/.changeset，须在数据原地时区判定，故由 verify 的「本源仓库自检」步骤以 TZ=Asia/Shanghai 单跑；
+// 常规「单元测试」「覆盖率门槛」两步钉 TZ=UTC 跑合成数据，已用 --exclude 排除本文件。不改用户侧 CLI 语义
 import { describe, it, expect } from "vitest"
 import { existsSync } from "node:fs"
 import { validateTasks } from "../tasks/validate"

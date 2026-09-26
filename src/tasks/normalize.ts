@@ -7,7 +7,7 @@ import { parseMetaSegments } from "./meta"
 import { removeEmptyDirs } from "./archive"
 import { listTaskFiles } from "./scan"
 import { displayRel } from "./paths"
-import { isBeyondTzFuture } from "../date"
+import { isBeyondTzFuture, MAX_UTC_OFFSET_HOURS } from "../date"
 import type { ArchiveBlockInfo } from "./archive-block"
 import { acquireArchiveLock, releaseArchiveLock } from "./lock"
 import { writeFileAtomic } from "../write-atomic"
@@ -146,7 +146,7 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
       if (recognizable && isBeyondTzFuture(norm)) {
         issues.push({
           file: display,
-          message: `块「${b.title}」完成时间 ${norm} 晚于当前系统时间，疑似时间源错误（需人工确认）`,
+          message: `块「${b.title}」完成时间 ${norm} 晚于当前系统时间 ${MAX_UTC_OFFSET_HOURS} 小时以上，疑似时间源错误（需人工确认）`,
           fixable: false,
         })
       } else if (recognizable && norm.endsWith(" 00:00")) {

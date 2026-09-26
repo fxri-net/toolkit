@@ -38,10 +38,16 @@ export function todayCompact(): string {
 
 // 未来时间检测的跨时区容差：取全球最大正偏移 UTC+14
 // 墙上时间串不含时区，按运行环境时区解析后与当前时刻比对会随环境漂移：本地（UTC+8）写入的时间在 UTC 运行环境下被整体前移 8 小时而落进「未来」，产生误报
-// 留 14 小时容差后 UTC 环境不再误报，错填日期（超前 ≥24 小时）仍被捕获
+// 留 14 小时容差后 UTC 环境不再误报，错填日期（超前 14 小时以上）仍被捕获
+// 本源仓库门禁已在数据原地时区（Asia/Shanghai）判定真实任务数据（详见 scripts/verify.mjs），本容差只作使用方业务侧的兜底补充
 export const MAX_UTC_OFFSET_MS = 14 * 60 * 60 * 1000
 
+// 容差的小时数（= MAX_UTC_OFFSET_MS / 3600000），供告警文案引用，避免该阈值以魔数形式散落各处
+export const MAX_UTC_OFFSET_HOURS = MAX_UTC_OFFSET_MS / 3_600_000
+
 // 完成时间是否超出跨时区容差的未来（值须为 YYYY-MM-DD HH:mm 墙上时间；now 可注入便于测试与边界校验）
+// 隐式契约：value 不可解析时 getTime() 得 NaN，而 `NaN > x` 恒为 false，即静默判为「非未来」——
+// 调用方须先做格式校验（completed 格式 / 归一化可识别）再调用，否则垃圾串会静默漏过
 export function isBeyondTzFuture(value: string, now: number = Date.now()): boolean {
   return new Date(value.replace(" ", "T")).getTime() > now + MAX_UTC_OFFSET_MS
 }

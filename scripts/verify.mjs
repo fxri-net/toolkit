@@ -40,7 +40,10 @@ function reportToolchain() {
 }
 
 // 步骤清单即门禁定义：顺序有依赖（build 先于冒烟与任务区体检），增删步骤只改这里
-// 测试类步骤注入 TZ=UTC：本地与 CI（UTC 运行环境）同轴，避免「本地绿、CI 红」的时区耦合回归（墙上时间解析随运行环境时区漂移）
+// 时区（TZ）按「数据来源」分两轴钉死，避免「本地绿、CI 红」的时区耦合回归（墙上时间串不带时区，解析结果随运行环境漂移）：
+// ① 合成数据步骤（单元测试 / 覆盖率门槛）钉 TZ=UTC：被测数据由测试当场构造、与运行环境时区无关，钉 UTC 使本地与全部 CI 同轴；
+// ② 读真实任务数据的步骤（本源仓库自检 / 任务区体检 / 归档块归一核验）钉 TZ=Asia/Shanghai：任务档按本地时区书写，须在数据原地时区判定，
+//    否则 UTC 环境会把 +8 墙上串前移 8 小时而误报「未来时间」，该误报正是本次拆解的目标
 const steps = [
   { label: "安装依赖（frozen 锁文件）", command: "pnpm", args: ["install", "--frozen-lockfile"], fatal: true },
   { label: "类型检查", command: "pnpm", args: ["typecheck"] },
@@ -48,13 +51,15 @@ const steps = [
   { label: "静态检查（冷缓存）", command: "pnpm", args: ["exec", "eslint", ".", "--no-cache"] },
   { label: "单元测试", command: "pnpm", args: ["test"], env: { TZ: "UTC" } },
   { label: "覆盖率门槛", command: "pnpm", args: ["test:coverage"], skip: skipCoverage, env: { TZ: "UTC" } },
+  // 本仓库自检：读真实 .tasks/.changeset 断言双零，须在数据原地时区（Asia/Shanghai）判定，故不走钉 UTC 的常规单测步
+  { label: "本源仓库自检（真实数据双零）", command: "pnpm", args: ["test:repo-guard"], env: { TZ: "Asia/Shanghai" } },
   { label: "构建", command: "pnpm", args: ["build"] },
   { label: "文档站构建（死链检查）", command: "pnpm", args: ["docs:build"], skip: skipDocs },
   { label: "CLI 冒烟 --help", args: ["dist/cli.js", "--help"] },
   { label: "CLI 冒烟 tasks --help", args: ["dist/cli.js", "tasks", "--help"] },
   { label: "CLI 冒烟 changelog --help", args: ["dist/cli.js", "changelog", "--help"] },
-  { label: "任务区体检（tasks check）", args: ["dist/cli.js", "tasks", "check"] },
-  { label: "归档块归一核验（tasks normalize）", args: ["dist/cli.js", "tasks", "normalize"] },
+  { label: "任务区体检（tasks check）", args: ["dist/cli.js", "tasks", "check"], env: { TZ: "Asia/Shanghai" } },
+  { label: "归档块归一核验（tasks normalize）", args: ["dist/cli.js", "tasks", "normalize"], env: { TZ: "Asia/Shanghai" } },
 ]
 
 reportToolchain()

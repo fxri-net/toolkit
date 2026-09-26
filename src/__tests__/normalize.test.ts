@@ -400,6 +400,29 @@ describe("归档锁持有者校验", () => {
 })
 
 describe("未来时间检测", () => {
+  const HOUR = 60 * 60 * 1000
+
+  // 以本地时区把时间戳渲染为 YYYY-MM-DD HH:mm 墙上串：渲染与解析同轴，期望值不随运行环境时区漂移
+  function wallString(ts: number): string {
+    const d = new Date(ts)
+    const p = (n: number) => String(n).padStart(2, "0")
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+  }
+
+  // 建含指定完成时间的归档块，归档文件日期与完成时间同日（避免叠加日期漂移告警）
+  function withArchiveAt(completed: string): string {
+    const dir = makeDir()
+    const compact = completed.slice(0, 10).replace(/-/g, "")
+    const month = join(dir, "archive", compact.slice(0, 6))
+    mkdirSync(month, { recursive: true })
+    writeFileSync(
+      join(month, `${compact}.md`),
+      `# ${compact} 归档\n\n## ${compact}-唐启云-a\n\n> 负责人：唐启云　状态：已完成　范围：x　完成时间：${completed}\n\na\n`,
+      "utf8",
+    )
+    return dir
+  }
+
   // 建含远期未来完成时间的归档块（固定 2099 年，不随执行时间漂移）
   function withFutureArchive(): string {
     const dir = makeDir()
@@ -435,6 +458,28 @@ describe("未来时间检测", () => {
     const res = archiveTasks(dir)
     expect(res.archived).toBe(1)
     expect(res.warnings.some((w) => w.includes("晚于当前系统时间"))).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("checkArchive 对容差内完成时间（UTC+8 偏移量级）不误报", () => {
+    const dir = withArchiveAt(wallString(Date.now() + 8 * HOUR))
+    expect(checkArchive(dir).some((i) => i.message.includes("晚于当前系统时间"))).toBe(false)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("archiveTasks 对容差内完成时间不产生未来时间软告警", () => {
+    const dir = makeDir()
+    const completed = wallString(Date.now() + 8 * HOUR)
+    const compact = completed.slice(0, 10).replace(/-/g, "")
+    mkdirSync(join(dir, "active", compact.slice(0, 6)), { recursive: true })
+    writeFileSync(
+      join(dir, "active", compact.slice(0, 6), `${compact}-唐启云-tolerant.md`),
+      `---\nowner: 唐启云\nstatus: 已完成\ncreated: ${compact}\nupdated: ${compact}\ncompleted: '${completed}'\ndepends_on: []\nscope: 测\n---\n\n# tolerant\n`,
+      "utf8",
+    )
+    const res = archiveTasks(dir)
+    expect(res.archived).toBe(1)
+    expect(res.warnings.some((w) => w.includes("晚于当前系统时间"))).toBe(false)
     rmSync(dir, { recursive: true, force: true })
   })
 })

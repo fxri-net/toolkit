@@ -4,7 +4,7 @@ import { parseFrontmatter, stripFrontmatter } from "./parse"
 import { listTaskFiles, dateFromFileName } from "./scan"
 import { DONE_STATUSES } from "./types"
 import { redactText } from "../privacy/redact"
-import { isBeyondTzFuture } from "../date"
+import { isBeyondTzFuture, MAX_UTC_OFFSET_HOURS } from "../date"
 import { writeFileAtomic } from "../write-atomic"
 import type { ArchiveBlock, ArchiveResult, ArchiveOptions } from "./types"
 import { normalizeCompleted, isRecognizableCompleted, parseArchiveBlocks, renderBlock, renderArchiveFile } from "./archive-block"
@@ -104,7 +104,7 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
       warnings.push(`完成时间与创建日不一致、请确认 completed 是否填错的 ${drift.length} 个任务：${drift.join("；")}`)
     }
     if (future.length > 0) {
-      warnings.push(`完成时间晚于当前系统时间、疑似时间源错误的 ${future.length} 个任务：${future.join("；")}`)
+      warnings.push(`完成时间晚于当前系统时间 ${MAX_UTC_OFFSET_HOURS} 小时以上、疑似时间源错误的 ${future.length} 个任务：${future.join("；")}`)
     }
     if (midnight.length > 0) {
       warnings.push(`完成时间恰为零点整、疑似只填了日期被补零的 ${midnight.length} 个任务：${midnight.join("；")}`)
