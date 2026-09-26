@@ -6,6 +6,55 @@ outline: [2, 2]
 
 > 完整变更历史以随包发布的 CHANGELOG.md 为准，本页由 `pnpm sync:changelog-doc` 从根 CHANGELOG.md 自动同步，请勿手改。
 
+## 1.11.0
+
+> 2026-09-27 发布
+
+### ✨ 新增功能
+
+- `toolkit tasks stats` 支持 `--view` / `--status` 过滤（与 `tasks list` 口径一致，`--view` 默认 `all` 含归档），并补齐 `--date` 与 `--since` / `--until` 的互斥校验
+- `toolkit tasks check` 补「`updated` 早于 `created`」与「归档块完成日期与所属月份目录不符」两项校验，并对 BOM、行尾空白、同文件 CRLF/LF 混用给出软告警（只报不改，修复走 `tasks normalize`）
+- 新增 `toolkit conventions` 命令域：`upgrade` 把 v1 规范载体升级为 v2（发稳定 ID `C-<n>`、演进记录切独立 `history.md`、内部引用改稳定 ID），`status` 做只读体检（形态 / 索引 / 入口层三块，只报不改；体检不阻断、退出码恒 0）
+- `upgrade` 幂等、先判后写，异常形态在写盘前拒绝；已为 v2 时返回 `already-v2`；`--dry-run` 可预演
+- 规范载体引入结构 v2：`index.md` 首行为形态标记、索引表首列改为稳定 ID `C-<n>`（去补零、只追加不重排不回收）、演进记录抽为独立 `history.md`（只追加、不改旧行）；v1 三态兼容读取
+- `toolkit init` 生成 v2 载体骨架（`index.md` + `history.md`）与项目级技能入口壳，并逐项报告实际动作（新建 / 保持 / 追加 / 跳过）
+- `toolkit tasks check` 对载体形态异常与技能入口壳给出软告警（壳标记版本不一致、或被 gitignore 覆盖不会随 git 分发）
+- `toolkit tasks check` 增扫 `.changeset/` 下待发布变更集的缺类型前缀条目（逐文件报出缺前缀条数与首条行号），把「变更集缺前缀」的检测前移到归档前；不再等到发版、变更集源被消费删除后才由 changelog 侧兜底告警。前缀识别取全局表与各配置语言自有前缀的并集，缩进续行随父条目迁属、不参与识别
+- `toolkit init` 在检测到尚未安装全局技能时，「下一步」中补一行 `toolkit skills install` 指引（规范触达第一层，不依赖项目内文件；已安装则不重复提示）
+
+### 🔧 功能调整
+
+- `toolkit init` 生成的规范入口壳改为落在**已存在的**项目级技能目录的每一处（多 agent 混用团队各写一份、互不覆盖），一个候选目录都没有时回落 `.agents/skills`；不再为使用者未安装的 agent 凭空创建目录
+- `init` 写入 `AGENTS.md` 的规范入口指针块改为**去路径化**措辞，只描述入口壳形态、不写死具体落点，避免误导只读其他候选技能目录的 agent
+
+### ⚡ 优化改进
+
+- `toolkit changelog format` 由全量重建改为只重组识别到的语义分区——未识别分组标题连同条目原样保留、不臆造归属，不再丢内容；`--history format` 恢复幂等（不再逐次注入空行）
+- `toolkit changelog format` 归类前后做条目数自检，减少即 stderr 告警提示人工核对（归类只应搬移、不应减少）
+- 升级检查前置到提前返回之前，所有子命令路径一致触发，不再有路径漏检
+- 项目无 `AGENTS.md` 时，`init` 的跳过提示补充说明：本项目规范仍可经全局技能 `fxri-plan-to-task` 触达
+- 入口壳告警合并：多落点并存时「壳标记与当前 toolkit 不一致」「壳被 gitignore 覆盖」各只告警一条并内联全部落点路径，不再按壳逐条重复（5 处壳由 10 条降为 2 条）；告警中的落点路径改用**仓库根相对路径**，不再泄露本机绝对路径，与 `check` 其余项口径一致
+- 入口壳版本告警补回定位信息：多落点场景原本文案逐字相同、无路径可定位，现内联各落点的标记版本，`toolkit conventions status` 与 `toolkit tasks check` 文案保持一致
+- `toolkit skills status` 人读输出折叠：全部正常的目标聚合为一行（`<目标>：<目录>　N 项正常`），仅含问题项的目标逐条展开；`--format json` 输出不变、信息不丢
+- 入口壳告警文案中性化：单壳与多壳分支统一为「入口壳标记与当前 toolkit 不一致」（原「落后」措辞在壳标记超前时失真），统一 `标记 v1` / `标记 无` 前缀
+- 入口壳 gitignore 判定由逐壳一次子进程改为一次性批量（`git check-ignore --stdin`），多落点项目的 `toolkit tasks check` 耗时回落
+
+### 🐛 问题修复
+
+- `toolkit tasks export --redact` 改为全部文本列统一脱敏，消除 `任务名` 之外的漏网列
+- `toolkit tasks normalize` 对无法识别完成时间的归档不再落「垃圾路径」，改为告警并跳过该项；`check` / `normalize` 分工在 help 中互相指引（check 只报不修、normalize 负责修）
+- `toolkit skills status` 纳入状态文件登记的目标（不只统计现场目录），软链目标不存在时判为悬空、不再误报 `link-ok`
+- `toolkit skills install --force` 不再把已登记的副本落点翻回软链（冲突解除与落点形态解耦，保留用户既有落点形态）
+- `toolkit skills remove` 回收残留空目录；`skills status` 对软链落点标注「写入将穿透至源目录，改内容请改真源」
+- `toolkit tasks --import` 生成的归档块不再重复 H1，并保留来源 `updated` 字段（缺省时才用当天）
+- `toolkit tasks archive` 同源多落点告警合并为一条；`depends_on` 裸标量按单元素接收、不可解析形态告警（不再静默丢依赖）
+- 未知 `--lang` 值回落默认语言时 stderr 告警，配置项类型不符回落默认值时同样告警（降级不静默）
+- `tasks list` / `tasks stats` 全部 `--status` 取值非法时报错退出（退出码 1），不再静默忽略
+- `tasks archive` / `check` / `normalize` / `stats` 传入不受支持的 `--export`（前三者再传 `--format`）时 stderr 告警忽略、命令继续（降级不静默）
+- 修复技能链接误报与误重指：判定改为「路径不等时比对内容」，链接锚在 pnpm 稳定入口（或另一同内容安装）而内容与真源逐字一致时不再报错，`autoLink` 也不会再把健康链接重指到当前运行源
+- `toolkit init` 重复执行改为按入口壳标记版本分流：标记落后或无标记时就地更新为当前版本（报告为「更新」），标记不旧于当前版本保持不变、不降级覆盖——使告警中「重跑 `toolkit init` 补齐」成为真实可用的修复路径
+- 修复 `toolkit conventions status` 在 @fxri/toolkit 源仓库内误提示「未找到入口壳：执行 toolkit init 可生成」的问题：源仓库本就不生成入口壳（靠 fxri-\* 技能自举），现不再给出补生成建议
+
 ## 1.10.5
 
 > 2026-09-21 发布
