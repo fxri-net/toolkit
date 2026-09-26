@@ -8,7 +8,7 @@
 
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
-| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.4.1 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
+| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.4.2 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
 | [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.1.1 | changesets 发版与多语言 CHANGELOG 维护 |
 | [fxri-session-recap](./fxri-session-recap/SKILL.md) | 1.2.3 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 

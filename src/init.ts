@@ -18,7 +18,6 @@ import {
   AGENTS_POINTER_START,
   ENTRY_SHELL_NAME,
   SKILL_ENTRY,
-  FALLBACK_SKILL_DIR,
   buildAgentsPointer,
   buildEntryShell,
   isGitIgnored,
@@ -26,6 +25,7 @@ import {
   resolveProjectSkillDirs,
 } from "./conventions/entry"
 import { todayCompact } from "./date"
+import { hasGlobalSkillsInstalled } from "./skills"
 
 // init 时输出的后续步骤提示（getting-started / guide 链接与文档站同源）
 export const INIT_LINKS = {
@@ -71,10 +71,11 @@ export interface InitProduct {
   hint?: string
 }
 
-// init 报告：任务目录 + 逐项产物动作
+// init 报告：任务目录 + 逐项产物动作 + 全局技能安装态（供「下一步」按需提示 skills install）
 export interface InitReport {
   tasksDir: string
   products: InitProduct[]
+  skillsInstalled: boolean
 }
 
 // 展示用路径归一为 / 分隔，保证报告与测试跨平台一致
@@ -101,7 +102,7 @@ export function initWorkspace(dir = ".tasks", cwd = process.cwd()): InitReport {
     ...appendGitignore(cwd),
     ...scaffoldEntryLayer(cwd),
   ]
-  return { tasksDir: dir, products }
+  return { tasksDir: dir, products, skillsInstalled: hasGlobalSkillsInstalled() }
 }
 
 // 生成规范载体骨架（index.md + history.md）；已存在索引、或存在待迁移的旧单文件 conventions.md 时不动
@@ -181,14 +182,13 @@ function scaffoldEntryLayer(cwd: string): InitProduct[] {
     }
     products.push(product)
   }
-  // 指针块只指首个落点；resolveProjectSkillDirs 保证非空，解构兜底消除索引可选类型
-  const [primarySkillDir = FALLBACK_SKILL_DIR] = skillDirs
-  products.push(...upsertAgentsPointer(cwd, primarySkillDir))
+  // 指针块只指入口壳形态、不写死落点；多候选目录并存时每份壳内容逐字等价
+  products.push(...upsertAgentsPointer(cwd))
   return products
 }
 
 // AGENTS.md 指针块：仅当文件已存在时幂等追加，不存在不新建（不替用户决定是否引入 AGENTS.md）
-function upsertAgentsPointer(cwd: string, skillDir: string): InitProduct[] {
+function upsertAgentsPointer(cwd: string): InitProduct[] {
   const file = join(cwd, "AGENTS.md")
   if (!existsSync(file)) {
     return [
@@ -208,6 +208,6 @@ function upsertAgentsPointer(cwd: string, skillDir: string): InitProduct[] {
   const eol = raw.includes("\r\n") ? "\r\n" : "\n"
   const base = raw.endsWith("\n") || raw === "" ? raw : raw + eol
   const sep = /(\r?\n){2}$/.test(base) ? "" : eol
-  writeFileAtomic(file, `${base}${sep}${buildAgentsPointer(skillDir).replace(/\n/g, eol)}${eol}`)
+  writeFileAtomic(file, `${base}${sep}${buildAgentsPointer().replace(/\n/g, eol)}${eol}`)
   return [{ target: "AGENTS.md", action: "appended", detail: "已追加规范入口指针块（幂等，重复执行不重复追加）" }]
 }

@@ -3,7 +3,7 @@
 
 > 演进记录见 `history.md`；超长条目升级见分册。
 > 本载体为「规范溯源簿」：记录本项目确立的每条规则、适用面（归属）、确立时的来源任务、演进历史，以及条文的单一事实源位置。条文内容一律以各单一事实源最新版为准（skills / task-spec / ai-rules / AGENTS），本载体不复制条文，避免版本漂移。
-> 非任务文件，`toolkit tasks` 不读取内容、`check` 不因内容告警；仅载体形态异常（旧单文件残留、缺 `index.md`、有 v2 标记而缺 `history.md`、无标记而有 `history.md`）时软告警——v1 形态（有 `index.md`、无 `history.md`、无标记）属合法存量、不告警，可执行 `toolkit conventions upgrade` 升 v2。由任务归档（任务级）与会话收尾（会话级）维护，写入前经用户确认。载体结构、端名规则、读写判定与存量迁移见 `skills/fxri-plan-to-task/references/conventions-spec.md`。
+> 非任务文件，`toolkit tasks` 不读取内容、`check` 不因内容告警；`check` 只对**载体形态异常**与**入口层现场异常**软告警——载体侧：旧单文件残留、缺 `index.md`、v2 标记与 `history.md` / 索引表首列 ID 不一致；入口壳侧：壳标记版本落后于当前 toolkit、壳被 gitignore 覆盖。v1 形态（有 `index.md`、无 `history.md`、无标记）属合法存量、不告警，可执行 `toolkit conventions upgrade` 升 v2。由任务归档（任务级）与会话收尾（会话级）维护，写入前经用户确认。载体结构、端名规则、读写判定与存量迁移见 `skills/fxri-plan-to-task/references/conventions-spec.md`。
 
 ## 一、端清单
 

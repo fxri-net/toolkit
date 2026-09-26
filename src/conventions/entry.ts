@@ -4,7 +4,7 @@ import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { spawnSync } from "node:child_process"
 import { readTextFile } from "../read-text"
-import { ENTRY_MARKER, readEntryVersion } from "./format"
+import { ENTRY_MARKER, ENTRY_VERSION, readEntryVersion } from "./format"
 
 // 入口壳名：与目录名同名（Agent Skills 标准要求 frontmatter 的 name 与父目录一致），带 toolkit 前缀以区分来源
 export const ENTRY_SHELL_NAME = "toolkit-conventions"
@@ -19,11 +19,17 @@ export const FALLBACK_SKILL_DIR = ".agents/skills"
 export const AGENTS_POINTER_START = "<!-- toolkit-conventions-pointer:start -->"
 export const AGENTS_POINTER_END = "<!-- toolkit-conventions-pointer:end -->"
 
-// 入口壳现场：file 为仓库根相对路径，version 取自壳内标记（null 表无标记）
+// 入口壳现场：dir / file 均为仓库根相对路径（统一 / 分隔），version 取自壳内标记（null 表无标记）
 export interface EntryShell {
   dir: string
   file: string
   version: number | null
+}
+
+// 入口壳告警：file 为仓库根相对路径（供 check 定位跳转），message 内联全部落点路径
+export interface EntryShellAlert {
+  file: string
+  message: string
 }
 
 // 壳 description 触发面：写触发场景而非内容摘要，内容摘要会随载体演进而失真
@@ -53,15 +59,48 @@ export function resolveProjectSkillDirs(cwd: string): string[] {
 }
 
 // 列出各候选目录下已有的入口壳（供体检与告警复用，不写盘）
+// 只扫 PROJECT_SKILL_DIRS 五个内置候选目录：用户手工拷到未收录目录（如 .windsurf/skills）的壳体检看不到
 export function findEntryShells(cwd: string): EntryShell[] {
   const shells: EntryShell[] = []
   for (const rel of PROJECT_SKILL_DIRS) {
-    const dir = join(cwd, rel, ENTRY_SHELL_NAME)
-    const file = join(dir, SKILL_ENTRY)
-    if (!existsSync(file)) continue
-    shells.push({ dir, file, version: readEntryVersion(readTextFile(file)) })
+    const dir = `${rel}/${ENTRY_SHELL_NAME}`
+    const file = `${dir}/${SKILL_ENTRY}`
+    if (!existsSync(join(cwd, file))) continue
+    shells.push({ dir, file, version: readEntryVersion(readTextFile(join(cwd, file))) })
   }
   return shells
+}
+
+// 版本落后告警：多落点合并为一条并逐壳标注标记版本，避免同一问题按壳数重复刷屏
+// 供 check 与 status 共用同一构造器，防止两处文案各自漂移
+export function staleShellAlert(shells: EntryShell[]): EntryShellAlert | null {
+  const [first] = shells
+  if (!first) return null
+  if (shells.length === 1) {
+    return {
+      file: first.file,
+      message: `入口壳标记版本为 ${first.version ?? "无"}，与当前 toolkit 的 v${ENTRY_VERSION} 不一致：重跑 toolkit init 可补齐`,
+    }
+  }
+  const list = shells.map((s) => `${s.file}（标记 ${s.version === null ? "无" : `v${s.version}`}）`).join("、")
+  return {
+    file: first.file,
+    message: `入口壳标记版本落后于当前 toolkit 的 v${ENTRY_VERSION}，共 ${shells.length} 处：${list}；重跑 toolkit init 可一次性补齐`,
+  }
+}
+
+// gitignore 覆盖告警：同样多落点合并为一条并内联路径（单壳时也写路径，保证与 status 文案逐字一致）
+export function ignoredShellAlert(shells: EntryShell[]): EntryShellAlert | null {
+  const [first] = shells
+  if (!first) return null
+  if (shells.length === 1) {
+    return { file: first.file, message: `入口壳 ${first.file} 被 gitignore 覆盖：不会随 git 分发，请把该路径从忽略规则中排除` }
+  }
+  const list = shells.map((s) => s.file).join("、")
+  return {
+    file: first.file,
+    message: `入口壳被 gitignore 覆盖，共 ${shells.length} 处：${list}；不会随 git 分发，请把相应路径从忽略规则中排除`,
+  }
 }
 
 // 判路径是否被 git 忽略：git check-ignore 退出码 0 真 / 1 假 / 128 非仓库或出错，仅 0 视为被忽略
@@ -83,12 +122,13 @@ export function isToolkitSourceRepo(cwd: string): boolean {
 }
 
 // AGENTS.md 指针块：把入口壳位置写进仓库治理规则，使 agent 读 AGENTS.md 时即知道有规范入口
-export function buildAgentsPointer(skillDir = FALLBACK_SKILL_DIR): string {
+// 不写死具体落点：多 agent 混用团队各已存在候选目录各有一份，写死首个落点会误导只读其他目录的 agent
+export function buildAgentsPointer(): string {
   return [
     AGENTS_POINTER_START,
     "## 项目协作规范",
     "",
-    `本项目沉淀的协作规范以技能 \`${skillDir}/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}\` 为入口，条文以任务区 \`conventions/index.md\` 及各分册的单一事实源为准；需要查阅或遵循本项目规范时先读该入口。`,
+    `本项目沉淀的协作规范以项目级技能目录下的 \`${ENTRY_SHELL_NAME}/${SKILL_ENTRY}\` 为入口（由 \`toolkit init\` 生成，多 agent 混用团队在各已存在的技能目录各有一份），条文以任务区 \`conventions/index.md\` 及各分册的单一事实源为准；需要查阅或遵循本项目规范时先读该入口。`,
     AGENTS_POINTER_END,
   ].join("\n")
 }

@@ -124,7 +124,7 @@ describe("规范载体 v2 形态告警", () => {
 })
 
 describe("入口壳告警", () => {
-  it("壳标记版本落后或无标记时各告警一条，版本一致者不告警", () => {
+  it("多壳版本落后或无标记时合并为一条，逐壳内联仓库相对路径与标记版本", () => {
     const dir = makeTmp("tk-conv-shell-")
     const cwd = makeTmp("tk-conv-shell-cwd-")
     mkdirSync(join(dir, "active"), { recursive: true })
@@ -138,14 +138,34 @@ describe("入口壳告警", () => {
     writeShell(".claude/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n${ENTRY_MARKER}\n`)
 
     const warns = warnTexts(dir, cwd)
-    expect(warns.filter((m) => m.includes(`入口壳标记版本为 ${ENTRY_VERSION - 1}`))).toHaveLength(1)
-    expect(warns.filter((m) => m.includes("入口壳标记版本为 无"))).toHaveLength(1)
-    expect(warns.filter((m) => m.includes("入口壳标记版本"))).toHaveLength(2)
+    const versionWarns = warns.filter((m) => m.includes("入口壳标记版本落后"))
+    expect(versionWarns).toHaveLength(1)
+    expect(versionWarns[0]).toContain("共 2 处")
+    expect(versionWarns[0]).toContain(`.trae/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 v${ENTRY_VERSION - 1}）`)
+    expect(versionWarns[0]).toContain(`.cursor/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 无）`)
+    // 版本一致的壳不进告警
+    expect(versionWarns[0]).not.toContain(".claude/skills")
+    // 落点须为仓库根相对路径，不得把本机绝对路径写进告警
+    expect(warns.some((m) => m.includes(cwd.replace(/\\/g, "/")))).toBe(false)
     rmSync(dir, { recursive: true, force: true })
     rmSync(cwd, { recursive: true, force: true })
   })
 
-  it("壳路径被 gitignore 覆盖时告警", () => {
+  it("单壳版本不一致时保留逐壳文案", () => {
+    const dir = makeTmp("tk-conv-shellone-")
+    const cwd = makeTmp("tk-conv-shellone-cwd-")
+    mkdirSync(join(dir, "active"), { recursive: true })
+    const target = join(cwd, ".trae", "skills", ENTRY_SHELL_NAME)
+    mkdirSync(target, { recursive: true })
+    writeFileSync(join(target, SKILL_ENTRY), `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n<!-- toolkit-conventions-entry: v${ENTRY_VERSION - 1} -->\n`, "utf8")
+
+    const warns = warnTexts(dir, cwd)
+    expect(warns.filter((m) => m.includes(`入口壳标记版本为 ${ENTRY_VERSION - 1}`))).toHaveLength(1)
+    rmSync(dir, { recursive: true, force: true })
+    rmSync(cwd, { recursive: true, force: true })
+  })
+
+  it("壳路径被 gitignore 覆盖时告警并内联落点路径", () => {
     const dir = makeTmp("tk-conv-shellign-")
     const cwd = makeTmp("tk-conv-shellign-cwd-")
     mkdirSync(join(dir, "active"), { recursive: true })
@@ -156,7 +176,9 @@ describe("入口壳告警", () => {
     writeFileSync(join(target, SKILL_ENTRY), `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n${ENTRY_MARKER}\n`, "utf8")
 
     const warns = warnTexts(dir, cwd)
-    expect(warns.filter((m) => m.includes("被 gitignore 覆盖"))).toHaveLength(1)
+    const ignored = warns.filter((m) => m.includes("被 gitignore 覆盖"))
+    expect(ignored).toHaveLength(1)
+    expect(ignored[0]).toContain(`.trae/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}`)
     rmSync(dir, { recursive: true, force: true })
     rmSync(cwd, { recursive: true, force: true })
   })

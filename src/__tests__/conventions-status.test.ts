@@ -248,7 +248,7 @@ describe("入口层体检", () => {
     expect(report.items.filter((i) => i.scope === "入口层" && i.message.includes("本包源仓库不生成入口壳"))).toHaveLength(1)
   })
 
-  it("壳标记版本与当前 toolkit 不一致（含无标记）时逐壳告警", () => {
+  it("多壳标记版本与当前 toolkit 不一致（含无标记）时合并为一条并列出落点", () => {
     const root = makeDir("tk-status-shellver-")
     const cwd = makeDir("tk-status-shellver-cwd-")
     makeV2(root, cleanRows)
@@ -257,13 +257,15 @@ describe("入口层体检", () => {
 
     const report = conventionsStatus(root, cwd)
     expect(report.shells).toHaveLength(2)
-    expect(report.items.filter((i) => i.message.includes(`入口壳标记版本为 ${ENTRY_VERSION - 1}`))).toHaveLength(1)
-    expect(report.items.filter((i) => i.message.includes("入口壳标记版本为 无"))).toHaveLength(1)
-    expect(report.items.filter((i) => i.message.includes("入口壳标记版本"))).toHaveLength(2)
-    expect(report.summary).toContain("2 项待处理")
+    const versionItems = report.items.filter((i) => i.message.includes("入口壳标记版本落后"))
+    expect(versionItems).toHaveLength(1)
+    expect(versionItems[0].message).toContain("共 2 处")
+    expect(versionItems[0].message).toContain(`.trae/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 v${ENTRY_VERSION - 1}）`)
+    expect(versionItems[0].message).toContain(`.cursor/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 无）`)
+    expect(report.summary).toContain("1 项待处理")
   })
 
-  it("壳被 gitignore 覆盖时告警", () => {
+  it("壳被 gitignore 覆盖时告警并内联落点路径", () => {
     const root = makeDir("tk-status-shellign-")
     const cwd = makeDir("tk-status-shellign-cwd-")
     makeV2(root, cleanRows)
@@ -273,7 +275,9 @@ describe("入口层体检", () => {
 
     const report = conventionsStatus(root, cwd)
     expect(report.shells.filter((s) => s.ignored)).toHaveLength(1)
-    expect(report.items.filter((i) => i.message.includes("被 gitignore 覆盖"))).toHaveLength(1)
+    const ignoredItems = report.items.filter((i) => i.message.includes("被 gitignore 覆盖"))
+    expect(ignoredItems).toHaveLength(1)
+    expect(ignoredItems[0].message).toContain(`.trae/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}`)
     // 版本一致，此处只应有一条问题
     expect(report.warnings).toBe(1)
   })

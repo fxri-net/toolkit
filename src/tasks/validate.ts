@@ -16,7 +16,7 @@ import {
   LEGACY_FILE,
   readCarrier,
 } from "../conventions/format"
-import { findEntryShells, isGitIgnored } from "../conventions/entry"
+import { findEntryShells, ignoredShellAlert, isGitIgnored, staleShellAlert } from "../conventions/entry"
 import { ALL_STATUSES, DONE_STATUSES, FRONTMATTER_KEYS } from "./types"
 import { parseDepends } from "./depends"
 import { displayRel } from "./paths"
@@ -233,7 +233,7 @@ function strayTaskFiles(tasksDir: string): string[] {
 
 // 规范载体形态检查（软告警，不读内容）：只读首行标记与文件存在性，形态判据走 format.ts 的单一实现
 // 三态：v1（有 index.md、无 history.md、无标记）为合法存量不告警；形态异常（标记 / history.md / 首列 ID 三者不一致）告警
-// 入口层：壳标记版本落后、壳被 gitignore 覆盖各告警一条；无壳时不探测（避免无壳项目的进程开销）
+// 入口层：壳标记版本落后、壳被 gitignore 覆盖各合并为一条（多落点内联路径，不按壳重复）；无壳时不探测（避免无壳项目的进程开销）
 // 载体细则见 skills/fxri-plan-to-task/references/conventions-spec.md
 function validateConventions(tasksDir: string, cwd: string): CheckIssue[] {
   const issues: CheckIssue[] = []
@@ -260,17 +260,13 @@ function validateConventions(tasksDir: string, cwd: string): CheckIssue[] {
           : `规范载体存在 ${HISTORY_FILE} 但索引表首列仍非 ${ID_HEADER}（形态异常），请人工确认`,
     })
   }
-  for (const shell of findEntryShells(cwd)) {
-    if (shell.version !== ENTRY_VERSION) {
-      issues.push({
-        level: "warn",
-        file: shell.file,
-        message: `入口壳标记版本为 ${shell.version ?? "无"}，与当前 toolkit 的 v${ENTRY_VERSION} 不一致：重跑 toolkit init 可补齐`,
-      })
-    }
-    if (isGitIgnored(cwd, shell.file)) {
-      issues.push({ level: "warn", file: shell.file, message: "入口壳被 gitignore 覆盖：不会随 git 分发，请把该路径从忽略规则中排除" })
-    }
+  const shells = findEntryShells(cwd)
+  const alerts = [
+    staleShellAlert(shells.filter((s) => s.version !== ENTRY_VERSION)),
+    ignoredShellAlert(shells.filter((s) => isGitIgnored(cwd, s.file))),
+  ]
+  for (const alert of alerts) {
+    if (alert) issues.push({ level: "warn", file: alert.file, message: alert.message })
   }
   return issues
 }

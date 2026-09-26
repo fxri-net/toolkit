@@ -1,10 +1,12 @@
-// init 命令单测：骨架生成、重复执行幂等、.gitignore 追加与跳过
-import { describe, it, expect, afterAll } from "vitest"
+// init 命令单测：骨架生成、重复执行幂等、.gitignore 追加与跳过、技能入口层、全局技能安装态
+import { describe, it, expect, beforeEach, afterEach, afterAll } from "vitest"
 import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, mkdtempSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { initWorkspace } from "../init"
 import { todayCompact } from "../date"
+import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
+import { skillsStateFile } from "../skills"
 import { CARRIER_MARKER, ENTRY_MARKER, HISTORY_TITLE } from "../conventions/format"
 import { AGENTS_POINTER_END, AGENTS_POINTER_START, ENTRY_SHELL_NAME, FALLBACK_SKILL_DIR, SKILL_ENTRY } from "../conventions/entry"
 
@@ -144,7 +146,7 @@ describe("initWorkspace 技能入口层", () => {
     expect(report.products.some((p) => p.target === rel && p.action === "created")).toBe(true)
   })
 
-  it("多个候选目录并存时各落一份入口壳，指针块只指首个", () => {
+  it("多个候选目录并存时各落一份入口壳，指针块去路径化覆盖全部落点", () => {
     const { cwd } = track(runInDir("tk-init-shellmulti-"))
     const skillDirs = [".agents/skills", ".trae/skills"]
     for (const rel of skillDirs) mkdirSync(join(cwd, rel), { recursive: true })
@@ -156,7 +158,10 @@ describe("initWorkspace 技能入口层", () => {
       expect(existsSync(join(cwd, target))).toBe(true)
       expect(report.products.some((p) => p.target === target && p.action === "created")).toBe(true)
     }
-    expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(`\`${skillDirs[0]}/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}\``)
+    // 指针块只描述入口壳形态、不写死落点：写死首个会误导只读其他候选目录的 agent
+    const agents = readFileSync(join(cwd, "AGENTS.md"), "utf8")
+    expect(agents).toContain(`项目级技能目录下的 \`${ENTRY_SHELL_NAME}/${SKILL_ENTRY}\``)
+    for (const rel of skillDirs) expect(agents).not.toContain(`${rel}/${ENTRY_SHELL_NAME}`)
   })
 
   it("重复执行幂等：入口壳与指针块均保持不动", () => {
@@ -188,6 +193,40 @@ describe("initWorkspace 技能入口层", () => {
     expect(existsSync(join(cwd, FALLBACK_SKILL_DIR))).toBe(false)
     expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toBe("# AGENTS\n")
     expect(report.products.some((p) => p.action === "skipped" && p.target === "技能入口层")).toBe(true)
+  })
+})
+
+describe("initWorkspace 全局技能安装态", () => {
+  // home 注入独立临时目录：状态文件只读临时目录，不触碰真实用户全局技能目录
+  let home = ""
+  beforeEach(() => {
+    home = mkdtempSync(join(tmpdir(), "tk-init-home-"))
+    setHomeDirForTest(home)
+    resetToolkitConfigCache()
+  })
+  afterEach(() => {
+    setHomeDirForTest(undefined)
+    resetToolkitConfigCache()
+    rmSync(home, { recursive: true, force: true })
+  })
+
+  // 手工写状态文件：模拟上一次 skills install 的留痕
+  function writeState(links: string[]): void {
+    mkdirSync(join(home, ".agents"), { recursive: true })
+    const now = new Date().toISOString()
+    const state = { version: 1, updatedAt: now, targets: [{ dir: join(home, ".agents", "skills"), updatedAt: now, links, copies: [] }] }
+    writeFileSync(skillsStateFile(), `${JSON.stringify(state, null, 2)}\n`, "utf8")
+  }
+
+  it("未装全局技能时 skillsInstalled 为假，CLI 据此补一行 skills install 指引", () => {
+    const { cwd } = track(runInDir("tk-init-noskills-"))
+    expect(initWorkspace(".tasks", cwd).skillsInstalled).toBe(false)
+  })
+
+  it("状态文件登记了本包技能时 skillsInstalled 为真，CLI 不再重复提示", () => {
+    writeState(["fxri-plan-to-task"])
+    const { cwd } = track(runInDir("tk-init-hasskills-"))
+    expect(initWorkspace(".tasks", cwd).skillsInstalled).toBe(true)
   })
 })
 

@@ -17,7 +17,7 @@ import {
   type CarrierState,
   type ConventionsForm,
 } from "./format"
-import { findEntryShells, isGitIgnored, isToolkitSourceRepo } from "./entry"
+import { findEntryShells, ignoredShellAlert, isGitIgnored, isToolkitSourceRepo, staleShellAlert, type EntryShell } from "./entry"
 
 // 体检项：level 只分「待处理（warn）」与「提示（info）」，info 不计入问题数
 export interface ConventionsStatusItem {
@@ -133,26 +133,19 @@ function checkIndex(state: CarrierState, items: ConventionsStatusItem[]): void {
   }
 }
 
-// 入口层块：壳版本落后于当前 toolkit 告警；壳被 gitignore 覆盖告警（不分发等于只在本机生效）；无壳仅提示（本包源仓库除外，其本就不生成壳）
+// 入口层块：壳版本落后、壳被 gitignore 覆盖各合并为一条告警（多落点内联路径，不按壳重复）；无壳仅提示（本包源仓库除外，其本就不生成壳）
 function checkEntryLayer(cwd: string, items: ConventionsStatusItem[]): EntryShellState[] {
-  const shells: EntryShellState[] = []
-  for (const shell of findEntryShells(cwd)) {
+  const shells = findEntryShells(cwd)
+  const staleShells: EntryShell[] = []
+  const ignoredShells: EntryShell[] = []
+  const states = shells.map((shell) => {
     const ignored = isGitIgnored(cwd, shell.file)
-    shells.push({ file: shell.file, version: shell.version, ignored })
-    if (shell.version !== ENTRY_VERSION) {
-      items.push({
-        level: "warn",
-        scope: "入口层",
-        message: `入口壳标记版本为 ${shell.version ?? "无"}，与当前 toolkit 的 v${ENTRY_VERSION} 不一致：重跑 toolkit init 可补齐`,
-      })
-    }
-    if (ignored) {
-      items.push({
-        level: "warn",
-        scope: "入口层",
-        message: `入口壳 ${shell.file} 被 gitignore 覆盖：不会随 git 分发，请把该路径从忽略规则中排除`,
-      })
-    }
+    if (shell.version !== ENTRY_VERSION) staleShells.push(shell)
+    if (ignored) ignoredShells.push(shell)
+    return { file: shell.file, version: shell.version, ignored }
+  })
+  for (const alert of [staleShellAlert(staleShells), ignoredShellAlert(ignoredShells)]) {
+    if (alert) items.push({ level: "warn", scope: "入口层", message: alert.message })
   }
   if (shells.length === 0) {
     items.push(
@@ -161,7 +154,7 @@ function checkEntryLayer(cwd: string, items: ConventionsStatusItem[]): EntryShel
         : { level: "info", scope: "入口层", message: "未找到入口壳：执行 toolkit init 可生成（项目级技能目录）" },
     )
   }
-  return shells
+  return states
 }
 
 // 体检入口：未初始化时只回单条结论并提前返回，避免把未初始化误报成一堆异常项

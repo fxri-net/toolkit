@@ -9,6 +9,7 @@ import {
   AGENT_SKILL_DIRS,
   autoLinkSkills,
   findSkillVersionMismatches,
+  hasGlobalSkillsInstalled,
   installSkills,
   listPackageSkills,
   pnpmStableEntry,
@@ -453,6 +454,27 @@ describe("installSkills 安装", () => {
     expect(readSkillsState()?.targets.some((t) => t.dir === extra)).toBe(true)
     removeSkills()
     expect(existsSync(join(extra, report.skills[0]))).toBe(false)
+  })
+})
+
+describe("hasGlobalSkillsInstalled 安装态探测", () => {
+  it("无状态文件或状态文件损坏时视为未安装", () => {
+    expect(hasGlobalSkillsInstalled()).toBe(false)
+    mkdirSync(join(home, ".agents"), { recursive: true })
+    writeFileSync(skillsStateFile(), "{ 非法 json", "utf8")
+    expect(hasGlobalSkillsInstalled()).toBe(false)
+  })
+
+  it("已登记目标但链接与副本均为空时仍视为未安装", () => {
+    writeState([{ dir: primaryDir() }])
+    expect(hasGlobalSkillsInstalled()).toBe(false)
+  })
+
+  it("任一目标登记了链接或副本即为已安装", () => {
+    writeState([{ dir: primaryDir(), links: ["fxri-plan-to-task"] }])
+    expect(hasGlobalSkillsInstalled()).toBe(true)
+    writeState([{ dir: primaryDir(), copies: ["fxri-plan-to-task"] }])
+    expect(hasGlobalSkillsInstalled()).toBe(true)
   })
 })
 

@@ -479,6 +479,12 @@ export function readSkillsState(): SkillsState | null {
   }
 }
 
+// 是否已装有全局技能：只读状态文件（任一目标登记了本包链接或副本即视为已安装），不做全量现场校验、不起进程
+// 用途：init 的「下一步」据此前置判断是否提示 toolkit skills install，已装则不重复打扰
+export function hasGlobalSkillsInstalled(): boolean {
+  return (readSkillsState()?.targets ?? []).some((entry) => entry.links.length > 0 || entry.copies.length > 0)
+}
+
 // 写入状态文件：原子写入，避免半截 JSON
 function writeSkillsState(targets: StateEntry[]): void {
   const file = skillsStateFile()
