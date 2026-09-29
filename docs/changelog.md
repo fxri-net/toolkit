@@ -6,6 +6,19 @@ outline: [2, 2]
 
 > 完整变更历史以随包发布的 CHANGELOG.md 为准，本页由 `pnpm sync:changelog-doc` 从根 CHANGELOG.md 自动同步，请勿手改。
 
+## 1.11.3
+
+> 2026-09-29 发布
+
+### ⚡ 优化改进
+
+- 本仓库门禁类型检查此前读基础 `tsconfig.json`（其 `exclude` 排除 `**/__tests__` 等测试路径），测试文件长期落在类型检查盲区；现类型检查改走放行该排除项的 `tsconfig.typecheck.json`，并清零由此暴露的存量测试类型错误
+
+### 🐛 问题修复
+
+- `toolkit tasks check` 的本地配置忽略告警在 Windows 8.3 短名环境下丢失——`git rev-parse` 返回长名工作树根（如 `C:\Users\runneradmin\…`）而调用方路径为短名（如 `C:\Users\RUNNER~1\…`），工作树归属比对因路径形态不同失配被误归 `outside-repo`，「未忽略 / 已跟踪」告警静默吞掉；现两侧先取磁盘真实形态再比对
+- 本地层配置查找的 home 边界在其形态与目录链不一致时失效（home 为短名或软链形态），存在把 `~/.toolkitrc.local.json` 误当项目本地层命中的风险；现 home 与目录链两侧统一取真实形态比对
+
 ## 1.11.2
 
 > 2026-09-29 发布
