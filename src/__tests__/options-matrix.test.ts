@@ -289,6 +289,8 @@ describe("顶层命令与外部域", () => {
   })
 
   it("init：建出任务区骨架，且未安装全局技能时提示 toolkit skills install（N9）", async () => {
+    // cwd 指到沙箱：init 以 process.cwd() 为 .gitignore 写入落点，不隔离会把忽略片段写进本仓库根
+    vi.spyOn(process, "cwd").mockReturnValue(sandbox)
     const r = await runCli(["init", "--dir", initTasksDir])
     expect(r.code).toBe(0)
     expect(existsSync(join(initTasksDir, "active"))).toBe(true)

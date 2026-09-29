@@ -183,3 +183,21 @@ describe("入口壳告警", () => {
     rmSync(cwd, { recursive: true, force: true })
   })
 })
+
+describe("本地配置忽略告警", () => {
+  it("本地配置命中上层目录时按相对 cwd 路径展示", () => {
+    const repo = makeTmp("tk-conv-localcfg-")
+    const app = join(repo, "app")
+    const dir = join(app, ".tasks")
+    mkdirSync(join(dir, "active"), { recursive: true })
+    execSync("git init -q", { cwd: repo })
+    // 本地配置位于仓库根（上层目录）、未被忽略，应告警并展示相对 cwd 的 ../ 路径
+    writeFileSync(join(repo, ".toolkitrc.local.json"), "{}\n", "utf8")
+
+    const issues = validateTasks(dir, app).issues.filter((i) => i.level === "warn" && i.message.includes("本地配置文件未被 gitignore 覆盖"))
+    expect(issues).toHaveLength(1)
+    expect(issues[0].file).toBe("../.toolkitrc.local.json")
+    expect(issues[0].message).toContain("toolkit init")
+    rmSync(repo, { recursive: true, force: true })
+  })
+})

@@ -275,27 +275,28 @@ function strayTaskFiles(tasksDir: string): string[] {
 
 // 本地配置文件忽略体检：存在但未被忽略时软告警（warn 级，不改 error 阈值）
 // 定位与判定同源：路径取自 resolveLocalConfigPath(cwd)，与 config status 共用同一来源，避免两处各查一套导致漂移
+// 展示用相对 cwd 的路径（文件可能命中上层目录，故不能只取 basename），与 config status 的绝对路径形成互补
 // 非 git 仓库 / 位于仓库工作树之外均属「忽略判定不适用」，不发告警（无从处置的告警等于噪声）；已跟踪态单列（疑似历史 git add -f）
 function localConfigIssues(cwd: string): CheckIssue[] {
   const file = resolveLocalConfigPath(cwd)
   if (!file) return []
-  const name = basename(file)
+  const rel = displayRel(cwd, file)
   const ignore = inspectLocalConfigIgnore(file, cwd)
   if (ignore.state === "not-a-repo" || ignore.state === "outside-repo") return []
   if (ignore.state === "unavailable") {
-    return [{ level: "warn", file: name, message: `本地配置文件忽略判定不可用（${ignore.detail ?? "未知原因"}），请核实 git 环境` }]
+    return [{ level: "warn", file: rel, message: `本地配置文件忽略判定不可用（${ignore.detail ?? "未知原因"}），请核实 git 环境` }]
   }
   if (ignore.state === "tracked") {
     return [
       {
         level: "warn",
-        file: name,
-        message: `本地配置文件已被忽略规则覆盖但仍被 git 跟踪（疑似历史 git add -f）：执行 git rm --cached ${name} 后才会真正不入库`,
+        file: rel,
+        message: `本地配置文件已被忽略规则覆盖但仍被 git 跟踪（疑似历史 git add -f）：执行 git rm --cached ${rel} 后才会真正不入库`,
       },
     ]
   }
   if (ignore.state === "ignored") return []
-  return [{ level: "warn", file: name, message: "本地配置文件未被 gitignore 覆盖，可能随 git 提交泄露个人配置：重跑 toolkit init 可自动补写忽略行" }]
+  return [{ level: "warn", file: rel, message: "本地配置文件未被 gitignore 覆盖，可能随 git 提交泄露个人配置：重跑 toolkit init 可自动补写忽略行" }]
 }
 
 // 规范载体形态检查（软告警，不读内容）：只读首行标记与文件存在性，形态判据走 format.ts 的单一实现

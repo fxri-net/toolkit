@@ -145,7 +145,7 @@ toolkit init --dir ../my-tasks-repo   # 任务区放项目外（独立仓库管�
 - 创建 `<任务目录>/active/{YYYYMM}/`、`<任务目录>/archive/` 目录骨架（默认 `.tasks`，优先级与 `tasks` 同口径：CLI 参数 > 配置 `tasks.dir` > 默认 `.tasks`）
 - 创建规范载体骨架 `<任务目录>/conventions/index.md`（v2 三节：端清单 / 索引 / 用法说明）与 `<任务目录>/conventions/history.md`（演进记录）；已存在 `index.md` 时保持不动（v1 形态另给升级提示）；存在待迁移的旧单文件 `<任务目录>/conventions.md` 时不建空骨架
 - 在**已存在的**项目级技能目录各生成一份规范入口壳（如 `.agents/skills/toolkit-conventions/SKILL.md`，目录名与 frontmatter `name` 同名；只作入口、不承载条文）——多 agent 混用团队多个候选目录并存时每处各写一份、互不覆盖，一个都不存在时回落 `.agents/skills/`，不为未安装的 agent 凭空建目录；壳已存在时按标记版本分流——标记不旧于当前版本保持不变、落后或无标记就地更新为当前版本（报告为「更新」）；并在**已存在的** `AGENTS.md` 内幂等追加规范入口指针块（`AGENTS.md` 不存在时不新建，仅在报告中提示规范仍可经全局技能触达）
-- 向 `.gitignore` 追加忽略片段（含 `.archive.lock` 与 `.toolkitrc.local.json`；**逐行幂等**——已有该行则跳过，手删单行后重跑只补该行）；片段已被既有规则覆盖则跳过追加（白名单：精确行 `/.toolkitrc.local.json`——带前导 `/` 与不带两种写法——及通配 `*.local.json`、`.toolkitrc.*`；白名单外一律追加，宁冗余不误跳）；只读本仓库 `.gitignore`，**不读 `.git/info/exclude`**（后者场景由 `tasks check` / `config status` 的 `git check-ignore` 兜底）
+- 向 `.gitignore` 追加忽略片段（含 `.archive.lock` 与 `.toolkitrc.local.json`，片段头另附一行出口指引注释：不想改团队 `.gitignore` 者可自行把忽略行写进 `.git/info/exclude`）；**逐行幂等**——「是否已覆盖」用 `git check-ignore` **真实判定**，已有该行则跳过、手删单行后重跑只补该行（判定涵盖本仓库与上层 `.gitignore`、`.git/info/exclude` 等全部来源，能识破 `*.lock`、`*.local.json` 等用户手写的通配写法）；非 git 仓库或 git 不可用时退回等价写法白名单（精确行 `/.toolkitrc.local.json`——带前导 `/` 与不带两种写法——及通配 `*.local.json`、`.toolkitrc.*`；白名单外一律追加，宁冗余不误跳）
 - 输出后续步骤与文档站链接；检测到尚未安装全局技能时，后续步骤中补一行 `toolkit skills install` 指引（规范触达第一层，不依赖项目内文件；已安装则不重复提示）
 
 ⚠️ 入口壳写入项目级技能目录（`.agents/skills/`、`.trae/skills/` 等）属**侵入性行为**，`init` 在报告中逐项列出实际写入的路径与动作（存在几个候选目录就各写一份）；落点被 `.gitignore` 覆盖时报告给出否定规则提示（**不代改 `.gitignore`**）。入口壳可安全删除，重跑 `init` 会补回；标记落后于当前版本时重跑 `init` 会就地更新为当前版本。

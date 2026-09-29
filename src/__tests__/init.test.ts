@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, afterEach, afterAll } from "vitest"
 import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, mkdtempSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { execSync } from "node:child_process"
 import { initWorkspace } from "../init"
 import { todayCompact } from "../date"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
@@ -352,6 +353,57 @@ describe("initWorkspace .gitignore 处理", () => {
     const content = gitignore()
     expect(content).toContain(".archive.lock")
     expect(content).not.toContain(".toolkitrc.local.json")
+  })
+
+  it("新建片段含 .git/info/exclude 出口指引，且认领注释行唯一", () => {
+    const { cwd, gitignore } = track(runInDir("tk-init-hint-"))
+    initWorkspace(".tasks", cwd)
+    const content = gitignore()
+    // 出口指引为独立注释行，且不以 marker 开头（避免被误认领为第二条认领行）
+    expect(content).toContain(".git/info/exclude")
+    expect(content.match(/# @fxri\/toolkit/g)).toHaveLength(1)
+  })
+
+  it("片段头缺出口指引时重跑就地补上，且不重复追加忽略行", () => {
+    const { cwd, gitignore } = track(runInDir("tk-init-hint-add-"))
+    // 旧式片段：有认领注释与两行忽略项，但缺出口指引
+    writeFileSync(
+      join(cwd, ".gitignore"),
+      "node_modules\n# @fxri/toolkit 忽略片段（运行时文件与个人本地配置，不入库）\n.archive.lock\n.toolkitrc.local.json\n",
+      "utf8",
+    )
+    const report = initWorkspace(".tasks", cwd)
+    const content = gitignore()
+    expect(content).toContain(".git/info/exclude")
+    expect(content.match(/# @fxri\/toolkit/g)).toHaveLength(1)
+    expect(content.match(/\.archive\.lock/g)).toHaveLength(1)
+    expect(content.match(/\.toolkitrc\.local\.json/g)).toHaveLength(1)
+    expect(report.products.find((p) => p.target === ".gitignore")?.action).toBe("updated")
+  })
+
+  it("git 仓库中通配写法已真实覆盖时整文件保持不动", () => {
+    const { cwd, gitignore } = track(runInDir("tk-init-repo-covered-"))
+    execSync("git init -q", { cwd, stdio: "ignore" })
+    // *.lock 命中 .archive.lock、*.local.json 命中 .toolkitrc.local.json，均由 git 真实判定
+    writeFileSync(join(cwd, ".gitignore"), "node_modules\n*.lock\n*.local.json\n", "utf8")
+    const report = initWorkspace(".tasks", cwd)
+    const content = gitignore()
+    expect(content).toBe("node_modules\n*.lock\n*.local.json\n")
+    expect(content).not.toContain(".archive.lock")
+    expect(content).not.toContain("# @fxri/toolkit")
+    expect(report.products.find((p) => p.target === ".gitignore")?.action).toBe("kept")
+  })
+
+  it("git 仓库中部分覆盖时只补缺失行", () => {
+    const { cwd, gitignore } = track(runInDir("tk-init-repo-partial-"))
+    execSync("git init -q", { cwd, stdio: "ignore" })
+    // *.lock 已覆盖 .archive.lock，本地配置行缺失，只应补后者
+    writeFileSync(join(cwd, ".gitignore"), "node_modules\n*.lock\n", "utf8")
+    initWorkspace(".tasks", cwd)
+    const content = gitignore()
+    expect(content).not.toContain(".archive.lock")
+    expect(content).toContain(".toolkitrc.local.json")
+    expect(content.match(/\.toolkitrc\.local\.json/g)).toHaveLength(1)
   })
 })
 

@@ -25,7 +25,7 @@ import {
   isToolkitSourceRepo,
   resolveProjectSkillDirs,
 } from "./conventions/entry"
-import { gitIgnoredSet } from "./git-ignore"
+import { checkIgnore, gitIgnoredSet, probeRepo } from "./git-ignore"
 import { todayCompact } from "./date"
 import { hasGlobalSkillsInstalled } from "./skills"
 
@@ -40,7 +40,9 @@ export const INIT_LINKS = {
 const GITIGNORE_MARKER = "# @fxri/toolkit"
 // 片段标题：概括该片段守护的忽略项（运行时文件与个人本地配置均不入库）
 const GITIGNORE_COMMENT = `${GITIGNORE_MARKER} 忽略片段（运行时文件与个人本地配置，不入库）`
-// 片段行清单与各行等价写法：任一等价写法命中即视为该行已覆盖，不再追加，尊重用户手写习惯
+// 片段出口指引：另起一行注释（不以 marker 开头，避免被误认领为第二条认领行），告知不想改团队 .gitignore 者的退路
+const GITIGNORE_EXIT_HINT = "# 不想改团队 .gitignore 者，可把这些忽略行写进 .git/info/exclude（本地排除、不进版本控制）"
+// 片段行清单与各行等价写法：git 可用时按真实忽略判定、否则按等价写法命中即视为该行已覆盖，不再追加，尊重用户手写习惯
 const GITIGNORE_ROWS: ReadonlyArray<{ row: string; patterns: RegExp[] }> = [
   { row: ".archive.lock", patterns: [/^\/?\.archive\.lock$/] },
   {
@@ -146,13 +148,26 @@ function scaffoldConventions(root: string, display: string): InitProduct[] {
   ]
 }
 
+// 本工具认领的片段行：认领注释行 + 出口指引行，重跑时就地校正、不留陈迹
+function isOwnedLine(line: string): boolean {
+  return line.startsWith(GITIGNORE_MARKER) || line === GITIGNORE_EXIT_HINT
+}
+
+// 判某忽略行是否已被覆盖：优先用 git check-ignore 真实判定（含 .git/info/exclude、上层 .gitignore 等全部来源，能识破 *.lock 等通配）
+// 非 git 仓库或判定不可用时退回等价写法白名单；两条路径都让用户手写的等价写法原样保留、不再追加
+function isRowCovered(item: { row: string; patterns: RegExp[] }, cwd: string, lines: string[], inRepo: boolean): boolean {
+  if (inRepo && checkIgnore(join(cwd, item.row)).state === "ignored") return true
+  return lines.some((line) => item.patterns.some((re) => re.test(line.trim())))
+}
+
 // 向 .gitignore 追加忽略片段：逐行判定覆盖情况、只补缺失行，重复执行不改动，用户手写的等价忽略写法原样保留
 export function appendGitignore(cwd: string): InitProduct[] {
   const file = join(cwd, ".gitignore")
   const cover = `覆盖 ${GITIGNORE_ROWS.map((item) => item.row).join(" / ")}`
+  const head = [GITIGNORE_COMMENT, GITIGNORE_EXIT_HINT]
   if (!existsSync(file)) {
     // 无 .gitignore：直接创建并写入完整片段
-    writeFileAtomic(file, `${GITIGNORE_COMMENT}\n${GITIGNORE_ROWS.map((item) => item.row).join("\n")}\n`)
+    writeFileAtomic(file, `${head.join("\n")}\n${GITIGNORE_ROWS.map((item) => item.row).join("\n")}\n`)
     return [{ target: ".gitignore", action: "created", detail: `已创建并写入 ${GITIGNORE_MARKER} 忽略片段（${cover}）` }]
   }
   const raw = readFileSync(file, "utf8")
@@ -160,20 +175,21 @@ export function appendGitignore(cwd: string): InitProduct[] {
   const eol = raw.includes("\r\n") ? "\r\n" : "\n"
   const lines = raw.replace(/\r\n/g, "\n").split("\n")
   const markerAt = lines.findIndex((line) => line.startsWith(GITIGNORE_MARKER))
-  const missing = GITIGNORE_ROWS.filter((item) => !lines.some((line) => item.patterns.some((re) => re.test(line.trim()))))
+  const inRepo = probeRepo(cwd).kind === "repo"
+  const missing = GITIGNORE_ROWS.filter((item) => !isRowCovered(item, cwd, lines, inRepo))
   if (missing.length === 0) {
-    // 各行均已覆盖：注释文案陈旧时就地改写，否则整文件保持不动
-    if (markerAt === -1 || lines[markerAt] === GITIGNORE_COMMENT) {
+    // 各行均已覆盖：无本工具认领片段则整文件保持不动（尊重用户手写）；片段头陈旧或缺出口指引时就地校正
+    if (markerAt === -1 || (lines[markerAt] === GITIGNORE_COMMENT && lines[markerAt + 1] === GITIGNORE_EXIT_HINT)) {
       return [{ target: ".gitignore", action: "kept", detail: `已含 ${GITIGNORE_MARKER} 忽略片段（${cover}）` }]
     }
-    lines[markerAt] = GITIGNORE_COMMENT
-    writeFileAtomic(file, lines.join(eol))
-    return [{ target: ".gitignore", action: "updated", detail: `已就地把 ${GITIGNORE_MARKER} 注释更新为当前文案（${cover}）` }]
+    const tail = lines.slice(markerAt + 1).filter((line) => !isOwnedLine(line))
+    writeFileAtomic(file, [...lines.slice(0, markerAt), ...head, ...tail].join(eol))
+    return [{ target: ".gitignore", action: "updated", detail: `已就地把 ${GITIGNORE_MARKER} 片段头更新为当前文案（${cover}）` }]
   }
-  // 摘除本工具认领的旧注释行后重建片段，避免旧文案残留成第二条注释
-  const body = lines.filter((line) => !line.startsWith(GITIGNORE_MARKER))
+  // 摘除本工具认领的旧片段行后重建，避免旧文案 / 旧指引残留
+  const body = lines.filter((line) => !isOwnedLine(line))
   while (body.length > 0 && body[body.length - 1] === "") body.pop()
-  const block = [GITIGNORE_COMMENT, ...missing.map((item) => item.row)]
+  const block = [...head, ...missing.map((item) => item.row)]
   const next = body.length > 0 ? `${body.join(eol)}${eol}${eol}${block.join(eol)}${eol}` : `${block.join(eol)}${eol}`
   writeFileAtomic(file, next)
   return [{ target: ".gitignore", action: "appended", detail: `已追加 ${GITIGNORE_MARKER} 忽略片段（${cover}）` }]

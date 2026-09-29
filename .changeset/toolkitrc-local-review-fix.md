@@ -10,3 +10,6 @@
 - 修改：`toolkit config status` 新增两条 info 级提示——检测到 home 目录下的 `.toolkitrc.local.json`（按设计不参与本地层向上查找）时提示改放项目目录、出现未知配置段名（疑似拼写错误）时提示本版本未读取；info 不计入 warnings、不影响 CI
 - 修改：`toolkit config status` 兜底异常不再置非 0 退出码，与「只读体检、退出码恒 0」的既有契约对齐
 - 文档：`toolkit config status` 补充报告字段说明——`env[]` 命中口径为「已设置且非空，不代表开启」（`FX_REDACT=0` / `FX_CHECK_WARN=0` 会被列出但实际关闭该能力，`FX_NO_UPDATE_CHECK` 设真值反而关闭更新检查）；`items[].scope` 取值枚举为 `配置` / `本地层`；并明确报告仅 `summary` / `items[]` / `warnings` 为稳定契约
+- 修改：`toolkit init` 写入的 `.gitignore` 片段补一行出口指引注释——告知不想改团队 `.gitignore` 者可将忽略行写进 `.git/info/exclude`；重跑 `init` 时该指引随片段头一并就地校正、不重复追加
+- 修改：`toolkit init` 判定 `.gitignore` 各行是否已覆盖改用 `git check-ignore` 真实判定（能识破 `*.lock`、`*.local.json` 等用户手写的通配写法，含 `.git/info/exclude` 与上层 `.gitignore` 等全部来源）；非 git 仓库或 git 不可用时退回等价写法白名单，用户手写写法仍原样保留
+- 修改：`toolkit tasks check` 的本地配置文件忽略告警改为展示相对 cwd 的路径——本地配置命中上层目录时显示 `../.toolkitrc.local.json`，不再只取文件名，与 `toolkit config status` 的绝对路径形成互补
