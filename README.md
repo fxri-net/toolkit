@@ -43,7 +43,7 @@ pnpm exec toolkit tasks
 | Node API | 把上述能力嵌进脚本或平台 | [API 参考](./docs/api.md) |
 | 隐私脱敏 | 落盘前自动掩码邮箱、手机号、密钥等 | [配置参考](./docs/config.md) |
 | AI 技能包（skills） | 不装本工具也能让 AI 按同一套规范干活；装了可一键分发技能 | [完整攻略](./docs/guide.md#ai-技能包-skills) · [FAQ](./docs/faq.md#工具和-skills-都得装吗) |
-| 配置文件 | 按项目定制脱敏、告警、导入列映射、语言表 | [配置参考](./docs/config.md) |
+| 配置文件 | 三层（全局 / 项目 / 本地）定制脱敏、告警、导入列映射、语言表；`toolkit config status` 只读查看生效情况与来源 | [CLI 参考](./docs/cli.md#config-1-11-2-新增) · [配置参考](./docs/config.md) |
 
 ## 📚 文档
 
@@ -54,7 +54,7 @@ pnpm exec toolkit tasks
 | [完整攻略](./docs/guide.md) | 日常使用：工作流、Git 纳管、项目级激活、多语言 CHANGELOG |
 | [CLI 参考](./docs/cli.md) | 查命令、参数、默认值、退出码 |
 | [API 参考](./docs/api.md) | 作为库引入 Node 项目 |
-| [配置参考](./docs/config.md) | 查 `.toolkitrc.json` 字段 |
+| [配置参考](./docs/config.md) | 查配置文件字段（全局 / 项目 / 本地三层） |
 | [更新日志](./docs/changelog.md) | 查各版本变更内容 |
 | [FAQ](./docs/faq.md) | 遇到问题先来这里找 |
 | [推荐 AI 全局规则](./docs/ai-rules.md) | 想让 AI 助手按本工具的最佳实践协作 |

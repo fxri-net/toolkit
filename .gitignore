@@ -8,5 +8,7 @@ coverage
 docs/.vitepress/dist
 docs/.vitepress/cache
 *.tgz
-# @fxri/toolkit 归档排他锁（运行时文件，不入库）
 .archive.lock
+
+# @fxri/toolkit 忽略片段（运行时文件与个人本地配置，不入库）
+.toolkitrc.local.json

@@ -2,7 +2,6 @@
 // 落点取项目级技能目录（随 git 提交、团队共享），与 src/skills.ts 的全局软链分发是两套互不干扰的面
 import { existsSync } from "node:fs"
 import { join } from "node:path"
-import { spawnSync } from "node:child_process"
 import { readTextFile } from "../read-text"
 import { ENTRY_MARKER, ENTRY_VERSION, readEntryVersion } from "./format"
 
@@ -103,20 +102,6 @@ export function ignoredShellAlert(shells: EntryShell[]): EntryShellAlert | null 
     file: first.file,
     message: `入口壳被 gitignore 覆盖，共 ${shells.length} 处：${list}；不会随 git 分发，请把相应路径从忽略规则中排除`,
   }
-}
-
-// 批量判路径是否被 git 忽略：一次 git check-ignore --stdin -z 判定全部落点，免去逐壳各起一个子进程
-// 返回被忽略的路径集合（入参原样回填，调用方据此 O(1) 查询）；非 git 仓库或执行出错按「均未忽略」处理
-export function gitIgnoredSet(cwd: string, rels: string[]): Set<string> {
-  const ignored = new Set<string>()
-  if (rels.length === 0) return ignored
-  const res = spawnSync("git", ["check-ignore", "--stdin", "-z"], { cwd, input: rels.map((r) => `${r}\0`).join(""), encoding: "utf8" })
-  // exit 0 有命中 / 1 无命中，均属正常；其余（128 非仓库等）视为未忽略
-  if (res.status !== 0 && res.status !== 1) return ignored
-  for (const line of (res.stdout ?? "").split("\0")) {
-    if (line) ignored.add(line)
-  }
-  return ignored
 }
 
 // 判是否为本包源仓库：源仓库靠 fxri-* 技能自举，不生成自己的入口壳

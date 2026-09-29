@@ -17,7 +17,8 @@ import {
   type CarrierState,
   type ConventionsForm,
 } from "./format"
-import { findEntryShells, gitIgnoredSet, ignoredShellAlert, isToolkitSourceRepo, mismatchedShellAlert, type EntryShell } from "./entry"
+import { findEntryShells, ignoredShellAlert, isToolkitSourceRepo, mismatchedShellAlert, type EntryShell } from "./entry"
+import { gitIgnoredSet } from "../git-ignore"
 
 // 体检项：level 只分「待处理（warn）」与「提示（info）」，info 不计入问题数
 export interface ConventionsStatusItem {

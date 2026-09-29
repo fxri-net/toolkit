@@ -17,6 +17,7 @@ toolkit <command> [options]
   toolkit init          初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐 .gitignore 片段）
   toolkit skills        AI 技能包分发：安装 / 状态 / 卸载 / 路径（包内 skills/ 为唯一真源）
   toolkit conventions   项目协作规范载体：结构升级（v1 → v2）与只读体检（形态 / 索引 / 入口层）
+  toolkit config        配置分层：只读查看三层配置文件（全局层 / 项目层 / 本地层）的生效情况与来源
   toolkit tasks         任务管理
   toolkit changelog     多语言 CHANGELOG（封装 changesets）
   toolkit help          显示帮助
@@ -29,7 +30,7 @@ toolkit <command> [options]
 | `-h, --help` | 显示帮助（全局或子命令） |
 | `-v, --version` | 显示版本号 |
 
-`--redact` / `--warn` 为**域级开关**：仅 `tasks` 与 `changelog` 两个域支持（`init` / `skills` / `conventions` 域不提供），清单见下方各域的选项表。
+`--redact` / `--warn` 为**域级开关**：仅 `tasks` 与 `changelog` 两个域支持（`init` / `skills` / `conventions` / `config` 域不提供），清单见下方各域的选项表。
 
 开关为**双向三档**，优先级从高到低：CLI 参数 > 环境变量 > 配置文件 > 默认开启。对应环境变量：`FX_REDACT`、`FX_CHECK_WARN`（认 `0/1`、`true/false`、`on/off`、`yes/no`）；配置项见[配置参考](./config)。
 
@@ -144,7 +145,7 @@ toolkit init --dir ../my-tasks-repo   # 任务区放项目外（独立仓库管�
 - 创建 `<任务目录>/active/{YYYYMM}/`、`<任务目录>/archive/` 目录骨架（默认 `.tasks`，优先级与 `tasks` 同口径：CLI 参数 > 配置 `tasks.dir` > 默认 `.tasks`）
 - 创建规范载体骨架 `<任务目录>/conventions/index.md`（v2 三节：端清单 / 索引 / 用法说明）与 `<任务目录>/conventions/history.md`（演进记录）；已存在 `index.md` 时保持不动（v1 形态另给升级提示）；存在待迁移的旧单文件 `<任务目录>/conventions.md` 时不建空骨架
 - 在**已存在的**项目级技能目录各生成一份规范入口壳（如 `.agents/skills/toolkit-conventions/SKILL.md`，目录名与 frontmatter `name` 同名；只作入口、不承载条文）——多 agent 混用团队多个候选目录并存时每处各写一份、互不覆盖，一个都不存在时回落 `.agents/skills/`，不为未安装的 agent 凭空建目录；壳已存在时按标记版本分流——标记不旧于当前版本保持不变、落后或无标记就地更新为当前版本（报告为「更新」）；并在**已存在的** `AGENTS.md` 内幂等追加规范入口指针块（`AGENTS.md` 不存在时不新建，仅在报告中提示规范仍可经全局技能触达）
-- 向 `.gitignore` 追加忽略片段（含 `.archive.lock`；已有则跳过）
+- 向 `.gitignore` 追加忽略片段（含 `.archive.lock` 与 `.toolkitrc.local.json`；**逐行幂等**——已有该行则跳过，手删单行后重跑只补该行）；片段已被既有规则覆盖则跳过追加（白名单：精确行 `/.toolkitrc.local.json`——带前导 `/` 与不带两种写法——及通配 `*.local.json`、`.toolkitrc.*`；白名单外一律追加，宁冗余不误跳）；只读本仓库 `.gitignore`，**不读 `.git/info/exclude`**（后者场景由 `tasks check` / `config status` 的 `git check-ignore` 兜底）
 - 输出后续步骤与文档站链接；检测到尚未安装全局技能时，后续步骤中补一行 `toolkit skills install` 指引（规范触达第一层，不依赖项目内文件；已安装则不重复提示）
 
 ⚠️ 入口壳写入项目级技能目录（`.agents/skills/`、`.trae/skills/` 等）属**侵入性行为**，`init` 在报告中逐项列出实际写入的路径与动作（存在几个候选目录就各写一份）；落点被 `.gitignore` 覆盖时报告给出否定规则提示（**不代改 `.gitignore`**）。入口壳可安全删除，重跑 `init` 会补回；标记落后于当前版本时重跑 `init` 会就地更新为当前版本。
@@ -217,6 +218,39 @@ toolkit conventions status --format json  # JSON 输出：形态、条目数、�
 
 载体结构（v1 / v2 形态、稳定 ID、`history.md`）与读写细则见[完整攻略 · conventions/：规范沉淀地](./guide#conventions-规范沉淀地)。
 
+## config（1.11.2 新增）
+
+```bash
+toolkit config status                    # 只读体检：三层命中 / 来源层 / 环境变量层（退出码恒 0）
+toolkit config status --format json      # JSON 输出：层级明细、展示键来源、环境变量层、待处理项
+toolkit config status --cwd <path>       # 指定向上查找的起始目录（缺省当前工作目录）
+```
+
+裸 `toolkit config` 打印本域帮助（列出 1 个子命令）。
+
+| 子命令 | 行为 |
+| --- | --- |
+| `status` | 只读体检、只报不改（无 `--fix`）：依次输出**一句话结论** + **三层命中现场**（每层给出命中文件绝对路径；未命中为「无」。本地层另标 git 忽略态：已忽略 / 未忽略 / 已跟踪（需 `git rm --cached`）/ 不适用（非 git 仓库）/ 不适用（位于仓库工作树之外）/ 忽略判定不可用）+ **展示键来源层**（`tasks.dir` / `redact.enabled` / `updateCheck.enabled` / `check.warnings` 四键按**叶子键**标注来源层，三层均未显式写出即「默认值」）+ **环境变量层**（`FX_REDACT` / `FX_NO_UPDATE_CHECK` / `FX_CHECK_WARN` 命中的键名，只列来源不列值）+ **能力旁路**（`CI` 等非配置键覆盖，单列不混入覆盖列）+ **其余已配置段**（除展示键外仍有内容的段名，按「全局层 / 项目层 / 本地层」分组、只列段名不列值）+ **待处理项**（`⚠️` 记 warn、`·` 记 info）。**一律不打印配置值**（`redact` 段含个人脱敏规则、`skills` 段含本机路径，落到终端 / CI 日志即外泄）。体检不阻断、**退出码恒 0**（仅 `--format` 非法与 `--cwd` 非法时按参数错误报错退出；配置文件非法 JSON / 顶层非对象经降级后退出码仍为 0，但计入 `warnings` 计数） |
+
+| 选项 | 说明 |
+| --- | --- |
+| `--format <format>` | `--format json` 输出机器可读报告到 stdout（诊断走 stderr）；非法值按参数错误报错退出 |
+| `--cwd <path>` | 向上查找的起始目录（缺省当前工作目录）；相对路径先 resolve 为绝对；指向不存在 / 非目录的路径时报错退出、不回落当前目录 |
+
+报告（`--format json`）顶层为 `summary`（一句话结论）+ `levels[]`（三层明细：`file` / `hit` / `ignored` / 段名）+ `displayKeys[]`（展示键 → 来源层）+ `env[]` / `bypass[]`（环境变量命中，只列键名）+ `items[]`（`level` / `scope` / `message`）+ `warnings`（计数）；`summary` / `items[]` / `warnings` 与 `conventions status` 公共字段同形，为稳定契约、只增不减。
+
+⚠️ **`summary` 为固定三态文案**（层名一律用「全局层 / 项目层 / 本地层」三词，逐字一致）：命中 ≥1 层输出 `共命中 N 层：<层名、顿号分隔>`；三层全空输出 `三层均无配置文件，全部取默认值`；非 git 仓库时在主句后附 `；未检测到 git 仓库，忽略判定不适用`（旁注，不替换主句）。
+
+⚠️ **`items[].level` 只有 `warn` 与 `info` 两值**（对齐 `conventions status`，无 error 级）；`info` 不计入 `warnings` 计数，仅 `warn` 计入——CI 可据 `warnings` 拦错。
+
+⚠️ **文本模式折叠 home**：层级路径把 home 前缀显示为 `~/…`（避免共享日志 / 截图泄露本机目录结构）；`--format json` 保留绝对路径供脚本定位。
+
+⚠️ **自指关系与取舍**：`tasks check` 的「本地配置文件未入库」软告警受 `check.warnings` 支配，而该开关可被本地层（那个未入库的文件本身）设成 `false` → 告警被同一个文件静音、团队无从察觉。故**不为该告警开例外**，改由 `config status` 的对应提示兜底——它**不受任何配置开关影响**（除 `--format` 非法外恒输出），`level` 为 `warn`、计入 `warnings` 计数。
+
+⚠️ **与 `conventions status` 的参数差异**：`conventions status` 按**任务目录**定位（提供 `--dir`），`config status` 面向**配置文件向上查找**（**不提供 `--dir`**，改用 `--cwd` 指定查找起点）；两者参数不可互换。
+
+⚠️ **与 `tasks check` 的起点差异**：`tasks check` 恒以**运行 cwd** 判定本地配置文件的忽略状态、**无 `--cwd`**；`config status` 可用 `--cwd` 指定起点。两者「本地配置文件是否已忽略」的判据函数共用、态分类一致，仅起点参数能力不同，不可互相替代。
+
 ## 退出码
 
 | 退出码 | 含义 |
@@ -231,5 +265,5 @@ toolkit conventions status --format json  # JSON 输出：形态、条目数、�
 ## 相关页面
 
 - [完整攻略](./guide)：工作流与任务文件规范
-- [配置参考](./config)：`.toolkitrc.json` 全部字段
+- [配置参考](./config)：三层配置文件全部字段
 - [API 参考](./api)：以上能力的库形态

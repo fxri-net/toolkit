@@ -267,13 +267,39 @@ describe("initWorkspace .gitignore 处理", () => {
     expect(content.startsWith("node_modules")).toBe(true)
     expect(content).toContain("# @fxri/toolkit")
     expect(content).toContain(".archive.lock")
+    expect(content).toContain(".toolkitrc.local.json")
   })
 
-  it("片段已存在（CRLF 风格）时跳过追加", () => {
-    const { cwd, gitignore } = track(runInDir("tk-init-skip-"))
+  it("片段部分已存在（CRLF 风格）时只补缺失行并保留原内容", () => {
+    const { cwd, gitignore } = track(runInDir("tk-init-partial-"))
     writeFileSync(join(cwd, ".gitignore"), "node_modules\r\n.archive.lock\r\n", "utf8")
     initWorkspace(".tasks", cwd)
-    expect(gitignore()).toBe("node_modules\r\n.archive.lock\r\n")
+    const content = gitignore()
+    expect(content.startsWith("node_modules\r\n.archive.lock\r\n")).toBe(true)
+    expect(content).toContain(".toolkitrc.local.json")
+    // 已覆盖的行不重复追加
+    expect(content.match(/\.archive\.lock/g)).toHaveLength(1)
+  })
+
+  it("用户已手写等价忽略写法时视为已覆盖，不再追加对应行", () => {
+    const { cwd, gitignore } = track(runInDir("tk-init-equiv-"))
+    writeFileSync(join(cwd, ".gitignore"), "node_modules\n*.local.json\n", "utf8")
+    initWorkspace(".tasks", cwd)
+    const content = gitignore()
+    // *.local.json 等价于 .toolkitrc.local.json，只补排他锁
+    expect(content).not.toContain(".toolkitrc.local.json")
+    expect(content).toContain(".archive.lock")
+  })
+
+  it("旧注释文案陈旧时就地改写并补齐缺失行，不留双注释", () => {
+    const { cwd, gitignore } = track(runInDir("tk-init-stale-"))
+    writeFileSync(join(cwd, ".gitignore"), "node_modules\n# @fxri/toolkit 归档排他锁（运行时文件，不入库）\n.archive.lock\n", "utf8")
+    initWorkspace(".tasks", cwd)
+    const content = gitignore()
+    expect(content.match(/# @fxri\/toolkit/g)).toHaveLength(1)
+    expect(content).toContain("忽略片段")
+    expect(content).toContain(".toolkitrc.local.json")
+    expect(content.match(/\.archive\.lock/g)).toHaveLength(1)
   })
 
   it(".tasks 已存在时保留现有内容不覆盖", () => {
@@ -282,6 +308,50 @@ describe("initWorkspace .gitignore 处理", () => {
     writeFileSync(join(cwd, ".tasks", "active", "keep.md"), "keep", "utf8")
     initWorkspace(".tasks", cwd)
     expect(readFileSync(join(cwd, ".tasks", "active", "keep.md"), "utf8")).toBe("keep")
+  })
+
+  it("报告 detail 同时点明 .archive.lock 与 .toolkitrc.local.json 两个文件名", () => {
+    const { cwd } = track(runInDir("tk-init-detail-"))
+    const report = initWorkspace(".tasks", cwd)
+    const product = report.products.find((p) => p.target === ".gitignore")
+    expect(product?.action).toBe("created")
+    expect(product?.detail).toContain(".archive.lock")
+    expect(product?.detail).toContain(".toolkitrc.local.json")
+  })
+
+  it("手删 .archive.lock 单行后重跑只补回该行，两行各出现一次", () => {
+    const { cwd, gitignore } = track(runInDir("tk-init-readd-"))
+    initWorkspace(".tasks", cwd)
+    // 模拟用户手删排他锁行，保留本地配置行
+    const stripped = gitignore()
+      .split(/\r?\n/)
+      .filter((line) => line.trim() !== ".archive.lock")
+      .join("\n")
+    writeFileSync(join(cwd, ".gitignore"), stripped, "utf8")
+
+    initWorkspace(".tasks", cwd)
+    const content = gitignore()
+    expect(content.match(/\.archive\.lock/g)).toHaveLength(1)
+    expect(content.match(/\.toolkitrc\.local\.json/g)).toHaveLength(1)
+  })
+
+  it("用户以前导斜杠写法 /（.toolkitrc.local.json）时视为已覆盖，只补排他锁", () => {
+    const { cwd, gitignore } = track(runInDir("tk-init-slash-"))
+    writeFileSync(join(cwd, ".gitignore"), "node_modules\n/.toolkitrc.local.json\n", "utf8")
+    initWorkspace(".tasks", cwd)
+    const content = gitignore()
+    expect(content).toContain(".archive.lock")
+    // 本地配置行只保留用户那一行，不重复追加
+    expect(content.match(/\.toolkitrc\.local\.json/g)).toHaveLength(1)
+  })
+
+  it("用户以 .toolkitrc.* 通配写法时视为已覆盖，不再追加本地配置行", () => {
+    const { cwd, gitignore } = track(runInDir("tk-init-glob-"))
+    writeFileSync(join(cwd, ".gitignore"), "node_modules\n.toolkitrc.*\n", "utf8")
+    initWorkspace(".tasks", cwd)
+    const content = gitignore()
+    expect(content).toContain(".archive.lock")
+    expect(content).not.toContain(".toolkitrc.local.json")
   })
 })
 

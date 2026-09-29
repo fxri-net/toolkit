@@ -9,6 +9,9 @@ import {
   resolveTasksDir,
   getConfigSection,
   setHomeDirForTest,
+  inspectConfigLayers,
+  resolveLocalConfigPath,
+  resolveLeafSource,
 } from "../config"
 
 const cwd = process.cwd()
@@ -252,5 +255,184 @@ describe("配置降级告警", () => {
     expect(resolveTasksDir()).toBe(".tasks")
     expect(warn).not.toHaveBeenCalled()
     cleanupTmpDir(dir)
+  })
+})
+
+// 本地配置层：.toolkitrc.local.json 与 .toolkitrc.json 各自独立向上查找，后者与结果段内字段级浅合并
+describe("本地配置层", () => {
+  // 全部用 startDir 参数注入起点（不 chdir，避开 Windows 目录锁）；本例自建目录自清
+  const created: string[] = []
+
+  afterEach(() => {
+    resetToolkitConfigCache()
+    while (created.length > 0) rmSync(created.pop() as string, { recursive: true, force: true })
+  })
+
+  // 建独立临时树并登记清理；返回树根
+  function makeTree(): string {
+    const dir = mkdtempSync(join(tmpdir(), "tk-local-"))
+    created.push(dir)
+    return dir
+  }
+
+  // 写配置文件（内容序列化为 JSON）
+  function writeCfg(dir: string, name: string, body: unknown): string {
+    const file = join(dir, name)
+    writeFileSync(file, JSON.stringify(body), "utf8")
+    return file
+  }
+
+  it("两层各自独立向上查找：项目层与本地层可命中不同目录的文件", () => {
+    const root = makeTree()
+    const sub = join(root, "sub")
+    mkdirSync(sub, { recursive: true })
+    const projectFile = writeCfg(root, ".toolkitrc.json", { tasks: { dir: "team-tasks" } })
+    const localFile = writeCfg(sub, ".toolkitrc.local.json", { redact: { enabled: false } })
+
+    const layers = inspectConfigLayers(sub)
+    expect(layers.project.file).toBe(projectFile)
+    expect(layers.local.file).toBe(localFile)
+    expect(layers.local.hit).toBe(true)
+  })
+
+  it("本地层字段级覆盖：只覆盖显式字段，团队未写字段保留", () => {
+    const root = makeTree()
+    const sub = join(root, "sub")
+    mkdirSync(sub, { recursive: true })
+    writeCfg(root, ".toolkitrc.json", { redact: { enabled: true, disable: ["phone"] } })
+    writeCfg(sub, ".toolkitrc.local.json", { redact: { enabled: false } })
+
+    const merged = inspectConfigLayers(sub).merged as Record<string, unknown>
+    const redact = merged.redact as Record<string, unknown>
+    expect(redact.enabled).toBe(false)
+    // 数组字段未在本地层写出：保留团队值（覆盖为整段替换而非合并，但未写的键仍来自团队层）
+    expect(redact.disable).toEqual(["phone"])
+  })
+
+  it("本地层段值非对象：整段按未写处理并记录降级，团队段保留", () => {
+    const root = makeTree()
+    const sub = join(root, "sub")
+    mkdirSync(sub, { recursive: true })
+    writeCfg(root, ".toolkitrc.json", { tasks: { dir: "team-tasks" } })
+    writeCfg(sub, ".toolkitrc.local.json", { tasks: "oops" })
+
+    const layers = inspectConfigLayers(sub)
+    const merged = layers.merged as Record<string, unknown>
+    expect((merged.tasks as Record<string, unknown>).dir).toBe("team-tasks")
+    expect(layers.fallbacks.some((f) => f.key === "tasks" && f.detail.includes("配置段须为对象"))).toBe(true)
+  })
+
+  it("本地层字段值为 null：按未写处理，保留团队值", () => {
+    const root = makeTree()
+    const sub = join(root, "sub")
+    mkdirSync(sub, { recursive: true })
+    writeCfg(root, ".toolkitrc.json", { tasks: { dir: "team-tasks" } })
+    writeCfg(sub, ".toolkitrc.local.json", { tasks: { dir: null } })
+
+    const merged = inspectConfigLayers(sub).merged as Record<string, unknown>
+    expect((merged.tasks as Record<string, unknown>).dir).toBe("team-tasks")
+  })
+
+  it("本地层字段类型不符：按未写处理并记录一条降级，保留团队值", () => {
+    const root = makeTree()
+    const sub = join(root, "sub")
+    mkdirSync(sub, { recursive: true })
+    writeCfg(root, ".toolkitrc.json", { tasks: { dir: "team-tasks" } })
+    writeCfg(sub, ".toolkitrc.local.json", { tasks: { dir: 123 } })
+
+    const layers = inspectConfigLayers(sub)
+    const merged = layers.merged as Record<string, unknown>
+    expect((merged.tasks as Record<string, unknown>).dir).toBe("team-tasks")
+    expect(layers.fallbacks.filter((f) => f.key === "tasks.dir")).toHaveLength(1)
+  })
+
+  it("同键在两文件各写错一次：各记一条降级且各带来源文件", () => {
+    const root = makeTree()
+    const sub = join(root, "sub")
+    mkdirSync(sub, { recursive: true })
+    const projectFile = writeCfg(root, ".toolkitrc.json", { tasks: { dir: 123 } })
+    const localFile = writeCfg(sub, ".toolkitrc.local.json", { tasks: { dir: 456 } })
+
+    const hits = inspectConfigLayers(sub).fallbacks.filter((f) => f.key === "tasks.dir")
+    expect(hits).toHaveLength(2)
+    expect(new Set(hits.map((f) => f.file)).size).toBe(2)
+    expect(hits.map((f) => f.file)).toContain(projectFile)
+    expect(hits.map((f) => f.file)).toContain(localFile)
+  })
+
+  it("本地文件读盘异常（同名目录）：记为降级且该层未命中", () => {
+    const root = makeTree()
+    writeCfg(root, ".toolkitrc.json", { tasks: { dir: "team-tasks" } })
+    // 用同名目录造 EISDIR：existsSync 为真但读取抛错
+    mkdirSync(join(root, ".toolkitrc.local.json"))
+
+    const layers = inspectConfigLayers(root)
+    expect(layers.local.file).not.toBeNull()
+    expect(layers.local.hit).toBe(false)
+    expect(layers.fallbacks.some((f) => f.detail.includes("文件读取失败"))).toBe(true)
+  })
+
+  it("home 边界：本地层查找止于 home，home 自身只作边界不作候选", () => {
+    const root = makeTree()
+    const sub = join(root, "a", "b")
+    mkdirSync(sub, { recursive: true })
+    writeCfg(root, ".toolkitrc.local.json", { tasks: { dir: "at-home" } })
+    setHomeDirForTest(root)
+
+    // root 即 home：自 sub 向上遇到 home 先截断，不把 ~/.toolkitrc.local.json 当本地层命中
+    expect(resolveLocalConfigPath(sub)).toBeNull()
+
+    // home 之下存在本地文件时仍可命中
+    const inner = writeCfg(sub, ".toolkitrc.local.json", { tasks: { dir: "mine" } })
+    expect(resolveLocalConfigPath(sub)).toBe(inner)
+  })
+
+  it("现算不缓存：两次 inspectConfigLayers 之间新增本地文件即被读取", () => {
+    const root = makeTree()
+    const sub = join(root, "sub")
+    mkdirSync(sub, { recursive: true })
+    expect(inspectConfigLayers(sub).local.hit).toBe(false)
+    writeCfg(sub, ".toolkitrc.local.json", { tasks: { dir: "mine" } })
+    expect(inspectConfigLayers(sub).local.hit).toBe(true)
+  })
+
+  it("定位与忽略判定同源：resolveLocalConfigPath 与 inspectConfigLayers 的本地层路径一致", () => {
+    const root = makeTree()
+    const sub = join(root, "sub")
+    mkdirSync(sub, { recursive: true })
+    writeCfg(sub, ".toolkitrc.local.json", { tasks: { dir: "mine" } })
+    expect(resolveLocalConfigPath(sub)).toBe(inspectConfigLayers(sub).local.file)
+  })
+
+  it("叶子键来源层：混合段按各字段实际来源标注", () => {
+    const root = makeTree()
+    const sub = join(root, "sub")
+    mkdirSync(sub, { recursive: true })
+    writeCfg(root, ".toolkitrc.json", { tasks: { dir: "team" }, check: { warnings: true } })
+    writeCfg(sub, ".toolkitrc.local.json", { tasks: { dir: "mine" } })
+
+    const layers = inspectConfigLayers(sub)
+    expect(resolveLeafSource(layers, "tasks.dir")).toBe("本地层")
+    expect(resolveLeafSource(layers, "check.warnings")).toBe("项目层")
+    expect(resolveLeafSource(layers, "updateCheck.enabled")).toBeNull()
+  })
+
+  it("降级告警去重键含来源文件：两文件各写错一次时各报一条且各带路径", () => {
+    const root = makeTree()
+    const sub = join(root, "sub")
+    mkdirSync(sub, { recursive: true })
+    const projectFile = writeCfg(root, ".toolkitrc.json", { tasks: { dir: 123 } })
+    const localFile = writeCfg(sub, ".toolkitrc.local.json", { tasks: { dir: 456 } })
+
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    try {
+      loadToolkitConfig(sub)
+      const texts = warn.mock.calls.map((c) => String(c[0])).filter((t) => t.includes("tasks.dir"))
+      expect(texts).toHaveLength(2)
+      expect(texts.some((t) => t.includes(projectFile))).toBe(true)
+      expect(texts.some((t) => t.includes(localFile))).toBe(true)
+    } finally {
+      warn.mockRestore()
+    }
   })
 })

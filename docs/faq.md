@@ -117,7 +117,7 @@ pnpm remove -g @fxri/toolkit   # 2. 再卸 CLI
 
 ### `.tasks/` 要提交到 git 吗？哪些文件该提交？
 
-`.tasks/` 整体（active + archive）必须入库——任务记录是团队共享的工作记忆，不入库就失去多人/多会话协作意义。`.toolkitrc.json` 建议提交（团队统一配置）；`.archive.lock` 是运行时排他锁，加入 `.gitignore`（`toolkit init` 会自动处理）。
+`.tasks/` 整体（active + archive）必须入库——任务记录是团队共享的工作记忆，不入库就失去多人/多会话协作意义。`.toolkitrc.json` 建议提交（团队统一配置）；`.toolkitrc.local.json` 是**个人本地配置**、应被忽略（`toolkit init` 会自动写入忽略行，存量项目重跑 `init` 即可补写，幂等安全）；`.archive.lock` 是运行时排他锁，加入 `.gitignore`（`toolkit init` 会自动处理）。
 
 ### 我一个人用，还有必要提交任务记录吗？
 
@@ -142,7 +142,7 @@ pnpm remove -g @fxri/toolkit   # 2. 再卸 CLI
 
 ### 归档后发现敏感信息没脱敏？
 
-脱敏只作用于**终端展示、导出文件与归档落盘**，`.tasks/active/` 源文件按原样保存（设计如此，不改动原始正文）。若某类信息未被掩码，可能未命中内置规则——在 `.toolkitrc.json` 加自定义规则（见[配置参考 · redact](./config#redact-隐私脱敏)）。
+脱敏只作用于**终端展示、导出文件与归档落盘**，`.tasks/active/` 源文件按原样保存（设计如此，不改动原始正文）。若某类信息未被掩码，可能未命中内置规则——**团队规则**加到 `.toolkitrc.json`、**个人规则**加到 `.toolkitrc.local.json`（仅本人可见、默认不入库），见[配置参考 · redact](./config#redact-隐私脱敏)。
 
 ## 协作与流程
 

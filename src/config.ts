@@ -1,24 +1,137 @@
-// 配置文件读取：项目级从当前目录向上查找最近的 .toolkitrc.json（支持在 monorepo 子目录运行），
-// 全局级读取 ~/.toolkitrc.json（个人偏好，不进项目仓库）；两层按配置段合并，统一加载与缓存，
-// 各能力域按需取自己的配置段。覆盖链：CLI --flag > 环境变量 > 项目配置 > 全局配置 > 默认值。
+// 配置文件读取：三层加载——全局层 ~/.toolkitrc.json（个人跨项目偏好）、项目层自 process.cwd() 向上查找最近的
+// .toolkitrc.json（团队共享）、本地层自 process.cwd() 向上查找最近的 .toolkitrc.local.json（个人按项目、默认不入库）。
+// 合并粒度分层：全局层 → 项目层为段级整体覆盖，项目层 → 本地层为段内字段级浅合并（数组整体替换、深度仅一层）。
+// 覆盖链：CLI --flag > 环境变量 > 本地层 > 项目层 > 全局层 > 默认值。各能力域按需取自己的配置段。
 // 结构示例：
 // {
-//   "redact": { "enabled": true, "disable": [], "rules": [] },
-//   "check":  { "warnings": true },
-//   "skills": { "autoLink": true, "autoLinkReplaceForeign": true }
+//   "tasks":        { "dir": ".tasks" },
+//   "redact":       { "enabled": true, "disable": [], "rules": [] },
+//   "updateCheck":  { "enabled": true },
+//   "check":        { "warnings": true },
+//   "skills":       { "autoLink": true, "autoLinkReplaceForeign": true }
 // }
 import { existsSync } from "node:fs"
-import { join, dirname } from "node:path"
+import { join, dirname, resolve } from "node:path"
 import { homedir } from "node:os"
 import { readTextFile } from "./read-text"
+import { normalizePathForCompare } from "./git-ignore"
 
-// 缓存：undefined=尚未加载，null=无配置文件（或全部解析失败）
-let cached: Record<string, unknown> | null | undefined
+// 项目配置文件名：团队共享，随 git 分发
+const CONFIG_PROJECT_FILE = ".toolkitrc.json"
+// 本地配置文件名：个人私有，默认被 git 忽略
+const CONFIG_LOCAL_FILE = ".toolkitrc.local.json"
+// 展示键清单（钉死四项）与其期望类型：类型非法的键按未写处理；该清单 ⊇ 环境变量覆盖组目标键（不变式）
+const DISPLAY_KEY_TYPES: ReadonlyArray<{ key: string; type: "string" | "boolean" }> = [
+  { key: "tasks.dir", type: "string" },
+  { key: "redact.enabled", type: "boolean" },
+  { key: "updateCheck.enabled", type: "boolean" },
+  { key: "check.warnings", type: "boolean" },
+]
+
+// 配置降级告警去重集合：同一进程内同一个「文件 + 键」只提示一次（getConfigSection 有多个落点调用，不去重会刷屏）
+const warnedConfigFallbacks = new Set<string>()
+
+// 三层名称：全局层 / 项目层 / 本地层
+export type ConfigLayerName = "全局层" | "项目层" | "本地层"
+
+// 降级记录：file 为来源文件绝对路径（空串表无来源文件，即整文件级降级），key 为配置键路径（空串表整文件级）
+export interface ConfigFallback {
+  file: string
+  key: string
+  detail: string
+}
+
+// 单层加载结果：file 为命中的配置文件绝对路径（未命中为 null），hit 表文件存在且解析成功，sections 为该层写出的段名
+export interface ConfigLayerRecord {
+  layer: ConfigLayerName
+  file: string | null
+  hit: boolean
+  sections: string[]
+  config: Record<string, unknown> | null
+}
+
+// 三层加载结果：merged 为最终合并结果（供各能力域取段），fallbacks 为结构化降级记录（供 CLI 打印与 config status 取数）
+export interface ConfigLayers {
+  global: ConfigLayerRecord
+  project: ConfigLayerRecord
+  local: ConfigLayerRecord
+  merged: Record<string, unknown> | null
+  fallbacks: ConfigFallback[]
+}
+
+// config status 展示键清单：从类型表派生，保证两者不会漂移
+export const CONFIG_DISPLAY_KEYS: readonly string[] = DISPLAY_KEY_TYPES.map((item) => item.key)
+
+// 环境变量覆盖组：环境变量名 → 目标配置键；优先级高于三层文件，作 config status 与文档的共同真源
+export const CONFIG_ENV_OVERRIDES: ReadonlyArray<{ env: string; key: string }> = [
+  { env: "FX_REDACT", key: "redact.enabled" },
+  { env: "FX_NO_UPDATE_CHECK", key: "updateCheck.enabled" },
+  { env: "FX_CHECK_WARN", key: "check.warnings" },
+]
+
+// 能力旁路组：非配置键覆盖（CI 下跳过 skills.autoLink 自愈），须与覆盖组分开呈现，避免被当作配置覆盖排查
+export const CONFIG_ENV_BYPASS: ReadonlyArray<{ env: string; key: string }> = [{ env: "CI", key: "skills.autoLink" }]
+
+// 缓存：undefined=尚未加载；命中后为三层加载结果，无参 loadToolkitConfig 与 getConfigSection 共用
+let cached: ConfigLayers | undefined
 
 // 全局配置目录注入点（仅测试用）：生产保持 os.homedir()，测试指向临时目录避免读到真实用户配置
 let homeOverride: string | undefined
-export function setHomeDirForTest(dir: string | undefined): void {
-  homeOverride = dir
+
+// 取带缓存的三层加载结果：首次加载后打印降级告警；查找起点恒为 process.cwd()
+function cachedLayers(): ConfigLayers {
+  if (!cached) {
+    cached = computeLayers(resolve(process.cwd()))
+    printFallbacks(cached.fallbacks)
+  }
+  return cached
+}
+
+// 现算三层加载结果：按 startDir 逐层定位与读取、校验展示键类型、按分层粒度合并，全程不写缓存
+function computeLayers(startDir: string): ConfigLayers {
+  const fallbacks: ConfigFallback[] = []
+  const globalRecord = readLayer("全局层", join(getHomeDir(), ".toolkitrc.json"), fallbacks)
+  // 项目层维持「一路查到文件系统根」的原语义，不收窄到 home，避免 home 之下的仓库命中不到项目配置
+  const projectRecord = readLayer("项目层", findUpward(CONFIG_PROJECT_FILE, startDir, { stopAtHome: false }), fallbacks)
+  const localRecord = readLayer("本地层", findUpward(CONFIG_LOCAL_FILE, startDir, { stopAtHome: true }), fallbacks)
+  const base = mergeSectioned(globalRecord.config, projectRecord.config)
+  const merged = mergeLocalOverlay(base, localRecord.config, localRecord.file ?? "", fallbacks)
+  return { global: globalRecord, project: projectRecord, local: localRecord, merged, fallbacks }
+}
+
+// 值类型描述：null 与数组单列，其余用 typeof（告警文案用，避免落成无信息的 object）
+function describeType(value: unknown): string {
+  if (value === null) return "null"
+  if (Array.isArray(value)) return "数组"
+  return typeof value
+}
+
+// 向上逐级查找最近的指定文件名：返回绝对路径，未找到返回 null
+// stopAtHome 为真时遇 home 目录即截断（本意是挡 ~/.toolkitrc.local.json 被当本地层命中）；
+// home 不在父链上时该边界不触发，退化为查到盘根为止
+function findUpward(fileName: string, startDir: string, options: { stopAtHome: boolean }): string | null {
+  const home = normalizePathForCompare(getHomeDir())
+  let dir = resolve(startDir)
+  for (;;) {
+    if (options.stopAtHome && normalizePathForCompare(dir) === home) return null
+    const candidate = join(dir, fileName)
+    if (existsSync(candidate)) return candidate
+    const parent = dirname(dir)
+    if (parent === dir) return null
+    dir = parent
+  }
+}
+
+// 取某个能力域的配置段（对象）：不存在返回 undefined；显式配置但类型不符时告警后按未配置处理
+export function getConfigSection(name: string): Record<string, unknown> | undefined {
+  const layers = cachedLayers()
+  const cfg = layers.merged
+  if (!cfg) return undefined
+  const section = cfg[name]
+  if (section === undefined) return undefined
+  if (isPlainObject(section)) return section
+  warnConfigFallback(sectionSourceFile(layers, name), name, `配置段须为对象（实际：${describeType(section)}）`)
+  return undefined
 }
 
 // 当前生效的用户 home：测试注入优先，生产为 os.homedir()；供配置读取与 skills 分发等需要 home 的能力统一复用
@@ -26,31 +139,53 @@ export function getHomeDir(): string {
   return homeOverride ?? homedir()
 }
 
-// 配置降级告警去重集合：同一进程内同一个键只提示一次（getConfigSection 有多个落点调用，不去重会刷屏）
-const warnedConfigFallbacks = new Set<string>()
-
-// 配置降级告警：显式配置却无法采纳时提示一次（走 stderr，stdout 留给机器可读输出）
-function warnConfigFallback(key: string, detail: string): void {
-  if (warnedConfigFallbacks.has(key)) return
-  warnedConfigFallbacks.add(key)
-  console.warn(`⚠️ 忽略配置项「${key}」：${detail}，已按未配置处理`)
+// 现算三层加载结果且不打印降级告警：供 config status 取结构化降级记录自行渲染
+// 不走进程级缓存（缓存起点固定 process.cwd()，--cwd 指定他目录时会取到陈旧结果），也不经告警去重集（否则取不到明细）
+export function inspectConfigLayers(startDir?: string): ConfigLayers {
+  return computeLayers(resolve(startDir ?? process.cwd()))
 }
 
-// 读取并解析单个配置文件：不存在返回 null；JSON 非法（含顶层非对象）告警后按未配置处理；BOM 一并剥离
-function readConfigFile(filePath: string): Record<string, unknown> | null {
-  if (!existsSync(filePath)) return null
-  try {
-    // 读盘即剥离 BOM，否则配置会被静默跳过
-    const parsed: unknown = JSON.parse(readTextFile(filePath))
-    if (typeof parsed !== "object" || parsed === null) {
-      warnConfigFallback(filePath, `顶层须为对象（实际：${parsed === null ? "null" : typeof parsed}）`)
-      return null
+// 判是否普通对象：null 与数组均不算配置段 / 字段对象
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+// 加载配置：无参走进程级缓存（起点 process.cwd()）；传 startDir 时按该起点现算且不写缓存
+// 三层段级合并后再叠本地层字段级覆盖；三层均无配置返回 null
+export function loadToolkitConfig(startDir?: string): Record<string, unknown> | null {
+  if (startDir === undefined) return cachedLayers().merged
+  const layers = computeLayers(resolve(startDir))
+  printFallbacks(layers.fallbacks)
+  return layers.merged
+}
+
+// 本地层段内字段级浅合并：只覆盖本地层显式写出的子字段，未写的保留团队值；合并深度严格一层（字段值为对象时整体替换、不递归）
+// 边界：段值为非对象按未写处理（告警不顶掉团队段，安全侧优先）；字段值为 null 与未写等价（本层不支持删除 / 清空团队键）
+// 段值校验不因无团队基座而跳过——否则「仅本地层 + 段值非法」会既不入降级记录也不告警，与降级不静默口径矛盾
+function mergeLocalOverlay(
+  base: Record<string, unknown> | null,
+  overlay: Record<string, unknown> | null,
+  overlayFile: string,
+  fallbacks: ConfigFallback[],
+): Record<string, unknown> | null {
+  if (!overlay) return base
+  const merged: Record<string, unknown> = base ? { ...base } : {}
+  for (const [name, value] of Object.entries(overlay)) {
+    if (value === null) continue
+    if (!isPlainObject(value)) {
+      fallbacks.push({ file: overlayFile, key: name, detail: `配置段须为对象（实际：${describeType(value)}）` })
+      continue
     }
-    return parsed as Record<string, unknown>
-  } catch {
-    warnConfigFallback(filePath, "JSON 解析失败")
-    return null
+    const baseSection = isPlainObject(merged[name]) ? (merged[name] as Record<string, unknown>) : {}
+    const section = { ...baseSection }
+    for (const [field, fieldValue] of Object.entries(value)) {
+      if (fieldValue === null) continue
+      section[field] = fieldValue
+    }
+    merged[name] = section
   }
+  // 全部段均被降级剔除时回落 null，与「三层均无配置返回 null」一致
+  return Object.keys(merged).length > 0 ? merged : null
 }
 
 // 段级合并：项目配置出现的段整体覆盖全局同名段（非字段级深合并），项目未配的段落到全局
@@ -65,52 +200,122 @@ function mergeSectioned(
   return merged
 }
 
-// 加载配置：全局 ~/.toolkitrc.json 一层 + 项目从 process.cwd() 向上逐级（取最近一个可解析），
-// 段级合并后返回；都没有返回 null
-export function loadToolkitConfig(): Record<string, unknown> | null {
-  if (cached !== undefined) return cached
-  const globalCfg = readConfigFile(join(getHomeDir(), ".toolkitrc.json"))
-  let projectCfg: Record<string, unknown> | null = null
-  let dir = process.cwd()
-  for (;;) {
-    const cfg = readConfigFile(join(dir, ".toolkitrc.json"))
-    if (cfg) {
-      projectCfg = cfg
-      break
-    }
-    const parent = dirname(dir)
-    if (parent === dir) break
-    dir = parent
+// 打印降级告警：结构化记录逐个过 warnConfigFallback（含进程级去重），CLI 场景统一从此出口走 stderr
+function printFallbacks(fallbacks: ConfigFallback[]): void {
+  for (const item of fallbacks) warnConfigFallback(item.file, item.key, item.detail)
+}
+
+// 读取并解析单个配置文件：文件不存在返回 null（不告警）；读盘异常与 JSON 非法分别归因，顶层非对象同样降级
+// 只推入结构化降级记录、不打印，使 config status 能取到明细且不被进程级去重集吞掉
+function readConfigFile(filePath: string, fallbacks: ConfigFallback[]): Record<string, unknown> | null {
+  if (!existsSync(filePath)) return null
+  let raw: string
+  try {
+    // 读盘即剥离 BOM，否则配置会被静默跳过
+    raw = readTextFile(filePath)
+  } catch (err) {
+    fallbacks.push({ file: filePath, key: "", detail: `文件读取失败：${err instanceof Error ? err.message : String(err)}` })
+    return null
   }
-  cached = mergeSectioned(globalCfg, projectCfg)
-  return cached
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    fallbacks.push({ file: filePath, key: "", detail: "JSON 解析失败" })
+    return null
+  }
+  if (!isPlainObject(parsed)) {
+    fallbacks.push({ file: filePath, key: "", detail: `顶层须为对象（实际：${describeType(parsed)}）` })
+    return null
+  }
+  return parsed
 }
 
-// 取某个能力域的配置段（对象）：不存在返回 undefined；显式配置但类型不符时告警后按未配置处理
-export function getConfigSection(name: string): Record<string, unknown> | undefined {
-  const cfg = loadToolkitConfig()
-  if (!cfg) return undefined
-  const section = cfg[name]
-  if (section === undefined) return undefined
-  if (typeof section === "object" && section !== null) return section as Record<string, unknown>
-  warnConfigFallback(name, `配置段须为对象（实际：${typeof section}）`)
-  return undefined
+// 读取单层：定位到的文件不存在按未命中；解析成功后校验展示键类型，再归档段名与配置
+function readLayer(layer: ConfigLayerName, filePath: string | null, fallbacks: ConfigFallback[]): ConfigLayerRecord {
+  if (!filePath || !existsSync(filePath)) return { layer, file: null, hit: false, sections: [], config: null }
+  const config = readConfigFile(filePath, fallbacks)
+  if (!config) return { layer, file: filePath, hit: false, sections: [], config: null }
+  validateDisplayKeys(filePath, config, fallbacks)
+  return { layer, file: filePath, hit: true, sections: Object.keys(config), config }
 }
 
-// 解析任务目录三档：CLI --dir 显式传参 > 配置 tasks.dir > 默认 .tasks
-// 支持 .tasks 放项目外（绝对路径或 ../ 相对路径），配合独立文档仓库管理任务
-export function resolveTasksDir(cliValue?: string): string {
-  if (cliValue) return cliValue
-  const dir = getConfigSection("tasks")?.dir
-  // 空字符串按「视为未配置」静默处理；其他类型不符才是显式配错，须告警
-  if (typeof dir === "string") return dir !== "" ? dir : ".tasks"
-  if (dir !== undefined) warnConfigFallback("tasks.dir", `须为非空字符串（实际：${typeof dir}）`)
-  return ".tasks"
-}
-
-// 失效配置缓存：库形态长驻进程 / 测试中修改 .toolkitrc.json 后调用，使下次读取重新加载
+// 失效配置缓存：库形态长驻进程 / 测试中修改配置文件后调用，使下次读取重新加载
 export function resetToolkitConfigCache(): void {
   cached = undefined
   // 告警去重集合同步清空，使重新加载后的降级问题仍能提示
   warnedConfigFallbacks.clear()
+}
+
+// 叶子键来源层：按本地层 → 项目层 → 全局层取首个显式写出该叶子键的层名（段内字段级合并下同一段各子键可能来源不同）
+export function resolveLeafSource(layers: ConfigLayers, key: string): ConfigLayerName | null {
+  const dot = key.indexOf(".")
+  const sectionName = key.slice(0, dot)
+  const fieldName = key.slice(dot + 1)
+  for (const record of [layers.local, layers.project, layers.global]) {
+    const section = record.config?.[sectionName]
+    if (!isPlainObject(section)) continue
+    const value = section[fieldName]
+    if (value !== undefined && value !== null) return record.layer
+  }
+  return null
+}
+
+// 本地配置文件定位：自 startDir 向上查找（止于 home），供 tasks check 与 config status 共用同一来源
+// 定位与忽略判定同源——两处都从此函数取路径，避免各自向上查找导致「定位到的文件」与「判定的文件」漂移
+export function resolveLocalConfigPath(startDir: string = process.cwd()): string | null {
+  return findUpward(CONFIG_LOCAL_FILE, resolve(startDir), { stopAtHome: true })
+}
+
+// 解析任务目录三档：CLI --dir 显式传参 > 配置 tasks.dir > 默认 .tasks
+// 支持 .tasks 放项目外（绝对路径或 ../ 相对路径），配合独立文档仓库管理任务
+// ⚠️ tasks.dir 原样透传，相对路径的解析基准为 process.cwd()（非配置文件所在目录）；类型非法的告警在加载时的类型校验统一给出
+export function resolveTasksDir(cliValue?: string): string {
+  if (cliValue) return cliValue
+  const dir = getConfigSection("tasks")?.dir
+  // 空字符串按「视为未配置」静默处理（类型已过校验，此处只剩字符串与未配置）
+  if (typeof dir === "string") return dir !== "" ? dir : ".tasks"
+  return ".tasks"
+}
+
+// 段来源文件：按本地层 → 项目层 → 全局层取首个显式写出该段的文件，供段级告警定位来源
+function sectionSourceFile(layers: ConfigLayers, name: string): string {
+  for (const record of [layers.local, layers.project, layers.global]) {
+    if (record.config && Object.prototype.hasOwnProperty.call(record.config, name)) return record.file ?? ""
+  }
+  return ""
+}
+
+// 全局配置目录注入（仅测试用）：生产保持 os.homedir()
+export function setHomeDirForTest(dir: string | undefined): void {
+  homeOverride = dir
+}
+
+// 展示键类型校验：段非对象则跳过（由 getConfigSection 另行告警）、字段为 null / undefined 视为未写
+// 类型不符推入结构化降级记录并从配置中删除该字段（按未写降级），消除各能力域各自静默兜底的口径不一
+function validateDisplayKeys(filePath: string, config: Record<string, unknown>, fallbacks: ConfigFallback[]): void {
+  for (const { key, type } of DISPLAY_KEY_TYPES) {
+    const dot = key.indexOf(".")
+    const sectionName = key.slice(0, dot)
+    const fieldName = key.slice(dot + 1)
+    const section = config[sectionName]
+    if (!isPlainObject(section)) continue
+    const value = section[fieldName]
+    if (value === undefined || value === null) continue
+    if (typeof value !== type) {
+      const expected = type === "string" ? "须为非空字符串" : "须为布尔值"
+      fallbacks.push({ file: filePath, key, detail: `${expected}（实际：${describeType(value)}）` })
+      delete section[fieldName]
+    }
+  }
+}
+
+// 配置降级告警：显式配置却无法采纳时提示（走 stderr，stdout 留给机器可读输出）
+// 去重键含来源文件，使同一键在两个文件各写错一次能各报一次、且文案可定位到具体文件
+function warnConfigFallback(file: string, key: string, detail: string): void {
+  const dedupKey = `${file}\u0000${key}`
+  if (warnedConfigFallbacks.has(dedupKey)) return
+  warnedConfigFallbacks.add(dedupKey)
+  const head = key === "" ? `⚠️ 忽略配置文件「${file}」` : `⚠️ 忽略配置项「${key}」${file ? `（${file}）` : ""}`
+  console.warn(`${head}：${detail}，已按未配置处理`)
 }

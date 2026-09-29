@@ -112,11 +112,13 @@ languages.ja = {
 
 | 函数 | 说明 |
 | --- | --- |
-| `loadToolkitConfig()` | 加载配置并缓存：项目级从 `process.cwd()` 向上查找最近 `.toolkitrc.json`，与全局 `~/.toolkitrc.json` 按段合并（项目覆盖全局） |
+| `loadToolkitConfig(startDir?)` | 加载配置并缓存：三层合并——全局 `~/.toolkitrc.json` 打底，项目级从 `process.cwd()` 向上查找最近 `.toolkitrc.json`（段级整体覆盖全局），本地级再向上查找最近 `.toolkitrc.local.json`（止于 home，段内字段级浅合并覆盖）；传 `startDir` 时按该起点现算、不写缓存 |
 | `getConfigSection(key)` | 取某能力域配置段（对象），不存在返回 `undefined` |
+| `resolveTasksDir(cliValue?)` | 解析任务目录三档：CLI 参数 > 配置 `tasks.dir` > 默认 `.tasks`；⚠️ 相对路径的解析基准为 `process.cwd()`（非配置文件所在目录） |
 | `resetToolkitConfigCache()` | 失效缓存（长驻进程 / 测试中改配置后调用） |
+| `configStatus(cwd?)` | 三层配置只读体检报告（命中层级 / 叶子键来源层 / 环境变量层 / 待处理项）；起点缺省 `process.cwd()`，按起点现算、不写全局缓存 |
 
-配置字段枚举见[配置参考](./config)。
+合并粒度与覆盖链见[配置参考](./config#合并语义)；配置字段枚举见[配置参考](./config)。
 
 ## 最小示例
 

@@ -80,14 +80,15 @@
 | --- | --- | --- |
 | `.tasks/`（active + archive + conventions/） | ✅ 必须 | 任务记录是团队共享的工作记忆，离了 git 就失去多人协作意义 |
 | `.toolkitrc.json` | ✅ 建议 | 团队统一脱敏、告警、语言配置 |
+| `.toolkitrc.local.json` | ❌ 忽略 | 个人本地配置（脱敏补充规则、个人任务目录等），默认不入库、不随 git 分发 |
 | `.archive.lock` | ❌ 忽略 | 运行时排他锁，无共享价值 |
 | 导出产物（`tasks.csv` 等） | 按需 | 一般为临时分析产物，默认忽略 |
 
-`toolkit init` 会生成 `.tasks/` 骨架并追加 `.gitignore` 片段（含 `.archive.lock`）。
+`toolkit init` 会生成 `.tasks/` 骨架并追加 `.gitignore` 片段（含 `.archive.lock` 与 `.toolkitrc.local.json`）。
 
 ⚠️ 活跃任务不提交（长期只在本机）是常见反模式：换机器/工作区被 git 清理后任务记录即丢失（同机同目录换会话不受影响——恢复读磁盘 `.tasks/` 文件而非 git），且 `check`/归档流程依赖的上下文无从恢复。
 
-**任务区放项目外**：不想把 `.tasks/` 放在项目里的团队，可配置 `"tasks": { "dir": "../my-tasks-repo" }`（配置项 1.7.0 新增）把任务区指向独立文档仓库（支持绝对路径或 `../` 相对路径）；任务记录提交到该独立仓库，`.toolkitrc.json` 仍在项目内提交并声明外置路径。
+**任务区放项目外**：不想把 `.tasks/` 放在项目里的团队，可配置 `"tasks": { "dir": "../my-tasks-repo" }`（配置项 1.7.0 新增）把任务区指向独立文档仓库（支持绝对路径或 `../` 相对路径）；任务记录提交到该独立仓库，`.toolkitrc.json` 仍在项目内提交并声明外置路径。个人也可**仅在本地层 `.toolkitrc.local.json` 覆盖 `tasks.dir`**、只对自己生效（团队不受影响）；⚠️ 相对路径的解析基准为 `process.cwd()`（非配置文件所在目录）。
 
 ## 项目级激活模板
 
@@ -116,7 +117,7 @@
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
 | `fxri-plan-to-task` | 1.4.4 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
-| `fxri-release-changelog` | 1.1.3 | changesets 发版与多语言 CHANGELOG 维护 |
+| `fxri-release-changelog` | 1.1.4 | changesets 发版与多语言 CHANGELOG 维护 |
 | `fxri-session-recap` | 1.2.4 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 
 版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` 打印的真源版本），随技能内容变更递增；`fxri-session-recap` 为 1.7.0 新增
@@ -220,7 +221,7 @@ pnpm dlx skills add fxri-net/toolkit --global
 内置规则：`内网URL`（含端口）、`邮箱`、`JWT`、`AWS密钥`、`GitHub密钥`、`GitHub细粒度密钥`、`OpenAI密钥`、`OpenAI项目密钥`、`Slack密钥`、`Slack应用令牌`、`手机号`、`身份证`、`IPv4`。密钥类规则带长度门槛，避免误伤正常文本。
 
 ```json
-// .toolkitrc.json：追加自定义规则（优先于内置）或按 name 禁用内置规则
+// 团队规则加 .toolkitrc.json（随仓库共享）；个人规则加 .toolkitrc.local.json（仅本人可见、默认不入库）
 {
   "redact": {
     "enabled": true,
@@ -231,6 +232,8 @@ pnpm dlx skills add fxri-net/toolkit --global
   }
 }
 ```
+
+⚠️ 本地层对 `redact` 等数组字段是**整段替换、非追加**：个人想「补一条」规则实际会顶掉团队整组规则——要追加应改项目层并与团队协商，详见[配置参考 · 合并语义](./config#合并语义)。
 
 开关为双向三档（CLI `--redact/--no-redact` > 环境变量 `FX_REDACT` > 配置 `redact.enabled` > 默认开启）。字段级说明见[配置参考](./config)。
 

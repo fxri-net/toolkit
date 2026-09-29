@@ -22,10 +22,10 @@ import {
   SKILL_ENTRY,
   buildAgentsPointer,
   buildEntryShell,
-  gitIgnoredSet,
   isToolkitSourceRepo,
   resolveProjectSkillDirs,
 } from "./conventions/entry"
+import { gitIgnoredSet } from "./git-ignore"
 import { todayCompact } from "./date"
 import { hasGlobalSkillsInstalled } from "./skills"
 
@@ -36,8 +36,18 @@ export const INIT_LINKS = {
   guide: "https://fxri-net.github.io/toolkit/guide",
 }
 
-// .gitignore 追加片段：排他锁是运行时文件不入库，任务目录其余内容必须入库
-const GITIGNORE_SNIPPET = "\n# @fxri/toolkit 归档排他锁（运行时文件，不入库）\n.archive.lock\n"
+// .gitignore 片段稳定标识：认领本工具写入的注释行，重跑 init 时据此改写旧文案、不留双注释
+const GITIGNORE_MARKER = "# @fxri/toolkit"
+// 片段标题：概括该片段守护的忽略项（运行时文件与个人本地配置均不入库）
+const GITIGNORE_COMMENT = `${GITIGNORE_MARKER} 忽略片段（运行时文件与个人本地配置，不入库）`
+// 片段行清单与各行等价写法：任一等价写法命中即视为该行已覆盖，不再追加，尊重用户手写习惯
+const GITIGNORE_ROWS: ReadonlyArray<{ row: string; patterns: RegExp[] }> = [
+  { row: ".archive.lock", patterns: [/^\/?\.archive\.lock$/] },
+  {
+    row: ".toolkitrc.local.json",
+    patterns: [/^\/?\.toolkitrc\.local\.json$/, /^\*\.local\.json$/, /^\.toolkitrc\.\*$/],
+  },
+]
 
 // 规范载体索引骨架：三节结构与 skills/fxri-plan-to-task/references/conventions-spec.md 一致
 const CONVENTIONS_INDEX = `${CARRIER_MARKER}
@@ -136,21 +146,37 @@ function scaffoldConventions(root: string, display: string): InitProduct[] {
   ]
 }
 
-// 向 .gitignore 追加忽略片段；片段已存在（含人工提前手写）时保持不动
+// 向 .gitignore 追加忽略片段：逐行判定覆盖情况、只补缺失行，重复执行不改动，用户手写的等价忽略写法原样保留
 export function appendGitignore(cwd: string): InitProduct[] {
   const file = join(cwd, ".gitignore")
+  const cover = `覆盖 ${GITIGNORE_ROWS.map((item) => item.row).join(" / ")}`
   if (!existsSync(file)) {
-    // 无 .gitignore：直接创建并写入片段
-    writeFileAtomic(file, GITIGNORE_SNIPPET)
-    return [{ target: ".gitignore", action: "created", detail: "已创建并写入 .archive.lock 忽略片段" }]
+    // 无 .gitignore：直接创建并写入完整片段
+    writeFileAtomic(file, `${GITIGNORE_COMMENT}\n${GITIGNORE_ROWS.map((item) => item.row).join("\n")}\n`)
+    return [{ target: ".gitignore", action: "created", detail: `已创建并写入 ${GITIGNORE_MARKER} 忽略片段（${cover}）` }]
   }
   const raw = readFileSync(file, "utf8")
-  if (raw.includes(".archive.lock")) return [{ target: ".gitignore", action: "kept", detail: "已含 .archive.lock 忽略片段" }]
-  // 统一 LF 处理后追加，保留原换行风格
+  // 保留原换行风格；统一为 LF 后逐行判定，任一等价写法命中即该行已覆盖
   const eol = raw.includes("\r\n") ? "\r\n" : "\n"
-  const base = raw.endsWith("\n") || raw === "" ? raw : raw + eol
-  writeFileAtomic(file, base + GITIGNORE_SNIPPET.replace(/\n/g, eol).replace(/^\r?\n/, ""))
-  return [{ target: ".gitignore", action: "appended", detail: "已追加 .archive.lock 忽略片段" }]
+  const lines = raw.replace(/\r\n/g, "\n").split("\n")
+  const markerAt = lines.findIndex((line) => line.startsWith(GITIGNORE_MARKER))
+  const missing = GITIGNORE_ROWS.filter((item) => !lines.some((line) => item.patterns.some((re) => re.test(line.trim()))))
+  if (missing.length === 0) {
+    // 各行均已覆盖：注释文案陈旧时就地改写，否则整文件保持不动
+    if (markerAt === -1 || lines[markerAt] === GITIGNORE_COMMENT) {
+      return [{ target: ".gitignore", action: "kept", detail: `已含 ${GITIGNORE_MARKER} 忽略片段（${cover}）` }]
+    }
+    lines[markerAt] = GITIGNORE_COMMENT
+    writeFileAtomic(file, lines.join(eol))
+    return [{ target: ".gitignore", action: "updated", detail: `已就地把 ${GITIGNORE_MARKER} 注释更新为当前文案（${cover}）` }]
+  }
+  // 摘除本工具认领的旧注释行后重建片段，避免旧文案残留成第二条注释
+  const body = lines.filter((line) => !line.startsWith(GITIGNORE_MARKER))
+  while (body.length > 0 && body[body.length - 1] === "") body.pop()
+  const block = [GITIGNORE_COMMENT, ...missing.map((item) => item.row)]
+  const next = body.length > 0 ? `${body.join(eol)}${eol}${eol}${block.join(eol)}${eol}` : `${block.join(eol)}${eol}`
+  writeFileAtomic(file, next)
+  return [{ target: ".gitignore", action: "appended", detail: `已追加 ${GITIGNORE_MARKER} 忽略片段（${cover}）` }]
 }
 
 // 技能入口层：生成项目级入口壳 + 在已存在的 AGENTS.md 中幂等追加指针块

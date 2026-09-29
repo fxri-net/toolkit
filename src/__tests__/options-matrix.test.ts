@@ -29,6 +29,8 @@ const homeDir = join(sandbox, "home")
 const missingTasksDir = join(sandbox, "missing-tasks")
 // init 用例专用目录（会被真实创建，故与 missingTasksDir 分开）
 const initTasksDir = join(sandbox, "init-tasks")
+// config 用例专用起点目录（空目录，避免向上查找到仓库根）
+const cfgDir = join(sandbox, "cfg-cwd")
 const cacheFile = join(sandbox, ".toolkit-update-check.json")
 
 // CLI 单次运行结果：退出码 + 各输出通道（stdout 单独捕获，帮助/版本走 commander 的 writeOut）
@@ -76,6 +78,7 @@ async function runCli(args: string[]): Promise<CliRun> {
 beforeAll(() => {
   mkdirSync(sandbox, { recursive: true })
   mkdirSync(homeDir, { recursive: true })
+  mkdirSync(cfgDir, { recursive: true })
 })
 
 afterAll(() => {
@@ -346,5 +349,43 @@ describe("升级检查在所有路径一致触发（缺陷 13）", () => {
     const parseFail = await runCli(["tasks", "--dir", missingTasksDir, "--view", "bogus"])
     expect(parseFail.code).toBe(1)
     expect(parseFail.err.join("\n")).toContain("99.0.0")
+  })
+})
+
+describe("config 域只读体检", () => {
+  it("config status --cwd：退出码 0 且文本含「查找起点」", async () => {
+    const r = await runCli(["config", "status", "--cwd", cfgDir])
+    expect(r.code).toBe(0)
+    expect(r.log.join("\n")).toContain("查找起点")
+  })
+
+  it("config status --format json：可解析且带 schemaVersion 与公共字段", async () => {
+    const r = await runCli(["config", "status", "--cwd", cfgDir, "--format", "json"])
+    expect(r.code).toBe(0)
+    const payload = JSON.parse(r.log.join("\n")) as { schemaVersion: number; warnings: number; levels: unknown[] }
+    expect(payload.schemaVersion).toBe(1)
+    expect(typeof payload.warnings).toBe("number")
+    expect(Array.isArray(payload.levels)).toBe(true)
+    // 顶层字段集合锁定：schemaVersion + 八个报告字段
+    expect(Object.keys(JSON.parse(r.log.join("\n")))).toHaveLength(9)
+  })
+
+  it("--cwd 指向不存在路径：报错退出且不回落 process.cwd()", async () => {
+    const r = await runCli(["config", "status", "--cwd", join(sandbox, "no-such-dir")])
+    expect(r.code).toBe(1)
+    expect(r.err.join("\n")).toContain("不存在或非目录")
+    expect(r.log).toHaveLength(0)
+  })
+
+  it("--format 非 json：报错退出（复用 assertJsonFormat）", async () => {
+    const r = await runCli(["config", "status", "--cwd", cfgDir, "--format", "yaml"])
+    expect(r.code).toBe(1)
+    expect(r.err.join("\n")).toContain("仅支持 json")
+  })
+
+  it("裸 config：打印本域帮助并列出 status 子命令", async () => {
+    const r = await runCli(["config"])
+    expect(r.code).toBe(0)
+    expect(r.out.join("")).toContain("status")
   })
 })
