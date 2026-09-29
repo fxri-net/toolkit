@@ -187,9 +187,9 @@ describe("configStatus 提示项与文本折叠", () => {
     const unknown = report.items.filter((i) => i.message.includes("疑似拼写错误"))
     // 仅 redct 属未知段；skills 为已知段（其 autoLink 非展示键，落入 otherSections 但不提示）
     expect(unknown).toHaveLength(1)
-    expect(unknown[0].level).toBe("info")
-    expect(unknown[0].scope).toBe("配置")
-    expect(unknown[0].message).toContain("redct")
+    expect(unknown[0]!.level).toBe("info")
+    expect(unknown[0]!.scope).toBe("配置")
+    expect(unknown[0]!.message).toContain("redct")
     expect(report.warnings).toBe(0)
   })
 

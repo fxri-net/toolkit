@@ -28,7 +28,7 @@ describe("queryTasks 时间过滤", () => {
     const dir = makeDir()
     const rows = queryTasks(dir, "active", { date: "20260903" }).rows
     expect(rows).toHaveLength(1)
-    expect(rows[0].title).toBe("20260903-唐启云-b.md")
+    expect(rows[0]!.title).toBe("20260903-唐启云-b.md")
     rmSync(dir, { recursive: true, force: true })
   })
 

@@ -1,0 +1,13 @@
+{
+  // 门禁类型检查用配置：基础 tsconfig.json 为「构建/发声明」口径，会排除测试文件；
+  // 本配置放开测试与根配置文件的覆盖面，只做 --noEmit 检查，不参与构建产物（tsup 有独立配置）。
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // 不检查 node_modules 内的 .d.ts：第三方声明文件的既有缺陷不该拦本仓库门禁
+    "skipLibCheck": true,
+    // 允许解析并推断 .mjs（scripts/ 下的 Node 脚本被测试直接导入，无声明文件）
+    "allowJs": true
+  },
+  "include": ["./src", "./*.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

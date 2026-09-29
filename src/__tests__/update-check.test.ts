@@ -127,8 +127,8 @@ describe("startUpdateCheck 父进程分支", () => {
     // 父进程不参与联网，联网只发生在派生出的 worker 中
     expect(mockedFetch).not.toHaveBeenCalled()
     expect(mockedSpawn).toHaveBeenCalledTimes(1)
-    expect(mockedSpawn.mock.calls[0][1]).toContain(UPDATE_CHECK_WORKER_ARG)
-    expect(mockedSpawn.mock.calls[0][2]).toMatchObject({ detached: true, stdio: "ignore", windowsHide: true })
+    expect(mockedSpawn.mock.calls[0]![1]).toContain(UPDATE_CHECK_WORKER_ARG)
+    expect(mockedSpawn.mock.calls[0]![2]).toMatchObject({ detached: true, stdio: "ignore", windowsHide: true })
     expect(unrefSpy).toHaveBeenCalledTimes(1)
   })
 

@@ -139,7 +139,7 @@ function skillTableRows(file: string): Map<string, SkillTableRow> {
     if (!/^\d+\.\d+\.\d+$/.test(version)) continue
     const rawName = cells[1] ?? ""
     const linked = rawName.match(/\[([^\]]+)\]\([^)]*\)/)
-    map.set((linked ? linked[1] : rawName).replace(/`/g, "").trim(), { version, usage: cells[3] ?? "" })
+    map.set((linked ? (linked[1] ?? "") : rawName).replace(/`/g, "").trim(), { version, usage: cells[3] ?? "" })
   }
   return map
 }
@@ -472,9 +472,9 @@ describe("readSkillBodyVersion / findSkillVersionMismatches 版本双写位", ()
 describe("resolveSkillTargets 三层目标解析", () => {
   it("主目标恒可用且排在最前，与表内同路径 agent 去重", () => {
     const targets = resolveSkillTargets()
-    expect(targets[0].kind).toBe("primary")
-    expect(targets[0].dir).toBe(primaryDir())
-    expect(targets[0].available).toBe(true)
+    expect(targets[0]!.kind).toBe("primary")
+    expect(targets[0]!.dir).toBe(primaryDir())
+    expect(targets[0]!.available).toBe(true)
     expect(targets.filter((t) => t.dir === primaryDir())).toHaveLength(1)
     expect(new Set(targets.map((t) => t.dir)).size).toBe(targets.length)
   })
@@ -496,9 +496,9 @@ describe("resolveSkillTargets 三层目标解析", () => {
   it("--dir 作为 custom 目标恒可用并排在末尾，与内置路径重复时去重", () => {
     const extra = join(home, "extra-skills")
     const targets = resolveSkillTargets([extra, primaryDir()])
-    expect(targets[targets.length - 1].dir).toBe(extra)
-    expect(targets[targets.length - 1].kind).toBe("custom")
-    expect(targets[targets.length - 1].available).toBe(true)
+    expect(targets[targets.length - 1]!.dir).toBe(extra)
+    expect(targets[targets.length - 1]!.kind).toBe("custom")
+    expect(targets[targets.length - 1]!.available).toBe(true)
     expect(targets.filter((t) => t.kind === "custom")).toHaveLength(1)
   })
 })
@@ -521,9 +521,9 @@ describe("installSkills 安装", () => {
       expect(isLinkTo(join(primaryDir(), name), join(skillsSourceDir(), name))).toBe(true)
     }
     const state = readSkillsState()
-    expect(state?.targets[0].dir).toBe(primaryDir())
-    expect(state?.targets[0].links).toEqual(report.skills)
-    expect(state?.targets[0].copies).toEqual([])
+    expect(state?.targets[0]!.dir).toBe(primaryDir())
+    expect(state?.targets[0]!.links).toEqual(report.skills)
+    expect(state?.targets[0]!.copies).toEqual([])
   })
 
   it("重复安装幂等：已就绪的链接整体跳过", () => {
@@ -539,14 +539,14 @@ describe("installSkills 安装", () => {
     const report = installSkills({ copy: true })
     const primary = targetOf(report, "primary")
     expect(primary.copies).toEqual(report.skills)
-    expect(lstatSync(join(primaryDir(), report.skills[0])).isSymbolicLink()).toBe(false)
+    expect(lstatSync(join(primaryDir(), report.skills[0]!)).isSymbolicLink()).toBe(false)
     const second = installSkills({ copy: true })
     expect(targetOf(second, "primary").skipped).toEqual(second.skills)
   })
 
   it("副本内容漂移后重跑安装会重建为真源内容，预演只记更新不落盘", () => {
     const report = installSkills({ copy: true })
-    const name = report.skills[0]
+    const name = report.skills[0]!
     const dest = join(primaryDir(), name, "SKILL.md")
     writeFileSync(dest, "drifted", "utf8")
     const preview = installSkills({ copy: true, dryRun: true })
@@ -558,7 +558,7 @@ describe("installSkills 安装", () => {
   })
 
   it("同名普通文件视为冲突默认跳过，status 报冲突", () => {
-    const name = listPackageSkills()[0].name
+    const name = listPackageSkills()[0]!.name
     mkdirSync(primaryDir(), { recursive: true })
     writeFileSync(join(primaryDir(), name), "not a skill", "utf8")
     expect(targetOf(installSkills(), "primary").conflicts).toContain(name)
@@ -567,7 +567,7 @@ describe("installSkills 安装", () => {
   })
 
   it("同名用户自装目录默认不覆盖，--force 才重建", () => {
-    const name = listPackageSkills()[0].name
+    const name = listPackageSkills()[0]!.name
     const dest = join(primaryDir(), name)
     mkdirSync(dest, { recursive: true })
     writeFileSync(join(dest, "SKILL.md"), "user made", "utf8")
@@ -579,7 +579,7 @@ describe("installSkills 安装", () => {
   })
 
   it("指向别处的链接在 status 报错并在下次安装重建", () => {
-    const name = listPackageSkills()[0].name
+    const name = listPackageSkills()[0]!.name
     mkdirSync(primaryDir(), { recursive: true })
     const other = join(home, "other")
     mkdirSync(other, { recursive: true })
@@ -605,7 +605,7 @@ describe("installSkills 安装", () => {
     const report = installSkills()
     const claude = report.targets.find((t) => t.dir === agentDir("claude-code"))
     expect(claude?.created).toEqual(report.skills)
-    expect(existsSync(join(agentDir("claude-code"), report.skills[0], "SKILL.md"))).toBe(true)
+    expect(existsSync(join(agentDir("claude-code"), report.skills[0]!, "SKILL.md"))).toBe(true)
     expect(report.skippedTargets.some((t) => t.dir === agentDir("codex"))).toBe(true)
     expect(existsSync(join(home, ".codex"))).toBe(false)
   })
@@ -614,11 +614,11 @@ describe("installSkills 安装", () => {
     const extra = join(home, "custom-skills")
     const report = installSkills({ dirs: [extra] })
     expect(targetOf(report, "custom").created).toEqual(report.skills)
-    expect(existsSync(join(extra, report.skills[0], "SKILL.md"))).toBe(true)
+    expect(existsSync(join(extra, report.skills[0]!, "SKILL.md"))).toBe(true)
     installSkills()
     expect(readSkillsState()?.targets.some((t) => t.dir === extra)).toBe(true)
     removeSkills()
-    expect(existsSync(join(extra, report.skills[0]))).toBe(false)
+    expect(existsSync(join(extra, report.skills[0]!))).toBe(false)
   })
 })
 
@@ -663,7 +663,8 @@ describe("skillsStatus 现场状态", () => {
 
   it("副本被改动报漂移，产物被删除报缺失", () => {
     const report = installSkills({ copy: true })
-    const [drifted, gone] = report.skills
+    const drifted = report.skills[0]!
+    const gone = report.skills[1]!
     writeFileSync(join(primaryDir(), drifted, "SKILL.md"), "changed", "utf8")
     rmSync(join(primaryDir(), gone), { recursive: true, force: true })
     expect(stateOf(primaryDir(), drifted)).toBe("copy-drift")
@@ -671,7 +672,7 @@ describe("skillsStatus 现场状态", () => {
   })
 
   it("未登记的同名目录报同名冲突（裸 install 跳过、--force 才覆盖），登记为本包副本的漂移才报副本漂移", () => {
-    const name = listPackageSkills()[0].name
+    const name = listPackageSkills()[0]!.name
     const dest = join(primaryDir(), name)
     mkdirSync(dest, { recursive: true })
     writeFileSync(join(dest, "SKILL.md"), "foreign", "utf8")
@@ -705,7 +706,7 @@ describe("skillsStatus 现场状态", () => {
   })
 
   it("现场报告 JSON 可序列化且字段齐备（--format json 契约）", () => {
-    const name = listPackageSkills()[0].name
+    const name = listPackageSkills()[0]!.name
     mkdirSync(join(primaryDir(), name), { recursive: true })
     writeFileSync(join(primaryDir(), name, "SKILL.md"), "foreign", "utf8")
     const payload = JSON.parse(JSON.stringify(skillsStatus())) as {
@@ -731,7 +732,7 @@ describe("skillsStatus 现场状态", () => {
 describe("skillTargetLabel 反查显示名", () => {
   it("canonical 优先、agent 目录命中快照表、表外目标返回 null", () => {
     // 期望值取自真实解析结果，避免测试内复刻一份标签表
-    expect(skillTargetLabel(primaryDir())).toBe(resolveSkillTargets()[0].label)
+    expect(skillTargetLabel(primaryDir())).toBe(resolveSkillTargets()[0]!.label)
     const codex = AGENT_SKILL_DIRS.find((a) => a.name === "codex")
     if (!codex) throw new Error("内置快照表缺少 agent：codex")
     expect(skillTargetLabel(agentDir("codex"))).toBe(codex.label)
@@ -753,25 +754,25 @@ describe("removeSkills 精确清理", () => {
       { dir: join(home, "custom-skills"), copies: [] },
     ])
     const report = removeSkills({ dryRun: true })
-    expect(report.targets[0].label).toBe(resolveSkillTargets()[0].label)
-    expect(report.targets[1].label).toBeNull()
+    expect(report.targets[0]!.label).toBe(resolveSkillTargets()[0]!.label)
+    expect(report.targets[1]!.label).toBeNull()
   })
 
   it("预演只报告不删除，正式卸载清空产物并删除状态文件", () => {
     const installed = installSkills({ copy: true })
     const preview = removeSkills({ dryRun: true })
-    expect(preview.targets[0].removed).toEqual(installed.skills)
-    expect(existsSync(join(primaryDir(), installed.skills[0], "SKILL.md"))).toBe(true)
+    expect(preview.targets[0]!.removed).toEqual(installed.skills)
+    expect(existsSync(join(primaryDir(), installed.skills[0]!, "SKILL.md"))).toBe(true)
     expect(existsSync(skillsStateFile())).toBe(true)
     const done = removeSkills()
     expect(done.stateRemoved).toBe(true)
     expect(existsSync(skillsStateFile())).toBe(false)
-    expect(existsSync(join(primaryDir(), installed.skills[0]))).toBe(false)
+    expect(existsSync(join(primaryDir(), installed.skills[0]!))).toBe(false)
   })
 
   it("软链产物只摘链，不触碰包内真源", () => {
     const installed = installSkills()
-    const name = installed.skills[0]
+    const name = installed.skills[0]!
     expect(lstatSync(join(primaryDir(), name)).isSymbolicLink()).toBe(true)
     removeSkills()
     expect(existsSync(join(skillsSourceDir(), name, "SKILL.md"))).toBe(true)
@@ -779,7 +780,9 @@ describe("removeSkills 精确清理", () => {
 
   it("现场被改动（指向别处 / 内容漂移 / 变成普通文件）时跳过并保留状态文件", () => {
     const installed = installSkills({ copy: true })
-    const [wrongName, driftName, fileLike] = installed.skills
+    const wrongName = installed.skills[0]!
+    const driftName = installed.skills[1]!
+    const fileLike = installed.skills[2]!
     rmSync(join(primaryDir(), wrongName), { recursive: true, force: true })
     const other = join(home, "other")
     mkdirSync(other, { recursive: true })
@@ -788,7 +791,7 @@ describe("removeSkills 精确清理", () => {
     rmSync(join(primaryDir(), fileLike), { recursive: true, force: true })
     writeFileSync(join(primaryDir(), fileLike), "plain file", "utf8")
     const report = removeSkills()
-    expect(report.targets[0].skippedForeign.sort()).toEqual([wrongName, driftName, fileLike].sort())
+    expect(report.targets[0]!.skippedForeign.sort()).toEqual([wrongName, driftName, fileLike].sort())
     expect(report.stateRemoved).toBe(false)
     expect(existsSync(skillsStateFile())).toBe(true)
     expect(existsSync(join(primaryDir(), driftName))).toBe(true)
@@ -796,10 +799,10 @@ describe("removeSkills 精确清理", () => {
 
   it("产物已被手动删除时计入缺失，仍按清理结果处理状态文件", () => {
     const installed = installSkills({ copy: true })
-    const name = installed.skills[0]
+    const name = installed.skills[0]!
     rmSync(join(primaryDir(), name), { recursive: true, force: true })
     const report = removeSkills()
-    expect(report.targets[0].missing).toContain(name)
+    expect(report.targets[0]!.missing).toContain(name)
     expect(report.stateRemoved).toBe(true)
   })
 })
@@ -816,7 +819,8 @@ describe("autoLinkSkills 链接自愈", () => {
 
   it("补建被删除的链接并重建指向错误的链接", () => {
     const installed = installSkills()
-    const [gone, wrongName] = installed.skills
+    const gone = installed.skills[0]!
+    const wrongName = installed.skills[1]!
     rmSync(join(primaryDir(), gone), { recursive: true, force: true })
     rmSync(join(primaryDir(), wrongName), { recursive: true, force: true })
     const other = join(home, "other")
@@ -831,14 +835,14 @@ describe("autoLinkSkills 链接自愈", () => {
     mkdirSync(primaryDir(), { recursive: true })
     writeState([{ dir: primaryDir(), links: ["fxri-not-exists", "fxri-plan-to-task"] }])
     expect(autoLinkSkills()).toBe(1)
-    expect(readSkillsState()?.targets[0].links).toEqual(["fxri-plan-to-task"])
+    expect(readSkillsState()?.targets[0]!.links).toEqual(["fxri-plan-to-task"])
   })
 
   it("状态记录的目标目录已不存在时原样保留记录", () => {
     const ghostDir = join(home, "ghost-target")
     writeState([{ dir: ghostDir, links: ["fxri-plan-to-task"] }])
     expect(autoLinkSkills()).toBe(0)
-    expect(readSkillsState()?.targets[0].dir).toBe(ghostDir)
+    expect(readSkillsState()?.targets[0]!.dir).toBe(ghostDir)
   })
 
   it("配置 skills.autoLink=false 时关闭自愈", () => {
@@ -893,29 +897,31 @@ describe("autoLinkSkills 实体产物开关", () => {
 
   it("开关关闭时实体目录一律不动，记录照留", () => {
     const installed = installSkills()
-    const dest = replaceWithDir(installed.skills[0], "user dir")
+    const dest = replaceWithDir(installed.skills[0]!, "user dir")
     disableReplaceForeign()
     expect(autoLinkSkills()).toBe(0)
     expect(lstatSync(dest).isSymbolicLink()).toBe(false)
     expect(readFileSync(join(dest, "SKILL.md"), "utf8")).toBe("user dir")
-    expect(readSkillsState()?.targets[0].links).toContain(installed.skills[0])
+    expect(readSkillsState()?.targets[0]!.links).toContain(installed.skills[0])
   })
 
   it("开关关闭时普通文件一律不动", () => {
     const installed = installSkills()
-    const dest = join(primaryDir(), installed.skills[0])
+    const dest = join(primaryDir(), installed.skills[0]!)
     rmSync(dest, { recursive: true, force: true })
     writeFileSync(dest, "plain file", "utf8")
     disableReplaceForeign()
     expect(autoLinkSkills()).toBe(0)
     expect(lstatSync(dest).isSymbolicLink()).toBe(false)
     expect(readFileSync(dest, "utf8")).toBe("plain file")
-    expect(readSkillsState()?.targets[0].links).toContain(installed.skills[0])
+    expect(readSkillsState()?.targets[0]!.links).toContain(installed.skills[0])
   })
 
   it("开关关闭只豁免实体产物：悬空与指向错误仍重建，实体记录随写盘保留", () => {
     const installed = installSkills()
-    const [dirName, goneName, wrongName] = installed.skills
+    const dirName = installed.skills[0]!
+    const goneName = installed.skills[1]!
+    const wrongName = installed.skills[2]!
     const foreign = replaceWithDir(dirName, "user dir")
     rmSync(join(primaryDir(), goneName), { recursive: true, force: true })
     rmSync(join(primaryDir(), wrongName), { recursive: true, force: true })
@@ -925,7 +931,7 @@ describe("autoLinkSkills 实体产物开关", () => {
     disableReplaceForeign()
     expect(autoLinkSkills()).toBe(2)
     // 同轮有修复落盘时，被豁免的实体目录记录不能被写掉
-    const links = readSkillsState()?.targets[0].links ?? []
+    const links = readSkillsState()?.targets[0]!.links ?? []
     expect(links).toContain(dirName)
     expect(links).toContain(goneName)
     expect(links).toContain(wrongName)
@@ -937,28 +943,28 @@ describe("autoLinkSkills 实体产物开关", () => {
 
   it("未配置开关时实体目录仍被清理重建（默认行为回归）", () => {
     const installed = installSkills()
-    const dest = replaceWithDir(installed.skills[0], "user dir")
+    const dest = replaceWithDir(installed.skills[0]!, "user dir")
     expect(autoLinkSkills()).toBe(1)
-    expect(isLinkTo(dest, join(skillsSourceDir(), installed.skills[0]))).toBe(true)
+    expect(isLinkTo(dest, join(skillsSourceDir(), installed.skills[0]!))).toBe(true)
   })
 })
 
 describe("悬空链接判定与自动清理", () => {
   it("指向别处且该处已不存在的链接报悬空，卸载可自动清理而不交人工确认", () => {
     const installed = installSkills({ copy: true })
-    const name = installed.skills[0]
+    const name = installed.skills[0]!
     // 模拟指向已失效的旧版本段：目标目录不存在，无从判其内容归属，应归为悬空（而非指向其他版本）
     rmSync(join(primaryDir(), name), { recursive: true, force: true })
     symlinkSync(join(home, "stale-segment", name), join(primaryDir(), name), LINK_TYPE)
     expect(stateOf(primaryDir(), name)).toBe("dangling")
     const report = removeSkills()
-    expect(report.targets[0].removed).toContain(name)
-    expect(report.targets[0].skippedForeign).toHaveLength(0)
+    expect(report.targets[0]!.removed).toContain(name)
+    expect(report.targets[0]!.skippedForeign).toHaveLength(0)
   })
 
   it("自愈重建指向已失效旧版本段的悬空链接", () => {
     const installed = installSkills()
-    const name = installed.skills[0]
+    const name = installed.skills[0]!
     rmSync(join(primaryDir(), name), { recursive: true, force: true })
     symlinkSync(join(home, "stale-segment", name), join(primaryDir(), name), LINK_TYPE)
     expect(autoLinkSkills()).toBe(1)
@@ -966,7 +972,7 @@ describe("悬空链接判定与自动清理", () => {
   })
 
   it("指向别处且内容仍一致的健康链接不受影响（路径不同不等于内容不同）", () => {
-    const name = listPackageSkills()[0].name
+    const name = listPackageSkills()[0]!.name
     // 整目录复制真源到异地再链接过去：内容逐字一致即视为正常，避免体检假警
     const mirror = join(home, "mirror", name)
     cpSync(join(skillsSourceDir(), name), mirror, { recursive: true })
@@ -979,42 +985,42 @@ describe("悬空链接判定与自动清理", () => {
 describe("落点形态保持与卸载回收", () => {
   it("--force 只解除冲突判定，已登记的副本仍是副本、不翻回软链", () => {
     const installed = installSkills({ copy: true })
-    const name = installed.skills[0]
+    const name = installed.skills[0]!
     expect(lstatSync(join(primaryDir(), name)).isSymbolicLink()).toBe(false)
     const forced = installSkills({ force: true })
-    expect(forced.targets[0].copies).toContain(name)
+    expect(forced.targets[0]!.copies).toContain(name)
     expect(lstatSync(join(primaryDir(), name)).isSymbolicLink()).toBe(false)
     expect(stateOf(primaryDir(), name)).toBe("copy")
   })
 
   it("裸 install 刷新已登记副本时同样保持副本形态", () => {
     const installed = installSkills({ copy: true })
-    const name = installed.skills[0]
+    const name = installed.skills[0]!
     const again = installSkills()
-    expect(again.targets[0].copies).toContain(name)
+    expect(again.targets[0]!.copies).toContain(name)
     expect(lstatSync(join(primaryDir(), name)).isSymbolicLink()).toBe(false)
   })
 
   it("卸载清空产物后一并回收空目录并回报 dirReclaimed", () => {
     const installed = installSkills({ copy: true })
     const report = removeSkills()
-    expect(report.targets[0].dirReclaimed).toBe(true)
+    expect(report.targets[0]!.dirReclaimed).toBe(true)
     expect(existsSync(primaryDir())).toBe(false)
-    expect(existsSync(join(primaryDir(), installed.skills[0]))).toBe(false)
+    expect(existsSync(join(primaryDir(), installed.skills[0]!))).toBe(false)
   })
 
   it("目录中留有非本包内容时不回收，dirReclaimed 为假", () => {
     installSkills({ copy: true })
     writeFileSync(join(primaryDir(), "user-note.md"), "keep me", "utf8")
     const report = removeSkills()
-    expect(report.targets[0].dirReclaimed).toBe(false)
+    expect(report.targets[0]!.dirReclaimed).toBe(false)
     expect(existsSync(join(primaryDir(), "user-note.md"))).toBe(true)
   })
 
   it("预演不回收目录，也不标记已回收", () => {
     installSkills({ copy: true })
     const preview = removeSkills({ dryRun: true })
-    expect(preview.targets[0].dirReclaimed).toBe(false)
+    expect(preview.targets[0]!.dirReclaimed).toBe(false)
     expect(existsSync(primaryDir())).toBe(true)
   })
 })
@@ -1034,7 +1040,7 @@ describe("status 目标纳入口径", () => {
     const dir = agentDir("claude-code")
     mkdirSync(dir, { recursive: true })
     expect(skillsStatus().targets.some((t) => t.dir === dir)).toBe(false)
-    writeState([{ dir, links: [listPackageSkills()[0].name] }])
+    writeState([{ dir, links: [listPackageSkills()[0]!.name] }])
     expect(skillsStatus().targets.some((t) => t.dir === dir)).toBe(true)
   })
 })

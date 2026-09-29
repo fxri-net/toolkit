@@ -51,7 +51,7 @@ describe("loadToolkitConfig 向上查找", () => {
     // \uFEFF 前缀模拟 PowerShell Set-Content -Encoding utf8 的输出
     writeFileSync(join(dir, ".toolkitrc.json"), "\uFEFF" + JSON.stringify({ tasks: { dir: "../o" } }), "utf8")
     resetToolkitConfigCache()
-    expect(loadToolkitConfig()?.tasks?.dir).toBe("../o")
+    expect(getConfigSection("tasks")?.dir).toBe("../o")
     expect(resolveTasksDir()).toBe("../o")
     cleanupTmpDir(dir)
   })
@@ -62,7 +62,7 @@ describe("loadToolkitConfig 向上查找", () => {
     writeFileSync(join(dir, ".toolkitrc.json"), JSON.stringify({ check: { up: true } }), "utf8")
     process.chdir(join(dir, "a", "b"))
     resetToolkitConfigCache()
-    expect(loadToolkitConfig()?.check?.up).toBe(true)
+    expect(getConfigSection("check")?.up).toBe(true)
     cleanupTmpDir(dir)
   })
 
@@ -73,9 +73,8 @@ describe("loadToolkitConfig 向上查找", () => {
     writeFileSync(join(dir, "a", ".toolkitrc.json"), JSON.stringify({ check: { child: true } }), "utf8")
     process.chdir(join(dir, "a"))
     resetToolkitConfigCache()
-    const cfg = loadToolkitConfig()
-    expect(cfg?.check?.child).toBe(true)
-    expect(cfg?.check?.root).toBeUndefined()
+    expect(getConfigSection("check")?.child).toBe(true)
+    expect(getConfigSection("check")?.root).toBeUndefined()
     cleanupTmpDir(dir)
   })
 })
@@ -114,7 +113,7 @@ describe("全局配置段级合并", () => {
     writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ updateCheck: { enabled: false } }), "utf8")
     const dir = chdirIntoEmptyProject()
     resetToolkitConfigCache()
-    expect(loadToolkitConfig()?.updateCheck?.enabled).toBe(false)
+    expect(getConfigSection("updateCheck")?.enabled).toBe(false)
     cleanupTmpDir(dir)
   })
 
@@ -123,9 +122,8 @@ describe("全局配置段级合并", () => {
     const dir = chdirIntoEmptyProject()
     writeFileSync(join(dir, ".toolkitrc.json"), JSON.stringify({ check: { warnings: false } }), "utf8")
     resetToolkitConfigCache()
-    const cfg = loadToolkitConfig()
-    expect(cfg?.updateCheck?.enabled).toBe(false)
-    expect(cfg?.check?.warnings).toBe(false)
+    expect(getConfigSection("updateCheck")?.enabled).toBe(false)
+    expect(getConfigSection("check")?.warnings).toBe(false)
     cleanupTmpDir(dir)
   })
 
@@ -134,9 +132,8 @@ describe("全局配置段级合并", () => {
     const dir = chdirIntoEmptyProject()
     writeFileSync(join(dir, ".toolkitrc.json"), JSON.stringify({ redact: { enabled: true } }), "utf8")
     resetToolkitConfigCache()
-    const cfg = loadToolkitConfig()
-    expect(cfg?.redact?.enabled).toBe(true)
-    expect(cfg?.redact?.disable).toBeUndefined()
+    expect(getConfigSection("redact")?.enabled).toBe(true)
+    expect(getConfigSection("redact")?.disable).toBeUndefined()
     cleanupTmpDir(dir)
   })
 
@@ -145,9 +142,8 @@ describe("全局配置段级合并", () => {
     const dir = chdirIntoEmptyProject()
     writeFileSync(join(dir, ".toolkitrc.json"), JSON.stringify({ check: { warnings: false } }), "utf8")
     resetToolkitConfigCache()
-    const cfg = loadToolkitConfig()
-    expect(cfg?.check?.warnings).toBe(false)
-    expect(cfg?.updateCheck).toBeUndefined()
+    expect(getConfigSection("check")?.warnings).toBe(false)
+    expect(getConfigSection("updateCheck")).toBeUndefined()
     cleanupTmpDir(dir)
   })
 
@@ -159,7 +155,7 @@ describe("全局配置段级合并", () => {
     )
     const dir = chdirIntoEmptyProject()
     resetToolkitConfigCache()
-    expect(loadToolkitConfig()?.updateCheck?.enabled).toBe(false)
+    expect(getConfigSection("updateCheck")?.enabled).toBe(false)
     cleanupTmpDir(dir)
   })
 
@@ -178,10 +174,10 @@ describe("全局配置段级合并", () => {
     const dir = chdirIntoEmptyProject()
     writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ updateCheck: { enabled: true } }), "utf8")
     resetToolkitConfigCache()
-    expect(loadToolkitConfig()?.updateCheck?.enabled).toBe(true)
+    expect(getConfigSection("updateCheck")?.enabled).toBe(true)
     writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ updateCheck: { enabled: false } }), "utf8")
     resetToolkitConfigCache()
-    expect(loadToolkitConfig()?.updateCheck?.enabled).toBe(false)
+    expect(getConfigSection("updateCheck")?.enabled).toBe(false)
     cleanupTmpDir(dir)
   })
 })
@@ -200,7 +196,7 @@ describe("配置降级告警", () => {
 
   // 汇总 console.warn 收到的告警文本
   function warnTexts(): string[] {
-    return warn.mock.calls.map((c) => String(c[0]))
+    return warn.mock.calls.map((c: unknown[]) => String(c[0]))
   }
 
   it("配置段类型不符：告警一次并视为未配置", () => {

@@ -22,7 +22,7 @@
 
 ## 验收方式
 
-- 跑 `pnpm verify`——**单一步骤清单真源**，步骤定义在 `scripts/verify.mjs`（类型检查 → 冷缓存静态检查 → 单测 → 覆盖率 → 构建 → 文档站构建 → CLI 冒烟 → 任务区体检），本地与三处 CI（GitHub `check` / `windows`、GitLab `test`）调用同一份；**禁止在本文件或 CI 配置里另写步骤枚举**，那是清单漂移的根因。跨平台裁剪用 `pnpm verify --skip-coverage --skip-docs`（windows job 即此路径）。任一步失败即不得交付，注意 `pnpm lint` 是 eslint 不做类型检查、`pnpm build` 亦不拦截类型错误，单跑二者不能替代本门禁；
+- 跑 `pnpm verify`——**单一步骤清单真源**，步骤定义在 `scripts/verify.mjs`（类型检查 → 冷缓存静态检查 → 单测 → 覆盖率 → 构建 → 文档站构建 → CLI 冒烟 → 任务区体检），本地与三处 CI（GitHub `check` / `windows`、GitLab `test`）调用同一份；**禁止在本文件或 CI 配置里另写步骤枚举**，那是清单漂移的根因。跨平台裁剪用 `pnpm verify --skip-coverage --skip-docs`（windows job 即此路径）。任一步失败即不得交付，注意 `pnpm lint` 是 eslint 不做类型检查、`pnpm build` 亦不拦截类型错误，单跑二者不能替代本门禁；且类型检查须覆盖测试文件——基础 `tsconfig.json` 的 `exclude` 排除 `**/__tests__` 等测试路径，类型检查单独走放开该排除项的 `tsconfig.typecheck.json`，不得让测试文件落在盲区；
 - `toolkit tasks check` 的 error 与 warn 均应为 0（除非任务规格另有豁免）——已在 `pnpm verify` 内执行，此处强调阈值；
 - grep 确认文档与 skills 措辞落地；
 - 测试不得复刻被测实现的逻辑：派生、镜像类逻辑的测试期望须直接调用真实实现，不得在测试内重写同一份转换逻辑——同错复刻会让实现缺陷照样漏过。

@@ -196,8 +196,8 @@ describe("本地配置忽略告警", () => {
 
     const issues = validateTasks(dir, app).issues.filter((i) => i.level === "warn" && i.message.includes("本地配置文件未被 gitignore 覆盖"))
     expect(issues).toHaveLength(1)
-    expect(issues[0].file).toBe("../.toolkitrc.local.json")
-    expect(issues[0].message).toContain("toolkit init")
+    expect(issues[0]!.file).toBe("../.toolkitrc.local.json")
+    expect(issues[0]!.message).toContain("toolkit init")
     rmSync(repo, { recursive: true, force: true })
   })
 })

@@ -52,9 +52,9 @@ describe("parseArchiveBlocks", () => {
   it("块尾分隔符不残留（A8）", () => {
     const { blocks } = parseArchiveBlocks(src)
     expect(blocks).toHaveLength(2)
-    expect(blocks[0].body).not.toMatch(/^---/)
-    expect(blocks[0].body).not.toMatch(/---\s*$/)
-    expect(blocks[0].body).toContain("a 正文")
+    expect(blocks[0]!.body).not.toMatch(/^---/)
+    expect(blocks[0]!.body).not.toMatch(/---\s*$/)
+    expect(blocks[0]!.body).toContain("a 正文")
   })
 
   it("疑似任务块扫描（A5）", () => {

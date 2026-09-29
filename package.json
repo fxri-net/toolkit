@@ -45,7 +45,7 @@
     "dev": "pnpm build:debug && node ./dist/cli.js",
     "build": "cross-env NODE_ENV=production tsup",
     "build:debug": "cross-env NODE_ENV=development tsup --config tsup.dev.config.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "lint": "eslint . --cache",
     "lint:fix": "eslint . --fix",
     "test": "vitest run --exclude \"src/__tests__/warn-threshold.test.ts\"",

@@ -7,8 +7,8 @@ import { formatChangelog, formatChangelogs, localDate, countUntypedEntries, find
 import { collectChangelogs } from "../changelog/collect"
 import { languages, DEFAULT_LANG, resolveLang, type ChangelogLanguage } from "../changelog/languages"
 
-const zh = languages[DEFAULT_LANG]
-const en = languages.en
+const zh = languages[DEFAULT_LANG]!
+const en = languages.en!
 
 // 造临时 CHANGELOG 样本并在用例结束后清理（新增用例统一走此入口）
 function withChangelog(content: string, run: (file: string, dir: string) => void) {
@@ -599,8 +599,8 @@ describe("findUntypedChangesetEntries", () => {
       (dir) => {
         const found = findUntypedChangesetEntries(dir, Object.values(languages))
         expect(found).toHaveLength(1)
-        expect(found[0].count).toBe(1)
-        expect(found[0].line).toBe(6)
+        expect(found[0]!.count).toBe(1)
+        expect(found[0]!.line).toBe(6)
       },
     )
   })
@@ -614,7 +614,7 @@ describe("findUntypedChangesetEntries", () => {
       (dir) => {
         const found = findUntypedChangesetEntries(dir, Object.values(languages))
         expect(found.map((e) => e.file.split("/").pop())).toEqual(["tidy-otters-listen.md"])
-        expect(found[0].count).toBe(3)
+        expect(found[0]!.count).toBe(3)
       },
     )
   })
@@ -661,7 +661,7 @@ describe("resolveLang", () => {
   })
 
   it("合并表覆盖内置时以覆盖值为准", () => {
-    const custom: ChangelogLanguage = { ...zh, title: "自定义" }
+    const custom: ChangelogLanguage = { ...zh, released: "自定义" }
     const merged = { ...languages, zh: custom }
     expect(resolveLang(merged, "zh", DEFAULT_LANG).lang).toBe(custom)
   })

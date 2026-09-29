@@ -259,9 +259,9 @@ describe("入口层体检", () => {
     expect(report.shells).toHaveLength(2)
     const versionItems = report.items.filter((i) => i.message.includes("入口壳标记与当前 toolkit"))
     expect(versionItems).toHaveLength(1)
-    expect(versionItems[0].message).toContain("共 2 处")
-    expect(versionItems[0].message).toContain(`.trae/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 v${ENTRY_VERSION - 1}）`)
-    expect(versionItems[0].message).toContain(`.cursor/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 无）`)
+    expect(versionItems[0]!.message).toContain("共 2 处")
+    expect(versionItems[0]!.message).toContain(`.trae/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 v${ENTRY_VERSION - 1}）`)
+    expect(versionItems[0]!.message).toContain(`.cursor/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 无）`)
     expect(report.summary).toContain("1 项待处理")
   })
 
@@ -277,7 +277,7 @@ describe("入口层体检", () => {
     expect(report.shells.filter((s) => s.ignored)).toHaveLength(1)
     const ignoredItems = report.items.filter((i) => i.message.includes("被 gitignore 覆盖"))
     expect(ignoredItems).toHaveLength(1)
-    expect(ignoredItems[0].message).toContain(`.trae/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}`)
+    expect(ignoredItems[0]!.message).toContain(`.trae/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}`)
     // 版本一致，此处只应有一条问题
     expect(report.warnings).toBe(1)
   })
