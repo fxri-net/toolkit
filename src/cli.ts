@@ -20,9 +20,9 @@ import { languages, DEFAULT_LANG, resolveLang, type ChangelogLanguage } from "./
 import { localDate, formatChangelogs, countUntypedEntries, findUntypedChangesetEntries } from "./changelog/format"
 import { resolveRedactEnabled } from "./privacy/redact"
 import { resolveEnabled } from "./switch"
-import { getConfigSection, getHomeDir, resolveTasksDir } from "./config"
-import { configStatus, type ConfigStatusReport } from "./config-status"
-import { normalizePathForCompare, toPosix, type LocalConfigIgnoreState } from "./git-ignore"
+import { getConfigSection, resolveTasksDir } from "./config"
+import { configStatus, foldHome, foldHomeInText, type ConfigStatusReport } from "./config-status"
+import type { LocalConfigIgnoreState } from "./git-ignore"
 import { initWorkspace, INIT_LINKS, type InitAction, type InitReport } from "./init"
 import { upgradeConventions, type UpgradeReport } from "./conventions/upgrade"
 import { conventionsStatus, type ConventionsStatusReport } from "./conventions/status"
@@ -512,7 +512,7 @@ function printConventionsStatus(report: ConventionsStatusReport): void {
     console.log("无待处理项")
     return
   }
-  for (const item of report.items) console.log(`${item.level === "warn" ? "⚠️" : "·"} [${item.scope}] ${item.message}`)
+  for (const item of report.items) console.log(`${item.level === "warn" ? "⚠️" : "·"} [${item.scope}] ${foldHomeInText(item.message)}`)
 }
 
 // conventions 域：规范载体的结构升级与只读体检（载体细则见 skills/fxri-plan-to-task/references/conventions-spec.md）
@@ -571,20 +571,9 @@ const CONFIG_IGNORE_LABEL: Record<LocalConfigIgnoreState, string> = {
   unavailable: "忽略判定不可用",
 }
 
-// 文本模式路径显示：把 home 前缀折叠为 ~，避免共享日志 / 截图泄露本机目录结构（JSON 模式保留绝对路径供脚本定位）
-// 前缀比较走 normalizePathForCompare（大小写不敏感 + 分隔符归一），否则 Windows 盘符 / 分隔符差异会让折叠失效
-function foldHome(p: string): string {
-  const posix = toPosix(p)
-  const home = toPosix(getHomeDir())
-  const key = normalizePathForCompare(p)
-  const homeKey = normalizePathForCompare(getHomeDir())
-  if (key === homeKey) return "~"
-  if (!key.startsWith(`${homeKey}/`)) return posix
-  return `~/${posix.slice(home.length).replace(/^\/+/, "")}`
-}
-
 // 打印配置分层报告：先给一句话结论，再列三层现场 / 展示键来源 / 环境变量层 / 能力旁路 / 其余已配置段 / 待处理项
 // 一律不打印配置值（redact 段含个人脱敏规则、skills 段含本机路径，落到终端 / CI 日志即外泄）
+// 路径一律走 foldHome / foldHomeInText 折叠为 ~（层级路径与待处理项文案内嵌的路径同等处理），避免共享日志泄露本机目录结构
 function printConfigStatus(report: ConfigStatusReport): void {
   console.log(report.summary)
   console.log(`查找起点：${foldHome(report.cwd)}`)
@@ -643,8 +632,8 @@ configCmd
       if (options.format === "json") printJson(report)
       else printConfigStatus(report)
     } catch (e) {
+      // 体检失败不置退出码：与 conventions status 对齐，「只读体检不阻断」是本命令的设计意图
       console.error(`⚠️ 读取状态失败：${(e as Error).message}`)
-      process.exitCode = 1
     }
   })
 

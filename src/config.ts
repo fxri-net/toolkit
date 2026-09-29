@@ -18,8 +18,8 @@ import { normalizePathForCompare } from "./git-ignore"
 
 // 项目配置文件名：团队共享，随 git 分发
 const CONFIG_PROJECT_FILE = ".toolkitrc.json"
-// 本地配置文件名：个人私有，默认被 git 忽略
-const CONFIG_LOCAL_FILE = ".toolkitrc.local.json"
+// 本地配置文件名：个人私有，默认被 git 忽略（导出供 config status 提示 home 下的同名文件不参与查找）
+export const CONFIG_LOCAL_FILE = ".toolkitrc.local.json"
 // 展示键清单（钉死四项）与其期望类型：类型非法的键按未写处理；该清单 ⊇ 环境变量覆盖组目标键（不变式）
 const DISPLAY_KEY_TYPES: ReadonlyArray<{ key: string; type: "string" | "boolean" }> = [
   { key: "tasks.dir", type: "string" },

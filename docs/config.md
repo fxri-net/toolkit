@@ -15,8 +15,8 @@
 | 本地层 | `.toolkitrc.local.json` | 自 `process.cwd()` 向上逐级查找最近一份（**止于 home**） | 个人按项目、仅本人可见，默认被 git 忽略 |
 
 - **各自独立查找**：项目层与本地层分别向上查找最近一份，不要求命中同一目录——monorepo 子目录只放本地文件时不会吞掉上层团队配置
-- **本地层止于 home**：向上查到 `~` 即停，避免把 `~/.toolkitrc.local.json` 误当项目下的本地层命中（全局层读的是 `~/.toolkitrc.json`，两者并非一对）；⚠️ cwd 不在 home 之下时（如 Windows `D:\…`、home 在 `C:\Users\…`）该边界不触发，退化为查到盘根为止
-- **命中路径可能位于仓库根之上**：向上查找不设仓库根边界，父目录散落的本地配置文件也会被命中；`toolkit config status` 输出绝对路径可作排查入口
+- **本地层止于 home**：向上查到 `~` 即停，避免把 `~/.toolkitrc.local.json` 误当项目下的本地层命中（全局层读的是 `~/.toolkitrc.json`，两者并非一对）；⚠️ cwd 不在 home 之下时（如 Windows `D:\…`、home 在 `C:\Users\…`）该边界不触发，退化为查到盘根为止。`toolkit config status` 检测到 home 下存在 `.toolkitrc.local.json` 时会给出 `info` 级提示，指明该文件不参与查找
+- **命中路径可能位于仓库根之上**：向上查找不设仓库根边界，父目录散落的本地配置文件也会被命中；`toolkit config status` 可作排查入口——绝对路径仅在 `--format json` 输出可见，文本模式折叠 home 前缀为 `~/…`
 - **版本下限**：读取 `.toolkitrc.local.json` 需 toolkit ≥ 1.11.2；旧版本静默忽略该文件（不报错），团队版本不一时会呈「我本地生效、同事机器不生效」
 
 ## 合并语义

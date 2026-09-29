@@ -1,24 +1,28 @@
 // config status 实现：只读查看三层配置的生效情况与来源（只读、退出码恒 0、报告走 stdout）
 // 独立成模块的原因：src/cli.ts 顶层即执行主流程、无法被测试直接导入（与 src/conventions/status.ts 同例）
 // 取数全部走 src/config.ts 与 src/git-ignore.ts 的既有实现，不在本模块另写一份加载或忽略判定
-import { basename } from "node:path"
+import { existsSync } from "node:fs"
+import { basename, join } from "node:path"
 import {
   CONFIG_DISPLAY_KEYS,
   CONFIG_ENV_BYPASS,
   CONFIG_ENV_OVERRIDES,
+  CONFIG_LOCAL_FILE,
+  getHomeDir,
   inspectConfigLayers,
   resolveLeafSource,
   type ConfigFallback,
   type ConfigLayerName,
 } from "./config"
-import { inspectLocalConfigIgnore, probeRepo, type LocalConfigIgnore } from "./git-ignore"
+import { inspectLocalConfigIgnore, normalizePathForCompare, probeRepo, toPosix, type LocalConfigIgnore } from "./git-ignore"
 
-// 单层现场：file 为命中的配置文件绝对路径（未命中为 null），hit 表是否命中配置文件（存在即命中，解析失败时仍为 true 并在 items 报降级）
+// 单层现场：file 为命中的配置文件绝对路径（未命中为 null）
+// present 表是否定位到配置文件（存在即 true，解析失败时仍为 true 并在 items 报降级）——与 src/config.ts 的 ConfigLayerRecord.hit（存在且解析成功）语义不同，故不沿用同名
 // ignored 仅本地层非 null（其余层无忽略语义）；sections 为该层写出的全部段名，otherSections 为未被展示键覆盖的其余已配置段名
 export interface ConfigStatusLevel {
   layer: ConfigLayerName
   file: string | null
-  hit: boolean
+  present: boolean
   ignored: LocalConfigIgnore | null
   sections: string[]
   otherSections: string[]
@@ -31,7 +35,7 @@ export interface ConfigStatusKeySource {
   source: ConfigLayerName | null
 }
 
-// 环境变量命中：只列键名不列值
+// 环境变量命中：只列键名不列值；命中 = 已设置且非空，不代表「开启」——FX_REDACT=0 / FX_CHECK_WARN=0 会被列出但实际关闭该能力，FX_NO_UPDATE_CHECK 设真值反而关闭更新检查
 export interface ConfigStatusEnvHit {
   env: string
   key: string
@@ -44,7 +48,8 @@ export interface ConfigStatusItem {
   message: string
 }
 
-// 报告契约：summary / levels / items / warnings 为稳定公共字段（只增不减），与 conventions status 同形
+// 报告契约：仅 summary / items / warnings 为稳定公共字段（只增不减），与 conventions status 同形
+// 其余字段（cwd / levels / displayKeys / env / bypass）属实现细节，可能随版本变更
 export interface ConfigStatusReport {
   summary: string
   cwd: string
@@ -59,10 +64,42 @@ export interface ConfigStatusReport {
 // 展示键集合（叶子键全名）：用于判定某段是否仍有展示键之外的字段
 const DISPLAY_KEY_SET = new Set(CONFIG_DISPLAY_KEYS)
 
-// 环境变量命中判据：非空即命中（与 src/switch.ts 的 resolveEnabled 同口径），未设置或空串按未命中
+// 已知段名清单：与 docs/config.md 的字段总览同源，用于把「本版本未读取的段名」与「有效但非展示键的段」区分开
+const KNOWN_SECTIONS = new Set(["redact", "check", "tasks", "changelog", "updateCheck", "skills"])
+
+// 环境变量命中判据：已设置且非空即命中——注意这不等于「开启」能力，是否开启由各生效点的取值解析决定（见 ConfigStatusEnvHit 注释）
 function isEnvHit(env: string): boolean {
   const value = process.env[env]
   return value !== undefined && value !== ""
+}
+
+// 文本模式路径显示：把 home 前缀折叠为 ~，避免共享日志 / 截图泄露本机目录结构（JSON 模式保留绝对路径供脚本定位）
+// 前缀比较走 normalizePathForCompare（大小写不敏感 + 分隔符归一），否则 Windows 盘符 / 分隔符差异会让折叠失效
+export function foldHome(p: string): string {
+  const posix = toPosix(p)
+  const home = toPosix(getHomeDir())
+  const key = normalizePathForCompare(p)
+  const homeKey = normalizePathForCompare(getHomeDir())
+  if (key === homeKey) return "~"
+  if (!key.startsWith(`${homeKey}/`)) return posix
+  return `~/${posix.slice(home.length).replace(/^\/+/, "")}`
+}
+
+// 文本模式文案折叠：体检项 message 内可能内嵌 home 路径（降级项的配置文件路径、忽略提示的文件名），逐处折叠为 ~
+// 以「后接分隔符或串尾」为界，避免同前缀目录（如 ~ 为 /Users/tqy 时 /Users/tqy2）被误折
+export function foldHomeInText(text: string): string {
+  const posix = toPosix(text)
+  const posixLower = posix.toLowerCase()
+  const homeKey = normalizePathForCompare(getHomeDir())
+  let out = ""
+  let cursor = 0
+  for (let at = posixLower.indexOf(homeKey); at !== -1; at = posixLower.indexOf(homeKey, at + 1)) {
+    const end = at + homeKey.length
+    if (end !== posix.length && posix[end] !== "/") continue
+    out += `${posix.slice(cursor, at)}~`
+    cursor = end
+  }
+  return out + posix.slice(cursor)
 }
 
 // 降级项：从 readConfigFile 的结构化记录取数（不依赖进程级去重集），文案与 CLI 打印口径一致
@@ -119,10 +156,39 @@ function otherSections(config: Record<string, unknown> | null, sections: string[
   })
 }
 
+// home 边界提示：~/.toolkitrc.local.json 按设计不参与本地层向上查找（findUpward stopAtHome），存在时给 info 提示，避免用户误以为「按项目放了却不生效」是缺陷
+function homeBoundaryItem(): ConfigStatusItem[] {
+  if (!existsSync(join(getHomeDir(), CONFIG_LOCAL_FILE))) return []
+  return [
+    {
+      level: "info",
+      scope: "本地层",
+      message: `检测到 home 目录下的 ${CONFIG_LOCAL_FILE}：该文件按设计不参与本地层向上查找（止于 home），如需按项目生效请放到项目目录下`,
+    },
+  ]
+}
+
+// 未知段名提示：otherSections 中未收录于已知段名清单的段名逐一给 info 提示（段名拼错时用户可从输出察觉）
+// 用 info 而非 warn，保留文档承诺的「未知字段忽略、读取向后兼容」语义，且不计入 warnings、不影响 CI 拦错
+function unknownSectionItems(levels: ConfigStatusLevel[]): ConfigStatusItem[] {
+  const items: ConfigStatusItem[] = []
+  for (const level of levels) {
+    for (const name of level.otherSections) {
+      if (KNOWN_SECTIONS.has(name)) continue
+      items.push({
+        level: "info",
+        scope: "配置",
+        message: `${level.layer}存在未知配置段「${name}」：本版本未读取，疑似拼写错误`,
+      })
+    }
+  }
+  return items
+}
+
 // 一句话结论：层数 0 时给正结论；git 旁注不替换主句（非 git 仓库时忽略判定不适用，须让用户知道该列为何为空）
-function summarize(hitLayers: ConfigLayerName[], gitNote: boolean): string {
+function summarize(presentLayers: ConfigLayerName[], gitNote: boolean): string {
   const head =
-    hitLayers.length === 0 ? "三层均无配置文件，全部取默认值" : `共命中 ${hitLayers.length} 层：${hitLayers.join("、")}`
+    presentLayers.length === 0 ? "三层均无配置文件，全部取默认值" : `共命中 ${presentLayers.length} 层：${presentLayers.join("、")}`
   return gitNote ? `${head}；未检测到 git 仓库，忽略判定不适用` : head
 }
 
@@ -135,7 +201,7 @@ export function configStatus(cwd: string = process.cwd()): ConfigStatusReport {
   const levels: ConfigStatusLevel[] = [layers.global, layers.project, layers.local].map((record) => ({
     layer: record.layer,
     file: record.file,
-    hit: record.file !== null,
+    present: record.file !== null,
     ignored: record.layer === "本地层" ? ignore : null,
     sections: record.sections,
     otherSections: otherSections(record.config, record.sections),
@@ -150,10 +216,11 @@ export function configStatus(cwd: string = process.cwd()): ConfigStatusReport {
 
   const items: ConfigStatusItem[] = [...fallbackItems(layers.fallbacks)]
   if (ignore !== null && localFile !== null) items.push(ignoreItem(ignore, localFile))
+  items.push(...homeBoundaryItem(), ...unknownSectionItems(levels))
 
   return {
     summary: summarize(
-      levels.filter((level) => level.hit).map((level) => level.layer),
+      levels.filter((level) => level.present).map((level) => level.layer),
       probeRepo(cwd).kind === "not-a-repo",
     ),
     cwd,
