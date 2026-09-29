@@ -22,7 +22,7 @@
 
 ## 验收方式
 
-- 跑 `pnpm verify`——**单一步骤清单真源**，步骤定义在 `scripts/verify.mjs`（类型检查 → 冷缓存静态检查 → 单测 → 覆盖率 → 构建 → 文档站构建 → CLI 冒烟 → 任务区体检），本地与三处 CI（GitHub `check` / `windows`、GitLab `test`）调用同一份；**禁止在本文件或 CI 配置里另写步骤枚举**，那是清单漂移的根因。跨平台裁剪用 `pnpm verify --skip-coverage --skip-docs`（windows job 即此路径）。任一步失败即不得交付，注意 `pnpm lint` 是 eslint 不做类型检查、`pnpm build` 亦不拦截类型错误，单跑二者不能替代本门禁；且类型检查须覆盖测试文件——基础 `tsconfig.json` 的 `exclude` 排除 `**/__tests__` 等测试路径，类型检查单独走放开该排除项的 `tsconfig.typecheck.json`，不得让测试文件落在盲区；
+- 跑 `pnpm verify`——**单一步骤清单真源**，步骤定义在 `scripts/verify.mjs`，本地与三处 CI（GitHub `check` / `windows`、GitLab `test`）调用同一份；**禁止在本文件或 CI 配置里另写步骤枚举**，那是清单漂移的根因。跨平台裁剪用 `pnpm verify --skip-coverage --skip-docs`（windows job 即此路径）。任一步失败即不得交付，注意 `pnpm lint` 是 eslint 不做类型检查、`pnpm build` 亦不拦截类型错误，单跑二者不能替代本门禁；且类型检查须覆盖测试文件——基础 `tsconfig.json` 的 `exclude` 排除 `**/__tests__` 等测试路径，类型检查单独走放开该排除项的 `tsconfig.typecheck.json`，不得让测试文件落在盲区；
 - `toolkit tasks check` 的 error 与 warn 均应为 0（除非任务规格另有豁免）——已在 `pnpm verify` 内执行，此处强调阈值；
 - grep 确认文档与 skills 措辞落地；
 - 测试不得复刻被测实现的逻辑：派生、镜像类逻辑的测试期望须直接调用真实实现，不得在测试内重写同一份转换逻辑——同错复刻会让实现缺陷照样漏过。
@@ -46,7 +46,7 @@
 发版按以下顺序分步执行，每步产物检查无误后再进行下一步：
 
 1. **消费变更集**：`node dist/cli.js changelog version`——按 bump 类型合并 `.changeset/` 全部变更集，生成 CHANGELOG 新版本块（中文分组标题 + 发布日期）并升级 package.json 版本号；生成后人工检查润色条目，再执行 `node dist/cli.js changelog --history format` 归一历史块（人工润色易在条目之间留空行；默认模式不动历史块，必须带 `--history`），最后 `pnpm sync:changelog-doc` 把新版本块镜像进 docs/changelog.md 更新日志页，与版本/CHANGELOG 改动同批提交；
-2. **门禁校验**：`pnpm verify`——含构建（版本号从 package.json 读取进产物）、类型检查、冷缓存静态检查、单测、覆盖率、文档站构建、CLI 冒烟与任务区体检（步骤定义见 `scripts/verify.mjs`）；**任一步失败即中止发版**，不得进入提交、打标签、发布。⚠️ 门禁必须挡在 publish 之前——publish 不可逆（包发出即被使用者安装），而 push 失败重推即可，故关卡设在 publish 前而非推送前；
+2. **门禁校验**：`pnpm verify`——含构建（版本号从 package.json 读取进产物）等全部步骤（步骤定义见 `scripts/verify.mjs`）；**任一步失败即中止发版**，不得进入提交、打标签、发布。⚠️ 门禁必须挡在 publish 之前——publish 不可逆（包发出即被使用者安装），而 push 失败重推即可，故关卡设在 publish 前而非推送前；
 3. **提交**：版本与 CHANGELOG 改动单独提交——发版提交是链路内置动作，独立于任务收尾自动提交（即使全局规则开启任务收尾自动提交，发版提交仍按本链路单独执行，不与普通任务收尾混批）；
 4. **打标签**：提交落盘后立即打 `vX.Y.Z` 标签并用 `git tag` 核对存在；发现历史版本漏打时，在对应发版提交上补打轻量标签；
 5. **发布**：`pnpm publish`；
