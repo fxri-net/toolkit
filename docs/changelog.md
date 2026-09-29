@@ -6,6 +6,36 @@ outline: [2, 2]
 
 > 完整变更历史以随包发布的 CHANGELOG.md 为准，本页由 `pnpm sync:changelog-doc` 从根 CHANGELOG.md 自动同步，请勿手改。
 
+## 1.11.2
+
+> 2026-09-29 发布
+
+### ✨ 新增功能
+
+- 新增本地配置层 `.toolkitrc.local.json`，个人偏好不再挤占团队配置；本地文件与项目配置文件各自独立从工作目录向上查找、止于 home 目录（命中路径可位于仓库根之上）。⚠️ 读取该文件需 toolkit ≥ 本版本，旧版本会静默忽略、不报错，团队版本不一时会呈「我本地生效、同事机器不生效」
+- 本地层按段内**字段级**覆盖，只覆盖显式写出的子字段、未写的保留团队值；数组字段（如 `redact` 的规则列表）为**整段替换、非追加**，个人补规则会顶掉团队整组规则，脱敏类配置请谨慎。段值为非对象（如 `"redact": "off"`）时告警并按未写处理，字段值写 `null` 与未写等价，本层不支持「删除 / 清空团队键」
+- 新增 `toolkit config status` 只读子命令，查看三层配置的命中情况与关键值来源层，支持 `--format json` 供脚本消费、`--cwd <path>` 指定向上查找起点；报告只列层级、命中状态、来源层与键路径，**不打印任何配置值**（文本模式把 home 前缀折叠为 `~/…`，JSON 保留绝对路径），并同步提示「本地配置文件未纳入忽略」
+
+### 🔧 功能调整
+
+- `toolkit init` 追加的忽略片段新增 `.toolkitrc.local.json`；存量项目升级后不会自动获得该忽略行，需**重跑 `toolkit init`** 补写（逐行判幂等，重复执行不冗余），不想改团队 `.gitignore` 者可自行把该行写进 `.git/info/exclude`
+- `toolkit tasks check` 对「检测到本地配置文件存在但未被忽略」给出软告警（不阻断；已入库的提示改用 `git rm --cached .toolkitrc.local.json` 清理），非 git 仓库、或文件位于当前仓库工作树之外时忽略判定不适用、不告警
+- 本地层字段类型错误的键按未写处理并在 stderr 告警，非法 JSON / 顶层非对象等同样告警后视为未配置（降级不静默）
+- 段值非对象（如 `"tasks": "oops"`、`"tasks": null`）的降级校验前移到三层读取路径，全局层 / 项目层与本地层口径统一——此前全局 / 项目层的这类问题只在运行时惰性告警，`toolkit config status` 取不到降级记录，同一现场两种口径
+- `tasks.dir` 写空字符串不再静默回落——与类型不符同办，stderr 告警并按未写处理、回落默认 `.tasks`（降级不静默）
+- `toolkit config status` 的「来源层」判定改为按分层覆盖语义（本地层段内字段级覆盖、项目层段级整体覆盖全局），修正此前项目层写了某段时该段未写字段被误报为全局层来源的问题
+- `toolkit config status --format json` 的层状态字段 `levels[].hit` 改名为 `levels[].present`（`present` 仅表示配置文件存在，解析失败仍为 `true`）——对外契约变更，消费该字段的脚本需同步调整
+- `toolkit config status` 文本模式下待处理项文案内嵌的路径一并折叠 home 前缀为 `~/…`（`--format json` 仍输出绝对路径）
+- `toolkit config status` 新增两条 info 级提示——检测到 home 目录下的 `.toolkitrc.local.json`（按设计不参与本地层向上查找）时提示改放项目目录、出现未知配置段名（疑似拼写错误）时提示本版本未读取；info 不计入 warnings、不影响 CI
+- `toolkit config status` 兜底异常不再置非 0 退出码，与「只读体检、退出码恒 0」的既有契约对齐
+- `toolkit init` 写入的 `.gitignore` 片段补一行出口指引注释——告知不想改团队 `.gitignore` 者可将忽略行写进 `.git/info/exclude`；重跑 `init` 时该指引随片段头一并就地校正、不重复追加
+- `toolkit init` 判定 `.gitignore` 各行是否已覆盖改用 `git check-ignore` 真实判定（能识破 `*.lock`、`*.local.json` 等用户手写的通配写法，含 `.git/info/exclude` 与上层 `.gitignore` 等全部来源）；非 git 仓库或 git 不可用时退回等价写法白名单，用户手写写法仍原样保留
+- `toolkit tasks check` 的本地配置文件忽略告警改为展示相对 cwd 的路径——本地配置命中上层目录时显示 `../.toolkitrc.local.json`，不再只取文件名，与 `toolkit config status` 的绝对路径形成互补
+
+### 📝 文档更新
+
+- `toolkit config status` 补充报告字段说明——`env[]` 命中口径为「已设置且非空，不代表开启」（`FX_REDACT=0` / `FX_CHECK_WARN=0` 会被列出但实际关闭该能力，`FX_NO_UPDATE_CHECK` 设真值反而关闭更新检查）；`items[].scope` 取值枚举为 `配置` / `本地层`；并明确报告仅 `summary` / `items[]` / `warnings` 为稳定契约
+
 ## 1.11.1
 
 > 2026-09-27 发布
