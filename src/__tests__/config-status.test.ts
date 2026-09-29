@@ -11,6 +11,8 @@ import { CONFIG_DISPLAY_KEYS, CONFIG_ENV_OVERRIDES, CONFIG_ENV_BYPASS, setHomeDi
 const ENV_KEYS = ["CI", "FX_REDACT", "FX_NO_UPDATE_CHECK", "FX_CHECK_WARN"]
 const savedEnv: Record<string, string | undefined> = {}
 const dirs: string[] = []
+// home 临时目录：用例内需向其写全局层配置文件，故提到文件级共享
+let home = ""
 
 function makeDir(prefix: string): string {
   const dir = mkdtempSync(join(tmpdir(), prefix))
@@ -24,7 +26,8 @@ beforeEach(() => {
     delete process.env[key]
   }
   // home 指向独立临时目录：全局层不读到真实用户 ~/.toolkitrc.json
-  setHomeDirForTest(makeDir("tk-cfgst-home-"))
+  home = makeDir("tk-cfgst-home-")
+  setHomeDirForTest(home)
 })
 
 afterEach(() => {
@@ -144,6 +147,24 @@ describe("configStatus 降级项渲染", () => {
     const item = report.items.find((i) => i.message.includes("配置段须为对象"))
     expect(item?.level).toBe("warn")
     expect(item?.message).toContain("tasks")
+  })
+
+  it("全局层段值非对象：告警配置段须为对象", () => {
+    writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ tasks: "oops" }), "utf8")
+    const report = configStatus(makeDir("tk-cfgst-global-"))
+    const item = report.items.find((i) => i.message.includes("配置段须为对象"))
+    expect(item?.level).toBe("warn")
+    expect(item?.message).toContain("tasks")
+    expect(report.warnings).toBeGreaterThanOrEqual(1)
+  })
+
+  it("项目层段值非对象：告警配置段须为对象", () => {
+    const { start } = makeProject({ root: { tasks: "oops" } })
+    const report = configStatus(start)
+    const item = report.items.find((i) => i.message.includes("配置段须为对象"))
+    expect(item?.level).toBe("warn")
+    expect(item?.message).toContain("tasks")
+    expect(report.warnings).toBeGreaterThanOrEqual(1)
   })
 })
 

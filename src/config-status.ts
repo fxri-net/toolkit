@@ -109,12 +109,12 @@ function ignoreItem(ignore: LocalConfigIgnore, file: string): ConfigStatusItem {
 }
 
 // 其余已配置段：仅当该段仍有「展示键之外」的字段时列出（只列段名不列值），否则该段已在展示键来源里可见、不重复
-// 段值为非对象时无法逐字段比对，一律列出（见 src/config.ts 的段级降级口径）
+// 段值非对象已在配置加载时降级剔除（不进 sections），此处对非对象仅作类型收窄、不再列出
 function otherSections(config: Record<string, unknown> | null, sections: string[]): string[] {
   if (!config) return []
   return sections.filter((name) => {
     const section = config[name]
-    if (typeof section !== "object" || section === null || Array.isArray(section)) return true
+    if (typeof section !== "object" || section === null || Array.isArray(section)) return false
     return Object.keys(section).some((field) => !DISPLAY_KEY_SET.has(`${name}.${field}`))
   })
 }

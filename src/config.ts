@@ -87,7 +87,7 @@ function cachedLayers(): ConfigLayers {
   return cached
 }
 
-// 现算三层加载结果：按 startDir 逐层定位与读取、校验展示键类型、按分层粒度合并，全程不写缓存
+// 现算三层加载结果：按 startDir 逐层定位与读取、校验段级与展示键类型、按分层粒度合并，全程不写缓存
 function computeLayers(startDir: string): ConfigLayers {
   const fallbacks: ConfigFallback[] = []
   const globalRecord = readLayer("全局层", join(getHomeDir(), ".toolkitrc.json"), fallbacks)
@@ -95,7 +95,7 @@ function computeLayers(startDir: string): ConfigLayers {
   const projectRecord = readLayer("项目层", findUpward(CONFIG_PROJECT_FILE, startDir, { stopAtHome: false }), fallbacks)
   const localRecord = readLayer("本地层", findUpward(CONFIG_LOCAL_FILE, startDir, { stopAtHome: true }), fallbacks)
   const base = mergeSectioned(globalRecord.config, projectRecord.config)
-  const merged = mergeLocalOverlay(base, localRecord.config, localRecord.file ?? "", fallbacks)
+  const merged = mergeLocalOverlay(base, localRecord.config)
   return { global: globalRecord, project: projectRecord, local: localRecord, merged, fallbacks }
 }
 
@@ -122,21 +122,22 @@ function findUpward(fileName: string, startDir: string, options: { stopAtHome: b
   }
 }
 
-// 取某个能力域的配置段（对象）：不存在返回 undefined；显式配置但类型不符时告警后按未配置处理
+// 取某个能力域的配置段（对象）：不存在返回 undefined
+// 段值非对象已在 readLayer 的统一校验中告警并剔除，此处只需取对象段，不再重复告警
 export function getConfigSection(name: string): Record<string, unknown> | undefined {
-  const layers = cachedLayers()
-  const cfg = layers.merged
-  if (!cfg) return undefined
-  const section = cfg[name]
-  if (section === undefined) return undefined
-  if (isPlainObject(section)) return section
-  warnConfigFallback(sectionSourceFile(layers, name), name, `配置段须为对象（实际：${describeType(section)}）`)
-  return undefined
+  const section = cachedLayers().merged?.[name]
+  return isPlainObject(section) ? section : undefined
 }
 
 // 当前生效的用户 home：测试注入优先，生产为 os.homedir()；供配置读取与 skills 分发等需要 home 的能力统一复用
 export function getHomeDir(): string {
   return homeOverride ?? homedir()
+}
+
+// 某段是否显式写出有效叶子值：段为对象且该字段非 null / undefined；与合并逻辑共用同一叶子有效性判定
+function hasUsableLeaf(config: Record<string, unknown> | null, sectionName: string, fieldName: string): boolean {
+  const section = config?.[sectionName]
+  return isPlainObject(section) && isUsableLeaf(section[fieldName])
 }
 
 // 现算三层加载结果且不打印降级告警：供 config status 取结构化降级记录自行渲染
@@ -150,6 +151,11 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
+// 判是否可采纳的叶子值：null 与 undefined 均视为未写（合并与来源判定共用同一判定，避免两处口径漂移）
+function isUsableLeaf(value: unknown): boolean {
+  return value !== undefined && value !== null
+}
+
 // 加载配置：无参走进程级缓存（起点 process.cwd()）；传 startDir 时按该起点现算且不写缓存
 // 三层段级合并后再叠本地层字段级覆盖；三层均无配置返回 null
 export function loadToolkitConfig(startDir?: string): Record<string, unknown> | null {
@@ -160,31 +166,24 @@ export function loadToolkitConfig(startDir?: string): Record<string, unknown> | 
 }
 
 // 本地层段内字段级浅合并：只覆盖本地层显式写出的子字段，未写的保留团队值；合并深度严格一层（字段值为对象时整体替换、不递归）
-// 边界：段值为非对象按未写处理（告警不顶掉团队段，安全侧优先）；字段值为 null 与未写等价（本层不支持删除 / 清空团队键）
-// 段值校验不因无团队基座而跳过——否则「仅本地层 + 段值非法」会既不入降级记录也不告警，与降级不静默口径矛盾
+// 边界：字段值为 null 与未写等价（本层不支持删除 / 清空团队键）；段值非对象已在 readLayer 的统一校验中告警剔除，此处只接对象段
 function mergeLocalOverlay(
   base: Record<string, unknown> | null,
   overlay: Record<string, unknown> | null,
-  overlayFile: string,
-  fallbacks: ConfigFallback[],
 ): Record<string, unknown> | null {
   if (!overlay) return base
   const merged: Record<string, unknown> = base ? { ...base } : {}
   for (const [name, value] of Object.entries(overlay)) {
-    if (value === null) continue
-    if (!isPlainObject(value)) {
-      fallbacks.push({ file: overlayFile, key: name, detail: `配置段须为对象（实际：${describeType(value)}）` })
-      continue
-    }
+    if (!isPlainObject(value)) continue
     const baseSection = isPlainObject(merged[name]) ? (merged[name] as Record<string, unknown>) : {}
     const section = { ...baseSection }
     for (const [field, fieldValue] of Object.entries(value)) {
-      if (fieldValue === null) continue
+      if (!isUsableLeaf(fieldValue)) continue
       section[field] = fieldValue
     }
     merged[name] = section
   }
-  // 全部段均被降级剔除时回落 null，与「三层均无配置返回 null」一致
+  // overlay 无有效段时回落 base（含 null），与「三层均无配置返回 null」一致
   return Object.keys(merged).length > 0 ? merged : null
 }
 
@@ -231,11 +230,12 @@ function readConfigFile(filePath: string, fallbacks: ConfigFallback[]): Record<s
   return parsed
 }
 
-// 读取单层：定位到的文件不存在按未命中；解析成功后校验展示键类型，再归档段名与配置
+// 读取单层：定位到的文件不存在按未命中；解析成功后先校段级、再校展示键类型，最后归档段名与配置
 function readLayer(layer: ConfigLayerName, filePath: string | null, fallbacks: ConfigFallback[]): ConfigLayerRecord {
   if (!filePath || !existsSync(filePath)) return { layer, file: null, hit: false, sections: [], config: null }
   const config = readConfigFile(filePath, fallbacks)
   if (!config) return { layer, file: filePath, hit: false, sections: [], config: null }
+  validateSections(filePath, config, fallbacks)
   validateDisplayKeys(filePath, config, fallbacks)
   return { layer, file: filePath, hit: true, sections: Object.keys(config), config }
 }
@@ -247,18 +247,18 @@ export function resetToolkitConfigCache(): void {
   warnedConfigFallbacks.clear()
 }
 
-// 叶子键来源层：按本地层 → 项目层 → 全局层取首个显式写出该叶子键的层名（段内字段级合并下同一段各子键可能来源不同）
+// 叶子键来源层：按分层覆盖语义判定——本地层段内字段级覆盖、项目层段级整体覆盖全局
+// 本地层写了该段：该字段以本地层有效值命中，否则落团队值（项目层或全局层）
+// 项目层写了该段：整段独占，段内未写的字段不再落全局，返回 null
 export function resolveLeafSource(layers: ConfigLayers, key: string): ConfigLayerName | null {
   const dot = key.indexOf(".")
   const sectionName = key.slice(0, dot)
   const fieldName = key.slice(dot + 1)
-  for (const record of [layers.local, layers.project, layers.global]) {
-    const section = record.config?.[sectionName]
-    if (!isPlainObject(section)) continue
-    const value = section[fieldName]
-    if (value !== undefined && value !== null) return record.layer
+  if (hasUsableLeaf(layers.local.config, sectionName, fieldName)) return "本地层"
+  if (isPlainObject(layers.project.config?.[sectionName])) {
+    return hasUsableLeaf(layers.project.config, sectionName, fieldName) ? "项目层" : null
   }
-  return null
+  return hasUsableLeaf(layers.global.config, sectionName, fieldName) ? "全局层" : null
 }
 
 // 本地配置文件定位：自 startDir 向上查找（止于 home），供 tasks check 与 config status 共用同一来源
@@ -269,21 +269,12 @@ export function resolveLocalConfigPath(startDir: string = process.cwd()): string
 
 // 解析任务目录三档：CLI --dir 显式传参 > 配置 tasks.dir > 默认 .tasks
 // 支持 .tasks 放项目外（绝对路径或 ../ 相对路径），配合独立文档仓库管理任务
-// ⚠️ tasks.dir 原样透传，相对路径的解析基准为 process.cwd()（非配置文件所在目录）；类型非法的告警在加载时的类型校验统一给出
+// ⚠️ tasks.dir 原样透传，相对路径的解析基准为 process.cwd()（非配置文件所在目录）；类型非法与空串的告警在加载时的类型校验统一给出
 export function resolveTasksDir(cliValue?: string): string {
   if (cliValue) return cliValue
+  // 类型不符与空串均已在展示键校验中降级剔除，此处只会取到有效非空字符串或 undefined
   const dir = getConfigSection("tasks")?.dir
-  // 空字符串按「视为未配置」静默处理（类型已过校验，此处只剩字符串与未配置）
-  if (typeof dir === "string") return dir !== "" ? dir : ".tasks"
-  return ".tasks"
-}
-
-// 段来源文件：按本地层 → 项目层 → 全局层取首个显式写出该段的文件，供段级告警定位来源
-function sectionSourceFile(layers: ConfigLayers, name: string): string {
-  for (const record of [layers.local, layers.project, layers.global]) {
-    if (record.config && Object.prototype.hasOwnProperty.call(record.config, name)) return record.file ?? ""
-  }
-  return ""
+  return typeof dir === "string" ? dir : ".tasks"
 }
 
 // 全局配置目录注入（仅测试用）：生产保持 os.homedir()
@@ -291,8 +282,8 @@ export function setHomeDirForTest(dir: string | undefined): void {
   homeOverride = dir
 }
 
-// 展示键类型校验：段非对象则跳过（由 getConfigSection 另行告警）、字段为 null / undefined 视为未写
-// 类型不符推入结构化降级记录并从配置中删除该字段（按未写降级），消除各能力域各自静默兜底的口径不一
+// 展示键类型校验：段非对象则跳过（段级降级已在 validateSections 处理）、字段为 null / undefined 视为未写
+// 类型不符推入结构化降级记录并删除该字段（按未写降级）；字符串类型另将空串一并视为不可采纳，与「须为非空字符串」文案一致
 function validateDisplayKeys(filePath: string, config: Record<string, unknown>, fallbacks: ConfigFallback[]): void {
   for (const { key, type } of DISPLAY_KEY_TYPES) {
     const dot = key.indexOf(".")
@@ -301,12 +292,23 @@ function validateDisplayKeys(filePath: string, config: Record<string, unknown>, 
     const section = config[sectionName]
     if (!isPlainObject(section)) continue
     const value = section[fieldName]
-    if (value === undefined || value === null) continue
-    if (typeof value !== type) {
-      const expected = type === "string" ? "须为非空字符串" : "须为布尔值"
-      fallbacks.push({ file: filePath, key, detail: `${expected}（实际：${describeType(value)}）` })
-      delete section[fieldName]
-    }
+    if (!isUsableLeaf(value)) continue
+    if (typeof value === type && !(type === "string" && value === "")) continue
+    const expected = type === "string" ? "须为非空字符串" : "须为布尔值"
+    const actual = value === "" ? "空字符串" : describeType(value)
+    fallbacks.push({ file: filePath, key, detail: `${expected}（实际：${actual}）` })
+    delete section[fieldName]
+  }
+}
+
+// 段级校验：配置段须为普通对象，非对象（含 null / 数组 / 标量）一律告警并按未写处理，从配置中剔除该段
+// 前移到读取路径使三层（全局 / 项目 / 本地）降级口径统一——否则全局 / 项目层的段级问题只在运行时惰性告警，
+// 走 inspectConfigLayers 的 config status 取不到，同一现场两种口径
+function validateSections(filePath: string, config: Record<string, unknown>, fallbacks: ConfigFallback[]): void {
+  for (const [name, value] of Object.entries(config)) {
+    if (isPlainObject(value)) continue
+    fallbacks.push({ file: filePath, key: name, detail: `配置段须为对象（实际：${describeType(value)}）` })
+    delete config[name]
   }
 }
 

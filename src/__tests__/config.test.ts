@@ -98,13 +98,8 @@ describe("resolveTasksDir 任务目录三档解析", () => {
     cleanupTmpDir(dir)
   })
 
-  it("均未配置时回落默认 .tasks；配置为空字符串视为未配置", () => {
+  it("均未配置时回落默认 .tasks", () => {
     expect(resolveTasksDir()).toBe(".tasks")
-    const dir = chdirIntoEmptyProject()
-    writeFileSync(join(dir, ".toolkitrc.json"), JSON.stringify({ tasks: { dir: "" } }), "utf8")
-    resetToolkitConfigCache()
-    expect(resolveTasksDir()).toBe(".tasks")
-    cleanupTmpDir(dir)
   })
 })
 
@@ -248,12 +243,14 @@ describe("配置降级告警", () => {
     cleanupTmpDir(dir)
   })
 
-  it("空字符串仍按未配置静默处理（不告警）", () => {
+  it("tasks.dir 为空字符串：告警并按未配置回落默认值", () => {
     const dir = chdirIntoEmptyProject()
     writeFileSync(join(dir, ".toolkitrc.json"), JSON.stringify({ tasks: { dir: "" } }), "utf8")
     resetToolkitConfigCache()
     expect(resolveTasksDir()).toBe(".tasks")
-    expect(warn).not.toHaveBeenCalled()
+    expect(warnTexts()).toHaveLength(1)
+    expect(warnTexts()[0]).toContain("tasks.dir")
+    expect(warnTexts()[0]).toContain("空字符串")
     cleanupTmpDir(dir)
   })
 })
@@ -434,5 +431,31 @@ describe("本地配置层", () => {
     } finally {
       warn.mockRestore()
     }
+  })
+
+  it("来源判定与合并结果一致：项目层写了该段则段内未写字段不再落全局", () => {
+    writeFileSync(
+      join(home, ".toolkitrc.json"),
+      JSON.stringify({ redact: { enabled: true }, updateCheck: { enabled: true } }),
+      "utf8",
+    )
+    const root = makeTree()
+    const sub = join(root, "sub")
+    mkdirSync(sub, { recursive: true })
+    writeCfg(root, ".toolkitrc.json", { redact: { disable: ["phone"] } })
+    writeCfg(sub, ".toolkitrc.local.json", { redact: { disable: ["id"] } })
+
+    const layers = inspectConfigLayers(sub)
+    const merged = layers.merged as Record<string, unknown>
+    const redact = merged.redact as Record<string, unknown>
+    // 项目层写了 redact 段即整段覆盖全局，全局的 enabled 不再落入合并结果
+    expect(redact.enabled).toBeUndefined()
+    expect(redact.disable).toEqual(["id"])
+    expect((merged.updateCheck as Record<string, unknown>).enabled).toBe(true)
+
+    // 来源判定与合并结果一致：段级覆盖后该字段不存在，来源须为 null 而非误报全局层
+    expect(resolveLeafSource(layers, "redact.enabled")).toBeNull()
+    expect(resolveLeafSource(layers, "redact.disable")).toBe("本地层")
+    expect(resolveLeafSource(layers, "updateCheck.enabled")).toBe("全局层")
   })
 })
