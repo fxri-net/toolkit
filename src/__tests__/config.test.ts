@@ -1,6 +1,6 @@
 // 配置查找与合并：项目级向上查找最近的 .toolkitrc.json（E6），全局 ~/.toolkitrc.json 段级合并
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, realpathSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
@@ -382,6 +382,17 @@ describe("本地配置层", () => {
     // home 之下存在本地文件时仍可命中
     const inner = writeCfg(sub, ".toolkitrc.local.json", { tasks: { dir: "mine" } })
     expect(resolveLocalConfigPath(sub)).toBe(inner)
+  })
+
+  it("home 用规范形态、起点用原形态：边界仍截断（Windows 8.3 短名 / 软链形态）", () => {
+    const root = makeTree()
+    const sub = join(root, "a", "b")
+    mkdirSync(sub, { recursive: true })
+    writeCfg(root, ".toolkitrc.local.json", { tasks: { dir: "at-home" } })
+    // home 取磁盘真实形态（Windows CI 下 tmpdir 为 8.3 短名，realpath 展开为长名），起点仍用 mkdtemp 原形态
+    setHomeDirForTest(realpathSync.native(root))
+
+    expect(resolveLocalConfigPath(sub)).toBeNull()
   })
 
   it("现算不缓存：两次 inspectConfigLayers 之间新增本地文件即被读取", () => {

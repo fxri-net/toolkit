@@ -1,8 +1,9 @@
 // git 探测：忽略判定、仓库根判定、已跟踪判定与路径归一共用函数
 // 独立成模块的原因：忽略判定被入口壳体检、本地配置层体检、init 三处共用；放在 conventions/ 下会让配置域反向依赖规范域
-// 只依赖 node:child_process 与 node:path，不引入任何业务模块，保证被任意域安全复用
+// 只依赖 node:child_process、node:fs 与 node:path，不引入任何业务模块，保证被任意域安全复用
 import { spawnSync } from "node:child_process"
-import { basename, dirname } from "node:path"
+import { realpathSync } from "node:fs"
+import { basename, dirname, isAbsolute, join } from "node:path"
 
 // 本地配置文件忽略判定：四态（已忽略 / 已跟踪 / 未忽略 / 不适用两态）+ 一诊断态
 export type LocalConfigIgnoreState = "ignored" | "tracked" | "not-ignored" | "not-a-repo" | "outside-repo" | "unavailable"
@@ -34,6 +35,27 @@ function runGit(args: string[], cwd: string, input?: string): GitResult {
     return { status: res.status ?? -1, stdout: res.stdout ?? "", stderr: res.stderr ?? "" }
   } catch (err) {
     return { status: -1, stdout: "", stderr: err instanceof Error ? err.message : String(err) }
+  }
+}
+
+// 路径真实形态归一：取磁盘真实路径形态（展开 Windows 8.3 短名、折叠软链与大小写），使同一目录的不同书写形态可比
+// 仅对绝对路径生效，相对路径与盘符相对路径原样返回，避免被按当前工作目录强行解读而改变语义
+// 目标路径（或其最近存在的祖先）不可解析时回退原串，保证路径不存在等失败场景行为不变
+export function canonicalPath(p: string): string {
+  if (!isAbsolute(p)) return p
+  let current = p
+  const tail: string[] = []
+  for (;;) {
+    try {
+      const real = realpathSync.native(current)
+      return tail.length === 0 ? real : join(real, ...tail.reverse())
+    } catch {
+      const parent = dirname(current)
+      // 已到根仍不可解析即回退原串，不再向上，避免死循环
+      if (parent === current) return p
+      tail.push(basename(current))
+      current = parent
+    }
   }
 }
 
@@ -77,10 +99,11 @@ export function inspectLocalConfigIgnore(absPath: string, cwd: string): LocalCon
   return { state: ignore.state }
 }
 
-// 判目标路径是否位于仓库工作树内：两侧归一后按「相等或以根 + / 开头」比较，避免 /repo 误命中 /repo2
+// 判目标路径是否位于仓库工作树内：两侧先取磁盘真实形态再归一比对，避免同一目录的两种书写形态（Windows 8.3 短名 / 软链）
+// 相互失配而误归 outside-repo；按「相等或以根 + / 开头」比较，避免 /repo 误命中 /repo2
 export function isInsideWorktree(absPath: string, root: string): boolean {
-  const target = normalizePathForCompare(absPath)
-  const base = normalizePathForCompare(root)
+  const target = normalizePathForCompare(canonicalPath(absPath))
+  const base = normalizePathForCompare(canonicalPath(root))
   return target === base || target.startsWith(`${base}/`)
 }
 

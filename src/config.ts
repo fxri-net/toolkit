@@ -14,7 +14,7 @@ import { existsSync } from "node:fs"
 import { join, dirname, resolve } from "node:path"
 import { homedir } from "node:os"
 import { readTextFile } from "./read-text"
-import { normalizePathForCompare } from "./git-ignore"
+import { normalizePathForCompare, canonicalPath } from "./git-ignore"
 
 // 项目配置文件名：团队共享，随 git 分发
 const CONFIG_PROJECT_FILE = ".toolkitrc.json"
@@ -109,11 +109,13 @@ function describeType(value: unknown): string {
 // 向上逐级查找最近的指定文件名：返回绝对路径，未找到返回 null
 // stopAtHome 为真时遇 home 目录即截断（本意是挡 ~/.toolkitrc.local.json 被当本地层命中）；
 // home 不在父链上时该边界不触发，退化为查到盘根为止
+// home 与目录链两侧均取磁盘真实形态再比对：Windows 下 home 可能是 8.3 短名而目录链是长名，不归一会在 home 之下漏截断
+// 仅比较用归一，返回的候选路径仍保持原始书写形态，不影响后续读取与展示
 function findUpward(fileName: string, startDir: string, options: { stopAtHome: boolean }): string | null {
-  const home = normalizePathForCompare(getHomeDir())
+  const home = options.stopAtHome ? normalizePathForCompare(canonicalPath(getHomeDir())) : ""
   let dir = resolve(startDir)
   for (;;) {
-    if (options.stopAtHome && normalizePathForCompare(dir) === home) return null
+    if (options.stopAtHome && normalizePathForCompare(canonicalPath(dir)) === home) return null
     const candidate = join(dir, fileName)
     if (existsSync(candidate)) return candidate
     const parent = dirname(dir)

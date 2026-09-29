@@ -2,7 +2,7 @@
 // 真 git 用例走 execSync("git init")；归因分支（exit 128 的 stderr 细分）用 spawnSync 桩构造，避免依赖 git 的具体报错文案
 import { describe, it, expect, afterAll, vi } from "vitest"
 import { execSync } from "node:child_process"
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs"
+import { mkdtempSync, writeFileSync, rmSync, realpathSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
@@ -59,6 +59,14 @@ describe("isInsideWorktree 工作树归属", () => {
 
   it("Windows 盘符大小写与分隔符差异不影响判定", () => {
     expect(isInsideWorktree("D:\\Repo\\sub\\x", "d:/repo")).toBe(true)
+  })
+
+  it("同一目录的两种书写形态均判为命中（Windows 8.3 短名 / 软链形态）", () => {
+    const repo = makeRepo("tk-gi-form-")
+    // 取磁盘真实形态：Windows CI 下 tmpdir 为 8.3 短名、git rev-parse 返回长名，两者形态不同但指向同一目录
+    const canonical = realpathSync.native(repo)
+    expect(isInsideWorktree(join(canonical, "a.txt"), repo)).toBe(true)
+    expect(isInsideWorktree(join(repo, "a.txt"), canonical)).toBe(true)
   })
 })
 
