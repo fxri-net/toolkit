@@ -88,6 +88,8 @@
 
 `toolkit init` 会生成 `.tasks/` 骨架、在项目级技能目录生成规范入口壳，并追加 `.gitignore` 片段（含 `.archive.lock` 与 `.toolkitrc.local.json`）；当项目本地依赖含 `@fxri/toolkit` 时，还会在 `package.json` 写入 `prepare` 刷新钩子（`toolkit skills install --scope project`），使项目面技能随 `pnpm install` 自动补齐与刷新（`--no-hooks` 可关闭）。
 
+⚠️ 发布型包注意：`prepare` 在 `npm pack` / `npm publish` 前**也会执行**，可能把项目面技能产物（`.agents/skills/`、`.toolkit/`）打进 npm 包——要发包的项目请把二者加入 `files` 白名单或写进 `.npmignore`（`init` 检测到「未标 `private` 且无 `files`」时会就此提示，不代改 `package.json`）。
+
 ⚠️ 活跃任务不提交（长期只在本机）是常见反模式：换机器/工作区被 git 清理后任务记录即丢失（同机同目录换会话不受影响——恢复读磁盘 `.tasks/` 文件而非 git），且 `check`/归档流程依赖的上下文无从恢复。
 
 **任务区放项目外**：不想把 `.tasks/` 放在项目里的团队，可配置 `"tasks": { "dir": "../my-tasks-repo" }`（配置项 1.7.0 新增）把任务区指向独立文档仓库（支持绝对路径或 `../` 相对路径）；任务记录提交到该独立仓库，`.toolkitrc.json` 仍在项目内提交并声明外置路径。个人也可**仅在本地层 `.toolkitrc.local.json` 覆盖 `tasks.dir`**、只对自己生效（团队不受影响）；⚠️ 相对路径的解析基准为 `process.cwd()`（非配置文件所在目录）。

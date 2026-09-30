@@ -500,6 +500,57 @@ describe("initWorkspace prepare 刷新钩子", () => {
   })
 })
 
+describe("initWorkspace prepare 发布型包提醒", () => {
+  const pkgPath = (cwd: string): string => join(cwd, "package.json")
+  const writePkg = (cwd: string, pkg: unknown): void => writeFileSync(pkgPath(cwd), `${JSON.stringify(pkg, null, 2)}\n`, "utf8")
+  const pkgProduct = (report: ReturnType<typeof initWorkspace>) => report.products.find((p) => p.target === "package.json")
+
+  it("未标 private 且无 files：写入钩子后附发布型包提醒", () => {
+    const { cwd } = track(runInDir("tk-init-risk-open-"))
+    writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+
+    const product = pkgProduct(initWorkspace(".tasks", cwd))
+    expect(product?.action).toBe("updated")
+    expect(product?.hint).toContain("npm pack/publish")
+  })
+
+  it("已标 private：不附提醒", () => {
+    const { cwd } = track(runInDir("tk-init-risk-private-"))
+    writePkg(cwd, { name: "demo", private: true, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+
+    const product = pkgProduct(initWorkspace(".tasks", cwd))
+    expect(product?.action).toBe("updated")
+    expect(product?.hint).toBeUndefined()
+  })
+
+  it("有 files 白名单：不附提醒", () => {
+    const { cwd } = track(runInDir("tk-init-risk-files-"))
+    writePkg(cwd, { name: "demo", files: ["dist"], devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+
+    const product = pkgProduct(initWorkspace(".tasks", cwd))
+    expect(product?.action).toBe("updated")
+    expect(product?.hint).toBeUndefined()
+  })
+
+  it("已存在等价钩子且属发布型包：保持分支同样附提醒", () => {
+    const { cwd } = track(runInDir("tk-init-risk-kept-"))
+    writePkg(cwd, { name: "demo", scripts: { prepare: "toolkit skills install" }, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+
+    const product = pkgProduct(initWorkspace(".tasks", cwd))
+    expect(product?.action).toBe("kept")
+    expect(product?.hint).toContain("npm pack/publish")
+  })
+
+  it("未声明本地依赖：沿用原提示、不附发布型包提醒（钩子不存在无此风险）", () => {
+    const { cwd } = track(runInDir("tk-init-risk-nodep-"))
+    writePkg(cwd, { name: "demo", scripts: { build: "tsc" } })
+
+    const product = pkgProduct(initWorkspace(".tasks", cwd))
+    expect(product?.action).toBe("skipped")
+    expect(product?.hint).not.toContain("npm pack/publish")
+  })
+})
+
 // 清理全部临时目录
 afterAll(() => {
   for (const dir of dirs) rmSync(dir, { recursive: true, force: true })

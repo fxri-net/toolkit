@@ -55,6 +55,9 @@ const GITIGNORE_ROWS: ReadonlyArray<{ row: string; patterns: RegExp[] }> = [
 const PREPARE_SCRIPT = "toolkit skills install --scope project"
 // prepare 钩子的等价写法白名单：带 --scope project 的显式写法，与不带作用域的裸写法（在仓库内执行时自动判定为项目面）
 const PREPARE_EQUIVALENTS = [PREPARE_SCRIPT, "toolkit skills install"]
+// 发布型包误打包提醒：prepare 在 npm pack/publish 前也会执行，可能把项目面技能产物打进 npm 包
+const PUBLISH_RISK_HINT =
+  "⚠️ 本项目未标 private 且无 files 白名单——prepare 在 npm pack/publish 前也会执行，可能把 .agents/skills、.toolkit/ 打进产物；发布型包请把二者加入 files 白名单或 .npmignore（已用 .npmignore 排除可忽略）"
 
 // 规范载体索引骨架：三节结构与 skills/fxri-plan-to-task/references/conventions-spec.md 一致
 const CONVENTIONS_INDEX = `${CARRIER_MARKER}
@@ -297,6 +300,11 @@ function hasLocalDependency(pkg: Record<string, unknown>): boolean {
   })
 }
 
+// 发布型包误打包判据：未标 private 且无 files 白名单时，prepare 会在 npm pack/publish 前执行、可能把技能产物打进包
+function isPublishRisk(pkg: Record<string, unknown>): boolean {
+  return pkg.private !== true && !Array.isArray(pkg.files)
+}
+
 // 在对象首个条目位插入一段文本：空对象不带尾随逗号（否则 JSON 非法），缩进沿用对象内既有条目的写法
 function insertFirstEntry(raw: string, open: number, entry: string): string | null {
   const close = raw.indexOf("}", open)
@@ -352,7 +360,9 @@ function scaffoldPrepareHook(cwd: string): InitProduct[] {
   const existing = typeof scripts === "object" && scripts !== null ? (scripts as Record<string, unknown>).prepare : undefined
   if (typeof existing === "string") {
     if (PREPARE_EQUIVALENTS.includes(existing.replace(/\s+/g, " ").trim())) {
-      return [{ target, action: "kept", detail: `已有等价的 prepare 钩子（${existing}），保持不变` }]
+      const product: InitProduct = { target, action: "kept", detail: `已有等价的 prepare 钩子（${existing}），保持不变` }
+      if (isPublishRisk(pkg)) product.hint = PUBLISH_RISK_HINT
+      return [product]
     }
     return [
       {
@@ -375,5 +385,7 @@ function scaffoldPrepareHook(cwd: string): InitProduct[] {
     return [{ target, action: "skipped", detail: "自动插入 prepare 失败（原文件格式特殊），未改写", hint: `可手工加 "prepare": "${PREPARE_SCRIPT}"` }]
   }
   writeFileAtomic(file, next)
-  return [{ target, action: "updated", detail: `已写入 prepare 钩子（${PREPARE_SCRIPT}），安装依赖后自动刷新项目侧技能` }]
+  const product: InitProduct = { target, action: "updated", detail: `已写入 prepare 钩子（${PREPARE_SCRIPT}），安装依赖后自动刷新项目侧技能` }
+  if (isPublishRisk(pkg)) product.hint = PUBLISH_RISK_HINT
+  return [product]
 }
