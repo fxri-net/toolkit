@@ -9,7 +9,7 @@ export const SLOT_PREFIXES: Record<SemanticSlot, string[]> = {
   breaking: ["重大：", "Breaking:"],
   added: ["新增：", "Added:"],
   changed: ["修改：", "Changed:"],
-  improved: ["优化：", "Improved:", "技能：", "skills："],
+  improved: ["优化：", "Improved:"],
   fixed: ["修复：", "Fixed:"],
   docs: ["文档：", "Docs:"],
   removed: ["清理：", "Removed:"],

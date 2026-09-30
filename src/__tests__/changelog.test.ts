@@ -244,7 +244,7 @@ describe("formatChangelog", () => {
         "",
         "### 📝 文档更新",
         "",
-        "- 技能：某技能升级",
+        "- 优化：某优化项",
         "- 无前缀文档条目",
         "",
       ].join("\n"),
@@ -256,8 +256,36 @@ describe("formatChangelog", () => {
         expect(improved).toBeGreaterThan(-1)
         // 组序即槽位定义顺序：优化改进 → 文档更新
         expect(improved).toBeLessThan(docs)
-        expect(out.slice(improved, docs)).toContain("- 某技能升级")
+        expect(out.slice(improved, docs)).toContain("- 某优化项")
         expect(out.slice(docs)).toContain("- 无前缀文档条目")
+      },
+    )
+  })
+
+  it("history=true：非规范前缀（技能：/skills：）不再被识别，条目留在原组、前缀原样保留", () => {
+    withChangelog(
+      [
+        "# pkg",
+        "",
+        "## 1.0.0",
+        "",
+        "> 2026-09-01 发布",
+        "",
+        "### 📝 文档更新",
+        "",
+        "- 技能：某技能升级",
+        "- skills：另一技能升级",
+        "",
+      ].join("\n"),
+      (file) => {
+        formatChangelog(file, "2026-09-03", zh, true, true)
+        const out = readFileSync(file, "utf8")
+        // 未识别前缀不产生「优化改进」组，条目留在原「文档更新」组且前缀不被剥离
+        expect(out).not.toContain("### ⚡ 优化改进")
+        const docs = out.indexOf("### 📝 文档更新")
+        expect(docs).toBeGreaterThan(-1)
+        expect(out.slice(docs)).toContain("- 技能：某技能升级")
+        expect(out.slice(docs)).toContain("- skills：另一技能升级")
       },
     )
   })
