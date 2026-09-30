@@ -1,5 +1,23 @@
 # 方弦工具集
 
+## 1.11.4
+
+> 2026-09-30 发布
+
+### 🐛 问题修复
+
+- `toolkit init` 的发布型包误打包提示不再绑定 `prepare` 刷新钩子——判据独立为「`package.json` 未标 `private` 且无 `files` 白名单」，覆盖原先漏报的 `--no-hooks`、未声明本地依赖、非等价 `prepare` 等情形
+- 上述提示的产物清单补全——按现场动态列出技能真源 `.agents/skills/`、各已存在的候选技能目录下的入口薄壳（`.trae/skills/`、`.trae-cn/skills/`、`.cursor/skills/`、`.claude/skills/`）与归属账 `.toolkit/`，并加入内置任务区 `.tasks/`（任务区外置时不计入），说明 `npm` 无 `.npmignore` 时退回 `.gitignore` 的打包面原理
+- `toolkit skills install` / `status` / `remove` 此前只把技能分发到用户全局目录，项目内装的 toolkit 落点也不在项目、队友 clone 后拿不到；现新增 `--scope <project|global|all>`，缺省按 CLI 安装位置自动判定（项目内装的落项目面、全局装的落全局面），项目面随 git 入库、clone 即用
+- 项目面技能采用「唯一真源 + 多份入口薄壳」形态——完整副本恒定落 `<仓库根>/.agents/skills/`，其余已存在的候选技能目录各放一个指向真源的薄壳 `SKILL.md`，agent 循薄壳读真源，避免重复真源
+- 项目面归属账落 `<仓库根>/.toolkit/state.json`（随仓库入库，记真源与各薄壳落点的仓库相对路径）
+- `toolkit init` 幂等写入 `prepare` 钩子（`toolkit skills install --scope project`），`pnpm install`（含 `pnpm up @fxri/toolkit`）时自动刷新项目面真源与薄壳，消除手动重跑；仅当本包为项目本地依赖时写入，未声明本地依赖（如全局安装）时不写、需要时手工补，绕过 `init` 直接 `skills install --scope project` 启用项目面者需自行补钩子；不需者用 `--no-hooks` 关闭
+
+### 📝 文档更新
+
+- `docs/faq.md` / `docs/guide.md` / `docs/cli.md` 同步发布型包注意事项
+- 同步 `skills` 域 `--scope`、`init --no-hooks` 与项目面分发说明（README / guide / handbook / faq / getting-started / cli）
+
 ## 1.11.3
 
 > 2026-09-29 发布
