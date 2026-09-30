@@ -11,4 +11,5 @@ docs/.vitepress/cache
 .archive.lock
 
 # @fxri/toolkit 忽略片段（运行时文件与个人本地配置，不入库）
+# 不想改团队 .gitignore 者，可把这些忽略行写进 .git/info/exclude（本地排除、不进版本控制）
 .toolkitrc.local.json
