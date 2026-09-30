@@ -1,7 +1,7 @@
 // init 命令实现：生成任务区骨架、规范载体与技能入口壳，补齐 .gitignore 片段
 // 重复执行幂等：业务文件已存在一律保持不覆盖；仅入口壳按标记版本分流（落后或无标记就地更新为当前版本）
 import { existsSync, readFileSync, mkdirSync } from "node:fs"
-import { join, resolve } from "node:path"
+import { isAbsolute, join, relative, resolve } from "node:path"
 import { writeFileAtomic } from "./write-atomic"
 import { readTextFile } from "./read-text"
 import {
@@ -55,9 +55,8 @@ const GITIGNORE_ROWS: ReadonlyArray<{ row: string; patterns: RegExp[] }> = [
 const PREPARE_SCRIPT = "toolkit skills install --scope project"
 // prepare 钩子的等价写法白名单：带 --scope project 的显式写法，与不带作用域的裸写法（在仓库内执行时自动判定为项目面）
 const PREPARE_EQUIVALENTS = [PREPARE_SCRIPT, "toolkit skills install"]
-// 发布型包误打包提醒：prepare 在 npm pack/publish 前也会执行，可能把项目面技能产物打进 npm 包
-const PUBLISH_RISK_HINT =
-  "⚠️ 本项目未标 private 且无 files 白名单——prepare 在 npm pack/publish 前也会执行，可能把 .agents/skills、.toolkit/ 打进产物；发布型包请把二者加入 files 白名单或 .npmignore（已用 .npmignore 排除可忽略）"
+// 项目面产物落点：技能真源副本与项目态归属账恒定在仓库根
+const PROJECT_ARTIFACTS = [".agents/skills/", ".toolkit/"]
 
 // 规范载体索引骨架：三节结构与 skills/fxri-plan-to-task/references/conventions-spec.md 一致
 const CONVENTIONS_INDEX = `${CARRIER_MARKER}
@@ -98,6 +97,8 @@ export interface InitReport {
   tasksDir: string
   products: InitProduct[]
   skillsInstalled: boolean
+  // 发布型包误打包提醒：判据与 prepare 钩子是否写入无关，故独立于 products（风险不是一种产物动作）
+  publishRiskHint?: string
 }
 
 // 展示用路径归一为 / 分隔，保证报告与测试跨平台一致
@@ -130,7 +131,10 @@ export function initWorkspace(dir = ".tasks", cwd = process.cwd(), options: Init
     ...scaffoldEntryLayer(cwd),
     ...(options.hooks === false ? [{ target: "package.json", action: "skipped" as const, detail: "--no-hooks：跳过 prepare 刷新钩子写入" }] : scaffoldPrepareHook(cwd)),
   ]
-  return { tasksDir: dir, products, skillsInstalled: hasGlobalSkillsInstalled() }
+  const report: InitReport = { tasksDir: dir, products, skillsInstalled: hasGlobalSkillsInstalled() }
+  const publishRiskHint = detectPublishRisk(cwd, root)
+  if (publishRiskHint) report.publishRiskHint = publishRiskHint
+  return report
 }
 
 // 生成规范载体骨架（index.md + history.md）；已存在索引、或存在待迁移的旧单文件 conventions.md 时不动
@@ -300,9 +304,27 @@ function hasLocalDependency(pkg: Record<string, unknown>): boolean {
   })
 }
 
-// 发布型包误打包判据：未标 private 且无 files 白名单时，prepare 会在 npm pack/publish 前执行、可能把技能产物打进包
+// 发布型包误打包判据：未标 private 且无 files 白名单时，npm pack 会把非忽略产物一并打包
+// 该风险与 prepare 钩子是否写入无关——项目面真源副本设计上随 git 入库，无钩子同样会被打包
 function isPublishRisk(pkg: Record<string, unknown>): boolean {
   return pkg.private !== true && !Array.isArray(pkg.files)
+}
+
+// 检测发布型包误打包风险：无风险返回 null；产物清单按是否进打包面拼接——任务区落在仓库外时不进打包面
+function detectPublishRisk(cwd: string, tasksRoot: string): string | null {
+  const file = join(cwd, "package.json")
+  if (!existsSync(file)) return null
+  let pkg: Record<string, unknown>
+  try {
+    pkg = JSON.parse(readTextFile(file)) as Record<string, unknown>
+  } catch {
+    return null
+  }
+  if (!isPublishRisk(pkg)) return null
+  const artifacts = [...PROJECT_ARTIFACTS]
+  const rel = relative(cwd, tasksRoot)
+  if (rel && rel !== "." && !rel.startsWith("..") && !isAbsolute(rel)) artifacts.push(`${posix(rel)}/`)
+  return `⚠️ 本项目未标 private 且无 files 白名单——npm pack 会把下列非忽略产物打进包：${artifacts.join("、")}；发布型包请把它们加入 files 白名单或 .npmignore（已用 .npmignore 排除可忽略）`
 }
 
 // 在对象首个条目位插入一段文本：空对象不带尾随逗号（否则 JSON 非法），缩进沿用对象内既有条目的写法
@@ -361,7 +383,6 @@ function scaffoldPrepareHook(cwd: string): InitProduct[] {
   if (typeof existing === "string") {
     if (PREPARE_EQUIVALENTS.includes(existing.replace(/\s+/g, " ").trim())) {
       const product: InitProduct = { target, action: "kept", detail: `已有等价的 prepare 钩子（${existing}），保持不变` }
-      if (isPublishRisk(pkg)) product.hint = PUBLISH_RISK_HINT
       return [product]
     }
     return [
@@ -386,6 +407,5 @@ function scaffoldPrepareHook(cwd: string): InitProduct[] {
   }
   writeFileAtomic(file, next)
   const product: InitProduct = { target, action: "updated", detail: `已写入 prepare 钩子（${PREPARE_SCRIPT}），安装依赖后自动刷新项目侧技能` }
-  if (isPublishRisk(pkg)) product.hint = PUBLISH_RISK_HINT
   return [product]
 }

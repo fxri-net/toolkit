@@ -500,54 +500,105 @@ describe("initWorkspace prepare 刷新钩子", () => {
   })
 })
 
-describe("initWorkspace prepare 发布型包提醒", () => {
+describe("initWorkspace 发布型包误打包提醒", () => {
   const pkgPath = (cwd: string): string => join(cwd, "package.json")
   const writePkg = (cwd: string, pkg: unknown): void => writeFileSync(pkgPath(cwd), `${JSON.stringify(pkg, null, 2)}\n`, "utf8")
-  const pkgProduct = (report: ReturnType<typeof initWorkspace>) => report.products.find((p) => p.target === "package.json")
+  const writePkgRaw = (cwd: string, raw: string): void => writeFileSync(pkgPath(cwd), raw, "utf8")
 
-  it("未标 private 且无 files：写入钩子后附发布型包提醒", () => {
+  it("未标 private 且无 files：提示发布型包误打包风险，清单含内置任务区", () => {
     const { cwd } = track(runInDir("tk-init-risk-open-"))
     writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
 
-    const product = pkgProduct(initWorkspace(".tasks", cwd))
-    expect(product?.action).toBe("updated")
-    expect(product?.hint).toContain("npm pack/publish")
+    const report = initWorkspace(".tasks", cwd)
+    expect(report.publishRiskHint).toContain("npm pack")
+    expect(report.publishRiskHint).toContain(".tasks/")
   })
 
-  it("已标 private：不附提醒", () => {
-    const { cwd } = track(runInDir("tk-init-risk-private-"))
-    writePkg(cwd, { name: "demo", private: true, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+  it("--no-hooks：判据与钩子写入无关，同样提示", () => {
+    const { cwd } = track(runInDir("tk-init-risk-nohooks-"))
+    writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
 
-    const product = pkgProduct(initWorkspace(".tasks", cwd))
-    expect(product?.action).toBe("updated")
-    expect(product?.hint).toBeUndefined()
+    const report = initWorkspace(".tasks", cwd, { hooks: false })
+    expect(report.products.find((p) => p.target === "package.json")?.action).toBe("skipped")
+    expect(report.publishRiskHint).toContain("npm pack")
   })
 
-  it("有 files 白名单：不附提醒", () => {
-    const { cwd } = track(runInDir("tk-init-risk-files-"))
-    writePkg(cwd, { name: "demo", files: ["dist"], devDependencies: { "@fxri/toolkit": "^1.0.0" } })
-
-    const product = pkgProduct(initWorkspace(".tasks", cwd))
-    expect(product?.action).toBe("updated")
-    expect(product?.hint).toBeUndefined()
-  })
-
-  it("已存在等价钩子且属发布型包：保持分支同样附提醒", () => {
-    const { cwd } = track(runInDir("tk-init-risk-kept-"))
-    writePkg(cwd, { name: "demo", scripts: { prepare: "toolkit skills install" }, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
-
-    const product = pkgProduct(initWorkspace(".tasks", cwd))
-    expect(product?.action).toBe("kept")
-    expect(product?.hint).toContain("npm pack/publish")
-  })
-
-  it("未声明本地依赖：沿用原提示、不附发布型包提醒（钩子不存在无此风险）", () => {
+  it("未声明本地依赖（钩子 skipped）：同样提示", () => {
     const { cwd } = track(runInDir("tk-init-risk-nodep-"))
     writePkg(cwd, { name: "demo", scripts: { build: "tsc" } })
 
-    const product = pkgProduct(initWorkspace(".tasks", cwd))
-    expect(product?.action).toBe("skipped")
-    expect(product?.hint).not.toContain("npm pack/publish")
+    const report = initWorkspace(".tasks", cwd)
+    expect(report.products.find((p) => p.target === "package.json")?.action).toBe("skipped")
+    expect(report.publishRiskHint).toContain("npm pack")
+  })
+
+  it("非等价 prepare（skipped）：同样提示", () => {
+    const { cwd } = track(runInDir("tk-init-risk-customhook-"))
+    writePkg(cwd, { name: "demo", scripts: { prepare: "husky install" }, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+
+    const report = initWorkspace(".tasks", cwd)
+    expect(report.products.find((p) => p.target === "package.json")?.action).toBe("skipped")
+    expect(report.publishRiskHint).toContain("npm pack")
+  })
+
+  it("已标 private：不提示", () => {
+    const { cwd } = track(runInDir("tk-init-risk-private-"))
+    writePkg(cwd, { name: "demo", private: true, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+
+    expect(initWorkspace(".tasks", cwd).publishRiskHint).toBeUndefined()
+  })
+
+  it("有 files 白名单：不提示", () => {
+    const { cwd } = track(runInDir("tk-init-risk-files-"))
+    writePkg(cwd, { name: "demo", files: ["dist"], devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+
+    expect(initWorkspace(".tasks", cwd).publishRiskHint).toBeUndefined()
+  })
+
+  it("package.json 不存在：不提示", () => {
+    const { cwd } = track(runInDir("tk-init-risk-nopkg-"))
+    expect(initWorkspace(".tasks", cwd).publishRiskHint).toBeUndefined()
+  })
+
+  it("package.json 解析失败：不提示", () => {
+    const { cwd } = track(runInDir("tk-init-risk-badjson-"))
+    writePkgRaw(cwd, "{ not valid json")
+    expect(initWorkspace(".tasks", cwd).publishRiskHint).toBeUndefined()
+  })
+
+  it("任务区外置（相对路径）：清单不含任务目录、仍列另两项", () => {
+    const parent = mkdtempSync(join(tmpdir(), "tk-init-risk-ext-"))
+    dirs.push(parent)
+    const cwd = join(parent, "proj")
+    mkdirSync(cwd)
+    writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+
+    const hint = initWorkspace("../tasks-ext", cwd).publishRiskHint
+    expect(hint).toContain(".agents/skills/")
+    expect(hint).toContain(".toolkit/")
+    expect(hint).not.toContain("tasks-ext")
+  })
+
+  it("任务区外置（绝对路径）：清单不含任务目录", () => {
+    const parent = mkdtempSync(join(tmpdir(), "tk-init-risk-abs-"))
+    dirs.push(parent)
+    const cwd = join(parent, "proj")
+    mkdirSync(cwd)
+    const ext = join(parent, "tasks-abs")
+    writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+
+    const hint = initWorkspace(ext, cwd).publishRiskHint
+    expect(hint).toContain(".agents/skills/")
+    expect(hint).not.toContain("tasks-abs")
+  })
+
+  it("提醒独立于产物列表：不出现在任何 product 的 hint 中", () => {
+    const { cwd } = track(runInDir("tk-init-risk-detached-"))
+    writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+
+    const report = initWorkspace(".tasks", cwd)
+    expect(report.publishRiskHint).toBeTruthy()
+    for (const p of report.products) expect(p.hint ?? "").not.toContain("npm pack")
   })
 })
 

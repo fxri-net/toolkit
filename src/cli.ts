@@ -540,6 +540,8 @@ function printInitReport(report: InitReport): void {
     console.log(`  ${INIT_ACTION_LABEL[p.action]} ${p.target}${p.detail ? `（${p.detail}）` : ""}`)
     if (p.hint) console.log(`    提示：${p.hint}`)
   }
+  // 发布型包误打包提醒独立于产物列表：判据与 prepare 钩子是否写入无关（风险不是一种产物动作）
+  if (report.publishRiskHint) console.log(`提示：${report.publishRiskHint}`)
   console.log("")
   console.log("下一步：")
   // 规范触达第一层是全局技能（不依赖项目内任何文件）；未安装时补一行安装指引，已装不重复打扰
