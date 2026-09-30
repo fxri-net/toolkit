@@ -4,10 +4,10 @@
 
 > 2026-09-30 发布
 
-### 🐛 问题修复
+### ✨ 新增功能
 
-- `toolkit init` 的发布型包误打包提示不再绑定 `prepare` 刷新钩子——判据独立为「`package.json` 未标 `private` 且无 `files` 白名单」，覆盖原先漏报的 `--no-hooks`、未声明本地依赖、非等价 `prepare` 等情形
-- 上述提示的产物清单补全——按现场动态列出技能真源 `.agents/skills/`、各已存在的候选技能目录下的入口薄壳（`.trae/skills/`、`.trae-cn/skills/`、`.cursor/skills/`、`.claude/skills/`）与归属账 `.toolkit/`，并加入内置任务区 `.tasks/`（任务区外置时不计入），说明 `npm` 无 `.npmignore` 时退回 `.gitignore` 的打包面原理
+- `toolkit init` 新增发布型包误打包提示——`package.json` 未标 `private` 且无 `files` 白名单时提醒发布面风险，判据独立于 `prepare` 刷新钩子（`--no-hooks`、未声明本地依赖、非等价 `prepare` 等情形同样提示）
+- 该提示按现场动态列出会打进包的产物——技能真源 `.agents/skills/`、各已存在的候选技能目录下的入口薄壳（`.trae/skills/`、`.trae-cn/skills/`、`.cursor/skills/`、`.claude/skills/`）与归属账 `.toolkit/`，并含内置任务区 `.tasks/`（任务区外置时不计入），说明 `npm` 无 `.npmignore` 时退回 `.gitignore` 的打包面原理
 - `toolkit skills install` / `status` / `remove` 此前只把技能分发到用户全局目录，项目内装的 toolkit 落点也不在项目、队友 clone 后拿不到；现新增 `--scope <project|global|all>`，缺省按 CLI 安装位置自动判定（项目内装的落项目面、全局装的落全局面），项目面随 git 入库、clone 即用
 - 项目面技能采用「唯一真源 + 多份入口薄壳」形态——完整副本恒定落 `<仓库根>/.agents/skills/`，其余已存在的候选技能目录各放一个指向真源的薄壳 `SKILL.md`，agent 循薄壳读真源，避免重复真源
 - 项目面归属账落 `<仓库根>/.toolkit/state.json`（随仓库入库，记真源与各薄壳落点的仓库相对路径）
