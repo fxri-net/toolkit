@@ -55,8 +55,6 @@ const GITIGNORE_ROWS: ReadonlyArray<{ row: string; patterns: RegExp[] }> = [
 const PREPARE_SCRIPT = "toolkit skills install --scope project"
 // prepare 钩子的等价写法白名单：带 --scope project 的显式写法，与不带作用域的裸写法（在仓库内执行时自动判定为项目面）
 const PREPARE_EQUIVALENTS = [PREPARE_SCRIPT, "toolkit skills install"]
-// 项目面产物落点：技能真源副本与项目态归属账恒定在仓库根
-const PROJECT_ARTIFACTS = [".agents/skills/", ".toolkit/"]
 
 // 规范载体索引骨架：三节结构与 skills/fxri-plan-to-task/references/conventions-spec.md 一致
 const CONVENTIONS_INDEX = `${CARRIER_MARKER}
@@ -310,6 +308,14 @@ function isPublishRisk(pkg: Record<string, unknown>): boolean {
   return pkg.private !== true && !Array.isArray(pkg.files)
 }
 
+// 发布型包的打包面产物清单：技能真源副本恒定落仓库根、项目态归属账恒定，入口薄壳按 init 实际写入的候选目录逐项列出
+// 薄壳落到哪些候选目录取决于现场（已存在者各一份，全缺失时回落 .agents/skills），故清单须动态拼接、不能写死
+function collectPackArtifacts(cwd: string): string[] {
+  const dirs = new Set([".agents/skills", ...resolveProjectSkillDirs(cwd)].map((dir) => `${dir}/`))
+  dirs.add(".toolkit/")
+  return [...dirs]
+}
+
 // 检测发布型包误打包风险：无风险返回 null；产物清单按是否进打包面拼接——任务区落在仓库外时不进打包面
 function detectPublishRisk(cwd: string, tasksRoot: string): string | null {
   const file = join(cwd, "package.json")
@@ -321,7 +327,7 @@ function detectPublishRisk(cwd: string, tasksRoot: string): string | null {
     return null
   }
   if (!isPublishRisk(pkg)) return null
-  const artifacts = [...PROJECT_ARTIFACTS]
+  const artifacts = collectPackArtifacts(cwd)
   const rel = relative(cwd, tasksRoot)
   if (rel && rel !== "." && !rel.startsWith("..") && !isAbsolute(rel)) artifacts.push(`${posix(rel)}/`)
   return `⚠️ 本项目未标 private 且无 files 白名单——npm pack 会把下列非忽略产物打进包：${artifacts.join("、")}；发布型包请把它们加入 files 白名单或 .npmignore（已用 .npmignore 排除可忽略）`

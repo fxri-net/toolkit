@@ -592,6 +592,37 @@ describe("initWorkspace 发布型包误打包提醒", () => {
     expect(hint).not.toContain("tasks-abs")
   })
 
+  it("现有候选技能目录：清单逐项列出该目录（入口薄壳落点）", () => {
+    const { cwd } = track(runInDir("tk-init-risk-candir-"))
+    mkdirSync(join(cwd, ".claude", "skills"), { recursive: true })
+    writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+
+    const hint = initWorkspace(".tasks", cwd).publishRiskHint ?? ""
+    expect(hint).toContain(".claude/skills/")
+    expect(hint).toContain(".agents/skills/")
+    expect(hint).toContain(".toolkit/")
+  })
+
+  it("多候选技能目录并存：清单全部列出", () => {
+    const { cwd } = track(runInDir("tk-init-risk-multidir-"))
+    mkdirSync(join(cwd, ".cursor", "skills"), { recursive: true })
+    mkdirSync(join(cwd, ".trae", "skills"), { recursive: true })
+    writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+
+    const hint = initWorkspace(".tasks", cwd).publishRiskHint ?? ""
+    expect(hint).toContain(".cursor/skills/")
+    expect(hint).toContain(".trae/skills/")
+  })
+
+  it(".agents/skills 同为真源与候选：清单只出现一次（去重）", () => {
+    const { cwd } = track(runInDir("tk-init-risk-dedup-"))
+    mkdirSync(join(cwd, ".agents", "skills"), { recursive: true })
+    writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+
+    const hint = initWorkspace(".tasks", cwd).publishRiskHint ?? ""
+    expect(hint.split(".agents/skills/").length - 1).toBe(1)
+  })
+
   it("提醒独立于产物列表：不出现在任何 product 的 hint 中", () => {
     const { cwd } = track(runInDir("tk-init-risk-detached-"))
     writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })

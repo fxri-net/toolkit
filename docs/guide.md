@@ -88,7 +88,7 @@
 
 `toolkit init` 会生成 `.tasks/` 骨架、在项目级技能目录生成规范入口壳，并追加 `.gitignore` 片段（含 `.archive.lock` 与 `.toolkitrc.local.json`）；当项目本地依赖含 `@fxri/toolkit` 时，还会在 `package.json` 写入 `prepare` 刷新钩子（`toolkit skills install --scope project`），使项目面技能随 `pnpm install` 自动补齐与刷新（`--no-hooks` 可关闭）。
 
-⚠️ 发布型包注意：项目面技能产物（`.agents/skills/`、`.toolkit/`）与内置任务区 `.tasks/`（任务区外置时不计入）都不在 `.gitignore` 忽略列表，`npm` 无 `.npmignore` 时退回 `.gitignore` 决定打包面，它们可能被打进包——要发包的项目请把它们加入 `files` 白名单或写进 `.npmignore`（`init` 检测到「未标 `private` 且无 `files`」时会就此提示，与是否写入 `prepare` 钩子无关，不代改 `package.json`）。
+⚠️ 发布型包注意：项目面技能产物（技能真源 `.agents/skills/`、各候选目录下的入口薄壳、归属账 `.toolkit/`）与内置任务区 `.tasks/`（任务区外置时不计入）都不在 `.gitignore` 忽略列表，`npm` 无 `.npmignore` 时退回 `.gitignore` 决定打包面，它们可能被打进包——要发包的项目请把它们加入 `files` 白名单或写进 `.npmignore`（`init` 检测到「未标 `private` 且无 `files`」时会就此提示，与是否写入 `prepare` 钩子无关，不代改 `package.json`）。
 
 ⚠️ 活跃任务不提交（长期只在本机）是常见反模式：换机器/工作区被 git 清理后任务记录即丢失（同机同目录换会话不受影响——恢复读磁盘 `.tasks/` 文件而非 git），且 `check`/归档流程依赖的上下文无从恢复。
 
