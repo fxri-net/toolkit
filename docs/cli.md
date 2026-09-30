@@ -14,7 +14,7 @@ README 只给最常用示例；本篇是完整的命令字典，覆盖全部参�
 toolkit <command> [options]
 
 命令：
-  toolkit init          初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐 .gitignore 片段）
+  toolkit init          初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐 .gitignore 片段与 prepare 刷新钩子）
   toolkit skills        AI 技能包分发：安装 / 状态 / 卸载 / 路径（包内 skills/ 为唯一真源）
   toolkit conventions   项目协作规范载体：结构升级（v1 → v2）与只读体检（形态 / 索引 / 入口层）
   toolkit config        配置分层：只读查看三层配置文件（全局层 / 项目层 / 本地层）的生效情况与来源
@@ -138,6 +138,7 @@ toolkit changelog status / publish      # 其余 changeset 子命令透传
 ```bash
 toolkit init
 toolkit init --dir ../my-tasks-repo   # 任务区放项目外（独立仓库管理）
+toolkit init --no-hooks               # 不写入 package.json 的 prepare 刷新钩子
 ```
 
 在当前目录初始化任务区，逐项如实报告实际动作（新建 / 更新 / 保持 / 追加 / 跳过）：
@@ -146,6 +147,7 @@ toolkit init --dir ../my-tasks-repo   # 任务区放项目外（独立仓库管�
 - 创建规范载体骨架 `<任务目录>/conventions/index.md`（v2 三节：端清单 / 索引 / 用法说明）与 `<任务目录>/conventions/history.md`（演进记录）；已存在 `index.md` 时保持不动（v1 形态另给升级提示）；存在待迁移的旧单文件 `<任务目录>/conventions.md` 时不建空骨架
 - 在**已存在的**项目级技能目录各生成一份规范入口壳（如 `.agents/skills/toolkit-conventions/SKILL.md`，目录名与 frontmatter `name` 同名；只作入口、不承载条文）——多 agent 混用团队多个候选目录并存时每处各写一份、互不覆盖，一个都不存在时回落 `.agents/skills/`，不为未安装的 agent 凭空建目录；壳已存在时按标记版本分流——标记不旧于当前版本保持不变、落后或无标记就地更新为当前版本（报告为「更新」）；并在**已存在的** `AGENTS.md` 内幂等追加规范入口指针块（`AGENTS.md` 不存在时不新建，仅在报告中提示规范仍可经全局技能触达）
 - 向 `.gitignore` 追加忽略片段（含 `.archive.lock` 与 `.toolkitrc.local.json`，片段头另附一行出口指引注释：不想改团队 `.gitignore` 者可自行把忽略行写进 `.git/info/exclude`）；**逐行幂等**——「是否已覆盖」用 `git check-ignore` **真实判定**，已有该行则跳过、手删单行后重跑只补该行（判定涵盖本仓库与上层 `.gitignore`、`.git/info/exclude` 等全部来源，能识破 `*.lock`、`*.local.json` 等用户手写的通配写法）；非 git 仓库或 git 不可用时退回等价写法白名单（精确行 `/.toolkitrc.local.json`——带前导 `/` 与不带两种写法——及通配 `*.local.json`、`.toolkitrc.*`；白名单外一律追加，宁冗余不误跳）
+- 向 `package.json` 幂等补一行 `prepare` 钩子（值为 `toolkit skills install --scope project`），供依赖升级后自动刷新项目面技能；仅在本地依赖含 `@fxri/toolkit`（`dependencies` / `devDependencies` / `peerDependencies` / `optionalDependencies` 任一）时写入，采用最小文本插入保留原有排版；已有等价钩子（裸 `toolkit skills install` 亦可）保持不变、已有非等价 `prepare` 跳过并提示不覆盖、未声明本地依赖或 `package.json` 缺失 / 解析失败均跳过并说明、本包源仓库跳过；`--no-hooks` 关闭写入
 - 输出后续步骤与文档站链接；检测到尚未安装全局技能时，后续步骤中补一行 `toolkit skills install` 指引（规范触达第一层，不依赖项目内文件；已安装则不重复提示）
 
 ⚠️ 入口壳写入项目级技能目录（`.agents/skills/`、`.trae/skills/` 等）属**侵入性行为**，`init` 在报告中逐项列出实际写入的路径与动作（存在几个候选目录就各写一份）；落点被 `.gitignore` 覆盖时报告给出否定规则提示（**不代改 `.gitignore`**）。入口壳可安全删除，重跑 `init` 会补回；标记落后于当前版本时重跑 `init` 会就地更新为当前版本。
@@ -157,17 +159,22 @@ toolkit init --dir ../my-tasks-repo   # 任务区放项目外（独立仓库管�
 ## skills（1.9.0 新增）
 
 ```bash
-toolkit skills install              # 安装包内技能到各全局技能目录（默认软链真源）
-toolkit skills install --copy       # 强制副本形式（不建软链）
+toolkit skills install              # 安装包内技能（缺省按现场判定作用域：仓库内写项目面，否则写全局目录）
+toolkit skills install --scope project # 仅项目面：仓库内唯一真源副本 + 各候选目录薄壳
+toolkit skills install --scope global  # 仅全局面：软链 / 副本到各 agent 全局技能目录
+toolkit skills install --scope all     # 项目面 + 全局面都执行
+toolkit skills install --copy       # 强制副本形式（仅全局面生效；项目面真源恒为副本、薄壳非副本，忽略并告警）
 toolkit skills install --dry-run    # 预演：只预览将执行的动作，不写文件
 toolkit skills install --force      # 覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
-toolkit skills install --dir <path> # 额外目标目录（可多次指定，兜底内置表未收录的 agent）
-toolkit skills install --format json # JSON 输出：技能源、包内技能、各目标新建/更新/跳过/冲突/降级/失败
-toolkit skills status               # 查看各全局技能目录的现场状态与包内技能真源版本
-toolkit skills status --format json # JSON 输出：技能源目录、技能真源版本、状态文件、技能清单、各目标逐技能状态
-toolkit skills remove               # 卸载本包安装的技能产物（目标目录清空后一并回收）
+toolkit skills install --dir <path> # 额外目标目录（可多次指定；全局面兜底内置表未收录的 agent，项目面须落在仓库内）
+toolkit skills install --format json # JSON 输出：dryRun、scope 与 global / project 各自的安装报告
+toolkit skills status               # 查看技能现场状态与包内技能真源版本（缺省按现场判定作用域）
+toolkit skills status --scope all   # 项目面与全局面都体检
+toolkit skills status --format json # JSON 输出：scope、global / project 各自的现场报告
+toolkit skills remove               # 卸载本包安装的技能产物（缺省按现场判定作用域；目标目录清空后一并回收）
+toolkit skills remove --scope all   # 项目面与全局面都卸载
 toolkit skills remove --dry-run     # 卸载预演（只预览将移除的条目）
-toolkit skills remove --format json # JSON 输出：状态文件、各目标已移除/已不存在/跳过项、目标目录是否回收
+toolkit skills remove --format json # JSON 输出：dryRun、scope 与 global / project 各自的卸载报告
 toolkit skills path                 # 输出包根路径（内含 skills/）
 toolkit skills path --format json   # JSON 输出：包根、技能源目录、技能清单
 ```
@@ -176,20 +183,36 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 | 子命令 | 行为 |
 | --- | --- |
-| `install` | 以包内 `skills/`（含 `SKILL.md` 者计为技能）为唯一真源分发：逐技能幂等——指向正确跳过（含锚在 pnpm 稳定入口、内容与真源一致的异地软链）、指向其他版本（内容与真源不一致）或悬空重建、同名实体目录 / 普通文件默认跳过（`--force` 覆盖）；**落点形态沿用既有登记**——本包以副本形式登记过的技能，裸 `install` 与 `--force` 都保持副本（`--force` 只解除冲突判定，不把副本翻回软链），未登记的同名实体目录被 `--force` 接管时才按默认形态重建为软链；未安装的 agent 只报告、不凭空造目录；`--format json` 输出机器可读安装报告到 stdout（含 `dryRun` 标记） |
-| `status` | 先打印包内各技能真源版本清单（供与会话上下文中已加载的技能内容对照，判断上下文是否过期），再逐目标报告 7 态：软链正常 / 软链悬空 / 软链指向其他版本 / 副本已同步 / 副本已漂移（本包登记副本与真源不一致）/ 缺失 / 同名冲突（同名非本包产物）；**健康目标折叠为一行**（`<目标>：<目录>　N 项正常`），仅含问题项的目标逐条展开，末尾汇总需处理条目并按型给出指引：缺失 / 悬空 / 指向其他版本 / 副本漂移用 `install` 补齐，同名冲突用 `install --force` 覆盖；**目标纳入口径**：主目标恒报告，内置表内的 agent 与自定义目标仅在已有本包记录或目录非空时展开（卸载后的空壳目录不占版面），状态文件登记但本次未解析到的目标（如 `--dir` 安装后不再传参、agent 目录已被移除）也补报、不静默丢弃；存在软链落点时报告末尾另提示「写入将穿透至技能真源目录，改内容请改真源」；`--format json` 输出机器可读报告到 stdout（含 `skillVersions`，折叠不丢信息、替代人读版，无末尾汇总行） |
-| `remove` | 只清理状态文件 `~/.agents/.toolkit-skills.json` 记载的本包产物：链接（含悬空）摘除、副本内容与真源一致才删，其余交人工确认；清理后目标目录若已空则**一并回收**（`--dry-run` 只预览、不动现场；目录非空或不可读时不回收）；清理干净后删除状态文件；`--format json` 输出机器可读卸载报告到 stdout（含各目标 `dirReclaimed` 回收标记与 `dryRun` 标记） |
+| `install` | 以包内 `skills/`（含 `SKILL.md` 者计为技能）为唯一真源分发，**全局面**逐技能幂等——指向正确跳过（含锚在 pnpm 稳定入口、内容与真源一致的异地软链）、指向其他版本（内容与真源不一致）或悬空重建、同名实体目录 / 普通文件默认跳过（`--force` 覆盖）；**落点形态沿用既有登记**——本包以副本形式登记过的技能，裸 `install` 与 `--force` 都保持副本（`--force` 只解除冲突判定，不把副本翻回软链），未登记的同名实体目录被 `--force` 接管时才按默认形态重建为软链；未安装的 agent 只报告、不凭空造目录；项目面按「作用域」节的副本 + 薄壳口径写入；`--format json` 输出机器可读安装报告到 stdout（含 `dryRun` / `scope` 标记） |
+| `status` | **全局面**先打印包内各技能真源版本清单（供与会话上下文中已加载的技能内容对照，判断上下文是否过期），再逐目标报告 7 态：软链正常 / 软链悬空 / 软链指向其他版本 / 副本已同步 / 副本已漂移（本包登记副本与真源不一致）/ 缺失 / 同名冲突（同名非本包产物）；**健康目标折叠为一行**（`<目标>：<目录>　N 项正常`），仅含问题项的目标逐条展开，末尾汇总需处理条目并按型给出指引：缺失 / 悬空 / 指向其他版本 / 副本漂移用 `install` 补齐，同名冲突用 `install --force` 覆盖；**目标纳入口径**：主目标恒报告，内置表内的 agent 与自定义目标仅在已有本包记录或目录非空时展开（卸载后的空壳目录不占版面），状态文件登记但本次未解析到的目标（如 `--dir` 安装后不再传参、agent 目录已被移除）也补报、不静默丢弃；存在软链落点时报告末尾另提示「写入将穿透至技能真源目录，改内容请改真源」；项目面按「作用域」节四态体检；`--format json` 输出机器可读报告到 stdout（含 `scope`，两面报告含 `skillVersions`，折叠不丢信息、替代人读版，无末尾汇总行） |
+| `remove` | **全局面**只清理状态文件 `~/.agents/.toolkit-skills.json` 记载的本包产物：链接（含悬空）摘除、副本内容与真源一致才删，其余交人工确认；清理后目标目录若已空则**一并回收**（`--dry-run` 只预览、不动现场；目录非空或不可读时不回收）；清理干净后删除状态文件；项目面按「作用域」节清理归属账记载的条目；`--format json` 输出机器可读卸载报告到 stdout（含各目标 `dirReclaimed` 回收标记与 `dryRun` / `scope` 标记） |
 | `path` | 输出包根（内含 `skills/`），便于委托上游安装器安装到内置表未收录的 agent；`--format json` 输出包根、技能源目录与技能清单 |
 
-四个子命令的 `--format json` 输出统一携带 `schemaVersion: 1` 锚点（与 `tasks --export` 同口径）；`status` 报告另含 `skillVersions`（各技能真源版本，用于与会话上下文中已加载的技能内容对照），`install` / `remove` 的报告另带 `dryRun` 字段，供消费方区分预演与实跑。
+四个子命令的 `--format json` 输出统一携带 `schemaVersion: 1` 锚点（与 `tasks --export` 同口径）；`install` / `status` / `remove` 的输出另含 `scope`（本次实际作用域）与 `dryRun`（供消费方区分预演与实跑），报告主体按 `global` / `project` 两个字段分面承载（未执行的面为 `null`）；`status` 两面报告均含 `skillVersions`（各技能真源版本，用于与会话上下文中已加载的技能内容对照）。
 
-**分发目标三层**（按顺序去重）：
+### 作用域
+
+`install` / `status` / `remove` 三子命令均支持 `--scope <project|global|all>`，缺省按**现场自动判定**：
+
+- **project（项目面）**：仅在**仓库内**生效。真源固定为仓库根下 `.agents/skills/`（完整副本一份、随 git 入库），其余**已存在**的项目级技能目录（`.trae/skills/`、`.trae-cn/skills/`、`.cursor/skills/`、`.claude/skills/`）各放**每个技能一个薄壳** `SKILL.md`（`description` 派生自真源以保持触发面一致、正文只指向真源路径、带本包标记）；不写到仓库之外的目录（`--dir` 落在仓库外的取值会告警剔除、不静默丢弃），不支持 `--copy`（真源恒为副本、薄壳非副本，传入时告警忽略）；未命中的候选目录只报告、不凭空建
+- **global（全局面）**：写到各 agent 的**全局**技能目录（见下方「全局面分发目标三层」）
+- **all**：两面都执行（报告各自成段）
+
+⚠️ **自动判定判据**：自当前工作目录逐级向上，任一层含 `package.json` 且 CLI 包根真实落在其下 → `project`，否则 `global`（monorepo 子目录执行亦能命中项目面）；**本包源仓库自身视为 `global`**（维护者靠全局技能自举，不把自身 `skills/` 复制进自身仓库）。传入非法取值（非 `project` / `global` / `all`）时报错退出（退出码 1），不静默回落默认值。
+
+⚠️ **项目面归属账**：产物登记在 `<仓库根>/.toolkit/state.json`（真源路径、真源技能名、各薄壳落点，均仓库根相对、随 git 分发），只清理账内条目；卸载时真源副本内容与包内真源一致才删、薄壳带本包标记才删，其余交人工确认（`remove` 只清账、不碰账外同名产物）。
+
+⚠️ **项目面逐技能四态**（`status` 口径）：`已就绪` / `已漂移`（内容与真源或期望不一致）/ `同名冲突`（非本包产物）/ `缺失`；健康目录折叠为一行、仅异常项逐条展开，漂移与缺失用 `install --scope project` 补齐、同名冲突加 `--force` 覆盖。
+
+⚠️ **clone 即用**：项目面真源副本与归属账随 git 入库，队友 clone 后无需重跑 `skills install` 即开箱可用；`toolkit init` 会在本地依赖含 `@fxri/toolkit` 时向 `package.json` 补 `prepare` 钩子（`toolkit skills install --scope project`），依赖升级后自动刷新项目面（详见 [init](#init-1-7-0-新增)）。
+
+**全局面分发目标三层**（按顺序去重）：
 
 1. 主目标 `~/.agents/skills/`（上游 canonical 目录，多家 agent 共读）
 2. 内置表中「已安装」的各 agent 全局技能目录（判据：agent 配置目录存在或探测路径命中）
 3. `--dir <path>` 指定的兜底目录
 
-**行为细节**：
+**全局面行为细节**：
 
 - 产物形态默认**软链**（Windows 用 `junction`，免管理员、免开发者模式）；软链锚在 pnpm 稳定入口（`<node_modules>/@fxri/toolkit`，升级时由 pnpm 重写），不随版本段失效；链接创建失败**自动降级副本**并在报告里标注 ⚠️，不静默跳过
 - 卸载链接时**只摘链、不碰真源**（包内原始文件完好）

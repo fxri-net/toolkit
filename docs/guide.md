@@ -79,12 +79,14 @@
 | 路径 | 是否入库 | 原因 |
 | --- | --- | --- |
 | `.tasks/`（active + archive + conventions/） | ✅ 必须 | 任务记录是团队共享的工作记忆，离了 git 就失去多人协作意义 |
+| `.agents/skills/` 等技能目录（真源 + 别名薄壳） | ✅ 必须 | 项目侧技能真源与各 agent 入口壳，入库后队友 clone 即用、无需逐台重装 |
+| `.toolkit/state.json` | ✅ 必须 | 项目态技能归属账，记录本包写入的技能与薄壳，供刷新与清理定位 |
 | `.toolkitrc.json` | ✅ 建议 | 团队统一脱敏、告警、语言配置 |
 | `.toolkitrc.local.json` | ❌ 忽略 | 个人本地配置（脱敏补充规则、个人任务目录等），默认不入库、不随 git 分发 |
 | `.archive.lock` | ❌ 忽略 | 运行时排他锁，无共享价值 |
 | 导出产物（`tasks.csv` 等） | 按需 | 一般为临时分析产物，默认忽略 |
 
-`toolkit init` 会生成 `.tasks/` 骨架并追加 `.gitignore` 片段（含 `.archive.lock` 与 `.toolkitrc.local.json`）。
+`toolkit init` 会生成 `.tasks/` 骨架、在项目级技能目录生成规范入口壳，并追加 `.gitignore` 片段（含 `.archive.lock` 与 `.toolkitrc.local.json`）；当项目本地依赖含 `@fxri/toolkit` 时，还会在 `package.json` 写入 `prepare` 刷新钩子（`toolkit skills install --scope project`），使项目面技能随 `pnpm install` 自动补齐与刷新（`--no-hooks` 可关闭）。
 
 ⚠️ 活跃任务不提交（长期只在本机）是常见反模式：换机器/工作区被 git 清理后任务记录即丢失（同机同目录换会话不受影响——恢复读磁盘 `.tasks/` 文件而非 git），且 `check`/归档流程依赖的上下文无从恢复。
 
@@ -94,9 +96,11 @@
 
 需求：**只在公司项目激活 toolkit 技能，个人项目不被插入**（全局安装 skills 会污染所有项目）。
 
-做法：技能全局装一次，项目内用 rules/AGENTS 文件选择性引用。
+做法：**项目面分发**（推荐，clone 即用）或**全局分发 + rules 选择性引用**，二选一。
 
-**公司项目**（仓库根放引用文件并提交）：
+**路径一 · 项目面分发（推荐）**：项目里以 devDependency 装 CLI，执行 `toolkit skills install --scope project`——技能真源落到 `<仓库根>/.agents/skills/`（完整副本），其余已存在的 agent 候选目录（`.trae/skills/`、`.trae-cn/skills/`、`.cursor/skills/`、`.claude/skills/`）各放一份**入口薄壳**（含 description 与指向真源的路径）指向真源，避免同一份内容多目录重复。这些文件一并入库后，队友 clone 下来 `pnpm install` 即补齐（由 `toolkit init` 写入的 `prepare` 钩子自动刷新）；个人项目不装 CLI 即不受影响。`--scope` 缺省时按 CLI 安装位置自动判定：项目内装的 CLI 走项目面，全局装的走全局面。
+
+**路径二 · 公司项目（全局面 + rules 选择性引用）**（仓库根放引用文件并提交）：
 
 ```markdown
 <!-- AGENTS.md（Claude Code / Codex 等通用）或各 agent 的项目 rules 文件 -->
@@ -108,7 +112,7 @@
 
 **个人项目**：不放上述文件即可，全局技能目录里的 fxri 技能不会被引用（agent 按 description 按需加载，未在项目 rules 中声明的技能不会自动介入）。
 
-团队项目推荐把上游安装器（`pnpm dlx skills add fxri-net/toolkit`）生成的 `skills-lock.json` 一并提交，保证成员与 AI 侧技能版本一致；用内置 `toolkit skills install` 分发时技能随包同一发布批次分发（技能内容版本独立编号），无需额外锁文件。
+团队项目推荐把上游安装器（`pnpm dlx skills add fxri-net/toolkit`）生成的 `skills-lock.json` 一并提交，保证成员与 AI 侧技能版本一致；用内置 `toolkit skills install` 分发时技能随包同一发布批次分发（技能内容版本独立编号），无需额外锁文件（项目面分发同理，`<仓库根>/.toolkit/state.json` 记录归属账，无需额外锁文件）。
 
 ## AI 技能包 skills
 
@@ -116,9 +120,9 @@
 
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
-| `fxri-plan-to-task` | 1.4.4 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
-| `fxri-release-changelog` | 1.1.4 | changesets 发版与多语言 CHANGELOG 维护 |
-| `fxri-session-recap` | 1.2.4 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
+| `fxri-plan-to-task` | 1.4.5 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
+| `fxri-release-changelog` | 1.1.5 | changesets 发版与多语言 CHANGELOG 维护 |
+| `fxri-session-recap` | 1.2.5 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 
 版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` 打印的真源版本），随技能内容变更递增；`fxri-session-recap` 为 1.7.0 新增
 
@@ -126,7 +130,8 @@
 
 ```bash
 # 方式一：装了 CLI 一键分发（推荐，技能随包分发，与 CLI 同一发布批次）
-toolkit skills install     # 默认软链真源，链接创建失败自动降级副本；--copy 强制副本、--dry-run 预演
+toolkit skills install     # 默认软链真源，链接创建失败自动降级副本；--copy 强制副本（仅全局面生效）、--dry-run 预演
+                           # --scope <project|global|all> 指定作用域，缺省按 CLI 安装位置自动判定
 toolkit skills status      # 查现场；toolkit skills remove 卸载；toolkit skills path 输出包根
                            # --force 覆盖同名非本包产物（不改本包已登记副本的形态）
 
@@ -134,7 +139,9 @@ toolkit skills status      # 查现场；toolkit skills remove 卸载；toolkit 
 pnpm dlx skills add fxri-net/toolkit --global
 ```
 
-分发目标三层：主目标 `~/.agents/skills/`（多家 agent 共读）→ 内置表中「已安装」的各 agent 全局技能目录 → `--dir` 兜底；未安装的 agent 只报告、不凭空造目录。默认软链（Windows 用 junction，免管理员、免开发者模式），可被各 agent 直接读取；⚠️ 软链落点是**写入穿透**形态（改落点文件即改真源），要改技能内容请改真源，`toolkit skills status` 报告末尾也会提示；`toolkit skills remove` 清理后目标目录若已空会一并回收。
+**全局面分发目标三层**：主目标 `~/.agents/skills/`（多家 agent 共读）→ 内置表中「已安装」的各 agent 全局技能目录 → `--dir` 兜底；未安装的 agent 只报告、不凭空造目录。默认软链（Windows 用 junction，免管理员、免开发者模式），可被各 agent 直接读取；⚠️ 软链落点是**写入穿透**形态（改落点文件即改真源），要改技能内容请改真源，`toolkit skills status` 报告末尾也会提示；`toolkit skills remove` 清理后目标目录若已空会一并回收。
+
+**项目面分发（`--scope project`）**：真源落 `<仓库根>/.agents/skills/`（完整副本），其余已存在的候选目录（`.trae/skills/`、`.trae-cn/skills/`、`.cursor/skills/`、`.claude/skills/`）各放每个技能一份**入口薄壳**指向真源，避免同一份内容多目录重复；`--dir` 须落在仓库内。归属账写 `<仓库根>/.toolkit/state.json`。`toolkit init` 会写入 `prepare` 钩子，`pnpm install` 时自动刷新，队友 clone 即用；逐技能现场状态（真源 / 薄壳 / 缺失 / 漂移）由 `toolkit skills status --scope project` 报告。
 
 **与 CLI 的关系**：skills 是规范与流程（独立可用），CLI 是自动校验/归档/发版的加速器。技能文件末尾的「可选加速」节列出了对应 CLI 命令——装了就用，没装技能流程照跑。
 
@@ -290,5 +297,5 @@ pnpm exec toolkit changelog --history format   # 连带追溯改写历史版本�
 
 - 环境要求 Node.js >= 20.19.0（22 线为 >= 22.12.0）
 - Node 18 与 Node 20.0–20.18 可安装，但 `changelog` 依赖 changesets 的子命令不可用（上游 `human-id` ESM-only 限制，其 `require(esm)` 需 Node ≥ 20.19.0 默认开启）
-- 升级：`pnpm add -g @fxri/toolkit`（npm 用户换成 `npm i -g @fxri/toolkit`）——默认软链模式下技能锚在 pnpm 稳定入口，随 CLI 自动更新；副本形式需重跑 `toolkit skills install`；**升级后开新会话**使 AI 侧技能与 CLI 版本对齐
+- 升级：`pnpm add -g @fxri/toolkit`（npm 用户换成 `npm i -g @fxri/toolkit`）——默认软链模式下技能锚在 pnpm 稳定入口，随 CLI 自动更新；副本形式需重跑 `toolkit skills install`；项目面（`--scope project`）技能由 `prepare` 钩子在 `pnpm install`（含 `pnpm up @fxri/toolkit`）时自动刷新，无需手动重跑；**升级后开新会话**使 AI 侧技能与 CLI 版本对齐
 - 1.7.0 起 CLI 内置升级检查提示（同步读本地缓存提示，缓存不新鲜时由分离的后台子进程静默刷新 registry，不阻塞命令、静默失败不打扰）；不希望发起请求时设 `FX_NO_UPDATE_CHECK=1` 或配置 `updateCheck.enabled: false`（见[配置参考](./config#updatecheck-升级检查提示-1-7-0-新增)）

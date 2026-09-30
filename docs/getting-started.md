@@ -99,19 +99,21 @@ bunx @fxri/toolkit tasks      # bun
 ```bash
 # 方式一：装了 CLI 一键分发（推荐，技能随包分发，与 CLI 同一发布批次）
 pnpm add -g @fxri/toolkit && toolkit skills install   # npm 用户：npm i -g @fxri/toolkit
+# 项目面分发（团队推荐，技能随仓库入库、队友 clone 即用）
+toolkit skills install --scope project   # --scope 缺省时按 CLI 安装位置自动判定
 
 # 方式二：上游安装器（技能走 GitHub 拉取，与 CLI 是两条供应链，易出现版本漂移）
 pnpm dlx skills add fxri-net/toolkit --global   # npm 用户：npx skills add fxri-net/toolkit --global
 ```
 
-`toolkit skills install` 默认软链真源、链接创建失败自动降级副本，另有 `toolkit skills status`（查现场）与 `toolkit skills remove`（卸载）；⚠️ 软链落点是**写入穿透**形态（改落点文件即改真源），要改技能内容请改真源，`status` 报告末尾也会提示；细节见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)。
+`toolkit skills install` 默认软链真源、链接创建失败自动降级副本，另有 `toolkit skills status`（查现场）与 `toolkit skills remove`（卸载）；`--scope project` 换项目面——真源落 `<仓库根>/.agents/skills/`、其余已存在的候选目录落入口薄壳，随 git 入库后队友 clone 即用（`toolkit init` 会写入 `prepare` 钩子，`pnpm install` 自动刷新）；⚠️ 软链落点是**写入穿透**形态（改落点文件即改真源），要改技能内容请改真源，`status` 报告末尾也会提示；细节见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)。
 
 GitHub 拉不下来？国内网络走 [Gitee 镜像渠道](./faq#国内网络优先走哪条渠道)，内网 / 离线安装见 [FAQ · 内网或离线环境怎么装](./faq#内网或离线环境怎么装)。
 
 ## 30 秒上手
 
 ```bash
-# 1. 初始化任务区（生成 .tasks/ 骨架、conventions/ 规范载体与技能入口壳，补齐 .gitignore 片段）
+# 1. 初始化任务区（生成 .tasks/ 骨架、conventions/ 规范载体与技能入口壳，补齐 .gitignore 片段；项目本地依赖含 @fxri/toolkit 时写入 prepare 刷新钩子）
 pnpm exec toolkit init
 
 # 2. 查看任务总览（当前为空）
@@ -138,7 +140,7 @@ pnpm exec toolkit tasks archive
 
 不需要懂命令，直接对 AI 说：
 
-- 「新项目，先初始化任务区」→ AI 跑 `toolkit init` 建 `.tasks/` 骨架、`conventions/` 规范载体与技能入口壳，并补齐 `.gitignore` 片段（逐项报告实际动作；1.7.0 新增命令）
+- 「新项目，先初始化任务区」→ AI 跑 `toolkit init` 建 `.tasks/` 骨架、`conventions/` 规范载体与技能入口壳，并补齐 `.gitignore` 片段（项目本地依赖含 `@fxri/toolkit` 时写入 `prepare` 刷新钩子；逐项报告实际动作；1.7.0 新增命令）
 - 「把刚才确认的方案落盘为任务」→ AI 会在 `.tasks/active/` 下建档
 - 「任务做完了，归档」→ AI 归档任务并做任务级规范沉淀（终点；提交、发版、推送不是必经步骤，按你的规则约定）
 - 「任务做完了，归档并提交」→ AI 先归档与沉淀、后提交，归档文件与代码变更同一 git 提交

@@ -24,7 +24,7 @@ AI 参与开发后，方案与决策散落在对话记录里，会话一关什�
 # 1. 项目内安装（推荐，团队共享版本）
 pnpm add -D @fxri/toolkit
 
-# 2. 初始化任务区（生成 .tasks/ 骨架、conventions/ 规范载体与技能入口壳）
+# 2. 初始化任务区（生成 .tasks/ 骨架、conventions/ 规范载体与技能入口壳；含本地依赖时写入 prepare 刷新钩子）
 pnpm exec toolkit init
 
 # 3. 查看任务总览
@@ -42,7 +42,7 @@ pnpm exec toolkit tasks
 | 协作规范载体（conventions） | 把任务里提炼的规范收进 `.tasks/conventions/`，成为可检索、可校验的项目规范源；支持结构升级与只读体检 | [CLI 参考](./docs/cli.md) · [完整攻略](./docs/guide.md#conventions-规范沉淀地) |
 | Node API | 把上述能力嵌进脚本或平台 | [API 参考](./docs/api.md) |
 | 隐私脱敏 | 落盘前自动掩码邮箱、手机号、密钥等 | [配置参考](./docs/config.md) |
-| AI 技能包（skills） | 不装本工具也能让 AI 按同一套规范干活；装了可一键分发技能 | [完整攻略](./docs/guide.md#ai-技能包-skills) · [FAQ](./docs/faq.md#工具和-skills-都得装吗) |
+| AI 技能包（skills） | 不装本工具也能让 AI 按同一套规范干活；装了可一键分发技能（`--scope project` 随仓库入库、队友 clone 即用） | [完整攻略](./docs/guide.md#ai-技能包-skills) · [FAQ](./docs/faq.md#工具和-skills-都得装吗) |
 | 配置文件 | 三层（全局 / 项目 / 本地）定制脱敏、告警、导入列映射、语言表；`toolkit config status` 只读查看生效情况与来源 | [CLI 参考](./docs/cli.md#config-1-11-2-新增) · [配置参考](./docs/config.md) |
 
 ## 📚 文档
@@ -65,10 +65,11 @@ pnpm exec toolkit tasks
 
 ```bash
 pnpm add -g @fxri/toolkit && toolkit skills install   # 装了 CLI 一键分发（npm 用户：npm i -g @fxri/toolkit）
+toolkit skills install --scope project                # 项目面分发：真源与入口薄壳随仓库入库、队友 clone 即用
 pnpm dlx skills add fxri-net/toolkit                  # 也可用上游安装器（npm 用户：npx skills add fxri-net/toolkit）
 ```
 
-技能随包分发（真源为包内 `skills/`），与 CLI 同一发布批次（技能内容版本独立编号）；`toolkit skills install` 默认软链，链接创建失败自动降级副本，`toolkit skills status` 查现场，`toolkit skills remove` 卸载。
+技能随包分发（真源为包内 `skills/`），与 CLI 同一发布批次（技能内容版本独立编号）；`toolkit skills install` 默认软链，链接创建失败自动降级副本，`toolkit skills status` 查现场，`toolkit skills remove` 卸载。`--scope project` 换项目面——真源落 `<仓库根>/.agents/skills/`、其余候选目录落入口薄壳，随 git 入库后队友 clone 靠 `toolkit init` 写入的 `prepare` 钩子自动补齐。
 
 - [fxri-plan-to-task](./skills/fxri-plan-to-task/SKILL.md)：方案确认后落盘为任务文件（动手前建档评估、check、归档 + 任务级规范沉淀为强制终点）
 - [fxri-release-changelog](./skills/fxri-release-changelog/SKILL.md)：发版时创建变更集、格式化多语言 CHANGELOG

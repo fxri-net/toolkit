@@ -27,7 +27,16 @@ pnpm i -g @fxri/toolkit   # 工具全局（npm 用户：npm i -g @fxri/toolkit�
 toolkit skills install    # skills 一键分发到各 agent 全局技能目录
 ```
 
-升级一条命令：`pnpm add -g @fxri/toolkit`（软链模式下技能随包自动更新；副本形式需重跑 `toolkit skills install`），skills 升级后开新会话，见「升级后要注意什么」。诚实代价：全局装的版本**不随项目锁定**，团队里会出现「各装各的」版本漂移——所以团队项目推荐工具走项目 devDependency（版本随仓库锁定，成员与 CI 自动一致）；skills 可用内置命令全局分发（与 CLI 同一发布批次；技能内容版本独立编号），也可用上游安装器项目级安装并把 `skills-lock.json` 提交进仓库锁版本；只想在公司项目生效见下文「只在公司项目激活」。
+升级一条命令：`pnpm add -g @fxri/toolkit`（软链模式下技能随包自动更新；副本形式需重跑 `toolkit skills install`），skills 升级后开新会话，见「升级后要注意什么」。诚实代价：全局装的版本**不随项目锁定**，团队里会出现「各装各的」版本漂移——所以团队项目推荐工具走项目 devDependency（版本随仓库锁定，成员与 CI 自动一致），技能也装进项目（`toolkit skills install --scope project`，真源与入口薄壳入库、队友 clone 即用，见「项目内装的技能放在哪、队友 clone 后要重装吗」）；也可用上游安装器项目级安装并把 `skills-lock.json` 提交进仓库锁版本；只想在公司项目生效见下文「只在公司项目激活」。
+
+### 项目内装的技能放在哪、队友 clone 后要重装吗？
+
+项目面分发（`toolkit skills install --scope project`，`--scope` 缺省时项目内装的 CLI 会自动走此面）只保留**一份唯一真源**，其余目录都是薄壳：
+
+- **真源**：`<仓库根>/.agents/skills/`（完整技能内容），恒定存在；
+- **入口薄壳**：其余**已存在**的候选目录（`.trae/skills/`、`.trae-cn/skills/`、`.cursor/skills/`、`.claude/skills/`）各放**每个技能一个** `SKILL.md` 薄壳——description 从真源派生、正文指明真源路径与版本标记，不重复承载内容；某个候选目录不存在就不凭空创建。
+
+真源与薄壳都要**入库**（归属账 `<仓库根>/.toolkit/state.json` 一并入库）。队友 clone 后**不必逐台手动重装**：`toolkit init` 会在 `package.json` 写入 `prepare` 刷新钩子（仅当本地依赖含 `@fxri/toolkit`），`pnpm install` 时自动补齐/刷新；想手动触发就重跑 `toolkit skills install --scope project`。现场用 `toolkit skills status --scope project` 查（逐技能报告真源 / 薄壳 / 缺失 / 漂移）；清理用 `toolkit skills remove --scope project`（只摘本包登记的产物）。某队友用的 agent 候选目录仓库里没有对应薄壳时，跑一次 install 即按需补上。
 
 ### skills 是什么？和插件、脚本有什么区别？
 
@@ -113,6 +122,8 @@ pnpm remove -g @fxri/toolkit   # 2. 再卸 CLI
 
 ⚠️ 软链会悬空：软链形式的技能指向包内目录，CLI 一卸就成悬空链接（agent 读到空目录）。`toolkit skills remove` 会把悬空链接一并摘除；漏摘时手工删除 `~/.agents/skills/` 与各 agent 全局技能目录下的 `fxri-*` 链接。若技能当初是用上游安装器（`npx skills`）装的，则按其文档卸载——本包只清理自己状态文件里登记的产物，不会误删它们。
 
+⚠️ 项目面产物单独清：装进项目的技能（真源 `.agents/skills/` + 各候选目录薄壳）用 `toolkit skills remove --scope project` 摘除——只清 `<仓库根>/.toolkit/state.json` 里登记的产物，不碰你自己放入的技能。因为项目面用的是实体副本（非软链），卸载 CLI 不会让它悬空，是否会随 git 分发由你决定。
+
 ## 任务管理
 
 ### `.tasks/` 要提交到 git 吗？哪些文件该提交？
@@ -180,7 +191,7 @@ pnpm remove -g @fxri/toolkit   # 2. 再卸 CLI
 
 ### 升级后要注意什么？
 
-CLI 升级后技能**默认自动跟随**（软链锚在 pnpm 稳定入口，升级不失效，无需额外命令）；若当初用了 `--copy`、或链接创建失败被自动降级为副本，需重跑 `toolkit skills install` 刷新，并且**开新会话**——旧会话加载的技能内容还是旧版，新会话才会读到新技能。升级命令按安装方式选：全局 `pnpm add -g @fxri/toolkit`（npm 用户 `npm i -g @fxri/toolkit`）；项目 devDep 在项目内 `pnpm up @fxri/toolkit`；yarn v2+ 全局安装受限，建议迁移到 pnpm。1.7.0 起 CLI 会在检测到新版本时提示。
+CLI 升级后技能**默认自动跟随**（软链锚在 pnpm 稳定入口，升级不失效，无需额外命令）；若当初用了 `--copy`、或链接创建失败被自动降级为副本，需重跑 `toolkit skills install` 刷新；项目面（`--scope project`）技能由 `prepare` 钩子在 `pnpm install`（含 `pnpm up @fxri/toolkit`）时自动刷新，无需手动重跑——三种情形都要**开新会话**，旧会话加载的技能内容还是旧版，新会话才会读到新技能。升级命令按安装方式选：全局 `pnpm add -g @fxri/toolkit`（npm 用户 `npm i -g @fxri/toolkit`）；项目 devDep 在项目内 `pnpm up @fxri/toolkit`；yarn v2+ 全局安装受限，建议迁移到 pnpm。1.7.0 起 CLI 会在检测到新版本时提示。
 
 ### fork 本仓库怎么部署文档站？
 

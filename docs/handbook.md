@@ -9,8 +9,8 @@
 | 步骤 | 该做什么 | 会发生什么 |
 | --- | --- | --- |
 | 1 装 CLI | 团队项目：`pnpm add -D @fxri/toolkit`（npm 用 `npx`）；个人多项目：`pnpm i -g @fxri/toolkit` | 得到 `toolkit` 命令 |
-| 2 装 skills | `toolkit skills install`（装了 CLI 一键分发，默认软链；npm 用户需先 `npm i -g @fxri/toolkit`）；也可用上游安装器 `pnpm dlx skills add fxri-net/toolkit --global` | AI 侧获得三份岗位说明书，遇到对应场景自动触发 |
-| 3 建任务区 | `pnpm exec toolkit init` | 生成 `.tasks/active/{YYYYMM}/`、`archive/`、`conventions/index.md` + `history.md` 骨架与 `.gitignore` 片段，并在项目级技能目录生成规范入口壳（逐项报告实际动作） |
+| 2 装 skills | `toolkit skills install`（装了 CLI 一键分发，默认软链；npm 用户需先 `npm i -g @fxri/toolkit`）；`--scope project` 装进项目仓库（真源落 `.agents/skills/`、其余候选目录落入口薄壳，队友 clone 即用）；也可用上游安装器 `pnpm dlx skills add fxri-net/toolkit --global` | AI 侧获得三份岗位说明书，遇到对应场景自动触发 |
+| 3 建任务区 | `pnpm exec toolkit init` | 生成 `.tasks/active/{YYYYMM}/`、`archive/`、`conventions/index.md` + `history.md` 骨架与 `.gitignore` 片段，并在项目级技能目录生成规范入口壳；项目本地依赖含 `@fxri/toolkit` 时写入 `prepare` 刷新钩子（逐项报告实际动作） |
 | 4 配全局规则（可选） | 从 [AI 全局规则](./ai-rules) 复制模板到你的 agent 全局 rules；提交习惯想统一再取[提交信息规则](./commit-rules) | AI 按你的纪律协作 |
 
 三种安装方式对比、离线/内网装法见[新手指南 · 安装](./getting-started#安装)。
@@ -118,6 +118,7 @@ pnpm exec toolkit changelog --lang en format # 其他语言格式化
 pnpm add -g @fxri/toolkit
 toolkit skills status   # 可选：检查现场（悬空 / 指向其他版本 / 副本漂移 / 缺失 / 同名冲突）与包内技能真源版本
                         # 人读版健康目标折叠为一行、仅问题项展开；前四类重跑 toolkit skills install 补齐，同名冲突需 toolkit skills install --force 覆盖
+                        # --scope project 查项目面现场（真源 / 入口薄壳 / 缺失 / 漂移）
 
 # 项目内（版本随仓库锁定）
 pnpm up @fxri/toolkit
@@ -126,7 +127,7 @@ pnpm up @fxri/toolkit
 升级三步检查：
 
 1. **CLI** 更新（上面命令）
-2. **skills** 同步：默认**软链**锚在 pnpm 稳定入口（升级时由 pnpm 重写该入口，链接不随版本段失效），CLI 升级后技能即新版，无需额外命令；若是**副本**形式（`--copy` 安装，或链接创建失败自动降级），需重跑 `toolkit skills install` 刷新
+2. **skills** 同步：默认**软链**锚在 pnpm 稳定入口（升级时由 pnpm 重写该入口，链接不随版本段失效），CLI 升级后技能即新版，无需额外命令；若是**副本**形式（`--copy` 安装，或链接创建失败自动降级），需重跑 `toolkit skills install` 刷新；**项目面**（`--scope project`）技能由 `prepare` 钩子在 `pnpm install`（含升级）时自动刷新，无需手动重跑
 3. **开新会话**：旧会话加载的技能内容还是旧版，新会话才读到新版
 
 ⚠️ 软链落点是**写入穿透**形态：在落点目录里编辑技能文件等于编辑真源（真源还随包升级整体换新），要改技能内容请改真源——`toolkit skills status` 在存在软链落点时于报告末尾也会提示。

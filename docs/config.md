@@ -194,6 +194,7 @@ CLI 每次命令执行时**同步读取本地缓存**，检测到新版本时向
 
 **作用边界**（护栏）：
 
+- **仅作用于全局面软链**：`autoLink` / `autoLinkReplaceForeign` 只做全局技能目录的软链自愈；项目面（仓库内唯一真源副本 + 各候选目录薄壳）不受这两个开关影响，其刷新由 `toolkit init` 写入的 `package.json` `prepare` 钩子（`toolkit skills install --scope project`）承担，产物归属账另存 `<仓库根>/.toolkit/state.json`（非配置文件、随 git 分发）
 - **只补链与修链**：不含首次安装（未安装过、无状态文件时不动作），不含副本刷新（副本形式的技能不自动升级，需重跑 `toolkit skills install`）
 - **只对状态文件记载的链接生效**：现场被替换成实体目录 / 普通文件时，默认清理后重建为软链；`autoLinkReplaceForeign: false` 改为一律不动——该开关**只豁免实体产物**，悬空与指向其他版本（内容与真源不一致）的链接仍照常修复
 - **`CI` 环境自动跳过**：检测到 `CI` 环境变量时不执行，避免污染流水线

@@ -8,15 +8,24 @@ import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { CARRIER_VERSION, ENTRY_VERSION } from "../conventions/format"
 import {
   AGENT_SKILL_DIRS,
+  PROJECT_SOURCE_DIR,
   autoLinkSkills,
+  buildSkillShell,
+  detectSkillScope,
   findSkillVersionMismatches,
   hasGlobalSkillsInstalled,
+  installProjectSkills,
   installSkills,
   listPackageSkills,
   pnpmStableEntry,
+  projectSkillsStatus,
+  projectStateFile,
   readSkillBodyVersion,
+  readSkillDescription,
+  readSkillShellVersion,
   readSkillVersion,
   readSkillsState,
+  removeProjectSkills,
   removeSkills,
   resetSkillsRootCache,
   resolveSkillTargets,
@@ -1042,5 +1051,229 @@ describe("status 目标纳入口径", () => {
     expect(skillsStatus().targets.some((t) => t.dir === dir)).toBe(false)
     writeState([{ dir, links: [listPackageSkills()[0]!.name] }])
     expect(skillsStatus().targets.some((t) => t.dir === dir)).toBe(true)
+  })
+})
+
+// 项目侧分发：真源恒为 <repo>/.agents/skills 唯一一份副本，其余已存在候选目录只落薄壳
+describe("项目侧技能分发（真源副本 + 薄壳）", () => {
+  // 各用例独立建临时项目目录，避免默认 cwd（真实仓库根）被写入
+  let project = ""
+  const projects: string[] = []
+
+  // 真源副本里某技能的 SKILL.md 绝对路径
+  function sourceSkillFile(root: string, name: string): string {
+    return join(root, PROJECT_SOURCE_DIR, name, "SKILL.md")
+  }
+
+  // 薄壳目录里某技能的 SKILL.md 绝对路径
+  function shellSkillFile(root: string, dir: string, name: string): string {
+    return join(root, dir, name, "SKILL.md")
+  }
+
+  // 按真源派生的期望薄壳内容（复用真实实现，不在测试内重写转换逻辑）
+  function expectedShell(skill: { name: string; dir: string }): string {
+    return buildSkillShell(skill.name, PROJECT_SOURCE_DIR, readSkillDescription(skill.dir))
+  }
+
+  // 取体检报告里某目录下某技能的状态
+  function stateIn(report: ReturnType<typeof projectSkillsStatus>, dir: string, name: string): string | undefined {
+    return report.dirs.find((d) => d.dir === dir)?.items.find((i) => i.name === name)?.state
+  }
+
+  beforeEach(() => {
+    project = mkdtempSync(join(tmpdir(), "tk-proj-"))
+    projects.push(project)
+  })
+
+  afterEach(() => {
+    while (projects.length) rmSync(projects.pop()!, { recursive: true, force: true })
+  })
+
+  it("把包内技能写入仓库唯一真源，并在其余已存在候选目录落薄壳", () => {
+    mkdirSync(join(project, ".cursor", "skills"), { recursive: true })
+    const skills = listPackageSkills()
+
+    const report = installProjectSkills({ cwd: project })
+    expect(report.source.dir).toBe(PROJECT_SOURCE_DIR)
+    expect(report.source.created).toEqual(skills.map((s) => s.name))
+    // 真源内容与包内真源逐字一致
+    for (const s of skills) {
+      expect(readFileSync(sourceSkillFile(project, s.name), "utf8")).toBe(readFileSync(join(s.dir, "SKILL.md"), "utf8"))
+    }
+    // 薄壳只落在已存在候选目录，内容由真源派生
+    expect(report.shells.map((r) => r.dir)).toEqual([".cursor/skills"])
+    for (const s of skills) {
+      expect(readFileSync(shellSkillFile(project, ".cursor/skills", s.name), "utf8")).toBe(expectedShell(s))
+    }
+    // 未命中的候选目录如实报告，供按需补齐
+    expect(report.missingDirs).toContain(".trae/skills")
+    expect(report.missingDirs).not.toContain(PROJECT_SOURCE_DIR)
+  })
+
+  it("重复安装幂等：真源与薄壳均跳过，且不改写归属账", () => {
+    mkdirSync(join(project, ".cursor", "skills"), { recursive: true })
+    installProjectSkills({ cwd: project })
+    // 人为回拨 updatedAt：幂等安装若重写文件会覆盖该值
+    const stateFile = projectStateFile(project)
+    const state = JSON.parse(readFileSync(stateFile, "utf8"))
+    state.updatedAt = "2000-01-01T00:00:00.000Z"
+    writeFileSync(stateFile, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+
+    const names = listPackageSkills().map((s) => s.name)
+    const again = installProjectSkills({ cwd: project })
+    expect(again.source.skipped).toEqual(names)
+    expect(again.shells[0]!.skipped).toEqual(names)
+    // 账体无变化 → 不落盘，updatedAt 保持回拨值
+    expect(JSON.parse(readFileSync(stateFile, "utf8")).updatedAt).toBe("2000-01-01T00:00:00.000Z")
+  })
+
+  it("薄壳按标记版本分流：同版或超前保持、漂移重写、无标记交人工", () => {
+    mkdirSync(join(project, ".cursor", "skills"), { recursive: true })
+    installProjectSkills({ cwd: project })
+    const skill = listPackageSkills()[0]!
+    const file = shellSkillFile(project, ".cursor/skills", skill.name)
+    const expected = readFileSync(file, "utf8")
+    const version = readSkillShellVersion(expected)!
+    const install = () => installProjectSkills({ cwd: project })
+
+    // 同版且内容一致 → 跳过
+    expect(install().shells[0]!.skipped).toContain(skill.name)
+
+    // 标记超前（壳由更新版 toolkit 生成）→ 不降级覆盖
+    const ahead = expected.replace(`v${version} -->`, `v${version + 1} -->`)
+    writeFileSync(file, ahead, "utf8")
+    expect(install().shells[0]!.skipped).toContain(skill.name)
+    expect(readFileSync(file, "utf8")).toBe(ahead)
+
+    // 同标记但内容漂移 → 就地重写回期望内容
+    writeFileSync(file, `${expected}被人改动的尾巴\n`, "utf8")
+    expect(install().shells[0]!.updated).toContain(skill.name)
+    expect(readFileSync(file, "utf8")).toBe(expected)
+
+    // 无标记（他人同名产物）→ 默认冲突不改写，--force 时重写
+    writeFileSync(file, "---\nname: x\ndescription: 外来的\n---\n\n外来的壳\n", "utf8")
+    expect(install().shells[0]!.conflicts).toContain(skill.name)
+    expect(readFileSync(file, "utf8")).not.toBe(expected)
+    expect(installProjectSkills({ cwd: project, force: true }).shells[0]!.updated).toContain(skill.name)
+    expect(readFileSync(file, "utf8")).toBe(expected)
+  })
+
+  it("--dir 只接受仓库内取值，库外取值剔除并回报（降级不静默）", () => {
+    const skill = listPackageSkills()[0]!
+    const report = installProjectSkills({ cwd: project, dirs: ["../outside-skills", ".trae/skills"] })
+    expect(report.ignoredDirs).toEqual(["../outside-skills"])
+    expect(report.shells.map((r) => r.dir)).toContain(".trae/skills")
+    expect(existsSync(shellSkillFile(project, ".trae/skills", skill.name))).toBe(true)
+  })
+
+  it("体检如实分辨真源与薄壳的 ready / drift / conflict / missing", () => {
+    mkdirSync(join(project, ".cursor", "skills"), { recursive: true })
+    installProjectSkills({ cwd: project })
+    const first = listPackageSkills()[0]!
+    const second = listPackageSkills()[1]!
+
+    const initial = projectSkillsStatus(project)
+    expect(stateIn(initial, PROJECT_SOURCE_DIR, first.name)).toBe("ready")
+    expect(stateIn(initial, ".cursor/skills", first.name)).toBe("ready")
+
+    // 真源被改动（有归属记录）→ drift
+    writeFileSync(sourceSkillFile(project, first.name), "改动过的真源\n", "utf8")
+    expect(stateIn(projectSkillsStatus(project), PROJECT_SOURCE_DIR, first.name)).toBe("drift")
+
+    // 薄壳被改动（保留标记）→ drift
+    writeFileSync(shellSkillFile(project, ".cursor/skills", first.name), `${expectedShell(first)}尾巴\n`, "utf8")
+    expect(stateIn(projectSkillsStatus(project), ".cursor/skills", first.name)).toBe("drift")
+
+    // 未登记的候选目录里无标记同名产物 → conflict
+    mkdirSync(join(project, ".trae", "skills", second.name), { recursive: true })
+    writeFileSync(shellSkillFile(project, ".trae/skills", second.name), "# 外来技能\n", "utf8")
+    expect(stateIn(projectSkillsStatus(project), ".trae/skills", second.name)).toBe("conflict")
+
+    // 真源条目缺失 → missing
+    rmSync(join(project, PROJECT_SOURCE_DIR, second.name), { recursive: true, force: true })
+    expect(stateIn(projectSkillsStatus(project), PROJECT_SOURCE_DIR, second.name)).toBe("missing")
+  })
+
+  it("卸载只清账内产物，回收空目录并删除归属账；二次调用报未安装", () => {
+    mkdirSync(join(project, ".cursor", "skills"), { recursive: true })
+    installProjectSkills({ cwd: project })
+    const names = listPackageSkills().map((s) => s.name)
+
+    const report = removeProjectSkills({ cwd: project })
+    expect(report.dirs.find((d) => d.kind === "source")!.removed).toEqual(names)
+    expect(report.dirs.find((d) => d.kind === "shell")!.removed).toEqual(names)
+    expect(report.reclaimed).toEqual(expect.arrayContaining([PROJECT_SOURCE_DIR, ".cursor/skills"]))
+    expect(report.stateRemoved).toBe(true)
+    expect(existsSync(projectStateFile(project))).toBe(false)
+    expect(existsSync(join(project, PROJECT_SOURCE_DIR))).toBe(false)
+
+    expect(removeProjectSkills({ cwd: project }).stateExists).toBe(false)
+  })
+
+  it("卸载遇内容被改动的真源条目时跳过，交人工确认并保留归属账", () => {
+    installProjectSkills({ cwd: project })
+    const skill = listPackageSkills()[0]!
+    writeFileSync(sourceSkillFile(project, skill.name), "被我改过\n", "utf8")
+
+    const report = removeProjectSkills({ cwd: project })
+    expect(report.dirs.find((d) => d.kind === "source")!.skippedForeign).toContain(skill.name)
+    expect(existsSync(join(project, PROJECT_SOURCE_DIR, skill.name))).toBe(true)
+    expect(report.stateRemoved).toBe(false)
+    expect(existsSync(projectStateFile(project))).toBe(true)
+  })
+})
+
+// 作用域判定：以包根与项目根的包含关系为准，兼容 monorepo 子目录执行
+describe("技能作用域判定", () => {
+  const roots: string[] = []
+
+  // 建临时目录并纳入统一清理
+  function tmpRoot(prefix: string): string {
+    const dir = mkdtempSync(join(tmpdir(), prefix))
+    roots.push(dir)
+    return dir
+  }
+
+  // 造出真实的包根形态（落盘而非纯字符串），避免依赖实现细节做路径归一
+  function fakePackageRoot(base: string): string {
+    const dir = join(base, "node_modules", "@fxri", "toolkit")
+    mkdirSync(dir, { recursive: true })
+    return dir
+  }
+
+  afterEach(() => {
+    while (roots.length) rmSync(roots.pop()!, { recursive: true, force: true })
+  })
+
+  it("包根落在项目根之内时判为项目面", () => {
+    const root = tmpRoot("tk-scope-proj-")
+    writeFileSync(join(root, "package.json"), JSON.stringify({ name: "demo" }), "utf8")
+    setPackageRootForTest(fakePackageRoot(root))
+    expect(detectSkillScope(root)).toBe("project")
+  })
+
+  it("monorepo 子目录内执行同样判为项目面", () => {
+    const root = tmpRoot("tk-scope-mono-")
+    writeFileSync(join(root, "package.json"), JSON.stringify({ name: "root" }), "utf8")
+    const sub = join(root, "packages", "app")
+    mkdirSync(sub, { recursive: true })
+    writeFileSync(join(sub, "package.json"), JSON.stringify({ name: "app" }), "utf8")
+    setPackageRootForTest(fakePackageRoot(root))
+    expect(detectSkillScope(sub)).toBe("project")
+  })
+
+  it("全局 CLI 在项目目录内执行仍判为全局面", () => {
+    const root = tmpRoot("tk-scope-cwd-")
+    writeFileSync(join(root, "package.json"), JSON.stringify({ name: "demo" }), "utf8")
+    const globalHome = tmpRoot("tk-scope-global-")
+    setPackageRootForTest(fakePackageRoot(globalHome))
+    expect(detectSkillScope(root)).toBe("global")
+  })
+
+  it("源仓库（包根即项目根）恒判为全局面", () => {
+    const root = tmpRoot("tk-scope-src-")
+    writeFileSync(join(root, "package.json"), JSON.stringify({ name: "@fxri/toolkit" }), "utf8")
+    setPackageRootForTest(root)
+    expect(detectSkillScope(root)).toBe("global")
   })
 })

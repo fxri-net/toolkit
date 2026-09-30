@@ -8,9 +8,9 @@
 
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
-| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.4.4 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
-| [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.1.4 | changesets 发版与多语言 CHANGELOG 维护 |
-| [fxri-session-recap](./fxri-session-recap/SKILL.md) | 1.2.4 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
+| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.4.5 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
+| [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.1.5 | changesets 发版与多语言 CHANGELOG 维护 |
+| [fxri-session-recap](./fxri-session-recap/SKILL.md) | 1.2.5 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 
 版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` / `skills install` 打印的真源版本），与正文首部版本声明双写一致。
 
@@ -23,15 +23,17 @@
 ```bash
 pnpm add -g @fxri/toolkit   # 1. 装 CLI（npm 用户 npm i -g @fxri/toolkit）
 toolkit skills install      # 2. 把包内技能装到各 agent 的全局技能目录
-toolkit skills status       # 查现场状态（悬空 / 指向其他版本 / 副本漂移 / 缺失 / 同名冲突）
+                            #    --scope project 换项目面：真源落 <仓库根>/.agents/skills/、其余候选目录落入口薄壳
+toolkit skills status       # 查现场状态（悬空 / 指向其他版本 / 副本漂移 / 缺失 / 同名冲突；--scope project 查项目面）
                             # 前四类重跑 toolkit skills install 补齐，同名冲突需 toolkit skills install --force 覆盖
-toolkit skills remove       # 卸载本包装的产物（只清自己装的，不碰用户自装技能）
+toolkit skills remove       # 卸载本包装的产物（只清自己装的，不碰用户自装技能；--scope project 清项目面）
 ```
 
 - 真源唯一：技能取自已装 CLI 包内的 `skills/`；软链锚在 pnpm 稳定入口，升级 CLI 后自动指向新版（副本形式需重跑 `toolkit skills install`）
 - 目标三层：主目标 `~/.agents/skills/`（多家 agent 共读）→ 内置表内**已安装**的各 agent 全局技能目录 → `--dir <path>` 兜底（可多次指定，给表外 agent 用）
 - 默认软链（锚在 pnpm 稳定入口，升级不失效）；链接创建失败自动降级为副本并打印 ⚠️（如无权限建链）；`--copy` 强制副本、`--dry-run` 预演、`--force` 覆盖同名非本包产物（不改本包已登记副本的形态）
 - 产物记录在状态文件 `~/.agents/.toolkit-skills.json`；卸载 CLI 前先跑 `toolkit skills remove`，避免留下悬空链接（清理后目标目录若已空会一并回收）
+- **项目面（`--scope project`）**：`--scope` 缺省时按 CLI 安装位置自动判定（项目内装 CLI → 项目面）。真源落 `<仓库根>/.agents/skills/`（完整副本），其余**已存在**的候选目录（`.trae/skills/`、`.trae-cn/skills/`、`.cursor/skills/`、`.claude/skills/`）各放每个技能一份入口薄壳指向真源；产物记录在 `<仓库根>/.toolkit/state.json`（与真源、薄壳一并入库）。`toolkit init` 会写入 `prepare` 刷新钩子，`pnpm install` 时自动补齐/刷新，队友 clone 即用；`--copy` 仅全局面生效，项目面恒为副本
 
 ### 方式二：上游安装器 `npx skills`（需锁定文件或覆盖表外 agent 时）
 

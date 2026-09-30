@@ -27,7 +27,7 @@ import {
 } from "./conventions/entry"
 import { checkIgnore, gitIgnoredSet, probeRepo } from "./git-ignore"
 import { todayCompact } from "./date"
-import { hasGlobalSkillsInstalled } from "./skills"
+import { hasGlobalSkillsInstalled, PKG_NAME } from "./skills"
 
 // init 时输出的后续步骤提示（getting-started / guide 链接与文档站同源）
 export const INIT_LINKS = {
@@ -50,6 +50,11 @@ const GITIGNORE_ROWS: ReadonlyArray<{ row: string; patterns: RegExp[] }> = [
     patterns: [/^\/?\.toolkitrc\.local\.json$/, /^\*\.local\.json$/, /^\.toolkitrc\.\*$/],
   },
 ]
+
+// prepare 钩子脚本：刷新项目侧技能（真源副本 + 各候选目录薄壳），幂等；挂在本地依赖 @fxri/toolkit 时才有意义
+const PREPARE_SCRIPT = "toolkit skills install --scope project"
+// prepare 钩子的等价写法白名单：带 --scope project 的显式写法，与不带作用域的裸写法（在仓库内执行时自动判定为项目面）
+const PREPARE_EQUIVALENTS = [PREPARE_SCRIPT, "toolkit skills install"]
 
 // 规范载体索引骨架：三节结构与 skills/fxri-plan-to-task/references/conventions-spec.md 一致
 const CONVENTIONS_INDEX = `${CARRIER_MARKER}
@@ -97,9 +102,14 @@ function posix(p: string): string {
   return p.replace(/\\/g, "/")
 }
 
-// 初始化项目任务区：任务区骨架 → 规范载体 → .gitignore 片段 → 技能入口层
+// init 选项：hooks 控制是否写入 package.json 的 prepare 刷新钩子（对应 CLI --no-hooks）
+export interface InitOptions {
+  hooks?: boolean
+}
+
+// 初始化项目任务区：任务区骨架 → 规范载体 → .gitignore 片段 → 技能入口层 → prepare 刷新钩子
 // dir 为任务目录（默认 .tasks，支持绝对路径或 ../ 相对路径指向项目外），cwd 为仓库根（.gitignore 与 AGENTS.md 所在目录）
-export function initWorkspace(dir = ".tasks", cwd = process.cwd()): InitReport {
+export function initWorkspace(dir = ".tasks", cwd = process.cwd(), options: InitOptions = {}): InitReport {
   const month = todayCompact().slice(0, 6)
   // resolve：dir 为绝对路径（项目外独立仓库）时直接使用，相对路径时基于 cwd 解析
   const root = resolve(cwd, dir)
@@ -115,6 +125,7 @@ export function initWorkspace(dir = ".tasks", cwd = process.cwd()): InitReport {
     ...scaffoldConventions(root, dir),
     ...appendGitignore(cwd),
     ...scaffoldEntryLayer(cwd),
+    ...(options.hooks === false ? [{ target: "package.json", action: "skipped" as const, detail: "--no-hooks：跳过 prepare 刷新钩子写入" }] : scaffoldPrepareHook(cwd)),
   ]
   return { tasksDir: dir, products, skillsInstalled: hasGlobalSkillsInstalled() }
 }
@@ -276,4 +287,93 @@ function upsertAgentsPointer(cwd: string): InitProduct[] {
   const sep = /(\r?\n){2}$/.test(base) ? "" : eol
   writeFileAtomic(file, `${base}${sep}${buildAgentsPointer().replace(/\n/g, eol)}${eol}`)
   return [{ target: "AGENTS.md", action: "appended", detail: "已追加规范入口指针块（幂等，重复执行不重复追加）" }]
+}
+
+// 本地依赖判定：四种依赖字段任一声明本包即算「装在本项目」，prepare 钩子才有意义
+function hasLocalDependency(pkg: Record<string, unknown>): boolean {
+  return ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"].some((field) => {
+    const deps = pkg[field]
+    return typeof deps === "object" && deps !== null && PKG_NAME in (deps as Record<string, unknown>)
+  })
+}
+
+// 在对象首个条目位插入一段文本：空对象不带尾随逗号（否则 JSON 非法），缩进沿用对象内既有条目的写法
+function insertFirstEntry(raw: string, open: number, entry: string): string | null {
+  const close = raw.indexOf("}", open)
+  if (close === -1) return null
+  const empty = raw.slice(open + 1, close).trim() === ""
+  const matched = raw.slice(open + 1).match(/^[ \t\r\n]*?\r?\n([ \t]*)"/)
+  const indent = matched ? matched[1] : "  "
+  const eol = raw.includes("\r\n") ? "\r\n" : "\n"
+  return `${raw.slice(0, open + 1)}${eol}${indent}${entry}${empty ? "" : ","}${raw.slice(open + 1)}`
+}
+
+// 最小文本插入 prepare：只补 scripts.prepare 一处，不改动其余字段的排版（用户既有格式与缩进原样保留）
+// 无 scripts 字段时补建该字段；定位不到插入点时返回 null，由调用方按「跳过 + 提示」处理（不静默）
+function insertPrepareScript(raw: string): string | null {
+  const eol = raw.includes("\r\n") ? "\r\n" : "\n"
+  const entry = `"prepare": ${JSON.stringify(PREPARE_SCRIPT)}`
+  const scriptsAt = raw.search(/"scripts"\s*:\s*\{/)
+  if (scriptsAt !== -1) return insertFirstEntry(raw, raw.indexOf("{", scriptsAt), entry)
+  const rootOpen = raw.indexOf("{")
+  if (rootOpen === -1) return null
+  return insertFirstEntry(raw, rootOpen, `"scripts": {${eol}    ${entry}${eol}  }`)
+}
+
+// prepare 刷新钩子：项目本地依赖含 @fxri/toolkit 时才写入（依赖装在本项目，钩子才跑得起来）
+// 已存在等价钩子保持不动；存在非等价 prepare 时告警不改写（降级不静默，不擅自破坏用户既有流水线）
+function scaffoldPrepareHook(cwd: string): InitProduct[] {
+  const target = "package.json"
+  const file = join(cwd, target)
+  if (isToolkitSourceRepo(cwd)) {
+    return [{ target, action: "skipped", detail: `本仓库即 ${PKG_NAME} 源仓库，不写入 prepare 钩子` }]
+  }
+  if (!existsSync(file)) {
+    return [{ target, action: "skipped", detail: "package.json 不存在，跳过 prepare 钩子写入" }]
+  }
+  const raw = readTextFile(file)
+  let pkg: Record<string, unknown>
+  try {
+    pkg = JSON.parse(raw) as Record<string, unknown>
+  } catch (e) {
+    return [{ target, action: "skipped", detail: `package.json 解析失败（${(e as Error).message}），跳过 prepare 钩子写入` }]
+  }
+  if (!hasLocalDependency(pkg)) {
+    return [
+      {
+        target,
+        action: "skipped",
+        detail: `本地依赖未声明 ${PKG_NAME}，不写入 prepare 钩子`,
+        hint: `技能副本随 git 分发即可 clone 即用；依赖装在本项目后需要时手工加 "prepare": "${PREPARE_SCRIPT}" 以在安装依赖后自动刷新`,
+      },
+    ]
+  }
+  const scripts = pkg.scripts
+  const existing = typeof scripts === "object" && scripts !== null ? (scripts as Record<string, unknown>).prepare : undefined
+  if (typeof existing === "string") {
+    if (PREPARE_EQUIVALENTS.includes(existing.replace(/\s+/g, " ").trim())) {
+      return [{ target, action: "kept", detail: `已有等价的 prepare 钩子（${existing}），保持不变` }]
+    }
+    return [
+      {
+        target,
+        action: "skipped",
+        detail: `已有 prepare 钩子「${existing}」，非本包等价写法，不覆盖`,
+        hint: `建议自行并入 ${PREPARE_SCRIPT}，以在安装依赖后自动刷新项目侧技能`,
+      },
+    ]
+  }
+  const next = insertPrepareScript(raw)
+  if (next === null) {
+    return [{ target, action: "skipped", detail: "未能定位 scripts 字段，跳过 prepare 钩子写入", hint: `可手工加 "prepare": "${PREPARE_SCRIPT}"` }]
+  }
+  // 文本插入后回校一次：结果非法或未落地 prepare 即不写盘，退回「跳过 + 提示」
+  try {
+    const check = JSON.parse(next) as { scripts?: Record<string, unknown> }
+    if (check.scripts?.prepare !== PREPARE_SCRIPT) throw new Error("插入结果校验未通过")
+  } catch {
+    return [{ target, action: "skipped", detail: "自动插入 prepare 失败（原文件格式特殊），未改写", hint: `可手工加 "prepare": "${PREPARE_SCRIPT}"` }]
+  }
+  writeFileAtomic(file, next)
+  return [{ target, action: "updated", detail: `已写入 prepare 钩子（${PREPARE_SCRIPT}），安装依赖后自动刷新项目侧技能` }]
 }

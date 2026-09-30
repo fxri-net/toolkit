@@ -3,14 +3,14 @@ name: fxri-release-changelog
 description: 基于 changesets 的发版与多语言 CHANGELOG 维护流程：创建变更集、消费发版、把分组标题与条目转为项目语言风格、清理变更集、打标签发布；无 changesets 的项目提供同格式手工模式。当用户表达发版或记录变更意图——含创建变更集、changeset、发版、version、CHANGELOG 格式化等说法及其口语近义表达（如发一版、出个版本、记一下这次改动、生成更新日志）时使用。⚠️ 注意区分：用户说「提交个版本 / 先提交一版 / commit」通常指 git 提交当前改动（走任务收尾后提交），**不是发版**。不用于日常 commit message 撰写、git 提交操作或与发版无关的文档修改。
 license: MIT
 metadata:
-  version: "1.1.4"
+  version: "1.1.5"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
 
 # 发版与 CHANGELOG
 
-> 本技能版本 1.1.4（随 @fxri/toolkit 同批分发）。被问版本时即报此值——不读磁盘、不跑 CLI：报出的值就是本会话上下文里已加载内容的版本，可与 `toolkit skills status` 打印的磁盘基准值对照，不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.1.5（随 @fxri/toolkit 同批分发）。被问版本时即报此值——不读磁盘、不跑 CLI：报出的值就是本会话上下文里已加载内容的版本，可与 `toolkit skills status` 打印的磁盘基准值对照，不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -69,4 +69,4 @@ metadata:
 - `toolkit changelog --lang <语言> …`：切换输出语言（内置 zh / en，其余可配置扩展）
 - `toolkit tasks check`：扫 `.changeset/` 下待发布变更集并逐文件报出缺前缀条目（流程第 1 步的早期自查入口，归档前的 `tasks check` 即含此项）
 - ⚠️ `changelog` 域开了选项透传，自有选项（`--lang` / `--history` / `--redact` / `--warn`）必须写在子命令**之前**：`toolkit changelog --history format` 生效，写成 `toolkit changelog format --history` 会被 changesets 静默忽略（表现为「无 CHANGELOG 需要更新」）
-- `toolkit skills install` / `toolkit skills status`：把本包 fxri-* 技能分发到各 agent 全局技能目录 / 查看链接与副本现场（技能随包同源分发，与 CLI 同一发布批次；技能内容版本独立编号，`skills status` 会打印各技能真源版本）
+- `toolkit skills install` / `toolkit skills status`：把本包 fxri-* 技能分发到目标技能目录（`--scope` 缺省按 CLI 安装位置自动判定全局面 / 项目面；项目面真源落 `<仓库根>/.agents/skills/`、其余候选目录落入口薄壳，随仓库入库后队友 clone 即用）/ 查看链接、副本与项目面现场（技能随包同源分发，与 CLI 同一发布批次；技能内容版本独立编号，`skills status` 会打印各技能真源版本）

@@ -29,13 +29,22 @@ import { conventionsStatus, type ConventionsStatusReport } from "./conventions/s
 import { toJsonText, assertJsonFormat } from "./json-output"
 import {
   autoLinkSkills,
+  detectSkillScope,
+  installProjectSkills,
   installSkills,
   listPackageSkills,
+  projectSkillsStatus,
+  removeProjectSkills,
   removeSkills,
   skillsPackageDir,
   skillsSourceDir,
   skillsStatus,
   type InstallReport,
+  type ProjectDirResult,
+  type ProjectInstallReport,
+  type ProjectItemState,
+  type ProjectRemoveReport,
+  type ProjectStatusReport,
   type SkillItemState,
   type SkillsRemoveReport,
   type SkillsStatusReport,
@@ -171,6 +180,30 @@ function collectDir(value: string, previous: string[]): string[] {
   return [...previous, value]
 }
 
+// 技能作用域选择：project / global 单面执行，all 两面都执行
+type ScopeChoice = "project" | "global" | "all"
+
+// 解析 --scope：缺省按现场判定；非法取值报错退出并置退出码 1（降级不静默，不静默回落到默认）
+function resolveScopeChoice(value: string | undefined): { choice: ScopeChoice; explicit: boolean } | null {
+  if (value === undefined || value === "") return { choice: detectSkillScope(), explicit: false }
+  if (value === "project" || value === "global" || value === "all") return { choice: value, explicit: true }
+  console.error(`⚠️ 不支持的 --scope 取值「${value}」，仅支持 project / global / all`)
+  process.exitCode = 1
+  return null
+}
+
+// 作用域中文标签（报告回显用）
+const SCOPE_LABEL: Record<ScopeChoice, string> = {
+  project: "项目面（仓库内唯一真源副本 + 各候选目录薄壳）",
+  global: "全局面（软链 / 副本到各 agent 全局技能目录）",
+  all: "项目面 + 全局面",
+}
+
+// 作用域回显：标注取值来源（--scope 显式指定 / 按现场自动判定）
+function scopeHeadline(scope: { choice: ScopeChoice; explicit: boolean }): string {
+  return `作用域：${SCOPE_LABEL[scope.choice]}（${scope.explicit ? "--scope 指定" : "按现场自动判定"}）`
+}
+
 // 技能现场状态的中文文案（status 逐项输出用）
 const SKILL_STATE_LABEL: Record<SkillItemState, string> = {
   link: "软链正常",
@@ -289,6 +322,155 @@ function printRemoveReport(report: SkillsRemoveReport, dryRun: boolean): void {
   else console.log("状态文件已保留（存在需人工确认或未移除的条目）")
 }
 
+// 项目面现场状态的中文文案（项目侧重：真源副本漂移与薄壳过时，无软链相关状态）
+const PROJECT_STATE_LABEL: Record<ProjectItemState, string> = {
+  ready: "已就绪",
+  drift: "已漂移（与真源 / 期望不一致）",
+  conflict: "同名冲突（非本包产物）",
+  missing: "缺失",
+}
+
+// 项目面需处理的异常状态：status 汇总提示与 install 修复范围
+const PROJECT_PROBLEM_STATES: ProjectItemState[] = ["drift", "conflict", "missing"]
+
+// 打印项目面单目录的逐技能动作（真源目录与薄壳目录共用）
+function printProjectDir(result: ProjectDirResult, indent = "  "): void {
+  const pad = `${indent}  `
+  console.log(`${indent}${result.dir}`)
+  if (result.created.length > 0) console.log(`${pad}新建：${result.created.join("、")}`)
+  if (result.updated.length > 0) console.log(`${pad}重建/更新：${result.updated.join("、")}`)
+  if (result.skipped.length > 0) console.log(`${pad}跳过（已就绪）：${result.skipped.join("、")}`)
+  if (result.conflicts.length > 0) console.log(`${pad}跳过（同名非本包产物，如需覆盖加 --force）：${result.conflicts.join("、")}`)
+  for (const f of result.failed) console.log(`${pad}⚠️ 失败：${f.name}（${f.reason}）`)
+}
+
+// 打印项目面安装报告：真源目录与各薄壳目录逐项列出动作，并给出未命中目录的补齐入口
+function printProjectInstallReport(report: ProjectInstallReport, dryRun: boolean): void {
+  const tag = dryRun ? "[预演] " : ""
+  const versionByName = new Map(listPackageSkills().map((s) => [s.name, s.version]))
+  console.log(`${tag}项目面 · 项目根：${report.root}`)
+  console.log(`${tag}项目面 · 包内技能（${report.skills.length}）：${report.skills.map((name) => skillLabel(name, versionByName.get(name) ?? "")).join("、") || "无"}`)
+  console.log("")
+  console.log(`  真源副本（仓库内唯一，随 git 入库）：`)
+  printProjectDir(report.source, "  ")
+  for (const shell of report.shells) {
+    console.log("")
+    console.log(`  薄壳目录（指向真源）：`)
+    printProjectDir(shell, "  ")
+  }
+  if (report.missingDirs.length > 0) {
+    console.log("")
+    console.log(`  未命中的候选目录 ${report.missingDirs.length} 个（该 agent 目录尚不在库，需要时补齐后提交）：`)
+    for (const dir of report.missingDirs) console.log(`    toolkit skills install --scope project --dir ${dir}`)
+  }
+  // 库外 --dir 被剔除：降级不静默，如实告警（不静默丢弃用户显式传入的取值）
+  for (const dir of report.ignoredDirs) console.warn(`⚠️ 项目面忽略 --dir「${dir}」：落在仓库之外，不写入`)
+  console.log(`${tag}项目面 · 状态文件：${report.stateFile}`)
+  if (dryRun) console.log("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行")
+}
+
+// 打印项目面现场状态：逐目录折叠健康项、展开异常项，并给出未命中目录的补入口
+function printProjectStatusReport(report: ProjectStatusReport): void {
+  console.log(`项目面 · 项目根：${report.root}`)
+  console.log(`项目面 · 技能真源：${report.sourceDir}`)
+  console.log(`项目面 · 技能版本：${report.skills.map((name) => skillLabel(name, report.skillVersions[name] ?? "")).join("、") || "无"}`)
+  for (const m of report.versionMismatches) {
+    console.warn(`⚠️ 技能版本双写位不一致：${m.name}（frontmatter ${m.frontmatter} / 正文 ${m.body || "未声明"}）`)
+  }
+  console.log(`项目面 · 状态文件：${report.stateFile}${report.stateExists ? "" : "（未记录，尚未执行过 toolkit init / skills install）"}`)
+  let problems = 0
+  for (const d of report.dirs) {
+    const bad = d.items.filter((item) => PROJECT_PROBLEM_STATES.includes(item.state))
+    problems += bad.length
+    const head = `${d.kind === "source" ? "真源副本" : "薄壳"}：${d.dir}`
+    console.log("")
+    // 健康目录折叠为一行，避免目标多时把真正的问题淹没在噪音里（完整信息另见 --format json）
+    if (bad.length === 0) {
+      console.log(`${head}　${d.items.length} 项正常`)
+      continue
+    }
+    console.log(head)
+    for (const item of bad) console.log(`  ${item.name}：${PROJECT_STATE_LABEL[item.state]}`)
+    const ok = d.items.length - bad.length
+    if (ok > 0) console.log(`  其余 ${ok} 项正常`)
+  }
+  if (report.missingDirs.length > 0) {
+    console.log("")
+    console.log(`项目面 · 未命中的候选目录 ${report.missingDirs.length} 个（需要时补齐后提交）：`)
+    for (const dir of report.missingDirs) console.log(`  toolkit skills install --scope project --dir ${dir}`)
+  }
+  console.log("")
+  console.log(
+    problems > 0
+      ? `项目面共 ${problems} 处需处理：漂移 / 缺失用 toolkit skills install --scope project 补齐，同名冲突加 --force`
+      : "项目面所有已纳入的目录均正常",
+  )
+}
+
+// 打印项目面卸载报告：按目录区分已移除 / 已不存在 / 需人工确认，并说明归属账处置
+function printProjectRemoveReport(report: ProjectRemoveReport, dryRun: boolean): void {
+  const tag = dryRun ? "[预演] " : ""
+  if (!report.stateExists) {
+    console.log("项目面：未找到归属账，没有由本包安装的项目内技能产物需要清理")
+    return
+  }
+  console.log(`${tag}项目面 · 状态文件：${report.stateFile}`)
+  for (const d of report.dirs) {
+    console.log("")
+    console.log(`${d.kind === "source" ? "真源副本" : "薄壳"}：${d.dir}`)
+    if (d.removed.length > 0) console.log(`  ${dryRun ? "将移除" : "已移除"}：${d.removed.join("、")}`)
+    if (d.missing.length > 0) console.log(`  已不存在：${d.missing.join("、")}`)
+    if (d.skippedForeign.length > 0) console.log(`  ⚠️ 跳过（非本包产物或内容已被改动，请人工确认）：${d.skippedForeign.join("、")}`)
+  }
+  if (report.reclaimed.length > 0) {
+    console.log("")
+    console.log(`  已回收空目录：${report.reclaimed.join("、")}`)
+  }
+  console.log("")
+  if (dryRun) console.log("[预演] 未执行删除；无遗留条目时将同时删除项目面归属账")
+  else if (report.stateRemoved) console.log("项目面归属账已删除，本包产物清理完毕")
+  else console.log("项目面归属账已保留（存在需人工确认或未移除的条目）")
+}
+
+// 打印安装报告（按作用域分派到对应面；两面都跑时各自成段）
+function printInstallReports(scope: { choice: ScopeChoice; explicit: boolean }, glob: InstallReport | null, project: ProjectInstallReport | null, dryRun: boolean): void {
+  console.log(scopeHeadline(scope))
+  if (project) {
+    console.log("")
+    printProjectInstallReport(project, dryRun)
+  }
+  if (glob) {
+    console.log("")
+    printInstallReport(glob, dryRun)
+  }
+}
+
+// 打印状态报告（按作用域分派到对应面）
+function printStatusReports(scope: { choice: ScopeChoice; explicit: boolean }, glob: SkillsStatusReport | null, project: ProjectStatusReport | null): void {
+  console.log(scopeHeadline(scope))
+  if (project) {
+    console.log("")
+    printProjectStatusReport(project)
+  }
+  if (glob) {
+    console.log("")
+    printStatusReport(glob)
+  }
+}
+
+// 打印卸载报告（按作用域分派到对应面）
+function printRemoveReports(scope: { choice: ScopeChoice; explicit: boolean }, glob: SkillsRemoveReport | null, project: ProjectRemoveReport | null, dryRun: boolean): void {
+  console.log(scopeHeadline(scope))
+  if (project) {
+    console.log("")
+    printProjectRemoveReport(project, dryRun)
+  }
+  if (glob) {
+    console.log("")
+    printRemoveReport(glob, dryRun)
+  }
+}
+
 // tasks 子命令与查询/导出/导入的选项集合
 interface TasksOptions {
   dir?: string
@@ -371,12 +553,13 @@ function printInitReport(report: InitReport): void {
 // init：初始化项目任务区（生成任务区骨架、规范载体与技能入口壳，幂等可重复执行）
 program
   .command("init")
-  .description("初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐 .gitignore 片段）")
+  .description("初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐 .gitignore 片段与 prepare 刷新钩子）")
   .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）")
-  .action((options: { dir?: string }) => {
+  .option("--no-hooks", "不写入 package.json 的 prepare 刷新钩子（默认写入，仅当本地依赖含 @xfri/toolkit）")
+  .action((options: { dir?: string; hooks?: boolean }) => {
     try {
       // 与 tasks 命令同口径：初始化时也尊重配置中已声明的外置任务目录
-      printInitReport(initWorkspace(resolveTasksDir(options.dir)))
+      printInitReport(initWorkspace(resolveTasksDir(options.dir), process.cwd(), { hooks: options.hooks }))
     } catch (e) {
       console.error(`⚠️ 初始化失败：${(e as Error).message}`)
       process.exitCode = 1
@@ -391,18 +574,26 @@ const skillsCmd = program
 // 安装：默认软链真源，链接创建失败自动降级副本；只写入「已安装」的 agent 目录，不凭空造目录
 skillsCmd
   .command("install")
-  .description("安装包内技能到全局技能目录（默认软链真源，链接失败自动降级副本；报告含技能版本）")
-  .option("--copy", "强制以副本形式写入（不建软链）")
+  .description("安装包内技能（默认按现场判定作用域：仓库内写项目面副本 + 薄壳，否则写全局目录；软链失败降级副本）")
+  .option("--scope <scope>", "作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）")
+  .option("--copy", "强制以副本形式写入（仅全局面生效；项目面真源恒为副本、其余目录恒为薄壳）")
   .option("--dir <path>", "额外目标目录（可多次指定，兜底内置表未收录的 agent）", collectDir, [])
   .option("--dry-run", "预演（只预览将要执行的动作，不写文件）")
   .option("--force", "覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
-  .action((options: { copy?: boolean; dir: string[]; dryRun?: boolean; force?: boolean; format?: string }) => {
+  .action((options: { scope?: string; copy?: boolean; dir: string[]; dryRun?: boolean; force?: boolean; format?: string }) => {
     try {
       if (!assertJsonFormat(options.format)) return
-      const report = installSkills({ copy: options.copy, dirs: options.dir, dryRun: options.dryRun, force: options.force })
-      if (options.format === "json") printJson({ dryRun: Boolean(options.dryRun), ...report })
-      else printInstallReport(report, Boolean(options.dryRun))
+      const scope = resolveScopeChoice(options.scope)
+      if (!scope) return
+      const dryRun = Boolean(options.dryRun)
+      const runProject = scope.choice !== "global"
+      const runGlobal = scope.choice !== "project"
+      if (runProject && options.copy) console.warn("⚠️ 项目面不支持 --copy（真源恒为副本、各候选目录恒为薄壳），已忽略该项目面取值")
+      const project = runProject ? installProjectSkills({ dirs: options.dir, dryRun, force: options.force }) : null
+      const global = runGlobal ? installSkills({ copy: options.copy, dirs: options.dir, dryRun, force: options.force }) : null
+      if (options.format === "json") printJson({ dryRun, scope: scope.choice, global, project })
+      else printInstallReports(scope, global, project, dryRun)
     } catch (e) {
       console.error(`⚠️ 安装失败：${(e as Error).message}`)
       process.exitCode = 1
@@ -412,14 +603,20 @@ skillsCmd
 // 状态：报告悬空 / 指向其他版本 / 副本漂移 / 同名冲突 / 缺失，供人工决定是否重跑 install
 skillsCmd
   .command("status")
-  .description("查看各全局技能目录的现场状态与技能真源版本（含版本清单；悬空 / 指向其他版本 / 副本漂移 / 缺失 / 同名冲突）")
+  .description("查看技能现场状态与真源版本（默认按现场判定作用域；含悬空 / 指向其他版本 / 漂移 / 缺失 / 同名冲突）")
+  .option("--scope <scope>", "作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
-  .action((options: { format?: string }) => {
+  .action((options: { scope?: string; format?: string }) => {
     try {
       if (!assertJsonFormat(options.format)) return
-      const report = skillsStatus()
-      if (options.format === "json") printJson(report)
-      else printStatusReport(report)
+      const scope = resolveScopeChoice(options.scope)
+      if (!scope) return
+      const runProject = scope.choice !== "global"
+      const runGlobal = scope.choice !== "project"
+      const project = runProject ? projectSkillsStatus() : null
+      const global = runGlobal ? skillsStatus() : null
+      if (options.format === "json") printJson({ scope: scope.choice, global, project })
+      else printStatusReports(scope, global, project)
     } catch (e) {
       console.error(`⚠️ 读取状态失败：${(e as Error).message}`)
       process.exitCode = 1
@@ -429,15 +626,22 @@ skillsCmd
 // 卸载：只清理状态文件记载的本包产物，绝不触碰用户自装技能或其他方式安装的技能
 skillsCmd
   .command("remove")
-  .description("卸载由本包安装的技能产物（只清理状态文件记载的条目，不碰用户自装技能）")
+  .description("卸载由本包安装的技能产物（默认按现场判定作用域；只清理归属账记载的条目，不碰用户自装技能）")
+  .option("--scope <scope>", "作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）")
   .option("--dry-run", "预演（只预览将要移除的条目，不删文件）")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
-  .action((options: { dryRun?: boolean; format?: string }) => {
+  .action((options: { scope?: string; dryRun?: boolean; format?: string }) => {
     try {
       if (!assertJsonFormat(options.format)) return
-      const report = removeSkills({ dryRun: options.dryRun })
-      if (options.format === "json") printJson({ dryRun: Boolean(options.dryRun), ...report })
-      else printRemoveReport(report, Boolean(options.dryRun))
+      const scope = resolveScopeChoice(options.scope)
+      if (!scope) return
+      const dryRun = Boolean(options.dryRun)
+      const runProject = scope.choice !== "global"
+      const runGlobal = scope.choice !== "project"
+      const project = runProject ? removeProjectSkills({ dryRun }) : null
+      const global = runGlobal ? removeSkills({ dryRun }) : null
+      if (options.format === "json") printJson({ dryRun, scope: scope.choice, global, project })
+      else printRemoveReports(scope, global, project, dryRun)
     } catch (e) {
       console.error(`⚠️ 卸载失败：${(e as Error).message}`)
       process.exitCode = 1

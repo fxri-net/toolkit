@@ -407,6 +407,99 @@ describe("initWorkspace .gitignore 处理", () => {
   })
 })
 
+describe("initWorkspace prepare 刷新钩子", () => {
+  const PREPARE = "toolkit skills install --scope project"
+  const pkgPath = (cwd: string): string => join(cwd, "package.json")
+  const writePkg = (cwd: string, pkg: unknown): void => writeFileSync(pkgPath(cwd), `${JSON.stringify(pkg, null, 2)}\n`, "utf8")
+  const pkgProduct = (report: ReturnType<typeof initWorkspace>) => report.products.find((p) => p.target === "package.json")
+
+  it("本地依赖存在且无 scripts 字段：补建 scripts.prepare，报告为更新", () => {
+    const { cwd } = track(runInDir("tk-init-prep-none-"))
+    writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+
+    const report = initWorkspace(".tasks", cwd)
+    expect(pkgProduct(report)?.action).toBe("updated")
+    const pkg = JSON.parse(readFileSync(pkgPath(cwd), "utf8")) as { scripts: Record<string, string> }
+    expect(pkg.scripts.prepare).toBe(PREPARE)
+  })
+
+  it("已有 scripts：最小插入 prepare，保留其余脚本与字段", () => {
+    const { cwd } = track(runInDir("tk-init-prep-merge-"))
+    writePkg(cwd, { name: "demo", scripts: { build: "tsc" }, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+
+    const report = initWorkspace(".tasks", cwd)
+    expect(pkgProduct(report)?.action).toBe("updated")
+    const pkg = JSON.parse(readFileSync(pkgPath(cwd), "utf8")) as { scripts: Record<string, string> }
+    expect(pkg.scripts.build).toBe("tsc")
+    expect(pkg.scripts.prepare).toBe(PREPARE)
+  })
+
+  it("已有等价 prepare 钩子：保持不动", () => {
+    const { cwd } = track(runInDir("tk-init-prep-kept-"))
+    writePkg(cwd, { name: "demo", scripts: { prepare: "toolkit skills install" }, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+    const before = readFileSync(pkgPath(cwd), "utf8")
+
+    const report = initWorkspace(".tasks", cwd)
+    expect(pkgProduct(report)?.action).toBe("kept")
+    expect(readFileSync(pkgPath(cwd), "utf8")).toBe(before)
+  })
+
+  it("已有非等价 prepare 钩子：跳过并提示，不改写", () => {
+    const { cwd } = track(runInDir("tk-init-prep-foreign-"))
+    writePkg(cwd, { name: "demo", scripts: { prepare: "husky install" }, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+    const before = readFileSync(pkgPath(cwd), "utf8")
+
+    const report = initWorkspace(".tasks", cwd)
+    const product = pkgProduct(report)
+    expect(product?.action).toBe("skipped")
+    expect(product?.hint).toContain(PREPARE)
+    expect(readFileSync(pkgPath(cwd), "utf8")).toBe(before)
+  })
+
+  it("--no-hooks：跳过写入且不改动文件", () => {
+    const { cwd } = track(runInDir("tk-init-prep-nohooks-"))
+    writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+    const before = readFileSync(pkgPath(cwd), "utf8")
+
+    const report = initWorkspace(".tasks", cwd, { hooks: false })
+    const product = pkgProduct(report)
+    expect(product?.action).toBe("skipped")
+    expect(product?.detail).toContain("--no-hooks")
+    expect(readFileSync(pkgPath(cwd), "utf8")).toBe(before)
+  })
+
+  it("未声明本地依赖：跳过并提示手工写法", () => {
+    const { cwd } = track(runInDir("tk-init-prep-nodep-"))
+    writePkg(cwd, { name: "demo", scripts: { build: "tsc" } })
+
+    const report = initWorkspace(".tasks", cwd)
+    const product = pkgProduct(report)
+    expect(product?.action).toBe("skipped")
+    expect(product?.hint).toContain(PREPARE)
+    const pkg = JSON.parse(readFileSync(pkgPath(cwd), "utf8")) as { scripts: Record<string, string> }
+    expect(pkg.scripts.prepare).toBeUndefined()
+  })
+
+  it("package.json 不存在或解析失败：跳过并说明原因", () => {
+    const noFile = track(runInDir("tk-init-prep-nofile-"))
+    expect(pkgProduct(initWorkspace(".tasks", noFile.cwd))?.detail).toContain("不存在")
+
+    const broken = track(runInDir("tk-init-prep-badjson-"))
+    writeFileSync(pkgPath(broken.cwd), "{ not json", "utf8")
+    expect(pkgProduct(initWorkspace(".tasks", broken.cwd))?.detail).toContain("解析失败")
+  })
+
+  it("源仓库（package.json name 为 @fxri/toolkit）：跳过写入", () => {
+    const { cwd } = track(runInDir("tk-init-prep-src-"))
+    writePkg(cwd, { name: "@fxri/toolkit", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+
+    const report = initWorkspace(".tasks", cwd)
+    const product = pkgProduct(report)
+    expect(product?.action).toBe("skipped")
+    expect(product?.detail).toContain("源仓库")
+  })
+})
+
 // 清理全部临时目录
 afterAll(() => {
   for (const dir of dirs) rmSync(dir, { recursive: true, force: true })
