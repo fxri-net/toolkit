@@ -28,9 +28,83 @@ export interface NormalizeResult {
 // 元数据四字段
 const META_FIELDS = ["负责人", "状态", "范围", "完成时间"]
 
+// git 冲突标记识别（默认 7 字符口径，markerSize 调大时按 7+ 宽松匹配）：
+// `<<<<<<<` / `>>>>>>>` / `|||||||` 后接标签，`=======` 无标签
+const CONFLICT_OURS_RE = /^<{7,}(\s|$)/
+const CONFLICT_BASE_RE = /^\|{7,}(\s|$)/
+const CONFLICT_THEIRS_RE = /^>{7,}(\s|$)/
+const CONFLICT_SEP_RE = /^={7,}\s*$/
+
 // 判断元数据行是否含全部四字段
 function metaComplete(line: string): boolean {
   return META_FIELDS.every((f) => line.includes(f))
+}
+
+// 判断归档文本是否含成对的 git 冲突标记：须同时命中 `<<<<<<<` 与 `>>>>>>>`，
+// 避免把正文里单独出现的 `=======` 分隔线误判为冲突
+function hasConflictMarkers(content: string): boolean {
+  const lines = content.split(/\r?\n/)
+  return lines.some((l) => CONFLICT_OURS_RE.test(l)) && lines.some((l) => CONFLICT_THEIRS_RE.test(l))
+}
+
+// 冲突区并集解析：保留 ours 与 theirs 两侧内容、丢弃 base 段与全部标记行，两侧之间补块间 `---` 分隔；
+// 输出交回既有解析链路，由 renderArchiveFile 去重 + 降序重排，得到无标记的规范归档文件。
+// 无成对标记时原样返回，避免对残缺标记做静默改动；保留原文件换行风格
+function resolveConflictMarkers(content: string): { resolved: string; hadConflict: boolean } {
+  if (!hasConflictMarkers(content)) return { resolved: content, hadConflict: false }
+  const eol = content.includes("\r\n") ? "\r\n" : "\n"
+  const out: string[] = []
+  let ours: string[] = []
+  let theirs: string[] = []
+  let state: "normal" | "ours" | "base" | "theirs" = "normal"
+
+  // 冲突区两侧并入输出：两侧都非空时才补块间 `---`；
+  // git 常把分隔符一并纳入冲突区（ours 已以 `---` 收尾）时不再另补，避免产生冗余分隔符
+  const flushConflict = () => {
+    const o = trimEdgeBlankLines(ours)
+    const t = trimEdgeBlankLines(theirs)
+    if (o.length > 0) out.push(...o)
+    if (o.length > 0 && t.length > 0) {
+      if (!/^-{3,}$/.test((o[o.length - 1] ?? "").trim())) out.push("", "---")
+      out.push("")
+    }
+    if (t.length > 0) out.push(...t)
+    ours = []
+    theirs = []
+  }
+
+  for (const line of content.split(/\r?\n/)) {
+    if (state === "normal" && CONFLICT_OURS_RE.test(line)) {
+      state = "ours"
+    } else if (state === "ours" && CONFLICT_BASE_RE.test(line)) {
+      state = "base"
+    } else if ((state === "ours" || state === "base") && CONFLICT_SEP_RE.test(line)) {
+      state = "theirs"
+    } else if (state === "theirs" && CONFLICT_THEIRS_RE.test(line)) {
+      flushConflict()
+      state = "normal"
+    } else if (state === "ours") {
+      ours.push(line)
+    } else if (state === "theirs") {
+      theirs.push(line)
+    } else if (state === "base") {
+      // 丢弃 base 段（diff3 风格）
+    } else {
+      out.push(line)
+    }
+  }
+  // 标记残缺（缺收尾 `>>>>>>>`）时也落盘已收集内容，避免丢失
+  if (state !== "normal") flushConflict()
+  return { resolved: out.join(eol), hadConflict: true }
+}
+
+// 去除行段首尾的空行（段内空行保留，用于冲突两侧内容拼接）
+function trimEdgeBlankLines(lines: string[]): string[] {
+  let start = 0
+  let end = lines.length
+  while (start < end && (lines[start] ?? "").trim() === "") start++
+  while (end > start && (lines[end - 1] ?? "").trim() === "") end--
+  return lines.slice(start, end)
 }
 
 // 范围字段多值分隔符归一：顿号/全半角逗号列表归一为半角加号（与 scope 存储口径一致，格式归一不改语义）；
@@ -56,6 +130,18 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
     const display = displayRel(tasksDir, file)
     const fileDate = basename(file).replace(/\.md$/, "")
     const content = readFileSync(file, "utf8")
+
+    // 冲突标记优先检出：命中即可 --fix 按并集去重 + 降序重排解决；
+    // 跳过该文件其余检查项，避免在未解析的冲突内容上产生噪声问题
+    if (hasConflictMarkers(content)) {
+      issues.push({
+        file: display,
+        message: "归档文件含 git 冲突标记（pull 产生的同天归档冲突），可 --fix 按并集去重 + 降序重排自动解决",
+        fixable: true,
+      })
+      continue
+    }
+
     const { blocks } = parseArchiveBlocks(content)
 
     // 归档文件所在月份目录与文件名日期前缀不一致（如 archive/202608/20260903.md）
@@ -243,13 +329,20 @@ function fixArchiveFile(tasksDir: string, archiveDir: string, file0: string, iss
       removeEmptyDirs(dirname(file0), archiveDir)
     }
   }
-  const content = readFileSync(file, "utf8")
+  // 冲突标记并集解析：pull 产生的归档冲突（双方各新增任务块）先按并集去重 + 降序确定性解决，
+  // 再走既有「补元数据 / 范围归一 / 漂移迁移 / 重排」链路；无冲突标记时原文透传
+  const { resolved: content, hadConflict } = resolveConflictMarkers(readFileSync(file, "utf8"))
   const { header, blocks } = parseArchiveBlocks(content)
 
   const actions: string[] = []
   let changed = file !== file0
   if (file !== file0) {
     actions.push(`移动至 ${basename(dirname(file))} 月份目录`)
+    fixed++
+  }
+  if (hadConflict) {
+    actions.push("解决冲突标记")
+    changed = true
     fixed++
   }
   // 补元数据行（缺行或不完整时，保留原行已有字段，仅补缺失项，避免改错状态）；

@@ -3,14 +3,14 @@ name: fxri-plan-to-task
 description: 将已确认的实施方案落盘为标准任务文件并跟踪至归档：动手前建档评估（查 active/archive 判同主题）、按模板建档、状态机更新、四级时间源取证、自查校验、任务级规范沉淀与手工归档。当用户确认方案后表达「开始落地/登记记录」的意图，或即将动手改仓库文件时使用——含建档、任务登记、落盘、归档、任务校验、规范载体迁移与升级（conventions 单文件升目录形态、v1 升 v2）等说法及其口语近义表达（如按这个做吧、记一下、建个任务跟踪）均触发。不用于方案未确认的对话、会话收尾整场沉淀（fxri-session-recap 模式一）、与任务记录无关的普通 TODO、issue 管理或日常提交信息撰写。
 license: MIT
 metadata:
-  version: "1.4.5"
+  version: "1.5.0"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
 
 # 方案落盘：任务建档与归档
 
-> 本技能版本 1.4.5（随 @fxri/toolkit 同批分发）。被问版本时即报此值——不读磁盘、不跑 CLI：报出的值就是本会话上下文里已加载内容的版本，可与 `toolkit skills status` 打印的磁盘基准值对照，不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.5.0（随 @fxri/toolkit 同批分发）。被问版本时即报此值——不读磁盘、不跑 CLI：报出的值就是本会话上下文里已加载内容的版本，可与 `toolkit skills status` 打印的磁盘基准值对照，不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -104,7 +104,7 @@ metadata:
 | active 下出现同名任务文件 | 重复建档，合并为一个后删除多余 |
 | completed 日期与文件名创建日不一致 | 核对是否填错；确为跨天完成则以 completed 日期归档 |
 | depends_on 引用的任务已归档 | 正常，依赖随之解除；引用拼写错误则修正 |
-| 并发写归档文件互相覆盖 | 归档前确认无其他写者同时操作；冲突时以重排后完整合并为准 |
+| 并发写归档文件互相覆盖 | 归档前确认无其他写者同时操作；多人同天归档 `pull` 后归档文件残留 git 冲突标记时，跑 `toolkit tasks normalize --fix` 按并集去重 + 完成时间降序**确定性**解决（保留两侧任务块、丢弃 diff3 的 `\|\|\|\|\|\|\|` base 段与全部标记行） |
 | completed 填了收尾时刻而非真实完成时刻 | 按四级时间源重新取证（git log / 聊天记录时间戳） |
 
 ## 可选加速（不构成依赖）
@@ -114,7 +114,7 @@ metadata:
 - `toolkit tasks`：查 active 总览（替代第 1 步人工翻目录）
 - `toolkit tasks check`：自动校验（替代第 4 步自查清单）
 - `toolkit tasks archive`：自动归档（替代第 5 步，含排他锁防并发；可 `--dry-run` 预演）
-- `toolkit tasks normalize`：归档后核验归档块（元数据完整性/日期漂移/排序），可 `--fix` 自动修复
+- `toolkit tasks normalize`：归档后核验归档块（元数据完整性/日期漂移/排序/git 冲突标记），可 `--fix` 自动修复（含按并集去重 + 降序解决冲突标记）
 - `toolkit conventions status`：只读体检载体形态与入口壳现场（替代第 1 步人工判形态、第 5.5 步沉淀前后自查）
 - `toolkit conventions upgrade`：v1 → v2 结构升级（第 5.5 步，纯机械、幂等；可 `--dry-run` 预演）
 - 任务目录非默认 `.tasks` 时加 `--dir <path>`

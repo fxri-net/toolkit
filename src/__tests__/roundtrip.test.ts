@@ -44,10 +44,16 @@ function emptyTasksDir(): string {
   return dir
 }
 
-// 读某 .tasks 下 active/202609 全部文件文本
+// 读某 .tasks 下 active 全部月份的文件文本（不写死月份，避免依赖运行当天日期）
 function activeText(dir: string): string {
-  const files = readdirSync(join(dir, "active", "202609"))
-  return files.map((f) => readFileSync(join(dir, "active", "202609", f), "utf8")).join("\n")
+  const activeDir = join(dir, "active")
+  return readdirSync(activeDir, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .flatMap((m) => {
+      const monthDir = join(activeDir, m.name)
+      return readdirSync(monthDir).map((f) => readFileSync(join(monthDir, f), "utf8"))
+    })
+    .join("\n")
 }
 
 describe("导出→导入往返", () => {

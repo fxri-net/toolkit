@@ -547,6 +547,144 @@ describe("换行风格回归", () => {
   })
 })
 
+describe("git 冲突标记归一（多写者同天归档）", () => {
+  // 构造双方各追加一个任务块（含块间 `---` 一并纳入冲突区）的冲突归档文件，模拟 pull 产生的 3-way 冲突
+  const conflicted = [
+    "# 20260903 归档",
+    "",
+    "> 本文件由 `toolkit tasks archive` 自动生成。",
+    "",
+    "<<<<<<< HEAD",
+    "## 20260903-唐启云-mine",
+    "",
+    "> 负责人：唐启云　状态：已完成　范围：x　完成时间：2026-09-03 10:00",
+    "",
+    "mine 正文",
+    "",
+    "---",
+    "",
+    "=======",
+    "## 20260903-唐启云-yours",
+    "",
+    "> 负责人：唐启云　状态：已完成　范围：x　完成时间：2026-09-03 11:00",
+    "",
+    "yours 正文",
+    "",
+    "---",
+    "",
+    ">>>>>>> feature",
+    "## 20260903-唐启云-base",
+    "",
+    "> 负责人：唐启云　状态：已完成　范围：x　完成时间：2026-09-03 09:00",
+    "",
+    "base 正文",
+    "",
+  ].join("\n")
+
+  it("checkArchive 检出冲突标记且标记可自动修复", () => {
+    const dir = makeDir()
+    mkdirSync(join(dir, "archive", "202609"), { recursive: true })
+    writeFileSync(join(dir, "archive", "202609", "20260903.md"), conflicted, "utf8")
+    const hits = checkArchive(dir).filter((i) => i.message.includes("git 冲突标记"))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]?.fixable).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("--fix 取并集去重并按完成时间降序，标记无残留", () => {
+    const dir = makeDir()
+    const month = join(dir, "archive", "202609")
+    mkdirSync(month, { recursive: true })
+    writeFileSync(join(month, "20260903.md"), conflicted, "utf8")
+
+    const res = fixArchive(dir)
+    expect(res.fixed).toBeGreaterThan(0)
+
+    const text = readFileSync(join(month, "20260903.md"), "utf8")
+    // 全部冲突标记与 base 段不得残留
+    expect(text).not.toContain("<<<<<<<")
+    expect(text).not.toContain(">>>>>>>")
+    expect(text).not.toMatch(/^={7,}\s*$/m)
+    expect(text).not.toContain("|||||||")
+    // 文件头保留，三块并集按完成时间降序
+    expect(text.startsWith("# 20260903 归档")).toBe(true)
+    const titles = text
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.startsWith("## "))
+    expect(titles).toEqual(["## 20260903-唐启云-yours", "## 20260903-唐启云-mine", "## 20260903-唐启云-base"])
+    expect(text).not.toContain("---\n\n---")
+    // 修复后不再检出冲突
+    expect(checkArchive(dir).some((i) => i.message.includes("git 冲突标记"))).toBe(false)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("diff3 风格（含 base 段）丢弃 base 段且无残留", () => {
+    const dir = makeDir()
+    const month = join(dir, "archive", "202609")
+    mkdirSync(month, { recursive: true })
+    const diff3 = [
+      "# 20260903 归档",
+      "",
+      "<<<<<<< HEAD",
+      "## 20260903-唐启云-a",
+      "",
+      "> 负责人：唐启云　状态：已完成　范围：x　完成时间：2026-09-03 10:00",
+      "",
+      "a 正文",
+      "",
+      "||||||| merged common ancestors",
+      "## 20260903-唐启云-old",
+      "",
+      "> 负责人：唐启云　状态：已完成　范围：x　完成时间：2026-09-03 08:00",
+      "",
+      "old 正文",
+      "",
+      "=======",
+      "## 20260903-唐启云-b",
+      "",
+      "> 负责人：唐启云　状态：已完成　范围：x　完成时间：2026-09-03 11:00",
+      "",
+      "b 正文",
+      "",
+      ">>>>>>> feature",
+      "",
+    ].join("\n")
+    writeFileSync(join(month, "20260903.md"), diff3, "utf8")
+
+    fixArchive(dir)
+    const text = readFileSync(join(month, "20260903.md"), "utf8")
+    expect(text).not.toContain("|||||||")
+    expect(text).not.toContain("20260903-唐启云-old")
+    expect(text).toContain("20260903-唐启云-a")
+    expect(text).toContain("20260903-唐启云-b")
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("正文单独出现的 `=======` 分隔线不被误判为冲突", () => {
+    const dir = makeDir()
+    const month = join(dir, "archive", "202609")
+    mkdirSync(month, { recursive: true })
+    const content = [
+      "# 20260903 归档",
+      "",
+      "## 20260903-唐启云-a",
+      "",
+      "> 负责人：唐启云　状态：已完成　范围：x　完成时间：2026-09-03 10:00",
+      "",
+      "正文上半",
+      "",
+      "=======",
+      "",
+      "正文下半",
+      "",
+    ].join("\n")
+    writeFileSync(join(month, "20260903.md"), content, "utf8")
+    expect(checkArchive(dir).some((i) => i.message.includes("git 冲突标记"))).toBe(false)
+    rmSync(dir, { recursive: true, force: true })
+  })
+})
+
 describe("范围形态归一与人工提示", () => {
   it("顿号分隔范围 check 报可修、--fix 归一为半角加号", () => {
     const dir = makeDir()
