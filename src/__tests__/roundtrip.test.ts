@@ -115,6 +115,8 @@ describe("导出→导入往返", () => {
     const res = await importTasks(out, dst, {})
     expect(res.created).toBe(3)
     expect(activeText(dst)).toContain("旧任务")
+    // 归档行创建日期取自块标题 20260831，经「已归档」sheet 往返后须保真（不回落运行当天）
+    expect(activeText(dst)).toContain("created: 20260831")
     rmSync(src, { recursive: true, force: true })
     rmSync(outDir, { recursive: true, force: true })
     rmSync(dst, { recursive: true, force: true })

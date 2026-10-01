@@ -42,12 +42,13 @@ const ACTIVE_COLUMNS: Array<{ label: string; value: (r: TaskRow) => string }> = 
   { label: "来源文件", value: (r) => r.file },
 ]
 
-// 已归档 sheet 列
+// 已归档 sheet 列（含创建日期，保证归档行往返导入后 created 不回落当天）
 const ARCHIVED_COLUMNS: Array<{ label: string; value: (r: TaskRow) => string }> = [
   { label: "任务名", value: (r) => r.title },
   { label: "状态", value: (r) => r.status },
   { label: "负责人", value: (r) => r.owner },
   { label: "范围", value: (r) => r.scope },
+  { label: "创建日期", value: (r) => (r.created ? toYmd(r.created) : "") },
   { label: "完成时间", value: (r) => r.completed },
   { label: "来源文件", value: (r) => r.file },
 ]
