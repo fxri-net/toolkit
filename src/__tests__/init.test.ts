@@ -407,6 +407,90 @@ describe("initWorkspace .gitignore 处理", () => {
   })
 })
 
+describe("initWorkspace .prettierignore 托管", () => {
+  it("宿主已用 prettier 时创建 .prettierignore 并写入任务区排除行", () => {
+    const { cwd } = track(runInDir("tk-init-pre-created-"))
+    writeFileSync(join(cwd, ".prettierrc"), "{}", "utf8")
+    const report = initWorkspace(".tasks", cwd)
+    const content = readFileSync(join(cwd, ".prettierignore"), "utf8")
+    expect(content).toContain(".tasks/")
+    expect(content).toContain("# @fxri/toolkit")
+    expect(report.products.find((p) => p.target === ".prettierignore")?.action).toBe("created")
+  })
+
+  it("重复执行幂等：.prettierignore 内容不变", () => {
+    const { cwd } = track(runInDir("tk-init-pre-twice-"))
+    writeFileSync(join(cwd, ".prettierrc"), "{}", "utf8")
+    initWorkspace(".tasks", cwd)
+    const before = readFileSync(join(cwd, ".prettierignore"), "utf8")
+    initWorkspace(".tasks", cwd)
+    expect(readFileSync(join(cwd, ".prettierignore"), "utf8")).toBe(before)
+    expect(before.match(/\.tasks\//g)).toHaveLength(1)
+  })
+
+  it("package.json 声明 prettier 依赖时视作启用，写入排除行", () => {
+    const { cwd } = track(runInDir("tk-init-pre-dep-"))
+    writeFileSync(join(cwd, "package.json"), JSON.stringify({ name: "host", devDependencies: { prettier: "^3.0.0" } }), "utf8")
+    initWorkspace(".tasks", cwd)
+    expect(readFileSync(join(cwd, ".prettierignore"), "utf8")).toContain(".tasks/")
+  })
+
+  it("未见 prettier 迹象时不写入 .prettierignore", () => {
+    const { cwd } = track(runInDir("tk-init-pre-nosign-"))
+    const report = initWorkspace(".tasks", cwd)
+    expect(existsSync(join(cwd, ".prettierignore"))).toBe(false)
+    const product = report.products.find((p) => p.target === ".prettierignore")
+    expect(product?.action).toBe("skipped")
+    expect(product?.hint).toContain("重跑 toolkit init")
+  })
+
+  it("已有 .prettierignore 时追加排除行并保留原内容", () => {
+    const { cwd } = track(runInDir("tk-init-pre-append-"))
+    writeFileSync(join(cwd, ".prettierrc"), "{}", "utf8")
+    writeFileSync(join(cwd, ".prettierignore"), "dist\n", "utf8")
+    const report = initWorkspace(".tasks", cwd)
+    const content = readFileSync(join(cwd, ".prettierignore"), "utf8")
+    expect(content.startsWith("dist\n")).toBe(true)
+    expect(content).toContain(".tasks/")
+    expect(report.products.find((p) => p.target === ".prettierignore")?.action).toBe("appended")
+  })
+
+  it("已有等价排除写法（前导斜杠）时视为已覆盖，保持不动", () => {
+    const { cwd } = track(runInDir("tk-init-pre-equiv-"))
+    writeFileSync(join(cwd, ".prettierrc"), "{}", "utf8")
+    writeFileSync(join(cwd, ".prettierignore"), "/.tasks\n", "utf8")
+    const report = initWorkspace(".tasks", cwd)
+    expect(readFileSync(join(cwd, ".prettierignore"), "utf8")).toBe("/.tasks\n")
+    expect(report.products.find((p) => p.target === ".prettierignore")?.action).toBe("kept")
+  })
+
+  it("任务区落在仓库外（绝对路径）时不写入排除行", () => {
+    const { cwd } = track(runInDir("tk-init-pre-outer-"))
+    const outer = mkdtempSync(join(tmpdir(), "tk-init-pre-outer-tasks-"))
+    track({ cwd: outer })
+    writeFileSync(join(cwd, ".prettierrc"), "{}", "utf8")
+    const report = initWorkspace(outer, cwd)
+    expect(existsSync(join(cwd, ".prettierignore"))).toBe(false)
+    expect(report.products.find((p) => p.target === ".prettierignore")?.action).toBe("skipped")
+  })
+
+  it("源仓库现场不写入 .prettierignore 托管", () => {
+    const { cwd } = track(runInDir("tk-init-pre-src-"))
+    writeFileSync(join(cwd, "package.json"), JSON.stringify({ name: "@fxri/toolkit", version: "0.0.0" }), "utf8")
+    writeFileSync(join(cwd, ".prettierrc"), "{}", "utf8")
+    const report = initWorkspace(".tasks", cwd)
+    expect(existsSync(join(cwd, ".prettierignore"))).toBe(false)
+    expect(report.products.find((p) => p.target === ".prettierignore")?.action).toBe("skipped")
+  })
+
+  it("自定义 --dir 时排除行取实际任务目录名", () => {
+    const { cwd } = track(runInDir("tk-init-pre-dir-"))
+    writeFileSync(join(cwd, ".prettierrc"), "{}", "utf8")
+    initWorkspace("work", cwd)
+    expect(readFileSync(join(cwd, ".prettierignore"), "utf8")).toContain("work/")
+  })
+})
+
 describe("initWorkspace prepare 刷新钩子", () => {
   const PREPARE = "toolkit skills install --scope project"
   const pkgPath = (cwd: string): string => join(cwd, "package.json")

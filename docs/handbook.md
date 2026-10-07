@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | 1 装 CLI | 团队项目：`pnpm add -D @fxri/toolkit`（npm 用 `npx`）；个人多项目：`pnpm i -g @fxri/toolkit` | 得到 `toolkit` 命令 |
 | 2 装 skills | `toolkit skills install`（装了 CLI 一键分发，默认软链；npm 用户需先 `npm i -g @fxri/toolkit`）；`--scope project` 装进项目仓库（真源落 `.agents/skills/`、其余候选目录落入口薄壳，队友 clone 即用）；也可用上游安装器 `pnpm dlx skills add fxri-net/toolkit --global` | AI 侧获得三份岗位说明书，遇到对应场景自动触发 |
-| 3 建任务区 | `pnpm exec toolkit init` | 生成 `.tasks/active/{YYYYMM}/`、`archive/`、`conventions/index.md` + `history.md` 骨架与 `.gitignore` 片段，并在项目级技能目录生成规范入口壳；项目本地依赖含 `@fxri/toolkit` 时写入 `prepare` 刷新钩子（逐项报告实际动作） |
+| 3 建任务区 | `pnpm exec toolkit init` | 生成 `.tasks/active/{YYYYMM}/`、`archive/`、`conventions/index.md` + `history.md` 骨架与 `.gitignore` 片段，并在项目级技能目录生成规范入口壳；宿主疑似使用 prettier 时另幂等托管 `.prettierignore`（任务区不参与格式化，防表格被填充出列对齐空白）；项目本地依赖含 `@fxri/toolkit` 时写入 `prepare` 刷新钩子（逐项报告实际动作） |
 | 4 配全局规则（可选） | 从 [AI 全局规则](./ai-rules) 复制模板到你的 agent 全局 rules；提交习惯想统一再取[提交信息规则](./commit-rules) | AI 按你的纪律协作 |
 
 三种安装方式对比、离线/内网装法见[新手指南 · 安装](./getting-started#安装)。
@@ -73,6 +73,7 @@ pnpm exec toolkit tasks stats           # 完成周期 / 滞留 / 吞吐统计
 - **可中断**：三段式与 v1 → v2 升级任一步停下都不丢内容——旧文件整体搬为 `index.md` 后，该文件即原文快照，功能上与旧文件等价；未确认归属的条目保持原样留在 `index.md`
 - **端名**：与任务 frontmatter 的 `scope` 取值**逐字一致**（任务写 `scope: web+server` → 读 `web.md` + `server.md`）；端清单在 `index.md` 顶部声明，是端的唯一权威，不扫目录
 - **迁移期间兼容读**：先找 `conventions/index.md`，不存在再看旧单文件；两者并存时以目录形态为准
+- **表格形态**：任务区 md 表格以**紧凑形态**（单元格间单空格）为规范形态；被 prettier 等格式化器填充出列对齐空白时，`pnpm exec toolkit conventions format` 一键归一回紧凑形态（只动空白层、跳过 fenced code block、幂等），`conventions status` / `tasks check` 亦会提示
 
 原理与细则见[完整攻略 · 存量规范载体迁移](./guide#存量规范载体迁移)。
 

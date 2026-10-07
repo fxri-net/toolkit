@@ -43,7 +43,7 @@
     └── <端名>.md              # 各端专有条文，端名 = 任务 scope 取值（按需创建）
 ```
 
-`conventions/` 不是任务文件：tasks 各子命令不读其内容、check 不因内容告警；它只作 AI 协作时的规范源，由 fxri-plan-to-task 归档时与 fxri-session-recap 收尾时维护，写入前需用户确认。check 只对**载体形态异常**与**入口层现场异常**软告警（载体侧：旧单文件残留、缺 `index.md`、v2 标记与 `history.md` / 索引表首列 ID 不一致；入口壳侧：壳标记与当前 toolkit 不一致、壳被 gitignore 覆盖），不读条文内容。
+`conventions/` 不是任务文件：tasks 各子命令不读其内容、check 不因**条文内容**告警；它只作 AI 协作时的规范源，由 fxri-plan-to-task 归档时与 fxri-session-recap 收尾时维护，写入前需用户确认。check 只对**载体形态异常**、**入口层现场异常**与**表格列对齐填充**软告警（载体侧：旧单文件残留、缺 `index.md`、v2 标记与 `history.md` / 索引表首列 ID 不一致；入口壳侧：壳标记与当前 toolkit 不一致、壳被 gitignore 覆盖；表格侧：任务区 md 表格偏离紧凑形态，可执行 `toolkit conventions format` 归一，见下文「表格形态」），不读条文内容。
 
 ### frontmatter 字段
 
@@ -123,9 +123,9 @@
 
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
-| `fxri-plan-to-task` | 1.5.0 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
+| `fxri-plan-to-task` | 1.6.0 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
 | `fxri-release-changelog` | 1.1.7 | changesets 发版与多语言 CHANGELOG 维护 |
-| `fxri-session-recap` | 1.2.5 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
+| `fxri-session-recap` | 1.2.6 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 
 版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` 打印的真源版本），随技能内容变更递增；`fxri-session-recap` 为 1.7.0 新增
 
@@ -211,6 +211,8 @@ pnpm dlx skills add fxri-net/toolkit --global
 - **溯源索引式**（已用 AGENTS / 全局规则的项目）：不复制条文，只记「确立了什么、谁确立的、条文去哪看」，内容以各单一事实源（skills / AGENTS / 全局规则）最新版为准
 
 **内容修订**：语义变更先在 `history.md` 追加一行留痕、再更新索引行当前语义（`history.md` 只追加、不改旧行）；规则作废把索引行状态改 `已废弃`，不删行、不删分册条目。
+
+**表格形态**：任务区 md 的表格以**紧凑形态**（单元格间单空格，形如 `| a | b |`）为规范形态；prettier 等格式化器会按显示宽度把单元格填充出**列对齐空白**（Markdown 预览里不显示、却让源码可读性变差、token 成本上升），属偏离。两处机制应对：`toolkit init` 在检测到宿主使用 prettier 时幂等托管 `.prettierignore`（追加任务区排除行，从源头阻止格式化器填充任务区）；`toolkit conventions format` 把任务区全部 md（含 archive 存量）的表格压回紧凑形态（只动空白层、跳过 fenced code block、幂等）。`toolkit conventions status` 与 `toolkit tasks check` 对填充态给软告警并指向该命令，`tasks normalize --fix` 不代改空白层。
 
 ### 存量规范载体迁移
 

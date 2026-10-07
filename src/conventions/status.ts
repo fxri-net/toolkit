@@ -1,7 +1,9 @@
 // 规范载体只读体检：形态 / 索引 / 入口层三块，只报问题不修（不给 --fix），体检本身异常不阻断、退出码恒 0（非法 --format 由 CLI 层按参数错误处理）
 // 判据全部走 format.ts / entry.ts 的既有实现在，不在本模块另写一份结构解析
-import { basename, join } from "node:path"
+import { basename, join, relative } from "node:path"
+import { existsSync } from "node:fs"
 import { readTextFile } from "../read-text"
+import { filledTableLines, listMarkdownFiles } from "./compact"
 import {
   CONVENTIONS_DIR,
   ENDPOINT_ANCHOR_HEADER,
@@ -134,6 +136,24 @@ function checkIndex(state: CarrierState, items: ConventionsStatusItem[]): void {
   }
 }
 
+// 表格形态块：检出被格式化器填充（列对齐空白）的表格行，指向 conventions format 归一；命中文件多时只列前几个
+const TABLE_FORM_PREVIEW = 5
+function checkTableForm(tasksDir: string, items: ConventionsStatusItem[]): void {
+  if (!existsSync(tasksDir)) return
+  const hits: string[] = []
+  for (const file of listMarkdownFiles(tasksDir)) {
+    const count = filledTableLines(readTextFile(file)).length
+    if (count > 0) hits.push(`${relative(tasksDir, file).replace(/\\/g, "/")}（${count} 行）`)
+  }
+  if (hits.length === 0) return
+  const more = hits.length > TABLE_FORM_PREVIEW ? ` 等 ${hits.length} 个文件` : ""
+  items.push({
+    level: "warn",
+    scope: "形态",
+    message: `表格存在列对齐填充（偏离紧凑形态）：执行 toolkit conventions format 归一；命中 ${hits.slice(0, TABLE_FORM_PREVIEW).join("、")}${more}`,
+  })
+}
+
 // 入口层块：壳版本不一致、壳被 gitignore 覆盖各合并为一条告警（多落点内联路径，不按壳重复）；无壳仅提示（本包源仓库除外，其本就不生成壳）
 function checkEntryLayer(cwd: string, items: ConventionsStatusItem[]): EntryShellState[] {
   const shells = findEntryShells(cwd)
@@ -187,6 +207,7 @@ export function conventionsStatus(tasksDir = ".tasks", cwd = process.cwd()): Con
   const items: ConventionsStatusItem[] = []
   checkForm(state, items)
   checkIndex(state, items)
+  checkTableForm(tasksDir, items)
   const shells = checkEntryLayer(cwd, items)
   const warnings = items.filter((i) => i.level === "warn").length
   return {

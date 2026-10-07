@@ -3,14 +3,14 @@ name: fxri-plan-to-task
 description: 将已确认的实施方案落盘为标准任务文件并跟踪至归档：动手前建档评估（查 active/archive 判同主题）、按模板建档、状态机更新、四级时间源取证、自查校验、任务级规范沉淀与手工归档。当用户确认方案后表达「开始落地/登记记录」的意图，或即将动手改仓库文件时使用——含建档、任务登记、落盘、归档、任务校验、规范载体迁移与升级（conventions 单文件升目录形态、v1 升 v2）等说法及其口语近义表达（如按这个做吧、记一下、建个任务跟踪）均触发。不用于方案未确认的对话、会话收尾整场沉淀（fxri-session-recap 模式一）、与任务记录无关的普通 TODO、issue 管理或日常提交信息撰写。
 license: MIT
 metadata:
-  version: "1.5.0"
+  version: "1.6.0"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
 
 # 方案落盘：任务建档与归档
 
-> 本技能版本 1.5.0（随 @fxri/toolkit 同批分发）。被问版本时即报此值——不读磁盘、不跑 CLI：报出的值就是本会话上下文里已加载内容的版本，可与 `toolkit skills status` 打印的磁盘基准值对照，不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.6.0（随 @fxri/toolkit 同批分发）。被问版本时即报此值——不读磁盘、不跑 CLI：报出的值就是本会话上下文里已加载内容的版本，可与 `toolkit skills status` 打印的磁盘基准值对照，不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -21,7 +21,7 @@ metadata:
 
 ## 核心约定
 
-任务文件规范（目录结构、命名、frontmatter 字段、归档格式、手工归档步骤、自查清单）全部以 `references/task-spec.md` 为准；规范载体（conventions）的结构、形态标记与稳定 ID、归属判定、读写判定、内容修订、存量迁移与 v1→v2 升级、入口壳以 `references/conventions-spec.md` 为准。本文件只写流程。执行任何写操作前先读它们。
+任务文件规范（目录结构、命名、frontmatter 字段、归档格式、手工归档步骤、自查清单）全部以 `references/task-spec.md` 为准；规范载体（conventions）的结构、形态标记与稳定 ID、归属判定、读写判定、内容修订、表格形态（紧凑）、存量迁移与 v1→v2 升级、入口壳以 `references/conventions-spec.md` 为准。本文件只写流程。执行任何写操作前先读它们。
 
 ## 核心规则
 
@@ -117,4 +117,5 @@ metadata:
 - `toolkit tasks normalize`：归档后核验归档块（元数据完整性/日期漂移/排序/git 冲突标记），可 `--fix` 自动修复（含按并集去重 + 降序解决冲突标记）
 - `toolkit conventions status`：只读体检载体形态与入口壳现场（替代第 1 步人工判形态、第 5.5 步沉淀前后自查）
 - `toolkit conventions upgrade`：v1 → v2 结构升级（第 5.5 步，纯机械、幂等；可 `--dry-run` 预演）
+- `toolkit conventions format`：表格空白层归一为紧凑形态（手工写表后自查；幂等、跳过代码块、不改语义；可 `--dry-run` 预演）
 - 任务目录非默认 `.tasks` 时加 `--dir <path>`

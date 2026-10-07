@@ -25,6 +25,7 @@ import { configStatus, foldHome, foldHomeInText, type ConfigStatusReport } from 
 import type { LocalConfigIgnoreState } from "./git-ignore"
 import { initWorkspace, INIT_LINKS, type InitAction, type InitReport } from "./init"
 import { upgradeConventions, type UpgradeReport } from "./conventions/upgrade"
+import { formatConventions, type FormatReport } from "./conventions/compact"
 import { conventionsStatus, type ConventionsStatusReport } from "./conventions/status"
 import { toJsonText, assertJsonFormat } from "./json-output"
 import {
@@ -721,10 +722,29 @@ function printConventionsStatus(report: ConventionsStatusReport): void {
   for (const item of report.items) console.log(`${item.level === "warn" ? "⚠️" : "·"} [${item.scope}] ${foldHomeInText(item.message)}`)
 }
 
-// conventions 域：规范载体的结构升级与只读体检（载体细则见 skills/fxri-plan-to-task/references/conventions-spec.md）
+// 打印归一报告：先给一句话结论，再列发生改动的文件与行号（风格与 upgrade 预演一致）
+function printConventionsFormat(report: FormatReport, dryRun: boolean): void {
+  const tag = dryRun ? "[预演] " : ""
+  console.log(`${tag}任务区：${report.tasksDir}（扫描 ${report.files} 个 .md）`)
+  if (report.status === "already-compact") {
+    console.log(`${tag}表格已全部为紧凑形态，无需归一`)
+    return
+  }
+  console.log("")
+  console.log(`${tag}归一改动：${report.changedFiles} 个文件 / ${report.changedLines} 行`)
+  for (const c of report.changes) {
+    const shown = c.lines.slice(0, 6).join("、")
+    console.log(`  ${c.file}：${c.lines.length} 行（${shown}${c.lines.length > 6 ? " …" : ""}）`)
+  }
+  console.log("")
+  if (dryRun) console.log("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行")
+  else console.log("已写入；紧凑形态即规范形态，重复执行不改动")
+}
+
+// conventions 域：规范载体的结构升级、空白层归一与只读体检（载体细则见 skills/fxri-plan-to-task/references/conventions-spec.md）
 const conventionsCmd = program
   .command("conventions")
-  .description("项目协作规范载体：结构升级（v1 → v2）与只读体检（形态 / 索引 / 入口层）")
+  .description("项目协作规范载体：结构升级（v1 → v2）、表格空白层归一（紧凑形态）与只读体检（形态 / 索引 / 入口层）")
 
 // 升级：纯机械结构升级，先判后写；形态异常或未初始化时拒绝执行并给非 0 退出码（异常态不写任何文件）
 conventionsCmd
@@ -741,6 +761,25 @@ conventionsCmd
       else printUpgradeReport(report, Boolean(options.dryRun))
     } catch (e) {
       console.error(`⚠️ 升级失败：${(e as Error).message}`)
+      process.exitCode = 1
+    }
+  })
+
+// 归一：把格式化器填充出的表格空白层收敛回紧凑形态（只动空白层、不改语义；幂等，跳过代码块，先判后写）
+conventionsCmd
+  .command("format")
+  .description("归一表格空白层为紧凑形态（只动单元格间距与列对齐填充；幂等、跳过 fenced code block，先报后写）")
+  .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）")
+  .option("--dry-run", "预演（只预览将要归一的行，不写文件）")
+  .option("--format <format>", "输出格式（json，输出到 stdout）")
+  .action((options: { dir?: string; dryRun?: boolean; format?: string }) => {
+    try {
+      if (!assertJsonFormat(options.format)) return
+      const report = formatConventions(resolveTasksDir(options.dir), { dryRun: options.dryRun })
+      if (options.format === "json") printJson(report)
+      else printConventionsFormat(report, Boolean(options.dryRun))
+    } catch (e) {
+      console.error(`⚠️ 归一失败：${(e as Error).message}`)
       process.exitCode = 1
     }
   })
@@ -762,7 +801,7 @@ conventionsCmd
     }
   })
 
-// 裸 `toolkit conventions`：打印本域帮助，列出 2 个子命令
+// 裸 `toolkit conventions`：打印本域帮助，列出 3 个子命令
 conventionsCmd.action(() => {
   conventionsCmd.help()
 })

@@ -2,7 +2,7 @@
 // ⚠️ cli.ts 顶层即执行主流程，无法被静态导入：每个用例重置模块注册表后动态 import ../cli 并 await 其导出的 cliReady
 // 沙箱隔离：home 指向临时目录（skills 与配置），升级缓存经 mock 的 tmpdir 落沙箱，子进程派生注入 mock（不真跑进程）
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from "vitest"
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 
 // 沙箱路径用 vi.hoisted 构造（mock 工厂早于模块顶层求值执行，不能引用未初始化的顶层变量）
@@ -270,6 +270,40 @@ describe("顶层命令与外部域", () => {
   it("conventions status：只读体检退出码 0", async () => {
     const r = await runCli(["conventions", "status", "--dir", missingTasksDir])
     expect(r.code).toBe(0)
+  })
+
+  it("conventions format --dir 不存在：报错并以非 0 退出码终止", async () => {
+    const r = await runCli(["conventions", "format", "--dir", missingTasksDir])
+    expect(r.code).toBe(1)
+    expect(r.err.join("\n")).toContain("归一失败")
+  })
+
+  it("conventions format：预演不写盘 → 写盘归一 → 复跑返回 already-compact", async () => {
+    const dir = join(sandbox, "fmt-tasks")
+    rmSync(dir, { recursive: true, force: true })
+    mkdirSync(join(dir, "active", "202610"), { recursive: true })
+    const file = join(dir, "active", "202610", "task.md")
+    writeFileSync(file, "| a   | b |\n", "utf8")
+
+    // 预演：报告改动但文件保持填充态
+    const dry = await runCli(["conventions", "format", "--dir", dir, "--dry-run"])
+    expect(dry.code).toBe(0)
+    expect(dry.log.join("\n")).toContain("[预演]")
+    expect(readFileSync(file, "utf8")).toBe("| a   | b |\n")
+
+    // 写盘：填充收敛为紧凑形态
+    const run = await runCli(["conventions", "format", "--dir", dir])
+    expect(run.code).toBe(0)
+    expect(readFileSync(file, "utf8")).toBe("| a | b |\n")
+
+    // 复跑幂等：--format json 报告 already-compact
+    const again = await runCli(["conventions", "format", "--dir", dir, "--format", "json"])
+    expect(again.code).toBe(0)
+    const payload = JSON.parse(again.log.join("\n")) as { status: string; changedFiles: number }
+    expect(payload.status).toBe("already-compact")
+    expect(payload.changedFiles).toBe(0)
+
+    rmSync(dir, { recursive: true, force: true })
   })
 
   it("tasks --help：--fix / --check 描述如实反映「检查项与 tasks check 同源」（F2）", async () => {

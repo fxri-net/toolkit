@@ -201,3 +201,47 @@ describe("本地配置忽略告警", () => {
     rmSync(repo, { recursive: true, force: true })
   })
 })
+
+describe("表格形态告警", () => {
+  it("载体表格被列对齐填充时告警并指向 conventions format，落点为任务区相对路径", () => {
+    const dir = makeTmp("tk-conv-table-")
+    const cwd = makeTmp("tk-conv-table-cwd-")
+    mkdirSync(join(dir, "active"), { recursive: true })
+    mkdirSync(join(dir, "conventions"), { recursive: true })
+    const index =
+      [
+        CARRIER_MARKER,
+        "# 项目协作规范索引",
+        "",
+        "## 二、索引",
+        "",
+        `| ${ID_HEADER} | 规则 | 当前语义 |`,
+        "| --- | --- |",
+        `| ${idOf(1)}     | 四级时间源   | 当场打点优先 |`,
+      ].join("\n") + "\n"
+    writeFileSync(join(dir, "conventions", "index.md"), index, "utf8")
+    writeFileSync(join(dir, "conventions", "history.md"), `${HISTORY_TITLE}\n`, "utf8")
+
+    const issues = validateTasks(dir, cwd).issues.filter((i) => i.level === "warn" && i.message.includes("表格存在列对齐填充"))
+    expect(issues).toHaveLength(1)
+    expect(issues[0]!.file).toBe("conventions/index.md")
+    expect(issues[0]!.line).toBe(8)
+    expect(issues[0]!.message).toContain("toolkit conventions format")
+    rmSync(dir, { recursive: true, force: true })
+    rmSync(cwd, { recursive: true, force: true })
+  })
+
+  it("表格均为紧凑形态时不产生表格形态告警", () => {
+    const dir = makeTmp("tk-conv-table-ok-")
+    const cwd = makeTmp("tk-conv-table-ok-cwd-")
+    mkdirSync(join(dir, "active"), { recursive: true })
+    mkdirSync(join(dir, "conventions"), { recursive: true })
+    writeFileSync(join(dir, "conventions", "index.md"), V2_INDEX, "utf8")
+    writeFileSync(join(dir, "conventions", "history.md"), `${HISTORY_TITLE}\n`, "utf8")
+
+    const warns = warnTexts(dir, cwd)
+    expect(warns.filter((m) => m.includes("列对齐填充"))).toEqual([])
+    rmSync(dir, { recursive: true, force: true })
+    rmSync(cwd, { recursive: true, force: true })
+  })
+})

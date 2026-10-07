@@ -19,6 +19,7 @@ import {
   readCarrier,
 } from "../conventions/format"
 import { findEntryShells, ignoredShellAlert, mismatchedShellAlert } from "../conventions/entry"
+import { filledTableLines, listMarkdownFiles } from "../conventions/compact"
 import { gitIgnoredSet, inspectLocalConfigIgnore } from "../git-ignore"
 import { ALL_STATUSES, DONE_STATUSES, FRONTMATTER_KEYS } from "./types"
 import { parseDepends } from "./depends"
@@ -342,6 +343,25 @@ function validateConventions(tasksDir: string, cwd: string): CheckIssue[] {
   return issues
 }
 
+// 表格形态软告警：检出被格式化器填充（列对齐空白）的表格行，指向 conventions format 归一
+// 只报不改：归一由 conventions format 统一负责（--fix 只管归档块，不代改空白层）
+const TABLE_FORM_PREVIEW = 6
+function validateTableForm(tasksDir: string): CheckIssue[] {
+  const issues: CheckIssue[] = []
+  for (const file of listMarkdownFiles(tasksDir)) {
+    const lines = filledTableLines(readTextFile(file))
+    if (lines.length === 0) continue
+    const shown = lines.slice(0, TABLE_FORM_PREVIEW).join("、")
+    issues.push({
+      level: "warn",
+      file: displayRel(tasksDir, file),
+      line: lines[0],
+      message: `表格存在列对齐填充（偏离紧凑形态）${lines.length} 行（第 ${shown}${lines.length > TABLE_FORM_PREVIEW ? " …" : ""} 行）：执行 toolkit conventions format 归一`,
+    })
+  }
+  return issues
+}
+
 // 校验 active 目录全部任务（含跨文件重名检测）
 export function validateTasks(tasksDir = ".tasks", cwd = process.cwd()): CheckResult {
   const activeDir = join(tasksDir, "active")
@@ -362,6 +382,9 @@ export function validateTasks(tasksDir = ".tasks", cwd = process.cwd()): CheckRe
 
   // 规范载体形态：仅查形态不读内容，故不影响任务校验的语义判断
   issues.push(...validateConventions(tasksDir, cwd))
+
+  // 表格形态：检出被格式化器填充的表格行，指向 conventions format 归一
+  issues.push(...validateTableForm(tasksDir))
 
   // 归档块检查：复用 normalize 的单一实现（月份目录归属、元数据完整性、完成时间漂移/异常、排序、疑似任务块），
   // 避免 validate 与 normalize 各写一套导致判据漂移；归档问题一律 warn 级（明细与修复走 tasks normalize / normalize --fix）

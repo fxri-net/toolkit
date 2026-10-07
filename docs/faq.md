@@ -187,6 +187,10 @@ pnpm remove -g @fxri/toolkit   # 2. 再卸 CLI
 
 目录形态另有**结构版本**之分：v2 用「首行形态标记 + 索引表首列稳定 ID `C-<n>` + 独立 `history.md` 演进记录」，v1 则无标记、首列是序号 `#`、演进记录与索引同文件。说一句「把规范载体升到 v2」或直接跑 `toolkit conventions upgrade`（`--dry-run` 预演；幂等、先判后写，异常形态拒绝写盘），内部引用会一并改写为稳定 ID。`toolkit conventions status` 可查载体形态、索引与入口层现场，`toolkit tasks check` 也会在形态异常时软告警。
 
+### 载体表格里为什么有大量空格？怎么去掉？
+
+那是宿主格式化器（prettier）对 GFM 表格做**列对齐填充**的结果——按单元格最宽内容补空格，属格式化器刻意行为，不是本工具写入的。这些空白层在预览时并不显示，却会在纯文本阅读时造成干扰。两种处置：`toolkit init` 在检测到宿主疑似用 prettier 时会**幂等托管 `.prettierignore`**、把任务区整目录排除，从源头不再被填充；已存在的填充用 `toolkit conventions format` 归一（`--dry-run` 预演、幂等、只动单元格间距与列对齐填充，不改语义、跳过 fenced code block）。`toolkit conventions status` 与 `toolkit tasks check` 会检出填充态并给出上述处置提示。
+
 ### `toolkit init` 生成的「规范入口壳」是什么？必须留着吗？
 
 它是在**已存在的**项目级技能目录（如 `.agents/skills/toolkit-conventions/SKILL.md`；多个候选目录并存时每处各写一份，一个都不存在则回落 `.agents/skills/`）生成的一个**只作入口、不承载条文**的小技能壳，让 AI 在项目里能按需发现 `.tasks/conventions/` 载体，正文指回 `index.md`。它属侵入性写入，`init` 会逐项报告实际动作；落点被 `.gitignore` 覆盖时报告会提示（**不代改 `.gitignore`**），因为那样壳不会随 git 分发。不需要可直接删除，重跑 `init` 会补回；壳标记落后于当前 toolkit 时重跑 `init` 会就地更新为当前版本。

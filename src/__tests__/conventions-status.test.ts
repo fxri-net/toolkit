@@ -296,3 +296,29 @@ describe("入口层体检", () => {
     expect(report.summary).toContain("入口壳 1 个")
   })
 })
+
+describe("表格形态体检", () => {
+  it("载体表格被列对齐填充时报一条告警并指向 conventions format", () => {
+    const root = makeDir("tk-status-table-")
+    const cwd = makeDir("tk-status-table-cwd-")
+    makeV2(root, `| ${idOf(1)}     | 四级时间源 | 当场打点优先 | common |`)
+
+    const report = conventionsStatus(root, cwd)
+    const hits = report.items.filter((i) => i.message.includes("表格存在列对齐填充"))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]!.level).toBe("warn")
+    expect(hits[0]!.scope).toBe("形态")
+    expect(hits[0]!.message).toContain("toolkit conventions format")
+    // 命中文件以任务区相对路径内联
+    expect(hits[0]!.message).toContain("conventions/index.md（1 行）")
+  })
+
+  it("表格均为紧凑形态时不产生表格形态告警", () => {
+    const root = makeDir("tk-status-table-ok-")
+    const cwd = makeDir("tk-status-table-ok-cwd-")
+    makeV2(root, cleanRows)
+
+    const report = conventionsStatus(root, cwd)
+    expect(report.items.filter((i) => i.message.includes("列对齐填充"))).toEqual([])
+  })
+})

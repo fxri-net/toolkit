@@ -16,7 +16,7 @@ toolkit <command> [options]
 命令：
   toolkit init          初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐 .gitignore 片段与 prepare 刷新钩子）
   toolkit skills        AI 技能包分发：安装 / 状态 / 卸载 / 路径（包内 skills/ 为唯一真源）
-  toolkit conventions   项目协作规范载体：结构升级（v1 → v2）与只读体检（形态 / 索引 / 入口层）
+  toolkit conventions   项目协作规范载体：结构升级（v1 → v2）、表格空白层归一（紧凑形态）与只读体检（形态 / 索引 / 入口层）
   toolkit config        配置分层：只读查看三层配置文件（全局层 / 项目层 / 本地层）的生效情况与来源
   toolkit tasks         任务管理
   toolkit changelog     多语言 CHANGELOG（封装 changesets）
@@ -147,6 +147,7 @@ toolkit init --no-hooks               # 不写入 package.json 的 prepare 刷�
 - 创建规范载体骨架 `<任务目录>/conventions/index.md`（v2 三节：端清单 / 索引 / 用法说明）与 `<任务目录>/conventions/history.md`（演进记录）；已存在 `index.md` 时保持不动（v1 形态另给升级提示）；存在待迁移的旧单文件 `<任务目录>/conventions.md` 时不建空骨架
 - 在**已存在的**项目级技能目录各生成一份规范入口壳（如 `.agents/skills/toolkit-conventions/SKILL.md`，目录名与 frontmatter `name` 同名；只作入口、不承载条文）——多 agent 混用团队多个候选目录并存时每处各写一份、互不覆盖，一个都不存在时回落 `.agents/skills/`，不为未安装的 agent 凭空建目录；壳已存在时按标记版本分流——标记不旧于当前版本保持不变、落后或无标记就地更新为当前版本（报告为「更新」）；并在**已存在的** `AGENTS.md` 内幂等追加规范入口指针块（`AGENTS.md` 不存在时不新建，仅在报告中提示规范仍可经全局技能触达）
 - 向 `.gitignore` 追加忽略片段（含 `.archive.lock` 与 `.toolkitrc.local.json`，片段头另附一行出口指引注释：不想改团队 `.gitignore` 者可自行把忽略行写进 `.git/info/exclude`）；**逐行幂等**——「是否已覆盖」用 `git check-ignore` **真实判定**，已有该行则跳过、手删单行后重跑只补该行（判定涵盖本仓库与上层 `.gitignore`、`.git/info/exclude` 等全部来源，能识破 `*.lock`、`*.local.json` 等用户手写的通配写法）；非 git 仓库或 git 不可用时退回等价写法白名单（精确行 `/.toolkitrc.local.json`——带前导 `/` 与不带两种写法——及通配 `*.local.json`、`.toolkitrc.*`；白名单外一律追加，宁冗余不误跳）
+- 向 `.prettierignore` 幂等追加任务区排除行（`<任务目录>/`），让格式化器不碰任务区——任务区表格一旦进入 prettier 格式化范围就会被填充出列对齐空白（Markdown 预览不显示、源码可读性变差、token 成本上升）；**触发条件缺一不写**：任务区落在仓库内且非仓库根、非本包源仓库、宿主疑似使用 prettier（已存在 `.prettierignore`、存在 prettier 配置文件、或 `package.json` 声明 prettier 依赖 / 含 `prettier` 键）；已有等价排除行（如 `/.tasks`）保持不动（报告为「保持」），未见 prettier 迹象时跳过并提示「项目启用 prettier 后重跑 `toolkit init` 会自动补上该排除行」；prettier 的 `--ignore-path` 默认同时读 `.gitignore` 与 `.prettierignore`，故新建此文件不影响既有忽略语义
 - 向 `package.json` 幂等补一行 `prepare` 钩子（值为 `toolkit skills install --scope project`），供依赖升级后自动刷新项目面技能；仅在本地依赖含 `@fxri/toolkit`（`dependencies` / `devDependencies` / `peerDependencies` / `optionalDependencies` 任一）时写入，采用最小文本插入保留原有排版；已有等价钩子（裸 `toolkit skills install` 亦可）保持不变、已有非等价 `prepare` 跳过并提示不覆盖、未声明本地依赖或 `package.json` 缺失 / 解析失败均跳过并说明、本包源仓库跳过；`--no-hooks` 关闭写入
 - ⚠️ 发布型包误打包检查**独立于钩子**：`package.json` 未标 `private` 且无 `files` 白名单时，报告附提示（与钩子是否写入无关，`--no-hooks`、未声明本地依赖、非等价 `prepare` 等情形同样提示）——`npm` 无 `.npmignore` 时退回 `.gitignore` 决定打包面，而项目面技能产物（技能真源 `.agents/skills/`、各候选目录下的入口薄壳、归属账 `.toolkit/`）与内置任务区 `.tasks/`（任务区外置时不计入）都不在忽略列表、会被打进包；发布型包请把它们加入 `files` 白名单或 `.npmignore`（`init` 只提示、不代改）
 - 输出后续步骤与文档站链接；检测到尚未安装全局技能时，后续步骤中补一行 `toolkit skills install` 指引（规范触达第一层，不依赖项目内文件；已安装则不重复提示）
@@ -229,16 +230,22 @@ toolkit conventions upgrade --dry-run     # 预演：只预览将执行的动作
 toolkit conventions upgrade --format json # JSON 输出：ID 映射、内部引用改写、结构动作清单
 toolkit conventions status                # 只读体检：形态 / 索引 / 入口层三块（只报不改，体检不阻断、退出码恒 0；仅 --format 传非法值时按参数错误退出）
 toolkit conventions status --format json  # JSON 输出：形态、条目数、入口壳现场与逐条体检项
+toolkit conventions format                # 归一任务区表格形态：把列对齐填充压回紧凑形态（幂等；兜底 prettier 等格式化器造成的填充）
+toolkit conventions format --dry-run      # 预演：只报告将改动的文件与行数，不写文件
+toolkit conventions format --format json  # JSON 输出：status、目录、文件数、变更文件数与逐文件变更行号
 ```
 
-裸 `toolkit conventions` 打印本域帮助（列出 2 个子命令）。
+裸 `toolkit conventions` 打印本域帮助（列出 3 个子命令）。
 
 | 子命令 | 行为 |
 | --- | --- |
 | `upgrade` | 把 v1 载体升为 v2：首行补形态标记、标题归一、「演进记录」节抽为独立 `history.md`、索引表首列 `#` → `ID`（序号 → 稳定 ID `C-<n>`）、节号重编、内部引用改写为稳定 ID（裸「第 N 条」且 N ≤ 索引表最大序号；带外部文档限定词前缀的引用不动）。**幂等**——已是 v2 返回 `already-v2`、不改动；未初始化（缺 `index.md`）或形态异常（标记 / `history.md` / 索引表首列三者不一致）在**写盘前**拒绝执行并给非 0 退出码，不写任何文件。`--dry-run` 只报告不改动；`--format json` 输出 `status`、`idMap`、`refs`、`changes`（ID 映射只随报告输出、不落盘） |
-| `status` | 只读体检、只报不修（无 `--fix`）：**形态**（v1 提示可升级、形态异常、旧单文件与目录并存）、**索引**（ID 形态与重复、归属不在端清单内、分册小节在索引表无对应条目）、**入口层**（壳标记与当前 toolkit 不一致、壳被 gitignore 覆盖，多落点并存时各合并为一条并内联全部落点路径；标记不一致可重跑 `toolkit init` 就地更新为当前版本；无壳仅提示，本包源仓库除外——其不生成入口壳）三块，逐条按 `[形态]` / `[索引]` / `[入口层]` 前缀输出；一句话结论为 `载体 <形态>，<n> 条规范，入口壳 <m> 个，无待处理项 / <k> 项待处理`；未初始化只回单条结论。**体检不阻断、退出码恒 0**（异常不阻断，便于当 CI 信息源；仅 `--format` 传非法值时按参数错误报错退出） |
+| `status` | 只读体检、只报不修（无 `--fix`）：**形态**（v1 提示可升级、形态异常、旧单文件与目录并存、**表格存在列对齐填充可执行 `toolkit conventions format` 归一**）、**索引**（ID 形态与重复、归属不在端清单内、分册小节在索引表无对应条目）、**入口层**（壳标记与当前 toolkit 不一致、壳被 gitignore 覆盖，多落点并存时各合并为一条并内联全部落点路径；标记不一致可重跑 `toolkit init` 就地更新为当前版本；无壳仅提示，本包源仓库除外——其不生成入口壳）三块，逐条按 `[形态]` / `[索引]` / `[入口层]` 前缀输出；一句话结论为 `载体 <形态>，<n> 条规范，入口壳 <m> 个，无待处理项 / <k> 项待处理`；未初始化只回单条结论。**体检不阻断、退出码恒 0**（异常不阻断，便于当 CI 信息源；仅 `--format` 传非法值时按参数错误报错退出） |
+| `format` | 归一任务区表格形态：把被格式化器填充的列对齐空白压回紧凑形态（单元格间单空格）。范围＝任务目录下**全部** `.md`（载体三件 + active + archive），**跳过 fenced code block**（```` ``` ```` 与 `~~~` 块内的表格样例原样保留）；只动单元格间距与列对齐填充，单元格文本、分隔行对齐标记（`:---` / `---:`）与行尾符（CRLF/LF）一律保留。**幂等**——已是紧凑形态返回 `already-compact`、不改动；未初始化（任务目录不存在）在**写盘前**报错并以非 0 退出码终止。`--dry-run` 只报告不改动；`--format json` 输出 `status`、`tasksDir`、`files`、`changedFiles`、`changedLines`、`changes`（逐文件变更行号） |
 
 ⚠️ `upgrade` 只做机械结构升级，不改条文语义；升级过程可中断、重复执行安全。
+
+⚠️ `format` 只动空白层、不改语义（紧凑是规范形态、填充是偏离）；`tasks check` 与 `conventions status` 会对填充态给软告警、指向本命令，`tasks normalize --fix` 不代改空白层。
 
 载体结构（v1 / v2 形态、稳定 ID、`history.md`）与读写细则见[完整攻略 · conventions/：规范沉淀地](./guide#conventions-规范沉淀地)。
 

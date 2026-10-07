@@ -3,14 +3,14 @@ name: fxri-session-recap
 description: 会话收尾的工作记忆沉淀 + 新会话开场恢复 + 历史任务时间修正：收尾时把整场会话的全部任务完整建档归档，按四级时间源还原真实完成时间，沉淀规范进 conventions 载体；新会话开场按三层恢复（全量索引 + active 精读 + 近窗归档）重建现场并核对规范；也可批量修正历史归档时间。当用户表达会话收尾意图（如今天先到这、收个尾、归档本次会话、把结论记下来）、接续意图（如恢复上下文、继续上次、上次做到哪）、或修正历史任务时间时使用。不用于会话中途的常规方案建档（那是 fxri-plan-to-task 的职责）、与工作交接无关的代码技术总结。
 license: MIT
 metadata:
-  version: "1.2.5"
+  version: "1.2.6"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
 
 # 会话归档、上下文恢复与历史修正
 
-> 本技能版本 1.2.5（随 @fxri/toolkit 同批分发）。被问版本时即报此值——不读磁盘、不跑 CLI：报出的值就是本会话上下文里已加载内容的版本，可与 `toolkit skills status` 打印的磁盘基准值对照，不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.2.6（随 @fxri/toolkit 同批分发）。被问版本时即报此值——不读磁盘、不跑 CLI：报出的值就是本会话上下文里已加载内容的版本，可与 `toolkit skills status` 打印的磁盘基准值对照，不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -65,10 +65,11 @@ metadata:
 - **归属判定**：先问「是否**所有端都适用**」→ 是则归 `common`；否则逐端确认后写入命中的端分册。⚠️ 禁止跨端合并归属（真全端才升 `common`，只适用几端则各端各记一条）；`common` 的语义是「所有端」不是「不确定归哪端」的暂存区
 - **端名**：与任务 frontmatter `scope` 取值**逐字一致**（任务写 `scope: web+server` → 读 `web.md` + `server.md`）；`index.md` 顶部「端清单」是端的**唯一权威**，不扫目录
 - 写前**必须用户确认**；同义规范不重复记录，只补差异或合并增强
+- **表格形态**：载体与任务区表格一律**紧凑形态**（单元格间只留一个空格，不做列对齐填充）；手工写表不为对齐补空格，已有填充用 `toolkit conventions format` 归一（幂等、跳过代码块、不改语义），源头由 `toolkit init` 托管的 `.prettierignore` 排除任务区
 - 一次性决策留在任务正文，不进规范（升格标准：重复出现 ≥2 次，或用户明示「以后都要这样」）
 - **内容修订 vs 形态迁移**：旧条目过时走「`history.md` 追加留痕 + index 行更新 + 状态置 `已废弃`」（不删行）；使用者项目存旧单文件 `conventions.md` 且要求迁移时走**迁移三段式**（建目录搬原文 → 逐条提归属建议 → 用户确认后拆分册）；载体为 v1（无标记、索引表首列非 ID）时走 **v1→v2 升级**——优先 `toolkit conventions upgrade`（可 `--dry-run` 预演），亦可按链路手工执行；均可中断不丢内容
 - ⚠️ 兼容读：先找 `conventions/index.md`，不存在再看旧单文件 `conventions.md`（提示可迁移）；两者并存时以目录形态为准
-- 完整细则（载体结构、形态标记与稳定 ID、index 表列定义、`history.md` 结构、读写判定、内容修订、两种形态、迁移与 v1→v2 升级步骤、自查清单）见 `../fxri-plan-to-task/references/conventions-spec.md`；fxri-plan-to-task 未一并安装、该兄弟路径不存在时，改读包内真源——`toolkit skills status` 打印的「技能源」目录下 `fxri-plan-to-task/references/conventions-spec.md`
+- 完整细则（载体结构、形态标记与稳定 ID、index 表列定义、`history.md` 结构、读写判定、内容修订、表格形态（紧凑）、两种形态、迁移与 v1→v2 升级步骤、自查清单）见 `../fxri-plan-to-task/references/conventions-spec.md`；fxri-plan-to-task 未一并安装、该兄弟路径不存在时，改读包内真源——`toolkit skills status` 打印的「技能源」目录下 `fxri-plan-to-task/references/conventions-spec.md`
 
 ### 规范提炼子流程（三模式共用）
 

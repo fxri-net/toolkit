@@ -109,7 +109,7 @@ export interface InitOptions {
   hooks?: boolean
 }
 
-// 初始化项目任务区：任务区骨架 → 规范载体 → .gitignore 片段 → 技能入口层 → prepare 刷新钩子
+// 初始化项目任务区：任务区骨架 → 规范载体 → .gitignore 片段 → .prettierignore 托管 → 技能入口层 → prepare 刷新钩子
 // dir 为任务目录（默认 .tasks，支持绝对路径或 ../ 相对路径指向项目外），cwd 为仓库根（.gitignore 与 AGENTS.md 所在目录）
 export function initWorkspace(dir = ".tasks", cwd = process.cwd(), options: InitOptions = {}): InitReport {
   const month = todayCompact().slice(0, 6)
@@ -126,6 +126,7 @@ export function initWorkspace(dir = ".tasks", cwd = process.cwd(), options: Init
     },
     ...scaffoldConventions(root, dir),
     ...appendGitignore(cwd),
+    ...appendPrettierignore(cwd, root),
     ...scaffoldEntryLayer(cwd),
     ...(options.hooks === false ? [{ target: "package.json", action: "skipped" as const, detail: "--no-hooks：跳过 prepare 刷新钩子写入" }] : scaffoldPrepareHook(cwd)),
   ]
@@ -211,6 +212,92 @@ export function appendGitignore(cwd: string): InitProduct[] {
   return [{ target: ".gitignore", action: "appended", detail: `已追加 ${GITIGNORE_MARKER} 忽略片段（${cover}）` }]
 }
 
+// 依赖字段任一声明指定包即算「装在本项目」（prepare 钩子与 prettier 迹象检测共用同一判据）
+function hasDependency(pkg: Record<string, unknown>, name: string): boolean {
+  return ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"].some((field) => {
+    const deps = pkg[field]
+    return typeof deps === "object" && deps !== null && name in (deps as Record<string, unknown>)
+  })
+}
+
+// prettier 配置文件名清单（存在任一项即视作该项目已启用 prettier）
+const PRETTIER_CONFIG_FILES = [
+  ".prettierrc",
+  ".prettierrc.json",
+  ".prettierrc.yml",
+  ".prettierrc.yaml",
+  ".prettierrc.json5",
+  ".prettierrc.js",
+  ".prettierrc.cjs",
+  ".prettierrc.mjs",
+  ".prettierrc.toml",
+  "prettier.config.js",
+  "prettier.config.cjs",
+  "prettier.config.mjs",
+]
+
+// prettier 迹象检测：已存在 .prettierignore、有配置文件、package.json 声明 prettier 依赖或含 prettier 键，任一命中即算
+// 无迹象时不写 .prettierignore：任务区本就不会被格式化，添文件反成噪音
+function hasPrettierSign(cwd: string): boolean {
+  if (existsSync(join(cwd, ".prettierignore"))) return true
+  if (PRETTIER_CONFIG_FILES.some((name) => existsSync(join(cwd, name)))) return true
+  const file = join(cwd, "package.json")
+  if (!existsSync(file)) return false
+  try {
+    const pkg = JSON.parse(readTextFile(file)) as Record<string, unknown>
+    return "prettier" in pkg || hasDependency(pkg, "prettier")
+  } catch {
+    return false
+  }
+}
+
+// 向 .prettierignore 追加任务区排除行：任务区里的表格一旦进入格式化范围就会被填充出列对齐空白（预览不显示、阅读受扰）
+// 触发条件（缺一不写）：任务区落在仓库内且非仓库根、非本包源仓库、宿主疑似使用 prettier
+// prettier 的 --ignore-path 默认同时读 .gitignore 与 .prettierignore，故新建此文件不影响既有忽略语义
+export function appendPrettierignore(cwd: string, root: string): InitProduct[] {
+  const target = ".prettierignore"
+  if (isToolkitSourceRepo(cwd)) {
+    return [{ target, action: "skipped", detail: `本仓库即 ${PKG_NAME} 源仓库，不写入 ${target} 托管` }]
+  }
+  const rel = relative(cwd, root)
+  if (rel === "" || rel === "." || isAbsolute(rel) || rel.startsWith("..")) {
+    return [{ target, action: "skipped", detail: "任务区不在仓库内（或即仓库根），无需排除出格式化范围" }]
+  }
+  if (!hasPrettierSign(cwd)) {
+    return [
+      {
+        target,
+        action: "skipped",
+        detail: "未见 prettier 使用迹象，跳过任务区排除行写入",
+        hint: "项目启用 prettier 后重跑 toolkit init 会自动补上该排除行",
+      },
+    ]
+  }
+  const dir = posix(rel)
+  const row = `${dir}/`
+  // 等价写法归一（去 / 前缀与尾斜杠）后比对，尊重用户手写的等价排除行
+  const norm = (line: string): string => line.trim().replace(/^\//, "").replace(/\/$/, "")
+  const head = `${GITIGNORE_MARKER} 任务区不参与格式化（表格保持紧凑形态，避免列对齐填充）`
+  const file = join(cwd, target)
+  if (!existsSync(file)) {
+    writeFileAtomic(file, `${head}\n${row}\n`)
+    return [{ target, action: "created", detail: `已创建并写入任务区排除行（${row}）` }]
+  }
+  const raw = readFileSync(file, "utf8")
+  const eol = raw.includes("\r\n") ? "\r\n" : "\n"
+  const lines = raw.replace(/\r\n/g, "\n").split("\n")
+  if (lines.some((line) => norm(line) === dir)) {
+    return [{ target, action: "kept", detail: `已含任务区排除行（${row}）` }]
+  }
+  // 摘除本工具认领的旧行后重建，避免旧文案残留
+  const body = lines.filter((line) => !line.startsWith(GITIGNORE_MARKER))
+  while (body.length > 0 && body[body.length - 1] === "") body.pop()
+  const block = [head, row]
+  const next = body.length > 0 ? `${body.join(eol)}${eol}${eol}${block.join(eol)}${eol}` : `${block.join(eol)}${eol}`
+  writeFileAtomic(file, next)
+  return [{ target, action: "appended", detail: `已追加任务区排除行（${row}）` }]
+}
+
 // 技能入口层：生成项目级入口壳 + 在已存在的 AGENTS.md 中幂等追加指针块
 // 源仓库靠 fxri-* 技能自举，不生成自己的入口壳（内部判定，不暴露 CLI 参数）
 function scaffoldEntryLayer(cwd: string): InitProduct[] {
@@ -294,14 +381,6 @@ function upsertAgentsPointer(cwd: string): InitProduct[] {
   return [{ target: "AGENTS.md", action: "appended", detail: "已追加规范入口指针块（幂等，重复执行不重复追加）" }]
 }
 
-// 本地依赖判定：四种依赖字段任一声明本包即算「装在本项目」，prepare 钩子才有意义
-function hasLocalDependency(pkg: Record<string, unknown>): boolean {
-  return ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"].some((field) => {
-    const deps = pkg[field]
-    return typeof deps === "object" && deps !== null && PKG_NAME in (deps as Record<string, unknown>)
-  })
-}
-
 // 发布型包误打包判据：未标 private 且无 files 白名单时，npm pack 会把非忽略产物一并打包
 // 该风险与 prepare 钩子是否写入无关——项目面真源副本设计上随 git 入库，无钩子同样会被打包
 function isPublishRisk(pkg: Record<string, unknown>): boolean {
@@ -374,7 +453,7 @@ function scaffoldPrepareHook(cwd: string): InitProduct[] {
   } catch (e) {
     return [{ target, action: "skipped", detail: `package.json 解析失败（${(e as Error).message}），跳过 prepare 钩子写入` }]
   }
-  if (!hasLocalDependency(pkg)) {
+  if (!hasDependency(pkg, PKG_NAME)) {
     return [
       {
         target,

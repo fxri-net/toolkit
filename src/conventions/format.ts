@@ -126,19 +126,37 @@ export function detectForm(hasIndex: boolean, hasHistory: boolean, idColumn: boo
 }
 
 // 是否为表格行（首尾带竖线）
-function isTableRow(line: string): boolean {
+export function isTableRow(line: string): boolean {
   const t = line.trim()
   return t.startsWith("|") && t.endsWith("|") && t.length > 1
 }
 
-// 拆表格行为单元格（去首尾竖线与各格空白）
-function splitRow(line: string): string[] {
-  return line
-    .trim()
-    .replace(/^\|/, "")
-    .replace(/\|$/, "")
-    .split("|")
-    .map((c) => c.trim())
+// 按转义感知切分单元格正文：`\|` 为字面竖线不参与切分（数 `|` 前连续反斜杠的奇偶）
+function splitCells(body: string): string[] {
+  const cells: string[] = []
+  let current = ""
+  let backslashes = 0
+  for (const ch of body) {
+    if (ch === "\\") {
+      backslashes += 1
+      current += ch
+      continue
+    }
+    if (ch === "|" && backslashes % 2 === 0) {
+      cells.push(current.trim())
+      current = ""
+    } else {
+      current += ch
+    }
+    backslashes = 0
+  }
+  cells.push(current.trim())
+  return cells
+}
+
+// 拆表格行为单元格（去首尾竖线与各格空白；单元格内的转义竖线不切分）
+export function splitRow(line: string): string[] {
+  return splitCells(line.trim().replace(/^\|/, "").replace(/\|$/, ""))
 }
 
 // 是否为分隔行（各格均为 :?-{2,}:? 形态）
