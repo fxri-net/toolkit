@@ -16,7 +16,7 @@ toolkit <command> [options]
 命令：
   toolkit init          初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐 .gitignore 片段与 prepare 刷新钩子）
   toolkit skills        AI 技能包分发：安装 / 状态 / 卸载 / 路径（包内 skills/ 为唯一真源）
-  toolkit conventions   项目协作规范载体：结构升级（v1 → v2）、表格空白层归一（紧凑形态）与只读体检（形态 / 索引 / 入口层）
+  toolkit conventions   项目协作规范载体：结构升级（v1 → v2）、表格形态归一（紧凑形态）与只读体检（形态 / 索引 / 入口层）
   toolkit config        配置分层：只读查看三层配置文件（全局层 / 项目层 / 本地层）的生效情况与来源
   toolkit tasks         任务管理
   toolkit changelog     多语言 CHANGELOG（封装 changesets）
@@ -241,11 +241,11 @@ toolkit conventions format --format json  # JSON 输出：status、目录、文�
 | --- | --- |
 | `upgrade` | 把 v1 载体升为 v2：首行补形态标记、标题归一、「演进记录」节抽为独立 `history.md`、索引表首列 `#` → `ID`（序号 → 稳定 ID `C-<n>`）、节号重编、内部引用改写为稳定 ID（裸「第 N 条」且 N ≤ 索引表最大序号；带外部文档限定词前缀的引用不动）。**幂等**——已是 v2 返回 `already-v2`、不改动；未初始化（缺 `index.md`）或形态异常（标记 / `history.md` / 索引表首列三者不一致）在**写盘前**拒绝执行并给非 0 退出码，不写任何文件。`--dry-run` 只报告不改动；`--format json` 输出 `status`、`idMap`、`refs`、`changes`（ID 映射只随报告输出、不落盘） |
 | `status` | 只读体检、只报不修（无 `--fix`）：**形态**（v1 提示可升级、形态异常、旧单文件与目录并存、**表格存在列对齐填充可执行 `toolkit conventions format` 归一**）、**索引**（ID 形态与重复、归属不在端清单内、分册小节在索引表无对应条目）、**入口层**（壳标记与当前 toolkit 不一致、壳被 gitignore 覆盖，多落点并存时各合并为一条并内联全部落点路径；标记不一致可重跑 `toolkit init` 就地更新为当前版本；无壳仅提示，本包源仓库除外——其不生成入口壳）三块，逐条按 `[形态]` / `[索引]` / `[入口层]` 前缀输出；一句话结论为 `载体 <形态>，<n> 条规范，入口壳 <m> 个，无待处理项 / <k> 项待处理`；未初始化只回单条结论。**体检不阻断、退出码恒 0**（异常不阻断，便于当 CI 信息源；仅 `--format` 传非法值时按参数错误报错退出） |
-| `format` | 归一任务区表格形态：把被格式化器填充的列对齐空白压回紧凑形态（单元格间单空格）。范围＝任务目录下**全部** `.md`（载体三件 + active + archive），**跳过 fenced code block**（```` ``` ```` 与 `~~~` 块内的表格样例原样保留）；只动单元格间距与列对齐填充，单元格文本、分隔行对齐标记（`:---` / `---:`）与行尾符（CRLF/LF）一律保留。**幂等**——已是紧凑形态返回 `already-compact`、不改动；未初始化（任务目录不存在）在**写盘前**报错并以非 0 退出码终止。`--dry-run` 只报告不改动；`--format json` 输出 `status`、`tasksDir`、`files`、`changedFiles`、`changedLines`、`changes`（逐文件变更行号） |
+| `format` | 归一任务区表格形态：把被格式化器填充的列对齐空白压回紧凑形态（单元格间单空格），分隔行按列宽补长的横线一并压为 `---`（保留对齐标记）。范围＝任务目录下**全部** `.md`（载体三件 + active + archive），**跳过 fenced code block**（```` ``` ```` 与 `~~~` 块内的表格样例原样保留）；只动单元格间距、分隔行横线长度与列对齐填充，单元格文本、分隔行对齐标记（`:---` / `---:` / `:---:`）与行尾符（CRLF/LF）一律保留。**幂等**——已是紧凑形态返回 `already-compact`、不改动；未初始化（任务目录不存在）在**写盘前**报错并以非 0 退出码终止。`--dry-run` 只报告不改动；`--format json` 输出 `status`、`tasksDir`、`files`、`changedFiles`、`changedLines`、`changes`（逐文件变更行号） |
 
 ⚠️ `upgrade` 只做机械结构升级，不改条文语义；升级过程可中断、重复执行安全。
 
-⚠️ `format` 只动空白层、不改语义（紧凑是规范形态、填充是偏离）；`tasks check` 与 `conventions status` 会对填充态给软告警、指向本命令，`tasks normalize --fix` 不代改空白层。
+⚠️ `format` 只动空白层与分隔行横线长度、不改语义（紧凑是规范形态、填充是偏离）；`tasks check` 与 `conventions status` 会对填充态给软告警、指向本命令，`tasks normalize --fix` 不代改空白层。
 
 载体结构（v1 / v2 形态、稳定 ID、`history.md`）与读写细则见[完整攻略 · conventions/：规范沉淀地](./guide#conventions-规范沉淀地)。
 

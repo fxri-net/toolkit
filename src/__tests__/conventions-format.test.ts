@@ -1,4 +1,4 @@
-// 表格空白层归一单测：单行改写的各边界（填充、缩进、对齐标记、转义竖线、非表格行）、代码块豁免、
+// 表格归一单测：单行改写的各边界（填充、缩进、对齐标记、转义竖线、非表格行）、代码块豁免、
 // 行尾符保留、1 基行号、填充态检出、文件递归收集，以及 formatConventions 的写盘 / 幂等 / 预演 / 目录缺失
 import { describe, it, expect, afterAll } from "vitest"
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
@@ -30,6 +30,12 @@ describe("compactTableLine 单行归一", () => {
   it("列对齐填充收敛为单空格，分隔行对齐标记保留", () => {
     expect(compactTableLine("| 规则    | 当前语义     |")).toBe("| 规则 | 当前语义 |")
     expect(compactTableLine("| :--- | ---:   |")).toBe("| :--- | ---: |")
+  })
+
+  it("分隔行横线按列宽填充一并归为 `---`，对齐标记保留", () => {
+    expect(compactTableLine("| ---- | ------------------------------------------------ |")).toBe("| --- | --- |")
+    expect(compactTableLine("| :-------- | --------: |")).toBe("| :--- | ---: |")
+    expect(compactTableLine("  | :----: | ---- |")).toBe("  | :---: | --- |")
   })
 
   it("已是紧凑形态时结果不变（写入侧的稳定不动点）", () => {
@@ -110,6 +116,11 @@ describe("filledTableLines 填充态检出", () => {
 
   it("全紧凑内容无命中", () => {
     expect(filledTableLines("| a | b |\n正文")).toEqual([])
+  })
+
+  it("分隔行横线偏离紧凑形态时命中", () => {
+    expect(filledTableLines("| a | b |\n| ---- | -------- |")).toEqual([2])
+    expect(filledTableLines("| a | b |\n| --- | --- |")).toEqual([])
   })
 })
 

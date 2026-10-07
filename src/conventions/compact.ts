@@ -1,11 +1,11 @@
-// 表格空白层归一：紧凑形态（单元格间单空格）即规范形态，格式化器填充出的列对齐为偏离
+// 表格形态归一：紧凑形态（单元格间单空格）即规范形态，格式化器填充出的列对齐与补长横线为偏离
 // 归一范围＝任务区全部 .md（载体三件 + active + archive）；fenced code block 内的表格样例不动（示例须按原样保留）
-// 归一不触语义：只动单元格间距与列对齐填充，单元格文本、分隔行对齐标记与行尾符一律保留
+// 归一不触语义：只动单元格间距、分隔行横线长度与列对齐填充，单元格文本、分隔行对齐标记与行尾符一律保留
 import { existsSync, readdirSync } from "node:fs"
 import { join, relative } from "node:path"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
-import { isTableRow, splitRow } from "./format"
+import { isSeparatorRow, isTableRow, splitRow } from "./format"
 
 // 单文件归一结果：changedLines 为发生改动的 1 基行号
 export interface CompactResult {
@@ -47,11 +47,18 @@ function indentOf(line: string): string {
   return /^\s*/.exec(line)?.[0] ?? ""
 }
 
-// 单行归一到紧凑形态：非表格行原样返回；表格行保留缩进前缀与分隔行对齐标记，输出 `| a | b |`
+// 分隔行单元格归一：横线按列宽填充属列对齐产物，压为 `---` 并保留对齐标记（:--- / ---: / :---:）
+function compactSeparatorCell(cell: string): string {
+  return cell.replace(/^(:?)-+(:?)$/, "$1---$2")
+}
+
+// 单行归一到紧凑形态：非表格行原样返回；表格行保留缩进前缀输出 `| a | b |`，分隔行另把横线压为 `---`、保留对齐标记
 // 该形态即写入侧的稳定不动点：对已紧凑行再跑一次结果不变，故既可作归一目标也可作偏离判据
 export function compactTableLine(line: string): string {
   if (!isTableRow(line)) return line
-  return `${indentOf(line)}| ${splitRow(line).join(" | ")} |`
+  const cells = splitRow(line)
+  const body = isSeparatorRow(line) ? cells.map(compactSeparatorCell) : cells
+  return `${indentOf(line)}| ${body.join(" | ")} |`
 }
 
 // 标注各行是否位于 fenced code block 之外：代码块内的行不参与归一（表格样例须原样保留）

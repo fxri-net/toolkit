@@ -160,7 +160,7 @@ export function splitRow(line: string): string[] {
 }
 
 // 是否为分隔行（各格均为 :?-{2,}:? 形态）
-function isSeparatorRow(line: string): boolean {
+export function isSeparatorRow(line: string): boolean {
   if (!isTableRow(line)) return false
   const cells = splitRow(line)
   return cells.length > 0 && cells.every((c) => /^:?-{2,}:?$/.test(c))

@@ -741,10 +741,10 @@ function printConventionsFormat(report: FormatReport, dryRun: boolean): void {
   else console.log("已写入；紧凑形态即规范形态，重复执行不改动")
 }
 
-// conventions 域：规范载体的结构升级、空白层归一与只读体检（载体细则见 skills/fxri-plan-to-task/references/conventions-spec.md）
+// conventions 域：规范载体的结构升级、表格形态归一与只读体检（载体细则见 skills/fxri-plan-to-task/references/conventions-spec.md）
 const conventionsCmd = program
   .command("conventions")
-  .description("项目协作规范载体：结构升级（v1 → v2）、表格空白层归一（紧凑形态）与只读体检（形态 / 索引 / 入口层）")
+  .description("项目协作规范载体：结构升级（v1 → v2）、表格形态归一（紧凑形态）与只读体检（形态 / 索引 / 入口层）")
 
 // 升级：纯机械结构升级，先判后写；形态异常或未初始化时拒绝执行并给非 0 退出码（异常态不写任何文件）
 conventionsCmd
@@ -765,10 +765,10 @@ conventionsCmd
     }
   })
 
-// 归一：把格式化器填充出的表格空白层收敛回紧凑形态（只动空白层、不改语义；幂等，跳过代码块，先判后写）
+// 归一：把格式化器填充出的表格收敛回紧凑形态（只动空白层与分隔行横线长度、不改语义；幂等，跳过代码块，先判后写）
 conventionsCmd
   .command("format")
-  .description("归一表格空白层为紧凑形态（只动单元格间距与列对齐填充；幂等、跳过 fenced code block，先报后写）")
+  .description("归一表格形态为紧凑形态（只动单元格间距、分隔行横线长度与列对齐填充；幂等、跳过 fenced code block，先报后写）")
   .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）")
   .option("--dry-run", "预演（只预览将要归一的行，不写文件）")
   .option("--format <format>", "输出格式（json，输出到 stdout）")

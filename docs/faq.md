@@ -189,7 +189,7 @@ pnpm remove -g @fxri/toolkit   # 2. 再卸 CLI
 
 ### 载体表格里为什么有大量空格？怎么去掉？
 
-那是宿主格式化器（prettier）对 GFM 表格做**列对齐填充**的结果——按单元格最宽内容补空格，属格式化器刻意行为，不是本工具写入的。这些空白层在预览时并不显示，却会在纯文本阅读时造成干扰。两种处置：`toolkit init` 在检测到宿主疑似用 prettier 时会**幂等托管 `.prettierignore`**、把任务区整目录排除，从源头不再被填充；已存在的填充用 `toolkit conventions format` 归一（`--dry-run` 预演、幂等、只动单元格间距与列对齐填充，不改语义、跳过 fenced code block）。`toolkit conventions status` 与 `toolkit tasks check` 会检出填充态并给出上述处置提示。
+那是宿主格式化器（prettier）对 GFM 表格做**列对齐填充**的结果——按单元格最宽内容补空格、并把表头分隔行的横线按列宽补长，属格式化器刻意行为，不是本工具写入的。这些填充在预览时并不显示，却会在纯文本阅读时造成干扰。两种处置：`toolkit init` 在检测到宿主疑似用 prettier 时会**幂等托管 `.prettierignore`**、把任务区整目录排除，从源头不再被填充；已存在的填充用 `toolkit conventions format` 归一（`--dry-run` 预演、幂等、只动单元格间距与分隔行横线长度与列对齐填充，不改语义、跳过 fenced code block）。`toolkit conventions status` 与 `toolkit tasks check` 会检出填充态并给出上述处置提示。
 
 ### `toolkit init` 生成的「规范入口壳」是什么？必须留着吗？
 

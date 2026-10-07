@@ -75,7 +75,7 @@ pnpm exec toolkit tasks stats           # 完成周期 / 滞留 / 吞吐统计
 - **可中断**：三段式与 v1 → v2 升级任一步停下都不丢内容——旧文件整体搬为 `index.md` 后，该文件即原文快照，功能上与旧文件等价；未确认归属的条目保持原样留在 `index.md`
 - **端名**：与任务 frontmatter 的 `scope` 取值**逐字一致**（任务写 `scope: web+server` → 读 `web.md` + `server.md`）；端清单在 `index.md` 顶部声明，是端的唯一权威，不扫目录
 - **迁移期间兼容读**：先找 `conventions/index.md`，不存在再看旧单文件；两者并存时以目录形态为准
-- **表格形态**：任务区 md 表格以**紧凑形态**（单元格间单空格）为规范形态；被 prettier 等格式化器填充出列对齐空白时，`pnpm exec toolkit conventions format` 一键归一回紧凑形态（只动空白层、跳过 fenced code block、幂等），`conventions status` / `tasks check` 亦会提示
+- **表格形态**：任务区 md 表格以**紧凑形态**（单元格间单空格）为规范形态；被 prettier 等格式化器填充出列对齐空白、把表头分隔行横线按列宽补长时，`pnpm exec toolkit conventions format` 一键归一回紧凑形态（只动空白层与分隔行横线长度、跳过 fenced code block、幂等），`conventions status` / `tasks check` 亦会提示
 
 原理与细则见[完整攻略 · 存量规范载体迁移](./guide#存量规范载体迁移)。
 
