@@ -1,5 +1,5 @@
 ---
-"@fxri/toolkit": minor
+"@fxri/toolkit": patch
 ---
 
 新增：新增 `toolkit conventions format` 子命令，把格式化器为 GFM 表格填充出的空白层归一为紧凑形态——只动单元格间距与列对齐填充、不改语义，幂等、跳过 fenced code block，支持 `--dry-run` 预演与 `--format json`

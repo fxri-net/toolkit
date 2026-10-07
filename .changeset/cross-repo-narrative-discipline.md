@@ -1,5 +1,5 @@
 ---
-"@fxri/toolkit": minor
+"@fxri/toolkit": patch
 ---
 
 新增：新增「跨仓库改动各自归档」协作纪律——任务档为仓库自述、只记本仓的改动与动机，多仓会话各仓各自建档归档，不在一仓记录里承载另一仓的工作痕迹；`scope` 只标本仓内的端 / 面（落 `SPEC.md` §0 第 5 条、`docs/ai-rules.md` 稳定纪律与 `fxri-plan-to-task` / `fxri-session-recap` 技能）
