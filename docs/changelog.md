@@ -6,6 +6,26 @@ outline: [2, 2]
 
 > 完整变更历史以随包发布的 CHANGELOG.md 为准，本页由 `pnpm sync:changelog-doc` 从根 CHANGELOG.md 自动同步，请勿手改。
 
+## 1.11.7
+
+> 2026-10-08 发布
+
+### ✨ 新增功能
+
+- 新增 `toolkit conventions format` 子命令，把格式化器为 GFM 表格填充出的空白层归一为紧凑形态——只动单元格间距与列对齐填充、不改语义，幂等、跳过 fenced code block，支持 `--dry-run` 预演与 `--format json`
+- `toolkit init` 检测到宿主疑似使用 prettier 时幂等托管 `.prettierignore`，把任务区整目录排除，从源头避免表格被列对齐填充（本包源仓库、任务区外置或即仓库根、无 prettier 迹象三种情形跳过）
+- `toolkit conventions status` 与 `toolkit tasks check` 检出表格列对齐填充并提示上述两种处置（软告警，不阻断）
+- 新增「跨仓库改动各自归档」协作纪律——任务档为仓库自述、只记本仓的改动与动机，多仓会话各仓各自建档归档，不在一仓记录里承载另一仓的工作痕迹；`scope` 只标本仓内的端 / 面（落 `SPEC.md` §0 第 5 条、`docs/ai-rules.md` 稳定纪律与 `fxri-plan-to-task` / `fxri-session-recap` 技能）
+
+### ⚡ 优化改进
+
+- 通用示例值去具体化——文档、技能、源码注释与测试中的示例端名统一为仓内端对 `web+server`，不再指涉具体接入方仓库
+- 归档口径扩充——事实更正例外并入「口径变更引发的历史事实字段更正」，受影响的 `scope` 等事实字段可更正、唯一键 / 完成时间 / 状态 / 负责人仍冻结
+
+### 📝 文档更新
+
+- 变更集 bump 判定口径改为按改动的能力量级（全新大功能 / 独立新能力 →minor，存量能力上的修补与增量 →patch），与条目前缀解耦（口径真源见 `skills/fxri-release-changelog/references/changelog-format.md`）
+
 ## 1.11.6
 
 > 2026-10-02 发布
