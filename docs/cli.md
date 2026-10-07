@@ -82,7 +82,7 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 | --- | --- |
 | `--view <view>` | `active`（默认）/ `archived` / `all` |
 | `--owner <name>` | 按负责人过滤，逗号分隔多值 |
-| `--scope <scope>` | 按范围过滤，逗号分隔多值；任务文件内范围多值以半角加号存储（如 `toolkit+lxgl-web`），过滤值命中任一段即中 |
+| `--scope <scope>` | 按范围过滤，逗号分隔多值；任务文件内范围多值以半角加号存储（如 `web+server`），过滤值命中任一段即中 |
 | `--status <status>` | 按状态过滤，逗号分隔多值；部分取值非法时 stderr 告警并剔除（能继续执行），全部取值非法时报错退出（退出码 1） |
 | `--date <date>` | 单日过滤（`YYYY-MM-DD`），与 `--since`/`--until` 互斥 |
 | `--since <date>` | 起始日期（含当天） |

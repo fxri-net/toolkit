@@ -80,7 +80,7 @@ export interface TaskRow {
 export interface TaskFilter {
   // 负责人（支持逗号多值精确匹配）
   owner?: string | string[]
-  // 范围（CLI 逗号多值输入；命中任务范围任一段——存储以半角加号分隔多值，如 toolkit+lxgl-web）
+  // 范围（CLI 逗号多值输入；命中任务范围任一段——存储以半角加号分隔多值，如 web+server）
   scope?: string | string[]
   status?: string[]
   // 单日（YYYY-MM-DD，与 since/until 互斥）

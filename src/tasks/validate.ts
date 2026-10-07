@@ -219,7 +219,7 @@ export function validateTaskFile(file: string): CheckIssue[] {
     const s = fm.scope.trim()
     const line = fmKeyLine(lines, fmEnd, "scope")
     if (/[、，,]/.test(s)) {
-      issues.push({ level: "warn", file: name, line, message: `scope「${fm.scope}」含顿号/逗号疑似多值分隔，多值请改用半角加号连接（如 scope: toolkit+lxgl-web）` })
+      issues.push({ level: "warn", file: name, line, message: `scope「${fm.scope}」含顿号/逗号疑似多值分隔，多值请改用半角加号连接（如 scope: web+server）` })
     }
     if (/[()（）]/.test(s)) {
       issues.push({ level: "warn", file: name, line, message: `scope「${fm.scope}」含括号疑似注释性文字，说明请移入正文` })

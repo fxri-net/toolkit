@@ -99,7 +99,7 @@ export function computeStats(tasksDir: string, filter: TaskFilter = {}, view: Ta
   for (const b of DURATION_BUCKETS) buckets[b.label] = 0
   for (const s of samples) bump(buckets, bucketOf(s.days))
 
-  // 吞吐汇总（按完成月 YYYY-MM / 负责人 / 范围）；范围多值拆段各计（toolkit+lxgl-web 双桶各 +1）
+  // 吞吐汇总（按完成月 YYYY-MM / 负责人 / 范围）；范围多值拆段各计（web+server 双桶各 +1）
   const byMonth: Record<string, number> = {}
   const byOwner: Record<string, number> = {}
   const byScope: Record<string, number> = {}

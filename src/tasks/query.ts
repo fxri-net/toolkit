@@ -69,13 +69,13 @@ export function listArchivedTasks(tasksDir = ".tasks", months?: MonthRange): Tas
   return rows
 }
 
-// 范围字段多值拆分：scope 以半角加号分隔多值（toolkit+lxgl-web），逐段去首尾空白并忽略空段
+// 范围字段多值拆分：scope 以半角加号分隔多值（web+server），逐段去首尾空白并忽略空段
 export function splitScope(value: string): string[] {
   return value.split("+").map((s) => s.trim()).filter(Boolean)
 }
 
 // scope 命中：过滤值（CLI 侧已按逗号拆多值）与任务范围任一段相等即命中；
-// 覆盖单段标签（scope: toolkit）与加号复合标签（scope: toolkit+lxgl-web），避免整串精确匹配漏掉复合归属
+// 覆盖单段标签（scope: web）与加号复合标签（scope: web+server），避免整串精确匹配漏掉复合归属
 function scopeHit(v: string | string[] | undefined, target: string): boolean {
   if (v === undefined) return true
   const want = Array.isArray(v) ? v : [v]
