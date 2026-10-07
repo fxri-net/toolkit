@@ -6,6 +6,14 @@ outline: [2, 2]
 
 > 完整变更历史以随包发布的 CHANGELOG.md 为准，本页由 `pnpm sync:changelog-doc` 从根 CHANGELOG.md 自动同步，请勿手改。
 
+## 1.11.8
+
+> 2026-10-08 发布
+
+### 🔧 功能调整
+
+- `toolkit conventions format` 归一表格时一并把按列宽补长的分隔行横线压为 `---`（保留对齐标记 `:---` / `---:` / `:---:`），`conventions status` 与 `tasks check` 同步检出此类偏离
+
 ## 1.11.7
 
 > 2026-10-08 发布
