@@ -17,7 +17,7 @@ import { listTaskFiles } from "./tasks/scan"
 import type { TaskView, TaskFilter, ImportTarget } from "./tasks/types"
 import { ALL_STATUSES } from "./tasks/types"
 import { languages, DEFAULT_LANG, resolveLang, type ChangelogLanguage } from "./changelog/languages"
-import { localDate, formatChangelogs, countUntypedEntries, findUntypedChangesetEntries } from "./changelog/format"
+import { localDate, formatChangelogs, countUntypedEntries, findUntypedChangesetEntries, findUnbulletedChangesetEntries } from "./changelog/format"
 import { resolveRedactEnabled } from "./privacy/redact"
 import { resolveEnabled } from "./switch"
 import { getConfigSection, resolveTasksDir } from "./config"
@@ -122,15 +122,24 @@ function warnUntypedEntries(langs: ChangelogLanguage[]) {
   }
 }
 
-// 变更集缺前缀检测（tasks check 早期检测）：扫 .changeset 下待发布变更集，缺前缀文件各转一条 warn 级问题
+// 变更集写法检测（tasks check 早期检测）：扫 .changeset 下待发布变更集，缺类型前缀 / 未加列表标记的文件各转一条 warn 级问题
 // 前缀识别遍历全部配置语言，自定义语言不误报；与 changelog 侧 warnUntypedEntries 互补，不在同一命令内重复触发
 function changesetPrefixIssues(): CheckIssue[] {
-  return findUntypedChangesetEntries(".changeset", Object.values(resolveLanguages())).map((entry) => ({
-    level: "warn" as const,
-    file: entry.file,
-    line: entry.line,
-    message: `变更集条目缺类型前缀（本文件 ${entry.count} 条），建议按「类型：描述」撰写`,
-  }))
+  const langs = Object.values(resolveLanguages())
+  return [
+    ...findUntypedChangesetEntries(".changeset", langs).map((entry) => ({
+      level: "warn" as const,
+      file: entry.file,
+      line: entry.line,
+      message: `变更集条目缺类型前缀（本文件 ${entry.count} 条），建议按「类型：描述」撰写`,
+    })),
+    ...findUnbulletedChangesetEntries(".changeset", langs).map((entry) => ({
+      level: "warn" as const,
+      file: entry.file,
+      line: entry.line,
+      message: `变更集条目未加「- 」列表标记（本文件 ${entry.count} 行），changesets 会并入单一条目，请逐条写成「- 类型：描述」`,
+    })),
+  ]
 }
 
 // 降级不静默：子命令不消费的域级输出选项（--export / --format）须 stderr 告警「忽略了什么」，不得静默吞掉

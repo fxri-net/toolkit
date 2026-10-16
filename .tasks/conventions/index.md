@@ -41,7 +41,7 @@
 | C-24 | conventions 入口壳（一阶触发面） | 载体可另配项目级入口壳 `toolkit-conventions/SKILL.md`（只作入口、指回索引）；`toolkit init` 幂等生成、按标记版本分流；壳标记陈旧或被 gitignore 覆盖时告警 | common | `skills/fxri-plan-to-task/references/conventions-spec.md`（§1 载体结构） |
 | C-25 | 版本括注口径 | `（x.y.z 新增）` 类括注只标命令 / 技能 / 配置项 / 单一能力点的首次引入版本且紧邻该对象；跨版本演进清单不挂句末括注，扩展史由 `CHANGELOG.md` 承载 | common | [common.md](./common.md) |
 | C-26 | 降级不静默 | 用户显式传入的值（CLI 选项值、配置文件项）无法采纳时不得静默忽略：能继续执行则 stderr 告警「忽略了什么、回落到什么」，无法继续则报错并以非 0 退出码终止 | common | `AGENTS.md`「协作流程约束」+ `docs/cli.md`（`--status` / `--lang` / `--format` 行） |
-| C-27 | 变更集条目类型前缀与归档前检测 | 变更集条目一律以 `类型：` 前缀开头（只按顶层 `- ` 条目判定）；`tasks check` 在归档前扫 `.changeset/` 报出缺前缀条目数与首条行号 | common | `AGENTS.md` 质量门第 4 条 + `skills/fxri-release-changelog/SKILL.md` |
+| C-27 | 变更集条目书写与归档前检测 | 变更集条目一律逐条以 `- 类型：描述` 书写——`- ` 列表标记让每条独立成条、`类型：` 前缀作归类信号（裸行会被 changesets 并入相邻条目作续行）；`tasks check` 在归档前扫 `.changeset/` 报出缺前缀条目数与未加 `- ` 标记的裸行（阈值 2 行起）及各自条数 / 行号 | common | `AGENTS.md` 质量门第 4 条 + `skills/fxri-release-changelog/SKILL.md` |
 | C-28 | 规则落门禁 | 规则层新增 / 强化「可自动检出」的要求时，或复核发现既有要求无检测入口时，须同批补落检测入口（`tasks check` / `pnpm verify`）且置于不可逆动作之前 | common | [common.md](./common.md) |
 | C-29 | 门禁与测试的环境无关性 | `pnpm verify` 各步须与运行环境无关（hermetic），涉时间比对的测试 / 步骤固定时区口径、按数据来源分两轴：合成数据钉 `TZ=UTC`，读真实任务数据钉 `TZ=Asia/Shanghai` | common | [common.md](./common.md) |
 | C-30 | 配置分层 | 三层配置模型：全局 `~/.toolkitrc.json`（段级整体覆盖）→ 项目 `.toolkitrc.json`（向上查最近一份）→ 本地 `.toolkitrc.local.json`（止于 home、默认不入库）；合并粒度分层；`config status` 只列层级 / 命中 / 来源 / 键路径、不打印配置值 | common | `docs/config.md`（合并粒度对照表）+ `docs/cli.md`（`config status` 报告字段说明） |

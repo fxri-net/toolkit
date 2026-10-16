@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from "vitest"
 import { mkdtempSync, writeFileSync, mkdirSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { formatChangelog, formatChangelogs, localDate, countUntypedEntries, findUntypedChangesetEntries } from "../changelog/format"
+import { formatChangelog, formatChangelogs, localDate, countUntypedEntries, findUntypedChangesetEntries, findUnbulletedChangesetEntries } from "../changelog/format"
 import { collectChangelogs } from "../changelog/collect"
 import { languages, DEFAULT_LANG, resolveLang, type ChangelogLanguage } from "../changelog/languages"
 
@@ -652,6 +652,68 @@ describe("findUntypedChangesetEntries", () => {
       expect(findUntypedChangesetEntries(dir, [customPrefixLang])).toEqual([])
       // 未纳入该语言的调用方仍按全局表识别，自定义前缀缺省即为缺前缀
       expect(findUntypedChangesetEntries(dir, [plainJa])).toHaveLength(1)
+    })
+  })
+})
+
+describe("findUnbulletedChangesetEntries", () => {
+  it("目录不存在返回空数组（未使用 changesets 的项目零打扰）", () => {
+    const missing = join(tmpdir(), `tk-cs-bare-missing-${process.pid}-${Date.now()}`)
+    expect(findUnbulletedChangesetEntries(missing, Object.values(languages))).toEqual([])
+  })
+
+  it("跳 frontmatter 后检出多条裸行，file/line/count 与原文对齐", () => {
+    withChangesets(
+      { "brave-yaks-roam.md": '---\n"@fxri/toolkit": patch\n---\n\n新增：裸行甲\n修改：裸行乙\n修复：裸行丙\n' },
+      (dir) => {
+        const found = findUnbulletedChangesetEntries(dir, Object.values(languages))
+        expect(found).toHaveLength(1)
+        expect(found[0]).toEqual({ file: `${dir}/brave-yaks-roam.md`, line: 5, count: 3 })
+      },
+    )
+  })
+
+  it("阈值 2 起报：单条裸行不触发（多为正文说明而非条目）", () => {
+    withChangesets({ "calm-llamas-sing.md": '---\n"@fxri/toolkit": patch\n---\n\n新增：仅此一条裸行\n' }, (dir) => {
+      expect(findUnbulletedChangesetEntries(dir, Object.values(languages))).toEqual([])
+    })
+  })
+
+  it("已带 - 列表标记的正常条目零误报", () => {
+    withChangesets(
+      { "tidy-otters-listen.md": '---\n"@fxri/toolkit": minor\n---\n\n- 新增：条目甲\n- 修改：条目乙\n' },
+      (dir) => {
+        expect(findUnbulletedChangesetEntries(dir, Object.values(languages))).toEqual([])
+      },
+    )
+  })
+
+  it("带缩进的续行随父条目迁属，不作为裸行统计", () => {
+    withChangesets(
+      { "quiet-pandas-shine.md": '---\n"@fxri/toolkit": minor\n---\n\n- 新增：顶层条目\n  新增：缩进续行（不参与识别）\n' },
+      (dir) => {
+        expect(findUnbulletedChangesetEntries(dir, Object.values(languages))).toEqual([])
+      },
+    )
+  })
+
+  it("无类型前缀的普通正文裸行不计（仅统计已识别前缀开头的行）", () => {
+    withChangesets(
+      { "lucky-lynx-wander.md": '---\n"@fxri/toolkit": patch\n---\n\n这是一段说明性正文\n补充说明第二行\n' },
+      (dir) => {
+        expect(findUnbulletedChangesetEntries(dir, Object.values(languages))).toEqual([])
+      },
+    )
+  })
+
+  it("自定义语言的自有前缀经并集识别，裸行按该语言前缀检出", () => {
+    withChangesets({ "custom-bare.md": '---\n"pkg": patch\n---\n\n特性：自定义裸行甲\n特性：自定义裸行乙\n' }, (dir) => {
+      // 该语言声明了「特性：」自有前缀，两条裸行命中并集识别
+      const found = findUnbulletedChangesetEntries(dir, [customPrefixLang])
+      expect(found).toHaveLength(1)
+      expect(found[0]!.count).toBe(2)
+      // 未纳入该语言的调用方不识别该前缀，裸行不算「已识别前缀开头的行」故不检出
+      expect(findUnbulletedChangesetEntries(dir, [plainJa])).toEqual([])
     })
   })
 })

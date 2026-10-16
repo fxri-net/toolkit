@@ -218,6 +218,47 @@ export function findUntypedChangesetEntries(dir: string, langs: ChangelogLanguag
   return found
 }
 
+// 扫描 .changeset 下待发布变更集里「未加 - 列表标记」的裸行条目（tasks check 早期检测用）：
+// 裸行会让 changesets 把整段正文并入单一条目——首行作条目、其余行缩进 2 空格作续行，
+// 只有首行参与前缀识别与归类，后续行既不归组也不剥前缀，最终挤在单组里（本仓 v1.12.0 块的成因）。
+// 判据：跳过 frontmatter 后，列 0 起首（无缩进）、非空、非「- 」列表项、且以已识别类型前缀开头的行；
+// 阈值 2 起报——单裸行多为正文说明而非条目，避免正常用例假阳性；前缀识别口径同 findUntypedChangesetEntries
+export function findUnbulletedChangesetEntries(dir: string, langs: ChangelogLanguage[]): UntypedChangesetEntry[] {
+  const extra = extraPrefixes(langs.flatMap((lang) => lang.groups ?? []))
+  const found: UntypedChangesetEntry[] = []
+  let names: string[]
+  try {
+    names = readdirSync(dir).filter((name) => name.endsWith(".md") && name !== "README.md")
+  } catch {
+    // 目录不存在（未使用 changesets 的项目）时无变更集可查
+    return found
+  }
+  for (const name of names.sort()) {
+    const file = `${dir}/${name}`
+    const lines = readFileSync(file, "utf8").replace(/\r\n/g, "\n").split("\n")
+    // 跳过 YAML frontmatter（首行 --- 到其配对 ---），使行号与原文对齐
+    let start = 0
+    if ((lines[0] ?? "").trim() === "---") {
+      let end = 1
+      while (end < lines.length && (lines[end] ?? "").trim() !== "---") end++
+      start = end + 1
+    }
+    let line = 0
+    let count = 0
+    for (let i = start; i < lines.length; i++) {
+      const text = lines[i] ?? ""
+      // 跳过空行、已有列表标记的行、以及带缩进的行（缩进续行随父条目迁属，本就不参与识别）
+      if (text === "" || text.startsWith("- ") || text !== text.trimStart()) continue
+      // 仅统计以已识别类型前缀开头的裸行，普通正文（如说明性段落）不计
+      if (matchPrefixText(text, extra) === null) continue
+      if (line === 0) line = i + 1
+      count++
+    }
+    if (count >= 2) found.push({ file, line, count })
+  }
+  return found
+}
+
 // 顶层条目行计数（仅用于归类前后丢内容自检）
 function countItems(text: string): number {
   return text.split("\n").filter((line) => line.startsWith("- ")).length
@@ -237,9 +278,9 @@ function extraPrefixes(groups: LanguageGroup[]): [SemanticSlot, string][] {
   return extra
 }
 
-// 条目首行的类型前缀匹配：返回命中槽位与前缀文本，未命中返回 null；归类与剥离共用，避免两处匹配逻辑漂移
-function matchSlotPrefix(head: string, extra: [SemanticSlot, string][]): [SemanticSlot, string] | null {
-  const text = head.slice(2)
+// 类型前缀匹配内核：对给定文本按全局前缀表与各语言自有前缀并集识别，返回命中槽位与前缀文本；
+// 归类、前缀剥离与裸行检测共用，避免多处匹配逻辑漂移
+function matchPrefixText(text: string, extra: [SemanticSlot, string][]): [SemanticSlot, string] | null {
   for (const [slot, prefixes] of Object.entries(SLOT_PREFIXES) as [SemanticSlot, string[]][]) {
     const hit = prefixes.find((prefix) => text.startsWith(prefix))
     if (hit) return [slot, hit]
@@ -248,6 +289,11 @@ function matchSlotPrefix(head: string, extra: [SemanticSlot, string][]): [Semant
     if (text.startsWith(prefix)) return [slot, prefix]
   }
   return null
+}
+
+// 条目首行的类型前缀匹配：脱去「- 」列表标记后复用匹配内核
+function matchSlotPrefix(head: string, extra: [SemanticSlot, string][]): [SemanticSlot, string] | null {
+  return matchPrefixText(head.slice(2), extra)
 }
 
 // 条目的显式归类信号：依赖条目源文本 → deps；类型前缀命中 → 对应槽位；两者皆无 → null
