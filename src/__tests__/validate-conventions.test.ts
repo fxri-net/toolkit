@@ -6,7 +6,7 @@ import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { validateTasks } from "../tasks/validate"
-import { CARRIER_MARKER, ENTRY_MARKER, ENTRY_VERSION, HISTORY_TITLE, ID_HEADER, idOf } from "../conventions/format"
+import { CARRIER_MARKER, ENTRY_MARKER, ENTRY_VERSION, HISTORY_TABLE_HEADER, HISTORY_TITLE, ID_HEADER, idOf } from "../conventions/format"
 import { ENTRY_SHELL_NAME, SKILL_ENTRY } from "../conventions/entry"
 
 const warnTexts = (dir: string, cwd?: string) => validateTasks(dir, cwd).issues.filter((i) => i.level === "warn").map((i) => i.message)
@@ -241,6 +241,45 @@ describe("表格形态告警", () => {
 
     const warns = warnTexts(dir, cwd)
     expect(warns.filter((m) => m.includes("列对齐填充"))).toEqual([])
+    rmSync(dir, { recursive: true, force: true })
+    rmSync(cwd, { recursive: true, force: true })
+  })
+})
+
+describe("演进记录首列告警", () => {
+  // 演进记录假现场：表头 + 分隔行 + 数据行
+  const makeHistory = (rows: string): string =>
+    `${HISTORY_TITLE}\n\n${HISTORY_TABLE_HEADER}\n| --- | --- | --- |\n${rows}\n`
+  // 建 v3 载体现场（索引表首列为稳定 ID）
+  const makeV3 = (dir: string): void => {
+    mkdirSync(join(dir, "conventions"), { recursive: true })
+    writeFileSync(join(dir, "conventions", "index.md"), V2_INDEX, "utf8")
+  }
+
+  it("v3 载体首列为规则名而非稳定 ID 时告警，内联行号且只报不改", () => {
+    const dir = makeTmp("tk-conv-hid-")
+    const cwd = makeTmp("tk-conv-hid-cwd-")
+    mkdirSync(join(dir, "active"), { recursive: true })
+    makeV3(dir)
+    writeFileSync(join(dir, "conventions", "history.md"), makeHistory("| 四级时间源 | 当场打点优先 | 建档评估 |\n"), "utf8")
+
+    const issues = validateTasks(dir, cwd).issues.filter((i) => i.level === "warn" && i.message.includes("行首列不是稳定 ID"))
+    expect(issues).toHaveLength(1)
+    expect(issues[0]!.file).toBe("conventions/history.md")
+    expect(issues[0]!.line).toBe(5)
+    rmSync(dir, { recursive: true, force: true })
+    rmSync(cwd, { recursive: true, force: true })
+  })
+
+  it("v3 载体首列均为行内代码包裹的稳定 ID 时不告警", () => {
+    const dir = makeTmp("tk-conv-hid-ok-")
+    const cwd = makeTmp("tk-conv-hid-ok-cwd-")
+    mkdirSync(join(dir, "active"), { recursive: true })
+    makeV3(dir)
+    writeFileSync(join(dir, "conventions", "history.md"), makeHistory(`| \`${idOf(1)}\` | 当场打点优先 | 建档评估 |\n`), "utf8")
+
+    const warns = warnTexts(dir, cwd)
+    expect(warns.filter((m) => m.includes("行首列不是稳定 ID"))).toEqual([])
     rmSync(dir, { recursive: true, force: true })
     rmSync(cwd, { recursive: true, force: true })
   })

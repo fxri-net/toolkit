@@ -7,6 +7,7 @@ import { writeFileAtomic } from "../write-atomic"
 import {
   CARRIER_MARKER,
   CARRIER_MARKER_RE,
+  HISTORY_ANCHOR_HEADER,
   HISTORY_BOUNDARY_LINE,
   HISTORY_FILE,
   HISTORY_SKELETON,
@@ -94,7 +95,7 @@ function trimBlankEdges(lines: string[]): string[] {
 
 // 抽出「演进记录」节内容并归一为独立文件正文（标题统一、表头首格改「规则 ID / 名称」、补表语义边界行）
 function buildHistoryContent(section: string[], eol: string): { content: string; rows: number } {
-  const table = findTable(section, "修订来源任务")
+  const table = findTable(section, HISTORY_ANCHOR_HEADER)
   const body = section.map((line, i) => (table && i === table.headerLine ? setRowCell(line, 0, "规则 ID / 名称") : line))
   // 引语块随节平移，「本节」随文件外置改「本文件」
   const quotes = body.filter((l) => l.trimStart().startsWith(">")).map((l) => l.replace(/本节/g, "本文件"))
@@ -368,11 +369,11 @@ export function upgradeConventions(tasksDir = ".tasks", options: UpgradeOptions 
         ? readTextFile(state.historyFile).split(/\r?\n/)
         : null
   if (historyLines) {
-    const historyTable = findTable(historyLines, "修订来源任务")
+    const historyTable = findTable(historyLines, HISTORY_ANCHOR_HEADER)
     if (historyTable) {
       const nonId = historyTable.rows.filter((cells) => !isIdCell(cells[0] ?? "")).length
       if (nonId > 0) reviews.push(`${HISTORY_FILE} 有 ${nonId} 行首列仍为规则名（未用 C-<n>），请人工核对是否补录 ID`)
-      const sourceCol = columnIndex(historyTable.header, "修订来源任务")
+      const sourceCol = columnIndex(historyTable.header, HISTORY_ANCHOR_HEADER)
       const multi = sourceCol >= 0 ? historyTable.rows.filter((cells) => /[;；+]/.test(cells[sourceCol] ?? "")).length : 0
       if (multi > 0) reviews.push(`${HISTORY_FILE} 有 ${multi} 行来源列含多个任务，请人工核对拆分`)
     }

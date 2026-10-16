@@ -11,11 +11,15 @@ import { getConfigSection, resolveLocalConfigPath } from "../config"
 import { isBeyondTzFuture, MAX_UTC_OFFSET_HOURS } from "../date"
 import {
   CARRIER_VERSION,
+  CONVENTIONS_DIR,
   ENTRY_VERSION,
+  HISTORY_ANCHOR_HEADER,
   HISTORY_FILE,
   ID_HEADER,
   INDEX_FILE,
   LEGACY_FILE,
+  findTable,
+  isIdCell,
   readCarrier,
 } from "../conventions/format"
 import { findEntryShells, ignoredShellAlert, mismatchedShellAlert } from "../conventions/entry"
@@ -365,6 +369,27 @@ function validateTableForm(tasksDir: string): CheckIssue[] {
   return issues
 }
 
+// 演进记录首列 ID 形态软告警：v3 载体的历史行首列应为行内代码包裹的裸 ID `C-<n>`
+// 只报不改：历史行只追加不改旧的元规则下，补齐须人工确认（升级侧另有同类「来源 / ID 补录报告」）
+// v1 / v2 属合法存量，其 history.md 首列可由规则名承载、交由 upgrade 处理，故不在此告警
+function validateHistoryIdColumn(tasksDir: string): CheckIssue[] {
+  if (readCarrier(tasksDir).form !== "v3") return []
+  const file = join(tasksDir, CONVENTIONS_DIR, HISTORY_FILE)
+  if (!existsSync(file)) return []
+  const table = findTable(readTextFile(file).split(/\r?\n/), HISTORY_ANCHOR_HEADER)
+  if (!table) return []
+  const nonId = table.rowLines.filter((_, i) => !isIdCell((table.rows[i] ?? [])[0] ?? ""))
+  if (nonId.length === 0) return []
+  return [
+    {
+      level: "warn",
+      file: displayRel(tasksDir, file),
+      line: (nonId[0] ?? 0) + 1,
+      message: `演进记录有 ${nonId.length} 行首列不是稳定 ID（应记行内代码包裹的 C-<n>）：请人工核对补录（历史行只追加，不自动改写）`,
+    },
+  ]
+}
+
 // 校验 active 目录全部任务（含跨文件重名检测）
 export function validateTasks(tasksDir = ".tasks", cwd = process.cwd()): CheckResult {
   const activeDir = join(tasksDir, "active")
@@ -388,6 +413,9 @@ export function validateTasks(tasksDir = ".tasks", cwd = process.cwd()): CheckRe
 
   // 表格形态：检出被格式化器填充的表格行，指向 conventions format 归一
   issues.push(...validateTableForm(tasksDir))
+
+  // 演进记录首列 ID 形态：v3 载体下历史行首列应为稳定 ID
+  issues.push(...validateHistoryIdColumn(tasksDir))
 
   // 归档块检查：复用 normalize 的单一实现（月份目录归属、元数据完整性、完成时间漂移/异常、排序、疑似任务块），
   // 避免 validate 与 normalize 各写一套导致判据漂移；归档问题一律 warn 级（明细与修复走 tasks normalize / normalize --fix）

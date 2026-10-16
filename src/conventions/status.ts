@@ -8,6 +8,7 @@ import {
   CONVENTIONS_DIR,
   ENDPOINT_ANCHOR_HEADER,
   ENTRY_VERSION,
+  HISTORY_ANCHOR_HEADER,
   HISTORY_FILE,
   ID_HEADER,
   INDEX_ANCHOR_HEADER,
@@ -198,6 +199,22 @@ function checkTableForm(tasksDir: string, items: ConventionsStatusItem[]): void 
   })
 }
 
+// 演进记录首列 ID 形态块：v3 载体数据行首列应为行内代码包裹的裸 ID `C-<n>`
+// 只报不改：历史行只追加不改旧的元规则下，补齐须人工确认（升级侧另有同类「来源 / ID 补录报告」）
+// v1 / v2 为合法存量，其 history.md 首列可由规则名承载、交由 upgrade 处理，故不在此告警
+function checkHistoryIdColumn(state: CarrierState, items: ConventionsStatusItem[]): void {
+  if (state.form !== "v3") return
+  const table = findTable(readTextFile(state.historyFile).split(/\r?\n/), HISTORY_ANCHOR_HEADER)
+  const nonId = table ? table.rows.filter((cells) => !isIdCell(cells[0] ?? "")).length : 0
+  if (nonId > 0) {
+    items.push({
+      level: "warn",
+      scope: "形态",
+      message: `${HISTORY_FILE} 有 ${nonId} 行首列不是稳定的规则 ID（应记行内代码包裹的 C-<n>）：请人工核对补录（历史行只追加，不自动改写）`,
+    })
+  }
+}
+
 // 入口层块：壳版本不一致、壳被 gitignore 覆盖各合并为一条告警（多落点内联路径，不按壳重复）；无壳仅提示（本包源仓库除外，其本就不生成壳）
 function checkEntryLayer(cwd: string, items: ConventionsStatusItem[]): EntryShellState[] {
   const shells = findEntryShells(cwd)
@@ -252,6 +269,7 @@ export function conventionsStatus(tasksDir = ".tasks", cwd = process.cwd()): Con
   checkForm(state, items)
   checkIndex(state, items)
   checkTableForm(tasksDir, items)
+  checkHistoryIdColumn(state, items)
   const shells = checkEntryLayer(cwd, items)
   const warnings = items.filter((i) => i.level === "warn").length
   return {

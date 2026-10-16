@@ -11,6 +11,7 @@ import {
   CARRIER_VERSION,
   ENTRY_MARKER,
   ENTRY_VERSION,
+  HISTORY_TABLE_HEADER,
   HISTORY_TITLE,
   ID_HEADER,
   INDEX_ANCHOR_HEADER,
@@ -426,5 +427,33 @@ describe("表格形态体检", () => {
 
     const report = conventionsStatus(root, cwd)
     expect(report.items.filter((i) => i.message.includes("列对齐填充"))).toEqual([])
+  })
+})
+
+describe("演进记录首列体检", () => {
+  // 演进记录假现场：表头 + 分隔行 + 数据行（首列形态由用例给定）
+  const makeHistory = (rows: string): string =>
+    `${HISTORY_TITLE}\n\n${HISTORY_TABLE_HEADER}\n| --- | --- | --- |\n${rows}\n`
+
+  it("v3 载体首列为规则名而非稳定 ID 时告警，提示人工补录", () => {
+    const root = makeDir("tk-status-hid-")
+    const cwd = makeDir("tk-status-hid-cwd-")
+    makeCarrier(root, cleanRows, { extra: { "history.md": makeHistory("| 四级时间源 | 当场打点优先 | 建档评估 |\n") } })
+
+    const report = conventionsStatus(root, cwd)
+    const hits = report.items.filter((i) => i.message.includes("行首列不是稳定的规则 ID"))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]!.level).toBe("warn")
+    expect(hits[0]!.scope).toBe("形态")
+  })
+
+  it("v3 载体首列均为行内代码包裹的稳定 ID 时不告警", () => {
+    const root = makeDir("tk-status-hid-ok-")
+    const cwd = makeDir("tk-status-hid-ok-cwd-")
+    makeCarrier(root, cleanRows, { extra: { "history.md": makeHistory(`| \`${idOf(1)}\` | 当场打点优先 | 建档评估 |\n| \`${idOf(2)}\` | 先查后写 | 建档评估 |\n`) } })
+
+    const report = conventionsStatus(root, cwd)
+    expect(report.items.filter((i) => i.message.includes("行首列不是稳定的规则 ID"))).toEqual([])
+    expect(report.warnings).toBe(0)
   })
 })

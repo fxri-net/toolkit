@@ -296,6 +296,8 @@ export function rewriteRefsInLine(line: string, maxSeq: number): { line: string;
 // 演进记录标题与表头（v2 独立成文件）
 export const HISTORY_TITLE = "# 规范演进记录"
 export const HISTORY_TABLE_HEADER = "| 规则 ID / 名称 | 修订内容 | 修订来源任务 |"
+// 演进记录表格定位锚（第三列固定为修订来源任务）
+export const HISTORY_ANCHOR_HEADER = "修订来源任务"
 // 表语义边界：只记规范语义变更，载体结构升级、入口壳增删与条目退休均不入表（退休见 retired.md）
 export const HISTORY_BOUNDARY_LINE =
   "> 表语义边界：本表只记**规范语义变更**；载体结构升级、入口壳生成 / 删除、条目退休均不入表（退休见 `retired.md`）。"
