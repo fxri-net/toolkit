@@ -1,0 +1,17 @@
+# 统一文本换行：仓库内文本一律以 LF 落盘与检出，不依赖各人 core.autocrlf 设置
+# 目的：消除 Windows 检出 CRLF、macOS/Linux 检出 LF 带来的无意义 diff 漂移与「整文件被改写」噪声
+* text=auto eol=lf
+
+# 二进制文件不做文本转换（避免被当作文本改写字节）
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+*.xlsx binary
+*.xls binary
+*.zip binary
