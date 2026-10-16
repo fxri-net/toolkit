@@ -52,6 +52,7 @@
 | C-35 | 表格形态（紧凑为规范形态） | 载体内所有表格一律紧凑形态（单元格间只留一个空格、不做列对齐填充）；`init` 托管 `.prettierignore` 从源头阻止填充，存量用 `conventions format` 归一、`status` / `check` 检出 | common | `skills/fxri-plan-to-task/references/conventions-spec.md`（§9 表格形态） |
 | C-36 | 跨仓库改动各自归档 | 任务档只记本仓的改动与动机；同一会话涉及多仓时各仓各自建档归档；判据取视角（描述的是不是本仓的改动），依赖包名 / 被调接口名等本仓事实者照写 | common | `SPEC.md` 协作模型第 5 条 + `docs/ai-rules.md` 稳定纪律 + `skills/fxri-plan-to-task/SKILL.md`（建档评估） |
 | C-37 | 载体文风与模板 | 索引头注固定两行、用法说明固定三段骨架、「单一事实源」列按载体内 / 外二分写法、分册条文固定「要求 → 反例 → 理由 → 配套」四子项且不写「确立来源」、规范词按 `须` / `应` / `可` / `不得` 分级、标识符与路径一律行内代码 | common | `skills/fxri-plan-to-task/references/conventions-spec.md`（§13 载体文风与模板） |
+| C-38 | 任务区不出现参考仓库名 | `.tasks/` 内文本指称外部仓库时一律用通用措辞（如「接入方仓库」「被参考仓库」），不得写实名；判据取「是否以具体名称指涉某个外部仓库」，与 `C-36` 的视角判据正交 | common | [common.md](./common.md) |
 
 ## 三、用法说明
 
