@@ -6,7 +6,7 @@
 
 ## 一、端清单
 
-> 端名与任务 frontmatter `scope` 取值共用同一套词表；保留字 `index` / `common` 不得作端名。
+> 端名与任务 frontmatter `scope` 取值共用同一套词表；保留字 `index` / `common` 不得作端名。本项目单端（`scope` 取值仅 `toolkit`），规范全归 `common`。
 
 | 端名 | 说明 |
 | --- | --- |
@@ -16,15 +16,15 @@
 | ID | 规则 | 当前语义 | 归属 | 单一事实源 |
 | --- | --- | --- | --- | --- |
 | C-1 | 四级时间源 | 时间取证优先级：当场打点 > 聊天记录时间戳 > git 提交时间 > 系统时间兜底（标注「收尾补记」） | common | `skills/fxri-plan-to-task/references/task-spec.md`（口径随版本走） |
-| C-2 | 能力终点 = 沉淀 + 自动提交 | 任务终结 → 归档 → 规范沉淀 → 收尾提交自动执行；推送与发版需用户明确 | common | `docs/ai-rules.md` 稳定纪律（作者个人收紧，可裁剪） |
-| C-3 | conventions 唯一落点 | 任务级与会话级规范写同一载体，`index.md` 为唯一入口与唯一权威；演进记录独立 `history.md`（仅追加、不改旧行） | common | `skills/fxri-plan-to-task/references/conventions-spec.md`（载体结构）+ `task-spec.md`（目录树） |
+| C-2 | 能力终点 = 沉淀 + 自动提交 | 任务终结 → 归档 → 规范沉淀 → 收尾提交自动执行；推送与发版须用户明确 | common | `docs/ai-rules.md` 稳定纪律（作者个人收紧，可裁剪） |
+| C-3 | conventions 唯一落点 | 任务级与会话级规范写同一载体，`index.md` 为唯一入口与唯一权威；演进记录独立 `history.md`（仅追加、不改旧行） | common | `skills/fxri-plan-to-task/references/conventions-spec.md`（载体结构）+ `skills/fxri-plan-to-task/references/task-spec.md`（目录树） |
 | C-4 | 近窗时间连续性 | 恢复时 ≥1 年空洞隔断的旧归档仅入全量索引、不精读；active 任务 updated 距今 >1 年标注疑似搁置 | common | `skills/fxri-session-recap/SKILL.md`（模式二） |
 | C-5 | 触发靠语义不靠字面 | skill 以意图画像 + 近义表达触发并带反例排除；个人口头禅不进通用触发词 | common | 各 fxri-* SKILL.md 的 `description` |
 | C-6 | 规则细节只进 skills | 可变流程细节只进 skills，不在 ai-rules 等规则层复述，防用户侧规则快照失同步 | common | `AGENTS.md` 质量门第 5 条 |
 | C-7 | 触达核对前置到方案确认 | 能力 / 措辞变更前先 grep 全仓库定位触达点，影响范围按文档清单逐篇核对（已同步 / 无触达及理由） | common | `AGENTS.md` 质量门第 2 条 |
 | C-8 | 文档三层职责分离 | 操作手册 = 用户视图层；fxri-* skills = 可变细节唯一演进源；ai-rules.md = 薄壳稳定纪律 + 对 skills 的引用 | common | `docs/ai-rules.md`（配套说明）+ `AGENTS.md` 质量门第 5 条 |
 | C-9 | 阻塞解除归属 | 进入阻塞在正文记录原因；解除须用户确认并转回进行中，正文记录解除原因 | common | `skills/fxri-plan-to-task/SKILL.md`（过程更新） |
-| C-10 | 修订留痕（元规则） | 规则语义变更不覆盖丢史：先在 `history.md` 留痕，再更新表内当前语义 | common | 本载体 `history.md` |
+| C-10 | 修订留痕（元规则） | 规则语义变更不覆盖丢史：先在 `history.md` 留痕，再更新表内当前语义 | common | [history.md](./history.md) |
 | C-11 | 技能单一真源与同源分发 | 包内 `skills/` 为技能唯一真源、随包同源分发（与 CLI 同一发布批次），改 skills 须发版才触达用户；技能版本双写位（frontmatter `metadata.version` 与正文首部）须一致 | common | `skills/README.md`（安装方式）+ `AGENTS.md` 质量门第 5 条 |
 | C-12 | 机器可读输出与诊断提示分流 | stdout 只承载机器可读内容（如 `--format json`），提示与诊断（升级提示、链接自愈提示）一律走 stderr | common | `docs/cli.md`（`--format json` 行）+ `docs/config.md`（updateCheck / skills 段） |
 | C-13 | 验收含类型检查与静态检查 | 类型检查与静态检查是聚合门禁 `pnpm verify` 的内部步骤（步骤定义见 `scripts/verify.mjs`）；不得以 `pnpm lint` / `pnpm build` 替代类型检查 | common | `AGENTS.md`「验收方式」 |
@@ -36,7 +36,7 @@
 | C-19 | 建档判据 = 仓库文件改动 | 同主题判别取客观口径：看本次是否产生仓库文件改动（增 / 改 / 删计入，纯读取 / 执行 / 汇报不计入）；有改动则建档（延续标来源链），无则不重复建档、提示已归档日期后直接执行 | common | `SPEC.md` 协作模型第 1 条 + `skills/fxri-plan-to-task/SKILL.md`（判别表） |
 | C-20 | 收尾动作不算任务 | 提交 / 发版 / 推送 / 部署等收尾动作本身及其固有产物（版本号 / 更新日志 / 标签）不构成任务、不单独建档 | common | `SPEC.md` 协作模型第 3 条 + `docs/ai-rules.md` 稳定纪律 |
 | C-21 | 归档块不可变 + 事实更正例外 | 已归档块不追加内容、元数据行冻结；唯一例外是事实更正——正文末尾追加「修订记录」保留原结论，口径变更类可改受影响事实字段 | common | `SPEC.md` 协作模型第 1 条 + `skills/fxri-plan-to-task/references/task-spec.md`（第 6 节） |
-| C-22 | 门禁单源与时点 | 验收步骤清单唯一真源为 `scripts/verify.mjs`、以 `pnpm verify` 暴露，本地与四处 CI 共用，禁止另写步骤枚举；关卡设在发布前；任务收尾顺序为「归档与沉淀 → 验收 → 提交」 | common | `AGENTS.md`「验收方式」+「发版链路」+「协作流程约束」+ `scripts/verify.mjs` + `skills/fxri-release-changelog/SKILL.md` + `task-spec.md`（第 6 节） |
+| C-22 | 门禁单源与时点 | 验收步骤清单唯一真源为 `scripts/verify.mjs`、以 `pnpm verify` 暴露，本地与四处 CI 共用，不得另写步骤枚举；关卡设在发布前；任务收尾顺序为「归档与沉淀 → 验收 → 提交」 | common | `AGENTS.md`「验收方式」+「发版链路」+「协作流程约束」+ `scripts/verify.mjs` + `skills/fxri-release-changelog/SKILL.md` + `skills/fxri-plan-to-task/references/task-spec.md`（第 6 节） |
 | C-23 | 测试假现场须与真实现场形态一致 | 模拟现场的假数据须与真实形态一致；被测逻辑对现场形态存在分支判据时，每种真实形态都要有对应用例 | common | [common.md](./common.md) |
 | C-24 | conventions 入口壳（一阶触发面） | 载体可另配项目级入口壳 `toolkit-conventions/SKILL.md`（只作入口、指回索引）；`toolkit init` 幂等生成、按标记版本分流；壳标记陈旧或被 gitignore 覆盖时告警 | common | `skills/fxri-plan-to-task/references/conventions-spec.md`（§1 载体结构） |
 | C-25 | 版本括注口径 | `（x.y.z 新增）` 类括注只标命令 / 技能 / 配置项 / 单一能力点的首次引入版本且紧邻该对象；跨版本演进清单不挂句末括注，扩展史由 `CHANGELOG.md` 承载 | common | [common.md](./common.md) |

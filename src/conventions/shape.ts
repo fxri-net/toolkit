@@ -1,4 +1,4 @@
-// 载体表形态偏离检测：T1 索引表列集合、T2 演进记录 / 退休台账表头、T3 载体文件内表头与分隔行列数、T4 分册残留「确立来源」子项、T5 演进记录「修订内容」列禁用语料
+// 载体表形态偏离检测：S1 索引表列集合、S2 演进记录 / 退休台账表头、S3 载体文件内表头与分隔行列数、S4 分册残留「确立来源」子项、S5 演进记录「修订内容」列禁用语料
 // 供 conventions status 与 tasks check 共用，两处只做各自的路径与级别渲染，判据不各写一份
 // 只报不改：命中的偏离一律交人工确认后按 conventions-spec 归一
 import { existsSync } from "node:fs"
@@ -45,7 +45,7 @@ function cellsText(cells: string[]): string {
   return cells.map((cell) => `「${cell}」`).join("")
 }
 
-// T1：v3 索引表列集合须恰为 INDEX_COLUMNS（列集合与次序），漂移即报
+// S1：v3 索引表列集合须恰为 INDEX_COLUMNS（列集合与次序），漂移即报
 function indexColumnDefects(state: CarrierState): ShapeDefect[] {
   if (sameCells(state.header, INDEX_COLUMNS)) return []
   return [
@@ -56,7 +56,7 @@ function indexColumnDefects(state: CarrierState): ShapeDefect[] {
   ]
 }
 
-// T2：v3 下演进记录 / 退休台账表头整行须与单源列集合逐格一致（仅在表被定位时比对）
+// S2：v3 下演进记录 / 退休台账表头整行须与单源列集合逐格一致（仅在表被定位时比对）
 function ledgerDefects(state: CarrierState): ShapeDefect[] {
   const defects: ShapeDefect[] = []
   const ledgers: [string, string, string[], string][] = [
@@ -76,7 +76,7 @@ function ledgerDefects(state: CarrierState): ShapeDefect[] {
   return defects
 }
 
-// T3：载体文件内表头行与紧随分隔行列数须相等（表被 fenced code block 包裹时按示例处理，不参与检测）
+// S3：载体文件内表头行与紧随分隔行列数须相等（表被 fenced code block 包裹时按示例处理，不参与检测）
 function columnCountDefects(state: CarrierState): ShapeDefect[] {
   const defects: ShapeDefect[] = []
   const files = [...carrierFiles(state), state.historyFile, state.retiredFile]
@@ -99,7 +99,7 @@ function columnCountDefects(state: CarrierState): ShapeDefect[] {
   return defects
 }
 
-// T4：分册内不得残留「确立来源」子项（来源由索引行与 history / retired 承载），逐文件报首个命中行
+// S4：分册内不得残留「确立来源」子项（来源由索引行与 history / retired 承载），逐文件报首个命中行
 function straySourceDefects(state: CarrierState): ShapeDefect[] {
   const defects: ShapeDefect[] = []
   const files = carrierFiles(state).filter((file) => file !== state.indexFile)
@@ -124,7 +124,7 @@ function straySourceDefects(state: CarrierState): ShapeDefect[] {
   return defects
 }
 
-// T5：v3 下 history.md「修订内容」列不得含禁用语料（自指套话 / 重复索引列的条文去向），报首个命中行
+// S5：v3 下 history.md「修订内容」列不得含禁用语料（自指套话 / 重复索引列的条文去向），报首个命中行
 function historyWordingDefects(state: CarrierState): ShapeDefect[] {
   if (!existsSync(state.historyFile)) return []
   const table = findTable(readTextFile(state.historyFile).split(/\r?\n/), HISTORY_ANCHOR_HEADER)
