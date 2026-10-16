@@ -185,7 +185,7 @@ pnpm remove -g @fxri/toolkit   # 2. 再卸 CLI
 
 ### 载体已经是 `conventions/` 目录了，还要升级什么？
 
-目录形态另有**结构版本**之分：v2 用「首行形态标记 + 索引表首列稳定 ID `C-<n>` + 独立 `history.md` 演进记录」，v1 则无标记、首列是序号 `#`、演进记录与索引同文件。说一句「把规范载体升到 v2」或直接跑 `toolkit conventions upgrade`（`--dry-run` 预演；幂等、先判后写，异常形态拒绝写盘），内部引用会一并改写为稳定 ID。`toolkit conventions status` 可查载体形态、索引与入口层现场，`toolkit tasks check` 也会在形态异常时软告警。
+目录形态另有**结构版本**之分：最新为 **v3**（三分区——常驻 `index.md` 索引、按需分册、归档面 `history.md` / `retired.md`；首行形态标记 + 索引表首列稳定 ID `C-<n>`），v2 用「首行形态标记 + 稳定 ID + 独立 `history.md`」，v1 则无标记、首列是序号 `#`、演进记录与索引同文件。说一句「把规范载体升到 v3」或直接跑 `toolkit conventions upgrade`（`--dry-run` 预演；幂等、先判后写，异常形态拒绝写盘），v1 / v2 输入会链式升级、内部引用一并改写为稳定 ID。`toolkit conventions status` 可查载体形态、索引与入口层现场，`toolkit tasks check` 也会在形态异常时软告警。
 
 ### 载体表格里为什么有大量空格？怎么去掉？
 
@@ -195,7 +195,7 @@ pnpm remove -g @fxri/toolkit   # 2. 再卸 CLI
 
 它是在**已存在的**项目级技能目录（如 `.agents/skills/toolkit-conventions/SKILL.md`；多个候选目录并存时每处各写一份，一个都不存在则回落 `.agents/skills/`）生成的一个**只作入口、不承载条文**的小技能壳，让 AI 在项目里能按需发现 `.tasks/conventions/` 载体，正文指回 `index.md`。它属侵入性写入，`init` 会逐项报告实际动作；落点被 `.gitignore` 覆盖时报告会提示（**不代改 `.gitignore`**），因为那样壳不会随 git 分发。不需要可直接删除，重跑 `init` 会补回；壳标记落后于当前 toolkit 时重跑 `init` 会就地更新为当前版本。
 
-⚠️ 若只是某条旧规范过时（不换形态），走内容修订而非迁移：`history.md` 追加留痕（只追加、不改旧行）→ 更新 `index.md` 索引行「当前语义」→ 作废的把「状态」改 `已废弃`（不删行）。详见[操作手册 · 规范载体迁移](./handbook#四、规范载体迁移)与[完整攻略 · 存量规范载体迁移](./guide#存量规范载体迁移)。
+⚠️ 若只是某条旧规范过时（不换形态），走内容修订而非迁移：语义变更在 `history.md` 追加留痕（只追加、不改旧行）→ 更新 `index.md` 索引行「当前语义」；规则**作废**走「迁出 + 三层清理」——索引行从 `index.md` 删除并迁入 `retired.md`（冻结退休时语义），同时物理删除分册内该条小节、同步删改外部单一事实源。详见[操作手册 · 规范载体迁移](./handbook#四、规范载体迁移)与[完整攻略 · 存量规范载体迁移](./guide#存量规范载体迁移)。
 
 ## 发版与升级
 

@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  # 验收步骤清单的唯一真源是 scripts/verify.mjs：两个 job 都只调用它，不在 CI 里另写一份步骤，避免清单漂移
+  # 验收步骤清单的唯一真源是 scripts/verify.mjs：各 job 都只调用它，不在 CI 里另写一份步骤，避免清单漂移
   check:
     runs-on: ubuntu-latest
     steps:
@@ -38,4 +38,19 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - name: 门禁校验（Windows 裁剪）
+        run: pnpm verify --skip-coverage --skip-docs
+
+  # macOS 回归：macOS 默认大小写不敏感文件系统（口径同 Windows、与 ubuntu 不同），路径归一 / 大小写折叠类逻辑须在此兜底
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - name: 门禁校验（macOS 裁剪）
         run: pnpm verify --skip-coverage --skip-docs

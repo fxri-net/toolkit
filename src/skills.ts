@@ -7,6 +7,7 @@ import type { Dirent } from "node:fs"
 import { basename, dirname, isAbsolute, join, normalize, relative, resolve, sep } from "node:path"
 import { fileURLToPath } from "node:url"
 import { getConfigSection, getHomeDir } from "./config"
+import { normalizePathForCompare } from "./git-ignore"
 import { FALLBACK_SKILL_DIR, PROJECT_SKILL_DIRS, resolveProjectSkillDirs } from "./conventions/entry"
 import { readTextFile } from "./read-text"
 import { writeFileAtomic } from "./write-atomic"
@@ -378,10 +379,10 @@ export function listPackageSkills(): PackageSkill[] {
   return out
 }
 
-// 路径比较键：归一化 + Windows 下大小写不敏感（盘符/短名等书写差异不应被判成不同路径）
+// 路径比较键：先解析为绝对路径，再走统一比较口径（分隔符正斜杠 + 去尾斜杠 + 大小写折叠）
+// 与 normalizePathForCompare 共用一份实现：此前仅 win32 折叠大小写，会在默认不区分大小写的 macOS 上把同一目录的两种书写判成不同
 function pathKey(p: string): string {
-  const n = normalize(resolve(p))
-  return process.platform === "win32" ? n.toLowerCase() : n
+  return normalizePathForCompare(resolve(p))
 }
 
 // 剥离尾部分隔符：Windows junction 的 readlink 结果形如 C:\x\target\，直接比较会因尾部分隔符导致路径判定失配
@@ -555,11 +556,12 @@ function realPath(p: string): string {
   }
 }
 
-// 判 sub 是否落在 root 之内（不含 root 自身）：比较时补分隔符，避免 /a/bc 被误判为 /a/b 之下
+// 判 sub 是否落在 root 之内（不含 root 自身）：比较时补正斜杠，避免 /a/bc 被误判为 /a/b 之下
+// pathKey 已归一到正斜杠（去尾斜杠），此处拼接也须用正斜杠，不能用平台分隔符 path.sep
 function isInside(sub: string, root: string): boolean {
   const sk = pathKey(stripTailSep(sub))
   const rk = pathKey(stripTailSep(root))
-  return sk !== rk && sk.startsWith(rk.endsWith(sep) ? rk : rk + sep)
+  return sk !== rk && sk.startsWith(`${rk}/`)
 }
 
 // 作用域判定：自 cwd 逐级向上，任一层含 package.json 且 CLI 包根落在其下 → 项目面（兼容 monorepo 子目录内执行）

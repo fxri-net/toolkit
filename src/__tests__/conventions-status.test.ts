@@ -15,6 +15,11 @@ import {
   ID_HEADER,
   INDEX_ANCHOR_HEADER,
   INDEX_TITLE,
+  RETIRED_ANCHOR_HEADER,
+  RETIRED_FILE,
+  RETIRED_SKELETON,
+  RETIRED_TABLE_HEADER,
+  RETIRED_TITLE,
   idOf,
 } from "../conventions/format"
 import { ENTRY_SHELL_NAME, SKILL_ENTRY } from "../conventions/entry"
@@ -46,8 +51,8 @@ const V1_INDEX = `# 项目协作规范索引
 | 1 | 四级时间源 | 当场打点优先 |
 `
 
-// v2 载体假现场：首行标记 + history.md + 索引表首列为稳定 ID；端清单声明 web（供归属体检取端名）
-function makeV2(root: string, rows: string, options: { history?: boolean; extra?: Record<string, string> } = {}): void {
+// 当前版本载体假现场：首行标记 + history.md + 索引表首列为稳定 ID；端清单声明 web（供归属体检取端名）
+function makeCarrier(root: string, rows: string, options: { history?: boolean; extra?: Record<string, string> } = {}): void {
   const dir = join(root, "conventions")
   mkdirSync(dir, { recursive: true })
   const index = `${CARRIER_MARKER}
@@ -124,10 +129,10 @@ describe("载体形态体检", () => {
     expect(report.items.some((i) => i.message.includes("不合稳定 ID 形态"))).toBe(false)
   })
 
-  it("标为 v2 却缺 history.md 时判形态异常并交人工确认", () => {
+  it("标为当前版本却缺 history.md 时判形态异常并交人工确认", () => {
     const root = makeDir("tk-status-abn1-")
     const cwd = makeDir("tk-status-abn1-cwd-")
-    makeV2(root, cleanRows, { history: false })
+    makeCarrier(root, cleanRows, { history: false })
 
     const report = conventionsStatus(root, cwd)
     expect(report.form).toBe("abnormal")
@@ -150,11 +155,11 @@ describe("载体形态体检", () => {
   it("旧单文件与目录形态并存时提示清理旧文件", () => {
     const root = makeDir("tk-status-both-")
     const cwd = makeDir("tk-status-both-cwd-")
-    makeV2(root, cleanRows)
+    makeCarrier(root, cleanRows)
     writeFileSync(join(root, "conventions.md"), "# 旧规范\n", "utf8")
 
     const report = conventionsStatus(root, cwd)
-    expect(report.form).toBe("v2")
+    expect(report.form).toBe(`v${CARRIER_VERSION}`)
     expect(report.items.filter((i) => i.scope === "形态" && i.message.includes("与目录形态并存"))).toHaveLength(1)
   })
 })
@@ -163,18 +168,21 @@ describe("索引体检", () => {
   it("首列不合稳定 ID 形态时告警", () => {
     const root = makeDir("tk-status-idshape-")
     const cwd = makeDir("tk-status-idshape-cwd-")
-    makeV2(root, "| X-1 | 四级时间源 | 当场打点优先 | common |")
+    makeCarrier(root, "| X-1 | 四级时间源 | 当场打点优先 | common |")
 
     const report = conventionsStatus(root, cwd)
-    expect(report.form).toBe("v2")
+    expect(report.form).toBe(`v${CARRIER_VERSION}`)
     expect(report.items.filter((i) => i.scope === "索引" && i.message.includes("不合稳定 ID 形态"))).toHaveLength(1)
   })
 
   it("索引表存在重复 ID 时告警", () => {
     const root = makeDir("tk-status-dupid-")
     const cwd = makeDir("tk-status-dupid-cwd-")
-    makeV2(root, `| ${idOf(1)} | 四级时间源 | 当场打点优先 | common |
-| ${idOf(1)} | 路径书写 | 仓库根相对路径 | common |`)
+    makeCarrier(
+      root,
+      `| ${idOf(1)} | 四级时间源 | 当场打点优先 | common |
+| ${idOf(1)} | 路径书写 | 仓库根相对路径 | common |`,
+    )
 
     const report = conventionsStatus(root, cwd)
     expect(report.items.filter((i) => i.message.includes(`索引表存在重复 ID ${idOf(1)}`))).toHaveLength(1)
@@ -183,15 +191,46 @@ describe("索引体检", () => {
   it("归属悬空时告警，保留归属 common / index 不误报", () => {
     const root = makeDir("tk-status-owner-")
     const cwd = makeDir("tk-status-owner-cwd-")
-    makeV2(root, `| ${idOf(1)} | 四级时间源 | 当场打点优先 | web |
+    makeCarrier(
+      root,
+      `| ${idOf(1)} | 四级时间源 | 当场打点优先 | web |
 | ${idOf(2)} | 建档评估 | 先查后写 | common |
 | ${idOf(3)} | 路径书写 | 仓库根相对路径 | index |
-| ${idOf(4)} | 测试不复刻 | 期望值取真实实现 | mobile |`)
+| ${idOf(4)} | 测试不复刻 | 期望值取真实实现 | mobile |`,
+    )
 
     const report = conventionsStatus(root, cwd)
-    const dangling = report.items.filter((i) => i.message.includes("不在端清单中"))
+    const dangling = report.items.filter((i) => i.message.includes("不在端清单"))
     expect(dangling).toHaveLength(1)
     expect(dangling.some((i) => i.message.includes("mobile"))).toBe(true)
+  })
+
+  it("归属取已存在的分类标签分册名时不判悬空", () => {
+    const root = makeDir("tk-status-label-")
+    const cwd = makeDir("tk-status-label-cwd-")
+    const build = `# 构建规范
+
+## ${idOf(1)}. 构建口径
+
+以 pnpm 为准。
+`
+    makeCarrier(root, `| ${idOf(1)} | 构建口径 | 以 pnpm 为准 | build |`, { extra: { "build.md": build } })
+
+    const report = conventionsStatus(root, cwd)
+    expect(report.items.filter((i) => i.message.includes("不在端清单"))).toEqual([])
+    expect(report.items.filter((i) => i.message.includes("在索引表中无对应条目"))).toEqual([])
+    expect(report.warnings).toBe(0)
+  })
+
+  it("归属 common 但语义提及端名时提示确认是否下沉", () => {
+    const root = makeDir("tk-status-common-")
+    const cwd = makeDir("tk-status-common-cwd-")
+    makeCarrier(root, `| ${idOf(1)} | 网页端缓存 | web 端缓存走 CDN | common |`)
+
+    const report = conventionsStatus(root, cwd)
+    const hits = report.items.filter((i) => i.message.includes("确认是否应下沉为端归属"))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]!.message).toContain("web")
   })
 
   it("分册小节在索引表中无对应条目时告警，有对应条目的小节不告警", () => {
@@ -207,7 +246,7 @@ describe("索引体检", () => {
 
 与索引表无对应条目。
 `
-    makeV2(root, cleanRows, { extra: { "common.md": common } })
+    makeCarrier(root, cleanRows, { extra: { "common.md": common } })
 
     const report = conventionsStatus(root, cwd)
     const orphan = report.items.filter((i) => i.message.includes("在索引表中无对应条目"))
@@ -216,28 +255,64 @@ describe("索引体检", () => {
   })
 })
 
+describe("退休台账体检", () => {
+  it("存在 retired.md 却定位不到退休表时告警", () => {
+    const root = makeDir("tk-status-retired-")
+    const cwd = makeDir("tk-status-retired-cwd-")
+    makeCarrier(root, cleanRows, { extra: { [RETIRED_FILE]: `${RETIRED_TITLE}\n\n| ID | 规则 |\n| --- | --- |\n` } })
+
+    const report = conventionsStatus(root, cwd)
+    const hits = report.items.filter((i) => i.message.includes(`${RETIRED_FILE} 未定位到退休表`))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]!.message).toContain(RETIRED_ANCHOR_HEADER)
+  })
+
+  it("退休 ID 与常驻索引活跃 ID 重叠时告警", () => {
+    const root = makeDir("tk-status-retired-overlap-")
+    const cwd = makeDir("tk-status-retired-overlap-cwd-")
+    const retired = `${RETIRED_SKELETON}| ${idOf(1)} | 旧口径 | 已冻结语义 | common | — | — | 已删分册小节 \`common.md\` |\n`
+    makeCarrier(root, cleanRows, { extra: { [RETIRED_FILE]: retired } })
+
+    const report = conventionsStatus(root, cwd)
+    const hits = report.items.filter((i) => i.message.includes(`同时存在于索引表与 ${RETIRED_FILE}`))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]!.message).toContain(idOf(1))
+  })
+
+  it("退休台账合规（迁出条目与活跃条目无重叠）时不告警", () => {
+    const root = makeDir("tk-status-retired-ok-")
+    const cwd = makeDir("tk-status-retired-ok-cwd-")
+    const retired = `${RETIRED_TITLE}\n\n${RETIRED_TABLE_HEADER}\n| --- | --- | --- | --- | --- | --- | --- |\n| ${idOf(9)} | 旧构建口径 | 以 npm 为准 | common | — | — | 已删分册小节 \`common.md\` |\n`
+    makeCarrier(root, cleanRows, { extra: { [RETIRED_FILE]: retired } })
+
+    const report = conventionsStatus(root, cwd)
+    expect(report.items.filter((i) => i.message.includes(RETIRED_FILE))).toEqual([])
+    expect(report.warnings).toBe(0)
+  })
+})
+
 describe("入口层体检", () => {
   it("无壳时只出提示不计入问题数，干净载体结论为无待处理项", () => {
     const root = makeDir("tk-status-noshell-")
     const cwd = makeDir("tk-status-noshell-cwd-")
-    makeV2(root, cleanRows)
+    makeCarrier(root, cleanRows)
 
     const report = conventionsStatus(root, cwd)
     expect(report.initialized).toBe(true)
-    expect(report.form).toBe("v2")
+    expect(report.form).toBe(`v${CARRIER_VERSION}`)
     expect(report.carrierVersion).toBe(CARRIER_VERSION)
     expect(report.entries).toBe(1)
     expect(report.shells).toEqual([])
     expect(report.warnings).toBe(0)
     expect(report.items.filter((i) => i.scope === "入口层" && i.level === "info" && i.message.includes("未找到入口壳"))).toHaveLength(1)
-    expect(report.summary).toContain("载体 v2")
+    expect(report.summary).toContain(`载体 v${CARRIER_VERSION}`)
     expect(report.summary).toContain("无待处理项")
   })
 
   it("源仓库现场（package.json 的 name 为 @fxri/toolkit）不给补生成入口壳的提示", () => {
     const root = makeDir("tk-status-src-")
     const cwd = makeDir("tk-status-src-cwd-")
-    makeV2(root, cleanRows)
+    makeCarrier(root, cleanRows)
     writeFileSync(join(cwd, "package.json"), JSON.stringify({ name: "@fxri/toolkit", version: "0.0.0" }), "utf8")
 
     const report = conventionsStatus(root, cwd)
@@ -251,7 +326,7 @@ describe("入口层体检", () => {
   it("多壳标记版本与当前 toolkit 不一致（含无标记）时合并为一条并列出落点", () => {
     const root = makeDir("tk-status-shellver-")
     const cwd = makeDir("tk-status-shellver-cwd-")
-    makeV2(root, cleanRows)
+    makeCarrier(root, cleanRows)
     writeShell(cwd, ".trae/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n<!-- toolkit-conventions-entry: v${ENTRY_VERSION - 1} -->\n`)
     writeShell(cwd, ".cursor/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n无标记壳\n`)
 
@@ -268,7 +343,7 @@ describe("入口层体检", () => {
   it("壳被 gitignore 覆盖时告警并内联落点路径", () => {
     const root = makeDir("tk-status-shellign-")
     const cwd = makeDir("tk-status-shellign-cwd-")
-    makeV2(root, cleanRows)
+    makeCarrier(root, cleanRows)
     execSync("git init -q", { cwd })
     writeFileSync(join(cwd, ".gitignore"), ".trae/skills/\n", "utf8")
     writeShell(cwd, ".trae/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n${ENTRY_MARKER}\n`)
@@ -285,7 +360,7 @@ describe("入口层体检", () => {
   it("壳标记版本一致且未被忽略时不产生入口层问题", () => {
     const root = makeDir("tk-status-shellok-")
     const cwd = makeDir("tk-status-shellok-cwd-")
-    makeV2(root, cleanRows)
+    makeCarrier(root, cleanRows)
     writeShell(cwd, ".trae/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n${ENTRY_MARKER}\n`)
 
     const report = conventionsStatus(root, cwd)
@@ -301,7 +376,7 @@ describe("表格形态体检", () => {
   it("载体表格被列对齐填充时报一条告警并指向 conventions format", () => {
     const root = makeDir("tk-status-table-")
     const cwd = makeDir("tk-status-table-cwd-")
-    makeV2(root, `| ${idOf(1)}     | 四级时间源 | 当场打点优先 | common |`)
+    makeCarrier(root, `| ${idOf(1)}     | 四级时间源 | 当场打点优先 | common |`)
 
     const report = conventionsStatus(root, cwd)
     const hits = report.items.filter((i) => i.message.includes("表格存在列对齐填充"))
@@ -316,7 +391,7 @@ describe("表格形态体检", () => {
   it("表格均为紧凑形态时不产生表格形态告警", () => {
     const root = makeDir("tk-status-table-ok-")
     const cwd = makeDir("tk-status-table-ok-cwd-")
-    makeV2(root, cleanRows)
+    makeCarrier(root, cleanRows)
 
     const report = conventionsStatus(root, cwd)
     expect(report.items.filter((i) => i.message.includes("列对齐填充"))).toEqual([])

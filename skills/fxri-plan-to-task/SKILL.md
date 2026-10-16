@@ -1,16 +1,16 @@
 ---
 name: fxri-plan-to-task
-description: 将已确认的实施方案落盘为标准任务文件并跟踪至归档：动手前建档评估（查 active/archive 判同主题）、按模板建档、状态机更新、四级时间源取证、自查校验、任务级规范沉淀与手工归档。当用户确认方案后表达「开始落地/登记记录」的意图，或即将动手改仓库文件时使用——含建档、任务登记、落盘、归档、任务校验、规范载体迁移与升级（conventions 单文件升目录形态、v1 升 v2）等说法及其口语近义表达（如按这个做吧、记一下、建个任务跟踪）均触发。不用于方案未确认的对话、会话收尾整场沉淀（fxri-session-recap 模式一）、与任务记录无关的普通 TODO、issue 管理或日常提交信息撰写。
+description: 将已确认的实施方案落盘为标准任务文件并跟踪至归档：动手前建档评估（查 active/archive 判同主题）、按模板建档、状态机更新、四级时间源取证、自查校验、任务级规范沉淀与手工归档。当用户确认方案后表达「开始落地/登记记录」的意图，或即将动手改仓库文件时使用——含建档、任务登记、落盘、归档、任务校验、规范载体迁移与升级（conventions 单文件升目录形态、v1 / v2 升 v3）等说法及其口语近义表达（如按这个做吧、记一下、建个任务跟踪）均触发。不用于方案未确认的对话、会话收尾整场沉淀（fxri-session-recap 模式一）、与任务记录无关的普通 TODO、issue 管理或日常提交信息撰写。
 license: MIT
 metadata:
-  version: "1.7.1"
+  version: "1.8.0"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
 
 # 方案落盘：任务建档与归档
 
-> 本技能版本 1.7.1（随 @fxri/toolkit 同批分发）。被问版本时即报此值——不读磁盘、不跑 CLI：报出的值就是本会话上下文里已加载内容的版本，可与 `toolkit skills status` 打印的磁盘基准值对照，不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.8.0（随 @fxri/toolkit 同批分发）。被问版本时即报此值——不读磁盘、不跑 CLI：报出的值就是本会话上下文里已加载内容的版本，可与 `toolkit skills status` 打印的磁盘基准值对照，不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -21,7 +21,7 @@ metadata:
 
 ## 核心约定
 
-任务文件规范（目录结构、命名、frontmatter 字段、归档格式、手工归档步骤、自查清单）全部以 `references/task-spec.md` 为准；规范载体（conventions）的结构、形态标记与稳定 ID、归属判定、读写判定、内容修订、表格形态（紧凑）、存量迁移与 v1→v2 升级、入口壳以 `references/conventions-spec.md` 为准。本文件只写流程。执行任何写操作前先读它们。
+任务文件规范（目录结构、命名、frontmatter 字段、归档格式、手工归档步骤、自查清单）全部以 `references/task-spec.md` 为准；规范载体（conventions）的三分区结构、形态标记与稳定 ID、归属判定、分层读写判定、内容修订（含作废的三层清理）、表格形态（紧凑）、存量迁移与 v1 / v2→v3 升级、分类标签分册、入口壳以 `references/conventions-spec.md` 为准。本文件只写流程。执行任何写操作前先读它们。
 
 ## 核心规则
 
@@ -44,7 +44,7 @@ metadata:
 
 - 无 `.tasks/` 任务区时先执行 `toolkit init` 建骨架（幂等，已存在不覆盖）
 - 列出任务目录 `active/` 下全部 `.md`（含一层 `{YYYYMM}/` 月份子目录），并核对 `archive/` 是否已有同主题任务
-- 读 conventions 载体（存在时）：先找 `.tasks/conventions/index.md`，不存在再看旧单文件 `.tasks/conventions.md`（兼容期读取，并在对话中提示可迁移）；常驻只读 `index.md`（`history.md` 与各分册按需读），再按本任务 `scope` 命中加载 `common` 与端分册（形态识别与读写判定见 `references/conventions-spec.md`）——载体也可能经项目级技能入口壳（如 `.agents/skills/toolkit-conventions/`）把 agent 引到此处；项目协作规范在建档与执行时须遵守；规范载体本身不属于任务，不为其建档
+- 读 conventions 载体（存在时）：先找 `.tasks/conventions/index.md`，不存在再看旧单文件 `.tasks/conventions.md`（兼容期读取，并在对话中提示可迁移）；常驻只读 `index.md`（`history.md` / `retired.md` 属归档面、各分册按需读），再按本任务 `scope` 命中加载端分册 / 分类标签分册并**恒叠加 `common`**（形态识别与分层读写判定见 `references/conventions-spec.md`）——载体也可能经项目级技能入口壳（如 `.agents/skills/toolkit-conventions/`）把 agent 引到此处；项目协作规范在建档与执行时须遵守；规范载体本身不属于任务，不为其建档
 - **同主题判别表**（建档前必须按此决策）：
   | 现状 | 本次是否产生仓库文件改动 | 处理 |
   | --- | --- | --- |
@@ -85,12 +85,13 @@ metadata:
 
 归档完成后按以下轻量步骤提炼本任务产出的规范（与会话收尾的会话级提炼同落点、互不重复）：
 
-- 读 conventions 载体（`index.md` 常驻 + 按本任务 `scope` 命中加载分册），判断本任务是否产出可升格规范：用户明示「以后都要这样」的规则、与已有规范重复印证的决策
+- 读 conventions 载体（`index.md` 常驻 + 按本任务 `scope` 命中加载端分册 / 分类标签分册并恒叠加 `common`），判断本任务是否产出可升格规范：用户明示「以后都要这样」的规则、与已有规范重复印证的决策
 - **归属判定**：先问「是否**所有端都适用**」→ 是则归 `common`；否则逐端确认 → 写入命中的端分册（禁止跨端合并归属；`common` 不得用作「不确定归哪端」的暂存区）
-- 有候选 → 输出给用户确认 → 写索引行（首列稳定 ID `C-<n>`、带「确立来源任务」）并把条文归位；无候选 → **完全静默**
+- 有候选 → 输出给用户确认 → 写索引行（首列稳定 ID `C-<n>`）并把条文归位；无候选 → **完全静默**
 - 变更已有规范语义时，先在 `history.md` 追加一行留痕，再更新索引行「当前语义」（细则见 `references/conventions-spec.md`）
+- **规则作废**：走「迁出 + 三层清理」——索引行删除并迁入 `retired.md`（冻结语义）、物理删除分册内该条小节、外部单一事实源同步删改；不把状态改个标记留在原位
 - 一次性决策不进规范，留在任务正文
-- **存量迁移与升级**：发现旧单文件 `conventions.md` 时按迁移三段式执行（建目录搬原文 → 逐条提归属建议 → 用户确认后拆分册）；载体为 v1 或 `check` / `toolkit conventions status` 报形态告警时，按 `references/conventions-spec.md` 的 v1→v2 链路升级（优先 `toolkit conventions upgrade`，可 `--dry-run` 预演）；均可中断不丢内容
+- **存量迁移与升级**：发现旧单文件 `conventions.md` 时按迁移三段式执行（建目录搬原文 → 逐条提归属建议 → 用户确认后拆分册）；载体为 v1 / v2 或 `check` / `toolkit conventions status` 报形态告警时，按 `references/conventions-spec.md` 的 v1 / v2→v3 链路升级（优先 `toolkit conventions upgrade`，可 `--dry-run` 预演）；均可中断不丢内容
 
 ### 6. 收尾边界（硬约束到沉淀）
 
@@ -117,6 +118,6 @@ metadata:
 - `toolkit tasks archive`：自动归档（替代第 5 步，含排他锁防并发；可 `--dry-run` 预演）
 - `toolkit tasks normalize`：归档后核验归档块（元数据完整性/日期漂移/排序/git 冲突标记），可 `--fix` 自动修复（含按并集去重 + 降序解决冲突标记）
 - `toolkit conventions status`：只读体检载体形态与入口壳现场（替代第 1 步人工判形态、第 5.5 步沉淀前后自查）
-- `toolkit conventions upgrade`：v1 → v2 结构升级（第 5.5 步，纯机械、幂等；可 `--dry-run` 预演）
+- `toolkit conventions upgrade`：v1 / v2 → v3 结构升级（第 5.5 步，纯机械、幂等；可 `--dry-run` 预演）
 - `toolkit conventions format`：表格形态归一为紧凑形态（手工写表后自查；只动空白层与分隔行横线长度、不改语义；幂等、跳过代码块；可 `--dry-run` 预演）
 - 任务目录非默认 `.tasks` 时加 `--dir <path>`

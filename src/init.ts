@@ -144,7 +144,7 @@ function scaffoldConventions(root: string, display: string): InitProduct[] {
   const target = `${posix(display)}/${CONVENTIONS_DIR}/${INDEX_FILE}`
   if (existsSync(index)) {
     const product: InitProduct = { target, action: "kept", detail: "已存在，保持不变" }
-    if (readCarrier(root).form === "v1") product.hint = "当前为 v1 形态，可执行 toolkit conventions upgrade 升为 v2"
+    if (readCarrier(root).form === "v1") product.hint = "当前为 v1 形态，可执行 toolkit conventions upgrade 升为 v3"
     return [product]
   }
   if (existsSync(join(root, LEGACY_FILE))) {

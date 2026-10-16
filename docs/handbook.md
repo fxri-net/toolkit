@@ -63,17 +63,17 @@ pnpm exec toolkit tasks stats           # 完成周期 / 滞留 / 吞吐统计
 
 ## 四、规范载体迁移
 
-**目标**：把项目里旧的单文件 `.tasks/conventions.md` 升到 `conventions/` 目录形态（`index.md` 唯一入口 + `common.md` / 各端分册按需创建），让规范能按端分类、按需加载；已有目录形态但结构为 v1 的载体升到 v2。
+**目标**：把项目里旧的单文件 `.tasks/conventions.md` 升到 `conventions/` 目录形态（`index.md` 唯一入口 + `common.md` / 各端分册按需创建），让规范能按端分类、按需加载；已有目录形态但结构为旧版的载体升到 **v3 三分区**。
 
 | 场景 | 你该说 | 会发生什么 |
 | --- | --- | --- |
 | 形态迁移（单文件 → 目录） | 「把项目里的 conventions.md 迁到新形态」 | AI 走三段式：建 `conventions/` 并把旧文件**整体**搬为 `index.md`（原文不丢）→ 逐条给出「`common` / 某端」归属建议 → 你逐条确认后拆成索引行 + 分册 |
-| 结构升级（v1 → v2） | 「把规范载体升到 v2」 | 载体从 v1（无形态标记、索引表首列为序号 `#`、演进记录与索引同文件）升到 v2（首行形态标记、索引表首列为稳定 ID `C-<n>`、演进记录抽独立 `history.md`）：优先 `pnpm exec toolkit conventions upgrade`（`--dry-run` 预演、幂等、先判后写，异常形态拒绝写盘），亦可按链路手工执行 |
-| 只修订内容（不换形态） | 「第 3 条规范改成 …」 | AI 在 `history.md` 追加留痕（只追加、不改旧行）→ 更新 `index.md` 该行「当前语义」；作废的把「状态」改 `已废弃`（不删行），条文在分册内的同步改分册 |
+| 结构升级（v1 / v2 → v3） | 「把规范载体升到 v3」 | 载体升到 v3（三分区：常驻索引 / 按需分册 / 归档留痕；首行形态标记、索引表首列为稳定 ID `C-<n>`、索引表删「状态」「确立来源任务」两列）：优先 `pnpm exec toolkit conventions upgrade`（`--dry-run` 预演、幂等、先判后写，异常形态拒绝写盘），亦可按链路手工执行 |
+| 只修订内容（不换形态） | 「第 3 条规范改成 …」 | 语义变更：AI 在 `history.md` 追加留痕（只追加、不改旧行）→ 更新 `index.md` 该行「当前语义」；规则**作废**走「迁出 + 三层清理」——索引行从 `index.md` **删除**并迁入 `retired.md`（冻结退休时语义、记后继与条文去向），同时**物理删除**分册内该条小节、同步删改外部单一事实源 |
 
 - **入口**：`pnpm exec toolkit tasks check` 报旧单文件 `conventions.md` 存在、`conventions/` 缺 `index.md` 或载体形态异常时按提示处理；`pnpm exec toolkit conventions status` 可查载体形态、索引与入口层现场；新项目 `toolkit init` 已预生成 `index.md` 与 `history.md` 骨架
-- **可中断**：三段式与 v1 → v2 升级任一步停下都不丢内容——旧文件整体搬为 `index.md` 后，该文件即原文快照，功能上与旧文件等价；未确认归属的条目保持原样留在 `index.md`
-- **端名**：与任务 frontmatter 的 `scope` 取值**逐字一致**（任务写 `scope: web+server` → 读 `web.md` + `server.md`）；端清单在 `index.md` 顶部声明，是端的唯一权威，不扫目录
+- **可中断**：三段式与 v1 / v2 → v3 升级任一步停下都不丢内容——旧文件整体搬为 `index.md` 后，该文件即原文快照，功能上与旧文件等价；未确认归属的条目保持原样留在 `index.md`
+- **端名**：与任务 frontmatter 的 `scope` 取值**逐字一致**（任务写 `scope: web+server` → 读 `web.md` + `server.md`）；端清单在 `index.md` 顶部声明，是端的唯一权威，不扫目录；`scope` 中非端值且载体目录下存在同名分册的取值按**分类标签**分册加载（不存在则静默跳过）
 - **迁移期间兼容读**：先找 `conventions/index.md`，不存在再看旧单文件；两者并存时以目录形态为准
 - **表格形态**：任务区 md 表格以**紧凑形态**（单元格间单空格）为规范形态；被 prettier 等格式化器填充出列对齐空白、把表头分隔行横线按列宽补长时，`pnpm exec toolkit conventions format` 一键归一回紧凑形态（只动空白层与分隔行横线长度、跳过 fenced code block、幂等），`conventions status` / `tasks check` 亦会提示
 

@@ -3,14 +3,14 @@ name: fxri-session-recap
 description: 会话收尾的工作记忆沉淀 + 新会话开场恢复 + 历史任务时间修正：收尾时把整场会话的全部任务完整建档归档，按四级时间源还原真实完成时间，沉淀规范进 conventions 载体；新会话开场按三层恢复（全量索引 + active 精读 + 近窗归档）重建现场并核对规范；也可批量修正历史归档时间。当用户表达会话收尾意图（如今天先到这、收个尾、归档本次会话、把结论记下来）、接续意图（如恢复上下文、继续上次、上次做到哪）、或修正历史任务时间时使用。不用于会话中途的常规方案建档（那是 fxri-plan-to-task 的职责）、与工作交接无关的代码技术总结。
 license: MIT
 metadata:
-  version: "1.3.0"
+  version: "1.4.0"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
 
 # 会话归档、上下文恢复与历史修正
 
-> 本技能版本 1.3.0（随 @fxri/toolkit 同批分发）。被问版本时即报此值——不读磁盘、不跑 CLI：报出的值就是本会话上下文里已加载内容的版本，可与 `toolkit skills status` 打印的磁盘基准值对照，不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.4.0（随 @fxri/toolkit 同批分发）。被问版本时即报此值——不读磁盘、不跑 CLI：报出的值就是本会话上下文里已加载内容的版本，可与 `toolkit skills status` 打印的磁盘基准值对照，不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -60,23 +60,23 @@ metadata:
 
 ### R3 规范落点：`.tasks/conventions/` 载体（两级沉淀同一载体）
 
-- 唯一落点 `.tasks/conventions/`（纯 Markdown 随 git 走）：`index.md` 唯一入口（形态标记 + 端清单 + 索引表，首列为稳定 ID `C-<n>`），`history.md` 承载演进记录（独立文件、仅追加），`common.md` 承载所有端通用条文，`<端名>.md` 承载各端专属条文；每条规范带来源任务与日期，可审计
+- 唯一落点 `.tasks/conventions/`（纯 Markdown 随 git 走）：`index.md` 唯一入口（形态标记 + 端清单 + 活跃索引表，首列为稳定 ID `C-<n>`），`history.md` 承载语义演进记录（独立文件、仅追加），`retired.md` 承载退休台账（条目作废时迁入、冻结语义，按需创建），`common.md` 承载所有端通用条文，`<端名>.md`（或分类标签分册）承载各端专属条文；每条规范带来源任务与日期，可审计
 - **任务级**（fxri-plan-to-task 归档时）：单任务产出可升格规范才追加，无则完全静默
 - **会话级**（本技能收尾时）：聚合全会话候选，与已有规范**合并去重**——跨任务重复模式在此补，用户明示规则兜底
 - **归属判定**：先问「是否**所有端都适用**」→ 是则归 `common`；否则逐端确认后写入命中的端分册。⚠️ 禁止跨端合并归属（真全端才升 `common`，只适用几端则各端各记一条）；`common` 的语义是「所有端」不是「不确定归哪端」的暂存区
-- **端名**：与任务 frontmatter `scope` 取值**逐字一致**（任务写 `scope: web+server` → 读 `web.md` + `server.md`）；`index.md` 顶部「端清单」是端的**唯一权威**，不扫目录
+- **端名**：与任务 frontmatter `scope` 取值**逐字一致**（任务写 `scope: web+server` → 读 `web.md` + `server.md`，无论命中与否**恒叠加 `common.md`**；`scope` 中非端值且存在同名分册者按分类标签分册加载）；`index.md` 顶部「端清单」是端的**唯一权威**，不扫目录
 - 写前**必须用户确认**；同义规范不重复记录，只补差异或合并增强
 - **表格形态**：载体与任务区表格一律**紧凑形态**（单元格间只留一个空格，不做列对齐填充）；手工写表不为对齐补空格，已有填充用 `toolkit conventions format` 归一（幂等、跳过代码块、不改语义），源头由 `toolkit init` 托管的 `.prettierignore` 排除任务区
 - 一次性决策留在任务正文，不进规范（升格标准：重复出现 ≥2 次，或用户明示「以后都要这样」）
-- **内容修订 vs 形态迁移**：旧条目过时走「`history.md` 追加留痕 + index 行更新 + 状态置 `已废弃`」（不删行）；使用者项目存旧单文件 `conventions.md` 且要求迁移时走**迁移三段式**（建目录搬原文 → 逐条提归属建议 → 用户确认后拆分册）；载体为 v1（无标记、索引表首列非 ID）时走 **v1→v2 升级**——优先 `toolkit conventions upgrade`（可 `--dry-run` 预演），亦可按链路手工执行；均可中断不丢内容
+- **内容修订 vs 形态迁移**：语义变更走「`history.md` 追加留痕 + index 行更新」；条目作废走**迁出 + 三层清理**（索引行删除并迁入 `retired.md` 冻结语义、物理删除分册内该条小节、外部单一事实源同步删改，不留「已废弃」占位）；使用者项目存旧单文件 `conventions.md` 且要求迁移时走**迁移三段式**（建目录搬原文 → 逐条提归属建议 → 用户确认后拆分册）；载体为 v1 / v2（无标记，或标记为 v2 / 索引表首列非 `ID` / 含「状态」列）时走 **v1 / v2→v3 升级**——优先 `toolkit conventions upgrade`（可 `--dry-run` 预演），亦可按链路手工执行；均可中断不丢内容
 - ⚠️ 兼容读：先找 `conventions/index.md`，不存在再看旧单文件 `conventions.md`（提示可迁移）；两者并存时以目录形态为准
-- 完整细则（载体结构、形态标记与稳定 ID、index 表列定义、`history.md` 结构、读写判定、内容修订、表格形态（紧凑）、两种形态、迁移与 v1→v2 升级步骤、自查清单）见 `../fxri-plan-to-task/references/conventions-spec.md`；fxri-plan-to-task 未一并安装、该兄弟路径不存在时，改读包内真源——`toolkit skills status` 打印的「技能源」目录下 `fxri-plan-to-task/references/conventions-spec.md`
+- 完整细则（三分区结构、形态标记与稳定 ID、`index.md` 表列定义、`history.md` / `retired.md` 结构、分层读写判定、内容修订、表格形态（紧凑）、两种形态、迁移与 v1 / v2→v3 升级步骤、自查清单）见 `../fxri-plan-to-task/references/conventions-spec.md`；fxri-plan-to-task 未一并安装、该兄弟路径不存在时，改读包内真源——`toolkit skills status` 打印的「技能源」目录下 `fxri-plan-to-task/references/conventions-spec.md`
 
 ### 规范提炼子流程（三模式共用）
 
 1. 对照 conventions 载体收集候选：会话中用户明示的规则、与已有规范重复印证的决策、跨任务重复模式
 2. 输出候选清单（每条含来源任务、建议归属与理由），交用户确认
-3. 用户确认后写入载体：`index.md` 补索引行（首列稳定 ID `C-<n>` / 归属 / 状态 / 确立来源任务），条文归位到 `common.md` 或命中的端分册；变更已有规范语义时先在 `history.md` 追加一行留痕
+3. 用户确认后写入载体：`index.md` 补索引行（首列稳定 ID `C-<n>` / 归属），条文归位到 `common.md` 或命中的端分册 / 分类标签分册；语义变更先在 `history.md` 追加一行留痕，条目作废按三层清理迁入 `retired.md`
 4. 无候选时完全静默，不强加流程
 
 ## 模式一：沉淀本次会话

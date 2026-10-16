@@ -9,9 +9,14 @@ import {
   ENDPOINT_ANCHOR_HEADER,
   ENTRY_VERSION,
   HISTORY_FILE,
+  ID_HEADER,
   ID_RE,
+  INDEX_ANCHOR_HEADER,
   INDEX_FILE,
   LEGACY_FILE,
+  OWNER_HEADER,
+  RETIRED_ANCHOR_HEADER,
+  RETIRED_FILE,
   carrierFiles,
   columnIndex,
   findTable,
@@ -60,13 +65,13 @@ function summarize(form: ConventionsForm, entries: number, shells: number, warni
   return warnings === 0 ? `${head}，无待处理项` : `${head}，${warnings} 项待处理`
 }
 
-// 载体形态块：v2 无项；v1 提示可升级；形态异常与旧单文件并存各报一条
+// 载体形态块：v3 无项；v1 提示可升级；形态异常与旧单文件并存各报一条
 function checkForm(state: CarrierState, items: ConventionsStatusItem[]): void {
   if (state.form === "v1") {
     items.push({
       level: "warn",
       scope: "形态",
-      message: `载体为 v1 形态（无形态标记、无 ${HISTORY_FILE}）：可执行 toolkit conventions upgrade 升为 v2`,
+      message: `载体为 v1 形态（无形态标记、无 ${HISTORY_FILE}）：可执行 toolkit conventions upgrade 升为 v3`,
     })
   } else if (state.form === "abnormal") {
     items.push({
@@ -84,13 +89,15 @@ function checkForm(state: CarrierState, items: ConventionsStatusItem[]): void {
   }
 }
 
-// 索引块：ID 形态 / ID 重复 / 归属悬空 / 分册孤立（v1 首列为序号，不做 ID 形态检查）
+// 索引块：ID 形态 / ID 重复 / 归属悬空 / common 带端提示 / 分册孤立 / 退休台账
 function checkIndex(state: CarrierState, items: ConventionsStatusItem[]): void {
   const indexContent = state.hasIndex ? readTextFile(state.indexFile) : ""
   const lines = indexContent.split(/\r?\n/)
   const ids = state.entries.map((e) => e.id).filter((id) => id !== "")
+  const idSet = new Set(ids)
 
-  if (state.form === "v2") {
+  // ID 形态与重复：首列为 ID 时（v2 / v3）校验；v1 首列为序号，不做此检查
+  if ((state.header[0] ?? "") === ID_HEADER) {
     for (const id of ids) {
       if (!ID_RE.test(id)) {
         items.push({ level: "warn", scope: "索引", message: `索引表首列「${id}」不合稳定 ID 形态 C-<n>` })
@@ -103,27 +110,43 @@ function checkIndex(state: CarrierState, items: ConventionsStatusItem[]): void {
     }
   }
 
-  // 归属列取值须落在端清单（含保留归属 common）内，否则为悬空指针
-  const ownerIdx = columnIndex(state.header, "归属")
+  // 载体分册名集合（含分类标签分册），供归属合法性与孤立判定复用
+  const volumeNames = new Set<string>()
+  for (const file of carrierFiles(state)) {
+    if (file === state.indexFile) continue
+    volumeNames.add(basename(file, ".md"))
+  }
+
+  // 归属列取值须落在端清单、保留归属 common 或已存在的分类标签分册名内，否则为悬空指针
+  const ownerIdx = columnIndex(state.header, OWNER_HEADER)
   const endpoints = findTable(lines, ENDPOINT_ANCHOR_HEADER)
-  if (ownerIdx !== -1 && endpoints) {
-    const nameIdx = columnIndex(endpoints.header, "端名")
-    const declared = new Set<string>()
+  const nameIdx = endpoints ? columnIndex(endpoints.header, "端名") : -1
+  const declared = new Set<string>()
+  if (endpoints) {
     for (const row of endpoints.rows) {
       const name = nameIdx === -1 ? "" : (row[nameIdx] ?? "")
       if (name !== "") declared.add(name)
     }
+  }
+  const semanticIdx = columnIndex(state.header, INDEX_ANCHOR_HEADER)
+  if (ownerIdx !== -1 && endpoints) {
     for (const entry of state.entries) {
-      for (const owner of (entry.cells[ownerIdx] ?? "").split(/[、,，\s]+/).filter((o) => o !== "")) {
-        if (!declared.has(owner) && !RESERVED_OWNERS.has(owner)) {
-          items.push({ level: "warn", scope: "索引", message: `条目 ${entry.id} 的归属「${owner}」不在端清单中` })
+      const owners = (entry.cells[ownerIdx] ?? "").split(/[、,，\s]+/).filter((o) => o !== "")
+      for (const owner of owners) {
+        if (!declared.has(owner) && !RESERVED_OWNERS.has(owner) && !volumeNames.has(owner)) {
+          items.push({ level: "warn", scope: "索引", message: `条目 ${entry.id} 的归属「${owner}」不在端清单、保留归属或分类标签分册中` })
         }
+      }
+      // common 锁死为「所有端都适用」：语义提及具体端名时提示确认是否应下沉为端归属
+      if (owners.length === 1 && owners[0] === "common" && semanticIdx !== -1) {
+        const semantic = entry.cells[semanticIdx] ?? ""
+        const hit = [...declared].find((name) => name !== "" && semantic.includes(name))
+        if (hit) items.push({ level: "warn", scope: "索引", message: `条目 ${entry.id} 归属 common 但语义提及端「${hit}」，确认是否应下沉为端归属` })
       }
     }
   }
 
   // 分册孤立：分册小节 ID 在索引表中无对应条目
-  const idSet = new Set(ids)
   for (const file of carrierFiles(state)) {
     if (file === state.indexFile) continue
     const name = basename(file, ".md")
@@ -131,6 +154,22 @@ function checkIndex(state: CarrierState, items: ConventionsStatusItem[]): void {
       const m = SUBHEAD_RE.exec(line)
       if (m && !idSet.has(m[1] ?? "")) {
         items.push({ level: "warn", scope: "索引", message: `分册 ${name}.md 的小节 ${m[1]} 在索引表中无对应条目` })
+      }
+    }
+  }
+
+  // 退休台账：存在时须能定位退休表；其 ID 不得与 Z1 活跃条目重叠（I1 / I2）
+  if (state.hasRetired) {
+    const retiredTable = findTable(readTextFile(state.retiredFile).split(/\r?\n/), RETIRED_ANCHOR_HEADER)
+    if (!retiredTable) {
+      items.push({ level: "warn", scope: "索引", message: `${RETIRED_FILE} 未定位到退休表（表头须含「${RETIRED_ANCHOR_HEADER}」）` })
+    } else {
+      const idIdx = columnIndex(retiredTable.header, ID_HEADER)
+      for (const row of retiredTable.rows) {
+        const id = idIdx === -1 ? "" : (row[idIdx] ?? "")
+        if (id !== "" && idSet.has(id)) {
+          items.push({ level: "warn", scope: "索引", message: `条目 ${id} 同时存在于索引表与 ${RETIRED_FILE}（退休条目须已迁出常驻索引）` })
+        }
       }
     }
   }

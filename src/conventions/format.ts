@@ -8,31 +8,40 @@ import { readTextFile } from "../read-text"
 export const CONVENTIONS_DIR = "conventions"
 export const INDEX_FILE = "index.md"
 export const HISTORY_FILE = "history.md"
+export const RETIRED_FILE = "retired.md"
 export const LEGACY_FILE = "conventions.md"
 
 // 载体结构版本与入口壳结构版本各自独立编号，仅破坏性结构变更时 +1
-export const CARRIER_VERSION = 2
+export const CARRIER_VERSION = 3
 export const ENTRY_VERSION = 2
 
 // 形态标记：载体标记置 index.md 首行，入口壳标记随 frontmatter 之后（Agent Skills 标准要求 frontmatter 置顶）
 export const CARRIER_MARKER = `<!-- toolkit-conventions: v${CARRIER_VERSION} -->`
 export const ENTRY_MARKER = `<!-- toolkit-conventions-entry: v${ENTRY_VERSION} -->`
 
-const CARRIER_MARKER_RE = /<!--\s*toolkit-conventions:\s*v(\d+)\s*-->/
+export const CARRIER_MARKER_RE = /<!--\s*toolkit-conventions:\s*v(\d+)\s*-->/
 const ENTRY_MARKER_RE = /<!--\s*toolkit-conventions-entry:\s*v(\d+)\s*-->/
 
-// 索引表两个关键列表头：`ID` 表 v2 稳定标识，`#` 表 v1 序号；`当前语义` 为表格定位锚（v1/v2 共有）
+// 索引表列头：`ID` 表 v2/v3 稳定标识，`#` 表 v1 序号；`当前语义` 为表格定位锚（v1/v2/v3 共有）
 export const ID_HEADER = "ID"
 export const SEQ_HEADER = "#"
 export const INDEX_ANCHOR_HEADER = "当前语义"
+// v2 独有、v3 升级时删除的两列
+export const STATUS_HEADER = "状态"
+export const SOURCE_TASK_HEADER = "确立来源任务"
+// 索引表其余列名：规则名与归属
+export const NAME_HEADER = "规则"
+export const OWNER_HEADER = "归属"
 // 端清单表格定位锚
 export const ENDPOINT_ANCHOR_HEADER = "端名"
+// 退休台账表格定位锚
+export const RETIRED_ANCHOR_HEADER = "退休时语义（冻结）"
 
 // index.md 标题归一目标
 export const INDEX_TITLE = "# 项目协作规范索引"
 
-// 载体形态：v2 良构 / v1 合法存量 / abnormal 形态异常（拒绝自动处理） / none 未初始化
-export type ConventionsForm = "v2" | "v1" | "abnormal" | "none"
+// 载体形态：v3 良构 / v2 合法存量 / v1 合法存量 / abnormal 形态异常（拒绝自动处理） / none 未初始化
+export type ConventionsForm = "v3" | "v2" | "v1" | "abnormal" | "none"
 
 // 表格块：表头行与数据行的 0 基行号一并返回，供改写方按行拼接
 export interface TableBlock {
@@ -55,6 +64,7 @@ export interface CarrierPresence {
   hasDir: boolean
   hasIndex: boolean
   hasHistory: boolean
+  hasRetired: boolean
   hasLegacy: boolean
   markerVersion: number | null
 }
@@ -64,6 +74,7 @@ export interface CarrierState extends CarrierPresence {
   dir: string
   indexFile: string
   historyFile: string
+  retiredFile: string
   legacyFile: string
   form: ConventionsForm
   header: string[]
@@ -112,6 +123,7 @@ export function readCarrierPresence(tasksDir: string): CarrierPresence {
     hasDir: existsSync(dir),
     hasIndex,
     hasHistory: existsSync(join(dir, HISTORY_FILE)),
+    hasRetired: existsSync(join(dir, RETIRED_FILE)),
     hasLegacy: existsSync(join(tasksDir, LEGACY_FILE)),
     markerVersion: hasIndex ? readCarrierVersion(readTextFile(indexFile)) : null,
   }
@@ -120,7 +132,9 @@ export function readCarrierPresence(tasksDir: string): CarrierPresence {
 // 形态判定（结构与标记不一致时一律判为异常，交由人工确认，不做静默归一）
 export function detectForm(hasIndex: boolean, hasHistory: boolean, idColumn: boolean, markerVersion: number | null): ConventionsForm {
   if (!hasIndex) return "none"
-  if (markerVersion === CARRIER_VERSION) return hasHistory && idColumn ? "v2" : "abnormal"
+  if (markerVersion === CARRIER_VERSION) return hasHistory && idColumn ? "v3" : "abnormal"
+  if (markerVersion === 2) return hasHistory && idColumn ? "v2" : "abnormal"
+  if (markerVersion !== null) return "abnormal"
   if (hasHistory) return idColumn ? "v2" : "abnormal"
   return idColumn ? "abnormal" : "v1"
 }
@@ -185,7 +199,7 @@ export function findTable(lines: string[], headerCell: string): TableBlock | nul
   return null
 }
 
-// 索引表定位（v1 与 v2 表头共有「当前语义」列，据其锚定）
+// 索引表定位（v1 / v2 / v3 表头共有「当前语义」列，据其锚定）
 export function parseIndexTable(lines: string[]): TableBlock | null {
   return findTable(lines, INDEX_ANCHOR_HEADER)
 }
@@ -228,6 +242,7 @@ export function readCarrier(tasksDir: string): CarrierState {
     dir,
     indexFile,
     historyFile: join(dir, HISTORY_FILE),
+    retiredFile: join(dir, RETIRED_FILE),
     legacyFile: join(tasksDir, LEGACY_FILE),
     form: detectForm(presence.hasIndex, presence.hasHistory, idColumn, presence.markerVersion),
     header,
@@ -236,14 +251,14 @@ export function readCarrier(tasksDir: string): CarrierState {
   }
 }
 
-// 载体内全部需扫描内部引用的文件：index.md 与各分册，演进记录只追加不改旧行故排除
+// 载体内全部需扫描内部引用的文件：index.md 与各活跃分册；history.md / retired.md 属归档、只增不改故排除
 export function carrierFiles(state: CarrierState): string[] {
   if (!state.hasIndex) return []
   const files = [state.indexFile]
   if (!existsSync(state.dir)) return files
   for (const entry of readdirSync(state.dir, { withFileTypes: true })) {
     if (!entry.isFile() || !entry.name.endsWith(".md")) continue
-    if (entry.name === INDEX_FILE || entry.name === HISTORY_FILE) continue
+    if (entry.name === INDEX_FILE || entry.name === HISTORY_FILE || entry.name === RETIRED_FILE) continue
     files.push(join(state.dir, entry.name))
   }
   return files
@@ -271,9 +286,9 @@ export function rewriteRefsInLine(line: string, maxSeq: number): { line: string;
 // 演进记录标题与表头（v2 独立成文件）
 export const HISTORY_TITLE = "# 规范演进记录"
 export const HISTORY_TABLE_HEADER = "| 规则 ID / 名称 | 修订内容 | 修订来源任务 |"
-// 表语义边界：只记规范语义变更，载体结构升级与入口壳增删均不入表
+// 表语义边界：只记规范语义变更，载体结构升级、入口壳增删与条目退休均不入表（退休见 retired.md）
 export const HISTORY_BOUNDARY_LINE =
-  "> 表语义边界：本表只记**规范语义变更**；载体结构升级、入口壳生成 / 删除均不入表。"
+  "> 表语义边界：本表只记**规范语义变更**；载体结构升级、入口壳生成 / 删除、条目退休均不入表（退休见 `retired.md`）。"
 // 元规则引语：留痕与源头变更同步机制
 export const HISTORY_INTRO_LINE =
   "> 元规则：规则语义变更时不得覆盖旧语义直接丢史——在「演进记录」追加一条（规则 → 旧语义 → 变更为 → 修订来源任务），`index.md` 索引表只保留当前语义；规则层源头变更（`AGENTS.md` / `docs/ai-rules.md` / skills 条文）随该变更同批落盘。"
@@ -286,4 +301,19 @@ ${HISTORY_BOUNDARY_LINE}
 
 ${HISTORY_TABLE_HEADER}
 | --- | --- | --- |
+`
+
+// 退休台账标题、元规则与表头（v3 独立成文件，属 Z3 归档、不进常规读面）
+export const RETIRED_TITLE = "# 规范退休记录"
+export const RETIRED_META_LINE =
+  "> 元规则：条目作废即从 `index.md` 迁出至本表并冻结退休时语义；编号不回收（见 conventions-spec §8）。本表属 Z3 归档、不进常规读面。"
+export const RETIRED_TABLE_HEADER = "| ID | 规则 | 退休时语义（冻结） | 归属 | 后继 | 退休来源任务 | 条文去向 |"
+
+// 退休台账骨架（首个退休条目迁出时创建）
+export const RETIRED_SKELETON = `${RETIRED_TITLE}
+
+${RETIRED_META_LINE}
+
+${RETIRED_TABLE_HEADER}
+| --- | --- | --- | --- | --- | --- | --- |
 `

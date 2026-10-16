@@ -213,13 +213,16 @@ export function validateTaskFile(file: string): CheckIssue[] {
     issues.push({ level: "warn", file: name, message: `文件名日期 ${nameMatch[1]} 与 created ${fm.created.trim()} 不一致` })
   }
 
-  // 范围字段形态软告警：scope 为分类短词，多值以半角加号分隔；
-  // 顿号/逗号疑似多值分隔误写、括号疑似注释污染，均给出修复指引（高置信项才提示，斜杠/空格不纳入避免噪音）
+  // 范围字段形态软告警：scope 为分类短词，多值以半角加号分隔，端名不含路径分隔符；
+  // 顿号/逗号疑似多值分隔误写、斜杠疑似分隔符误用、括号疑似注释污染，均按高置信项提示
   if (fm.scope) {
     const s = fm.scope.trim()
     const line = fmKeyLine(lines, fmEnd, "scope")
     if (/[、，,]/.test(s)) {
       issues.push({ level: "warn", file: name, line, message: `scope「${fm.scope}」含顿号/逗号疑似多值分隔，多值请改用半角加号连接（如 scope: web+server）` })
+    }
+    if (/[/\\]/.test(s)) {
+      issues.push({ level: "warn", file: name, line, message: `scope「${fm.scope}」含路径分隔符，多值请改用半角加号连接（如 scope: web+server），端名本身不得含分隔符` })
     }
     if (/[()（）]/.test(s)) {
       issues.push({ level: "warn", file: name, line, message: `scope「${fm.scope}」含括号疑似注释性文字，说明请移入正文` })

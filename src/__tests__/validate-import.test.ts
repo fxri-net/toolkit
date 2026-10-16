@@ -88,17 +88,19 @@ describe("validateTasks 依赖与命名校验", () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
-  it("scope 含顿号/逗号/括号软告警，加号多值与干净单值不报", () => {
+  it("scope 含顿号/逗号/括号/路径分隔符软告警，加号多值与干净单值不报", () => {
     const dir = taskDir()
     putFile(dir, "20260903-唐启云-d.md", valid().replace("scope: 测", "scope: a、b"))
     putFile(dir, "20260903-唐启云-e.md", valid().replace("scope: 测", "scope: x(注释)"))
     putFile(dir, "20260903-唐启云-f.md", valid().replace("scope: 测", "scope: a,b"))
     putFile(dir, "20260903-唐启云-g.md", valid().replace("scope: 测", "scope: web+server"))
+    putFile(dir, "20260903-唐启云-i.md", valid().replace("scope: 测", "scope: web/ui"))
     putFile(dir, "20260903-唐启云-h.md", valid())
     const warns = warnTexts(dir)
     expect(warns.some((m) => m.includes("scope「a、b」") && m.includes("半角加号"))).toBe(true)
     expect(warns.some((m) => m.includes("scope「x(注释)」") && m.includes("移入正文"))).toBe(true)
     expect(warns.some((m) => m.includes("scope「a,b」") && m.includes("半角加号"))).toBe(true)
+    expect(warns.some((m) => m.includes("scope「web/ui」") && m.includes("含路径分隔符"))).toBe(true)
     expect(warns.filter((m) => m.includes("scope「web+server」") || m.includes("scope「测」"))).toHaveLength(0)
     rmSync(dir, { recursive: true, force: true })
   })
