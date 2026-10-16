@@ -68,7 +68,7 @@ pnpm exec toolkit tasks stats           # 完成周期 / 滞留 / 吞吐统计
 | 场景 | 你该说 | 会发生什么 |
 | --- | --- | --- |
 | 形态迁移（单文件 → 目录） | 「把项目里的 conventions.md 迁到新形态」 | AI 走三段式：建 `conventions/` 并把旧文件**整体**搬为 `index.md`（原文不丢）→ 逐条给出「`common` / 某端」归属建议 → 你逐条确认后拆成索引行 + 分册 |
-| 结构升级（v1 / v2 → v3） | 「把规范载体升到 v3」 | 载体升到 v3（三分区：常驻索引 / 按需分册 / 归档留痕；首行形态标记、索引表首列为稳定 ID `C-<n>`、索引表删「状态」「确立来源任务」两列）：优先 `pnpm exec toolkit conventions upgrade`（`--dry-run` 预演、幂等、先判后写，异常形态拒绝写盘），亦可按链路手工执行 |
+| 结构升级（v1 / v2 → v3） | 「把规范载体升到 v3」 | 载体升到 v3（三分区：常驻索引 / 按需分册 / 归档留痕；首行形态标记、索引表首列为稳定 ID `C-<n>`、索引表删「状态」「确立来源任务」两列、`history.md` 表头首格同为稳定 ID `ID`）：优先 `pnpm exec toolkit conventions upgrade`（`--dry-run` 预演、幂等、先判后写，异常形态拒绝写盘），亦可按链路手工执行 |
 | 只修订内容（不换形态） | 「第 3 条规范改成 …」 | 语义变更：AI 在 `history.md` 追加留痕（只追加、不改旧行）→ 更新 `index.md` 该行「当前语义」；规则**作废**走「迁出 + 三层清理」——索引行从 `index.md` **删除**并迁入 `retired.md`（冻结退休时语义、记后继与条文去向），同时**物理删除**分册内该条小节、同步删改外部单一事实源 |
 
 - **入口**：`pnpm exec toolkit tasks check` 报旧单文件 `conventions.md` 存在、`conventions/` 缺 `index.md` 或载体形态异常时按提示处理；`pnpm exec toolkit conventions status` 可查载体形态、索引与入口层现场；新项目 `toolkit init` 已预生成 `index.md` 与 `history.md` 骨架

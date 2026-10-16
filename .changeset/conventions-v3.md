@@ -12,3 +12,7 @@
 修复：`toolkit conventions status` 的 common 下沉提示改为大小写不敏感、判据收窄为「语义含端限定语（仅 / 只 / 专属 / 适用于）且提及端名」，消除举例式提及的假阳性并补上大写端名的漏报
 修改：`toolkit conventions upgrade` 新增 `index.md` 正文 v2 措辞复核——表外自由文本残留「确立来源任务」「状态改为已废弃」等表述时列入 `reviews`（只报不改）
 修改：`toolkit tasks check` 与 `toolkit conventions status` 新增演进记录首列形态校验——v3 载体的 `history.md` 数据行首列须记为行内代码包裹的稳定 ID `C-<n>`，检出规则名等非 ID 首列时软告警（只报不改，历史行只追加故补齐须人工确认）
+修改：规范载体三表表头统一为稳定 ID `ID`——索引表（`| ID | 规则 | 当前语义 | 归属 | 单一事实源 |`）、`history.md`（`| ID | 修订内容 | 修订来源任务 |`）、`retired.md` 首格同归一；表头与分隔行由列名常量单源派生，杜绝列集合形态漂移
+修复：`toolkit init` 生成的 `conventions/index.md` 骨架此前残留 v2 列结构，改为按 v3 五列生成
+修改：`toolkit conventions upgrade` 的 v2→v3 升级新增 `history.md` 表头首格归一为稳定 ID `ID`
+修改：`toolkit tasks check` 与 `toolkit conventions status` 新增表形态速检——v3 载体索引表残留 v2 独有列（「状态」「确立来源任务」）或 `history.md` / `retired.md` 表头首格非 `ID` 时软告警（只报不改）

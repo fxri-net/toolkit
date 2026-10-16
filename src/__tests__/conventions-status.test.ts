@@ -12,6 +12,7 @@ import {
   ENTRY_MARKER,
   ENTRY_VERSION,
   HISTORY_TABLE_HEADER,
+  HISTORY_FILE,
   HISTORY_TITLE,
   ID_HEADER,
   INDEX_ANCHOR_HEADER,
@@ -427,6 +428,88 @@ describe("表格形态体检", () => {
 
     const report = conventionsStatus(root, cwd)
     expect(report.items.filter((i) => i.message.includes("列对齐填充"))).toEqual([])
+  })
+})
+
+describe("表形态残留体检", () => {
+  // 以良构载体为底，按用例给定内容落 index / history（用于构造残留列与旧表头现场）
+  function writeCarrier(root: string, index: string, extra: Record<string, string> = {}): void {
+    const dir = join(root, "conventions")
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, "index.md"), index, "utf8")
+    writeFileSync(join(dir, "history.md"), `${HISTORY_TITLE}\n`, "utf8")
+    for (const [name, content] of Object.entries(extra)) writeFileSync(join(dir, name), content, "utf8")
+  }
+
+  // v3 标记 + 端清单 + 指定索引表两行
+  const carrierIndex = (tableLines: string): string => `${CARRIER_MARKER}
+${INDEX_TITLE}
+
+## 一、端清单
+
+| 端名 | 说明 |
+| --- | --- |
+| web | 网页端 |
+
+## 二、索引
+
+${tableLines}
+`
+
+  it("v3 载体索引表残留 v2 独有列「状态」时软告警（不要求恰好五列）", () => {
+    const root = makeDir("tk-status-shape-col-")
+    const cwd = makeDir("tk-status-shape-col-cwd-")
+    writeCarrier(
+      root,
+      carrierIndex(`| ${ID_HEADER} | 规则 | ${INDEX_ANCHOR_HEADER} | 归属 | 状态 |
+| --- | --- | --- | --- | --- |
+| ${idOf(1)} | 四级时间源 | 当场打点优先 | common | 生效 |`),
+    )
+
+    const report = conventionsStatus(root, cwd)
+    expect(report.form).toBe(`v${CARRIER_VERSION}`)
+    const hits = report.items.filter((i) => i.message.includes("残留 v2 列"))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]!.level).toBe("warn")
+    expect(hits[0]!.scope).toBe("形态")
+    expect(hits[0]!.message).toContain("状态")
+  })
+
+  it("v3 载体 history.md 表头首格非稳定 ID 时软告警", () => {
+    const root = makeDir("tk-status-shape-hist-")
+    const cwd = makeDir("tk-status-shape-hist-cwd-")
+    makeCarrier(root, cleanRows)
+    writeFileSync(join(root, "conventions", "history.md"), `${HISTORY_TITLE}\n\n| 规则 ID / 名称 | 修订内容 | 修订来源任务 |\n| --- | --- | --- |\n`, "utf8")
+
+    const report = conventionsStatus(root, cwd)
+    const hits = report.items.filter((i) => i.message.includes("表头首格") && i.message.includes(HISTORY_FILE))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]!.level).toBe("warn")
+    expect(hits[0]!.message).toContain(ID_HEADER)
+  })
+
+  it("v3 载体 retired.md 表头首格非稳定 ID 时软告警", () => {
+    const root = makeDir("tk-status-shape-ret-")
+    const cwd = makeDir("tk-status-shape-ret-cwd-")
+    makeCarrier(root, cleanRows, {
+      extra: { [RETIRED_FILE]: `${RETIRED_TITLE}\n\n| 规则 ID / 名称 | 规则 | ${RETIRED_ANCHOR_HEADER} |\n| --- | --- | --- |\n` },
+    })
+
+    const report = conventionsStatus(root, cwd)
+    const hits = report.items.filter((i) => i.message.includes("表头首格") && i.message.includes(RETIRED_FILE))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]!.level).toBe("warn")
+    expect(hits[0]!.message).toContain(ID_HEADER)
+  })
+
+  it("良构 v3 载体（无残留列、表头首格为 ID）不产生表形态残留告警", () => {
+    const root = makeDir("tk-status-shape-ok-")
+    const cwd = makeDir("tk-status-shape-ok-cwd-")
+    makeCarrier(root, cleanRows)
+
+    const report = conventionsStatus(root, cwd)
+    expect(report.form).toBe(`v${CARRIER_VERSION}`)
+    expect(report.items.filter((i) => i.message.includes("残留 v2 列") || i.message.includes("表头首格"))).toEqual([])
   })
 })
 

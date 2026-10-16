@@ -185,7 +185,7 @@ pnpm remove -g @fxri/toolkit   # 2. 再卸 CLI
 
 ### 载体已经是 `conventions/` 目录了，还要升级什么？
 
-目录形态另有**结构版本**之分：最新为 **v3**（三分区——常驻 `index.md` 索引、按需分册、归档面 `history.md` / `retired.md`；首行形态标记 + 索引表首列稳定 ID `C-<n>`），v2 用「首行形态标记 + 稳定 ID + 独立 `history.md`」，v1 则无标记、首列是序号 `#`、演进记录与索引同文件。说一句「把规范载体升到 v3」或直接跑 `toolkit conventions upgrade`（`--dry-run` 预演；幂等、先判后写，异常形态拒绝写盘），v1 / v2 输入会链式升级、内部引用一并改写为稳定 ID。`toolkit conventions status` 可查载体形态、索引与入口层现场，`toolkit tasks check` 也会在形态异常时软告警。
+目录形态另有**结构版本**之分：最新为 **v3**（三分区——常驻 `index.md` 索引、按需分册、归档面 `history.md` / `retired.md`；首行形态标记 + 索引表首列稳定 ID `C-<n>`），v2 用「首行形态标记 + 稳定 ID + 独立 `history.md`」，v1 则无标记、首列是序号 `#`、演进记录与索引同文件。说一句「把规范载体升到 v3」或直接跑 `toolkit conventions upgrade`（`--dry-run` 预演；幂等、先判后写，异常形态拒绝写盘），v1 / v2 输入会链式升级——删索引表「状态」「确立来源任务」两列、`history.md` 表头首格归一为稳定 ID `ID`、废弃条目迁入 `retired.md`、内部引用一并改写为稳定 ID。`toolkit conventions status` 可查载体形态、索引与入口层现场，`toolkit tasks check` 也会在形态异常时软告警。
 
 ### 载体表格里为什么有大量空格？怎么去掉？
 

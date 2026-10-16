@@ -125,9 +125,9 @@
 
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
-| `fxri-plan-to-task` | 1.8.2 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
+| `fxri-plan-to-task` | 1.8.3 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
 | `fxri-release-changelog` | 1.1.8 | changesets 发版与多语言 CHANGELOG 维护 |
-| `fxri-session-recap` | 1.4.0 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
+| `fxri-session-recap` | 1.4.1 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 
 版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` 打印的真源版本），随技能内容变更递增；`fxri-session-recap` 为 1.7.0 新增
 
@@ -228,9 +228,9 @@ pnpm dlx skills add fxri-net/toolkit --global
 2. **AI 提归属建议**：读原有条目，逐条给出「`common` / 某端」建议与理由（旧文件无端信息，语义分流无法机械完成），形成待确认清单
 3. **用户逐条确认**：确认后写索引行、把条文全文拆入对应分册；**未确认的条目保持原样留在 `index.md`**，不强推
 
-**v1 / v2 → v3 升级**：载体结构从 v1（无首行标记、索引表首列为序号 `#`、演进记录与索引同文件）经 v2（首行形态标记、索引表首列为稳定 ID `C-<n>`、演进记录抽独立 `history.md`），升到 **v3 三分区**（索引表删「状态」「确立来源任务」两列、废弃条目迁入 `retired.md` 并删分册条文，活跃读面只含活跃条文），优先用 `toolkit conventions upgrade`（`--dry-run` 预演、幂等、先判后写，异常形态拒绝写盘；v1 输入链式升 v1 → v2 → v3），亦可按链路手工执行；内部引用改写为稳定 ID 且**映射关系不落盘**（`history.md` 只记语义修订，不记 ID 对照）。`toolkit conventions status` 可查载体形态与待处理项。
+**v1 / v2 → v3 升级**：载体结构从 v1（无首行标记、索引表首列为序号 `#`、演进记录与索引同文件）经 v2（首行形态标记、索引表首列为稳定 ID `C-<n>`、演进记录抽独立 `history.md`），升到 **v3 三分区**（索引表删「状态」「确立来源任务」两列、`history.md` 表头首格归一为稳定 ID `ID`、废弃条目迁入 `retired.md` 并删分册条文，活跃读面只含活跃条文），优先用 `toolkit conventions upgrade`（`--dry-run` 预演、幂等、先判后写，异常形态拒绝写盘；v1 输入链式升 v1 → v2 → v3），亦可按链路手工执行；内部引用改写为稳定 ID 且**映射关系不落盘**（`history.md` 只记语义修订，不记 ID 对照）。`toolkit conventions status` 可查载体形态与待处理项。
 
-迁移期间新旧兼容读：先找 `conventions/index.md`，不存在再看旧单文件 `conventions.md`（存在则提示可迁移）；两者并存时以目录形态为准并提示清理旧文件。`toolkit tasks check` 在旧单文件残留、`conventions/` 缺 `index.md`、载体形态异常（标记与 `history.md` / 索引表首列 ID 不一致）或 v3 载体 `history.md` 数据行首列非稳定 ID（提示人工补录、只报不改）时给软告警，即为迁移入口；`toolkit init` 在无旧单文件时预先生成 `index.md` 与 `history.md` 骨架。
+迁移期间新旧兼容读：先找 `conventions/index.md`，不存在再看旧单文件 `conventions.md`（存在则提示可迁移）；两者并存时以目录形态为准并提示清理旧文件。`toolkit tasks check` 在旧单文件残留、`conventions/` 缺 `index.md`、载体形态异常（标记与 `history.md` / 索引表首列 ID 不一致）、v3 载体索引表残留 v2 独有列（「状态」「确立来源任务」）或 `history.md` / `retired.md` 表头首格非稳定 ID `ID`（提示人工归一）、或 v3 载体 `history.md` 数据行首列非稳定 ID（提示人工补录、只报不改）时给软告警，即为迁移入口；`toolkit init` 在无旧单文件时预先生成 `index.md` 与 `history.md` 骨架。
 
 ## 隐私脱敏
 

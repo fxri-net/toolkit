@@ -124,6 +124,11 @@ const readIndex = (root: string) => readFileSync(join(root, "conventions", "inde
 const readCommon = (root: string) => readFileSync(join(root, "conventions", "common.md"), "utf8")
 // 取索引表表头行，用于核验列结构
 const indexHeaderRow = (root: string) => readIndex(root).split(/\r?\n/).find((l) => l.startsWith("| ID |")) ?? ""
+// 取演进记录表表头行，用于核验首格归一
+const historyHeaderRow = (root: string) =>
+  readFileSync(join(root, "conventions", HISTORY_FILE), "utf8")
+    .split(/\r?\n/)
+    .find((l) => l.startsWith("| ") && l.includes("修订内容")) ?? ""
 
 describe("载体形态识别", () => {
   it("无 index.md 判未初始化，有 index.md 无 history.md 无标记判 v1", () => {
@@ -235,6 +240,8 @@ describe("v2 → v3 迁移", () => {
     expect(index.split(/\r?\n/, 1)[0]).toBe(CARRIER_MARKER)
     // 索引表收为 v3 五列
     expect(indexHeaderRow(root)).toBe("| ID | 规则 | 当前语义 | 归属 | 单一事实源 |")
+    // 演进记录表头首格由旧「规则 ID / 名称」归一为稳定 ID
+    expect(historyHeaderRow(root)).toBe("| ID | 修订内容 | 修订来源任务 |")
     // 活跃条目保留、退休条目行已迁出，状态文字不留痕
     expect(index).toContain(`| ${idOf(1)} | 四级时间源 | 当场打点优先 | common | common.md |`)
     expect(index).not.toContain(idOf(2))

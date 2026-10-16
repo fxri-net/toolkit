@@ -93,10 +93,10 @@ function trimBlankEdges(lines: string[]): string[] {
   return lines
 }
 
-// 抽出「演进记录」节内容并归一为独立文件正文（标题统一、表头首格改「规则 ID / 名称」、补表语义边界行）
+// 抽出「演进记录」节内容并归一为独立文件正文（标题统一、表头首格归一为稳定 ID、补表语义边界行）
 function buildHistoryContent(section: string[], eol: string): { content: string; rows: number } {
   const table = findTable(section, HISTORY_ANCHOR_HEADER)
-  const body = section.map((line, i) => (table && i === table.headerLine ? setRowCell(line, 0, "规则 ID / 名称") : line))
+  const body = section.map((line, i) => (table && i === table.headerLine ? setRowCell(line, 0, ID_HEADER) : line))
   // 引语块随节平移，「本节」随文件外置改「本文件」
   const quotes = body.filter((l) => l.trimStart().startsWith(">")).map((l) => l.replace(/本节/g, "本文件"))
   if (!quotes.some((l) => l.includes("表语义边界"))) quotes.push(HISTORY_BOUNDARY_LINE)
@@ -314,7 +314,26 @@ export function upgradeConventions(tasksDir = ".tasks", options: UpgradeOptions 
     changes.push({ target: INDEX_FILE, detail: `索引表删除列「${names.join("」「")}」` })
   }
 
-  // ② 退休条目：先删分册小节（三层清理的分册层），再从索引表删行（索引层）
+  // ② history.md 表头首格归一为稳定 ID：v2 存量的 history.md 沿用「规则 ID / 名称」旧表头，须与索引表首列同归一
+  let historyEol = eol
+  let historyLines: string[] | null = null
+  if (historyContent !== null) {
+    historyLines = historyContent.split(/\r?\n/)
+  } else if (existsSync(state.historyFile)) {
+    const rawHistory = readTextFile(state.historyFile)
+    historyEol = rawHistory.includes("\r\n") ? "\r\n" : "\n"
+    historyLines = rawHistory.split(/\r?\n/)
+  }
+  if (historyLines) {
+    const historyTable = findTable(historyLines, HISTORY_ANCHOR_HEADER)
+    if (historyTable && (historyTable.header[0] ?? "") !== ID_HEADER) {
+      historyLines[historyTable.headerLine] = setRowCell(historyLines[historyTable.headerLine] ?? "", 0, ID_HEADER)
+      historyContent = historyLines.join(historyEol)
+      changes.push({ target: HISTORY_FILE, detail: `表头首格归一为 ${ID_HEADER}` })
+    }
+  }
+
+  // ③ 退休条目：先删分册小节（三层清理的分册层），再从索引表删行（索引层）
   let removedSections = 0
   for (const r of retired) {
     for (const [file, vol] of volumes) {
@@ -339,7 +358,7 @@ export function upgradeConventions(tasksDir = ".tasks", options: UpgradeOptions 
     if (removedSections > 0) changes.push({ target: RETIRED_FILE, detail: `删除分册退休小节 ${removedSections} 处` })
   }
 
-  // ③ retired.md 按需建（无退休条目则不创建）；已存在则把新行追加到退休表末尾
+  // ④ retired.md 按需建（无退休条目则不创建）；已存在则把新行追加到退休表末尾
   let retiredContent: string | null = null
   if (retired.length > 0) {
     const rows = retired.map((r) => `| ${r.id} | ${r.name} | ${r.semantic} | ${r.owner} | — | — | ${r.location} |`)
@@ -361,13 +380,7 @@ export function upgradeConventions(tasksDir = ".tasks", options: UpgradeOptions 
     reviews.push(`${RETIRED_FILE} 中 ${retired.length} 条退休条目的「后继」「退休来源任务」列机械迁移填「—」，请人工补录`)
   }
 
-  // ④ history.md 人工复核：首列仍用规则名者、来源列含多任务者（只报不改，历史行只追加）
-  const historyLines =
-    historyContent !== null
-      ? historyContent.split(/\r?\n/)
-      : existsSync(state.historyFile)
-        ? readTextFile(state.historyFile).split(/\r?\n/)
-        : null
+  // ⑤ history.md 人工复核：首列仍用规则名者、来源列含多任务者（只报不改，历史行只追加）
   if (historyLines) {
     const historyTable = findTable(historyLines, HISTORY_ANCHOR_HEADER)
     if (historyTable) {
@@ -379,13 +392,13 @@ export function upgradeConventions(tasksDir = ".tasks", options: UpgradeOptions 
     }
   }
 
-  // ⑤ index.md 正文 v2 措辞复核：升级只机械归一索引表列结构，表外描述该表的用法说明 / 写入纪律等自由文本不随之改写，命中列入复核项（只报不改）
+  // ⑥ index.md 正文 v2 措辞复核：升级只机械归一索引表列结构，表外描述该表的用法说明 / 写入纪律等自由文本不随之改写，命中列入复核项（只报不改）
   const staleIndexLines = lines.filter((ln) => ln.includes(SOURCE_TASK_HEADER) || /状态[^。；\n]{0,20}已废弃/.test(ln)).length
   if (staleIndexLines > 0) {
     reviews.push(`${INDEX_FILE} 正文有 ${staleIndexLines} 行残留 v2 措辞（如「${SOURCE_TASK_HEADER}」「状态改为已废弃」）：v3 已删该两列并迁出退休条目，用法说明 / 写入纪律须同步改写`)
   }
 
-  // ⑥ 标记升 v3（首行）
+  // ⑦ 标记升 v3（首行）
   lines.unshift(CARRIER_MARKER)
   changes.push({ target: INDEX_FILE, detail: `首行形态标记置为 ${CARRIER_MARKER}` })
 

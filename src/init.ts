@@ -7,10 +7,12 @@ import { readTextFile } from "./read-text"
 import {
   CARRIER_MARKER,
   CONVENTIONS_DIR,
+  ENDPOINT_ANCHOR_HEADER,
   ENTRY_VERSION,
   HISTORY_FILE,
   HISTORY_SKELETON,
   INDEX_FILE,
+  INDEX_TABLE_LINES,
   INDEX_TITLE,
   LEGACY_FILE,
   readCarrier,
@@ -66,13 +68,12 @@ ${INDEX_TITLE}
 
 ## 一、端清单
 
-| 端名 | 说明 |
+| ${ENDPOINT_ANCHOR_HEADER} | 说明 |
 | --- | --- |
 
 ## 二、索引
 
-| ID | 规则 | 当前语义 | 归属 | 状态 | 确立来源任务 | 单一事实源 |
-| --- | --- | --- | --- | --- | --- | --- |
+${INDEX_TABLE_LINES}
 
 ## 三、用法说明
 

@@ -29,13 +29,34 @@ export const INDEX_ANCHOR_HEADER = "当前语义"
 // v2 独有、v3 升级时删除的两列
 export const STATUS_HEADER = "状态"
 export const SOURCE_TASK_HEADER = "确立来源任务"
-// 索引表其余列名：规则名与归属
+// 索引表其余列名：规则名、归属与条文单一事实源位置
 export const NAME_HEADER = "规则"
 export const OWNER_HEADER = "归属"
+export const SOURCE_HEADER = "单一事实源"
+// 演进记录与退休台账所用列名（表头行统一由列名常量派生）
+export const REVISION_HEADER = "修订内容"
+export const SUCCESSOR_HEADER = "后继"
+export const RETIRED_TASK_HEADER = "退休来源任务"
+export const TEXT_DEST_HEADER = "条文去向"
 // 端清单表格定位锚
 export const ENDPOINT_ANCHOR_HEADER = "端名"
 // 退休台账表格定位锚
 export const RETIRED_ANCHOR_HEADER = "退休时语义（冻结）"
+
+// 表头行与分隔行由列名集合派生：列数不手写，杜绝表头与分隔行列数脱节
+function headerRow(cells: string[]): string {
+  return `| ${cells.join(" | ")} |`
+}
+function separatorRow(count: number): string {
+  return `| ${Array.from({ length: count }, () => "---").join(" | ")} |`
+}
+// 表格两行文本（表头 + 派生分隔行），供骨架与 init 单源拼接
+function tableLines(cells: string[]): string {
+  return `${headerRow(cells)}\n${separatorRow(cells.length)}`
+}
+
+// 索引表列名集合（v3 五列）与骨架两行：表头 / 分隔行由此单源派生，形态改一处即全体一致
+export const INDEX_TABLE_LINES = tableLines([ID_HEADER, NAME_HEADER, INDEX_ANCHOR_HEADER, OWNER_HEADER, SOURCE_HEADER])
 
 // index.md 标题归一目标
 export const INDEX_TITLE = "# 项目协作规范索引"
@@ -293,17 +314,19 @@ export function rewriteRefsInLine(line: string, maxSeq: number): { line: string;
   return { line: next, hits }
 }
 
-// 演进记录标题与表头（v2 独立成文件）
+// 演进记录标题（v2 起独立成文件）
 export const HISTORY_TITLE = "# 规范演进记录"
-export const HISTORY_TABLE_HEADER = "| 规则 ID / 名称 | 修订内容 | 修订来源任务 |"
 // 演进记录表格定位锚（第三列固定为修订来源任务）
 export const HISTORY_ANCHOR_HEADER = "修订来源任务"
+// 演进记录表列名集合：表头行与分隔行由此单源派生，首格与索引表同为稳定 ID
+const HISTORY_COLUMNS = [ID_HEADER, REVISION_HEADER, HISTORY_ANCHOR_HEADER]
+export const HISTORY_TABLE_HEADER = headerRow(HISTORY_COLUMNS)
 // 表语义边界：只记规范语义变更，载体结构升级、入口壳增删与条目退休均不入表（退休见 retired.md）
 export const HISTORY_BOUNDARY_LINE =
   "> 表语义边界：本表只记**规范语义变更**；载体结构升级、入口壳生成 / 删除、条目退休均不入表（退休见 `retired.md`）。"
 // 元规则引语：留痕与源头变更同步机制
 export const HISTORY_INTRO_LINE =
-  "> 元规则：规则语义变更时不得覆盖旧语义直接丢史——在「演进记录」追加一条（规则 → 旧语义 → 变更为 → 修订来源任务），`index.md` 索引表只保留当前语义；规则层源头变更（`AGENTS.md` / `docs/ai-rules.md` / skills 条文）随该变更同批落盘。"
+  "> 元规则：规则语义变更时不得覆盖旧语义直接丢史——在「演进记录」追加一条（规则 ID → 旧语义 → 变更为 → 修订来源任务），`index.md` 索引表只保留当前语义；规则层源头变更（`AGENTS.md` / `docs/ai-rules.md` / skills 条文）随该变更同批落盘。"
 
 // 演进记录骨架（新建项目与无演进记录节时升级共用）
 export const HISTORY_SKELETON = `${HISTORY_TITLE}
@@ -311,21 +334,21 @@ export const HISTORY_SKELETON = `${HISTORY_TITLE}
 ${HISTORY_INTRO_LINE}
 ${HISTORY_BOUNDARY_LINE}
 
-${HISTORY_TABLE_HEADER}
-| --- | --- | --- |
+${tableLines(HISTORY_COLUMNS)}
 `
 
 // 退休台账标题、元规则与表头（v3 独立成文件，属 Z3 归档、不进常规读面）
 export const RETIRED_TITLE = "# 规范退休记录"
 export const RETIRED_META_LINE =
   "> 元规则：条目作废即从 `index.md` 迁出至本表并冻结退休时语义；编号不回收（见 conventions-spec §8）。本表属 Z3 归档、不进常规读面。"
-export const RETIRED_TABLE_HEADER = "| ID | 规则 | 退休时语义（冻结） | 归属 | 后继 | 退休来源任务 | 条文去向 |"
+// 退休台账表列名集合：表头行与分隔行由此单源派生
+const RETIRED_COLUMNS = [ID_HEADER, NAME_HEADER, RETIRED_ANCHOR_HEADER, OWNER_HEADER, SUCCESSOR_HEADER, RETIRED_TASK_HEADER, TEXT_DEST_HEADER]
+export const RETIRED_TABLE_HEADER = headerRow(RETIRED_COLUMNS)
 
 // 退休台账骨架（首个退休条目迁出时创建）
 export const RETIRED_SKELETON = `${RETIRED_TITLE}
 
 ${RETIRED_META_LINE}
 
-${RETIRED_TABLE_HEADER}
-| --- | --- | --- | --- | --- | --- | --- |
+${tableLines(RETIRED_COLUMNS)}
 `

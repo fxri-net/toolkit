@@ -8,7 +8,7 @@ import { initWorkspace } from "../init"
 import { todayCompact } from "../date"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { skillsStateFile } from "../skills"
-import { CARRIER_MARKER, ENTRY_MARKER, ENTRY_VERSION, HISTORY_TITLE } from "../conventions/format"
+import { CARRIER_MARKER, ENTRY_MARKER, ENTRY_VERSION, HISTORY_TABLE_HEADER, HISTORY_TITLE, INDEX_TABLE_LINES } from "../conventions/format"
 import { AGENTS_POINTER_END, AGENTS_POINTER_START, ENTRY_SHELL_NAME, FALLBACK_SKILL_DIR, SKILL_ENTRY } from "../conventions/entry"
 
 // 临时目录中执行 init 并清理
@@ -69,7 +69,7 @@ describe("initWorkspace 骨架生成", () => {
 })
 
 describe("initWorkspace 规范载体骨架", () => {
-  it("空目录生成 index.md（三节，首行为 v2 标记）与 history.md", () => {
+  it("空目录生成 index.md（三节，首行为 v3 标记，索引表为 v3 五列）与 history.md", () => {
     const { cwd } = track(runInDir("tk-init-conv-"))
     initWorkspace(".tasks", cwd)
     const index = readFileSync(join(cwd, ".tasks", "conventions", "index.md"), "utf8")
@@ -78,8 +78,11 @@ describe("initWorkspace 规范载体骨架", () => {
     expect(index).toContain("## 二、索引")
     expect(index).toContain("## 三、用法说明")
     expect(index).not.toContain("## 四、")
+    // 索引表由列名常量单源派生，须为 v3 五列（防骨架回退成 v2 列结构）
+    expect(index).toContain(INDEX_TABLE_LINES)
     const history = readFileSync(join(cwd, ".tasks", "conventions", "history.md"), "utf8")
     expect(history.split(/\r?\n/, 1)[0]).toBe(HISTORY_TITLE)
+    expect(history).toContain(HISTORY_TABLE_HEADER)
   })
 
   it("重复执行与已有索引均不覆盖", () => {

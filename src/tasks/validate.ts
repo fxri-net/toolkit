@@ -18,9 +18,15 @@ import {
   ID_HEADER,
   INDEX_FILE,
   LEGACY_FILE,
+  RETIRED_ANCHOR_HEADER,
+  RETIRED_FILE,
+  SOURCE_TASK_HEADER,
+  STATUS_HEADER,
+  columnIndex,
   findTable,
   isIdCell,
   readCarrier,
+  type CarrierState,
 } from "../conventions/format"
 import { findEntryShells, ignoredShellAlert, mismatchedShellAlert } from "../conventions/entry"
 import { filledTableLines, listMarkdownFiles } from "../conventions/compact"
@@ -336,6 +342,7 @@ function validateConventions(tasksDir: string, cwd: string): CheckIssue[] {
           : `规范载体存在 ${HISTORY_FILE} 但索引表首列仍非 ${ID_HEADER}（形态异常），请人工确认`,
     })
   }
+  issues.push(...validateTableShape(tasksDir, state))
   const shells = findEntryShells(cwd)
   // 一次批量判定全部落点的 gitignore 状态，避免逐壳各起一个 git 子进程
   const ignored = gitIgnoredSet(cwd, shells.map((s) => s.file))
@@ -347,6 +354,39 @@ function validateConventions(tasksDir: string, cwd: string): CheckIssue[] {
     if (alert) issues.push({ level: "warn", file: alert.file, message: alert.message })
   }
   issues.push(...localConfigIssues(cwd))
+  return issues
+}
+
+// 表形态软告警：形态判定只看标记 + history 存在 + 索引表首列，列集合漂移捕获不到，故在此补齐
+// v3 标记载体不得残留 v2 独有列；演进记录与退休台账表头首格须为稳定 ID（这两表不参与形态判定）
+function validateTableShape(tasksDir: string, state: CarrierState): CheckIssue[] {
+  if (state.form !== "v3") return []
+  const issues: CheckIssue[] = []
+  const legacyCols = [STATUS_HEADER, SOURCE_TASK_HEADER].filter((name) => columnIndex(state.header, name) >= 0)
+  if (legacyCols.length > 0) {
+    issues.push({
+      level: "warn",
+      file: displayRel(tasksDir, state.indexFile),
+      message: `索引表残留 v2 列「${legacyCols.join("」「")}」（v3 已删该两列）：请人工确认后按 conventions-spec 归一`,
+    })
+  }
+  const tables: [string, string, string][] = [
+    [HISTORY_FILE, state.historyFile, HISTORY_ANCHOR_HEADER],
+    [RETIRED_FILE, state.retiredFile, RETIRED_ANCHOR_HEADER],
+  ]
+  for (const [label, file, anchor] of tables) {
+    if (!existsSync(file)) continue
+    const table = findTable(readTextFile(file).split(/\r?\n/), anchor)
+    const head = table?.header[0] ?? ""
+    if (table && head !== ID_HEADER) {
+      issues.push({
+        level: "warn",
+        file: displayRel(tasksDir, file),
+        line: table.headerLine + 1,
+        message: `${label} 表头首格为「${head}」而非稳定 ID ${ID_HEADER}：请人工确认后按 conventions-spec 归一`,
+      })
+    }
+  }
   return issues
 }
 
