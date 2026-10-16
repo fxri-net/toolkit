@@ -347,9 +347,9 @@ export const HISTORY_TABLE_HEADER = headerRow(HISTORY_COLUMNS)
 // 表语义边界：只记规范语义变更，载体结构升级、入口壳增删与条目退休均不入表（退休见 retired.md）
 export const HISTORY_BOUNDARY_LINE =
   "> 表语义边界：本表只记**规范语义变更**；载体结构升级、入口壳生成 / 删除、条目退休均不入表（退休见 `retired.md`）。"
-// 元规则引语：留痕与源头变更同步机制
+// 元规则引语：留痕与源头变更同步机制（与 conventions-spec §3.2 模板同源）
 export const HISTORY_INTRO_LINE =
-  "> 元规则：规则语义变更时不得覆盖旧语义直接丢史——在「演进记录」追加一条（规则 ID → 旧语义 → 变更为 → 修订来源任务），`index.md` 索引表只保留当前语义；规则层源头变更（`AGENTS.md` / `docs/ai-rules.md` / skills 条文）随该变更同批落盘。"
+  "> 元规则：规则语义变更时不得覆盖旧语义直接丢史——在「演进记录」追加一条（规则 ID → 修订内容 → 修订来源任务；修订内容新立条目直接写其语义、语义变更写「旧语义」→「新语义」），`index.md` 索引表只保留当前语义；规则层源头变更（`AGENTS.md` / `docs/ai-rules.md` / skills 条文）随该变更同批落盘。"
 
 // 演进记录骨架（新建项目与无演进记录节时升级共用）
 export const HISTORY_SKELETON = `${HISTORY_TITLE}

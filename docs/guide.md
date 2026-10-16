@@ -45,7 +45,7 @@
     └── <分类标签>.md           # 非端 × 非保留字的 scope 取值分册（按需创建）
 ```
 
-`conventions/` 不是任务文件：tasks 各子命令不读其内容、check 不因**条文内容**告警；它只作 AI 协作时的规范源，由 fxri-plan-to-task 归档时与 fxri-session-recap 收尾时维护，写入前需用户确认。check 只对**载体形态异常**、**入口层现场异常**与**表格列对齐填充**软告警（载体侧：旧单文件残留、缺 `index.md`、marker 与 `history.md` / 索引表首列 ID 不一致、v3 载体索引表列集合偏离五列、`history.md` / `retired.md` 表头偏离固定列、载体各文件表头与分隔行列数不等、v3 载体 `history.md` 数据行首列非稳定 ID（提示人工补录）；入口壳侧：壳标记与当前 toolkit 不一致、壳被 gitignore 覆盖；表格侧：任务区 md 表格偏离紧凑形态，可执行 `toolkit conventions format` 归一，见下文「表格形态」），不读条文内容。
+`conventions/` 不是任务文件：tasks 各子命令不读其内容、check 不因**条文内容**告警；它只作 AI 协作时的规范源，由 fxri-plan-to-task 归档时与 fxri-session-recap 收尾时维护，写入前需用户确认。check 只对**载体形态异常**、**入口层现场异常**与**表格列对齐填充**软告警（载体侧：旧单文件残留、缺 `index.md`、marker 与 `history.md` / 索引表首列 ID 不一致、v3 载体索引表列集合偏离五列、`history.md` / `retired.md` 表头偏离固定列、载体各文件表头与分隔行列数不等、v3 载体 `history.md` 数据行首列非稳定 ID（提示人工补录）、v3 载体分册（`index.md` 除外）内残留行首「确立来源」子项（提示人工归一）、v3 载体 `history.md` 数据行「修订内容」列含禁用语料（自指套话 / 重复索引列的条文去向，提示人工归一）；入口壳侧：壳标记与当前 toolkit 不一致、壳被 gitignore 覆盖；表格侧：任务区 md 表格偏离紧凑形态，可执行 `toolkit conventions format` 归一，见下文「表格形态」），不读条文内容。
 
 ### frontmatter 字段
 
@@ -125,7 +125,7 @@
 
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
-| `fxri-plan-to-task` | 1.8.5 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
+| `fxri-plan-to-task` | 1.8.6 | 方案落盘：建档评估（先查后写）→ 建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
 | `fxri-release-changelog` | 1.1.8 | changesets 发版与多语言 CHANGELOG 维护 |
 | `fxri-session-recap` | 1.4.1 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 
@@ -230,7 +230,7 @@ pnpm dlx skills add fxri-net/toolkit --global
 
 **v1 / v2 → v3 升级**：载体结构从 v1（无首行标记、索引表首列为序号 `#`、演进记录与索引同文件）经 v2（首行形态标记、索引表首列为稳定 ID `C-<n>`、演进记录抽独立 `history.md`），升到 **v3 三分区**（索引表删「状态」「确立来源任务」两列、`history.md` 表头首格归一为稳定 ID `ID`、废弃条目迁入 `retired.md` 并删分册条文，活跃读面只含活跃条文），优先用 `toolkit conventions upgrade`（`--dry-run` 预演、幂等、先判后写，异常形态拒绝写盘；v1 输入链式升 v1 → v2 → v3），亦可按链路手工执行；内部引用改写为稳定 ID 且**映射关系不落盘**（`history.md` 只记语义修订，不记 ID 对照）。`toolkit conventions status` 可查载体形态与待处理项。
 
-迁移期间新旧兼容读：先找 `conventions/index.md`，不存在再看旧单文件 `conventions.md`（存在则提示可迁移）；两者并存时以目录形态为准并提示清理旧文件。`toolkit tasks check` 在旧单文件残留、`conventions/` 缺 `index.md`、载体形态异常（标记与 `history.md` / 索引表首列 ID 不一致）、v3 载体索引表列集合偏离五列（`ID | 规则 | 当前语义 | 归属 | 单一事实源`，列名与次序须逐格一致）或 `history.md` / `retired.md` 表头偏离固定列（整行逐格，提示人工归一）、载体各文件表头行与紧随分隔行列数不等（跳过 fenced code block）、或 v3 载体 `history.md` 数据行首列非稳定 ID（提示人工补录、只报不改）、或 v3 载体分册（`index.md` 除外）内残留行首「确立来源」子项（提示人工归一、只报不改）时给软告警，即为迁移入口；`toolkit init` 在无旧单文件时预先生成 `index.md` 与 `history.md` 骨架。
+迁移期间新旧兼容读：先找 `conventions/index.md`，不存在再看旧单文件 `conventions.md`（存在则提示可迁移）；两者并存时以目录形态为准并提示清理旧文件。`toolkit tasks check` 在旧单文件残留、`conventions/` 缺 `index.md`、载体形态异常（标记与 `history.md` / 索引表首列 ID 不一致）、v3 载体索引表列集合偏离五列（`ID | 规则 | 当前语义 | 归属 | 单一事实源`，列名与次序须逐格一致）或 `history.md` / `retired.md` 表头偏离固定列（整行逐格，提示人工归一）、载体各文件表头行与紧随分隔行列数不等（跳过 fenced code block）、或 v3 载体 `history.md` 数据行首列非稳定 ID（提示人工补录、只报不改）、或 v3 载体分册（`index.md` 除外）内残留行首「确立来源」子项（提示人工归一、只报不改）、或 v3 载体 `history.md` 数据行「修订内容」列含禁用语料（自指套话 / 重复索引列的条文去向）（提示人工归一、只报不改）时给软告警，即为迁移入口；`toolkit init` 在无旧单文件时预先生成 `index.md` 与 `history.md` 骨架。
 
 ## 隐私脱敏
 

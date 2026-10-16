@@ -282,3 +282,47 @@ describe("演进记录首列告警", () => {
     rmSync(cwd, { recursive: true, force: true })
   })
 })
+
+describe("演进记录措辞告警", () => {
+  // 演进记录假现场：表头 + 分隔行 + 数据行
+  const makeHistory = (rows: string): string =>
+    `${HISTORY_TITLE}\n\n${HISTORY_TABLE_HEADER}\n| --- | --- | --- |\n${rows}\n`
+  // 建 v3 载体现场（索引表首列为稳定 ID）
+  const makeV3 = (dir: string): void => {
+    mkdirSync(join(dir, "conventions"), { recursive: true })
+    writeFileSync(join(dir, "conventions", "index.md"), V2_INDEX, "utf8")
+  }
+
+  it("「修订内容」列含自指套话或重复索引列的条文去向时告警，内联行号与「另有 N 处」", () => {
+    const dir = makeTmp("tk-conv-hword-")
+    const cwd = makeTmp("tk-conv-hword-cwd-")
+    mkdirSync(join(dir, "active"), { recursive: true })
+    makeV3(dir)
+    const rows =
+      `| \`${idOf(1)}\` | （本次起入表）新立条目：当场打点优先 | 建档评估 |\n` + `| \`${idOf(2)}\` | 乙；条文全文落 \`common.md\` | 建档评估 |\n`
+    writeFileSync(join(dir, "conventions", "history.md"), makeHistory(rows), "utf8")
+
+    const issues = validateTasks(dir, cwd).issues.filter((i) => i.level === "warn" && i.message.includes("「修订内容」列含禁用语料"))
+    expect(issues).toHaveLength(1)
+    expect(issues[0]!.file).toBe("conventions/history.md")
+    expect(issues[0]!.line).toBe(5)
+    expect(issues[0]!.message).toContain("另有 1 处")
+    rmSync(dir, { recursive: true, force: true })
+    rmSync(cwd, { recursive: true, force: true })
+  })
+
+  it("「修订内容」列为归一词形时不告警", () => {
+    const dir = makeTmp("tk-conv-hword-ok-")
+    const cwd = makeTmp("tk-conv-hword-ok-cwd-")
+    mkdirSync(join(dir, "active"), { recursive: true })
+    makeV3(dir)
+    const rows =
+      `| \`${idOf(1)}\` | 当场打点优先 | 建档评估 |\n` + `| \`${idOf(2)}\` | （原名「增量判别」）「甲」→「乙」 | 建档评估 |\n`
+    writeFileSync(join(dir, "conventions", "history.md"), makeHistory(rows), "utf8")
+
+    const warns = warnTexts(dir, cwd)
+    expect(warns.filter((m) => m.includes("「修订内容」列含禁用语料"))).toEqual([])
+    rmSync(dir, { recursive: true, force: true })
+    rmSync(cwd, { recursive: true, force: true })
+  })
+})

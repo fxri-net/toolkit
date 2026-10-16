@@ -1,4 +1,4 @@
-// 载体表形态偏离检测：T1 索引表列集合、T2 演进记录 / 退休台账表头、T3 载体文件内表头与分隔行列数
+// 载体表形态偏离检测：T1 索引表列集合、T2 演进记录 / 退休台账表头、T3 载体文件内表头与分隔行列数、T4 分册残留「确立来源」子项、T5 演进记录「修订内容」列禁用语料
 // 供 conventions status 与 tasks check 共用，两处只做各自的路径与级别渲染，判据不各写一份
 // 只报不改：命中的偏离一律交人工确认后按 conventions-spec 归一
 import { existsSync } from "node:fs"
@@ -11,10 +11,12 @@ import {
   HISTORY_FILE,
   INDEX_COLUMNS,
   INDEX_FILE,
+  REVISION_HEADER,
   RETIRED_ANCHOR_HEADER,
   RETIRED_COLUMNS,
   RETIRED_FILE,
   carrierFiles,
+  columnIndex,
   findColumnCountMismatches,
   findTable,
   type CarrierState,
@@ -22,6 +24,9 @@ import {
 
 // 分册残留「确立来源」子项：行首列表项，子项名可有可无加粗包裹
 const STRAY_SOURCE_PATTERN = /^[-*]\s+(?:\*\*)?确立来源/
+
+// history.md「修订内容」列禁用语料：自指套话与重复索引列的条文去向
+const HISTORY_FILLER_PATTERN = /本次起入表|新立条目：|条文全文落/
 
 // 单条形态偏离：file 为绝对路径（各调用方按自身现场渲染），line 为 1 基行号（列集合类偏离无单一行号）
 export interface ShapeDefect {
@@ -119,11 +124,36 @@ function straySourceDefects(state: CarrierState): ShapeDefect[] {
   return defects
 }
 
+// T5：v3 下 history.md「修订内容」列不得含禁用语料（自指套话 / 重复索引列的条文去向），报首个命中行
+function historyWordingDefects(state: CarrierState): ShapeDefect[] {
+  if (!existsSync(state.historyFile)) return []
+  const table = findTable(readTextFile(state.historyFile).split(/\r?\n/), HISTORY_ANCHOR_HEADER)
+  if (!table) return []
+  const column = columnIndex(table.header, REVISION_HEADER)
+  if (column < 0) return []
+  const hits: number[] = []
+  table.rows.forEach((cells, i) => {
+    const line = table.rowLines[i]
+    if (line !== undefined && HISTORY_FILLER_PATTERN.test(cells[column] ?? "")) hits.push(line + 1)
+  })
+  const first = hits[0]
+  if (first === undefined) return []
+  const extra = hits.length > 1 ? `（另有 ${hits.length - 1} 处）` : ""
+  return [
+    {
+      file: state.historyFile,
+      line: first,
+      message: `${HISTORY_FILE} 第 ${first} 行「修订内容」列含禁用语料${extra}：不得写自指套话（如「（本次起入表）」「新立条目：」）或重复索引列的条文去向；请人工确认后按 conventions-spec §3.2 归一`,
+    },
+  ]
+}
+
 // 载体表形态检测入口：无 index.md 一律无偏离；文风与列集合类只在 v3 校验，列数脱节对任何形态都校验
 export function detectShapeDefects(state: CarrierState): ShapeDefect[] {
   if (!state.hasIndex) return []
   const defects: ShapeDefect[] = []
-  if (state.form === "v3") defects.push(...indexColumnDefects(state), ...ledgerDefects(state), ...straySourceDefects(state))
+  if (state.form === "v3")
+    defects.push(...indexColumnDefects(state), ...ledgerDefects(state), ...straySourceDefects(state), ...historyWordingDefects(state))
   defects.push(...columnCountDefects(state))
   return defects
 }
