@@ -6,7 +6,7 @@ import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { validateTasks } from "../tasks/validate"
-import { CARRIER_MARKER, ENTRY_MARKER, ENTRY_VERSION, HISTORY_TABLE_HEADER, HISTORY_TITLE, ID_HEADER, idOf } from "../conventions/format"
+import { CARRIER_MARKER, ENTRY_MARKER, ENTRY_VERSION, HISTORY_TABLE_HEADER, HISTORY_TITLE, INDEX_TABLE_LINES, idOf } from "../conventions/format"
 import { ENTRY_SHELL_NAME, SKILL_ENTRY } from "../conventions/entry"
 
 const warnTexts = (dir: string, cwd?: string) => validateTasks(dir, cwd).issues.filter((i) => i.level === "warn").map((i) => i.message)
@@ -63,7 +63,7 @@ describe("规范载体形态告警", () => {
   })
 })
 
-// v2 良构载体假现场：首行标记 + history.md + 索引表首列为稳定 ID
+// 良构载体假现场：首行标记 + history.md + 索引表为 v3 五列（首列为稳定 ID）
 const V2_INDEX = `${CARRIER_MARKER}
 # 项目协作规范索引
 
@@ -74,9 +74,8 @@ const V2_INDEX = `${CARRIER_MARKER}
 
 ## 二、索引
 
-| ${ID_HEADER} | 规则 | 当前语义 |
-| --- | --- | --- |
-| ${idOf(1)} | 四级时间源 | 当场打点优先 |
+${INDEX_TABLE_LINES}
+| ${idOf(1)} | 四级时间源 | 当场打点优先 | common | common.md |
 `
 
 describe("规范载体 v2 形态告警", () => {
@@ -215,9 +214,8 @@ describe("表格形态告警", () => {
         "",
         "## 二、索引",
         "",
-        `| ${ID_HEADER} | 规则 | 当前语义 |`,
-        "| --- | --- |",
-        `| ${idOf(1)}     | 四级时间源   | 当场打点优先 |`,
+        ...INDEX_TABLE_LINES.split("\n"),
+        `| ${idOf(1)}     | 四级时间源   | 当场打点优先   | common   | common.md |`,
       ].join("\n") + "\n"
     writeFileSync(join(dir, "conventions", "index.md"), index, "utf8")
     writeFileSync(join(dir, "conventions", "history.md"), `${HISTORY_TITLE}\n`, "utf8")

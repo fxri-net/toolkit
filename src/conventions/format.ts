@@ -55,8 +55,10 @@ function tableLines(cells: string[]): string {
   return `${headerRow(cells)}\n${separatorRow(cells.length)}`
 }
 
-// 索引表列名集合（v3 五列）与骨架两行：表头 / 分隔行由此单源派生，形态改一处即全体一致
-export const INDEX_TABLE_LINES = tableLines([ID_HEADER, NAME_HEADER, INDEX_ANCHOR_HEADER, OWNER_HEADER, SOURCE_HEADER])
+// 索引表列名集合（v3 五列）：供骨架派生与形态检测复用，形态改一处即全体一致
+export const INDEX_COLUMNS = [ID_HEADER, NAME_HEADER, INDEX_ANCHOR_HEADER, OWNER_HEADER, SOURCE_HEADER]
+// 索引表骨架两行：表头与分隔行由列名集合单源派生
+export const INDEX_TABLE_LINES = tableLines(INDEX_COLUMNS)
 
 // index.md 标题归一目标
 export const INDEX_TITLE = "# 项目协作规范索引"
@@ -235,6 +237,27 @@ export function parseIndexTable(lines: string[]): TableBlock | null {
   return findTable(lines, INDEX_ANCHOR_HEADER)
 }
 
+// 表头与分隔行列数脱节的命中：line 为表头行 1 基行号，headerCols / sepCols 为两侧列数
+export interface ColumnCountMismatch {
+  line: number
+  headerCols: number
+  sepCols: number
+}
+
+// 扫描全文「表头行 + 紧随分隔行」对，返回列数不一致者（表头列数须等于分隔行列数）
+export function findColumnCountMismatches(lines: string[]): ColumnCountMismatch[] {
+  const mismatches: ColumnCountMismatch[] = []
+  for (let i = 0; i + 1 < lines.length; i++) {
+    const head = lines[i] ?? ""
+    const sep = lines[i + 1] ?? ""
+    if (!isTableRow(head) || !isSeparatorRow(sep)) continue
+    const headerCols = splitRow(head).length
+    const sepCols = splitRow(sep).length
+    if (headerCols !== sepCols) mismatches.push({ line: i + 1, headerCols, sepCols })
+  }
+  return mismatches
+}
+
 // 取某列在表头中的下标；列名缺失返回 -1
 export function columnIndex(header: string[], name: string): number {
   return header.findIndex((h) => h === name)
@@ -318,8 +341,8 @@ export function rewriteRefsInLine(line: string, maxSeq: number): { line: string;
 export const HISTORY_TITLE = "# 规范演进记录"
 // 演进记录表格定位锚（第三列固定为修订来源任务）
 export const HISTORY_ANCHOR_HEADER = "修订来源任务"
-// 演进记录表列名集合：表头行与分隔行由此单源派生，首格与索引表同为稳定 ID
-const HISTORY_COLUMNS = [ID_HEADER, REVISION_HEADER, HISTORY_ANCHOR_HEADER]
+// 演进记录表列名集合：表头行与分隔行由此单源派生，首格与索引表同为稳定 ID；导出供形态检测逐格比对
+export const HISTORY_COLUMNS = [ID_HEADER, REVISION_HEADER, HISTORY_ANCHOR_HEADER]
 export const HISTORY_TABLE_HEADER = headerRow(HISTORY_COLUMNS)
 // 表语义边界：只记规范语义变更，载体结构升级、入口壳增删与条目退休均不入表（退休见 retired.md）
 export const HISTORY_BOUNDARY_LINE =
@@ -341,8 +364,8 @@ ${tableLines(HISTORY_COLUMNS)}
 export const RETIRED_TITLE = "# 规范退休记录"
 export const RETIRED_META_LINE =
   "> 元规则：条目作废即从 `index.md` 迁出至本表并冻结退休时语义；编号不回收（见 conventions-spec §8）。本表属 Z3 归档、不进常规读面。"
-// 退休台账表列名集合：表头行与分隔行由此单源派生
-const RETIRED_COLUMNS = [ID_HEADER, NAME_HEADER, RETIRED_ANCHOR_HEADER, OWNER_HEADER, SUCCESSOR_HEADER, RETIRED_TASK_HEADER, TEXT_DEST_HEADER]
+// 退休台账表列名集合：表头行与分隔行由此单源派生；导出供形态检测逐格比对
+export const RETIRED_COLUMNS = [ID_HEADER, NAME_HEADER, RETIRED_ANCHOR_HEADER, OWNER_HEADER, SUCCESSOR_HEADER, RETIRED_TASK_HEADER, TEXT_DEST_HEADER]
 export const RETIRED_TABLE_HEADER = headerRow(RETIRED_COLUMNS)
 
 // 退休台账骨架（首个退休条目迁出时创建）

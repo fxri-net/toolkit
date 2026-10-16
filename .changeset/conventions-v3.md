@@ -16,3 +16,5 @@
 修复：`toolkit init` 生成的 `conventions/index.md` 骨架此前残留 v2 列结构，改为按 v3 五列生成
 修改：`toolkit conventions upgrade` 的 v2→v3 升级新增 `history.md` 表头首格归一为稳定 ID `ID`
 修改：`toolkit tasks check` 与 `toolkit conventions status` 新增表形态速检——v3 载体索引表残留 v2 独有列（「状态」「确立来源任务」）或 `history.md` / `retired.md` 表头首格非 `ID` 时软告警（只报不改）
+修改：表形态校验从「速检」升级为完整比对——v3 索引表列集合须恰为 `ID | 规则 | 当前语义 | 归属 | 单一事实源` 五列（列名与次序逐格一致，多列 / 少列 / 换序均检出）、`history.md` / `retired.md` 表头整行逐格比对、载体各文件（`index.md`、分册、`history.md`、`retired.md`）表头行与紧随分隔行列数须相等（跳过 fenced code block）；检出统一为软告警（只报不改，须人工确认后按规范归一）
+文档：`conventions-spec` 补齐形态与迁移措辞——索引表五列固定、`history.md` / `retired.md` 表头固定逐格一致、表列数自洽、入口壳版本沿革（壳标记独立演进、当前 `v2`、从未有过 `v1` 壳）、不得显式书写 `v1` 标记、手工迁 v2 与 `toolkit conventions upgrade` 链式直达 v3 的落点差异

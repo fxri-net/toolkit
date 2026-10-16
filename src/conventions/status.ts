@@ -17,8 +17,6 @@ import {
   OWNER_HEADER,
   RETIRED_ANCHOR_HEADER,
   RETIRED_FILE,
-  SOURCE_TASK_HEADER,
-  STATUS_HEADER,
   carrierFiles,
   columnIndex,
   findTable,
@@ -27,6 +25,7 @@ import {
   type CarrierState,
   type ConventionsForm,
 } from "./format"
+import { detectShapeDefects } from "./shape"
 import { findEntryShells, ignoredShellAlert, isToolkitSourceRepo, mismatchedShellAlert, type EntryShell } from "./entry"
 import { gitIgnoredSet } from "../git-ignore"
 
@@ -183,29 +182,11 @@ function checkIndex(state: CarrierState, items: ConventionsStatusItem[]): void {
   }
 }
 
-// 表形态速检块：形态判定只看标记 + history 存在 + 索引表首列，列集合漂移捕获不到，故在此补齐
-// v3 标记载体不得残留 v2 独有列；演进记录与退休台账表头首格须为稳定 ID（这两表不参与形态判定）
+// 表形态速检块：形态判定只看标记 + history 存在 + 索引表首列，列集合与列数漂移捕获不到，故在此补齐
+// 判据与 tasks check 共用 detectShapeDefects，两处口径一致
 function checkTableShape(state: CarrierState, items: ConventionsStatusItem[]): void {
-  if (state.form !== "v3") return
-  const legacyCols = [STATUS_HEADER, SOURCE_TASK_HEADER].filter((name) => columnIndex(state.header, name) >= 0)
-  if (legacyCols.length > 0) {
-    items.push({
-      level: "warn",
-      scope: "形态",
-      message: `${INDEX_FILE} 索引表残留 v2 列「${legacyCols.join("」「")}」：v3 已删该两列，请人工确认后按 conventions-spec 归一`,
-    })
-  }
-  const tables: [string, string, string][] = [
-    [HISTORY_FILE, state.historyFile, HISTORY_ANCHOR_HEADER],
-    [RETIRED_FILE, state.retiredFile, RETIRED_ANCHOR_HEADER],
-  ]
-  for (const [label, file, anchor] of tables) {
-    if (!existsSync(file)) continue
-    const table = findTable(readTextFile(file).split(/\r?\n/), anchor)
-    const head = table?.header[0] ?? ""
-    if (table && head !== ID_HEADER) {
-      items.push({ level: "warn", scope: "形态", message: `${label} 表头首格为「${head}」而非稳定 ID ${ID_HEADER}：请人工确认后按 conventions-spec 归一` })
-    }
+  for (const defect of detectShapeDefects(state)) {
+    items.push({ level: "warn", scope: "形态", message: defect.message })
   }
 }
 

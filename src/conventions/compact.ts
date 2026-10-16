@@ -61,8 +61,8 @@ export function compactTableLine(line: string): string {
   return `${indentOf(line)}| ${body.join(" | ")} |`
 }
 
-// 标注各行是否位于 fenced code block 之外：代码块内的行不参与归一（表格样例须原样保留）
-function outsideFenceMask(lines: string[]): boolean[] {
+// 标注各行是否位于 fenced code block 之外：代码块内的行不参与归一（表格样例须原样保留）；导出供形态检测复用
+export function outsideFenceMask(lines: string[]): boolean[] {
   const mask = lines.map(() => true)
   let fence: { char: string; len: number } | null = null
   for (let i = 0; i < lines.length; i++) {

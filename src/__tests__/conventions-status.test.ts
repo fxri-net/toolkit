@@ -16,12 +16,15 @@ import {
   HISTORY_TITLE,
   ID_HEADER,
   INDEX_ANCHOR_HEADER,
+  INDEX_FILE,
+  INDEX_TABLE_LINES,
   INDEX_TITLE,
   RETIRED_ANCHOR_HEADER,
   RETIRED_FILE,
   RETIRED_SKELETON,
   RETIRED_TABLE_HEADER,
   RETIRED_TITLE,
+  SOURCE_HEADER,
   idOf,
 } from "../conventions/format"
 import { ENTRY_SHELL_NAME, SKILL_ENTRY } from "../conventions/entry"
@@ -68,8 +71,7 @@ ${INDEX_TITLE}
 
 ## 二、索引
 
-| ${ID_HEADER} | 规则 | ${INDEX_ANCHOR_HEADER} | 归属 |
-| --- | --- | --- | --- |
+${INDEX_TABLE_LINES}
 ${rows}
 `
   writeFileSync(join(dir, "index.md"), index, "utf8")
@@ -80,7 +82,7 @@ ${rows}
 }
 
 // 良构单行索引：归属取保留值 common（恒合法，不进端清单）
-const cleanRows = `| ${idOf(1)} | 四级时间源 | 当场打点优先 | common |`
+const cleanRows = `| ${idOf(1)} | 四级时间源 | 当场打点优先 | common | common.md |`
 
 // 写入项目级入口壳
 function writeShell(cwd: string, skillDir: string, content: string): void {
@@ -170,7 +172,7 @@ describe("索引体检", () => {
   it("首列不合稳定 ID 形态时告警", () => {
     const root = makeDir("tk-status-idshape-")
     const cwd = makeDir("tk-status-idshape-cwd-")
-    makeCarrier(root, "| X-1 | 四级时间源 | 当场打点优先 | common |")
+    makeCarrier(root, "| X-1 | 四级时间源 | 当场打点优先 | common | common.md |")
 
     const report = conventionsStatus(root, cwd)
     expect(report.form).toBe(`v${CARRIER_VERSION}`)
@@ -180,7 +182,7 @@ describe("索引体检", () => {
   it("首列为行内代码包裹的稳定 ID 时不误报形态", () => {
     const root = makeDir("tk-status-idcode-")
     const cwd = makeDir("tk-status-idcode-cwd-")
-    makeCarrier(root, `| \`${idOf(1)}\` | 四级时间源 | 当场打点优先 | common |`)
+    makeCarrier(root, `| \`${idOf(1)}\` | 四级时间源 | 当场打点优先 | common | common.md |`)
 
     const report = conventionsStatus(root, cwd)
     expect(report.form).toBe(`v${CARRIER_VERSION}`)
@@ -192,8 +194,8 @@ describe("索引体检", () => {
     const cwd = makeDir("tk-status-dupid-cwd-")
     makeCarrier(
       root,
-      `| ${idOf(1)} | 四级时间源 | 当场打点优先 | common |
-| ${idOf(1)} | 路径书写 | 仓库根相对路径 | common |`,
+      `| ${idOf(1)} | 四级时间源 | 当场打点优先 | common | common.md |
+| ${idOf(1)} | 路径书写 | 仓库根相对路径 | common | common.md |`,
     )
 
     const report = conventionsStatus(root, cwd)
@@ -205,10 +207,10 @@ describe("索引体检", () => {
     const cwd = makeDir("tk-status-owner-cwd-")
     makeCarrier(
       root,
-      `| ${idOf(1)} | 四级时间源 | 当场打点优先 | web |
-| ${idOf(2)} | 建档评估 | 先查后写 | common |
-| ${idOf(3)} | 路径书写 | 仓库根相对路径 | index |
-| ${idOf(4)} | 测试不复刻 | 期望值取真实实现 | mobile |`,
+      `| ${idOf(1)} | 四级时间源 | 当场打点优先 | web | common.md |
+| ${idOf(2)} | 建档评估 | 先查后写 | common | common.md |
+| ${idOf(3)} | 路径书写 | 仓库根相对路径 | index | common.md |
+| ${idOf(4)} | 测试不复刻 | 期望值取真实实现 | mobile | common.md |`,
     )
 
     const report = conventionsStatus(root, cwd)
@@ -226,7 +228,7 @@ describe("索引体检", () => {
 
 以 pnpm 为准。
 `
-    makeCarrier(root, `| ${idOf(1)} | 构建口径 | 以 pnpm 为准 | build |`, { extra: { "build.md": build } })
+    makeCarrier(root, `| ${idOf(1)} | 构建口径 | 以 pnpm 为准 | build | build.md |`, { extra: { "build.md": build } })
 
     const report = conventionsStatus(root, cwd)
     expect(report.items.filter((i) => i.message.includes("不在端清单"))).toEqual([])
@@ -237,7 +239,7 @@ describe("索引体检", () => {
   it("归属 common 且语义含端限定语并提及端名时提示确认是否下沉", () => {
     const root = makeDir("tk-status-common-")
     const cwd = makeDir("tk-status-common-cwd-")
-    makeCarrier(root, `| ${idOf(1)} | 网页端缓存 | 仅 web 端缓存走 CDN | common |`)
+    makeCarrier(root, `| ${idOf(1)} | 网页端缓存 | 仅 web 端缓存走 CDN | common | common.md |`)
 
     const report = conventionsStatus(root, cwd)
     const hits = report.items.filter((i) => i.message.includes("确认是否应下沉为端归属"))
@@ -248,7 +250,7 @@ describe("索引体检", () => {
   it("归属 common 语义提及端名但为例举（无端限定语）时不误报", () => {
     const root = makeDir("tk-status-common-fp-")
     const cwd = makeDir("tk-status-common-fp-cwd-")
-    makeCarrier(root, `| ${idOf(1)} | 缓存口径 | web 端缓存走 CDN | common |`)
+    makeCarrier(root, `| ${idOf(1)} | 缓存口径 | web 端缓存走 CDN | common | common.md |`)
 
     const report = conventionsStatus(root, cwd)
     expect(report.items.filter((i) => i.message.includes("确认是否应下沉为端归属"))).toEqual([])
@@ -258,7 +260,7 @@ describe("索引体检", () => {
   it("端限定语后提及端名时大小写不敏感（大写 Web 亦命中）", () => {
     const root = makeDir("tk-status-common-case-")
     const cwd = makeDir("tk-status-common-case-cwd-")
-    makeCarrier(root, `| ${idOf(1)} | 网页端缓存 | 仅 Web 端缓存走 CDN | common |`)
+    makeCarrier(root, `| ${idOf(1)} | 网页端缓存 | 仅 Web 端缓存走 CDN | common | common.md |`)
 
     const report = conventionsStatus(root, cwd)
     const hits = report.items.filter((i) => i.message.includes("确认是否应下沉为端归属"))
@@ -409,7 +411,7 @@ describe("表格形态体检", () => {
   it("载体表格被列对齐填充时报一条告警并指向 conventions format", () => {
     const root = makeDir("tk-status-table-")
     const cwd = makeDir("tk-status-table-cwd-")
-    makeCarrier(root, `| ${idOf(1)}     | 四级时间源 | 当场打点优先 | common |`)
+    makeCarrier(root, `| ${idOf(1)}     | 四级时间源 | 当场打点优先 | common | common.md |`)
 
     const report = conventionsStatus(root, cwd)
     const hits = report.items.filter((i) => i.message.includes("表格存在列对齐填充"))
@@ -456,9 +458,10 @@ ${INDEX_TITLE}
 ${tableLines}
 `
 
-  it("v3 载体索引表残留 v2 独有列「状态」时软告警（不要求恰好五列）", () => {
+  it("v3 载体索引表列集合偏离 v3 规范时软告警（须恰好五列）", () => {
     const root = makeDir("tk-status-shape-col-")
     const cwd = makeDir("tk-status-shape-col-cwd-")
+    // 第 5 列残留 v2 的「状态」列（非「单一事实源」），列集合与次序均不同于 v3 五列
     writeCarrier(
       root,
       carrierIndex(`| ${ID_HEADER} | 规则 | ${INDEX_ANCHOR_HEADER} | 归属 | 状态 |
@@ -468,27 +471,46 @@ ${tableLines}
 
     const report = conventionsStatus(root, cwd)
     expect(report.form).toBe(`v${CARRIER_VERSION}`)
-    const hits = report.items.filter((i) => i.message.includes("残留 v2 列"))
+    const hits = report.items.filter((i) => i.message.includes("偏离 v3 规范") && i.message.includes(INDEX_FILE))
     expect(hits).toHaveLength(1)
     expect(hits[0]!.level).toBe("warn")
     expect(hits[0]!.scope).toBe("形态")
+    // 应然 / 实然列集合均内联
     expect(hits[0]!.message).toContain("状态")
+    expect(hits[0]!.message).toContain(SOURCE_HEADER)
   })
 
-  it("v3 载体 history.md 表头首格非稳定 ID 时软告警", () => {
+  it("v3 载体索引表列数不足五列时同样软告警", () => {
+    const root = makeDir("tk-status-shape-col-n-")
+    const cwd = makeDir("tk-status-shape-col-n-cwd-")
+    // 三列表头配三格分隔：列数即偏离 v3 五列
+    writeCarrier(
+      root,
+      carrierIndex(`| ${ID_HEADER} | 规则 | ${INDEX_ANCHOR_HEADER} |
+| --- | --- | --- |
+| ${idOf(1)} | 四级时间源 | 当场打点优先 |`),
+    )
+
+    const report = conventionsStatus(root, cwd)
+    const hits = report.items.filter((i) => i.message.includes("偏离 v3 规范") && i.message.includes(INDEX_FILE))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]!.level).toBe("warn")
+  })
+
+  it("v3 载体 history.md 表头偏离 v3 规范时软告警", () => {
     const root = makeDir("tk-status-shape-hist-")
     const cwd = makeDir("tk-status-shape-hist-cwd-")
     makeCarrier(root, cleanRows)
     writeFileSync(join(root, "conventions", "history.md"), `${HISTORY_TITLE}\n\n| 规则 ID / 名称 | 修订内容 | 修订来源任务 |\n| --- | --- | --- |\n`, "utf8")
 
     const report = conventionsStatus(root, cwd)
-    const hits = report.items.filter((i) => i.message.includes("表头首格") && i.message.includes(HISTORY_FILE))
+    const hits = report.items.filter((i) => i.message.includes("表头偏离 v3 规范") && i.message.includes(HISTORY_FILE))
     expect(hits).toHaveLength(1)
     expect(hits[0]!.level).toBe("warn")
     expect(hits[0]!.message).toContain(ID_HEADER)
   })
 
-  it("v3 载体 retired.md 表头首格非稳定 ID 时软告警", () => {
+  it("v3 载体 retired.md 表头偏离 v3 规范时软告警", () => {
     const root = makeDir("tk-status-shape-ret-")
     const cwd = makeDir("tk-status-shape-ret-cwd-")
     makeCarrier(root, cleanRows, {
@@ -496,20 +518,45 @@ ${tableLines}
     })
 
     const report = conventionsStatus(root, cwd)
-    const hits = report.items.filter((i) => i.message.includes("表头首格") && i.message.includes(RETIRED_FILE))
+    const hits = report.items.filter((i) => i.message.includes("表头偏离 v3 规范") && i.message.includes(RETIRED_FILE))
     expect(hits).toHaveLength(1)
     expect(hits[0]!.level).toBe("warn")
     expect(hits[0]!.message).toContain(ID_HEADER)
   })
 
-  it("良构 v3 载体（无残留列、表头首格为 ID）不产生表形态残留告警", () => {
+  it("载体文件内表头与分隔行列数不一致时软告警", () => {
+    const root = makeDir("tk-status-shape-cols-")
+    const cwd = makeDir("tk-status-shape-cols-cwd-")
+    // 分册内一张三列表头配两格分隔行：列数脱节
+    makeCarrier(root, cleanRows, { extra: { "web.md": "# web 规范\n\n| 甲 | 乙 | 丙 |\n| --- | --- |\n| 1 | 2 |\n" } })
+
+    const report = conventionsStatus(root, cwd)
+    const hits = report.items.filter((i) => i.message.includes("表头与分隔行列数不一致"))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]!.level).toBe("warn")
+    expect(hits[0]!.scope).toBe("形态")
+    expect(hits[0]!.message).toContain("web.md")
+    expect(hits[0]!.message).toContain("第 3 行")
+  })
+
+  it("载体文件内表格被 fenced code block 包裹时不参与列数检测", () => {
+    const root = makeDir("tk-status-shape-fence-")
+    const cwd = makeDir("tk-status-shape-fence-cwd-")
+    // 围栏内的表头 + 分隔行属示例，列数脱节不参与检测
+    makeCarrier(root, cleanRows, { extra: { "web.md": "# web 规范\n\n```md\n| 甲 | 乙 | 丙 |\n| --- | --- |\n| 1 | 2 |\n```\n" } })
+
+    const report = conventionsStatus(root, cwd)
+    expect(report.items.filter((i) => i.message.includes("表头与分隔行列数不一致"))).toEqual([])
+  })
+
+  it("良构 v3 载体不产生表形态偏离告警", () => {
     const root = makeDir("tk-status-shape-ok-")
     const cwd = makeDir("tk-status-shape-ok-cwd-")
     makeCarrier(root, cleanRows)
 
     const report = conventionsStatus(root, cwd)
     expect(report.form).toBe(`v${CARRIER_VERSION}`)
-    expect(report.items.filter((i) => i.message.includes("残留 v2 列") || i.message.includes("表头首格"))).toEqual([])
+    expect(report.items.filter((i) => i.message.includes("偏离 v3 规范") || i.message.includes("行列数不一致"))).toEqual([])
   })
 })
 
