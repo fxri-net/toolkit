@@ -175,6 +175,16 @@ describe("索引体检", () => {
     expect(report.items.filter((i) => i.scope === "索引" && i.message.includes("不合稳定 ID 形态"))).toHaveLength(1)
   })
 
+  it("首列为行内代码包裹的稳定 ID 时不误报形态", () => {
+    const root = makeDir("tk-status-idcode-")
+    const cwd = makeDir("tk-status-idcode-cwd-")
+    makeCarrier(root, `| \`${idOf(1)}\` | 四级时间源 | 当场打点优先 | common |`)
+
+    const report = conventionsStatus(root, cwd)
+    expect(report.form).toBe(`v${CARRIER_VERSION}`)
+    expect(report.items.filter((i) => i.message.includes("不合稳定 ID 形态"))).toEqual([])
+  })
+
   it("索引表存在重复 ID 时告警", () => {
     const root = makeDir("tk-status-dupid-")
     const cwd = makeDir("tk-status-dupid-cwd-")
@@ -222,10 +232,31 @@ describe("索引体检", () => {
     expect(report.warnings).toBe(0)
   })
 
-  it("归属 common 但语义提及端名时提示确认是否下沉", () => {
+  it("归属 common 且语义含端限定语并提及端名时提示确认是否下沉", () => {
     const root = makeDir("tk-status-common-")
     const cwd = makeDir("tk-status-common-cwd-")
-    makeCarrier(root, `| ${idOf(1)} | 网页端缓存 | web 端缓存走 CDN | common |`)
+    makeCarrier(root, `| ${idOf(1)} | 网页端缓存 | 仅 web 端缓存走 CDN | common |`)
+
+    const report = conventionsStatus(root, cwd)
+    const hits = report.items.filter((i) => i.message.includes("确认是否应下沉为端归属"))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]!.message).toContain("web")
+  })
+
+  it("归属 common 语义提及端名但为例举（无端限定语）时不误报", () => {
+    const root = makeDir("tk-status-common-fp-")
+    const cwd = makeDir("tk-status-common-fp-cwd-")
+    makeCarrier(root, `| ${idOf(1)} | 缓存口径 | web 端缓存走 CDN | common |`)
+
+    const report = conventionsStatus(root, cwd)
+    expect(report.items.filter((i) => i.message.includes("确认是否应下沉为端归属"))).toEqual([])
+    expect(report.warnings).toBe(0)
+  })
+
+  it("端限定语后提及端名时大小写不敏感（大写 Web 亦命中）", () => {
+    const root = makeDir("tk-status-common-case-")
+    const cwd = makeDir("tk-status-common-case-cwd-")
+    makeCarrier(root, `| ${idOf(1)} | 网页端缓存 | 仅 Web 端缓存走 CDN | common |`)
 
     const report = conventionsStatus(root, cwd)
     const hits = report.items.filter((i) => i.message.includes("确认是否应下沉为端归属"))

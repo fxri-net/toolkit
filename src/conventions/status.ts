@@ -10,7 +10,6 @@ import {
   ENTRY_VERSION,
   HISTORY_FILE,
   ID_HEADER,
-  ID_RE,
   INDEX_ANCHOR_HEADER,
   INDEX_FILE,
   LEGACY_FILE,
@@ -20,6 +19,7 @@ import {
   carrierFiles,
   columnIndex,
   findTable,
+  isIdCell,
   readCarrier,
   type CarrierState,
   type ConventionsForm,
@@ -58,6 +58,8 @@ export interface ConventionsStatusReport {
 const SUBHEAD_RE = /^##\s+([^\s.]+)\.\s/
 // 保留归属：`common` 恒合法（不进端清单），`index` 为载体内保留字
 const RESERVED_OWNERS = new Set(["common", "index"])
+// 端限定语：语义含这些词时才视为「限定在某端」，用于 common 下沉提示的判据收窄，避开举例式提及的假阳性
+const END_QUALIFIER_RE = /仅|只|专属|适用于/
 
 // 一句话结论：问题数 0 时给正结论，非 0 时报待处理项数
 function summarize(form: ConventionsForm, entries: number, shells: number, warnings: number): string {
@@ -99,7 +101,7 @@ function checkIndex(state: CarrierState, items: ConventionsStatusItem[]): void {
   // ID 形态与重复：首列为 ID 时（v2 / v3）校验；v1 首列为序号，不做此检查
   if ((state.header[0] ?? "") === ID_HEADER) {
     for (const id of ids) {
-      if (!ID_RE.test(id)) {
+      if (!isIdCell(id)) {
         items.push({ level: "warn", scope: "索引", message: `索引表首列「${id}」不合稳定 ID 形态 C-<n>` })
       }
     }
@@ -137,10 +139,13 @@ function checkIndex(state: CarrierState, items: ConventionsStatusItem[]): void {
           items.push({ level: "warn", scope: "索引", message: `条目 ${entry.id} 的归属「${owner}」不在端清单、保留归属或分类标签分册中` })
         }
       }
-      // common 锁死为「所有端都适用」：语义提及具体端名时提示确认是否应下沉为端归属
+      // common 锁死为「所有端都适用」：语义含端限定语且提及具体端名时（大小写不敏感）提示确认是否应下沉为端归属
       if (owners.length === 1 && owners[0] === "common" && semanticIdx !== -1) {
         const semantic = entry.cells[semanticIdx] ?? ""
-        const hit = [...declared].find((name) => name !== "" && semantic.includes(name))
+        const lower = semantic.toLowerCase()
+        const hit = END_QUALIFIER_RE.test(semantic)
+          ? [...declared].find((name) => name !== "" && lower.includes(name.toLowerCase()))
+          : undefined
         if (hit) items.push({ level: "warn", scope: "索引", message: `条目 ${entry.id} 归属 common 但语义提及端「${hit}」，确认是否应下沉为端归属` })
       }
     }

@@ -12,7 +12,6 @@ import {
   HISTORY_SKELETON,
   HISTORY_TITLE,
   ID_HEADER,
-  ID_RE,
   INDEX_ANCHOR_HEADER,
   INDEX_FILE,
   INDEX_TITLE,
@@ -28,6 +27,7 @@ import {
   columnIndex,
   findTable,
   idOf,
+  isIdCell,
   parseIndexTable,
   readCarrier,
   rewriteRefsInLine,
@@ -370,7 +370,7 @@ export function upgradeConventions(tasksDir = ".tasks", options: UpgradeOptions 
   if (historyLines) {
     const historyTable = findTable(historyLines, "修订来源任务")
     if (historyTable) {
-      const nonId = historyTable.rows.filter((cells) => !ID_RE.test(cells[0] ?? "")).length
+      const nonId = historyTable.rows.filter((cells) => !isIdCell(cells[0] ?? "")).length
       if (nonId > 0) reviews.push(`${HISTORY_FILE} 有 ${nonId} 行首列仍为规则名（未用 C-<n>），请人工核对是否补录 ID`)
       const sourceCol = columnIndex(historyTable.header, "修订来源任务")
       const multi = sourceCol >= 0 ? historyTable.rows.filter((cells) => /[;；+]/.test(cells[sourceCol] ?? "")).length : 0
@@ -378,7 +378,13 @@ export function upgradeConventions(tasksDir = ".tasks", options: UpgradeOptions 
     }
   }
 
-  // ⑤ 标记升 v3（首行）
+  // ⑤ index.md 正文 v2 措辞复核：升级只机械归一索引表列结构，表外描述该表的用法说明 / 写入纪律等自由文本不随之改写，命中列入复核项（只报不改）
+  const staleIndexLines = lines.filter((ln) => ln.includes(SOURCE_TASK_HEADER) || /状态[^。；\n]{0,20}已废弃/.test(ln)).length
+  if (staleIndexLines > 0) {
+    reviews.push(`${INDEX_FILE} 正文有 ${staleIndexLines} 行残留 v2 措辞（如「${SOURCE_TASK_HEADER}」「状态改为已废弃」）：v3 已删该两列并迁出退休条目，用法说明 / 写入纪律须同步改写`)
+  }
+
+  // ⑥ 标记升 v3（首行）
   lines.unshift(CARRIER_MARKER)
   changes.push({ target: INDEX_FILE, detail: `首行形态标记置为 ${CARRIER_MARKER}` })
 

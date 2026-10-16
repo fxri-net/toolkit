@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync, mkdirSync, rmSync
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { upgradeConventions } from "../conventions/upgrade"
-import { CARRIER_MARKER, CARRIER_VERSION, HISTORY_TITLE, RETIRED_FILE, detectForm, idOf, readCarrier } from "../conventions/format"
+import { CARRIER_MARKER, CARRIER_VERSION, HISTORY_FILE, HISTORY_TITLE, INDEX_FILE, RETIRED_FILE, detectForm, idOf, readCarrier } from "../conventions/format"
 
 // 各用例独立建临时目录，结束后统一清理
 const dirs: string[] = []
@@ -266,6 +266,35 @@ describe("v2 → v3 迁移", () => {
     expect(readIndex(root)).toBe(V2_INDEX)
     expect(readCommon(root)).toBe(V2_COMMON)
     expect(existsSync(join(root, "conventions", RETIRED_FILE))).toBe(false)
+  })
+
+  it("history 首列为行内代码包裹 ID 时不提示补录，为裸规则名时才提示", () => {
+    const root = makeDir("tk-upgrade-hid-")
+    makeV2(root)
+    // 规范要求引用以反引号包裹：`C-1`
+    writeFileSync(
+      join(root, "conventions", "history.md"),
+      V2_HISTORY.replace("| 四级时间源 |", `| \`${idOf(1)}\` |`),
+      "utf8",
+    )
+    const report = upgradeConventions(root)
+    expect(report.reviews.some((m) => m.includes(HISTORY_FILE) && m.includes("首列"))).toBe(false)
+
+    // 首列仍为裸规则名（无 ID）时须提示人工补录
+    const root2 = makeDir("tk-upgrade-hid2-")
+    makeV2(root2)
+    const report2 = upgradeConventions(root2)
+    expect(report2.reviews.some((m) => m.includes(HISTORY_FILE) && m.includes("请人工核对是否补录 ID"))).toBe(true)
+  })
+
+  it("index.md 正文残留 v2 措辞（确立来源任务 / 状态改为已废弃）列入复核项", () => {
+    const root = makeDir("tk-upgrade-stale-")
+    makeV2(root)
+    const stale = V2_INDEX.replace("（说明略）", "新增条目时填「确立来源任务」；停用条目将「状态」改为「已废弃」。")
+    writeFileSync(join(root, "conventions", "index.md"), stale, "utf8")
+
+    const report = upgradeConventions(root)
+    expect(report.reviews.some((m) => m.includes(INDEX_FILE) && m.includes("v2 措辞"))).toBe(true)
   })
 })
 

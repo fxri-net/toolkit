@@ -8,3 +8,6 @@
 修改：`toolkit conventions status` 新增校验——退休台账可定位性、退休 ID 与活跃 ID 重叠、common 归属却语义提及端名
 修改：任务 `scope` 字段校验新增路径分隔符软告警（`/` 与 `\`）
 优化：跨平台兼容补强——新增 macOS CI job、统一路径大小写归一口径（覆盖 macOS）、补 `.gitattributes` 统一换行符
+修复：`toolkit conventions upgrade` 与 `status` 判定稳定 ID 时容忍行内代码包裹（`` `C-4` `` 不再误判为「首列仍为规则名」「不合稳定 ID 形态」）——对齐规范「引用一律行内代码包裹」的合法写法
+修复：`toolkit conventions status` 的 common 下沉提示改为大小写不敏感、判据收窄为「语义含端限定语（仅 / 只 / 专属 / 适用于）且提及端名」，消除举例式提及的假阳性并补上大写端名的漏报
+修改：`toolkit conventions upgrade` 新增 `index.md` 正文 v2 措辞复核——表外自由文本残留「确立来源任务」「状态改为已废弃」等表述时列入 `reviews`（只报不改）

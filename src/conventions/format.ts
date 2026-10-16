@@ -96,6 +96,16 @@ export function idOf(n: number): string {
   return `C-${n}`
 }
 
+// 剥去单元格的行内代码包裹（规范要求引用以反引号包裹），供 ID 判据容忍 `C-4` 与 C-4 两种写法
+export function stripCode(cell: string): string {
+  return cell.trim().replace(/^`+|`+$/g, "").trim()
+}
+
+// 单元格是否为稳定 ID 形态（容忍行内代码包裹）：校验侧唯一入口，避免各处以裸字符串直比而漏判合法写法
+export function isIdCell(cell: string): boolean {
+  return ID_RE.test(stripCode(cell))
+}
+
 // 读首行标记版本：标记约定置首行，正文示例里的同形注释不参与判定
 function firstLineMarkerVersion(content: string, re: RegExp): number | null {
   const first = content.split(/\r?\n/, 1)[0] ?? ""
