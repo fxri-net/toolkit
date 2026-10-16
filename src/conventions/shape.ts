@@ -20,6 +20,9 @@ import {
   type CarrierState,
 } from "./format"
 
+// 分册残留「确立来源」子项：行首列表项，子项名可有可无加粗包裹
+const STRAY_SOURCE_PATTERN = /^[-*]\s+(?:\*\*)?确立来源/
+
 // 单条形态偏离：file 为绝对路径（各调用方按自身现场渲染），line 为 1 基行号（列集合类偏离无单一行号）
 export interface ShapeDefect {
   file: string
@@ -91,11 +94,36 @@ function columnCountDefects(state: CarrierState): ShapeDefect[] {
   return defects
 }
 
-// 载体表形态检测入口：无 index.md 一律无偏离；列集合类只在 v3 校验，列数脱节对任何形态都校验
+// T4：分册内不得残留「确立来源」子项（来源由索引行与 history / retired 承载），逐文件报首个命中行
+function straySourceDefects(state: CarrierState): ShapeDefect[] {
+  const defects: ShapeDefect[] = []
+  const files = carrierFiles(state).filter((file) => file !== state.indexFile)
+  for (const file of files) {
+    if (!existsSync(file)) continue
+    const lines = readTextFile(file).split(/\r?\n/)
+    const mask = outsideFenceMask(lines)
+    // 围栏内行按示例处理：跳过后行号仍与文件实际行号对齐
+    const hits: number[] = []
+    lines.forEach((line, i) => {
+      if (mask[i] && STRAY_SOURCE_PATTERN.test(line)) hits.push(i + 1)
+    })
+    const first = hits[0]
+    if (first === undefined) continue
+    const extra = hits.length > 1 ? `（另有 ${hits.length - 1} 处）` : ""
+    defects.push({
+      file,
+      line: first,
+      message: `${basename(file)} 第 ${first} 行残留「确立来源」子项${extra}：来源由索引行与 history.md / retired.md 承载，分册内不重复；请人工确认后按 conventions-spec 归一`,
+    })
+  }
+  return defects
+}
+
+// 载体表形态检测入口：无 index.md 一律无偏离；文风与列集合类只在 v3 校验，列数脱节对任何形态都校验
 export function detectShapeDefects(state: CarrierState): ShapeDefect[] {
   if (!state.hasIndex) return []
   const defects: ShapeDefect[] = []
-  if (state.form === "v3") defects.push(...indexColumnDefects(state), ...ledgerDefects(state))
+  if (state.form === "v3") defects.push(...indexColumnDefects(state), ...ledgerDefects(state), ...straySourceDefects(state))
   defects.push(...columnCountDefects(state))
   return defects
 }

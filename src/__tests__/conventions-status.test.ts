@@ -560,6 +560,52 @@ ${tableLines}
   })
 })
 
+describe("分册残留确立来源体检", () => {
+  it("分册内残留「确立来源」子项时软告警并给出文件名与行号", () => {
+    const root = makeDir("tk-status-stray-src-")
+    const cwd = makeDir("tk-status-stray-src-cwd-")
+    makeCarrier(root, cleanRows, { extra: { "web.md": "# web 规范\n\n## C-1. 示例\n\n- **要求**：示例。\n- **确立来源**：20261001 某任务。\n" } })
+
+    const report = conventionsStatus(root, cwd)
+    const hits = report.items.filter((i) => i.message.includes("残留「确立来源」子项"))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]!.level).toBe("warn")
+    expect(hits[0]!.scope).toBe("形态")
+    expect(hits[0]!.message).toContain("web.md")
+    expect(hits[0]!.message).toContain("第 6 行")
+  })
+
+  it("分册内同一文件多处残留时只报首个命中行并计余量", () => {
+    const root = makeDir("tk-status-stray-src-many-")
+    const cwd = makeDir("tk-status-stray-src-many-cwd-")
+    makeCarrier(root, cleanRows, { extra: { "web.md": "# web 规范\n\n- 确立来源：甲。\n\n- **确立来源**：乙。\n" } })
+
+    const report = conventionsStatus(root, cwd)
+    const hits = report.items.filter((i) => i.message.includes("残留「确立来源」子项"))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]!.message).toContain("第 3 行")
+    expect(hits[0]!.message).toContain("（另有 1 处）")
+  })
+
+  it("分册内无「确立来源」子项时不告警", () => {
+    const root = makeDir("tk-status-stray-src-ok-")
+    const cwd = makeDir("tk-status-stray-src-ok-cwd-")
+    makeCarrier(root, cleanRows, { extra: { "web.md": "# web 规范\n\n## C-1. 示例\n\n- **要求**：示例。\n- **理由**：示例。\n" } })
+
+    const report = conventionsStatus(root, cwd)
+    expect(report.items.filter((i) => i.message.includes("残留「确立来源」子项"))).toEqual([])
+  })
+
+  it("分册内「确立来源」行位于 fenced code block 内时按示例处理不告警", () => {
+    const root = makeDir("tk-status-stray-src-fence-")
+    const cwd = makeDir("tk-status-stray-src-fence-cwd-")
+    makeCarrier(root, cleanRows, { extra: { "web.md": "# web 规范\n\n```md\n- **确立来源**：示例。\n```\n" } })
+
+    const report = conventionsStatus(root, cwd)
+    expect(report.items.filter((i) => i.message.includes("残留「确立来源」子项"))).toEqual([])
+  })
+})
+
 describe("演进记录首列体检", () => {
   // 演进记录假现场：表头 + 分隔行 + 数据行（首列形态由用例给定）
   const makeHistory = (rows: string): string =>

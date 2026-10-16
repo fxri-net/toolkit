@@ -1,9 +1,8 @@
 <!-- toolkit-conventions: v3 -->
 # 项目协作规范索引
 
-> 演进记录见 `history.md`，已退休条目见 `retired.md`；两者属归档面、不进常规读面。条文全文见对应归属分册。
-> 本载体为「规范溯源簿」：记录本项目确立的每条活跃规则、适用面（归属）、当前语义与条文的单一事实源位置。条文内容一律以各单一事实源最新版为准（skills / task-spec / ai-rules / AGENTS），本载体不复制条文，避免版本漂移。
-> 非任务文件，`toolkit tasks` 不读取内容、`check` 不因内容告警；`check` 只对**载体形态异常**与**入口层现场异常**软告警——载体侧：旧单文件残留、缺 `index.md`、标记与 `history.md` / 索引表首列 ID 不一致；入口壳侧：壳标记与当前 toolkit 不一致、壳被 gitignore 覆盖。v1 / v2 形态属合法存量、不告警，可执行 `toolkit conventions upgrade` 升 v3。由任务归档（任务级）与会话收尾（会话级）维护，写入前经用户确认。载体结构、端名规则、读写判定与存量迁移见 `skills/fxri-plan-to-task/references/conventions-spec.md`。
+> 本文件为规范载体唯一入口与唯一权威；规范全貌见下方索引，条文见各分册。
+> 读面纪律：`history.md` / `retired.md` 属归档面，仅在审计 / 恢复时读，不在常规读面。
 
 ## 一、端清单
 
@@ -11,8 +10,6 @@
 
 | 端名 | 说明 |
 | --- | --- |
-
-本项目单端（任务 `scope` 取值仅 `toolkit`），规范全归 `common`，不设端分册；条文绝大多数指向项目现有规则层，个别无既有规则层来源者落 `common.md`（分册按需创建），一览见下方「单一事实源」列。
 
 ## 二、索引
 
@@ -40,24 +37,24 @@
 | C-20 | 收尾动作不算任务 | 提交 / 发版 / 推送 / 部署等收尾动作本身及其固有产物（版本号 / 更新日志 / 标签）不构成任务、不单独建档 | common | `SPEC.md` 协作模型第 3 条 + `docs/ai-rules.md` 稳定纪律 |
 | C-21 | 归档块不可变 + 事实更正例外 | 已归档块不追加内容、元数据行冻结；唯一例外是事实更正——正文末尾追加「修订记录」保留原结论，口径变更类可改受影响事实字段 | common | `SPEC.md` 协作模型第 1 条 + `skills/fxri-plan-to-task/references/task-spec.md`（第 6 节） |
 | C-22 | 门禁单源与时点 | 验收步骤清单唯一真源为 `scripts/verify.mjs`、以 `pnpm verify` 暴露，本地与四处 CI 共用，禁止另写步骤枚举；关卡设在发布前；任务收尾顺序为「归档与沉淀 → 验收 → 提交」 | common | `AGENTS.md`「验收方式」+「发版链路」+「协作流程约束」+ `scripts/verify.mjs` + `skills/fxri-release-changelog/SKILL.md` + `task-spec.md`（第 6 节） |
-| C-23 | 测试假现场须与真实现场形态一致 | 模拟现场的假数据须与真实形态一致；被测逻辑对现场形态存在分支判据时，每种真实形态都要有对应用例 | common | `common.md` |
+| C-23 | 测试假现场须与真实现场形态一致 | 模拟现场的假数据须与真实形态一致；被测逻辑对现场形态存在分支判据时，每种真实形态都要有对应用例 | common | [common.md](./common.md) |
 | C-24 | conventions 入口壳（一阶触发面） | 载体可另配项目级入口壳 `toolkit-conventions/SKILL.md`（只作入口、指回索引）；`toolkit init` 幂等生成、按标记版本分流；壳标记陈旧或被 gitignore 覆盖时告警 | common | `skills/fxri-plan-to-task/references/conventions-spec.md`（§1 载体结构） |
-| C-25 | 版本括注口径 | `（x.y.z 新增）` 类括注只标命令 / 技能 / 配置项 / 单一能力点的首次引入版本且紧邻该对象；跨版本演进清单不挂句末括注，扩展史由 `CHANGELOG.md` 承载 | common | `common.md` |
+| C-25 | 版本括注口径 | `（x.y.z 新增）` 类括注只标命令 / 技能 / 配置项 / 单一能力点的首次引入版本且紧邻该对象；跨版本演进清单不挂句末括注，扩展史由 `CHANGELOG.md` 承载 | common | [common.md](./common.md) |
 | C-26 | 降级不静默 | 用户显式传入的值（CLI 选项值、配置文件项）无法采纳时不得静默忽略：能继续执行则 stderr 告警「忽略了什么、回落到什么」，无法继续则报错并以非 0 退出码终止 | common | `AGENTS.md`「协作流程约束」+ `docs/cli.md`（`--status` / `--lang` / `--format` 行） |
 | C-27 | 变更集条目类型前缀与归档前检测 | 变更集条目一律以 `类型：` 前缀开头（只按顶层 `- ` 条目判定）；`tasks check` 在归档前扫 `.changeset/` 报出缺前缀条目数与首条行号 | common | `AGENTS.md` 质量门第 4 条 + `skills/fxri-release-changelog/SKILL.md` |
-| C-28 | 规则落门禁 | 规则层新增 / 强化「可自动检出」的要求时，或复核发现既有要求无检测入口时，须同批补落检测入口（`tasks check` / `pnpm verify`）且置于不可逆动作之前 | common | `common.md` |
-| C-29 | 门禁与测试的环境无关性 | `pnpm verify` 各步须与运行环境无关（hermetic），涉时间比对的测试 / 步骤固定时区口径、按数据来源分两轴：合成数据钉 `TZ=UTC`，读真实任务数据钉 `TZ=Asia/Shanghai` | common | `common.md` |
+| C-28 | 规则落门禁 | 规则层新增 / 强化「可自动检出」的要求时，或复核发现既有要求无检测入口时，须同批补落检测入口（`tasks check` / `pnpm verify`）且置于不可逆动作之前 | common | [common.md](./common.md) |
+| C-29 | 门禁与测试的环境无关性 | `pnpm verify` 各步须与运行环境无关（hermetic），涉时间比对的测试 / 步骤固定时区口径、按数据来源分两轴：合成数据钉 `TZ=UTC`，读真实任务数据钉 `TZ=Asia/Shanghai` | common | [common.md](./common.md) |
 | C-30 | 配置分层 | 三层配置模型：全局 `~/.toolkitrc.json`（段级整体覆盖）→ 项目 `.toolkitrc.json`（向上查最近一份）→ 本地 `.toolkitrc.local.json`（止于 home、默认不入库）；合并粒度分层；`config status` 只列层级 / 命中 / 来源 / 键路径、不打印配置值 | common | `docs/config.md`（合并粒度对照表）+ `docs/cli.md`（`config status` 报告字段说明） |
 | C-31 | 变更集级别判定（按能力量级） | 版本号由变更集 bump 声明决定、与条目前缀正交：破坏性→major、全新大功能 / 独立新能力→minor、存量能力上的修补与增量→patch；不得为凑版本号降级 | common | `skills/fxri-release-changelog/references/changelog-format.md` |
-| C-32 | 现场路径形态须归一 | 生产代码对同一资源的不同路径书写形态做比对 / 归属判定时，须先取磁盘真实形态（`fs.realpathSync.native` 等）再比；纯字符串归一不替代真实形态归一，路径不存在时回退原串 | common | `common.md` |
+| C-32 | 现场路径形态须归一 | 生产代码对同一资源的不同路径书写形态做比对 / 归属判定时，须先取磁盘真实形态（`fs.realpathSync.native` 等）再比；纯字符串归一不替代真实形态归一，路径不存在时回退原串 | common | [common.md](./common.md) |
 | C-33 | 类型检查须覆盖测试文件 | 类型检查单独走放开测试排除项的 `tsconfig.typecheck.json`（基础 `tsconfig.json` 已排除 `**/__tests__` 等），不得让测试文件落在盲区；eslint 与单测 / 构建不能替代 | common | `AGENTS.md`「验收方式」 |
 | C-34 | 项目面技能分发与真源薄壳 | `skills install` / `status` / `remove` 按 CLI 安装位置自动判定作用域（可 `--scope` 覆盖）；项目面采用「唯一真源 + 多份入口薄壳」；`init` 幂等写 `prepare` 钩子，并附发布型包误打包检查（只提示、不代改） | common | `docs/guide.md`（项目面分发）+ `docs/cli.md`（`skills --scope` / `init --no-hooks`）+ `docs/faq.md` + `skills/README.md` |
 | C-35 | 表格形态（紧凑为规范形态） | 载体内所有表格一律紧凑形态（单元格间只留一个空格、不做列对齐填充）；`init` 托管 `.prettierignore` 从源头阻止填充，存量用 `conventions format` 归一、`status` / `check` 检出 | common | `skills/fxri-plan-to-task/references/conventions-spec.md`（§9 表格形态） |
 | C-36 | 跨仓库改动各自归档 | 任务档只记本仓的改动与动机；同一会话涉及多仓时各仓各自建档归档；判据取视角（描述的是不是本仓的改动），依赖包名 / 被调接口名等本仓事实者照写 | common | `SPEC.md` 协作模型第 5 条 + `docs/ai-rules.md` 稳定纪律 + `skills/fxri-plan-to-task/SKILL.md`（建档评估） |
+| C-37 | 载体文风与模板 | 索引头注固定两行、用法说明固定三段骨架、「单一事实源」列按载体内 / 外二分写法、分册条文固定「要求 → 反例 → 理由 → 配套」四子项且不写「确立来源」、规范词按 `须` / `应` / `可` / `不得` 分级、标识符与路径一律行内代码 | common | `skills/fxri-plan-to-task/references/conventions-spec.md`（§13 载体文风与模板） |
 
 ## 三、用法说明
 
-- 本项目已具备完整规则层（AGENTS.md 治理 + ai-rules 全局规则 + skills 流程），故本载体采用**溯源索引式**：不复制条文，只记「确立了什么、适用哪个端、当前语义、条文去哪看」。个别规则在项目现有规则层中无既有来源（如 `C-23`、`C-25`、`C-28`、`C-29`、`C-32`），其条文全文落 `common.md` 承载，属两种形态混用的情形。
-- 无其他规则文件的项目可选用**条文式**：条文全文写入对应归属分册（`common.md` / `<端名>.md`），本载体即项目唯一规范载体。两式可混用，差异见 `conventions-spec.md` 第 7 节。
-- 读取分层：常驻只读本文件（端清单 + 活跃索引）；按任务 `scope` 命中端分册或分类标签分册、并**恒叠加 `common.md`**。本项目单端无端分册、无分类标签分册，叠加面即 `common.md`——`C-23`、`C-25`、`C-28`、`C-29`、`C-32` 的条文全文在该文件内。`history.md` / `retired.md` 属归档面、不进常规读面。
-- 维护纪律：规则层源头（`AGENTS.md` / `docs/ai-rules.md` / skills 条文）变更时，须同步检查本表对应行「当前语义」、随变更同批落盘，语义变更须先在 `history.md` 留痕再更新本表；规则**作废**则从本表删行迁入 `retired.md`（冻结退休时语义），并做三层清理——删本载体分册条文、删 / 改外部单一事实源条文。
+- **载体形态**：本项目采用「溯源索引式」（条文在外部规则层，本载体只索引）；个别在项目现有规则层中无既有来源的条文（如 `C-23`、`C-25`、`C-28`、`C-29`、`C-32`）按「条文式」落 `common.md`，属两式混用。
+- **本项目约定**：单端项目（任务 `scope` 取值仅 `toolkit`），规范全归 `common`，不设端分册与分类标签分册；分册按需创建，一览见索引「单一事实源」列。
+- **读写与维护**：读面与读写判定、写入归属、语义修订与退休流程一律见 `skills/fxri-plan-to-task/references/conventions-spec.md`，本载体不另述。

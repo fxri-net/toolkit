@@ -18,3 +18,5 @@
 修改：`toolkit tasks check` 与 `toolkit conventions status` 新增表形态速检——v3 载体索引表残留 v2 独有列（「状态」「确立来源任务」）或 `history.md` / `retired.md` 表头首格非 `ID` 时软告警（只报不改）
 修改：表形态校验从「速检」升级为完整比对——v3 索引表列集合须恰为 `ID | 规则 | 当前语义 | 归属 | 单一事实源` 五列（列名与次序逐格一致，多列 / 少列 / 换序均检出）、`history.md` / `retired.md` 表头整行逐格比对、载体各文件（`index.md`、分册、`history.md`、`retired.md`）表头行与紧随分隔行列数须相等（跳过 fenced code block）；检出统一为软告警（只报不改，须人工确认后按规范归一）
 文档：`conventions-spec` 补齐形态与迁移措辞——索引表五列固定、`history.md` / `retired.md` 表头固定逐格一致、表列数自洽、入口壳版本沿革（壳标记独立演进、当前 `v2`、从未有过 `v1` 壳）、不得显式书写 `v1` 标记、手工迁 v2 与 `toolkit conventions upgrade` 链式直达 v3 的落点差异
+新增：`conventions-spec` 新增 §13「载体文风与模板」（T1–T6）——索引头注固定两行、用法说明固定「载体形态 → 本项目约定（可选）→ 读写与维护」三段骨架、「单一事实源」列按载体内 / 外二分写法（载体分册用相对链接、载体外文件用行内代码）、分册条文固定「要求 → 反例 → 理由 → 配套」四子项且不写「确立来源」、规范词按 `须` / `应` / `可` / `不得` 分级、标识符与路径一律行内代码
+修改：`toolkit tasks check` 与 `toolkit conventions status` 新增分册残留「确立来源」子项检测——v3 载体的分册（`index.md` 除外）内出现行首「确立来源」子项时软告警（跳过 fenced code block、只报不改）
