@@ -6,7 +6,7 @@
 
 ## 一、端清单
 
-> 端名与任务 frontmatter `scope` 取值共用同一套词表；保留字 `index` / `common` 不得作端名。本项目单端（`scope` 取值仅 `toolkit`），规范全归 `common`。
+> 端名与任务 frontmatter 的 `scope` 取值共用同一套词表；保留字 `index` / `common` 不得作端名。本项目单端（`scope` 取值仅 `toolkit`），规范全归 `common`。
 
 | 端名 | 说明 |
 | --- | --- |
