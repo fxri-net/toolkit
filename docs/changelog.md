@@ -6,6 +6,14 @@ outline: [2, 2]
 
 > 完整变更历史以随包发布的 CHANGELOG.md 为准，本页由 `pnpm sync:changelog-doc` 从根 CHANGELOG.md 自动同步，请勿手改。
 
+## 1.12.3
+
+> 2026-10-18 发布
+
+### 📝 文档更新
+
+- 明确 T5 规范词适用范围覆盖 history 留痕行
+
 ## 1.12.2
 
 > 2026-10-16 发布
