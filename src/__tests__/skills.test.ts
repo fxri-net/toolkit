@@ -1191,7 +1191,7 @@ describe("项目侧技能分发（真源副本 + 薄壳）", () => {
   })
 
   it("把包内技能写入仓库唯一真源，并在其余已存在候选目录落薄壳", () => {
-    mkdirSync(join(project, ".cursor", "skills"), { recursive: true })
+    mkdirSync(join(project, ".windsurf", "skills"), { recursive: true })
     const skills = listPackageSkills()
 
     const report = installProjectSkills({ cwd: project })
@@ -1202,9 +1202,9 @@ describe("项目侧技能分发（真源副本 + 薄壳）", () => {
       expect(readFileSync(sourceSkillFile(project, s.name), "utf8")).toBe(readFileSync(join(s.dir, "SKILL.md"), "utf8"))
     }
     // 薄壳只落在已存在候选目录，内容由真源派生
-    expect(report.shells.map((r) => r.dir)).toEqual([".cursor/skills"])
+    expect(report.shells.map((r) => r.dir)).toEqual([".windsurf/skills"])
     for (const s of skills) {
-      expect(readFileSync(shellSkillFile(project, ".cursor/skills", s.name), "utf8")).toBe(expectedShell(s))
+      expect(readFileSync(shellSkillFile(project, ".windsurf/skills", s.name), "utf8")).toBe(expectedShell(s))
     }
     // 未命中的候选目录如实报告，供按需补齐
     expect(report.missingDirs).toContain(".trae/skills")
@@ -1218,8 +1218,17 @@ describe("项目侧技能分发（真源副本 + 薄壳）", () => {
     expect(report.missingDirs).not.toContain("agent/skills")
   })
 
-  it("重复安装幂等：真源与薄壳均跳过，且不改写归属账", () => {
+  it("全局目录 .cursor/skills 与 .trae-cn/skills 不是项目级候选，已存在也不落薄壳", () => {
     mkdirSync(join(project, ".cursor", "skills"), { recursive: true })
+    mkdirSync(join(project, ".trae-cn", "skills"), { recursive: true })
+    const report = installProjectSkills({ cwd: project })
+    expect(report.shells).toEqual([])
+    expect(report.missingDirs).not.toContain(".cursor/skills")
+    expect(report.missingDirs).not.toContain(".trae-cn/skills")
+  })
+
+  it("重复安装幂等：真源与薄壳均跳过，且不改写归属账", () => {
+    mkdirSync(join(project, ".windsurf", "skills"), { recursive: true })
     installProjectSkills({ cwd: project })
     // 人为回拨 updatedAt：幂等安装若重写文件会覆盖该值
     const stateFile = projectStateFile(project)
@@ -1236,10 +1245,10 @@ describe("项目侧技能分发（真源副本 + 薄壳）", () => {
   })
 
   it("薄壳按标记版本分流：同版或超前保持、漂移重写、无标记交人工", () => {
-    mkdirSync(join(project, ".cursor", "skills"), { recursive: true })
+    mkdirSync(join(project, ".windsurf", "skills"), { recursive: true })
     installProjectSkills({ cwd: project })
     const skill = listPackageSkills()[0]!
-    const file = shellSkillFile(project, ".cursor/skills", skill.name)
+    const file = shellSkillFile(project, ".windsurf/skills", skill.name)
     const expected = readFileSync(file, "utf8")
     const version = readSkillShellVersion(expected)!
     const install = () => installProjectSkills({ cwd: project })
@@ -1275,22 +1284,22 @@ describe("项目侧技能分发（真源副本 + 薄壳）", () => {
   })
 
   it("体检如实分辨真源与薄壳的 ready / drift / conflict / missing", () => {
-    mkdirSync(join(project, ".cursor", "skills"), { recursive: true })
+    mkdirSync(join(project, ".windsurf", "skills"), { recursive: true })
     installProjectSkills({ cwd: project })
     const first = listPackageSkills()[0]!
     const second = listPackageSkills()[1]!
 
     const initial = projectSkillsStatus(project)
     expect(stateIn(initial, PROJECT_SOURCE_DIR, first.name)).toBe("ready")
-    expect(stateIn(initial, ".cursor/skills", first.name)).toBe("ready")
+    expect(stateIn(initial, ".windsurf/skills", first.name)).toBe("ready")
 
     // 真源被改动（有归属记录）→ drift
     writeFileSync(sourceSkillFile(project, first.name), "改动过的真源\n", "utf8")
     expect(stateIn(projectSkillsStatus(project), PROJECT_SOURCE_DIR, first.name)).toBe("drift")
 
     // 薄壳被改动（保留标记）→ drift
-    writeFileSync(shellSkillFile(project, ".cursor/skills", first.name), `${expectedShell(first)}尾巴\n`, "utf8")
-    expect(stateIn(projectSkillsStatus(project), ".cursor/skills", first.name)).toBe("drift")
+    writeFileSync(shellSkillFile(project, ".windsurf/skills", first.name), `${expectedShell(first)}尾巴\n`, "utf8")
+    expect(stateIn(projectSkillsStatus(project), ".windsurf/skills", first.name)).toBe("drift")
 
     // 未登记的候选目录里无标记同名产物 → conflict
     mkdirSync(join(project, ".trae", "skills", second.name), { recursive: true })
@@ -1303,14 +1312,14 @@ describe("项目侧技能分发（真源副本 + 薄壳）", () => {
   })
 
   it("卸载只清账内产物，回收空目录并删除归属账；二次调用报未安装", () => {
-    mkdirSync(join(project, ".cursor", "skills"), { recursive: true })
+    mkdirSync(join(project, ".windsurf", "skills"), { recursive: true })
     installProjectSkills({ cwd: project })
     const names = listPackageSkills().map((s) => s.name)
 
     const report = removeProjectSkills({ cwd: project })
     expect(report.dirs.find((d) => d.kind === "source")!.removed).toEqual(names)
     expect(report.dirs.find((d) => d.kind === "shell")!.removed).toEqual(names)
-    expect(report.reclaimed).toEqual(expect.arrayContaining([PROJECT_SOURCE_DIR, ".cursor/skills"]))
+    expect(report.reclaimed).toEqual(expect.arrayContaining([PROJECT_SOURCE_DIR, ".windsurf/skills"]))
     expect(report.stateRemoved).toBe(true)
     expect(existsSync(projectStateFile(project))).toBe(false)
     expect(existsSync(join(project, PROJECT_SOURCE_DIR))).toBe(false)

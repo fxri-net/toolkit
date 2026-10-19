@@ -692,12 +692,12 @@ describe("initWorkspace 发布型包误打包提醒", () => {
 
   it("多候选技能目录并存：清单全部列出", () => {
     const { cwd } = track(runInDir("tk-init-risk-multidir-"))
-    mkdirSync(join(cwd, ".cursor", "skills"), { recursive: true })
+    mkdirSync(join(cwd, ".windsurf", "skills"), { recursive: true })
     mkdirSync(join(cwd, ".trae", "skills"), { recursive: true })
     writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
 
     const hint = initWorkspace(".tasks", cwd).publishRiskHint ?? ""
-    expect(hint).toContain(".cursor/skills/")
+    expect(hint).toContain(".windsurf/skills/")
     expect(hint).toContain(".trae/skills/")
   })
 

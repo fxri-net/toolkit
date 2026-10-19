@@ -133,7 +133,7 @@ describe("入口壳告警", () => {
       writeFileSync(join(target, SKILL_ENTRY), content, "utf8")
     }
     writeShell(".trae/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n<!-- toolkit-conventions-entry: v${ENTRY_VERSION - 1} -->\n`)
-    writeShell(".cursor/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n无标记壳\n`)
+    writeShell(".windsurf/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n无标记壳\n`)
     writeShell(".claude/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n${ENTRY_MARKER}\n`)
 
     const warns = warnTexts(dir, cwd)
@@ -141,7 +141,7 @@ describe("入口壳告警", () => {
     expect(versionWarns).toHaveLength(1)
     expect(versionWarns[0]).toContain("共 2 处")
     expect(versionWarns[0]).toContain(`.trae/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 v${ENTRY_VERSION - 1}）`)
-    expect(versionWarns[0]).toContain(`.cursor/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 无）`)
+    expect(versionWarns[0]).toContain(`.windsurf/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 无）`)
     // 版本一致的壳不进告警
     expect(versionWarns[0]).not.toContain(".claude/skills")
     // 落点须为仓库根相对路径，不得把本机绝对路径写进告警

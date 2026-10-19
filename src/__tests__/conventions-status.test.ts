@@ -363,7 +363,7 @@ describe("入口层体检", () => {
     const cwd = makeDir("tk-status-shellver-cwd-")
     makeCarrier(root, cleanRows)
     writeShell(cwd, ".trae/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n<!-- toolkit-conventions-entry: v${ENTRY_VERSION - 1} -->\n`)
-    writeShell(cwd, ".cursor/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n无标记壳\n`)
+    writeShell(cwd, ".windsurf/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n无标记壳\n`)
 
     const report = conventionsStatus(root, cwd)
     expect(report.shells).toHaveLength(2)
@@ -371,7 +371,7 @@ describe("入口层体检", () => {
     expect(versionItems).toHaveLength(1)
     expect(versionItems[0]!.message).toContain("共 2 处")
     expect(versionItems[0]!.message).toContain(`.trae/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 v${ENTRY_VERSION - 1}）`)
-    expect(versionItems[0]!.message).toContain(`.cursor/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 无）`)
+    expect(versionItems[0]!.message).toContain(`.windsurf/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 无）`)
     expect(report.summary).toContain("1 项待处理")
   })
 

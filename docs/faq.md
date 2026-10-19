@@ -34,7 +34,7 @@ toolkit skills install    # skills 一键分发到各 agent 全局技能目录
 项目面分发（`toolkit skills install --scope project`，`--scope` 缺省时项目内装的 CLI 会自动走此面）只保留**一份唯一真源**，其余目录都是薄壳：
 
 - **真源**：`<仓库根>/.agents/skills/`（完整技能内容），恒定存在；
-- **入口薄壳**：其余**已存在**的候选目录（`.trae/skills/`、`.trae-cn/skills/`、`.cursor/skills/`、`.claude/skills/`、`agent/skills/`（eve））各放**每个技能一个** `SKILL.md` 薄壳——description 从真源派生、正文指明真源路径与版本标记，不重复承载内容；某个候选目录不存在就不凭空创建。
+- **入口薄壳**：其余**已存在**的候选目录（`.trae/skills/`、`.claude/skills/`、`agent/skills/`（eve）、`.augment/skills/`、`.codebuddy/skills/`、`.continue/skills/`、`.crush/skills/`、`.devin/skills/`、`.goose/skills/`、`.grok/skills/`、`.hermes/skills/`、`.iflow/skills/`、`.junie/skills/`、`.kiro/skills/`、`.openhands/skills/`、`.qwen/skills/`、`.roo/skills/`、`.windsurf/skills/`）各放**每个技能一个** `SKILL.md` 薄壳——description 从真源派生、正文指明真源路径与版本标记，不重复承载内容；某个候选目录不存在就不凭空创建。
 
 真源与薄壳都要**入库**（归属账 `<仓库根>/.toolkit/state.json` 一并入库）。队友 clone 后**不必逐台手动重装**：`toolkit init` 会在 `package.json` 写入 `prepare` 刷新钩子（仅当本地依赖含 `@fxri/toolkit`），`pnpm install` 时自动补齐/刷新；想手动触发就重跑 `toolkit skills install --scope project`。现场用 `toolkit skills status --scope project` 查（逐技能报告真源 / 薄壳 / 缺失 / 漂移）；清理用 `toolkit skills remove --scope project`（只摘本包登记的产物）。某队友用的 agent 候选目录仓库里没有对应薄壳时，跑一次 install 即按需补上。
 

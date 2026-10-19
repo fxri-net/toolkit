@@ -10,8 +10,30 @@ export const ENTRY_SHELL_NAME = "toolkit-conventions"
 // 技能标识文件：目录内含该文件才计为一个技能
 export const SKILL_ENTRY = "SKILL.md"
 // 项目级技能目录候选：全部已存在者各写一份（多 agent 混用团队都能读到）；全部缺失时回落到中立共识目录
-// agent/skills 为 eve 的项目级技能目录；其余候选为多家 agent 共读或各自默认目录
-export const PROJECT_SKILL_DIRS = [".agents/skills", ".trae/skills", ".trae-cn/skills", ".cursor/skills", ".claude/skills", "agent/skills"]
+// 收录口径：上游 agent 的项目级技能目录，且落点是仓库内专用配置目录；agent/skills 为 eve 的项目级目录
+// 拒绝收录：裸 skills（OpenClaw，落在仓库根，会污染根目录）、data/skills（AstrBot，落在数据目录）
+// .cursor/skills 与 .trae-cn/skills 是这两家 agent 的全局目录，项目级分别读 .agents/skills、.trae/skills，收录会写到错误位置
+export const PROJECT_SKILL_DIRS = [
+  ".agents/skills",
+  ".trae/skills",
+  ".claude/skills",
+  "agent/skills",
+  ".augment/skills",
+  ".codebuddy/skills",
+  ".continue/skills",
+  ".crush/skills",
+  ".devin/skills",
+  ".goose/skills",
+  ".grok/skills",
+  ".hermes/skills",
+  ".iflow/skills",
+  ".junie/skills",
+  ".kiro/skills",
+  ".openhands/skills",
+  ".qwen/skills",
+  ".roo/skills",
+  ".windsurf/skills",
+]
 // 回落落点：无任一候选目录时的默认目录（多家 agent 共读的中立共识目录）
 export const FALLBACK_SKILL_DIR = ".agents/skills"
 
@@ -59,7 +81,7 @@ export function resolveProjectSkillDirs(cwd: string): string[] {
 }
 
 // 列出各候选目录下已有的入口壳（供体检与告警复用，不写盘）
-// 只扫 PROJECT_SKILL_DIRS 内置候选目录：用户手工拷到未收录目录（如 .windsurf/skills）的壳体检看不到
+// 只扫 PROJECT_SKILL_DIRS 内置候选目录：用户手工拷到未收录目录（如 .bob/skills）的壳体检看不到
 export function findEntryShells(cwd: string): EntryShell[] {
   const shells: EntryShell[] = []
   for (const rel of PROJECT_SKILL_DIRS) {

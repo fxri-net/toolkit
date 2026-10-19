@@ -8,7 +8,7 @@
 
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
-| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.9.2 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
+| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.9.3 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
 | [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.2.1 | changesets 发版与多语言 CHANGELOG 维护 |
 | [fxri-session-recap](./fxri-session-recap/SKILL.md) | 1.6.0 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 
@@ -33,7 +33,7 @@ toolkit skills remove       # 卸载本包装的产物（只清自己装的，�
 - 目标三层：主目标 `~/.agents/skills/`（多家 agent 共读：Cline、Dexto、Kimi Code CLI、Loaf、Sarvam Code、Warp、Zed、DeepSeek Harness）→ 内置表内**已安装**的各 agent 全局技能目录 → `--dir <path>` 兜底（可多次指定，给表外 agent 用）；共读 agent 的全局目录即主目标本身，写一次即全部覆盖，`toolkit skills status` 单列「经 canonical 共读的 agent」
 - 默认软链（锚在 pnpm 稳定入口，升级不失效）；链接创建失败自动降级为副本并打印 ⚠️（如无权限建链）；`--copy` 强制副本、`--dry-run` 预演、`--force` 覆盖同名非本包产物（不改本包已登记副本的形态）
 - 产物记录在状态文件 `~/.agents/.toolkit-skills.json`；卸载 CLI 前先跑 `toolkit skills remove`，避免留下悬空链接（清理后目标目录若已空会一并回收）
-- **项目面（`--scope project`）**：`--scope` 缺省时按 CLI 安装位置自动判定（项目内装 CLI → 项目面）。真源落 `<仓库根>/.agents/skills/`（完整副本），其余**已存在**的候选目录（`.trae/skills/`、`.trae-cn/skills/`、`.cursor/skills/`、`.claude/skills/`、`agent/skills/`（eve））各放每个技能一份入口薄壳指向真源；产物记录在 `<仓库根>/.toolkit/state.json`（与真源、薄壳一并入库）。`toolkit init` 会写入 `prepare` 刷新钩子，`pnpm install` 时自动补齐/刷新，队友 clone 即用；`--copy` 仅全局面生效，项目面恒为副本
+- **项目面（`--scope project`）**：`--scope` 缺省时按 CLI 安装位置自动判定（项目内装 CLI → 项目面）。真源落 `<仓库根>/.agents/skills/`（完整副本），其余**已存在**的候选目录（`.trae/skills/`、`.claude/skills/`、`agent/skills/`（eve）、`.augment/skills/`、`.codebuddy/skills/`、`.continue/skills/`、`.crush/skills/`、`.devin/skills/`、`.goose/skills/`、`.grok/skills/`、`.hermes/skills/`、`.iflow/skills/`、`.junie/skills/`、`.kiro/skills/`、`.openhands/skills/`、`.qwen/skills/`、`.roo/skills/`、`.windsurf/skills/`）各放每个技能一份入口薄壳指向真源；产物记录在 `<仓库根>/.toolkit/state.json`（与真源、薄壳一并入库）。`toolkit init` 会写入 `prepare` 刷新钩子，`pnpm install` 时自动补齐/刷新，队友 clone 即用；`--copy` 仅全局面生效，项目面恒为副本
 
 ### 方式二：上游安装器 `npx skills`（需锁定文件或覆盖表外 agent 时）
 
