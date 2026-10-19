@@ -8,9 +8,9 @@
 
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
-| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.9.0 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
-| [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.2.0 | changesets 发版与多语言 CHANGELOG 维护 |
-| [fxri-session-recap](./fxri-session-recap/SKILL.md) | 1.5.0 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
+| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.9.1 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
+| [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.2.1 | changesets 发版与多语言 CHANGELOG 维护 |
+| [fxri-session-recap](./fxri-session-recap/SKILL.md) | 1.6.0 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 
 版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` / `skills install` 打印的真源版本），与正文首部版本声明双写一致。
 
@@ -82,7 +82,7 @@ pnpm dlx skills add fxri-toolkit --global       # npm 用户把 pnpm dlx 换成 
 
 ## 与其他 skills 共存
 
-每个技能是独立目录、独立激活单元：agent 按 `description` 匹配任务按需加载，不用到的技能零上下文占用。唯一约束是目录名（即 `name`）不重复；`description` 已含反向排除，与常见通用技能重叠概率低。
+每个技能是独立目录、独立激活单元：兼容 agent 会把各技能的 `description` 常驻上下文用于匹配触发，正文仅在触发时加载、`references/` 按需读取——不触发的技能只占 `description` 这一层，不占正文体积。唯一约束是目录名（即 `name`）不重复；`description` 已含反向排除，与常见通用技能重叠概率低。
 
 ## 命名约定
 
@@ -94,7 +94,7 @@ pnpm dlx skills add fxri-toolkit --global       # npm 用户把 pnpm dlx 换成 
 - [ ] name：kebab-case、与目录名一致、≤64 字符
 - [ ] description：≤1024 字符，含做什么 + 何时用 + 正向触发词 + 反向排除
 - [ ] metadata.version：内容变更即递增，且与正文首部版本声明一致
-- [ ] 主干 SKILL.md < 200 行，细节下沉 `references/`，可复制资产放 `assets/`
+- [ ] 主干 SKILL.md < 200 行且 ≤ 8,000 字符，细节下沉 `references/`，可复制资产放 `assets/`
 - [ ] 引用的 references / assets 相对路径有效
 - [ ] 技能用途描述已同步 docs/guide 技能表与本文「技能列表」表（含版本标注）
 - [ ] 涉规范载体（conventions）的改动：`fxri-session-recap/SKILL.md` 的 R3 压缩要点已与 `fxri-plan-to-task/references/conventions-spec.md` 同步（跨 skill 不可引用，只能受控重复，两处不一致即失一致）

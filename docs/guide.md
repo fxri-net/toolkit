@@ -116,7 +116,7 @@
 - 方案确认后必须落盘为 .tasks/ 任务文件；多任务 / 多仓方案先出纯展示计划表、逐仓逐任务建档，按表顺序逐个任务提交；若提交代码：先归档与沉淀、后提交，归档文件与代码变更同一提交
 ```
 
-**个人项目**：不放上述文件即可，全局技能目录里的 fxri 技能不会被引用（agent 按 description 按需加载，未在项目 rules 中声明的技能不会自动介入）。
+**个人项目**：不放上述文件即可——技能已装在全局技能目录，兼容 agent 可按 `description` 匹配自动发现并触发；若希望个人项目也**稳定**启用本工作流，仍推荐在项目 rules 中显式声明。
 
 团队项目推荐把上游安装器（`pnpm dlx skills add fxri-net/toolkit`）生成的 `skills-lock.json` 一并提交，保证成员与 AI 侧技能版本一致；用内置 `toolkit skills install` 分发时技能随包同一发布批次分发（技能内容版本独立编号），无需额外锁文件（项目面分发同理，`<仓库根>/.toolkit/state.json` 记录归属账，无需额外锁文件）。
 
@@ -126,9 +126,9 @@
 
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
-| `fxri-plan-to-task` | 1.9.0 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
-| `fxri-release-changelog` | 1.2.0 | changesets 发版与多语言 CHANGELOG 维护 |
-| `fxri-session-recap` | 1.5.0 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
+| `fxri-plan-to-task` | 1.9.1 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
+| `fxri-release-changelog` | 1.2.1 | changesets 发版与多语言 CHANGELOG 维护 |
+| `fxri-session-recap` | 1.6.0 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 
 版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` 打印的真源版本），随技能内容变更递增；`fxri-session-recap` 为 1.7.0 新增
 

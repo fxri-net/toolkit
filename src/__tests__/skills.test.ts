@@ -237,6 +237,13 @@ describe("技能作者侧核对清单项门禁", () => {
     }
   })
 
+  it("每份主干 SKILL.md 体积不超过 8000 字符（细节应下沉 references/）", () => {
+    for (const skill of listPackageSkills()) {
+      const chars = readFileSync(join(skill.dir, "SKILL.md"), "utf8").length
+      expect(chars, `${skill.name} 的 SKILL.md 达 ${chars} 字符，超过 8000 字符上限`).toBeLessThanOrEqual(8000)
+    }
+  })
+
   it("技能文档引用的 references / assets 相对路径均指向真实文件", () => {
     for (const skill of listPackageSkills()) {
       for (const doc of collectSkillDocs(skill.dir)) {

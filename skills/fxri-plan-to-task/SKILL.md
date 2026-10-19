@@ -3,14 +3,14 @@ name: fxri-plan-to-task
 description: 将已确认的实施方案分解为可独立交付的任务并给出计划表，再落盘为标准任务文件并跟踪至归档：建档评估（查 active/archive 判同主题）、按模板建档、状态机更新、四级时间源取证、自查、任务级规范沉淀与归档。方案确认后表达「开始落地/登记记录」的意图，或即将改仓库文件时使用——含任务分解、建档、任务登记、落盘、归档、任务校验、规范载体迁移与升级（conventions 单文件升目录、v1 / v2 升 v3）等说法及口语近义表达（如按这个做吧、记一下、建个任务跟踪）均触发。不用于方案未确认的对话、会话收尾整场沉淀（fxri-session-recap 模式一）、与任务记录无关的普通 TODO、issue 管理或日常提交信息撰写。
 license: MIT
 metadata:
-  version: "1.9.0"
+  version: "1.9.1"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
 
 # 方案落盘：任务建档与归档
 
-> 本技能版本 1.9.0（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.9.1（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -100,7 +100,7 @@ metadata:
 - 变更已有规范语义时，先在 `history.md` 追加一行留痕，再更新索引行「当前语义」（细则见 `references/conventions-spec.md`）
 - **规则作废**：走「迁出 + 三层清理」——索引行删除并迁入 `retired.md`（冻结语义）、物理删除分册内该条小节、外部单一事实源同步删改；不把状态改个标记留在原位
 - 一次性决策不进规范，留在任务正文
-- **存量迁移与升级**：发现旧单文件 `conventions.md` 时按迁移三段式执行（建目录搬原文 → 逐条提归属建议 → 用户确认后拆分册）；载体为 v1 / v2 或 `check` / `toolkit conventions status` 报形态告警时，按 `references/conventions-migration.md` 的链路升级（优先 `toolkit conventions upgrade`，可 `--dry-run` 预演）；均可中断不丢内容
+- **存量迁移与升级**：发现旧单文件 `conventions.md`，或载体为 v1 / v2、`check` / `toolkit conventions status` 报形态告警时，按 `references/conventions-migration.md` 的迁移与升级链路处置（可中断不丢内容）
 
 ### 6. 收尾边界（硬约束到沉淀）
 
