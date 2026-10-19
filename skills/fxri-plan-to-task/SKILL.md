@@ -3,14 +3,14 @@ name: fxri-plan-to-task
 description: 将已确认的实施方案分解为可独立交付的任务并给出计划表，再落盘为标准任务文件并跟踪至归档：建档评估（查 active/archive 判同主题）、按模板建档、状态机更新、四级时间源取证、自查、任务级规范沉淀与归档。方案确认后表达「开始落地/登记记录」的意图，或即将改仓库文件时使用——含任务分解、建档、任务登记、落盘、归档、任务校验、规范载体迁移与升级（conventions 单文件升目录、v1 / v2 升 v3）等说法及口语近义表达（如按这个做吧、记一下、建个任务跟踪）均触发。不用于方案未确认的对话、会话收尾整场沉淀（fxri-session-recap 模式一）、与任务记录无关的普通 TODO、issue 管理或日常提交信息撰写。
 license: MIT
 metadata:
-  version: "1.9.1"
+  version: "1.9.2"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
 
 # 方案落盘：任务建档与归档
 
-> 本技能版本 1.9.1（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.9.2（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -21,7 +21,7 @@ metadata:
 
 ## 核心约定
 
-任务文件规范（目录结构、命名、frontmatter、归档格式、手工归档步骤、自查清单）以 `references/task-spec.md` 为准；规范载体（conventions）的结构、形态标记与稳定 ID、归属判定、分层读写、内容修订（含作废三层清理）、表格紧凑形态以 `references/conventions-spec.md` 为准，存量迁移见 `references/conventions-migration.md`、文风模板见 `references/conventions-templates.md`。本文件只写流程。执行任何写操作前先读它们。
+任务文件规范（目录结构、命名、frontmatter、归档格式、手工归档步骤、自查清单）以 `references/task-spec.md` 为准；规范载体（conventions）的结构、形态标记与稳定 ID、归属判定、分层读写、内容修订（含作废三层清理）、表格紧凑形态以 `references/conventions-spec.md` 为准。本文件只写流程，细则按场景读取——写任务文件前读 `task-spec.md`；读写或修订规范载体前读 `conventions-spec.md`；涉存量迁移、形态升级时读 `conventions-migration.md`；落笔条文、模板或文风偏离时才读 `conventions-templates.md`。不涉对应场景不读。
 
 ## 核心规则
 

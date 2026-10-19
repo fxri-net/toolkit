@@ -8,7 +8,7 @@
 
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
-| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.9.1 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
+| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.9.2 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
 | [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.2.1 | changesets 发版与多语言 CHANGELOG 维护 |
 | [fxri-session-recap](./fxri-session-recap/SKILL.md) | 1.6.0 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
 
@@ -66,7 +66,7 @@ pnpm dlx skills add fxri-toolkit --global       # npm 用户把 pnpm dlx 换成 
 
 - 已安装 `@fxri/toolkit` 的项目可直接使用包内自带的技能目录：`node_modules/@fxri/toolkit/skills/`，复制或软链到 agent 的 skills 目录即可
 - 复制或软链技能目录到 agent 的 skills 目录（如 Claude Code 的 `.claude/skills/`）
-- 支持自定义 rules 的工具（如 Trae）：链接 SKILL.md 为规则
+- 支持自定义 rules 的工具（如 Trae）：**不要把 SKILL.md 链接为规则**——规则会常驻上下文，等于绕过按需加载；应放入技能目录（`toolkit skills install` 已覆盖 Trae 技能目录）。仅当确需该技能每轮常驻时，才考虑链接为规则。
 - 通用兜底：在项目根 `AGENTS.md` 中引用本目录路径
 
 复制副本以 frontmatter `metadata.version` 判断是否需要同步上游（`metadata.source` 指向本仓库）。
@@ -97,6 +97,6 @@ pnpm dlx skills add fxri-toolkit --global       # npm 用户把 pnpm dlx 换成 
 - [ ] 主干 SKILL.md < 200 行且 ≤ 8,000 字符，细节下沉 `references/`，可复制资产放 `assets/`
 - [ ] 引用的 references / assets 相对路径有效
 - [ ] 技能用途描述已同步 docs/guide 技能表与本文「技能列表」表（含版本标注）
-- [ ] 涉规范载体（conventions）的改动：`fxri-session-recap/SKILL.md` 的 R3 压缩要点已与 `fxri-plan-to-task/references/conventions-spec.md` 同步（跨 skill 不可引用，只能受控重复，两处不一致即失一致）
+- [ ] 涉规范载体（conventions）的改动：`fxri-session-recap/SKILL.md` 的 R3 压缩要点已与 `fxri-plan-to-task/references/conventions-spec.md` 同步（引用兄弟技能 references 时须用相对路径并给出包内真源兜底，两处不一致即失一致）
 - [ ] 涉规范载体（conventions）的改动：`src/init.ts` 的 `index.md` / `history.md` 骨架模板与入口壳版本分流、`src/tasks/validate.ts` 的形态告警口径、`src/conventions/` 的形态识别与升级链路、`src/conventions/entry.ts` 的入口壳生成与版本告警已同步（CLI 侧与 skills 细则同源）
 - [ ] 变更已走本仓库质量门：三方一致 + tasks check + pnpm test
