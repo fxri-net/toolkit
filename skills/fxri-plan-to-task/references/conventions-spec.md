@@ -4,6 +4,8 @@
 
 ## 1. 载体结构
 
+> `.tasks/` 外层骨架（`active/` / `archive/` / `conventions/` 三目录与命名）以 `task-spec.md` §1 为真源；本节只展开 `conventions/` 内部结构。
+
 ```
 .tasks/
 ├── active/                    # 进行中的任务
