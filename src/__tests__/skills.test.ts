@@ -59,6 +59,27 @@ function agentDir(name: string): string {
   return join(home, entry.dir)
 }
 
+// 内置快照表里某个 agent 的显示名
+function agentLabel(name: string): string {
+  const entry = AGENT_SKILL_DIRS.find((a) => a.name === name)
+  if (!entry) throw new Error(`内置快照表缺少 agent：${name}`)
+  return entry.label
+}
+
+// 临时设置环境变量并在断言后原样恢复，避免用例间串味
+function withEnv(vars: Record<string, string>, run: () => void): void {
+  const saved = new Map(Object.keys(vars).map((k) => [k, process.env[k]]))
+  for (const [k, v] of Object.entries(vars)) process.env[k] = v
+  try {
+    run()
+  } finally {
+    for (const [k, v] of saved) {
+      if (v === undefined) delete process.env[k]
+      else process.env[k] = v
+    }
+  }
+}
+
 // 手工写状态文件：模拟上一次 install 的留痕，供 status / remove / autoLink 用例构造现场
 function writeState(targets: Array<{ dir: string; links?: string[]; copies?: string[] }>): void {
   mkdirSync(join(home, ".agents"), { recursive: true })
@@ -517,6 +538,57 @@ describe("resolveSkillTargets 三层目标解析", () => {
     expect(targets[targets.length - 1]!.kind).toBe("custom")
     expect(targets[targets.length - 1]!.available).toBe(true)
     expect(targets.filter((t) => t.kind === "custom")).toHaveLength(1)
+  })
+})
+
+describe("agent 目录的环境变量覆盖", () => {
+  it("XDG_CONFIG_HOME 替换 dir 首段，探测路径随之迁移", () => {
+    const xdg = join(home, "xdg")
+    mkdirSync(join(xdg, "opencode"), { recursive: true })
+    withEnv({ XDG_CONFIG_HOME: xdg }, () => {
+      const target = resolveSkillTargets().find((t) => t.dir === join(xdg, "opencode", "skills"))
+      expect(target?.label).toBe(agentLabel("opencode"))
+      expect(target?.available).toBe(true)
+    })
+  })
+
+  it("专属 *_HOME 覆盖目录，反查标签命中新路径", () => {
+    const claude = join(home, "claude-config")
+    mkdirSync(claude, { recursive: true })
+    withEnv({ CLAUDE_CONFIG_DIR: claude }, () => {
+      const target = resolveSkillTargets().find((t) => t.dir === join(claude, "skills"))
+      expect(target?.label).toBe(agentLabel("claude-code"))
+      expect(target?.available).toBe(true)
+      expect(skillTargetLabel(join(claude, "skills"))).toBe(agentLabel("claude-code"))
+    })
+  })
+
+  it("空值与非绝对路径回落默认目录", () => {
+    withEnv({ XDG_CONFIG_HOME: "relative-xdg" }, () => {
+      const target = resolveSkillTargets().find((t) => t.label === agentLabel("opencode"))
+      expect(target?.dir).toBe(join(home, ".config", "opencode", "skills"))
+    })
+  })
+
+  it("CODEX_HOME 覆盖目录与探测路径", () => {
+    const codexHome = join(home, "codex-home")
+    mkdirSync(codexHome, { recursive: true })
+    withEnv({ CODEX_HOME: codexHome }, () => {
+      const target = resolveSkillTargets().find((t) => t.label === agentLabel("codex"))
+      expect(target?.dir).toBe(join(codexHome, "skills"))
+      expect(target?.available).toBe(true)
+    })
+  })
+
+  it("detectEnv 命中即视为已安装（SARVAM_HOME / APPDATA）", () => {
+    const sarvam = join(home, "sarvam-home")
+    const appData = join(home, "appdata")
+    mkdirSync(sarvam, { recursive: true })
+    mkdirSync(join(appData, "Zed"), { recursive: true })
+    withEnv({ SARVAM_HOME: sarvam, APPDATA: appData }, () => {
+      expect(resolveCanonicalReaders()).toContainEqual({ name: "sarvam-code", label: agentLabel("sarvam-code") })
+      expect(resolveCanonicalReaders()).toContainEqual({ name: "zed", label: agentLabel("zed") })
+    })
   })
 })
 

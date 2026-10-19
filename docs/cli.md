@@ -216,6 +216,8 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 上述共读 agent 的全局技能目录就是主目标本身，写入一次即全部覆盖、不需要重复分发；`status` 把它们单列为「经 canonical 共读的 agent」（按探测路径判定是否安装），不进「未安装的 agent」提示。DeepSeek Harness 的项目级技能目录 `<仓库根>/.agents/skills/` 与项目面真源同路径，因此也无需向 `~/.dsh/skills/` 额外写入。
 
+各 agent 目录随之跟随 home 类环境变量：`XDG_CONFIG_HOME`（amp / devin / goose / opencode / replit / universal）、`AUTOHAND_HOME`、`CLAUDE_CONFIG_DIR`、`CODEX_HOME`、`GROK_HOME`、`HERMES_HOME`、`VIBE_HOME` 命中时替换默认的 `~` 基准（空值或非绝对路径回落默认，与 XDG 规范一致），存在性判据同步跟随；`SARVAM_HOME`、`APPDATA`、`FLATPAK_XDG_CONFIG_HOME` 仅参与探测。
+
 **全局面行为细节**：
 
 - 产物形态默认**软链**（Windows 用 `junction`，免管理员、免开发者模式）；软链锚在 pnpm 稳定入口（`<node_modules>/@fxri/toolkit`，升级时由 pnpm 重写），不随版本段失效；链接创建失败**自动降级副本**并在报告里标注 ⚠️，不静默跳过

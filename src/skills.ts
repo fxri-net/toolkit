@@ -31,33 +31,36 @@ export type TargetKind = "primary" | "agent" | "custom"
 export type ArtifactMode = "link" | "copy"
 
 // 内置 agent 全局技能目录快照（来源：上游 vercel-labs/skills 的 agent 表，77 条可安装项；另补本地核实的 DeepSeek Harness）
-// dir 相对用户 home；detect 为额外存在性判据（相对 home 或绝对路径），用于判定「该 agent 已安装」
+// dir 相对用户 home；dirEnv 指定改写 dir 首段的环境变量（如 CLAUDE_CONFIG_DIR）；detect 为额外存在性判据（相对 home 或绝对路径）
+// detectEnv 为仅用于探测的环境变量：键为变量名、值为相对变量值的路径后缀（空串表示变量值本身）
 // viaCanonical 标记该 agent 全局读取的就是 canonical 目录：共享主目标、无需单独写入，status 需单列呈现
 export interface AgentEntry {
   name: string
   label: string
   dir: string
+  dirEnv?: string
   detect?: string[]
+  detectEnv?: Record<string, string>
   viaCanonical?: boolean
 }
 
 export const AGENT_SKILL_DIRS: AgentEntry[] = [
   { name: "aider-desk", label: "AiderDesk", dir: ".aider-desk/skills" },
-  { name: "amp", label: "Amp", dir: ".config/agents/skills", detect: [".config/amp"] },
+  { name: "amp", label: "Amp", dir: ".config/agents/skills", dirEnv: "XDG_CONFIG_HOME", detect: [".config/amp"] },
   { name: "antigravity", label: "Antigravity", dir: ".gemini/antigravity/skills" },
   { name: "antigravity-cli", label: "Antigravity CLI", dir: ".gemini/antigravity-cli/skills" },
   { name: "astrbot", label: "AstrBot", dir: ".astrbot/data/skills", detect: [".astrbot"] },
-  { name: "autohand-code", label: "Autohand Code CLI", dir: ".autohand/skills" },
+  { name: "autohand-code", label: "Autohand Code CLI", dir: ".autohand/skills", dirEnv: "AUTOHAND_HOME" },
   { name: "augment", label: "Augment", dir: ".augment/skills" },
   { name: "bob", label: "IBM Bob", dir: ".bob/skills" },
-  { name: "claude-code", label: "Claude Code", dir: ".claude/skills" },
+  { name: "claude-code", label: "Claude Code", dir: ".claude/skills", dirEnv: "CLAUDE_CONFIG_DIR" },
   { name: "openclaw", label: "OpenClaw", dir: ".openclaw/skills", detect: [".openclaw", ".clawdbot", ".moltbot"] },
   { name: "cline", label: "Cline", dir: CANONICAL_DIR, viaCanonical: true, detect: [".cline"] },
   { name: "codearts-agent", label: "CodeArts Agent", dir: ".codeartsdoer/skills" },
   { name: "codebuddy", label: "CodeBuddy", dir: ".codebuddy/skills" },
   { name: "codemaker", label: "Codemaker", dir: ".codemaker/skills" },
   { name: "codestudio", label: "Code Studio", dir: ".codestudio/skills" },
-  { name: "codex", label: "Codex", dir: ".codex/skills", detect: [".codex", "/etc/codex"] },
+  { name: "codex", label: "Codex", dir: ".codex/skills", dirEnv: "CODEX_HOME", detect: [".codex", "/etc/codex"] },
   { name: "command-code", label: "Command Code", dir: ".commandcode/skills" },
   { name: "continue", label: "Continue", dir: ".continue/skills" },
   { name: "cortex", label: "Cortex Code", dir: ".snowflake/cortex/skills" },
@@ -65,7 +68,7 @@ export const AGENT_SKILL_DIRS: AgentEntry[] = [
   { name: "cursor", label: "Cursor", dir: ".cursor/skills" },
   { name: "deepagents", label: "Deep Agents", dir: ".deepagents/agent/skills", detect: [".deepagents"] },
   { name: "deepseek-harness", label: "DeepSeek Harness", dir: CANONICAL_DIR, viaCanonical: true, detect: [".dsh"] },
-  { name: "devin", label: "Devin for Terminal", dir: ".config/devin/skills" },
+  { name: "devin", label: "Devin for Terminal", dir: ".config/devin/skills", dirEnv: "XDG_CONFIG_HOME" },
   { name: "dexto", label: "Dexto", dir: CANONICAL_DIR, viaCanonical: true, detect: [".dexto"] },
   { name: "droid", label: "Droid", dir: ".factory/skills" },
   { name: "firebender", label: "Firebender", dir: ".firebender/skills" },
@@ -73,9 +76,9 @@ export const AGENT_SKILL_DIRS: AgentEntry[] = [
   { name: "fx", label: "fx", dir: ".fx/skills" },
   { name: "gemini-cli", label: "Gemini CLI", dir: ".gemini/skills" },
   { name: "github-copilot", label: "GitHub Copilot", dir: ".copilot/skills" },
-  { name: "goose", label: "Goose", dir: ".config/goose/skills" },
-  { name: "grok", label: "Grok Build", dir: ".grok/skills" },
-  { name: "hermes-agent", label: "Hermes Agent", dir: ".hermes/skills" },
+  { name: "goose", label: "Goose", dir: ".config/goose/skills", dirEnv: "XDG_CONFIG_HOME" },
+  { name: "grok", label: "Grok Build", dir: ".grok/skills", dirEnv: "GROK_HOME" },
+  { name: "hermes-agent", label: "Hermes Agent", dir: ".hermes/skills", dirEnv: "HERMES_HOME" },
   { name: "inference-sh", label: "inference.sh", dir: ".inferencesh/skills" },
   { name: "jazz", label: "Jazz", dir: ".jazz/skills" },
   { name: "junie", label: "Junie", dir: ".junie/skills" },
@@ -89,10 +92,10 @@ export const AGENT_SKILL_DIRS: AgentEntry[] = [
   { name: "loaf", label: "Loaf", dir: CANONICAL_DIR, viaCanonical: true, detect: [".loaf"] },
   { name: "mcpjam", label: "MCPJam", dir: ".mcpjam/skills" },
   { name: "minimax-code", label: "MiniMax Code", dir: ".minimax/skills", detect: [".minimax", "/Applications/MiniMax Code.app"] },
-  { name: "mistral-vibe", label: "Mistral Vibe", dir: ".vibe/skills" },
+  { name: "mistral-vibe", label: "Mistral Vibe", dir: ".vibe/skills", dirEnv: "VIBE_HOME" },
   { name: "moxby", label: "Moxby", dir: ".moxby/skills" },
   { name: "mux", label: "Mux", dir: ".mux/skills" },
-  { name: "opencode", label: "OpenCode", dir: ".config/opencode/skills" },
+  { name: "opencode", label: "OpenCode", dir: ".config/opencode/skills", dirEnv: "XDG_CONFIG_HOME" },
   { name: "openhands", label: "OpenHands", dir: ".openhands/skills" },
   { name: "ona", label: "Ona", dir: ".ona/skills" },
   { name: "pi", label: "Pi", dir: ".pi/agent/skills" },
@@ -100,11 +103,11 @@ export const AGENT_SKILL_DIRS: AgentEntry[] = [
   { name: "qoder", label: "Qoder", dir: ".qoder/skills" },
   { name: "qoder-cn", label: "Qoder CN", dir: ".qoder-cn/skills" },
   { name: "qwen-code", label: "Qwen Code", dir: ".qwen/skills" },
-  { name: "replit", label: "Replit", dir: ".config/agents/skills" },
+  { name: "replit", label: "Replit", dir: ".config/agents/skills", dirEnv: "XDG_CONFIG_HOME" },
   { name: "reasonix", label: "Reasonix", dir: ".reasonix/skills" },
   { name: "rovodev", label: "Rovo Dev", dir: ".rovodev/skills" },
   { name: "roo", label: "Roo Code", dir: ".roo/skills" },
-  { name: "sarvam-code", label: "Sarvam Code", dir: CANONICAL_DIR, viaCanonical: true, detect: [".sarvam"] },
+  { name: "sarvam-code", label: "Sarvam Code", dir: CANONICAL_DIR, viaCanonical: true, detect: [".sarvam"], detectEnv: { SARVAM_HOME: "" } },
   { name: "tabnine-cli", label: "Tabnine CLI", dir: ".tabnine/agent/skills", detect: [".tabnine"] },
   { name: "terramind", label: "Terramind", dir: ".terramind/skills" },
   { name: "tinycloud", label: "Tinycloud", dir: ".tinycloud/skills" },
@@ -112,14 +115,21 @@ export const AGENT_SKILL_DIRS: AgentEntry[] = [
   { name: "trae-cn", label: "Trae CN", dir: ".trae-cn/skills" },
   { name: "warp", label: "Warp", dir: CANONICAL_DIR, viaCanonical: true, detect: [".warp"] },
   { name: "windsurf", label: "Windsurf", dir: ".codeium/windsurf/skills" },
-  { name: "zed", label: "Zed", dir: CANONICAL_DIR, viaCanonical: true, detect: [".config/zed"] },
+  {
+    name: "zed",
+    label: "Zed",
+    dir: CANONICAL_DIR,
+    viaCanonical: true,
+    detect: [".config/zed"],
+    detectEnv: { XDG_CONFIG_HOME: "zed", APPDATA: "Zed", FLATPAK_XDG_CONFIG_HOME: "zed" },
+  },
   { name: "zcode", label: "ZCode", dir: ".zcode/skills", detect: [".zcode", "/Applications/ZCode.app"] },
   { name: "zencoder", label: "Zencoder", dir: ".zencoder/skills" },
   { name: "zenflow", label: "Zenflow", dir: ".zencoder/skills" },
   { name: "neovate", label: "Neovate", dir: ".neovate/skills" },
   { name: "pochi", label: "Pochi", dir: ".pochi/skills" },
   { name: "adal", label: "AdaL", dir: ".adal/skills" },
-  { name: "universal", label: "Universal", dir: ".config/agents/skills" },
+  { name: "universal", label: "Universal", dir: ".config/agents/skills", dirEnv: "XDG_CONFIG_HOME" },
 ]
 
 // 包内技能（含 SKILL.md 的目录才算）
@@ -531,9 +541,38 @@ function writeSkillsState(targets: StateEntry[]): void {
   writeFileAtomic(file, `${JSON.stringify(state, null, 2)}\n`)
 }
 
+// 读取环境变量目录：空值、纯空白与非绝对路径（XDG 规范要求绝对路径）一律视为未设置，回落默认路径
+function envAbsoluteDir(name: string): string | undefined {
+  const value = process.env[name]?.trim()
+  return value && isAbsolute(value) ? value : undefined
+}
+
+// 解析 agent 全局技能目录：dirEnv 命中时用其值替换 dir 首段（如 XDG_CONFIG_HOME 替换 .config）
+function resolveAgentDir(agent: AgentEntry): string {
+  const override = agent.dirEnv ? envAbsoluteDir(agent.dirEnv) : undefined
+  if (!override) return join(getHomeDir(), agent.dir)
+  return join(override, ...agent.dir.split("/").slice(1))
+}
+
+// 解析 agent 探测路径：detect 中与 dir 同首段的相对路径随 dirEnv 迁移；detectEnv 把变量值（可加后缀）作为绝对路径补齐
+function resolveAgentDetectPaths(agent: AgentEntry): string[] {
+  const home = getHomeDir()
+  const override = agent.dirEnv ? envAbsoluteDir(agent.dirEnv) : undefined
+  const base = agent.dir.split("/")[0] ?? ""
+  const paths: string[] = []
+  for (const d of agent.detect ?? []) {
+    if (override && (d === base || d.startsWith(`${base}/`))) paths.push(join(override, d.slice(base.length)))
+    else paths.push(isAbsolute(d) ? d : join(home, d))
+  }
+  for (const [name, suffix] of Object.entries(agent.detectEnv ?? {})) {
+    const value = envAbsoluteDir(name)
+    if (value) paths.push(suffix ? join(value, suffix) : value)
+  }
+  return paths
+}
+
 // 解析目标三层：主目标 canonical → 快照表中「已安装」的 agent 全局技能目录 → --dir 兜底；同路径去重
 export function resolveSkillTargets(extraDirs: string[] = []): SkillTarget[] {
-  const home = getHomeDir()
   const out: SkillTarget[] = []
   const seen = new Set<string>()
   const push = (dir: string, label: string, kind: TargetKind, available: boolean) => {
@@ -543,13 +582,12 @@ export function resolveSkillTargets(extraDirs: string[] = []): SkillTarget[] {
     seen.add(key)
     out.push({ dir: abs, label, kind, available, dirExists: existsSync(abs) })
   }
-  push(join(home, CANONICAL_DIR), CANONICAL_LABEL, "primary", true)
+  push(join(getHomeDir(), CANONICAL_DIR), CANONICAL_LABEL, "primary", true)
   for (const agent of AGENT_SKILL_DIRS) {
-    // 判据：技能目录的父目录（即 agent 配置目录）存在，或任一 detect 路径存在
-    const configDir = join(home, dirname(agent.dir))
-    const available =
-      existsSync(configDir) || (agent.detect ?? []).some((d) => existsSync(isAbsolute(d) ? d : join(home, d)))
-    push(join(home, agent.dir), agent.label, "agent", available)
+    // 判据：技能目录的父目录（即 agent 配置目录）存在，或任一探测路径存在
+    const dir = resolveAgentDir(agent)
+    const available = existsSync(dirname(dir)) || resolveAgentDetectPaths(agent).some((p) => existsSync(p))
+    push(dir, agent.label, "agent", available)
   }
   for (const dir of extraDirs) push(dir, "自定义 --dir", "custom", true)
   return out
@@ -558,9 +596,8 @@ export function resolveSkillTargets(extraDirs: string[] = []): SkillTarget[] {
 // 解析本机已安装的 canonical 共读 agent：只按 detect 判定
 // 不能复用 available：canonical 条目的配置目录是 ~/.agents，该目录恒存在，会把全部共读 agent 误报为已安装
 export function resolveCanonicalReaders(): CanonicalReader[] {
-  const home = getHomeDir()
   return AGENT_SKILL_DIRS.filter(
-    (agent) => agent.viaCanonical && (agent.detect ?? []).some((d) => existsSync(isAbsolute(d) ? d : join(home, d))),
+    (agent) => agent.viaCanonical && resolveAgentDetectPaths(agent).some((p) => existsSync(p)),
   ).map((agent) => ({ name: agent.name, label: agent.label }))
 }
 
@@ -631,7 +668,7 @@ export function resolveProjectTargets(cwd = process.cwd()): ProjectTargets {
 export function skillTargetLabel(dir: string): string | null {
   const key = pathKey(resolve(dir))
   if (key === pathKey(join(getHomeDir(), CANONICAL_DIR))) return CANONICAL_LABEL
-  const agent = AGENT_SKILL_DIRS.find((a) => pathKey(join(getHomeDir(), a.dir)) === key)
+  const agent = AGENT_SKILL_DIRS.find((a) => pathKey(resolveAgentDir(a)) === key)
   return agent?.label ?? null
 }
 
