@@ -31,7 +31,7 @@ pnpm exec toolkit init
 pnpm exec toolkit tasks
 ```
 
-之后：方案确认后登记为 `.tasks/` 任务文件 → `pnpm exec toolkit tasks check` 校验 → 完成后 `pnpm exec toolkit tasks archive` 归档并做规范沉淀。完整步骤见 [新手指南](./docs/getting-started.md)。
+之后：方案确认后登记为 `.tasks/` 任务文件 → `pnpm exec toolkit tasks check` 校验 → 完成后 `pnpm exec toolkit tasks archive` 归档并做规范沉淀。多任务 / 多仓方案先出纯展示计划表，再逐仓逐任务建档、按序逐个交付提交。完整步骤见 [新手指南](./docs/getting-started.md)。
 
 ## ✨ 能力矩阵
 
@@ -71,7 +71,7 @@ pnpm dlx skills add fxri-net/toolkit                  # 也可用上游安装器
 
 技能随包分发（真源为包内 `skills/`），与 CLI 同一发布批次（技能内容版本独立编号）；`toolkit skills install` 默认软链，链接创建失败自动降级副本，`toolkit skills status` 查现场，`toolkit skills remove` 卸载。`--scope project` 换项目面——真源落 `<仓库根>/.agents/skills/`、其余候选目录落入口薄壳，随 git 入库后队友 clone 靠 `toolkit init` 写入的 `prepare` 钩子自动补齐。
 
-- [fxri-plan-to-task](./skills/fxri-plan-to-task/SKILL.md)：方案确认后落盘为任务文件（动手前建档评估、check、归档 + 任务级规范沉淀为强制终点）
+- [fxri-plan-to-task](./skills/fxri-plan-to-task/SKILL.md)：方案确认后落盘为任务文件（任务分解与纯展示计划表、逐仓逐任务建档、check、归档 + 任务级规范沉淀为强制终点）
 - [fxri-release-changelog](./skills/fxri-release-changelog/SKILL.md)：发版时创建变更集、格式化多语言 CHANGELOG
 - [fxri-session-recap](./skills/fxri-session-recap/SKILL.md)：会话收尾全量沉淀、新会话三层恢复、历史任务时间批量修正（1.7.0 新增技能）
 
