@@ -1,5 +1,45 @@
 # 方弦工具集
 
+## 1.12.4
+
+> 2026-10-19 发布
+
+### ✨ 新增功能
+
+- `docs/ai-rules.md` 补「规划先行」「逐仓逐任务建档」「按序交付、逐任务提交」三条稳定纪律，多任务方案先出纯展示计划表再逐仓逐任务建档
+
+### 🔧 功能调整
+
+- `fxri-plan-to-task` 新增任务分解与展示型计划表步骤，建档改为逐仓逐任务，交付改为按序推进、逐任务提交；任务粒度判据与反例下沉 `task-spec.md`
+- `fxri-session-recap` 收尾时按仓逐任务建档，恢复时按任务正文的顺序线索重建执行顺序
+
+### ⚡ 优化改进
+
+- `fxri-plan-to-task` 的 references 改为按场景读取，普通建档不再提前加载迁移与模板细则
+- `fxri-plan-to-task` 1.9.0 压缩正文，`conventions-spec.md` 拆出存量迁移（`conventions-migration.md`）与文风模板（`conventions-templates.md`）两份按需加载 references，日常只读主文件
+- `fxri-session-recap` 1.5.0 合并重复纪律，规范载体细节改为指针，不再复述 `conventions-spec.md` 内容
+- `fxri-release-changelog` 1.2.0 精简触发词与失败模式说明，`changelog-format.md` 自查说明改为指向检测入口
+- `fxri-session-recap` 1.6.0 将模式二（恢复上下文）与模式三（历史时间修正）下沉为 `references/mode-2-recovery.md` / `mode-3-time-fix.md` 按需加载，主文件只留概要、关键护栏与读取指针，常用且高风险的模式一仍内联
+- `fxri-plan-to-task` 1.9.1 与 `fxri-session-recap` 的存量迁移、载体升级细节压缩为触发条件 + 指针，细则只在 `conventions-migration.md` 维护
+
+### 🐛 问题修复
+
+- 修正文档触达面清单的过期枚举，改为遍历 docs 全量页面，避免新增页面漏检
+- `fxri-release-changelog` 1.2.1 修正 `changelog-format.md` 文件结构示例仍带类型前缀、与「归类后剥离前缀」规则冲突
+
+### 📝 文档更新
+
+- `SPEC.md`、`README.md`、`docs/getting-started.md`、`docs/handbook.md`、`docs/guide.md` 同步开工门槛与逐任务交付口径
+- 移除全局规则页中重复的升级说明措辞
+- 明确不要把 SKILL.md 链接为常驻规则，并修正兄弟技能 references 的引用纪律
+- `skills/README.md`、`docs/guide.md` 技能版本表随各技能内容改动同步（当前 1.9.2 / 1.2.1 / 1.6.0）
+- `skills/README.md`、`docs/guide.md`、`docs/faq.md` 澄清技能加载口径——`description` 常驻用于匹配触发、正文触发时加载、`references/` 按需读取，不再声称「零上下文占用」「未声明不会自动介入」
+- 发布核对清单与单元测试新增加载体积守卫——主干 `SKILL.md` 不超过 8,000 字符
+
+### 🧹 清理移除
+
+- `AGENTS.md` 发版链路删除与「验收方式」重复的步骤定义指针，`docs/ai-rules.md` 删除与「规划先行」重复的稳定纪律条目
+
 ## 1.12.3
 
 > 2026-10-18 发布
