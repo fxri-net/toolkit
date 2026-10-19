@@ -305,6 +305,12 @@ function printStatusReport(report: SkillsStatusReport): void {
       `经 canonical 共读的 agent ${report.canonicalReaders.length} 个：${report.canonicalReaders.map((a) => a.label).join("、")}（读取主目标，无需单独写入）`,
     )
   }
+  // 历史落点残留：升级前分发到旧目录的产物与登记仍在本机，只提示不自动删除，避免误删用户仍在用的旧目录
+  if (report.legacyTargets.length > 0) {
+    console.log("")
+    console.warn(`⚠️ 历史落点残留 ${report.legacyTargets.length} 处：${report.legacyTargets.map((t) => `${t.label}（${t.dir}）`).join("、")}`)
+    console.log("   已不再随本包更新；不需要时先 toolkit skills remove 清理全部本包登记产物，再 toolkit skills install 重新安装")
+  }
   console.log("")
   console.log(
     problems > 0

@@ -136,6 +136,8 @@ pnpm up @fxri/toolkit
 
 ⚠️ 软链落点是**写入穿透**形态：在落点目录里编辑技能文件等于编辑真源（真源还随包升级整体换新），要改技能内容请改真源——`toolkit skills status` 在存在软链落点时于报告末尾也会提示。
 
+⚠️ **历史落点残留**：Codex / Pi 的全局落点已改为 canonical（`~/.agents/skills/`），升级前分发到 `~/.codex/skills/`、`~/.pi/agent/skills/` 的产物不再随本包更新；若状态文件仍有登记且目录仍在，`toolkit skills status` 会单列「历史落点残留」提示，按提示用 `toolkit skills remove` 清理后再 `toolkit skills install` 恢复当前落点（只提示、不自动删除）。
+
 装 skills 后无需手动同步全局规则全文——规则细节已收敛进 skills。CLI 检测到新版本时会提示；关闭提示：`FX_NO_UPDATE_CHECK=1` 或配置 `updateCheck.enabled: false`。
 
 ### 卸载

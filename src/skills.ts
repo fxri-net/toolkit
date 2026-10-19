@@ -20,6 +20,11 @@ const SKILL_ENTRY = "SKILL.md"
 const CANONICAL_DIR = ".agents/skills"
 // 主目标显示名：解析与反查共用一份，避免两处字面量漂移
 const CANONICAL_LABEL = "canonical（多家 agent 共读）"
+// 历史落点：Codex / Pi 改为 canonical 共读前的全局分发目录；升级前的产物与状态登记可能仍留在用户机器上
+export const LEGACY_SKILL_DIRS: Array<{ dir: string; label: string }> = [
+  { dir: ".codex/skills", label: "Codex（历史落点）" },
+  { dir: ".pi/agent/skills", label: "Pi（历史落点）" },
+]
 // 状态文件名：与上游 .skill-lock.json 分开命名，避免互相覆盖
 export const SKILLS_STATE_FILE = ".toolkit-skills.json"
 // 项目侧真源目录（仓库根相对、posix 分隔）：完整副本只此一份，其余候选目录放薄壳指向它
@@ -197,6 +202,8 @@ export interface SkillsStatusReport {
   pendingAgents: Array<{ dir: string; label: string }>
   // 本机已安装的 canonical 共读 agent：它们与主目标同路径，写入目标里看不到，需单列呈现
   canonicalReaders: CanonicalReader[]
+  // 历史落点残留：状态文件有登记、目录仍在、且已不是当前分发目标，提示可清理（不自动删除）
+  legacyTargets: Array<{ dir: string; label: string }>
 }
 
 export interface TargetInstallResult {
@@ -673,6 +680,13 @@ export function skillTargetLabel(dir: string): string | null {
   return agent?.label ?? null
 }
 
+// 反查历史落点显示名：非历史落点返回 null
+function legacySkillDirLabel(dir: string): string | null {
+  const key = pathKey(resolve(dir))
+  const legacy = LEGACY_SKILL_DIRS.find((l) => pathKey(resolve(join(getHomeDir(), l.dir))) === key)
+  return legacy?.label ?? null
+}
+
 // 删除现场产物：链接只摘链（不碰真源）、副本整目录删除
 function removeArtifact(dest: string): void {
   rmSync(dest, { recursive: true, force: true })
@@ -935,11 +949,15 @@ export function skillsStatus(): SkillsStatusReport {
     })
   }
   // 补报状态文件登记但本次未解析到的目标（如 --dir 安装后不再传参、agent 目录已被移除）：如实呈现，避免静默丢弃
+  // 其中属于历史落点且目录仍在的，另收进 legacyTargets 供提示清理（只提示，不自动删除）
+  const legacyTargets: Array<{ dir: string; label: string }> = []
   for (const entry of state?.targets ?? []) {
     if (resolved.has(pathKey(entry.dir))) continue
+    const legacy = legacySkillDirLabel(entry.dir)
+    if (legacy && existsSync(entry.dir)) legacyTargets.push({ dir: entry.dir, label: legacy })
     out.push({
       dir: entry.dir,
-      label: skillTargetLabel(entry.dir) ?? "自定义 --dir",
+      label: legacy ?? skillTargetLabel(entry.dir) ?? "自定义 --dir",
       kind: "custom",
       available: true,
       dirExists: existsSync(entry.dir),
@@ -957,6 +975,7 @@ export function skillsStatus(): SkillsStatusReport {
     targets: out,
     pendingAgents,
     canonicalReaders: resolveCanonicalReaders(),
+    legacyTargets,
   }
 }
 

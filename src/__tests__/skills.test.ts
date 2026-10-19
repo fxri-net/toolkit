@@ -8,6 +8,7 @@ import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { CARRIER_VERSION, ENTRY_VERSION } from "../conventions/format"
 import {
   AGENT_SKILL_DIRS,
+  LEGACY_SKILL_DIRS,
   PROJECT_SOURCE_DIR,
   autoLinkSkills,
   buildSkillShell,
@@ -1146,14 +1147,41 @@ describe("落点形态保持与卸载回收", () => {
 })
 
 describe("status 目标纳入口径", () => {
+  // 历史落点：表内路径相对 home 展开为绝对路径
+  function legacyDir(index: number): string {
+    return join(home, LEGACY_SKILL_DIRS[index]!.dir)
+  }
+
   it("状态文件登记但本次未解析到的目标仍如实呈现，不被静默丢弃", () => {
     const extra = join(home, "custom-skills")
     installSkills({ dirs: [extra] })
     // 不带 --dir 再查：该目录已不在解析结果里，但既有登记必须保留在报告中
-    const custom = skillsStatus().targets.find((t) => t.dir === extra)
+    const status = skillsStatus()
+    const custom = status.targets.find((t) => t.dir === extra)
     expect(custom?.recorded).toBe(true)
     expect(custom?.kind).toBe("custom")
     expect(custom?.items.every((i) => i.state === "link")).toBe(true)
+    // 用户自定义目录不是历史落点，不得误报为残留
+    expect(status.legacyTargets).toEqual([])
+  })
+
+  it("历史落点有登记且目录仍在时列入 legacyTargets，并标注为历史落点", () => {
+    const dir = legacyDir(0)
+    mkdirSync(dir, { recursive: true })
+    writeState([{ dir, links: [listPackageSkills()[0]!.name] }])
+    const status = skillsStatus()
+    expect(status.legacyTargets).toEqual([{ dir, label: LEGACY_SKILL_DIRS[0]!.label }])
+    expect(status.targets.find((t) => t.dir === dir)?.label).toBe(LEGACY_SKILL_DIRS[0]!.label)
+  })
+
+  it("历史落点无本包登记时不提示残留", () => {
+    mkdirSync(legacyDir(1), { recursive: true })
+    expect(skillsStatus().legacyTargets).toEqual([])
+  })
+
+  it("历史落点有登记但目录已删除时不再提示残留", () => {
+    writeState([{ dir: legacyDir(0), links: [listPackageSkills()[0]!.name] }])
+    expect(skillsStatus().legacyTargets).toEqual([])
   })
 
   it("有目录但无本包记录且为空时不占版面，登记后照常呈现", () => {
