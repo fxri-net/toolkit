@@ -145,7 +145,7 @@ toolkit skills status      # 查现场；toolkit skills remove 卸载；toolkit 
 pnpm dlx skills add fxri-net/toolkit --global
 ```
 
-**全局面分发目标三层**：主目标 `~/.agents/skills/`（多家 agent 共读：Cline、Dexto、Kimi Code CLI、Loaf、Sarvam Code、Warp、Zed、DeepSeek Harness）→ 内置表中「已安装」的各 agent 全局技能目录 → `--dir` 兜底；未安装的 agent 只报告、不凭空造目录。共读 agent 的全局目录即主目标本身，写一次即全部覆盖，`toolkit skills status` 会单列「经 canonical 共读的 agent」。默认软链（Windows 用 junction，免管理员、免开发者模式），可被各 agent 直接读取；⚠️ 软链落点是**写入穿透**形态（改落点文件即改真源），要改技能内容请改真源，`toolkit skills status` 报告末尾也会提示；`toolkit skills remove` 清理后目标目录若已空会一并回收。
+**全局面分发目标三层**：主目标 `~/.agents/skills/`（多家 agent 共读：Cline、Codex、Dexto、Kimi Code CLI、Loaf、Pi、Sarvam Code、Warp、Zed、DeepSeek Harness）→ 内置表中「已安装」的各 agent 全局技能目录 → `--dir` 兜底；未安装的 agent 只报告、不凭空造目录。共读 agent 的全局目录即主目标本身，写一次即全部覆盖，`toolkit skills status` 会单列「经 canonical 共读的 agent」。默认软链（Windows 用 junction，免管理员、免开发者模式），可被各 agent 直接读取；⚠️ 软链落点是**写入穿透**形态（改落点文件即改真源），要改技能内容请改真源，`toolkit skills status` 报告末尾也会提示；`toolkit skills remove` 清理后目标目录若已空会一并回收。
 
 **项目面分发（`--scope project`）**：真源落 `<仓库根>/.agents/skills/`（完整副本），其余已存在的候选目录（`.trae/skills/`、`.claude/skills/`、`agent/skills/`（eve）、`.augment/skills/`、`.codebuddy/skills/`、`.continue/skills/`、`.crush/skills/`、`.devin/skills/`、`.goose/skills/`、`.grok/skills/`、`.hermes/skills/`、`.iflow/skills/`、`.junie/skills/`、`.kiro/skills/`、`.openhands/skills/`、`.qwen/skills/`、`.roo/skills/`、`.windsurf/skills/`）各放每个技能一份**入口薄壳**指向真源，避免同一份内容多目录重复；`--dir` 须落在仓库内。归属账写 `<仓库根>/.toolkit/state.json`。`toolkit init` 会写入 `prepare` 钩子，`pnpm install` 时自动刷新，队友 clone 即用；逐技能现场状态（真源 / 薄壳 / 缺失 / 漂移）由 `toolkit skills status --scope project` 报告。
 

@@ -526,9 +526,9 @@ describe("resolveSkillTargets 三层目标解析", () => {
     expect(resolveSkillTargets().find((t) => t.dir === agentDir("claude-code"))?.available).toBe(true)
   })
 
-  it("detect 路径命中即视为已安装（如 .codex）", () => {
+  it("detect 路径命中即视为已安装（如 .codex 进入 canonical 共读名单）", () => {
     mkdirSync(join(home, ".codex"), { recursive: true })
-    expect(resolveSkillTargets().find((t) => t.dir === agentDir("codex"))?.available).toBe(true)
+    expect(resolveCanonicalReaders()).toContainEqual({ name: "codex", label: agentLabel("codex") })
   })
 
   it("--dir 作为 custom 目标恒可用并排在末尾，与内置路径重复时去重", () => {
@@ -570,13 +570,14 @@ describe("agent 目录的环境变量覆盖", () => {
     })
   })
 
-  it("CODEX_HOME 覆盖目录与探测路径", () => {
+  it("CODEX_HOME 仅参与探测，落点仍是 canonical", () => {
     const codexHome = join(home, "codex-home")
     mkdirSync(codexHome, { recursive: true })
     withEnv({ CODEX_HOME: codexHome }, () => {
-      const target = resolveSkillTargets().find((t) => t.label === agentLabel("codex"))
-      expect(target?.dir).toBe(join(codexHome, "skills"))
-      expect(target?.available).toBe(true)
+      // 探测命中只影响共读名单，不改变写入落点，也不产生第二个 codex 目标
+      expect(resolveSkillTargets().some((t) => t.dir.startsWith(codexHome))).toBe(false)
+      expect(resolveSkillTargets().filter((t) => t.dir === primaryDir())).toHaveLength(1)
+      expect(resolveCanonicalReaders()).toContainEqual({ name: "codex", label: agentLabel("codex") })
     })
   })
 
@@ -598,6 +599,15 @@ describe("canonical 共读 agent", () => {
     mkdirSync(join(home, ".agents"), { recursive: true })
     expect(resolveCanonicalReaders()).toEqual([])
     expect(skillsStatus().canonicalReaders).toEqual([])
+  })
+
+  it("Codex / Pi 探测路径命中后列为共读 agent", () => {
+    mkdirSync(join(home, ".codex"), { recursive: true })
+    mkdirSync(join(home, ".pi/agent"), { recursive: true })
+    expect(resolveCanonicalReaders()).toContainEqual({ name: "codex", label: agentLabel("codex") })
+    expect(resolveCanonicalReaders()).toContainEqual({ name: "pi", label: agentLabel("pi") })
+    // 与主目标同路径：不产生第二个写入目标
+    expect(resolveSkillTargets().filter((t) => t.dir === primaryDir())).toHaveLength(1)
   })
 
   it("dsh 安装（~/.dsh 存在）后列为共读 agent，不进下发目标也不进 pendingAgents", () => {
@@ -714,7 +724,7 @@ describe("installSkills 安装", () => {
     const claude = report.targets.find((t) => t.dir === agentDir("claude-code"))
     expect(claude?.created).toEqual(report.skills)
     expect(existsSync(join(agentDir("claude-code"), report.skills[0]!, "SKILL.md"))).toBe(true)
-    expect(report.skippedTargets.some((t) => t.dir === agentDir("codex"))).toBe(true)
+    expect(report.skippedTargets.some((t) => t.dir === agentDir("cursor"))).toBe(true)
     expect(existsSync(join(home, ".codex"))).toBe(false)
   })
 
@@ -843,9 +853,9 @@ describe("skillTargetLabel 反查显示名", () => {
   it("canonical 优先、agent 目录命中快照表、表外目标返回 null", () => {
     // 期望值取自真实解析结果，避免测试内复刻一份标签表
     expect(skillTargetLabel(primaryDir())).toBe(resolveSkillTargets()[0]!.label)
-    const codex = AGENT_SKILL_DIRS.find((a) => a.name === "codex")
-    if (!codex) throw new Error("内置快照表缺少 agent：codex")
-    expect(skillTargetLabel(agentDir("codex"))).toBe(codex.label)
+    const cursor = AGENT_SKILL_DIRS.find((a) => a.name === "cursor")
+    if (!cursor) throw new Error("内置快照表缺少 agent：cursor")
+    expect(skillTargetLabel(agentDir("cursor"))).toBe(cursor.label)
     expect(skillTargetLabel(join(home, "custom-skills"))).toBeNull()
   })
 })
