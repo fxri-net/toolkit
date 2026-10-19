@@ -6,6 +6,34 @@ outline: [2, 2]
 
 > 完整变更历史以随包发布的 CHANGELOG.md 为准，本页由 `pnpm sync:changelog-doc` 从根 CHANGELOG.md 自动同步，请勿手改。
 
+## 1.12.5
+
+> 2026-10-19 发布
+
+### ✨ 新增功能
+
+- `skills status` 单列「经 canonical 共读的 agent」，DeepSeek Harness 等共读 agent 不再被误判为不支持（JSON 输出新增 `canonicalReaders` 字段）
+- 项目面候选目录增加 eve 的 `agent/skills`，该目录已存在时落入口薄壳
+- `skills status` 识别 Codex / Pi 的历史落点残留（`~/.codex/skills`、`~/.pi/agent/skills`），标注为「历史落点」并在报告末尾单列提示清理，JSON 输出新增 `legacyTargets` 字段
+- 项目级技能目录候选补充 15 个上游专用配置目录（`.augment/skills`、`.codebuddy/skills`、`.continue/skills`、`.crush/skills`、`.devin/skills`、`.goose/skills`、`.grok/skills`、`.hermes/skills`、`.iflow/skills`、`.junie/skills`、`.kiro/skills`、`.openhands/skills`、`.qwen/skills`、`.roo/skills`、`.windsurf/skills`），已在用的项目级目录都会收到入口壳
+
+### 🐛 问题修复
+
+- Codex 与 Pi 的全局技能目录对齐上游 canonical（`~/.agents/skills`），不再分别写到 `~/.codex/skills`、`~/.pi/agent/skills`，避免与共读面重复分发
+- `CODEX_HOME` 改为仅参与安装探测，不再改写 Codex 的写入落点
+- 项目级技能目录候选移除 `.cursor/skills`、`.trae-cn/skills`（二者为对应 agent 的全局目录，收录会把入口壳写到错误位置）
+- 各 agent 全局技能目录跟随 home 类环境变量（`XDG_CONFIG_HOME`、`CLAUDE_CONFIG_DIR`、`VIBE_HOME`、`HERMES_HOME`、`AUTOHAND_HOME`、`GROK_HOME`），改写基准目录后不再分发到错误位置
+- `SARVAM_HOME`、`APPDATA`、`FLATPAK_XDG_CONFIG_HOME` 参与已安装探测，自定义目录的 agent 不再误判为未安装
+
+### 📝 文档更新
+
+- 补充 canonical 共读 agent 清单，以及 DeepSeek Harness 全局 / 项目级技能目录说明
+- 更新 canonical 共读 agent 清单与环境变量说明
+- 同步项目级技能目录与入口壳落点的枚举，写明拒绝收录的裸 `skills` 与 `data/skills` 理由
+- `skills install --dir` 的 help 说明补充「不参与后续自动同步，技能变化后需带相同 `--dir` 重跑」，与文档口径一致
+- 补充 `--dir` 自定义技能目录的同步说明——只在当次安装时写入，技能增删后不会自动同步，需带相同 `--dir` 重跑 `toolkit skills install`
+- 补充全局技能目录的环境变量覆盖说明
+
 ## 1.12.4
 
 > 2026-10-19 发布
