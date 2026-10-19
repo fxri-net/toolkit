@@ -28,6 +28,7 @@ import {
   removeProjectSkills,
   removeSkills,
   resetSkillsRootCache,
+  resolveCanonicalReaders,
   resolveSkillTargets,
   setPackageRootForTest,
   skillsLinkDir,
@@ -519,6 +520,25 @@ describe("resolveSkillTargets 三层目标解析", () => {
   })
 })
 
+describe("canonical 共读 agent", () => {
+  it("只按 detect 判定：canonical 目录存在不代表共读 agent 已安装", () => {
+    // ~/.agents 是主目标自身上级目录，恒存在；用它判可用会把全部共读 agent 误报为已安装
+    mkdirSync(join(home, ".agents"), { recursive: true })
+    expect(resolveCanonicalReaders()).toEqual([])
+    expect(skillsStatus().canonicalReaders).toEqual([])
+  })
+
+  it("dsh 安装（~/.dsh 存在）后列为共读 agent，不进下发目标也不进 pendingAgents", () => {
+    mkdirSync(join(home, ".dsh"), { recursive: true })
+    const status = skillsStatus()
+    expect(resolveCanonicalReaders()).toContainEqual({ name: "deepseek-harness", label: "DeepSeek Harness" })
+    expect(status.canonicalReaders).toContainEqual({ name: "deepseek-harness", label: "DeepSeek Harness" })
+    // 与主目标同路径：目标列表只有一条主目标，共读 agent 不会被当成待安装目标
+    expect(status.targets.filter((t) => t.dir === primaryDir())).toHaveLength(1)
+    expect(status.pendingAgents.some((a) => a.label === "DeepSeek Harness")).toBe(false)
+  })
+})
+
 describe("installSkills 安装", () => {
   it("--dry-run 只预演：报告将新建，但不落任何文件", () => {
     const report = installSkills({ dryRun: true })
@@ -731,11 +751,13 @@ describe("skillsStatus 现场状态", () => {
       skills: string[]
       skillVersions: Record<string, string>
       pendingAgents: Array<{ dir: string }>
+      canonicalReaders: Array<{ name: string; label: string }>
       targets: Array<{ kind: string; dir: string; items: Array<{ name: string; state: string; version: string }> }>
     }
     expect(payload.skills).toHaveLength(listPackageSkills().length)
     expect(payload.source).toBe(skillsSourceDir())
     expect(payload.stateFile).toBe(skillsStateFile())
+    expect(payload.canonicalReaders).toEqual([])
     // 磁盘基准值：与会话上下文里技能正文声明的版本比对，判断上下文是否已过期
     expect(payload.skillVersions).toEqual(Object.fromEntries(listPackageSkills().map((s) => [s.name, s.version])))
     expect(payload.skillVersions[name]).toMatch(/^\d+\.\d+\.\d+$/)
@@ -1115,6 +1137,13 @@ describe("项目侧技能分发（真源副本 + 薄壳）", () => {
     // 未命中的候选目录如实报告，供按需补齐
     expect(report.missingDirs).toContain(".trae/skills")
     expect(report.missingDirs).not.toContain(PROJECT_SOURCE_DIR)
+  })
+
+  it("eve 的项目级目录 agent/skills 已存在时落薄壳", () => {
+    mkdirSync(join(project, "agent", "skills"), { recursive: true })
+    const report = installProjectSkills({ cwd: project })
+    expect(report.shells.map((r) => r.dir)).toEqual(["agent/skills"])
+    expect(report.missingDirs).not.toContain("agent/skills")
   })
 
   it("重复安装幂等：真源与薄壳均跳过，且不改写归属账", () => {

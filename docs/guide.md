@@ -104,7 +104,7 @@
 
 做法：**项目面分发**（推荐，clone 即用）或**全局分发 + rules 选择性引用**，二选一。
 
-**路径一 · 项目面分发（推荐）**：项目里以 devDependency 装 CLI，执行 `toolkit skills install --scope project`——技能真源落到 `<仓库根>/.agents/skills/`（完整副本），其余已存在的 agent 候选目录（`.trae/skills/`、`.trae-cn/skills/`、`.cursor/skills/`、`.claude/skills/`）各放一份**入口薄壳**（含 description 与指向真源的路径）指向真源，避免同一份内容多目录重复。这些文件一并入库后，队友 clone 下来 `pnpm install` 即补齐（由 `toolkit init` 写入的 `prepare` 钩子自动刷新）；个人项目不装 CLI 即不受影响。`--scope` 缺省时按 CLI 安装位置自动判定：项目内装的 CLI 走项目面，全局装的走全局面。
+**路径一 · 项目面分发（推荐）**：项目里以 devDependency 装 CLI，执行 `toolkit skills install --scope project`——技能真源落到 `<仓库根>/.agents/skills/`（完整副本），其余已存在的 agent 候选目录（`.trae/skills/`、`.trae-cn/skills/`、`.cursor/skills/`、`.claude/skills/`、`agent/skills/`（eve））各放一份**入口薄壳**（含 description 与指向真源的路径）指向真源，避免同一份内容多目录重复。这些文件一并入库后，队友 clone 下来 `pnpm install` 即补齐（由 `toolkit init` 写入的 `prepare` 钩子自动刷新）；个人项目不装 CLI 即不受影响。`--scope` 缺省时按 CLI 安装位置自动判定：项目内装的 CLI 走项目面，全局装的走全局面。
 
 **路径二 · 公司项目（全局面 + rules 选择性引用）**（仓库根放引用文件并提交）：
 
@@ -122,7 +122,7 @@
 
 ## AI 技能包 skills
 
-零依赖 Agent Skills（纯 Markdown），遵循 [Agent Skills 开放标准](https://agentskills.io)，可被 Claude Code、Cursor、Codex、Gemini CLI、Trae 等兼容 agent 按需加载。
+零依赖 Agent Skills（纯 Markdown），遵循 [Agent Skills 开放标准](https://agentskills.io)，可被 Claude Code、Cursor、Codex、Gemini CLI、Trae、DeepSeek Harness 等兼容 agent 按需加载。
 
 | 技能 | 版本 | 用途 |
 | --- | --- | --- |
@@ -145,9 +145,9 @@ toolkit skills status      # 查现场；toolkit skills remove 卸载；toolkit 
 pnpm dlx skills add fxri-net/toolkit --global
 ```
 
-**全局面分发目标三层**：主目标 `~/.agents/skills/`（多家 agent 共读）→ 内置表中「已安装」的各 agent 全局技能目录 → `--dir` 兜底；未安装的 agent 只报告、不凭空造目录。默认软链（Windows 用 junction，免管理员、免开发者模式），可被各 agent 直接读取；⚠️ 软链落点是**写入穿透**形态（改落点文件即改真源），要改技能内容请改真源，`toolkit skills status` 报告末尾也会提示；`toolkit skills remove` 清理后目标目录若已空会一并回收。
+**全局面分发目标三层**：主目标 `~/.agents/skills/`（多家 agent 共读：Cline、Dexto、Kimi Code CLI、Loaf、Sarvam Code、Warp、Zed、DeepSeek Harness）→ 内置表中「已安装」的各 agent 全局技能目录 → `--dir` 兜底；未安装的 agent 只报告、不凭空造目录。共读 agent 的全局目录即主目标本身，写一次即全部覆盖，`toolkit skills status` 会单列「经 canonical 共读的 agent」。默认软链（Windows 用 junction，免管理员、免开发者模式），可被各 agent 直接读取；⚠️ 软链落点是**写入穿透**形态（改落点文件即改真源），要改技能内容请改真源，`toolkit skills status` 报告末尾也会提示；`toolkit skills remove` 清理后目标目录若已空会一并回收。
 
-**项目面分发（`--scope project`）**：真源落 `<仓库根>/.agents/skills/`（完整副本），其余已存在的候选目录（`.trae/skills/`、`.trae-cn/skills/`、`.cursor/skills/`、`.claude/skills/`）各放每个技能一份**入口薄壳**指向真源，避免同一份内容多目录重复；`--dir` 须落在仓库内。归属账写 `<仓库根>/.toolkit/state.json`。`toolkit init` 会写入 `prepare` 钩子，`pnpm install` 时自动刷新，队友 clone 即用；逐技能现场状态（真源 / 薄壳 / 缺失 / 漂移）由 `toolkit skills status --scope project` 报告。
+**项目面分发（`--scope project`）**：真源落 `<仓库根>/.agents/skills/`（完整副本），其余已存在的候选目录（`.trae/skills/`、`.trae-cn/skills/`、`.cursor/skills/`、`.claude/skills/`、`agent/skills/`（eve））各放每个技能一份**入口薄壳**指向真源，避免同一份内容多目录重复；`--dir` 须落在仓库内。归属账写 `<仓库根>/.toolkit/state.json`。`toolkit init` 会写入 `prepare` 钩子，`pnpm install` 时自动刷新，队友 clone 即用；逐技能现场状态（真源 / 薄壳 / 缺失 / 漂移）由 `toolkit skills status --scope project` 报告。
 
 **与 CLI 的关系**：skills 是规范与流程（独立可用），CLI 是自动校验/归档/发版的加速器。技能文件末尾的「可选加速」节列出了对应 CLI 命令——装了就用，没装技能流程照跑。
 

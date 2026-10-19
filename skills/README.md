@@ -30,10 +30,10 @@ toolkit skills remove       # 卸载本包装的产物（只清自己装的，�
 ```
 
 - 真源唯一：技能取自已装 CLI 包内的 `skills/`；软链锚在 pnpm 稳定入口，升级 CLI 后自动指向新版（副本形式需重跑 `toolkit skills install`）
-- 目标三层：主目标 `~/.agents/skills/`（多家 agent 共读）→ 内置表内**已安装**的各 agent 全局技能目录 → `--dir <path>` 兜底（可多次指定，给表外 agent 用）
+- 目标三层：主目标 `~/.agents/skills/`（多家 agent 共读：Cline、Dexto、Kimi Code CLI、Loaf、Sarvam Code、Warp、Zed、DeepSeek Harness）→ 内置表内**已安装**的各 agent 全局技能目录 → `--dir <path>` 兜底（可多次指定，给表外 agent 用）；共读 agent 的全局目录即主目标本身，写一次即全部覆盖，`toolkit skills status` 单列「经 canonical 共读的 agent」
 - 默认软链（锚在 pnpm 稳定入口，升级不失效）；链接创建失败自动降级为副本并打印 ⚠️（如无权限建链）；`--copy` 强制副本、`--dry-run` 预演、`--force` 覆盖同名非本包产物（不改本包已登记副本的形态）
 - 产物记录在状态文件 `~/.agents/.toolkit-skills.json`；卸载 CLI 前先跑 `toolkit skills remove`，避免留下悬空链接（清理后目标目录若已空会一并回收）
-- **项目面（`--scope project`）**：`--scope` 缺省时按 CLI 安装位置自动判定（项目内装 CLI → 项目面）。真源落 `<仓库根>/.agents/skills/`（完整副本），其余**已存在**的候选目录（`.trae/skills/`、`.trae-cn/skills/`、`.cursor/skills/`、`.claude/skills/`）各放每个技能一份入口薄壳指向真源；产物记录在 `<仓库根>/.toolkit/state.json`（与真源、薄壳一并入库）。`toolkit init` 会写入 `prepare` 刷新钩子，`pnpm install` 时自动补齐/刷新，队友 clone 即用；`--copy` 仅全局面生效，项目面恒为副本
+- **项目面（`--scope project`）**：`--scope` 缺省时按 CLI 安装位置自动判定（项目内装 CLI → 项目面）。真源落 `<仓库根>/.agents/skills/`（完整副本），其余**已存在**的候选目录（`.trae/skills/`、`.trae-cn/skills/`、`.cursor/skills/`、`.claude/skills/`、`agent/skills/`（eve））各放每个技能一份入口薄壳指向真源；产物记录在 `<仓库根>/.toolkit/state.json`（与真源、薄壳一并入库）。`toolkit init` 会写入 `prepare` 刷新钩子，`pnpm install` 时自动补齐/刷新，队友 clone 即用；`--copy` 仅全局面生效，项目面恒为副本
 
 ### 方式二：上游安装器 `npx skills`（需锁定文件或覆盖表外 agent 时）
 

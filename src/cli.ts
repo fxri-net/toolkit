@@ -298,6 +298,13 @@ function printStatusReport(report: SkillsStatusReport): void {
     console.log("")
     console.log(`未安装的 agent ${report.pendingAgents.length} 个未纳入分发（需要时用 toolkit skills install --dir <路径> 指定）`)
   }
+  // 共读 agent 与主目标同路径，写入目标列表里看不到；单列说明，避免用户误判为不支持
+  if (report.canonicalReaders.length > 0) {
+    console.log("")
+    console.log(
+      `经 canonical 共读的 agent ${report.canonicalReaders.length} 个：${report.canonicalReaders.map((a) => a.label).join("、")}（读取主目标，无需单独写入）`,
+    )
+  }
   console.log("")
   console.log(
     problems > 0

@@ -30,13 +30,15 @@ export type TargetKind = "primary" | "agent" | "custom"
 // 产物类型：link 软链（指向真源）/ copy 副本
 export type ArtifactMode = "link" | "copy"
 
-// 内置 agent 全局技能目录快照（来源：上游 vercel-labs/skills 的 agent 表，77 条可安装项）
+// 内置 agent 全局技能目录快照（来源：上游 vercel-labs/skills 的 agent 表，77 条可安装项；另补本地核实的 DeepSeek Harness）
 // dir 相对用户 home；detect 为额外存在性判据（相对 home 或绝对路径），用于判定「该 agent 已安装」
+// viaCanonical 标记该 agent 全局读取的就是 canonical 目录：共享主目标、无需单独写入，status 需单列呈现
 export interface AgentEntry {
   name: string
   label: string
   dir: string
   detect?: string[]
+  viaCanonical?: boolean
 }
 
 export const AGENT_SKILL_DIRS: AgentEntry[] = [
@@ -50,7 +52,7 @@ export const AGENT_SKILL_DIRS: AgentEntry[] = [
   { name: "bob", label: "IBM Bob", dir: ".bob/skills" },
   { name: "claude-code", label: "Claude Code", dir: ".claude/skills" },
   { name: "openclaw", label: "OpenClaw", dir: ".openclaw/skills", detect: [".openclaw", ".clawdbot", ".moltbot"] },
-  { name: "cline", label: "Cline", dir: CANONICAL_DIR, detect: [".cline"] },
+  { name: "cline", label: "Cline", dir: CANONICAL_DIR, viaCanonical: true, detect: [".cline"] },
   { name: "codearts-agent", label: "CodeArts Agent", dir: ".codeartsdoer/skills" },
   { name: "codebuddy", label: "CodeBuddy", dir: ".codebuddy/skills" },
   { name: "codemaker", label: "Codemaker", dir: ".codemaker/skills" },
@@ -62,8 +64,9 @@ export const AGENT_SKILL_DIRS: AgentEntry[] = [
   { name: "crush", label: "Crush", dir: ".config/crush/skills" },
   { name: "cursor", label: "Cursor", dir: ".cursor/skills" },
   { name: "deepagents", label: "Deep Agents", dir: ".deepagents/agent/skills", detect: [".deepagents"] },
+  { name: "deepseek-harness", label: "DeepSeek Harness", dir: CANONICAL_DIR, viaCanonical: true, detect: [".dsh"] },
   { name: "devin", label: "Devin for Terminal", dir: ".config/devin/skills" },
-  { name: "dexto", label: "Dexto", dir: CANONICAL_DIR, detect: [".dexto"] },
+  { name: "dexto", label: "Dexto", dir: CANONICAL_DIR, viaCanonical: true, detect: [".dexto"] },
   { name: "droid", label: "Droid", dir: ".factory/skills" },
   { name: "firebender", label: "Firebender", dir: ".firebender/skills" },
   { name: "forgecode", label: "ForgeCode", dir: ".forge/skills" },
@@ -79,11 +82,11 @@ export const AGENT_SKILL_DIRS: AgentEntry[] = [
   { name: "iflow-cli", label: "iFlow CLI", dir: ".iflow/skills" },
   { name: "kilo", label: "Kilo Code", dir: ".kilo/skills", detect: [".kilo", ".kilocode"] },
   { name: "kimchi", label: "Kimchi", dir: ".config/kimchi/harness/skills", detect: [".config/kimchi"] },
-  { name: "kimi-code-cli", label: "Kimi Code CLI", dir: CANONICAL_DIR, detect: [".kimi-code", ".kimi"] },
+  { name: "kimi-code-cli", label: "Kimi Code CLI", dir: CANONICAL_DIR, viaCanonical: true, detect: [".kimi-code", ".kimi"] },
   { name: "kiro-cli", label: "Kiro CLI", dir: ".kiro/skills" },
   { name: "kode", label: "Kode", dir: ".kode/skills" },
   { name: "lingma", label: "Lingma", dir: ".lingma/skills" },
-  { name: "loaf", label: "Loaf", dir: CANONICAL_DIR, detect: [".loaf"] },
+  { name: "loaf", label: "Loaf", dir: CANONICAL_DIR, viaCanonical: true, detect: [".loaf"] },
   { name: "mcpjam", label: "MCPJam", dir: ".mcpjam/skills" },
   { name: "minimax-code", label: "MiniMax Code", dir: ".minimax/skills", detect: [".minimax", "/Applications/MiniMax Code.app"] },
   { name: "mistral-vibe", label: "Mistral Vibe", dir: ".vibe/skills" },
@@ -101,15 +104,15 @@ export const AGENT_SKILL_DIRS: AgentEntry[] = [
   { name: "reasonix", label: "Reasonix", dir: ".reasonix/skills" },
   { name: "rovodev", label: "Rovo Dev", dir: ".rovodev/skills" },
   { name: "roo", label: "Roo Code", dir: ".roo/skills" },
-  { name: "sarvam-code", label: "Sarvam Code", dir: CANONICAL_DIR, detect: [".sarvam"] },
+  { name: "sarvam-code", label: "Sarvam Code", dir: CANONICAL_DIR, viaCanonical: true, detect: [".sarvam"] },
   { name: "tabnine-cli", label: "Tabnine CLI", dir: ".tabnine/agent/skills", detect: [".tabnine"] },
   { name: "terramind", label: "Terramind", dir: ".terramind/skills" },
   { name: "tinycloud", label: "Tinycloud", dir: ".tinycloud/skills" },
   { name: "trae", label: "Trae", dir: ".trae/skills" },
   { name: "trae-cn", label: "Trae CN", dir: ".trae-cn/skills" },
-  { name: "warp", label: "Warp", dir: CANONICAL_DIR, detect: [".warp"] },
+  { name: "warp", label: "Warp", dir: CANONICAL_DIR, viaCanonical: true, detect: [".warp"] },
   { name: "windsurf", label: "Windsurf", dir: ".codeium/windsurf/skills" },
-  { name: "zed", label: "Zed", dir: CANONICAL_DIR, detect: [".config/zed"] },
+  { name: "zed", label: "Zed", dir: CANONICAL_DIR, viaCanonical: true, detect: [".config/zed"] },
   { name: "zcode", label: "ZCode", dir: ".zcode/skills", detect: [".zcode", "/Applications/ZCode.app"] },
   { name: "zencoder", label: "Zencoder", dir: ".zencoder/skills" },
   { name: "zenflow", label: "Zenflow", dir: ".zencoder/skills" },
@@ -164,6 +167,12 @@ export interface TargetStatus {
   items: SkillStatusItem[]
 }
 
+// 经 canonical 共读的 agent：本机已安装、全局读取的就是主目标目录，共享同一份产物、无需单独写入
+export interface CanonicalReader {
+  name: string
+  label: string
+}
+
 export interface SkillsStatusReport {
   source: string
   skills: string[]
@@ -175,6 +184,8 @@ export interface SkillsStatusReport {
   stateExists: boolean
   targets: TargetStatus[]
   pendingAgents: Array<{ dir: string; label: string }>
+  // 本机已安装的 canonical 共读 agent：它们与主目标同路径，写入目标里看不到，需单列呈现
+  canonicalReaders: CanonicalReader[]
 }
 
 export interface TargetInstallResult {
@@ -544,6 +555,15 @@ export function resolveSkillTargets(extraDirs: string[] = []): SkillTarget[] {
   return out
 }
 
+// 解析本机已安装的 canonical 共读 agent：只按 detect 判定
+// 不能复用 available：canonical 条目的配置目录是 ~/.agents，该目录恒存在，会把全部共读 agent 误报为已安装
+export function resolveCanonicalReaders(): CanonicalReader[] {
+  const home = getHomeDir()
+  return AGENT_SKILL_DIRS.filter(
+    (agent) => agent.viaCanonical && (agent.detect ?? []).some((d) => existsSync(isAbsolute(d) ? d : join(home, d))),
+  ).map((agent) => ({ name: agent.name, label: agent.label }))
+}
+
 // 技能作用域：project 走项目侧（仓库内唯一真源副本 + 各候选目录薄壳），global 走全局（软链 / 副本到各 agent 全局目录）
 export type SkillScope = "project" | "global"
 
@@ -898,6 +918,7 @@ export function skillsStatus(): SkillsStatusReport {
     stateExists: Boolean(state),
     targets: out,
     pendingAgents,
+    canonicalReaders: resolveCanonicalReaders(),
   }
 }
 
