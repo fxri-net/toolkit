@@ -7,7 +7,7 @@
 任何影响对外行为的变更——新增/修改/删除 CLI 命令、参数、输出与告警口径、skills 内容、文档中对其的结构性描述——在任务归档前必须完成三方复核，与 `toolkit tasks check` 同为不可绕过的质量门：
 
 1. **能力自身**：代码实际行为、单元测试、CLI help 文案三者一致。
-2. **文档**：`docs/` 逐篇过触达面（README、getting-started、handbook、guide、faq、cli、api、ai-rules）。凡触达处措辞必须与实际行为严格一致，包括「不自动修复」「需人工确认」等限制细节；确认无触达的内容须在对话中明确说明，不得静默跳过。
+2. **文档**：`docs/` 下全部 `.md` 与根 `README.md` 逐篇过触达面（不在此枚举，避免新增页面后清单漂移；`docs/changelog.md` 为 `pnpm sync:changelog-doc` 的生成物，只核对镜像结果与源一致）。凡触达处措辞必须与实际行为严格一致，包括「不自动修复」「需人工确认」等限制细节；确认无触达的内容须在对话中明确说明，不得静默跳过。
    ⚠️ **时点约束**：触达面核对在**变更方案确认时**即按此清单逐篇走查、将结论列入任务文件「影响范围」节（每篇标注 已同步 / 无触达及理由），不延迟到归档时才复核。涉及术语或措辞变更时，先 grep 全仓库定位旧措辞触达点再列清单。
 3. **skills**：`skills/` 下 SKILL.md 与 references 同步新能力/新流程；每个 SKILL.md 的版本写两处且须一致——frontmatter `metadata.version`（机器读取位，`toolkit skills status` / `skills install` 打印的真源版本）与正文首部 `> 本技能版本 x.y.z（随 @fxri/toolkit 同批分发）`（进上下文的自证位）；内容变更时同步递增（小修 +patch，能力级 +minor）。
 4. **变更集**：凡影响对外行为的变更，任务归档前必须在 `.changeset/` 建变更集（标注 patch/minor/major 并写用户可感知的变更描述，条目须**逐条以 `- 类型：描述` 书写**——`- ` 列表标记让每条独立成项、`类型：` 前缀作归类信号，前缀表见 `skills/fxri-release-changelog/SKILL.md`）；归档时出现「无变更集」提示即视为本质量门未过。
