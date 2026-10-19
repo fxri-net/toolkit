@@ -6,6 +6,21 @@ outline: [2, 2]
 
 > 完整变更历史以随包发布的 CHANGELOG.md 为准，本页由 `pnpm sync:changelog-doc` 从根 CHANGELOG.md 自动同步，请勿手改。
 
+## 1.12.6
+
+> 2026-10-19 发布
+
+### ⚡ 优化改进
+
+- `conventions-spec.md` 声明 `.tasks/` 外层骨架以 `task-spec.md` 为真源，避免两份目录树各自演进漂移
+
+### 🐛 问题修复
+
+- `fxri-session-recap` 恢复模式二引用兄弟技能 `conventions-migration.md` 时补包内真源兜底，单独加载该篇也能定位升级链路
+- `fxri-plan-to-task` 的 v2 → v3 升级步骤直接写出 `retired.md` 固定表头，迁移不再需要反向查 `conventions-spec.md`
+- `fxri-session-recap` 恢复模式二的规范核对步骤按相对路径引用兄弟技能 `conventions-migration.md`，与同文件其他引用及技能编写核对项一致
+- 同一处补全载体形态判定「v1 / v2」与按需读清单 `retired.md`，与主文件 R3 及 `docs/guide.md` 口径一致
+
 ## 1.12.5
 
 > 2026-10-19 发布
