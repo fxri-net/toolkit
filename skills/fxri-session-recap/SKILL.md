@@ -3,14 +3,14 @@ name: fxri-session-recap
 description: 会话收尾的工作记忆沉淀 + 新会话开场恢复 + 历史任务时间修正：收尾时把整场会话的全部任务完整建档归档，按四级时间源还原真实完成时间，沉淀规范进 conventions 载体；新会话开场按三层恢复（全量索引 + active 精读 + 近窗归档）重建现场并核对规范；也可批量修正历史归档时间。用户表达会话收尾意图（今天先到这、收个尾、归档本次会话、把结论记下来）、接续意图（恢复上下文、继续上次、上次做到哪）或修正历史任务时间时使用。不用于会话中途的常规方案建档（那是 fxri-plan-to-task 的职责）、与工作交接无关的代码技术总结。
 license: MIT
 metadata:
-  version: "1.6.1"
+  version: "1.6.2"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
 
 # 会话归档、上下文恢复与历史修正
 
-> 本技能版本 1.6.1（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.6.2（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
