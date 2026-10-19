@@ -384,7 +384,8 @@ describe("initWorkspace .gitignore 处理", () => {
     expect(report.products.find((p) => p.target === ".gitignore")?.action).toBe("updated")
   })
 
-  it("git 仓库中通配写法已真实覆盖时整文件保持不动", () => {
+  // 全量并行时 git 子进程启动开销可能超过默认 5 秒，单列超时避免高负载下误报
+  it("git 仓库中通配写法已真实覆盖时整文件保持不动", { timeout: 15000 }, () => {
     const { cwd, gitignore } = track(runInDir("tk-init-repo-covered-"))
     execSync("git init -q", { cwd, stdio: "ignore" })
     // *.lock 命中 .archive.lock、*.local.json 命中 .toolkitrc.local.json，均由 git 真实判定
@@ -397,7 +398,7 @@ describe("initWorkspace .gitignore 处理", () => {
     expect(report.products.find((p) => p.target === ".gitignore")?.action).toBe("kept")
   })
 
-  it("git 仓库中部分覆盖时只补缺失行", () => {
+  it("git 仓库中部分覆盖时只补缺失行", { timeout: 15000 }, () => {
     const { cwd, gitignore } = track(runInDir("tk-init-repo-partial-"))
     execSync("git init -q", { cwd, stdio: "ignore" })
     // *.lock 已覆盖 .archive.lock，本地配置行缺失，只应补后者
