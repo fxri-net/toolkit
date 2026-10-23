@@ -139,6 +139,7 @@ describe("包根与技能真源定位", () => {
     expect(names).toContain("fxri-plan-to-task")
     expect(names).toContain("fxri-session-recap")
     expect(names).toContain("fxri-release-changelog")
+    expect(names).toContain("fxri-text-encoding")
     expect(names).toEqual([...names].sort())
     for (const skill of listPackageSkills()) {
       expect(existsSync(join(skill.dir, "SKILL.md"))).toBe(true)

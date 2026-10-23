@@ -9,7 +9,7 @@
 | 步骤 | 该做什么 | 会发生什么 |
 | --- | --- | --- |
 | 1 装 CLI | 团队项目：`pnpm add -D @fxri/toolkit`（npm 用 `npx`）；个人多项目：`pnpm i -g @fxri/toolkit` | 得到 `toolkit` 命令 |
-| 2 装 skills | `toolkit skills install`（装了 CLI 一键分发，默认软链；npm 用户需先 `npm i -g @fxri/toolkit`）；`--scope project` 装进项目仓库（真源落 `.agents/skills/`、其余候选目录落入口薄壳，队友 clone 即用）；也可用上游安装器 `pnpm dlx skills add fxri-net/toolkit --global` | AI 侧获得三份岗位说明书，遇到对应场景自动触发 |
+| 2 装 skills | `toolkit skills install`（装了 CLI 一键分发，默认软链；npm 用户需先 `npm i -g @fxri/toolkit`）；`--scope project` 装进项目仓库（真源落 `.agents/skills/`、其余候选目录落入口薄壳，队友 clone 即用）；也可用上游安装器 `pnpm dlx skills add fxri-net/toolkit --global` | AI 侧获得各场景的岗位说明书，遇到对应场景自动触发 |
 | 3 建任务区 | `pnpm exec toolkit init` | 生成 `.tasks/active/{YYYYMM}/`、`archive/`、`conventions/index.md` + `history.md` 骨架与 `.gitignore` 片段，并在项目级技能目录生成规范入口壳；宿主疑似使用 prettier 时另幂等托管 `.prettierignore`（任务区不参与格式化，防表格被填充出列对齐空白）；项目本地依赖含 `@fxri/toolkit` 时写入 `prepare` 刷新钩子（逐项报告实际动作） |
 | 4 配全局规则（可选） | 从 [AI 全局规则](./ai-rules) 复制模板到你的 agent 全局 rules；提交习惯想统一再取[提交信息规则](./commit-rules) | AI 按你的纪律协作 |
 
