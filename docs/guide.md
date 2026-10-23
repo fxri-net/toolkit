@@ -129,7 +129,7 @@
 | `fxri-plan-to-task` | 1.9.4 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
 | `fxri-release-changelog` | 1.2.1 | changesets 发版与多语言 CHANGELOG 维护 |
 | `fxri-session-recap` | 1.6.2 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
-| `fxri-text-encoding` | 1.0.0 | 文本编码与字节形态：按「生产者 × 消费者」定 UTF-8 / BOM / 行尾基线，定位并修复脚本乱码与首行报错 |
+| `fxri-text-encoding` | 1.1.0 | 文本编码与字节形态：按「生产者 × 消费者」定 UTF-8 / BOM / 行尾基线，定位并修复脚本乱码与首行报错 |
 
 版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` 打印的真源版本），随技能内容变更递增；`fxri-session-recap` 为 1.7.0 新增
 
