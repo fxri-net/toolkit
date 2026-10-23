@@ -1,27 +1,28 @@
 ---
 name: fxri-text-encoding
-description: 新建、改写、生成、转码 `.ps1`、`.bat`、`.cmd`、`.sh`、给 Excel 的 `.csv` 等文本文件之前，先按读取方定字符集、BOM 与行尾；AI 自己用文件写入 / 编辑工具落盘脚本后立即自查首三字节（这类工具默认不写 BOM）。事后定位也用它：脚本中文乱码、PowerShell 报 Missing closing、脚本首行命令报错、Excel 打开 CSV 乱码、JSON 带 BOM 解析失败、跨平台分发脚本打不开——含编码、字符集、BOM、乱码、转码、换行、CRLF、LF、UTF-8 BOM 等说法及口语近义表达（中文变问号、脚本跑不起来、打开是乱码、补了 BOM 又丢了）。不用于路径分隔符、文件名大小写、时区与区域设置，也不用于 git 提交信息、任务建档或代码风格。
+description: 新建、改写、生成、转码 `.ps1`、`.bat`、`.cmd`、`.sh`、给 Excel 的 `.csv` 等文本文件之前，先按读取方定字符集、BOM 与行尾；AI 自己用文件写入 / 编辑工具落盘脚本后立即自查首三字节（这类工具默认不写 BOM）。也用于执行命令时的乱码归属：命令输出或终端中文变问号、重定向出的文件后续解析失败、`Get-Content` 读 UTF-8 文件乱码、管道传给原生命令变 `?`——含编码、字符集、BOM、乱码、转码、换行、CRLF、LF、UTF-8 BOM、chcp、stdout 编码等说法及口语近义表达（中文变问号、脚本跑不起来、打开是乱码、补了 BOM 又丢了）。事后定位同样用它：脚本中文乱码、PowerShell 报 Missing closing、脚本首行命令报错、Excel 打开 CSV 乱码、JSON 带 BOM 解析失败、跨平台分发脚本打不开。不用于路径分隔符、文件名大小写、时区与区域设置，也不用于 git 提交信息、任务建档或代码风格。
 license: MIT
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
 
 # 文本编码与字节形态
 
-> 本技能版本 1.1.0（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.2.0（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
-写盘之前（首要）：
+生成文件之前（首要）：
 
 - 新建、改写、生成、转码任何**会被别的程序读取**的文本文件前，先定下字符集、BOM、行尾三件套
 - AI 自己用文件写入 / 编辑工具落盘脚本时，写完立刻判首三字节（见「写完就查」）
 
-出错之后：
+出错之后，先分清是哪一侧：
 
-- 出现乱码、语法错、首行报错、打开异常，判断落在编码 / BOM / 行尾哪一层
+- 文件侧：加载脚本、打开文档就异常，判断落在编码 / BOM / 行尾哪一层
+- 运行期：AI 在上下文里执行命令，输出或终端显示乱码、重定向结果解析失败，而文件本身正常（见「跑起来乱码」）
 
 排除项：路径分隔符、文件名大小写、时区、区域设置、git 提交信息、任务建档、代码风格
 
@@ -50,14 +51,14 @@ metadata:
 
 `.ps1` 只在 PowerShell 7 下执行可不带 BOM，但脚本往往在别人机器上跑，统一带 BOM 才稳。
 
-## 写完就查（写盘后立刻做）
+## 写完就查（文件侧，写盘后立刻做）
 
 写盘的人是谁都要查——AI 自己的文件写入与编辑工具默认产出 UTF-8 无 BOM，是这类故障最常见的产线：
 
 1. 新建或改写 `.ps1` 后立即判首三字节，不是 `EF BB BF` 就当场补，别等运行时报错
 2. 批量生成、打包、格式化钩子跑完后抽查一个产物
 3. 改完生成脚本本身要回跑一次，确认产线写出的文件合规——只补产物不修产线，下次还会丢
-4. 临时脚本一旦落盘同样适用；只走内联 `-Command`、不落盘的才不涉及
+4. 临时脚本一旦落盘同样适用；只走内联 `-Command`、不落盘的没有文件侧问题，但运行期仍可能乱码，见「跑起来乱码」
 
 判首三字节：
 
@@ -81,6 +82,24 @@ metadata:
 | Node `fs.writeFileSync(p, s, "utf8")` | 不写，须手动前置 `"\uFEFF"` |
 | .NET `File.WriteAllText` | 不写（.NET Core 起） |
 | git `.gitattributes` | 只管行尾（`eol=lf` / `eol=crlf`），**不管 BOM** |
+
+## 跑起来乱码（不落盘）
+
+AI 在上下文里执行命令、看输出时遇到乱码，源文件可能完全正常，错在进程管线。先分归属再动手：
+
+- 把输出重定向到文件后看首字节（`Format-Hex` / `xxd`）：字节对但显示乱，是终端解码问题；字节本身就错，才是生产者编码问题
+- 别因 stdout 乱码就回头改文件——文件侧按「写完就查」单独判
+
+常见管线断点：
+
+| 断点 | 现象 | 处置 |
+| --- | --- | --- |
+| 控制台代码页（Windows 简体默认 936） | 外部程序输出 UTF-8 中文显示为乱码 | `chcp 65001` 并设 `[Console]::OutputEncoding = [Text.UTF8Encoding]::new()` |
+| PS 5.1 `$OutputEncoding` 默认 ASCII | PS 管道把中文传给原生命令后变 `?` | 先设 `$OutputEncoding = [Text.UTF8Encoding]::new()` |
+| PS 5.1 `>` / `Out-File` 默认 UTF-16LE | 重定向出的 `.json` / `.csv` 后续解析失败 | 显式 `-Encoding utf8`（要 BOM 用 `utf8BOM`）；PS 7 默认 utf8NoBOM |
+| PS 5.1 `Get-Content` 对无 BOM 文件按 ANSI 解码 | 读 UTF-8 文件得乱码，误判文件损坏 | 显式 `-Encoding utf8`；PS 7 默认 utf8 |
+| Python 在 Windows 用 locale 编码 | `UnicodeEncodeError` 或输出 `?` | `PYTHONUTF8=1` 或 `PYTHONIOENCODING=utf-8` |
+| git `core.quotepath` 默认开启 | 中文路径显示为 `\346\226\207`，被误读成乱码 | `git -c core.quotepath=false` |
 
 ## 症状 → 根因 → 处置
 
