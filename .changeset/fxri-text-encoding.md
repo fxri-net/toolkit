@@ -2,8 +2,5 @@
 "@fxri/toolkit": minor
 ---
 
-- 新增：`fxri-text-encoding` 技能——按「生产者 × 消费者」定文本文件的 UTF-8 / BOM / 行尾基线，覆盖 PowerShell 脚本中文乱码与首行报错、Excel 打开 CSV 乱码、JSON 带 BOM 解析失败等场景，含写盘行为对照与首三字节自检
+- 新增：`fxri-text-encoding` 技能——按「乱码三问」定归属（谁的字节 / 还能救吗 / 错在第几跳，含按 mojibake 特征串选 `iconv` 方向的反向转码命令），文件侧覆盖 `.ps1` / `.psm1` / `.psd1` / `.bat` / `.sh` / `.xml` / `.properties` / C 系与 Java 源文件及 Excel CSV 的 UTF-8 / BOM / 行尾基线、写盘工具 BOM 与默认编码行为对照（含 PS 5.1 `Export-Csv` 默认写 ASCII、`Set-Content` / `Add-Content` 省略 `-Encoding` 按系统 ANSI）、落盘后首三字节自查与 `git ls-files` 全仓巡检，运行期覆盖控制台代码页、PS 5.1 `$OutputEncoding` 与 `>` 重定向、`Get-Content` 解码、Python locale、容器 CI `LANG=C`、Java `file.encoding` 等管线断点，并含不可见字符、全角标点、`�` 不可逆、二次转码、`eol=lf` 不回溯已提交内容等场景
 - 修改：`docs/ai-rules.md` 代码规范补脚本字节形态铁律（`.ps1` UTF-8 with BOM、`.sh` 无 BOM + LF、`.bat` / `.cmd` 不带 BOM + CRLF），指向该技能
-- 修改：技能改为预防优先——`description` 前置写盘前触发词，新增「写完就查」动作节（写完即判首三字节、批量生成后抽查、改完生成脚本回跑一次），写盘行为对照补「AI 文件写入 / 编辑工具默认不写 BOM」，症状与失败模式表降为事后后备
-- 修改：补运行期（不落盘）场景——新增「跑起来乱码」节，覆盖控制台代码页 936、PS 5.1 `$OutputEncoding` 与 `>` 重定向、`Get-Content` 解码、Python locale 编码、git `core.quotepath` 六个管线断点，并给出重定向看首字节的归属判定法，`description` 同步补终端与重定向乱码触发词
-- 修改：技能结构重构——按「定归属 → 定基线 → 写盘自查 → 查组合 → 查管线」时间线重排为七节，三张同构表合并为「组合速查」，新增「乱码三问」入口（谁的字节 / 还能救吗 / 错在第几跳）；补 `.xml` / `.properties` / C 系与 Java 源文件基线，补不可见字符与全角标点、`�` 不可逆、二次转码、Python `ensure_ascii`、Node 输出被 PS 5.1 读、CI `LANG=C`、Java `file.encoding` 等场景；修正 `.gitattributes` 说明为 `eol=` 管行尾、`working-tree-encoding=` 管编码且都不补 BOM
