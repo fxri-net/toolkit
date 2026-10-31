@@ -27,15 +27,6 @@ test:
   needs:
     - toolchain:spec
     - toolchain:ensure
-  # pnpm 依赖缓存：锁文件变更即失效
-  cache:
-    key:
-      files:
-        - pnpm-lock.yaml
-    paths:
-      - .pnpm-store
-  before_script:
-    - pnpm config set store-dir .pnpm-store/
   script:
     - pnpm verify
   rules:
@@ -49,15 +40,6 @@ pages:
   needs:
     - toolchain:spec
     - toolchain:ensure
-  # pnpm 依赖缓存：锁文件变更即失效
-  cache:
-    key:
-      files:
-        - pnpm-lock.yaml
-    paths:
-      - .pnpm-store
-  before_script:
-    - pnpm config set store-dir .pnpm-store/
   script:
     - pnpm install --frozen-lockfile
     - VITEPRESS_BASE=/toolkit/ pnpm docs:build
