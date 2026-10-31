@@ -1,28 +1,41 @@
 # GitLab CI：完整检查（test）+ 文档站构建部署（pages）
-# ⚠️ 需 GitLab runner 已注册；runner 未启用时 job 停留在 pending 属预期
 # test 的验收步骤清单唯一真源是 scripts/verify.mjs，此处只调用，不在 CI 里另写一份步骤，避免清单漂移
+# 作业镜像由 ci-templates 依据 .ci/toolchain.json 动态构建，仓库内不再安装 Node 与 pnpm
 # VITEPRESS_BASE 按平台域名注入：gitlab.io 项目页为 /toolkit/（可按实际仓库名调整），自托管域名可设为 /
 # 私有站回链/canonical 由 SITE_URL/REPO_URL 注入（值放 GitLab CI/CD 变量，不写进仓库；不注入则回链 GitHub 主仓库）
+include:
+  - project: fxri/develop/0001.base/ci-templates
+    ref: main
+    file: /dynamic-image.yml
+
+# 全部作业只在默认分支执行，工具链作业随之收敛，避免分支推送反复触发镜像构建
+workflow:
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - when: never
+
 stages:
   - test
   - deploy
 
 test:
   # 与 .node-version 对齐，避免与 GitHub Actions 两侧 node 版本漂移
-  image: node:20.20.2
+  image: $CI_IMAGE
   stage: test
-  before_script:
-    - corepack enable
+  needs:
+    - toolchain:spec
+    - toolchain:ensure
   script:
     - pnpm verify
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
 
 pages:
-  image: node:20.20.2
+  image: $CI_IMAGE
   stage: deploy
-  before_script:
-    - corepack enable
+  needs:
+    - toolchain:spec
+    - toolchain:ensure
   script:
     - pnpm install --frozen-lockfile
     - VITEPRESS_BASE=/toolkit/ pnpm docs:build
