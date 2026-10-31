@@ -20,7 +20,9 @@ stages:
 
 test:
   # 与 .node-version 对齐，避免与 GitHub Actions 两侧 node 版本漂移
-  image: $CI_IMAGE
+  image:
+    name: $CI_IMAGE
+    pull_policy: if-not-present
   stage: test
   needs:
     - toolchain:spec
@@ -31,7 +33,9 @@ test:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
 
 pages:
-  image: $CI_IMAGE
+  image:
+    name: $CI_IMAGE
+    pull_policy: if-not-present
   stage: deploy
   needs:
     - toolchain:spec
