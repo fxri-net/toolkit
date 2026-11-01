@@ -6,6 +6,14 @@ outline: [2, 2]
 
 > 完整变更历史以随包发布的 CHANGELOG.md 为准，本页由 `pnpm sync:changelog-doc` 从根 CHANGELOG.md 自动同步，请勿手改。
 
+## 1.13.1
+
+> 2026-11-01 发布
+
+### 🐛 问题修复
+
+- `conventions status` 与 `tasks check` 的稳定 ID 校验收紧为去补零形态，`C-001` 这类补零写法现会告警并提示改写为 `C-1`
+
 ## 1.13.0
 
 > 2026-10-24 发布
