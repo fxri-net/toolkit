@@ -25,10 +25,12 @@ import {
   SOURCE_TASK_HEADER,
   STATUS_HEADER,
   carrierFiles,
+  canonicalId,
   columnIndex,
   findTable,
   idOf,
   isIdCell,
+  isPaddedIdCell,
   parseIndexTable,
   readCarrier,
   rewriteRefsInLine,
@@ -384,7 +386,10 @@ export function upgradeConventions(tasksDir = ".tasks", options: UpgradeOptions 
   if (historyLines) {
     const historyTable = findTable(historyLines, HISTORY_ANCHOR_HEADER)
     if (historyTable) {
-      const nonId = historyTable.rows.filter((cells) => !isIdCell(cells[0] ?? "")).length
+      const headCells = historyTable.rows.map((cells) => cells[0] ?? "")
+      const padded = headCells.filter((cell) => isPaddedIdCell(cell)).length
+      if (padded > 0) reviews.push(`${HISTORY_FILE} 有 ${padded} 行首列为补零 ID（应写作 ${canonicalId(headCells.find((cell) => isPaddedIdCell(cell)) ?? "")}），请人工核对（历史行只追加）`)
+      const nonId = headCells.filter((cell) => !isIdCell(cell) && !isPaddedIdCell(cell)).length
       if (nonId > 0) reviews.push(`${HISTORY_FILE} 有 ${nonId} 行首列仍为规则名（未用 C-<n>），请人工核对是否补录 ID`)
       const sourceCol = columnIndex(historyTable.header, HISTORY_ANCHOR_HEADER)
       const multi = sourceCol >= 0 ? historyTable.rows.filter((cells) => /[;；+]/.test(cells[sourceCol] ?? "")).length : 0

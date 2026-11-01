@@ -189,6 +189,19 @@ describe("索引体检", () => {
     expect(report.items.filter((i) => i.message.includes("不合稳定 ID 形态"))).toEqual([])
   })
 
+  it("首列为补零 ID 时告警并给出去补零写法", () => {
+    const root = makeDir("tk-status-idpad-")
+    const cwd = makeDir("tk-status-idpad-cwd-")
+    makeCarrier(root, "| C-001 | 四级时间源 | 当场打点优先 | common | common.md |")
+
+    const report = conventionsStatus(root, cwd)
+    const hits = report.items.filter((i) => i.scope === "索引" && i.message.includes("补零"))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]!.message).toContain("应写作 C-1")
+    // 补零属形态问题，不再重复报「不合稳定 ID 形态」
+    expect(report.items.filter((i) => i.message.includes("不合稳定 ID 形态"))).toEqual([])
+  })
+
   it("索引表存在重复 ID 时告警", () => {
     const root = makeDir("tk-status-dupid-")
     const cwd = makeDir("tk-status-dupid-cwd-")
@@ -631,5 +644,18 @@ describe("演进记录首列体检", () => {
     const report = conventionsStatus(root, cwd)
     expect(report.items.filter((i) => i.message.includes("行首列不是稳定的规则 ID"))).toEqual([])
     expect(report.warnings).toBe(0)
+  })
+
+  it("v3 载体首列为补零 ID 时告警并给出去补零写法", () => {
+    const root = makeDir("tk-status-hid-pad-")
+    const cwd = makeDir("tk-status-hid-pad-cwd-")
+    makeCarrier(root, cleanRows, { extra: { "history.md": makeHistory("| C-001 | 当场打点优先 | 建档评估 |\n") } })
+
+    const report = conventionsStatus(root, cwd)
+    const hits = report.items.filter((i) => i.message.includes("补零 ID"))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]!.message).toContain("应写作 C-1")
+    // 补零行不再混入「首列不是稳定 ID」的告警
+    expect(report.items.filter((i) => i.message.includes("行首列不是稳定的规则 ID"))).toEqual([])
   })
 })

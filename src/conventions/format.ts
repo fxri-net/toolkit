@@ -112,7 +112,11 @@ export interface RefHit {
 }
 
 // 稳定 ID 形态：`C-<n>` 去补零、不带端前缀（与 idOf 同一份约定，供校验侧复用）
-export const ID_RE = /^C-\d+$/
+// 只接受 1 起的无前导零序号：C-001 属违规写法，规范形态为 C-1
+export const ID_RE = /^C-[1-9]\d*$/
+
+// 补零 ID 形态（C-01 / C-001）：单独识别，供校验侧给出「应写作 C-1」的定向提示
+export const PADDED_ID_RE = /^C-0\d+$/
 
 // 序号转稳定 ID：去补零、不带端前缀，只追加不重排不回收
 export function idOf(n: number): string {
@@ -127,6 +131,17 @@ export function stripCode(cell: string): string {
 // 单元格是否为稳定 ID 形态（容忍行内代码包裹）：校验侧唯一入口，避免各处以裸字符串直比而漏判合法写法
 export function isIdCell(cell: string): boolean {
   return ID_RE.test(stripCode(cell))
+}
+
+// 单元格是否为补零 ID（容忍行内代码包裹）：与「形态非法」区分，便于告警给出改法而非笼统报错
+export function isPaddedIdCell(cell: string): boolean {
+  return PADDED_ID_RE.test(stripCode(cell))
+}
+
+// 补零 ID 的规范写法（C-001 → C-1），非补零输入原样返回：仅供告警文案拼装，不用于改写载体
+export function canonicalId(cell: string): string {
+  const id = stripCode(cell)
+  return isPaddedIdCell(id) ? idOf(Number(id.slice(2))) : id
 }
 
 // 读首行标记版本：标记约定置首行，正文示例里的同形注释不参与判定

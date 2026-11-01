@@ -18,9 +18,11 @@ import {
   RETIRED_ANCHOR_HEADER,
   RETIRED_FILE,
   carrierFiles,
+  canonicalId,
   columnIndex,
   findTable,
   isIdCell,
+  isPaddedIdCell,
   readCarrier,
   type CarrierState,
   type ConventionsForm,
@@ -103,9 +105,13 @@ function checkIndex(state: CarrierState, items: ConventionsStatusItem[]): void {
   // ID 形态与重复：首列为 ID 时（v2 / v3）校验；v1 首列为序号，不做此检查
   if ((state.header[0] ?? "") === ID_HEADER) {
     for (const id of ids) {
-      if (!isIdCell(id)) {
-        items.push({ level: "warn", scope: "索引", message: `索引表首列「${id}」不合稳定 ID 形态 C-<n>` })
+      if (isIdCell(id)) continue
+      // 补零与形态非法分开报：前者给出改法，后者才是命名不合规范
+      if (isPaddedIdCell(id)) {
+        items.push({ level: "warn", scope: "索引", message: `索引表首列「${id}」为补零写法，稳定 ID 去补零（应写作 ${canonicalId(id)}）` })
+        continue
       }
+      items.push({ level: "warn", scope: "索引", message: `索引表首列「${id}」不合稳定 ID 形态 C-<n>` })
     }
     const seen = new Set<string>()
     for (const id of ids) {
@@ -214,7 +220,17 @@ function checkTableForm(tasksDir: string, items: ConventionsStatusItem[]): void 
 function checkHistoryIdColumn(state: CarrierState, items: ConventionsStatusItem[]): void {
   if (state.form !== "v3") return
   const table = findTable(readTextFile(state.historyFile).split(/\r?\n/), HISTORY_ANCHOR_HEADER)
-  const nonId = table ? table.rows.filter((cells) => !isIdCell(cells[0] ?? "")).length : 0
+  if (!table) return
+  const cells = table.rows.map((row) => row[0] ?? "")
+  const padded = cells.filter((cell) => isPaddedIdCell(cell)).length
+  if (padded > 0) {
+    items.push({
+      level: "warn",
+      scope: "形态",
+      message: `${HISTORY_FILE} 有 ${padded} 行首列为补零 ID（应写作 ${canonicalId(cells.find((cell) => isPaddedIdCell(cell)) ?? "")}）：请人工核对，历史行只追加不自动改写`,
+    })
+  }
+  const nonId = cells.filter((cell) => !isIdCell(cell) && !isPaddedIdCell(cell)).length
   if (nonId > 0) {
     items.push({
       level: "warn",

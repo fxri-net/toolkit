@@ -281,6 +281,24 @@ describe("演进记录首列告警", () => {
     rmSync(dir, { recursive: true, force: true })
     rmSync(cwd, { recursive: true, force: true })
   })
+
+  it("v3 载体首列为补零 ID 时告警并给出去补零写法", () => {
+    const dir = makeTmp("tk-conv-hid-pad-")
+    const cwd = makeTmp("tk-conv-hid-pad-cwd-")
+    mkdirSync(join(dir, "active"), { recursive: true })
+    makeV3(dir)
+    writeFileSync(join(dir, "conventions", "history.md"), makeHistory("| C-001 | 当场打点优先 | 建档评估 |\n"), "utf8")
+
+    const all = validateTasks(dir, cwd).issues.filter((i) => i.level === "warn")
+    const padded = all.filter((i) => i.message.includes("补零"))
+    expect(padded).toHaveLength(1)
+    expect(padded[0]!.message).toContain("应写作 C-1")
+    expect(padded[0]!.line).toBe(5)
+    // 补零行不再混入「首列不是稳定 ID」的告警
+    expect(all.filter((i) => i.message.includes("行首列不是稳定 ID"))).toEqual([])
+    rmSync(dir, { recursive: true, force: true })
+    rmSync(cwd, { recursive: true, force: true })
+  })
 })
 
 describe("演进记录措辞告警", () => {

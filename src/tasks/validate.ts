@@ -18,8 +18,10 @@ import {
   ID_HEADER,
   INDEX_FILE,
   LEGACY_FILE,
+  canonicalId,
   findTable,
   isIdCell,
+  isPaddedIdCell,
   readCarrier,
   type CarrierState,
 } from "../conventions/format"
@@ -392,16 +394,29 @@ function validateHistoryIdColumn(tasksDir: string): CheckIssue[] {
   if (!existsSync(file)) return []
   const table = findTable(readTextFile(file).split(/\r?\n/), HISTORY_ANCHOR_HEADER)
   if (!table) return []
-  const nonId = table.rowLines.filter((_, i) => !isIdCell((table.rows[i] ?? [])[0] ?? ""))
-  if (nonId.length === 0) return []
-  return [
-    {
+  const cells = table.rows.map((row) => row[0] ?? "")
+  const issues: CheckIssue[] = []
+  // 补零与「首列写了规则名」分开报：前者给出改法，避免混在同一条含糊告警里
+  const padded = table.rowLines.filter((_, i) => isPaddedIdCell(cells[i] ?? ""))
+  if (padded.length > 0) {
+    const sample = cells.find((cell) => isPaddedIdCell(cell)) ?? ""
+    issues.push({
+      level: "warn",
+      file: displayRel(tasksDir, file),
+      line: (padded[0] ?? 0) + 1,
+      message: `演进记录有 ${padded.length} 行首列为补零 ID（如 ${sample}，应写作 ${canonicalId(sample)}）：请人工核对（历史行只追加，不自动改写）`,
+    })
+  }
+  const nonId = table.rowLines.filter((_, i) => !isIdCell(cells[i] ?? "") && !isPaddedIdCell(cells[i] ?? ""))
+  if (nonId.length > 0) {
+    issues.push({
       level: "warn",
       file: displayRel(tasksDir, file),
       line: (nonId[0] ?? 0) + 1,
       message: `演进记录有 ${nonId.length} 行首列不是稳定 ID（应记行内代码包裹的 C-<n>）：请人工核对补录（历史行只追加，不自动改写）`,
-    },
-  ]
+    })
+  }
+  return issues
 }
 
 // 校验 active 目录全部任务（含跨文件重名检测）
