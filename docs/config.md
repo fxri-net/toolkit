@@ -207,6 +207,41 @@ CLI 每次命令执行时**同步读取本地缓存**，检测到新版本时向
 }
 ```
 
+## skillsInstall：全局技能安装偏好（1.14.0 新增）
+
+| 字段 | 类型 | 默认 | 说明 |
+| --- | --- | --- | --- |
+| `selection` | object | 无 | 来源 → 技能名数组；内置源键为 `toolkit`。`toolkit skills install` 成功后写回，重装 / `status` 按此回显选择集；未保存过时首次只装 `core` 技能 |
+| `targets` | string[] | 无 | 目标 agent 名数组（预留，当前安装仍按内置表与现场判定） |
+| `sources` | object | 无 | 外部来源配置（预留，当前仅支持包内内置源） |
+
+```json
+{
+  "skillsInstall": {
+    "selection": { "toolkit": ["fxri-plan-to-task", "fxri-session-recap", "fxri-text-encoding"] }
+  }
+}
+```
+
+⚠️ **仅认全局层**：`skillsInstall` 只从全局层 `~/.toolkitrc.json` 读取；写在项目层 `.toolkitrc.json` 或本地层 `.toolkitrc.local.json` 时向 **stderr** 告警并忽略（不静默生效）。写入时只合并 `skillsInstall` 段、保留同文件其他配置段，写前备份 `.bak`、写后原子落盘并失效配置缓存。
+
+## projectSkills：项目面技能安装偏好（1.14.0 新增）
+
+| 字段 | 类型 | 默认 | 说明 |
+| --- | --- | --- | --- |
+| `selection` | string[] | 无 | 项目面选择集（技能名数组），由 `toolkit skills install --scope project` 成功后写回；未保存过时首次只装 `core` |
+| `targets` | string[] | 无 | 项目级技能目录（仓库根相对，预留） |
+
+```json
+{
+  "projectSkills": {
+    "selection": ["fxri-plan-to-task", "fxri-session-recap"]
+  }
+}
+```
+
+⚠️ **仅认项目层**：`projectSkills` 只从项目层 `.toolkitrc.json` 读取；写在全局层或本地层时告警并忽略。项目面与全局面的选择集相互独立，`--scope all` 时两面共用本次交互结果。
+
 ## 相关页面
 
 - [完整攻略 · 隐私脱敏](./guide#隐私脱敏)：脱敏效果示例

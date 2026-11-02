@@ -69,7 +69,7 @@ toolkit skills install --scope project                # 项目面分发：真源
 pnpm dlx skills add fxri-net/toolkit                  # 也可用上游安装器（npm 用户：npx skills add fxri-net/toolkit）
 ```
 
-技能随包分发（真源为包内 `skills/`），与 CLI 同一发布批次（技能内容版本独立编号）；`toolkit skills install` 默认软链，链接创建失败自动降级副本，`toolkit skills status` 查现场，`toolkit skills remove` 卸载。`--scope project` 换项目面——真源落 `<仓库根>/.agents/skills/`、其余候选目录落入口薄壳，随 git 入库后队友 clone 靠 `toolkit init` 写入的 `prepare` 钩子自动补齐。
+技能随包分发（真源为包内 `skills/`），与 CLI 同一发布批次（技能内容版本独立编号）；`toolkit skills install` 默认软链，链接创建失败自动降级副本，`toolkit skills status` 查现场，`toolkit skills remove` 卸载。安装按技能分层选择：`fxri-plan-to-task`、`fxri-session-recap` 为 `core`（必装），`fxri-release-changelog`、`fxri-text-encoding` 为 `optional`（TTY 下方向键多选，`--skills` / `--all` / `--no-optional` / `--yes` 可跳过交互，首次只装 `core`）；选择集写入 `~/.toolkitrc.json` 的 `skillsInstall.selection`。`--scope project` 换项目面——真源落 `<仓库根>/.agents/skills/`、其余候选目录落入口薄壳，随 git 入库后队友 clone 靠 `toolkit init` 写入的 `prepare` 钩子自动补齐。
 
 - [fxri-plan-to-task](./skills/fxri-plan-to-task/SKILL.md)：方案确认后落盘为任务文件（任务分解与纯展示计划表、逐仓逐任务建档、check、归档 + 任务级规范沉淀为强制终点）
 - [fxri-release-changelog](./skills/fxri-release-changelog/SKILL.md)：发版时创建变更集、格式化多语言 CHANGELOG

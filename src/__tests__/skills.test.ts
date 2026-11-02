@@ -89,6 +89,21 @@ function writeState(targets: Array<{ dir: string; links?: string[]; copies?: str
   writeFileSync(skillsStateFile(), `${JSON.stringify(data, null, 2)}\n`, "utf8")
 }
 
+// 取状态文件里某个目标目录的登记（新结构 sources → targets）
+function stateTarget(dir: string) {
+  const state = readSkillsState()
+  for (const source of Object.values(state?.sources ?? {})) {
+    const target = source.targets.find((entry) => entry.dir === dir)
+    if (target) return target
+  }
+  return undefined
+}
+
+// 取状态文件里某个目标目录的条目名，可按产物形态过滤
+function stateEntries(dir: string, mode?: "link" | "copy" | "shell"): string[] {
+  return (stateTarget(dir)?.entries ?? []).filter((entry) => !mode || entry.mode === mode).map((entry) => entry.name)
+}
+
 // 判定 dest 是否为指向 source 的软链（junction 的 readlink 带尾分隔符，需剥掉再比较）
 function isLinkTo(dest: string, source: string): boolean {
   if (!lstatSync(dest).isSymbolicLink()) return false
@@ -489,9 +504,9 @@ describe("readSkillBodyVersion / findSkillVersionMismatches 版本双写位", ()
     const diff = bodySkillDir("mm-diff", '---\nname: mm-diff\nmetadata:\n  version: "1.0.1"\n---\n\n> 本技能版本 1.0.0（随包分发）\n')
     const missing = bodySkillDir("mm-missing", '---\nname: mm-missing\nmetadata:\n  version: "2.0.0"\n---\n\n无版本声明\n')
     const mismatches = findSkillVersionMismatches([
-      { name: "mm-ok", dir: ok, version: "1.0.0" },
-      { name: "mm-diff", dir: diff, version: "1.0.1" },
-      { name: "mm-missing", dir: missing, version: "2.0.0" },
+      { name: "mm-ok", dir: ok, version: "1.0.0", tier: "optional" },
+      { name: "mm-diff", dir: diff, version: "1.0.1", tier: "optional" },
+      { name: "mm-missing", dir: missing, version: "2.0.0", tier: "optional" },
     ])
     expect(mismatches).toEqual([
       { name: "mm-diff", frontmatter: "1.0.1", body: "1.0.0" },
@@ -501,7 +516,7 @@ describe("readSkillBodyVersion / findSkillVersionMismatches 版本双写位", ()
 
   it("未声明 frontmatter 版本（第三方技能）跳过比对，不误报", () => {
     const dir = bodySkillDir("mm-third", "# 第三方技能\n\n无版本声明\n")
-    expect(findSkillVersionMismatches([{ name: "mm-third", dir, version: "" }])).toEqual([])
+    expect(findSkillVersionMismatches([{ name: "mm-third", dir, version: "", tier: "optional" }])).toEqual([])
   })
 
   it("包内全部技能双写位一致（仓库现场无漂移）", () => {
@@ -640,10 +655,10 @@ describe("installSkills 安装", () => {
     for (const name of report.skills) {
       expect(isLinkTo(join(primaryDir(), name), join(skillsSourceDir(), name))).toBe(true)
     }
-    const state = readSkillsState()
-    expect(state?.targets[0]!.dir).toBe(primaryDir())
-    expect(state?.targets[0]!.links).toEqual(report.skills)
-    expect(state?.targets[0]!.copies).toEqual([])
+    const primaryState = readSkillsState()?.sources["toolkit"]?.targets[0]
+    expect(primaryState?.dir).toBe(primaryDir())
+    expect(stateEntries(primaryDir(), "link")).toEqual(report.skills)
+    expect(stateEntries(primaryDir(), "copy")).toEqual([])
   })
 
   it("重复安装幂等：已就绪的链接整体跳过", () => {
@@ -736,7 +751,7 @@ describe("installSkills 安装", () => {
     expect(targetOf(report, "custom").created).toEqual(report.skills)
     expect(existsSync(join(extra, report.skills[0]!, "SKILL.md"))).toBe(true)
     installSkills()
-    expect(readSkillsState()?.targets.some((t) => t.dir === extra)).toBe(true)
+    expect(stateTarget(extra)).toBeTruthy()
     removeSkills()
     expect(existsSync(join(extra, report.skills[0]!))).toBe(false)
   })
@@ -872,8 +887,8 @@ describe("removeSkills 精确清理", () => {
 
   it("报告目标带显示名，与 install / status 同口径；表外目标回落为 null", () => {
     writeState([
-      { dir: primaryDir(), copies: [] },
-      { dir: join(home, "custom-skills"), copies: [] },
+      { dir: primaryDir(), links: ["fxri-plan-to-task"] },
+      { dir: join(home, "custom-skills"), links: ["fxri-plan-to-task"] },
     ])
     const report = removeSkills({ dryRun: true })
     expect(report.targets[0]!.label).toBe(resolveSkillTargets()[0]!.label)
@@ -957,14 +972,14 @@ describe("autoLinkSkills 链接自愈", () => {
     mkdirSync(primaryDir(), { recursive: true })
     writeState([{ dir: primaryDir(), links: ["fxri-not-exists", "fxri-plan-to-task"] }])
     expect(autoLinkSkills()).toBe(1)
-    expect(readSkillsState()?.targets[0]!.links).toEqual(["fxri-plan-to-task"])
+    expect(readSkillsState()?.sources["toolkit"]?.targets[0]?.entries.map((entry) => entry.name)).toEqual(["fxri-plan-to-task"])
   })
 
   it("状态记录的目标目录已不存在时原样保留记录", () => {
     const ghostDir = join(home, "ghost-target")
     writeState([{ dir: ghostDir, links: ["fxri-plan-to-task"] }])
     expect(autoLinkSkills()).toBe(0)
-    expect(readSkillsState()?.targets[0]!.dir).toBe(ghostDir)
+    expect(stateTarget(ghostDir)?.dir).toBe(ghostDir)
   })
 
   it("配置 skills.autoLink=false 时关闭自愈", () => {
@@ -1024,7 +1039,7 @@ describe("autoLinkSkills 实体产物开关", () => {
     expect(autoLinkSkills()).toBe(0)
     expect(lstatSync(dest).isSymbolicLink()).toBe(false)
     expect(readFileSync(join(dest, "SKILL.md"), "utf8")).toBe("user dir")
-    expect(readSkillsState()?.targets[0]!.links).toContain(installed.skills[0])
+    expect(stateEntries(primaryDir(), "link")).toContain(installed.skills[0])
   })
 
   it("开关关闭时普通文件一律不动", () => {
@@ -1036,7 +1051,7 @@ describe("autoLinkSkills 实体产物开关", () => {
     expect(autoLinkSkills()).toBe(0)
     expect(lstatSync(dest).isSymbolicLink()).toBe(false)
     expect(readFileSync(dest, "utf8")).toBe("plain file")
-    expect(readSkillsState()?.targets[0]!.links).toContain(installed.skills[0])
+    expect(stateEntries(primaryDir(), "link")).toContain(installed.skills[0])
   })
 
   it("开关关闭只豁免实体产物：悬空与指向错误仍重建，实体记录随写盘保留", () => {
@@ -1053,7 +1068,7 @@ describe("autoLinkSkills 实体产物开关", () => {
     disableReplaceForeign()
     expect(autoLinkSkills()).toBe(2)
     // 同轮有修复落盘时，被豁免的实体目录记录不能被写掉
-    const links = readSkillsState()?.targets[0]!.links ?? []
+    const links = stateEntries(primaryDir(), "link")
     expect(links).toContain(dirName)
     expect(links).toContain(goneName)
     expect(links).toContain(wrongName)

@@ -165,6 +165,11 @@ toolkit skills install              # 安装包内技能（缺省按现场判定
 toolkit skills install --scope project # 仅项目面：仓库内唯一真源副本 + 各候选目录薄壳
 toolkit skills install --scope global  # 仅全局面：软链 / 副本到各 agent 全局技能目录
 toolkit skills install --scope all     # 项目面 + 全局面都执行
+toolkit skills install --skills fxri-plan-to-task,fxri-text-encoding # 只装指定技能（core 恒装，逗号分隔）
+toolkit skills install --all        # 安装全部技能（含可选技能）
+toolkit skills install --no-optional # 只装 core 技能
+toolkit skills install --yes        # 接受已保存的技能选择，不进入交互（首次只装 core）
+toolkit skills install --prune      # 清理未选择且内容与本包真源一致的旧产物
 toolkit skills install --copy       # 强制副本形式（仅全局面生效；项目面真源恒为副本、薄壳非副本，忽略并告警）
 toolkit skills install --dry-run    # 预演：只预览将执行的动作，不写文件
 toolkit skills install --force      # 覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
@@ -174,6 +179,7 @@ toolkit skills status               # 查看技能现场状态与包内技能真
 toolkit skills status --scope all   # 项目面与全局面都体检
 toolkit skills status --format json # JSON 输出：scope、global / project 各自的现场报告
 toolkit skills remove               # 卸载本包安装的技能产物（缺省按现场判定作用域；目标目录清空后一并回收）
+toolkit skills remove --skills fxri-text-encoding # 只卸载指定技能的选择与产物（逗号分隔）
 toolkit skills remove --scope all   # 项目面与全局面都卸载
 toolkit skills remove --dry-run     # 卸载预演（只预览将移除的条目）
 toolkit skills remove --format json # JSON 输出：dryRun、scope 与 global / project 各自的卸载报告
@@ -185,12 +191,26 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 | 子命令 | 行为 |
 | --- | --- |
-| `install` | 以包内 `skills/`（含 `SKILL.md` 者计为技能）为唯一真源分发，**全局面**逐技能幂等——指向正确跳过（含锚在 pnpm 稳定入口、内容与真源一致的异地软链）、指向其他版本（内容与真源不一致）或悬空重建、同名实体目录 / 普通文件默认跳过（`--force` 覆盖）；**落点形态沿用既有登记**——本包以副本形式登记过的技能，裸 `install` 与 `--force` 都保持副本（`--force` 只解除冲突判定，不把副本翻回软链），未登记的同名实体目录被 `--force` 接管时才按默认形态重建为软链；未安装的 agent 只报告、不凭空造目录；项目面按「作用域」节的副本 + 薄壳口径写入；`--format json` 输出机器可读安装报告到 stdout（含 `dryRun` / `scope` 标记） |
-| `status` | **全局面**先打印包内各技能真源版本清单（供与会话上下文中已加载的技能内容对照，判断上下文是否过期），再逐目标报告 7 态：软链正常 / 软链悬空 / 软链指向其他版本 / 副本已同步 / 副本已漂移（本包登记副本与真源不一致）/ 缺失 / 同名冲突（同名非本包产物）；**健康目标折叠为一行**（`<目标>：<目录>　N 项正常`），仅含问题项的目标逐条展开，末尾汇总需处理条目并按型给出指引：缺失 / 悬空 / 指向其他版本 / 副本漂移用 `install` 补齐，同名冲突用 `install --force` 覆盖；**目标纳入口径**：主目标恒报告，内置表内的 agent 与自定义目标仅在已有本包记录或目录非空时展开（卸载后的空壳目录不占版面），状态文件登记但本次未解析到的目标（如 `--dir` 安装后不再传参、agent 目录已被移除）也补报、不静默丢弃；其中 Codex / Pi 的升级前历史落点（`~/.codex/skills`、`~/.pi/agent/skills`）在状态文件有登记且目录仍在时，标注为「历史落点」并在报告末尾单列「历史落点残留」提示——只提示不自动删除，指引用 `remove` 清理；本机已安装且经 canonical 共读的 agent（Cline / Codex / Dexto / Kimi Code CLI / Loaf / Pi / Sarvam Code / Warp / Zed / DeepSeek Harness，按探测路径判定）另单列一行说明其读取主目标、无需单独写入；存在软链落点时报告末尾另提示「写入将穿透至技能真源目录，改内容请改真源」；项目面按「作用域」节四态体检；`--format json` 输出机器可读报告到 stdout（含 `scope`，两面报告含 `skillVersions`，全局面另含 `canonicalReaders` 与 `legacyTargets`，折叠不丢信息、替代人读版，无末尾汇总行） |
-| `remove` | **全局面**只清理状态文件 `~/.agents/.toolkit-skills.json` 记载的本包产物：链接（含悬空）摘除、副本内容与真源一致才删，其余交人工确认；清理后目标目录若已空则**一并回收**（`--dry-run` 只预览、不动现场；目录非空或不可读时不回收）；清理干净后删除状态文件；项目面按「作用域」节清理归属账记载的条目；`--format json` 输出机器可读卸载报告到 stdout（含各目标 `dirReclaimed` 回收标记与 `dryRun` / `scope` 标记） |
+| `install` | 以包内 `skills/`（含 `SKILL.md` 者计为技能）为唯一真源分发，只安装**本次选择集**内的技能（选择规则见下方「技能选择」）；**全局面**逐技能幂等——指向正确跳过（含锚在 pnpm 稳定入口、内容与真源一致的异地软链）、指向其他版本（内容与真源不一致）或悬空重建、同名实体目录 / 普通文件默认跳过（`--force` 覆盖）；**落点形态沿用既有登记**——本包以副本形式登记过的技能，裸 `install` 与 `--force` 都保持副本（`--force` 只解除冲突判定，不把副本翻回软链），未登记的同名实体目录被 `--force` 接管时才按默认形态重建为软链；未安装的 agent 只报告、不凭空造目录；`--prune` 只清理未选择、本包登记且内容与真源一致的旧产物；项目面按「作用域」节的副本 + 薄壳口径写入；`--format json` 输出机器可读安装报告到 stdout（含 `dryRun` / `scope` 标记与 `selection`） |
+| `status` | **全局面**先打印包内各技能真源版本清单与当前选择集（供与会话上下文中已加载的技能内容对照，判断上下文是否过期），再逐目标报告状态：软链正常 / 软链悬空 / 软链指向其他版本 / 副本已同步 / 副本已漂移（本包登记副本与真源不一致）/ 缺失（仅指已选择但缺失）/ 同名冲突（同名非本包产物）/ 未选择但已安装（单列提示，不计入问题）；**健康目标折叠为一行**（`<目标>：<目录>　N 项正常`），仅含问题项或未选择产物的目标逐条展开，末尾汇总需处理条目并按型给出指引：缺失 / 悬空 / 指向其他版本 / 副本漂移用 `install` 补齐，同名冲突用 `install --force` 覆盖，未选择但已安装的产物需要清理时用 `install --prune`；**目标纳入口径**：主目标恒报告，内置表内的 agent 与自定义目标仅在已有本包记录或目录非空时展开（卸载后的空壳目录不占版面），状态文件登记但本次未解析到的目标（如 `--dir` 安装后不再传参、agent 目录已被移除）也补报、不静默丢弃；其中 Codex / Pi 的升级前历史落点（`~/.codex/skills`、`~/.pi/agent/skills`）在状态文件有登记且目录仍在时，标注为「历史落点」并在报告末尾单列「历史落点残留」提示——只提示不自动删除，指引用 `remove` 清理；本机已安装且经 canonical 共读的 agent（Cline / Codex / Dexto / Kimi Code CLI / Loaf / Pi / Sarvam Code / Warp / Zed / DeepSeek Harness，按探测路径判定）另单列一行说明其读取主目标、无需单独写入；存在软链落点时报告末尾另提示「写入将穿透至技能真源目录，改内容请改真源」；项目面按「作用域」节体检；`--format json` 输出机器可读报告到 stdout（含 `scope` 与 `selection`，两面报告含 `skillVersions`，全局面另含 `canonicalReaders` 与 `legacyTargets`，折叠不丢信息、替代人读版，无末尾汇总行） |
+| `remove` | **全局面**先清选择配置、再清产物、最后重写状态：只清理状态文件 `~/.agents/.toolkit-skills.json` 记载的本包产物：链接（含悬空）摘除、副本内容与真源一致才删，其余交人工确认；清理后目标目录若已空则**一并回收**（`--dry-run` 只预览、不动现场；目录非空或不可读时不回收）；清理干净后删除状态文件；`--skills` 只清指定技能的选择与产物，省略时清空全部；项目面按「作用域」节清理归属账记载的条目；`--format json` 输出机器可读卸载报告到 stdout（含各目标 `dirReclaimed` 回收标记与 `dryRun` / `scope` 标记） |
 | `path` | 输出包根（内含 `skills/`），便于委托上游安装器安装到内置表未收录的 agent；`--format json` 输出包根、技能源目录与技能清单 |
 
-四个子命令的 `--format json` 输出统一携带 `schemaVersion: 1` 锚点（与 `tasks --export` 同口径）；`install` / `status` / `remove` 的输出另含 `scope`（本次实际作用域）与 `dryRun`（供消费方区分预演与实跑），报告主体按 `global` / `project` 两个字段分面承载（未执行的面为 `null`）；`status` 两面报告均含 `skillVersions`（各技能真源版本，用于与会话上下文中已加载的技能内容对照）。
+四个子命令的 `--format json` 输出统一携带 `schemaVersion: 1` 锚点（与 `tasks --export` 同口径）；`install` / `status` / `remove` 的输出另含 `scope`（本次实际作用域）与 `dryRun`（供消费方区分预演与实跑），报告主体按 `global` / `project` 两个字段分面承载（未执行的面为 `null`）；`status` 两面报告均含 `skillVersions`（各技能真源版本，用于与会话上下文中已加载的技能内容对照）与 `selection`（本次生效的技能选择集）。
+
+### 技能选择
+
+技能按 `SKILL.md` frontmatter 的 `metadata.tier` 分层：`core` 必装、不可取消，`optional` 安装时可选，缺省按 `optional` 处理。当前 `fxri-plan-to-task`、`fxri-session-recap` 为 `core`，`fxri-release-changelog`、`fxri-text-encoding` 为 `optional`。
+
+选择优先级（从高到低）：
+
+1. `--skills <names>`：只装指定技能（逗号分隔），`core` 技能恒装；包内不存在的名称告警后剔除，全部非法时报错退出（退出码 1）
+2. `--all`：安装全部技能；`--no-optional`：只装 `core` 技能
+3. TTY 交互：未传上述参数且未传 `--yes` 时，以方向键多选列出技能，`core` 已选中且不可取消；`Enter` 确认、`Ctrl+C` 取消（取消时不写任何文件，退出码 130）
+4. 已保存选择：非 TTY、传入 `--yes` 或交互取消后无写入时，按 `~/.toolkitrc.json` 的 `skillsInstall.selection` / 项目层 `.toolkitrc.json` 的 `projectSkills.selection` 回显
+5. 首次（无保存选择）：只装 `core` 技能
+
+选择集在安装成功后写回对应层配置（`--dry-run` 不写），项目面与全局面各自独立。收窄选择后，未被选择但仍有产物的技能在 `status` 中单列为「未选择但已安装」，不计入问题；需要清理时加 `--prune` 重跑 `install`，只删除本包登记且内容与真源一致的条目。
 
 ### 作用域
 
@@ -202,9 +222,9 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 ⚠️ **自动判定判据**：自当前工作目录逐级向上，任一层含 `package.json` 且 CLI 包根真实落在其下 → `project`，否则 `global`（monorepo 子目录执行亦能命中项目面）；**本包源仓库自身视为 `global`**（维护者靠全局技能自举，不把自身 `skills/` 复制进自身仓库）。传入非法取值（非 `project` / `global` / `all`）时报错退出（退出码 1），不静默回落默认值。
 
-⚠️ **项目面归属账**：产物登记在 `<仓库根>/.toolkit/state.json`（真源路径、真源技能名、各薄壳落点，均仓库根相对、随 git 分发），只清理账内条目；卸载时真源副本内容与包内真源一致才删、薄壳带本包标记才删，其余交人工确认（`remove` 只清账、不碰账外同名产物）。
+⚠️ **项目面归属账**：产物登记在 `<仓库根>/.toolkit/state.json`（真源副本与各薄壳目录、逐技能的条目名称 / 版本 / 形态，均仓库根相对、随 git 分发），只清理账内条目；卸载时真源副本内容与包内真源一致才删、薄壳带本包标记才删，其余交人工确认（`remove` 只清账、不碰账外同名产物）。
 
-⚠️ **项目面逐技能四态**（`status` 口径）：`已就绪` / `已漂移`（内容与真源或期望不一致）/ `同名冲突`（非本包产物）/ `缺失`；健康目录折叠为一行、仅异常项逐条展开，漂移与缺失用 `install --scope project` 补齐、同名冲突加 `--force` 覆盖。
+⚠️ **项目面逐技能状态**（`status` 口径）：`已就绪` / `已漂移`（内容与真源或期望不一致）/ `同名冲突`（非本包产物）/ `缺失`（仅指已选择但缺失）/ `未选择但已安装`（单列提示，不计入问题）；健康目录折叠为一行、仅异常项逐条展开，漂移与缺失用 `install --scope project` 补齐、同名冲突加 `--force` 覆盖、未选择产物需要清理时加 `--prune`。
 
 ⚠️ **clone 即用**：项目面真源副本与归属账随 git 入库，队友 clone 后无需重跑 `skills install` 即开箱可用；`toolkit init` 会在本地依赖含 `@fxri/toolkit` 时向 `package.json` 补 `prepare` 钩子（`toolkit skills install --scope project`），依赖升级后自动刷新项目面（详见 [init](#init-1-7-0-新增)）。
 
@@ -226,7 +246,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - 卸载链接时**只摘链、不碰真源**（包内原始文件完好）
 - 软链落点是**写入穿透**形态：在落点目录里编辑文件等于编辑技能真源，且该真源随包升级整体换新——`status` 在存在软链落点时于报告末尾提示「写入将穿透至技能真源目录，改内容请改真源」，避免用户误在落点上编辑
 - 配置 `skills.autoLink`（默认 `true`）：命令启动时对状态文件记载的**链接**做补链与修链；只重建悬空或**指向其他版本（内容与真源不一致）**的链接——内容与真源一致的异地软链（如锚在别的安装）不视为错误、不重指；现场被替换为同名实体目录 / 普通文件时默认清理重建为软链，置 `skills.autoLinkReplaceForeign: false` 可改为一律不动（**不含首次安装、不含副本升级**；`CI` 环境自动跳过。见[配置参考 · skills](./config#skills-技能分发-1-9-0-新增)）
-- 状态文件为**用户级**（`~/.agents/.toolkit-skills.json`），与上游安装器的 `skills-lock.json` 相互独立
+- 状态文件为**用户级**（`~/.agents/.toolkit-skills.json`），与上游安装器的 `skills-lock.json` 相互独立；结构为 `format`（`fxri.toolkit.skills-state`）+ `schemaVersion`（`1`）+ `sources`（来源 → 目标 → 逐技能条目），升级前的旧结构在首次读取时一次性导入并备份为 `.bak`
 
 ## conventions（1.11.0 新增）
 

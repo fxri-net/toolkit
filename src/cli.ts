@@ -33,8 +33,14 @@ import {
   detectSkillScope,
   installProjectSkills,
   installSkills,
+  isInteractiveTty,
   listPackageSkills,
+  planSkillSelection,
   projectSkillsStatus,
+  promptSkillSelection,
+  readProjectSkillsConfig,
+  readSavedSelection,
+  readSkillsInstallConfig,
   removeProjectSkills,
   removeSkills,
   skillsPackageDir,
@@ -223,10 +229,56 @@ const SKILL_STATE_LABEL: Record<SkillItemState, string> = {
   "copy-drift": "副本已漂移（与真源不一致）",
   missing: "缺失",
   conflict: "同名冲突（非本包产物）",
+  "not-selected": "未选择",
+  "installed-unselected": "未选择但已安装",
 }
 
 // 需要处理的异常状态：status 汇总提示与 install 修复范围
 const SKILL_PROBLEM_STATES: SkillItemState[] = ["dangling", "wrong", "copy-drift", "missing", "conflict"]
+
+// 技能选择面：全局面取全局层配置，项目面取项目层配置
+type SkillSelectionFace = "global" | "project"
+
+// 读取某一面已保存的技能选择：未保存过返回 undefined（首次安装只装 core）
+function readSavedSkillSelection(face: SkillSelectionFace): string[] | undefined {
+  return face === "global" ? readSavedSelection(readSkillsInstallConfig()) : readProjectSkillsConfig().selection
+}
+
+// 解析本次技能选择：显式参数 > --all / --no-optional > 已保存选择 > 首次只装 core
+// TTY 下未传 --yes 时进入方向键多选；用户取消返回 null（调用方不得写任何文件）
+async function resolveSkillSelection(
+  options: { skills?: string; all?: boolean; optional?: boolean; yes?: boolean },
+  face: SkillSelectionFace,
+): Promise<string[] | null> {
+  const skills = listPackageSkills()
+  const saved = readSavedSkillSelection(face)
+  // 显式传了 --skills 但取值为空（如 --skills ""）按全部非法处理，不静默当作未传
+  const explicit = options.skills !== undefined ? (splitMulti(options.skills) ?? []) : undefined
+  const plan = planSkillSelection({
+    skills,
+    saved,
+    explicit,
+    all: Boolean(options.all),
+    noOptional: options.optional === false,
+    interactive: isInteractiveTty(),
+    yes: Boolean(options.yes),
+  })
+  if (plan.error) {
+    console.error(`⚠️ --skills 全部取值非法：${plan.invalid.join("、")}`)
+    process.exitCode = 1
+    return null
+  }
+  if (plan.invalid.length > 0) console.warn(`⚠️ 忽略包内不存在的技能：${plan.invalid.join("、")}`)
+  if (plan.savedInvalid.length > 0) console.warn(`⚠️ 已保存的技能选择含包内不存在的技能：${plan.savedInvalid.join("、")}（已忽略）`)
+  if (!plan.needsPrompt) return plan.names
+  const picked = await promptSkillSelection(skills, saved)
+  if (picked === null) {
+    console.error("已取消技能选择，未写入任何文件")
+    process.exitCode = 130
+    return null
+  }
+  return picked
+}
 
 // JSON 输出统一出口：技能域与任务统计域共用，序列化口径见 toJsonText
 function printJson(payload: object): void {
@@ -243,7 +295,7 @@ function printInstallReport(report: InstallReport, dryRun: boolean): void {
   const tag = dryRun ? "[预演] " : ""
   const versionByName = new Map(listPackageSkills().map((s) => [s.name, s.version]))
   console.log(`${tag}技能源：${report.source}`)
-  console.log(`${tag}包内技能（${report.skills.length}）：${report.skills.map((name) => skillLabel(name, versionByName.get(name) ?? "")).join("、") || "无"}`)
+  console.log(`${tag}本次选择（${report.selection.length}）：${report.selection.map((name) => skillLabel(name, versionByName.get(name) ?? "")).join("、") || "无"}`)
   for (const t of report.targets) {
     console.log("")
     console.log(`${t.label}：${t.dir}`)
@@ -251,6 +303,7 @@ function printInstallReport(report: InstallReport, dryRun: boolean): void {
     if (t.updated.length > 0) console.log(`  重建/更新：${t.updated.join("、")}`)
     if (t.skipped.length > 0) console.log(`  跳过（已就绪）：${t.skipped.join("、")}`)
     if (t.conflicts.length > 0) console.log(`  跳过（同名非本包产物，如需覆盖加 --force）：${t.conflicts.join("、")}`)
+    if (t.pruned.length > 0) console.log(`  清理（未选择）：${t.pruned.join("、")}`)
     for (const d of t.degraded) console.log(`  ⚠️ 降级为副本：${d.name}（链接创建失败：${d.reason}）`)
     for (const f of t.failed) console.log(`  ⚠️ 失败：${f.name}（${f.reason}）`)
     const modes: string[] = []
@@ -273,25 +326,30 @@ function printInstallReport(report: InstallReport, dryRun: boolean): void {
 function printStatusReport(report: SkillsStatusReport): void {
   console.log(`技能源：${report.source}`)
   console.log(`技能版本：${report.skills.map((name) => skillLabel(name, report.skillVersions[name] ?? "")).join("、") || "无"}`)
+  console.log(`选择集（${report.selection.length}）：${report.selection.join("、") || "无"}`)
   // 软告警：真源内版本双写位（frontmatter / 正文）不一致，提示按规则同步递增
   for (const m of report.versionMismatches) {
     console.warn(`⚠️ 技能版本双写位不一致：${m.name}（frontmatter ${m.frontmatter} / 正文 ${m.body || "未声明"}）`)
   }
   console.log(`状态文件：${report.stateFile}${report.stateExists ? "" : "（未记录，尚未执行过 toolkit skills install）"}`)
   let problems = 0
+  let unselectedCount = 0
   for (const t of report.targets) {
     const head = `${t.label}：${t.dir}${t.dirExists ? "" : "（目录未创建）"}`
     const bad = t.items.filter((item) => SKILL_PROBLEM_STATES.includes(item.state))
+    const unselected = t.items.filter((item) => item.state === "installed-unselected")
     problems += bad.length
+    unselectedCount += unselected.length
     console.log("")
     // 健康目标折叠为一行：逐技能刷「软链正常」在目标多时纯属噪音（完整信息另见 --format json）
-    if (bad.length === 0) {
+    if (bad.length === 0 && unselected.length === 0) {
       console.log(`${head}　${t.items.length} 项正常`)
       continue
     }
     console.log(head)
     for (const item of bad) console.log(`  ${item.name}：${SKILL_STATE_LABEL[item.state]}`)
-    const ok = t.items.length - bad.length
+    for (const item of unselected) console.log(`  ${item.name}：未选择但已安装（保留不影响使用，需要清理时加 --prune 重跑 install）`)
+    const ok = t.items.length - bad.length - unselected.length
     if (ok > 0) console.log(`  其余 ${ok} 项正常`)
   }
   if (report.pendingAgents.length > 0) {
@@ -317,6 +375,9 @@ function printStatusReport(report: SkillsStatusReport): void {
       ? `共 ${problems} 处需处理：缺失 / 悬空 / 指向其他版本 / 副本漂移用 toolkit skills install 补齐，同名冲突用 toolkit skills install --force 覆盖`
       : "所有已纳入的目标均正常",
   )
+  if (unselectedCount > 0) {
+    console.log(`未选择但已安装 ${unselectedCount} 项：保留不影响使用，需要清理时运行 toolkit skills install --prune`)
+  }
   // 软链落点是写入穿透形态：改落点文件等于改真源，需在报告末尾点明纪律，避免用户误在落点上编辑
   const linkCount = report.targets.reduce((n, t) => n + t.items.filter((i) => i.state === "link").length, 0)
   if (linkCount > 0) console.log(`软链落点 ${linkCount} 项：写入将穿透至技能真源目录，改内容请改真源`)
@@ -351,6 +412,8 @@ const PROJECT_STATE_LABEL: Record<ProjectItemState, string> = {
   drift: "已漂移（与真源 / 期望不一致）",
   conflict: "同名冲突（非本包产物）",
   missing: "缺失",
+  "not-selected": "未选择",
+  "installed-unselected": "未选择但已安装",
 }
 
 // 项目面需处理的异常状态：status 汇总提示与 install 修复范围
@@ -364,6 +427,7 @@ function printProjectDir(result: ProjectDirResult, indent = "  "): void {
   if (result.updated.length > 0) console.log(`${pad}重建/更新：${result.updated.join("、")}`)
   if (result.skipped.length > 0) console.log(`${pad}跳过（已就绪）：${result.skipped.join("、")}`)
   if (result.conflicts.length > 0) console.log(`${pad}跳过（同名非本包产物，如需覆盖加 --force）：${result.conflicts.join("、")}`)
+  if (result.pruned.length > 0) console.log(`${pad}清理（未选择）：${result.pruned.join("、")}`)
   for (const f of result.failed) console.log(`${pad}⚠️ 失败：${f.name}（${f.reason}）`)
 }
 
@@ -372,7 +436,7 @@ function printProjectInstallReport(report: ProjectInstallReport, dryRun: boolean
   const tag = dryRun ? "[预演] " : ""
   const versionByName = new Map(listPackageSkills().map((s) => [s.name, s.version]))
   console.log(`${tag}项目面 · 项目根：${report.root}`)
-  console.log(`${tag}项目面 · 包内技能（${report.skills.length}）：${report.skills.map((name) => skillLabel(name, versionByName.get(name) ?? "")).join("、") || "无"}`)
+  console.log(`${tag}项目面 · 本次选择（${report.selection.length}）：${report.selection.map((name) => skillLabel(name, versionByName.get(name) ?? "")).join("、") || "无"}`)
   console.log("")
   console.log(`  真源副本（仓库内唯一，随 git 入库）：`)
   printProjectDir(report.source, "  ")
@@ -397,24 +461,29 @@ function printProjectStatusReport(report: ProjectStatusReport): void {
   console.log(`项目面 · 项目根：${report.root}`)
   console.log(`项目面 · 技能真源：${report.sourceDir}`)
   console.log(`项目面 · 技能版本：${report.skills.map((name) => skillLabel(name, report.skillVersions[name] ?? "")).join("、") || "无"}`)
+  console.log(`项目面 · 选择集（${report.selection.length}）：${report.selection.join("、") || "无"}`)
   for (const m of report.versionMismatches) {
     console.warn(`⚠️ 技能版本双写位不一致：${m.name}（frontmatter ${m.frontmatter} / 正文 ${m.body || "未声明"}）`)
   }
   console.log(`项目面 · 状态文件：${report.stateFile}${report.stateExists ? "" : "（未记录，尚未执行过 toolkit init / skills install）"}`)
   let problems = 0
+  let unselectedCount = 0
   for (const d of report.dirs) {
     const bad = d.items.filter((item) => PROJECT_PROBLEM_STATES.includes(item.state))
+    const unselected = d.items.filter((item) => item.state === "installed-unselected")
     problems += bad.length
+    unselectedCount += unselected.length
     const head = `${d.kind === "source" ? "真源副本" : "薄壳"}：${d.dir}`
     console.log("")
     // 健康目录折叠为一行，避免目标多时把真正的问题淹没在噪音里（完整信息另见 --format json）
-    if (bad.length === 0) {
+    if (bad.length === 0 && unselected.length === 0) {
       console.log(`${head}　${d.items.length} 项正常`)
       continue
     }
     console.log(head)
     for (const item of bad) console.log(`  ${item.name}：${PROJECT_STATE_LABEL[item.state]}`)
-    const ok = d.items.length - bad.length
+    for (const item of unselected) console.log(`  ${item.name}：未选择但已安装（保留不影响使用，需要清理时加 --prune 重跑 install）`)
+    const ok = d.items.length - bad.length - unselected.length
     if (ok > 0) console.log(`  其余 ${ok} 项正常`)
   }
   if (report.missingDirs.length > 0) {
@@ -428,6 +497,9 @@ function printProjectStatusReport(report: ProjectStatusReport): void {
       ? `项目面共 ${problems} 处需处理：漂移 / 缺失用 toolkit skills install --scope project 补齐，同名冲突加 --force`
       : "项目面所有已纳入的目录均正常",
   )
+  if (unselectedCount > 0) {
+    console.log(`项目面未选择但已安装 ${unselectedCount} 项：保留不影响使用，需要清理时运行 toolkit skills install --scope project --prune`)
+  }
 }
 
 // 打印项目面卸载报告：按目录区分已移除 / 已不存在 / 需人工确认，并说明归属账处置
@@ -601,12 +673,17 @@ skillsCmd
   .command("install")
   .description("安装包内技能（默认按现场判定作用域：仓库内写项目面副本 + 薄壳，否则写全局目录；软链失败降级副本）")
   .option("--scope <scope>", "作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）")
+  .option("--skills <names>", "只安装指定技能（逗号分隔；core 技能恒装）")
+  .option("--all", "安装包内全部技能（含可选技能）")
+  .option("--no-optional", "只安装 core 技能（不含可选技能）")
+  .option("--yes", "接受已保存的技能选择，不进入交互（首次只装 core）")
   .option("--copy", "强制以副本形式写入（仅全局面生效；项目面真源恒为副本、其余目录恒为薄壳）")
   .option("--dir <path>", "额外目标目录（可多次指定，兜底内置表未收录的 agent；不参与后续自动同步，技能变化后需带相同 --dir 重跑）", collectDir, [])
   .option("--dry-run", "预演（只预览将要执行的动作，不写文件）")
   .option("--force", "覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）")
+  .option("--prune", "清理未选择且内容与本包真源一致的旧产物（只清本包登记条目）")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
-  .action((options: { scope?: string; copy?: boolean; dir: string[]; dryRun?: boolean; force?: boolean; format?: string }) => {
+  .action(async (options: { scope?: string; skills?: string; all?: boolean; optional?: boolean; yes?: boolean; copy?: boolean; dir: string[]; dryRun?: boolean; force?: boolean; prune?: boolean; format?: string }) => {
     try {
       if (!assertJsonFormat(options.format)) return
       const scope = resolveScopeChoice(options.scope)
@@ -614,9 +691,12 @@ skillsCmd
       const dryRun = Boolean(options.dryRun)
       const runProject = scope.choice !== "global"
       const runGlobal = scope.choice !== "project"
+      // scope=all 时两面共用一次选择：以全局面已保存选择为基准，避免连弹两次交互
+      const selection = await resolveSkillSelection(options, scope.choice === "project" ? "project" : "global")
+      if (!selection) return
       if (runProject && options.copy) console.warn("⚠️ 项目面不支持 --copy（真源恒为副本、各候选目录恒为薄壳），已忽略该项目面取值")
-      const project = runProject ? installProjectSkills({ dirs: options.dir, dryRun, force: options.force }) : null
-      const global = runGlobal ? installSkills({ copy: options.copy, dirs: options.dir, dryRun, force: options.force }) : null
+      const project = runProject ? installProjectSkills({ dirs: options.dir, dryRun, force: options.force, skills: selection, prune: Boolean(options.prune) }) : null
+      const global = runGlobal ? installSkills({ copy: options.copy, dirs: options.dir, dryRun, force: options.force, skills: selection, prune: Boolean(options.prune) }) : null
       if (options.format === "json") printJson({ dryRun, scope: scope.choice, global, project })
       else printInstallReports(scope, global, project, dryRun)
     } catch (e) {
@@ -653,18 +733,26 @@ skillsCmd
   .command("remove")
   .description("卸载由本包安装的技能产物（默认按现场判定作用域；只清理归属账记载的条目，不碰用户自装技能）")
   .option("--scope <scope>", "作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）")
+  .option("--skills <names>", "只卸载指定技能的选择与产物（逗号分隔；省略时清理全部）")
   .option("--dry-run", "预演（只预览将要移除的条目，不删文件）")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
-  .action((options: { scope?: string; dryRun?: boolean; format?: string }) => {
+  .action((options: { scope?: string; skills?: string; dryRun?: boolean; format?: string }) => {
     try {
       if (!assertJsonFormat(options.format)) return
       const scope = resolveScopeChoice(options.scope)
       if (!scope) return
+      // 显式传了 --skills 但取值为空时按非法处理，不静默当作清理全部
+      const names = options.skills !== undefined ? (splitMulti(options.skills) ?? []) : undefined
+      if (names && names.length === 0) {
+        console.error("⚠️ --skills 取值为空，未执行卸载")
+        process.exitCode = 1
+        return
+      }
       const dryRun = Boolean(options.dryRun)
       const runProject = scope.choice !== "global"
       const runGlobal = scope.choice !== "project"
-      const project = runProject ? removeProjectSkills({ dryRun }) : null
-      const global = runGlobal ? removeSkills({ dryRun }) : null
+      const project = runProject ? removeProjectSkills({ dryRun, skills: names }) : null
+      const global = runGlobal ? removeSkills({ dryRun, skills: names }) : null
       if (options.format === "json") printJson({ dryRun, scope: scope.choice, global, project })
       else printRemoveReports(scope, global, project, dryRun)
     } catch (e) {

@@ -124,22 +124,23 @@
 
 零依赖 Agent Skills（纯 Markdown），遵循 [Agent Skills 开放标准](https://agentskills.io)，可被 Claude Code、Cursor、Codex、Gemini CLI、Trae、DeepSeek Harness 等兼容 agent 按需加载。
 
-| 技能 | 版本 | 用途 |
-| --- | --- | --- |
-| `fxri-plan-to-task` | 1.9.4 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 |
-| `fxri-release-changelog` | 1.2.1 | changesets 发版与多语言 CHANGELOG 维护 |
-| `fxri-session-recap` | 1.6.2 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 |
-| `fxri-text-encoding` | 1.2.0 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 |
+| 技能 | 版本 | 用途 | 层级 |
+| --- | --- | --- | --- |
+| `fxri-plan-to-task` | 1.9.5 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 | core |
+| `fxri-release-changelog` | 1.2.2 | changesets 发版与多语言 CHANGELOG 维护 | optional |
+| `fxri-session-recap` | 1.6.3 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
+| `fxri-text-encoding` | 1.2.1 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
 
-版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` 打印的真源版本），随技能内容变更递增；`fxri-session-recap` 为 1.7.0 新增
+版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` 打印的真源版本），随技能内容变更递增；层级取自 `metadata.tier`（`core` 必装、`optional` 可选，缺省按 `optional`）；`fxri-session-recap` 为 1.7.0 新增
 
 **安装**（两种方式，选一）：
 
 ```bash
 # 方式一：装了 CLI 一键分发（推荐，技能随包分发，与 CLI 同一发布批次）
 toolkit skills install     # 默认软链真源，链接创建失败自动降级副本；--copy 强制副本（仅全局面生效）、--dry-run 预演
-                           # --scope <project|global|all> 指定作用域，缺省按 CLI 安装位置自动判定
-toolkit skills status      # 查现场；toolkit skills remove 卸载；toolkit skills path 输出包根
+                           # 按 tier 选择：core 必装、optional 可选（TTY 下方向键多选；--skills / --all / --no-optional / --yes 跳过交互，首次只装 core）
+                           # --scope <project|global|all> 指定作用域，缺省按 CLI 安装位置自动判定；--prune 清理未选择且内容一致的旧产物
+toolkit skills status      # 查现场；toolkit skills remove 卸载（--skills 只清指定技能）；toolkit skills path 输出包根
                            # --force 覆盖同名非本包产物（不改本包已登记副本的形态）
 
 # 方式二：上游安装器（技能走 GitHub 拉取，与 CLI 是两条供应链）
@@ -148,7 +149,7 @@ pnpm dlx skills add fxri-net/toolkit --global
 
 **全局面分发目标三层**：主目标 `~/.agents/skills/`（多家 agent 共读：Cline、Codex、Dexto、Kimi Code CLI、Loaf、Pi、Sarvam Code、Warp、Zed、DeepSeek Harness）→ 内置表中「已安装」的各 agent 全局技能目录 → `--dir` 兜底（自定义目录只在当次安装时写入，技能增删后不会自动同步，需带相同 `--dir` 重跑 `toolkit skills install`）；未安装的 agent 只报告、不凭空造目录。共读 agent 的全局目录即主目标本身，写一次即全部覆盖，`toolkit skills status` 会单列「经 canonical 共读的 agent」；升级前的 Codex / Pi 历史落点（`~/.codex/skills`、`~/.pi/agent/skills`）若仍有本包登记，`status` 会单列「历史落点残留」提示清理（只提示、不自动删除）。默认软链（Windows 用 junction，免管理员、免开发者模式），可被各 agent 直接读取；⚠️ 软链落点是**写入穿透**形态（改落点文件即改真源），要改技能内容请改真源，`toolkit skills status` 报告末尾也会提示；`toolkit skills remove` 清理后目标目录若已空会一并回收。
 
-**项目面分发（`--scope project`）**：真源落 `<仓库根>/.agents/skills/`（完整副本），其余已存在的候选目录（`.trae/skills/`、`.claude/skills/`、`agent/skills/`（eve）、`.augment/skills/`、`.codebuddy/skills/`、`.continue/skills/`、`.crush/skills/`、`.devin/skills/`、`.goose/skills/`、`.grok/skills/`、`.hermes/skills/`、`.iflow/skills/`、`.junie/skills/`、`.kiro/skills/`、`.openhands/skills/`、`.qwen/skills/`、`.roo/skills/`、`.windsurf/skills/`）各放每个技能一份**入口薄壳**指向真源，避免同一份内容多目录重复；`--dir` 须落在仓库内。归属账写 `<仓库根>/.toolkit/state.json`。`toolkit init` 会写入 `prepare` 钩子，`pnpm install` 时自动刷新，队友 clone 即用；逐技能现场状态（真源 / 薄壳 / 缺失 / 漂移）由 `toolkit skills status --scope project` 报告。
+**项目面分发（`--scope project`）**：真源落 `<仓库根>/.agents/skills/`（完整副本），其余已存在的候选目录（`.trae/skills/`、`.claude/skills/`、`agent/skills/`（eve）、`.augment/skills/`、`.codebuddy/skills/`、`.continue/skills/`、`.crush/skills/`、`.devin/skills/`、`.goose/skills/`、`.grok/skills/`、`.hermes/skills/`、`.iflow/skills/`、`.junie/skills/`、`.kiro/skills/`、`.openhands/skills/`、`.qwen/skills/`、`.roo/skills/`、`.windsurf/skills/`）各放每个技能一份**入口薄壳**指向真源，避免同一份内容多目录重复；`--dir` 须落在仓库内。归属账写 `<仓库根>/.toolkit/state.json`。`toolkit init` 会写入 `prepare` 钩子，`pnpm install` 时自动刷新，队友 clone 即用；逐技能现场状态（真源 / 薄壳 / 缺失 / 漂移 / 未选择但已安装）由 `toolkit skills status --scope project` 报告。
 
 **与 CLI 的关系**：skills 是规范与流程（独立可用），CLI 是自动校验/归档/发版的加速器。技能文件末尾的「可选加速」节列出了对应 CLI 命令——装了就用，没装技能流程照跑。
 
