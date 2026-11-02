@@ -1,20 +1,29 @@
 ---
 name: fxri-text-encoding
-description: 新建、改写、生成、转码 `.ps1`、`.bat`、`.cmd`、`.sh`、`.properties`、给 Excel 的 `.csv` 等文本文件之前，先按读取方定字符集、BOM 与行尾；AI 自己用文件写入 / 编辑工具落盘后立即自查首三字节（这类工具默认不写 BOM）。也用于乱码归属：终端或命令输出中文变问号、重定向出的文件后续解析失败、`Get-Content` 读 UTF-8 文件乱码、管道传给原生命令变 `?`、编译报看不见的非法字符——含编码、字符集、BOM、乱码、转码、换行、CRLF、LF、UTF-8 BOM、chcp、locale、stdout 编码等说法及口语近义表达（中文变问号、打开是乱码）。事后定位同样适用：PowerShell 报 Missing closing、脚本首行命令报错、JSON 带 BOM 解析失败、跨平台分发脚本打不开。不用于 Base64 / URL 编码、排序与字符计数、文件名规范化、CSV 语法、路径分隔符、时区，也不用于 git 提交信息、任务建档或代码风格。
+description: 在写脚本、配置、数据交换类文本文件之前（`.ps1` / `.psm1` / `.psd1` / `.bat` / `.cmd` / `.sh` / `.properties` / `.csv`、无扩展名 shebang 脚本、C/C++/Java 源码、含中文的 `.ini` / `.env` / `.log` 等非源码文本），或用 shell 重定向、`Set-Content` / `Out-File` / `Export-Csv`、程序生成 / 导出、转码产出文本文件之前——不论临时、一次性、不入库、仓库内外——先加载本技能按读取方定字符集、BOM 与行尾。执行或读取跨编码边界的命令同样适用：PS 管道喂原生命令、`Get-Content` 读无 BOM 文件、`chcp` / `iconv`、Python / Java / CI 的 locale、运行 `.ps1` / `.bat` / `.sh`。已出现中文变问号、`�`、乱码、脚本首行报错、JSON BOM 解析失败、CRLF 致 `$'\r'` 时立即用。AI 写入工具默认不写 BOM，落盘后自查首三字节。不用于 Base64 / URL 编码、排序计数、文件名规范化、CSV 语法、路径分隔符、时区、git 提交信息、任务建档、代码风格。
 license: MIT
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
 
 # 文本编码与字节形态
 
-> 本技能版本 1.0.0（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.1.0（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
-## 何时使用
+## 触发判据（看上下文里的事实，不预测读取方）
 
-写之前先定字符集、BOM、行尾三件套；AI 写入工具落盘后立刻判首三字节（见「写盘」）；出错先走乱码三问，文件侧查速查表，运行期查「跑起来乱码」。
+满足任一即加载：
+
+1. **写入通道**：即将写入或改写脚本类（`.ps1` / `.psm1` / `.psd1` / `.bat` / `.cmd` / `.sh`、无扩展名 + shebang）、配置类（`.properties`）、数据交换类（`.csv`）、需 MSVC / Java 编译的源文件，或含中文的非源码文本（`.ini` / `.env` / `.conf` / `.log` / `.reg` 等）
+2. **生成通道**：写入由 `>` / `>>`、`Set-Content` / `Out-File` / `Export-Csv`、程序生成或导出、`iconv` 转码完成——不论扩展名、临时与否、仓库内外
+3. **执行通道**：即将执行或刚执行跨编码边界的命令——PS 管道喂原生命令、重定向落盘、`Get-Content` 读无 BOM 文件、`chcp` / `iconv`、Python / Java / CI 的 locale 默认编码、运行 `.ps1` / `.bat` / `.sh`
+4. **症状**：上下文已出现 `?`、`�`、乱码、脚本首行报错、JSON BOM 解析失败、`$'\r'`
+
+不加载：当前仓库常规 UTF-8 工具链内编辑源码 / 文档（`.ts` / `.js` / `.vue` / `.md` 等）、纯 ASCII 命令、纯展示输出且无异常。临时、一次性、不入库、不提交、仓库外 temp 目录**均不豁免**——读取方可能在别的机器、Excel 或 CI 里，错误不会回到本会话。
+
+只命中执行通道时，直接跳「跑起来乱码」节，不读文件侧基线。写盘前先定字符集、BOM、行尾三件套；AI 写入工具落盘后立刻判首三字节（见「写盘」）；出错先走乱码三问，文件侧查速查表，运行期查「跑起来乱码」。
 
 ## 先分归属（乱码三问）
 
