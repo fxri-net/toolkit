@@ -1,5 +1,30 @@
 # 方弦工具集
 
+## 1.14.1
+
+> 2026-11-03 发布
+
+### ✨ 新增功能
+
+- `toolkit changelog doc` 将根 CHANGELOG 同步为文档站镜像页，支持 `--check`、路径 / 标题 / outline / frontmatter 配置
+- `changelog version` 发版后自动同步镜像页，失败只告警不阻断
+- 文档站推荐技能包页面，汇总本仓内置技能源与 playbook 外部来源
+- `skills install --mode package` 纯包管理器模式，允许零选择且 core 不再强制
+- `--no-skills` 仅本次零装，不改模式与已保存选择
+- `skills install --from` 支持 Git 远程地址与 `#ref`，本地与远程共用一套来源解析
+- 远程来源浅克隆到用户级缓存，项目面状态只记地址与 ref，不写本机缓存路径
+
+### ⚡ 优化改进
+
+- 镜像逻辑收敛进 CLI，各项目不再维护本地 `sync-changelog-doc.mjs`
+- 对外文档大标题去掉英文副标题，规则页与变更集说明改用中文主题
+- 状态与安装报告输出当前模式，零选择时 `selection` 为空数组
+- 临时 `--from` 来源不写选择集与来源配置
+
+### 🐛 问题修复
+
+- 项目层配置查找止于 home，避免把全局层 `~/.toolkitrc.json` 误当项目层读取
+
 ## 1.14.0
 
 > 2026-11-02 发布
