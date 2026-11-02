@@ -1236,7 +1236,7 @@ describe("项目侧技能分发（真源副本 + 薄壳）", () => {
   }
 
   beforeEach(() => {
-    project = mkdtempSync(join(tmpdir(), "tk-proj-"))
+    project = mkdtempSync(join(home, "tk-proj-"))
     projects.push(project)
   })
 

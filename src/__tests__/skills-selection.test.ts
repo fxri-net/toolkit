@@ -45,7 +45,8 @@ function readGlobalConfig(): Record<string, unknown> {
 
 beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), "tk-skills-select-"))
-  project = mkdtempSync(join(tmpdir(), "tk-skills-project-"))
+  // 项目目录落在注入的 home 下：项目层查找止于 home，避免向上命中真实用户配置
+  project = mkdtempSync(join(home, "tk-skills-project-"))
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   resetSkillsRootCache()

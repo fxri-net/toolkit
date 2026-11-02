@@ -5,7 +5,7 @@ import { dirname, join, normalize } from "node:path"
 import { createMarkdownRenderer } from "vitepress"
 import { listBuiltinRuleNames } from "../privacy/redact"
 import { DESCRIPTION } from "../about"
-import { buildPage } from "../../scripts/sync-changelog-doc.mjs"
+import { buildDocPage } from "../changelog/doc"
 
 // 提取文档「内置规则：」行的规则名（名称以反引号包裹，括号内为补充说明）
 function docRuleNames(file: string): string[] {
@@ -37,7 +37,7 @@ function readDoc(file: string): string {
 // （复刻会让脚本缺陷被同样的错误实现掩盖，CRLF 误报即由此漏过）
 describe("文档一致性：更新日志镜像", () => {
   it("docs/changelog.md 与根 CHANGELOG.md 同步（漏跑同步脚本或手改镜像页即失败）", () => {
-    expect(readDoc("docs/changelog.md")).toBe(buildPage(readFileSync(join(process.cwd(), "CHANGELOG.md"), "utf8")))
+    expect(readDoc("docs/changelog.md")).toBe(buildDocPage(readFileSync(join(process.cwd(), "CHANGELOG.md"), "utf8")))
   })
 })
 

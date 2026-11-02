@@ -127,7 +127,7 @@
 | 技能 | 版本 | 用途 | 层级 |
 | --- | --- | --- | --- |
 | `fxri-plan-to-task` | 1.9.5 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 | core |
-| `fxri-release-changelog` | 1.2.2 | changesets 发版与多语言 CHANGELOG 维护 | optional |
+| `fxri-release-changelog` | 1.2.3 | changesets 发版与多语言 CHANGELOG 维护 | optional |
 | `fxri-session-recap` | 1.6.3 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | `fxri-text-encoding` | 1.2.1 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
 
@@ -289,7 +289,11 @@ pnpm exec toolkit changelog                    # 创建变更集（等价 change
 pnpm exec toolkit changelog version            # 发版 + 自动语义分组归类与组标题格式化（默认中文）
 pnpm exec toolkit changelog --lang ja format   # 指定语言仅格式化
 pnpm exec toolkit changelog --history format   # 连带追溯改写历史版本块
+pnpm exec toolkit changelog doc                # 生成/更新文档站更新日志镜像
+pnpm exec toolkit changelog --check doc        # 只比对镜像，不写文件（本地门禁用）
 ```
+
+`changelog version` 成功后会自动同步镜像页（`--no-sync-doc` 关闭）；镜像页由根 `CHANGELOG.md` 剥离 H1 后拼固定页头生成，默认 `CHANGELOG.md` → `docs/changelog.md`，路径、标题与 outline 可用 `--from` / `--to` / `--title` / `--outline` 或 `changelogDoc` 配置段覆盖。
 
 每个语言为四段结构：`groups`（语义分组表，可选）/ `replacements`（兜底替换映射）/ `deps`（依赖更新条目文案）/ `released`（发布日期后缀）。`version` 消费变更集后按条目自带的 `类型：` 前缀做语义分组（如 `- 修复：xxx` → `### 🐛 问题修复`），无前缀条目按所属源组标题兜底；分组维度与版本号维度正交，分组标题集合随版本演进、历史版本块默认不追溯改写（加 `--history` 可把历史块一并追溯重排为当前口径）；变更条目建议人工再润色，与仓库既有风格一致。前缀只作归类信号、分组后不再保留——归类完成即剥离条目的 `类型：` 前缀（类型由分组标题承接），未识别前缀与依赖源条目原样保留；变更集条目缺 `类型：` 前缀时软告警提示。
 

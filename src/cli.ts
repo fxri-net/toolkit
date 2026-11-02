@@ -18,6 +18,7 @@ import type { TaskView, TaskFilter, ImportTarget } from "./tasks/types"
 import { ALL_STATUSES } from "./tasks/types"
 import { languages, DEFAULT_LANG, resolveLang, type ChangelogLanguage } from "./changelog/languages"
 import { localDate, formatChangelogs, countUntypedEntries, findUntypedChangesetEntries, findUnbulletedChangesetEntries } from "./changelog/format"
+import { checkDoc, resolveDocOptions, syncDoc, syncDocAfterVersion } from "./changelog/doc"
 import { resolveRedactEnabled } from "./privacy/redact"
 import { resolveEnabled } from "./switch"
 import { getConfigSection, resolveTasksDir } from "./config"
@@ -1495,12 +1496,31 @@ const changelogCmd = program
   .option("--warn", "开启软告警")
   .option("--no-warn", "关闭软告警")
   .option("--history", "追溯改写历史版本块（默认保留）")
+  .option("--check", "changelog doc：只比对镜像页与根 CHANGELOG，不写文件")
+  .option("--from <path>", "changelog doc：根 CHANGELOG 路径")
+  .option("--to <path>", "changelog doc：镜像页路径")
+  .option("--title <text>", "changelog doc：镜像页标题")
+  .option("--outline <value>", "changelog doc：frontmatter outline")
+  .option("--no-frontmatter", "changelog doc：不写 frontmatter")
+  .option("--no-sync-doc", "changelog version：不自动同步镜像页")
   .argument("[command...]", "子命令及参数（透传给 changesets）")
   .passThroughOptions(true)
   .action(
     (
       operands: string[],
-      options: { lang: string; redact: boolean | undefined; warn: boolean | undefined; history: boolean | undefined },
+      options: {
+        lang: string
+        redact: boolean | undefined
+        warn: boolean | undefined
+        history: boolean | undefined
+        check?: boolean
+        from?: string
+        to?: string
+        title?: string
+        outline?: string
+        frontmatter?: boolean
+        syncDoc?: boolean
+      },
     ) => {
       // 帮助标志紧跟自处理子命令时会被透传语义当作操作数丢弃、命令照跑（真发版 / 真改写 CHANGELOG），此处拦截并打印本域帮助
       if (shouldPrintChangelogHelp(operands)) {
@@ -1516,6 +1536,8 @@ const changelogCmd = program
       // 语言解析：未知取值回落默认语言，但显式传入却无法采纳的值必须告警（走 stderr，stdout 留给机器可读输出）
       const { lang, unknown: unknownLang } = resolveLang(merged, options.lang, DEFAULT_LANG)
       if (unknownLang) console.warn(`⚠️ 未知语言「${unknownLang}」，已回落 ${DEFAULT_LANG}`)
+      // 镜像文件名后缀按用户请求的语言标识取：未知语言已回落默认，避免用配置对象当标记
+      const docLang = unknownLang ? DEFAULT_LANG : options.lang
       const command = operands[0]
       if (command === "version") {
         // 软告警：发版前存在未归档任务
@@ -1527,6 +1549,38 @@ const changelogCmd = program
         // 归类后无前缀条目即并入兜底组，前缀缺失无从统计
         if (warn) warnUntypedEntries(Object.values(merged))
         formatChangelogs(".", localDate(), lang, redact, history)
+        // 发版后自动同步文档站镜像：失败只告警，不阻断发版（镜像不是发版必需产物）
+        if (options.syncDoc !== false) syncDocAfterVersion(docLang)
+      } else if (command === "doc") {
+        // 文档站镜像：默认从根 CHANGELOG.md 生成 docs/changelog.md，--check 只比对不写
+        try {
+          const docOptions = resolveDocOptions({
+            from: options.from,
+            to: options.to,
+            title: options.title,
+            outline: options.outline,
+            // --no-frontmatter 未传时 commander 给 true，视为未传，交由配置决定
+            frontmatter: options.frontmatter === false ? false : undefined,
+            lang: docLang,
+          })
+          if (options.check) {
+            const result = checkDoc(docOptions)
+            if (!result.ok) {
+              console.error(`⚠️ CHANGELOG 镜像不一致：第 ${result.line} 行`)
+              if (result.expected !== undefined) console.error(`  期望：${result.expected}`)
+              if (result.actual !== undefined) console.error(`  实际：${result.actual}`)
+              process.exitCode = 1
+              return
+            }
+            console.log(`CHANGELOG 镜像一致：${docOptions.target}`)
+            return
+          }
+          const result = syncDoc(docOptions)
+          console.log(result.changed ? `CHANGELOG 镜像已更新：${docOptions.target}` : `CHANGELOG 镜像无变化：${docOptions.target}`)
+        } catch (e) {
+          console.error(`⚠️ ${(e as Error).message}`)
+          process.exitCode = 1
+        }
       } else if (command === "format") {
         // 手工 format 路径与 version 同源同开关，告警口径保持一致
         if (warn) warnUntypedEntries(Object.values(merged))

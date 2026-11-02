@@ -106,6 +106,7 @@ pnpm exec toolkit changelog                  # 创建变更集（等价 changese
 pnpm exec toolkit changelog version          # 消费变更集：升版本号 + 生成中文 CHANGELOG + 补发布日期
 # 人工检查润色条目后：
 pnpm exec toolkit changelog --lang en format # 其他语言格式化
+pnpm exec toolkit changelog doc              # 同步文档站更新日志镜像（version 后也会自动同步）
 # 提交 → 打 vX.Y.Z 标签 → 发布（按项目渠道，如 npm publish）
 ```
 

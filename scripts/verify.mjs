@@ -54,6 +54,8 @@ const steps = [
   // 本仓库自检：读真实 .tasks/.changeset 断言双零，须在数据原地时区（Asia/Shanghai）判定，故不走钉 UTC 的常规单测步
   { label: "本源仓库自检（真实数据双零）", command: "pnpm", args: ["test:repo-guard"], env: { TZ: "Asia/Shanghai" } },
   { label: "构建", command: "pnpm", args: ["build"] },
+  // 镜像校验依赖 dist/cli.js，须置于构建之后；仅本仓自举产物，不依赖全局工具
+  { label: "CHANGELOG 镜像一致（changelog doc --check）", args: ["dist/cli.js", "changelog", "doc", "--check"] },
   { label: "文档站构建（死链检查）", command: "pnpm", args: ["docs:build"], skip: skipDocs },
   { label: "CLI 冒烟 --help", args: ["dist/cli.js", "--help"] },
   { label: "CLI 冒烟 tasks --help", args: ["dist/cli.js", "tasks", "--help"] },

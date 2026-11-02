@@ -91,8 +91,9 @@ function cachedLayers(): ConfigLayers {
 function computeLayers(startDir: string): ConfigLayers {
   const fallbacks: ConfigFallback[] = []
   const globalRecord = readLayer("全局层", join(getHomeDir(), ".toolkitrc.json"), fallbacks)
-  // 项目层维持「一路查到文件系统根」的原语义，不收窄到 home，避免 home 之下的仓库命中不到项目配置
-  const projectRecord = readLayer("项目层", findUpward(CONFIG_PROJECT_FILE, startDir, { stopAtHome: false }), fallbacks)
+  // 项目层自 startDir 向上查找最近的 .toolkitrc.json，止于 home：home 下的仓库仍能命中其父级项目配置，
+  // 但全局层 ~/.toolkitrc.json 不会被误当项目层读取（否则同一文件被两层重复读取，测试与真实用户配置互相污染）
+  const projectRecord = readLayer("项目层", findUpward(CONFIG_PROJECT_FILE, startDir, { stopAtHome: true }), fallbacks)
   const localRecord = readLayer("本地层", findUpward(CONFIG_LOCAL_FILE, startDir, { stopAtHome: true }), fallbacks)
   const base = mergeSectioned(globalRecord.config, projectRecord.config)
   const merged = mergeLocalOverlay(base, localRecord.config)
@@ -112,10 +113,17 @@ function describeType(value: unknown): string {
 // home 与目录链两侧均取磁盘真实形态再比对：Windows 下 home 可能是 8.3 短名而目录链是长名，不归一会在 home 之下漏截断
 // 仅比较用归一，返回的候选路径仍保持原始书写形态，不影响后续读取与展示
 function findUpward(fileName: string, startDir: string, options: { stopAtHome: boolean }): string | null {
-  const home = options.stopAtHome ? normalizePathForCompare(canonicalPath(getHomeDir())) : ""
+  // 同时止于注入 home 与真实 home：测试把 home 注入到临时目录时，用例目录仍可能落在真实 home 之下
+  // （如系统临时目录在 ~/AppData/Local/Temp），只比较注入 home 会继续向上命中真实 ~/.toolkitrc.json
+  const homes = options.stopAtHome
+    ? new Set([
+        normalizePathForCompare(canonicalPath(getHomeDir())),
+        normalizePathForCompare(canonicalPath(homedir())),
+      ])
+    : null
   let dir = resolve(startDir)
   for (;;) {
-    if (options.stopAtHome && normalizePathForCompare(canonicalPath(dir)) === home) return null
+    if (homes?.has(normalizePathForCompare(canonicalPath(dir)))) return null
     const candidate = join(dir, fileName)
     if (existsSync(candidate)) return candidate
     const parent = dirname(dir)

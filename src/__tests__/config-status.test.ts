@@ -15,8 +15,9 @@ const dirs: string[] = []
 // home 临时目录：用例内需向其写全局层配置文件，故提到文件级共享
 let home = ""
 
+// 用例目录一律落在注入的 home 之下：项目层查找止于 home，避免向上命中真实用户的 ~/.toolkitrc.json
 function makeDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix))
+  const dir = mkdtempSync(join(home, prefix))
   dirs.push(dir)
   return dir
 }
@@ -27,7 +28,7 @@ beforeEach(() => {
     delete process.env[key]
   }
   // home 指向独立临时目录：全局层不读到真实用户 ~/.toolkitrc.json
-  home = makeDir("tk-cfgst-home-")
+  home = mkdtempSync(join(tmpdir(), "tk-cfgst-home-"))
   setHomeDirForTest(home)
 })
 
@@ -38,6 +39,7 @@ afterEach(() => {
   }
   setHomeDirForTest(undefined)
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true })
+  rmSync(home, { recursive: true, force: true })
 })
 
 // 建项目现场：root 放项目层配置、sub 作查找起点（可另放本地层配置）

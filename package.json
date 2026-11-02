@@ -54,7 +54,7 @@
     "test:repo-guard": "vitest run src/__tests__/warn-threshold.test.ts",
     "verify": "node scripts/verify.mjs",
     "changeset": "changeset",
-    "sync:changelog-doc": "node scripts/sync-changelog-doc.mjs",
+    "sync:changelog-doc": "node dist/cli.js changelog doc",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",

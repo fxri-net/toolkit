@@ -11,10 +11,11 @@
 | 层 | 文件 | 定位方式 | 用途 |
 | --- | --- | --- | --- |
 | 全局层 | `~/.toolkitrc.json` | 固定路径 | 个人跨项目偏好，不随 git 分发，换机器需手动迁移 |
-| 项目层 | `.toolkitrc.json` | 自 `process.cwd()` 向上逐级查找最近一份（一路查到文件系统根） | 团队共享配置，随仓库走 |
+| 项目层 | `.toolkitrc.json` | 自 `process.cwd()` 向上逐级查找最近一份（**止于 home**） | 团队共享配置，随仓库走 |
 | 本地层 | `.toolkitrc.local.json` | 自 `process.cwd()` 向上逐级查找最近一份（**止于 home**） | 个人按项目、仅本人可见，默认被 git 忽略 |
 
 - **各自独立查找**：项目层与本地层分别向上查找最近一份，不要求命中同一目录——monorepo 子目录只放本地文件时不会吞掉上层团队配置
+- **项目层止于 home**：向上查到 `~` 即停，避免把全局层 `~/.toolkitrc.json` 误当项目层读取（同一文件被两层重复读取会让全局配置顶掉团队配置）；cwd 不在 home 之下时该边界不触发，退化为查到盘根为止
 - **本地层止于 home**：向上查到 `~` 即停，避免把 `~/.toolkitrc.local.json` 误当项目下的本地层命中（全局层读的是 `~/.toolkitrc.json`，两者并非一对）；⚠️ cwd 不在 home 之下时（如 Windows `D:\…`、home 在 `C:\Users\…`）该边界不触发，退化为查到盘根为止。`toolkit config status` 检测到 home 下存在 `.toolkitrc.local.json` 时会给出 `info` 级提示，指明该文件不参与查找
 - **命中路径可能位于仓库根之上**：向上查找不设仓库根边界，父目录散落的本地配置文件也会被命中；`toolkit config status` 可作排查入口——绝对路径仅在 `--format json` 输出可见，文本模式折叠 home 前缀为 `~/…`
 - **版本下限**：读取 `.toolkitrc.local.json` 需 toolkit ≥ 1.11.2；旧版本静默忽略该文件（不报错），团队版本不一时会呈「我本地生效、同事机器不生效」
@@ -176,6 +177,19 @@
 | `replacements` | 兜底替换映射（源标题 → 目标标题） |
 | `deps` | 依赖更新条目文案 |
 | `released` | 发布日期后缀（同时用于识别既有日期行） |
+
+## changelogDoc：文档站更新页镜像（1.14.1 新增）
+
+| 字段 | 类型 | 默认 | 说明 |
+| --- | --- | --- | --- |
+| `source` | string | `CHANGELOG.md` | 根 CHANGELOG 路径；`--lang` 非默认语言时追加语言后缀 |
+| `target` | string | `docs/changelog.md` | 镜像页路径 |
+| `title` | string | `更新日志` | 镜像页 H1 |
+| `outline` | string | `[2, 2]` | VitePress frontmatter outline |
+| `frontmatter` | boolean | `true` | 是否写 frontmatter；`--no-frontmatter` 可本次关闭 |
+| `note` | string | 内置来源说明 | 页头来源说明文案 |
+
+`toolkit changelog doc` 与 `changelog version` 的自动同步共用本段；CLI 显式参数优先。非法值告警后按默认处理。
 
 ## updateCheck：升级检查提示（1.7.0 新增）
 
