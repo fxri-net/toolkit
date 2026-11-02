@@ -8,9 +8,11 @@ import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
 import { BUILTIN_SOURCE } from "./types"
 
-// 外部来源登记：root 为来源根绝对路径；name 由 --save 或目录派生
+// 外部来源登记：本地来源记 root（绝对路径），远程来源记 url 与可选 ref
 export interface ExternalSourceConfig {
-  root: string
+  root?: string
+  url?: string
+  ref?: string
 }
 
 // 全局段：targets 为 agent name 数组；sources 为外部来源登记；selection 为「来源 → 技能名数组」
@@ -91,11 +93,18 @@ function parseSources(value: unknown, file: string | null): Record<string, Exter
   }
   const out: Record<string, ExternalSourceConfig> = {}
   for (const [name, source] of Object.entries(value)) {
-    if (isPlainObject(source) && typeof source.root === "string" && source.root.trim() !== "") {
-      out[name] = { root: source.root.trim() }
-    } else {
-      warnInvalid("skillsInstall", `sources.${name}`, file, "来源配置须为对象且包含非空 root")
+    if (!isPlainObject(source)) {
+      warnInvalid("skillsInstall", `sources.${name}`, file, "来源配置须为对象且包含非空 root 或 url")
+      continue
     }
+    const root = typeof source.root === "string" && source.root.trim() !== "" ? source.root.trim() : undefined
+    const url = typeof source.url === "string" && source.url.trim() !== "" ? source.url.trim() : undefined
+    if (!root && !url) {
+      warnInvalid("skillsInstall", `sources.${name}`, file, "来源配置须包含非空 root 或 url")
+      continue
+    }
+    const ref = typeof source.ref === "string" && source.ref.trim() !== "" ? source.ref.trim() : undefined
+    out[name] = { root, url, ref }
   }
   return out
 }

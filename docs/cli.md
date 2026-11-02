@@ -185,8 +185,8 @@ toolkit skills install --copy       # 强制副本形式（仅全局面生效；
 toolkit skills install --dry-run    # 预演：只预览将执行的动作，不写文件
 toolkit skills install --force      # 覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
 toolkit skills install --dir <path> # 额外目标目录（可多次指定；全局面兜底内置表未收录的 agent，项目面须落在仓库内）
-toolkit skills install --from <path> # 临时外部来源（副本写入，只写本次，不登记配置；可重复）
-toolkit skills install --from <path> --save play # 登记永久外部来源（默认软链到来源根，失败降级副本）
+toolkit skills install --from <path|url> # 临时外部来源（本地目录或 Git 地址；副本写入，只写本次，不登记配置；可重复）
+toolkit skills install --from https://github.com/fxri-net/playbook#v0.1.0 --save play # 远程永久来源（默认软链，失败降级副本）
 toolkit skills remove --source play # 只清理指定外部来源的登记与产物
 toolkit skills sources               # 列出已登记 / 临时外部来源
 toolkit skills sources remove play --prune # 注销来源登记并清理其产物与状态
@@ -243,7 +243,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 ### 外部来源
 
-`--from <path>` 把一个符合技能源格式的本地目录纳入同一套 tier / 选择 / 状态 / prune 管理；`--save [name]` 将来源登记为永久来源（写入全局层 `skillsInstall.sources`），省略名字时按清单 `name`、来源根目录名派生。
+`--from <path|url>` 把符合技能源格式的本地目录或 Git 远程地址纳入同一套 tier / 选择 / 状态 / prune 管理。远程地址支持 `https://`、`ssh://`、`git@`、`github:owner/repo`，可带 `#分支/标签/提交`；浅克隆到 `~/.agents/.toolkit-sources/` 缓存后复用同一套解析，缓存刷新失败时回落到旧缓存并告警。`--save [name]` 将来源登记为永久来源（写入全局层 `skillsInstall.sources`），本地记 `root`、远程记 `url` + `ref`；省略名字时按清单 `name`、仓库名或目录名派生。
 
 **来源格式**（按优先级识别）：
 
@@ -255,9 +255,9 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 - 技能目录须落在来源根之内；清单路径或软链解析后越界即拒绝
 - 同一来源内技能名重复、跨来源同名均直接报错，不静默覆盖
-- 临时来源（`--from` 不带 `--save`）**只写副本**、只登记状态、不写配置；永久来源默认**软链到技能真源目录**，链接失败降级副本；`--copy` 可强制副本
+- 临时来源（`--from` 不带 `--save`）**只写副本**、只登记状态、不写选择集与来源配置；永久来源默认**软链到技能真源目录**（远程来源指向本地缓存），链接失败降级副本；`--copy` 可强制副本
 - `--save` 只能与单个 `--from` 搭配；永久来源失效时安装告警跳过，可用 `toolkit skills sources remove <name>` 注销
-- `status` 按来源列出 `sources`（名称 / 根目录 / 版本 / 临时标记），`status` 与 `remove` 均按来源精确处理；`skills sources` 查看来源清单，`skills sources remove <name> --prune` 注销并清理产物
+- `status` 按来源列出 `sources`（名称 / 根目录或远程地址与 ref / 版本 / 临时标记），`status` 与 `remove` 均按来源精确处理；远程来源项目面状态只记地址与 ref、不写本机缓存路径；`skills sources` 查看来源清单，`skills sources remove <name> --prune` 注销并清理产物
 - 安装 / 卸载期间持有操作锁（全局 `~/.agents/.toolkit-skills.lock`、项目 `<仓库根>/.toolkit/skills.lock`，记录 pid / host / startedAt，5 分钟过期可接管），避免多进程同时改写；`--dry-run` 不取锁
 
 ### 作用域

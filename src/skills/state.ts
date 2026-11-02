@@ -151,6 +151,8 @@ function normalizeSources(raw: Record<string, unknown>): Record<string, SkillSta
       version: typeof value.version === "string" ? value.version : "",
       temporary: value.temporary === true,
       root: typeof value.root === "string" ? value.root : "",
+      url: typeof value.url === "string" && value.url !== "" ? value.url : undefined,
+      ref: typeof value.ref === "string" && value.ref !== "" ? value.ref : undefined,
       targets,
     }
   }

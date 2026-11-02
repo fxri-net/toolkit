@@ -103,7 +103,10 @@ function collectStatusSources(state: ReturnType<typeof readSkillsState>): { refs
   for (const [name, entry] of Object.entries(config.sources ?? {})) {
     if (sources.some((source) => source.name === name)) continue
     try {
-      const source = resolveLocalSource(entry.root, { name, temporary: false })
+      // 远程来源只读本机缓存，不在 status 时触发克隆
+      const location = entry.url ? state?.sources[name]?.root : entry.root
+      if (!location) continue
+      const source = resolveLocalSource(location, { name, temporary: false })
       addSource(source.name, "local", source.root, source.version, false, source.skills)
     } catch {
       // 失效来源由安装侧告警；状态侧不阻断其余来源

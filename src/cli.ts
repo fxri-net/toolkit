@@ -51,7 +51,7 @@ import {
   readSkillsState,
   removeProjectSkills,
   removeSkills,
-  resolveLocalSource,
+  resolveSource,
   resolveProjectTargets,
   resolveSkillTargets,
   skillsPackageDir,
@@ -781,7 +781,7 @@ skillsCmd
   .option("--skills <names>", "只安装指定技能（逗号分隔；core 技能恒装）")
   .option("--all", "安装包内全部技能（含可选技能）")
   .option("--no-optional", "只安装 core 技能（不含可选技能）")
-  .option("--from <path>", "外部技能来源目录（可重复；默认临时，只写本次）", collectDir, [])
+  .option("--from <path|url>", "外部技能来源目录或 Git 地址（可重复；默认临时，只写本次）", collectDir, [])
   .option("--save [name]", "把 --from 来源登记为永久来源（可选来源名，缺省按目录 / 清单派生）")
   .option("--agent <names>", "只写入指定 agent（逗号分隔，含 canonical；本机未检测到的跳过）")
   .option("--all-agents", "写入全部已检测的 agent")
@@ -817,7 +817,7 @@ skillsCmd
       }))
       let items: SkillItem[]
       try {
-        items = collectSkillItems({ externalSources })
+        items = collectSkillItems({ externalSources, dryRun })
       } catch (e) {
         console.error(`⚠️ 技能来源解析失败：${(e as Error).message}`)
         process.exitCode = 1
@@ -868,12 +868,14 @@ skillsCmd
       // 写入顺序：产物 → 状态 → 配置；--save 在安装成功后才登记，登记失败不回滚产物
       if (!dryRun && options.save !== undefined && externalSources.length === 1) {
         try {
-          const source = resolveLocalSource(externalSources[0]!.path, {
+          const source = resolveSource(externalSources[0]!.path, {
             name: typeof options.save === "string" ? options.save : undefined,
             temporary: false,
           })
           const config = readSkillsInstallConfig()
-          writeSkillsInstallConfig({ sources: { ...(config.sources ?? {}), [source.name]: { root: source.root } } })
+          // 远程来源只记地址与 ref，不把本机缓存路径写进配置
+          const entry = source.url ? { url: source.url, ref: source.ref } : { root: source.root }
+          writeSkillsInstallConfig({ sources: { ...(config.sources ?? {}), [source.name]: entry } })
         } catch (e) {
           console.warn(`⚠️ 外部来源登记失败：${(e as Error).message}`)
         }
@@ -954,15 +956,15 @@ const sourcesCmd = skillsCmd
       if (!assertJsonFormat(options.format)) return
       const config = readSkillsInstallConfig()
       const state = readSkillsState()
-      const rows: Array<{ name: string; root: string; temporary: boolean; registered: boolean; skills: string[] }> = []
+      const rows: Array<{ name: string; root: string; url?: string; ref?: string; temporary: boolean; registered: boolean; skills: string[] }> = []
       for (const [name, entry] of Object.entries(config.sources ?? {})) {
         const skills = state?.sources[name]?.targets.flatMap((target) => target.entries.map((item) => item.name)) ?? []
-        rows.push({ name, root: entry.root, temporary: false, registered: true, skills: [...new Set(skills)] })
+        rows.push({ name, root: entry.root ?? "", url: entry.url, ref: entry.ref, temporary: false, registered: true, skills: [...new Set(skills)] })
       }
       for (const [name, source] of Object.entries(state?.sources ?? {})) {
         if (rows.some((row) => row.name === name)) continue
         const skills = source.targets.flatMap((target) => target.entries.map((item) => item.name))
-        rows.push({ name, root: source.root, temporary: source.temporary, registered: false, skills: [...new Set(skills)] })
+        rows.push({ name, root: source.root, url: source.url, ref: source.ref, temporary: source.temporary, registered: false, skills: [...new Set(skills)] })
       }
       if (options.format === "json") {
         printJson({ sources: rows })
@@ -975,7 +977,8 @@ const sourcesCmd = skillsCmd
       for (const row of rows) {
         const kind = row.name === BUILTIN_SOURCE ? "内置" : row.registered ? "已登记" : row.temporary ? "临时" : "状态登记"
         const skills = row.skills.length > 0 ? `　技能：${row.skills.join("、")}` : ""
-        console.log(`${row.name}（${kind}）：${row.root || "（来源根缺失）"}${skills}`)
+        const location = row.url ? `${row.url}${row.ref ? `#${row.ref}` : ""}` : row.root
+        console.log(`${row.name}（${kind}）：${location || "（来源根缺失）"}${skills}`)
       }
     } catch (e) {
       console.error(`⚠️ 读取来源失败：${(e as Error).message}`)

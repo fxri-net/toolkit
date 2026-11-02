@@ -159,6 +159,9 @@ export interface SkillItem extends PackageSkill {
   source: string
   sourceKind: "builtin" | "local"
   sourceRoot: string
+  // 远程来源的规范化地址与 ref；本地来源为空
+  sourceUrl?: string
+  sourceRef?: string
   // 临时来源只写本次安装（副本），不登记配置
   temporary: boolean
   // 软链指向：内置源锚在 pnpm 稳定入口，外部来源指向技能真源目录
@@ -210,6 +213,8 @@ export interface SkillSourceStatus {
   name: string
   kind: "builtin" | "local"
   root: string
+  url?: string
+  ref?: string
   version: string
   temporary: boolean
   skills: string[]
@@ -325,8 +330,11 @@ export interface SkillStateSource {
   kind: string
   version: string
   temporary: boolean
-  // 来源根目录：内置源为包根，外部来源为其绝对路径；旧状态导入时为空串
+  // 来源根目录：内置源为包根，本地外部来源为其绝对路径；远程来源项目面为空串
   root: string
+  // 远程来源地址与 ref；本地来源为空
+  url?: string
+  ref?: string
   targets: SkillStateTarget[]
 }
 

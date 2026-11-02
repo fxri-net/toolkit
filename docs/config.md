@@ -227,14 +227,17 @@ CLI 每次命令执行时**同步读取本地缓存**，检测到新版本时向
 | --- | --- | --- | --- |
 | `selection` | object | 无 | 来源 → 技能名数组；内置源键为 `toolkit`。`toolkit skills install` 成功后写回，重装 / `status` 按此回显选择集；未保存过时首次只装 `core` 技能 |
 | `targets` | string[] | 无 | 长期目标选择：`canonical`（主目标）与各 agent 的 `name`（如 `claude-code`、`cursor`）。安装 / 交互选择后写回；未保存过时首次写全部可用目标；`--no-save-agents` 不写回；`--dir` 自定义目录不进入本字段 |
-| `sources` | object | 无 | 永久外部来源登记：来源名 → `{ "root": "<来源根绝对路径>" }`。由 `toolkit skills install --from <path> --save [name]` 写入；启动时自动解析并纳入安装 / 状态，来源失效时告警跳过 |
+| `sources` | object | 无 | 永久外部来源登记：本地来源写 `{ "root": "<绝对路径>" }`，远程来源写 `{ "url": "<Git 地址>", "ref": "<可选 ref>" }`。由 `toolkit skills install --from <path|url> --save [name]` 写入；启动时自动解析并纳入安装 / 状态，远程来源使用用户级缓存，来源失效时告警跳过 |
 
 ```json
 {
   "skillsInstall": {
     "selection": { "toolkit": ["fxri-plan-to-task", "fxri-session-recap", "fxri-text-encoding"] },
     "targets": ["canonical", "claude-code"],
-    "sources": { "play": { "root": "D:/skills/playbook" } }
+    "sources": {
+      "play": { "root": "D:/skills/playbook" },
+      "remote": { "url": "https://github.com/fxri-net/playbook", "ref": "v0.1.0" }
+    }
   }
 }
 ```

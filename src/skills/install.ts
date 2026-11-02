@@ -22,6 +22,7 @@ import {
   removeArtifact,
   resolveBuiltinSource,
   resolveLocalSource,
+  resolveSource,
   resolveProjectTargets,
   resolveSkillTargets,
   resolveTargetsByName,
@@ -110,12 +111,14 @@ function filterSkillItems(items: SkillItem[], requested?: string[]): SkillItem[]
 
 // 收集本次参与安装的来源：内置源 + 已登记永久来源 + 临时 --from
 // 已登记来源失效时告警跳过（不阻断其他来源）；临时来源显式传入，解析失败直接抛错
-export function collectSources(options: { externalSources?: ExternalSourceOption[] } = {}): SkillSource[] {
+export function collectSources(options: { externalSources?: ExternalSourceOption[]; dryRun?: boolean } = {}): SkillSource[] {
   const sources: SkillSource[] = [resolveBuiltinSource()]
   const config = readSkillsInstallConfig()
   for (const [name, entry] of Object.entries(config.sources ?? {})) {
+    const location = entry.url ?? entry.root
+    if (!location) continue
     try {
-      const source = resolveLocalSource(entry.root, { name, temporary: false })
+      const source = resolveSource(location, { name, temporary: false })
       const duplicate = sources.find((item) => item.name === source.name)
       if (duplicate) {
         if (pathKey(duplicate.root) !== pathKey(source.root)) throw new Error(`来源名冲突：${name}（${duplicate.root} / ${source.root}）`)
@@ -127,7 +130,7 @@ export function collectSources(options: { externalSources?: ExternalSourceOption
     }
   }
   for (const ext of options.externalSources ?? []) {
-    const source = resolveLocalSource(ext.path, { name: ext.name, temporary: ext.temporary })
+    const source = resolveSource(ext.path, { name: ext.name, temporary: ext.temporary, dryRun: options.dryRun })
     const duplicate = sources.find((item) => item.name === source.name)
     if (duplicate && pathKey(duplicate.root) !== pathKey(source.root)) {
       throw new Error(`来源名冲突：${source.name}（${duplicate.root} / ${source.root}）`)
@@ -138,7 +141,7 @@ export function collectSources(options: { externalSources?: ExternalSourceOption
 }
 
 // 收集统一技能条目：CLI 选择交互、安装与状态共用同一份视图
-export function collectSkillItems(options: { externalSources?: ExternalSourceOption[] } = {}): SkillItem[] {
+export function collectSkillItems(options: { externalSources?: ExternalSourceOption[]; dryRun?: boolean } = {}): SkillItem[] {
   const items = collectSources(options).flatMap(sourceSkillItems)
   assertUniqueSkillNames(items)
   return items
@@ -182,7 +185,7 @@ function pruneEntries(
 
 // 安装：对每个可用目标逐个技能做幂等处理——指向正确（含同内容异地锚点）跳过、指向其他版本或悬空重建、非本包实体目录默认跳过（--force 覆盖）
 export function installSkills(options: InstallOptions = {}): InstallReport {
-  const sources = collectSources({ externalSources: options.externalSources })
+  const sources = collectSources({ externalSources: options.externalSources, dryRun: options.dryRun })
   const allItems = sources.flatMap(sourceSkillItems)
   assertUniqueSkillNames(allItems)
   const items = filterSkillItems(allItems, options.skills)
@@ -365,6 +368,8 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
             version: source.version,
             temporary: source.temporary,
             root: source.root,
+            url: source.url,
+            ref: source.ref,
             targets: sourceTargets,
           }
         }
@@ -400,8 +405,15 @@ function saveGlobalSelection(sources: SkillSource[], items: SkillItem[]): void {
   try {
     const config = readSkillsInstallConfig()
     const selection = { ...(config.selection ?? {}) }
-    for (const source of sources) selection[source.name] = items.filter((item) => item.source === source.name).map((item) => item.name)
-    writeSkillsInstallConfig({ selection })
+    for (const source of sources) {
+      // 临时来源只写本次产物，不把来源键留在选择集里
+      if (source.temporary) {
+        delete selection[source.name]
+        continue
+      }
+      selection[source.name] = items.filter((item) => item.source === source.name).map((item) => item.name)
+    }
+    writeSkillsInstallConfig({ selection: Object.keys(selection).length > 0 ? selection : undefined })
   } catch (e) {
     // 配置写入失败不回滚已安装产物：状态已记录，下次安装会重试保存
     console.warn(`⚠️ 技能选择保存失败：${(e as Error).message}`)
@@ -652,7 +664,7 @@ function applyShell(file: string, expected: string, force: boolean, dryRun: bool
 // 真源只此一份，其余目录放薄壳引用，避免多份副本互相漂移
 export function installProjectSkills(options: ProjectInstallOptions = {}): ProjectInstallReport {
   const cwd = options.cwd ?? process.cwd()
-  const sources = collectSources({ externalSources: options.externalSources })
+  const sources = collectSources({ externalSources: options.externalSources, dryRun: options.dryRun })
   const allItems = sources.flatMap(sourceSkillItems)
   assertUniqueSkillNames(allItems)
   const items = filterSkillItems(allItems, options.skills)
@@ -825,12 +837,21 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
       for (const item of sources) {
         const sourceTargets = nextBySource.get(item.name) ?? []
         if (sourceTargets.length > 0) {
-          nextSources[item.name] = { kind: item.kind, version: item.version, temporary: item.temporary, root: item.root, targets: sourceTargets }
+          // 远程来源项目面不写缓存绝对路径：root 留空，只记地址与 ref
+          nextSources[item.name] = {
+            kind: item.kind,
+            version: item.version,
+            temporary: item.temporary,
+            root: item.url ? "" : item.root,
+            url: item.url,
+            ref: item.ref,
+            targets: sourceTargets,
+          }
         }
       }
       writeProjectSources(root, nextSources)
-      // 未显式传 skills 时本次即安装全部，同样保存选择集，保证 status 回显与现场一致
-      saveProjectSelection(root, items.map((item) => item.name))
+      // 未显式传 skills 时本次即安装全部，同样保存选择集，保证 status 回显与现场一致；临时来源不写
+      saveProjectSelection(root, items.filter((item) => !item.temporary).map((item) => item.name))
       if (options.saveTargets !== false) saveProjectTargets(root, selectedShellDirs)
     }
 
