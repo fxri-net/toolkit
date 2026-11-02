@@ -35,7 +35,7 @@ export interface LanguageGroup {
 
 // 单个语言的格式化配置
 export interface ChangelogLanguage {
-  // 语义分组（有序，组序即输出顺序）；缺省时退化为纯替换（仅 replacements 生效）
+  // 语义分组（有序，组序即输出顺序）；缺省时不改分组结构、只剥离可识别前缀并应用 replacements
   groups?: LanguageGroup[]
   // 兜底替换映射
   replacements: LanguageMap

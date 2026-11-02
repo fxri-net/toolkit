@@ -173,7 +173,7 @@
 
 | 字段 | 说明 |
 | --- | --- |
-| `groups` | 语义分组表（可选、有序，组序即输出顺序）：每项 `{ slot, title, prefixes? }`——`slot` 取全局语义槽位（`breaking`/`added`/`changed`/`improved`/`fixed`/`docs`/`removed`/`deps`/`other`），`title` 为本语言组标题，`prefixes` 为本语言自有类型前缀（可选，识别时与全局前缀表取并集）；缺省时退化为纯替换（仅 `replacements` 生效） |
+| `groups` | 语义分组表（可选、有序，组序即输出顺序）：每项 `{ slot, title, prefixes? }`——`slot` 取全局语义槽位（`breaking`/`added`/`changed`/`improved`/`fixed`/`docs`/`removed`/`deps`/`other`），`title` 为本语言组标题，`prefixes` 为本语言自有类型前缀（可选，识别时与全局前缀表取并集）；缺省时不改分组结构，只剥离可识别前缀并应用 `replacements` |
 | `replacements` | 兜底替换映射（源标题 → 目标标题） |
 | `deps` | 依赖更新条目文案 |
 | `released` | 发布日期后缀（同时用于识别既有日期行） |

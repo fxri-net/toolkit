@@ -313,6 +313,14 @@ function stripSlotPrefix(item: string[], extra: [SemanticSlot, string][]): strin
   return [`- ${rest}`, ...item.slice(1)]
 }
 
+// 语言未声明分组时只剥离可识别的类型前缀、不改分组结构；未识别前缀与无正文行原样保留
+function stripFlatPrefixes(content: string, extra: [SemanticSlot, string][]): string {
+  return content
+    .split("\n")
+    .map((line) => (line.startsWith("- ") ? (stripSlotPrefix([line], extra)[0] ?? line) : line))
+    .join("\n")
+}
+
 // 源组标题下若在首个条目之前出现非空行，则「纯条目块」判据不成立，归类时整块保持原样以免丢内容
 function hasLeadingProse(body: string[]): boolean {
   for (const line of body) {
@@ -374,16 +382,21 @@ function parseBlocks(lines: string[]): { lead: string[]; blocks: Block[] } {
   return { lead, blocks }
 }
 
-// 归类单个版本块：默认仅英文源组块参与（即本轮发版新写入的块）；
+// 归类单个版本块：默认处理 changesets 新写入块与无分组的最新版本块；
 // history=true 时块内全部可识别分组一并追溯归类，历史分组标题按其槽位反查后以当前语言 canonical 标题输出。
 // 标题无法识别为任何槽位的分组不臆造归属，原位保留、不参与重排，避免被静默丢弃。
-function regroupBlock(block: Block, groups: LanguageGroup[], history: boolean): string[] {
-  const source = block.sections.filter((section) => SOURCE_GROUP_SLOTS[section.title] !== undefined)
-  // 无英文源组块即历史版本块，默认原样输出、不追溯改写
-  if (!history && source.length === 0) return block.lines
+function regroupBlock(block: Block, groups: LanguageGroup[], history: boolean, latest: boolean): string[] {
   // 本语言未声明所需槽位时放弃归类，避免条目丢失
   const slots = new Set<SemanticSlot>(groups.map((group) => group.slot))
   const extra = extraPrefixes(groups)
+  // 无分组块：条目前缀是唯一归类信号；默认只处理最新一块，--history 处理全部
+  if (block.sections.length === 0) {
+    if (!history && !latest) return block.lines
+    return regroupFlatBlock(block, groups, slots, extra)
+  }
+  const source = block.sections.filter((section) => SOURCE_GROUP_SLOTS[section.title] !== undefined)
+  // 无英文源组的已分组块属历史版本块，默认原样输出、不追溯改写
+  if (!history && source.length === 0) return block.lines
   // 当前语言组标题 → 槽位，供追溯历史块时按既有组标题归位
   const titleSlots = new Map<string, SemanticSlot>(groups.map((group): [string, SemanticSlot] => [group.title, group.slot]))
   // 逐分组反查槽位：默认模式只认英文源组，追溯模式认全部可识别标题；其余分组原位保留
@@ -425,6 +438,40 @@ function regroupBlock(block: Block, groups: LanguageGroup[], history: boolean): 
   return lines
 }
 
+// 归类无 `###` 分组的版本块：版本标题与日期行之后的顶层条目按类型前缀归组，剥离已识别前缀；
+// 首个条目之前出现说明性正文时判据不成立，整块保持原样以免丢内容。
+function regroupFlatBlock(
+  block: Block,
+  groups: LanguageGroup[],
+  slots: Set<SemanticSlot>,
+  extra: [SemanticSlot, string][],
+): string[] {
+  const start = block.header.findIndex((line) => line.startsWith("- "))
+  if (start < 0) return block.lines
+  const lead = block.header.slice(0, start)
+  // 块首结构行只允许版本标题、日期行与空行，其余正文视为说明性内容
+  const hasProse = lead.some((line) => line.trim() !== "" && !VERSION_HEADER.test(line) && !line.startsWith("> "))
+  if (hasProse) return block.lines
+  const buckets = new Map<SemanticSlot, string[][]>()
+  for (const item of splitItems(block.header.slice(start))) {
+    // 无前缀条目归入兜底槽位；前缀是唯一归类信号
+    const slot = explicitSlot(item[0] ?? "", extra) ?? "other"
+    if (!slots.has(slot)) return block.lines
+    const stripped = stripSlotPrefix(item, extra)
+    const bucket = buckets.get(slot)
+    if (bucket) bucket.push(stripped)
+    else buckets.set(slot, [stripped])
+  }
+  const header = [...lead]
+  while (header.length > 0 && (header[header.length - 1] ?? "").trim() === "") header.pop()
+  const lines = [...header, ""]
+  for (const group of groups) {
+    const items = buckets.get(group.slot)
+    if (items) lines.push(...renderSection({ title: group.title, body: renderItems(items) }))
+  }
+  return lines
+}
+
 // 分组是否参与重组：标题须能反查到槽位；默认模式只认英文源组，追溯模式认全部可识别标题
 function isRegrouped(item: { section: Section; slot: SemanticSlot | null }, history: boolean): boolean {
   if (item.slot === null) return false
@@ -445,13 +492,14 @@ function sectionSlot(title: string, titleSlots: Map<string, SemanticSlot>): Sema
   return titleSlots.get(title) ?? LEGACY_TITLE_SLOTS[title] ?? SOURCE_GROUP_SLOTS[title] ?? null
 }
 
-// 归类全文件的英文源组块；语言未声明 groups 时退化为纯替换（即既有行为）
+// 归类全文件：无分组块按前缀归组、已分组块按前缀纠错；
+// 语言未声明 groups 时不改分组，仅剥离可识别前缀
 function regroupSemantic(content: string, lang: ChangelogLanguage, history: boolean): string {
   const groups = lang.groups
-  if (!groups || groups.length === 0) return content
+  if (!groups || groups.length === 0) return stripFlatPrefixes(content, [])
   const { lead, blocks } = parseBlocks(content.split("\n"))
   const lines = [...lead]
-  for (const block of blocks) lines.push(...regroupBlock(block, groups, history))
+  blocks.forEach((block, index) => lines.push(...regroupBlock(block, groups, history, index === 0)))
   return lines.join("\n")
 }
 

@@ -3,7 +3,7 @@ name: fxri-release-changelog
 description: 基于 changesets 的发版与多语言 CHANGELOG 维护流程：创建变更集、消费发版、把分组标题与条目转为项目语言风格、清理变更集、打标签发布；无 changesets 的项目提供同格式手工模式。用户表达发版或记录变更意图时使用——含创建变更集、changeset、发版、version、CHANGELOG 格式化等说法及口语近义表达（发一版、出个版本、记一下这次改动、生成更新日志）。⚠️ 注意区分：用户说「提交个版本 / 先提交一版 / commit」通常指 git 提交当前改动（走任务收尾后提交），**不是发版**。不用于日常 commit message 撰写、git 提交操作或与发版无关的文档修改。
 license: MIT
 metadata:
-  version: "1.2.3"
+  version: "1.2.4"
   tier: optional
   author: fxri
   source: https://github.com/fxri-net/toolkit
@@ -11,7 +11,7 @@ metadata:
 
 # 发版与 CHANGELOG
 
-> 本技能版本 1.2.3（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.2.4（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -34,7 +34,7 @@ metadata:
 
 1. 记录变更：`npx changeset`（或项目包管理器等价脚本）——**变更描述一律逐条以 `- 类型：描述` 书写**：既要 `类型：` 前缀（如 `新增：` / `修复：` / `优化：`）作归类信号，也要 `- ` 列表标记把每条独立成项（缺标记的裸行会被 changesets 并入相邻条目作缩进续行，整段塌成单一条目、只有首行归组剥前缀）；并按改动的**能力量级**选影响级别（破坏性→major、全新大功能/独立新能力→minor、存量能力上的修补与增量→patch，完整对照见 `references/changelog-format.md`）。写完可跑 `toolkit tasks check` 早期自查：它扫 `.changeset/` 下待发布变更集，逐文件报出缺前缀条目与未加 `- ` 标记的裸行及条数（免得到发版、变更集源被消费删除后才由 changelog 侧兜底告警——那时已无从补写）
 2. 消费发版：`npx changeset version`——自动写版本号与 CHANGELOG
-3. 格式化：按 `references/changelog-format.md` 的语义分组规则归类条目、转换分组标题、润色为项目语言风格（中文示例：`### Patch Changes` 下的 `- 修复：xxx` → `### 🐛 问题修复` 下的 `- xxx`——归类后类型前缀被剥离，类型由分组标题承接）；分组维度与 bump 维度正交，条目归组只看类型前缀
+3. 格式化：按 `references/changelog-format.md` 的语义分组规则归类条目、转换分组标题、润色为项目语言风格（中文示例：`### Patch Changes` 下的 `- 修复：xxx` → `### 🐛 问题修复` 下的 `- xxx`——归类后类型前缀被剥离，类型由分组标题承接）；分组维度与 bump 维度正交，条目归组只看类型前缀；无 `###` 分组的版本块（如手工维护的更新记录）同样按前缀生成规范分组并剥离前缀，默认只处理最新一块
 4. 归一：润色后跑一次 `toolkit changelog --history format`——人工润色（含补写历史块明细）容易在条目之间留空行，该命令按「同组顶层条目逐行相邻」重排历史块；项目另有更新日志镜像页（如 `docs/changelog.md`）时再跑一次 `toolkit changelog doc`，否则镜像一致性校验会失败
 5. 清理：删除已消费的 `.changeset/*.md`
 6. 门禁：发布前跑一次项目的验收命令（如 `pnpm verify`）——**关卡设在发布前而非推送前**：发布到包仓库 / 制品库不可逆，推送失败重推即可，故必须拦在不可逆动作之前；任一步失败即中止发版，不进入提交、打标签、发布

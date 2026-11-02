@@ -80,7 +80,7 @@ JSON 结构：`{ schemaVersion: 1, summary, items }`；`items` 为英文 key 完
 formatChangelogs(".", localDate(), languages[DEFAULT_LANG])
 // 追溯改写历史版本块（把旧口径组标题与条目一次性重排为当前口径）
 formatChangelogs(".", localDate(), languages[DEFAULT_LANG], true, true)
-// 自定义语言直接挂到 languages 对象（groups 可选，缺省时退化为纯替换）
+// 自定义语言直接挂到 languages 对象（groups 可选，缺省时不改分组、只剥离可识别前缀）
 languages.ja = {
   groups: [
     { slot: "breaking", title: "### 🚨 重大変更" },
@@ -96,9 +96,9 @@ languages.ja = {
 
 归类完成后，条目已识别的 `类型：` 前缀会被剥离（`- 修复：xxx` → `- xxx`），类型由分组标题承接；未识别的前缀（如正文里的 `说明：`）与依赖源条目 `- Updated dependencies`（缩进续行承载包版本）原样保留，剥离后文本为空也不改动。
 
-`ChangelogLanguage` 四段结构：`groups`（语义分组表，每项 `{ slot, title, prefixes? }`，可选）/ `replacements`（兜底替换映射）/ `deps`（依赖更新条目文案）/ `released`（发布日期后缀，同时用于识别既有日期行）。
+`ChangelogLanguage` 四段结构：`groups`（语义分组表，每项 `{ slot, title, prefixes? }`，可选；缺省时不改分组、只剥离可识别前缀）/ `replacements`（兜底替换映射）/ `deps`（依赖更新条目文案）/ `released`（发布日期后缀，同时用于识别既有日期行）。
 
-⚠️ 跨语言边界：语言在首次归组时确定——标题→槽位的反查只认目标语言自己的 `groups[].title` 与 `LEGACY_TITLE_SLOTS`（无跨语言别名），换语言重跑不会重排既有块的组标题。重排只发生在含英文源组（`### Major/Minor/Patch/Dependent Changes`）的块上（`history=true` 时放宽为含任一可识别组标题的块）；块内识别不到槽位的分组不臆造归属，连同标题原样附于块末，故不存在静默丢弃。跨语言改标题只能用 `replacements` 写死原文映射。
+⚠️ 跨语言边界：语言在首次归组时确定——标题→槽位的反查只认目标语言自己的 `groups[].title` 与 `LEGACY_TITLE_SLOTS`（无跨语言别名），换语言重跑不会重排既有块的组标题。重排发生在含英文源组（`### Major/Minor/Patch/Dependent Changes`）的块与无 `###` 分组的最新版本块上（`history=true` 时放宽为全部版本块）；块内识别不到槽位的分组不臆造归属，连同标题原样附于块末，故不存在静默丢弃。跨语言改标题只能用 `replacements` 写死原文映射。
 
 ## 隐私脱敏与开关
 

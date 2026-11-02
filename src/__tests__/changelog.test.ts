@@ -361,6 +361,136 @@ describe("formatChangelog", () => {
     )
   })
 
+  it("无分组最新版本块：按类型前缀归组、剥离前缀、组序固定", () => {
+    withChangelog(
+      "# pkg\n\n## 1.1.0\n\n- 新增：甲\n- 修复：乙\n- 说明：未识别前缀\n",
+      (file) => {
+        formatChangelog(file, "2026-09-03", zh)
+        const out = readFileSync(file, "utf8")
+        const added = out.indexOf("### ✨ 新增功能")
+        const fixed = out.indexOf("### 🐛 问题修复")
+        const other = out.indexOf("### 📦 其他变更")
+        expect(added).toBeGreaterThan(-1)
+        expect(added).toBeLessThan(fixed)
+        expect(fixed).toBeLessThan(other)
+        expect(out.slice(added, fixed)).toContain("- 甲")
+        expect(out.slice(fixed, other)).toContain("- 乙")
+        // 未识别前缀不剥离，归入兜底组
+        expect(out.slice(other)).toContain("- 说明：未识别前缀")
+      },
+    )
+  })
+
+  it("无分组最新版本块：规范化后二次运行零改动（幂等）", () => {
+    withChangelog("# pkg\n\n## 1.1.0\n\n- 新增：甲\n- 无前缀乙\n", (file) => {
+      expect(formatChangelog(file, "2026-09-03", zh)).toBe(true)
+      const once = readFileSync(file, "utf8")
+      expect(once).toContain("### ✨ 新增功能")
+      expect(formatChangelog(file, "2026-09-04", zh)).toBe(false)
+      expect(readFileSync(file, "utf8")).toBe(once)
+    })
+  })
+
+  it("无分组历史块默认不动，--history 才按前缀归组", () => {
+    const content = [
+      "# pkg",
+      "",
+      "## 1.1.0",
+      "",
+      "> 2026-09-02 发布",
+      "",
+      "### ✨ 新增功能",
+      "",
+      "- 最新条目",
+      "",
+      "## 1.0.0",
+      "",
+      "> 2026-09-01 发布",
+      "",
+      "- 修复：历史条目",
+      "",
+    ].join("\n")
+    withChangelog(content, (file) => {
+      // 最新块已分组、历史块无分组：默认模式两者都不改
+      expect(formatChangelog(file, "2026-09-03", zh)).toBe(false)
+      expect(readFileSync(file, "utf8")).toBe(content)
+      // --history 追溯：历史块按前缀归组
+      expect(formatChangelog(file, "2026-09-03", zh, true, true)).toBe(true)
+      const out = readFileSync(file, "utf8")
+      expect(out).toContain("### 🐛 问题修复")
+      expect(out).toContain("- 历史条目")
+      expect(out).not.toContain("- 修复：历史条目")
+    })
+  })
+
+  it("无分组块首含说明性正文时整块不动", () => {
+    const content = "# pkg\n\n## 1.0.0\n\n> 2026-09-01 发布\n\n这是本次发版的说明。\n\n- 新增：甲\n"
+    withChangelog(content, (file) => {
+      expect(formatChangelog(file, "2026-09-03", zh, true, true)).toBe(false)
+      expect(readFileSync(file, "utf8")).toBe(content)
+    })
+  })
+
+  it("history=true：已分组块的条目按前缀纠正到正确分组", () => {
+    withChangelog(
+      [
+        "# pkg",
+        "",
+        "## 1.0.0",
+        "",
+        "> 2026-09-01 发布",
+        "",
+        "### ✨ 新增功能",
+        "",
+        "- 修复：放错组的条目",
+        "- 无前缀条目",
+        "",
+      ].join("\n"),
+      (file) => {
+        formatChangelog(file, "2026-09-03", zh, true, true)
+        const out = readFileSync(file, "utf8")
+        const added = out.indexOf("### ✨ 新增功能")
+        const fixed = out.indexOf("### 🐛 问题修复")
+        expect(added).toBeGreaterThan(-1)
+        expect(fixed).toBeGreaterThan(added)
+        expect(out.slice(added, fixed)).toContain("- 无前缀条目")
+        expect(out.slice(fixed)).toContain("- 放错组的条目")
+        expect(out).not.toContain("- 修复：放错组的条目")
+      },
+    )
+  })
+
+  it("无分组块按前缀归组后条目数不变（不丢内容）", () => {
+    withChangelog("# pkg\n\n## 1.0.0\n\n- 新增：甲\n- 修复：乙\n- 无前缀丙\n", (file) => {
+      const before = readFileSync(file, "utf8").split("\n").filter((l) => l.startsWith("- ")).length
+      formatChangelog(file, "2026-09-03", zh)
+      const after = readFileSync(file, "utf8").split("\n").filter((l) => l.startsWith("- ")).length
+      expect(after).toBe(before)
+    })
+  })
+
+  it("en 输出：无分组块按中文前缀归入对应英文语义组", () => {
+    withChangelog("# pkg\n\n## 1.1.0\n\n- 新增：甲\n- 无前缀乙\n", (file) => {
+      formatChangelog(file, "2026-09-03", en)
+      const out = readFileSync(file, "utf8")
+      expect(out).toContain("### ✨ Added")
+      expect(out).toContain("- 甲")
+      expect(out).toContain("### 📦 Other")
+      expect(out).toContain("- 无前缀乙")
+    })
+  })
+
+  it("自定义语言未声明 groups 时只剥离可识别前缀、不改分组结构", () => {
+    withChangelog("# pkg\n\n## 1.0.0\n\n### 自定分组\n\n- 修复：条目甲\n- 无前缀条目乙\n", (file) => {
+      formatChangelog(file, "2026-09-03", plainJa)
+      const out = readFileSync(file, "utf8")
+      expect(out).toContain("### 自定分组")
+      expect(out).toContain("- 条目甲")
+      expect(out).not.toContain("- 修复：条目甲")
+      expect(out).toContain("- 无前缀条目乙")
+    })
+  })
+
   it("自举一致性：本仓库 CHANGELOG.md 在追溯模式下零改动", () => {
     withChangelog(readFileSync(join(process.cwd(), "CHANGELOG.md"), "utf8"), (file) => {
       expect(formatChangelog(file, "2026-09-03", zh, true, true)).toBe(false)
@@ -418,7 +548,7 @@ describe("formatChangelog", () => {
     })
   })
 
-  it("自定义语言未声明 groups 时退化为纯替换（既有行为）", () => {
+  it("自定义语言未声明 groups 时保留原分组并应用标题替换", () => {
     const legacy: ChangelogLanguage = {
       replacements: { "### Patch Changes": "### 🐛 补丁修复" },
       deps: "- 更新依赖",
