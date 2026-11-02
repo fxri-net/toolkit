@@ -50,6 +50,7 @@ pnpm exec toolkit tasks
 | 文档 | 适合谁 |
 | --- | --- |
 | [新手指南](./docs/getting-started.md) | 第一次接触，想 30 秒跑起来（含零基础术语表） |
+| [推荐技能包](./docs/packages.md) | 按场景选择技能源（含 playbook 等外部来源） |
 | [操作手册](./docs/handbook.md) | 日常照着做：每个场景该说什么、做什么 |
 | [完整攻略](./docs/guide.md) | 日常使用：工作流、Git 纳管、项目级激活、多语言 CHANGELOG |
 | [CLI 参考](./docs/cli.md) | 查命令、参数、默认值、退出码 |
