@@ -73,7 +73,14 @@ function presentSkillNames(dir: string, skills: PackageSkill[]): string[] {
 }
 
 // 逐技能判定现场状态：真源存在与否、现场形态、是否已选择、既有登记四者共同决定
-function statusItems(dir: string, names: string[], selected: Set<string>, versionByName: Map<string, string>, recorded?: SkillStateTarget): Array<{ name: string; state: SkillItemState; version: string }> {
+function statusItems(
+  dir: string,
+  names: string[],
+  selected: Set<string>,
+  versionByName: Map<string, string>,
+  recorded?: SkillStateTarget,
+  targetSelected = true,
+): Array<{ name: string; state: SkillItemState; version: string }> {
   const entries = entryMap(recorded)
   const items: Array<{ name: string; state: SkillItemState; version: string }> = []
   for (const name of names) {
@@ -83,7 +90,12 @@ function statusItems(dir: string, names: string[], selected: Set<string>, versio
     // 链接接受稳定锚点与真源两种指向（新链接锚在入口、旧链接直指真源），只把指向别处且内容与真源不一致的判为错误
     const kind = classifyExisting(dest, join(skillsLinkDir(), name), undefined, source)
     let state: SkillItemState
-    if (kind === "link-ok") state = isSelected ? "link" : "installed-unselected"
+    if (!targetSelected) {
+      // 目标本身未被选中：既有本包产物单列 installed-unselected，缺失不展示；异常现场仍按问题上报
+      if (kind === "absent") state = "not-selected"
+      else if (kind === "wrong" || kind === "file") state = kind === "wrong" ? "wrong" : "conflict"
+      else state = "installed-unselected"
+    } else if (kind === "link-ok") state = isSelected ? "link" : "installed-unselected"
     else if (kind === "dangling") state = "dangling"
     else if (kind === "wrong") state = "wrong"
     else if (kind === "file") state = "conflict"
@@ -101,10 +113,15 @@ function statusItems(dir: string, names: string[], selected: Set<string>, versio
 // 现场状态：目标目录存在或状态文件有记录时逐技能判定，供 status 报告悬空 / 指向其他版本 / 副本漂移 / 未选择却已安装等
 export function skillsStatus(): SkillsStatusReport {
   const skills = listPackageSkills()
-  const saved = readSkillsInstallConfig().selection?.[BUILTIN_SOURCE]
+  const config = readSkillsInstallConfig()
+  const saved = config.selection?.[BUILTIN_SOURCE]
   const selection = resolveSelection(saved, skills)
   const baseSelected = new Set(selection)
+  // 目标选择：未保存过时沿用全部可用目标；保存过则只把选中目标算作本次分发范围
+  const savedTargets = config.targets && config.targets.length > 0 ? config.targets : undefined
+  const targetSelectedByName = (name: string): boolean => !savedTargets || savedTargets.includes(name)
   const targets = resolveSkillTargets([])
+  const nameByDir = new Map(targets.filter((target) => target.name).map((target) => [pathKey(target.dir), target.name]))
   const state = readSkillsState()
   const stateByDir = new Map<string, SkillStateTarget>()
   for (const source of Object.values(state?.sources ?? {})) {
@@ -130,6 +147,10 @@ export function skillsStatus(): SkillsStatusReport {
     if (target.kind !== "primary" && !recorded && (!target.dirExists || isEmptyDir(target.dir))) continue
     resolved.add(pathKey(target.dir))
     const selected = selectedFor(recorded)
+    const targetSelected = target.name ? targetSelectedByName(target.name) : true
+    const items = statusItems(target.dir, statusNames(selected, recorded, presentSkillNames(target.dir, skills)), selected, versionByName, recorded, targetSelected)
+    // 未选中的目标且现场无产物时不占版面
+    if (!targetSelected && items.length === 0) continue
     out.push({
       dir: target.dir,
       label: target.label,
@@ -137,7 +158,8 @@ export function skillsStatus(): SkillsStatusReport {
       available: target.available,
       dirExists: target.dirExists,
       recorded: Boolean(recorded),
-      items: statusItems(target.dir, statusNames(selected, recorded, presentSkillNames(target.dir, skills)), selected, versionByName, recorded),
+      selected: targetSelected,
+      items,
     })
   }
   // 补报状态文件登记但本次未解析到的目标（如 --dir 安装后不再传参、agent 目录已被移除）：如实呈现，避免静默丢弃
@@ -148,20 +170,26 @@ export function skillsStatus(): SkillsStatusReport {
     const legacy = legacySkillDirLabel(target.dir)
     if (legacy && existsSync(target.dir)) legacyTargets.push({ dir: target.dir, label: legacy })
     const selected = selectedFor(target)
+    const targetName = nameByDir.get(pathKey(target.dir)) ?? ""
+    const targetSelected = targetName ? targetSelectedByName(targetName) : true
+    const items = statusItems(target.dir, statusNames(selected, target, presentSkillNames(target.dir, skills)), selected, versionByName, target, targetSelected)
+    if (!targetSelected && items.length === 0) continue
     out.push({
       dir: target.dir,
       label: legacy ?? (target.label || skillTargetLabel(target.dir) || "自定义 --dir"),
-      kind: "custom",
+      kind: target.kind === "primary" || target.kind === "agent" ? target.kind : "custom",
       available: true,
       dirExists: existsSync(target.dir),
       recorded: true,
-      items: statusItems(target.dir, statusNames(selected, target, presentSkillNames(target.dir, skills)), selected, versionByName, target),
+      selected: targetSelected,
+      items,
     })
   }
   return {
     source: skillsSourceDir(),
     skills: skills.map((skill) => skill.name),
     selection,
+    targetSelection: savedTargets ?? [],
     skillVersions: Object.fromEntries(skills.map((skill) => [skill.name, skill.version])),
     versionMismatches: findSkillVersionMismatches(skills),
     stateFile: skillsStateFile(),
@@ -195,7 +223,10 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
   const skills = listPackageSkills()
   const targets = resolveProjectTargets(cwd)
   const root = targets.root
-  const saved = readProjectSkillsConfig(root).selection
+  const config = readProjectSkillsConfig(root)
+  const saved = config.selection
+  const savedTargets = config.targets && config.targets.length > 0 ? config.targets : undefined
+  const targetSelected = (dir: string): boolean => !savedTargets || savedTargets.includes(dir)
   const selection = resolveSelection(saved, skills)
   const baseSelected = new Set(selection)
   const state = readProjectState(root)
@@ -220,10 +251,11 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
     else stateName = sourceRecorded.has(name) ? "drift" : "conflict"
     if (stateName !== "not-selected") sourceItems.push({ name, state: stateName, version: versionByName.get(name) ?? "" })
   }
-  const dirs: ProjectDirStatus[] = [{ dir: targets.sourceDir, kind: "source", items: sourceItems }]
+  const dirs: ProjectDirStatus[] = [{ dir: targets.sourceDir, kind: "source", selected: true, items: sourceItems }]
 
-  for (const dir of targets.shellDirs) {
-    const recorded = recordedShells.get(dir)
+  // 单薄壳目录逐技能判定：目标未选中时既有产物单列 installed-unselected，缺失不展示
+  const shellStatus = (dir: string, recorded?: SkillStateTarget): ProjectDirStatus => {
+    const dirSelected = targetSelected(dir)
     const recordedNames = new Set(recorded?.entries.map((entry) => entry.name) ?? [])
     const shellSelected = selectedFor(recordedNames)
     const items: ProjectSkillItem[] = []
@@ -236,12 +268,26 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
         stateName = shellItemState(file, skill, targets.sourceDir)
         // 无标记但本包曾登记：视为被外部改动（漂移）而非陌生同名产物，便于区分「需重写」与「需人工确认」
         if (stateName === "conflict" && recordedNames.has(name)) stateName = "drift"
-        if (stateName === "ready" && !shellSelected.has(name)) stateName = "installed-unselected"
-        if (stateName === "missing" && !shellSelected.has(name)) stateName = "not-selected"
+        if (!dirSelected) {
+          if (stateName === "missing") stateName = "not-selected"
+          else if (stateName === "ready" || stateName === "drift") stateName = "installed-unselected"
+        } else {
+          if (stateName === "ready" && !shellSelected.has(name)) stateName = "installed-unselected"
+          if (stateName === "missing" && !shellSelected.has(name)) stateName = "not-selected"
+        }
       }
       if (stateName !== "not-selected") items.push({ name, state: stateName, version: versionByName.get(name) ?? "" })
     }
-    dirs.push({ dir, kind: "shell", items })
+    return { dir, kind: "shell", selected: dirSelected, items }
+  }
+
+  for (const dir of targets.shellDirs) dirs.push(shellStatus(dir, recordedShells.get(dir)))
+  // 已从选择集移除、但归属账仍有登记的薄壳目录：如实补报，避免静默丢弃
+  const shellDirSet = new Set(targets.shellDirs)
+  for (const [dir, recorded] of recordedShells) {
+    if (shellDirSet.has(dir) || !existsSync(join(root, dir))) continue
+    const status = shellStatus(dir, recorded)
+    if (status.items.length > 0) dirs.push(status)
   }
 
   return {
@@ -249,6 +295,7 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
     sourceDir: targets.sourceDir,
     skills: skills.map((skill) => skill.name),
     selection,
+    targetSelection: savedTargets ?? [],
     skillVersions: Object.fromEntries(skills.map((skill) => [skill.name, skill.version])),
     versionMismatches: findSkillVersionMismatches(skills),
     stateFile: toRepoRel(root, projectStateFile(root)),

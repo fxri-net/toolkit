@@ -168,7 +168,10 @@ toolkit skills install --scope all     # 项目面 + 全局面都执行
 toolkit skills install --skills fxri-plan-to-task,fxri-text-encoding # 只装指定技能（core 恒装，逗号分隔）
 toolkit skills install --all        # 安装全部技能（含可选技能）
 toolkit skills install --no-optional # 只装 core 技能
-toolkit skills install --yes        # 接受已保存的技能选择，不进入交互（首次只装 core）
+toolkit skills install --yes        # 接受已保存的技能与目标选择，不进入交互（首次只装 core 与全部可用目标）
+toolkit skills install --agent claude-code,canonical # 只写指定 agent（逗号分隔；canonical 为主目标）
+toolkit skills install --all-agents # 写入全部已检测的 agent
+toolkit skills install --no-save-agents # 目标选择只对本次生效，不写回配置
 toolkit skills install --prune      # 清理未选择且内容与本包真源一致的旧产物
 toolkit skills install --copy       # 强制副本形式（仅全局面生效；项目面真源恒为副本、薄壳非副本，忽略并告警）
 toolkit skills install --dry-run    # 预演：只预览将执行的动作，不写文件
@@ -191,12 +194,12 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 | 子命令 | 行为 |
 | --- | --- |
-| `install` | 以包内 `skills/`（含 `SKILL.md` 者计为技能）为唯一真源分发，只安装**本次选择集**内的技能（选择规则见下方「技能选择」）；**全局面**逐技能幂等——指向正确跳过（含锚在 pnpm 稳定入口、内容与真源一致的异地软链）、指向其他版本（内容与真源不一致）或悬空重建、同名实体目录 / 普通文件默认跳过（`--force` 覆盖）；**落点形态沿用既有登记**——本包以副本形式登记过的技能，裸 `install` 与 `--force` 都保持副本（`--force` 只解除冲突判定，不把副本翻回软链），未登记的同名实体目录被 `--force` 接管时才按默认形态重建为软链；未安装的 agent 只报告、不凭空造目录；`--prune` 只清理未选择、本包登记且内容与真源一致的旧产物；项目面按「作用域」节的副本 + 薄壳口径写入；`--format json` 输出机器可读安装报告到 stdout（含 `dryRun` / `scope` 标记与 `selection`） |
-| `status` | **全局面**先打印包内各技能真源版本清单与当前选择集（供与会话上下文中已加载的技能内容对照，判断上下文是否过期），再逐目标报告状态：软链正常 / 软链悬空 / 软链指向其他版本 / 副本已同步 / 副本已漂移（本包登记副本与真源不一致）/ 缺失（仅指已选择但缺失）/ 同名冲突（同名非本包产物）/ 未选择但已安装（单列提示，不计入问题）；**健康目标折叠为一行**（`<目标>：<目录>　N 项正常`），仅含问题项或未选择产物的目标逐条展开，末尾汇总需处理条目并按型给出指引：缺失 / 悬空 / 指向其他版本 / 副本漂移用 `install` 补齐，同名冲突用 `install --force` 覆盖，未选择但已安装的产物需要清理时用 `install --prune`；**目标纳入口径**：主目标恒报告，内置表内的 agent 与自定义目标仅在已有本包记录或目录非空时展开（卸载后的空壳目录不占版面），状态文件登记但本次未解析到的目标（如 `--dir` 安装后不再传参、agent 目录已被移除）也补报、不静默丢弃；其中 Codex / Pi 的升级前历史落点（`~/.codex/skills`、`~/.pi/agent/skills`）在状态文件有登记且目录仍在时，标注为「历史落点」并在报告末尾单列「历史落点残留」提示——只提示不自动删除，指引用 `remove` 清理；本机已安装且经 canonical 共读的 agent（Cline / Codex / Dexto / Kimi Code CLI / Loaf / Pi / Sarvam Code / Warp / Zed / DeepSeek Harness，按探测路径判定）另单列一行说明其读取主目标、无需单独写入；存在软链落点时报告末尾另提示「写入将穿透至技能真源目录，改内容请改真源」；项目面按「作用域」节体检；`--format json` 输出机器可读报告到 stdout（含 `scope` 与 `selection`，两面报告含 `skillVersions`，全局面另含 `canonicalReaders` 与 `legacyTargets`，折叠不丢信息、替代人读版，无末尾汇总行） |
+| `install` | 以包内 `skills/`（含 `SKILL.md` 者计为技能）为唯一真源分发，只安装**本次选择集**内的技能（选择规则见下方「技能选择」）；**全局面**逐技能幂等——指向正确跳过（含锚在 pnpm 稳定入口、内容与真源一致的异地软链）、指向其他版本（内容与真源不一致）或悬空重建、同名实体目录 / 普通文件默认跳过（`--force` 覆盖）；**落点形态沿用既有登记**——本包以副本形式登记过的技能，裸 `install` 与 `--force` 都保持副本（`--force` 只解除冲突判定，不把副本翻回软链），未登记的同名实体目录被 `--force` 接管时才按默认形态重建为软链；未安装的 agent 只报告、不凭空造目录；`--prune` 只清理未选择（技能或目标）、本包登记且内容与真源一致的旧产物；项目面按「作用域」节的副本 + 薄壳口径写入；`--format json` 输出机器可读安装报告到 stdout（含 `dryRun` / `scope` 标记与 `selection` / `targetSelection`） |
+| `status` | **全局面**先打印包内各技能真源版本清单与当前选择集（供与会话上下文中已加载的技能内容对照，判断上下文是否过期），再逐目标报告状态：软链正常 / 软链悬空 / 软链指向其他版本 / 副本已同步 / 副本已漂移（本包登记副本与真源不一致）/ 缺失（仅指已选择但缺失）/ 同名冲突（同名非本包产物）/ 未选择但已安装（单列提示，不计入问题）；**健康目标折叠为一行**（`<目标>：<目录>　N 项正常`），仅含问题项或未选择产物的目标逐条展开，末尾汇总需处理条目并按型给出指引：缺失 / 悬空 / 指向其他版本 / 副本漂移用 `install` 补齐，同名冲突用 `install --force` 覆盖，未选择但已安装的产物需要清理时用 `install --prune`；**目标纳入口径**：主目标恒报告，内置表内的 agent 与自定义目标仅在已有本包记录或目录非空时展开（卸载后的空壳目录不占版面），状态文件登记但本次未解析到的目标（如 `--dir` 安装后不再传参、agent 目录已被移除）也补报、不静默丢弃；其中 Codex / Pi 的升级前历史落点（`~/.codex/skills`、`~/.pi/agent/skills`）在状态文件有登记且目录仍在时，标注为「历史落点」并在报告末尾单列「历史落点残留」提示——只提示不自动删除，指引用 `remove` 清理；本机已安装且经 canonical 共读的 agent（Cline / Codex / Dexto / Kimi Code CLI / Loaf / Pi / Sarvam Code / Warp / Zed / DeepSeek Harness，按探测路径判定）另单列一行说明其读取主目标、无需单独写入；存在软链落点时报告末尾另提示「写入将穿透至技能真源目录，改内容请改真源」；项目面按「作用域」节体检；`--format json` 输出机器可读报告到 stdout（含 `scope`、`selection` 与 `targetSelection`，两面报告含 `skillVersions`，全局面另含 `canonicalReaders` 与 `legacyTargets`，折叠不丢信息、替代人读版，无末尾汇总行） |
 | `remove` | **全局面**先清选择配置、再清产物、最后重写状态：只清理状态文件 `~/.agents/.toolkit-skills.json` 记载的本包产物：链接（含悬空）摘除、副本内容与真源一致才删，其余交人工确认；清理后目标目录若已空则**一并回收**（`--dry-run` 只预览、不动现场；目录非空或不可读时不回收）；清理干净后删除状态文件；`--skills` 只清指定技能的选择与产物，省略时清空全部；项目面按「作用域」节清理归属账记载的条目；`--format json` 输出机器可读卸载报告到 stdout（含各目标 `dirReclaimed` 回收标记与 `dryRun` / `scope` 标记） |
 | `path` | 输出包根（内含 `skills/`），便于委托上游安装器安装到内置表未收录的 agent；`--format json` 输出包根、技能源目录与技能清单 |
 
-四个子命令的 `--format json` 输出统一携带 `schemaVersion: 1` 锚点（与 `tasks --export` 同口径）；`install` / `status` / `remove` 的输出另含 `scope`（本次实际作用域）与 `dryRun`（供消费方区分预演与实跑），报告主体按 `global` / `project` 两个字段分面承载（未执行的面为 `null`）；`status` 两面报告均含 `skillVersions`（各技能真源版本，用于与会话上下文中已加载的技能内容对照）与 `selection`（本次生效的技能选择集）。
+四个子命令的 `--format json` 输出统一携带 `schemaVersion: 1` 锚点（与 `tasks --export` 同口径）；`install` / `status` / `remove` 的输出另含 `scope`（本次实际作用域）与 `dryRun`（供消费方区分预演与实跑），报告主体按 `global` / `project` 两个字段分面承载（未执行的面为 `null`）；`install` 与 `status` 报告含 `selection`（技能选择集）与 `targetSelection`（目标选择集），`status` 两面报告另含 `skillVersions`（各技能真源版本，用于与会话上下文中已加载的技能内容对照）。
 
 ### 技能选择
 
@@ -211,6 +214,16 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 5. 首次（无保存选择）：只装 `core` 技能
 
 选择集在安装成功后写回对应层配置（`--dry-run` 不写），项目面与全局面各自独立。收窄选择后，未被选择但仍有产物的技能在 `status` 中单列为「未选择但已安装」，不计入问题；需要清理时加 `--prune` 重跑 `install`，只删除本包登记且内容与真源一致的条目。
+
+### 目标选择
+
+技能选择之后是**目标选择**：全局面选 agent 目录（`canonical` 主目标 + 各已检测 agent），项目面选已存在的候选薄壳目录。
+
+- **优先级**：`--all-agents` / `--agent <names>` 显式指定 > TTY 方向键多选 > 已保存的 `skillsInstall.targets` / `projectSkills.targets` > 首次全部可用目标
+- **交互**：按「共读（canonical）→ agent → 自定义目录」分组展示；本机未检测到的已保存 agent 置灰保留（不凭空创建目录）；只有一个可用目标时跳过选择；选择完成后打印技能 + 目标汇总并二次确认，确认前 `Ctrl+C` 不写任何文件
+- **长期选择**：交互或 `--agent` / `--all-agents` 的结果写回配置；`--no-save-agents` 只影响本次；`--dir` 始终一次性，不写回长期选择
+- **取消目标**：已安装产物默认保留，`status` 将这些目标标为「未选择」并把其产物单列「未选择但已安装」，不计入问题；加 `--prune` 重跑 `install` 才清理本包登记且内容一致的产物，第三方 / 本地改动过的产物永不自动删除
+- **项目面**：`prepare` 等非交互场景按已保存目录刷新，不新增未选择目录；保存的目录已不存在时告警跳过，补齐目录后重跑即可
 
 ### 作用域
 

@@ -24,8 +24,9 @@
 ```bash
 pnpm add -g @fxri/toolkit   # 1. 装 CLI（npm 用户 npm i -g @fxri/toolkit）
 toolkit skills install      # 2. 把包内技能装到各 agent 的全局技能目录
-                            #    按 tier 选择：core 必装、optional 可选（TTY 下方向键多选）
-                            #    --skills <names> / --all / --no-optional / --yes 可跳过交互
+                            #    先按 tier 选技能：core 必装、optional 可选（TTY 下方向键多选）
+                            #    再选目标：canonical + 已检测 agent（--agent / --all-agents / --no-save-agents）
+                            #    --skills <names> / --all / --no-optional / --yes 可跳过技能与目标交互
                             #    --scope project 换项目面：真源落 <仓库根>/.agents/skills/、其余候选目录落入口薄壳
 toolkit skills status       # 查现场状态（悬空 / 指向其他版本 / 副本漂移 / 缺失 / 同名冲突 / 未选择但已安装；历史落点残留单列提示；--scope project 查项目面）
                             # 前五类重跑 toolkit skills install 补齐，同名冲突需 toolkit skills install --force 覆盖，未选择产物加 --prune 清理

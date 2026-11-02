@@ -138,7 +138,8 @@
 ```bash
 # 方式一：装了 CLI 一键分发（推荐，技能随包分发，与 CLI 同一发布批次）
 toolkit skills install     # 默认软链真源，链接创建失败自动降级副本；--copy 强制副本（仅全局面生效）、--dry-run 预演
-                           # 按 tier 选择：core 必装、optional 可选（TTY 下方向键多选；--skills / --all / --no-optional / --yes 跳过交互，首次只装 core）
+                           # 按 tier 选择技能：core 必装、optional 可选（TTY 下方向键多选；--skills / --all / --no-optional / --yes 跳过）
+                           # 再选目标：canonical + 已检测 agent / 项目候选目录多选（--agent / --all-agents / --no-save-agents；--dir 一次性）
                            # --scope <project|global|all> 指定作用域，缺省按 CLI 安装位置自动判定；--prune 清理未选择且内容一致的旧产物
 toolkit skills status      # 查现场；toolkit skills remove 卸载（--skills 只清指定技能）；toolkit skills path 输出包根
                            # --force 覆盖同名非本包产物（不改本包已登记副本的形态）

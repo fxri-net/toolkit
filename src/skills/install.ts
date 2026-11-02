@@ -21,6 +21,7 @@ import {
   removeArtifact,
   resolveProjectTargets,
   resolveSkillTargets,
+  resolveTargetsByName,
   skillTargetLabel,
   skillsLinkDir,
   skillsSourceDir,
@@ -66,6 +67,10 @@ export interface InstallOptions {
   force?: boolean
   // 本次安装的技能名；省略时安装包内全部技能（库调用默认值，CLI 总会显式传入选择集）
   skills?: string[]
+  // 本次写入的目标名（canonical / agent name）；省略时沿用已保存选择，未保存过则写全部可用目标
+  targets?: string[]
+  // 是否把本次目标选择写回配置；--no-save-agents 时为 false
+  saveTargets?: boolean
   // 清理未选择且内容一致的本包产物
   prune?: boolean
 }
@@ -94,12 +99,6 @@ function entriesFromResult(result: TargetInstallResult, skills: PackageSkill[]):
     .map((skill) => ({ name: skill.name, version: skill.version, mode: links.has(skill.name) ? "link" : "copy" }))
 }
 
-// 保留未选择但仍有产物的历史条目：已不存在的现场记录一并剔除
-function carryEntries(previous: SkillStateTarget | undefined, selected: Set<string>, dir: string, keepNames?: Set<string>): SkillStateEntry[] {
-  if (!previous) return []
-  return previous.entries.filter((entry) => !selected.has(entry.name) && (!keepNames || keepNames.has(entry.name)) && existsSync(join(dir, entry.name)))
-}
-
 // 清理未选择的本包产物：只删链接指向本包 / 副本内容与真源一致的条目
 function pruneUnselected(previous: SkillStateTarget | undefined, selected: Set<string>, dir: string, sourceDir: string, linkDir: string): string[] {
   if (!previous) return []
@@ -126,7 +125,25 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
   const allSkills = listPackageSkills()
   const skills = filterSkills(allSkills, options.skills)
   const selected = new Set(skills.map((skill) => skill.name))
-  const targets = resolveSkillTargets(options.dirs ?? [])
+  // 目标选择：显式参数 > 已保存选择 > 全部可用目标；--dir 始终一次性追加，不参与长期选择
+  const savedTargets = readSkillsInstallConfig().targets
+  const requestedTargets = options.targets ?? (savedTargets && savedTargets.length > 0 ? savedTargets : undefined)
+  const resolved = resolveTargetsByName(requestedTargets, options.dirs ?? [])
+  const allTargets = resolveSkillTargets()
+  const skippedTargets: Array<{ dir: string; label: string }> = []
+  for (const name of resolved.invalid) console.warn(`⚠️ 忽略未知的 agent / 目标名：${name}`)
+  for (const name of resolved.unavailable) {
+    console.warn(`⚠️ 忽略本机未检测到的 agent：${name}（不凭空创建目录）`)
+    const target = allTargets.find((item) => item.name === name)
+    if (target) skippedTargets.push({ dir: target.dir, label: target.label })
+  }
+  // 未保存过目标选择时沿用旧口径：把全部未检测到的 agent 汇总回报，便于用户知道可 --dir 兜底
+  if (requestedTargets === undefined) {
+    for (const target of allTargets) {
+      if (target.kind === "agent" && !target.available) skippedTargets.push({ dir: target.dir, label: target.label })
+    }
+  }
+  const targets = resolved.targets
   // 期望链接目标：锚点目录下逐技能一项；判型与写链都用它，保证链接指向跨版本存活的入口
   const linkDir = skillsLinkDir()
   const sourceDir = skillsSourceDir()
@@ -134,20 +151,11 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
   const previousByDir = targetsByDir(previous)
 
   const results: TargetInstallResult[] = []
-  const skippedTargets: Array<{ dir: string; label: string }> = []
   const nextTargets: SkillStateTarget[] = []
+  const handled = new Set<string>()
 
   for (const target of targets) {
-    // 目标不可用（agent 未安装）只报告不创建，避免在用户机器上凭空造目录；历史记录原样保留
-    if (!target.available) {
-      skippedTargets.push({ dir: target.dir, label: target.label })
-      const carried = carryEntries(previousByDir.get(pathKey(target.dir)), new Set(), target.dir)
-      if (carried.length > 0) {
-        const old = previousByDir.get(pathKey(target.dir))
-        nextTargets.push({ id: old?.id ?? targetId(target.dir, target.kind), dir: target.dir, label: target.label, kind: target.kind, entries: carried })
-      }
-      continue
-    }
+    handled.add(pathKey(target.dir))
     const result: TargetInstallResult = {
       dir: target.dir,
       label: target.label,
@@ -228,19 +236,70 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
     }
   }
 
+  // 未参与本次选择的历史目标：默认保留产物与登记；显式收窄目标选择后，--prune 才清理内容一致的本包产物
+  const pruneDeselected = Boolean(options.prune) && requestedTargets !== undefined
+  for (const target of previousTargets(previous)) {
+    if (handled.has(pathKey(target.dir))) continue
+    let entries = target.entries
+    if (pruneDeselected) {
+      const kept: SkillStateEntry[] = []
+      const pruned: string[] = []
+      for (const entry of entries) {
+        const dest = join(target.dir, entry.name)
+        const source = join(sourceDir, entry.name)
+        const kind = classifyExisting(dest, join(linkDir, entry.name), undefined, source)
+        const consistent = kind === "link-ok" || (kind === "dir" && existsSync(source) && dirsEqual(source, dest))
+        if (!consistent) {
+          kept.push(entry)
+          continue
+        }
+        try {
+          removeArtifact(dest)
+          pruned.push(entry.name)
+        } catch {
+          // 清理失败保留记录，下次再试
+          kept.push(entry)
+        }
+      }
+      entries = kept
+      if (pruned.length > 0) {
+        results.push({
+          dir: target.dir,
+          label: target.label || skillTargetLabel(target.dir) || target.dir,
+          kind: target.kind === "primary" || target.kind === "agent" ? target.kind : "custom",
+          created: [],
+          updated: [],
+          skipped: [],
+          conflicts: [],
+          failed: [],
+          degraded: [],
+          links: [],
+          copies: [],
+          pruned,
+        })
+      }
+    }
+    if (entries.length > 0) nextTargets.push({ ...target, entries })
+  }
+
   if (!options.dryRun) {
-    // 本次真正写入的目标取新记录；未参与本次运行的历史目标原样保留，卸载时仍能清理旧产物
-    const written = new Set(results.map((result) => pathKey(result.dir)))
-    const carried = previousTargets(previous).filter((target) => !written.has(pathKey(target.dir)) && target.entries.length > 0)
-    writeGlobalState([...nextTargets, ...carried], previous)
+    writeGlobalState(nextTargets, previous)
     // 未显式传 skills 时本次即安装全部，同样保存选择集，保证 status 回显与现场一致
     saveGlobalSelection(skills.map((skill) => skill.name))
+    if (options.saveTargets !== false) {
+      const known = new Set(allTargets.filter((target) => target.name).map((target) => target.name))
+      const names = requestedTargets
+        ? requestedTargets.filter((name) => known.has(name))
+        : targets.filter((target) => target.name).map((target) => target.name)
+      saveGlobalTargets([...new Set(names)])
+    }
   }
 
   return {
     source: sourceDir,
     skills: skills.map((skill) => skill.name),
     selection: skills.map((skill) => skill.name),
+    targetSelection: targets.filter((target) => target.name).map((target) => target.name),
     targets: results,
     skippedTargets,
     stateFile: skillsStateFile(),
@@ -262,6 +321,15 @@ function saveGlobalSelection(names: string[]): void {
   } catch (e) {
     // 配置写入失败不回滚已安装产物：状态已记录，下次安装会重试保存
     console.warn(`⚠️ 技能选择保存失败：${(e as Error).message}`)
+  }
+}
+
+// 保存全局目标选择：只合并 skillsInstall 段，保留 selection / sources
+function saveGlobalTargets(names: string[]): void {
+  try {
+    writeSkillsInstallConfig({ targets: names })
+  } catch (e) {
+    console.warn(`⚠️ 目标选择保存失败：${(e as Error).message}`)
   }
 }
 
@@ -381,6 +449,10 @@ export interface ProjectInstallOptions {
   force?: boolean
   // 本次安装的技能名；省略时安装包内全部技能
   skills?: string[]
+  // 本次写入的薄壳目录（仓库根相对）；省略时沿用已保存选择，未保存过则写全部已存在候选目录
+  targetDirs?: string[]
+  // 是否把本次目录选择写回 projectSkills.targets；--no-save-agents 时为 false
+  saveTargets?: boolean
   prune?: boolean
 }
 
@@ -451,7 +523,31 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
     const rel = toRepoRel(root, abs)
     if (rel !== targets.sourceDir && !extraShellDirs.includes(rel)) extraShellDirs.push(rel)
   }
-  const shellDirs = [...targets.shellDirs.filter((dir) => !extraShellDirs.includes(dir)), ...extraShellDirs]
+
+  // 目录选择：显式参数 > 已保存选择 > 全部已存在候选目录；--dir 始终一次性追加
+  const savedTargets = readProjectSkillsConfig(root).targets
+  const requestedTargets = options.targetDirs ?? (savedTargets && savedTargets.length > 0 ? savedTargets : undefined)
+  let selectedShellDirs: string[]
+  if (requestedTargets === undefined) {
+    selectedShellDirs = [...targets.shellDirs]
+  } else {
+    selectedShellDirs = []
+    for (const raw of requestedTargets) {
+      const abs = resolve(root, raw)
+      if (!isInside(abs, root)) {
+        console.warn(`⚠️ 忽略仓库之外的技能目录：${raw}`)
+        continue
+      }
+      const rel = toRepoRel(root, abs)
+      if (rel === targets.sourceDir) continue
+      if (!existsSync(abs)) {
+        console.warn(`⚠️ 忽略不存在的技能目录：${rel}（补齐目录后重跑即可）`)
+        continue
+      }
+      if (!selectedShellDirs.includes(rel)) selectedShellDirs.push(rel)
+    }
+  }
+  const shellDirs = [...selectedShellDirs.filter((dir) => !extraShellDirs.includes(dir)), ...extraShellDirs]
 
   const source: ProjectDirResult = { dir: targets.sourceDir, created: [], updated: [], skipped: [], conflicts: [], failed: [], pruned: [] }
   const sourceAbs = join(root, targets.sourceDir)
@@ -516,6 +612,43 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
     if (entries.length > 0) shellTargets.push({ id: dir, dir, label: "薄壳", kind: "shell", entries })
   }
 
+  // 未参与本次选择的薄壳目录：默认保留产物与登记；显式收窄目录选择后，--prune 才清理带本包标记的薄壳
+  const shellDirSet = new Set(shellDirs)
+  const pruneDeselectedDirs = Boolean(options.prune) && requestedTargets !== undefined
+  for (const prev of prevShells.values()) {
+    if (shellDirSet.has(prev.dir)) continue
+    let entries = prev.entries
+    if (pruneDeselectedDirs) {
+      const result: ProjectDirResult = { dir: prev.dir, created: [], updated: [], skipped: [], conflicts: [], failed: [], pruned: [] }
+      const kept: SkillStateEntry[] = []
+      for (const entry of entries) {
+        const skillDir = join(root, prev.dir, entry.name)
+        const shellFile = join(skillDir, SKILL_ENTRY)
+        if (!existsSync(shellFile)) continue
+        let content: string
+        try {
+          content = readTextFile(shellFile)
+        } catch {
+          kept.push(entry)
+          continue
+        }
+        if (readSkillShellVersion(content) === null) {
+          kept.push(entry)
+          continue
+        }
+        try {
+          removeArtifact(skillDir)
+          result.pruned.push(entry.name)
+        } catch {
+          kept.push(entry)
+        }
+      }
+      entries = kept
+      if (result.pruned.length > 0) shells.push(result)
+    }
+    if (entries.length > 0) shellTargets.push({ ...prev, entries })
+  }
+
   if (!options.dryRun) {
     const nextTargets: SkillStateTarget[] = []
     if (sourceEntries.length > 0) nextTargets.push({ id: "source", dir: targets.sourceDir, label: "真源副本", kind: "source", entries: sourceEntries })
@@ -523,12 +656,14 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
     writeProjectState(root, { [BUILTIN_SOURCE]: { kind: "builtin", version: packageVersion(), temporary: false, targets: nextTargets } })
     // 未显式传 skills 时本次即安装全部，同样保存选择集，保证 status 回显与现场一致
     saveProjectSelection(root, skills.map((skill) => skill.name))
+    if (options.saveTargets !== false) saveProjectTargets(root, selectedShellDirs)
   }
 
   return {
     root,
     skills: skills.map((skill) => skill.name),
     selection: skills.map((skill) => skill.name),
+    targetSelection: shellDirs,
     source,
     shells,
     missingDirs: targets.missingDirs,
@@ -544,6 +679,15 @@ function saveProjectSelection(root: string, names: string[]): void {
     writeProjectSkillsConfig({ targets: config.targets, selection: names }, root)
   } catch (e) {
     console.warn(`⚠️ 项目面技能选择保存失败：${(e as Error).message}`)
+  }
+}
+
+// 保存项目目录选择：只合并 projectSkills.targets，保留 selection
+function saveProjectTargets(root: string, names: string[]): void {
+  try {
+    writeProjectSkillsConfig({ targets: [...new Set(names)] }, root)
+  } catch (e) {
+    console.warn(`⚠️ 项目面目录选择保存失败：${(e as Error).message}`)
   }
 }
 

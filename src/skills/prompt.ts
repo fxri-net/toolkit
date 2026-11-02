@@ -1,6 +1,6 @@
 // 技能选择：纯函数负责「已保存选择 / 显式参数 / 非 TTY 回落」，交互层只做 TTY 下的多选
 // core 技能默认选中且不可取消；optional 可切换；只有一个可选层级时跳过交互
-import type { PackageSkill } from "./types"
+import type { PackageSkill, SkillTarget } from "./types"
 
 // 单个技能在交互界面中的选项
 export interface SkillChoice {
@@ -93,6 +93,110 @@ export function isInteractiveTty(): boolean {
 function isPromptCancel(error: unknown): boolean {
   if (!(error instanceof Error)) return false
   return error.name === "ExitPromptError" || error.name === "AbortPromptError" || /force closed|cancel/i.test(error.message)
+}
+
+// 目标选择项：value 全局面为 canonical / agent name，项目面为仓库相对目录
+export interface TargetChoice {
+  value: string
+  label: string
+  checked: boolean
+  disabled?: boolean | string
+}
+
+// 全局目标选择项：按 canonical → 已检测 agent → 自定义目录排序；未检测到的已保存 agent 置灰保留，避免选择静默丢失
+export function buildGlobalTargetChoices(all: SkillTarget[], saved: string[] | undefined, extraDirs: string[] = []): TargetChoice[] {
+  const savedSet = saved ? new Set(saved) : undefined
+  const choices: TargetChoice[] = []
+  const canonical = all.find((target) => target.kind === "primary")
+  if (canonical) {
+    choices.push({
+      value: canonical.name,
+      label: `共读｜${canonical.label}`,
+      checked: savedSet ? savedSet.has(canonical.name) : true,
+    })
+  }
+  for (const target of all.filter((item) => item.kind === "agent")) {
+    // 未检测到的 agent 只在曾经选过时列出，避免把内置表全部未安装项堆进交互
+    if (!target.available && !savedSet?.has(target.name)) continue
+    choices.push({
+      value: target.name,
+      label: `agent｜${target.label}${target.available ? "" : "（未检测到）"}`,
+      checked: target.available ? (savedSet ? savedSet.has(target.name) : true) : false,
+      disabled: target.available ? false : "本机未检测到该 agent，不凭空创建目录",
+    })
+  }
+  const custom = new Set(extraDirs)
+  for (const target of all.filter((item) => item.kind === "custom" && custom.has(item.dir))) {
+    choices.push({
+      value: target.dir,
+      label: `自定义｜${target.dir}（一次性 --dir）`,
+      checked: true,
+      disabled: "一次性 --dir，本次固定写入、不保存为长期选择",
+    })
+  }
+  return choices
+}
+
+// 项目目标选择项：只列已存在的候选目录；已保存但目录不存在者置灰提示，--dir 追加项固定勾选
+export function buildProjectTargetChoices(
+  available: string[],
+  saved: string[] | undefined,
+  extraDirs: string[] = [],
+  missing: string[] = [],
+): TargetChoice[] {
+  const savedSet = saved ? new Set(saved) : undefined
+  const choices: TargetChoice[] = available.map((dir) => ({
+    value: dir,
+    label: `项目目录｜${dir}`,
+    checked: savedSet ? savedSet.has(dir) : true,
+  }))
+  for (const dir of missing) {
+    if (!savedSet?.has(dir)) continue
+    choices.push({ value: dir, label: `项目目录｜${dir}（不存在）`, checked: false, disabled: "目录不存在，补齐后重跑即可" })
+  }
+  for (const dir of extraDirs) {
+    if (available.includes(dir)) continue
+    choices.push({
+      value: dir,
+      label: `自定义｜${dir}（一次性 --dir）`,
+      checked: true,
+      disabled: "一次性 --dir，本次固定写入、不保存为长期选择",
+    })
+  }
+  return choices
+}
+
+// 目标多选：返回选中值；用户取消返回 null（调用方不得写任何文件）
+export async function promptTargetSelection(choices: TargetChoice[], message: string): Promise<string[] | null> {
+  if (choices.length === 0) return []
+  const { checkbox } = await import("@inquirer/prompts")
+  try {
+    return await checkbox({
+      message,
+      choices: choices.map((choice) => ({
+        value: choice.value,
+        name: choice.label,
+        checked: choice.checked,
+        disabled: choice.disabled ?? false,
+      })),
+      pageSize: 15,
+      required: false,
+    })
+  } catch (error) {
+    if (isPromptCancel(error)) return null
+    throw error
+  }
+}
+
+// 汇总确认：返回 true 继续、false 放弃、null 取消（Ctrl+C）
+export async function promptConfirm(message: string): Promise<boolean | null> {
+  const { confirm } = await import("@inquirer/prompts")
+  try {
+    return await confirm({ message, default: true })
+  } catch (error) {
+    if (isPromptCancel(error)) return null
+    throw error
+  }
 }
 
 // TTY 多选：core 默认选中且禁用切换；返回 null 表示用户取消（调用方不得写任何文件）

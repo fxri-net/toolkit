@@ -170,7 +170,7 @@ describe("技能选择落盘与未选择产物", () => {
     const core = coreSkillNames(listPackageSkills())
     installSkills({ skills: core })
     expect(readSavedSelection(readSkillsInstallConfig())).toEqual(core)
-    expect(readGlobalConfig().skillsInstall).toEqual({ selection: { toolkit: core } })
+    expect(readGlobalConfig().skillsInstall).toEqual({ selection: { toolkit: core }, targets: ["canonical"] })
   })
 
   it("未选择且有产物的技能单列 installed-unselected，不计入问题；--prune 只清内容一致的条目", () => {

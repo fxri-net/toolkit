@@ -12,6 +12,7 @@ import {
   AGENT_SKILL_DIRS,
   CANONICAL_DIR,
   CANONICAL_LABEL,
+  CANONICAL_TARGET_NAME,
   LEGACY_SKILL_DIRS,
   PKG_NAME,
   PROJECT_SOURCE_DIR,
@@ -350,22 +351,76 @@ function resolveAgentDetectPaths(agent: AgentEntry): string[] {
 export function resolveSkillTargets(extraDirs: string[] = []): SkillTarget[] {
   const out: SkillTarget[] = []
   const seen = new Set<string>()
-  const push = (dir: string, label: string, kind: TargetKind, available: boolean) => {
+  const push = (name: string, dir: string, label: string, kind: TargetKind, available: boolean) => {
     const abs = resolve(dir)
     const key = pathKey(abs)
     if (seen.has(key)) return
     seen.add(key)
-    out.push({ dir: abs, label, kind, available, dirExists: existsSync(abs) })
+    out.push({ name, dir: abs, label, kind, available, dirExists: existsSync(abs) })
   }
-  push(join(getHomeDir(), CANONICAL_DIR), CANONICAL_LABEL, "primary", true)
+  push(CANONICAL_TARGET_NAME, join(getHomeDir(), CANONICAL_DIR), CANONICAL_LABEL, "primary", true)
   for (const agent of AGENT_SKILL_DIRS) {
     // 判据：技能目录的父目录（即 agent 配置目录）存在，或任一探测路径存在
     const dir = resolveAgentDir(agent)
     const available = existsSync(dirname(dir)) || resolveAgentDetectPaths(agent).some((p) => existsSync(p))
-    push(dir, agent.label, "agent", available)
+    push(agent.name, dir, agent.label, "agent", available)
   }
-  for (const dir of extraDirs) push(dir, "自定义 --dir", "custom", true)
+  for (const dir of extraDirs) push("", dir, "自定义 --dir", "custom", true)
   return out
+}
+
+// 目标选择解析结果：invalid 为未知目标名，unavailable 为已知但本机未检测到的 agent
+export interface ResolvedTargets {
+  targets: SkillTarget[]
+  invalid: string[]
+  unavailable: string[]
+}
+
+// 按名字解析本次写入目标：names 省略或为空数组时沿用全部可用目标（主目标 + 已检测 agent + --dir）
+// 显式指定时只写选中项；本机未检测到的 agent 不凭空造目录，单列为 unavailable 由调用方告警
+export function resolveTargetsByName(names: string[] | undefined, extraDirs: string[] = []): ResolvedTargets {
+  const all = resolveSkillTargets(extraDirs)
+  const custom = all.filter((target) => target.kind === "custom")
+  if (!names || names.length === 0) {
+    return { targets: all.filter((target) => target.available || target.kind === "custom"), invalid: [], unavailable: [] }
+  }
+  const byName = new Map(all.filter((target) => target.name).map((target) => [target.name, target]))
+  const targets: SkillTarget[] = []
+  const invalid: string[] = []
+  const unavailable: string[] = []
+  for (const name of names) {
+    const target = byName.get(name)
+    if (!target) {
+      invalid.push(name)
+      continue
+    }
+    if (!target.available) {
+      unavailable.push(name)
+      continue
+    }
+    targets.push(target)
+  }
+  // --dir 始终一次性写入，不参与长期选择
+  targets.push(...custom)
+  // 同路径去重（显式名字与 --dir 可能指向同一目录）
+  const seen = new Set<string>()
+  return {
+    targets: targets.filter((target) => {
+      const key = pathKey(target.dir)
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    }),
+    invalid,
+    unavailable,
+  }
+}
+
+// 全部可选目标名：主目标 canonical + 已检测 agent（用于 --all-agents 与目标选择默认值）
+export function availableTargetNames(): string[] {
+  return resolveSkillTargets()
+    .filter((target) => target.name && target.available)
+    .map((target) => target.name)
 }
 
 // 解析本机已安装的 canonical 共读 agent：只按 detect 判定

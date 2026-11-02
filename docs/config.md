@@ -212,13 +212,14 @@ CLI 每次命令执行时**同步读取本地缓存**，检测到新版本时向
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
 | `selection` | object | 无 | 来源 → 技能名数组；内置源键为 `toolkit`。`toolkit skills install` 成功后写回，重装 / `status` 按此回显选择集；未保存过时首次只装 `core` 技能 |
-| `targets` | string[] | 无 | 目标 agent 名数组（预留，当前安装仍按内置表与现场判定） |
+| `targets` | string[] | 无 | 长期目标选择：`canonical`（主目标）与各 agent 的 `name`（如 `claude-code`、`cursor`）。安装 / 交互选择后写回；未保存过时首次写全部可用目标；`--no-save-agents` 不写回；`--dir` 自定义目录不进入本字段 |
 | `sources` | object | 无 | 外部来源配置（预留，当前仅支持包内内置源） |
 
 ```json
 {
   "skillsInstall": {
-    "selection": { "toolkit": ["fxri-plan-to-task", "fxri-session-recap", "fxri-text-encoding"] }
+    "selection": { "toolkit": ["fxri-plan-to-task", "fxri-session-recap", "fxri-text-encoding"] },
+    "targets": ["canonical", "claude-code"]
   }
 }
 ```
@@ -230,12 +231,13 @@ CLI 每次命令执行时**同步读取本地缓存**，检测到新版本时向
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
 | `selection` | string[] | 无 | 项目面选择集（技能名数组），由 `toolkit skills install --scope project` 成功后写回；未保存过时首次只装 `core` |
-| `targets` | string[] | 无 | 项目级技能目录（仓库根相对，预留） |
+| `targets` | string[] | 无 | 长期薄壳目录选择：仓库根相对的候选目录（如 `.trae/skills`）。安装 / 交互选择后写回；未保存过时首次写全部已存在候选目录；`prepare` 等非交互场景按此刷新，不新增未选择目录 |
 
 ```json
 {
   "projectSkills": {
-    "selection": ["fxri-plan-to-task", "fxri-session-recap"]
+    "selection": ["fxri-plan-to-task", "fxri-session-recap"],
+    "targets": [".trae/skills", ".claude/skills"]
   }
 }
 ```

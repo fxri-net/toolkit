@@ -9,6 +9,8 @@ export const SKILL_ENTRY = "SKILL.md"
 export const CANONICAL_DIR = ".agents/skills"
 // 主目标显示名：解析与反查共用一份，避免两处字面量漂移
 export const CANONICAL_LABEL = "canonical（多家 agent 共读）"
+// 主目标稳定名：写入 skillsInstall.targets 时代表 canonical 目录
+export const CANONICAL_TARGET_NAME = "canonical"
 // 历史落点：Codex / Pi 改为 canonical 共读前的全局分发目录；升级前的产物与状态登记可能仍留在用户机器上
 export const LEGACY_SKILL_DIRS: Array<{ dir: string; label: string }> = [
   { dir: ".codex/skills", label: "Codex（历史落点）" },
@@ -158,6 +160,8 @@ export interface SkillVersionMismatch {
 
 // 解析后的目标目录
 export interface SkillTarget {
+  // 目标稳定名：主目标 canonical，agent 目录取快照表 name，--dir 自定义目录为空串（不参与长期选择）
+  name: string
   dir: string
   label: string
   kind: TargetKind
@@ -192,6 +196,8 @@ export interface TargetStatus {
   available: boolean
   dirExists: boolean
   recorded: boolean
+  // 是否在本次目标选择集内；未选择的既有产物单列 installed-unselected
+  selected: boolean
   items: SkillStatusItem[]
 }
 
@@ -204,8 +210,10 @@ export interface CanonicalReader {
 export interface SkillsStatusReport {
   source: string
   skills: string[]
-  // 本次生效的技能选择集（未保存过选择时按全部技能处理）
+  // 本次生效的技能选择集（未保存过选择时按 core 处理）
   selection: string[]
+  // 本次生效的目标选择集（canonical / agent name；空数组表示沿用全部可用目标）
+  targetSelection: string[]
   // 各技能真源版本，作为「会话上下文已过期」判定的磁盘基准值
   skillVersions: Record<string, string>
   // 版本双写位（frontmatter / 正文）不一致的技能，供软告警提示同步递增
@@ -242,6 +250,8 @@ export interface InstallReport {
   source: string
   skills: string[]
   selection: string[]
+  // 本次写入的目标名（canonical / agent name）；--dir 自定义目录不计入
+  targetSelection: string[]
   targets: TargetInstallResult[]
   skippedTargets: Array<{ dir: string; label: string }>
   stateFile: string
@@ -328,6 +338,8 @@ export interface ProjectInstallReport {
   root: string
   skills: string[]
   selection: string[]
+  // 本次写入的薄壳目录（仓库根相对）
+  targetSelection: string[]
   source: ProjectDirResult
   shells: ProjectDirResult[]
   // 未命中的候选目录（仓库根相对）：该 agent 目录尚不在库，需要时可按需补齐
@@ -351,6 +363,8 @@ export interface ProjectSkillItem {
 export interface ProjectDirStatus {
   dir: string
   kind: "source" | "shell"
+  // 薄壳目录是否在本次目标选择集内；未选择目录的既有产物单列 installed-unselected
+  selected: boolean
   items: ProjectSkillItem[]
 }
 
@@ -359,6 +373,8 @@ export interface ProjectStatusReport {
   sourceDir: string
   skills: string[]
   selection: string[]
+  // 本次生效的项目薄壳目录选择集（仓库根相对；未保存过选择时为空数组，表示沿用全部已存在候选目录）
+  targetSelection: string[]
   skillVersions: Record<string, string>
   versionMismatches: SkillVersionMismatch[]
   stateFile: string
