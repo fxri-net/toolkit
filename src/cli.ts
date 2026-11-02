@@ -770,12 +770,12 @@ program
 // skills 域：把包内 skills/ 分发到各 agent 的全局技能目录（真源唯一，默认软链以便升级自动跟随）
 const skillsCmd = program
   .command("skills")
-  .description("AI 技能包分发：安装 / 状态 / 卸载 / 路径（包内 skills/ 为唯一真源）")
+  .description("AI 技能包分发：安装 / 状态 / 卸载 / 来源 / 路径（包内 skills/ 与 --from 外部来源统一管理）")
 
 // 安装：默认软链真源，链接创建失败自动降级副本；只写入「已安装」的 agent 目录，不凭空造目录
 skillsCmd
   .command("install")
-  .description("安装包内技能（默认按现场判定作用域：仓库内写项目面副本 + 薄壳，否则写全局目录；软链失败降级副本）")
+  .description("安装技能（默认按现场判定作用域：仓库内写项目面副本 + 薄壳，否则写全局目录；包内 skills/ 与 --from 外部来源统一处理）")
   .option("--scope <scope>", "作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）")
   .option("--skills <names>", "只安装指定技能（逗号分隔；core 技能恒装）")
   .option("--all", "安装包内全部技能（含可选技能）")

@@ -24,7 +24,7 @@
 
 ```bash
 pnpm i -g @fxri/toolkit   # 工具全局（npm 用户：npm i -g @fxri/toolkit）
-toolkit skills install    # skills 一键分发到各 agent 全局技能目录
+toolkit skills install    # skills 一键分发到各 agent 全局技能目录（按 core / optional 与目标选择；--yes 跳过交互）
 ```
 
 升级一条命令：`pnpm add -g @fxri/toolkit`（软链模式下技能随包自动更新；副本形式需重跑 `toolkit skills install`），skills 升级后开新会话，见「升级后要注意什么」。诚实代价：全局装的版本**不随项目锁定**，团队里会出现「各装各的」版本漂移——所以团队项目推荐工具走项目 devDependency（版本随仓库锁定，成员与 CI 自动一致），技能也装进项目（`toolkit skills install --scope project`，真源与入口薄壳入库、队友 clone 即用，见「项目内装的技能放在哪、队友 clone 后要重装吗」）；也可用上游安装器项目级安装并把 `skills-lock.json` 提交进仓库锁版本；只想在公司项目生效见下文「只在公司项目激活」。
@@ -36,7 +36,7 @@ toolkit skills install    # skills 一键分发到各 agent 全局技能目录
 - **真源**：`<仓库根>/.agents/skills/`（完整技能内容），恒定存在；
 - **入口薄壳**：其余**已存在**的候选目录（`.trae/skills/`、`.claude/skills/`、`agent/skills/`（eve）、`.augment/skills/`、`.codebuddy/skills/`、`.continue/skills/`、`.crush/skills/`、`.devin/skills/`、`.goose/skills/`、`.grok/skills/`、`.hermes/skills/`、`.iflow/skills/`、`.junie/skills/`、`.kiro/skills/`、`.openhands/skills/`、`.qwen/skills/`、`.roo/skills/`、`.windsurf/skills/`）各放**每个技能一个** `SKILL.md` 薄壳——description 从真源派生、正文指明真源路径与版本标记，不重复承载内容；某个候选目录不存在就不凭空创建。
 
-真源与薄壳都要**入库**（归属账 `<仓库根>/.toolkit/state.json` 一并入库）。队友 clone 后**不必逐台手动重装**：`toolkit init` 会在 `package.json` 写入 `prepare` 刷新钩子（仅当本地依赖含 `@fxri/toolkit`），`pnpm install` 时自动补齐/刷新；想手动触发就重跑 `toolkit skills install --scope project`。现场用 `toolkit skills status --scope project` 查（逐技能报告真源 / 薄壳 / 缺失 / 漂移）；清理用 `toolkit skills remove --scope project`（只摘本包登记的产物）。某队友用的 agent 候选目录仓库里没有对应薄壳时，跑一次 install 即按需补上。
+真源与薄壳都要**入库**（归属账 `<仓库根>/.toolkit/state.json` 一并入库）。队友 clone 后**不必逐台手动重装**：`toolkit init` 会在 `package.json` 写入 `prepare` 刷新钩子（仅当本地依赖含 `@fxri/toolkit`），`pnpm install` 时自动补齐/刷新；想手动触发就重跑 `toolkit skills install --scope project`。现场用 `toolkit skills status --scope project` 查（逐技能报告真源 / 薄壳 / 缺失 / 漂移 / 未选择但已安装）；清理用 `toolkit skills remove --scope project`（只摘本包登记的产物）。某队友用的 agent 候选目录仓库里没有对应薄壳时，跑一次 install 即按需补上。
 
 ⚠️ **发布型包注意**：项目面技能产物（技能真源 `.agents/skills/`、各候选目录下的入口薄壳、归属账 `.toolkit/`）与内置任务区 `.tasks/`（任务区外置时不计入）都不在 `.gitignore` 忽略列表，而 `npm` 无 `.npmignore` 时会退回 `.gitignore` 决定打包面、`prepare` 在 `npm pack` / `npm publish` 前执行还会刷新技能产物——它们都可能被打进包。要发包的项目请把它们加入 `files` 白名单或写进 `.npmignore`（已用 `.npmignore` 排除可忽略）；`toolkit init` 检测到「未标 `private` 且无 `files`」时会就此提示（**与是否写入 `prepare` 钩子无关，`--no-hooks` 同样提示**），不代改你的 `package.json`。
 
