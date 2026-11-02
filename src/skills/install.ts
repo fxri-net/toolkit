@@ -61,6 +61,7 @@ import {
   type SkillStateSource,
   type SkillStateTarget,
   type SkillItem,
+  type SkillsMode,
   type SkillsRemoveReport,
   type TargetInstallResult,
 } from "./types"
@@ -80,6 +81,10 @@ export interface InstallOptions {
   externalSources?: ExternalSourceOption[]
   // 清理未选择且内容一致的本包产物
   prune?: boolean
+  // 本次选择是否写回配置；--no-skills 时为 false
+  saveSelection?: boolean
+  // 本次生效的安装模式；省略时读配置，默认 skills
+  mode?: SkillsMode
 }
 
 // 外部来源入参：path 为来源根，name 可与目录派生名不同（--save 名）
@@ -375,8 +380,8 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
         }
       }
       writeGlobalSources(nextSources)
-      // 未显式传 skills 时本次即安装全部，同样保存选择集，保证 status 回显与现场一致
-      saveGlobalSelection(sources, items)
+      // 未显式传 skills 时本次即安装全部，同样保存选择集，保证 status 回显与现场一致；--no-skills 不写
+      if (options.saveSelection !== false) saveGlobalSelection(sources, items)
       if (options.saveTargets !== false) {
         const known = new Set(allTargets.filter((target) => target.name).map((target) => target.name))
         const names = requestedTargets
@@ -390,6 +395,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
       source: skillsSourceDir(),
       skills: items.map((item) => item.name),
       selection: items.map((item) => item.name),
+      mode: options.mode ?? readSkillsInstallConfig().mode ?? "skills",
       targetSelection: targets.filter((target) => target.name).map((target) => target.name),
       targets: results,
       skippedTargets,
@@ -617,6 +623,10 @@ export interface ProjectInstallOptions {
   // 本次临时外部来源（--from）；永久来源从 skillsInstall.sources 读取
   externalSources?: ExternalSourceOption[]
   prune?: boolean
+  // 本次选择是否写回配置；--no-skills 时为 false
+  saveSelection?: boolean
+  // 本次生效的安装模式；省略时读配置，默认 skills
+  mode?: SkillsMode
 }
 
 // 逐技能结果归档：按动作分派到对应清单
@@ -850,8 +860,8 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
         }
       }
       writeProjectSources(root, nextSources)
-      // 未显式传 skills 时本次即安装全部，同样保存选择集，保证 status 回显与现场一致；临时来源不写
-      saveProjectSelection(root, items.filter((item) => !item.temporary).map((item) => item.name))
+      // 未显式传 skills 时本次即安装全部，同样保存选择集，保证 status 回显与现场一致；临时来源与 --no-skills 不写
+      if (options.saveSelection !== false) saveProjectSelection(root, items.filter((item) => !item.temporary).map((item) => item.name))
       if (options.saveTargets !== false) saveProjectTargets(root, selectedShellDirs)
     }
 
@@ -859,6 +869,7 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
       root,
       skills: items.map((item) => item.name),
       selection: items.map((item) => item.name),
+      mode: options.mode ?? readProjectSkillsConfig(root).mode ?? "skills",
       targetSelection: shellDirs,
       source,
       shells,

@@ -30,7 +30,6 @@ import { projectStateFile, readProjectState, readSkillsState, skillsStateFile } 
 import { readProjectSkillsConfig, readSkillsInstallConfig } from "./config"
 import { readTextFile } from "../read-text"
 import {
-  BUILTIN_SOURCE,
   SKILL_ENTRY,
   type PackageSkill,
   type ProjectDirStatus,
@@ -218,7 +217,9 @@ export function skillsStatus(): SkillsStatusReport {
   const config = readSkillsInstallConfig()
   const { refs, sources } = collectStatusSources(state)
   const allNames = [...refs.keys()].sort()
+  const mode = config.mode ?? "skills"
   const savedBySource = config.selection
+  // 键存在即已保存（含显式空数组）；空对象视为未保存
   const hasSaved = savedBySource !== undefined && Object.keys(savedBySource).length > 0
   const selection = hasSaved
     ? allNames.filter((name) => {
@@ -226,7 +227,9 @@ export function skillsStatus(): SkillsStatusReport {
         const saved = savedBySource[ref.source]
         return saved === undefined || saved.includes(name)
       })
-    : allNames.filter((name) => refs.get(name)!.tier === "core")
+    : mode === "package"
+      ? []
+      : allNames.filter((name) => refs.get(name)!.tier === "core")
   const baseSelected = new Set(selection)
   const savedTargets = config.targets && config.targets.length > 0 ? config.targets : undefined
   const targetSelectedByName = (name: string): boolean => !savedTargets || savedTargets.includes(name)
@@ -297,6 +300,7 @@ export function skillsStatus(): SkillsStatusReport {
   return {
     source: skillsSourceDir(),
     skills: allNames,
+    mode,
     selection,
     targetSelection: savedTargets ?? [],
     sources,
@@ -336,11 +340,15 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
   const config = readProjectSkillsConfig(root)
   const { refs, sources } = collectStatusSources(state)
   const allNames = [...refs.keys()].sort()
-  const saved = config.selection !== undefined && config.selection.length > 0 ? config.selection : undefined
-  // 项目面选择集是平铺名单；外部来源未单独登记时默认选中，避免新增来源被静默漏装
-  const selection = saved
-    ? allNames.filter((name) => saved.includes(name) || refs.get(name)!.source !== BUILTIN_SOURCE)
-    : allNames.filter((name) => refs.get(name)!.tier === "core")
+  const mode = config.mode ?? "skills"
+  // 空数组是显式空选择，与未保存区分
+  const saved = config.selection !== undefined ? config.selection : undefined
+  // 显式选择（含空数组）按名单取；未保存过时才按模式默认
+  const selection = saved !== undefined
+    ? allNames.filter((name) => saved.includes(name))
+    : mode === "package"
+      ? []
+      : allNames.filter((name) => refs.get(name)!.tier === "core")
   const baseSelected = new Set(selection)
   const savedTargets = config.targets && config.targets.length > 0 ? config.targets : undefined
   const targetSelected = (dir: string): boolean => !savedTargets || savedTargets.includes(dir)
@@ -409,6 +417,7 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
     root,
     sourceDir: targets.sourceDir,
     skills: allNames,
+    mode,
     selection,
     targetSelection: savedTargets ?? [],
     sources,

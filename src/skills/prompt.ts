@@ -1,6 +1,6 @@
 // 技能选择：纯函数负责「已保存选择 / 显式参数 / 非 TTY 回落」，交互层只做 TTY 下的多选
 // core 技能默认选中且不可取消；optional 可切换；只有一个可选层级时跳过交互
-import type { PackageSkill, SkillTarget } from "./types"
+import type { PackageSkill, SkillsMode, SkillTarget } from "./types"
 
 // 单个技能在交互界面中的选项
 export interface SkillChoice {
@@ -26,6 +26,7 @@ export interface SkillSelectionInput {
   explicit?: string[]
   all?: boolean
   noOptional?: boolean
+  mode?: SkillsMode
   interactive: boolean
   yes: boolean
 }
@@ -40,13 +41,13 @@ export function optionalSkillNames(skills: PackageSkill[]): string[] {
   return skills.filter((skill) => skill.tier !== "core").map((skill) => skill.name)
 }
 
-// 交互选项：core 恒选中；optional 按已保存选择回显（未保存过时只选 core）
-export function buildSkillChoices(skills: PackageSkill[], saved?: string[]): SkillChoice[] {
+// 交互选项：skills 模式 core 恒选中；package 模式全部按已保存选择回显（未保存过时全不选）
+export function buildSkillChoices(skills: PackageSkill[], saved?: string[], mode: SkillsMode = "skills"): SkillChoice[] {
   const savedSet = new Set(saved ?? [])
   return skills.map((skill) => ({
     name: skill.name,
     tier: skill.tier,
-    selected: skill.tier === "core" || savedSet.has(skill.name),
+    selected: mode === "skills" ? skill.tier === "core" || savedSet.has(skill.name) : savedSet.has(skill.name),
   }))
 }
 
@@ -56,9 +57,9 @@ function knownNames(skills: PackageSkill[], names: string[]): string[] {
   return skills.filter((skill) => wanted.has(skill.name)).map((skill) => skill.name)
 }
 
-// 升序并集：core 始终包含
-function withCore(skills: PackageSkill[], names: string[]): string[] {
-  const set = new Set([...coreSkillNames(skills), ...names])
+// 升序并集：skills 模式 core 始终包含；package 模式不强制
+function withCore(skills: PackageSkill[], names: string[], mode: SkillsMode = "skills"): string[] {
+  const set = new Set(mode === "skills" ? [...coreSkillNames(skills), ...names] : names)
   return skills.filter((skill) => set.has(skill.name)).map((skill) => skill.name)
 }
 
@@ -66,21 +67,31 @@ function withCore(skills: PackageSkill[], names: string[]): string[] {
 // TTY 下且未用 --yes / 未显式传参时标记 needsPrompt，由调用方进入交互；非 TTY 一律按已保存选择
 export function planSkillSelection(input: SkillSelectionInput): SkillSelectionPlan {
   const { skills, saved, explicit, all, noOptional, interactive, yes } = input
+  const mode = input.mode ?? "skills"
   const allNames = skills.map((skill) => skill.name)
   if (explicit !== undefined) {
     const names = knownNames(skills, explicit)
     const invalid = explicit.filter((name) => !allNames.includes(name))
     if (names.length === 0) return { names: [], invalid, savedInvalid: [], needsPrompt: false, error: "全部取值非法" }
-    return { names: withCore(skills, names), invalid, savedInvalid: [], needsPrompt: false }
+    return { names: withCore(skills, names, mode), invalid, savedInvalid: [], needsPrompt: false }
   }
   if (all) return { names: allNames, invalid: [], savedInvalid: [], needsPrompt: false }
   if (noOptional) return { names: coreSkillNames(skills), invalid: [], savedInvalid: [], needsPrompt: false }
 
+  // 区分「已保存为空数组」与「未保存」：package 模式显式空选择即零装
+  const hasSaved = saved !== undefined
   const savedValid = knownNames(skills, saved ?? [])
   const savedInvalid = (saved ?? []).filter((name) => !allNames.includes(name))
-  const base = savedValid.length > 0 ? withCore(skills, savedValid) : coreSkillNames(skills)
-  // 只有一个层级（无 optional）时没有可切换项，直接跳过交互
-  const needsPrompt = interactive && !yes && optionalSkillNames(skills).length > 0
+  const base =
+    mode === "package"
+      ? hasSaved
+        ? savedValid
+        : []
+      : savedValid.length > 0
+        ? withCore(skills, savedValid, mode)
+        : coreSkillNames(skills)
+  // package 模式下全部技能都可切换，即使没有 optional 也可交互
+  const needsPrompt = interactive && !yes && (mode === "package" ? skills.length > 0 : optionalSkillNames(skills).length > 0)
   return { names: base, invalid: [], savedInvalid, needsPrompt }
 }
 
@@ -200,22 +211,22 @@ export async function promptConfirm(message: string): Promise<boolean | null> {
 }
 
 // TTY 多选：core 默认选中且禁用切换；返回 null 表示用户取消（调用方不得写任何文件）
-export async function promptSkillSelection(skills: PackageSkill[], saved?: string[]): Promise<string[] | null> {
+export async function promptSkillSelection(skills: PackageSkill[], saved?: string[], mode: SkillsMode = "skills"): Promise<string[] | null> {
   const { checkbox } = await import("@inquirer/prompts")
-  const choices = buildSkillChoices(skills, saved).map((choice) => ({
+  const choices = buildSkillChoices(skills, saved, mode).map((choice) => ({
     value: choice.name,
-    name: choice.tier === "core" ? `${choice.name}（core）` : choice.name,
+    name: mode === "skills" && choice.tier === "core" ? `${choice.name}（core）` : choice.name,
     checked: choice.selected,
-    disabled: choice.tier === "core" ? "core（必装）" : false,
+    disabled: mode === "skills" && choice.tier === "core" ? "core（必装）" : false,
   }))
   try {
     const picked = await checkbox({
-      message: "选择要安装的技能（空格切换，回车确认；core 必装）",
+      message: mode === "package" ? "选择要安装的技能（空格切换，回车确认；全不选即纯包管理器模式）" : "选择要安装的技能（空格切换，回车确认；core 必装）",
       choices,
       pageSize: 12,
       required: false,
     })
-    return withCore(skills, picked)
+    return mode === "package" ? picked : withCore(skills, picked)
   } catch (error) {
     if (isPromptCancel(error)) return null
     throw error

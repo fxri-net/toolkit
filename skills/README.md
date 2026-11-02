@@ -13,7 +13,7 @@
 | [fxri-session-recap](./fxri-session-recap/SKILL.md) | 1.6.3 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | [fxri-text-encoding](./fxri-text-encoding/SKILL.md) | 1.2.1 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
 
-版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` / `skills install` 打印的真源版本），与正文首部版本声明双写一致；层级取自 frontmatter `metadata.tier`（`core` 必装不可取消，`optional` 安装时可选，缺省按 `optional` 处理）。
+版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` / `skills install` 打印的真源版本），与正文首部版本声明双写一致；层级取自 frontmatter `metadata.tier`（`skills` 模式 `core` 必装不可取消，`package` 模式全部可选、允许零选；`optional` 安装时可选，缺省按 `optional` 处理）。
 
 ## 安装
 
@@ -24,11 +24,11 @@
 ```bash
 pnpm add -g @fxri/toolkit   # 1. 装 CLI（npm 用户 npm i -g @fxri/toolkit）
 toolkit skills install      # 2. 把包内技能装到各 agent 的全局技能目录
-                            #    先按 tier 选技能：core 必装、optional 可选（TTY 下方向键多选）
+                            #    先按 tier 选技能：core 必装、optional 可选（TTY 下方向键多选；--mode package 时 core 也可取消）
                             #    再选目标：canonical + 已检测 agent（--agent / --all-agents / --no-save-agents）
                             #    --skills <names> / --all / --no-optional / --yes 可跳过技能与目标交互
                             #    --scope project 换项目面：真源落 <仓库根>/.agents/skills/、其余候选目录落入口薄壳
-                            #    --from <path> 临时外部来源（副本）；--save [name] 登记永久来源（默认软链）
+                            #    --from <path|url> 临时外部来源（副本）；--save [name] 登记永久来源（默认软链）
 toolkit skills status       # 查现场状态（悬空 / 指向其他版本 / 副本漂移 / 缺失 / 同名冲突 / 未选择但已安装；历史落点残留单列提示；--scope project 查项目面）
                             # 前五类重跑 toolkit skills install 补齐，同名冲突需 toolkit skills install --force 覆盖，未选择产物加 --prune 清理
 toolkit skills remove       # 卸载本包装的产物（只清自己装的，不碰用户自装技能；--skills 只清指定技能；--scope project 清项目面）

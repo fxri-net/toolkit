@@ -24,10 +24,14 @@
 
 ```bash
 pnpm i -g @fxri/toolkit   # 工具全局（npm 用户：npm i -g @fxri/toolkit）
-toolkit skills install    # skills 一键分发到各 agent 全局技能目录（按 core / optional 与目标选择；--yes 跳过交互）
+toolkit skills install    # skills 一键分发到各 agent 全局技能目录（按 core / optional 与目标选择；--mode package 纯包管理器；--yes 跳过交互）
 ```
 
 升级一条命令：`pnpm add -g @fxri/toolkit`（软链模式下技能随包自动更新；副本形式需重跑 `toolkit skills install`），skills 升级后开新会话，见「升级后要注意什么」。诚实代价：全局装的版本**不随项目锁定**，团队里会出现「各装各的」版本漂移——所以团队项目推荐工具走项目 devDependency（版本随仓库锁定，成员与 CI 自动一致），技能也装进项目（`toolkit skills install --scope project`，真源与入口薄壳入库、队友 clone 即用，见「项目内装的技能放在哪、队友 clone 后要重装吗」）；也可用上游安装器项目级安装并把 `skills-lock.json` 提交进仓库锁版本；只想在公司项目生效见下文「只在公司项目激活」。
+
+### 我只想当技能包管理器，不想装自带技能？
+
+用 `toolkit skills install --mode package` 切换到纯包管理器模式：`core` 也不再强制，可以一个都不选；之后按 `--from <path|url> --skills <names>` 只装外部来源技能。只想本次零装、不改长期模式时用 `--no-skills`（与 `--skills` / `--all` / `--no-optional` / `--mode` 互斥）。
 
 ### 项目内装的技能放在哪、队友 clone 后要重装吗？
 

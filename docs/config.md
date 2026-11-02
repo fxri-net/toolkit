@@ -225,9 +225,10 @@ CLI 每次命令执行时**同步读取本地缓存**，检测到新版本时向
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
-| `selection` | object | 无 | 来源 → 技能名数组；内置源键为 `toolkit`。`toolkit skills install` 成功后写回，重装 / `status` 按此回显选择集；未保存过时首次只装 `core` 技能 |
+| `selection` | object | 无 | 来源 → 技能名数组；内置源键为 `toolkit`。`toolkit skills install` 成功后写回，重装 / `status` 按此回显选择集；未保存过时按 `mode` 默认（`skills` 装 `core`、`package` 零装） |
 | `targets` | string[] | 无 | 长期目标选择：`canonical`（主目标）与各 agent 的 `name`（如 `claude-code`、`cursor`）。安装 / 交互选择后写回；未保存过时首次写全部可用目标；`--no-save-agents` 不写回；`--dir` 自定义目录不进入本字段 |
 | `sources` | object | 无 | 永久外部来源登记：本地来源写 `{ "root": "<绝对路径>" }`，远程来源写 `{ "url": "<Git 地址>", "ref": "<可选 ref>" }`。由 `toolkit skills install --from <path|url> --save [name]` 写入；启动时自动解析并纳入安装 / 状态，远程来源使用用户级缓存，来源失效时告警跳过 |
+| `mode` | string | `skills` | 安装模式：`skills`（core 必装）/ `package`（纯包管理器，全部可选、允许零选）；由 `toolkit skills install --mode` 写入，非法值告警后按 `skills` 处理 |
 
 ```json
 {
@@ -248,8 +249,9 @@ CLI 每次命令执行时**同步读取本地缓存**，检测到新版本时向
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
-| `selection` | string[] | 无 | 项目面选择集（技能名数组），由 `toolkit skills install --scope project` 成功后写回；未保存过时首次只装 `core` |
+| `selection` | string[] | 无 | 项目面选择集（技能名数组），由 `toolkit skills install --scope project` 成功后写回；未保存过时按 `mode` 默认（`skills` 装 `core`、`package` 零装） |
 | `targets` | string[] | 无 | 长期薄壳目录选择：仓库根相对的候选目录（如 `.trae/skills`）。安装 / 交互选择后写回；未保存过时首次写全部已存在候选目录；`prepare` 等非交互场景按此刷新，不新增未选择目录 |
+| `mode` | string | `skills` | 项目面安装模式：`skills` / `package`；由 `toolkit skills install --scope project --mode` 写入，零选择时不生成技能薄壳与 `.toolkit/state.json` |
 
 ```json
 {

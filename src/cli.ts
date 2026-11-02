@@ -49,6 +49,7 @@ import {
   readProjectSkillsConfig,
   readSkillsInstallConfig,
   readSkillsState,
+  writeProjectSkillsConfig,
   removeProjectSkills,
   removeSkills,
   resolveSource,
@@ -67,6 +68,7 @@ import {
   type ProjectStatusReport,
   type SkillItem,
   type SkillItemState,
+  type SkillsMode,
   type SkillsRemoveReport,
   type SkillsStatusReport,
 } from "./skills"
@@ -256,32 +258,39 @@ type SkillSelectionFace = "global" | "project"
 // 解析本次技能选择：显式参数 > --all / --no-optional > 已保存选择 > 首次只装 core
 // TTY 下未传 --yes 时进入方向键多选；用户取消返回 null（调用方不得写任何文件）
 async function resolveSkillSelection(
-  options: { skills?: string; all?: boolean; optional?: boolean; yes?: boolean },
+  options: { skills?: string; all?: boolean; optional?: boolean; yes?: boolean; mode?: string; noSkills?: boolean },
   face: SkillSelectionFace,
   skills: SkillItem[],
-): Promise<string[] | null> {
+): Promise<{ names: string[]; mode: SkillsMode; saveSelection: boolean } | null> {
+  const configuredMode = face === "global" ? readSkillsInstallConfig().mode : readProjectSkillsConfig().mode
+  const mode: SkillsMode = options.mode === "package" || options.mode === "skills" ? options.mode : configuredMode ?? "skills"
+  // --no-skills：本次零装，不改模式与保存选择
+  if (options.noSkills) return { names: [], mode, saveSelection: false }
   let saved: string[] | undefined
-  if (face === "global") {
-    const bySource = readSkillsInstallConfig().selection
-    // 按来源回显：已登记的来源用保存值，新来源默认全选，避免新增外部来源被静默漏装
-    saved =
-      bySource && Object.keys(bySource).length > 0
-        ? skills
-            .filter((item) => {
-              const names = bySource[item.source]
-              return names === undefined || names.includes(item.name)
-            })
-            .map((item) => item.name)
-        : undefined
-  } else {
-    const flat = readProjectSkillsConfig().selection
-    // 项目面选择集是平铺名单；外部来源未单独登记时默认选中
-    saved =
-      flat && flat.length > 0
-        ? [...new Set([...flat, ...skills.filter((item) => item.sourceKind !== "builtin").map((item) => item.name)])].filter((name) =>
-            skills.some((item) => item.name === name),
-          )
-        : undefined
+  // --mode 显式切换时按新模式基线，不沿用旧模式的保存选择
+  if (options.mode === undefined) {
+    if (face === "global") {
+      const bySource = readSkillsInstallConfig().selection
+      // 按来源回显：已登记的来源用保存值，新来源默认全选，避免新增外部来源被静默漏装
+      saved =
+        bySource && Object.keys(bySource).length > 0
+          ? skills
+              .filter((item) => {
+                const names = bySource[item.source]
+                return names === undefined || names.includes(item.name)
+              })
+              .map((item) => item.name)
+          : undefined
+    } else {
+      const flat = readProjectSkillsConfig().selection
+      // 项目面选择集是平铺名单；外部来源未单独登记时默认选中
+      saved =
+        flat && flat.length > 0
+          ? [...new Set([...flat, ...skills.filter((item) => item.sourceKind !== "builtin").map((item) => item.name)])].filter((name) =>
+              skills.some((item) => item.name === name),
+            )
+          : undefined
+    }
   }
   // 显式传了 --skills 但取值为空（如 --skills ""）按全部非法处理，不静默当作未传
   const explicit = options.skills !== undefined ? (splitMulti(options.skills) ?? []) : undefined
@@ -291,6 +300,7 @@ async function resolveSkillSelection(
     explicit,
     all: Boolean(options.all),
     noOptional: options.optional === false,
+    mode,
     interactive: isInteractiveTty(),
     yes: Boolean(options.yes),
   })
@@ -307,14 +317,14 @@ async function resolveSkillSelection(
     if (result.missing.length > 0) console.warn(`⚠️ 忽略缺失的依赖技能：${result.missing.join("、")}`)
     return result.names
   }
-  if (!plan.needsPrompt) return expand(plan.names)
-  const picked = await promptSkillSelection(skills, saved)
+  if (!plan.needsPrompt) return { names: expand(plan.names), mode, saveSelection: true }
+  const picked = await promptSkillSelection(skills, saved, mode)
   if (picked === null) {
     console.error("已取消技能选择，未写入任何文件")
     process.exitCode = 130
     return null
   }
-  return expand(picked)
+  return { names: expand(picked), mode, saveSelection: true }
 }
 
 // 解析 --agent 取值：已知目标名与未知项分开；全部非法由调用方报错退出
@@ -792,13 +802,32 @@ skillsCmd
   .option("--dry-run", "预演（只预览将要执行的动作，不写文件）")
   .option("--force", "覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）")
   .option("--prune", "清理未选择且内容与本包真源一致的旧产物（只清本包登记条目）")
+  .option("--mode <mode>", "技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）")
+  .option("--no-skills", "本次不安装任何技能，不改模式与已保存选择")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
-  .action(async (options: { scope?: string; skills?: string; all?: boolean; optional?: boolean; from: string[]; save?: string | boolean; agent?: string; allAgents?: boolean; saveAgents?: boolean; yes?: boolean; copy?: boolean; dir: string[]; dryRun?: boolean; force?: boolean; prune?: boolean; format?: string }) => {
+  .action(async (options: { scope?: string; skills?: string; all?: boolean; optional?: boolean; from: string[]; save?: string | boolean; agent?: string; allAgents?: boolean; saveAgents?: boolean; yes?: boolean; copy?: boolean; dir: string[]; dryRun?: boolean; force?: boolean; prune?: boolean; mode?: string; format?: string }) => {
     try {
       if (!assertJsonFormat(options.format)) return
       const scope = resolveScopeChoice(options.scope)
       if (!scope) return
       const dryRun = Boolean(options.dryRun)
+      // --no-skills 用 argv 判定：commander 的 --no- 前缀默认值会与 --skills 的字符串属性冲突
+      const noSkills = process.argv.includes("--no-skills")
+      if (options.mode !== undefined && options.mode !== "skills" && options.mode !== "package") {
+        console.error("⚠️ --mode 取值须为 skills 或 package，未执行安装")
+        process.exitCode = 1
+        return
+      }
+      if (options.mode !== undefined && noSkills) {
+        console.error("⚠️ --mode 与 --no-skills 不能同时使用，未执行安装")
+        process.exitCode = 1
+        return
+      }
+      if (noSkills && (typeof options.skills === "string" || options.all || options.optional === false)) {
+        console.error("⚠️ --no-skills 与 --skills / --all / --no-optional 不能同时使用，未执行安装")
+        process.exitCode = 1
+        return
+      }
       const runProject = scope.choice !== "global"
       const runGlobal = scope.choice !== "project"
       // JSON 消费方通常非 TTY；即使 TTY 也不弹窗，避免提示污染 stdout 的机器可读输出
@@ -824,8 +853,19 @@ skillsCmd
         return
       }
       // scope=all 时两面共用一次技能选择：以全局面已保存选择为基准，避免连弹两次交互
-      const selection = await resolveSkillSelection({ ...options, yes: nonInteractive }, scope.choice === "project" ? "project" : "global", items)
-      if (!selection) return
+      const selectionResult = await resolveSkillSelection(
+        { ...options, skills: noSkills ? undefined : options.skills, noSkills, yes: nonInteractive },
+        scope.choice === "project" ? "project" : "global",
+        items,
+      )
+      if (!selectionResult) return
+      const selection = selectionResult.names
+      // 模式切换在技能选择解析后、安装前持久化；--dry-run 不写
+      if (options.mode !== undefined && !dryRun) {
+        const mode = options.mode as SkillsMode
+        if (scope.choice === "global" || scope.choice === "all") writeSkillsInstallConfig({ mode })
+        if (scope.choice === "project" || scope.choice === "all") writeProjectSkillsConfig({ mode })
+      }
 
       let globalTargets: string[] | undefined
       let projectTargets: string[] | undefined
@@ -863,8 +903,38 @@ skillsCmd
 
       if (runProject && options.copy) console.warn("⚠️ 项目面不支持 --copy（真源恒为副本、各候选目录恒为薄壳），已忽略该项目面取值")
       const saveTargets = options.saveAgents === false ? false : undefined
-      const project = runProject ? installProjectSkills({ dirs: options.dir, dryRun, force: options.force, skills: selection, targetDirs: projectTargets, saveTargets, prune: Boolean(options.prune), externalSources }) : null
-      const global = runGlobal ? installSkills({ copy: options.copy, dirs: options.dir, dryRun, force: options.force, skills: selection, targets: globalTargets, saveTargets, prune: Boolean(options.prune), externalSources }) : null
+      const project = runProject
+        ? installProjectSkills({
+            dirs: options.dir,
+            dryRun,
+            force: options.force,
+            skills: selection,
+            targetDirs: projectTargets,
+            saveTargets,
+            prune: Boolean(options.prune),
+            externalSources,
+            saveSelection: selectionResult.saveSelection,
+            mode: selectionResult.mode,
+          })
+        : null
+      const global = runGlobal
+        ? installSkills({
+            copy: options.copy,
+            dirs: options.dir,
+            dryRun,
+            force: options.force,
+            skills: selection,
+            targets: globalTargets,
+            saveTargets,
+            prune: Boolean(options.prune),
+            externalSources,
+            saveSelection: selectionResult.saveSelection,
+            mode: selectionResult.mode,
+          })
+        : null
+      if (selection.length === 0) {
+        console.log(selectionResult.mode === "package" ? "纯包管理器模式：本次未安装任何技能" : "未选择任何技能")
+      }
       // 写入顺序：产物 → 状态 → 配置；--save 在安装成功后才登记，登记失败不回滚产物
       if (!dryRun && options.save !== undefined && externalSources.length === 1) {
         try {

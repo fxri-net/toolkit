@@ -141,6 +141,9 @@ export const AGENT_SKILL_DIRS: AgentEntry[] = [
   { name: "universal", label: "Universal", dir: ".config/agents/skills", dirEnv: "XDG_CONFIG_HOME" },
 ]
 
+// 技能安装模式：skills 保持 core 必装；package 纯包管理器，允许零选择
+export type SkillsMode = "skills" | "package"
+
 // 包内技能（含 SKILL.md 的目录才算）
 export interface PackageSkill {
   name: string
@@ -241,7 +244,9 @@ export interface CanonicalReader {
 export interface SkillsStatusReport {
   source: string
   skills: string[]
-  // 本次生效的技能选择集（未保存过选择时按 core 处理）
+  // 当前生效的安装模式
+  mode: SkillsMode
+  // 本次生效的技能选择集（未保存过选择时按模式默认处理）
   selection: string[]
   // 本次生效的目标选择集（canonical / agent name；空数组表示沿用全部可用目标）
   targetSelection: string[]
@@ -283,6 +288,7 @@ export interface InstallReport {
   source: string
   skills: string[]
   selection: string[]
+  mode: SkillsMode
   // 本次写入的目标名（canonical / agent name）；--dir 自定义目录不计入
   targetSelection: string[]
   targets: TargetInstallResult[]
@@ -376,6 +382,7 @@ export interface ProjectInstallReport {
   root: string
   skills: string[]
   selection: string[]
+  mode: SkillsMode
   // 本次写入的薄壳目录（仓库根相对）
   targetSelection: string[]
   source: ProjectDirResult
@@ -412,6 +419,7 @@ export interface ProjectStatusReport {
   root: string
   sourceDir: string
   skills: string[]
+  mode: SkillsMode
   selection: string[]
   // 本次生效的项目薄壳目录选择集（仓库根相对；未保存过选择时为空数组，表示沿用全部已存在候选目录）
   targetSelection: string[]

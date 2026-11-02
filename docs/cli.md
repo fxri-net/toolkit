@@ -173,14 +173,16 @@ toolkit skills install              # 安装包内技能（缺省按现场判定
 toolkit skills install --scope project # 仅项目面：仓库内唯一真源副本 + 各候选目录薄壳
 toolkit skills install --scope global  # 仅全局面：软链 / 副本到各 agent 全局技能目录
 toolkit skills install --scope all     # 项目面 + 全局面都执行
-toolkit skills install --skills fxri-plan-to-task,fxri-text-encoding # 只装指定技能（core 恒装，逗号分隔）
+toolkit skills install --skills fxri-plan-to-task,fxri-text-encoding # 只装指定技能（skills 模式下 core 恒装，逗号分隔）
 toolkit skills install --all        # 安装全部技能（含可选技能）
 toolkit skills install --no-optional # 只装 core 技能
-toolkit skills install --yes        # 接受已保存的技能与目标选择，不进入交互（首次只装 core 与全部可用目标）
+toolkit skills install --yes        # 接受已保存的技能与目标选择，不进入交互（首次按模式默认：skills 装 core、package 零装）
 toolkit skills install --agent claude-code,canonical # 只写指定 agent（逗号分隔；canonical 为主目标）
 toolkit skills install --all-agents # 写入全部已检测的 agent
 toolkit skills install --no-save-agents # 目标选择只对本次生效，不写回配置
 toolkit skills install --prune      # 清理未选择且内容与本包真源一致的旧产物
+toolkit skills install --mode package # 纯包管理器模式：core 也可不装，允许零选
+toolkit skills install --no-skills  # 仅本次零装，不改模式与已保存选择
 toolkit skills install --copy       # 强制副本形式（仅全局面生效；项目面真源恒为副本、薄壳非副本，忽略并告警）
 toolkit skills install --dry-run    # 预演：只预览将执行的动作，不写文件
 toolkit skills install --force      # 覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
@@ -213,19 +215,21 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 | `sources` | 列出已登记永久来源与状态中的临时来源（来源名 / 根目录 / 技能清单）；`sources remove <name>` 注销登记（产物与状态保留），加 `--prune` 一并清理；`--format json` 输出机器可读清单 |
 | `path` | 输出包根（内含 `skills/`），便于委托上游安装器安装到内置表未收录的 agent；`--format json` 输出包根、技能源目录与技能清单 |
 
-四个子命令的 `--format json` 输出统一携带 `schemaVersion: 1` 锚点（与 `tasks --export` 同口径）；`install` / `status` / `remove` 的输出另含 `scope`（本次实际作用域）与 `dryRun`（供消费方区分预演与实跑），报告主体按 `global` / `project` 两个字段分面承载（未执行的面为 `null`）；`install` 与 `status` 报告含 `selection`（技能选择集）与 `targetSelection`（目标选择集），`status` 两面报告另含 `skillVersions`（各技能真源版本，用于与会话上下文中已加载的技能内容对照）。
+四个子命令的 `--format json` 输出统一携带 `schemaVersion: 1` 锚点（与 `tasks --export` 同口径）；`install` / `status` / `remove` 的输出另含 `scope`（本次实际作用域）与 `dryRun`（供消费方区分预演与实跑），报告主体按 `global` / `project` 两个字段分面承载（未执行的面为 `null`）；`install` 与 `status` 报告含 `mode`（当前安装模式）、`selection`（技能选择集）与 `targetSelection`（目标选择集），`status` 两面报告另含 `skillVersions`（各技能真源版本，用于与会话上下文中已加载的技能内容对照）。
 
 ### 技能选择
 
-技能按 `SKILL.md` frontmatter 的 `metadata.tier` 分层：`core` 必装、不可取消，`optional` 安装时可选，缺省按 `optional` 处理。当前 `fxri-plan-to-task`、`fxri-session-recap` 为 `core`，`fxri-release-changelog`、`fxri-text-encoding` 为 `optional`。
+技能按 `SKILL.md` frontmatter 的 `metadata.tier` 分层：`skills` 模式（默认）`core` 必装、不可取消，`optional` 安装时可选；`package` 模式（纯包管理器）全部技能均可选、允许零选择。缺省按 `optional` 处理。当前 `fxri-plan-to-task`、`fxri-session-recap` 为 `core`，`fxri-release-changelog`、`fxri-text-encoding` 为 `optional`。
+
+模式优先级：`--mode package|skills` 先切换并持久化，再按新模式重建基线（`package` 为空、`skills` 为 `core`），不沿用旧模式的保存选择；`--no-skills` 仅本次零装，不改模式与已保存选择，且与 `--skills` / `--all` / `--no-optional` / `--mode` 互斥。
 
 选择优先级（从高到低）：
 
-1. `--skills <names>`：只装指定技能（逗号分隔），`core` 技能恒装；包内不存在的名称告警后剔除，全部非法时报错退出（退出码 1）
+1. `--skills <names>`：只装指定技能（逗号分隔），`skills` 模式下 `core` 技能恒装；包内不存在的名称告警后剔除，全部非法时报错退出（退出码 1）
 2. `--all`：安装全部技能；`--no-optional`：只装 `core` 技能
-3. TTY 交互：未传上述参数且未传 `--yes` 时，以方向键多选列出技能，`core` 已选中且不可取消；`Enter` 确认、`Ctrl+C` 取消（取消时不写任何文件，退出码 130）
+3. TTY 交互：未传上述参数且未传 `--yes` 时，以方向键多选列出技能；`skills` 模式下 `core` 已选中且不可取消，`package` 模式下全部默认不选、`core` 可取消；`Enter` 确认、`Ctrl+C` 取消（取消时不写任何文件，退出码 130）
 4. 已保存选择：非 TTY、传入 `--yes` 或交互取消后无写入时，按 `~/.toolkitrc.json` 的 `skillsInstall.selection` / 项目层 `.toolkitrc.json` 的 `projectSkills.selection` 回显
-5. 首次（无保存选择）：只装 `core` 技能
+5. 首次（无保存选择）：`skills` 模式只装 `core` 技能；`package` 模式零装
 
 选择集在安装成功后写回对应层配置（`--dry-run` 不写），项目面与全局面各自独立。收窄选择后，未被选择但仍有产物的技能在 `status` 中单列为「未选择但已安装」，不计入问题；需要清理时加 `--prune` 重跑 `install`，只删除本包登记且内容与真源一致的条目。
 

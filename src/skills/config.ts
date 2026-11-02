@@ -6,7 +6,7 @@ import { dirname, join, resolve } from "node:path"
 import { getHomeDir, inspectConfigLayers, resetToolkitConfigCache } from "../config"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
-import { BUILTIN_SOURCE } from "./types"
+import { BUILTIN_SOURCE, type SkillsMode } from "./types"
 
 // 外部来源登记：本地来源记 root（绝对路径），远程来源记 url 与可选 ref
 export interface ExternalSourceConfig {
@@ -20,12 +20,14 @@ export interface SkillsInstallConfig {
   targets?: string[]
   sources?: Record<string, ExternalSourceConfig>
   selection?: Record<string, string[]>
+  mode?: SkillsMode
 }
 
 // 项目段：targets 为项目相对目录数组；selection 为技能名数组（项目面只有内置源）
 export interface ProjectSkillsConfig {
   targets?: string[]
   selection?: string[]
+  mode?: SkillsMode
 }
 
 // 告警去重集合：同一进程内同一个「文件 + 段 + 原因」只提示一次，避免 status 多次读取刷屏
@@ -120,6 +122,7 @@ export function readSkillsInstallConfig(startDir = process.cwd()): SkillsInstall
     targets: parseStringArray("skillsInstall", "targets", section.targets, layers.global.file),
     sources: parseSources(section.sources, layers.global.file),
     selection: parseSourceSelection(section.selection, layers.global.file),
+    mode: parseMode("skillsInstall", section.mode, layers.global.file),
   }
 }
 
@@ -133,7 +136,16 @@ export function readProjectSkillsConfig(cwd = process.cwd()): ProjectSkillsConfi
   return {
     targets: parseStringArray("projectSkills", "targets", section.targets, layers.project.file),
     selection: parseStringArray("projectSkills", "selection", section.selection, layers.project.file),
+    mode: parseMode("projectSkills", section.mode, layers.project.file),
   }
+}
+
+// 模式解析：只接受 skills / package；非法值告警后按未配置处理
+function parseMode(section: string, value: unknown, file: string | null): SkillsMode | undefined {
+  if (value === undefined) return undefined
+  if (value === "skills" || value === "package") return value
+  warnInvalid(section, "mode", file, "须为 skills 或 package")
+  return undefined
 }
 
 // 取内置源的选择集：未保存过选择时返回 undefined，由调用方回落「全部技能」
