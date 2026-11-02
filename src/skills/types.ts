@@ -149,6 +149,8 @@ export interface PackageSkill {
   version: string
   // SKILL.md frontmatter metadata.tier；缺省按 optional
   tier: SkillTier
+  // SKILL.md frontmatter metadata.requires；缺省为空数组
+  requires: string[]
 }
 
 // 统一技能条目：内置源与外部来源共用同一视图，安装 / 选择 / 状态按此遍历

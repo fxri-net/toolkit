@@ -146,6 +146,17 @@ export function readSkillTier(dir: string): SkillTier {
   return readFrontmatterIndented(dir, "tier") === "core" ? "core" : "optional"
 }
 
+// 读取依赖声明：frontmatter metadata.requires，支持 [a, b] 行内数组与单值
+export function readSkillRequires(dir: string): string[] {
+  const raw = readFrontmatterIndented(dir, "requires")
+  if (!raw) return []
+  const inner = raw.startsWith("[") && raw.endsWith("]") ? raw.slice(1, -1) : raw
+  return inner
+    .split(",")
+    .map((item) => item.trim().replace(/^["']|["']$/g, ""))
+    .filter(Boolean)
+}
+
 // 读取 frontmatter metadata 下的单个缩进键值
 function readFrontmatterIndented(dir: string, key: string): string {
   try {
@@ -208,7 +219,7 @@ export function listPackageSkills(): PackageSkill[] {
       continue
     }
     if (!existsSync(join(dir, SKILL_ENTRY))) continue
-    out.push({ name, dir, version: readSkillVersion(dir), tier: readSkillTier(dir) })
+    out.push({ name, dir, version: readSkillVersion(dir), tier: readSkillTier(dir), requires: readSkillRequires(dir) })
   }
   return out
 }
@@ -303,7 +314,13 @@ function assertInsideSource(root: string, dir: string): string {
 
 // 构造包内技能条目：名称优先取 frontmatter name，其次目录名
 function packageSkill(dir: string, name?: string): PackageSkill {
-  return { name: name || readSkillName(dir) || basename(dir), dir, version: readSkillVersion(dir), tier: readSkillTier(dir) }
+  return {
+    name: name || readSkillName(dir) || basename(dir),
+    dir,
+    version: readSkillVersion(dir),
+    tier: readSkillTier(dir),
+    requires: readSkillRequires(dir),
+  }
 }
 
 // 解析外部本地来源：支持根 SKILL.md 单技能、skills/*/SKILL.md 多技能、skills.json 清单三种形态
@@ -384,6 +401,28 @@ export function assertUniqueSkillNames(items: SkillItem[]): void {
     if (previous !== undefined) throw new Error(`技能名冲突：${item.name}（来源 ${previous} / ${item.source}）`)
     seen.set(item.name, item.source)
   }
+}
+
+// 依赖展开：按 requires 递归补全技能名；缺失依赖单独回报，由调用方告警
+export function expandSkillRequires(items: SkillItem[], names: string[]): { names: string[]; missing: string[] } {
+  const byName = new Map(items.map((item) => [item.name, item]))
+  const result = new Set(names)
+  const missing = new Set<string>()
+  const visit = (name: string): void => {
+    const item = byName.get(name)
+    if (!item) return
+    for (const dep of item.requires) {
+      if (!byName.has(dep)) {
+        missing.add(dep)
+        continue
+      }
+      if (result.has(dep)) continue
+      result.add(dep)
+      visit(dep)
+    }
+  }
+  for (const name of names) visit(name)
+  return { names: [...result], missing: [...missing] }
 }
 
 // 路径比较键：先解析为绝对路径，再走统一比较口径（分隔符正斜杠 + 去尾斜杠 + 大小写折叠）

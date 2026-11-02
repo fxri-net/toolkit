@@ -24,12 +24,12 @@ let home = ""
 // 临时工作目录（外部来源与项目目录落点）
 let work = ""
 
-// 写一份最小技能：frontmatter name / version / tier
-function writeSkill(dir: string, name: string, version = "1.0.0", tier: "core" | "optional" = "optional"): void {
+// 写一份最小技能：frontmatter name / version / tier / requires
+function writeSkill(dir: string, name: string, version = "1.0.0", tier: "core" | "optional" = "optional", requires: string[] = []): void {
   mkdirSync(dir, { recursive: true })
   writeFileSync(
     join(dir, "SKILL.md"),
-    `---\nname: ${name}\ndescription: 外部测试技能 ${name}\nlicense: MIT\nmetadata:\n  version: "${version}"\n  tier: ${tier}\n---\n\n# ${name}\n\n> 本技能版本 ${version}（测试）\n`,
+    `---\nname: ${name}\ndescription: 外部测试技能 ${name}\nlicense: MIT\nmetadata:\n  version: "${version}"\n  tier: ${tier}\n  requires: [${requires.join(", ")}]\n---\n\n# ${name}\n\n> 本技能版本 ${version}（测试）\n`,
     "utf8",
   )
 }
@@ -170,6 +170,15 @@ describe("外部来源安装与卸载", () => {
   it("来源登记写入全局层 sources", () => {
     writeSkillsInstallConfig({ sources: { play: { root: join(work, "play") } } })
     expect(readSkillsInstallConfig().sources).toEqual({ play: { root: join(work, "play") } })
+  })
+
+  it("requires 依赖自动补全：选择 php 时一并安装 svc", () => {
+    const root = join(work, "requires")
+    writeSkill(join(root, "skills", "fxri-dev-profile-svc"), "fxri-dev-profile-svc")
+    writeSkill(join(root, "skills", "fxri-dev-profile-php"), "fxri-dev-profile-php", "1.0.0", "optional", ["fxri-dev-profile-svc"])
+    installSkills({ skills: ["fxri-dev-profile-php"], targets: ["canonical"], externalSources: [{ path: root, name: "req", temporary: true }] })
+    expect(existsSync(join(home, ".agents", "skills", "fxri-dev-profile-php", "SKILL.md"))).toBe(true)
+    expect(existsSync(join(home, ".agents", "skills", "fxri-dev-profile-svc", "SKILL.md"))).toBe(true)
   })
 })
 

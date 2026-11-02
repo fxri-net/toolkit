@@ -35,6 +35,7 @@ import {
   buildProjectTargetChoices,
   collectSkillItems,
   detectSkillScope,
+  expandSkillRequires,
   installProjectSkills,
   installSkills,
   isInteractiveTty,
@@ -299,14 +300,20 @@ async function resolveSkillSelection(
   }
   if (plan.invalid.length > 0) console.warn(`⚠️ 忽略不存在的技能：${plan.invalid.join("、")}`)
   if (plan.savedInvalid.length > 0) console.warn(`⚠️ 已保存的技能选择含不存在的技能：${plan.savedInvalid.join("、")}（已忽略）`)
-  if (!plan.needsPrompt) return plan.names
+  // requires 依赖自动补全：显式选择 php / java 时自动带上 svc
+  const expand = (names: string[]): string[] => {
+    const result = expandSkillRequires(skills, names)
+    if (result.missing.length > 0) console.warn(`⚠️ 忽略缺失的依赖技能：${result.missing.join("、")}`)
+    return result.names
+  }
+  if (!plan.needsPrompt) return expand(plan.names)
   const picked = await promptSkillSelection(skills, saved)
   if (picked === null) {
     console.error("已取消技能选择，未写入任何文件")
     process.exitCode = 130
     return null
   }
-  return picked
+  return expand(picked)
 }
 
 // 解析 --agent 取值：已知目标名与未知项分开；全部非法由调用方报错退出

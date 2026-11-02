@@ -12,6 +12,7 @@ import {
   copyArtifact,
   currentSkillShellVersion,
   dirsEqual,
+  expandSkillRequires,
   isEmptyDir,
   isInside,
   listPackageSkills,
@@ -95,12 +96,15 @@ export interface RemoveSkillsOptions {
   source?: string
 }
 
-// 按选择集过滤统一技能条目：未知名称告警后剔除（降级不静默）
+// 按选择集过滤统一技能条目：未知名称告警后剔除；requires 依赖自动补全，缺失依赖告警
 function filterSkillItems(items: SkillItem[], requested?: string[]): SkillItem[] {
   if (!requested) return items
   const unknown = requested.filter((name) => !items.some((item) => item.name === name))
   if (unknown.length > 0) console.warn(`⚠️ 忽略不存在的技能：${unknown.join("、")}`)
-  const wanted = new Set(requested)
+  const known = requested.filter((name) => items.some((item) => item.name === name))
+  const expanded = expandSkillRequires(items, known)
+  if (expanded.missing.length > 0) console.warn(`⚠️ 忽略缺失的依赖技能：${expanded.missing.join("、")}`)
+  const wanted = new Set(expanded.names)
   return items.filter((item) => wanted.has(item.name))
 }
 

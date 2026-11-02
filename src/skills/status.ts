@@ -127,7 +127,7 @@ function collectStatusSources(state: ReturnType<typeof readSkillsState>): { refs
       const resolved = skills.find((skill) => skill.name === skillName)
       if (resolved) return resolved
       const dir = source.root ? join(source.root, skillName) : skillName
-      return { name: skillName, dir, version: fallbackVersions.get(skillName) ?? "", tier: "optional" }
+      return { name: skillName, dir, version: fallbackVersions.get(skillName) ?? "", tier: "optional", requires: [] }
     })
     addSource(name, source.kind === "builtin" ? "builtin" : "local", source.root, source.version, source.temporary, synthetic)
     // 兜底条目的链接指向按来源根拼，来源缺失时表现为悬空
@@ -290,7 +290,7 @@ export function skillsStatus(): SkillsStatusReport {
     })
   }
 
-  const packageSkills = [...refs.entries()].map(([name, ref]) => ({ name, dir: ref.dir, version: ref.version, tier: ref.tier }))
+  const packageSkills = [...refs.entries()].map(([name, ref]) => ({ name, dir: ref.dir, version: ref.version, tier: ref.tier, requires: [] }))
   return {
     source: skillsSourceDir(),
     skills: allNames,
@@ -401,7 +401,7 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
     if (status.items.length > 0) dirs.push(status)
   }
 
-  const packageSkills = [...refs.entries()].map(([name, ref]) => ({ name, dir: ref.dir, version: ref.version, tier: ref.tier }))
+  const packageSkills = [...refs.entries()].map(([name, ref]) => ({ name, dir: ref.dir, version: ref.version, tier: ref.tier, requires: [] }))
   return {
     root,
     sourceDir: targets.sourceDir,
