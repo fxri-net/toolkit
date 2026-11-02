@@ -1,11 +1,12 @@
 // 技能安装与卸载：全局（软链 / 副本到各 agent 目录）与项目（唯一真源副本 + 各候选目录薄壳）
 // 安装按选择集写产物；--prune 只清理本包登记且内容一致的未选择产物；remove 顺序为「配置 → 产物 → 状态」
-import { existsSync, mkdirSync, readdirSync, rmSync, symlinkSync } from "node:fs"
+import { existsSync, lstatSync, mkdirSync, readdirSync, rmSync, symlinkSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
-import { getConfigSection } from "../config"
+import { getConfigSection, getHomeDir } from "../config"
 import { writeFileAtomic } from "../write-atomic"
 import { readTextFile } from "../read-text"
 import {
+  assertUniqueSkillNames,
   buildSkillShell,
   classifyExisting,
   copyArtifact,
@@ -14,28 +15,31 @@ import {
   isEmptyDir,
   isInside,
   listPackageSkills,
-  packageVersion,
   pathKey,
   readSkillDescription,
   readSkillShellVersion,
   removeArtifact,
+  resolveBuiltinSource,
+  resolveLocalSource,
   resolveProjectTargets,
   resolveSkillTargets,
   resolveTargetsByName,
   skillTargetLabel,
   skillsLinkDir,
   skillsSourceDir,
+  sourceSkillItems,
   targetId,
   toRepoRel,
   writeArtifact,
+  type SkillSource,
 } from "./source"
+import { acquireSkillsLock, projectSkillsLockFile, skillsLockFile } from "./lock"
 import {
   projectStateFile,
   readProjectState,
   readSkillsState,
   removeProjectStateFile,
   skillsStateFile,
-  targetsByDir,
   writeProjectState,
   writeSkillsState,
 } from "./state"
@@ -46,7 +50,6 @@ import {
   STATE_FORMAT,
   STATE_SCHEMA_VERSION,
   type InstallReport,
-  type PackageSkill,
   type ProjectDirResult,
   type ProjectInstallReport,
   type ProjectRemoveReport,
@@ -55,8 +58,8 @@ import {
   type SkillStateEntry,
   type SkillStateSource,
   type SkillStateTarget,
+  type SkillItem,
   type SkillsRemoveReport,
-  type SkillsState,
   type TargetInstallResult,
 } from "./types"
 
@@ -71,44 +74,97 @@ export interface InstallOptions {
   targets?: string[]
   // 是否把本次目标选择写回配置；--no-save-agents 时为 false
   saveTargets?: boolean
+  // 本次临时外部来源（--from）；永久来源从 skillsInstall.sources 读取
+  externalSources?: ExternalSourceOption[]
   // 清理未选择且内容一致的本包产物
   prune?: boolean
+}
+
+// 外部来源入参：path 为来源根，name 可与目录派生名不同（--save 名）
+export interface ExternalSourceOption {
+  path: string
+  name?: string
+  temporary?: boolean
 }
 
 export interface RemoveSkillsOptions {
   dryRun?: boolean
   // 只清理指定技能的选择与产物；省略时清空全部选择
   skills?: string[]
+  // 只清理指定来源的登记与产物；省略时清理全部来源
+  source?: string
 }
 
-// 按选择集过滤包内技能：未知名称告警后剔除（降级不静默）
-function filterSkills(skills: PackageSkill[], requested?: string[]): PackageSkill[] {
-  if (!requested) return skills
-  const unknown = requested.filter((name) => !skills.some((skill) => skill.name === name))
-  if (unknown.length > 0) console.warn(`⚠️ 忽略包内不存在的技能：${unknown.join("、")}`)
+// 按选择集过滤统一技能条目：未知名称告警后剔除（降级不静默）
+function filterSkillItems(items: SkillItem[], requested?: string[]): SkillItem[] {
+  if (!requested) return items
+  const unknown = requested.filter((name) => !items.some((item) => item.name === name))
+  if (unknown.length > 0) console.warn(`⚠️ 忽略不存在的技能：${unknown.join("、")}`)
   const wanted = new Set(requested)
-  return skills.filter((skill) => wanted.has(skill.name))
+  return items.filter((item) => wanted.has(item.name))
 }
 
-// 状态条目：按实际产物形态生成
-function entriesFromResult(result: TargetInstallResult, skills: PackageSkill[]): SkillStateEntry[] {
-  const links = new Set(result.links)
-  const copies = new Set(result.copies)
-  return skills
-    .filter((skill) => links.has(skill.name) || copies.has(skill.name))
-    .map((skill) => ({ name: skill.name, version: skill.version, mode: links.has(skill.name) ? "link" : "copy" }))
+// 收集本次参与安装的来源：内置源 + 已登记永久来源 + 临时 --from
+// 已登记来源失效时告警跳过（不阻断其他来源）；临时来源显式传入，解析失败直接抛错
+export function collectSources(options: { externalSources?: ExternalSourceOption[] } = {}): SkillSource[] {
+  const sources: SkillSource[] = [resolveBuiltinSource()]
+  const config = readSkillsInstallConfig()
+  for (const [name, entry] of Object.entries(config.sources ?? {})) {
+    try {
+      const source = resolveLocalSource(entry.root, { name, temporary: false })
+      const duplicate = sources.find((item) => item.name === source.name)
+      if (duplicate) {
+        if (pathKey(duplicate.root) !== pathKey(source.root)) throw new Error(`来源名冲突：${name}（${duplicate.root} / ${source.root}）`)
+        continue
+      }
+      sources.push(source)
+    } catch (e) {
+      console.warn(`⚠️ 跳过失效的外部来源 ${name}：${(e as Error).message}`)
+    }
+  }
+  for (const ext of options.externalSources ?? []) {
+    const source = resolveLocalSource(ext.path, { name: ext.name, temporary: ext.temporary })
+    const duplicate = sources.find((item) => item.name === source.name)
+    if (duplicate && pathKey(duplicate.root) !== pathKey(source.root)) {
+      throw new Error(`来源名冲突：${source.name}（${duplicate.root} / ${source.root}）`)
+    }
+    if (!duplicate) sources.push(source)
+  }
+  return sources
 }
 
-// 清理未选择的本包产物：只删链接指向本包 / 副本内容与真源一致的条目
-function pruneUnselected(previous: SkillStateTarget | undefined, selected: Set<string>, dir: string, sourceDir: string, linkDir: string): string[] {
+// 收集统一技能条目：CLI 选择交互、安装与状态共用同一份视图
+export function collectSkillItems(options: { externalSources?: ExternalSourceOption[] } = {}): SkillItem[] {
+  const items = collectSources(options).flatMap(sourceSkillItems)
+  assertUniqueSkillNames(items)
+  return items
+}
+
+// 技能名 → 真源目录与链接指向：供修剪与状态判定按来源取真源
+export function skillTargetsBySource(sources: SkillSource[]): Map<string, { dir: string; linkTarget: string }> {
+  const map = new Map<string, { dir: string; linkTarget: string }>()
+  for (const source of sources) {
+    for (const item of sourceSkillItems(source)) map.set(item.name, { dir: item.dir, linkTarget: item.linkTarget })
+  }
+  return map
+}
+
+// 清理未选择的本包产物：只删链接指向本包 / 副本内容与真源一致的条目；来源已不可解析时保留
+function pruneEntries(
+  previous: SkillStateTarget | undefined,
+  selected: Set<string>,
+  dir: string,
+  byName: Map<string, { dir: string; linkTarget: string }>,
+): string[] {
   if (!previous) return []
   const pruned: string[] = []
   for (const entry of previous.entries) {
     if (selected.has(entry.name)) continue
+    const skill = byName.get(entry.name)
+    if (!skill) continue
     const dest = join(dir, entry.name)
-    const source = join(sourceDir, entry.name)
-    const kind = classifyExisting(dest, join(linkDir, entry.name), undefined, source)
-    const consistent = kind === "link-ok" || (kind === "dir" && existsSync(source) && dirsEqual(source, dest))
+    const kind = classifyExisting(dest, skill.linkTarget, undefined, skill.dir)
+    const consistent = kind === "link-ok" || (kind === "dir" && existsSync(skill.dir) && dirsEqual(skill.dir, dest))
     if (!consistent) continue
     try {
       removeArtifact(dest)
@@ -122,9 +178,12 @@ function pruneUnselected(previous: SkillStateTarget | undefined, selected: Set<s
 
 // 安装：对每个可用目标逐个技能做幂等处理——指向正确（含同内容异地锚点）跳过、指向其他版本或悬空重建、非本包实体目录默认跳过（--force 覆盖）
 export function installSkills(options: InstallOptions = {}): InstallReport {
-  const allSkills = listPackageSkills()
-  const skills = filterSkills(allSkills, options.skills)
-  const selected = new Set(skills.map((skill) => skill.name))
+  const sources = collectSources({ externalSources: options.externalSources })
+  const allItems = sources.flatMap(sourceSkillItems)
+  assertUniqueSkillNames(allItems)
+  const items = filterSkillItems(allItems, options.skills)
+  const selected = new Set(items.map((item) => item.name))
+  const byName = new Map(allItems.map((item) => [item.name, { dir: item.dir, linkTarget: item.linkTarget }]))
   // 目标选择：显式参数 > 已保存选择 > 全部可用目标；--dir 始终一次性追加，不参与长期选择
   const savedTargets = readSkillsInstallConfig().targets
   const requestedTargets = options.targets ?? (savedTargets && savedTargets.length > 0 ? savedTargets : undefined)
@@ -144,179 +203,200 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
     }
   }
   const targets = resolved.targets
-  // 期望链接目标：锚点目录下逐技能一项；判型与写链都用它，保证链接指向跨版本存活的入口
-  const linkDir = skillsLinkDir()
-  const sourceDir = skillsSourceDir()
-  const previous = readSkillsState()
-  const previousByDir = targetsByDir(previous)
 
-  const results: TargetInstallResult[] = []
-  const nextTargets: SkillStateTarget[] = []
-  const handled = new Set<string>()
-
-  for (const target of targets) {
-    handled.add(pathKey(target.dir))
-    const result: TargetInstallResult = {
-      dir: target.dir,
-      label: target.label,
-      kind: target.kind,
-      created: [],
-      updated: [],
-      skipped: [],
-      conflicts: [],
-      failed: [],
-      degraded: [],
-      links: [],
-      copies: [],
-      pruned: [],
+  const release = options.dryRun ? null : acquireSkillsLock(skillsLockFile(getHomeDir()))
+  try {
+    const previous = readSkillsState()
+    // 既有登记按「来源 → 目标目录」建索引，供落点形态与修剪按来源取真源
+    const prevBySourceDir = new Map<string, Map<string, SkillStateTarget>>()
+    for (const [sourceName, source] of Object.entries(previous?.sources ?? {})) {
+      const map = new Map<string, SkillStateTarget>()
+      for (const target of source.targets) map.set(pathKey(target.dir), target)
+      prevBySourceDir.set(sourceName, map)
     }
-    const previousEntry = previousByDir.get(pathKey(target.dir))
-    for (const skill of skills) {
-      const dest = join(target.dir, skill.name)
-      const linkTarget = join(linkDir, skill.name)
-      const kind = classifyExisting(dest, linkTarget)
-      // 既有登记：本目标下该技能此前是否由本包以副本形式写入——决定 --force 与裸 install 的落点形态
-      const recordedCopyHere = previousEntry?.entries.some((entry) => entry.name === skill.name && entry.mode === "copy") ?? false
-      if (kind === "link-ok") {
-        result.skipped.push(skill.name)
-        result.links.push(skill.name)
-        continue
+    const nextBySource = new Map<string, SkillStateTarget[]>()
+    for (const source of sources) nextBySource.set(source.name, [])
+    const handled = new Set<string>()
+    const results: TargetInstallResult[] = []
+
+    for (const target of targets) {
+      const dirKey = pathKey(target.dir)
+      handled.add(dirKey)
+      const result: TargetInstallResult = {
+        dir: target.dir,
+        label: target.label,
+        kind: target.kind,
+        created: [],
+        updated: [],
+        skipped: [],
+        conflicts: [],
+        failed: [],
+        degraded: [],
+        links: [],
+        copies: [],
+        pruned: [],
       }
-      if (kind === "dir" && !options.force) {
-        // 实体目录：若状态文件记载为本包副本则比对内容，否则视为用户自装技能不覆盖
-        if (!recordedCopyHere) {
-          result.conflicts.push(skill.name)
+      const entriesBySource = new Map<string, SkillStateEntry[]>()
+      for (const item of items) {
+        const dest = join(target.dir, item.name)
+        const kind = classifyExisting(dest, item.linkTarget)
+        // 既有登记：本目标该来源下此技能此前是否以副本形式写入——决定 --force 与裸 install 的落点形态
+        const recordedCopyHere = prevBySourceDir.get(item.source)?.get(dirKey)?.entries.some((entry) => entry.name === item.name && entry.mode === "copy") ?? false
+        if (kind === "link-ok") {
+          result.skipped.push(item.name)
+          result.links.push(item.name)
+          entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: "link" }])
           continue
         }
-        if (dirsEqual(skill.dir, dest)) {
-          result.skipped.push(skill.name)
-          result.copies.push(skill.name)
+        if (kind === "dir" && !options.force) {
+          // 实体目录：若状态文件记载为本包副本则比对内容，否则视为用户自装技能不覆盖
+          if (!recordedCopyHere) {
+            result.conflicts.push(item.name)
+            continue
+          }
+          if (dirsEqual(item.dir, dest)) {
+            result.skipped.push(item.name)
+            result.copies.push(item.name)
+            entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: "copy" }])
+            continue
+          }
+        }
+        if (kind === "file" && !options.force) {
+          result.conflicts.push(item.name)
           continue
         }
-      }
-      if (kind === "file" && !options.force) {
-        result.conflicts.push(skill.name)
-        continue
-      }
-      // 落点形态沿用既有登记：已登记的副本仍是副本，--force 只解除冲突判定、不把副本翻回软链
-      const useCopy = Boolean(options.copy) || (kind === "dir" && recordedCopyHere)
-      if (options.dryRun) {
-        if (kind === "absent") result.created.push(skill.name)
-        else result.updated.push(skill.name)
-        if (useCopy) result.copies.push(skill.name)
-        else result.links.push(skill.name)
-        continue
-      }
-      try {
-        if (!(kind === "absent")) removeArtifact(dest)
-        const written = writeArtifact(linkTarget, skill.dir, dest, useCopy)
-        if (kind === "absent") result.created.push(skill.name)
-        else result.updated.push(skill.name)
-        if (written.mode === "link") {
-          result.links.push(skill.name)
-        } else {
-          result.copies.push(skill.name)
-          if (written.reason) result.degraded.push({ name: skill.name, reason: written.reason })
-        }
-      } catch (e) {
-        result.failed.push({ name: skill.name, reason: (e as Error).message })
-      }
-    }
-    if (options.prune && !options.dryRun) result.pruned = pruneUnselected(previousEntry, selected, target.dir, sourceDir, linkDir)
-    results.push(result)
-    if (!options.dryRun) {
-      const prunedSet = new Set(result.pruned)
-      const entries = [
-        ...entriesFromResult(result, skills),
-        ...(previousEntry?.entries.filter((entry) => !selected.has(entry.name) && !prunedSet.has(entry.name) && existsSync(join(target.dir, entry.name))) ?? []),
-      ]
-      if (entries.length > 0) {
-        nextTargets.push({ id: previousEntry?.id ?? targetId(target.dir, target.kind), dir: target.dir, label: target.label, kind: target.kind, entries })
-      }
-    }
-  }
-
-  // 未参与本次选择的历史目标：默认保留产物与登记；显式收窄目标选择后，--prune 才清理内容一致的本包产物
-  const pruneDeselected = Boolean(options.prune) && requestedTargets !== undefined
-  for (const target of previousTargets(previous)) {
-    if (handled.has(pathKey(target.dir))) continue
-    let entries = target.entries
-    if (pruneDeselected) {
-      const kept: SkillStateEntry[] = []
-      const pruned: string[] = []
-      for (const entry of entries) {
-        const dest = join(target.dir, entry.name)
-        const source = join(sourceDir, entry.name)
-        const kind = classifyExisting(dest, join(linkDir, entry.name), undefined, source)
-        const consistent = kind === "link-ok" || (kind === "dir" && existsSync(source) && dirsEqual(source, dest))
-        if (!consistent) {
-          kept.push(entry)
+        // 落点形态：临时外部来源恒为副本；已登记副本保持副本；--force 只解除冲突判定
+        const useCopy = Boolean(options.copy) || item.temporary || (kind === "dir" && recordedCopyHere)
+        if (options.dryRun) {
+          if (kind === "absent") result.created.push(item.name)
+          else result.updated.push(item.name)
+          if (useCopy) result.copies.push(item.name)
+          else result.links.push(item.name)
           continue
         }
         try {
-          removeArtifact(dest)
-          pruned.push(entry.name)
-        } catch {
-          // 清理失败保留记录，下次再试
-          kept.push(entry)
+          if (!(kind === "absent")) removeArtifact(dest)
+          const written = writeArtifact(item.linkTarget, item.dir, dest, useCopy)
+          if (kind === "absent") result.created.push(item.name)
+          else result.updated.push(item.name)
+          if (written.mode === "link") result.links.push(item.name)
+          else {
+            result.copies.push(item.name)
+            if (written.reason) result.degraded.push({ name: item.name, reason: written.reason })
+          }
+          entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: written.mode }])
+        } catch (e) {
+          result.failed.push({ name: item.name, reason: (e as Error).message })
         }
       }
-      entries = kept
-      if (pruned.length > 0) {
-        results.push({
-          dir: target.dir,
-          label: target.label || skillTargetLabel(target.dir) || target.dir,
-          kind: target.kind === "primary" || target.kind === "agent" ? target.kind : "custom",
-          created: [],
-          updated: [],
-          skipped: [],
-          conflicts: [],
-          failed: [],
-          degraded: [],
-          links: [],
-          copies: [],
-          pruned,
-        })
+      if (options.prune && !options.dryRun) {
+        for (const source of sources) {
+          result.pruned.push(...pruneEntries(prevBySourceDir.get(source.name)?.get(dirKey), selected, target.dir, byName))
+        }
+      }
+      results.push(result)
+      if (!options.dryRun) {
+        const prunedSet = new Set(result.pruned)
+        for (const source of sources) {
+          const previousTarget = prevBySourceDir.get(source.name)?.get(dirKey)
+          const entries = [
+            ...(entriesBySource.get(source.name) ?? []),
+            ...(previousTarget?.entries.filter((entry) => !selected.has(entry.name) && !prunedSet.has(entry.name) && existsSync(join(target.dir, entry.name))) ?? []),
+          ]
+          if (entries.length > 0) {
+            nextBySource.get(source.name)!.push({
+              id: previousTarget?.id ?? targetId(target.dir, target.kind),
+              dir: target.dir,
+              label: target.label,
+              kind: target.kind,
+              entries,
+            })
+          }
+        }
       }
     }
-    if (entries.length > 0) nextTargets.push({ ...target, entries })
-  }
 
-  if (!options.dryRun) {
-    writeGlobalState(nextTargets, previous)
-    // 未显式传 skills 时本次即安装全部，同样保存选择集，保证 status 回显与现场一致
-    saveGlobalSelection(skills.map((skill) => skill.name))
-    if (options.saveTargets !== false) {
-      const known = new Set(allTargets.filter((target) => target.name).map((target) => target.name))
-      const names = requestedTargets
-        ? requestedTargets.filter((name) => known.has(name))
-        : targets.filter((target) => target.name).map((target) => target.name)
-      saveGlobalTargets([...new Set(names)])
+    // 未参与本次选择的历史目标：默认保留产物与登记；显式收窄目标选择后，--prune 才清理内容一致的本包产物
+    const pruneDeselected = Boolean(options.prune) && requestedTargets !== undefined
+    for (const source of sources) {
+      for (const target of previous?.sources?.[source.name]?.targets ?? []) {
+        if (handled.has(pathKey(target.dir))) continue
+        let entries = target.entries
+        if (pruneDeselected) {
+          const pruned = pruneEntries(target, new Set(), target.dir, byName)
+          if (pruned.length > 0) {
+            results.push({
+              dir: target.dir,
+              label: target.label || skillTargetLabel(target.dir) || target.dir,
+              kind: target.kind === "primary" || target.kind === "agent" ? target.kind : "custom",
+              created: [],
+              updated: [],
+              skipped: [],
+              conflicts: [],
+              failed: [],
+              degraded: [],
+              links: [],
+              copies: [],
+              pruned,
+            })
+            const prunedSet = new Set(pruned)
+            entries = entries.filter((entry) => !prunedSet.has(entry.name))
+          }
+        }
+        if (entries.length > 0) nextBySource.get(source.name)!.push({ ...target, entries })
+      }
     }
-  }
 
-  return {
-    source: sourceDir,
-    skills: skills.map((skill) => skill.name),
-    selection: skills.map((skill) => skill.name),
-    targetSelection: targets.filter((target) => target.name).map((target) => target.name),
-    targets: results,
-    skippedTargets,
-    stateFile: skillsStateFile(),
+    if (!options.dryRun) {
+      // 组装来源状态：本次未参与的历史来源原样保留
+      const nextSources: Record<string, SkillStateSource> = {}
+      for (const [name, source] of Object.entries(previous?.sources ?? {})) {
+        if (!sources.some((item) => item.name === name) && source.targets.length > 0) nextSources[name] = source
+      }
+      for (const source of sources) {
+        const sourceTargets = nextBySource.get(source.name) ?? []
+        if (sourceTargets.length > 0) {
+          nextSources[source.name] = {
+            kind: source.kind,
+            version: source.version,
+            temporary: source.temporary,
+            root: source.root,
+            targets: sourceTargets,
+          }
+        }
+      }
+      writeGlobalSources(nextSources)
+      // 未显式传 skills 时本次即安装全部，同样保存选择集，保证 status 回显与现场一致
+      saveGlobalSelection(sources, items)
+      if (options.saveTargets !== false) {
+        const known = new Set(allTargets.filter((target) => target.name).map((target) => target.name))
+        const names = requestedTargets
+          ? requestedTargets.filter((name) => known.has(name))
+          : targets.filter((target) => target.name).map((target) => target.name)
+        saveGlobalTargets([...new Set(names)])
+      }
+    }
+
+    return {
+      source: skillsSourceDir(),
+      skills: items.map((item) => item.name),
+      selection: items.map((item) => item.name),
+      targetSelection: targets.filter((target) => target.name).map((target) => target.name),
+      targets: results,
+      skippedTargets,
+      stateFile: skillsStateFile(),
+    }
+  } finally {
+    release?.()
   }
 }
 
-// 取状态里的全部目标（本任务只有内置源，仍按来源展开以兼容后续扩展）
-function previousTargets(state: SkillsState | null): SkillStateTarget[] {
-  if (!state) return []
-  return Object.values(state.sources).flatMap((source) => source.targets)
-}
-
-// 保存全局选择集：只合并 skillsInstall 段，保留 targets / sources 与其他来源的选择
-function saveGlobalSelection(names: string[]): void {
+// 保存全局选择集：按来源覆盖本次涉及的选择，保留其他来源与 targets / sources
+function saveGlobalSelection(sources: SkillSource[], items: SkillItem[]): void {
   try {
     const config = readSkillsInstallConfig()
-    const selection = { ...(config.selection ?? {}), [BUILTIN_SOURCE]: names }
+    const selection = { ...(config.selection ?? {}) }
+    for (const source of sources) selection[source.name] = items.filter((item) => item.source === source.name).map((item) => item.name)
     writeSkillsInstallConfig({ selection })
   } catch (e) {
     // 配置写入失败不回滚已安装产物：状态已记录，下次安装会重试保存
@@ -333,111 +413,176 @@ function saveGlobalTargets(names: string[]): void {
   }
 }
 
-// 写全局状态：保留其他来源，重建内置源目标；没有任何目标时不写盘（避免空壳状态文件）
-function writeGlobalState(targets: SkillStateTarget[], previous: SkillsState | null): void {
-  const sources: Record<string, SkillStateSource> = { ...(previous?.sources ?? {}) }
-  sources[BUILTIN_SOURCE] = { kind: "builtin", version: packageVersion(), temporary: false, targets }
-  const hasAny = Object.values(sources).some((source) => source.targets.length > 0)
-  if (!hasAny) return
-  writeSkillsState({ format: STATE_FORMAT, schemaVersion: STATE_SCHEMA_VERSION, updatedAt: new Date().toISOString(), sources })
+// 写全局状态：覆盖本次来源、保留未参与的历史来源；全部为空时删除状态文件
+function writeGlobalSources(sources: Record<string, SkillStateSource>): void {
+  const cleaned = Object.fromEntries(Object.entries(sources).filter(([, source]) => source.targets.length > 0))
+  const file = skillsStateFile()
+  if (Object.keys(cleaned).length === 0) {
+    rmSync(file, { force: true })
+    return
+  }
+  mkdirSync(dirname(file), { recursive: true })
+  writeFileAtomic(
+    file,
+    `${JSON.stringify({ format: STATE_FORMAT, schemaVersion: STATE_SCHEMA_VERSION, updatedAt: new Date().toISOString(), sources: cleaned }, null, 2)}\n`,
+  )
 }
 
-// 清空全局选择：remove 默认清空全部 selection，--skills 只清指定名字；保留 targets / sources 偏好
-function clearGlobalSelection(skills?: string[]): void {
+// 清空全局选择：--source 限定来源、--skills 限定技能名；两者都省略时清空全部
+function clearGlobalSelection(skills?: string[], source?: string): void {
   const config = readSkillsInstallConfig()
   if (!config.selection) return
-  if (!skills) {
+  const next = { ...config.selection }
+  if (!skills && !source) {
     writeSkillsInstallConfig({ selection: undefined })
     return
   }
-  const dropping = new Set(skills)
-  const next: Record<string, string[]> = {}
-  for (const [source, names] of Object.entries(config.selection)) {
-    const kept = names.filter((name) => !dropping.has(name))
-    if (kept.length > 0) next[source] = kept
+  const dropping = new Set(skills ?? [])
+  for (const name of Object.keys(next)) {
+    if (source && name !== source) continue
+    const kept = skills ? (next[name] ?? []).filter((item) => !dropping.has(item)) : []
+    if (kept.length > 0) next[name] = kept
+    else delete next[name]
   }
   writeSkillsInstallConfig({ selection: Object.keys(next).length > 0 ? next : undefined })
 }
 
+// 移除来源登记：sources 与 selection 同时删；调用方须在删产物前完成
+function removeSourceConfig(sourceName: string): void {
+  const config = readSkillsInstallConfig()
+  const sources = { ...(config.sources ?? {}) }
+  delete sources[sourceName]
+  const selection = { ...(config.selection ?? {}) }
+  delete selection[sourceName]
+  writeSkillsInstallConfig({
+    sources: Object.keys(sources).length > 0 ? sources : undefined,
+    selection: Object.keys(selection).length > 0 ? selection : undefined,
+  })
+}
+
+// 来源 → 技能名映射：内置源取包内真源，外部来源按状态登记的 root 重新解析；来源失效时返回空映射
+export function sourceSkillMap(name: string, source: SkillStateSource): Map<string, { dir: string; linkTarget: string }> {
+  if (name === BUILTIN_SOURCE || source.kind === "builtin") return skillTargetsBySource([resolveBuiltinSource()])
+  if (!source.root || !existsSync(source.root)) return new Map()
+  try {
+    return skillTargetsBySource([resolveLocalSource(source.root, { name, temporary: source.temporary })])
+  } catch {
+    return new Map()
+  }
+}
+
 // 卸载：只处理状态文件记载的本包产物；链接（含悬空）直接摘除，副本内容与真源一致才删，其余交人工确认
-// 顺序：先清选择配置（失败即中止、不删产物）→ 清产物 → 重写状态
+// 顺序：先清选择 / 来源配置（失败即中止、不删产物）→ 清产物 → 重写状态
 export function removeSkills(options: RemoveSkillsOptions = {}): SkillsRemoveReport {
   const stateFile = skillsStateFile()
   // 配置写失败直接向上抛出：调用方捕获后不得继续删产物；预演不改任何文件
-  if (!options.dryRun) clearGlobalSelection(options.skills)
-  const state = readSkillsState()
-  if (!state) return { stateFile, stateExists: false, targets: [], stateRemoved: false }
-
-  const wanted = options.skills ? new Set(options.skills) : null
-  const sourceDir = skillsSourceDir()
-  const linkDir = skillsLinkDir()
-  const results: RemoveResult[] = []
-  let failed = false
-  let changed = false
-  const nextSources: Record<string, SkillStateSource> = {}
-
-  for (const [sourceName, source] of Object.entries(state.sources)) {
-    const nextTargets: SkillStateTarget[] = []
-    for (const target of source.targets) {
-      const result: RemoveResult = { dir: target.dir, label: target.label || skillTargetLabel(target.dir) || null, removed: [], missing: [], skippedForeign: [], dirReclaimed: false }
-      const kept: SkillStateEntry[] = []
-      for (const entry of target.entries) {
-        if (wanted && !wanted.has(entry.name)) {
-          kept.push(entry)
-          continue
-        }
-        const dest = join(target.dir, entry.name)
-        const sourcePath = join(sourceDir, entry.name)
-        // 链接锚点改造前后的两种指向都算本包产物，避免 autoLink 关闭时漏摘旧锚点链接；副本比对仍以真源为准
-        const kind = classifyExisting(dest, sourcePath, undefined, join(linkDir, entry.name))
-        if (kind === "absent") {
-          result.missing.push(entry.name)
-          changed = true
-          continue
-        }
-        if (kind === "wrong" || kind === "file" || (kind === "dir" && !dirsEqual(sourcePath, dest))) {
-          result.skippedForeign.push(entry.name)
-          kept.push(entry)
-          continue
-        }
-        if (options.dryRun) {
-          result.removed.push(entry.name)
-          continue
-        }
-        try {
-          removeArtifact(dest)
-          result.removed.push(entry.name)
-          changed = true
-        } catch {
-          failed = true
-          result.skippedForeign.push(entry.name)
-          kept.push(entry)
-        }
-      }
-      // 清理后目标目录已空则一并回收，避免留下空壳目录（dryRun 不动现场；非空或不可读时跳过）
-      if (!options.dryRun && isEmptyDir(target.dir)) {
-        try {
-          rmSync(target.dir, { recursive: true, force: true })
-          result.dirReclaimed = true
-        } catch {
-          // 回收失败不影响卸载结果：产物已清理，仅多留一个空目录
-        }
-      }
-      results.push(result)
-      if (kept.length > 0) nextTargets.push({ ...target, entries: kept })
-    }
-    if (nextTargets.length > 0) nextSources[sourceName] = { ...source, targets: nextTargets }
-  }
-
-  const nothingLeft = results.every((result) => result.skippedForeign.length === 0)
-  const stateRemoved = !options.dryRun && !failed && nothingLeft && Object.keys(nextSources).length === 0
   if (!options.dryRun) {
-    if (stateRemoved) rmSync(stateFile, { force: true })
-    else if (changed || Object.keys(nextSources).length !== Object.keys(state.sources).length) {
-      writeSkillsState({ format: STATE_FORMAT, schemaVersion: STATE_SCHEMA_VERSION, updatedAt: new Date().toISOString(), sources: nextSources })
-    }
+    clearGlobalSelection(options.skills, options.source)
+    if (options.source) removeSourceConfig(options.source)
   }
-  return { stateFile, stateExists: true, targets: results, stateRemoved }
+  const release = options.dryRun ? null : acquireSkillsLock(skillsLockFile(getHomeDir()))
+  try {
+    const state = readSkillsState()
+    if (!state) return { stateFile, stateExists: false, targets: [], stateRemoved: false }
+
+    const wanted = options.skills ? new Set(options.skills) : null
+    const results: RemoveResult[] = []
+    let failed = false
+    let changed = false
+    const nextSources: Record<string, SkillStateSource> = {}
+
+    for (const [sourceName, source] of Object.entries(state.sources)) {
+      if (options.source && options.source !== sourceName) {
+        nextSources[sourceName] = source
+        continue
+      }
+      const skillMap = sourceSkillMap(sourceName, source)
+      const nextTargets: SkillStateTarget[] = []
+      for (const target of source.targets) {
+        const result: RemoveResult = { dir: target.dir, label: target.label || skillTargetLabel(target.dir) || null, removed: [], missing: [], skippedForeign: [], dirReclaimed: false }
+        const kept: SkillStateEntry[] = []
+        for (const entry of target.entries) {
+          if (wanted && !wanted.has(entry.name)) {
+            kept.push(entry)
+            continue
+          }
+          const dest = join(target.dir, entry.name)
+          const skill = skillMap.get(entry.name)
+          // 来源已失效：只清可确认悬空的链接，副本无从校验，交人工确认
+          if (!skill) {
+            let danglingLink = false
+            try {
+              danglingLink = lstatSync(dest).isSymbolicLink() && !existsSync(dest)
+            } catch {
+              danglingLink = false
+            }
+            if (danglingLink && !options.dryRun) {
+              removeArtifact(dest)
+              result.removed.push(entry.name)
+              changed = true
+              continue
+            }
+            if (danglingLink) {
+              result.removed.push(entry.name)
+              continue
+            }
+            result.skippedForeign.push(entry.name)
+            kept.push(entry)
+            continue
+          }
+          // 链接锚点改造前后的两种指向都算本包产物，避免 autoLink 关闭时漏摘旧锚点链接；副本比对仍以真源为准
+          const kind = classifyExisting(dest, skill.linkTarget, undefined, skill.dir)
+          if (kind === "absent") {
+            result.missing.push(entry.name)
+            changed = true
+            continue
+          }
+          if (kind === "wrong" || kind === "file" || (kind === "dir" && !dirsEqual(skill.dir, dest))) {
+            result.skippedForeign.push(entry.name)
+            kept.push(entry)
+            continue
+          }
+          if (options.dryRun) {
+            result.removed.push(entry.name)
+            continue
+          }
+          try {
+            removeArtifact(dest)
+            result.removed.push(entry.name)
+            changed = true
+          } catch {
+            failed = true
+            result.skippedForeign.push(entry.name)
+            kept.push(entry)
+          }
+        }
+        // 清理后目标目录已空则一并回收，避免留下空壳目录（dryRun 不动现场；非空或不可读时跳过）
+        if (!options.dryRun && isEmptyDir(target.dir)) {
+          try {
+            rmSync(target.dir, { recursive: true, force: true })
+            result.dirReclaimed = true
+          } catch {
+            // 回收失败不影响卸载结果：产物已清理，仅多留一个空目录
+          }
+        }
+        results.push(result)
+        if (kept.length > 0) nextTargets.push({ ...target, entries: kept })
+      }
+      if (nextTargets.length > 0) nextSources[sourceName] = { ...source, targets: nextTargets }
+    }
+
+    const nothingLeft = results.every((result) => result.skippedForeign.length === 0)
+    const stateRemoved = !options.dryRun && !failed && nothingLeft && Object.keys(nextSources).length === 0
+    if (!options.dryRun) {
+      if (stateRemoved) rmSync(stateFile, { force: true })
+      else if (changed || Object.keys(nextSources).length !== Object.keys(state.sources).length) {
+        writeSkillsState({ format: STATE_FORMAT, schemaVersion: STATE_SCHEMA_VERSION, updatedAt: new Date().toISOString(), sources: nextSources })
+      }
+    }
+    return { stateFile, stateExists: true, targets: results, stateRemoved }
+  } finally {
+    release?.()
+  }
 }
 
 // ===== 项目侧分发：仓库内唯一真源副本 + 各候选目录薄壳 =====
@@ -453,6 +598,8 @@ export interface ProjectInstallOptions {
   targetDirs?: string[]
   // 是否把本次目录选择写回 projectSkills.targets；--no-save-agents 时为 false
   saveTargets?: boolean
+  // 本次临时外部来源（--from）；永久来源从 skillsInstall.sources 读取
+  externalSources?: ExternalSourceOption[]
   prune?: boolean
 }
 
@@ -501,15 +648,17 @@ function applyShell(file: string, expected: string, force: boolean, dryRun: bool
 // 真源只此一份，其余目录放薄壳引用，避免多份副本互相漂移
 export function installProjectSkills(options: ProjectInstallOptions = {}): ProjectInstallReport {
   const cwd = options.cwd ?? process.cwd()
-  const skills = filterSkills(listPackageSkills(), options.skills)
-  const selected = new Set(skills.map((skill) => skill.name))
+  const sources = collectSources({ externalSources: options.externalSources })
+  const allItems = sources.flatMap(sourceSkillItems)
+  assertUniqueSkillNames(allItems)
+  const items = filterSkillItems(allItems, options.skills)
+  const selected = new Set(items.map((item) => item.name))
+  const byName = new Map(allItems.map((item) => [item.name, { dir: item.dir, linkTarget: item.linkTarget }]))
   const targets = resolveProjectTargets(cwd)
   const root = targets.root
   const previous = readProjectState(root)
-  const prevTargets = previousTargets(previous)
-  const prevSource = prevTargets.find((target) => target.kind === "source" && target.dir === targets.sourceDir)
-  const prevShells = new Map(prevTargets.filter((target) => target.kind === "shell").map((target) => [target.dir, target]))
-  const recordedNames = new Set(prevSource?.entries.map((entry) => entry.name) ?? [])
+  const prevTarget = (sourceName: string, kind: "source" | "shell", dir: string): SkillStateTarget | undefined =>
+    previous?.sources?.[sourceName]?.targets.find((target) => target.kind === kind && target.dir === dir)
 
   // 额外薄壳目录：只接受落在仓库内的取值，库外取值剔除并回报（降级不静默）
   const ignoredDirs: string[] = []
@@ -549,126 +698,151 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
   }
   const shellDirs = [...selectedShellDirs.filter((dir) => !extraShellDirs.includes(dir)), ...extraShellDirs]
 
-  const source: ProjectDirResult = { dir: targets.sourceDir, created: [], updated: [], skipped: [], conflicts: [], failed: [], pruned: [] }
-  const sourceAbs = join(root, targets.sourceDir)
-  const sourceEntries: SkillStateEntry[] = []
-  for (const skill of skills) {
-    try {
-      const action = applySourceCopy(skill.dir, join(sourceAbs, skill.name), recordedNames.has(skill.name), Boolean(options.force), Boolean(options.dryRun))
-      recordAction(source, action, skill.name)
-      if (action !== "conflict" && !options.dryRun) sourceEntries.push({ name: skill.name, version: skill.version, mode: "copy" })
-    } catch (e) {
-      source.failed.push({ name: skill.name, reason: (e as Error).message })
-    }
-  }
-  // 未选择的真源副本：内容与包内真源一致才清理，其余保留记录交人工
-  if (options.prune && !options.dryRun) {
-    for (const entry of prevSource?.entries ?? []) {
-      if (selected.has(entry.name)) continue
-      const dest = join(sourceAbs, entry.name)
-      const skill = listPackageSkills().find((item) => item.name === entry.name)
-      if (skill && existsSync(dest) && dirsEqual(skill.dir, dest)) {
-        removeArtifact(dest)
-        source.pruned.push(entry.name)
-      }
-    }
-  }
-  const prunedSource = new Set(source.pruned)
-  const carriedSource =
-    prevSource?.entries.filter((entry) => !selected.has(entry.name) && !prunedSource.has(entry.name) && existsSync(join(sourceAbs, entry.name))) ?? []
-  sourceEntries.push(...carriedSource)
-
-  const shells: ProjectDirResult[] = []
-  const shellTargets: SkillStateTarget[] = []
-  for (const dir of shellDirs) {
-    const result: ProjectDirResult = { dir, created: [], updated: [], skipped: [], conflicts: [], failed: [], pruned: [] }
-    const prev = prevShells.get(dir)
-    const entries: SkillStateEntry[] = []
-    for (const skill of skills) {
-      const expected = buildSkillShell(skill.name, targets.sourceDir, readSkillDescription(skill.dir))
+  const release = options.dryRun ? null : acquireSkillsLock(projectSkillsLockFile(root))
+  try {
+    const source: ProjectDirResult = { dir: targets.sourceDir, created: [], updated: [], skipped: [], conflicts: [], failed: [], pruned: [] }
+    const sourceAbs = join(root, targets.sourceDir)
+    const sourceEntriesBySource = new Map<string, SkillStateEntry[]>()
+    for (const item of items) {
+      const recorded = prevTarget(item.source, "source", targets.sourceDir)?.entries.some((entry) => entry.name === item.name) ?? false
       try {
-        const action = applyShell(join(root, dir, skill.name, SKILL_ENTRY), expected, Boolean(options.force), Boolean(options.dryRun))
-        recordAction(result, action, skill.name)
-        if (action !== "conflict" && !options.dryRun) entries.push({ name: skill.name, version: skill.version, mode: "shell" })
+        const action = applySourceCopy(item.dir, join(sourceAbs, item.name), recorded, Boolean(options.force), Boolean(options.dryRun))
+        recordAction(source, action, item.name)
+        if (action !== "conflict" && !options.dryRun) {
+          sourceEntriesBySource.set(item.source, [...(sourceEntriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: "copy" }])
+        }
       } catch (e) {
-        result.failed.push({ name: skill.name, reason: (e as Error).message })
+        source.failed.push({ name: item.name, reason: (e as Error).message })
       }
     }
+    // 未选择的真源副本：内容与包内真源一致才清理，其余保留记录交人工
     if (options.prune && !options.dryRun) {
-      for (const entry of prev?.entries ?? []) {
-        if (selected.has(entry.name)) continue
-        const file = join(root, dir, entry.name, SKILL_ENTRY)
-        if (!existsSync(file)) continue
-        const content = readTextFile(file)
-        if (readSkillShellVersion(content) !== null) {
-          removeArtifact(join(root, dir, entry.name))
-          result.pruned.push(entry.name)
+      for (const item of sources) source.pruned.push(...pruneEntries(prevTarget(item.name, "source", targets.sourceDir), selected, sourceAbs, byName))
+    }
+    const prunedSource = new Set(source.pruned)
+
+    const shells: ProjectDirResult[] = []
+    const nextBySource = new Map<string, SkillStateTarget[]>()
+    for (const item of sources) nextBySource.set(item.name, [])
+    for (const item of sources) {
+      const previousTarget = prevTarget(item.name, "source", targets.sourceDir)
+      const entries = [
+        ...(sourceEntriesBySource.get(item.name) ?? []),
+        ...(previousTarget?.entries.filter((entry) => !selected.has(entry.name) && !prunedSource.has(entry.name) && existsSync(join(sourceAbs, entry.name))) ?? []),
+      ]
+      if (entries.length > 0) nextBySource.get(item.name)!.push({ id: "source", dir: targets.sourceDir, label: "真源副本", kind: "source", entries })
+    }
+
+    for (const dir of shellDirs) {
+      const result: ProjectDirResult = { dir, created: [], updated: [], skipped: [], conflicts: [], failed: [], pruned: [] }
+      const entriesBySource = new Map<string, SkillStateEntry[]>()
+      for (const item of items) {
+        const expected = buildSkillShell(item.name, targets.sourceDir, readSkillDescription(item.dir))
+        try {
+          const action = applyShell(join(root, dir, item.name, SKILL_ENTRY), expected, Boolean(options.force), Boolean(options.dryRun))
+          recordAction(result, action, item.name)
+          if (action !== "conflict" && !options.dryRun) {
+            entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: "shell" }])
+          }
+        } catch (e) {
+          result.failed.push({ name: item.name, reason: (e as Error).message })
         }
       }
-    }
-    const pruned = new Set(result.pruned)
-    entries.push(...(prev?.entries.filter((entry) => !selected.has(entry.name) && !pruned.has(entry.name) && existsSync(join(root, dir, entry.name))) ?? []))
-    shells.push(result)
-    if (entries.length > 0) shellTargets.push({ id: dir, dir, label: "薄壳", kind: "shell", entries })
-  }
-
-  // 未参与本次选择的薄壳目录：默认保留产物与登记；显式收窄目录选择后，--prune 才清理带本包标记的薄壳
-  const shellDirSet = new Set(shellDirs)
-  const pruneDeselectedDirs = Boolean(options.prune) && requestedTargets !== undefined
-  for (const prev of prevShells.values()) {
-    if (shellDirSet.has(prev.dir)) continue
-    let entries = prev.entries
-    if (pruneDeselectedDirs) {
-      const result: ProjectDirResult = { dir: prev.dir, created: [], updated: [], skipped: [], conflicts: [], failed: [], pruned: [] }
-      const kept: SkillStateEntry[] = []
-      for (const entry of entries) {
-        const skillDir = join(root, prev.dir, entry.name)
-        const shellFile = join(skillDir, SKILL_ENTRY)
-        if (!existsSync(shellFile)) continue
-        let content: string
-        try {
-          content = readTextFile(shellFile)
-        } catch {
-          kept.push(entry)
-          continue
-        }
-        if (readSkillShellVersion(content) === null) {
-          kept.push(entry)
-          continue
-        }
-        try {
-          removeArtifact(skillDir)
-          result.pruned.push(entry.name)
-        } catch {
-          kept.push(entry)
+      if (options.prune && !options.dryRun) {
+        for (const source of sources) {
+          for (const entry of prevTarget(source.name, "shell", dir)?.entries ?? []) {
+            if (selected.has(entry.name)) continue
+            const file = join(root, dir, entry.name, SKILL_ENTRY)
+            if (!existsSync(file)) continue
+            const content = readTextFile(file)
+            if (readSkillShellVersion(content) !== null) {
+              removeArtifact(join(root, dir, entry.name))
+              result.pruned.push(entry.name)
+            }
+          }
         }
       }
-      entries = kept
-      if (result.pruned.length > 0) shells.push(result)
+      const pruned = new Set(result.pruned)
+      for (const source of sources) {
+        const previousTarget = prevTarget(source.name, "shell", dir)
+        const entries = [
+          ...(entriesBySource.get(source.name) ?? []),
+          ...(previousTarget?.entries.filter((entry) => !selected.has(entry.name) && !pruned.has(entry.name) && existsSync(join(root, dir, entry.name))) ?? []),
+        ]
+        if (entries.length > 0) nextBySource.get(source.name)!.push({ id: dir, dir, label: "薄壳", kind: "shell", entries })
+      }
+      shells.push(result)
     }
-    if (entries.length > 0) shellTargets.push({ ...prev, entries })
-  }
 
-  if (!options.dryRun) {
-    const nextTargets: SkillStateTarget[] = []
-    if (sourceEntries.length > 0) nextTargets.push({ id: "source", dir: targets.sourceDir, label: "真源副本", kind: "source", entries: sourceEntries })
-    nextTargets.push(...shellTargets)
-    writeProjectState(root, { [BUILTIN_SOURCE]: { kind: "builtin", version: packageVersion(), temporary: false, targets: nextTargets } })
-    // 未显式传 skills 时本次即安装全部，同样保存选择集，保证 status 回显与现场一致
-    saveProjectSelection(root, skills.map((skill) => skill.name))
-    if (options.saveTargets !== false) saveProjectTargets(root, selectedShellDirs)
-  }
+    // 未参与本次选择的薄壳目录：默认保留产物与登记；显式收窄目录选择后，--prune 才清理带本包标记的薄壳
+    const shellDirSet = new Set(shellDirs)
+    const pruneDeselectedDirs = Boolean(options.prune) && requestedTargets !== undefined
+    for (const source of sources) {
+      for (const prev of previous?.sources?.[source.name]?.targets.filter((target) => target.kind === "shell") ?? []) {
+        if (shellDirSet.has(prev.dir)) continue
+        let entries = prev.entries
+        if (pruneDeselectedDirs) {
+          const result: ProjectDirResult = { dir: prev.dir, created: [], updated: [], skipped: [], conflicts: [], failed: [], pruned: [] }
+          const kept: SkillStateEntry[] = []
+          for (const entry of entries) {
+            const skillDir = join(root, prev.dir, entry.name)
+            const shellFile = join(skillDir, SKILL_ENTRY)
+            if (!existsSync(shellFile)) continue
+            let content: string
+            try {
+              content = readTextFile(shellFile)
+            } catch {
+              kept.push(entry)
+              continue
+            }
+            if (readSkillShellVersion(content) === null) {
+              kept.push(entry)
+              continue
+            }
+            try {
+              removeArtifact(skillDir)
+              result.pruned.push(entry.name)
+            } catch {
+              kept.push(entry)
+            }
+          }
+          entries = kept
+          if (result.pruned.length > 0) shells.push(result)
+        }
+        if (entries.length > 0) nextBySource.get(source.name)!.push({ ...prev, entries })
+      }
+    }
 
-  return {
-    root,
-    skills: skills.map((skill) => skill.name),
-    selection: skills.map((skill) => skill.name),
-    targetSelection: shellDirs,
-    source,
-    shells,
-    missingDirs: targets.missingDirs,
-    ignoredDirs,
-    stateFile: toRepoRel(root, projectStateFile(root)),
+    if (!options.dryRun) {
+      const nextSources: Record<string, SkillStateSource> = {}
+      for (const [name, previousSource] of Object.entries(previous?.sources ?? {})) {
+        if (!sources.some((source) => source.name === name) && previousSource.targets.length > 0) nextSources[name] = previousSource
+      }
+      for (const item of sources) {
+        const sourceTargets = nextBySource.get(item.name) ?? []
+        if (sourceTargets.length > 0) {
+          nextSources[item.name] = { kind: item.kind, version: item.version, temporary: item.temporary, root: item.root, targets: sourceTargets }
+        }
+      }
+      writeProjectSources(root, nextSources)
+      // 未显式传 skills 时本次即安装全部，同样保存选择集，保证 status 回显与现场一致
+      saveProjectSelection(root, items.map((item) => item.name))
+      if (options.saveTargets !== false) saveProjectTargets(root, selectedShellDirs)
+    }
+
+    return {
+      root,
+      skills: items.map((item) => item.name),
+      selection: items.map((item) => item.name),
+      targetSelection: shellDirs,
+      source,
+      shells,
+      missingDirs: targets.missingDirs,
+      ignoredDirs,
+      stateFile: toRepoRel(root, projectStateFile(root)),
+    }
+  } finally {
+    release?.()
   }
 }
 
@@ -689,6 +863,16 @@ function saveProjectTargets(root: string, names: string[]): void {
   } catch (e) {
     console.warn(`⚠️ 项目面目录选择保存失败：${(e as Error).message}`)
   }
+}
+
+// 写项目状态：覆盖本次来源、保留未参与的历史来源；全部为空时删除归属账
+function writeProjectSources(root: string, sources: Record<string, SkillStateSource>): void {
+  const cleaned = Object.fromEntries(Object.entries(sources).filter(([, source]) => source.targets.length > 0))
+  if (Object.keys(cleaned).length === 0) {
+    removeProjectStateFile(root)
+    return
+  }
+  writeProjectState(root, cleaned)
 }
 
 // 清空项目选择：remove 默认清空全部 selection，--skills 只清指定名字

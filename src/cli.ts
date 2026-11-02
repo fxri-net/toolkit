@@ -33,6 +33,7 @@ import {
   availableTargetNames,
   buildGlobalTargetChoices,
   buildProjectTargetChoices,
+  collectSkillItems,
   detectSkillScope,
   installProjectSkills,
   installSkills,
@@ -44,21 +45,25 @@ import {
   promptSkillSelection,
   promptTargetSelection,
   readProjectSkillsConfig,
-  readSavedSelection,
   readSkillsInstallConfig,
+  readSkillsState,
   removeProjectSkills,
   removeSkills,
+  resolveLocalSource,
   resolveProjectTargets,
   resolveSkillTargets,
   skillsPackageDir,
   skillsSourceDir,
   skillsStatus,
+  writeSkillsInstallConfig,
+  BUILTIN_SOURCE,
   type InstallReport,
   type ProjectDirResult,
   type ProjectInstallReport,
   type ProjectItemState,
   type ProjectRemoveReport,
   type ProjectStatusReport,
+  type SkillItem,
   type SkillItemState,
   type SkillsRemoveReport,
   type SkillsStatusReport,
@@ -246,19 +251,36 @@ const SKILL_PROBLEM_STATES: SkillItemState[] = ["dangling", "wrong", "copy-drift
 // 技能选择面：全局面取全局层配置，项目面取项目层配置
 type SkillSelectionFace = "global" | "project"
 
-// 读取某一面已保存的技能选择：未保存过返回 undefined（首次安装只装 core）
-function readSavedSkillSelection(face: SkillSelectionFace): string[] | undefined {
-  return face === "global" ? readSavedSelection(readSkillsInstallConfig()) : readProjectSkillsConfig().selection
-}
-
 // 解析本次技能选择：显式参数 > --all / --no-optional > 已保存选择 > 首次只装 core
 // TTY 下未传 --yes 时进入方向键多选；用户取消返回 null（调用方不得写任何文件）
 async function resolveSkillSelection(
   options: { skills?: string; all?: boolean; optional?: boolean; yes?: boolean },
   face: SkillSelectionFace,
+  skills: SkillItem[],
 ): Promise<string[] | null> {
-  const skills = listPackageSkills()
-  const saved = readSavedSkillSelection(face)
+  let saved: string[] | undefined
+  if (face === "global") {
+    const bySource = readSkillsInstallConfig().selection
+    // 按来源回显：已登记的来源用保存值，新来源默认全选，避免新增外部来源被静默漏装
+    saved =
+      bySource && Object.keys(bySource).length > 0
+        ? skills
+            .filter((item) => {
+              const names = bySource[item.source]
+              return names === undefined || names.includes(item.name)
+            })
+            .map((item) => item.name)
+        : undefined
+  } else {
+    const flat = readProjectSkillsConfig().selection
+    // 项目面选择集是平铺名单；外部来源未单独登记时默认选中
+    saved =
+      flat && flat.length > 0
+        ? [...new Set([...flat, ...skills.filter((item) => item.sourceKind !== "builtin").map((item) => item.name)])].filter((name) =>
+            skills.some((item) => item.name === name),
+          )
+        : undefined
+  }
   // 显式传了 --skills 但取值为空（如 --skills ""）按全部非法处理，不静默当作未传
   const explicit = options.skills !== undefined ? (splitMulti(options.skills) ?? []) : undefined
   const plan = planSkillSelection({
@@ -275,8 +297,8 @@ async function resolveSkillSelection(
     process.exitCode = 1
     return null
   }
-  if (plan.invalid.length > 0) console.warn(`⚠️ 忽略包内不存在的技能：${plan.invalid.join("、")}`)
-  if (plan.savedInvalid.length > 0) console.warn(`⚠️ 已保存的技能选择含包内不存在的技能：${plan.savedInvalid.join("、")}（已忽略）`)
+  if (plan.invalid.length > 0) console.warn(`⚠️ 忽略不存在的技能：${plan.invalid.join("、")}`)
+  if (plan.savedInvalid.length > 0) console.warn(`⚠️ 已保存的技能选择含不存在的技能：${plan.savedInvalid.join("、")}（已忽略）`)
   if (!plan.needsPrompt) return plan.names
   const picked = await promptSkillSelection(skills, saved)
   if (picked === null) {
@@ -751,6 +773,8 @@ skillsCmd
   .option("--skills <names>", "只安装指定技能（逗号分隔；core 技能恒装）")
   .option("--all", "安装包内全部技能（含可选技能）")
   .option("--no-optional", "只安装 core 技能（不含可选技能）")
+  .option("--from <path>", "外部技能来源目录（可重复；默认临时，只写本次）", collectDir, [])
+  .option("--save [name]", "把 --from 来源登记为永久来源（可选来源名，缺省按目录 / 清单派生）")
   .option("--agent <names>", "只写入指定 agent（逗号分隔，含 canonical；本机未检测到的跳过）")
   .option("--all-agents", "写入全部已检测的 agent")
   .option("--no-save-agents", "目标选择只对本次生效，不写回配置")
@@ -761,7 +785,7 @@ skillsCmd
   .option("--force", "覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）")
   .option("--prune", "清理未选择且内容与本包真源一致的旧产物（只清本包登记条目）")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
-  .action(async (options: { scope?: string; skills?: string; all?: boolean; optional?: boolean; agent?: string; allAgents?: boolean; saveAgents?: boolean; yes?: boolean; copy?: boolean; dir: string[]; dryRun?: boolean; force?: boolean; prune?: boolean; format?: string }) => {
+  .action(async (options: { scope?: string; skills?: string; all?: boolean; optional?: boolean; from: string[]; save?: string | boolean; agent?: string; allAgents?: boolean; saveAgents?: boolean; yes?: boolean; copy?: boolean; dir: string[]; dryRun?: boolean; force?: boolean; prune?: boolean; format?: string }) => {
     try {
       if (!assertJsonFormat(options.format)) return
       const scope = resolveScopeChoice(options.scope)
@@ -771,8 +795,28 @@ skillsCmd
       const runGlobal = scope.choice !== "project"
       // JSON 消费方通常非 TTY；即使 TTY 也不弹窗，避免提示污染 stdout 的机器可读输出
       const nonInteractive = Boolean(options.yes) || options.format === "json"
+
+      const fromPaths = options.from ?? []
+      if (options.save !== undefined && fromPaths.length !== 1) {
+        console.error("⚠️ --save 只能与单个 --from 搭配使用，未执行安装")
+        process.exitCode = 1
+        return
+      }
+      const externalSources = fromPaths.map((path, index) => ({
+        path,
+        name: index === 0 && typeof options.save === "string" ? options.save : undefined,
+        temporary: !(index === 0 && options.save !== undefined),
+      }))
+      let items: SkillItem[]
+      try {
+        items = collectSkillItems({ externalSources })
+      } catch (e) {
+        console.error(`⚠️ 技能来源解析失败：${(e as Error).message}`)
+        process.exitCode = 1
+        return
+      }
       // scope=all 时两面共用一次技能选择：以全局面已保存选择为基准，避免连弹两次交互
-      const selection = await resolveSkillSelection({ ...options, yes: nonInteractive }, scope.choice === "project" ? "project" : "global")
+      const selection = await resolveSkillSelection({ ...options, yes: nonInteractive }, scope.choice === "project" ? "project" : "global", items)
       if (!selection) return
 
       let globalTargets: string[] | undefined
@@ -794,6 +838,7 @@ skillsCmd
         console.log("")
         console.log("即将安装：")
         console.log(`  技能：${selection.join("、") || "无"}`)
+        if (externalSources.length > 0) console.log(`  外部来源：${externalSources.map((source) => source.path).join("、")}`)
         if (runGlobal) console.log(`  全局目标：${globalTargetSummary(globalTargets)}`)
         if (runProject) console.log(`  项目目录：${projectTargets ? projectTargets.join("、") : "按已保存选择 / 全部已存在候选目录"}`)
         const ok = await promptConfirm("确认执行安装？")
@@ -810,8 +855,21 @@ skillsCmd
 
       if (runProject && options.copy) console.warn("⚠️ 项目面不支持 --copy（真源恒为副本、各候选目录恒为薄壳），已忽略该项目面取值")
       const saveTargets = options.saveAgents === false ? false : undefined
-      const project = runProject ? installProjectSkills({ dirs: options.dir, dryRun, force: options.force, skills: selection, targetDirs: projectTargets, saveTargets, prune: Boolean(options.prune) }) : null
-      const global = runGlobal ? installSkills({ copy: options.copy, dirs: options.dir, dryRun, force: options.force, skills: selection, targets: globalTargets, saveTargets, prune: Boolean(options.prune) }) : null
+      const project = runProject ? installProjectSkills({ dirs: options.dir, dryRun, force: options.force, skills: selection, targetDirs: projectTargets, saveTargets, prune: Boolean(options.prune), externalSources }) : null
+      const global = runGlobal ? installSkills({ copy: options.copy, dirs: options.dir, dryRun, force: options.force, skills: selection, targets: globalTargets, saveTargets, prune: Boolean(options.prune), externalSources }) : null
+      // 写入顺序：产物 → 状态 → 配置；--save 在安装成功后才登记，登记失败不回滚产物
+      if (!dryRun && options.save !== undefined && externalSources.length === 1) {
+        try {
+          const source = resolveLocalSource(externalSources[0]!.path, {
+            name: typeof options.save === "string" ? options.save : undefined,
+            temporary: false,
+          })
+          const config = readSkillsInstallConfig()
+          writeSkillsInstallConfig({ sources: { ...(config.sources ?? {}), [source.name]: { root: source.root } } })
+        } catch (e) {
+          console.warn(`⚠️ 外部来源登记失败：${(e as Error).message}`)
+        }
+      }
       if (options.format === "json") printJson({ dryRun, scope: scope.choice, global, project })
       else printInstallReports(scope, global, project, dryRun)
     } catch (e) {
@@ -849,9 +907,10 @@ skillsCmd
   .description("卸载由本包安装的技能产物（默认按现场判定作用域；只清理归属账记载的条目，不碰用户自装技能）")
   .option("--scope <scope>", "作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）")
   .option("--skills <names>", "只卸载指定技能的选择与产物（逗号分隔；省略时清理全部）")
+  .option("--source <name>", "只清理指定外部来源的登记与产物（仅全局面）")
   .option("--dry-run", "预演（只预览将要移除的条目，不删文件）")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
-  .action((options: { scope?: string; skills?: string; dryRun?: boolean; format?: string }) => {
+  .action((options: { scope?: string; skills?: string; source?: string; dryRun?: boolean; format?: string }) => {
     try {
       if (!assertJsonFormat(options.format)) return
       const scope = resolveScopeChoice(options.scope)
@@ -863,15 +922,96 @@ skillsCmd
         process.exitCode = 1
         return
       }
+      if (options.source !== undefined && scope.choice !== "global") console.warn("⚠️ --source 仅作用于全局面；项目面按全部来源清理")
       const dryRun = Boolean(options.dryRun)
       const runProject = scope.choice !== "global"
       const runGlobal = scope.choice !== "project"
       const project = runProject ? removeProjectSkills({ dryRun, skills: names }) : null
-      const global = runGlobal ? removeSkills({ dryRun, skills: names }) : null
+      const global = runGlobal ? removeSkills({ dryRun, skills: names, source: options.source }) : null
       if (options.format === "json") printJson({ dryRun, scope: scope.choice, global, project })
       else printRemoveReports(scope, global, project, dryRun)
     } catch (e) {
       console.error(`⚠️ 卸载失败：${(e as Error).message}`)
+      process.exitCode = 1
+    }
+  })
+
+// 外部来源：列出已登记 / 状态中的来源；remove 注销登记，--prune 一并清理产物
+const sourcesCmd = skillsCmd
+  .command("sources")
+  .description("查看 / 注销外部技能来源（--from --save 登记后的管理入口）")
+  .option("--format <format>", "输出格式（json，输出到 stdout）")
+  .action((options: { format?: string }) => {
+    try {
+      if (!assertJsonFormat(options.format)) return
+      const config = readSkillsInstallConfig()
+      const state = readSkillsState()
+      const rows: Array<{ name: string; root: string; temporary: boolean; registered: boolean; skills: string[] }> = []
+      for (const [name, entry] of Object.entries(config.sources ?? {})) {
+        const skills = state?.sources[name]?.targets.flatMap((target) => target.entries.map((item) => item.name)) ?? []
+        rows.push({ name, root: entry.root, temporary: false, registered: true, skills: [...new Set(skills)] })
+      }
+      for (const [name, source] of Object.entries(state?.sources ?? {})) {
+        if (rows.some((row) => row.name === name)) continue
+        const skills = source.targets.flatMap((target) => target.entries.map((item) => item.name))
+        rows.push({ name, root: source.root, temporary: source.temporary, registered: false, skills: [...new Set(skills)] })
+      }
+      if (options.format === "json") {
+        printJson({ sources: rows })
+        return
+      }
+      if (rows.length === 0) {
+        console.log("未登记外部来源")
+        return
+      }
+      for (const row of rows) {
+        const kind = row.name === BUILTIN_SOURCE ? "内置" : row.registered ? "已登记" : row.temporary ? "临时" : "状态登记"
+        const skills = row.skills.length > 0 ? `　技能：${row.skills.join("、")}` : ""
+        console.log(`${row.name}（${kind}）：${row.root || "（来源根缺失）"}${skills}`)
+      }
+    } catch (e) {
+      console.error(`⚠️ 读取来源失败：${(e as Error).message}`)
+      process.exitCode = 1
+    }
+  })
+
+sourcesCmd
+  .command("remove")
+  .argument("<name>", "来源名")
+  .option("--prune", "同时清理该来源的产物与状态")
+  .option("--dry-run", "预演（只预览，不删文件）")
+  .option("--format <format>", "输出格式（json，输出到 stdout）")
+  .action((name: string, options: { prune?: boolean; dryRun?: boolean; format?: string }) => {
+    try {
+      if (!assertJsonFormat(options.format)) return
+      const dryRun = Boolean(options.dryRun)
+      if (options.prune) {
+        const report = removeSkills({ dryRun, source: name })
+        if (options.format === "json") printJson({ dryRun, source: name, report })
+        else printRemoveReport(report, dryRun)
+        return
+      }
+      if (dryRun) {
+        console.log(`[预演] 将注销来源登记：${name}（产物与状态保留）`)
+        return
+      }
+      const config = readSkillsInstallConfig()
+      if (!config.sources?.[name]) {
+        console.error(`⚠️ 未找到已登记来源：${name}`)
+        process.exitCode = 1
+        return
+      }
+      const nextSources = { ...config.sources }
+      delete nextSources[name]
+      const nextSelection = { ...(config.selection ?? {}) }
+      delete nextSelection[name]
+      writeSkillsInstallConfig({
+        sources: Object.keys(nextSources).length > 0 ? nextSources : undefined,
+        selection: Object.keys(nextSelection).length > 0 ? nextSelection : undefined,
+      })
+      console.log(`已注销来源登记：${name}（产物与状态保留，如需清理加 --prune）`)
+    } catch (e) {
+      console.error(`⚠️ 注销来源失败：${(e as Error).message}`)
       process.exitCode = 1
     }
   })
@@ -895,7 +1035,7 @@ skillsCmd
     }
   })
 
-// 裸 `toolkit skills`：打印本域帮助，列出 4 个子命令
+// 裸 `toolkit skills`：打印本域帮助，列出全部子命令
 skillsCmd.action(() => {
   skillsCmd.help()
 })

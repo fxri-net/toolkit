@@ -28,6 +28,7 @@ toolkit skills install      # 2. 把包内技能装到各 agent 的全局技能�
                             #    再选目标：canonical + 已检测 agent（--agent / --all-agents / --no-save-agents）
                             #    --skills <names> / --all / --no-optional / --yes 可跳过技能与目标交互
                             #    --scope project 换项目面：真源落 <仓库根>/.agents/skills/、其余候选目录落入口薄壳
+                            #    --from <path> 临时外部来源（副本）；--save [name] 登记永久来源（默认软链）
 toolkit skills status       # 查现场状态（悬空 / 指向其他版本 / 副本漂移 / 缺失 / 同名冲突 / 未选择但已安装；历史落点残留单列提示；--scope project 查项目面）
                             # 前五类重跑 toolkit skills install 补齐，同名冲突需 toolkit skills install --force 覆盖，未选择产物加 --prune 清理
 toolkit skills remove       # 卸载本包装的产物（只清自己装的，不碰用户自装技能；--skills 只清指定技能；--scope project 清项目面）

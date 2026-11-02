@@ -8,10 +8,15 @@ import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
 import { BUILTIN_SOURCE } from "./types"
 
-// 全局段：targets 为 agent name 数组；sources 预留外部来源；selection 为「来源 → 技能名数组」
+// 外部来源登记：root 为来源根绝对路径；name 由 --save 或目录派生
+export interface ExternalSourceConfig {
+  root: string
+}
+
+// 全局段：targets 为 agent name 数组；sources 为外部来源登记；selection 为「来源 → 技能名数组」
 export interface SkillsInstallConfig {
   targets?: string[]
-  sources?: Record<string, Record<string, unknown>>
+  sources?: Record<string, ExternalSourceConfig>
   selection?: Record<string, string[]>
 }
 
@@ -77,17 +82,20 @@ function parseSourceSelection(value: unknown, file: string | null): Record<strin
   return out
 }
 
-// sources 解析：来源名 → 对象；值非对象剔除并告警
-function parseSources(value: unknown, file: string | null): Record<string, Record<string, unknown>> | undefined {
+// sources 解析：来源名 → { root }；值非对象或缺 root 剔除并告警
+function parseSources(value: unknown, file: string | null): Record<string, ExternalSourceConfig> | undefined {
   if (value === undefined) return undefined
   if (!isPlainObject(value)) {
     warnInvalid("skillsInstall", "sources", file, "须为「来源名 → 来源配置」对象")
     return undefined
   }
-  const out: Record<string, Record<string, unknown>> = {}
+  const out: Record<string, ExternalSourceConfig> = {}
   for (const [name, source] of Object.entries(value)) {
-    if (isPlainObject(source)) out[name] = source
-    else warnInvalid("skillsInstall", `sources.${name}`, file, "来源配置须为对象")
+    if (isPlainObject(source) && typeof source.root === "string" && source.root.trim() !== "") {
+      out[name] = { root: source.root.trim() }
+    } else {
+      warnInvalid("skillsInstall", `sources.${name}`, file, "来源配置须为对象且包含非空 root")
+    }
   }
   return out
 }

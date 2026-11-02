@@ -151,6 +151,18 @@ export interface PackageSkill {
   tier: SkillTier
 }
 
+// 统一技能条目：内置源与外部来源共用同一视图，安装 / 选择 / 状态按此遍历
+export interface SkillItem extends PackageSkill {
+  // 来源名：内置源固定 toolkit，外部来源取 --save 名或目录派生名
+  source: string
+  sourceKind: "builtin" | "local"
+  sourceRoot: string
+  // 临时来源只写本次安装（副本），不登记配置
+  temporary: boolean
+  // 软链指向：内置源锚在 pnpm 稳定入口，外部来源指向技能真源目录
+  linkTarget: string
+}
+
 // 技能版本双写位不一致条目：frontmatter 声明值与正文声明值（正文未声明时为空串）
 export interface SkillVersionMismatch {
   name: string
@@ -187,6 +199,18 @@ export interface SkillStatusItem {
   state: SkillItemState
   // 真源声明版本（与现场状态无关），供与旧会话上下文中已加载的技能内容比对
   version: string
+  // 所属来源名（内置源为 toolkit）
+  source: string
+}
+
+// 来源清单：status 按来源分组呈现
+export interface SkillSourceStatus {
+  name: string
+  kind: "builtin" | "local"
+  root: string
+  version: string
+  temporary: boolean
+  skills: string[]
 }
 
 export interface TargetStatus {
@@ -214,6 +238,8 @@ export interface SkillsStatusReport {
   selection: string[]
   // 本次生效的目标选择集（canonical / agent name；空数组表示沿用全部可用目标）
   targetSelection: string[]
+  // 来源清单（内置源 + 已登记永久来源 + 状态中的临时来源）
+  sources: SkillSourceStatus[]
   // 各技能真源版本，作为「会话上下文已过期」判定的磁盘基准值
   skillVersions: Record<string, string>
   // 版本双写位（frontmatter / 正文）不一致的技能，供软告警提示同步递增
@@ -292,11 +318,13 @@ export interface SkillStateTarget {
   entries: SkillStateEntry[]
 }
 
-// 单个技能来源的登记：本任务只落 toolkit 内置源，结构为后续外部来源预留
+// 单个技能来源的登记：内置源固定 toolkit；外部来源记录根目录与临时标记
 export interface SkillStateSource {
   kind: string
   version: string
   temporary: boolean
+  // 来源根目录：内置源为包根，外部来源为其绝对路径；旧状态导入时为空串
+  root: string
   targets: SkillStateTarget[]
 }
 
@@ -357,6 +385,8 @@ export interface ProjectSkillItem {
   state: ProjectItemState
   // 真源声明版本，与全局 status 同口径供「会话上下文已过期」判定
   version: string
+  // 所属来源名（内置源为 toolkit）
+  source: string
 }
 
 // 项目侧单目录状态：kind 区分真源目录（完整副本）与薄壳目录（指向真源）
@@ -375,6 +405,7 @@ export interface ProjectStatusReport {
   selection: string[]
   // 本次生效的项目薄壳目录选择集（仓库根相对；未保存过选择时为空数组，表示沿用全部已存在候选目录）
   targetSelection: string[]
+  sources: SkillSourceStatus[]
   skillVersions: Record<string, string>
   versionMismatches: SkillVersionMismatch[]
   stateFile: string

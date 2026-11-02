@@ -5,7 +5,7 @@ import { dirname, join } from "node:path"
 import { getHomeDir } from "../config"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
-import { classifyTargetKind, listPackageSkills, packageVersion, pathKey, skillTargetLabel, targetId } from "./source"
+import { classifyTargetKind, listPackageSkills, packageVersion, pathKey, skillTargetLabel, skillsPackageDir, targetId } from "./source"
 import {
   BUILTIN_SOURCE,
   PROJECT_STATE_DIR,
@@ -95,7 +95,7 @@ function migrateLegacyGlobalState(data: Record<string, unknown>): SkillsState {
     format: STATE_FORMAT,
     schemaVersion: STATE_SCHEMA_VERSION,
     updatedAt: new Date().toISOString(),
-    sources: { [BUILTIN_SOURCE]: { kind: "builtin", version: packageVersion(), temporary: false, targets } },
+    sources: { [BUILTIN_SOURCE]: { kind: "builtin", version: packageVersion(), temporary: false, root: skillsPackageDir(), targets } },
   }
 }
 
@@ -120,7 +120,7 @@ function migrateLegacyProjectState(data: Record<string, unknown>): SkillsState {
     format: STATE_FORMAT,
     schemaVersion: STATE_SCHEMA_VERSION,
     updatedAt: new Date().toISOString(),
-    sources: { [BUILTIN_SOURCE]: { kind: "builtin", version: packageVersion(), temporary: false, targets } },
+    sources: { [BUILTIN_SOURCE]: { kind: "builtin", version: packageVersion(), temporary: false, root: skillsPackageDir(), targets } },
   }
 }
 
@@ -150,6 +150,7 @@ function normalizeSources(raw: Record<string, unknown>): Record<string, SkillSta
       kind: typeof value.kind === "string" ? value.kind : "builtin",
       version: typeof value.version === "string" ? value.version : "",
       temporary: value.temporary === true,
+      root: typeof value.root === "string" ? value.root : "",
       targets,
     }
   }

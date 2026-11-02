@@ -10,6 +10,7 @@ import { PROJECT_SKILL_DIRS, resolveProjectSkillDirs } from "../conventions/entr
 import { readTextFile } from "../read-text"
 import {
   AGENT_SKILL_DIRS,
+  BUILTIN_SOURCE,
   CANONICAL_DIR,
   CANONICAL_LABEL,
   CANONICAL_TARGET_NAME,
@@ -21,6 +22,7 @@ import {
   type ArtifactMode,
   type PackageSkill,
   type ProjectTargets,
+  type SkillItem,
   type SkillScope,
   type SkillTarget,
   type SkillTier,
@@ -209,6 +211,179 @@ export function listPackageSkills(): PackageSkill[] {
     out.push({ name, dir, version: readSkillVersion(dir), tier: readSkillTier(dir) })
   }
   return out
+}
+
+// 读取技能名：SKILL.md frontmatter 顶层 name；缺失返回空串
+export function readSkillName(dir: string): string {
+  try {
+    const content = readTextFile(join(dir, SKILL_ENTRY))
+    const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+    if (!frontmatter) return ""
+    const matched = (frontmatter[1] ?? "").match(/^name:[ \t]*"?([^"\r\n]+?)"?[ \t]*$/m)
+    return matched ? (matched[1] ?? "").trim() : ""
+  } catch {
+    return ""
+  }
+}
+
+// 外部来源清单文件名与当前格式版本
+export const SKILLS_MANIFEST_FILE = "skills.json"
+const MANIFEST_FORMAT_VERSION = 1
+
+// 清单条目：path 相对来源根；name 可覆盖目录名
+interface ManifestEntry {
+  name?: string
+  path: string
+}
+
+interface SkillsManifest {
+  formatVersion: number
+  name?: string
+  version?: string
+  skills: ManifestEntry[]
+}
+
+// 解析后的技能来源：内置源与外部来源共用
+export interface SkillSource {
+  name: string
+  kind: "builtin" | "local"
+  // 来源根绝对路径（已归一为磁盘真实形态）
+  root: string
+  version: string
+  temporary: boolean
+  skills: PackageSkill[]
+}
+
+// 读取 skills.json：文件不存在返回 null；存在但格式非法直接抛错，不静默回退到目录扫描
+function readManifest(root: string): SkillsManifest | null {
+  const file = join(root, SKILLS_MANIFEST_FILE)
+  if (!existsSync(file)) return null
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(readTextFile(file)) as unknown
+  } catch {
+    throw new Error(`技能清单解析失败：${file}`)
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) throw new Error(`技能清单顶层须为对象：${file}`)
+  const data = parsed as Record<string, unknown>
+  if (data.formatVersion !== MANIFEST_FORMAT_VERSION) {
+    throw new Error(`技能清单 formatVersion 须为 ${MANIFEST_FORMAT_VERSION}（实际：${String(data.formatVersion)}）：${file}`)
+  }
+  if (!Array.isArray(data.skills) || data.skills.length === 0) throw new Error(`技能清单 skills 须为非空数组：${file}`)
+  const skills: ManifestEntry[] = []
+  for (const raw of data.skills) {
+    if (typeof raw === "string") {
+      skills.push({ path: raw })
+      continue
+    }
+    if (typeof raw !== "object" || raw === null) throw new Error(`技能清单条目须为字符串或对象：${file}`)
+    const entry = raw as Record<string, unknown>
+    if (typeof entry.path !== "string" || entry.path.trim() === "") throw new Error(`技能清单条目缺少 path：${file}`)
+    skills.push({
+      path: entry.path,
+      name: typeof entry.name === "string" && entry.name.trim() !== "" ? entry.name.trim() : undefined,
+    })
+  }
+  return {
+    formatVersion: MANIFEST_FORMAT_VERSION,
+    name: typeof data.name === "string" ? data.name : undefined,
+    version: typeof data.version === "string" ? data.version : undefined,
+    skills,
+  }
+}
+
+// 校验技能目录落在来源根之内：软链解析后越界即拒绝，避免把来源外内容纳入分发
+function assertInsideSource(root: string, dir: string): string {
+  const realRoot = realPath(root)
+  const realDir = realPath(dir)
+  if (realDir !== realRoot && !isInside(realDir, realRoot)) throw new Error(`技能目录越出来源根：${dir}`)
+  if (!existsSync(join(realDir, SKILL_ENTRY))) throw new Error(`技能目录缺少 ${SKILL_ENTRY}：${realDir}`)
+  return realDir
+}
+
+// 构造包内技能条目：名称优先取 frontmatter name，其次目录名
+function packageSkill(dir: string, name?: string): PackageSkill {
+  return { name: name || readSkillName(dir) || basename(dir), dir, version: readSkillVersion(dir), tier: readSkillTier(dir) }
+}
+
+// 解析外部本地来源：支持根 SKILL.md 单技能、skills/*/SKILL.md 多技能、skills.json 清单三种形态
+export function resolveLocalSource(src: string, options: { name?: string; temporary?: boolean } = {}): SkillSource {
+  const root = resolve(src)
+  if (!existsSync(root)) throw new Error(`技能来源不存在：${root}`)
+  let stat
+  try {
+    stat = lstatSync(root)
+  } catch (e) {
+    throw new Error(`技能来源不可读：${root}（${(e as Error).message}）`, { cause: e })
+  }
+  if (!stat.isDirectory()) throw new Error(`技能来源须为目录：${root}`)
+  const realRoot = realPath(root)
+  const manifest = readManifest(realRoot)
+  const skills: PackageSkill[] = []
+  if (manifest) {
+    for (const entry of manifest.skills) skills.push(packageSkill(assertInsideSource(realRoot, resolve(realRoot, entry.path)), entry.name))
+  } else if (existsSync(join(realRoot, SKILL_ENTRY))) {
+    skills.push(packageSkill(realRoot))
+  } else {
+    const skillsDir = join(realRoot, "skills")
+    if (!existsSync(skillsDir)) throw new Error(`未找到技能：${realRoot}（需根 ${SKILL_ENTRY}、skills/*/${SKILL_ENTRY} 或 ${SKILLS_MANIFEST_FILE}）`)
+    for (const name of readdirSync(skillsDir).sort()) {
+      const dir = join(skillsDir, name)
+      if (!existsSync(join(dir, SKILL_ENTRY))) continue
+      skills.push(packageSkill(assertInsideSource(realRoot, dir)))
+    }
+    if (skills.length === 0) throw new Error(`未找到技能：${skillsDir}`)
+  }
+  // 同一来源内重名会覆盖状态与产物，直接拒绝
+  const seen = new Set<string>()
+  for (const skill of skills) {
+    if (seen.has(skill.name)) throw new Error(`来源 ${options.name || realRoot} 内技能名重复：${skill.name}`)
+    seen.add(skill.name)
+  }
+  const derived = (options.name || manifest?.name || basename(realRoot)).trim()
+  if (!derived) throw new Error(`无法确定来源名：${realRoot}`)
+  return {
+    name: derived,
+    kind: "local",
+    root: realRoot,
+    version: manifest?.version ?? "",
+    temporary: options.temporary !== false,
+    skills,
+  }
+}
+
+// 内置来源：包内 skills/
+export function resolveBuiltinSource(): SkillSource {
+  return {
+    name: BUILTIN_SOURCE,
+    kind: "builtin",
+    root: skillsPackageDir(),
+    version: packageVersion(),
+    temporary: false,
+    skills: listPackageSkills(),
+  }
+}
+
+// 来源 → 统一技能条目：内置源链接锚在 pnpm 稳定入口，外部来源直指技能真源目录
+export function sourceSkillItems(source: SkillSource): SkillItem[] {
+  return source.skills.map((skill) => ({
+    ...skill,
+    source: source.name,
+    sourceKind: source.kind,
+    sourceRoot: source.root,
+    temporary: source.temporary,
+    linkTarget: source.kind === "builtin" ? join(skillsLinkDir(), skill.name) : skill.dir,
+  }))
+}
+
+// 跨来源同名检查：同名技能会共用落点与状态条目，直接报错而非静默覆盖
+export function assertUniqueSkillNames(items: SkillItem[]): void {
+  const seen = new Map<string, string>()
+  for (const item of items) {
+    const previous = seen.get(item.name)
+    if (previous !== undefined) throw new Error(`技能名冲突：${item.name}（来源 ${previous} / ${item.source}）`)
+    seen.set(item.name, item.source)
+  }
 }
 
 // 路径比较键：先解析为绝对路径，再走统一比较口径（分隔符正斜杠 + 去尾斜杠 + 大小写折叠）
