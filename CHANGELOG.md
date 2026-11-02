@@ -1,5 +1,31 @@
 # 方弦工具集
 
+## 1.14.0
+
+> 2026-11-02 发布
+
+### ✨ 新增功能
+
+- `skills install --from <path>` 纳入外部本地技能源（根 SKILL.md / skills/\*/SKILL.md / skills.json 清单三种格式），临时来源只写副本，`--save [name]` 登记为永久来源并默认软链
+- `skills sources` 查看来源、`skills sources remove <name> --prune` / `skills remove --source` 按来源注销与清理
+- 安装 / 卸载操作锁（pid / host / startedAt，5 分钟过期接管），避免多进程同时改写状态与产物
+- 外部来源同名、目录越界与清单 `formatVersion` 非 1 时明确报错，不静默回退
+- 技能按 `metadata.tier` 分层（`core` 必装、`optional` 可选），安装时 TTY 方向键多选，支持 `--skills` / `--all` / `--no-optional` / `--yes`，首次只装 core
+- 按 `SKILL.md` frontmatter `metadata.requires` 自动补全依赖技能，缺失依赖告警后跳过
+- 技能选择后选择目标——全局面按 canonical + 已检测 agent 多选，项目面按候选薄壳目录多选；只用 `--agent` / `--all-agents` 可显式指定，`--no-save-agents` 只影响本次，`--dir` 始终一次性
+- 全局层 `skillsInstall` 与项目层 `projectSkills` 安装偏好（技能选择 + 目标选择），误写层告警并忽略；`prepare` 非交互按已保存目录刷新
+- `skills install --prune` 清理未选择（技能或目标）且内容与本包真源一致的旧产物；`skills remove --skills` 只清指定技能
+
+### 🔧 功能调整
+
+- 技能状态文件改为 `format` + `schemaVersion` + `sources` 结构，旧结构首次读取时一次性导入并备份 `.bak`
+- `skills status` 的 `missing` 只表示已选择但缺失，新增「未选择但已安装」单列（技能与目标两级）且不计入问题
+- `skills remove` 按「配置 → 产物 → 状态」顺序清理
+- `fxri-text-encoding` 触发判据改为上下文中可观测的写入 / 生成 / 执行通道与症状，显式取消临时、一次性、不入库任务豁免
+- 技能描述与规则层同步，写脚本、配置、数据交换文本及跨进程管道前按读取方定字节形态
+- 判据改为按读取方默认解码与字节形态推导，不按语言 / 扩展名白名单，补 PHP 与按平台编码编译的源文件
+- 补命令行参数、环境变量、API 请求体、模板渲染与远端元数据的跨边界判据，故障判定以与原文比对为准
+
 ## 1.13.1
 
 > 2026-11-01 发布
