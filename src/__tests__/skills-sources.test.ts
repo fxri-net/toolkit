@@ -29,7 +29,7 @@ function writeSkill(dir: string, name: string, version = "1.0.0", tier: "core" |
   mkdirSync(dir, { recursive: true })
   writeFileSync(
     join(dir, "SKILL.md"),
-    `---\nname: ${name}\ndescription: 外部测试技能 ${name}\nlicense: MIT\nmetadata:\n  version: "${version}"\n  tier: ${tier}\n  requires: [${requires.join(", ")}]\n---\n\n# ${name}\n\n> 本技能版本 ${version}（测试）\n`,
+    `---\nname: ${name}\ndescription: 外部测试技能 ${name}\nlicense: MIT\nmetadata:\n  version: "${version}"\n  tier: ${tier}\n  requires: [${requires.map((item) => `"${item}"`).join(", ")}]\n---\n\n# ${name}\n\n> 本技能版本 ${version}（测试）\n`,
     "utf8",
   )
 }

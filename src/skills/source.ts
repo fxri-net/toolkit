@@ -147,14 +147,23 @@ export function readSkillTier(dir: string): SkillTier {
 }
 
 // 读取依赖声明：frontmatter metadata.requires，支持 [a, b] 行内数组与单值
+// 行内数组含引号，不能复用只认无引号值的 readFrontmatterIndented
 export function readSkillRequires(dir: string): string[] {
-  const raw = readFrontmatterIndented(dir, "requires")
-  if (!raw) return []
-  const inner = raw.startsWith("[") && raw.endsWith("]") ? raw.slice(1, -1) : raw
-  return inner
-    .split(",")
-    .map((item) => item.trim().replace(/^["']|["']$/g, ""))
-    .filter(Boolean)
+  try {
+    const content = readTextFile(join(dir, SKILL_ENTRY))
+    const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+    if (!frontmatter) return []
+    const matched = (frontmatter[1] ?? "").match(/^[ \t]+requires:[ \t]*(.+)$/m)
+    if (!matched) return []
+    const raw = (matched[1] ?? "").trim()
+    const inner = raw.startsWith("[") && raw.endsWith("]") ? raw.slice(1, -1) : raw
+    return inner
+      .split(",")
+      .map((item) => item.trim().replace(/^["']|["']$/g, ""))
+      .filter(Boolean)
+  } catch {
+    return []
+  }
 }
 
 // 读取 frontmatter metadata 下的单个缩进键值
