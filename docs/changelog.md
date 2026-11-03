@@ -6,6 +6,14 @@ outline: [2, 2]
 
 > 完整变更历史以根 `CHANGELOG.md` 为准，本页由 `toolkit changelog doc` 自动同步，请勿手改。
 
+## 1.14.3
+
+> 2026-11-03 发布
+
+### ✨ 新增功能
+
+- `toolkit docs theme` 命令，统一文档站主题模板并提供 `--check` 漂移校验与 `--write` 刷新
+
 ## 1.14.2
 
 > 2026-11-03 发布
