@@ -70,7 +70,7 @@ describe("writeDocsTheme / checkDocsTheme", () => {
     writeDocsTheme(dir)
     const cssPath = join(dir, "custom.css")
     const legacy = readFileSync(cssPath, "utf8")
-      .replace("/* fxri-docs-theme: 2.0 */", "/* fxri-docs-theme: 1.0 */")
+      .replace("/* fxri-docs-theme: 2.1 */", "/* fxri-docs-theme: 1.0 */")
       .replace("--fx-accent: #4f5bd5;", "--fx-accent: #409eff;")
     writeFileSync(cssPath, legacy)
 

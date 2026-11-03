@@ -6,7 +6,7 @@ import { writeFileAtomic } from "../write-atomic"
 import { skillsPackageDir } from "../skills"
 
 // 模板版本：公共规则变更时递增（视觉调整升次版本，标记格式或品牌段语义变更升主版本）
-export const THEME_VERSION = "2.0"
+export const THEME_VERSION = "2.1"
 
 const HEADER = `/* fxri-docs-theme: ${THEME_VERSION} */`
 // 任一合法版本标记都可解析（兼容早期的整数式 v1）：升级时据此保留品牌段，再由 --check 判定版本是否落后

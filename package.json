@@ -1,16 +1,12 @@
 {
   "name": "@fxri/toolkit",
-  "version": "1.14.6",
+  "version": "1.14.7",
   "description": "专为多人 + AI 跨项目协作打造：任务管理 + 多语言 CHANGELOG。",
   "license": "MIT",
-  "author": {
-    "name": "唐启云",
-    "email": "tqy@fxri.net",
-    "url": "https://fxri.net:444/"
-  },
+  "author": "唐启云 <tqy@fxri.net> (https://fxri.net:444/)",
   "repository": {
     "type": "git",
-    "url": "https://github.com/fxri-net/toolkit.git"
+    "url": "git+https://github.com/fxri-net/toolkit.git"
   },
   "type": "module",
   "main": "./dist/index.js",
@@ -93,5 +89,13 @@
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public"
-  }
+  },
+  "directories": {
+    "doc": "docs"
+  },
+  "types": "./dist/index.d.ts",
+  "bugs": {
+    "url": "https://github.com/fxri-net/toolkit/issues"
+  },
+  "homepage": "https://github.com/fxri-net/toolkit#readme"
 }

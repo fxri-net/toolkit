@@ -1,4 +1,4 @@
-/* fxri-docs-theme: 2.0 */
+/* fxri-docs-theme: 2.1 */
 /* fxri-docs-theme:brand-start */
 /* 本站品牌与装饰：唯一允许各站不同的区段，--write 会原样保留 */
 :root {
@@ -39,8 +39,10 @@
   --vp-c-text-3: var(--fx-text-3);
   --vp-c-brand-1: var(--fx-accent, #4f5bd5);
   --vp-c-brand-2: var(--fx-accent, #4f5bd5);
-  --vp-c-brand-3: var(--fx-accent-strong, #8a92ea);
+  --vp-c-brand-3: var(--fx-accent, #4f5bd5);
   --vp-c-brand-soft: var(--fx-accent-soft, rgba(79, 91, 213, 0.1));
+  --vp-code-color: var(--fx-text-1);
+  --vp-code-bg: var(--fx-bg-soft);
   --vp-home-hero-name-color: transparent;
   --vp-home-hero-name-background: linear-gradient(
     120deg,
@@ -57,15 +59,18 @@
   --fx-text-1: #e8eaee;
   --fx-text-2: #b6bdc8;
   --fx-text-3: #858e9b;
+
+  /* 暗色主按钮底为提亮后的强调色，白字对比不足，改近黑字 */
+  --vp-button-brand-text: #111;
+  --vp-button-brand-hover-text: #111;
+  --vp-button-brand-active-text: #111;
 }
 
-/* 首页首屏氛围：只铺 hero 区域，内容页保持中性底 */
+/* 首页首屏氛围：只铺 hero 区域，底部渐隐到画布色，避免出现横向色带 */
 .VPHome .VPHero {
-  background-image: radial-gradient(
-    60% 70% at 50% 0%,
-    var(--fx-accent-soft, rgba(79, 91, 213, 0.1)),
-    transparent 70%
-  );
+  background-image:
+    linear-gradient(to bottom, transparent 55%, var(--fx-bg) 100%),
+    linear-gradient(var(--fx-hero-angle, 180deg), var(--fx-accent-soft, rgba(79, 91, 213, 0.1)), transparent 85%);
   background-repeat: no-repeat;
 }
 
