@@ -237,7 +237,7 @@ CLI 每次命令执行时**同步读取本地缓存**，检测到新版本时向
     "targets": ["canonical", "claude-code"],
     "sources": {
       "play": { "root": "D:/skills/playbook" },
-      "remote": { "url": "https://github.com/fxri-net/playbook", "ref": "v0.1.0" }
+      "remote": { "url": "https://github.com/fxri-net/playbook", "ref": "vX.Y.Z" }
     }
   }
 }

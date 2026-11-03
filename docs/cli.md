@@ -188,7 +188,7 @@ toolkit skills install --dry-run    # 预演：只预览将执行的动作，不
 toolkit skills install --force      # 覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
 toolkit skills install --dir <path> # 额外目标目录（可多次指定；全局面兜底内置表未收录的 agent，项目面须落在仓库内）
 toolkit skills install --from <path|url> # 临时外部来源（本地目录或 Git 地址；副本写入，只写本次，不登记配置；可重复）
-toolkit skills install --from https://github.com/fxri-net/playbook#v0.1.0 --save play # 远程永久来源（默认软链，失败降级副本）
+toolkit skills install --from https://github.com/fxri-net/playbook#vX.Y.Z --save play # 远程永久来源（标签以来源仓 Releases 为准）
 toolkit skills remove --source play # 只清理指定外部来源的登记与产物
 toolkit skills sources               # 列出已登记 / 临时外部来源
 toolkit skills sources remove play --prune # 注销来源登记并清理其产物与状态

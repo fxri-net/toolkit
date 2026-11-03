@@ -1,12 +1,12 @@
 # 推荐技能包
 
-> 目标读者：想按场景选择技能源的用户。推荐包不是新的分发格式，只是一组技能源的组合推荐；技能细节以各技能页或 `toolkit skills status` 为准。
+> 目标读者：想按场景选择技能源的用户。推荐包不是新的分发格式，只是一组技能源的组合推荐；外部来源的技能清单与版本以来源仓自身的清单为准，本页不代抄。
 
 ## 推荐包是什么
 
 推荐包把一组技能按场景预先组合，给出一条可复制的安装命令。它不改变技能本身的来源、版本与分发方式，安装、选择、状态与卸载仍由 `toolkit skills` 统一管理。
 
-远程安装命令需要 `@fxri/toolkit >= 1.14.1`；更低版本只能安装本仓内置技能。
+远程安装命令需要支持外部来源的 `@fxri/toolkit`（1.14.1+）；更低版本只能安装本仓内置技能。
 
 ## 推荐技能源
 
@@ -22,34 +22,27 @@ toolkit skills install --skills fxri-plan-to-task,fxri-session-recap,fxri-releas
 
 ### 通用开发规范（playbook）
 
-- **定位**：Web 前端、Vue、服务端、PHP、Java 的通用工程规范
-- **适用**：前后端与全栈项目
+- **定位**：Web 与 Vue 的通用前端规范，通用原则与框架语法分层成技能
+- **适用**：Web / Vue 前端项目
 - **安装**：
 
 ```bash
-toolkit skills install --from https://github.com/fxri-net/playbook#v0.1.0 --skills fxri-dev-profile-web,fxri-dev-profile-vue,fxri-dev-profile-svc,fxri-dev-profile-php,fxri-dev-profile-java
+toolkit skills install --from https://github.com/fxri-net/playbook
 ```
 
-### 个人协作偏好（playbook）
-
-- **定位**：中文注释、先方案后动手、直奔主题等个人偏好
-- **说明**：个人向，不建议团队统一安装
-- **安装**：
-
-```bash
-toolkit skills install --from https://github.com/fxri-net/playbook#v0.1.0 --skills fxri-meta-preset-tqy
-```
+- **技能清单**：本页不固定列出。可用技能、依赖关系与版本一律以来源仓的 `skills.json` 与其文档站的档案页为准；不传 `--skills` 时进入交互选择，按提示挑选即可。
+- **锁定版本**：生产使用建议在来源后追加发布标签（形如 `#vX.Y.Z`，以该仓 Releases 为准），避免默认分支漂移；标签号随来源仓发版变化，本页不代抄。
 
 ## 依赖会自动补全
 
-技能 `metadata.requires` 声明的依赖会随选择自动安装。例如只选 `fxri-dev-profile-php`，会一并装入它依赖的 `fxri-dev-profile-svc`；不需要在命令里重复列出。
+技能 `metadata.requires` 声明的依赖会随选择自动安装，不需要在命令里重复列出；具体依赖以来源仓 `skills.json` 的 `requires` 字段为准。
 
 ## 自定义组合
 
 不套用推荐包时，用 `--skills` 自行拼装即可；也可以先用 `--mode package` 切到纯包管理器模式，再只选外部来源技能：
 
 ```bash
-toolkit skills install --mode package --from https://github.com/fxri-net/playbook#v0.1.0 --skills fxri-dev-profile-web
+toolkit skills install --mode package --from https://github.com/fxri-net/playbook --skills <技能名>
 ```
 
 ## 安全提示
