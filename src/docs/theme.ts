@@ -6,13 +6,35 @@ import { writeFileAtomic } from "../write-atomic"
 import { skillsPackageDir } from "../skills"
 
 // 模板版本：公共规则变更时递增（视觉调整升次版本，标记格式或品牌段语义变更升主版本）
-export const THEME_VERSION = "1.1"
+export const THEME_VERSION = "2.0"
 
 const HEADER = `/* fxri-docs-theme: ${THEME_VERSION} */`
 // 任一合法版本标记都可解析（兼容早期的整数式 v1）：升级时据此保留品牌段，再由 --check 判定版本是否落后
 const HEADER_PATTERN = /^\/\* fxri-docs-theme: (?:v\d+|\d+\.\d+) \*\/$/
 const BRAND_START = "/* fxri-docs-theme:brand-start */"
 const BRAND_END = "/* fxri-docs-theme:brand-end */"
+
+// 1.x 品牌令牌 → 2.0 的 --fx-* 命名：--write 保留品牌段时一并迁移，避免升级后站点配色静默失效
+const LEGACY_BRAND_TOKENS: Record<string, string> = {
+  "--site-accent": "--fx-accent",
+  "--site-glow": "--fx-accent-soft",
+  "--site-shadow": "--fx-shadow",
+  "--site-hero-angle": "--fx-hero-angle",
+}
+
+// 只匹配声明名（后接冒号），避免误伤注释或取值里的同名字符串
+function tokenPattern(token: string): RegExp {
+  return new RegExp(`${token.replace(/[-]/g, "\\-")}(?=\\s*:)`, "g")
+}
+
+// 品牌段旧令牌改名：按映射逐个替换声明名，取值原样保留
+function migrateBrandTokens(brand: string): string {
+  let migrated = brand
+  for (const [legacy, current] of Object.entries(LEGACY_BRAND_TOKENS)) {
+    migrated = migrated.replace(tokenPattern(legacy), current)
+  }
+  return migrated
+}
 
 // 校验结果：problems 逐条说明缺什么、差在哪一行
 export interface ThemeCheckResult {
@@ -88,6 +110,13 @@ export function checkDocsTheme(themeDir: string, templateDir = defaultThemeTempl
       const line = firstDiffLine(templateCss.common, site.common)
       problems.push(`custom.css 公共规则与模板不一致（第 ${line} 行）；本站差异请写在 brand-start 与 brand-end 之间`)
     }
+    if (site) {
+      const legacy = Object.keys(LEGACY_BRAND_TOKENS).filter((token) => tokenPattern(token).test(site.brand))
+      if (legacy.length > 0) {
+        const replacements = legacy.map((token) => `${token} → ${LEGACY_BRAND_TOKENS[token]}`).join("、")
+        problems.push(`custom.css 品牌段仍使用 1.x 令牌（${replacements}）；执行 toolkit docs theme --write 迁移`)
+      }
+    }
   }
   return { ok: problems.length === 0, problems }
 }
@@ -116,7 +145,7 @@ export function writeDocsTheme(
   if (existsSync(cssPath)) {
     const existing = splitTheme(readTextFile(cssPath))
     if (existing) {
-      brand = existing.brand
+      brand = migrateBrandTokens(existing.brand)
       kept.push(cssPath)
     } else if (!options.force) {
       throw new Error(`custom.css 缺少主题标记行，无法保留品牌段；确认覆盖请加 --force：${cssPath}`)

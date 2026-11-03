@@ -1,46 +1,82 @@
-/* fxri-docs-theme: 1.1 */
+/* fxri-docs-theme: 2.0 */
 /* fxri-docs-theme:brand-start */
 /* 本站品牌与装饰：唯一允许各站不同的区段，--write 会原样保留 */
 :root {
-  --site-accent: #a6a7d7;
-  --site-glow: rgba(166, 167, 215, 0.22);
-  --site-shadow: rgba(48, 49, 51, 0.08);
-  --site-hero-angle: 180deg;
-
-  --vp-c-brand-1: #6262a8;
-  --vp-c-brand-2: #7a7ac0;
-  --vp-c-brand-3: #9494d4;
-  --vp-c-brand-soft: rgba(140, 140, 200, 0.16);
-  --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: linear-gradient(120deg, var(--vp-c-brand-1) 30%, var(--vp-c-brand-3));
+  --fx-accent: #4f5bd5;
+  --fx-accent-strong: #8a92ea;
+  --fx-accent-soft: rgba(79, 91, 213, 0.1);
+  --fx-shadow: rgba(29, 33, 41, 0.08);
+  --fx-hero-angle: 180deg;
 }
 
 .dark {
-  --vp-c-brand-1: #b3b4ea;
-  --vp-c-brand-2: #9a9bdc;
-  --vp-c-brand-3: #7a7ac0;
-  --vp-c-brand-soft: rgba(179, 180, 234, 0.18);
-  --site-glow: rgba(179, 180, 234, 0.16);
+  --fx-accent: #8f9bff;
+  --fx-accent-strong: #b9c1ff;
+  --fx-accent-soft: rgba(143, 155, 255, 0.16);
+  --fx-shadow: rgba(0, 0, 0, 0.32);
 }
 /* fxri-docs-theme:brand-end */
 /* 以下为公共视觉规则：由 toolkit 统一分发，逐字一致，勿手改 */
 
-/* 全页柔光：铺满视口并随页面滚动保持，避免只覆盖首屏 hero */
-body {
-  background-image: linear-gradient(var(--site-hero-angle), var(--site-glow), transparent 60%);
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-  background-size: 100% 100vh;
+/* 中性色：画布、表面与文字；亮暗只换值，映射只写一次 */
+:root {
+  --fx-bg: #ffffff;
+  --fx-bg-alt: #f7f8fa;
+  --fx-bg-soft: #f1f3f5;
+  --fx-border: #e6e8ec;
+  --fx-text-1: #1d2129;
+  --fx-text-2: #4e5969;
+  --fx-text-3: #86909c;
+
+  /* 映射到 VitePress 契约层：站点只需改 --fx-* 品牌令牌 */
+  --vp-c-bg: var(--fx-bg);
+  --vp-c-bg-alt: var(--fx-bg-alt);
+  --vp-c-bg-soft: var(--fx-bg-soft);
+  --vp-c-bg-elv: var(--fx-bg);
+  --vp-c-divider: var(--fx-border);
+  --vp-c-text-1: var(--fx-text-1);
+  --vp-c-text-2: var(--fx-text-2);
+  --vp-c-text-3: var(--fx-text-3);
+  --vp-c-brand-1: var(--fx-accent, #4f5bd5);
+  --vp-c-brand-2: var(--fx-accent, #4f5bd5);
+  --vp-c-brand-3: var(--fx-accent-strong, #8a92ea);
+  --vp-c-brand-soft: var(--fx-accent-soft, rgba(79, 91, 213, 0.1));
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(
+    120deg,
+    var(--fx-accent, #4f5bd5) 30%,
+    var(--fx-accent-strong, #8a92ea)
+  );
 }
 
-/* 首页 hero：只约束正文行宽，底色由 body 统一提供 */
+.dark {
+  --fx-bg: #15171c;
+  --fx-bg-alt: #1b1e24;
+  --fx-bg-soft: #22262e;
+  --fx-border: #2c313a;
+  --fx-text-1: #e8eaee;
+  --fx-text-2: #b6bdc8;
+  --fx-text-3: #858e9b;
+}
+
+/* 首页首屏氛围：只铺 hero 区域，内容页保持中性底 */
+.VPHome .VPHero {
+  background-image: radial-gradient(
+    60% 70% at 50% 0%,
+    var(--fx-accent-soft, rgba(79, 91, 213, 0.1)),
+    transparent 70%
+  );
+  background-repeat: no-repeat;
+}
+
+/* 首页 hero：只约束正文行宽 */
 .VPHero .text {
   max-width: 720px;
 }
 
 /* 特性卡片：描边 + 悬浮反馈，打在卡片本体而非网格单元，避免各站间距不一致 */
 .VPFeature {
-  border: 1px solid var(--vp-c-divider);
+  border: 1px solid var(--fx-border);
   border-radius: 12px;
   transition:
     border-color 0.18s ease-out,
@@ -49,19 +85,19 @@ body {
 }
 
 .VPFeature:hover {
-  border-color: var(--site-accent);
+  border-color: var(--fx-accent, #4f5bd5);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px var(--site-shadow);
+  box-shadow: 0 8px 24px var(--fx-shadow, rgba(29, 33, 41, 0.08));
 }
 
 .VPFeature .icon {
-  background: var(--vp-c-brand-soft);
+  background: var(--fx-accent-soft, rgba(79, 91, 213, 0.1));
   border-radius: 8px;
 }
 
-/* 表格：保留 VitePress 默认横向滚动，只调整表头与留白 */
+/* 表格：中性表头 + 统一留白，保留 VitePress 默认横向滚动 */
 .vp-doc th {
-  background: var(--vp-c-brand-soft);
+  background: var(--fx-bg-soft);
   font-weight: 600;
 }
 
@@ -70,19 +106,19 @@ body {
   padding: 8px 14px;
 }
 
-/* 代码：块圆角与行内代码淡底 */
+/* 代码：块圆角与中性行内代码底色 */
 .vp-doc div[class*="language-"] {
   border-radius: 8px;
 }
 
 .vp-doc :not(pre) > code {
-  background: var(--vp-c-brand-soft);
-  color: var(--vp-c-brand-1);
+  background: var(--fx-bg-soft);
+  color: var(--fx-text-1);
 }
 
 /* 侧边栏与导航强调 */
 .VPSidebarItem.is-active > .item .link .text {
-  color: var(--vp-c-brand-1);
+  color: var(--fx-accent, #4f5bd5);
   font-weight: 600;
 }
 
@@ -92,13 +128,13 @@ body {
 
 .VPNavBarMenuLink.active,
 .VPNavBarMenuLink:hover {
-  color: var(--vp-c-brand-1);
+  color: var(--fx-accent, #4f5bd5);
 }
 
 /* 键盘焦点：可见轮廓，保证可访问性 */
 .vp-doc a:focus-visible,
 .VPLink:focus-visible {
-  outline: 2px solid var(--vp-c-brand-1);
+  outline: 2px solid var(--fx-accent, #4f5bd5);
   outline-offset: 2px;
   border-radius: 4px;
 }
