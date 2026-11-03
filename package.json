@@ -3,13 +3,22 @@
   "version": "1.14.7",
   "description": "专为多人 + AI 跨项目协作打造：任务管理 + 多语言 CHANGELOG。",
   "license": "MIT",
-  "author": "唐启云 <tqy@fxri.net> (https://fxri.net:444/)",
+  "author": {
+    "name": "唐启云",
+    "email": "tqy@fxri.net",
+    "url": "https://fxri.net:444/"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/fxri-net/toolkit.git"
   },
+  "bugs": {
+    "url": "https://github.com/fxri-net/toolkit/issues"
+  },
+  "homepage": "https://fxri-net.github.io/toolkit/",
   "type": "module",
   "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": {
@@ -62,8 +71,13 @@
     "task",
     "changelog",
     "changesets",
-    "i18n"
+    "i18n",
+    "fxri"
   ],
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "packageManager": "pnpm@10.34.4",
   "dependencies": {
     "@changesets/cli": "^2.31.1",
     "@inquirer/prompts": "^8.7.5",
@@ -82,20 +96,8 @@
     "vitepress": "^1.6.4",
     "vitest": "^4.1.11"
   },
-  "packageManager": "pnpm@10.34.4",
-  "engines": {
-    "node": ">=20.19.0"
-  },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public"
-  },
-  "directories": {
-    "doc": "docs"
-  },
-  "types": "./dist/index.d.ts",
-  "bugs": {
-    "url": "https://github.com/fxri-net/toolkit/issues"
-  },
-  "homepage": "https://github.com/fxri-net/toolkit#readme"
+  }
 }
