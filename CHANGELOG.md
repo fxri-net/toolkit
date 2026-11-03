@@ -1,5 +1,13 @@
 # 方弦工具集
 
+## 1.14.8
+
+> 2026-11-03 发布
+
+### ⚡ 优化改进
+
+- 统一 package.json 元数据（author、repository、homepage、keywords 与字段顺序）
+
 ## 1.14.7
 
 > 2026-11-03 发布
