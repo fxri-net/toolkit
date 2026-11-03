@@ -19,6 +19,7 @@ import { ALL_STATUSES } from "./tasks/types"
 import { languages, DEFAULT_LANG, resolveLang, type ChangelogLanguage } from "./changelog/languages"
 import { localDate, formatChangelogs, countUntypedEntries, findUntypedChangesetEntries, findUnbulletedChangesetEntries } from "./changelog/format"
 import { checkDoc, resolveDocOptions, syncDoc, syncDocAfterVersion } from "./changelog/doc"
+import { checkDocsTheme, writeDocsTheme } from "./docs/theme"
 import { resolveRedactEnabled } from "./privacy/redact"
 import { resolveEnabled } from "./switch"
 import { getConfigSection, resolveTasksDir } from "./config"
@@ -1338,6 +1339,53 @@ configCmd
 // 裸 `toolkit config`：打印本域帮助，列出 1 个子命令
 configCmd.action(() => {
   configCmd.help()
+})
+
+// docs 域：文档站工具，当前提供统一主题模板的校验与写入
+const docsCmd = program.command("docs").description("文档站工具：统一主题模板的校验与写入")
+
+// 默认主题目录：VitePress 约定的 docs/.vitepress/theme
+const THEME_DIR = "docs/.vitepress/theme"
+
+docsCmd
+  .command("theme")
+  .description("校验或写入统一文档站主题（公共规则随包分发，品牌段由各站自留）")
+  .option("--dir <path>", `主题目录（默认 ${THEME_DIR}）`)
+  .option("--check", "只校验，不写文件（默认动作）")
+  .option("--write", "写入或刷新模板，保留既有品牌段")
+  .option("--force", "--write 时缺少品牌标记也覆盖")
+  .action((options: { dir?: string; check?: boolean; write?: boolean; force?: boolean }) => {
+    // 互斥开关同时出现时直接报错，不静默取其中一个
+    if (options.check && options.write) {
+      console.error("⚠️ --check 与 --write 不能同时使用")
+      process.exitCode = 1
+      return
+    }
+    const themeDir = resolve(options.dir ?? THEME_DIR)
+    try {
+      if (options.write) {
+        const result = writeDocsTheme(themeDir, { force: options.force })
+        for (const file of result.written) console.log(`写入：${file}`)
+        for (const file of result.kept) console.log(`保留品牌段：${file}`)
+        return
+      }
+      const result = checkDocsTheme(themeDir)
+      if (result.ok) {
+        console.log(`主题一致：${themeDir}`)
+        return
+      }
+      console.error(`⚠️ 主题与模板不一致（${result.problems.length} 项）`)
+      for (const problem of result.problems) console.error(`  - ${problem}`)
+      process.exitCode = 1
+    } catch (e) {
+      console.error(`⚠️ ${(e as Error).message}`)
+      process.exitCode = 1
+    }
+  })
+
+// 裸 `toolkit docs`：打印本域帮助
+docsCmd.action(() => {
+  docsCmd.help()
 })
 
 // tasks 域：任务总览 / 归档 / 校验 / 归一化

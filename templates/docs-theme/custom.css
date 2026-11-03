@@ -1,0 +1,109 @@
+/* fxri-docs-theme: v1 */
+/* fxri-docs-theme:brand-start */
+/* 本站品牌与装饰：唯一允许各站不同的区段，--write 会原样保留 */
+:root {
+  --site-accent: #a6a7d7;
+  --site-glow: rgba(166, 167, 215, 0.22);
+  --site-shadow: rgba(48, 49, 51, 0.08);
+  --site-hero-angle: 180deg;
+
+  --vp-c-brand-1: #6262a8;
+  --vp-c-brand-2: #7a7ac0;
+  --vp-c-brand-3: #9494d4;
+  --vp-c-brand-soft: rgba(140, 140, 200, 0.16);
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, var(--vp-c-brand-1) 30%, var(--vp-c-brand-3));
+}
+
+.dark {
+  --vp-c-brand-1: #b3b4ea;
+  --vp-c-brand-2: #9a9bdc;
+  --vp-c-brand-3: #7a7ac0;
+  --vp-c-brand-soft: rgba(179, 180, 234, 0.18);
+  --site-glow: rgba(179, 180, 234, 0.16);
+}
+/* fxri-docs-theme:brand-end */
+/* 以下为公共视觉规则：由 toolkit 统一分发，逐字一致，勿手改 */
+
+/* 首页 hero：柔光渐变与正文行宽 */
+.VPHero {
+  background: linear-gradient(var(--site-hero-angle), var(--site-glow), transparent 70%);
+}
+
+.VPHero .text {
+  max-width: 720px;
+}
+
+/* 特性卡片：描边 + 悬浮反馈，打在卡片本体而非网格单元，避免各站间距不一致 */
+.VPFeature {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  transition:
+    border-color 0.18s ease-out,
+    transform 0.18s ease-out,
+    box-shadow 0.18s ease-out;
+}
+
+.VPFeature:hover {
+  border-color: var(--site-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px var(--site-shadow);
+}
+
+.VPFeature .icon {
+  background: var(--vp-c-brand-soft);
+  border-radius: 8px;
+}
+
+/* 表格：保留 VitePress 默认横向滚动，只调整表头与留白 */
+.vp-doc th {
+  background: var(--vp-c-brand-soft);
+  font-weight: 600;
+}
+
+.vp-doc th,
+.vp-doc td {
+  padding: 8px 14px;
+}
+
+/* 代码：块圆角与行内代码淡底 */
+.vp-doc div[class*="language-"] {
+  border-radius: 8px;
+}
+
+.vp-doc :not(pre) > code {
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+}
+
+/* 侧边栏与导航强调 */
+.VPSidebarItem.is-active > .item .link .text {
+  color: var(--vp-c-brand-1);
+  font-weight: 600;
+}
+
+.VPSidebarItem.level-0 > .item .text {
+  font-weight: 600;
+}
+
+.VPNavBarMenuLink.active,
+.VPNavBarMenuLink:hover {
+  color: var(--vp-c-brand-1);
+}
+
+/* 键盘焦点：可见轮廓，保证可访问性 */
+.vp-doc a:focus-visible,
+.VPLink:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* 动效偏好：用户要求减少动态时关闭位移与过渡 */
+@media (prefers-reduced-motion: reduce) {
+  .VPFeature,
+  .VPFeature:hover {
+    transition: none;
+    transform: none;
+  }
+}
