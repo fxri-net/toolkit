@@ -1,4 +1,4 @@
-/* fxri-docs-theme: v1 */
+/* fxri-docs-theme: 1.1 */
 /* fxri-docs-theme:brand-start */
 /* 本站品牌与装饰：唯一允许各站不同的区段，--write 会原样保留 */
 :root {
@@ -25,11 +25,15 @@
 /* fxri-docs-theme:brand-end */
 /* 以下为公共视觉规则：由 toolkit 统一分发，逐字一致，勿手改 */
 
-/* 首页 hero：柔光渐变与正文行宽 */
-.VPHero {
-  background: linear-gradient(var(--site-hero-angle), var(--site-glow), transparent 70%);
+/* 全页柔光：铺满视口并随页面滚动保持，避免只覆盖首屏 hero */
+body {
+  background-image: linear-gradient(var(--site-hero-angle), var(--site-glow), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: 100% 100vh;
 }
 
+/* 首页 hero：只约束正文行宽，底色由 body 统一提供 */
 .VPHero .text {
   max-width: 720px;
 }

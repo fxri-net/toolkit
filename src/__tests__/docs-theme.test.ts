@@ -66,6 +66,23 @@ describe("writeDocsTheme / checkDocsTheme", () => {
     expect(checkDocsTheme(dir).ok).toBe(true)
   })
 
+  it("版本标记落后时校验失败，--write 升级后保留品牌段", () => {
+    writeDocsTheme(dir)
+    const cssPath = join(dir, "custom.css")
+    const legacy = readFileSync(cssPath, "utf8")
+      .replace("/* fxri-docs-theme: 1.1 */", "/* fxri-docs-theme: 1.0 */")
+      .replace("--site-accent: #a6a7d7;", "--site-accent: #409eff;")
+    writeFileSync(cssPath, legacy)
+
+    const before = checkDocsTheme(dir)
+    expect(before.ok).toBe(false)
+    expect(before.problems.join("\n")).toContain("版本标记落后")
+
+    writeDocsTheme(dir)
+    expect(readFileSync(cssPath, "utf8")).toContain("--site-accent: #409eff;")
+    expect(checkDocsTheme(dir).ok).toBe(true)
+  })
+
   it("无品牌标记的既有文件须显式 --force 才覆盖", () => {
     mkdirSync(dir, { recursive: true })
     writeFileSync(join(dir, "custom.css"), "/* 手写样式 */\n")

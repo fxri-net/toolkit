@@ -5,10 +5,12 @@ import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
 import { skillsPackageDir } from "../skills"
 
-// 模板版本：公共规则变更时递增；旧版本在 --check 中按标记不一致报错
-export const THEME_VERSION = "v1"
+// 模板版本：公共规则变更时递增（视觉调整升次版本，标记格式或品牌段语义变更升主版本）
+export const THEME_VERSION = "1.1"
 
 const HEADER = `/* fxri-docs-theme: ${THEME_VERSION} */`
+// 任一合法版本标记都可解析（兼容早期的整数式 v1）：升级时据此保留品牌段，再由 --check 判定版本是否落后
+const HEADER_PATTERN = /^\/\* fxri-docs-theme: (?:v\d+|\d+\.\d+) \*\/$/
 const BRAND_START = "/* fxri-docs-theme:brand-start */"
 const BRAND_END = "/* fxri-docs-theme:brand-end */"
 
@@ -34,10 +36,10 @@ export function defaultThemeTemplateDir(): string {
   return join(skillsPackageDir(), "templates", "docs-theme")
 }
 
-// 拆解 custom.css：页头、品牌段、公共段；标记缺失返回 null
+// 拆解 custom.css：页头、品牌段、公共段；标记缺失或格式不合法返回 null
 function splitTheme(css: string): { header: string; brand: string; common: string } | null {
   const lines = normalize(css).split("\n")
-  if (lines[0] !== HEADER) return null
+  if (!HEADER_PATTERN.test(lines[0] ?? "")) return null
   const start = lines.indexOf(BRAND_START)
   const end = lines.indexOf(BRAND_END)
   if (start === -1 || end === -1 || end < start) return null
@@ -80,6 +82,8 @@ export function checkDocsTheme(themeDir: string, templateDir = defaultThemeTempl
     const site = splitTheme(readTextFile(cssPath))
     if (!site) {
       problems.push(`custom.css 缺少主题标记行（期望首行 ${HEADER}，并保留 brand-start / brand-end）`)
+    } else if (site.header !== templateCss.header) {
+      problems.push(`custom.css 版本标记落后（期望 ${HEADER}，实际 ${site.header}）；执行 toolkit docs theme --write 刷新公共段`)
     } else if (site.common !== templateCss.common) {
       const line = firstDiffLine(templateCss.common, site.common)
       problems.push(`custom.css 公共规则与模板不一致（第 ${line} 行）；本站差异请写在 brand-start 与 brand-end 之间`)
