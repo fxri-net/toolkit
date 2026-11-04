@@ -49,6 +49,8 @@ const cliEnv = { FX_NO_UPDATE_CHECK: "1" }
 const steps = [
   { label: "安装依赖（frozen 锁文件）", command: "pnpm", args: ["install", "--frozen-lockfile"], fatal: true },
   { label: "类型检查", command: "pnpm", args: ["typecheck"] },
+  // 仓库自检：技能版本四点一致、技能表用途列不残留旧术语、active 任务 touches 路径存在
+  { label: "规范一致性（技能版本 / 用途列 / touches）", args: ["scripts/check-consistency.mjs"] },
   // 冷缓存：本地 eslint --cache 会跳过未变文件，CI 每次全量跑，门禁必须与 CI 对齐才可比
   { label: "静态检查（冷缓存）", command: "pnpm", args: ["exec", "eslint", ".", "--no-cache"] },
   { label: "单元测试", command: "pnpm", args: ["test"], env: { TZ: "UTC" } },
