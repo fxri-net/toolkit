@@ -392,6 +392,28 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
       }
     }
 
+    // 本次选择的真源版本：外部技能也按自身 frontmatter 取值，不再只认包内技能
+    const versions = Object.fromEntries(items.map((item) => [item.name, item.version]))
+    // 重建 / 更新时给出「当前 → 目标」：旧值取安装前的登记版本
+    const previousVersion = (name: string): string => {
+      for (const byDir of prevBySourceDir.values()) {
+        for (const target of byDir.values()) {
+          const entry = target.entries.find((item) => item.name === name)
+          if (entry?.version) return entry.version
+        }
+      }
+      return ""
+    }
+    const transitions: Array<{ name: string; from: string; to: string }> = []
+    for (const result of results) {
+      for (const name of result.updated) {
+        const from = previousVersion(name)
+        const to = versions[name] ?? ""
+        if (from && to && from !== to) transitions.push({ name, from, to })
+      }
+    }
+    const missingVersions = items.filter((item) => !item.version).map((item) => item.name)
+
     return {
       source: skillsSourceDir(),
       skills: items.map((item) => item.name),
@@ -401,6 +423,9 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
       targets: results,
       skippedTargets,
       stateFile: skillsStateFile(),
+      versions,
+      transitions,
+      missingVersions,
     }
   } finally {
     release?.()

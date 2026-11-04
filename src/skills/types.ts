@@ -294,6 +294,12 @@ export interface InstallReport {
   targets: TargetInstallResult[]
   skippedTargets: Array<{ dir: string; label: string }>
   stateFile: string
+  // 本次选择技能的真源版本（含外部来源；未声明版本为空串）
+  versions: Record<string, string>
+  // 本次重建 / 更新造成的版本变化
+  transitions: Array<{ name: string; from: string; to: string }>
+  // 未声明 metadata.version 的技能：不参与版本更新提示
+  missingVersions: string[]
 }
 
 export interface RemoveResult {

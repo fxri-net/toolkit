@@ -384,7 +384,7 @@ function formatCombinedHint(current: string, cliLatest: string | null, alerts: S
   const facts: string[] = []
   if (cliLatest) facts.push(`toolkit ${cliLatest} 可用（当前 ${current}）`)
   if (alerts.length > 0) {
-    const names = alerts.slice(0, 3).map((alert) => `${alert.name} ${alert.latest}`)
+    const names = alerts.slice(0, 3).map((alert) => `${alert.name} ${alert.current ? `${alert.current} → ` : ""}${alert.latest}`)
     facts.push(`技能 ${names.join("、")}${alerts.length > 3 ? ` 等 ${alerts.length} 个技能` : ""} 可更新`)
   }
   const actions: string[] = []

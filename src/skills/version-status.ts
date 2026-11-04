@@ -1,6 +1,8 @@
-// 技能版本更新检测：只读状态文件与包内真源版本，不扫技能目录、不联网
+// 技能版本更新检测：只读状态文件与包内 / 来源缓存真源版本，不联网
+import { existsSync } from "node:fs"
+import { join } from "node:path"
 import { versionGt } from "../version"
-import { listPackageSkills } from "./source"
+import { listPackageSkills, readSkillVersion } from "./source"
 import { readProjectState, readSkillsState } from "./state"
 import { resolveProjectTargets } from "./source"
 import type { SkillsState } from "./types"
@@ -22,17 +24,27 @@ export interface SkillSourceVersionInfo {
   skills: string[]
 }
 
+// 版本不可比条目：missing 标明缺的是来源侧还是已装侧
+export interface SkillUnknownInfo {
+  name: string
+  source: string
+  installed: string
+  missing: "latest" | "installed"
+  temporary: boolean
+}
+
 // 技能版本报告：内置与外部来源分开，未知版本单列
 export interface SkillVersionReport {
   builtin: SkillUpdateInfo[]
   external: SkillUpdateInfo[]
-  unknown: Array<{ name: string; source: string; installed: string; temporary: boolean }>
+  unknown: SkillUnknownInfo[]
   sources: SkillSourceVersionInfo[]
 }
 
 // 来源累积信息：多目标登记时取最低已安装版本，任一目标落后即可提示
 interface SourceAccumulator {
   version: string
+  root: string
   temporary: boolean
   versions: Map<string, string>
 }
@@ -43,8 +55,9 @@ function accumulate(states: Array<SkillsState | null>): Map<string, SourceAccumu
   for (const state of states) {
     if (!state) continue
     for (const [sourceName, source] of Object.entries(state.sources)) {
-      const acc = result.get(sourceName) ?? { version: "", temporary: false, versions: new Map<string, string>() }
+      const acc = result.get(sourceName) ?? { version: "", root: "", temporary: false, versions: new Map<string, string>() }
       if (source.version && !acc.version) acc.version = source.version
+      if (source.root && !acc.root) acc.root = source.root
       acc.temporary = acc.temporary || source.temporary
       for (const target of source.targets) {
         for (const entry of target.entries) {
@@ -58,19 +71,29 @@ function accumulate(states: Array<SkillsState | null>): Map<string, SourceAccumu
   return result
 }
 
-// 检测技能版本：内置源对比包内真源；外部来源对比状态登记的来源版本
+// 从来源缓存目录读取技能真源版本：兼容 <root>/skills/<name> 与 <root>/<name> 两种布局
+function readVersionFromSource(root: string, name: string): string {
+  if (!root) return ""
+  for (const dir of [join(root, "skills", name), join(root, name)]) {
+    if (existsSync(join(dir, "SKILL.md"))) return readSkillVersion(dir)
+  }
+  return ""
+}
+
+// 检测技能版本：内置源对比包内真源；外部来源对比缓存目录内的技能版本
+// 外部来源不再用「来源级版本」冒充技能版本——两者独立编号，比较结果会永久显示落后
 export function collectSkillVersionUpdates(cwd = process.cwd()): SkillVersionReport {
   const packageVersions = new Map(listPackageSkills().map((skill) => [skill.name, skill.version]))
   const root = resolveProjectTargets(cwd).root
   const accumulated = accumulate([readSkillsState(), readProjectState(root)])
   const builtin: SkillUpdateInfo[] = []
   const external: SkillUpdateInfo[] = []
-  const unknown: SkillVersionReport["unknown"] = []
+  const unknown: SkillUnknownInfo[] = []
   for (const [sourceName, acc] of accumulated) {
     for (const [name, installed] of acc.versions) {
-      const latest = sourceName === "toolkit" ? packageVersions.get(name) ?? "" : acc.version
+      const latest = sourceName === "toolkit" ? packageVersions.get(name) ?? "" : readVersionFromSource(acc.root, name)
       if (!latest || !installed) {
-        unknown.push({ name, source: sourceName, installed, temporary: acc.temporary })
+        unknown.push({ name, source: sourceName, installed, missing: latest ? "installed" : "latest", temporary: acc.temporary })
         continue
       }
       if (!versionGt(latest, installed)) continue

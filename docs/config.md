@@ -209,6 +209,8 @@ registry 解析顺序：`updateCheck.registry` 配置 > 环境变量 `npm_config
 
 提示只在**命令成功**（退出码 0）时输出，且 `--help` / `help` 子命令 / 裸 `toolkit` / `skills path` / `skills status` / `changelog` 透传子命令 / `--format json` 不输出文本提示；`--version`、`--check`、`--export` 的提示只走 stderr。TTY 下提示走 stderr，非 TTY（AI / 脚本）走 stdout 结尾。
 
+版本比较口径：数字段不等按补零比较（`0.2` 等价 `0.2.0`）；预发布低于同号正式版（`0.2.6-beta < 0.2.6`）；忽略构建元数据（`+build`）；任一侧无法解析为版本时不提示。外部来源比较的是**技能自身**的 `metadata.version`（读自来源缓存目录），不使用来源仓库的包版本——两者独立编号。
+
 CLI 每次命令执行时**同步读取本地缓存**；缓存不新鲜时派生一个**分离的后台子进程**联网查询最新版本（1 秒超时，离线 / 内网 / 超时静默失败），父进程不联网、不等待结果，**不阻塞命令、不影响退出码**。缓存位于 `{tmpdir}/.toolkit-update-check.json`：成功结果 24 小时内不重复请求、失败结果 1 小时内不重试；过期不删除上次成功版本，按 stale-while-revalidate 继续用旧值提示并后台刷新。提示只来自缓存，因此首次运行只静默刷新缓存、下一次命令才提示新版本。关闭方式二选一：环境变量 `FX_NO_UPDATE_CHECK` 设为真值（`0/false/off/no` 视为未关闭），或 `enabled: false`（关闭后不派生后台进程、不发起任何网络请求）。脚本需要稳定输出时请用 `--format json` 或设 `FX_NO_UPDATE_CHECK=1`。
 
 ## skills：技能分发（1.9.0 新增）

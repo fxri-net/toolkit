@@ -427,9 +427,8 @@ function skillLabel(name: string, version: string): string {
 // 打印安装报告：按目标分组列出新建/更新/跳过/降级/失败，并给出未纳入目标的处理入口
 function printInstallReport(report: InstallReport, dryRun: boolean): void {
   const tag = dryRun ? "[预演] " : ""
-  const versionByName = new Map(listPackageSkills().map((s) => [s.name, s.version]))
   console.log(`${tag}技能源：${report.source}`)
-  console.log(`${tag}本次选择（${report.selection.length}）：${report.selection.map((name) => skillLabel(name, versionByName.get(name) ?? "")).join("、") || "无"}`)
+  console.log(`${tag}本次选择（${report.selection.length}）：${report.selection.map((name) => skillLabel(name, report.versions[name] ?? "")).join("、") || "无"}`)
   console.log(`${tag}本次目标（${report.targetSelection.length}）：${report.targetSelection.join("、") || "无"}`)
   for (const t of report.targets) {
     console.log("")
@@ -447,6 +446,12 @@ function printInstallReport(report: InstallReport, dryRun: boolean): void {
     if (modes.length > 0) console.log(`  产物形态：${modes.join(" / ")}`)
   }
   console.log("")
+  if (report.transitions.length > 0) {
+    console.log(`${tag}版本变化：${report.transitions.map((item) => `${item.name} ${item.from} → ${item.to}`).join("、")}`)
+  }
+  if (report.missingVersions.length > 0) {
+    console.log(`${tag}提示：技能 ${report.missingVersions.join("、")} 未声明 metadata.version，不参与版本更新提示`)
+  }
   if (report.skippedTargets.length > 0) {
     console.log(
       `本机未检测到的 agent ${report.skippedTargets.length} 个已跳过（不凭空创建目录）；如需装到未识别的 agent：toolkit skills install --dir <其全局技能目录>`,

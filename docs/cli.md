@@ -36,7 +36,7 @@ toolkit <command> [options]
 
 另有一个独立环境变量 `FX_NO_UPDATE_CHECK`：设为真值时关闭升级检查提示（1.7.0 新增，行为详见[配置参考 · updateCheck](./config#updatecheck-升级检查提示-1-7-0-新增)）。
 
-**升级提示收口**：命令成功（退出码 0）时，按 `updateCheck.notify`（默认 `always`）在输出结尾给出一句话提示；TTY 下走 stderr，非 TTY 走 stdout。`--help`、`help` 子命令、裸 `toolkit`、`skills path`、`skills status`、`changelog` 透传子命令与 `--format json` 不输出文本提示；`--version`、`--check`、`--export` 的提示只走 stderr。脚本需要稳定输出时请用 `--format json` 或设 `FX_NO_UPDATE_CHECK=1`。
+**升级提示收口**：命令成功（退出码 0）时，按 `updateCheck.notify`（默认 `always`）在输出结尾给出一句话提示；TTY 下走 stderr，非 TTY 走 stdout。技能提示会给出「当前 → 最新」；版本比较按数字段补零、预发布低于同号正式版、忽略构建元数据，任一侧无法解析为版本时静默不提示。`--help`、`help` 子命令、裸 `toolkit`、`skills path`、`skills status`、`changelog` 透传子命令与 `--format json` 不输出文本提示；`--version`、`--check`、`--export` 的提示只走 stderr。脚本需要稳定输出时请用 `--format json` 或设 `FX_NO_UPDATE_CHECK=1`。
 
 ## tasks
 

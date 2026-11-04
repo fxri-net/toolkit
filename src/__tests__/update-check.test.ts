@@ -294,3 +294,28 @@ describe("runUpdateCheckWorker 后台刷新", () => {
     expect(UPDATE_CHECK_WORKER_ARG).toBe("--fxri-update-check-worker")
   })
 })
+
+describe("versionGt 版本比较口径", () => {
+  it("段数不等按补零比较", () => {
+    expect(versionGt("0.2", "0.2.0")).toBe(false)
+    expect(versionGt("0.2.1", "0.2")).toBe(true)
+    expect(versionGt("1.10.0", "1.9.9")).toBe(true)
+  })
+
+  it("预发布低于同号正式版，预发布之间按标识符比较", () => {
+    expect(versionGt("0.2.6-beta", "0.2.6")).toBe(false)
+    expect(versionGt("0.2.6", "0.2.6-beta")).toBe(true)
+    expect(versionGt("0.2.6-beta.2", "0.2.6-beta.1")).toBe(true)
+    expect(versionGt("0.2.6-beta", "0.2.6-alpha")).toBe(true)
+  })
+
+  it("忽略构建元数据", () => {
+    expect(versionGt("0.2.6+build.2", "0.2.6")).toBe(false)
+    expect(versionGt("0.2.7+build", "0.2.6")).toBe(true)
+  })
+
+  it("无法解析的版本一律不可比", () => {
+    expect(versionGt("abc", "1.0.0")).toBe(false)
+    expect(versionGt("1.0.0", "abc")).toBe(false)
+  })
+})
