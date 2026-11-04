@@ -184,10 +184,18 @@ describe("configStatus 降级项渲染", () => {
 
 describe("configStatus 提示项与文本折叠", () => {
   it("未知段名：给 info 提示、不计入 warnings；已知段名不提示", () => {
-    const { start } = makeProject({ sub: { redct: { enabled: false }, skills: { autoLink: false } } })
+    const { start } = makeProject({
+      sub: {
+        redct: { enabled: false },
+        skills: { autoLink: false },
+        skillsInstall: { selection: {} },
+        projectSkills: { selection: [] },
+        changelogDoc: { title: "更新日志" },
+      },
+    })
     const report = configStatus(start)
     const unknown = report.items.filter((i) => i.message.includes("疑似拼写错误"))
-    // 仅 redct 属未知段；skills 为已知段（其 autoLink 非展示键，落入 otherSections 但不提示）
+    // 仅 redct 属未知段；skills / skillsInstall / projectSkills / changelogDoc 均为已知段
     expect(unknown).toHaveLength(1)
     expect(unknown[0]!.level).toBe("info")
     expect(unknown[0]!.scope).toBe("配置")

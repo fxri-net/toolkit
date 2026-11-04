@@ -97,7 +97,7 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 | 选项 | 说明 |
 | --- | --- |
 | `--export <path>` | 导出到文件（**仅任务总览 `toolkit tasks` 消费**；`archive`/`check`/`normalize`/`stats` 传入时 stderr 告警忽略、命令继续），按扩展名驱动：`.csv`（UTF-8 BOM 超集列）/ `.xlsx`（三 sheet）/ `.json`（`{ schemaVersion: 1, summary, items }`）；目录不存在自动创建 |
-| `--format json` | JSON 输出到 stdout（**任务总览与 `stats` 消费**；`archive`/`check`/`normalize` 传入时 stderr 告警忽略、命令继续）；诊断与提示信息（升级提示、链接自愈提示）一律走 stderr，不干扰机器解析；与 `--export` 互斥（仅任务总览下判定） |
+| `--format json` | JSON 输出到 stdout（**任务总览与 `stats` 消费**；`archive`/`check`/`normalize` 传入时 stderr 告警忽略、命令继续）；链接自愈提示走 stderr；升级提示按「升级提示收口」分 TTY / 非 TTY 渠道，JSON 模式不输出文本提示；与 `--export` 互斥（仅任务总览下判定） |
 | `--import <file>` | 从 `.csv`/`.xlsx`/`.json` 导入；独立模式，不能与子命令、`--export`、`--format` 同用；`--owner`/`--scope` 可同用，作为导入行缺失字段的默认值 |
 | `--target <target>` | 导入目标 `active`（默认，生成任务文件）/ `archive`（直接写归档块） |
 
@@ -219,7 +219,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 | `sources` | 列出已登记永久来源与状态中的临时来源（来源名 / 根目录 / 版本 / 生效提示频率 / 技能清单，临时来源标注「临时」）；`sources notify <name> <always\|daily\|weekly\|off>` 写单个来源的提示频率（默认全局层，`--scope project` 写项目层并向上找 git 根，非 git 仓库报错）；`sources refresh [name]` 刷新来源缓存与版本，只更新元数据、不自动安装，`--dry-run` 只列出将刷新的来源；`sources remove <name>` 注销登记（产物与状态保留），加 `--prune` 一并清理产物、状态与提示配置；`--format json` 输出机器可读清单与刷新报告 |
 | `path` | 输出包根（内含 `skills/`），便于委托上游安装器安装到内置表未收录的 agent；`--format json` 输出包根、技能源目录与技能清单 |
 
-四个子命令的 `--format json` 输出统一携带 `schemaVersion: 1` 锚点（与 `tasks --export` 同口径）；`install` / `status` / `remove` 的输出另含 `scope`（本次实际作用域）与 `dryRun`（供消费方区分预演与实跑），报告主体按 `global` / `project` 两个字段分面承载（未执行的面为 `null`）；`install` 与 `status` 报告含 `mode`（当前安装模式）、`selection`（技能选择集）与 `targetSelection`（目标选择集），`status` 两面报告另含 `skillVersions`（各技能真源版本，用于与会话上下文中已加载的技能内容对照）。
+`install` / `status` / `remove` / `sources` / `path` 各子命令的 `--format json` 输出统一携带 `schemaVersion: 1` 锚点（与 `tasks --export` 同口径）；`install` / `status` / `remove` 的输出另含 `scope`（本次实际作用域）与 `dryRun`（供消费方区分预演与实跑），报告主体按 `global` / `project` 两个字段分面承载（未执行的面为 `null`）；`install` 与 `status` 报告含 `mode`（当前安装模式）、`selection`（技能选择集）与 `targetSelection`（目标选择集），`status` 两面报告另含 `skillVersions`（各技能真源版本，用于与会话上下文中已加载的技能内容对照）。
 
 ### 技能选择
 

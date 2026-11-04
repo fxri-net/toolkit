@@ -245,7 +245,7 @@ CLI 每次命令执行时**同步读取本地缓存**；缓存不新鲜时派生
 ```json
 {
   "skillsInstall": {
-    "selection": { "toolkit": ["fxri-plan-to-task", "fxri-session-recap", "fxri-text-encoding"] },
+    "selection": { "toolkit": ["fxri-plan-to-task", "fxri-session-recap", "fxri-plan-review", "fxri-text-encoding"] },
     "targets": ["canonical", "claude-code"],
     "sources": {
       "play": { "root": "D:/skills/playbook" },
@@ -268,7 +268,7 @@ CLI 每次命令执行时**同步读取本地缓存**；缓存不新鲜时派生
 ```json
 {
   "projectSkills": {
-    "selection": ["fxri-plan-to-task", "fxri-session-recap"],
+    "selection": ["fxri-plan-to-task", "fxri-session-recap", "fxri-plan-review"],
     "targets": [".trae/skills", ".claude/skills"]
   }
 }
