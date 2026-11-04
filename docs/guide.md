@@ -143,8 +143,10 @@ toolkit skills install     # 默认软链真源，链接创建失败自动降级
                            # --scope <project|global|all> 指定作用域，缺省按 CLI 安装位置自动判定；--prune 清理未选择且内容一致的旧产物
                            # --from <path|url> 临时外部来源（本地目录或 Git 地址；副本，只写本次）；加 --save [name] 登记永久来源（默认软链）
                            # --mode package 纯包管理器模式（core 也可不装、允许零选）；--no-skills 仅本次零装
-toolkit skills status      # 查现场；toolkit skills remove 卸载（--skills 只清指定技能）；toolkit skills path 输出包根
+toolkit skills status      # 查现场与版本检查块；toolkit skills remove 卸载（--skills 只清指定技能）；toolkit skills path 输出包根
                            # --force 覆盖同名非本包产物（不改本包已登记副本的形态）
+toolkit skills sources     # 查看来源、版本与生效的提示频率；sources notify <name> <频率> 逐源设置
+toolkit skills sources refresh # 刷新来源缓存与版本（--dry-run 预演；只更新元数据，不自动安装）
 
 # 方式二：上游安装器（技能走 GitHub 拉取，与 CLI 是两条供应链）
 pnpm dlx skills add fxri-net/toolkit --global

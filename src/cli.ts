@@ -22,7 +22,7 @@ import { checkDoc, resolveDocOptions, syncDoc, syncDocAfterVersion } from "./cha
 import { checkDocsTheme, writeDocsTheme } from "./docs/theme"
 import { resolveRedactEnabled } from "./privacy/redact"
 import { resolveEnabled } from "./switch"
-import { getConfigSection, resolveTasksDir } from "./config"
+import { getConfigSection, getHomeDir, resolveTasksDir } from "./config"
 import { configStatus, foldHome, foldHomeInText, type ConfigStatusReport } from "./config-status"
 import type { LocalConfigIgnoreState } from "./git-ignore"
 import { initWorkspace, INIT_LINKS, type InitAction, type InitReport } from "./init"
@@ -56,6 +56,12 @@ import {
   resolveSource,
   resolveProjectTargets,
   resolveSkillTargets,
+  refreshRemoteSource,
+  acquireSkillsLock,
+  skillsLockFile,
+  writeUpdateCheckSourceNotify,
+  removeUpdateCheckSource,
+  writeSkillsState,
   skillsPackageDir,
   skillsSourceDir,
   skillsStatus,
@@ -78,11 +84,15 @@ import {
   readCachedLatest,
   resolveRegistry,
   resolveNotify,
+  resolveNotifySource,
+  resolveBuiltinNotifyLabel,
   isUpdateCheckEnabled,
   runUpdateCheckWorker,
   UPDATE_CHECK_WORKER_ARG,
   type RegistryInfo,
+  type SkillAlert,
 } from "./update-check"
+import { collectSkillVersionUpdates, type SkillVersionReport } from "./skills/version-status"
 import { versionGt } from "./version"
 import { setupHelp, shouldPrintChangelogHelp } from "./help"
 import { formatCommanderError } from "./errors"
@@ -686,8 +696,16 @@ function registryLabel(registry: RegistryInfo): string {
   return `${host}（来源：${REGISTRY_SOURCE_LABEL[registry.source]}）`
 }
 
-// 版本检查块：CLI 当前 / 最新、registry 来源与提示频率
-function printVersionStatus(info: { cliVersion: string; latest: string | null; registry: RegistryInfo; notify: string; enabled: boolean }): void {
+// 版本检查块：CLI 当前 / 最新、registry 来源、通道频率与技能更新
+function printVersionStatus(info: {
+  cliVersion: string
+  latest: string | null
+  registry: RegistryInfo
+  enabled: boolean
+  channels: { cli: string; builtinSkills: string; externalSkills: string }
+  updates: SkillVersionReport
+  sources: Array<{ name: string; version: string; temporary: boolean; notify: string }>
+}): void {
   const latestLabel = !info.enabled
     ? "最新版本未知（版本检查已关闭）"
     : info.latest === null
@@ -697,7 +715,13 @@ function printVersionStatus(info: { cliVersion: string; latest: string | null; r
         : "已是最新"
   console.log(`toolkit 版本：${info.cliVersion}（${latestLabel}）`)
   console.log(`registry：${registryLabel(info.registry)}`)
-  console.log(`提示频率：${info.notify}`)
+  console.log(`提示频率：cli ${info.channels.cli} / 内置 ${info.channels.builtinSkills} / 第三方 ${info.channels.externalSkills}`)
+  const outdated = [...info.updates.builtin, ...info.updates.external].map((item) => item.name)
+  if (outdated.length > 0) console.log(`技能更新：${outdated.join("、")}`)
+  if (info.sources.length > 0) {
+    const rows = info.sources.map((source) => `${source.name} ${source.version || "版本未知"}（${source.notify}${source.temporary ? "，临时" : ""}）`)
+    console.log(`第三方来源：${rows.join("、")}`)
+  }
 }
 
 // 打印状态报告（按作用域分派到对应面）
@@ -705,7 +729,7 @@ function printStatusReports(
   scope: { choice: ScopeChoice; explicit: boolean },
   glob: SkillsStatusReport | null,
   project: ProjectStatusReport | null,
-  versionInfo: { cliVersion: string; latest: string | null; registry: RegistryInfo; notify: string; enabled: boolean },
+  versionInfo: Parameters<typeof printVersionStatus>[0],
 ): void {
   printVersionStatus(versionInfo)
   console.log("")
@@ -1027,17 +1051,48 @@ skillsCmd
       const global = runGlobal ? skillsStatus() : null
       const latest = readCachedLatest()
       const registry = resolveRegistry()
-      const notify = resolveNotify("cli")
       const enabled = isUpdateCheckEnabled()
+      const channels = {
+        cli: { notify: resolveNotify("cli") },
+        builtinSkills: { notify: resolveBuiltinNotifyLabel() },
+        externalSkills: { notify: resolveNotify("external") },
+      }
+      const updates = collectSkillVersionUpdates()
+      const sourceRows =
+        scope.choice === "project"
+          ? []
+          : updates.sources.filter((source) => source.name !== BUILTIN_SOURCE).map((source) => ({
+              ...source,
+              notify: resolveNotify("external", source.name),
+              notifySource: resolveNotifySource("external", source.name),
+            }))
       const versionStatus = {
         cliVersion: version,
         latestVersion: latest,
         updateAvailable: latest !== null && versionGt(latest, version),
         registry,
-        channels: { cli: { notify } },
+        channels,
+        sources: sourceRows,
       }
-      if (options.format === "json") printJson({ scope: scope.choice, versionStatus, global, project })
-      else printStatusReports(scope, global, project, { cliVersion: version, latest, registry, notify, enabled })
+      if (options.format === "json") {
+        const withUpdates = <T extends object>(report: T | null) =>
+          report ? { ...report, skillsOutdated: updates.builtin.map((item) => item.name) } : null
+        printJson({ scope: scope.choice, versionStatus, global: withUpdates(global), project: withUpdates(project) })
+      } else {
+        printStatusReports(scope, global, project, {
+          cliVersion: version,
+          latest,
+          registry,
+          enabled,
+          channels: {
+            cli: channels.cli.notify,
+            builtinSkills: channels.builtinSkills.notify,
+            externalSkills: channels.externalSkills.notify,
+          },
+          updates,
+          sources: sourceRows,
+        })
+      }
     } catch (e) {
       console.error(`⚠️ 读取状态失败：${(e as Error).message}`)
       process.exitCode = 1
@@ -1089,15 +1144,37 @@ const sourcesCmd = skillsCmd
       if (!assertJsonFormat(options.format)) return
       const config = readSkillsInstallConfig()
       const state = readSkillsState()
-      const rows: Array<{ name: string; root: string; url?: string; ref?: string; temporary: boolean; registered: boolean; skills: string[] }> = []
+      const versionReport = collectSkillVersionUpdates()
+      const versionByName = new Map(versionReport.sources.map((source) => [source.name, source.version]))
+      const rows: Array<{ name: string; root: string; url?: string; ref?: string; temporary: boolean; registered: boolean; skills: string[]; version: string; notify: string }> = []
       for (const [name, entry] of Object.entries(config.sources ?? {})) {
         const skills = state?.sources[name]?.targets.flatMap((target) => target.entries.map((item) => item.name)) ?? []
-        rows.push({ name, root: entry.root ?? "", url: entry.url, ref: entry.ref, temporary: false, registered: true, skills: [...new Set(skills)] })
+        rows.push({
+          name,
+          root: entry.root ?? "",
+          url: entry.url,
+          ref: entry.ref,
+          temporary: false,
+          registered: true,
+          skills: [...new Set(skills)],
+          version: versionByName.get(name) ?? "",
+          notify: resolveNotify("external", name),
+        })
       }
       for (const [name, source] of Object.entries(state?.sources ?? {})) {
         if (rows.some((row) => row.name === name)) continue
         const skills = source.targets.flatMap((target) => target.entries.map((item) => item.name))
-        rows.push({ name, root: source.root, url: source.url, ref: source.ref, temporary: source.temporary, registered: false, skills: [...new Set(skills)] })
+        rows.push({
+          name,
+          root: source.root,
+          url: source.url,
+          ref: source.ref,
+          temporary: source.temporary,
+          registered: false,
+          skills: [...new Set(skills)],
+          version: versionByName.get(name) ?? source.version,
+          notify: resolveNotify("external", name),
+        })
       }
       if (options.format === "json") {
         printJson({ sources: rows })
@@ -1111,10 +1188,139 @@ const sourcesCmd = skillsCmd
         const kind = row.name === BUILTIN_SOURCE ? "内置" : row.registered ? "已登记" : row.temporary ? "临时" : "状态登记"
         const skills = row.skills.length > 0 ? `　技能：${row.skills.join("、")}` : ""
         const location = row.url ? `${row.url}${row.ref ? `#${row.ref}` : ""}` : row.root
-        console.log(`${row.name}（${kind}）：${location || "（来源根缺失）"}${skills}`)
+        console.log(`${row.name}（${kind}）：${location || "（来源根缺失）"}　版本：${row.version || "未知"}　更新提示：${row.notify}${skills}`)
       }
     } catch (e) {
       console.error(`⚠️ 读取来源失败：${(e as Error).message}`)
+      process.exitCode = 1
+    }
+  })
+
+// 来源提示频率：只写 updateCheck.sources.<name>.notify，不触碰其他配置
+sourcesCmd
+  .command("notify")
+  .description("设置单个第三方来源的更新提示频率（只写 updateCheck.sources.<name>.notify）")
+  .argument("<name>", "来源名")
+  .argument("<frequency>", "always / daily / weekly / off")
+  .option("--scope <scope>", "写入层：global（默认）/ project")
+  .option("--format <format>", "输出格式（json，输出到 stdout）")
+  .action((name: string, frequency: string, options: { scope?: string; format?: string }) => {
+    try {
+      if (!assertJsonFormat(options.format)) return
+      const scope = options.scope ?? "global"
+      if (scope !== "global" && scope !== "project") {
+        console.error(`⚠️ 非法作用域「${scope}」，仅支持 global / project`)
+        process.exitCode = 1
+        return
+      }
+      if (!["always", "daily", "weekly", "off"].includes(frequency)) {
+        console.error(`⚠️ 非法频率「${frequency}」，仅支持 always / daily / weekly / off`)
+        process.exitCode = 1
+        return
+      }
+      if (!readSkillsInstallConfig().sources?.[name]) {
+        console.error(`⚠️ 未找到已登记来源：${name}（临时来源请先用 --save 登记）`)
+        process.exitCode = 1
+        return
+      }
+      const file = writeUpdateCheckSourceNotify(name, frequency as "always" | "daily" | "weekly" | "off", scope)
+      if (options.format === "json") printJson({ name, frequency, scope, file })
+      else console.log(`已设置来源 ${name} 的更新提示频率为 ${frequency}（${scope}）：${file}`)
+    } catch (e) {
+      console.error(`⚠️ 写入来源提示配置失败：${(e as Error).message}`)
+      process.exitCode = 1
+    }
+  })
+
+// 来源刷新：只刷新来源元数据与缓存，不自动改写已安装技能
+sourcesCmd
+  .command("refresh")
+  .description("刷新外部来源缓存与版本（不自动安装；--dry-run 只列出将刷新的来源）")
+  .argument("[name]", "来源名；省略时刷新全部来源")
+  .option("--dry-run", "只列出将刷新的来源与当前版本，不联网、不取锁、不写盘")
+  .option("--format <format>", "输出格式（json，输出到 stdout）")
+  .action((name: string | undefined, options: { dryRun?: boolean; format?: string }) => {
+    try {
+      if (!assertJsonFormat(options.format)) return
+      const config = readSkillsInstallConfig()
+      const state = readSkillsState()
+      const candidates = new Map<string, { spec: string; temporary: boolean }>()
+      for (const [sourceName, entry] of Object.entries(config.sources ?? {})) {
+        if (sourceName === BUILTIN_SOURCE) continue
+        candidates.set(sourceName, {
+          spec: entry.url ? `${entry.url}${entry.ref ? `#${entry.ref}` : ""}` : entry.root ?? "",
+          temporary: false,
+        })
+      }
+      for (const [sourceName, source] of Object.entries(state?.sources ?? {})) {
+        if (sourceName === BUILTIN_SOURCE) continue
+        if (candidates.has(sourceName)) continue
+        candidates.set(sourceName, {
+          spec: source.url ? `${source.url}${source.ref ? `#${source.ref}` : ""}` : source.root,
+          temporary: source.temporary,
+        })
+      }
+      if (name && !candidates.has(name)) {
+        console.error(`⚠️ 未找到来源：${name}`)
+        process.exitCode = 1
+        return
+      }
+      const selected = name ? [[name, candidates.get(name)!] as const] : [...candidates.entries()]
+      if (options.dryRun) {
+        const rows = selected.map(([sourceName, item]) => ({
+          name: sourceName,
+          kind: item.spec.startsWith("http") || item.spec.startsWith("git@") || item.spec.startsWith("ssh://") ? "remote" : "local",
+          temporary: item.temporary,
+          status: "planned",
+          version: null,
+          error: null,
+        }))
+        if (options.format === "json") printJson({ dryRun: true, sources: rows })
+        else {
+          for (const row of rows) console.log(`[预演] ${row.name}（${row.kind}${row.temporary ? "，临时" : ""}）：将刷新`)
+        }
+        return
+      }
+      const release = acquireSkillsLock(skillsLockFile(getHomeDir()))
+      const rows: Array<{ name: string; kind: string; temporary: boolean; status: string; version: string | null; error: string | null }> = []
+      try {
+        for (const [sourceName, item] of selected) {
+          const kind = item.spec.startsWith("http") || item.spec.startsWith("git@") || item.spec.startsWith("ssh://") ? "remote" : "local"
+          try {
+            if (kind === "remote") refreshRemoteSource(item.spec)
+            const resolved = resolveSource(item.spec, { name: sourceName, temporary: item.temporary })
+            const latest = state?.sources[sourceName]
+            if (latest) {
+              latest.version = resolved.version
+              writeSkillsState(state!)
+            }
+            rows.push({ name: sourceName, kind, temporary: item.temporary, status: "refreshed", version: resolved.version, error: null })
+          } catch (e) {
+            const message = (e as Error).message
+            rows.push({
+              name: sourceName,
+              kind,
+              temporary: item.temporary,
+              status: message.includes("git 不可用") ? "skipped" : "failed",
+              version: null,
+              error: message,
+            })
+          }
+        }
+      } finally {
+        release()
+      }
+      if (options.format === "json") printJson({ dryRun: false, sources: rows })
+      else {
+        for (const row of rows) {
+          const tag = row.status === "refreshed" ? "已刷新" : row.status === "skipped" ? "已跳过" : "失败"
+          console.log(`${row.name}（${row.kind}${row.temporary ? "，临时" : ""}）：${tag}${row.version ? ` ${row.version}` : ""}${row.error ? `（${row.error}）` : ""}`)
+        }
+      }
+      const failed = rows.filter((row) => row.status === "failed")
+      if ((name && failed.length > 0) || (!name && rows.length > 0 && failed.length === rows.length)) process.exitCode = 1
+    } catch (e) {
+      console.error(`⚠️ 刷新来源失败：${(e as Error).message}`)
       process.exitCode = 1
     }
   })
@@ -1131,8 +1337,12 @@ sourcesCmd
       const dryRun = Boolean(options.dryRun)
       if (options.prune) {
         const report = removeSkills({ dryRun, source: name })
-        if (options.format === "json") printJson({ dryRun, source: name, report })
-        else printRemoveReport(report, dryRun)
+        const cleaned = dryRun ? [] : removeUpdateCheckSource(name)
+        if (options.format === "json") printJson({ dryRun, source: name, report, cleanedConfigFiles: cleaned })
+        else {
+          printRemoveReport(report, dryRun)
+          if (cleaned.length > 0) console.log(`已清理来源提示配置：${cleaned.join("、")}`)
+        }
         return
       }
       if (dryRun) {
@@ -1805,9 +2015,15 @@ async function main(): Promise<void> {
     process.exitCode = err.exitCode
   } finally {
     // 所有路径统一收口：成功命令按通道输出一行提示；帮助 / 版本 / JSON / 透传在函数内跳过
+    const updates = collectSkillVersionUpdates()
+    const skillAlerts: SkillAlert[] = [
+      ...updates.builtin.map((item) => ({ channel: "builtin" as const, name: item.name, current: item.installed, latest: item.latest })),
+      ...updates.external.map((item) => ({ channel: "external" as const, source: item.source, name: item.name, current: item.installed, latest: item.latest })),
+    ]
     emitVersionHint(version, {
       argv: process.argv.slice(2),
       exitCode: typeof process.exitCode === "number" ? process.exitCode : 0,
+      skillAlerts,
     })
   }
 }

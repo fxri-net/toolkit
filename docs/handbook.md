@@ -122,6 +122,7 @@ pnpm exec toolkit changelog doc              # 同步文档站更新日志镜像
 # 全局安装（推荐）
 pnpm add -g @fxri/toolkit
 toolkit skills status   # 可选：查看 CLI / registry / 提示频率与技能真源版本；再检查现场（悬空 / 指向其他版本 / 副本漂移 / 缺失 / 同名冲突 / 未选择但已安装）
+toolkit skills sources  # 查看外部来源、版本与生效提示频率；sources notify / refresh 逐源设置或刷新缓存
                         # 人读版健康目标折叠为一行、仅问题项展开；缺失 / 悬空 / 指向其他版本 / 副本漂移重跑 toolkit skills install 补齐，同名冲突需 toolkit skills install --force 覆盖，未选择产物加 --prune 清理
                         # --scope project 查项目面现场（真源 / 入口薄壳 / 缺失 / 漂移 / 未选择但已安装）
 

@@ -189,3 +189,61 @@ export function writeProjectSkillsConfig(patch: Partial<ProjectSkillsConfig>, cw
   const file = layers.project.file ?? join(resolve(cwd), ".toolkitrc.json")
   writeConfigSection(file, "projectSkills", patch as Record<string, unknown>)
 }
+
+// 升级提示频率：与 update-check 的取值保持一致
+export type UpdateNotifyFrequency = "always" | "daily" | "weekly" | "off"
+
+// 向上查找 git 仓库根：monorepo 子目录执行时也能把项目层配置写到仓库根
+function findGitRoot(start: string): string | null {
+  let dir = resolve(start)
+  while (true) {
+    if (existsSync(join(dir, ".git"))) return dir
+    const parent = dirname(dir)
+    if (parent === dir) return null
+    dir = parent
+  }
+}
+
+// 写单个第三方来源的提示频率：只合并 updateCheck.sources.<name>.notify，其余段原样保留
+export function writeUpdateCheckSourceNotify(
+  name: string,
+  notify: UpdateNotifyFrequency | undefined,
+  scope: "global" | "project",
+  cwd = process.cwd(),
+): string {
+  let file: string
+  if (scope === "project") {
+    const root = findGitRoot(cwd)
+    if (!root) throw new Error("--scope project 需要在 git 仓库内执行")
+    file = inspectConfigLayers(cwd).project.file ?? join(root, ".toolkitrc.json")
+  } else {
+    file = join(getHomeDir(), ".toolkitrc.json")
+  }
+  const root = readConfigRoot(file)
+  const section = isPlainObject(root.updateCheck) ? { ...root.updateCheck } : {}
+  const sources = isPlainObject(section.sources) ? { ...section.sources } : {}
+  const entry = isPlainObject(sources[name]) ? { ...sources[name] } : {}
+  if (notify === undefined) delete entry.notify
+  else entry.notify = notify
+  if (Object.keys(entry).length === 0) delete sources[name]
+  else sources[name] = entry
+  section.sources = sources
+  writeConfigSection(file, "updateCheck", section)
+  return file
+}
+
+// 清理来源提示配置：全局与项目层同时尝试，返回实际写入的文件
+export function removeUpdateCheckSource(name: string, cwd = process.cwd()): string[] {
+  const files: string[] = []
+  try {
+    files.push(writeUpdateCheckSourceNotify(name, undefined, "global"))
+  } catch {
+    // 全局配置不可写时跳过，不阻断卸载
+  }
+  try {
+    files.push(writeUpdateCheckSourceNotify(name, undefined, "project", cwd))
+  } catch {
+    // 非 git 仓库或项目配置不可写时跳过
+  }
+  return files
+}

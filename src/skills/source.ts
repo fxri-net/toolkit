@@ -415,6 +415,15 @@ export function resolveSource(spec: string, options: { name?: string; temporary?
   return resolveLocalSource(spec, options)
 }
 
+// 刷新远程来源缓存：未缓存则克隆，已缓存则 fetch + checkout；本地来源由调用方直接重读
+export function refreshRemoteSource(spec: string): void {
+  if (!isRemoteSpec(spec)) return
+  const parsed = parseRemoteSpec(spec)
+  const dest = remoteCacheDir(parsed)
+  if (!existsSync(dest)) cloneRemote(parsed, dest)
+  else refreshRemote(dest, parsed)
+}
+
 // 远程来源缓存目录：地址 + ref 派生稳定标识，统一落在用户级缓存下
 function remoteCacheDir(spec: RemoteSpec): string {
   const key = createHash("sha256").update(`${spec.url}@${spec.ref ?? ""}`).digest("hex").slice(0, 16)

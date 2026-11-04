@@ -261,14 +261,37 @@ export function readCachedLatest(): string | null {
   return latest ? latest : null
 }
 
+// 内置技能提示频率展示：默认 / 显式 inherit 时返回 inherit，便于 status 如实展示
+export function resolveBuiltinNotifyLabel(): string {
+  const section = getConfigSection("updateCheck")
+  const channels = isRecord(section?.channels) ? section.channels : {}
+  const entry = isRecord(channels.builtinSkills) ? channels.builtinSkills : undefined
+  if (entry?.notify === undefined || entry.notify === "inherit") return "inherit"
+  return resolveNotify("builtin")
+}
+
+// 提示频率来源：供 versionStatus 区分「来源覆盖 / 通道 / 全局默认」
+export function resolveNotifySource(channel: UpdateChannel, source?: string): "source" | "channel" | "global" {
+  const section = getConfigSection("updateCheck")
+  const channels = isRecord(section?.channels) ? section.channels : {}
+  if (channel === "external" && source) {
+    const sources = isRecord(section?.sources) ? section.sources : {}
+    const sourceEntry = isRecord(sources[source]) ? sources[source] : undefined
+    if (sourceEntry?.notify !== undefined) return "source"
+  }
+  const key = channel === "cli" ? "cli" : channel === "builtin" ? "builtinSkills" : "externalSkills"
+  const channelEntry = isRecord(channels[key]) ? channels[key] : undefined
+  return channelEntry?.notify !== undefined && channelEntry.notify !== "inherit" ? "channel" : "global"
+}
+
 // 提示闸门：关闭、真实 CI、npm script、通道频率未到、内置技能 inherit 且 CLI 已落后，任一命中即不提示
-export function shouldShowUpdateHint(channel: UpdateChannel, currentVersion: string, source?: string): boolean {
+export function shouldShowUpdateHint(channel: UpdateChannel, currentVersion: string, source?: string, cliVersion = currentVersion): boolean {
   if (isDisabled()) return false
   if (isCiEnv()) return false
   if (process.env.npm_lifecycle_event) return false
   const latest = readCachedLatest()
   if (!latest) return false
-  if (channel === "builtin" && builtinInherit() && versionGt(latest, currentVersion)) return false
+  if (channel === "builtin" && builtinInherit() && versionGt(latest, cliVersion)) return false
   const frequency = resolveNotify(channel, source)
   if (frequency === "off") return false
   if (frequency === "always") return true
@@ -347,15 +370,41 @@ function hasJsonFormat(argv: string[]): boolean {
   return false
 }
 
+// 技能更新提示：由 CLI 侧从状态文件算出，交给统一提示器合并成一行
+export interface SkillAlert {
+  channel: "builtin" | "external"
+  source?: string
+  name: string
+  current: string
+  latest: string
+}
+
+// 合并 CLI 与技能提示：固定一句话，来源超过 3 个折叠
+function formatCombinedHint(current: string, cliLatest: string | null, alerts: SkillAlert[]): string {
+  const facts: string[] = []
+  if (cliLatest) facts.push(`toolkit ${cliLatest} 可用（当前 ${current}）`)
+  if (alerts.length > 0) {
+    const names = alerts.slice(0, 3).map((alert) => `${alert.name} ${alert.latest}`)
+    facts.push(`技能 ${names.join("、")}${alerts.length > 3 ? ` 等 ${alerts.length} 个技能` : ""} 可更新`)
+  }
+  const actions: string[] = []
+  if (cliLatest) actions.push("运行 pnpm add -g @fxri/toolkit 升级后请开新会话")
+  if (alerts.length > 0) actions.push("运行 toolkit skills install 更新后请开新会话")
+  return `提示：${facts.join("；")}，${actions.join("；")}。`
+}
+
 // 命令收口提示：只在成功时输出；帮助 / 裸命令 / JSON / 透传跳过；TTY 走 stderr，非 TTY 走 stdout
-export function emitVersionHint(currentVersion: string, options: { argv: string[]; exitCode: number }): void {
+export function emitVersionHint(currentVersion: string, options: { argv: string[]; exitCode: number; skillAlerts?: SkillAlert[] }): void {
   refreshCacheIfNeeded()
   if (options.exitCode !== 0) return
   if (shouldSkipHint(options.argv)) return
   const latest = readCachedLatest()
-  if (!latest || !versionGt(latest, currentVersion)) return
-  if (!shouldShowUpdateHint("cli", currentVersion)) return
-  const line = formatUpdateHint(latest, currentVersion)
+  const cliOutdated = latest !== null && versionGt(latest, currentVersion) && shouldShowUpdateHint("cli", currentVersion)
+  const alerts = (options.skillAlerts ?? []).filter((alert) =>
+    shouldShowUpdateHint(alert.channel, alert.current, alert.source, currentVersion),
+  )
+  if (!cliOutdated && alerts.length === 0) return
+  const line = formatCombinedHint(currentVersion, cliOutdated ? latest : null, alerts)
   const stderrOnly =
     options.argv.includes("--version") ||
     options.argv.includes("-v") ||
@@ -363,7 +412,8 @@ export function emitVersionHint(currentVersion: string, options: { argv: string[
     options.argv.includes("--export")
   if (stderrOnly || process.stdout.isTTY) console.error(line)
   else console.log(line)
-  markNotified("cli")
+  if (cliOutdated) markNotified("cli")
+  for (const alert of alerts) markNotified(alert.channel, alert.source)
 }
 
 // 兼容旧入口：父进程同步读缓存并在 stderr 提示 CLI 更新，同时刷新缓存

@@ -198,7 +198,12 @@
 | `enabled` | boolean | `true` | 升级检查总开关；`false` 时不联网、不提示 |
 | `notify` | string | `always` | 默认展示频率：`always` / `daily` / `weekly` / `off`；非法值告警后回落 `always` |
 | `channels.cli.notify` | string | 继承 `notify` | CLI 本体提示频率；`off` 可单独关闭 |
+| `channels.builtinSkills.notify` | string | `inherit` | 本包内置技能提示频率；`inherit` 表示 CLI 已落后时由 CLI 提示覆盖，CLI 最新但磁盘副本落后时才单独提示 |
+| `channels.externalSkills.notify` | string | 继承 `notify` | 第三方来源技能的默认提示频率 |
+| `sources.<name>.notify` | string | 继承 `channels.externalSkills` | 单个第三方来源独立覆盖 |
 | `registry` | string | 见下方解析顺序 | 查询最新版本的 registry 地址 |
+
+提示频率优先级：`sources.<name>` > `channels.externalSkills` > `notify` 全局默认；CLI 走 `channels.cli` > 全局默认；内置技能默认 `inherit`。通道关闭不是总闸——`channels.externalSkills: off` 时，显式写了 `sources.<name>.notify` 的来源仍按来源值提示；要全部静默用 `enabled: false`。临时来源不写独立配置，继承 `channels.externalSkills`；配置里写了未注册来源名时，`skills status` 归入「未知来源配置」提示，不阻断命令。单个来源的频率可用 `toolkit skills sources notify <name> <always|daily|weekly|off> [--scope global|project]` 写入。
 
 registry 解析顺序：`updateCheck.registry` 配置 > 环境变量 `npm_config_registry` > 项目 `.npmrc` > 家目录 `.npmrc` > `https://registry.npmjs.org`。仅接受 http / https；含账号密码的地址会剥离 userinfo 并告警。认证读取 `NPM_TOKEN`，其次读取 `.npmrc` 中与 registry host 匹配的 `_authToken`；token 不写入日志、报告或缓存。Node fetch **不自动读取 `HTTP(S)_PROXY`**，代理环境下请求会静默失败，可用 `updateCheck.enabled: false` 关闭检查。
 
