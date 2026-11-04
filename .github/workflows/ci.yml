@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # 手动触发：Actions 平台抖动丢事件或需重跑时的手动入口
+  workflow_dispatch:
 
 jobs:
   # 验收步骤清单的唯一真源是 scripts/verify.mjs：各 job 都只调用它，不在 CI 里另写一份步骤，避免清单漂移

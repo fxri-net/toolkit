@@ -9,6 +9,8 @@ on:
       - '.github/workflows/deploy-docs.yml'
       - 'package.json'
       - 'pnpm-lock.yaml'
+  # 手动触发：不受 paths 过滤限制，可按需重新部署文档站
+  workflow_dispatch:
 
 permissions:
   contents: read
