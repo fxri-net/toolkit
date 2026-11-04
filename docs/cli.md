@@ -223,7 +223,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 ### 技能选择
 
-技能按 `SKILL.md` frontmatter 的 `metadata.tier` 分层：`skills` 模式（默认）`core` 必装、不可取消，`optional` 安装时可选；`package` 模式（纯包管理器）全部技能均可选、允许零选择。缺省按 `optional` 处理。当前 `fxri-plan-to-task`、`fxri-session-recap` 为 `core`，`fxri-release-changelog`、`fxri-text-encoding` 为 `optional`。
+技能按 `SKILL.md` frontmatter 的 `metadata.tier` 分层：`skills` 模式（默认）`core` 必装、不可取消，`optional` 安装时可选；`package` 模式（纯包管理器）全部技能均可选、允许零选择。缺省按 `optional` 处理。当前 `fxri-plan-to-task`、`fxri-session-recap`、`fxri-plan-review` 为 `core`，`fxri-release-changelog`、`fxri-text-encoding` 为 `optional`。
 
 模式优先级：`--mode package|skills` 先切换并持久化，再按新模式重建基线（`package` 为空、`skills` 为 `core`），不沿用旧模式的保存选择；`--no-skills` 仅本次零装，不改模式与已保存选择，且与 `--skills` / `--all` / `--no-optional` / `--mode` 互斥。
 
