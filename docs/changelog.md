@@ -6,6 +6,60 @@ outline: [2, 2]
 
 > 完整变更历史以根 `CHANGELOG.md` 为准，本页由 `toolkit changelog doc` 自动同步，请勿手改。
 
+## 1.15.1
+
+> 2026-11-04 发布
+
+### ✨ 新增功能
+
+- 新增 `scripts/check-consistency.mjs` 并挂入 `pnpm verify`，校验技能版本四处一致、技能表用途列片段与任务登记的触达路径
+- `toolkit conventions status` 输出 `checkCoverage`（`covered` / `uncovered` / `unknownIds`），一句话结论追加「其中 N 条无检测入口」
+- 检测代码可用 `// C-<n>` 行内注释标注对应规范，索引外引用以 info 提示
+- 新增 `toolkit skills bump` 递增技能版本，同步改写 frontmatter 与正文首部两处声明
+- `--all` 批量递增、`--set` 直接设定版本，支持 `--dry-run` 与 `--format json`
+- `fxri-plan-to-task` 归档步骤与 `task-spec.md` 的触达登记说明补「归档前运行改动比对」时点，避免归档删掉 active 源文件后比对空转
+- `FX_DEBUG_UPDATE_CHECK=1` 输出每轮提示判定依据到 stderr，不改变提示结果
+- `skills status` 展示上次检查时间与下次可提示时间，JSON 侧补 `checkedAt` / `nextHintAt`
+
+### 🔧 功能调整
+
+- 任务正文可用 `- 文档触达：<路径>` 登记本次触达文件，仓库自检核对路径存在性
+- `fxri-plan-to-task` references 补触达登记约定
+- `fxri-plan-to-task` references 补「检测入口标注约定」
+- `fxri-plan-review` 输出列名改为「后续是否落档」，取值 `直接落档` / `需要确认` / `仅作提示`
+- 会话内任何评估 / 建议表格都必须带该列，未分类默认 `仅作提示`
+- 技能表与根 README 的用途描述同步新标签
+- 明确「方案确认 ≠ 执行授权」，只读检查可在规划态执行、写操作须明确授权
+- 不可逆动作默认逐次授权，当前指令已含发版 / 推送授权则直接执行
+- 发版技能补授权边界与会话级授权的有效期，`fxri-session-recap` 同步收尾口径
+- 触发词与被动场景改为语义判定，示例非穷举
+- `SPEC.md`、`docs/ai-rules.md`、`AGENTS.md` 与 conventions C-2 同步授权语义
+- `fxri-plan-to-task`、`fxri-plan-review`、`fxri-session-recap` 的触发与只读判据改为按意图与最终动作判定，短语降为示例并标注非穷举，不再并列成词表
+- `skills/README.md` 自查清单把「正向触发词」改为「触发意图与示例（示例非穷举）」，从模板层阻断后续技能继续写词表
+- `docs/ai-rules.md` 补「只读型请求默认只读」稳定纪律，规则更新时间锚点同步
+
+### ⚡ 优化改进
+
+- `pnpm verify` 门禁提速——单测与覆盖率合并为一次运行、本地按改动面跳过无关步骤、类型 / 静态 / 规范检查并行，检查项与 CI 口径不变
+
+### 🐛 问题修复
+
+- `config status` 把 `skillsInstall` / `projectSkills` / `changelogDoc` 误报为未知配置段
+- `docs/cli.md` 升级提示渠道与技能 JSON 子命令范围表述过期
+- `docs/ai-rules.md` 技能分工补上落档后复核
+- 只有表态明确指向「接受评估结论并落档」才自动写入，「继续评估 / 可以吧」等不再触发落档
+- 外部来源的技能更新提示改为比较技能自身 `metadata.version`（读自来源缓存目录），不再用来源仓库版本冒充技能版本，消除「install 说已就绪但提示刷不掉」
+- 安装报告显示外部技能真实版本，并对重建 / 更新的技能给出「当前 → 目标」摘要
+- 技能更新提示给出「当前 → 最新」，不再只报最新值
+- 版本比较口径统一——段数不等补零、预发布低于同号正式版、忽略构建元数据、无法解析时不提示
+- 版本不可比条目区分缺的是来源侧还是已装侧
+- 批量抬 minor / major 需交互确认，非交互环境须显式 `--yes`
+- `skills sources` 不再列出内置源 `toolkit`，与「外部来源」定位及 `sources notify` 的内置源拒绝口径一致
+- `skills sources refresh --dry-run` 显示来源当前版本，未知版本标为「未知」/ `null`
+- `sources refresh` 的 JSON 在来源无版本时返回 `null`，不再输出空串
+- `skills sources` 与 `sources refresh` 的帮助文案如实反映「刷新 / 提示频率管理」与「dry-run 显示当前版本」
+- 执行 `skills install` 后同一版本不再重复提示，来源版本变化或 CLI 升级后自动恢复
+
 ## 1.15.0
 
 > 2026-11-04 发布
