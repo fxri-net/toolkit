@@ -6,6 +6,14 @@ outline: [2, 2]
 
 > 完整变更历史以根 `CHANGELOG.md` 为准，本页由 `toolkit changelog doc` 自动同步，请勿手改。
 
+## 1.15.2
+
+> 2026-11-04 发布
+
+### 🔧 功能调整
+
+- `fxri-release-changelog` 明确镜像页页头统一口径——默认 `outline: [2, 2]`（右侧目录只列版本号），不得用 `--no-frontmatter` 或自定义 `--outline` 偏离，并给出已偏离项目的回正步骤
+
 ## 1.15.1
 
 > 2026-11-04 发布
