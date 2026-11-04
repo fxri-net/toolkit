@@ -3,7 +3,7 @@
 // 沙箱隔离：home 指向临时目录（skills 与配置），升级缓存经 mock 的 tmpdir 落沙箱，子进程派生注入 mock（不真跑进程）
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from "vitest"
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 
 // 沙箱路径用 vi.hoisted 构造（mock 工厂早于模块顶层求值执行，不能引用未初始化的顶层变量）
 const sandbox = vi.hoisted(() => {
@@ -437,5 +437,96 @@ describe("config 域只读体检", () => {
     const r = await runCli(["config"])
     expect(r.code).toBe(0)
     expect(r.out.join("")).toContain("status")
+  })
+})
+
+describe("skills sources 外部来源口径", () => {
+  const stateFile = join(homeDir, ".agents", ".toolkit-skills.json")
+  const configFile = join(homeDir, ".toolkitrc.json")
+  const localSource = join(sandbox, "local-source")
+
+  // 写沙箱内的状态 / 配置文件（父目录按需创建）
+  function writeFixture(file: string, data: unknown): void {
+    mkdirSync(dirname(file), { recursive: true })
+    writeFileSync(file, JSON.stringify(data), "utf8")
+  }
+
+  // 最小状态来源：一个目标、若干净名条目，版本按参数写入
+  function sourceFixture(version: string, skillNames: string[]) {
+    return {
+      kind: "local",
+      version,
+      temporary: false,
+      root: localSource,
+      targets: [
+        {
+          id: "primary",
+          dir: join(homeDir, ".agents", "skills"),
+          label: "canonical",
+          kind: "primary",
+          entries: skillNames.map((name) => ({ name, version, mode: "link" })),
+        },
+      ],
+    }
+  }
+
+  afterEach(() => {
+    rmSync(stateFile, { force: true })
+    rmSync(configFile, { force: true })
+    rmSync(localSource, { recursive: true, force: true })
+  })
+
+  it("列表与 JSON 都不含内置源 toolkit", async () => {
+    writeFixture(stateFile, {
+      format: "fxri.toolkit.skills-state",
+      schemaVersion: 1,
+      updatedAt: "",
+      sources: { toolkit: sourceFixture("", ["fxri-plan-to-task"]), play: sourceFixture("1.2.3", ["ext-alpha"]) },
+    })
+    const json = await runCli(["skills", "sources", "--format", "json"])
+    const payload = JSON.parse(json.log.join("\n")) as { sources: Array<{ name: string }> }
+    expect(payload.sources.map((item) => item.name)).toEqual(["play"])
+    const text = await runCli(["skills", "sources"])
+    expect(text.log.join("\n")).not.toContain("toolkit（")
+  })
+
+  it("refresh --dry-run 显示当前版本，未知版本显示未知 / null", async () => {
+    writeFixture(configFile, { skillsInstall: { sources: { play: { root: join(sandbox, "play-src") } } } })
+    writeFixture(stateFile, {
+      format: "fxri.toolkit.skills-state",
+      schemaVersion: 1,
+      updatedAt: "",
+      sources: { play: sourceFixture("1.2.3", ["ext-alpha"]) },
+    })
+    const json = await runCli(["skills", "sources", "refresh", "--dry-run", "--format", "json"])
+    const payload = JSON.parse(json.log.join("\n")) as { sources: Array<{ status: string; version: string | null }> }
+    expect(payload.sources[0]).toMatchObject({ status: "planned", version: "1.2.3" })
+    const text = await runCli(["skills", "sources", "refresh", "--dry-run"])
+    expect(text.log.join("\n")).toContain("当前版本：1.2.3")
+
+    writeFixture(stateFile, {
+      format: "fxri.toolkit.skills-state",
+      schemaVersion: 1,
+      updatedAt: "",
+      sources: { play: sourceFixture("", ["ext-alpha"]) },
+    })
+    const unknown = await runCli(["skills", "sources", "refresh", "--dry-run", "--format", "json"])
+    const unknownPayload = JSON.parse(unknown.log.join("\n")) as { sources: Array<{ version: string | null }> }
+    expect(unknownPayload.sources[0]!.version).toBeNull()
+  })
+
+  it("本地来源无版本时刷新结果为 refreshed + version: null", async () => {
+    mkdirSync(join(localSource, "skills", "ext-alpha"), { recursive: true })
+    writeFileSync(join(localSource, "skills", "ext-alpha", "SKILL.md"), "---\nname: ext-alpha\ndescription: 本地无版本技能\n---\n", "utf8")
+    writeFixture(configFile, { skillsInstall: { sources: { play: { root: localSource } } } })
+    writeFixture(stateFile, {
+      format: "fxri.toolkit.skills-state",
+      schemaVersion: 1,
+      updatedAt: "",
+      sources: { play: sourceFixture("", ["ext-alpha"]) },
+    })
+    const json = await runCli(["skills", "sources", "refresh", "--format", "json"])
+    const payload = JSON.parse(json.log.join("\n")) as { sources: Array<{ status: string; version: string | null }> }
+    expect(payload.sources[0]).toMatchObject({ status: "refreshed", version: null })
   })
 })

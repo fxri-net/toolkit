@@ -192,9 +192,9 @@ toolkit skills install --dir <path> # 额外目标目录（可多次指定；全
 toolkit skills install --from <path|url> # 临时外部来源（本地目录或 Git 地址；副本写入，只写本次，不登记配置；可重复）
 toolkit skills install --from https://github.com/fxri-net/playbook#vX.Y.Z --save play # 远程永久来源（标签以来源仓 Releases 为准）
 toolkit skills remove --source play # 只清理指定外部来源的登记与产物
-toolkit skills sources               # 列出来源、版本与生效的更新提示频率
+toolkit skills sources               # 列出外部来源、版本与生效的更新提示频率（内置源不在列表内）
 toolkit skills sources notify play daily # 设置单个来源的提示频率（--scope global|project）
-toolkit skills sources refresh       # 刷新全部外部来源缓存与版本（--dry-run 只预演）
+toolkit skills sources refresh       # 刷新全部外部来源缓存与版本（--dry-run 列出将刷新来源与当前版本，不联网）
 toolkit skills sources remove play --prune # 注销来源登记并清理其产物、状态与提示配置
 toolkit skills install --format json # JSON 输出：dryRun、scope 与 global / project 各自的安装报告
 toolkit skills status               # 查看技能现场状态与包内技能真源版本（缺省按现场判定作用域）

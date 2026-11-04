@@ -1148,6 +1148,7 @@ const sourcesCmd = skillsCmd
       const versionByName = new Map(versionReport.sources.map((source) => [source.name, source.version]))
       const rows: Array<{ name: string; root: string; url?: string; ref?: string; temporary: boolean; registered: boolean; skills: string[]; version: string; notify: string }> = []
       for (const [name, entry] of Object.entries(config.sources ?? {})) {
+        if (name === BUILTIN_SOURCE) continue
         const skills = state?.sources[name]?.targets.flatMap((target) => target.entries.map((item) => item.name)) ?? []
         rows.push({
           name,
@@ -1162,6 +1163,7 @@ const sourcesCmd = skillsCmd
         })
       }
       for (const [name, source] of Object.entries(state?.sources ?? {})) {
+        if (name === BUILTIN_SOURCE) continue
         if (rows.some((row) => row.name === name)) continue
         const skills = source.targets.flatMap((target) => target.entries.map((item) => item.name))
         rows.push({
@@ -1244,6 +1246,7 @@ sourcesCmd
       if (!assertJsonFormat(options.format)) return
       const config = readSkillsInstallConfig()
       const state = readSkillsState()
+      const versionByName = new Map(collectSkillVersionUpdates().sources.map((source) => [source.name, source.version]))
       const candidates = new Map<string, { spec: string; temporary: boolean }>()
       for (const [sourceName, entry] of Object.entries(config.sources ?? {})) {
         if (sourceName === BUILTIN_SOURCE) continue
@@ -1272,12 +1275,14 @@ sourcesCmd
           kind: item.spec.startsWith("http") || item.spec.startsWith("git@") || item.spec.startsWith("ssh://") ? "remote" : "local",
           temporary: item.temporary,
           status: "planned",
-          version: null,
+          version: versionByName.get(sourceName) || null,
           error: null,
         }))
         if (options.format === "json") printJson({ dryRun: true, sources: rows })
         else {
-          for (const row of rows) console.log(`[预演] ${row.name}（${row.kind}${row.temporary ? "，临时" : ""}）：将刷新`)
+          for (const row of rows) {
+            console.log(`[预演] ${row.name}（${row.kind}${row.temporary ? "，临时" : ""}）：将刷新　当前版本：${row.version ?? "未知"}`)
+          }
         }
         return
       }
@@ -1291,10 +1296,10 @@ sourcesCmd
             const resolved = resolveSource(item.spec, { name: sourceName, temporary: item.temporary })
             const latest = state?.sources[sourceName]
             if (latest) {
-              latest.version = resolved.version
+              latest.version = resolved.version || ""
               writeSkillsState(state!)
             }
-            rows.push({ name: sourceName, kind, temporary: item.temporary, status: "refreshed", version: resolved.version, error: null })
+            rows.push({ name: sourceName, kind, temporary: item.temporary, status: "refreshed", version: resolved.version || null, error: null })
           } catch (e) {
             const message = (e as Error).message
             rows.push({
