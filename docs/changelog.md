@@ -6,6 +6,15 @@ outline: [2, 2]
 
 > 完整变更历史以根 `CHANGELOG.md` 为准，本页由 `toolkit changelog doc` 自动同步，请勿手改。
 
+## 1.15.3
+
+> 2026-11-04 发布
+
+### 🔧 功能调整
+
+- 移除 `fxri-release-changelog` 新增的镜像页页头统一要求——属项目风格偏好，不构成通用契约
+- `fxri-plan-to-task` 与 `task-spec.md` / `conventions-spec.md` 里的本仓路径、本仓历史案例改为通用措辞，通用技能只保留可移植纪律
+
 ## 1.15.2
 
 > 2026-11-04 发布
