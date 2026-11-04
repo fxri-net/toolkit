@@ -6,6 +6,29 @@ outline: [2, 2]
 
 > 完整变更历史以根 `CHANGELOG.md` 为准，本页由 `toolkit changelog doc` 自动同步，请勿手改。
 
+## 1.15.0
+
+> 2026-11-04 发布
+
+### ✨ 新增功能
+
+- `fxri-plan-review` 技能（core），复核已落档任务拆分，输出新增疏漏、建议与修订计划表
+- 复核结果按 `无需确认` / `需要确认` / `仅作提示` 标记默认处置，支持语义化接受后自动落档，未标记项不写入
+- `references/review-checklist.md` 与 `references/trigger-examples.md`，提供清单、反例与触发回归样例
+- 技能版本提示支持内置技能与第三方来源分别配置，内置默认 `inherit`，第三方支持 `channels.externalSkills` 与 `sources.<name>` 逐源覆盖
+- `skills sources` 展示来源版本与生效提示频率；`skills sources notify <name> <频率>` 支持 `--scope global|project` 与 `--format json`
+- `skills sources refresh [name]` 刷新来源缓存与版本，支持 `--dry-run` 与 `--format json`，只更新元数据、不自动安装
+- `skills status` 的 `versionStatus` 增加 `channels`、`sources` 与两面 `skillsOutdated`
+- 统一版本提示器，命令成功时按 `updateCheck.notify`（默认 `always`）在结尾输出一句话，TTY 走 stderr、非 TTY 走 stdout
+- `updateCheck` 支持 `notify` / `channels.cli.notify` / `registry` 配置，registry 按配置 > 环境变量 > 项目 / 家目录 `.npmrc` > 默认解析，支持 `NPM_TOKEN` 与 `_authToken`
+- `skills status` 文本与 `--format json` 增加版本检查块 / `versionStatus`，展示 CLI 当前版本、最新版本、registry 来源与提示频率
+
+### 🐛 问题修复
+
+- 升级提示仅在命令成功时输出，帮助、业务失败、解析失败、`skills path`、`skills status`、JSON 与 changelog 透传不再产生额外文本
+- 明确任务粒度只约束任务与提交单元，不约束发版范围；一次发版可包含多个任务与多个变更集
+- 同步 `SPEC.md`、`task-spec.md`、`docs/ai-rules.md` 与 `fxri-plan-to-task` 四处口径，并新增条款一致性测试
+
 ## 1.14.8
 
 > 2026-11-03 发布
