@@ -1,11 +1,22 @@
 // 仓库自检：技能版本四点一致、技能表用途列不残留旧术语、active 任务登记的触达路径真实存在
 // 只服务本仓库（不属产品能力）：用 node 直跑，由 scripts/verify.mjs 统一挂载
+// 另提供 --diff [base]：归档前比对「登记了触达却没改 / 改了触达面却没登记」，仅告警不阻断
+import { spawnSync } from "node:child_process"
 import { existsSync, readFileSync, readdirSync } from "node:fs"
 import { join, relative } from "node:path"
 
 const root = process.cwd()
 const errors = []
 const warns = []
+
+// --diff [base]：默认基线 HEAD；不传该参数则跳过比对（verify 在归档后执行，此时 active 已空，跑了也是空转）
+const diffIndex = process.argv.indexOf("--diff")
+const diffNext = process.argv[diffIndex + 1]
+const diffBase = diffIndex < 0 ? null : diffNext && !diffNext.startsWith("-") ? diffNext : "HEAD"
+
+// 触达面：文档与技能都会被使用者读到，改动后须在任务「影响范围」登记
+const TOUCH_PREFIXES = ["docs/", "skills/"]
+const TOUCH_FILES = new Set(["README.md"])
 
 // 读文本并归一换行：Windows 检出会把文本转为 CRLF，逐字节比对会误判
 function read(rel) {
@@ -97,7 +108,7 @@ for (const file of tableFiles) {
   }
 }
 
-// active 任务「影响范围」里登记的触达路径（`- 文档触达：a、b`，可选）必须真实存在
+// active 任务「影响范围」里登记的触达路径（`- 文档触达：a、b`，可选）
 function activeTaskFiles(dir) {
   if (!existsSync(dir)) return []
   const files = []
@@ -109,17 +120,64 @@ function activeTaskFiles(dir) {
   return files
 }
 
-for (const file of activeTaskFiles(join(root, ".tasks", "active"))) {
-  const lines = readFileSync(file, "utf8").replace(/\r\n/g, "\n").split("\n")
-  for (const line of lines) {
+// 读取单个任务文件里的触达登记
+function readTouches(file) {
+  const paths = []
+  for (const line of readFileSync(file, "utf8").replace(/\r\n/g, "\n").split("\n")) {
     const matched = /^\s*-\s*文档触达：(.+)$/.exec(line)
     if (!matched) continue
-    const paths = matched[1]
-      .split(/[、,，]/)
-      .map((item) => item.trim())
-      .filter(Boolean)
-    for (const rel of paths) {
-      if (!existsSync(join(root, rel))) errors.push(`${relative(root, file).split("\\").join("/")} 的文档触达指向不存在的路径：${rel}`)
+    for (const item of matched[1].split(/[、,，]/)) {
+      const rel = item.trim()
+      if (rel) paths.push(rel)
+    }
+  }
+  return paths
+}
+
+// 登记路径 → 登记它的任务文件（多人共用任务档时同一路径可能出现多次，只用于告警定位）
+const touchesByPath = new Map()
+for (const file of activeTaskFiles(join(root, ".tasks", "active"))) {
+  const label = relative(root, file).split("\\").join("/")
+  for (const rel of readTouches(file)) {
+    if (!existsSync(join(root, rel))) {
+      errors.push(`${label} 的文档触达指向不存在的路径：${rel}`)
+      continue
+    }
+    const owners = touchesByPath.get(rel) ?? []
+    owners.push(label)
+    touchesByPath.set(rel, owners)
+  }
+}
+
+// 改动比对：登记了触达却未改动 / 改动了触达面却没登记，均只告警
+function changedPaths(base) {
+  if (spawnSync("git", ["rev-parse", "--verify", "--quiet", base], { cwd: root, encoding: "utf8" }).status !== 0) return null
+  const diff = spawnSync("git", ["diff", "--name-only", base], { cwd: root, encoding: "utf8" })
+  const untracked = spawnSync("git", ["ls-files", "--others", "--exclude-standard"], { cwd: root, encoding: "utf8" })
+  if (diff.status !== 0 || untracked.status !== 0) return null
+  const paths = new Set()
+  for (const raw of `${diff.stdout}\n${untracked.stdout}`.split("\n")) {
+    const rel = raw.trim().split("\\").join("/")
+    if (rel) paths.add(rel)
+  }
+  return paths
+}
+
+let diffRan = false
+if (diffBase) {
+  const changed = changedPaths(diffBase)
+  if (changed === null) {
+    console.log(`改动比对：跳过（基线 ${diffBase} 不存在或当前目录不是 git 仓库）`)
+  } else {
+    diffRan = true
+    for (const [rel, owners] of touchesByPath) {
+      if (!changed.has(rel)) warns.push(`登记了触达但本次未改动：${rel}（登记于 ${owners.join("、")}）`)
+    }
+    for (const rel of changed) {
+      if (touchesByPath.has(rel)) continue
+      if (TOUCH_FILES.has(rel) || TOUCH_PREFIXES.some((prefix) => rel.startsWith(prefix))) {
+        warns.push(`改动了触达面但未登记：${rel}（在对应任务的「影响范围」补一行 - 文档触达：…）`)
+      }
     }
   }
 }
@@ -134,4 +192,4 @@ if (errors.length > 0) {
   for (const error of errors) console.error(`【error】${error}`)
   process.exit(1)
 }
-console.log(`规范一致性检查：${skillNames.length} 个技能版本与用途列一致，active 任务触达路径均存在`)
+console.log(`规范一致性检查：${skillNames.length} 个技能版本与用途列一致，active 任务触达路径均存在${diffRan ? "；改动比对已执行" : ""}`)
