@@ -1,83 +1,113 @@
-// 升级检查单测：版本比较、父进程同步分支（缓存命中提示 / 缓存过期派生 worker）、后台 worker 写缓存、开关与静默失败
-// 网络请求与子进程派生均注入 mock，tmp 目录重定向到独立沙箱目录，全程不触网、不派生真实进程
-// 沙箱路径用 vi.hoisted 构造（mock 工厂早于模块顶层求值执行，不能引用未初始化的顶层变量）
+// 升级检查单测：配置频率 / 闸门 / registry 解析 / 缓存迁移 / 提示渠道 / 后台刷新
+// 网络与子进程全部注入 mock，tmp 与 home 重定向到独立沙箱，全程不触网、不派生真实进程
 import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from "vitest"
-import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from "node:fs"
+import { mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { resetToolkitConfigCache } from "../config"
 
-// 在系统临时目录下构造独立沙箱路径（仅字符串运算，不依赖被 mock 的模块）
 const sandbox = vi.hoisted(() => {
   const base = (process.env.TEMP || process.env.TMP || "/tmp").replace(/[\\/]+$/, "")
   return `${base}/tk-upd-sandbox-${process.pid.toString(36)}`
 })
+const HOME = `${sandbox}/home`
+const WORK = `${sandbox}/work`
+
 vi.mock("node:os", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:os")>()
-  return { ...actual, tmpdir: () => sandbox }
+  return { ...actual, tmpdir: () => sandbox, homedir: () => HOME }
 })
 
-// 网络请求注入：fetchLatestVersion 可控返回
 vi.mock("../version", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../version")>()
   return { ...actual, fetchLatestVersion: vi.fn() }
 })
 
-// 子进程派生注入：避免单测真的拉起 node 进程
 vi.mock("node:child_process", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:child_process")>()
   return { ...actual, spawn: vi.fn() }
 })
 
-import { startUpdateCheck, runUpdateCheckWorker, UPDATE_CHECK_WORKER_ARG } from "../update-check"
+import {
+  buildRegistryUrl,
+  emitVersionHint,
+  formatUpdateHint,
+  isCiEnv,
+  markNotified,
+  readCachedLatest,
+  resolveNotify,
+  resolveRegistry,
+  runUpdateCheckWorker,
+  shouldShowUpdateHint,
+  UPDATE_CHECK_WORKER_ARG,
+} from "../update-check"
 import { fetchLatestVersion, versionGt } from "../version"
 import { spawn } from "node:child_process"
 
-// 建沙箱目录（update-check 写缓存时会经 mock 的 tmpdir() 落到沙箱内）
-mkdirSync(sandbox, { recursive: true })
+mkdirSync(HOME, { recursive: true })
+mkdirSync(WORK, { recursive: true })
 
 const mockedFetch = vi.mocked(fetchLatestVersion)
 const mockedSpawn = vi.mocked(spawn)
 const cacheFile = join(sandbox, ".toolkit-update-check.json")
-// 成功/负缓存的有效窗口
+const originalCwd = process.cwd()
 const HOUR = 60 * 60 * 1000
-// 子进程 unref 的观测点：父进程必须解除对 worker 的引用，否则自身无法立即退出
 let unrefSpy: (...args: unknown[]) => void
 
-// spawn 返回伪子进程对象，避免单测触碰真实进程
+// 捕获 stdout / stderr / warn：提示渠道断言共用
+function captureOutput(): { err: string[]; log: string[]; warn: string[] } {
+  const err: string[] = []
+  const log: string[] = []
+  const warn: string[] = []
+  vi.spyOn(console, "error").mockImplementation((...a: unknown[]) => err.push(a.join(" ")))
+  vi.spyOn(console, "log").mockImplementation((...a: unknown[]) => log.push(a.join(" ")))
+  vi.spyOn(console, "warn").mockImplementation((...a: unknown[]) => warn.push(a.join(" ")))
+  return { err, log, warn }
+}
+
+// 写缓存：默认带新鲜成功时间，避免用例意外触发后台刷新
+function writeCache(data: Record<string, unknown>): void {
+  writeFileSync(cacheFile, JSON.stringify({ latest: "", notifiedAt: {}, ...data }), "utf8")
+}
+
+function writeOkCache(latest: string, lastCheckedAt = Date.now()): void {
+  writeCache({ latest, lastCheckedAt })
+}
+
+function useConfig(config: Record<string, unknown>): void {
+  writeFileSync(join(WORK, ".toolkitrc.json"), JSON.stringify(config), "utf8")
+  resetToolkitConfigCache()
+}
+
+function useProjectNpmrc(content: string): void {
+  writeFileSync(join(WORK, ".npmrc"), content, "utf8")
+}
+
 beforeEach(() => {
   unrefSpy = vi.fn()
   mockedSpawn.mockReturnValue({ unref: unrefSpy } as unknown as ReturnType<typeof spawn>)
+  process.chdir(WORK)
+  delete process.env.FX_NO_UPDATE_CHECK
+  delete process.env.CI
+  delete process.env.npm_lifecycle_event
+  delete process.env.npm_config_registry
+  delete process.env.NPM_TOKEN
+  resetToolkitConfigCache()
+  Object.defineProperty(process.stdout, "isTTY", { value: false, configurable: true })
+  rmSync(cacheFile, { force: true })
+  for (const file of [join(WORK, ".toolkitrc.json"), join(WORK, ".npmrc"), join(HOME, ".npmrc")]) rmSync(file, { force: true })
 })
 
 afterEach(() => {
-  delete process.env.FX_NO_UPDATE_CHECK
+  process.chdir(originalCwd)
   resetToolkitConfigCache()
   vi.restoreAllMocks()
-  rmSync(cacheFile, { force: true })
   mockedFetch.mockReset()
   mockedSpawn.mockReset()
+  rmSync(cacheFile, { force: true })
+  for (const file of [join(WORK, ".toolkitrc.json"), join(WORK, ".npmrc"), join(HOME, ".npmrc")]) rmSync(file, { force: true })
 })
 
 afterAll(() => rmSync(sandbox, { recursive: true, force: true }))
-
-// 捕获诊断输出（stderr）与 stdout：升级提示必须只走 stderr，stdout 留给机器可读输出
-function captureOutput(): { err: string[]; log: string[] } {
-  const err: string[] = []
-  const log: string[] = []
-  vi.spyOn(console, "error").mockImplementation((...a: unknown[]) => err.push(a.join(" ")))
-  vi.spyOn(console, "log").mockImplementation((...a: unknown[]) => log.push(a.join(" ")))
-  return { err, log }
-}
-
-// 写入成功缓存（ts 可指定以模拟过期）
-function writeOkCache(latest: string, ts = Date.now()): void {
-  writeFileSync(cacheFile, JSON.stringify({ ts, ok: true, latest }), "utf8")
-}
-
-// 写入负缓存（查询失败记录，无版本号）
-function writeFailCache(ts = Date.now()): void {
-  writeFileSync(cacheFile, JSON.stringify({ ts, ok: false, latest: "" }), "utf8")
-}
 
 describe("versionGt 版本比较", () => {
   it.each([
@@ -92,128 +122,175 @@ describe("versionGt 版本比较", () => {
   })
 })
 
-describe("startUpdateCheck 父进程分支", () => {
-  it("命中成功缓存且落后：提示走 stderr、stdout 干净，不派生 worker", () => {
+describe("isCiEnv 与 resolveNotify", () => {
+  it("CI 真假口径：0/false/off/no 视为非 CI", () => {
+    expect(isCiEnv()).toBe(false)
+    process.env.CI = "1"
+    expect(isCiEnv()).toBe(true)
+    process.env.CI = "0"
+    expect(isCiEnv()).toBe(false)
+    process.env.CI = "false"
+    expect(isCiEnv()).toBe(false)
+  })
+
+  it("频率默认 always，支持通道与来源覆盖，非法值告警回落", () => {
+    expect(resolveNotify("cli")).toBe("always")
+    useConfig({ updateCheck: { notify: "daily", channels: { cli: { notify: "weekly" }, externalSkills: { notify: "daily" } }, sources: { play: { notify: "off" } } } })
+    expect(resolveNotify("cli")).toBe("weekly")
+    expect(resolveNotify("external", "other")).toBe("daily")
+    expect(resolveNotify("external", "play")).toBe("off")
+    const out = captureOutput()
+    useConfig({ updateCheck: { notify: "oops" } })
+    expect(resolveNotify("cli")).toBe("always")
+    expect(out.warn.join("\n")).toContain("updateCheck.notify")
+  })
+})
+
+describe("resolveRegistry 与 buildRegistryUrl", () => {
+  it("默认公网地址；项目 .npmrc、环境变量、配置逐级覆盖", () => {
+    expect(resolveRegistry()).toMatchObject({ value: "https://registry.npmjs.org/", source: "default" })
+    useProjectNpmrc("registry=https://project.example/\n")
+    expect(resolveRegistry()).toMatchObject({ value: "https://project.example/", source: "npmrc-project" })
+    rmSync(join(WORK, ".npmrc"), { force: true })
+    writeFileSync(join(HOME, ".npmrc"), "registry=https://home.example/\n", "utf8")
+    expect(resolveRegistry()).toMatchObject({ value: "https://home.example/", source: "npmrc-home" })
+    process.env.npm_config_registry = "https://env.example/"
+    expect(resolveRegistry()).toMatchObject({ value: "https://env.example/", source: "npm_config_registry" })
+    useConfig({ updateCheck: { registry: "https://config.example/npm/" } })
+    expect(resolveRegistry()).toMatchObject({ value: "https://config.example/npm/", source: "config" })
+  })
+
+  it("registry 含账号密码时剥离并告警", () => {
+    useConfig({ updateCheck: { registry: "https://user:pass@example.com/" } })
+    const out = captureOutput()
+    const info = resolveRegistry()
+    expect(info.value).toBe("https://example.com/")
+    expect(info.value).not.toContain("user")
+    expect(out.warn.join("\n")).toContain("账号密码")
+  })
+
+  it("构造 latest 地址时保留 registry 路径前缀并编码 scoped 包名", () => {
+    expect(buildRegistryUrl("https://example.com/npm/")).toBe("https://example.com/npm/@fxri%2Ftoolkit/latest")
+  })
+})
+
+describe("缓存读取与提示闸门", () => {
+  it("读取新结构与旧结构缓存；旧失败缓存无版本返回 null", () => {
     writeOkCache("9.9.9")
-    const out = captureOutput()
-    startUpdateCheck("1.6.5")
-    expect(out.err.join("\n")).toContain("9.9.9")
-    expect(out.log).toHaveLength(0)
-    expect(mockedSpawn).not.toHaveBeenCalled()
-    expect(mockedFetch).not.toHaveBeenCalled()
+    expect(readCachedLatest()).toBe("9.9.9")
+    writeFileSync(cacheFile, JSON.stringify({ ts: Date.now(), ok: true, latest: "8.8.8" }), "utf8")
+    expect(readCachedLatest()).toBe("8.8.8")
+    writeFileSync(cacheFile, JSON.stringify({ ts: Date.now(), ok: false, latest: "" }), "utf8")
+    expect(readCachedLatest()).toBeNull()
   })
 
-  it("命中成功缓存且不落后：不提示不派生", () => {
-    writeOkCache("1.6.5")
-    const out = captureOutput()
-    startUpdateCheck("1.6.5")
-    expect(out.err).toHaveLength(0)
-    expect(out.log).toHaveLength(0)
-    expect(mockedSpawn).not.toHaveBeenCalled()
-  })
-
-  it("缓存带 BOM 时仍能识别：按命中处理，不派生 worker", () => {
-    writeFileSync(cacheFile, `\uFEFF${JSON.stringify({ ts: Date.now(), ok: true, latest: "9.9.9" })}`, "utf8")
-    const out = captureOutput()
-    startUpdateCheck("1.6.5")
-    expect(out.err.join("\n")).toContain("9.9.9")
-    expect(mockedSpawn).not.toHaveBeenCalled()
-  })
-
-  it("无缓存：同步返回不提示，派生后台 worker 且解除引用（父进程零网络）", () => {
-    const out = captureOutput()
-    startUpdateCheck("1.6.5")
-    expect(out.err).toHaveLength(0)
-    // 父进程不参与联网，联网只发生在派生出的 worker 中
-    expect(mockedFetch).not.toHaveBeenCalled()
-    expect(mockedSpawn).toHaveBeenCalledTimes(1)
-    expect(mockedSpawn.mock.calls[0]![1]).toContain(UPDATE_CHECK_WORKER_ARG)
-    expect(mockedSpawn.mock.calls[0]![2]).toMatchObject({ detached: true, stdio: "ignore", windowsHide: true })
-    expect(unrefSpy).toHaveBeenCalledTimes(1)
-  })
-
-  it("成功缓存过期：清理缓存并派生 worker", () => {
-    writeOkCache("9.9.9", Date.now() - 25 * HOUR)
-    const out = captureOutput()
-    startUpdateCheck("1.6.5")
-    expect(out.err).toHaveLength(0)
-    expect(mockedSpawn).toHaveBeenCalledTimes(1)
-    expect(existsSync(cacheFile)).toBe(false)
-  })
-
-  it("负缓存未过期：不提示且不重复派生（抑制离线环境频繁联网）", () => {
-    writeFailCache(Date.now() - 30 * 60 * 1000)
-    const out = captureOutput()
-    startUpdateCheck("1.6.5")
-    expect(out.err).toHaveLength(0)
-    expect(mockedSpawn).not.toHaveBeenCalled()
-  })
-
-  it("负缓存过期：派生 worker 重试", () => {
-    writeFailCache(Date.now() - 2 * HOUR)
-    startUpdateCheck("1.6.5")
-    expect(mockedSpawn).toHaveBeenCalledTimes(1)
-  })
-
-  it("缓存损坏：不抛错并按无缓存处理，派生 worker", () => {
-    writeFileSync(cacheFile, "{ 不是合法 JSON", "utf8")
-    const out = captureOutput()
-    expect(() => startUpdateCheck("1.6.5")).not.toThrow()
-    expect(out.err).toHaveLength(0)
-    expect(mockedSpawn).toHaveBeenCalledTimes(1)
-  })
-
-  it("环境变量 FX_NO_UPDATE_CHECK=1：关闭检查，不提示不派生", () => {
+  it("关闭开关时不读缓存", () => {
+    writeOkCache("9.9.9")
     process.env.FX_NO_UPDATE_CHECK = "1"
-    writeOkCache("9.9.9")
-    const out = captureOutput()
-    startUpdateCheck("1.6.5")
-    expect(out.err).toHaveLength(0)
-    expect(out.log).toHaveLength(0)
-    expect(mockedSpawn).not.toHaveBeenCalled()
+    expect(readCachedLatest()).toBeNull()
+    expect(shouldShowUpdateHint("cli", "1.0.0")).toBe(false)
   })
 
-  it("配置 updateCheck.enabled=false：关闭检查，不提示不派生", () => {
-    const cwd = process.cwd()
-    writeFileSync(join(sandbox, ".toolkitrc.json"), JSON.stringify({ updateCheck: { enabled: false } }), "utf8")
-    process.chdir(sandbox)
-    resetToolkitConfigCache()
-    try {
-      writeOkCache("9.9.9")
+  it("CI / npm script 静默；CI=0 仍提示", () => {
+    writeOkCache("9.9.9")
+    process.env.CI = "1"
+    expect(shouldShowUpdateHint("cli", "1.0.0")).toBe(false)
+    process.env.CI = "0"
+    expect(shouldShowUpdateHint("cli", "1.0.0")).toBe(true)
+    process.env.npm_lifecycle_event = "test"
+    expect(shouldShowUpdateHint("cli", "1.0.0")).toBe(false)
+  })
+
+  it("daily 首次提示后按窗口限频；always 不写 notifiedAt", () => {
+    writeOkCache("9.9.9")
+    useConfig({ updateCheck: { notify: "daily" } })
+    expect(shouldShowUpdateHint("cli", "1.0.0")).toBe(true)
+    markNotified("cli")
+    expect(shouldShowUpdateHint("cli", "1.0.0")).toBe(false)
+    useConfig({ updateCheck: { notify: "always" } })
+    const before = JSON.parse(readFileSync(cacheFile, "utf8")).notifiedAt
+    markNotified("cli")
+    const after = JSON.parse(readFileSync(cacheFile, "utf8")).notifiedAt
+    expect(after).toEqual(before)
+  })
+
+  it("builtin inherit：CLI 已落后时跳过，CLI 已最新时独立判断", () => {
+    writeOkCache("9.9.9")
+    expect(shouldShowUpdateHint("builtin", "1.0.0")).toBe(false)
+    expect(shouldShowUpdateHint("builtin", "9.9.9")).toBe(true)
+  })
+})
+
+describe("emitVersionHint 提示渠道与例外", () => {
+  it("非 TTY 走 stdout，TTY 走 stderr", () => {
+    writeOkCache("9.9.9")
+    let out = captureOutput()
+    emitVersionHint("1.0.0", { argv: ["tasks"], exitCode: 0 })
+    expect(out.log.join("\n")).toContain("9.9.9")
+    expect(out.err).toHaveLength(0)
+
+    Object.defineProperty(process.stdout, "isTTY", { value: true, configurable: true })
+    out = captureOutput()
+    emitVersionHint("1.0.0", { argv: ["tasks"], exitCode: 0 })
+    expect(out.err.join("\n")).toContain("9.9.9")
+    expect(out.log).toHaveLength(0)
+  })
+
+  it("--version / --check 只写 stderr；帮助、裸命令、skills path / status、changelog 透传、JSON 全部跳过", () => {
+    writeOkCache("9.9.9")
+    for (const argv of [["--version"], ["changelog", "doc", "--check"]]) {
       const out = captureOutput()
-      startUpdateCheck("1.6.5")
+      emitVersionHint("1.0.0", { argv, exitCode: 0 })
+      expect(out.err.join("\n")).toContain("9.9.9")
+      expect(out.log).toHaveLength(0)
+    }
+    for (const argv of [[], ["--help"], ["help", "tasks"], ["skills", "path"], ["skills", "status"], ["changelog", "add"], ["tasks", "--format", "json"]]) {
+      const out = captureOutput()
+      emitVersionHint("1.0.0", { argv, exitCode: 0 })
       expect(out.err).toHaveLength(0)
       expect(out.log).toHaveLength(0)
-      expect(mockedSpawn).not.toHaveBeenCalled()
-    } finally {
-      process.chdir(cwd)
-      rmSync(join(sandbox, ".toolkitrc.json"), { force: true })
     }
+  })
+
+  it("非 0 退出不提示；文案为单句", () => {
+    writeOkCache("9.9.9")
+    const out = captureOutput()
+    emitVersionHint("1.0.0", { argv: ["tasks", "check"], exitCode: 1 })
+    expect(out.err).toHaveLength(0)
+    expect(out.log).toHaveLength(0)
+    expect(formatUpdateHint("9.9.9", "1.0.0").split("\n")).toHaveLength(1)
   })
 })
 
 describe("runUpdateCheckWorker 后台刷新", () => {
-  it("查询成功：写成功缓存（带版本号）且不产生输出", async () => {
+  it("查询成功：写 latest 与 lastCheckedAt", async () => {
     mockedFetch.mockResolvedValue("2.0.0")
     const out = captureOutput()
     await runUpdateCheckWorker()
     expect(out.err).toHaveLength(0)
-    expect(out.log).toHaveLength(0)
-    const data = JSON.parse(readFileSync(cacheFile, "utf8")) as { ok: boolean; latest: string }
-    expect(data).toMatchObject({ ok: true, latest: "2.0.0" })
+    const data = JSON.parse(readFileSync(cacheFile, "utf8")) as { latest: string; lastCheckedAt?: number }
+    expect(data.latest).toBe("2.0.0")
+    expect(typeof data.lastCheckedAt).toBe("number")
   })
 
-  it("查询返回空（registry 异常）：写负缓存，抑制短期重复请求", async () => {
+  it("查询失败：保留上次成功版本，只更新 lastFailedAt", async () => {
+    writeOkCache("1.5.0", Date.now() - 25 * HOUR)
     mockedFetch.mockResolvedValue(null)
     await runUpdateCheckWorker()
-    const data = JSON.parse(readFileSync(cacheFile, "utf8")) as { ok: boolean; latest: string }
-    expect(data).toMatchObject({ ok: false, latest: "" })
+    const data = JSON.parse(readFileSync(cacheFile, "utf8")) as { latest: string; lastFailedAt?: number }
+    expect(data.latest).toBe("1.5.0")
+    expect(typeof data.lastFailedAt).toBe("number")
   })
 
-  it("查询异常（网络失败）：静默写负缓存，不抛错", async () => {
+  it("无缓存且查询失败：写空版本与失败时间，不抛错", async () => {
     mockedFetch.mockRejectedValue(new Error("EAI_AGAIN"))
     await expect(runUpdateCheckWorker()).resolves.toBeUndefined()
-    const data = JSON.parse(readFileSync(cacheFile, "utf8")) as { ok: boolean }
-    expect(data.ok).toBe(false)
+    const data = JSON.parse(readFileSync(cacheFile, "utf8")) as { latest: string; lastFailedAt?: number }
+    expect(data.latest).toBe("")
+    expect(typeof data.lastFailedAt).toBe("number")
+  })
+
+  it("worker 参数常量保持不变", () => {
+    expect(UPDATE_CHECK_WORKER_ARG).toBe("--fxri-update-check-worker")
   })
 })

@@ -3,6 +3,7 @@
 import { existsSync, lstatSync, mkdirSync, readdirSync, rmSync, symlinkSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
 import { getConfigSection, getHomeDir } from "../config"
+import { isCiEnv } from "../update-check"
 import { writeFileAtomic } from "../write-atomic"
 import { readTextFile } from "../read-text"
 import {
@@ -1033,7 +1034,7 @@ function consistentShell(skillDir: string): boolean {
 export function autoLinkSkills(): number {
   const section = getConfigSection("skills")
   if (section?.autoLink === false) return 0
-  if (process.env.CI) return 0
+  if (isCiEnv()) return 0
   const state = readSkillsState()
   if (!state) return 0
 

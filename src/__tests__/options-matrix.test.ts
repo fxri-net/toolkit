@@ -366,25 +366,39 @@ describe("tasks check 装配位：变更集缺前缀并入软告警", () => {
   })
 })
 
-describe("升级检查在所有路径一致触发（缺陷 13）", () => {
+describe("升级检查提示收口（成功才提示，帮助 / 失败静默）", () => {
   beforeEach(() => {
-    // 打开升级检查：其余路径（帮助 / 解析失败 / 业务失败）都应读到缓存并提示
+    // 打开升级检查并清掉 CI / npm script 闸门：只验证命令路径规则
     delete process.env.FX_NO_UPDATE_CHECK
+    delete process.env.CI
+    delete process.env.npm_lifecycle_event
+    delete process.env.npm_config_registry
+    writeFileSync(cacheFile, JSON.stringify({ latest: "99.0.0", lastCheckedAt: Date.now(), notifiedAt: {} }), "utf8")
   })
 
-  it("帮助 / 业务失败 / 解析失败三条路径均读到升级提示", async () => {
-    writeFileSync(cacheFile, JSON.stringify({ ts: Date.now(), ok: true, latest: "99.0.0" }), "utf8")
+  it("成功命令提示；帮助、业务失败、解析失败均不提示", async () => {
+    const ok = await runCli(["tasks", "--dir", missingTasksDir])
+    expect(ok.code).toBe(0)
+    expect(ok.log.join("\n")).toContain("99.0.0")
+
     const helper = await runCli(["--help"])
     expect(helper.code).toBe(0)
-    expect(helper.err.join("\n")).toContain("99.0.0")
+    expect(helper.err.join("\n")).not.toContain("99.0.0")
 
     const bizFail = await runCli(["tasks", "--dir", missingTasksDir, "--status", "bogus"])
     expect(bizFail.code).toBe(1)
-    expect(bizFail.err.join("\n")).toContain("99.0.0")
+    expect(bizFail.err.join("\n")).not.toContain("99.0.0")
 
     const parseFail = await runCli(["tasks", "--dir", missingTasksDir, "--view", "bogus"])
     expect(parseFail.code).toBe(1)
-    expect(parseFail.err.join("\n")).toContain("99.0.0")
+    expect(parseFail.err.join("\n")).not.toContain("99.0.0")
+  })
+
+  it("--version 的 stdout 保持纯净，提示只走 stderr", async () => {
+    const r = await runCli(["--version"])
+    expect(r.code).toBe(0)
+    expect(r.out.join("")).not.toContain("99.0.0")
+    expect(r.err.join("\n")).toContain("99.0.0")
   })
 })
 

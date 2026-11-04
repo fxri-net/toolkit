@@ -195,9 +195,16 @@
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
-| `enabled` | boolean | `true` | 升级检查总开关；`false` 时 CLI 不发起任何网络请求 |
+| `enabled` | boolean | `true` | 升级检查总开关；`false` 时不联网、不提示 |
+| `notify` | string | `always` | 默认展示频率：`always` / `daily` / `weekly` / `off`；非法值告警后回落 `always` |
+| `channels.cli.notify` | string | 继承 `notify` | CLI 本体提示频率；`off` 可单独关闭 |
+| `registry` | string | 见下方解析顺序 | 查询最新版本的 registry 地址 |
 
-CLI 每次命令执行时**同步读取本地缓存**，检测到新版本时向 **stderr** 输出一行升级提示；缓存不新鲜时派生一个**分离的后台子进程**联网查询 npm registry 最新版本（1 秒超时，离线/内网/超时静默失败），父进程不联网、不等待结果，**不阻塞命令、不影响退出码**。查询结果缓存在系统临时目录 `{tmpdir}/.toolkit-update-check.json`：成功结果缓存 24 小时、失败结果缓存 1 小时（避免离线环境每条命令都重试联网）。提示只来自缓存，因此首次运行只静默刷新缓存、下一次命令才提示新版本。关闭方式二选一：环境变量 `FX_NO_UPDATE_CHECK` 设为真值（`0/false/off/no` 视为未关闭，其余视为关闭），或本配置项设为 `false`（关闭后不派生后台进程、不发起任何网络请求）。
+registry 解析顺序：`updateCheck.registry` 配置 > 环境变量 `npm_config_registry` > 项目 `.npmrc` > 家目录 `.npmrc` > `https://registry.npmjs.org`。仅接受 http / https；含账号密码的地址会剥离 userinfo 并告警。认证读取 `NPM_TOKEN`，其次读取 `.npmrc` 中与 registry host 匹配的 `_authToken`；token 不写入日志、报告或缓存。Node fetch **不自动读取 `HTTP(S)_PROXY`**，代理环境下请求会静默失败，可用 `updateCheck.enabled: false` 关闭检查。
+
+提示只在**命令成功**（退出码 0）时输出，且 `--help` / `help` 子命令 / 裸 `toolkit` / `skills path` / `skills status` / `changelog` 透传子命令 / `--format json` 不输出文本提示；`--version`、`--check`、`--export` 的提示只走 stderr。TTY 下提示走 stderr，非 TTY（AI / 脚本）走 stdout 结尾。
+
+CLI 每次命令执行时**同步读取本地缓存**；缓存不新鲜时派生一个**分离的后台子进程**联网查询最新版本（1 秒超时，离线 / 内网 / 超时静默失败），父进程不联网、不等待结果，**不阻塞命令、不影响退出码**。缓存位于 `{tmpdir}/.toolkit-update-check.json`：成功结果 24 小时内不重复请求、失败结果 1 小时内不重试；过期不删除上次成功版本，按 stale-while-revalidate 继续用旧值提示并后台刷新。提示只来自缓存，因此首次运行只静默刷新缓存、下一次命令才提示新版本。关闭方式二选一：环境变量 `FX_NO_UPDATE_CHECK` 设为真值（`0/false/off/no` 视为未关闭），或 `enabled: false`（关闭后不派生后台进程、不发起任何网络请求）。脚本需要稳定输出时请用 `--format json` 或设 `FX_NO_UPDATE_CHECK=1`。
 
 ## skills：技能分发（1.9.0 新增）
 
@@ -211,7 +218,7 @@ CLI 每次命令执行时**同步读取本地缓存**，检测到新版本时向
 - **仅作用于全局面软链**：`autoLink` / `autoLinkReplaceForeign` 只做全局技能目录的软链自愈；项目面（仓库内唯一真源副本 + 各候选目录薄壳）不受这两个开关影响，其刷新由 `toolkit init` 写入的 `package.json` `prepare` 钩子（`toolkit skills install --scope project`）承担，产物归属账另存 `<仓库根>/.toolkit/state.json`（非配置文件、随 git 分发）
 - **只补链与修链**：不含首次安装（未安装过、无状态文件时不动作），不含副本刷新（副本形式的技能不自动升级，需重跑 `toolkit skills install`）
 - **只对状态文件记载的链接生效**：现场被替换成实体目录 / 普通文件时，默认清理后重建为软链；`autoLinkReplaceForeign: false` 改为一律不动——该开关**只豁免实体产物**，悬空与指向其他版本（内容与真源不一致）的链接仍照常修复
-- **`CI` 环境自动跳过**：检测到 `CI` 环境变量时不执行，避免污染流水线
+- **`CI` 环境自动跳过**：`CI` 为非空且不等于 `0` / `false` / `off` / `no` 时不执行，避免污染流水线；与升级提示共用同一判定
 - **任何失败静默**：修链失败不影响命令本身，条目留在状态文件里下次再试
 - 修复发生时向 **stderr** 输出一行 `已自动修复 N 个技能链接`（stdout 留给机器可读输出）；不需要自愈可把 `autoLink` 设为 `false` 关闭
 

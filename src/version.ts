@@ -1,13 +1,13 @@
 // npm registry 最新版本查询与版本号比较：网络请求与语义比较分离，便于单测注入
+// 查询地址由调用方按配置 / 环境变量 / .npmrc 解析后传入，支持私有 registry 与 Bearer token
 const REGISTRY_URL = "https://registry.npmjs.org/@fxri%2Ftoolkit/latest"
 
 // 查询 registry 最新版本；网络失败、超时（1s）、响应异常一律返回 null（静默）
-export async function fetchLatestVersion(): Promise<string | null> {
+export async function fetchLatestVersion(url = REGISTRY_URL, token?: string): Promise<string | null> {
   try {
-    const res = await fetch(REGISTRY_URL, {
-      signal: AbortSignal.timeout(1000),
-      headers: { accept: "application/vnd.npm.install-v1+json" },
-    })
+    const headers: Record<string, string> = { accept: "application/vnd.npm.install-v1+json" }
+    if (token) headers.authorization = `Bearer ${token}`
+    const res = await fetch(url, { signal: AbortSignal.timeout(1000), headers })
     if (!res.ok) return null
     const data = (await res.json()) as { version?: unknown }
     return typeof data.version === "string" ? data.version : null

@@ -44,6 +44,8 @@ function reportToolchain() {
 // ① 合成数据步骤（单元测试 / 覆盖率门槛）钉 TZ=UTC：被测数据由测试当场构造、与运行环境时区无关，钉 UTC 使本地与全部 CI 同轴；
 // ② 读真实任务数据的步骤（本源仓库自检 / 任务区体检 / 归档块归一核验）钉 TZ=Asia/Shanghai：任务档按本地时区书写，须在数据原地时区判定，
 //    否则 UTC 环境会把 +8 墙上串前移 8 小时而误报「未来时间」，该误报正是本次拆解的目标
+// CLI 冒烟与任务区体检统一关闭升级提示：门禁输出保持确定，提示行为由单测覆盖
+const cliEnv = { FX_NO_UPDATE_CHECK: "1" }
 const steps = [
   { label: "安装依赖（frozen 锁文件）", command: "pnpm", args: ["install", "--frozen-lockfile"], fatal: true },
   { label: "类型检查", command: "pnpm", args: ["typecheck"] },
@@ -55,13 +57,13 @@ const steps = [
   { label: "本源仓库自检（真实数据双零）", command: "pnpm", args: ["test:repo-guard"], env: { TZ: "Asia/Shanghai" } },
   { label: "构建", command: "pnpm", args: ["build"] },
   // 镜像校验依赖 dist/cli.js，须置于构建之后；仅本仓自举产物，不依赖全局工具
-  { label: "CHANGELOG 镜像一致（changelog doc --check）", args: ["dist/cli.js", "changelog", "doc", "--check"] },
+  { label: "CHANGELOG 镜像一致（changelog doc --check）", args: ["dist/cli.js", "changelog", "doc", "--check"], env: cliEnv },
   { label: "文档站构建（死链检查）", command: "pnpm", args: ["docs:build"], skip: skipDocs },
-  { label: "CLI 冒烟 --help", args: ["dist/cli.js", "--help"] },
-  { label: "CLI 冒烟 tasks --help", args: ["dist/cli.js", "tasks", "--help"] },
-  { label: "CLI 冒烟 changelog --help", args: ["dist/cli.js", "changelog", "--help"] },
-  { label: "任务区体检（tasks check）", args: ["dist/cli.js", "tasks", "check"], env: { TZ: "Asia/Shanghai" } },
-  { label: "归档块归一核验（tasks normalize）", args: ["dist/cli.js", "tasks", "normalize"], env: { TZ: "Asia/Shanghai" } },
+  { label: "CLI 冒烟 --help", args: ["dist/cli.js", "--help"], env: cliEnv },
+  { label: "CLI 冒烟 tasks --help", args: ["dist/cli.js", "tasks", "--help"], env: cliEnv },
+  { label: "CLI 冒烟 changelog --help", args: ["dist/cli.js", "changelog", "--help"], env: cliEnv },
+  { label: "任务区体检（tasks check）", args: ["dist/cli.js", "tasks", "check"], env: { TZ: "Asia/Shanghai", ...cliEnv } },
+  { label: "归档块归一核验（tasks normalize）", args: ["dist/cli.js", "tasks", "normalize"], env: { TZ: "Asia/Shanghai", ...cliEnv } },
 ]
 
 reportToolchain()

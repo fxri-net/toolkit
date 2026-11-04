@@ -73,7 +73,17 @@ import {
   type SkillsRemoveReport,
   type SkillsStatusReport,
 } from "./skills"
-import { startUpdateCheck, runUpdateCheckWorker, UPDATE_CHECK_WORKER_ARG } from "./update-check"
+import {
+  emitVersionHint,
+  readCachedLatest,
+  resolveRegistry,
+  resolveNotify,
+  isUpdateCheckEnabled,
+  runUpdateCheckWorker,
+  UPDATE_CHECK_WORKER_ARG,
+  type RegistryInfo,
+} from "./update-check"
+import { versionGt } from "./version"
 import { setupHelp, shouldPrintChangelogHelp } from "./help"
 import { formatCommanderError } from "./errors"
 import { DESCRIPTION } from "./about"
@@ -656,8 +666,49 @@ function printInstallReports(scope: { choice: ScopeChoice; explicit: boolean }, 
   }
 }
 
+// registry 来源中文映射：文本模式不展示英文枚举
+const REGISTRY_SOURCE_LABEL: Record<RegistryInfo["source"], string> = {
+  config: "配置",
+  npm_config_registry: "环境变量",
+  "npmrc-project": "项目 .npmrc",
+  "npmrc-home": "家目录 .npmrc",
+  default: "默认",
+}
+
+// registry 文本展示：只显示主机，避免内网地址路径进入共享截图
+function registryLabel(registry: RegistryInfo): string {
+  let host = registry.value
+  try {
+    host = new URL(registry.value).host
+  } catch {
+    // 非法地址原样展示，来源仍可见
+  }
+  return `${host}（来源：${REGISTRY_SOURCE_LABEL[registry.source]}）`
+}
+
+// 版本检查块：CLI 当前 / 最新、registry 来源与提示频率
+function printVersionStatus(info: { cliVersion: string; latest: string | null; registry: RegistryInfo; notify: string; enabled: boolean }): void {
+  const latestLabel = !info.enabled
+    ? "最新版本未知（版本检查已关闭）"
+    : info.latest === null
+      ? "最新版本未知"
+      : versionGt(info.latest, info.cliVersion)
+        ? `最新 ${info.latest}（可升级）`
+        : "已是最新"
+  console.log(`toolkit 版本：${info.cliVersion}（${latestLabel}）`)
+  console.log(`registry：${registryLabel(info.registry)}`)
+  console.log(`提示频率：${info.notify}`)
+}
+
 // 打印状态报告（按作用域分派到对应面）
-function printStatusReports(scope: { choice: ScopeChoice; explicit: boolean }, glob: SkillsStatusReport | null, project: ProjectStatusReport | null): void {
+function printStatusReports(
+  scope: { choice: ScopeChoice; explicit: boolean },
+  glob: SkillsStatusReport | null,
+  project: ProjectStatusReport | null,
+  versionInfo: { cliVersion: string; latest: string | null; registry: RegistryInfo; notify: string; enabled: boolean },
+): void {
+  printVersionStatus(versionInfo)
+  console.log("")
   console.log(scopeHeadline(scope))
   if (project) {
     console.log("")
@@ -974,8 +1025,19 @@ skillsCmd
       const runGlobal = scope.choice !== "project"
       const project = runProject ? projectSkillsStatus() : null
       const global = runGlobal ? skillsStatus() : null
-      if (options.format === "json") printJson({ scope: scope.choice, global, project })
-      else printStatusReports(scope, global, project)
+      const latest = readCachedLatest()
+      const registry = resolveRegistry()
+      const notify = resolveNotify("cli")
+      const enabled = isUpdateCheckEnabled()
+      const versionStatus = {
+        cliVersion: version,
+        latestVersion: latest,
+        updateAvailable: latest !== null && versionGt(latest, version),
+        registry,
+        channels: { cli: { notify } },
+      }
+      if (options.format === "json") printJson({ scope: scope.choice, versionStatus, global, project })
+      else printStatusReports(scope, global, project, { cliVersion: version, latest, registry, notify, enabled })
     } catch (e) {
       console.error(`⚠️ 读取状态失败：${(e as Error).message}`)
       process.exitCode = 1
@@ -1722,7 +1784,7 @@ program.helpCommand("help [command]", "显示帮助")
 ensureUtf8()
 // main 包装：兼容 CJS 产物（顶层 await 仅 ESM 支持）；主命令完成后同步读缓存提示升级（零网络、不影响退出码）
 async function main(): Promise<void> {
-  // 内部升级检查 worker：仅联网刷新缓存后退出，不执行命令、不做技能自愈（参数由 startUpdateCheck 派生时注入）
+  // 内部升级检查 worker：仅联网刷新缓存后退出，不执行命令、不做技能自愈（参数由版本提示器派生时注入）
   if (process.argv[2] === UPDATE_CHECK_WORKER_ARG) {
     await runUpdateCheckWorker()
     return
@@ -1742,8 +1804,11 @@ async function main(): Promise<void> {
     else process.stderr.write(commanderErrBuffer)
     process.exitCode = err.exitCode
   } finally {
-    // 所有路径（成功 / 帮助 / 版本 / 解析失败）一致触发升级检查；命中缓存仅读盘提示，零网络
-    startUpdateCheck(version)
+    // 所有路径统一收口：成功命令按通道输出一行提示；帮助 / 版本 / JSON / 透传在函数内跳过
+    emitVersionHint(version, {
+      argv: process.argv.slice(2),
+      exitCode: typeof process.exitCode === "number" ? process.exitCode : 0,
+    })
   }
 }
 // 执行语义不变，仅导出 Promise 供测试 await 主流程（cli.ts 无法被静态 import，见 src/__tests__/options-matrix.test.ts）
