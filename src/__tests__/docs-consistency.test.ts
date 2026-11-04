@@ -41,6 +41,28 @@ describe("文档一致性：任务粒度与发版范围条款", () => {
   })
 })
 
+describe("文档一致性：规划态与执行态分离", () => {
+  it("规则层与建档技能都区分「方案确认」与「执行授权」", () => {
+    for (const file of ["docs/ai-rules.md", "skills/fxri-plan-to-task/SKILL.md"]) {
+      const text = readDoc(file)
+      expect(text, `${file} 缺少方案确认的表述`).toContain("方案确认")
+      expect(text, `${file} 缺少执行授权的表述`).toContain("执行授权")
+    }
+  })
+
+  it("规则层与发版技能都写明「当前指令已含授权则直接执行」", () => {
+    for (const file of ["docs/ai-rules.md", "AGENTS.md", "skills/fxri-release-changelog/SKILL.md"]) {
+      expect(readDoc(file), `${file} 缺少「当前指令已含授权即执行」口径`).toMatch(/当前指令已含[^。]{0,16}授权/)
+    }
+  })
+
+  it("发版技能写明不可逆动作逐次授权与会话级授权的有效期", () => {
+    const text = readDoc("skills/fxri-release-changelog/SKILL.md")
+    expect(text).toContain("逐次授权")
+    expect(text).toContain("仅本次会话有效")
+  })
+})
+
 // 站点更新日志镜像页的期望内容：直接调用镜像脚本的转换函数，不在测试内复刻同一份逻辑
 // （复刻会让脚本缺陷被同样的错误实现掩盖，CRLF 误报即由此漏过）
 describe("文档一致性：更新日志镜像", () => {

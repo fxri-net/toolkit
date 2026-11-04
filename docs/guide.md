@@ -126,10 +126,10 @@
 
 | 技能 | 版本 | 用途 | 层级 |
 | --- | --- | --- | --- |
-| `fxri-plan-to-task` | 1.9.6 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 | core |
-| `fxri-release-changelog` | 1.2.4 | changesets 发版与多语言 CHANGELOG 维护 | optional |
-| `fxri-session-recap` | 1.6.3 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
-| `fxri-plan-review` | 1.0.1 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档 / 需要确认 / 仅作提示` 标记后续是否落档 | core |
+| `fxri-plan-to-task` | 1.9.7 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 | core |
+| `fxri-release-changelog` | 1.2.5 | changesets 发版与多语言 CHANGELOG 维护 | optional |
+| `fxri-session-recap` | 1.6.4 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
+| `fxri-plan-review` | 1.0.2 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档 / 需要确认 / 仅作提示` 标记后续是否落档 | core |
 | `fxri-text-encoding` | 1.2.1 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
 
 版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` 打印的真源版本），随技能内容变更递增；层级取自 `metadata.tier`（`core` 必装、`optional` 可选，缺省按 `optional`）；`fxri-session-recap` 为 1.7.0 新增
@@ -179,7 +179,7 @@ pnpm dlx skills add fxri-net/toolkit --global
 ### 统一收尾链路（能力终点 = 沉淀）
 
 ```
-任务终结 → 归档 → 规范沉淀（.tasks/conventions/，硬终点） → 提交/发版/推送（可选，需用户确认）
+任务终结 → 归档 → 规范沉淀（.tasks/conventions/，硬终点） → 提交/发版/推送（默认需确认；当次指令已含授权则直接执行）
 ```
 
 ### 会话沉淀（收尾执行）

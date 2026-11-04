@@ -16,7 +16,7 @@
 | ID | 规则 | 当前语义 | 归属 | 单一事实源 |
 | --- | --- | --- | --- | --- |
 | C-1 | 四级时间源 | 时间取证优先级：当场打点 > 聊天记录时间戳 > git 提交时间 > 系统时间兜底（标注「收尾补记」） | common | `skills/fxri-plan-to-task/references/task-spec.md`（口径随版本走） |
-| C-2 | 能力终点 = 沉淀 + 自动提交 | 任务终结 → 归档 → 规范沉淀 → 收尾提交自动执行；推送与发版须用户明确 | common | `docs/ai-rules.md` 稳定纪律（作者个人收紧，可裁剪） |
+| C-2 | 能力终点 = 沉淀 + 自动提交 | 任务终结 → 归档 → 规范沉淀 → 收尾提交自动执行；推送与发版默认须用户明确，不可逆动作默认逐次授权、当前指令已含授权则直接执行 | common | `docs/ai-rules.md` 稳定纪律（作者个人收紧，可裁剪） |
 | C-3 | conventions 唯一落点 | 任务级与会话级规范写同一载体，`index.md` 为唯一入口与唯一权威；演进记录独立 `history.md`（仅追加、不改旧行） | common | `skills/fxri-plan-to-task/references/conventions-spec.md`（载体结构）+ `skills/fxri-plan-to-task/references/task-spec.md`（目录树） |
 | C-4 | 近窗时间连续性 | 恢复时 ≥1 年空洞隔断的旧归档仅入全量索引、不精读；active 任务 updated 距今 >1 年标注疑似搁置 | common | `skills/fxri-session-recap/SKILL.md`（模式二） |
 | C-5 | 触发靠语义不靠字面 | skill 以意图画像 + 近义表达触发并带反例排除；个人口头禅不进通用触发词；触发判据优先取上下文中可观测的事实（动作、产物类型、写入通道、症状），临时 / 一次性 / 不入库不构成豁免 | common | 各 fxri-* SKILL.md 的 `description` |
