@@ -1241,7 +1241,7 @@ skillsCmd
 // 外部来源：列出已登记 / 状态中的来源；remove 注销登记，--prune 一并清理产物
 const sourcesCmd = skillsCmd
   .command("sources")
-  .description("查看 / 注销外部技能来源（--from --save 登记后的管理入口）")
+  .description("查看 / 刷新 / 注销外部技能来源，并管理来源提示频率")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
   .action((options: { format?: string }) => {
     try {
@@ -1341,7 +1341,7 @@ sourcesCmd
 // 来源刷新：只刷新来源元数据与缓存，不自动改写已安装技能
 sourcesCmd
   .command("refresh")
-  .description("刷新外部来源缓存与版本（不自动安装；--dry-run 只列出将刷新的来源）")
+  .description("刷新外部来源缓存与版本（不自动安装；--dry-run 列出将刷新的来源与当前版本）")
   .argument("[name]", "来源名；省略时刷新全部来源")
   .option("--dry-run", "只列出将刷新的来源与当前版本，不联网、不取锁、不写盘")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
