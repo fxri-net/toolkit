@@ -164,7 +164,8 @@ describe("入口壳告警", () => {
     rmSync(cwd, { recursive: true, force: true })
   })
 
-  it("壳路径被 gitignore 覆盖时告警并内联落点路径", () => {
+  // 真 git 用例：子进程启动在高负载下会超过 vitest 默认 5s，单例放宽，全局 testTimeout 保持默认
+  it("壳路径被 gitignore 覆盖时告警并内联落点路径", { timeout: 15000 }, () => {
     const dir = makeTmp("tk-conv-shellign-")
     const cwd = makeTmp("tk-conv-shellign-cwd-")
     mkdirSync(join(dir, "active"), { recursive: true })
@@ -184,7 +185,7 @@ describe("入口壳告警", () => {
 })
 
 describe("本地配置忽略告警", () => {
-  it("本地配置命中上层目录时按相对 cwd 路径展示", () => {
+  it("本地配置命中上层目录时按相对 cwd 路径展示", { timeout: 15000 }, () => {
     const repo = makeTmp("tk-conv-localcfg-")
     const app = join(repo, "app")
     const dir = join(app, ".tasks")

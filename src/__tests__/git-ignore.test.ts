@@ -61,7 +61,7 @@ describe("isInsideWorktree 工作树归属", () => {
     expect(isInsideWorktree("D:\\Repo\\sub\\x", "d:/repo")).toBe(true)
   })
 
-  it("同一目录的两种书写形态均判为命中（Windows 8.3 短名 / 软链形态）", () => {
+  it("同一目录的两种书写形态均判为命中（Windows 8.3 短名 / 软链形态）", { timeout: 15000 }, () => {
     const repo = makeRepo("tk-gi-form-")
     // 取磁盘真实形态：Windows CI 下 tmpdir 为 8.3 短名、git rev-parse 返回长名，两者形态不同但指向同一目录
     const canonical = realpathSync.native(repo)
@@ -70,7 +70,9 @@ describe("isInsideWorktree 工作树归属", () => {
   })
 })
 
-describe("probeRepo 仓库探针", () => {
+// 真 git 用例在高负载下会超过 vitest 默认 5s（Windows 每次 git 启动几十到几百毫秒）：
+// 含 git 子进程的组统一给 15s，混合组只放宽那一条；全局 testTimeout 保持默认，免得掩盖纯逻辑的性能退化
+describe("probeRepo 仓库探针", { timeout: 15000 }, () => {
   it("真仓库：根路径能涵盖仓库内文件", () => {
     const repo = makeRepo("tk-gi-repo-")
     const probe = probeRepo(repo)
@@ -84,7 +86,7 @@ describe("probeRepo 仓库探针", () => {
   })
 })
 
-describe("checkIgnore 单文件忽略判定", () => {
+describe("checkIgnore 单文件忽略判定", { timeout: 15000 }, () => {
   it("仓库内无规则时未忽略", () => {
     const repo = makeRepo("tk-gi-ign1-")
     writeFileSync(join(repo, "foo.txt"), "x", "utf8")
@@ -104,7 +106,7 @@ describe("checkIgnore 单文件忽略判定", () => {
   })
 })
 
-describe("isTracked 已跟踪判定", () => {
+describe("isTracked 已跟踪判定", { timeout: 15000 }, () => {
   it("未跟踪文件为 false", () => {
     const repo = makeRepo("tk-gi-tr1-")
     writeFileSync(join(repo, "a.txt"), "x", "utf8")
@@ -125,7 +127,7 @@ describe("gitIgnoredSet 批量忽略判定", () => {
     expect(gitIgnoredSet(makeDir("tk-gi-set0-"), []).size).toBe(0)
   })
 
-  it("只回填命中的相对路径", () => {
+  it("只回填命中的相对路径", { timeout: 15000 }, () => {
     const repo = makeRepo("tk-gi-set1-")
     writeFileSync(join(repo, ".gitignore"), "a.txt\n", "utf8")
     const ignored = gitIgnoredSet(repo, ["a.txt", "b.txt"])
@@ -134,7 +136,7 @@ describe("gitIgnoredSet 批量忽略判定", () => {
   })
 })
 
-describe("inspectLocalConfigIgnore 六态归因", () => {
+describe("inspectLocalConfigIgnore 六态归因", { timeout: 15000 }, () => {
   it("已忽略：命中忽略规则且未被跟踪", () => {
     const repo = makeRepo("tk-gi-st1-")
     writeFileSync(join(repo, ".gitignore"), ".toolkitrc.local.json\n", "utf8")

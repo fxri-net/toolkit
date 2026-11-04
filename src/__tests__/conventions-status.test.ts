@@ -388,7 +388,8 @@ describe("入口层体检", () => {
     expect(report.summary).toContain("1 项待处理")
   })
 
-  it("壳被 gitignore 覆盖时告警并内联落点路径", () => {
+  // 真 git 用例：子进程启动在高负载下会超过 vitest 默认 5s，单例放宽，全局 testTimeout 保持默认
+  it("壳被 gitignore 覆盖时告警并内联落点路径", { timeout: 15000 }, () => {
     const root = makeDir("tk-status-shellign-")
     const cwd = makeDir("tk-status-shellign-cwd-")
     makeCarrier(root, cleanRows)

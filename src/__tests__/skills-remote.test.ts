@@ -62,7 +62,9 @@ describe("parseRemoteSpec：远程地址解析", () => {
   })
 })
 
-describe("resolveSource：远程克隆与项目面状态", () => {
+// 真克隆用例在高负载下会超过 vitest 默认 5s（要起 init / add / commit / tag 与 clone 多次 git 子进程）：
+// 整组给 15s，全局 testTimeout 保持默认，免得掩盖纯解析用例的性能退化
+describe("resolveSource：远程克隆与项目面状态", { timeout: 15000 }, () => {
   it("file:// 地址按 ref 克隆并解析技能", () => {
     const repo = makeRepo()
     const url = pathToFileURL(repo).href
