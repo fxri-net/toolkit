@@ -61,6 +61,17 @@ describe("文档一致性：规划态与执行态分离", () => {
     expect(text).toContain("逐次授权")
     expect(text).toContain("仅本次会话有效")
   })
+
+  // 只读判据此前只在技能里有、规则层缺位，且技能按触发匹配加载，纯检查请求未必加载到闸门所在技能：
+  // 三处都锁死，防止只改一处（或后续被改回「按词表触发」）
+  it("规则层与建档 / 复核技能都写明「只读型请求默认只读」并按意图判定", () => {
+    for (const file of ["docs/ai-rules.md", "skills/fxri-plan-to-task/SKILL.md", "skills/fxri-plan-review/SKILL.md"]) {
+      const text = readDoc(file)
+      expect(text, `${file} 缺少只读型请求的判据`).toContain("只读")
+      expect(text, `${file} 未写明按意图与最终动作判定`).toContain("意图")
+      expect(text, `${file} 未声明示例非穷举`).toContain("非穷举")
+    }
+  })
 })
 
 // 站点更新日志镜像页的期望内容：直接调用镜像脚本的转换函数，不在测试内复刻同一份逻辑
