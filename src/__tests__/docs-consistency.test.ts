@@ -33,6 +33,14 @@ function readDoc(file: string): string {
     .replace(/\r\n/g, "\n")
 }
 
+describe("文档一致性：任务粒度与发版范围条款", () => {
+  it("SPEC / task-spec / ai-rules / plan-to-task 四处均包含「不约束发版范围」", () => {
+    for (const file of ["SPEC.md", "skills/fxri-plan-to-task/references/task-spec.md", "docs/ai-rules.md", "skills/fxri-plan-to-task/SKILL.md"]) {
+      expect(readDoc(file), `${file} 缺少任务粒度与发版范围边界`).toContain("不约束发版范围")
+    }
+  })
+})
+
 // 站点更新日志镜像页的期望内容：直接调用镜像脚本的转换函数，不在测试内复刻同一份逻辑
 // （复刻会让脚本缺陷被同样的错误实现掩盖，CRLF 误报即由此漏过）
 describe("文档一致性：更新日志镜像", () => {
