@@ -66,6 +66,8 @@ import {
   skillsSourceDir,
   skillsStatus,
   writeSkillsInstallConfig,
+  bumpSkillVersions,
+  isValidVersion,
   BUILTIN_SOURCE,
   type InstallReport,
   type ProjectDirResult,
@@ -1130,6 +1132,75 @@ skillsCmd
       else printRemoveReports(scope, global, project, dryRun)
     } catch (e) {
       console.error(`⚠️ 卸载失败：${(e as Error).message}`)
+      process.exitCode = 1
+    }
+  })
+
+// 技能版本递增：只改 skills/<name>/SKILL.md 的 frontmatter 与正文首部两处版本声明
+skillsCmd
+  .command("bump")
+  .description("递增技能版本（两处版本声明同源改写；--all 批量、--set 直接设定）")
+  .argument("[name]", "技能名；与 --all 二选一")
+  .argument("[type]", "patch / minor / major（缺省 patch）")
+  .option("--all", "批量递增 skills/ 下全部技能")
+  .option("--set <version>", "直接设定版本（与递增类型互斥）")
+  .option("--dry-run", "只打印变更，不写盘")
+  .option("--yes", "批量递增 minor / major 时跳过确认")
+  .option("--format <format>", "输出格式（json，输出到 stdout）")
+  .action(async (name: string | undefined, type: string | undefined, options: { all?: boolean; set?: string; dryRun?: boolean; yes?: boolean; format?: string }) => {
+    try {
+      if (!assertJsonFormat(options.format)) return
+      if (options.all && name) {
+        console.error("⚠️ --all 与显式技能名不能同时使用")
+        process.exitCode = 1
+        return
+      }
+      if (!options.all && !name) {
+        console.error("⚠️ 请指定技能名，或使用 --all 批量递增")
+        process.exitCode = 1
+        return
+      }
+      const kind = type ?? "patch"
+      if (!["patch", "minor", "major"].includes(kind)) {
+        console.error(`⚠️ 非法递增类型「${kind}」，仅支持 patch / minor / major`)
+        process.exitCode = 1
+        return
+      }
+      if (options.set && type) {
+        console.error("⚠️ --set 与递增类型不能同时使用")
+        process.exitCode = 1
+        return
+      }
+      if (options.set && !isValidVersion(options.set)) {
+        console.error(`⚠️ 非法版本号「${options.set}」，须为 x.y.z`)
+        process.exitCode = 1
+        return
+      }
+      // 批量抬 minor / major 影响面大：交互态先确认，非交互须显式 --yes
+      if (options.all && !options.set && kind !== "patch" && !options.dryRun && options.yes !== true) {
+        if (!process.stdin.isTTY) {
+          console.error(`⚠️ 批量按 ${kind} 递增需显式 --yes（当前为非交互环境）`)
+          process.exitCode = 1
+          return
+        }
+        const confirmed = await promptConfirm(`将把全部技能按 ${kind} 递增，确认继续？`)
+        if (confirmed !== true) {
+          console.log("已取消，未写入任何文件")
+          return
+        }
+      }
+      const results = bumpSkillVersions({
+        skillsDir: join(process.cwd(), "skills"),
+        names: name ? [name] : undefined,
+        all: options.all,
+        type: kind as "patch" | "minor" | "major",
+        set: options.set,
+        dryRun: options.dryRun,
+      })
+      if (options.format === "json") printJson({ dryRun: Boolean(options.dryRun), skills: results })
+      else for (const item of results) console.log(`${options.dryRun ? "[预演] " : ""}${item.name}：${item.from} → ${item.to}（${item.file}）`)
+    } catch (e) {
+      console.error(`⚠️ 递增失败：${(e as Error).message}`)
       process.exitCode = 1
     }
   })

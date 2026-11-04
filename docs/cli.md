@@ -196,6 +196,10 @@ toolkit skills sources               # 列出外部来源、版本与生效的�
 toolkit skills sources notify play daily # 设置单个来源的提示频率（--scope global|project）
 toolkit skills sources refresh       # 刷新全部外部来源缓存与版本（--dry-run 列出将刷新来源与当前版本，不联网）
 toolkit skills sources remove play --prune # 注销来源登记并清理其产物、状态与提示配置
+toolkit skills bump fxri-plan-to-task patch # 递增技能版本（frontmatter 与正文首部两处同源改写）
+toolkit skills bump --all --dry-run      # 预演批量递增全部技能，只打印 from → to
+toolkit skills bump --all minor --yes    # 批量抬 minor（非交互环境须显式 --yes）
+toolkit skills bump fxri-plan-review --set 2.0.0 # 直接设定版本（与递增类型互斥）
 toolkit skills install --format json # JSON 输出：dryRun、scope 与 global / project 各自的安装报告
 toolkit skills status               # 查看技能现场状态与包内技能真源版本（缺省按现场判定作用域）
 toolkit skills status --scope all   # 项目面与全局面都体检
