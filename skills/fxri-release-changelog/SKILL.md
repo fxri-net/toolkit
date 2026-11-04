@@ -3,7 +3,7 @@ name: fxri-release-changelog
 description: 基于 changesets 的发版与多语言 CHANGELOG 维护流程：创建变更集、消费发版、把分组标题与条目转为项目语言风格、清理变更集、打标签发布；无 changesets 的项目提供同格式手工模式。用户表达发版或记录变更意图时使用——含创建变更集、changeset、发版、version、CHANGELOG 格式化等说法及口语近义表达（发一版、出个版本、记一下这次改动、生成更新日志）。⚠️ 注意区分：用户说「提交个版本 / 先提交一版 / commit」通常指 git 提交当前改动（走任务收尾后提交），**不是发版**。不用于日常 commit message 撰写、git 提交操作或与发版无关的文档修改。
 license: MIT
 metadata:
-  version: "1.2.5"
+  version: "1.2.6"
   tier: optional
   author: fxri
   source: https://github.com/fxri-net/toolkit
@@ -11,7 +11,7 @@ metadata:
 
 # 发版与 CHANGELOG
 
-> 本技能版本 1.2.5（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.2.6（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -37,6 +37,12 @@ metadata:
 - 授权带范围：只说发版未说推送 → 推送仍需询问；只说推某个远端 → 其余远端不推
 - 会话级显式授权（如「本次会话后续发版和推送都授权」）优先于逐次授权默认值，但仅本次会话有效、不持久化，用户撤回即失效（通用原则见 `fxri-plan-to-task` 的规划态 / 执行态闸门）
 - 执行到不可逆步骤必须停下单独询问，不得以「已经发版了，不推送没办法」倒逼用户
+
+## 镜像页页头统一（跨项目）
+
+- 生成器默认页头即标准：frontmatter `outline: [2, 2]` + `# 更新日志` + 固定说明行；右侧目录只列版本号（h2），不列分组标题（h3）——全量历史镜像若叠加分组，目录会随版本成倍膨胀
+- **不得用 `--no-frontmatter` 或自定义 `--outline` 偏离**：缺 frontmatter 会回落到站点全局 `[2, 3]`，同一批站点的右侧目录风格立刻分叉；确需偏离须在项目规范里写明理由
+- 已偏离的项目按同一口径回正：去掉生成脚本与校验脚本里的相关参数 → 重跑一次 `toolkit changelog doc` → 确认 `git diff` 只新增页头
 
 ## changesets 流程
 
