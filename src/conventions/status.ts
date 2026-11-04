@@ -1,7 +1,7 @@
 // 规范载体只读体检：形态 / 索引 / 入口层三块，只报问题不修（不给 --fix），体检本身异常不阻断、退出码恒 0（非法 --format 由 CLI 层按参数错误处理）
 // 判据全部走 format.ts / entry.ts 的既有实现在，不在本模块另写一份结构解析
 import { basename, join, relative } from "node:path"
-import { existsSync } from "node:fs"
+import { existsSync, readdirSync } from "node:fs"
 import { readTextFile } from "../read-text"
 import { filledTableLines, listMarkdownFiles } from "./compact"
 import {
@@ -45,6 +45,14 @@ export interface EntryShellState {
   ignored: boolean
 }
 
+// 检测覆盖：代码里标注了哪些规范 ID，反向给出未覆盖条目与索引里不存在的 ID
+export interface CheckCoverage {
+  covered: string[]
+  uncovered: string[]
+  // 代码引用了但索引表里不存在的 ID（多半是拼写错误或条目已退休）
+  unknownIds: string[]
+}
+
 export interface ConventionsStatusReport {
   initialized: boolean
   tasksDir: string
@@ -56,6 +64,7 @@ export interface ConventionsStatusReport {
   items: ConventionsStatusItem[]
   warnings: number
   summary: string
+  checkCoverage: CheckCoverage
 }
 
 // 独占一行的分册小节标题：`## C-23. 名称` 或 v1 的 `## 23. 名称`
@@ -65,10 +74,43 @@ const RESERVED_OWNERS = new Set(["common", "index"])
 // 端限定语：语义含这些词时才视为「限定在某端」，用于 common 下沉提示的判据收窄，避开举例式提及的假阳性
 const END_QUALIFIER_RE = /仅|只|专属|适用于/
 
-// 一句话结论：问题数 0 时给正结论，非 0 时报待处理项数
-function summarize(form: ConventionsForm, entries: number, shells: number, warnings: number): string {
+// 一句话结论：问题数 0 时给正结论，非 0 时报待处理项数；另报无检测入口的规范条数
+function summarize(form: ConventionsForm, entries: number, shells: number, warnings: number, uncovered: number): string {
   const head = `载体 ${form}，${entries} 条规范，入口壳 ${shells} 个`
-  return warnings === 0 ? `${head}，无待处理项` : `${head}，${warnings} 项待处理`
+  const base = warnings === 0 ? `${head}，无待处理项` : `${head}，${warnings} 项待处理`
+  return uncovered === 0 ? base : `${base}，其中 ${uncovered} 条无检测入口`
+}
+
+// 规范 ID 形态：代码注释里以 C-<n> 标注检测入口
+const CHECK_ID_RE = /\bC-\d+\b/g
+
+// 待扫描的检测入口文件：任务校验、载体逻辑、单测与聚合验收脚本
+function listCheckFiles(cwd: string): string[] {
+  const files: string[] = []
+  for (const file of [join(cwd, "src", "tasks", "validate.ts"), join(cwd, "scripts", "verify.mjs")]) {
+    if (existsSync(file)) files.push(file)
+  }
+  for (const dir of [join(cwd, "src", "conventions"), join(cwd, "src", "__tests__")]) {
+    if (!existsSync(dir)) continue
+    for (const name of readdirSync(dir)) {
+      if (name.endsWith(".ts")) files.push(join(dir, name))
+    }
+  }
+  return files
+}
+
+// 反向统计覆盖：代码引用了哪些 ID、哪些规范没有检测入口、哪些引用在索引里不存在
+function collectCheckCoverage(cwd: string, ids: string[]): CheckCoverage {
+  const referenced = new Set<string>()
+  for (const file of listCheckFiles(cwd)) {
+    for (const match of readTextFile(file).matchAll(CHECK_ID_RE)) referenced.add(match[0])
+  }
+  const idSet = new Set(ids)
+  return {
+    covered: ids.filter((id) => referenced.has(id)),
+    uncovered: ids.filter((id) => !referenced.has(id)),
+    unknownIds: [...referenced].filter((id) => !idSet.has(id)),
+  }
 }
 
 // 载体形态块：v3 无项；v1 提示可升级；形态异常与旧单文件并存各报一条
@@ -287,6 +329,7 @@ export function conventionsStatus(tasksDir = ".tasks", cwd = process.cwd()): Con
       items: [{ level: "info", scope: "形态", message }],
       warnings: 0,
       summary: message,
+      checkCoverage: { covered: [], uncovered: [], unknownIds: [] },
     }
   }
 
@@ -297,6 +340,11 @@ export function conventionsStatus(tasksDir = ".tasks", cwd = process.cwd()): Con
   checkTableForm(tasksDir, items)
   checkHistoryIdColumn(state, items)
   const shells = checkEntryLayer(cwd, items)
+  const ids = state.entries.map((entry) => entry.id).filter((id) => id !== "")
+  const checkCoverage = collectCheckCoverage(cwd, ids)
+  for (const id of checkCoverage.unknownIds) {
+    items.push({ level: "info", scope: "索引", message: `代码引用的 ${id} 在索引表中不存在（检查拼写，或该条目已退休）` })
+  }
   const warnings = items.filter((i) => i.level === "warn").length
   return {
     initialized: true,
@@ -304,6 +352,7 @@ export function conventionsStatus(tasksDir = ".tasks", cwd = process.cwd()): Con
     shells,
     items,
     warnings,
-    summary: summarize(state.form, state.entries.length, shells.length, warnings),
+    summary: summarize(state.form, state.entries.length, shells.length, warnings, checkCoverage.uncovered.length),
+    checkCoverage,
   }
 }

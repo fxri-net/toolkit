@@ -8,7 +8,7 @@
 
 | 技能 | 版本 | 用途 | 层级 |
 | --- | --- | --- | --- |
-| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.9.7 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 | core |
+| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.9.8 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 | core |
 | [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.2.5 | changesets 发版与多语言 CHANGELOG 维护 | optional |
 | [fxri-session-recap](./fxri-session-recap/SKILL.md) | 1.6.4 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | [fxri-plan-review](./fxri-plan-review/SKILL.md) | 1.0.2 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档 / 需要确认 / 仅作提示` 标记后续是否落档 | core |

@@ -249,3 +249,17 @@
 ## 13. 载体文风与模板
 
 见 `conventions-templates.md`（T1 索引头注、T2 用法说明骨架、T3 单一事实源列、T4 分册条文、T5 规范词、T6 标点与代码）。新建载体、归一存量文风或处置文风偏离告警时加载。
+
+## 14. 检测入口标注约定
+
+载体只记规范条文，不记「有没有机器兜底」。为让覆盖情况可见，检测代码里用行内注释标注对应规范 ID：
+
+```ts
+// C-27 变更集条目书写
+const naked = scanChangesetLines(...)
+```
+
+- 标注位置：`src/tasks/`、`src/conventions/`、`src/__tests__/*.test.ts`、`scripts/verify.mjs`（聚合验收脚本内的步骤）；
+- `toolkit conventions status` 反向统计：`checkCoverage.covered` / `uncovered` / `unknownIds`，一句话结论追加「其中 N 条无检测入口」；
+- 只作可见度统计，不阻断；语义类规范（文风、用词）允许长期无检测入口；
+- 引用索引中不存在的 ID（拼写错误、条目已退休）以 info 提示，由人工核对。
