@@ -90,6 +90,8 @@ import {
   resolveBuiltinNotifyLabel,
   isUpdateCheckEnabled,
   runUpdateCheckWorker,
+  dismissSkillAlerts,
+  readHintTiming,
   UPDATE_CHECK_WORKER_ARG,
   type RegistryInfo,
   type SkillAlert,
@@ -712,6 +714,7 @@ function printVersionStatus(info: {
   channels: { cli: string; builtinSkills: string; externalSkills: string }
   updates: SkillVersionReport
   sources: Array<{ name: string; version: string; temporary: boolean; notify: string }>
+  timing: { checkedAt: number | null; nextHintAt: number | null }
 }): void {
   const latestLabel = !info.enabled
     ? "最新版本未知（版本检查已关闭）"
@@ -723,6 +726,10 @@ function printVersionStatus(info: {
   console.log(`toolkit 版本：${info.cliVersion}（${latestLabel}）`)
   console.log(`registry：${registryLabel(info.registry)}`)
   console.log(`提示频率：cli ${info.channels.cli} / 内置 ${info.channels.builtinSkills} / 第三方 ${info.channels.externalSkills}`)
+  const checkedLabel = info.timing.checkedAt === null ? "尚未检查" : new Date(info.timing.checkedAt).toLocaleString()
+  const nextLabel =
+    info.timing.nextHintAt === null ? "已关闭" : info.timing.nextHintAt === 0 ? "随时" : new Date(info.timing.nextHintAt).toLocaleString()
+  console.log(`检查时间：${checkedLabel}（下次可提示：${nextLabel}）`)
   const outdated = [...info.updates.builtin, ...info.updates.external].map((item) => item.name)
   if (outdated.length > 0) console.log(`技能更新：${outdated.join("、")}`)
   if (info.sources.length > 0) {
@@ -1033,6 +1040,22 @@ skillsCmd
           console.warn(`⚠️ 外部来源登记失败：${(e as Error).message}`)
         }
       }
+      // 已尝试修复即收敛：安装后仍未解决的条目记入 dismissed，同一版本不再重复提示
+      // 写入必须早于命令收尾的提示计算，保证本次 install 结束后当条命令就不再提示
+      if (!dryRun) {
+        const remaining = collectSkillVersionUpdates()
+        const remainingAlerts: SkillAlert[] = [
+          ...remaining.builtin.map((item) => ({ channel: "builtin" as const, name: item.name, current: item.installed, latest: item.latest })),
+          ...remaining.external.map((item) => ({
+            channel: "external" as const,
+            source: item.source,
+            name: item.name,
+            current: item.installed,
+            latest: item.latest,
+          })),
+        ]
+        dismissSkillAlerts(remainingAlerts, version)
+      }
       if (options.format === "json") printJson({ dryRun, scope: scope.choice, global, project })
       else printInstallReports(scope, global, project, dryRun)
     } catch (e) {
@@ -1073,6 +1096,8 @@ skillsCmd
               notify: resolveNotify("external", source.name),
               notifySource: resolveNotifySource("external", source.name),
             }))
+      // 提示时间可见化：数字为 epoch 毫秒；nextHintAt 为 "now" 表示随时、null 表示已关闭
+      const timing = readHintTiming()
       const versionStatus = {
         cliVersion: version,
         latestVersion: latest,
@@ -1080,6 +1105,8 @@ skillsCmd
         registry,
         channels,
         sources: sourceRows,
+        checkedAt: timing.checkedAt === null ? null : new Date(timing.checkedAt).toISOString(),
+        nextHintAt: timing.nextHintAt === null ? null : timing.nextHintAt === 0 ? "now" : new Date(timing.nextHintAt).toISOString(),
       }
       if (options.format === "json") {
         const withUpdates = <T extends object>(report: T | null) =>
@@ -1098,6 +1125,7 @@ skillsCmd
           },
           updates,
           sources: sourceRows,
+          timing,
         })
       }
     } catch (e) {

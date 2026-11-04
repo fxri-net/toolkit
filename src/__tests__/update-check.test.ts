@@ -29,11 +29,13 @@ vi.mock("node:child_process", async (importOriginal) => {
 
 import {
   buildRegistryUrl,
+  dismissSkillAlerts,
   emitVersionHint,
   formatUpdateHint,
   isCiEnv,
   markNotified,
   readCachedLatest,
+  readHintTiming,
   resolveNotify,
   resolveRegistry,
   runUpdateCheckWorker,
@@ -259,6 +261,48 @@ describe("emitVersionHint 提示渠道与例外", () => {
     expect(out.err).toHaveLength(0)
     expect(out.log).toHaveLength(0)
     expect(formatUpdateHint("9.9.9", "1.0.0").split("\n")).toHaveLength(1)
+  })
+
+  it("提示给出「当前 → 最新」，已尝试修复同一版本后不再提示，版本变化或 CLI 升级后恢复", () => {
+    writeOkCache("1.0.0")
+    const alert = { channel: "external" as const, source: "play", name: "fxri-x", current: "1.0.0", latest: "2.0.0" }
+    let out = captureOutput()
+    emitVersionHint("1.0.0", { argv: ["tasks"], exitCode: 0, skillAlerts: [alert] })
+    expect(out.log.join("\n")).toContain("fxri-x 1.0.0 → 2.0.0")
+
+    dismissSkillAlerts([alert], "1.0.0")
+    out = captureOutput()
+    emitVersionHint("1.0.0", { argv: ["tasks"], exitCode: 0, skillAlerts: [alert] })
+    expect(out.log.join("\n")).not.toContain("fxri-x")
+
+    // 来源版本变化：自动恢复提示
+    out = captureOutput()
+    emitVersionHint("1.0.0", { argv: ["tasks"], exitCode: 0, skillAlerts: [{ ...alert, latest: "2.0.1" }] })
+    expect(out.log.join("\n")).toContain("2.0.1")
+
+    // CLI 版本变化：旧记录整体失效
+    dismissSkillAlerts([alert], "1.0.0")
+    out = captureOutput()
+    emitVersionHint("1.0.1", { argv: ["tasks"], exitCode: 0, skillAlerts: [alert] })
+    expect(out.log.join("\n")).toContain("fxri-x")
+  })
+
+  it("诊断开关输出判定依据到 stderr，且不改变提示结果", () => {
+    writeOkCache("1.0.0")
+    process.env.FX_DEBUG_UPDATE_CHECK = "1"
+    const out = captureOutput()
+    emitVersionHint("1.0.0", { argv: ["skills", "status"], exitCode: 0, skillAlerts: [] })
+    expect(out.err.join("\n")).toContain("[update-check] CLI 当前 1.0.0")
+    expect(out.log).toHaveLength(0)
+    delete process.env.FX_DEBUG_UPDATE_CHECK
+  })
+
+  it("readHintTiming：无缓存尚未检查、always 随时、off 已关闭", () => {
+    expect(readHintTiming()).toMatchObject({ checkedAt: null, nextHintAt: 0 })
+    writeOkCache("1.0.0", 1700000000000)
+    expect(readHintTiming().checkedAt).toBe(1700000000000)
+    useConfig({ updateCheck: { channels: { cli: { notify: "off" } } } })
+    expect(readHintTiming().nextHintAt).toBeNull()
   })
 })
 

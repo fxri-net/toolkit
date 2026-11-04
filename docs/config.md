@@ -211,6 +211,10 @@ registry 解析顺序：`updateCheck.registry` 配置 > 环境变量 `npm_config
 
 版本比较口径：数字段不等按补零比较（`0.2` 等价 `0.2.0`）；预发布低于同号正式版（`0.2.6-beta < 0.2.6`）；忽略构建元数据（`+build`）；任一侧无法解析为版本时不提示。外部来源比较的是**技能自身**的 `metadata.version`（读自来源缓存目录），不使用来源仓库的包版本——两者独立编号。
 
+**已尝试修复即收敛**：执行过 `skills install` 后，本次仍未解决的条目按「技能 + 最新版本」记入缓存（`{tmpdir}/.toolkit-update-check.json` 的 `dismissed`），同一版本不再提示；来源版本变化自动恢复，CLI 版本升级后旧记录整体失效。`skills status` 会展示上次检查时间与下次可提示时间（`always` 为「随时」、`off` 为「已关闭」），JSON 侧对应 `versionStatus.checkedAt` / `versionStatus.nextHintAt`。
+
+**诊断开关** `FX_DEBUG_UPDATE_CHECK=1`：在 stderr 输出每轮判定依据（CLI 当前 / 缓存最新 / 检查时间 / 频率与来源、每个技能的已装与最新版本、被跳过的原因），不改变提示结果，也不污染 stdout；排查「为什么一直提示 / 为什么不提示」时使用。
+
 CLI 每次命令执行时**同步读取本地缓存**；缓存不新鲜时派生一个**分离的后台子进程**联网查询最新版本（1 秒超时，离线 / 内网 / 超时静默失败），父进程不联网、不等待结果，**不阻塞命令、不影响退出码**。缓存位于 `{tmpdir}/.toolkit-update-check.json`：成功结果 24 小时内不重复请求、失败结果 1 小时内不重试；过期不删除上次成功版本，按 stale-while-revalidate 继续用旧值提示并后台刷新。提示只来自缓存，因此首次运行只静默刷新缓存、下一次命令才提示新版本。关闭方式二选一：环境变量 `FX_NO_UPDATE_CHECK` 设为真值（`0/false/off/no` 视为未关闭），或 `enabled: false`（关闭后不派生后台进程、不发起任何网络请求）。脚本需要稳定输出时请用 `--format json` 或设 `FX_NO_UPDATE_CHECK=1`。
 
 ## skills：技能分发（1.9.0 新增）

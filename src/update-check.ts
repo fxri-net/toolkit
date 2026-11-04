@@ -19,6 +19,8 @@ const WEEK = 7 * DAY
 
 // 环境变量名：设为任意「真值」即关闭检查（CI/离线环境可显式关闭）
 export const UPDATE_CHECK_ENV = "FX_NO_UPDATE_CHECK"
+// 诊断开关：输出每条提示的判定依据到 stderr，不改变提示行为
+export const UPDATE_CHECK_DEBUG_ENV = "FX_DEBUG_UPDATE_CHECK"
 // 内部 worker 参数：子进程以 `cli.js <该参数>` 启动，只刷新缓存、不执行用户命令
 export const UPDATE_CHECK_WORKER_ARG = "--fxri-update-check-worker"
 
@@ -37,11 +39,14 @@ export interface RegistryInfo {
 }
 
 // 缓存记录：lastCheckedAt 为最近一次成功检查；lastFailedAt 为最近一次失败；notifiedAt 按通道 / 来源记录展示时间
+// dismissed 记录「用户已尝试修复到的最新版本」：同版本不再重复提示，来源版本变化后自动恢复
 interface UpdateCache {
   latest: string
   lastCheckedAt?: number
   lastFailedAt?: number
   notifiedAt: Record<string, number>
+  dismissed?: Record<string, string>
+  dismissedCliVersion?: string
 }
 
 // 是否为普通对象：配置段读取共用的窄化判据
@@ -66,8 +71,12 @@ function parseCache(raw: unknown): UpdateCache | null {
   const notifiedAt = isRecord(raw.notifiedAt)
     ? Object.fromEntries(Object.entries(raw.notifiedAt).filter(([, value]) => typeof value === "number")) as Record<string, number>
     : {}
+  const dismissed = isRecord(raw.dismissed)
+    ? Object.fromEntries(Object.entries(raw.dismissed).filter(([, value]) => typeof value === "string")) as Record<string, string>
+    : {}
+  const dismissedCliVersion = typeof raw.dismissedCliVersion === "string" ? raw.dismissedCliVersion : undefined
   if (!latest && lastCheckedAt === undefined && lastFailedAt === undefined) return null
-  return { latest, lastCheckedAt, lastFailedAt, notifiedAt }
+  return { latest, lastCheckedAt, lastFailedAt, notifiedAt, dismissed, dismissedCliVersion }
 }
 
 // 读取缓存：损坏或不存在一律按无缓存处理，不阻塞主流程
@@ -310,6 +319,47 @@ export function markNotified(channel: UpdateChannel, source?: string): void {
   writeCache(cache)
 }
 
+// 诊断开关是否开启：与关闭开关同口径解析真值
+export function isDebugUpdateCheck(): boolean {
+  const value = process.env[UPDATE_CHECK_DEBUG_ENV]
+  if (value === undefined || value === "") return false
+  return !["0", "false", "off", "no"].includes(value.trim().toLowerCase())
+}
+
+// 提示条目在缓存里的键：通道 + 来源 + 技能名
+function alertKey(alert: Pick<SkillAlert, "channel" | "source" | "name">): string {
+  return `${alert.channel}:${alert.source ?? ""}:${alert.name}`
+}
+
+// 已尝试修复记录：CLI 版本变化后旧记录整体失效，避免压制新版本提示
+function readDismissed(cliVersion: string): Record<string, string> {
+  const cache = readCache()
+  if (!cache?.dismissed) return {}
+  if (cache.dismissedCliVersion && cache.dismissedCliVersion !== cliVersion) return {}
+  return cache.dismissed
+}
+
+// 记录「用户已尝试修复到的最新版本」：来源版本变化后自动恢复提示
+export function dismissSkillAlerts(alerts: SkillAlert[], cliVersion: string): number {
+  if (alerts.length === 0) return 0
+  const cache = readCache() ?? { latest: "", notifiedAt: {} }
+  const dismissed = { ...(cache.dismissed ?? {}) }
+  for (const alert of alerts) dismissed[alertKey(alert)] = alert.latest
+  writeCache({ ...cache, dismissed, dismissedCliVersion: cliVersion })
+  return alerts.length
+}
+
+// 提示时间可见化：checkedAt 为最近一次成功检查；nextHintAt 为 0 表示随时，null 表示已关闭
+export function readHintTiming(): { checkedAt: number | null; nextHintAt: number | null } {
+  const cache = readCache()
+  const checkedAt = cache?.lastCheckedAt ?? null
+  const frequency = resolveNotify("cli")
+  if (frequency === "off") return { checkedAt, nextHintAt: null }
+  if (frequency === "always") return { checkedAt, nextHintAt: 0 }
+  const last = cache?.notifiedAt.cli ?? 0
+  return { checkedAt, nextHintAt: last ? last + (frequency === "daily" ? DAY : WEEK) : 0 }
+}
+
 // 统一提示文案：一句话，不输出 JSON
 export function formatUpdateHint(latest: string, current: string): string {
   return `提示：toolkit ${latest} 可用（当前 ${current}），运行 pnpm add -g @fxri/toolkit 升级后请开新会话。`
@@ -347,6 +397,8 @@ export async function runUpdateCheckWorker(): Promise<void> {
     lastCheckedAt: fetched ? Date.now() : cached?.lastCheckedAt,
     lastFailedAt: fetched ? cached?.lastFailedAt : Date.now(),
     notifiedAt: cached?.notifiedAt ?? {},
+    dismissed: cached?.dismissed ?? {},
+    dismissedCliVersion: cached?.dismissedCliVersion,
   })
 }
 
@@ -393,16 +445,43 @@ function formatCombinedHint(current: string, cliLatest: string | null, alerts: S
   return `提示：${facts.join("；")}，${actions.join("；")}。`
 }
 
+// 诊断输出：打印本轮判定依据，只在开关开启时走 stderr，不改变提示结果
+function debugHint(currentVersion: string, latest: string | null, alerts: SkillAlert[], dismissed: Record<string, string>): void {
+  const cache = readCache()
+  const checked = cache?.lastCheckedAt ? new Date(cache.lastCheckedAt).toLocaleString() : "尚未检查"
+  console.error(
+    `[update-check] CLI 当前 ${currentVersion}，缓存最新 ${latest ?? "无"}，上次检查 ${checked}，频率 ${resolveNotify("cli")}（来源：${resolveNotifySource("cli")}）`,
+  )
+  if (latest !== null) {
+    console.error(`[update-check] CLI 判定：${versionGt(latest, currentVersion) && shouldShowUpdateHint("cli", currentVersion) ? "将提示" : "不提示（未落后或闸门跳过）"}`)
+  }
+  for (const alert of alerts) {
+    const key = alertKey(alert)
+    const reason =
+      dismissed[key] === alert.latest
+        ? "跳过：已尝试修复过同一版本"
+        : shouldShowUpdateHint(alert.channel, alert.current, alert.source, currentVersion)
+          ? "将提示"
+          : "跳过：频率未到 / 环境闸门 / 内置技能继承"
+    console.error(
+      `[update-check] 技能 ${alert.name}（${alert.channel}${alert.source ? ` / ${alert.source}` : ""}）：已装 ${alert.current || "未知"}，最新 ${alert.latest} → ${reason}`,
+    )
+  }
+}
+
 // 命令收口提示：只在成功时输出；帮助 / 裸命令 / JSON / 透传跳过；TTY 走 stderr，非 TTY 走 stdout
 export function emitVersionHint(currentVersion: string, options: { argv: string[]; exitCode: number; skillAlerts?: SkillAlert[] }): void {
   refreshCacheIfNeeded()
+  const latest = readCachedLatest()
+  const allAlerts = options.skillAlerts ?? []
+  const dismissed = readDismissed(currentVersion)
+  const alerts = allAlerts.filter(
+    (alert) => dismissed[alertKey(alert)] !== alert.latest && shouldShowUpdateHint(alert.channel, alert.current, alert.source, currentVersion),
+  )
+  if (isDebugUpdateCheck()) debugHint(currentVersion, latest, allAlerts, dismissed)
   if (options.exitCode !== 0) return
   if (shouldSkipHint(options.argv)) return
-  const latest = readCachedLatest()
   const cliOutdated = latest !== null && versionGt(latest, currentVersion) && shouldShowUpdateHint("cli", currentVersion)
-  const alerts = (options.skillAlerts ?? []).filter((alert) =>
-    shouldShowUpdateHint(alert.channel, alert.current, alert.source, currentVersion),
-  )
   if (!cliOutdated && alerts.length === 0) return
   const line = formatCombinedHint(currentVersion, cliOutdated ? latest : null, alerts)
   const stderrOnly =
