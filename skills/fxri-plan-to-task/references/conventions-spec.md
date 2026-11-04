@@ -259,7 +259,7 @@
 const naked = scanChangesetLines(...)
 ```
 
-- 标注位置：`src/tasks/`、`src/conventions/`、`src/__tests__/*.test.ts`、`scripts/verify.mjs`（聚合验收脚本内的步骤）；
+- 标注位置：源码注释、聚合验收脚本内的步骤、单元测试断言等任何可被检索的位置；
 - `toolkit conventions status` 反向统计：`checkCoverage.covered` / `uncovered` / `unknownIds`，一句话结论追加「其中 N 条无检测入口」；
 - 只作可见度统计，不阻断；语义类规范（文风、用词）允许长期无检测入口；
 - 引用索引中不存在的 ID（拼写错误、条目已退休）以 info 提示，由人工核对。
