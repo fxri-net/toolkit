@@ -668,13 +668,15 @@ describe("检测入口覆盖统计", () => {
       root,
       [`| ${idOf(1)} | 四级时间源 | 当场打点优先 | common | common.md |`, `| ${idOf(2)} | 无检测规则 | 仅人工复核 | common | common.md |`].join("\n"),
     )
-    // 代码里只标注 C-1，另引用一个索引中不存在的 C-99
+    // 代码里只标注 C-1，另引用一个索引中不存在的 ID；用拼接避免源码本身被自检扫成引用
+    const known = "C-" + "1"
+    const unknown = "C-" + "99"
     mkdirSync(join(cwd, "src", "tasks"), { recursive: true })
-    writeFileSync(join(cwd, "src", "tasks", "validate.ts"), "// C-1 时间源校验\nexport const checked = 1\n// C-99 拼写错误\n", "utf8")
+    writeFileSync(join(cwd, "src", "tasks", "validate.ts"), `// ${known} 时间源校验\nexport const checked = 1\n// ${unknown} 拼写错误\n`, "utf8")
     const report = conventionsStatus(root, cwd)
-    expect(report.checkCoverage).toEqual({ covered: [idOf(1)], uncovered: [idOf(2)], unknownIds: ["C-99"] })
+    expect(report.checkCoverage).toEqual({ covered: [idOf(1)], uncovered: [idOf(2)], unknownIds: [unknown] })
     expect(report.summary).toContain("1 条无检测入口")
-    expect(report.items.some((item) => item.level === "info" && item.message.includes("C-99"))).toBe(true)
+    expect(report.items.some((item) => item.level === "info" && item.message.includes(unknown))).toBe(true)
     // 覆盖统计不阻断：仍是纯 info，不增加 warnings
     expect(report.warnings).toBe(0)
   })

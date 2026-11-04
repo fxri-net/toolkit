@@ -100,10 +100,20 @@ function listCheckFiles(cwd: string): string[] {
 }
 
 // 反向统计覆盖：代码引用了哪些 ID、哪些规范没有检测入口、哪些引用在索引里不存在
+// 只认行注释里的标注，且只认规范形态（C-<n>、非补零、n ≥ 1）：字符串常量与「C-001 属违规写法」这类示例不算引用
 function collectCheckCoverage(cwd: string, ids: string[]): CheckCoverage {
   const referenced = new Set<string>()
   for (const file of listCheckFiles(cwd)) {
-    for (const match of readTextFile(file).matchAll(CHECK_ID_RE)) referenced.add(match[0])
+    for (const line of readTextFile(file).split(/\r?\n/)) {
+      const comment = /\/\/(.*)$/.exec(line)?.[1] ?? /^\s*\*+\s?(.*)$/.exec(line)?.[1] ?? ""
+      if (!comment) continue
+      for (const match of comment.matchAll(CHECK_ID_RE)) {
+        const raw = match[0]
+        const num = /^C-(\d+)$/.exec(raw)?.[1]
+        if (!num || Number(num) < 1 || String(Number(num)) !== num) continue
+        referenced.add(raw)
+      }
+    }
   }
   const idSet = new Set(ids)
   return {
