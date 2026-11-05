@@ -72,8 +72,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - 末尾汇总需处理条目并按型给出指引：缺失 / 悬空 / 指向其他版本 / 副本漂移用 `install` 补齐，同名冲突用 `install --force` 覆盖，未选择但已安装的产物需要清理时用 `install --prune`
 - **目标纳入口径**：主目标恒报告，内置表内的 agent 与自定义目标仅在已有本包记录或目录非空时展开（卸载后的空壳目录不占版面）；状态文件登记但本次未解析到的目标（如 `--dir` 安装后不再传参、agent 目录已被移除）也补报、不静默丢弃
 - **历史落点**：Codex / Pi 的升级前落点（`~/.codex/skills`、`~/.pi/agent/skills`）在状态文件有登记且目录仍在时，标注为「历史落点」并在报告末尾单列「历史落点残留」提示——只提示不自动删除，指引用 `remove` 清理
-- **canonical 共读**：本机已安装且经 canonical 共读的 agent（Cline / Codex / Dexto / Kimi Code CLI / Loaf / Pi / Sarvam Code / Warp / Zed / DeepSeek Harness，按探测路径判定）另单列一行说明其读取主目标、无需单独写入
-- 存在软链落点时报告末尾另提示「写入将穿透至技能真源目录，改内容请改真源」
+- **canonical 共读**：本机已安装且经 canonical 共读的 agent（按探测路径判定）另单列一行说明其读取主目标、无需单独写入
 - 项目面按「作用域」节体检
 - `--format json` 输出机器可读报告到 stdout（含 `scope`、`versionStatus`、`selection` 与 `targetSelection`；两面报告含 `skillVersions`；全局面另含 `canonicalReaders` 与 `legacyTargets`；折叠不丢信息、替代人读版，无末尾汇总行）
 - `versionStatus` 含 `cliVersion`、`latestVersion`、`updateAvailable`、`registry: { value, source }`、`channels` 与 `sources`（来源名 / 版本 / 是否临时 / 生效频率 / 频率来源）；两面报告另含 `skillsOutdated`（内置技能落后清单）
@@ -114,13 +113,13 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 4. 已保存选择：非 TTY、传入 `--yes` 或交互取消后无写入时，按 `~/.toolkitrc.json` 的 `skillsInstall.selection` / 项目层 `.toolkitrc.json` 的 `projectSkills.selection` 回显
 5. 首次（无保存选择）：`skills` 模式只装 `core` 技能；`package` 模式零装
 
-选择集在安装成功后写回对应层配置（`--dry-run` 不写），项目面与全局面各自独立。收窄选择后，未被选择但仍有产物的技能在 `status` 中单列为「未选择但已安装」，不计入问题；需要清理时加 `--prune` 重跑 `install`，只删除本包登记且内容与真源一致的条目。
+选择集在安装成功后写回对应层配置（`--dry-run` 不写），项目面与全局面各自独立。
 
 `SKILL.md` frontmatter `metadata.requires` 声明的依赖会自动补全：选择带依赖的技能时一并安装其依赖（可递归）；依赖缺失时告警并跳过该依赖，不阻断其余技能。
 
 ## 目标选择
 
-技能选择之后是**目标选择**：全局面选 agent 目录（`canonical` 主目标 + 各已检测 agent），项目面选已存在的候选薄壳目录。
+技能选择之后是**目标选择**：全局面选 agent 目录，项目面选已存在的候选薄壳目录。
 
 - **优先级**：`--all-agents` / `--agent <names>` 显式指定 > TTY 方向键多选 > 已保存的 `skillsInstall.targets` / `projectSkills.targets` > 首次全部可用目标
 - **交互**：按「共读（canonical）→ agent → 自定义目录」分组展示；本机未检测到的已保存 agent 置灰保留（不凭空创建目录）；只有一个可用目标时跳过选择；选择完成后打印技能 + 目标汇总并二次确认，确认前 `Ctrl+C` 不写任何文件
@@ -173,14 +172,14 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 ⚠️ **`--dir` 自定义目录**：只在当次安装时写入并登记，后续技能增删不会自动同步到该目录——技能变化后需带相同 `--dir` 重跑 `toolkit skills install`。
 
-各 agent 目录随之跟随 home 类环境变量：`XDG_CONFIG_HOME`（amp / devin / goose / opencode / replit / universal）、`AUTOHAND_HOME`、`CLAUDE_CONFIG_DIR`、`GROK_HOME`、`HERMES_HOME`、`VIBE_HOME` 命中时替换默认的 `~` 基准（空值或非绝对路径回落默认，与 XDG 规范一致），存在性判据同步跟随；`SARVAM_HOME`、`CODEX_HOME`、`APPDATA`、`FLATPAK_XDG_CONFIG_HOME` 仅参与探测——Codex / Pi 的全局目录就是主目标，`CODEX_HOME` 只用于判断是否安装，不改变写入落点。
+各 agent 目录随 home 类环境变量替换 `~` 基准：`XDG_CONFIG_HOME`（amp / devin / goose / opencode / replit / universal）、`AUTOHAND_HOME`、`CLAUDE_CONFIG_DIR`、`GROK_HOME`、`HERMES_HOME`、`VIBE_HOME` 命中时生效（空值或非绝对路径回落默认）；`SARVAM_HOME`、`CODEX_HOME`、`APPDATA`、`FLATPAK_XDG_CONFIG_HOME` 仅参与探测——Codex / Pi 的全局目录就是主目标，`CODEX_HOME` 只用于判断是否安装，不改变写入落点。
 
 **全局面行为细节**：
 
 - 产物形态默认**软链**（Windows 用 `junction`，免管理员、免开发者模式）；软链锚在 pnpm 稳定入口（`<node_modules>/@fxri/toolkit`，升级时由 pnpm 重写），不随版本段失效；链接创建失败**自动降级副本**并在报告里标注 ⚠️，不静默跳过
 - 卸载链接时**只摘链、不碰真源**（包内原始文件完好）
-- 软链落点是**写入穿透**形态：在落点目录里编辑文件等于编辑技能真源，且该真源随包升级整体换新——`status` 在存在软链落点时于报告末尾提示「写入将穿透至技能真源目录，改内容请改真源」，避免用户误在落点上编辑
-- 配置 `skills.autoLink`（默认 `true`）：命令启动时对状态文件记载的**链接**做补链与修链；只重建悬空或**指向其他版本（内容与真源不一致）**的链接——内容与真源一致的异地软链（如锚在别的安装）不视为错误、不重指；现场被替换为同名实体目录 / 普通文件时默认清理重建为软链，置 `skills.autoLinkReplaceForeign: false` 可改为一律不动（**不含首次安装、不含副本升级**；`CI` 环境自动跳过。见[配置参考 · skills](../config/skills)）
+- 软链落点是**写入穿透**形态：在落点目录里编辑文件等于编辑技能真源，且该真源随包升级整体换新——`status` 在存在软链落点时于报告末尾提示「写入将穿透至技能真源目录，改内容请改真源」
+- 配置 `skills.autoLink` / `autoLinkReplaceForeign` 控制软链自愈（默认开；不含首次安装与副本升级，`CI` 环境自动跳过），边界见[配置参考 · skills](../config/skills)
 - 状态文件为**用户级**（`~/.agents/.toolkit-skills.json`），与上游安装器的 `skills-lock.json` 相互独立；结构为 `format`（`fxri.toolkit.skills-state`）+ `schemaVersion`（`1`）+ `sources`（来源 → 目标 → 逐技能条目），升级前的旧结构在首次读取时一次性导入并备份为 `.bak`
 
 ## 相关页面
