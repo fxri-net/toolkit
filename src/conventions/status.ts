@@ -1,6 +1,6 @@
 // 规范载体只读体检：形态 / 索引 / 入口层三块，只报问题不修（不给 --fix），体检本身异常不阻断、退出码恒 0（非法 --format 由 CLI 层按参数错误处理）
 // 判据全部走 format.ts / entry.ts 的既有实现在，不在本模块另写一份结构解析
-import { basename, join, relative } from "node:path"
+import { basename, dirname, join, relative, resolve } from "node:path"
 import { existsSync, readdirSync } from "node:fs"
 import { readTextFile } from "../read-text"
 import { filledTableLines, listMarkdownFiles } from "./compact"
@@ -316,6 +316,16 @@ function checkEntryLayer(cwd: string, items: ConventionsStatusItem[]): EntryShel
     )
   }
   return states
+}
+
+// 体检扫描根：按任务目录推导所属仓库根，供入口壳查找与代码内 C-<n> 标注统计使用
+// 顺序：任务目录的父目录 → 任务目录自身（任务区即仓库根）；两处都无 package.json / .git 时回落到 cwd
+export function resolveCarrierRoot(tasksDir: string, fallback = process.cwd()): string {
+  const abs = resolve(tasksDir)
+  for (const candidate of [dirname(abs), abs]) {
+    if (existsSync(join(candidate, "package.json")) || existsSync(join(candidate, ".git"))) return candidate
+  }
+  return fallback
 }
 
 // 体检入口：未初始化时只回单条结论并提前返回，避免把未初始化误报成一堆异常项

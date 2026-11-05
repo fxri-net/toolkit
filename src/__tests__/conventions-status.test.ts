@@ -5,7 +5,7 @@ import { execSync } from "node:child_process"
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { conventionsStatus } from "../conventions/status"
+import { conventionsStatus, resolveCarrierRoot } from "../conventions/status"
 import {
   CARRIER_MARKER,
   CARRIER_VERSION,
@@ -680,5 +680,27 @@ describe("检测入口覆盖统计", () => {
     expect(report.items.some((item) => item.level === "info" && item.message.includes(unknown))).toBe(true)
     // 覆盖统计不阻断：仍是纯 info，不增加 warnings
     expect(report.warnings).toBe(0)
+  })
+})
+
+describe("resolveCarrierRoot 体检扫描根推导", () => {
+  it("任务目录位于仓库内时取仓库根", () => {
+    const repo = makeDir("tk-root-repo-")
+    const tasksDir = join(repo, ".tasks")
+    mkdirSync(tasksDir, { recursive: true })
+    writeFileSync(join(repo, "package.json"), "{}\n", "utf8")
+    expect(resolveCarrierRoot(tasksDir)).toBe(repo)
+  })
+
+  it("任务区即仓库根时取该目录自身", () => {
+    const root = makeDir("tk-root-self-")
+    mkdirSync(join(root, ".git"), { recursive: true })
+    expect(resolveCarrierRoot(root)).toBe(root)
+  })
+
+  it("两处都没有仓库标记时回落到调用方基准", () => {
+    const loose = makeDir("tk-root-loose-")
+    const fallback = makeDir("tk-root-fallback-")
+    expect(resolveCarrierRoot(join(loose, ".tasks"), fallback)).toBe(fallback)
   })
 })

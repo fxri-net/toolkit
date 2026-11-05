@@ -28,7 +28,7 @@ import type { LocalConfigIgnoreState } from "./git-ignore"
 import { initWorkspace, INIT_LINKS, type InitAction, type InitReport } from "./init"
 import { upgradeConventions, type UpgradeReport } from "./conventions/upgrade"
 import { formatConventions, type FormatReport } from "./conventions/compact"
-import { conventionsStatus, type ConventionsStatusReport } from "./conventions/status"
+import { conventionsStatus, resolveCarrierRoot, type ConventionsStatusReport } from "./conventions/status"
 import { toJsonText, assertJsonFormat } from "./json-output"
 import {
   autoLinkSkills,
@@ -1623,12 +1623,13 @@ conventionsCmd
 conventionsCmd
   .command("status")
   .description("规范载体只读体检：形态 / 索引 / 入口层三块（只报不改，体检不阻断、退出码恒 0；仅 --format 传非法值时按参数错误报错退出）")
-  .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）")
+  .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）；入口壳与检测入口按该目录所属仓库扫描")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
   .action((options: { dir?: string; format?: string }) => {
     try {
       if (!assertJsonFormat(options.format)) return
-      const report = conventionsStatus(resolveTasksDir(options.dir))
+      const tasksDir = resolveTasksDir(options.dir)
+      const report = conventionsStatus(tasksDir, resolveCarrierRoot(tasksDir))
       if (options.format === "json") printJson(report)
       else printConventionsStatus(report)
     } catch (e) {
