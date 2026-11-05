@@ -44,3 +44,20 @@
 | Python 输出 `\u4e2d\u6587`、git 把中文路径显示成 `\346\226\207` | `json.dump` 默认 `ensure_ascii=True`；`core.quotepath` 默认开启 | 分别传 `ensure_ascii=False`、`git -c core.quotepath=false`，都不是乱码 |
 
 定位不可见字符：GNU grep `grep -nP '[\x{00A0}\x{200B}\x{3000}\x{FEFF}\x{200E}\x{200F}]' f`；`powershell.exe` `Select-String -Path f -Pattern '[\u00A0\u200B\u3000\uFEFF\u200E\u200F]'`。
+
+## 运行期乱码（不落盘）
+
+命令执行中乱码多为管线问题，源文件可能正常：先按第 1 问判归属，再查下表。
+
+| 断点 | 现象 | 处置 |
+| --- | --- | --- |
+| 控制台代码页（简体默认 936） | 原生命令输出 UTF-8 非 ASCII 字符显示乱码 | `chcp 65001` + `[Console]::OutputEncoding = [Text.UTF8Encoding]::new()` |
+| `powershell.exe` `$OutputEncoding` 默认 ASCII | PS 管道把非 ASCII 传给原生命令后变 `?` | 先设 `$OutputEncoding = [Text.UTF8Encoding]::new()` |
+| `powershell.exe` `>` / `Out-File` 默认 UTF-16LE | 重定向出的 `.json` / `.csv` 后续解析失败 | 改 `-Encoding utf8` 或 `[IO.File]::WriteAllText`；`pwsh` 默认 UTF-8 无 BOM |
+| `powershell.exe` `Get-Content` 对无 BOM 文件按 ANSI | 读 UTF-8 文件得乱码，误判文件损坏 | 显式 `-Encoding utf8`；`pwsh` 默认 UTF-8 |
+| Node 输出被 `powershell.exe` 读 | 控制台 UTF-16 显示正常，落文件是 UTF-8，再读就乱 | 读侧显式编码，别改 Node 侧 |
+| Python 用 locale 编码 | 非 ASCII 报 `UnicodeEncodeError` 或输出 `?` | `PYTHONUTF8=1` 或 `PYTHONIOENCODING=utf-8` |
+| 容器 / CI `LANG=C`、`LC_ALL=C` | 本地正常，线上同上报错 | 设 `LANG=C.UTF-8`，或注入 `PYTHONIOENCODING=utf-8` |
+| Java 运行期 `file.encoding` | JDK 18 前在 Windows 默认 GBK，读写出乱码 | `-Dfile.encoding=UTF-8` |
+
+⚠️ 别因 stdout 乱码就回头改源文件；`file -i` 与 chardet 对短文本误判率高，只作参考。

@@ -12,7 +12,7 @@
 | [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.2.7 | changesets 发版与多语言 CHANGELOG 维护 | optional |
 | [fxri-session-recap](./fxri-session-recap/SKILL.md) | 1.6.5 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | [fxri-plan-review](./fxri-plan-review/SKILL.md) | 1.0.3 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
-| [fxri-text-encoding](./fxri-text-encoding/SKILL.md) | 1.2.1 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
+| [fxri-text-encoding](./fxri-text-encoding/SKILL.md) | 1.2.2 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
 
 版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` / `skills install` 打印的真源版本），与正文首部版本声明双写一致；层级取自 frontmatter `metadata.tier`（`skills` 模式 `core` 必装不可取消，`package` 模式全部可选、允许零选；`optional` 安装时可选，缺省按 `optional` 处理）。
 
