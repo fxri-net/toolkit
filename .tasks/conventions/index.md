@@ -26,7 +26,7 @@
 | C-9 | 阻塞解除归属 | 进入阻塞在正文记录原因；解除须用户确认并转回进行中，正文记录解除原因 | common | `skills/fxri-plan-to-task/SKILL.md`（过程更新） |
 | C-10 | 修订留痕（元规则） | 规则语义变更不覆盖丢史：先在 `history.md` 留痕，再更新表内当前语义 | common | [history.md](./history.md) |
 | C-11 | 技能单一真源与同源分发 | 包内 `skills/` 为技能唯一真源、随包同源分发（与 CLI 同一发布批次），改 skills 须发版才触达用户；技能版本双写位（frontmatter `metadata.version` 与正文首部）须一致 | common | `skills/README.md`（安装方式）+ `AGENTS.md` 质量门第 5 条 |
-| C-12 | 机器可读输出与诊断提示分流 | stdout 只承载机器可读内容（如 `--format json`），提示与诊断（升级提示、链接自愈提示）一律走 stderr | common | `docs/cli.md`（`--format json` 行）+ `docs/config.md`（updateCheck / skills 段） |
+| C-12 | 机器可读输出与诊断提示分流 | stdout 只承载机器可读内容（如 `--format json`），提示与诊断（升级提示、链接自愈提示）一律走 stderr | common | `docs/cli.md`（`--format json` 行）+ `docs/config/update.md`（升级提示通道）+ `docs/config/skills.md`（链接自愈提示） |
 | C-13 | 验收含类型检查与静态检查 | 类型检查与静态检查是聚合门禁 `pnpm verify` 的内部步骤（步骤定义见 `scripts/verify.mjs`）；不得以 `pnpm lint` / `pnpm build` 替代类型检查 | common | `AGENTS.md`「验收方式」 |
 | C-14 | 路径书写 | 仓库内引用用仓库根相对路径（含行号形如 `src/cli.ts L103`），不写指向本机的绝对 `file:///` 链接；active 可留本机资源路径，归档时归一为占位形式（`<本机>/…`、`~/` 或 `%USERPROFILE%`） | common | `AGENTS.md`「协作流程约束」 |
 | C-15 | 规则层更新锚点 | `SPEC.md` / `docs/ai-rules.md` / `docs/commit-rules.md` 各有一行更新锚点，位于规则全文可复制块内部首行；任何内容变更以变更时刻更新所属文件锚点、未变更不刷新、同批取同一时间、不随发版例行抬高 | common | `SPEC.md` 首部 + `docs/ai-rules.md` 与 `docs/commit-rules.md` 规则全文首行 + `AGENTS.md` 质量门第 6 条 |
