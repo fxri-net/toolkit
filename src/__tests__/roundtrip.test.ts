@@ -101,6 +101,7 @@ describe("导出→导入往返", () => {
     rmSync(dst, { recursive: true, force: true })
   })
 
+  // XLSX 写出开销大，全量并行下接近默认 5s，显式放宽避免偶发超时
   it("XLSX 待完成/已归档双 sheet 往返（汇总 sheet 跳过）", async () => {
     const src = makeActiveSource()
     appendArchived(src)
@@ -120,5 +121,5 @@ describe("导出→导入往返", () => {
     rmSync(src, { recursive: true, force: true })
     rmSync(outDir, { recursive: true, force: true })
     rmSync(dst, { recursive: true, force: true })
-  })
+  }, 20_000)
 })
