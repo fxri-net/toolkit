@@ -187,6 +187,4 @@ toolkit skills install --force   # 把各目标下的同名旧副本重建为软
 
 ## 相关页面
 
-- 上一篇：[更新日志](./changelog)
-- 下一篇：[AI 全局规则](./ai-rules)
 - 参考：[新手指南](./getting-started) · [操作手册](./handbook) · [完整攻略](./guide) · [CLI 参考](./cli)

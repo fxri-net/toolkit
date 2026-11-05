@@ -34,6 +34,4 @@ toolkit conventions format --format json  # JSON 输出：status、目录、文�
 
 ## 相关页面
 
-- 上一篇：[初始化](./init)
-- 下一篇：[发版与更新日志](./changelog)
 - 参考：[完整攻略 · conventions/](../guide#conventions-规范沉淀地) · [完整攻略 · 存量规范载体迁移](../guide#存量规范载体迁移)

@@ -162,6 +162,4 @@ pnpm exec toolkit tasks archive
 
 ## 相关页面
 
-- 上一篇：[首页](./index)
-- 下一篇：[推荐技能包](./packages)
 - 参考：[操作手册](./handbook) · [完整攻略](./guide) · [CLI 参考](./cli) · [配置参考](./config) · [FAQ](./faq)

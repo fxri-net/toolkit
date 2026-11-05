@@ -51,6 +51,4 @@ toolkit skills install --mode package --from https://github.com/fxri-net/playboo
 
 ## 相关页面
 
-- 上一篇：[新手指南](./getting-started)
-- 下一篇：[操作手册](./handbook)
 - 参考：[安装方式](./getting-started#安装) · [AI 技能包](./guide#ai-技能包-skills) · [CLI 参考 · skills](./cli/skills)

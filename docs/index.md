@@ -105,5 +105,4 @@ pnpm exec toolkit tasks
 
 ## 相关页面
 
-- 下一篇：[新手指南](./getting-started)
 - 参考：[推荐技能包](./packages) · [完整攻略](./guide) · [FAQ](./faq)

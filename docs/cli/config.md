@@ -39,6 +39,4 @@ toolkit config status --cwd <path>       # 指定向上查找的起始目录（�
 
 ## 相关页面
 
-- 上一篇：[技能分发](./skills)
-- 下一篇：[文档站主题](./docs-theme)
 - 参考：[配置参考](../config) · [完整攻略 · Git 纳管范围](../guide#git-纳管范围)

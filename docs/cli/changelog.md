@@ -44,6 +44,4 @@ toolkit changelog status / publish      # 其余 changeset 子命令透传
 
 ## 相关页面
 
-- 上一篇：[规范载体](./conventions)
-- 下一篇：[技能分发](./skills)
 - 参考：[完整攻略 · 多语言 CHANGELOG](../guide#多语言-changelog) · [配置参考 · changelog](../config#changelog-语言表)

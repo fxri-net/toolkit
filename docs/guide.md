@@ -240,6 +240,4 @@ pnpm exec toolkit changelog doc                # 生成/更新文档站更新日
 
 ## 相关页面
 
-- 上一篇：[操作手册](./handbook)
-- 下一篇：[CLI 参考](./cli)
 - 参考：[新手指南](./getting-started) · [配置参考](./config) · [FAQ](./faq)

@@ -98,7 +98,6 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 输出包根（内含 `skills/`），便于委托上游安装器安装到内置表未收录的 agent；`--format json` 输出包根、技能源目录与技能清单。
 
-
 `install` / `status` / `remove` / `sources` / `path` 各子命令的 `--format json` 输出统一携带 `schemaVersion: 1` 锚点（与 `tasks --export` 同口径）；`install` / `status` / `remove` 的输出另含 `scope`（本次实际作用域）与 `dryRun`（供消费方区分预演与实跑），报告主体按 `global` / `project` 两个字段分面承载（未执行的面为 `null`）；`install` 与 `status` 报告含 `mode`（当前安装模式）、`selection`（技能选择集）与 `targetSelection`（目标选择集），`status` 两面报告另含 `skillVersions`（各技能真源版本，用于与会话上下文中已加载的技能内容对照）。
 
 ## 技能选择
@@ -186,6 +185,4 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 ## 相关页面
 
-- 上一篇：[发版与更新日志](./changelog)
-- 下一篇：[配置体检](./config)
 - 参考：[完整攻略 · AI 技能包](../guide#ai-技能包-skills) · [配置参考 · skills](../config#skills-技能分发)

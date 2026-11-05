@@ -31,6 +31,4 @@ toolkit init --no-hooks               # 不写入 package.json 的 prepare 刷�
 
 ## 相关页面
 
-- 上一篇：[任务区](./tasks)
-- 下一篇：[规范载体](./conventions)
 - 参考：[新手指南 · 30 秒上手](../getting-started#_30-秒上手) · [技能分发](./skills)

@@ -26,6 +26,4 @@ toolkit docs theme --dir <path>           # 指定主题目录（缺省 docs/.vi
 
 ## 相关页面
 
-- 上一篇：[配置体检](./config)
-- 下一篇：[退出码](./exit-codes)
 - 参考：[完整攻略 · 文档站部署](../guide#文档站部署) · [API 参考](../api)
