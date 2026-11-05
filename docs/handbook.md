@@ -130,7 +130,7 @@ pnpm remove -g @fxri/toolkit     # 2. 再卸 CLI
 ## 八、隐私与安全
 
 - 默认脱敏开启：终端展示、导出文件、归档落盘都会掩码敏感信息；`.tasks/active/` 源文件保持原样（设计如此）
-- 不想某类信息被掩码、或要加自定义规则：`.toolkitrc.json` 的 `redact` 段（见[配置参考](./config#redact-隐私脱敏)）
+- 不想某类信息被掩码、或要加自定义规则：`.toolkitrc.json` 的 `redact` 段（见[配置参考 · redact](./config/redact)）
 
 ## 相关页面
 

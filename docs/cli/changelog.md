@@ -44,4 +44,4 @@ toolkit changelog status / publish      # 其余 changeset 子命令透传
 
 ## 相关页面
 
-- 参考：[完整攻略 · 多语言 CHANGELOG](../guide#多语言-changelog) · [配置参考 · changelog](../config#changelog-语言表)
+- 参考：[完整攻略 · 多语言 CHANGELOG](../guide#多语言-changelog) · [配置参考 · changelog](../config/changelog)

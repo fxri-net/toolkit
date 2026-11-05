@@ -133,7 +133,7 @@ toolkit skills install --force   # 把各目标下的同名旧副本重建为软
 
 ### 归档后发现敏感信息没脱敏？
 
-脱敏只作用于**终端展示、导出文件与归档落盘**，`.tasks/active/` 源文件按原样保存（设计如此，不改动原始正文）。若某类信息未被掩码，可能未命中内置规则——**团队规则**加到 `.toolkitrc.json`、**个人规则**加到 `.toolkitrc.local.json`（仅本人可见、默认不入库），见[配置参考 · redact](./config#redact-隐私脱敏)。
+脱敏只作用于**终端展示、导出文件与归档落盘**，`.tasks/active/` 源文件按原样保存（设计如此，不改动原始正文）。若某类信息未被掩码，可能未命中内置规则——**团队规则**加到 `.toolkitrc.json`、**个人规则**加到 `.toolkitrc.local.json`（仅本人可见、默认不入库），见[配置参考 · redact](./config/redact)。
 
 ## 协作与流程
 

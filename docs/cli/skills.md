@@ -180,9 +180,9 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - 产物形态默认**软链**（Windows 用 `junction`，免管理员、免开发者模式）；软链锚在 pnpm 稳定入口（`<node_modules>/@fxri/toolkit`，升级时由 pnpm 重写），不随版本段失效；链接创建失败**自动降级副本**并在报告里标注 ⚠️，不静默跳过
 - 卸载链接时**只摘链、不碰真源**（包内原始文件完好）
 - 软链落点是**写入穿透**形态：在落点目录里编辑文件等于编辑技能真源，且该真源随包升级整体换新——`status` 在存在软链落点时于报告末尾提示「写入将穿透至技能真源目录，改内容请改真源」，避免用户误在落点上编辑
-- 配置 `skills.autoLink`（默认 `true`）：命令启动时对状态文件记载的**链接**做补链与修链；只重建悬空或**指向其他版本（内容与真源不一致）**的链接——内容与真源一致的异地软链（如锚在别的安装）不视为错误、不重指；现场被替换为同名实体目录 / 普通文件时默认清理重建为软链，置 `skills.autoLinkReplaceForeign: false` 可改为一律不动（**不含首次安装、不含副本升级**；`CI` 环境自动跳过。见[配置参考 · skills](../config#skills-技能分发)）
+- 配置 `skills.autoLink`（默认 `true`）：命令启动时对状态文件记载的**链接**做补链与修链；只重建悬空或**指向其他版本（内容与真源不一致）**的链接——内容与真源一致的异地软链（如锚在别的安装）不视为错误、不重指；现场被替换为同名实体目录 / 普通文件时默认清理重建为软链，置 `skills.autoLinkReplaceForeign: false` 可改为一律不动（**不含首次安装、不含副本升级**；`CI` 环境自动跳过。见[配置参考 · skills](../config/skills)）
 - 状态文件为**用户级**（`~/.agents/.toolkit-skills.json`），与上游安装器的 `skills-lock.json` 相互独立；结构为 `format`（`fxri.toolkit.skills-state`）+ `schemaVersion`（`1`）+ `sources`（来源 → 目标 → 逐技能条目），升级前的旧结构在首次读取时一次性导入并备份为 `.bak`
 
 ## 相关页面
 
-- 参考：[完整攻略 · AI 技能包](../guide#ai-技能包-skills) · [配置参考 · skills](../config#skills-技能分发)
+- 参考：[完整攻略 · AI 技能包](../guide#ai-技能包-skills) · [配置参考 · skills](../config/skills)

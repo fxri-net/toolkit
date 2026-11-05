@@ -17,8 +17,8 @@ function docRuleNames(file: string): string[] {
 }
 
 describe("文档一致性：脱敏内置规则清单", () => {
-  it("docs/config.md 列举的规则集合与代码内置规则一致", () => {
-    expect(docRuleNames("docs/config.md").sort()).toEqual([...listBuiltinRuleNames()].sort())
+  it("docs/config/redact.md 列举的规则集合与代码内置规则一致", () => {
+    expect(docRuleNames("docs/config/redact.md").sort()).toEqual([...listBuiltinRuleNames()].sort())
   })
 
   it("docs/guide.md 列举的规则集合与代码内置规则一致", () => {
