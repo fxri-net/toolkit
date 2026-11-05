@@ -3,7 +3,7 @@ name: fxri-text-encoding
 description: 在写脚本、配置、数据交换类文本文件之前，或用 shell 重定向、程序生成 / 导出、转码产出文本文件之前，或把非 ASCII 文本传给命令行参数、环境变量、API 请求体、模板渲染与远端元数据之前——不论临时、一次性、不入库、仓库内外——先加载本技能。判据只看读取方与字节形态：其默认解码不是 UTF-8（`powershell.exe` / `cmd` / Excel / MSVC / 未指定 `-encoding` 的 javac 等按系统代码页，bash / CI 按 locale），或格式要求 / 禁止 BOM、对行尾敏感，或写入经生成 / 转码通道。不按语言 / 扩展名白名单判断，Java / PHP 等按各自编译器与运行时默认解码推导。非 ASCII 内容与原文不一致（丢失、替换、截断、变形、mojibake）时立即用；`?` / `�` 只是表现之一，合法非 ASCII 与 `\uXXXX` / 百分号编码等表示形式不算故障。AI 写入工具默认不写 BOM，落盘后自查首三字节并读回比对。不用于 Base64 / URL 编码、排序计数、文件名规范化、CSV 语法、路径分隔符、时区、提交信息内容风格、任务建档、代码风格。
 license: MIT
 metadata:
-  version: "1.2.2"
+  version: "1.2.3"
   tier: optional
   author: fxri
   source: https://github.com/fxri-net/toolkit
@@ -11,7 +11,7 @@ metadata:
 
 # 文本编码与字节形态
 
-> 本技能版本 1.2.2（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.2.3（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 读取地图
 
@@ -29,7 +29,7 @@ metadata:
 1. **读取方编码**：即将写入或传输非 ASCII 文本，且读取方默认解码不是 UTF-8——`powershell.exe` / `cmd` / Excel / MSVC / 未指定 `-encoding` 的 javac 按系统代码页，bash / CI 按 locale。
 2. **字节形态敏感**：可执行脚本与 shebang 文件（BOM / CRLF 会直接执行失败）、要求 BOM 的格式（`.ps1` 等）、禁止 BOM 且本次写入可能引入或移除 BOM 的格式（`.bat`、JSON、PHP 源文件等）。
 3. **生成或跨边界通道**：写入由 `>` / `>>`、`Set-Content` / `Out-File` / `Export-Csv`、模板渲染 / 占位符替换、程序生成或导出、`iconv` 转码完成；或非 ASCII 文本传给命令行参数、环境变量、HTTP / RPC 请求体（项目描述、release、issue / PR 正文）、git / 远端元数据。
-4. **执行通道与症状**：PS 管道喂原生命令、重定向落盘、`Get-Content` 读无 BOM 文件、`chcp` / `iconv`、locale 默认编码、运行脚本；或非 ASCII 内容与原文不一致（字符缺失、被替换、截断、长度异常、变形或 mojibake）。
+4. **执行通道与症状**：PS 管道喂原生命令、重定向落盘、`Get-Content` 读无 BOM 文件、`chcp` / `iconv`、locale 默认编码、运行脚本；或出现乱码，或非 ASCII 内容与原文不一致（字符缺失、被替换、截断、长度异常、变形或 mojibake）。
 
 不加载：写入方与读取方都按 UTF-8（或按字节原样）处理，本次写入既不新增 / 移除 BOM、也不改行尾，且不经过生成 / 转码 / 跨边界通道；纯 ASCII 命令；纯展示输出且无异常。非 ASCII 本身不是故障，合法的日文、韩文、emoji、重音字符与 `\uXXXX`、百分号编码、HTML 实体、Base64 均按正常内容处理。临时、一次性、不入库、不提交、仓库外 temp 目录**均不豁免**——读取方可能在别的机器、Excel、CI 或远端平台，错误不会回到本会话。
 
