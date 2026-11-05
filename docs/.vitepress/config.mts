@@ -75,7 +75,21 @@ export default defineConfig({
       {
         text: '参考',
         items: [
-          { text: 'CLI 参考', link: '/cli' },
+          {
+            text: 'CLI 参考',
+            link: '/cli',
+            collapsed: false,
+            items: [
+              { text: '任务区', link: '/cli/tasks' },
+              { text: '初始化', link: '/cli/init' },
+              { text: '规范载体', link: '/cli/conventions' },
+              { text: '发版与更新日志', link: '/cli/changelog' },
+              { text: '技能分发', link: '/cli/skills' },
+              { text: '配置体检', link: '/cli/config' },
+              { text: '文档站主题', link: '/cli/docs-theme' },
+              { text: '退出码', link: '/cli/exit-codes' },
+            ],
+          },
           { text: 'API 参考', link: '/api' },
           { text: '配置参考', link: '/config' },
           { text: '更新日志', link: '/changelog' },

@@ -2,26 +2,37 @@
 
 > 目标读者：需要查命令、参数、默认值、退出码的用户。命令与参数口径取自 `toolkit --help` 与各子命令 `--help`（两者冲突时以 `--help` 为准）。
 
-## 解决什么问题
+本篇是命令总览与全局约定；每个域的完整参数、边界行为与示例见对应分页。
 
-README 只给最常用示例；本篇是完整的命令字典，覆盖全部参数与边界行为。
+## 命令总览
 
-## 全局
+| 命令 | 用途 | 常用子命令 | 分页 |
+| --- | --- | --- | --- |
+| `toolkit init` | 初始化任务区：目录骨架、规范载体、技能入口壳、忽略片段 | — | [init](./cli/init) |
+| `toolkit tasks` | 任务管理：总览、归档、校验、归一、统计、导入导出 | `archive` / `check` / `normalize` / `stats` | [tasks](./cli/tasks) |
+| `toolkit conventions` | 规范载体：结构升级、表格归一、只读体检 | `upgrade` / `status` / `format` | [conventions](./cli/conventions) |
+| `toolkit changelog` | 多语言 CHANGELOG（封装 changesets） | `version` / `format` / `doc` | [changelog](./cli/changelog) |
+| `toolkit skills` | AI 技能分发：安装、状态、卸载、来源与版本 | `install` / `status` / `remove` / `sources` / `bump` | [skills](./cli/skills) |
+| `toolkit config` | 配置分层只读体检 | `status` | [config](./cli/config) |
+| `toolkit docs` | 文档站主题校验与写入 | `theme` | [docs theme](./cli/docs-theme) |
+| `toolkit help` | 显示帮助 | — | — |
+
+## 按场景找命令
+
+| 你在做什么 | 用什么 |
+| --- | --- |
+| 新项目接入 | `toolkit init` → `toolkit skills install` → `toolkit config status` |
+| 日常任务 | `toolkit tasks` 看板 → `toolkit tasks check` 校验 → `toolkit tasks archive` 归档 |
+| 新会话恢复 | `toolkit tasks --view all` + `toolkit conventions status` |
+| 发版 | `toolkit changelog version` → `pnpm verify` → 打标签发布 |
+| 技能升级 / 换装 | `toolkit skills status` → `toolkit skills install`（外部来源见 `skills sources`） |
+| 规范沉淀 | `toolkit conventions status` → `toolkit conventions upgrade` / `format` |
+| 排查配置 | `toolkit config status`（不打印配置值） |
+| 文档站主题漂移 | `toolkit docs theme --check` |
+
+## 全局约定
 
 **调用方式**：下文示例统一用 `toolkit <command>` 直调（已全局安装）或 `pnpm exec toolkit <command>`（项目 devDependency，npm 用户 `npx toolkit`）；不安装临时执行用 `pnpm dlx @fxri/toolkit <command>`。
-
-```text
-toolkit <command> [options]
-
-命令：
-  toolkit init          初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐 .gitignore 片段与 prepare 刷新钩子）
-  toolkit skills        AI 技能包分发：安装 / 状态 / 卸载 / 路径（包内 skills/ 为唯一真源）
-  toolkit conventions   项目协作规范载体：结构升级（v1 / v2 → v3）、表格形态归一（紧凑形态）与只读体检（形态 / 索引 / 入口层）
-  toolkit config        配置分层：只读查看三层配置文件（全局层 / 项目层 / 本地层）的生效情况与来源
-  toolkit tasks         任务管理
-  toolkit changelog     多语言 CHANGELOG（封装 changesets）
-  toolkit help          显示帮助
-```
 
 顶层命令支持的开关（`-h` 全局与子命令均可用）：
 
@@ -30,364 +41,13 @@ toolkit <command> [options]
 | `-h, --help` | 显示帮助（全局或子命令） |
 | `-v, --version` | 显示版本号 |
 
-`--redact` / `--warn` 为**域级开关**：仅 `tasks` 与 `changelog` 两个域支持（`init` / `skills` / `conventions` / `config` 域不提供），清单见下方各域的选项表。
+`--redact` / `--warn` 为**域级开关**：仅 `tasks` 与 `changelog` 两个域支持（`init` / `skills` / `conventions` / `config` / `docs` 域不提供），清单见各域的选项表。
 
 开关为**双向三档**，优先级从高到低：CLI 参数 > 环境变量 > 配置文件 > 默认开启。对应环境变量：`FX_REDACT`、`FX_CHECK_WARN`（认 `0/1`、`true/false`、`on/off`、`yes/no`）；配置项见[配置参考](./config)。
 
-另有一个独立环境变量 `FX_NO_UPDATE_CHECK`：设为真值时关闭升级检查提示（1.7.0 新增，行为详见[配置参考 · updateCheck](./config#updatecheck-升级检查提示-1-7-0-新增)）。
+另有一个独立环境变量 `FX_NO_UPDATE_CHECK`：设为真值时关闭升级检查提示（1.7.0 起支持，行为详见[配置参考 · updateCheck](./config)）。
 
 **升级提示收口**：命令成功（退出码 0）时，按 `updateCheck.notify`（默认 `always`）在输出结尾给出一句话提示；TTY 下走 stderr，非 TTY 走 stdout。技能提示会给出「当前 → 最新」；版本比较按数字段补零、预发布低于同号正式版、忽略构建元数据，任一侧无法解析为版本时静默不提示。已尝试修复（执行过 `skills install`）的同一版本不再重复提示，来源版本变化或 CLI 升级后自动恢复；`skills status` 会展示上次检查时间与下次可提示时间。`--help`、`help` 子命令、裸 `toolkit`、`skills path`、`skills status`、`changelog` 透传子命令与 `--format json` 不输出文本提示；`--version`、`--check`、`--export` 的提示只走 stderr。脚本需要稳定输出时请用 `--format json` 或设 `FX_NO_UPDATE_CHECK=1`。
-
-## tasks
-
-```bash
-toolkit tasks                     # 待完成总览（默认）
-toolkit tasks --view archived     # 仅已归档
-toolkit tasks --view all          # 待完成 + 已归档（状态分组，来源可辨）
-toolkit tasks archive             # 归档已完成任务
-toolkit tasks archive --dry-run   # 归档预演（只预览，不落盘）
-toolkit tasks check               # 校验 active 与变更集写法
-toolkit tasks normalize           # 检查归档块（默认只读）
-toolkit tasks normalize --fix     # 修复归档问题
-toolkit tasks stats               # 周期统计：完成周期 / 滞留 / 吞吐
-toolkit tasks stats --format json # 统计结果 JSON 输出
-toolkit tasks --dir <path>        # 指定任务目录（CLI 参数 > 配置 tasks.dir > 默认 .tasks）
-toolkit tasks check --strict      # 任务目录不存在时报错退出（默认容错为空结果）
-```
-
-### 任务域选项
-
-| 选项 | 说明 |
-| --- | --- |
-| `--dir <path>` | 任务目录（优先级：CLI 参数 > 配置 `tasks.dir` > 默认 `.tasks`） |
-| `--redact` / `--no-redact` | 开启/关闭隐私脱敏（默认开启） |
-| `--warn` / `--no-warn` | 开启/关闭软告警（默认开启；作用于 `tasks check` 的 warn 输出、归档时的变更集提醒） |
-| `--dry-run` | 预演：`archive` 归档 / `import` 导入只预览，不落盘 |
-| `--fix` | 归一化修复（仅 `normalize` 有效；含补齐元数据、漂移迁移、降序重排、范围归一，以及按并集去重 + 降序解决 git 冲突标记） |
-| `--check` | 归一化只读检查（`normalize` 默认行为，可显式声明；不能与 `--fix` 同用） |
-| `--strict` | 任务目录不存在时报错退出（默认容错为空结果） |
-
-### 子命令
-
-| 子命令 | 行为 |
-| --- | --- |
-| `archive` | 将 `status` 为 `已完成`/`已放弃` 且带 `completed` 的任务按完成日期聚合归档；排他锁防并发；缺 `completed` 的终结态任务跳过并提示；完成时间晚于当前系统时间超过 14 小时（跨时区容差）或恰为零点整（疑似只填日期被补零）时软告警 |
-| `check` | 校验 active：frontmatter 合法性、owner/created/命名规范、重名、`updated` 早于 `created`（error 级，时间线矛盾）、`depends_on` 闭环、未闭合待办与 `- [ ]`；completed 晚于当前系统时间超过 14 小时（跨时区容差）或恰为零点整（疑似只填日期被补零）软告警；范围字段形态软告警（顿号/逗号疑似多值分隔请改半角加号、括号疑似注释请移入正文）；游离于 `active/` 层级外的日期前缀文件软告警；载体形态软告警（旧单文件 `conventions.md` 残留待迁移、`conventions/` 缺 `index.md`、形态异常（形态标记、`history.md` 与索引表首列 ID 三者不一致）、v3 索引表列集合偏离五列、`history.md` / `retired.md` 表头偏离固定列、载体各文件表头与分隔行列数不等、`history.md` 数据行首列非稳定 ID、「修订内容」列含禁用语料、分册内残留「确立来源」子项、任务区 md 表格列对齐填充（可执行 `toolkit conventions format` 归一）；均提示人工归一、只报不改）；技能入口壳软告警（壳标记版本与当前 toolkit 不一致、或被 gitignore 覆盖不会随 git 分发，多落点并存时各合并为一条并内联落点路径）；变更集写法软告警（扫 `.changeset` 下待发布变更集：缺类型前缀的顶层条目、未加「- 」列表标记的裸行各转一条并内联条数/行数——裸行会被 changesets 并入相邻条目作缩进续行、致整段塌成单一条目且只有首行归组剥前缀，提示逐条写成「- 类型：描述」；裸行阈值 2 行起报以避开正文误报；前缀识别取全局表与各配置语言自有前缀的并集，缩进续行随父条目迁属不参与）；归档块软告警（复用 `tasks normalize` 的同一检查实现：月份目录归属、元数据行缺失/不完整、范围字段形态、完成时间不可识别/漂移/超前 14 小时以上/零点整、降序排序、疑似任务块、git 冲突标记）；文件卫生软告警（含 UTF-8 BOM、行尾多余空白、换行符 CRLF/LF 混用，统一软告警不阻断）；只看形态不读条文内容 |
-| `normalize` | 检查归档块：元数据四字段完整性、疑似任务块、完成时间与归档日期漂移、完成时间晚于当前系统时间超过 14 小时（跨时区容差）或恰为零点整（仅报告，不自动改值）、降序排序、月份目录归属、范围字段形态（顿号/逗号分隔可 `--fix` 归一为半角加号，括号疑似注释仅提示人工）、git 冲突标记（多写者同天归档的 `pull` 冲突可 `--fix` 按并集去重 + 降序确定性解决）；`--fix` 自动补齐/迁移/重排/范围归一/解决冲突标记；`--fix` 与 `--check` 互斥 |
-| `stats` | 周期统计（仅人用视图，不落盘）：完成周期与分布（仅「已完成」，已归档任务创建日期从块标题恢复，缺失者跳过并计数）、未完成任务滞留时长、按完成月/负责人/范围吞吐汇总；`--format json` 输出 JSON（顶层携带 `schemaVersion: 1` 锚点，与 `tasks --export` 及各域 `--format json` 同口径），过滤选项与视图查询一致（`--view` 默认 `all`，含归档） |
-
-`check` / `normalize` 的问题清单逐条输出为 `文件:行号: 描述`（有行号时便于编辑器跳转）；文件级问题（如重名、游离文件、归档块问题）无对应行，省略行号段，输出为 `文件: 描述`。
-
-### 视图与过滤选项
-
-| 选项 | 说明 |
-| --- | --- |
-| `--view <view>` | `active`（默认）/ `archived` / `all` |
-| `--owner <name>` | 按负责人过滤，逗号分隔多值 |
-| `--scope <scope>` | 按范围过滤，逗号分隔多值；任务文件内范围多值以半角加号存储（如 `web+server`），过滤值命中任一段即中 |
-| `--status <status>` | 按状态过滤，逗号分隔多值；部分取值非法时 stderr 告警并剔除（能继续执行），全部取值非法时报错退出（退出码 1） |
-| `--date <date>` | 单日过滤（`YYYY-MM-DD`），与 `--since`/`--until` 互斥 |
-| `--since <date>` | 起始日期（含当天） |
-| `--until <date>` | 结束日期（含当天） |
-
-⚠️ 过滤只作用于所选视图；不指定 `--view` 时默认只查待完成，过滤落空会附 `--view` 引导提示。日期口径：待完成看创建/更新，已归档看完成时间。
-
-### 导入导出选项
-
-| 选项 | 说明 |
-| --- | --- |
-| `--export <path>` | 导出到文件（**仅任务总览 `toolkit tasks` 消费**；`archive`/`check`/`normalize`/`stats` 传入时 stderr 告警忽略、命令继续），按扩展名驱动：`.csv`（UTF-8 BOM 超集列）/ `.xlsx`（三 sheet）/ `.json`（`{ schemaVersion: 1, summary, items }`）；目录不存在自动创建 |
-| `--format json` | JSON 输出到 stdout（**任务总览与 `stats` 消费**；`archive`/`check`/`normalize` 传入时 stderr 告警忽略、命令继续）；链接自愈提示走 stderr；升级提示按「升级提示收口」分 TTY / 非 TTY 渠道，JSON 模式不输出文本提示；与 `--export` 互斥（仅任务总览下判定） |
-| `--import <file>` | 从 `.csv`/`.xlsx`/`.json` 导入；独立模式，不能与子命令、`--export`、`--format` 同用；`--owner`/`--scope` 可同用，作为导入行缺失字段的默认值 |
-| `--target <target>` | 导入目标 `active`（默认，生成任务文件）/ `archive`（直接写归档块） |
-
-导入细节：兼容本工具三种导出产物（JSON 另兼容裸数组格式）；XLSX 自动跳过名为「汇总」的 sheet、支持表头不在首行；表头自动识别中英文别名（不区分大小写），`.toolkitrc.json` 的 `tasks.importColumns` 自定义映射优先级最高；文件名冲突自动追加序号不覆盖；带完成时间的行状态非终结态时自动置「已完成」并告警；范围列含顿号/逗号/括号时提示按单值写入、多值请用半角加号（只提示不自动转换）。
-
-`--target archive` 的归档契约：按块标题去重——同名任务以**本次导入的内容覆盖**同名块，重复导入同一份文件不会产生重复块（幂等）；块内元数据状态**取自数据**（如源行状态为「已放弃」则写「已放弃」，不强制改写为「已完成」）；缺完成时间的行无法直接归档，跳过并提示改用 `active` 目标。
-
-## changelog
-
-```bash
-toolkit changelog                       # 创建变更集（等价 changeset）
-toolkit changelog version               # 发版 + 格式化（默认中文）
-toolkit changelog --lang en version     # 指定语言
-toolkit changelog format                # 仅格式化已有 CHANGELOG
-toolkit changelog --history format      # 连带追溯改写历史版本块
-toolkit changelog doc                   # 生成/更新文档站更新日志镜像
-toolkit changelog --check doc           # 只比对镜像，不写文件
-toolkit changelog status / publish      # 其余 changeset 子命令透传
-```
-
-⚠️ `changelog` 域开了选项透传（`passThroughOptions`），自有选项必须放在子命令**之前**：写 `toolkit changelog --history format` 生效，写成 `toolkit changelog format --history` 会把 `--history` 当作 changesets 的参数静默忽略。
-
-⚠️ 帮助标志为例外：`-h` / `--help` 紧跟 `version` / `format` 时打印 changelog 本域帮助并退出，不落入透传（其余子命令的帮助标志仍透传给 changesets 输出其自身帮助）。
-
-| 选项 | 说明 |
-| --- | --- |
-| `--lang <lang>` | 输出语言，默认 `zh`；内置 `zh`/`en`，其余经配置扩展；传入未定义语言时 stderr 告警并回落默认语言 |
-| `--redact` / `--no-redact` | 开启/关闭隐私脱敏（默认开启；作用于 CHANGELOG 终端展示与落盘） |
-| `--warn` / `--no-warn` | 开启/关闭软告警（默认开启；作用于发版前未归档任务提醒与无类型前缀条目计数告警） |
-| `--history` | 追溯改写全部历史版本块（默认只处理 changesets 新写入块与无分组的最新版本块） |
-| `--check` | `doc`：只比对镜像页与根 CHANGELOG，不写文件；不一致时输出首个差异行并以 1 退出 |
-| `--from <path>` / `--to <path>` | `doc`：根 CHANGELOG 与镜像页路径，默认 `CHANGELOG.md` / `docs/changelog.md` |
-| `--title <text>` / `--outline <value>` | `doc`：镜像页标题与 frontmatter outline |
-| `--no-frontmatter` | `doc`：不写 VitePress frontmatter |
-| `--no-sync-doc` | `version`：发版后不自动同步镜像页 |
-
-行为细节：
-
-- `doc`：从根 `CHANGELOG.md` 生成文档站镜像页，剥离源 H1、拼固定页头并校验至少一个版本块；默认 `CHANGELOG.md` → `docs/changelog.md`；`version` 成功后自动执行一次（`--no-sync-doc` 关闭），失败只告警不阻断发版
-- `version`：先透传 changesets 消费变更集，再对 CHANGELOG 做语义分组归类——**条目前缀是唯一归类信号**：`类型：` 前缀归入「新增功能 / 问题修复 / …」等分组；含英文源组的块内条目按前缀纠正到正确分组；无 `###` 分组的版本块按前缀生成规范分组（默认只处理最新一块，`--history` 处理全部版本块）；无前缀条目按所属源组标题兜底、无源组时归入其他变更；清理变更集条目双前缀伪影（以 `- ` 开头的条目会被 changesets 二次加前缀为 `- - 条目` 并缩进续行，格式化时还原为顶层条目）并补发布日期；分组标题集合随版本演进，块内无法归入任何语义分组的其它分组连同标题原样附于块末、不丢弃；历史版本块默认保留当时口径、不追溯改写（加 `--history` 追溯：历史块内条目按其类型前缀归位、无前缀条目按既有组标题归位、无分组的块按前缀生成分组，组标题统一为当前语言口径，无法识别的分组连同标题原样保留、不臆造归属）；归类前后做条目数自检（归类只应搬移条目、不应减少，减少即 stderr 告警提示人工核对，相邻重复条目合并发生在自检之后不触发）；存在未归档 active 任务时软告警，变更集条目缺 `类型：` 前缀时计数软告警
-- `format`：仅对既有 CHANGELOG 做同样的语义分组归类与格式化（默认只处理 changesets 新写入块与无分组的最新版本块，加 `--history` 处理全部版本块）；变更集条目缺类型前缀时同样计数软告警
-- 类型前缀只作归类信号：归类后条目已识别的 `类型：` 前缀被剥离（`- 修复：xxx` → `- xxx`），类型由分组标题承接，避免重复；未识别的前缀（如正文里的 `说明：`）与依赖源条目 `- Updated dependencies`（续行承载包版本）原样保留；语言未声明 `groups` 时不改分组、只剥离可识别前缀
-- 其余子命令（`add`/`status`/`publish`/…）原样透传给 changesets
-- ⚠️ Node 18 与 Node 20.0–20.18 下依赖 changesets 的子命令不可用（上游 ESM-only 限制需宿主默认开启 `require(esm)`，即 Node ≥ 20.19.0、22 线 ≥ 22.12.0），`format` 等纯格式化不受影响
-
-## init（1.7.0 新增）
-
-```bash
-toolkit init
-toolkit init --dir ../my-tasks-repo   # 任务区放项目外（独立仓库管理）
-toolkit init --no-hooks               # 不写入 package.json 的 prepare 刷新钩子
-```
-
-在当前目录初始化任务区，逐项如实报告实际动作（新建 / 更新 / 保持 / 追加 / 跳过）：
-
-- 创建 `<任务目录>/active/{YYYYMM}/`、`<任务目录>/archive/` 目录骨架（默认 `.tasks`，优先级与 `tasks` 同口径：CLI 参数 > 配置 `tasks.dir` > 默认 `.tasks`）
-- 创建规范载体骨架 `<任务目录>/conventions/index.md`（v3 三节：端清单 / 索引 / 用法说明）与 `<任务目录>/conventions/history.md`（语义演进记录）；已存在 `index.md` 时保持不动（v1 / v2 形态另给升级提示）；存在待迁移的旧单文件 `<任务目录>/conventions.md` 时不建空骨架
-- 在**已存在的**项目级技能目录各生成一份规范入口壳（如 `.agents/skills/toolkit-conventions/SKILL.md`，目录名与 frontmatter `name` 同名；只作入口、不承载条文）——多 agent 混用团队多个候选目录并存时每处各写一份、互不覆盖，一个都不存在时回落 `.agents/skills/`，不为未安装的 agent 凭空建目录；壳已存在时按标记版本分流——标记不旧于当前版本保持不变、落后或无标记就地更新为当前版本（报告为「更新」）；并在**已存在的** `AGENTS.md` 内幂等追加规范入口指针块（`AGENTS.md` 不存在时不新建，仅在报告中提示规范仍可经全局技能触达）
-- 向 `.gitignore` 追加忽略片段（含 `.archive.lock` 与 `.toolkitrc.local.json`，片段头另附一行出口指引注释：不想改团队 `.gitignore` 者可自行把忽略行写进 `.git/info/exclude`）；**逐行幂等**——「是否已覆盖」用 `git check-ignore` **真实判定**，已有该行则跳过、手删单行后重跑只补该行（判定涵盖本仓库与上层 `.gitignore`、`.git/info/exclude` 等全部来源，能识破 `*.lock`、`*.local.json` 等用户手写的通配写法）；非 git 仓库或 git 不可用时退回等价写法白名单（精确行 `/.toolkitrc.local.json`——带前导 `/` 与不带两种写法——及通配 `*.local.json`、`.toolkitrc.*`；白名单外一律追加，宁冗余不误跳）
-- 向 `.prettierignore` 幂等追加任务区排除行（`<任务目录>/`），让格式化器不碰任务区——任务区表格一旦进入 prettier 格式化范围就会被填充出列对齐空白（Markdown 预览不显示、源码可读性变差、token 成本上升）；**触发条件缺一不写**：任务区落在仓库内且非仓库根、非本包源仓库、宿主疑似使用 prettier（已存在 `.prettierignore`、存在 prettier 配置文件、或 `package.json` 声明 prettier 依赖 / 含 `prettier` 键）；已有等价排除行（如 `/.tasks`）保持不动（报告为「保持」），未见 prettier 迹象时跳过并提示「项目启用 prettier 后重跑 `toolkit init` 会自动补上该排除行」；prettier 的 `--ignore-path` 默认同时读 `.gitignore` 与 `.prettierignore`，故新建此文件不影响既有忽略语义
-- 向 `package.json` 幂等补一行 `prepare` 钩子（值为 `toolkit skills install --scope project`），供依赖升级后自动刷新项目面技能；仅在本地依赖含 `@fxri/toolkit`（`dependencies` / `devDependencies` / `peerDependencies` / `optionalDependencies` 任一）时写入，采用最小文本插入保留原有排版；已有等价钩子（裸 `toolkit skills install` 亦可）保持不变、已有非等价 `prepare` 跳过并提示不覆盖、未声明本地依赖或 `package.json` 缺失 / 解析失败均跳过并说明、本包源仓库跳过；`--no-hooks` 关闭写入
-- ⚠️ 发布型包误打包检查**独立于钩子**：`package.json` 未标 `private` 且无 `files` 白名单时，报告附提示（与钩子是否写入无关，`--no-hooks`、未声明本地依赖、非等价 `prepare` 等情形同样提示）——`npm` 无 `.npmignore` 时退回 `.gitignore` 决定打包面，而项目面技能产物（技能真源 `.agents/skills/`、各候选目录下的入口薄壳、归属账 `.toolkit/`）与内置任务区 `.tasks/`（任务区外置时不计入）都不在忽略列表、会被打进包；发布型包请把它们加入 `files` 白名单或 `.npmignore`（`init` 只提示、不代改）
-- 输出后续步骤与文档站链接；检测到尚未安装全局技能时，后续步骤中补一行 `toolkit skills install` 指引（规范触达第一层，不依赖项目内文件；已安装则不重复提示）
-
-⚠️ 入口壳写入项目级技能目录（`.agents/skills/`、`.trae/skills/` 等）属**侵入性行为**，`init` 在报告中逐项列出实际写入的路径与动作（存在几个候选目录就各写一份）；落点被 `.gitignore` 覆盖时报告给出否定规则提示（**不代改 `.gitignore`**）。入口壳可安全删除，重跑 `init` 会补回；标记落后于当前版本时重跑 `init` 会就地更新为当前版本。
-
-⚠️ 重复执行安全：业务文件已存在一律保持不覆盖、不报错（逐项报告为「保持」）；唯一例外是**入口壳按标记版本分流**——标记不旧于当前版本时保持不变，标记落后或无标记时就地更新为当前版本（报告为「更新」）。
-
-⚠️ 任务区放项目外（独立文档仓库）：配置 `"tasks": { "dir": "../my-tasks-repo" }` 后，`init` 与全部 `tasks` 子命令都作用于该目录，一次配置永久生效；`.gitignore` 片段仍写入当前项目。
-
-## skills（1.9.0 新增）
-
-```bash
-toolkit skills install              # 安装包内技能（缺省按现场判定作用域：仓库内写项目面，否则写全局目录）
-toolkit skills install --scope project # 仅项目面：仓库内唯一真源副本 + 各候选目录薄壳
-toolkit skills install --scope global  # 仅全局面：软链 / 副本到各 agent 全局技能目录
-toolkit skills install --scope all     # 项目面 + 全局面都执行
-toolkit skills install --skills fxri-plan-to-task,fxri-text-encoding # 只装指定技能（skills 模式下 core 恒装，逗号分隔）
-toolkit skills install --all        # 安装全部技能（含可选技能）
-toolkit skills install --no-optional # 只装 core 技能
-toolkit skills install --yes        # 接受已保存的技能与目标选择，不进入交互（首次按模式默认：skills 装 core、package 零装）
-toolkit skills install --agent claude-code,canonical # 只写指定 agent（逗号分隔；canonical 为主目标）
-toolkit skills install --all-agents # 写入全部已检测的 agent
-toolkit skills install --no-save-agents # 目标选择只对本次生效，不写回配置
-toolkit skills install --prune      # 清理未选择且内容与本包真源一致的旧产物
-toolkit skills install --mode package # 纯包管理器模式：core 也可不装，允许零选
-toolkit skills install --no-skills  # 仅本次零装，不改模式与已保存选择
-toolkit skills install --copy       # 强制副本形式（仅全局面生效；项目面真源恒为副本、薄壳非副本，忽略并告警）
-toolkit skills install --dry-run    # 预演：只预览将执行的动作，不写文件
-toolkit skills install --force      # 覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
-toolkit skills install --dir <path> # 额外目标目录（可多次指定；全局面兜底内置表未收录的 agent，项目面须落在仓库内）
-toolkit skills install --from <path|url> # 临时外部来源（本地目录或 Git 地址；副本写入，只写本次，不登记配置；可重复）
-toolkit skills install --from https://github.com/fxri-net/playbook#vX.Y.Z --save play # 远程永久来源（标签以来源仓 Releases 为准）
-toolkit skills remove --source play # 只清理指定外部来源的登记与产物
-toolkit skills sources               # 列出外部来源、版本与生效的更新提示频率（内置源不在列表内）
-toolkit skills sources notify play daily # 设置单个来源的提示频率（--scope global|project）
-toolkit skills sources refresh       # 刷新全部外部来源缓存与版本（--dry-run 列出将刷新来源与当前版本，不联网）
-toolkit skills sources remove play --prune # 注销来源登记并清理其产物、状态与提示配置
-toolkit skills bump fxri-plan-to-task patch # 递增技能版本（frontmatter 与正文首部两处同源改写）
-toolkit skills bump --all --dry-run      # 预演批量递增全部技能，只打印 from → to
-toolkit skills bump --all minor --yes    # 批量抬 minor（非交互环境须显式 --yes）
-toolkit skills bump fxri-plan-review --set 2.0.0 # 直接设定版本（与递增类型互斥）
-toolkit skills install --format json # JSON 输出：dryRun、scope 与 global / project 各自的安装报告
-toolkit skills status               # 查看技能现场状态与包内技能真源版本（缺省按现场判定作用域）
-toolkit skills status --scope all   # 项目面与全局面都体检
-toolkit skills status --format json # JSON 输出：scope、global / project 各自的现场报告
-toolkit skills remove               # 卸载本包安装的技能产物（缺省按现场判定作用域；目标目录清空后一并回收）
-toolkit skills remove --skills fxri-text-encoding # 只卸载指定技能的选择与产物（逗号分隔）
-toolkit skills remove --scope all   # 项目面与全局面都卸载
-toolkit skills remove --dry-run     # 卸载预演（只预览将移除的条目）
-toolkit skills remove --format json # JSON 输出：dryRun、scope 与 global / project 各自的卸载报告
-toolkit skills path                 # 输出包根路径（内含 skills/）
-toolkit skills path --format json   # JSON 输出：包根、技能源目录、技能清单
-```
-
-裸 `toolkit skills` 打印本域帮助（列出全部子命令）。
-
-| 子命令 | 行为 |
-| --- | --- |
-| `install` | 以包内 `skills/` 与 `--from` 外部来源为真源分发（见下方「外部来源」）；只安装**本次选择集**内的技能（选择规则见下方「技能选择」）；**全局面**逐技能幂等——指向正确跳过（含锚在 pnpm 稳定入口、内容与真源一致的异地软链）、指向其他版本（内容与真源不一致）或悬空重建、同名实体目录 / 普通文件默认跳过（`--force` 覆盖）；**落点形态沿用既有登记**——本包以副本形式登记过的技能，裸 `install` 与 `--force` 都保持副本（`--force` 只解除冲突判定，不把副本翻回软链），未登记的同名实体目录被 `--force` 接管时才按默认形态重建为软链；未安装的 agent 只报告、不凭空造目录；`--prune` 只清理未选择（技能或目标）、本包登记且内容与真源一致的旧产物；项目面按「作用域」节的副本 + 薄壳口径写入；`--format json` 输出机器可读安装报告到 stdout（含 `dryRun` / `scope` 标记与 `selection` / `targetSelection`） |
-| `status` | 文本模式先打印版本检查块（CLI 当前 / 最新、registry 主机与来源、提示频率；`enabled=false` 时显示「版本检查已关闭」），再打印技能真源版本清单与当前选择集，最后逐目标报告状态：软链正常 / 软链悬空 / 软链指向其他版本 / 副本已同步 / 副本已漂移（本包登记副本与真源不一致）/ 缺失（仅指已选择但缺失）/ 同名冲突（同名非本包产物）/ 未选择但已安装（单列提示，不计入问题）；**健康目标折叠为一行**（`<目标>：<目录>　N 项正常`），仅含问题项或未选择产物的目标逐条展开，末尾汇总需处理条目并按型给出指引：缺失 / 悬空 / 指向其他版本 / 副本漂移用 `install` 补齐，同名冲突用 `install --force` 覆盖，未选择但已安装的产物需要清理时用 `install --prune`；**目标纳入口径**：主目标恒报告，内置表内的 agent 与自定义目标仅在已有本包记录或目录非空时展开（卸载后的空壳目录不占版面），状态文件登记但本次未解析到的目标（如 `--dir` 安装后不再传参、agent 目录已被移除）也补报、不静默丢弃；其中 Codex / Pi 的升级前历史落点（`~/.codex/skills`、`~/.pi/agent/skills`）在状态文件有登记且目录仍在时，标注为「历史落点」并在报告末尾单列「历史落点残留」提示——只提示不自动删除，指引用 `remove` 清理；本机已安装且经 canonical 共读的 agent（Cline / Codex / Dexto / Kimi Code CLI / Loaf / Pi / Sarvam Code / Warp / Zed / DeepSeek Harness，按探测路径判定）另单列一行说明其读取主目标、无需单独写入；存在软链落点时报告末尾另提示「写入将穿透至技能真源目录，改内容请改真源」；项目面按「作用域」节体检；`--format json` 输出机器可读报告到 stdout（含 `scope`、`versionStatus`、`selection` 与 `targetSelection`，两面报告含 `skillVersions`，全局面另含 `canonicalReaders` 与 `legacyTargets`，折叠不丢信息、替代人读版，无末尾汇总行）；`versionStatus` 含 `cliVersion`、`latestVersion`、`updateAvailable`、`registry: { value, source }`、`channels` 与 `sources`（来源名 / 版本 / 是否临时 / 生效频率 / 频率来源）；两面报告另含 `skillsOutdated`（内置技能落后清单） |
-| `remove` | **全局面**先清选择 / 来源配置、再清产物、最后重写状态：只清理状态文件 `~/.agents/.toolkit-skills.json` 记载的本包产物：链接（含悬空）摘除、副本内容与真源一致才删，其余交人工确认；清理后目标目录若已空则**一并回收**（`--dry-run` 只预览、不动现场；目录非空或不可读时不回收）；清理干净后删除状态文件；`--skills` 只清指定技能的选择与产物，省略时清空全部；`--source` 只清指定外部来源的登记与产物；项目面按「作用域」节清理归属账记载的条目；`--format json` 输出机器可读卸载报告到 stdout（含各目标 `dirReclaimed` 回收标记与 `dryRun` / `scope` 标记） |
-| `sources` | 列出已登记永久来源与状态中的临时来源（来源名 / 根目录 / 版本 / 生效提示频率 / 技能清单，临时来源标注「临时」）；`sources notify <name> <always\|daily\|weekly\|off>` 写单个来源的提示频率（默认全局层，`--scope project` 写项目层并向上找 git 根，非 git 仓库报错）；`sources refresh [name]` 刷新来源缓存与版本，只更新元数据、不自动安装，`--dry-run` 只列出将刷新的来源；`sources remove <name>` 注销登记（产物与状态保留），加 `--prune` 一并清理产物、状态与提示配置；`--format json` 输出机器可读清单与刷新报告 |
-| `path` | 输出包根（内含 `skills/`），便于委托上游安装器安装到内置表未收录的 agent；`--format json` 输出包根、技能源目录与技能清单 |
-
-`install` / `status` / `remove` / `sources` / `path` 各子命令的 `--format json` 输出统一携带 `schemaVersion: 1` 锚点（与 `tasks --export` 同口径）；`install` / `status` / `remove` 的输出另含 `scope`（本次实际作用域）与 `dryRun`（供消费方区分预演与实跑），报告主体按 `global` / `project` 两个字段分面承载（未执行的面为 `null`）；`install` 与 `status` 报告含 `mode`（当前安装模式）、`selection`（技能选择集）与 `targetSelection`（目标选择集），`status` 两面报告另含 `skillVersions`（各技能真源版本，用于与会话上下文中已加载的技能内容对照）。
-
-### 技能选择
-
-技能按 `SKILL.md` frontmatter 的 `metadata.tier` 分层：`skills` 模式（默认）`core` 必装、不可取消，`optional` 安装时可选；`package` 模式（纯包管理器）全部技能均可选、允许零选择。缺省按 `optional` 处理。当前 `fxri-plan-to-task`、`fxri-session-recap`、`fxri-plan-review` 为 `core`，`fxri-release-changelog`、`fxri-text-encoding` 为 `optional`。
-
-模式优先级：`--mode package|skills` 先切换并持久化，再按新模式重建基线（`package` 为空、`skills` 为 `core`），不沿用旧模式的保存选择；`--no-skills` 仅本次零装，不改模式与已保存选择，且与 `--skills` / `--all` / `--no-optional` / `--mode` 互斥。
-
-选择优先级（从高到低）：
-
-1. `--skills <names>`：只装指定技能（逗号分隔），`skills` 模式下 `core` 技能恒装；包内不存在的名称告警后剔除，全部非法时报错退出（退出码 1）
-2. `--all`：安装全部技能；`--no-optional`：只装 `core` 技能
-3. TTY 交互：未传上述参数且未传 `--yes` 时，以方向键多选列出技能；`skills` 模式下 `core` 已选中且不可取消，`package` 模式下全部默认不选、`core` 可取消；`Enter` 确认、`Ctrl+C` 取消（取消时不写任何文件，退出码 130）
-4. 已保存选择：非 TTY、传入 `--yes` 或交互取消后无写入时，按 `~/.toolkitrc.json` 的 `skillsInstall.selection` / 项目层 `.toolkitrc.json` 的 `projectSkills.selection` 回显
-5. 首次（无保存选择）：`skills` 模式只装 `core` 技能；`package` 模式零装
-
-选择集在安装成功后写回对应层配置（`--dry-run` 不写），项目面与全局面各自独立。收窄选择后，未被选择但仍有产物的技能在 `status` 中单列为「未选择但已安装」，不计入问题；需要清理时加 `--prune` 重跑 `install`，只删除本包登记且内容与真源一致的条目。
-
-`SKILL.md` frontmatter `metadata.requires` 声明的依赖会自动补全：选择带依赖的技能时一并安装其依赖（可递归）；依赖缺失时告警并跳过该依赖，不阻断其余技能。
-
-### 目标选择
-
-技能选择之后是**目标选择**：全局面选 agent 目录（`canonical` 主目标 + 各已检测 agent），项目面选已存在的候选薄壳目录。
-
-- **优先级**：`--all-agents` / `--agent <names>` 显式指定 > TTY 方向键多选 > 已保存的 `skillsInstall.targets` / `projectSkills.targets` > 首次全部可用目标
-- **交互**：按「共读（canonical）→ agent → 自定义目录」分组展示；本机未检测到的已保存 agent 置灰保留（不凭空创建目录）；只有一个可用目标时跳过选择；选择完成后打印技能 + 目标汇总并二次确认，确认前 `Ctrl+C` 不写任何文件
-- **长期选择**：交互或 `--agent` / `--all-agents` 的结果写回配置；`--no-save-agents` 只影响本次；`--dir` 始终一次性，不写回长期选择
-- **取消目标**：已安装产物默认保留，`status` 将这些目标标为「未选择」并把其产物单列「未选择但已安装」，不计入问题；加 `--prune` 重跑 `install` 才清理本包登记且内容一致的产物，第三方 / 本地改动过的产物永不自动删除
-- **项目面**：`prepare` 等非交互场景按已保存目录刷新，不新增未选择目录；保存的目录已不存在时告警跳过，补齐目录后重跑即可
-
-### 外部来源
-
-`--from <path|url>` 把符合技能源格式的本地目录或 Git 远程地址纳入同一套 tier / 选择 / 状态 / prune 管理。远程地址支持 `https://`、`ssh://`、`git@`、`github:owner/repo`，可带 `#分支/标签/提交`；浅克隆到 `~/.agents/.toolkit-sources/` 缓存后复用同一套解析，缓存刷新失败时回落到旧缓存并告警。`--save [name]` 将来源登记为永久来源（写入全局层 `skillsInstall.sources`），本地记 `root`、远程记 `url` + `ref`；省略名字时按清单 `name`、仓库名或目录名派生。
-
-**来源格式**（按优先级识别）：
-
-1. `skills.json` 清单：`{ "formatVersion": 1, "name"?: "...", "version"?: "...", "skills": ["skills/a", { "path": "skills/b", "name": "b" }] }`；`formatVersion` 非 `1` 直接报错，不静默回退目录扫描
-2. 根 `SKILL.md`：单技能来源，名称取 frontmatter `name`，缺失时取目录名
-3. `<root>/skills/*/SKILL.md`：多技能来源
-
-**规则**：
-
-- 技能目录须落在来源根之内；清单路径或软链解析后越界即拒绝
-- 同一来源内技能名重复、跨来源同名均直接报错，不静默覆盖
-- 临时来源（`--from` 不带 `--save`）**只写副本**、只登记状态、不写选择集与来源配置；永久来源默认**软链到技能真源目录**（远程来源指向本地缓存），链接失败降级副本；`--copy` 可强制副本
-- `--save` 只能与单个 `--from` 搭配；永久来源失效时安装告警跳过，可用 `toolkit skills sources remove <name>` 注销
-- `status` 按来源列出 `sources`（名称 / 根目录或远程地址与 ref / 版本 / 临时标记），`status` 与 `remove` 均按来源精确处理；远程来源项目面状态只记地址与 ref、不写本机缓存路径；`skills sources` 查看来源清单，`skills sources remove <name> --prune` 注销并清理产物
-- 安装 / 卸载期间持有操作锁（全局 `~/.agents/.toolkit-skills.lock`、项目 `<仓库根>/.toolkit/skills.lock`，记录 pid / host / startedAt，5 分钟过期可接管），避免多进程同时改写；`--dry-run` 不取锁
-
-### 作用域
-
-`install` / `status` / `remove` 三子命令均支持 `--scope <project|global|all>`，缺省按**现场自动判定**：
-
-- **project（项目面）**：仅在**仓库内**生效。真源固定为仓库根下 `.agents/skills/`（完整副本一份、随 git 入库），其余**已存在**的项目级技能目录（`.trae/skills/`、`.claude/skills/`、`agent/skills/`（eve）、`.augment/skills/`、`.codebuddy/skills/`、`.continue/skills/`、`.crush/skills/`、`.devin/skills/`、`.goose/skills/`、`.grok/skills/`、`.hermes/skills/`、`.iflow/skills/`、`.junie/skills/`、`.kiro/skills/`、`.openhands/skills/`、`.qwen/skills/`、`.roo/skills/`、`.windsurf/skills/`；`.cursor/skills/`、`.trae-cn/skills/` 是这两家 agent 的全局目录，不在项目级候选内）各放**每个技能一个薄壳** `SKILL.md`（`description` 派生自真源以保持触发面一致、正文只指向真源路径、带本包标记）；不写到仓库之外的目录（`--dir` 落在仓库外的取值会告警剔除、不静默丢弃），不支持 `--copy`（真源恒为副本、薄壳非副本，传入时告警忽略）；未命中的候选目录只报告、不凭空建
-- **global（全局面）**：写到各 agent 的**全局**技能目录（见下方「全局面分发目标三层」）
-- **all**：两面都执行（报告各自成段）
-
-⚠️ **自动判定判据**：自当前工作目录逐级向上，任一层含 `package.json` 且 CLI 包根真实落在其下 → `project`，否则 `global`（monorepo 子目录执行亦能命中项目面）；**本包源仓库自身视为 `global`**（维护者靠全局技能自举，不把自身 `skills/` 复制进自身仓库）。传入非法取值（非 `project` / `global` / `all`）时报错退出（退出码 1），不静默回落默认值。
-
-⚠️ **项目面归属账**：产物登记在 `<仓库根>/.toolkit/state.json`（真源副本与各薄壳目录、逐技能的条目名称 / 版本 / 形态，均仓库根相对、随 git 分发），只清理账内条目；卸载时真源副本内容与包内真源一致才删、薄壳带本包标记才删，其余交人工确认（`remove` 只清账、不碰账外同名产物）。
-
-⚠️ **项目面逐技能状态**（`status` 口径）：`已就绪` / `已漂移`（内容与真源或期望不一致）/ `同名冲突`（非本包产物）/ `缺失`（仅指已选择但缺失）/ `未选择但已安装`（单列提示，不计入问题）；健康目录折叠为一行、仅异常项逐条展开，漂移与缺失用 `install --scope project` 补齐、同名冲突加 `--force` 覆盖、未选择产物需要清理时加 `--prune`。
-
-⚠️ **clone 即用**：项目面真源副本与归属账随 git 入库，队友 clone 后无需重跑 `skills install` 即开箱可用；`toolkit init` 会在本地依赖含 `@fxri/toolkit` 时向 `package.json` 补 `prepare` 钩子（`toolkit skills install --scope project`），依赖升级后自动刷新项目面（详见 [init](#init-1-7-0-新增)）。
-
-**全局面分发目标三层**（按顺序去重）：
-
-1. 主目标 `~/.agents/skills/`（上游 canonical 目录，多家 agent 共读：Cline、Codex、Dexto、Kimi Code CLI、Loaf、Pi、Sarvam Code、Warp、Zed、DeepSeek Harness）
-2. 内置表中「已安装」的各 agent 全局技能目录（判据：agent 配置目录存在或探测路径命中）
-3. `--dir <path>` 指定的兜底目录
-
-上述共读 agent 的全局技能目录就是主目标本身，写入一次即全部覆盖、不需要重复分发；`status` 把它们单列为「经 canonical 共读的 agent」（按探测路径判定是否安装），不进「未安装的 agent」提示。DeepSeek Harness 的项目级技能目录 `<仓库根>/.agents/skills/` 与项目面真源同路径，因此也无需向 `~/.dsh/skills/` 额外写入。
-
-⚠️ **`--dir` 自定义目录**：只在当次安装时写入并登记，后续技能增删不会自动同步到该目录——技能变化后需带相同 `--dir` 重跑 `toolkit skills install`。
-
-各 agent 目录随之跟随 home 类环境变量：`XDG_CONFIG_HOME`（amp / devin / goose / opencode / replit / universal）、`AUTOHAND_HOME`、`CLAUDE_CONFIG_DIR`、`GROK_HOME`、`HERMES_HOME`、`VIBE_HOME` 命中时替换默认的 `~` 基准（空值或非绝对路径回落默认，与 XDG 规范一致），存在性判据同步跟随；`SARVAM_HOME`、`CODEX_HOME`、`APPDATA`、`FLATPAK_XDG_CONFIG_HOME` 仅参与探测——Codex / Pi 的全局目录就是主目标，`CODEX_HOME` 只用于判断是否安装，不改变写入落点。
-
-**全局面行为细节**：
-
-- 产物形态默认**软链**（Windows 用 `junction`，免管理员、免开发者模式）；软链锚在 pnpm 稳定入口（`<node_modules>/@fxri/toolkit`，升级时由 pnpm 重写），不随版本段失效；链接创建失败**自动降级副本**并在报告里标注 ⚠️，不静默跳过
-- 卸载链接时**只摘链、不碰真源**（包内原始文件完好）
-- 软链落点是**写入穿透**形态：在落点目录里编辑文件等于编辑技能真源，且该真源随包升级整体换新——`status` 在存在软链落点时于报告末尾提示「写入将穿透至技能真源目录，改内容请改真源」，避免用户误在落点上编辑
-- 配置 `skills.autoLink`（默认 `true`）：命令启动时对状态文件记载的**链接**做补链与修链；只重建悬空或**指向其他版本（内容与真源不一致）**的链接——内容与真源一致的异地软链（如锚在别的安装）不视为错误、不重指；现场被替换为同名实体目录 / 普通文件时默认清理重建为软链，置 `skills.autoLinkReplaceForeign: false` 可改为一律不动（**不含首次安装、不含副本升级**；`CI` 环境自动跳过。见[配置参考 · skills](./config#skills-技能分发-1-9-0-新增)）
-- 状态文件为**用户级**（`~/.agents/.toolkit-skills.json`），与上游安装器的 `skills-lock.json` 相互独立；结构为 `format`（`fxri.toolkit.skills-state`）+ `schemaVersion`（`1`）+ `sources`（来源 → 目标 → 逐技能条目），升级前的旧结构在首次读取时一次性导入并备份为 `.bak`
-
-## conventions（1.11.0 新增）
-
-```bash
-toolkit conventions upgrade               # 把 v1 / v2 规范载体升级为 v3（幂等，先判后写）
-toolkit conventions upgrade --dry-run     # 预演：只预览将执行的动作，不写文件
-toolkit conventions upgrade --format json # JSON 输出：ID 映射、内部引用改写、结构动作清单
-toolkit conventions status                # 只读体检：形态 / 索引 / 入口层三块（只报不改，体检不阻断、退出码恒 0；仅 --format 传非法值时按参数错误退出）
-toolkit conventions status --format json  # JSON 输出：形态、条目数、入口壳现场与逐条体检项
-toolkit conventions status --dir ./repo/.tasks # 跨仓体检：入口壳与检测入口按该目录所属仓库扫描（父目录含 package.json / .git 即视为仓库根；tasks check --dir 同口径）
-toolkit conventions format                # 归一任务区表格形态：把列对齐填充压回紧凑形态（幂等；兜底 prettier 等格式化器造成的填充）
-toolkit conventions format --dry-run      # 预演：只报告将改动的文件与行数，不写文件
-toolkit conventions format --format json  # JSON 输出：status、目录、文件数、变更文件数与逐文件变更行号
-```
-
-裸 `toolkit conventions` 打印本域帮助（列出 3 个子命令）。
-
-| 子命令 | 行为 |
-| --- | --- |
-| `upgrade` | 把 v1 / v2 载体升为 **v3 三分区**：v1 输入先升 v2 再升 v3（首行补形态标记、标题归一、「演进记录」节抽为独立 `history.md`、索引表首列 `#` → `ID`、内部引用改写为稳定 ID `C-<n>`）；v2 → v3 再删索引表「状态」「确立来源任务」两列、`history.md` 表头首格归一为稳定 ID `ID`（与索引表首列同归一）、把状态为 `已废弃` 的行迁入按需创建的 `retired.md`（并从 Z1 索引删除、同步物理删分册内对应小节）、`history.md` 首列补 `C-<n>` 与来源列补录（首列已为行内代码包裹的 `C-<n>` 不误报）、`index.md` 表外自由文本残留 v2 措辞（「确立来源任务」「状态改为已废弃」等）复核、首行标记升 v3。以上无法机械判定的项列为人工复核项 `reviews`（只报不改）。**幂等**——已是 v3 返回 `already-v3`、不改动；未初始化（缺 `index.md`）或形态异常（标记 / `history.md` / 索引表首列三者不一致）在**写盘前**拒绝执行并给非 0 退出码，不写任何文件。`--dry-run` 只报告不改动；`--format json` 输出 `status`、`idMap`、`refs`、`changes`、`reviews`（ID 映射只随报告输出、不落盘） |
-| `status` | 只读体检、只报不修（无 `--fix`）：**形态**（v1 / v2 提示可升级、形态异常、旧单文件与目录并存、**表格存在列对齐填充可执行 `toolkit conventions format` 归一**、v3 载体索引表列集合须恰为 `ID | 规则 | 当前语义 | 归属 | 单一事实源` 五列或 `history.md` / `retired.md` 表头须整行逐格一致（列名与次序偏离时提示人工归一）、载体各文件表头行与紧随分隔行列数须相等（跳过 fenced code block）、v3 载体 `history.md` 数据行首列非稳定 ID 时提示人工补录（只报不改）、v3 载体分册（`index.md` 除外）内残留行首「确立来源」子项时提示人工归一（来源由索引行与 `history.md` 承载，跳过 fenced code block、只报不改）、v3 载体 `history.md` 数据行「修订内容」列含禁用语料（自指套话如「（本次起入表）」「新立条目：」，或重复索引列的条文去向如「条文全文落 X」）时提示人工归一（只报不改））、**索引**（ID 形态与重复、归属不在端清单内、分册小节在索引表无对应条目、分类标签分册识别、`common` 条目语义含端限定语（仅 / 只 / 专属 / 适用于）并提及端名时的下沉提示（大小写不敏感）、`retired.md` 存在时表头校验）、**入口层**（壳标记与当前 toolkit 不一致、壳被 gitignore 覆盖，多落点并存时各合并为一条并内联全部落点路径；标记不一致可重跑 `toolkit init` 就地更新为当前版本；无壳仅提示，本包源仓库除外——其不生成入口壳）三块，逐条按 `[形态]` / `[索引]` / `[入口层]` 前缀输出；一句话结论为 `载体 <形态>，<n> 条规范，入口壳 <m> 个，无待处理项 / <k> 项待处理`；未初始化只回单条结论。**体检不阻断、退出码恒 0**（异常不阻断，便于当 CI 信息源；仅 `--format` 传非法值时按参数错误报错退出）；另输出 `checkCoverage`（`covered` / `uncovered` / `unknownIds`），一句话结论追加「其中 N 条无检测入口」 |
-| `format` | 归一任务区表格形态：把被格式化器填充的列对齐空白压回紧凑形态（单元格间单空格），分隔行按列宽补长的横线一并压为 `---`（保留对齐标记）。范围＝任务目录下**全部** `.md`（载体三件 + active + archive），**跳过 fenced code block**（```` ``` ```` 与 `~~~` 块内的表格样例原样保留）；只动单元格间距、分隔行横线长度与列对齐填充，单元格文本、分隔行对齐标记（`:---` / `---:` / `:---:`）与行尾符（CRLF/LF）一律保留。**幂等**——已是紧凑形态返回 `already-compact`、不改动；未初始化（任务目录不存在）在**写盘前**报错并以非 0 退出码终止。`--dry-run` 只报告不改动；`--format json` 输出 `status`、`tasksDir`、`files`、`changedFiles`、`changedLines`、`changes`（逐文件变更行号） |
-
-⚠️ `upgrade` 只做机械结构升级，不改条文语义；升级过程可中断、重复执行安全。
-
-⚠️ `format` 只动空白层与分隔行横线长度、不改语义（紧凑是规范形态、填充是偏离）；`tasks check` 与 `conventions status` 会对填充态给软告警、指向本命令，`tasks normalize --fix` 不代改空白层。
-
-载体结构（v1 / v2 / v3 形态、三分区、稳定 ID、`history.md` / `retired.md`）与读写细则见[完整攻略 · conventions/：规范沉淀地](./guide#conventions-规范沉淀地)。
-
-## config（1.11.2 新增）
-
-```bash
-toolkit config status                    # 只读体检：三层命中 / 来源层 / 环境变量层（退出码恒 0）
-toolkit config status --format json      # JSON 输出：层级明细、展示键来源、环境变量层、待处理项
-toolkit config status --cwd <path>       # 指定向上查找的起始目录（缺省当前工作目录）
-```
-
-裸 `toolkit config` 打印本域帮助（列出 1 个子命令）。
-
-| 子命令 | 行为 |
-| --- | --- |
-| `status` | 只读体检、只报不改（无 `--fix`）：依次输出**一句话结论** + **三层命中现场**（每层给出命中文件绝对路径；未命中为「无」。本地层另标 git 忽略态：已忽略 / 未忽略 / 已跟踪（需 `git rm --cached`）/ 不适用（非 git 仓库）/ 不适用（位于仓库工作树之外）/ 忽略判定不可用）+ **展示键来源层**（`tasks.dir` / `redact.enabled` / `updateCheck.enabled` / `check.warnings` 四键按**叶子键**标注来源层，三层均未显式写出即「默认值」）+ **环境变量层**（`FX_REDACT` / `FX_NO_UPDATE_CHECK` / `FX_CHECK_WARN` 命中的键名，只列来源不列值；**命中 = 已设置且非空，不代表开启**——`FX_REDACT=0` / `FX_CHECK_WARN=0` 会被列出但实际关闭对应能力，`FX_NO_UPDATE_CHECK` 设真值反而关闭更新检查，方向差异需按键名判断）+ **能力旁路**（`CI` 等非配置键覆盖，单列不混入覆盖列）+ **其余已配置段**（除展示键外仍有内容的段名，按「全局层 / 项目层 / 本地层」分组、只列段名不列值）+ **待处理项**（`⚠️` 记 warn、`·` 记 info；含配置降级、本地层忽略态、home 目录下本地配置文件不参与查找的提示、未知段名提示）。**一律不打印配置值**（`redact` 段含个人脱敏规则、`skills` 段含本机路径，落到终端 / CI 日志即外泄）。体检不阻断、**退出码恒 0**（仅 `--format` 非法与 `--cwd` 非法时按参数错误报错退出；配置文件非法 JSON / 顶层非对象经降级后退出码仍为 0，但计入 `warnings` 计数） |
-
-| 选项 | 说明 |
-| --- | --- |
-| `--format <format>` | `--format json` 输出机器可读报告到 stdout（诊断走 stderr）；非法值按参数错误报错退出 |
-| `--cwd <path>` | 向上查找的起始目录（缺省当前工作目录）；相对路径先 resolve 为绝对；指向不存在 / 非目录的路径时报错退出、不回落当前目录 |
-
-报告（`--format json`）顶层为 `summary`（一句话结论）、`cwd`（查找起点）、`levels[]`（三层明细：`file` / `present` / `ignored` / 段名）、`displayKeys[]`（展示键 → 来源层）、`env[]` / `bypass[]`（环境变量命中，只列键名）、`items[]`（`level` / `scope` / `message`）、`warnings`（计数）。⚠️ **仅 `summary` / `items[]` / `warnings` 为稳定契约**（只增不减，与 `conventions status` 公共字段同形）；其余字段（`cwd` / `levels[]` / `displayKeys[]` / `env[]` / `bypass[]`）属实现细节，可能随版本变更。
-
-⚠️ **`summary` 为固定三态文案**（层名一律用「全局层 / 项目层 / 本地层」三词，逐字一致）：命中 ≥1 层输出 `共命中 N 层：<层名、顿号分隔>`；三层全空输出 `三层均无配置文件，全部取默认值`；非 git 仓库时在主句后附 `；未检测到 git 仓库，忽略判定不适用`（旁注，不替换主句）。
-
-⚠️ **`items[].level` 只有 `warn` 与 `info` 两值**（对齐 `conventions status`，无 error 级）；`info` 不计入 `warnings` 计数，仅 `warn` 计入——CI 可据 `warnings` 拦错。**`items[].scope` 当前只有 `配置`（配置降级项）与 `本地层`（本地文件忽略态与 home 边界提示）两值**，文本渲染形如 `[配置]` / `[本地层]`。
-
-⚠️ **文本模式折叠 home**：层级路径与待处理项文案中内嵌的路径都把 home 前缀显示为 `~/…`（避免共享日志 / 截图泄露本机目录结构）；`--format json` 保留绝对路径供脚本定位。
-
-⚠️ **自指关系与取舍**：`tasks check` 的「本地配置文件未入库」软告警受 `check.warnings` 支配，而该开关可被本地层（那个未入库的文件本身）设成 `false` → 告警被同一个文件静音、团队无从察觉。故**不为该告警开例外**，改由 `config status` 的对应提示兜底——它**不受任何配置开关影响**（除 `--format` 非法外恒输出），`level` 为 `warn`、计入 `warnings` 计数。
-
-⚠️ **与 `conventions status` 的参数差异**：`conventions status` 按**任务目录**定位（提供 `--dir`），`config status` 面向**配置文件向上查找**（**不提供 `--dir`**，改用 `--cwd` 指定查找起点）；两者参数不可互换。
-
-⚠️ **与 `tasks check` 的起点差异**：`tasks check` 恒以**运行 cwd** 判定本地配置文件的忽略状态、**无 `--cwd`**；`config status` 可用 `--cwd` 指定起点。两者「本地配置文件是否已忽略」的判据函数共用、态分类一致，仅起点参数能力不同，不可互相替代。
-
-## docs（1.14.3 新增）
-
-```bash
-toolkit docs theme                        # 校验默认主题目录（等同 --check）
-toolkit docs theme --check                # 只校验：index.ts 全文一致、custom.css 页头与公共段一致
-toolkit docs theme --write                # 写入或刷新模板，保留 brand-start / brand-end 之间的品牌段
-toolkit docs theme --write --force        # 既有文件缺少品牌标记时也覆盖
-toolkit docs theme --dir <path>           # 指定主题目录（缺省 docs/.vitepress/theme）
-```
-
-裸 `toolkit docs` 打印本域帮助（列出 1 个子命令）。
-
-| 子命令 | 行为 |
-| --- | --- |
-| `theme` | 统一文档站主题的校验与写入。模板随包分发（`templates/docs-theme/`），`custom.css` 以 `/* fxri-docs-theme: 2.1 */` 标记版本（视觉调整升次版本、结构变更升主版本），`brand-start` 与 `brand-end` 之间为品牌与装饰变量，其后的公共视觉规则须逐字一致。`--check` 校验：`index.ts` 与模板全文一致、`custom.css` 首行版本标记一致、公共段逐字一致（报出首个差异行号）；品牌段改动不影响结果，但仍用 1.x 的 `--site-*` 令牌时会报废弃提示。`--write` 写入或刷新：保留既有品牌段并自动把 `--site-accent` / `--site-glow` / `--site-shadow` / `--site-hero-angle` 迁移为 `--fx-accent` / `--fx-accent-soft` / `--fx-shadow` / `--fx-hero-angle`，只替换页头与公共段；既有文件缺少标记行时报错，需加 `--force` 才覆盖。`--check` 与 `--write` 互斥，同时出现按参数错误退出（退出码 1） |
-
-⚠️ 公共段承载中性画布与文字令牌、`--fx-*` → `--vp-*` 映射（含行内代码与主按钮）、首页首屏氛围、hero 行宽、卡片描边与悬浮、表头底色、代码块圆角、侧边栏强调、键盘焦点与动效偏好；需要站点差异时只改品牌段里的 `--fx-accent` / `--fx-accent-strong` / `--fx-accent-soft` / `--fx-shadow` / `--fx-hero-angle`，不要把站点样式写进公共段。自定义令牌统一用 `--fx-` 前缀，`--vp-` 保留为 VitePress 契约层，不在品牌段直接改写。
-
-⚠️ 主题文件是跨仓库复制分发，`--check` 是唯一能发现漂移的入口；建议接入各仓库的聚合验收命令，未安装全局 toolkit 时自行跳过。
 
 ## 退出码
 
@@ -396,9 +56,7 @@ toolkit docs theme --dir <path>           # 指定主题目录（缺省 docs/.vi
 | `0` | 成功（含 check 通过、归档跳过等正常路径） |
 | `1` | 操作失败或校验存在 error 级问题（check 有 error、参数冲突、非法子命令、文件/目录异常等） |
 
-软告警（warn 级）不影响退出码。
-
-未知命令、未知选项、参数个数不符等解析错误统一输出 `⚠️` 开头的中文提示，并附一行 `运行 toolkit --help 查看可用命令` 指引（退出码 `1`），不再混出 commander 的英文原文。`changelog` 透传给 changesets 的英文输出不在其列——那属第三方 CLI 自身的报错通道。
+软告警（warn 级）不影响退出码。解析错误的提示格式与 `changelog` 透传差异见[退出码与解析错误](./cli/exit-codes)。
 
 ## 相关页面
 

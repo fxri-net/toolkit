@@ -322,5 +322,5 @@ pnpm exec toolkit changelog --check doc        # 只比对镜像，不写文件�
 - 环境要求 Node.js >= 20.19.0（22 线为 >= 22.12.0）
 - Node 18 与 Node 20.0–20.18 可安装，但 `changelog` 依赖 changesets 的子命令不可用（上游 `human-id` ESM-only 限制，其 `require(esm)` 需 Node ≥ 20.19.0 默认开启）
 - 升级：`pnpm add -g @fxri/toolkit`（npm 用户换成 `npm i -g @fxri/toolkit`）——默认软链模式下技能锚在 pnpm 稳定入口，随 CLI 自动更新；副本形式需重跑 `toolkit skills install`；项目面（`--scope project`）技能由 `prepare` 钩子在 `pnpm install`（含 `pnpm up @fxri/toolkit`）时自动刷新，无需手动重跑；**升级后开新会话**使 AI 侧技能与 CLI 版本对齐
-- 1.7.0 起 CLI 内置升级检查提示；1.15.0 起收敛为统一提示：命令成功时按 `updateCheck.notify`（默认 `always`）在结尾给出一句话，TTY 走 stderr、非 TTY 走 stdout，帮助 / 版本 / `skills path` / `skills status` / JSON / changelog 透传不输出文本提示（见[配置参考](./config#updatecheck-升级检查提示-1-7-0-新增)）
+- 1.7.0 起 CLI 内置升级检查提示；1.15.0 起收敛为统一提示：命令成功时按 `updateCheck.notify`（默认 `always`）在结尾给出一句话，TTY 走 stderr、非 TTY 走 stdout，帮助 / 版本 / `skills path` / `skills status` / JSON / changelog 透传不输出文本提示（见[配置参考](./config#updatecheck-升级检查提示)）
 - 不希望发起请求时设 `FX_NO_UPDATE_CHECK=1` 或配置 `updateCheck.enabled: false`；脚本需要稳定输出时用 `--format json` 或同样关闭提示

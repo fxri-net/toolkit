@@ -75,7 +75,7 @@
 2. `toolkit tasks check` 检测到该文件存在但未被忽略时**软告警**（warn 级，不阻断）；已跟踪态提示 `git rm --cached`（`git check-ignore` 对已跟踪文件恒返回「未忽略」，须先移除跟踪）；非 git 仓库、或文件位于**当前仓库工作树之外**时判定不适用、不告警
 3. `toolkit config status` 只读展示三层生效情况与来源，其「本地配置文件未纳入忽略」提示**不受任何配置开关影响**（除 `--format` 非法外恒输出）
 
-⚠️ **自指关系**：`tasks check` 的上述软告警受 `check.warnings` 支配，而该开关可被本地层（那个未入库的文件本身）设成 `false` → 告警被同一个文件静音、团队无从察觉。故不以 `tasks check` 为唯一自查通道，改由 `config status` 的对应提示兜底（它不受开关影响）。命令用法见 [CLI 参考 · config](./cli#config-1-11-2-新增)。
+⚠️ **自指关系**：`tasks check` 的上述软告警受 `check.warnings` 支配，而该开关可被本地层（那个未入库的文件本身）设成 `false` → 告警被同一个文件静音、团队无从察觉。故不以 `tasks check` 为唯一自查通道，改由 `config status` 的对应提示兜底（它不受开关影响）。命令用法见 [CLI 参考 · config](./cli/config)。
 
 ## 字段总览
 
@@ -178,7 +178,7 @@
 | `deps` | 依赖更新条目文案 |
 | `released` | 发布日期后缀（同时用于识别既有日期行） |
 
-## changelogDoc：文档站更新页镜像（1.14.1 新增）
+## changelogDoc：文档站更新页镜像
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
@@ -191,7 +191,7 @@
 
 `toolkit changelog doc` 与 `changelog version` 的自动同步共用本段；CLI 显式参数优先。非法值告警后按默认处理。
 
-## updateCheck：升级检查提示（1.7.0 新增）
+## updateCheck：升级检查提示
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
@@ -217,7 +217,7 @@ registry 解析顺序：`updateCheck.registry` 配置 > 环境变量 `npm_config
 
 CLI 每次命令执行时**同步读取本地缓存**；缓存不新鲜时派生一个**分离的后台子进程**联网查询最新版本（1 秒超时，离线 / 内网 / 超时静默失败），父进程不联网、不等待结果，**不阻塞命令、不影响退出码**。缓存位于 `{tmpdir}/.toolkit-update-check.json`：成功结果 24 小时内不重复请求、失败结果 1 小时内不重试；过期不删除上次成功版本，按 stale-while-revalidate 继续用旧值提示并后台刷新。提示只来自缓存，因此首次运行只静默刷新缓存、下一次命令才提示新版本。关闭方式二选一：环境变量 `FX_NO_UPDATE_CHECK` 设为真值（`0/false/off/no` 视为未关闭），或 `enabled: false`（关闭后不派生后台进程、不发起任何网络请求）。脚本需要稳定输出时请用 `--format json` 或设 `FX_NO_UPDATE_CHECK=1`。
 
-## skills：技能分发（1.9.0 新增）
+## skills：技能分发
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
@@ -239,7 +239,7 @@ CLI 每次命令执行时**同步读取本地缓存**；缓存不新鲜时派生
 }
 ```
 
-## skillsInstall：全局技能安装偏好（1.14.0 新增）
+## skillsInstall：全局技能安装偏好
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
@@ -263,7 +263,7 @@ CLI 每次命令执行时**同步读取本地缓存**；缓存不新鲜时派生
 
 ⚠️ **仅认全局层**：`skillsInstall` 只从全局层 `~/.toolkitrc.json` 读取；写在项目层 `.toolkitrc.json` 或本地层 `.toolkitrc.local.json` 时向 **stderr** 告警并忽略（不静默生效）。写入时只合并 `skillsInstall` 段、保留同文件其他配置段，写前备份 `.bak`、写后原子落盘并失效配置缓存。
 
-## projectSkills：项目面技能安装偏好（1.14.0 新增）
+## projectSkills：项目面技能安装偏好
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
