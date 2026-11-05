@@ -48,3 +48,9 @@ toolkit skills install --mode package --from https://github.com/fxri-net/playboo
 ## 安全提示
 
 只安装可信来源。技能正文会被 agent 读取，来源内容等同可执行指令面；远程来源应优先使用 HTTPS 或 SSH，并用版本标签锁定，避免默认分支漂移。
+
+## 相关页面
+
+- 上一篇：[新手指南](./getting-started)
+- 下一篇：[操作手册](./handbook)
+- 参考：[安装方式](./getting-started#安装) · [AI 技能包](./guide#ai-技能包-skills) · [CLI 参考 · skills](./cli/skills)

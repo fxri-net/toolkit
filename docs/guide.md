@@ -237,3 +237,9 @@ pnpm exec toolkit changelog doc                # 生成/更新文档站更新日
 - 升级：`pnpm add -g @fxri/toolkit`——默认软链模式下技能随 CLI 自动更新；副本形式需重跑 `toolkit skills install`；项目面由 `prepare` 钩子自动刷新；**升级后开新会话**使 AI 侧技能与 CLI 版本对齐
 - 1.7.0 起 CLI 内置升级检查提示；1.15.0 起收敛为统一提示：命令成功时按 `updateCheck.notify`（默认 `always`）在结尾给出一句话，TTY 走 stderr、非 TTY 走 stdout，帮助 / 版本 / JSON / 透传子命令不输出（见[配置参考](./config#updatecheck-升级检查提示)）
 - 不希望发起请求时设 `FX_NO_UPDATE_CHECK=1` 或配置 `updateCheck.enabled: false`
+
+## 相关页面
+
+- 上一篇：[操作手册](./handbook)
+- 下一篇：[CLI 参考](./cli)
+- 参考：[新手指南](./getting-started) · [配置参考](./config) · [FAQ](./faq)

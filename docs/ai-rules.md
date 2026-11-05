@@ -96,6 +96,6 @@ AI 助手的能力上限取决于给它什么规则。没有规则时：方案�
 
 ## 相关页面
 
-- [新手指南](./getting-started)：安装方式对比
-- [完整攻略 · AI 技能包](./guide#ai-技能包-skills)：技能清单与机制
-- [推荐的提交信息规则](./commit-rules)：git 提交信息格式规范（可单独采用）
+- 上一篇：[FAQ](./faq)
+- 下一篇：[提交信息规则](./commit-rules)
+- 参考：[新手指南](./getting-started) · [完整攻略 · AI 技能包](./guide#ai-技能包-skills) · [提交信息规则](./commit-rules)

@@ -138,5 +138,6 @@ redactText("联系 someone@example.com", true) // → "联系 s*****@*****.com"
 
 ## 相关页面
 
-- [CLI 参考](./cli)：命令行形态
-- [任务文件规范](./guide#任务文件规范)：`Task` 数据的文件格式约定
+- 上一篇：[退出码](./cli/exit-codes)
+- 下一篇：[配置参考](./config)
+- 参考：[CLI 参考](./cli) · [任务文件规范](./guide#任务文件规范)

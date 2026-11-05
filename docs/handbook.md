@@ -134,7 +134,6 @@ pnpm remove -g @fxri/toolkit     # 2. 再卸 CLI
 
 ## 相关页面
 
-- 30 秒快速上手 → [新手指南](./getting-started)
-- 每个能力的原理与细节 → [完整攻略](./guide)
-- 查命令参数 → [CLI 参考](./cli)
-- 遇到问题 → [FAQ](./faq)
+- 上一篇：[推荐技能包](./packages)
+- 下一篇：[完整攻略](./guide)
+- 参考：[新手指南](./getting-started) · [CLI 参考](./cli) · [FAQ](./faq)

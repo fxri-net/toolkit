@@ -102,3 +102,8 @@ pnpm exec toolkit tasks
 
 - [任务文件规范 SPEC.md](https://github.com/fxri-net/toolkit/blob/main/SPEC.md)：任务文件格式的单一事实源
 - [AI 技能包 skills/](https://github.com/fxri-net/toolkit/tree/main/skills)：零依赖 Agent Skills，可用 `toolkit skills install` 分发到各 agent 全局技能目录
+
+## 相关页面
+
+- 下一篇：[新手指南](./getting-started)
+- 参考：[推荐技能包](./packages) · [完整攻略](./guide) · [FAQ](./faq)

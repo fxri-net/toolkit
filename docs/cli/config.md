@@ -36,3 +36,9 @@ toolkit config status --cwd <path>       # 指定向上查找的起始目录（�
 ⚠️ **与 `conventions status` 的参数差异**：`conventions status` 按**任务目录**定位（提供 `--dir`），`config status` 面向**配置文件向上查找**（**不提供 `--dir`**，改用 `--cwd` 指定查找起点）；两者参数不可互换。
 
 ⚠️ **与 `tasks check` 的起点差异**：`tasks check` 恒以**运行 cwd** 判定本地配置文件的忽略状态、**无 `--cwd`**；`config status` 可用 `--cwd` 指定起点。两者「本地配置文件是否已忽略」的判据函数共用、态分类一致，仅起点参数能力不同，不可互相替代。
+
+## 相关页面
+
+- 上一篇：[技能分发](./skills)
+- 下一篇：[文档站主题](./docs-theme)
+- 参考：[配置参考](../config) · [完整攻略 · Git 纳管范围](../guide#git-纳管范围)

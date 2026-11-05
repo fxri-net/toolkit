@@ -160,10 +160,8 @@ pnpm exec toolkit tasks archive
 
 前提是 AI 侧已装 skills（见上文）。术语对照：AI 说「建档」= 创建任务文件；「归档」= 移入 `.tasks/archive/`；「check」= 语法与规范校验。
 
-## 下一步
+## 相关页面
 
-- 每个场景该说什么、做什么 → [操作手册](./handbook)
-- 日常完整工作流 → [完整攻略](./guide)
-- 查命令参数 → [CLI 参考](./cli)
-- 配置脱敏、告警等 → [配置参考](./config)
-- 遇到问题 → [FAQ](./faq)
+- 上一篇：[首页](./index)
+- 下一篇：[推荐技能包](./packages)
+- 参考：[操作手册](./handbook) · [完整攻略](./guide) · [CLI 参考](./cli) · [配置参考](./config) · [FAQ](./faq)

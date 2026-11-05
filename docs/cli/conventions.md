@@ -31,3 +31,9 @@ toolkit conventions format --format json  # JSON 输出：status、目录、文�
 ⚠️ `format` 只动空白层与分隔行横线长度、不改语义（紧凑是规范形态、填充是偏离）；`tasks check` 与 `conventions status` 会对填充态给软告警、指向本命令，`tasks normalize --fix` 不代改空白层。
 
 载体结构（v1 / v2 / v3 形态、三分区、稳定 ID、`history.md` / `retired.md`）与读写细则见[完整攻略 · conventions/：规范沉淀地](../guide#conventions-规范沉淀地)。
+
+## 相关页面
+
+- 上一篇：[初始化](./init)
+- 下一篇：[发版与更新日志](./changelog)
+- 参考：[完整攻略 · conventions/](../guide#conventions-规范沉淀地) · [完整攻略 · 存量规范载体迁移](../guide#存量规范载体迁移)
