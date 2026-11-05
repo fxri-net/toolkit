@@ -81,12 +81,15 @@
 
 ```json
 {
-  "redact":      { "enabled": true, "disable": [], "rules": [] },
-  "check":       { "warnings": true, "includeCheckbox": true, "pendingMarkers": true },
-  "tasks":       { "importColumns": {} },
-  "changelog":   { "languages": {} },
-  "updateCheck": { "enabled": true },
-  "skills":      { "autoLink": true, "autoLinkReplaceForeign": true }
+  "redact":        { "enabled": true, "disable": [], "rules": [] },
+  "check":         { "warnings": true, "includeCheckbox": true, "pendingMarkers": true },
+  "tasks":         { "importColumns": {} },
+  "changelog":     { "languages": {} },
+  "changelogDoc":  { "source": "CHANGELOG.md", "target": "docs/changelog.md" },
+  "updateCheck":   { "enabled": true },
+  "skills":        { "autoLink": true, "autoLinkReplaceForeign": true },
+  "skillsInstall": { "mode": "skills" },
+  "projectSkills": { "mode": "skills" }
 }
 ```
 
