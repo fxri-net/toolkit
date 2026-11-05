@@ -316,7 +316,7 @@ toolkit conventions upgrade --dry-run     # 预演：只预览将执行的动作
 toolkit conventions upgrade --format json # JSON 输出：ID 映射、内部引用改写、结构动作清单
 toolkit conventions status                # 只读体检：形态 / 索引 / 入口层三块（只报不改，体检不阻断、退出码恒 0；仅 --format 传非法值时按参数错误退出）
 toolkit conventions status --format json  # JSON 输出：形态、条目数、入口壳现场与逐条体检项
-toolkit conventions status --dir ./repo/.tasks # 跨仓体检：入口壳与检测入口按该目录所属仓库扫描（父目录含 package.json / .git 即视为仓库根）
+toolkit conventions status --dir ./repo/.tasks # 跨仓体检：入口壳与检测入口按该目录所属仓库扫描（父目录含 package.json / .git 即视为仓库根；tasks check --dir 同口径）
 toolkit conventions format                # 归一任务区表格形态：把列对齐填充压回紧凑形态（幂等；兜底 prettier 等格式化器造成的填充）
 toolkit conventions format --dry-run      # 预演：只报告将改动的文件与行数，不写文件
 toolkit conventions format --format json  # JSON 输出：status、目录、文件数、变更文件数与逐文件变更行号

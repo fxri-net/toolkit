@@ -27,6 +27,7 @@ import {
 } from "../conventions/format"
 import { detectShapeDefects } from "../conventions/shape"
 import { findEntryShells, ignoredShellAlert, mismatchedShellAlert } from "../conventions/entry"
+import { resolveCarrierRoot } from "../conventions/status"
 import { filledTableLines, listMarkdownFiles } from "../conventions/compact"
 import { gitIgnoredSet, inspectLocalConfigIgnore } from "../git-ignore"
 import { ALL_STATUSES, DONE_STATUSES, FRONTMATTER_KEYS } from "./types"
@@ -235,6 +236,9 @@ export function validateTaskFile(file: string): CheckIssue[] {
     if (/[()（）]/.test(s)) {
       issues.push({ level: "warn", file: name, line, message: `scope「${fm.scope}」含括号疑似注释性文字，说明请移入正文` })
     }
+    if (/\s/.test(s)) {
+      issues.push({ level: "warn", file: name, line, message: `scope「${fm.scope}」含空格，端名与分类标签不得含空格（多值请改用半角加号连接，如 scope: web+server）` })
+    }
   }
 
   // 方案正文子项未闭合扫描（软告警，不阻断；check.pendingMarkers=false 可关闭词标记扫描）
@@ -341,9 +345,11 @@ function validateConventions(tasksDir: string, cwd: string): CheckIssue[] {
     })
   }
   issues.push(...validateTableShape(tasksDir, state))
-  const shells = findEntryShells(cwd)
+  // 入口壳按任务目录所属仓库查找，跨仓 --dir 体检与仓内执行结论一致；本地配置仍按调用方 cwd 判定
+  const carrierRoot = resolveCarrierRoot(tasksDir, cwd)
+  const shells = findEntryShells(carrierRoot)
   // 一次批量判定全部落点的 gitignore 状态，避免逐壳各起一个 git 子进程
-  const ignored = gitIgnoredSet(cwd, shells.map((s) => s.file))
+  const ignored = gitIgnoredSet(carrierRoot, shells.map((s) => s.file))
   const alerts = [
     mismatchedShellAlert(shells.filter((s) => s.version !== ENTRY_VERSION)),
     ignoredShellAlert(shells.filter((s) => ignored.has(s.file))),

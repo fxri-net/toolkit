@@ -164,6 +164,21 @@ describe("入口壳告警", () => {
     rmSync(cwd, { recursive: true, force: true })
   })
 
+  it("--dir 指向其他仓库时按任务目录所属仓库查找入口壳，不受 cwd 影响", () => {
+    const repo = makeTmp("tk-conv-shellrepo-")
+    const otherCwd = makeTmp("tk-conv-shellrepo-cwd-")
+    mkdirSync(join(repo, ".tasks", "active"), { recursive: true })
+    writeFileSync(join(repo, "package.json"), "{}\n", "utf8")
+    const target = join(repo, ".agents", "skills", ENTRY_SHELL_NAME)
+    mkdirSync(target, { recursive: true })
+    writeFileSync(join(target, SKILL_ENTRY), `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n无标记壳\n`, "utf8")
+
+    const warns = warnTexts(join(repo, ".tasks"), otherCwd)
+    expect(warns.some((m) => m.includes("入口壳标记"))).toBe(true)
+    rmSync(repo, { recursive: true, force: true })
+    rmSync(otherCwd, { recursive: true, force: true })
+  })
+
   // 真 git 用例：子进程启动在高负载下会超过 vitest 默认 5s，单例放宽，全局 testTimeout 保持默认
   it("壳路径被 gitignore 覆盖时告警并内联落点路径", { timeout: 15000 }, () => {
     const dir = makeTmp("tk-conv-shellign-")
