@@ -143,6 +143,21 @@ describe("文档一致性：导航规范", () => {
     }
   })
 
+  it("404 页不进站点地图：sitemap 段含过滤 404 的 transformItems", () => {
+    // 只取 sitemap 与 themeConfig 之间的片段，避免其他配置里的同名键干扰
+    const sitemapSrc = /sitemap:\s*\{([\s\S]*?)\n\s*\},\n\s*themeConfig/.exec(config)?.[1] ?? ""
+    expect(sitemapSrc, "站点配置未找到 sitemap 段").toBeTruthy()
+    expect(sitemapSrc).toContain("transformItems")
+    expect(sitemapSrc, "transformItems 未过滤 404 页").toMatch(/404/)
+  })
+
+  it("404 页不进站内搜索索引：frontmatter 含 search: false", () => {
+    // 行尾归一后再取 frontmatter：Windows 检出为 CRLF 时直接匹配会失效
+    const head = /^---\n([\s\S]*?)\n---/.exec(readDoc("docs/404.md").replace(/\r\n/g, "\n"))?.[1] ?? ""
+    expect(head, "docs/404.md 缺少 frontmatter").toBeTruthy()
+    expect(head).toMatch(/(^|\n)\s*search:\s*false\s*($|\n)/)
+  })
+
   it("单页超过 300 行时给出告警（changelog 镜像除外）", () => {
     const longPages = collectMarkdown("docs", [])
       .filter((page) => !page.endsWith("/changelog.md"))
