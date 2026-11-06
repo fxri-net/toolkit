@@ -11,7 +11,7 @@ title: Agent 接入
 | Agent | 状态 | 配置路径 | 能力 |
 | --- | --- | --- | --- |
 | Trae | 已验证（需在 IDE 内启用） | `~/.trae-cn/hooks.json`（回退 `~/.trae/hooks.json`） | `PostToolUse` / `UserPromptSubmit` |
-| Claude Code | 已验证 | `~/.claude/settings.json`（`CLAUDE_CONFIG_DIR` 可改写） | `PostToolUse` / `UserPromptSubmit` |
+| Claude Code | 已接入，需实测 | `~/.claude/settings.json`（`CLAUDE_CONFIG_DIR` 可改写） | `PostToolUse` / `UserPromptSubmit` |
 | Cursor | 已接入，需实测 | `~/.cursor/hooks.json` | `PostToolUse` |
 | Codex CLI | 已接入，需实测 | `$CODEX_HOME/hooks.json`（缺省 `~/.codex/hooks.json`） | `PostToolUse` |
 | GitHub Copilot CLI | 已接入，需实测 | `$COPILOT_HOME/hooks.json`（缺省 `~/.copilot/hooks.json`） | `PostToolUse` |
