@@ -6,6 +6,19 @@ outline: [2, 2]
 
 > 完整变更历史以根 `CHANGELOG.md` 为准，本页由 `toolkit changelog doc` 自动同步，请勿手改。
 
+## 1.16.0
+
+> 2026-11-06 发布
+
+### ✨ 新增功能
+
+- 发版技能支持同版本变更集的净变更合并：只保留用户可见的最终结果，明确判定边界、类型归并与折叠清单留痕
+- 技能使用遥测内核与 `toolkit telemetry` 命令域：本地记录、过滤、去重、统计、导出与诊断，默认关闭且数据只存本机；配置只读全局层，项目层与本地层误写只告警
+- 遥测初始化向导与 Trae / Claude Code Hook 接入：安装与采集开启分离授权、触发词缓存、`init --yes` 非交互入口、`uninstall` 卸载与状态汇总；`hooks status` 以本地时间显示最近触发，补充 Agent 接入矩阵与可复制全局规则
+- Cursor / Codex / Copilot 适配与 transcript / 手工补录：兼容 snake_case 与 camelCase 事件字段，按 sessionId + toolUseId 跨适配器去重
+- 可选上传：Webhook / OTLP/HTTP / 本地文件，含 `upload setup --yes`、dry-run 预览与按 eventId 幂等的上传账本；事件 schema 独立发布并补隐私边界文档，未启用路径不发起网络请求
+- `toolkit changelog --audit-net`：扫描待发布变更集，列出同对象净变更候选；支持显式标识与自然语言相似片段，只提示不自动改写
+
 ## 1.15.6
 
 > 2026-11-05 发布
