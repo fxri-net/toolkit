@@ -53,13 +53,14 @@ toolkit telemetry stats           # 查看统计
 | `export` / `import` | 导出与导入事件 |
 | `dedupe` / `purge` / `rebuild` | 去重、清理与索引重建 |
 | `doctor` | 目录、索引与重复事件诊断 |
+| `upload setup` / `status` / `--dry-run` / `--once` | 可选上传：默认关闭，需显式配置端点 |
 | `rule print` | 输出可复制的全局规则文案 |
 
-完整参数见 [CLI 参考 · telemetry](../cli/telemetry)，配置字段见 [遥测配置](./configuration)。
+完整参数见 [CLI 参考 · telemetry](../cli/telemetry)，配置字段见 [遥测配置](./configuration)，数据边界见 [隐私与数据边界](./privacy)，事件结构见 [事件 Schema](./schema)。
 
 ## 边界与注意
 
 - 历史会话无法自动补录，统计从启用时刻开始。
 - 没有 Hook 的 Agent 用 `telemetry import` 或 `telemetry log` 补录。
-- 上传默认关闭；开启后仍需显式配置端点与认证，详见隐私说明（后续页面）。
-- 事件 schema 版本为 `1`，新增字段只增不改。
+- 上传默认关闭；开启后仍需显式配置端点与认证，详见 [隐私与数据边界](./privacy)。
+- 事件 schema 版本为 `1`，新增字段只增不改，详见 [事件 Schema](./schema)。

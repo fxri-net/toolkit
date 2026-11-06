@@ -114,6 +114,8 @@ export default defineConfig({
           { text: '概览', link: '/telemetry/' },
           { text: '配置', link: '/telemetry/configuration' },
           { text: 'Agent 接入', link: '/telemetry/agents' },
+          { text: '隐私与数据边界', link: '/telemetry/privacy' },
+          { text: '事件 Schema', link: '/telemetry/schema' },
           { text: '全局规则文案', link: '/telemetry/global-rule' },
         ],
       },

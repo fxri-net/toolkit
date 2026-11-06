@@ -7,6 +7,7 @@ import { redactText, resolveRedactEnabled } from "../privacy/redact"
 import { resolveAdapters } from "./adapters"
 import { ingestFromStdin, processHookEvent } from "./ingest"
 import { parseTranscript } from "./transcript"
+import { runUploadSetup, uploadOnce, uploadStatus } from "./upload"
 import { installHooks, runTelemetryInitWizard, runTelemetryMenu } from "./wizard"
 import { buildEvent, resolveSkillMeta } from "./event"
 import { shouldRecord } from "./filter"
@@ -474,6 +475,63 @@ export function registerTelemetryCommands(program: Command): void {
       const config = loadTelemetryConfig()
       if (options.format === "json") printJson({ storage: config.storage })
       else printConfig(config, resolveTelemetryDir(undefined, config))
+    })
+
+  // 可选上传：默认关闭；配置向导、状态与手工发送
+  const upload = telemetry.command("upload").description("可选上传（默认关闭；需显式配置端点）")
+  upload
+    .command("setup")
+    .description("上传配置向导：协议、端点、请求头与启用确认")
+    .action(async () => {
+      await runUploadSetup()
+    })
+  upload
+    .command("status")
+    .description("查看上传开关、端点与待上传数量")
+    .option("--format <format>", "输出格式（json）")
+    .action((options: { format?: string }) => {
+      if (!assertJsonFormat(options.format)) return
+      const report = uploadStatus()
+      if (options.format === "json") printJson(report)
+      else {
+        console.log(`上传：${report.enabled ? "已开启" : "已关闭"}`)
+        console.log(`协议：${report.protocol}｜端点：${report.endpoint || "未配置"}`)
+        console.log(`已发送：${report.sent} 条｜待上传：${report.pending} 条`)
+      }
+    })
+  upload
+    .option("--dry-run", "只预览批次与载荷，不发送")
+    .option("--once", "手工发送一批")
+    .option("--limit <count>", "单批条数（默认取配置 batchSize）")
+    .action(async (options: { dryRun?: boolean; once?: boolean; limit?: string }) => {
+      if (!options.dryRun && !options.once) {
+        const report = uploadStatus()
+        console.log(`上传：${report.enabled ? "已开启" : "已关闭"}；待上传 ${report.pending} 条`)
+        console.log("使用 upload --dry-run 预览，upload --once 发送，upload setup 配置")
+        return
+      }
+      let limit: number | undefined
+      if (options.limit !== undefined) {
+        limit = Number(options.limit)
+        if (!Number.isInteger(limit) || limit <= 0) {
+          console.error("⚠️ --limit 须为正整数")
+          process.exitCode = 1
+          return
+        }
+      }
+      try {
+        const result = await uploadOnce({ dryRun: Boolean(options.dryRun), limit })
+        if (result.dryRun) {
+          console.log(`预演：待上传 ${result.pending} 条 → ${result.endpoint}`)
+          const preview = result.preview as { events?: unknown[] }
+          if (Array.isArray(preview.events) && preview.events[0]) console.log(JSON.stringify(preview.events[0], null, 2))
+        } else {
+          console.log(`已上传 ${result.sent} 条，剩余 ${result.pending} 条`)
+        }
+      } catch (error) {
+        console.error(`⚠️ ${(error as Error).message}`)
+        process.exitCode = 1
+      }
     })
 
   // 统计：按技能 / Agent / 来源聚合

@@ -5,6 +5,7 @@ import { buildHookCommand } from "./ingest"
 import { loadTelemetryConfig, resolveTelemetryDir, telemetryConfigPath, updateTelemetryConfig } from "./config"
 import { readAllEvents, telemetryPaths } from "./store"
 import { summarize } from "./stats"
+import { runUploadSetup } from "./upload"
 import type { TelemetryRotation, TelemetrySkillMode } from "./types"
 
 // 预设：默认保持关闭；推荐只开一方技能
@@ -140,6 +141,7 @@ export async function runTelemetryInitWizard(): Promise<void> {
       storage: { dir, rotation, retentionDays: retention },
     })
     installHooks(selected)
+    if (preset === "advanced") await runUploadSetup()
     console.log("")
     console.log("已启用遥测。下一步：")
     console.log("  toolkit telemetry status")
@@ -215,7 +217,7 @@ export async function runTelemetryMenu(): Promise<void> {
         continue
       }
       if (action === "upload") {
-        console.log("上传默认关闭；配置命令见 toolkit telemetry upload setup（需显式提供端点与认证）")
+        await runUploadSetup()
         continue
       }
       if (action === "maintenance") {

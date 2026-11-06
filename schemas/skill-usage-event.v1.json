@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/fxri-net/toolkit/schemas/skill-usage-event.v1.json",
+  "title": "SkillUsageEvent",
+  "description": "toolkit 技能使用事件 v1：新增字段只增不改，破坏性变更升 schemaVersion",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "occurredAt",
+    "agent",
+    "sessionId",
+    "skill",
+    "skillSource",
+    "managedBy",
+    "originAdapter",
+    "toolkitVersion"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "eventId": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "agent": {
+      "type": "string",
+      "enum": ["trae", "claude", "cursor", "codex", "copilot", "manual"]
+    },
+    "sessionId": { "type": "string", "minLength": 1 },
+    "toolUseId": { "type": "string", "minLength": 1 },
+    "project": { "type": "string" },
+    "skill": { "type": "string", "minLength": 1 },
+    "skillVersion": { "type": "string" },
+    "skillSource": {
+      "type": "string",
+      "enum": ["toolkit-first-party", "toolkit-third-party", "unmanaged", "unknown"]
+    },
+    "managedBy": { "type": "string", "enum": ["toolkit", "external", "unknown"] },
+    "triggerPrompt": { "type": "string", "maxLength": 201 },
+    "skillArgs": { "type": "string", "maxLength": 501 },
+    "outcome": { "type": "string", "enum": ["success", "failure", "unknown"] },
+    "durationMs": { "type": "number", "minimum": 0 },
+    "originAdapter": { "type": "string", "minLength": 1 },
+    "toolkitVersion": { "type": "string", "minLength": 1 }
+  }
+}

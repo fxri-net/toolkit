@@ -135,6 +135,19 @@ describe("telemetry CLI", () => {
     expect(after.hooks.PostToolUse).toBeUndefined()
   })
 
+  it("上传默认关闭，dry-run 直接报错", async () => {
+    await run(["upload", "status", "--format", "json"])
+    expect(logs.join("\n")).toContain('"enabled": false')
+    await run(["upload"])
+    expect(logs.join("\n")).toContain("待上传")
+    logs = []
+    errors = []
+    await run(["upload", "--dry-run"])
+    expect(errors.join("\n")).toContain("上传未启用")
+    expect(process.exitCode).toBe(1)
+    process.exitCode = 0
+  })
+
   it("非法参数不静默回落", async () => {
     await run(["sources", "--first-party", "maybe"])
     expect(errors.join("\n")).toContain("取值须为 on 或 off")

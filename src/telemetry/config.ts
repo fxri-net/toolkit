@@ -55,11 +55,11 @@ function readBoolean(value: unknown, fallback: boolean, key: string): boolean {
   return fallback
 }
 
-// 读取非空字符串：空串与类型不符都回落
+// 读取字符串：空串是合法值（表示未配置，走默认），仅类型不符时回落
 function readString(value: unknown, fallback: string, key: string): string {
   if (value === undefined || value === null) return fallback
-  if (typeof value === "string" && value !== "") return value
-  warnInvalid(key, "非空字符串", value)
+  if (typeof value === "string") return value
+  warnInvalid(key, "字符串", value)
   return fallback
 }
 

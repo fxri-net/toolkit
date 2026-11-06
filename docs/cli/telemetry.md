@@ -45,6 +45,10 @@ toolkit telemetry doctor
 | `purge` | 按保留期或全部清理 | `--older-than`、`--all` |
 | `rebuild` | 从事件文件重建索引 | `--dir` |
 | `doctor` | 诊断目录、索引与重复 | `--dir`、`--format json` |
+| `upload setup` | 上传配置向导 | 交互式 |
+| `upload status` | 上传开关、端点与待上传数量 | `--format json` |
+| `upload --dry-run` | 预览批次与载荷，不发送 | `--limit` |
+| `upload --once` | 手工发送一批 | `--limit` |
 | `rule print` | 输出可复制全局规则 | — |
 
 ## 时间参数
