@@ -1,5 +1,63 @@
 # 方弦工具集
 
+## 1.16.2
+
+> 2026-11-06 发布
+
+### ✨ 新增功能
+
+- 验收接入文档站产物断言，404 页不得进入站点地图与站内搜索索引
+- 文档站 404 兜底页，旧地址不做重定向
+- 文档一致性测试增加导航规范断言（项数、首末项、帮助必备项、分组名长度、旧称呼）与页面体量告警
+- README 与文档站文档索引补「全局规则索引」入口
+- 文档站「全局规则」分类，三份可复制规则集中到 `docs/rules/`（索引页 + AI 全局规则 / 提交信息规则 / 技能使用情况规则）
+- `tasks export <path>` 与 `tasks import <file>` 子命令，替代域级 `--export` / `--import`
+
+### 🔧 功能调整
+
+- `changelog` 的 `version` / `format` / `doc` / `audit` 改为真子命令，各自拥有独立帮助与选项
+- `changelog --audit-net` 改为 `changelog audit`
+- `--check` / `--from` / `--to` / `--title` / `--outline` / `--no-frontmatter` 归 `changelog doc`，`--history` / `--no-sync-doc` 归 `changelog version`
+- `changelog --history format` 改为 `changelog format --history`，`changelog --lang en version` 改为 `changelog version --lang en`
+- 同步发版技能 `fxri-release-changelog` 至 1.3.2，命令写法与选项位置说明随子命令化更新
+- `toolkit skills remove` 更名为 `toolkit skills uninstall`，与 `skills install` 对称
+- `toolkit usage status` 更名为 `usage info`，避免与 `usage stats` 一字之差
+- `usage skills` 更名为 `usage scope`、`usage sources` 更名为 `usage origins`，避免与顶层 `skills` / `skills sources` 同名不同义
+- `usage hooks uninstall` 更名为 `usage hooks remove`，与域级 `usage uninstall` 区分
+- `usage ingest` 改为隐藏命令，不再出现在 `usage --help`
+- `usage rule print` 简化为 `usage rule`
+- `usage origins` / `usage capture` 的布尔开关改为 `--x` / `--no-x` 成对写法，旧的 `on|off` 取值移除
+- `usage purge --older-than` 改为接受 `30d` / `24h` / `60m`，裸数字按非法值报错
+- `usage uninstall` 新增 `--dry-run` 预演，`--purge-data` 更名为 `--purge`
+- `usage export` / `usage import` 的文件格式参数由 `--format` 更名为 `--type`，`--format` 只用于 stdout
+- `skills install --yes` 拆分为 `--yes` 与 `--use-saved`，两者语义区分
+- 页面标题「新手指南」「FAQ」统一为「快速开始」「常见问题」，CLI help 与文档站链接文案同步
+- `usage stats` 合并 `top` / `sessions` / `triggers`，改用 `--by skill|session|trigger` 与 `--limit`
+- `usage upload --once` 改为 `usage upload send` 子命令，`--dry-run` / `--limit` 随之归入
+- `docs theme --check` / `--write` 改为 `docs theme check` / `docs theme write` 子命令
+- `skills sources notify` 的频率取值改为 `--frequency always|daily|weekly|off`
+- AI 全局规则页由 `docs/ai-rules.md` 迁至 `docs/rules/ai.md`、提交信息规则页由 `docs/commit-rules.md` 迁至 `docs/rules/commit.md`，旧地址不再提供
+- 技能使用情况规则页由裸文案改为与其他规则一致的页头结构，「可选」移出规则全文，规则全文首行补「规则更新时间」锚点
+- `toolkit usage rule` 输出同步新锚点与标题（`Skill usage（技能使用情况）`），与文档站复制块逐字一致
+- `tasks` 的 `archive` / `check` / `normalize` / `stats` 改为真子命令，各自拥有独立帮助与选项
+- 移除域级 `--check` / `--fix` / `--target`，分别下沉到 `tasks normalize` 与 `tasks import`
+- `tasks --export <path>` 改为 `tasks export <path>`，`tasks --import <file>` 改为 `tasks import <file>`
+- Hook 命令写入前对 Node / CLI 路径做 realpath 归一，避免 fnm / nvm 会话级临时软链失效
+- `usage hooks status` 与 `usage doctor` 检测 Hook 命令中的失效路径，并提示重跑 `hooks install`
+- `usage hooks status` 对已安装但从未触发的 Hook 输出明确提示
+- `usage status` / `usage info` 不再重复输出「上传」行，改为单行含待上传数量
+- `usage init` 重复执行时沿用历史选择，已配置时默认「保持当前配置」并只重装 Hook
+- `usage init` 的「自定义」预设逐项回填现有配置，推荐 / 第三方 / 高级仍按预设语义取值
+- `usage upload setup` 的启用确认默认沿用当前上传开关
+
+### ⚡ 优化改进
+
+- 文档一致性测试补 404 两条断言（`search: false`、`sitemap.transformItems`）
+- 404 页加 `search: false`，不进入站内搜索索引
+- 文档站顶栏收敛为 5 项、侧栏重排为 6 组，「技能使用情况」分组改名「使用统计」，常见问题与更新日志统一进「帮助」
+- 404 页从站点地图过滤，避免被搜索引擎当正常页面收录
+- 三篇全局规则页统一页首表述与「相关页面」链接，补齐规则索引、技能使用情况规则与 FAQ 入口
+
 ## 1.16.1
 
 > 2026-11-06 发布
