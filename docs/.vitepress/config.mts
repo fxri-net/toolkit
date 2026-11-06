@@ -34,8 +34,12 @@ export default defineConfig({
     ['meta', { property: 'og:url', content: siteUrl }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
   ],
-  // 生成 sitemap.xml；hostname 带 base 子路径，保证各页 URL 拼接正确
-  sitemap: { hostname: siteUrl },
+  // 生成 sitemap.xml；hostname 带 base 子路径，保证各页 URL 拼接正确；404 页只服务错误提示，不进站点地图
+  sitemap: {
+    hostname: siteUrl,
+    // 兼容 cleanUrls 与默认 .html 两种产物写法；url 可能是绝对地址、带前导斜杠或裸路径
+    transformItems: (items) => items.filter((item) => !/(^|\/)404(\.html)?$/.test(item.url)),
+  },
   themeConfig: {
     // 导航栏 logo（字符串路径由 VitePress 自动拼接 base 前缀）
     logo: '/logo.png',
