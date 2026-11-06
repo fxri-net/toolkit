@@ -277,7 +277,7 @@ export async function runUploadSetup(options: UploadSetupOptions = {}): Promise<
       console.error("⚠️ 请求头不是合法 JSON，未修改配置")
       return
     }
-    const enabled = await confirm({ message: "确认启用上传？", default: false })
+    const enabled = await confirm({ message: "确认启用上传？", default: config.upload.enabled })
     if (!enabled) {
       console.log("已取消，未修改任何配置")
       return

@@ -23,7 +23,7 @@ toolkit usage doctor
 
 | 子命令 | 说明 | 主要选项 |
 | --- | --- | --- |
-| `init` | 初始化向导：预设、Agent、来源、字段与存储 | `--yes`、`--preset`、`--agent`；非 TTY 退出码 2 |
+| `init` | 初始化向导：预设、Agent、来源、字段与存储；重复执行沿用历史选择，已配置时默认「保持当前配置」并只重装 Hook | `--yes`、`--preset`、`--agent`；非 TTY 退出码 2 |
 | `uninstall` | 停用采集并卸载 Hook，默认保留数据 | `--yes`、`--agent`、`--purge`、`--dry-run` |
 | `hooks install` | 只写 Hook 配置，不开启采集 | `--agent`、`--dry-run` |
 | `hooks status` | 查看 Hook 安装状态与最近触发时间 | `--agent`、`--dir` |

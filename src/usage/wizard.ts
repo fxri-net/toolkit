@@ -6,10 +6,10 @@ import { loadUsageConfig, resolveUsageDir, usageConfigPath, updateUsageConfig } 
 import { purgeEvents, readAllEvents, usagePaths } from "./store"
 import { summarize } from "./stats"
 import { runUploadSetup } from "./upload"
-import type { UsageRotation, UsageSkillMode } from "./types"
+import type { UsageConfig, UsageRotation, UsageSkillMode } from "./types"
 
-// 预设：默认保持关闭；推荐只开一方技能
-type Preset = "off" | "recommended" | "third-party" | "custom" | "advanced"
+// 预设：默认保持关闭；已配置时可沿用当前配置
+type Preset = "keep" | "off" | "recommended" | "third-party" | "custom" | "advanced"
 
 // 初始化选项：--yes 走非交互路径，只支持 off / recommended / third-party
 export interface InitWizardOptions {
@@ -106,6 +106,50 @@ export function installHooks(agents: AgentAdapter[], dryRun = false): void {
   }
 }
 
+// 向导默认值：从现有配置推导，重复执行时沿用历史选择
+export interface InitDefaults {
+  configured: boolean
+  agents: string[]
+  firstParty: boolean
+  thirdParty: boolean
+  mode: UsageSkillMode
+  include: string[]
+  exclude: string[]
+  triggerPrompt: boolean
+  skillArgs: boolean
+  outcome: boolean
+  dir: string
+  rotation: UsageRotation
+  retentionDays: number
+}
+
+// 推导向导默认值：未配置过时保持「关闭 + 保守默认」
+export function resolveInitDefaults(config: UsageConfig): InitDefaults {
+  const agents = Object.entries(config.agents).filter(([, enabled]) => enabled).map(([id]) => id)
+  const configured =
+    config.enabled ||
+    agents.length > 0 ||
+    config.skills.mode !== "none" ||
+    config.capture.triggerPrompt ||
+    config.capture.skillArgs ||
+    config.capture.outcome
+  return {
+    configured,
+    agents,
+    firstParty: configured ? config.sources.firstParty : true,
+    thirdParty: configured ? config.sources.thirdParty : false,
+    mode: config.skills.mode,
+    include: config.skills.include,
+    exclude: config.skills.exclude,
+    triggerPrompt: config.capture.triggerPrompt,
+    skillArgs: config.capture.skillArgs,
+    outcome: config.capture.outcome,
+    dir: config.storage.dir || resolveUsageDir(undefined, config),
+    rotation: config.storage.rotation,
+    retentionDays: config.storage.retentionDays,
+  }
+}
+
 // 初始化向导：检测 → 预设 → Agent → 范围 → 字段 → 存储 → 预览 → 应用
 export async function runUsageInitWizard(options: InitWizardOptions = {}): Promise<void> {
   if (options.yes) {
@@ -120,25 +164,54 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
       console.log("未检测到可接入的 Agent（Trae / Claude Code）；安装后重跑 toolkit usage init")
       return
     }
+    const existingConfig = loadUsageConfig()
+    const defaults = resolveInitDefaults(existingConfig)
+    const presetChoices: Array<{ name: string; value: Preset }> = [
+      ...(defaults.configured ? [{ name: "保持当前配置（按现有选择重装 Hook）", value: "keep" as Preset }] : []),
+      { name: "保持关闭（不安装 Hook、不采集）", value: "off" },
+      { name: "推荐：仅本地 + toolkit 一方技能", value: "recommended" },
+      { name: "本地 + toolkit 一方与第三方技能", value: "third-party" },
+      { name: "自定义（沿用并修改当前选择）", value: "custom" },
+      { name: "高级：本地 + 上传", value: "advanced" },
+    ]
     const preset = await select<Preset>({
-      message: "选择技能使用情况预设（默认保持关闭）",
-      default: "off",
-      choices: [
-        { name: "保持关闭（不安装 Hook、不采集）", value: "off" },
-        { name: "推荐：仅本地 + toolkit 一方技能", value: "recommended" },
-        { name: "本地 + toolkit 一方与第三方技能", value: "third-party" },
-        { name: "自定义", value: "custom" },
-        { name: "高级：本地 + 上传", value: "advanced" },
-      ],
+      message: defaults.configured ? "选择技能使用情况预设（默认沿用当前配置）" : "选择技能使用情况预设（默认保持关闭）",
+      default: defaults.configured ? "keep" : "off",
+      choices: presetChoices,
     })
     if (preset === "off") {
       console.log("保持关闭，未修改任何文件。需要时执行 toolkit usage enable")
       return
     }
+    if (preset === "keep") {
+      const selected = detected.filter((adapter) => defaults.agents.includes(adapter.id))
+      if (selected.length === 0) {
+        console.log("当前配置没有可接入且已启用的 Agent，请改用「自定义」重新选择")
+        return
+      }
+      printConfigSummary(
+        selected.map((adapter) => adapter.displayName),
+        defaults.firstParty,
+        defaults.thirdParty,
+        defaults.mode,
+        defaults.dir,
+        defaults.rotation,
+        defaults.retentionDays,
+      )
+      if (!existingConfig.enabled) console.log("  ⚠️ 当前总开关关闭：Hook 会重装，但不会写入事件")
+      const applyKeep = await confirm({ message: "按当前配置重装 Hook？", default: true })
+      if (!applyKeep) {
+        console.log("已取消，未修改任何文件")
+        return
+      }
+      installHooks(selected)
+      console.log("已按当前配置重装 Hook")
+      return
+    }
 
     const agentIds = await checkbox<string>({
       message: "选择要接入的 Agent（空格切换，回车确认）",
-      choices: detected.map((adapter) => ({ name: adapter.displayName, value: adapter.id, checked: false })),
+      choices: detected.map((adapter) => ({ name: adapter.displayName, value: adapter.id, checked: defaults.agents.includes(adapter.id) })),
       required: false,
     })
     const selected = detected.filter((adapter) => agentIds.includes(adapter.id))
@@ -147,37 +220,47 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
       return
     }
 
-    const firstParty = await confirm({ message: "统计 toolkit 一方技能（fxri-*）？", default: true })
-    const thirdParty = preset === "third-party" || preset === "advanced" ? true : await confirm({ message: "统计 toolkit 分发的第三方技能？", default: false })
+    // 仅「自定义」回填历史值；推荐 / 第三方 / 高级仍按预设语义取值
+    const usingSaved = preset === "custom"
+    if (usingSaved && defaults.configured) console.log("⚠️ 本次选择将覆盖现有配置（如需保留原值请重跑并选「保持当前配置」)")
+    const firstParty = await confirm({ message: "统计 toolkit 一方技能（fxri-*）？", default: usingSaved ? defaults.firstParty : true })
+    const thirdParty =
+      preset === "third-party" || preset === "advanced"
+        ? true
+        : await confirm({ message: "统计 toolkit 分发的第三方技能？", default: usingSaved ? defaults.thirdParty : false })
     const mode = await select<UsageSkillMode>({
       message: "技能统计范围",
-      default: "all",
+      default: usingSaved ? defaults.mode : "all",
       choices: [
         { name: "全部已开启来源", value: "all" },
         { name: "只统计指定技能", value: "include" },
         { name: "排除指定技能", value: "exclude" },
+        { name: "不统计任何技能", value: "none" },
       ],
     })
     let include: string[] = []
     if (mode === "include" || mode === "exclude") {
-      const raw = await input({ message: mode === "include" ? "要统计的技能名（逗号分隔）" : "要排除的技能名（逗号分隔）", default: "" })
+      const savedList = mode === "include" ? defaults.include : defaults.exclude
+      const raw = await input({
+        message: mode === "include" ? "要统计的技能名（逗号分隔）" : "要排除的技能名（逗号分隔）",
+        default: usingSaved ? savedList.join("，") : "",
+      })
       include = raw.split(/[,，]/).map((item) => item.trim()).filter(Boolean)
     }
-    const triggerPrompt = await confirm({ message: "采集触发词（截断 200 字并脱敏）？", default: false })
-    const skillArgs = await confirm({ message: "采集技能参数（截断 500 字并脱敏）？", default: false })
-    const outcome = await confirm({ message: "采集执行结果与耗时？", default: false })
-    const config = loadUsageConfig()
-    const dir = await input({ message: "数据目录", default: resolveUsageDir(undefined, config) })
+    const triggerPrompt = await confirm({ message: "采集触发词（截断 200 字并脱敏）？", default: usingSaved ? defaults.triggerPrompt : false })
+    const skillArgs = await confirm({ message: "采集技能参数（截断 500 字并脱敏）？", default: usingSaved ? defaults.skillArgs : false })
+    const outcome = await confirm({ message: "采集执行结果与耗时？", default: usingSaved ? defaults.outcome : false })
+    const dir = await input({ message: "数据目录", default: usingSaved ? defaults.dir : resolveUsageDir(undefined, existingConfig) })
     const rotation = await select<UsageRotation>({
       message: "事件文件轮转",
-      default: "monthly",
+      default: usingSaved ? defaults.rotation : "monthly",
       choices: [
         { name: "按月轮转", value: "monthly" },
         { name: "按文件大小轮转", value: "size" },
         { name: "不轮转", value: "none" },
       ],
     })
-    const retentionRaw = await input({ message: "保留天数", default: "180" })
+    const retentionRaw = await input({ message: "保留天数", default: usingSaved ? String(defaults.retentionDays) : "180" })
     const retention = Number(retentionRaw)
     if (!Number.isInteger(retention) || retention <= 0) {
       console.error("⚠️ 保留天数须为正整数，未修改任何文件")

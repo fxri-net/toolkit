@@ -34,6 +34,8 @@ toolkit usage enable                        # 才打开采集总开关
 
 未开启总开关时，Hook 即使被调用也直接退出，不写文件。`hooks install` 支持 `--dry-run` 预览，写前自动备份原配置；配置无法解析时不覆盖。
 
+重复执行 `toolkit usage init` 会沿用历史选择：已配置时默认「保持当前配置（只重装 Hook）」，选择「自定义」则逐项回填现有值。升级后修复 Hook 路径时优先用「保持当前配置」。
+
 ## 管理 Hook
 
 ```bash
