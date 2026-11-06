@@ -153,10 +153,11 @@ describe("tasks 域其余选项与互斥", () => {
     expect(r.err.join("\n")).toContain("不能与")
   })
 
-  it("--export 与 --format 互斥：报错退出", async () => {
-    const r = await runCli(["tasks", "--dir", missingTasksDir, "--export", join(sandbox, "out.csv"), "--format", "json"])
-    expect(r.code).toBe(1)
-    expect(r.err.join("\n")).toContain("不能同时使用")
+  it("tasks export：写出文件并退出 0", async () => {
+    const out = join(sandbox, "tasks-export.csv")
+    const r = await runCli(["tasks", "export", out, "--dir", missingTasksDir])
+    expect(r.code).toBe(0)
+    expect(existsSync(out)).toBe(true)
   })
 
   it("--format 非 json：报错退出", async () => {
@@ -165,22 +166,9 @@ describe("tasks 域其余选项与互斥", () => {
     expect(r.err.join("\n")).toContain("仅支持 json")
   })
 
-  it("子命令不消费的 --export / --format：stderr 告警忽略，命令继续（降级不静默）", async () => {
-    const archive = await runCli(["tasks", "archive", "--dir", missingTasksDir, "--export", join(sandbox, "out.csv"), "--format", "json"])
-    expect(archive.warn.join("\n")).toContain("子命令「archive」不支持 --export")
-    expect(archive.warn.join("\n")).toContain("子命令「archive」不支持 --format")
-    const normalize = await runCli(["tasks", "normalize", "--dir", missingTasksDir, "--format", "json"])
-    expect(normalize.warn.join("\n")).toContain("子命令「normalize」不支持 --format")
-    // stats 消费 --format、仅 --export 被忽略（不得误报 --format 不支持）
-    const stats = await runCli(["tasks", "stats", "--dir", missingTasksDir, "--export", join(sandbox, "out.json"), "--format", "json"])
-    expect(stats.warn.join("\n")).toContain("子命令「stats」不支持 --export")
-    expect(stats.warn.join("\n")).not.toContain("不支持 --format")
-  })
-
-  it("非法子命令：报错退出且不静默回落总览", async () => {
+  it("未知子命令：报错退出且不静默回落总览", async () => {
     const r = await runCli(["tasks", "bogus", "--dir", missingTasksDir])
     expect(r.code).toBe(1)
-    expect(r.err.join("\n")).toContain("非法子命令")
     expect(r.log).toHaveLength(0)
   })
 
@@ -192,20 +180,14 @@ describe("tasks 域其余选项与互斥", () => {
     expect(lenient.code).toBe(0)
   })
 
-  it("--import 独立模式：与 --export 同用报错退出", async () => {
-    const r = await runCli(["tasks", "--dir", missingTasksDir, "--import", join(sandbox, "a.csv"), "--export", join(sandbox, "b.csv")])
-    expect(r.code).toBe(1)
-    expect(r.err.join("\n")).toContain("独立模式")
-  })
-
-  it("--import 非法目标：报错退出", async () => {
-    const r = await runCli(["tasks", "--dir", missingTasksDir, "--import", join(sandbox, "a.csv"), "--target", "bogus"])
+  it("tasks import 非法目标：报错退出", async () => {
+    const r = await runCli(["tasks", "import", join(sandbox, "a.csv"), "--dir", missingTasksDir, "--target", "bogus"])
     expect(r.code).toBe(1)
     expect(r.err.join("\n")).toContain("非法导入目标")
   })
 
-  it("--import 源文件不存在：报错退出", async () => {
-    const r = await runCli(["tasks", "--dir", missingTasksDir, "--import", join(sandbox, "nope.csv")])
+  it("tasks import 源文件不存在：报错退出", async () => {
+    const r = await runCli(["tasks", "import", join(sandbox, "nope.csv"), "--dir", missingTasksDir])
     expect(r.code).toBe(1)
     expect(r.err.join("\n")).toContain("导入失败")
   })
@@ -306,13 +288,17 @@ describe("顶层命令与外部域", () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
-  it("tasks --help：--fix / --check 描述如实反映「检查项与 tasks check 同源」（F2）", async () => {
-    const r = await runCli(["tasks", "--help"])
-    expect(r.code).toBe(0)
+  it("tasks normalize --help：--fix / --check 互斥说明可见", async () => {
+    const group = await runCli(["tasks", "--help"])
+    expect(group.code).toBe(0)
     // commander 按宽度折行，去掉全部空白后比对以规避换行差异
+    expect(group.out.join("").replace(/\s+/g, "")).toContain("normalize[options]")
+
+    const r = await runCli(["tasks", "normalize", "--help"])
+    expect(r.code).toBe(0)
     const help = r.out.join("").replace(/\s+/g, "")
-    expect(help).toContain("归一化修复（仅normalize有效；检查项与taskscheck同源，check只读不改）")
-    expect(help).toContain("归一化只读检查（normalize默认行为，可显式声明；检查项与taskscheck同源、不能与--fix同用）")
+    expect(help).toContain("--fix")
+    expect(help).toContain("只读检查（默认行为，与--fix互斥）")
   })
 
   it("changelog --lang 未知取值：告警回落默认语言，命令继续（F8）", async () => {

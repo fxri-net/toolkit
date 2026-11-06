@@ -19,6 +19,8 @@ toolkit tasks normalize           # 检查归档块（默认只读）
 toolkit tasks normalize --fix     # 修复归档问题
 toolkit tasks stats               # 周期统计：完成周期 / 滞留 / 吞吐
 toolkit tasks stats --format json # 统计结果 JSON 输出
+toolkit tasks export 报表.xlsx    # 导出任务（按扩展名识别 csv / xlsx / json）
+toolkit tasks import 需求清单.csv --dry-run # 导入预演
 toolkit tasks --dir <path>        # 指定任务目录（CLI 参数 > 配置 tasks.dir > 默认 .tasks）
 toolkit tasks check --strict      # 任务目录不存在时报错退出（默认容错为空结果）
 ```
@@ -29,20 +31,19 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 | --- | --- |
 | `--dir <path>` | 任务目录（优先级：CLI 参数 > 配置 `tasks.dir` > 默认 `.tasks`） |
 | `--redact` / `--no-redact` | 开启/关闭隐私脱敏（默认开启） |
-| `--warn` / `--no-warn` | 开启/关闭软告警（默认开启；作用于 `tasks check` 的 warn 输出、归档时的变更集提醒） |
-| `--dry-run` | 预演：`archive` 归档 / `import` 导入只预览，不落盘 |
-| `--fix` | 归一化修复（仅 `normalize` 有效；含补齐元数据、漂移迁移、降序重排、范围归一，以及按并集去重 + 降序解决 git 冲突标记） |
-| `--check` | 归一化只读检查（`normalize` 默认行为，可显式声明；不能与 `--fix` 同用） |
+| `--warn` / `--no-warn` | 开启/关闭软告警（默认开启；作用于 `check` 的 warn 输出、归档时的变更集提醒） |
 | `--strict` | 任务目录不存在时报错退出（默认容错为空结果） |
 
 ## 子命令
 
 | 子命令 | 一句话 |
 | --- | --- |
-| `archive` | 把终结态任务按完成日期聚合归档 |
+| `archive` | 把终结态任务按完成日期聚合归档；`--dry-run` 预演 |
 | `check` | 校验 active 任务、规范载体、入口壳、变更集与文件卫生（只报不改） |
-| `normalize` | 检查并修复归档块 |
+| `normalize` | 检查并修复归档块；`--fix` 修复，`--check` 显式声明只读 |
 | `stats` | 周期统计（人用视图，不落盘） |
+| `export <path>` | 导出到文件（按扩展名识别 csv / xlsx / json） |
+| `import <file>` | 从文件导入任务；`--target` 指定 active / archive |
 
 ### archive
 
@@ -77,7 +78,7 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 - 完成周期与分布（仅「已完成」，已归档任务创建日期从块标题恢复，缺失者跳过并计数）
 - 未完成任务滞留时长
 - 按完成月 / 负责人 / 范围吞吐汇总
-- `--format json` 输出 JSON（顶层携带 `schemaVersion: 1` 锚点，与 `tasks --export` 及各域 `--format json` 同口径），过滤选项与视图查询一致（`--view` 默认 `all`，含归档）
+- `--format json` 输出 JSON（顶层携带 `schemaVersion: 1` 锚点，与 `tasks export` 及各域 `--format json` 同口径），过滤选项与视图查询一致（`--view` 默认 `all`，含归档）
 
 `check` / `normalize` 的问题清单逐条输出为 `文件:行号: 描述`（有行号时便于编辑器跳转）；文件级问题（如重名、游离文件、归档块问题）无对应行，省略行号段，输出为 `文件: 描述`。
 
@@ -95,14 +96,14 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 
 ⚠️ 过滤只作用于所选视图；不指定 `--view` 时默认只查待完成，过滤落空会附 `--view` 引导提示。日期口径：待完成看创建/更新，已归档看完成时间。
 
-## 导入导出选项
+## 导出与导入
 
-| 选项 | 说明 |
+| 子命令 | 说明 |
 | --- | --- |
-| `--export <path>` | 导出到文件（**仅任务总览 `toolkit tasks` 消费**；`archive`/`check`/`normalize`/`stats` 传入时 stderr 告警忽略、命令继续），按扩展名驱动：`.csv`（UTF-8 BOM 超集列）/ `.xlsx`（三 sheet）/ `.json`（`{ schemaVersion: 1, summary, items }`）；目录不存在自动创建 |
-| `--format json` | JSON 输出到 stdout（**任务总览与 `stats` 消费**；`archive`/`check`/`normalize` 传入时 stderr 告警忽略、命令继续）；链接自愈提示走 stderr；升级提示按「升级提示收口」分 TTY / 非 TTY 渠道，JSON 模式不输出文本提示；与 `--export` 互斥（仅任务总览下判定） |
-| `--import <file>` | 从 `.csv`/`.xlsx`/`.json` 导入；独立模式，不能与子命令、`--export`、`--format` 同用；`--owner`/`--scope` 可同用，作为导入行缺失字段的默认值 |
-| `--target <target>` | 导入目标 `active`（默认，生成任务文件）/ `archive`（直接写归档块） |
+| `export <path>` | 按扩展名驱动：`.csv`（UTF-8 BOM 超集列）/ `.xlsx`（三 sheet）/ `.json`（`{ schemaVersion: 1, summary, items }`）；目录不存在自动创建；支持 `--view` 与过滤参数 |
+| `import <file>` | 从 `.csv`/`.xlsx`/`.json` 导入；`--target active`（默认，生成任务文件）/ `--target archive`（直接写归档块）；`--dry-run` 预演；`--owner`/`--scope` 作为导入行缺失字段的默认值 |
+
+`--format json` 只用于 `tasks` 总览与 `tasks stats` 的 stdout；导出文件格式由 `export <path>` 的扩展名决定。
 
 导入细节：兼容本工具三种导出产物（JSON 另兼容裸数组格式）；XLSX 自动跳过名为「汇总」的 sheet、支持表头不在首行；表头自动识别中英文别名（不区分大小写），`.toolkitrc.json` 的 `tasks.importColumns` 自定义映射优先级最高；文件名冲突自动追加序号不覆盖；带完成时间的行状态非终结态时自动置「已完成」并告警；范围列含顿号/逗号/括号时提示按单值写入、多值请用半角加号（只提示不自动转换）。
 

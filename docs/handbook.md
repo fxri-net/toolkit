@@ -68,11 +68,11 @@
 
 ```bash
 # 导出：按扩展名自动识别格式（.csv 带 BOM，Excel 直开；.xlsx 三 sheet；.json 结构化）
-pnpm exec toolkit tasks --view archived --export 归档报表.xlsx
+pnpm exec toolkit tasks export 归档报表.xlsx --view archived
 
 # 导入：先预演核对，再正式导入
-pnpm exec toolkit tasks --import 需求清单.csv --dry-run
-pnpm exec toolkit tasks --import 需求清单.csv --target active
+pnpm exec toolkit tasks import 需求清单.csv --dry-run
+pnpm exec toolkit tasks import 需求清单.csv --target active
 ```
 
 - 表头写常见叫法即可（「任务名/负责人/状态/截止日期」），中英文别名自动识别

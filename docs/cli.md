@@ -9,7 +9,7 @@
 | 命令 | 用途 | 常用子命令 | 分页 |
 | --- | --- | --- | --- |
 | `toolkit init` | 初始化任务区：目录骨架、规范载体、技能入口壳、忽略片段 | — | [init](./cli/init) |
-| `toolkit tasks` | 任务管理：总览、归档、校验、归一、统计、导入导出 | `archive` / `check` / `normalize` / `stats` | [tasks](./cli/tasks) |
+| `toolkit tasks` | 任务管理：总览、归档、校验、归一、统计、导入导出 | `archive` / `check` / `normalize` / `stats` / `export` / `import` | [tasks](./cli/tasks) |
 | `toolkit conventions` | 规范载体：结构升级、表格归一、只读体检 | `upgrade` / `status` / `format` | [conventions](./cli/conventions) |
 | `toolkit changelog` | 多语言 CHANGELOG（封装 changesets） | `version` / `format` / `doc` | [changelog](./cli/changelog) |
 | `toolkit skills` | AI 技能分发：安装、状态、卸载、来源与版本 | `install` / `status` / `uninstall` / `sources` / `bump` | [skills](./cli/skills) |
