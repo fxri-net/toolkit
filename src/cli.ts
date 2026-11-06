@@ -18,7 +18,7 @@ import type { TaskView, TaskFilter, ImportTarget } from "./tasks/types"
 import { ALL_STATUSES } from "./tasks/types"
 import { languages, DEFAULT_LANG, resolveLang, type ChangelogLanguage } from "./changelog/languages"
 import { localDate, formatChangelogs, countUntypedEntries, findUntypedChangesetEntries, findUnbulletedChangesetEntries } from "./changelog/format"
-import { auditChangesets } from "./changelog/audit"
+import { auditChangesets, formatAuditReport } from "./changelog/audit"
 import { checkDoc, resolveDocOptions, syncDoc, syncDocAfterVersion } from "./changelog/doc"
 import { checkDocsTheme, writeDocsTheme } from "./docs/theme"
 import { resolveRedactEnabled } from "./privacy/redact"
@@ -2048,18 +2048,7 @@ const changelogCmd = program
       // 镜像文件名后缀按用户请求的语言标识取：未知语言已回落默认，避免用配置对象当标记
       const docLang = unknownLang ? DEFAULT_LANG : options.lang
       if (options.auditNet) {
-        const candidates = auditChangesets(".changeset")
-        if (candidates.length === 0) {
-          console.log("未发现需要合并的候选")
-          return
-        }
-        console.log(`发现 ${candidates.length} 组候选（只提示，不自动改写）：`)
-        for (const candidate of candidates) {
-          console.log(`- ${candidate.object}`)
-          for (const entry of candidate.entries) {
-            console.log(`  ${entry.file}｜${entry.type}：${entry.text}`)
-          }
-        }
+        console.log(formatAuditReport(auditChangesets(".changeset")))
         return
       }
       const command = operands[0]

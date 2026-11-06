@@ -29,6 +29,19 @@ export interface AuditCandidate {
   entries: AuditEntry[]
 }
 
+// 渲染审计输出：CLI 与单测共用同一份格式，避免输出文案漂移
+export function formatAuditReport(candidates: AuditCandidate[]): string {
+  if (candidates.length === 0) return "未发现需要合并的候选"
+  const lines = [`发现 ${candidates.length} 组候选（只提示，不自动改写）：`]
+  for (const candidate of candidates) {
+    lines.push(`- ${candidate.object}`)
+    for (const entry of candidate.entries) {
+      lines.push(`  ${entry.file}｜${entry.type}：${entry.text}`)
+    }
+  }
+  return lines.join("\n")
+}
+
 // 自然语言片段的最低长度：低于该长度的常见词不作为对象，避免「配置」「问题」类误报
 const NATURAL_MIN_LENGTH = 5
 

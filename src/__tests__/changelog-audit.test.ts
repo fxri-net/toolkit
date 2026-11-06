@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { auditChangesets } from "../changelog/audit"
+import { auditChangesets, formatAuditReport } from "../changelog/audit"
 
 // 临时目录统一清理
 const tempDirs: string[] = []
@@ -21,6 +21,28 @@ function changesetDir(files: Record<string, string>): string {
   for (const [name, content] of Object.entries(files)) writeFileSync(join(changeset, name), content, "utf8")
   return changeset
 }
+
+describe("formatAuditReport", () => {
+  it("空候选输出固定文案", () => {
+    expect(formatAuditReport([])).toBe("未发现需要合并的候选")
+  })
+
+  it("有候选时输出对象、文件、类型与描述", () => {
+    const output = formatAuditReport([
+      {
+        object: "toolkit telemetry",
+        entries: [
+          { file: "a.md", type: "新增", text: "`toolkit telemetry` 命令域" },
+          { file: "b.md", type: "修复", text: "`toolkit telemetry` 统计错误" },
+        ],
+      },
+    ])
+    expect(output).toContain("发现 1 组候选（只提示，不自动改写）：")
+    expect(output).toContain("- toolkit telemetry")
+    expect(output).toContain("a.md｜新增：`toolkit telemetry` 命令域")
+    expect(output).toContain("b.md｜修复：`toolkit telemetry` 统计错误")
+  })
+})
 
 describe("auditChangesets", () => {
   it("同对象新增与修复列为候选，不同对象不误报", () => {
