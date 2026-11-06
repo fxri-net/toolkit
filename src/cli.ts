@@ -1302,10 +1302,10 @@ sourcesCmd
   .command("notify")
   .description("设置单个第三方来源的更新提示频率（只写 updateCheck.sources.<name>.notify）")
   .argument("<name>", "来源名")
-  .argument("<frequency>", "always / daily / weekly / off")
+  .requiredOption("--frequency <frequency>", "更新提示频率：always / daily / weekly / off")
   .option("--scope <scope>", "写入层：global（默认）/ project")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
-  .action((name: string, frequency: string, options: { scope?: string; format?: string }) => {
+  .action((name: string, options: { frequency: string; scope?: string; format?: string }) => {
     try {
       if (!assertJsonFormat(options.format)) return
       const scope = options.scope ?? "global"
@@ -1314,6 +1314,7 @@ sourcesCmd
         process.exitCode = 1
         return
       }
+      const frequency = options.frequency
       if (!["always", "daily", "weekly", "off"].includes(frequency)) {
         console.error(`⚠️ 非法频率「${frequency}」，仅支持 always / daily / weekly / off`)
         process.exitCode = 1
@@ -1724,28 +1725,18 @@ const docsCmd = program.command("docs").description("文档站工具：统一主
 // 默认主题目录：VitePress 约定的 docs/.vitepress/theme
 const THEME_DIR = "docs/.vitepress/theme"
 
-docsCmd
-  .command("theme")
-  .description("校验或写入统一文档站主题（公共规则随包分发，品牌段由各站自留）")
+const themeCmd = docsCmd.command("theme").description("统一文档站主题：校验或写入（公共规则随包分发，品牌段由各站自留）")
+themeCmd.action(() => {
+  themeCmd.help()
+})
+
+themeCmd
+  .command("check")
+  .description("校验主题与模板是否一致（默认动作）")
   .option("--dir <path>", `主题目录（默认 ${THEME_DIR}）`)
-  .option("--check", "只校验，不写文件（默认动作）")
-  .option("--write", "写入或刷新模板，保留既有品牌段")
-  .option("--force", "--write 时缺少品牌标记也覆盖")
-  .action((options: { dir?: string; check?: boolean; write?: boolean; force?: boolean }) => {
-    // 互斥开关同时出现时直接报错，不静默取其中一个
-    if (options.check && options.write) {
-      console.error("⚠️ --check 与 --write 不能同时使用")
-      process.exitCode = 1
-      return
-    }
+  .action((options: { dir?: string }) => {
     const themeDir = resolve(options.dir ?? THEME_DIR)
     try {
-      if (options.write) {
-        const result = writeDocsTheme(themeDir, { force: options.force })
-        for (const file of result.written) console.log(`写入：${file}`)
-        for (const file of result.kept) console.log(`保留品牌段：${file}`)
-        return
-      }
       const result = checkDocsTheme(themeDir)
       if (result.ok) {
         console.log(`主题一致：${themeDir}`)
@@ -1754,6 +1745,23 @@ docsCmd
       console.error(`⚠️ 主题与模板不一致（${result.problems.length} 项）`)
       for (const problem of result.problems) console.error(`  - ${problem}`)
       process.exitCode = 1
+    } catch (e) {
+      console.error(`⚠️ ${(e as Error).message}`)
+      process.exitCode = 1
+    }
+  })
+
+themeCmd
+  .command("write")
+  .description("写入或刷新模板，保留既有品牌段")
+  .option("--dir <path>", `主题目录（默认 ${THEME_DIR}）`)
+  .option("--force", "缺少品牌标记也覆盖")
+  .action((options: { dir?: string; force?: boolean }) => {
+    const themeDir = resolve(options.dir ?? THEME_DIR)
+    try {
+      const result = writeDocsTheme(themeDir, { force: options.force })
+      for (const file of result.written) console.log(`写入：${file}`)
+      for (const file of result.kept) console.log(`保留品牌段：${file}`)
     } catch (e) {
       console.error(`⚠️ ${(e as Error).message}`)
       process.exitCode = 1

@@ -16,7 +16,7 @@ toolkit usage origins --first-party --third-party
 toolkit usage scope --mode all
 toolkit usage capture --trigger
 toolkit usage stats --since 30d
-toolkit usage top --limit 10
+toolkit usage stats --limit 10
 toolkit usage doctor
 ```
 
@@ -35,10 +35,7 @@ toolkit usage doctor
 | `scope` | 查看或设置技能范围 | `--mode`、`--add`、`--remove` |
 | `capture` | 查看或设置采集字段 | `--trigger` / `--no-trigger`、`--args` / `--no-args`、`--outcome` / `--no-outcome` |
 | `storage` | 查看或设置存储 | `--dir`、`--rotation`、`--retention`、`--max-size` |
-| `stats` | 按技能 / Agent / 来源聚合 | `--since`、`--agent`、`--source`、`--skill`、`--unused` |
-| `top` | 技能排行 | `--limit`、`--since` |
-| `sessions` | 按会话列出 | `--since`、`--limit` |
-| `triggers` | 按触发词查看 | `--skill`、`--limit`、`--since` |
+| `stats` | 按技能 / 会话 / 触发词聚合 | `--by skill\|session\|trigger`、`--limit`、`--since`、`--agent`、`--source`、`--skill`、`--unused` |
 | `export` | 导出事件 | `--type csv\|json\|jsonl`、`--out`、`--since` |
 | `import` | 导入事件或 transcript | `--type json\|jsonl\|transcript`、`--file`、`--agent`、`--dry-run` |
 | `log` | 手工补录一次使用 | `--skill`、`--session`、`--agent`、`--prompt`、`--args`、`--outcome` |
@@ -48,8 +45,8 @@ toolkit usage doctor
 | `doctor` | 诊断目录、索引与重复 | `--dir`、`--format json` |
 | `upload setup` | 上传配置向导 | `--yes`、`--protocol`、`--endpoint`、`--headers` |
 | `upload status` | 上传开关、端点与待上传数量 | `--format json` |
-| `upload --dry-run` | 预览批次与载荷，不发送 | `--limit` |
-| `upload --once` | 手工发送一批 | `--limit` |
+| `upload send --dry-run` | 预览批次与载荷，不发送 | `--limit` |
+| `upload send` | 手工发送一批 | `--limit` |
 | `rule` | 输出可复制全局规则 | — |
 
 ## 时间参数

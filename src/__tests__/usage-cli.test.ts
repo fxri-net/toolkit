@@ -100,9 +100,8 @@ describe("usage CLI", () => {
 
     await run(["stats", "--format", "json"])
     expect(logs.join("\n")).toContain('"total": 1')
-    await run(["top"])
-    await run(["sessions"])
-    await run(["triggers"])
+    await run(["stats", "--by", "session"])
+    await run(["stats", "--by", "trigger"])
 
     const out = join(dataDir, "events.csv")
     await run(["export", "--type", "csv", "--out", out])
@@ -175,7 +174,7 @@ describe("usage CLI", () => {
     expect(logs.join("\n")).toContain("待上传")
     logs = []
     errors = []
-    await run(["upload", "--dry-run"])
+    await run(["upload", "send", "--dry-run"])
     expect(errors.join("\n")).toContain("上传未启用")
     expect(process.exitCode).toBe(1)
     process.exitCode = 0

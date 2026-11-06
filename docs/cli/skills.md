@@ -30,7 +30,7 @@ toolkit skills install --from <path|url> # 临时外部来源（本地目录或 
 toolkit skills install --from https://github.com/fxri-net/playbook#vX.Y.Z --save play # 远程永久来源（标签以来源仓 Releases 为准）
 toolkit skills uninstall --source play # 只清理指定外部来源的登记与产物
 toolkit skills sources               # 列出外部来源、版本与生效的更新提示频率（内置源不在列表内）
-toolkit skills sources notify play daily # 设置单个来源的提示频率（--scope global|project）
+toolkit skills sources notify play --frequency daily # 设置单个来源的提示频率（--scope global|project）
 toolkit skills sources refresh       # 刷新全部外部来源缓存与版本（--dry-run 列出将刷新来源与当前版本，不联网）
 toolkit skills sources remove play --prune # 注销来源登记并清理其产物、状态与提示配置
 toolkit skills bump fxri-plan-to-task patch # 递增技能版本（frontmatter 与正文首部两处同源改写）
@@ -89,7 +89,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 ### sources
 
 - 列出已登记永久来源与状态中的临时来源（来源名 / 根目录 / 版本 / 生效提示频率 / 技能清单，临时来源标注「临时」）
-- `sources notify <name> <always|daily|weekly|off>`：写单个来源的提示频率（默认全局层；`--scope project` 写项目层并向上找 git 根，非 git 仓库报错）
+- `sources notify <name> --frequency <always|daily|weekly|off>`：写单个来源的提示频率（默认全局层；`--scope project` 写项目层并向上找 git 根，非 git 仓库报错）
 - `sources refresh [name]`：刷新来源缓存与版本，只更新元数据、不自动安装；`--dry-run` 只列出将刷新的来源
 - `sources remove <name>`：注销登记（产物与状态保留）；加 `--prune` 一并清理产物、状态与提示配置
 - `--format json` 输出机器可读清单与刷新报告

@@ -29,7 +29,7 @@ title: 隐私与数据边界
 
 - `upload.enabled` 默认 `false`；未开启时使用情况模块不发起网络请求。
 - 非 localhost 端点必须 HTTPS；`allowInsecure` 默认 `false`。
-- `upload --dry-run` 只预览批次与脱敏后载荷，不发请求、不写账本。
+- `upload send --dry-run` 只预览批次与脱敏后载荷，不发请求、不写账本。
 - 上传账本按 `eventId` 幂等，重试不会重复计数。
 - 定时上传由用户自行配置系统计划任务，toolkit 不安装常驻进程。
 

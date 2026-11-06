@@ -16,11 +16,11 @@ title: updateCheck（升级检查）
 | `sources.<name>.notify` | string | 继承 `channels.externalSkills` | 单个第三方来源独立覆盖 |
 | `registry` | string | 见下方解析顺序 | 查询最新版本的 registry 地址 |
 
-提示频率优先级：`sources.<name>` > `channels.externalSkills` > `notify` 全局默认；CLI 走 `channels.cli` > 全局默认；内置技能默认 `inherit`。通道关闭不是总闸——`channels.externalSkills: off` 时，显式写了 `sources.<name>.notify` 的来源仍按来源值提示；要全部静默用 `enabled: false`。临时来源不写独立配置，继承 `channels.externalSkills`；配置里写了未注册来源名时，`skills status` 归入「未知来源配置」提示，不阻断命令。单个来源的频率可用 `toolkit skills sources notify <name> <always|daily|weekly|off> [--scope global|project]` 写入。
+提示频率优先级：`sources.<name>` > `channels.externalSkills` > `notify` 全局默认；CLI 走 `channels.cli` > 全局默认；内置技能默认 `inherit`。通道关闭不是总闸——`channels.externalSkills: off` 时，显式写了 `sources.<name>.notify` 的来源仍按来源值提示；要全部静默用 `enabled: false`。临时来源不写独立配置，继承 `channels.externalSkills`；配置里写了未注册来源名时，`skills status` 归入「未知来源配置」提示，不阻断命令。单个来源的频率可用 `toolkit skills sources notify <name> --frequency <always|daily|weekly|off> [--scope global|project]` 写入。
 
 registry 解析顺序：`updateCheck.registry` 配置 > 环境变量 `npm_config_registry` > 项目 `.npmrc` > 家目录 `.npmrc` > `https://registry.npmjs.org`。仅接受 http / https；含账号密码的地址会剥离 userinfo 并告警。认证读取 `NPM_TOKEN`，其次读取 `.npmrc` 中与 registry host 匹配的 `_authToken`；token 不写入日志、报告或缓存。Node fetch **不自动读取 `HTTP(S)_PROXY`**，代理环境下请求会静默失败，可用 `updateCheck.enabled: false` 关闭检查。
 
-提示只在**命令成功**（退出码 0）时输出，且 `--help` / `help` 子命令 / 裸 `toolkit` / `skills path` / `skills status` / `changelog` 透传子命令 / `--format json` 不输出文本提示；`--version`、`--check`、`--export` 的提示只走 stderr。TTY 下提示走 stderr，非 TTY（AI / 脚本）走 stdout 结尾。
+提示只在**命令成功**（退出码 0）时输出，且 `--help` / `help` 子命令 / 裸 `toolkit` / `skills path` / `skills status` / `tasks export` / `docs theme` / `changelog` 的非 version / format / doc 子命令 / `--format json` 不输出文本提示；`--version`、`--check` 的提示只走 stderr。TTY 下提示走 stderr，非 TTY（AI / 脚本）走 stdout 结尾。
 
 版本比较口径：数字段不等按补零比较（`0.2` 等价 `0.2.0`）；预发布低于同号正式版（`0.2.6-beta < 0.2.6`）；忽略构建元数据（`+build`）；任一侧无法解析为版本时不提示。外部来源比较的是**技能自身**的 `metadata.version`（读自来源缓存目录），不使用来源仓库的包版本——两者独立编号。
 

@@ -27,10 +27,10 @@
 | 新会话恢复 | `toolkit tasks --view all` + `toolkit conventions status` |
 | 发版 | `toolkit changelog version` → `pnpm verify` → 打标签发布 |
 | 技能升级 / 换装 | `toolkit skills status` → `toolkit skills install`（外部来源见 `skills sources`） |
-| 看技能用了多少次 | `toolkit usage stats` → `toolkit usage top` |
+| 看技能用了多少次 | `toolkit usage stats`（`--by session` / `--by trigger` / `--limit`） |
 | 规范沉淀 | `toolkit conventions status` → `toolkit conventions upgrade` / `format` |
 | 排查配置 | `toolkit config status`（不打印配置值） |
-| 文档站主题漂移 | `toolkit docs theme --check` |
+| 文档站主题漂移 | `toolkit docs theme check` |
 
 ## 全局约定
 

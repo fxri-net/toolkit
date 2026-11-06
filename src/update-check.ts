@@ -409,6 +409,8 @@ function shouldSkipHint(argv: string[]): boolean {
   if (argv[0] === "help") return true
   if (argv[0] === "skills" && argv[1] === "path") return true
   if (argv[0] === "skills" && argv[1] === "status") return true
+  if (argv[0] === "tasks" && argv[1] === "export") return true
+  if (argv[0] === "docs" && argv[1] === "theme") return true
   if (argv[0] === "changelog" && !["version", "format", "doc"].includes(argv[1] ?? "")) return true
   return hasJsonFormat(argv)
 }
@@ -484,11 +486,7 @@ export function emitVersionHint(currentVersion: string, options: { argv: string[
   const cliOutdated = latest !== null && versionGt(latest, currentVersion) && shouldShowUpdateHint("cli", currentVersion)
   if (!cliOutdated && alerts.length === 0) return
   const line = formatCombinedHint(currentVersion, cliOutdated ? latest : null, alerts)
-  const stderrOnly =
-    options.argv.includes("--version") ||
-    options.argv.includes("-v") ||
-    options.argv.includes("--check") ||
-    options.argv.includes("--export")
+  const stderrOnly = options.argv.includes("--version") || options.argv.includes("-v") || options.argv.includes("--check")
   if (stderrOnly || process.stdout.isTTY) console.error(line)
   else console.log(line)
   if (cliOutdated) markNotified("cli")

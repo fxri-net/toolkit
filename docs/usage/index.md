@@ -50,11 +50,11 @@ toolkit usage stats           # 查看统计
 | `scope` | `none` / `all` / `include` / `exclude` 技能范围 |
 | `capture` | 触发词 / 参数 / 结果字段开关 |
 | `storage` | 数据目录、轮转、保留期、单文件上限 |
-| `stats` / `top` / `sessions` / `triggers` | 统计与查询 |
+| `stats` | 统计与查询（`--by skill\|session\|trigger`） |
 | `export` / `import` | 导出与导入事件 |
 | `dedupe` / `purge` / `rebuild` | 去重、清理与索引重建 |
 | `doctor` | 目录、索引与重复事件诊断 |
-| `upload setup` / `status` / `--dry-run` / `--once` | 可选上传：默认关闭，需显式配置端点 |
+| `upload setup` / `status` / `send`（`--dry-run`） | 可选上传：默认关闭，需显式配置端点 |
 | `rule` | 输出可复制的全局规则文案 |
 
 完整参数见 [CLI 参考 · usage](../cli/usage)，配置字段见 [使用情况配置](./configuration)，数据边界见 [隐私与数据边界](./privacy)，事件结构见 [事件 Schema](./schema)。

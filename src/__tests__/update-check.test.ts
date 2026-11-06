@@ -246,7 +246,18 @@ describe("emitVersionHint 提示渠道与例外", () => {
       expect(out.err.join("\n")).toContain("9.9.9")
       expect(out.log).toHaveLength(0)
     }
-    for (const argv of [[], ["--help"], ["help", "tasks"], ["skills", "path"], ["skills", "status"], ["changelog", "add"], ["tasks", "--format", "json"]]) {
+    for (const argv of [
+      [],
+      ["--help"],
+      ["help", "tasks"],
+      ["skills", "path"],
+      ["skills", "status"],
+      ["changelog", "add"],
+      ["changelog", "audit"],
+      ["tasks", "export", "out.csv"],
+      ["docs", "theme", "check"],
+      ["tasks", "--format", "json"],
+    ]) {
       const out = captureOutput()
       emitVersionHint("1.0.0", { argv, exitCode: 0 })
       expect(out.err).toHaveLength(0)

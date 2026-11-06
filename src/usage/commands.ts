@@ -547,16 +547,17 @@ export function registerUsageCommands(program: Command): void {
       }
     })
   upload
+    .action(() => {
+      const report = uploadStatus()
+      console.log(`上传：${report.enabled ? "已开启" : "已关闭"}；待上传 ${report.pending} 条`)
+      console.log("使用 upload send --dry-run 预览，upload send 发送，upload setup 配置")
+    })
+  upload
+    .command("send")
+    .description("发送一批事件（--dry-run 只预览）")
     .option("--dry-run", "只预览批次与载荷，不发送")
-    .option("--once", "手工发送一批")
     .option("--limit <count>", "单批条数（默认取配置 batchSize）")
-    .action(async (options: { dryRun?: boolean; once?: boolean; limit?: string }) => {
-      if (!options.dryRun && !options.once) {
-        const report = uploadStatus()
-        console.log(`上传：${report.enabled ? "已开启" : "已关闭"}；待上传 ${report.pending} 条`)
-        console.log("使用 upload --dry-run 预览，upload --once 发送，upload setup 配置")
-        return
-      }
+    .action(async (options: { dryRun?: boolean; limit?: string }) => {
       let limit: number | undefined
       if (options.limit !== undefined) {
         limit = Number(options.limit)
@@ -581,19 +582,34 @@ export function registerUsageCommands(program: Command): void {
       }
     })
 
-  // 统计：按技能 / Agent / 来源聚合
+  // 统计：按技能 / 会话 / 触发词三种视图聚合
   usage
     .command("stats")
-    .description("技能使用统计（默认全部事件）")
+    .description("技能使用统计（默认按技能聚合）")
+    .option("--by <view>", "聚合视图：skill / session / trigger（默认 skill）")
+    .option("--limit <count>", "显示条数（默认 20）")
     .option("--since <value>", "起始时间：30d / 24h / 60m / YYYY-MM-DD")
     .option("--agent <name>", "按 Agent 过滤")
     .option("--source <source>", "按来源过滤：toolkit-first-party / toolkit-third-party / unmanaged / unknown")
     .option("--skill <name>", "按技能过滤")
-    .option("--unused", "列出零使用技能")
+    .option("--unused", "列出零使用技能（仅 --by skill 有效）")
     .option("--dir <path>", "本次使用的数据目录")
     .option("--format <format>", "输出格式（json）")
-    .action((options: { since?: string; agent?: string; source?: string; skill?: string; unused?: boolean; dir?: string; format?: string }) => {
+    .action((options: { by?: string; limit?: string; since?: string; agent?: string; source?: string; skill?: string; unused?: boolean; dir?: string; format?: string }) => {
       if (!assertJsonFormat(options.format)) return
+      const by = options.by ?? "skill"
+      if (!["skill", "session", "trigger"].includes(by)) {
+        console.error("⚠️ --by 取值须为 skill / session / trigger")
+        process.exitCode = 1
+        return
+      }
+      const limit = Number(options.limit ?? 20)
+      if (!Number.isInteger(limit) || limit <= 0) {
+        console.error("⚠️ --limit 须为正整数")
+        process.exitCode = 1
+        return
+      }
+      if (options.unused && by !== "skill") console.warn("⚠️ --unused 仅 --by skill 有效，已忽略")
       const since = parseSinceOption(options.since)
       if (since === null) return
       const source = parseSource(options.source)
@@ -602,87 +618,28 @@ export function registerUsageCommands(program: Command): void {
       const all = readAllEvents(paths)
       const events = filterEvents(all, { since, agent: options.agent, source: source ?? undefined, skill: options.skill })
       const summary = summarize(events)
-      const unused = options.unused ? unusedSkills(all) : undefined
+      const unused = options.unused && by === "skill" ? unusedSkills(all) : undefined
       if (options.format === "json") {
-        printJson({ ...summary, unused, dataDir: dir })
+        printJson({ ...summary, unused, dataDir: dir, by })
         return
       }
-      printSkillSummary(events)
+      if (by === "session") {
+        if (summary.sessions.length === 0) {
+          console.log("暂无记录")
+          return
+        }
+        for (const item of summary.sessions.slice(0, limit)) {
+          console.log(`${item.sessionId}  ${item.agent}  ${item.count} 次  ${item.skills.join("、")}`)
+        }
+        return
+      }
+      if (by === "trigger") {
+        printTriggers(events, options.skill, limit)
+        return
+      }
+      printSkillSummary(events, limit)
       if (unused) console.log(`零使用技能：${unused.length > 0 ? unused.join("、") : "无"}`)
       if (!config.enabled) console.log("提示：技能使用情况当前处于关闭状态")
-    })
-
-  // Top：只输出技能排行
-  usage
-    .command("top")
-    .description("按使用次数列出技能排行")
-    .option("--limit <count>", "显示条数（默认 10）")
-    .option("--since <value>", "起始时间")
-    .option("--dir <path>", "本次使用的数据目录")
-    .action((options: { limit?: string; since?: string; dir?: string }) => {
-      const since = parseSinceOption(options.since)
-      if (since === null) return
-      const limit = Number(options.limit ?? 10)
-      if (!Number.isInteger(limit) || limit <= 0) {
-        console.error("⚠️ --limit 须为正整数")
-        process.exitCode = 1
-        return
-      }
-      const { paths } = createContext(options.dir)
-      const events = filterEvents(readAllEvents(paths), { since })
-      const summary = summarize(events)
-      summary.bySkill.slice(0, limit).forEach((item, index) => {
-        console.log(`${index + 1}. ${item.skill}  ${item.count} 次 / ${item.sessions} 会话`)
-      })
-      if (summary.bySkill.length === 0) console.log("暂无记录")
-    })
-
-  // 会话：列出使用技能的会话
-  usage
-    .command("sessions")
-    .description("按会话列出技能使用情况")
-    .option("--since <value>", "起始时间")
-    .option("--limit <count>", "显示条数（默认 20）")
-    .option("--dir <path>", "本次使用的数据目录")
-    .action((options: { since?: string; limit?: string; dir?: string }) => {
-      const since = parseSinceOption(options.since)
-      if (since === null) return
-      const limit = Number(options.limit ?? 20)
-      if (!Number.isInteger(limit) || limit <= 0) {
-        console.error("⚠️ --limit 须为正整数")
-        process.exitCode = 1
-        return
-      }
-      const { paths } = createContext(options.dir)
-      const summary = summarize(filterEvents(readAllEvents(paths), { since }))
-      if (summary.sessions.length === 0) {
-        console.log("暂无记录")
-        return
-      }
-      for (const item of summary.sessions.slice(0, limit)) {
-        console.log(`${item.sessionId}  ${item.agent}  ${item.count} 次  ${item.skills.join("、")}`)
-      }
-    })
-
-  // 触发词：默认脱敏展示
-  usage
-    .command("triggers")
-    .description("按触发词查看技能使用（需开启 capture.triggerPrompt）")
-    .option("--skill <name>", "按技能过滤")
-    .option("--limit <count>", "显示条数（默认 20）")
-    .option("--since <value>", "起始时间")
-    .option("--dir <path>", "本次使用的数据目录")
-    .action((options: { skill?: string; limit?: string; since?: string; dir?: string }) => {
-      const since = parseSinceOption(options.since)
-      if (since === null) return
-      const limit = Number(options.limit ?? 20)
-      if (!Number.isInteger(limit) || limit <= 0) {
-        console.error("⚠️ --limit 须为正整数")
-        process.exitCode = 1
-        return
-      }
-      const { paths } = createContext(options.dir)
-      printTriggers(filterEvents(readAllEvents(paths), { since, skill: options.skill }), options.skill, limit)
     })
 
   // 导出：CSV / JSON / JSONL
