@@ -37,7 +37,7 @@
 索引表「单一事实源」列的写法按指向目标二分：
 
 - **载体内分册**（条文就在本载体）→ 相对链接：`[common.md](./common.md)`、`[web.md](./web.md)`
-- **载体外文件**（条文在项目规则层）→ 行内代码：`docs/ai-rules.md`、`AGENTS.md`、`skills/<技能名>/references/task-spec.md`
+- **载体外文件**（条文在项目规则层）→ 行内代码：`docs/rules/ai.md`、`AGENTS.md`、`skills/<技能名>/references/task-spec.md`
 - 同格需补充说明时，链接 / 代码之后接短述（如 `skills/<技能名>/references/task-spec.md（口径随版本走）`）
 
 理由：两类指向的可点击性不同——载体内相对链接点击即达；载体外路径跨仓后不可靠，故不作链接、只作行内代码指路。

@@ -6,6 +6,7 @@ import { createMarkdownRenderer } from "vitepress"
 import { listBuiltinRuleNames } from "../privacy/redact"
 import { DESCRIPTION } from "../about"
 import { buildDocPage } from "../changelog/doc"
+import { USAGE_GLOBAL_RULE } from "../usage/rule"
 
 // 提取文档「内置规则：」行的规则名（名称以反引号包裹，括号内为补充说明）
 function docRuleNames(file: string): string[] {
@@ -35,7 +36,7 @@ function readDoc(file: string): string {
 
 describe("文档一致性：任务粒度与发版范围条款", () => {
   it("SPEC / task-spec / ai-rules / plan-to-task 四处均包含「不约束发版范围」", () => {
-    for (const file of ["SPEC.md", "skills/fxri-plan-to-task/references/task-spec.md", "docs/ai-rules.md", "skills/fxri-plan-to-task/SKILL.md"]) {
+    for (const file of ["SPEC.md", "skills/fxri-plan-to-task/references/task-spec.md", "docs/rules/ai.md", "skills/fxri-plan-to-task/SKILL.md"]) {
       expect(readDoc(file), `${file} 缺少任务粒度与发版范围边界`).toContain("不约束发版范围")
     }
   })
@@ -43,7 +44,7 @@ describe("文档一致性：任务粒度与发版范围条款", () => {
 
 describe("文档一致性：规划态与执行态分离", () => {
   it("规则层与建档技能都区分「方案确认」与「执行授权」", () => {
-    for (const file of ["docs/ai-rules.md", "skills/fxri-plan-to-task/SKILL.md"]) {
+    for (const file of ["docs/rules/ai.md", "skills/fxri-plan-to-task/SKILL.md"]) {
       const text = readDoc(file)
       expect(text, `${file} 缺少方案确认的表述`).toContain("方案确认")
       expect(text, `${file} 缺少执行授权的表述`).toContain("执行授权")
@@ -51,7 +52,7 @@ describe("文档一致性：规划态与执行态分离", () => {
   })
 
   it("规则层与发版技能都写明「当前指令已含授权则直接执行」", () => {
-    for (const file of ["docs/ai-rules.md", "AGENTS.md", "skills/fxri-release-changelog/SKILL.md"]) {
+    for (const file of ["docs/rules/ai.md", "AGENTS.md", "skills/fxri-release-changelog/SKILL.md"]) {
       expect(readDoc(file), `${file} 缺少「当前指令已含授权即执行」口径`).toMatch(/当前指令已含[^。]{0,16}授权/)
     }
   })
@@ -65,7 +66,7 @@ describe("文档一致性：规划态与执行态分离", () => {
   // 只读判据此前只在技能里有、规则层缺位，且技能按触发匹配加载，纯检查请求未必加载到闸门所在技能：
   // 三处都锁死，防止只改一处（或后续被改回「按词表触发」）
   it("规则层与建档 / 复核技能都写明「只读型请求默认只读」并按意图判定", () => {
-    for (const file of ["docs/ai-rules.md", "skills/fxri-plan-to-task/SKILL.md", "skills/fxri-plan-review/SKILL.md"]) {
+    for (const file of ["docs/rules/ai.md", "skills/fxri-plan-to-task/SKILL.md", "skills/fxri-plan-review/SKILL.md"]) {
       const text = readDoc(file)
       expect(text, `${file} 缺少只读型请求的判据`).toContain("只读")
       expect(text, `${file} 未写明按意图与最终动作判定`).toContain("意图")
@@ -212,15 +213,15 @@ describe("文档一致性：站点配置引用的静态资源存在", () => {
   })
 })
 
-// 提交信息规则在两处并存：.trae/rules/git-commit-message.md（本仓库自用真源）与 docs/commit-rules.md
+// 提交信息规则在两处并存：.trae/rules/git-commit-message.md（本仓库自用真源）与 docs/rules/commit.md
 // 的可复制围栏块（用户侧投影）。两者正文须逐字一致（规范 C-16），此前无任何检测入口
 describe("文档一致性：提交信息规则两处真源镜像", () => {
-  it("docs/commit-rules.md 围栏块正文与 .trae/rules/git-commit-message.md 逐字一致（只改一处即失败）", () => {
-    const fenced = /^````markdown\n([\s\S]*?)^````/m.exec(readDoc("docs/commit-rules.md"))?.[1]
-    expect(fenced, "docs/commit-rules.md 缺少 ````markdown 规则全文围栏块").toBeTruthy()
+  it("docs/rules/commit.md 围栏块正文与 .trae/rules/git-commit-message.md 逐字一致（只改一处即失败）", () => {
+    const fenced = /^````markdown\n([\s\S]*?)^````/m.exec(readDoc("docs/rules/commit.md"))?.[1]
+    expect(fenced, "docs/rules/commit.md 缺少 ````markdown 规则全文围栏块").toBeTruthy()
     // 围栏块首行是只存在于用户侧投影的更新时间锚点（C-15），比对时剔除；
     // 先断言其存在再剥离——锚点缺失时该正则静默不匹配，比对照样通过
-    expect(fenced as string, "docs/commit-rules.md 围栏块首行缺少规则更新时间锚点").toMatch(/^> 规则更新时间 [^\n]*\n/)
+    expect(fenced as string, "docs/rules/commit.md 围栏块首行缺少规则更新时间锚点").toMatch(/^> 规则更新时间 [^\n]*\n/)
     const projection = (fenced as string).replace(/^> 规则更新时间 [^\n]*\n/, "").trim()
     // 真源文件的 frontmatter 是 agent 规则元数据，不进用户侧投影，比对时剔除
     const source = readDoc(".trae/rules/git-commit-message.md").replace(/^---\n[\s\S]*?\n---\n/, "").trim()
@@ -238,10 +239,16 @@ describe("文档一致性：规则层更新锚点", () => {
     return fenced?.[1] as string
   }
 
-  it("docs/commit-rules.md 与 docs/ai-rules.md 的规则全文首行为合法更新时间锚点", () => {
-    for (const file of ["docs/commit-rules.md", "docs/ai-rules.md"]) {
+  it("docs/rules/commit.md、docs/rules/ai.md 与 docs/rules/usage.md 的规则全文首行为合法更新时间锚点", () => {
+    for (const file of ["docs/rules/commit.md", "docs/rules/ai.md", "docs/rules/usage.md"]) {
       expect(fenceAnchor(file), `${file} 的规则全文首行不是合法更新时间锚点`).toMatch(/^> 规则更新时间 \d{4}-\d{2}-\d{2} \d{2}:\d{2}。/)
     }
+  })
+
+  it("docs/rules/usage.md 围栏块与 USAGE_GLOBAL_RULE 逐字一致", () => {
+    const fenced = /^````markdown\n([\s\S]*?)^````/m.exec(readDoc("docs/rules/usage.md"))?.[1]
+    expect(fenced, "docs/rules/usage.md 缺少 ````markdown 规则全文围栏块").toBeTruthy()
+    expect((fenced as string).trim()).toBe(USAGE_GLOBAL_RULE.trim())
   })
 
   it("SPEC.md 正文首行为合法规范更新时间锚点", () => {

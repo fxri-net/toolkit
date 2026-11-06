@@ -11,12 +11,12 @@
    ⚠️ **时点约束**：触达面核对在**变更方案确认时**即按此清单逐篇走查、将结论列入任务文件「影响范围」节（每篇标注 已同步 / 无触达及理由），不延迟到归档时才复核。涉及术语或措辞变更时，先 grep 全仓库定位旧措辞触达点再列清单。
 3. **skills**：`skills/` 下 SKILL.md 与 references 同步新能力/新流程；每个 SKILL.md 的版本写两处且须一致——frontmatter `metadata.version`（机器读取位，`toolkit skills status` / `skills install` 打印的真源版本）与正文首部 `> 本技能版本 x.y.z（随 @fxri/toolkit 同批分发）`（进上下文的自证位）；内容变更时同步递增（小修 +patch，能力级 +minor）。
 4. **变更集**：凡影响对外行为的变更，任务归档前必须在 `.changeset/` 建变更集（标注 patch/minor/major 并写用户可感知的变更描述，条目须**逐条以 `- 类型：描述` 书写**——`- ` 列表标记让每条独立成项、`类型：` 前缀作归类信号，前缀表见 `skills/fxri-release-changelog/SKILL.md`）；归档时出现「无变更集」提示即视为本质量门未过。
-5. **全局规则薄引用**：可变流程细节只进 skills（SKILL.md / references），`docs/ai-rules.md` 的「规则全文」保持薄壳——只承载稳定纪律与对 fxri-* skill 的引用，不复述可变细节；凡在 ai-rules.md 复述了可变细节的改动即视为违背本规则，须收敛回 skill。原因：全局规则是用户手动复制的快照，细节复述会让能力升级后用户侧规则失同步；收敛进 skills 后技能随包同源分发（与 CLI 同一发布批次），升级只需 `pnpm add -g @fxri/toolkit`（软链自动跟随，副本形式再跑一次 `toolkit skills install`）。
-6. **规则层更新锚点**：`SPEC.md`、`docs/ai-rules.md`、`docs/commit-rules.md` 三处各有一行更新锚点，`SPEC.md` 为 `> 规范更新时间 YYYY-MM-DD HH:mm`，两个规则页为 `> 规则更新时间 YYYY-MM-DD HH:mm`（24 小时制、本机时区、精确到分、不带秒）；锚点行必须位于**规则全文可复制块内部首行**——两个规则页以 fenced 代码块作可复制块，`SPEC.md` 无 fenced 包裹、整篇文件即快照，其锚点位于文件正文首行即合规；放块外则用户快照不含锚点、无从自查。纪律：任何内容变更（含错别字、标点、链接）须以变更时刻更新所属文件锚点；未变更的文件不得刷新；同一批改动取同一时间；只随内容变更递增、不随发版例行抬高。原因：用户会把规则复制成个人快照，快照首行与页面当前值不一致即说明已失同步，时间戳还能看出落后多久。
+5. **全局规则薄引用**：可变流程细节只进 skills（SKILL.md / references），`docs/rules/ai.md` 的「规则全文」保持薄壳——只承载稳定纪律与对 fxri-* skill 的引用，不复述可变细节；凡在 `docs/rules/ai.md` 复述了可变细节的改动即视为违背本规则，须收敛回 skill。原因：全局规则是用户手动复制的快照，细节复述会让能力升级后用户侧规则失同步；收敛进 skills 后技能随包同源分发（与 CLI 同一发布批次），升级只需 `pnpm add -g @fxri/toolkit`（软链自动跟随，副本形式再跑一次 `toolkit skills install`）。
+6. **规则层更新锚点**：`SPEC.md`、`docs/rules/ai.md`、`docs/rules/commit.md`、`docs/rules/usage.md` 四处各有一行更新锚点，`SPEC.md` 为 `> 规范更新时间 YYYY-MM-DD HH:mm`，三个规则页为 `> 规则更新时间 YYYY-MM-DD HH:mm`（24 小时制、本机时区、精确到分、不带秒）；锚点行必须位于**规则全文可复制块内部首行**——三个规则页以 fenced 代码块作可复制块，`SPEC.md` 无 fenced 包裹、整篇文件即快照，其锚点位于文件正文首行即合规；放块外则用户快照不含锚点、无从自查。纪律：任何内容变更（含错别字、标点、链接）须以变更时刻更新所属文件锚点；未变更的文件不得刷新；同一批改动取同一时间；只随内容变更递增、不随发版例行抬高。原因：用户会把规则复制成个人快照，快照首行与页面当前值不一致即说明已失同步，时间戳还能看出落后多久。
 
 ### conventions 同步（独立机制，随上述质量门一并执行）
 
-`.tasks/conventions/` 载体的索引表与 AGENTS / ai-rules / skills 条文存在对应关系：修改 AGENTS.md、docs/ai-rules.md 或 skills 条文的变更，须同步检查索引对应行的「当前语义」是否需要更新；语义变更先在 `history.md` 留痕、再更新索引表内当前语义，随该变更同批落盘。
+`.tasks/conventions/` 载体的索引表与 AGENTS / rules / skills 条文存在对应关系：修改 AGENTS.md、`docs/rules/` 下的规则页或 skills 条文的变更，须同步检查索引对应行的「当前语义」是否需要更新；语义变更先在 `history.md` 留痕、再更新索引表内当前语义，随该变更同批落盘。
 
 **动手前先读 `.tasks/conventions/index.md`**：本包源仓库不生成入口壳，AGENTS.md 即其规范触发面——先看端清单与索引了解本项目已确立哪些规范，条文以各文件的单一事实源为准。
 

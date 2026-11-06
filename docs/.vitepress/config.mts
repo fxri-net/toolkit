@@ -55,10 +55,12 @@ export default defineConfig({
       { text: 'FAQ', link: '/faq' },
       { text: '更新日志', link: '/changelog' },
       {
-        text: '规则',
+        text: '全局规则',
         items: [
-          { text: 'AI 全局规则', link: '/ai-rules' },
-          { text: '提交信息规则', link: '/commit-rules' },
+          { text: '规则索引', link: '/rules/' },
+          { text: 'AI 全局规则', link: '/rules/ai' },
+          { text: '提交信息规则', link: '/rules/commit' },
+          { text: '技能使用情况规则', link: '/rules/usage' },
         ],
       },
     ],
@@ -116,16 +118,20 @@ export default defineConfig({
           { text: 'Agent 接入', link: '/usage/agents' },
           { text: '隐私与数据边界', link: '/usage/privacy' },
           { text: '事件 Schema', link: '/usage/schema' },
-          { text: '全局规则文案', link: '/usage/global-rule' },
+        ],
+      },
+      {
+        text: '全局规则',
+        items: [
+          { text: '规则索引', link: '/rules/' },
+          { text: 'AI 全局规则', link: '/rules/ai' },
+          { text: '提交信息规则', link: '/rules/commit' },
+          { text: '技能使用情况规则', link: '/rules/usage' },
         ],
       },
       {
         text: '答疑',
-        items: [
-          { text: 'FAQ', link: '/faq' },
-          { text: 'AI 全局规则', link: '/ai-rules' },
-          { text: '提交信息规则', link: '/commit-rules' },
-        ],
+        items: [{ text: 'FAQ', link: '/faq' }],
       },
     ],
     // 本地搜索 + 中文界面文案
