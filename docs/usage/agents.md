@@ -56,7 +56,8 @@ toolkit usage uninstall --agent trae
 
 ## 注意
 
-- Hook 命令写入当前 Node 与 CLI 的绝对路径，不依赖 PATH。
+- Hook 命令写入当前 Node 与 CLI 的归一化绝对路径（`realpath` 解析后的稳定目标），不依赖 PATH；fnm / nvm 等版本管理器的会话级临时软链不会写进配置。
 - Windows 下 Hook 由 PowerShell 执行，路径含空格时已用双引号包裹。
+- `hooks status` 会显式提示「已配置但尚未执行过」；`hooks status` 与 `doctor` 还会校验命令里的 Node / CLI 路径是否存在，失效时提示重跑 `hooks install`。
 - 旧版本安装的 Hook 仍指向 `telemetry` 命令，升级后不再生效；`hooks status` 与 `doctor` 会提示，重跑 `hooks install` 即替换为新命令。
 - transcript 的时间以导入时刻为准，不还原原始会话时间。

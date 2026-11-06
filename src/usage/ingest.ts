@@ -1,6 +1,6 @@
 // Hook 事件入口：解析 stdin、缓存触发词、构造事件并落盘；任何异常只记日志，不阻断 Agent
 import { createHash } from "node:crypto"
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, readFileSync, realpathSync } from "node:fs"
 import { join } from "node:path"
 import { writeFileAtomic } from "../write-atomic"
 import { getAdapter } from "./adapters"
@@ -72,9 +72,20 @@ export interface IngestResult {
   message?: string
 }
 
-// 生成 Hook 命令：使用当前 Node 与 CLI 绝对路径，避免依赖 PATH
+// 归一为真实路径：fnm / nvm 等版本管理器下 process.execPath 常是会话级临时软链，
+// 直接写进 Hook 会在 shell 清理后失效；realpath 取到稳定目标，失败时回退原串
+function stablePath(path: string | undefined): string {
+  if (!path) return ""
+  try {
+    return realpathSync.native(path)
+  } catch {
+    return path
+  }
+}
+
+// 生成 Hook 命令：使用归一后的 Node 与 CLI 绝对路径，避免依赖 PATH 与临时软链
 export function buildHookCommand(agent: string, cliPath = process.argv[1], nodePath = process.execPath): string {
-  return `"${nodePath}" "${cliPath}" usage ingest --agent ${agent}`
+  return `"${stablePath(nodePath)}" "${stablePath(cliPath)}" usage ingest --agent ${agent}`
 }
 
 // 会话缓存文件：按 sessionId 哈希，避免路径中出现特殊字符

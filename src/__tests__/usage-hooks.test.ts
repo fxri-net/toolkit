@@ -118,6 +118,15 @@ describe("Hook 配置安装与卸载", () => {
     expect(standardHookStatus(file, "trae", "Trae").legacyCommand).toBeUndefined()
   })
 
+  it("Hook 命令中的 node / CLI 路径失效时状态可报出", () => {
+    const file = join(tempDir("tk-hook-missing-"), "hooks.json")
+    const command = `"C:\\no-such-dir\\node.exe" "C:\\no-such-dir\\cli.js" usage ingest --agent trae`
+    writeFileSync(file, JSON.stringify({ version: 1, hooks: { PostToolUse: [{ hooks: [{ type: "command", command, timeout: 10 }] }] } }), "utf8")
+    const status = standardHookStatus(file, "trae", "Trae")
+    expect(status.installed).toBe(true)
+    expect(status.missingPaths).toHaveLength(2)
+  })
+
   it("非法 JSON 不覆盖原文件", () => {
     const file = join(tempDir("tk-hook-bad-"), "hooks.json")
     writeFileSync(file, "{bad", "utf8")

@@ -135,6 +135,7 @@ describe("usage CLI", () => {
     logs = []
     await run(["hooks", "status", "--agent", "trae"])
     expect(logs.join("\n")).toContain("已安装")
+    expect(logs.join("\n")).toContain("尚未执行")
 
     await run(["hooks", "remove", "--agent", "trae"])
     const after = JSON.parse(readFileSync(join(home, ".trae-cn", "hooks.json"), "utf8"))

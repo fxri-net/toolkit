@@ -15,8 +15,7 @@ toolkit usage enable
 toolkit usage origins --first-party --third-party
 toolkit usage scope --mode all
 toolkit usage capture --trigger
-toolkit usage stats --since 30d
-toolkit usage stats --limit 10
+toolkit usage stats --since 30d --limit 10
 toolkit usage doctor
 ```
 

@@ -153,13 +153,32 @@ export function uninstallStandardHooks(file: string, agent: string): HookInstall
   return { agent, file, changed, command: "", dryRun: false }
 }
 
-// 标准 Hook 状态：检查新版命令，并单独报出旧版命令
+// 从 Hook 命令提取引号包裹的绝对路径：用于校验 node / CLI 是否仍存在
+function extractQuotedPaths(command: string): string[] {
+  return [...command.matchAll(/"([^"]+)"/g)].map((match) => match[1] ?? "").filter(Boolean)
+}
+
+// 找出命令中已不存在的路径：Hook 内嵌的是安装时的绝对路径，升级或清理后可能失效
+export function findMissingHookPaths(command: string): string[] {
+  return extractQuotedPaths(command).filter((path) => !existsSync(path))
+}
+
+// 标准 Hook 状态：检查新版命令，并单独报出旧版命令与失效路径
 export function standardHookStatus(file: string, agent: string, displayName: string): HookStatus {
   try {
     const config = readHookConfig(file)
     const command = findIngestCommand(config, agent)
     const legacyCommand = findLegacyIngestCommand(config, agent)
-    return { agent, displayName, file, installed: Boolean(command), command, legacyCommand }
+    const missingPaths = command ? findMissingHookPaths(command) : []
+    return {
+      agent,
+      displayName,
+      file,
+      installed: Boolean(command),
+      command,
+      legacyCommand,
+      missingPaths: missingPaths.length > 0 ? missingPaths : undefined,
+    }
   } catch (error) {
     return { agent, displayName, file, installed: false, lastError: (error as Error).message }
   }

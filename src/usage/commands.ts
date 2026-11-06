@@ -107,7 +107,8 @@ function printConfig(config: UsageConfig, dir: string): void {
     `字段：触发词 ${config.capture.triggerPrompt ? "开" : "关"} / 参数 ${config.capture.skillArgs ? "开" : "关"} / 结果 ${config.capture.outcome ? "开" : "关"}`,
   )
   console.log(`存储：${config.storage.rotation} / 保留 ${config.storage.retentionDays} 天 / 单文件 ${config.storage.maxFileBytes} 字节`)
-  console.log(`上传：${config.upload.enabled ? "已开启" : "已关闭"}`)
+  const upload = uploadStatus()
+  console.log(`上传：${upload.enabled ? `已开启（待上传 ${upload.pending} 条）` : "已关闭"}`)
 }
 
 // 打印技能统计：按次数降序，最多显示 limit 条
@@ -310,9 +311,13 @@ export function registerUsageCommands(program: Command): void {
         if (status.legacyCommand) {
           console.warn(`  ⚠️ 检测到旧版 Hook（telemetry 命令）已失效，请执行 toolkit usage hooks install --agent ${adapter.id}`)
         }
+        if (status.missingPaths) {
+          console.warn(`  ⚠️ Hook 命令中的路径已不存在，需重跑 toolkit usage hooks install --agent ${adapter.id}：${status.missingPaths.join("、")}`)
+        }
         if (status.lastError) console.log(`  ⚠️ ${status.lastError}`)
         const last = activity[adapter.id]
         if (last) console.log(`  最近触发：${formatLocalTime(last.lastTriggerAt)}（${last.lastStatus}）`)
+        else if (status.installed) console.log("  最近触发：暂无记录（Hook 已配置，但 Agent 尚未执行过）")
       }
       if (lastError) console.log(`最近 Hook 错误：${lastError}`)
     })
@@ -374,7 +379,6 @@ export function registerUsageCommands(program: Command): void {
       }
       printConfig(config, dir)
       console.log(`Hook：${installedHooks.length > 0 ? installedHooks.join("、") : "未安装"}`)
-      console.log(`上传：${upload.enabled ? `已开启（待上传 ${upload.pending} 条）` : "已关闭"}`)
       console.log(`事件：${report.events} 条（索引 ${report.indexed} 条，文件 ${report.eventFiles} 个）`)
       console.log(`最近：${report.lastEventAt ?? "暂无"}`)
       if (lastHookError) console.log(`最近 Hook 错误：${lastHookError}`)
@@ -854,8 +858,12 @@ export function registerUsageCommands(program: Command): void {
       if (!config.enabled) issues.push("技能使用情况总开关处于关闭状态")
       for (const adapter of AGENT_ADAPTERS) {
         try {
-          if (adapter.status().legacyCommand) {
+          const status = adapter.status()
+          if (status.legacyCommand) {
             issues.push(`${adapter.displayName} 的 Hook 仍指向旧命令 telemetry，已失效，请重跑 toolkit usage hooks install --agent ${adapter.id}`)
+          }
+          if (status.missingPaths) {
+            issues.push(`${adapter.displayName} 的 Hook 命令路径已失效（${status.missingPaths.join("、")}），请重跑 toolkit usage hooks install --agent ${adapter.id}`)
           }
         } catch {
           // 配置读取失败由 usage hooks status 展示，doctor 不重复报错
