@@ -1,12 +1,12 @@
-// 遥测向导：初始化与无参数菜单；所有选择都有默认值，取消时不留下半成品
+// 使用情况向导：初始化与无参数菜单；所有选择都有默认值，取消时不留下半成品
 import { detectedAdapters, resolveAdapters } from "./adapters"
 import type { AgentAdapter } from "./adapters/types"
 import { buildHookCommand } from "./ingest"
-import { loadTelemetryConfig, resolveTelemetryDir, telemetryConfigPath, updateTelemetryConfig } from "./config"
-import { purgeEvents, readAllEvents, telemetryPaths } from "./store"
+import { loadUsageConfig, resolveUsageDir, usageConfigPath, updateUsageConfig } from "./config"
+import { purgeEvents, readAllEvents, usagePaths } from "./store"
 import { summarize } from "./stats"
 import { runUploadSetup } from "./upload"
-import type { TelemetryRotation, TelemetrySkillMode } from "./types"
+import type { UsageRotation, UsageSkillMode } from "./types"
 
 // 预设：默认保持关闭；推荐只开一方技能
 type Preset = "off" | "recommended" | "third-party" | "custom" | "advanced"
@@ -54,9 +54,9 @@ function runNonInteractiveInit(options: InitWizardOptions): void {
     process.exitCode = 1
     return
   }
-  const config = loadTelemetryConfig()
-  const dir = resolveTelemetryDir(undefined, config)
-  updateTelemetryConfig({
+  const config = loadUsageConfig()
+  const dir = resolveUsageDir(undefined, config)
+  updateUsageConfig({
     enabled: true,
     agents: Object.fromEntries(adapters.map((adapter) => [adapter.id, true])),
     sources: { firstParty: true, thirdParty: preset === "third-party", unmanaged: false },
@@ -65,7 +65,7 @@ function runNonInteractiveInit(options: InitWizardOptions): void {
     storage: { dir, rotation: "monthly", retentionDays: 180 },
   })
   installHooks(adapters)
-  console.log(`已启用遥测（${preset}），数据目录：${dir}`)
+  console.log(`已启用技能使用情况（${preset}），数据目录：${dir}`)
 }
 
 // 用户取消（Ctrl+C / ESC）：inquirer 以 ExitPromptError 抛出
@@ -76,13 +76,13 @@ function isCancel(error: unknown): boolean {
 // 非 TTY：禁止交互，打印可执行命令并以退出码 2 结束
 function requireTty(): boolean {
   if (process.stdin.isTTY && process.stdout.isTTY) return true
-  console.error("⚠️ 当前环境不支持交互，请显式传入参数，或执行 toolkit telemetry --help")
+  console.error("⚠️ 当前环境不支持交互，请显式传入参数，或执行 toolkit usage --help")
   process.exitCode = 2
   return false
 }
 
 // 打印配置摘要：向导预览与菜单共用
-function printConfigSummary(agents: string[], firstParty: boolean, thirdParty: boolean, mode: TelemetrySkillMode, dir: string, rotation: TelemetryRotation, retention: number): void {
+function printConfigSummary(agents: string[], firstParty: boolean, thirdParty: boolean, mode: UsageSkillMode, dir: string, rotation: UsageRotation, retention: number): void {
   console.log("")
   console.log("即将应用：")
   console.log(`  Agent：${agents.length > 0 ? agents.join("、") : "无"}`)
@@ -106,7 +106,7 @@ export function installHooks(agents: AgentAdapter[], dryRun = false): void {
 }
 
 // 初始化向导：检测 → 预设 → Agent → 范围 → 字段 → 存储 → 预览 → 应用
-export async function runTelemetryInitWizard(options: InitWizardOptions = {}): Promise<void> {
+export async function runUsageInitWizard(options: InitWizardOptions = {}): Promise<void> {
   if (options.yes) {
     runNonInteractiveInit(options)
     return
@@ -116,11 +116,11 @@ export async function runTelemetryInitWizard(options: InitWizardOptions = {}): P
   try {
     const detected = detectedAdapters()
     if (detected.length === 0) {
-      console.log("未检测到可接入的 Agent（Trae / Claude Code）；安装后重跑 toolkit telemetry init")
+      console.log("未检测到可接入的 Agent（Trae / Claude Code）；安装后重跑 toolkit usage init")
       return
     }
     const preset = await select<Preset>({
-      message: "选择遥测预设（默认保持关闭）",
+      message: "选择技能使用情况预设（默认保持关闭）",
       default: "off",
       choices: [
         { name: "保持关闭（不安装 Hook、不采集）", value: "off" },
@@ -131,7 +131,7 @@ export async function runTelemetryInitWizard(options: InitWizardOptions = {}): P
       ],
     })
     if (preset === "off") {
-      console.log("保持关闭，未修改任何文件。需要时执行 toolkit telemetry enable")
+      console.log("保持关闭，未修改任何文件。需要时执行 toolkit usage enable")
       return
     }
 
@@ -148,7 +148,7 @@ export async function runTelemetryInitWizard(options: InitWizardOptions = {}): P
 
     const firstParty = await confirm({ message: "统计 toolkit 一方技能（fxri-*）？", default: true })
     const thirdParty = preset === "third-party" || preset === "advanced" ? true : await confirm({ message: "统计 toolkit 分发的第三方技能？", default: false })
-    const mode = await select<TelemetrySkillMode>({
+    const mode = await select<UsageSkillMode>({
       message: "技能统计范围",
       default: "all",
       choices: [
@@ -165,9 +165,9 @@ export async function runTelemetryInitWizard(options: InitWizardOptions = {}): P
     const triggerPrompt = await confirm({ message: "采集触发词（截断 200 字并脱敏）？", default: false })
     const skillArgs = await confirm({ message: "采集技能参数（截断 500 字并脱敏）？", default: false })
     const outcome = await confirm({ message: "采集执行结果与耗时？", default: false })
-    const config = loadTelemetryConfig()
-    const dir = await input({ message: "数据目录", default: resolveTelemetryDir(undefined, config) })
-    const rotation = await select<TelemetryRotation>({
+    const config = loadUsageConfig()
+    const dir = await input({ message: "数据目录", default: resolveUsageDir(undefined, config) })
+    const rotation = await select<UsageRotation>({
       message: "事件文件轮转",
       default: "monthly",
       choices: [
@@ -193,7 +193,7 @@ export async function runTelemetryInitWizard(options: InitWizardOptions = {}): P
       return
     }
 
-    updateTelemetryConfig({
+    updateUsageConfig({
       enabled: true,
       agents: Object.fromEntries(selected.map((adapter) => [adapter.id, true])),
       sources: { firstParty, thirdParty, unmanaged: false },
@@ -204,9 +204,9 @@ export async function runTelemetryInitWizard(options: InitWizardOptions = {}): P
     installHooks(selected)
     if (preset === "advanced") await runUploadSetup()
     console.log("")
-    console.log("已启用遥测。下一步：")
-    console.log("  toolkit telemetry status")
-    console.log("  toolkit telemetry stats")
+    console.log("已启用技能使用情况。下一步：")
+    console.log("  toolkit usage status")
+    console.log("  toolkit usage stats")
   } catch (error) {
     if (isCancel(error)) {
       console.log("已取消，未修改任何文件")
@@ -217,7 +217,7 @@ export async function runTelemetryInitWizard(options: InitWizardOptions = {}): P
 }
 
 // 卸载：停用采集、移除本包 Hook；默认保留数据，--purge-data 才删除事件
-export async function runTelemetryUninstall(options: UninstallOptions = {}): Promise<void> {
+export async function runUsageUninstall(options: UninstallOptions = {}): Promise<void> {
   if (!options.yes && !requireTty()) return
   const { adapters, invalid } = resolveAdapters(splitAgentNames(options.agent))
   if (invalid.length > 0) {
@@ -230,7 +230,7 @@ export async function runTelemetryUninstall(options: UninstallOptions = {}): Pro
   try {
     if (!options.yes) {
       const { confirm } = await import("@inquirer/prompts")
-      const disable = await confirm({ message: "停用遥测总开关？", default: true })
+      const disable = await confirm({ message: "停用技能使用情况总开关？", default: true })
       if (!disable) {
         console.log("已取消，未修改任何文件")
         return
@@ -238,7 +238,7 @@ export async function runTelemetryUninstall(options: UninstallOptions = {}): Pro
       removeHooks = await confirm({ message: "卸载已安装的 Hook？", default: true })
       purgeData = await confirm({ message: "同时删除本地事件？", default: false })
     }
-    updateTelemetryConfig({ enabled: false })
+    updateUsageConfig({ enabled: false })
     if (removeHooks) {
       for (const adapter of adapters) {
         const result = adapter.uninstallHooks()
@@ -246,12 +246,12 @@ export async function runTelemetryUninstall(options: UninstallOptions = {}): Pro
       }
     }
     if (purgeData) {
-      const config = loadTelemetryConfig()
-      const paths = telemetryPaths(resolveTelemetryDir(undefined, config))
+      const config = loadUsageConfig()
+      const paths = usagePaths(resolveUsageDir(undefined, config))
       const removed = purgeEvents(paths, { all: true })
       console.log(`已删除 ${removed} 条本地事件`)
     }
-    console.log("遥测已停用；如需彻底删除数据，重跑时加 --purge-data")
+    console.log("技能使用情况已停用；如需彻底删除数据，重跑时加 --purge-data")
   } catch (error) {
     if (isCancel(error)) {
       console.log("已取消，未修改任何文件")
@@ -262,13 +262,13 @@ export async function runTelemetryUninstall(options: UninstallOptions = {}): Pro
 }
 
 // 无参数菜单：每项执行后回到菜单，q 退出
-export async function runTelemetryMenu(): Promise<void> {
+export async function runUsageMenu(): Promise<void> {
   if (!requireTty()) return
   const { select, confirm } = await import("@inquirer/prompts")
   try {
     for (;;) {
       const action = await select<string>({
-        message: "技能遥测",
+        message: "技能使用情况",
         default: "status",
         choices: [
           { name: "查看状态", value: "status" },
@@ -282,24 +282,24 @@ export async function runTelemetryMenu(): Promise<void> {
       })
       if (action === "quit") return
       if (action === "status") {
-        const config = loadTelemetryConfig()
-        const dir = resolveTelemetryDir(undefined, config)
-        console.log(`遥测：${config.enabled ? "已开启" : "已关闭"}；数据目录：${dir}；配置：${telemetryConfigPath()}`)
+        const config = loadUsageConfig()
+        const dir = resolveUsageDir(undefined, config)
+        console.log(`技能使用情况：${config.enabled ? "已开启" : "已关闭"}；数据目录：${dir}；配置：${usageConfigPath()}`)
         continue
       }
       if (action === "stats") {
-        const config = loadTelemetryConfig()
-        const paths = telemetryPaths(resolveTelemetryDir(undefined, config))
+        const config = loadUsageConfig()
+        const paths = usagePaths(resolveUsageDir(undefined, config))
         const summary = summarize(readAllEvents(paths))
         console.log(`共 ${summary.total} 条；技能 ${summary.bySkill.length} 个`)
         for (const item of summary.bySkill.slice(0, 10)) console.log(`  ${item.skill}  ${item.count} 次`)
         continue
       }
       if (action === "toggle") {
-        const current = loadTelemetryConfig()
+        const current = loadUsageConfig()
         const enabled = await confirm({ message: `当前${current.enabled ? "已开启" : "已关闭"}，是否${current.enabled ? "关闭" : "开启"}？`, default: true })
         if (enabled) {
-          updateTelemetryConfig({ enabled: !current.enabled })
+          updateUsageConfig({ enabled: !current.enabled })
           console.log(current.enabled ? "已关闭" : "已开启")
         }
         continue
@@ -317,8 +317,8 @@ export async function runTelemetryMenu(): Promise<void> {
         const install = await confirm({ message: "是否为已检测的 Agent 安装 Hook？", default: false })
         if (install) {
           installHooks(detected)
-          updateTelemetryConfig({ agents: Object.fromEntries(detected.map((adapter) => [adapter.id, true])) })
-          console.log("Hook 已安装；采集总开关仍需 toolkit telemetry enable")
+          updateUsageConfig({ agents: Object.fromEntries(detected.map((adapter) => [adapter.id, true])) })
+          console.log("Hook 已安装；采集总开关仍需 toolkit usage enable")
         }
         continue
       }
@@ -327,8 +327,8 @@ export async function runTelemetryMenu(): Promise<void> {
         continue
       }
       if (action === "maintenance") {
-        console.log("导出：toolkit telemetry export --format jsonl --out events.jsonl")
-        console.log("清理：toolkit telemetry purge --older-than 180")
+        console.log("导出：toolkit usage export --format jsonl --out events.jsonl")
+        console.log("清理：toolkit usage purge --older-than 180")
         continue
       }
     }

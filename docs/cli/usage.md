@@ -1,23 +1,23 @@
 ---
-title: telemetry（技能使用遥测）
+title: usage（技能使用情况）
 ---
 
-# telemetry（技能使用遥测）
+# usage（技能使用情况）
 
 > 本地统计技能使用次数、会话与触发词；默认关闭，数据只留在本机。
 
 ## 常用命令
 
 ```bash
-toolkit telemetry init            # 初始化向导，默认保持关闭
-toolkit telemetry status
-toolkit telemetry enable
-toolkit telemetry sources --first-party on --third-party on
-toolkit telemetry skills --mode all
-toolkit telemetry capture --trigger on
-toolkit telemetry stats --since 30d
-toolkit telemetry top --limit 10
-toolkit telemetry doctor
+toolkit usage init            # 初始化向导，默认保持关闭
+toolkit usage status
+toolkit usage enable
+toolkit usage sources --first-party on --third-party on
+toolkit usage skills --mode all
+toolkit usage capture --trigger on
+toolkit usage stats --since 30d
+toolkit usage top --limit 10
+toolkit usage doctor
 ```
 
 ## 子命令与选项
@@ -58,11 +58,11 @@ toolkit telemetry doctor
 
 ## 边界与注意
 
-- 无参数执行 `toolkit telemetry` 进入交互菜单；非 TTY 打印帮助并以退出码 2 结束。
-- 非交互初始化用 `toolkit telemetry init --yes --preset recommended --agent trae`；`custom` / `advanced` 预设仍需交互。
+- 无参数执行 `toolkit usage` 进入交互菜单；非 TTY 打印帮助并以退出码 2 结束。
+- 非交互初始化用 `toolkit usage init --yes --preset recommended --agent trae`；`custom` / `advanced` 预设仍需交互。
 - 默认总开关、Agent、来源、技能范围、字段全部关闭；只开总开关不会产生记录。
-- `telemetry status` 汇总已安装 Hook、上传开关与最近 Hook 错误；`hooks status` 以本地时间显示各 Agent 最近触发记录。
-- Hook 安装与采集开启是两步：先 `hooks install`，再 `enable`。支持 Agent 与配置路径见 [Agent 接入](../telemetry/agents)。
+- `usage status` 汇总已安装 Hook、上传开关与最近 Hook 错误；`hooks status` 以本地时间显示各 Agent 最近触发记录。
+- Hook 安装与采集开启是两步：先 `hooks install`，再 `enable`。支持 Agent 与配置路径见 [Agent 接入](../usage/agents)。
 - `include` 空列表等同 `none`；`exclude` 只列出要排除的技能。
 - 触发词默认不采集；开启后截断 200 字并复用全局脱敏规则。
 - `export` 输出的是已落盘事件；触发词是否出现取决于采集开关。
@@ -71,4 +71,4 @@ toolkit telemetry doctor
 
 ## 相关页面
 
-- [技能遥测概览](../telemetry/) · [遥测配置](../telemetry/configuration) · [CLI 参考](../cli)
+- [技能使用情况概览](../usage/) · [使用情况配置](../usage/configuration) · [CLI 参考](../cli)

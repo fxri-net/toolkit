@@ -4,11 +4,11 @@ import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { writeFileAtomic } from "../write-atomic"
 import { getAdapter } from "./adapters"
-import { loadTelemetryConfig, resolveTelemetryDir } from "./config"
+import { loadUsageConfig, resolveUsageDir } from "./config"
 import { buildEvent, extractSkillArgs, extractSkillName, resolveSkillMeta } from "./event"
 import { shouldRecord } from "./filter"
-import { appendEvent, ensureDir, telemetryPaths } from "./store"
-import type { NormalizedHookEvent, TelemetryConfig, TelemetryOutcome } from "./types"
+import { appendEvent, ensureDir, usagePaths } from "./store"
+import type { NormalizedHookEvent, UsageConfig, UsageOutcome } from "./types"
 
 // 触发词缓存有效期：超过一天视为过期，避免读到陈旧会话
 const PROMPT_CACHE_TTL_MS = 24 * 60 * 60 * 1000
@@ -20,12 +20,12 @@ export interface HookActivity {
 }
 
 // Hook 活跃记录文件
-function hookActivityFile(paths: ReturnType<typeof telemetryPaths>): string {
+function hookActivityFile(paths: ReturnType<typeof usagePaths>): string {
   return join(paths.stateDir, "hooks.json")
 }
 
 // 读取 Hook 活跃记录：损坏按空记录处理
-export function readHookActivity(paths: ReturnType<typeof telemetryPaths>): Record<string, HookActivity> {
+export function readHookActivity(paths: ReturnType<typeof usagePaths>): Record<string, HookActivity> {
   const file = hookActivityFile(paths)
   if (!existsSync(file)) return {}
   try {
@@ -46,7 +46,7 @@ export function readHookActivity(paths: ReturnType<typeof telemetryPaths>): Reco
 }
 
 // 记录 Hook 最近触发：只在采集开启且事件已处理时调用
-export function recordHookActivity(paths: ReturnType<typeof telemetryPaths>, agent: string, status: string): void {
+export function recordHookActivity(paths: ReturnType<typeof usagePaths>, agent: string, status: string): void {
   const current = readHookActivity(paths)
   current[agent] = { lastTriggerAt: new Date().toISOString(), lastStatus: status }
   ensureDir(paths.stateDir)
@@ -54,7 +54,7 @@ export function recordHookActivity(paths: ReturnType<typeof telemetryPaths>, age
 }
 
 // 读取最近一条 Hook 错误：状态页展示用
-export function readLastHookError(paths: ReturnType<typeof telemetryPaths>): string | undefined {
+export function readLastHookError(paths: ReturnType<typeof usagePaths>): string | undefined {
   const file = join(paths.root, "hook-errors.log")
   if (!existsSync(file)) return undefined
   try {
@@ -74,23 +74,23 @@ export interface IngestResult {
 
 // 生成 Hook 命令：使用当前 Node 与 CLI 绝对路径，避免依赖 PATH
 export function buildHookCommand(agent: string, cliPath = process.argv[1], nodePath = process.execPath): string {
-  return `"${nodePath}" "${cliPath}" telemetry ingest --agent ${agent}`
+  return `"${nodePath}" "${cliPath}" usage ingest --agent ${agent}`
 }
 
 // 会话缓存文件：按 sessionId 哈希，避免路径中出现特殊字符
-function promptCacheFile(paths: ReturnType<typeof telemetryPaths>, sessionId: string): string {
+function promptCacheFile(paths: ReturnType<typeof usagePaths>, sessionId: string): string {
   const hash = createHash("sha256").update(sessionId).digest("hex").slice(0, 16)
   return join(paths.sessionsDir, `${hash}.json`)
 }
 
 // 写入触发词缓存：只缓存最近一次 prompt，供同会话后续 PostToolUse 使用
-export function writePromptCache(paths: ReturnType<typeof telemetryPaths>, sessionId: string, prompt: string): void {
+export function writePromptCache(paths: ReturnType<typeof usagePaths>, sessionId: string, prompt: string): void {
   ensureDir(paths.sessionsDir)
   writeFileAtomic(promptCacheFile(paths, sessionId), `${JSON.stringify({ sessionId, prompt, cachedAt: Date.now() })}\n`)
 }
 
 // 读取触发词缓存：不存在、损坏或过期都返回 undefined
-export function readPromptCache(paths: ReturnType<typeof telemetryPaths>, sessionId: string): string | undefined {
+export function readPromptCache(paths: ReturnType<typeof usagePaths>, sessionId: string): string | undefined {
   const file = promptCacheFile(paths, sessionId)
   if (!existsSync(file)) return undefined
   try {
@@ -106,7 +106,7 @@ export function readPromptCache(paths: ReturnType<typeof telemetryPaths>, sessio
 }
 
 // 从工具结果推断执行结果：字段口径因 Agent 而异，无法判断时返回 unknown
-export function extractOutcome(toolResponse: unknown): TelemetryOutcome {
+export function extractOutcome(toolResponse: unknown): UsageOutcome {
   if (typeof toolResponse !== "object" || toolResponse === null) return "unknown"
   const response = toolResponse as Record<string, unknown>
   if (response.is_error === true || response.success === false || typeof response.error === "string") return "failure"
@@ -123,7 +123,7 @@ function extractDuration(toolResponse: unknown): number | undefined {
 }
 
 // 处理已解析的 Hook 事件：UserPromptSubmit 只缓存，PostToolUse 才落盘
-export function processHookEvent(event: NormalizedHookEvent, config: TelemetryConfig, paths: ReturnType<typeof telemetryPaths>): IngestResult {
+export function processHookEvent(event: NormalizedHookEvent, config: UsageConfig, paths: ReturnType<typeof usagePaths>): IngestResult {
   if (!config.enabled) return { status: "disabled" }
   if (event.prompt !== undefined && event.toolName === undefined) {
     if (config.capture.triggerPrompt) writePromptCache(paths, event.sessionId, event.prompt)
@@ -154,7 +154,7 @@ export function processHookEvent(event: NormalizedHookEvent, config: TelemetryCo
 }
 
 // 写 Hook 错误日志：入口本身不能抛错，否则会变成阻断性错误
-export function logHookError(paths: ReturnType<typeof telemetryPaths>, message: string): void {
+export function logHookError(paths: ReturnType<typeof usagePaths>, message: string): void {
   try {
     ensureDir(paths.root)
     const file = join(paths.root, "hook-errors.log")
@@ -179,9 +179,9 @@ export async function readStdin(): Promise<string> {
 
 // CLI ingest：解析、处理、记录错误；退出码恒 0，避免阻断 Agent
 export async function ingestFromStdin(agentId: string): Promise<IngestResult> {
-  const config = loadTelemetryConfig()
+  const config = loadUsageConfig()
   // 数据目录按统一优先级解析，避免与其它命令不一致
-  const paths = telemetryPaths(resolveTelemetryDir(undefined, config))
+  const paths = usagePaths(resolveUsageDir(undefined, config))
   const adapter = getAdapter(agentId)
   if (!adapter) {
     logHookError(paths, `未知 Agent：${agentId}`)

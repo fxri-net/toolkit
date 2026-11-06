@@ -18,18 +18,18 @@ title: Agent 接入
 
 「需实测」表示配置路径与载荷字段按公开资料实现，尚未在真实环境验证；接入后先用 `hooks status` 与 `doctor` 核对。
 
-未列出的 Agent 可用 `telemetry import` 或 `telemetry log` 补录：
+未列出的 Agent 可用 `usage import` 或 `usage log` 补录：
 
 ```bash
-toolkit telemetry import --format transcript --file ~/.claude/projects/xxx.jsonl
-toolkit telemetry log --skill fxri-plan-to-task --session manual-1 --prompt "归档任务"
+toolkit usage import --format transcript --file ~/.claude/projects/xxx.jsonl
+toolkit usage log --skill fxri-plan-to-task --session manual-1 --prompt "归档任务"
 ```
 
 ## 安装与启用是两步
 
 ```bash
-toolkit telemetry hooks install --agent trae   # 只写 Hook 配置
-toolkit telemetry enable                        # 才打开采集总开关
+toolkit usage hooks install --agent trae   # 只写 Hook 配置
+toolkit usage enable                        # 才打开采集总开关
 ```
 
 未开启总开关时，Hook 即使被调用也直接退出，不写文件。`hooks install` 支持 `--dry-run` 预览，写前自动备份原配置；配置无法解析时不覆盖。
@@ -37,9 +37,9 @@ toolkit telemetry enable                        # 才打开采集总开关
 ## 管理 Hook
 
 ```bash
-toolkit telemetry hooks status
-toolkit telemetry hooks uninstall --agent trae
-toolkit telemetry uninstall --agent trae
+toolkit usage hooks status
+toolkit usage hooks uninstall --agent trae
+toolkit usage uninstall --agent trae
 ```
 
 `hooks status` 以本地时间显示最近触发时间与最近状态；`uninstall` 停用采集并移除本包 Hook，默认保留事件，`--purge-data` 才删除。Hook 错误写入数据目录的 `hook-errors.log`，只保留最近 200 行。
@@ -58,4 +58,5 @@ toolkit telemetry uninstall --agent trae
 
 - Hook 命令写入当前 Node 与 CLI 的绝对路径，不依赖 PATH。
 - Windows 下 Hook 由 PowerShell 执行，路径含空格时已用双引号包裹。
+- 旧版本安装的 Hook 仍指向 `telemetry` 命令，升级后不再生效；`hooks status` 与 `doctor` 会提示，重跑 `hooks install` 即替换为新命令。
 - transcript 的时间以导入时刻为准，不还原原始会话时间。

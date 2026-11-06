@@ -2,9 +2,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, isAbsolute, join } from "node:path"
 import { writeFileAtomic } from "../write-atomic"
-import { loadTelemetryConfig, resolveTelemetryDir, updateTelemetryConfig } from "./config"
-import { readAllEvents, telemetryPaths, type TelemetryPaths } from "./store"
-import type { SkillUsageEvent, TelemetryConfig, TelemetryUploadProtocol } from "./types"
+import { loadUsageConfig, resolveUsageDir, updateUsageConfig } from "./config"
+import { readAllEvents, usagePaths, type UsagePaths } from "./store"
+import type { SkillUsageEvent, UsageConfig, UsageUploadProtocol } from "./types"
 
 // 上传账本：记录已成功发送的 eventId，重试不重复
 interface UploadLedger {
@@ -19,18 +19,18 @@ export interface UploadResult {
   pending: number
   skipped: number
   dryRun: boolean
-  protocol: TelemetryUploadProtocol
+  protocol: UsageUploadProtocol
   endpoint: string
   preview?: unknown
 }
 
 // 账本路径
-function ledgerPath(paths: TelemetryPaths): string {
+function ledgerPath(paths: UsagePaths): string {
   return join(paths.root, "upload-ledger.json")
 }
 
 // 读取账本：损坏按空账本处理，最多导致一次重复上传
-function readLedger(paths: TelemetryPaths): UploadLedger {
+function readLedger(paths: UsagePaths): UploadLedger {
   const file = ledgerPath(paths)
   if (!existsSync(file)) return { schemaVersion: 1, updatedAt: new Date().toISOString(), sent: [] }
   try {
@@ -48,7 +48,7 @@ function readLedger(paths: TelemetryPaths): UploadLedger {
 }
 
 // 写入账本：原子写
-function writeLedger(paths: TelemetryPaths, ledger: UploadLedger): void {
+function writeLedger(paths: UsagePaths, ledger: UploadLedger): void {
   mkdirSync(paths.root, { recursive: true })
   writeFileAtomic(ledgerPath(paths), `${JSON.stringify(ledger, null, 2)}\n`)
 }
@@ -59,9 +59,9 @@ function isLocalHost(hostname: string): boolean {
 }
 
 // 校验端点：非本地地址必须 HTTPS，除非显式 allowInsecure
-export function validateUploadEndpoint(config: TelemetryConfig): URL | null {
+export function validateUploadEndpoint(config: UsageConfig): URL | null {
   const endpoint = config.upload.endpoint.trim()
-  if (!endpoint) throw new Error("未配置上传端点，先执行 toolkit telemetry upload setup")
+  if (!endpoint) throw new Error("未配置上传端点，先执行 toolkit usage upload setup")
   if (config.upload.protocol === "file") {
     const path = isAbsolute(endpoint) ? endpoint : join(process.cwd(), endpoint)
     return new URL(`file://${path.replace(/\\/g, "/")}`)
@@ -86,7 +86,7 @@ export function buildOtlpPayload(events: SkillUsageEvent[]): unknown {
         resource: { attributes: [{ key: "service.name", value: { stringValue: "@fxri/toolkit" } }] },
         scopeLogs: [
           {
-            scope: { name: "@fxri/toolkit.telemetry", version: "1" },
+            scope: { name: "@fxri/toolkit.usage", version: "1" },
             logRecords: events.map((event) => ({
               timeUnixNano: `${new Date(event.occurredAt).getTime()}000000`,
               body: { stringValue: JSON.stringify(event) },
@@ -126,10 +126,10 @@ async function postJson(endpoint: string, body: unknown, headers: Record<string,
 
 // 执行一次上传：dry-run 只返回预览，不发请求、不写账本
 export async function uploadOnce(options: { dryRun?: boolean; limit?: number } = {}): Promise<UploadResult> {
-  const config = loadTelemetryConfig()
-  if (!config.upload.enabled) throw new Error("上传未启用，先执行 toolkit telemetry upload setup")
+  const config = loadUsageConfig()
+  if (!config.upload.enabled) throw new Error("上传未启用，先执行 toolkit usage upload setup")
   // 数据目录与其它命令同源解析
-  const resolved = telemetryPaths(resolveTelemetryDir(undefined, config))
+  const resolved = usagePaths(resolveUsageDir(undefined, config))
   validateUploadEndpoint(config)
   const events = readAllEvents(resolved)
   const ledger = readLedger(resolved)
@@ -174,9 +174,9 @@ export async function uploadOnce(options: { dryRun?: boolean; limit?: number } =
 }
 
 // 上传状态：开关、端点、待上传与已发送数量
-export function uploadStatus(): { enabled: boolean; protocol: TelemetryUploadProtocol; endpoint: string; pending: number; sent: number } {
-  const config = loadTelemetryConfig()
-  const paths = telemetryPaths(resolveTelemetryDir(undefined, config))
+export function uploadStatus(): { enabled: boolean; protocol: UsageUploadProtocol; endpoint: string; pending: number; sent: number } {
+  const config = loadUsageConfig()
+  const paths = usagePaths(resolveUsageDir(undefined, config))
   const events = readAllEvents(paths)
   const sentIds = new Set(readLedger(paths).sent)
   const sent = events.filter((event) => sentIds.has(event.eventId)).length
@@ -229,8 +229,8 @@ function runNonInteractiveUploadSetup(options: UploadSetupOptions): void {
     process.exitCode = 1
     return
   }
-  const config = loadTelemetryConfig()
-  const next: TelemetryConfig = { ...config, upload: { ...config.upload, enabled: true, protocol, endpoint, headers } }
+  const config = loadUsageConfig()
+  const next: UsageConfig = { ...config, upload: { ...config.upload, enabled: true, protocol, endpoint, headers } }
   try {
     validateUploadEndpoint(next)
   } catch (error) {
@@ -238,8 +238,8 @@ function runNonInteractiveUploadSetup(options: UploadSetupOptions): void {
     process.exitCode = 1
     return
   }
-  updateTelemetryConfig({ upload: { enabled: true, protocol, endpoint, headers } })
-  console.log("上传已启用；先执行 toolkit telemetry upload --dry-run 预览载荷")
+  updateUsageConfig({ upload: { enabled: true, protocol, endpoint, headers } })
+  console.log("上传已启用；先执行 toolkit usage upload --dry-run 预览载荷")
 }
 
 // 上传配置向导：协议 → 端点 → 请求头 → 确认启用
@@ -249,19 +249,19 @@ export async function runUploadSetup(options: UploadSetupOptions = {}): Promise<
     return
   }
   if (!(process.stdin.isTTY && process.stdout.isTTY)) {
-    console.error("⚠️ 当前环境不支持交互，请直接编辑 ~/.toolkitrc.json 的 telemetry.upload 段")
+    console.error("⚠️ 当前环境不支持交互，请直接编辑 ~/.toolkitrc.json 的 usage.upload 段")
     process.exitCode = 2
     return
   }
   const { select, input, confirm } = await import("@inquirer/prompts")
   try {
-    const config = loadTelemetryConfig()
-    const protocol = await select<TelemetryUploadProtocol>({
+    const config = loadUsageConfig()
+    const protocol = await select<UsageUploadProtocol>({
       message: "上传协议",
       default: config.upload.protocol,
       choices: [
         { name: "Webhook（自定义 HTTP）", value: "webhook" },
-        { name: "OTLP/HTTP（OpenTelemetry）", value: "otlp-http" },
+        { name: "OTLP/HTTP（OpenUsage）", value: "otlp-http" },
         { name: "本地文件（追加 JSONL）", value: "file" },
       ],
     })
@@ -282,8 +282,8 @@ export async function runUploadSetup(options: UploadSetupOptions = {}): Promise<
       console.log("已取消，未修改任何配置")
       return
     }
-    updateTelemetryConfig({ upload: { enabled: true, protocol, endpoint, headers } })
-    console.log("上传已启用；先执行 toolkit telemetry upload --dry-run 预览载荷")
+    updateUsageConfig({ upload: { enabled: true, protocol, endpoint, headers } })
+    console.log("上传已启用；先执行 toolkit usage upload --dry-run 预览载荷")
   } catch (error) {
     if (error instanceof Error && (error.name === "ExitPromptError" || error.name === "AbortPromptError")) {
       console.log("已取消，未修改任何配置")

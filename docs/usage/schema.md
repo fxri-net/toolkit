@@ -59,5 +59,5 @@ title: 事件 Schema
 ## 兼容策略
 
 - 新增可选字段不升 `schemaVersion`。
-- 删除字段、改变字段含义或类型时升 `schemaVersion`，并提供 `telemetry import` 迁移说明。
+- 删除字段、改变字段含义或类型时升 `schemaVersion`，并提供 `usage import` 迁移说明。
 - 统计与上传消费方须忽略未知字段，不因新增字段失败。

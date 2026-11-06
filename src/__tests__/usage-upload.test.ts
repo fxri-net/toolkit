@@ -4,18 +4,18 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, w
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
-import { DEFAULT_TELEMETRY_CONFIG, normalizeTelemetryConfig } from "../telemetry/config"
-import { appendEvent, telemetryPaths } from "../telemetry/store"
-import { buildOtlpPayload, uploadOnce, uploadStatus, validateUploadEndpoint } from "../telemetry/upload"
-import type { SkillUsageEvent } from "../telemetry/types"
+import { DEFAULT_USAGE_CONFIG, normalizeUsageConfig } from "../usage/config"
+import { appendEvent, usagePaths } from "../usage/store"
+import { buildOtlpPayload, uploadOnce, uploadStatus, validateUploadEndpoint } from "../usage/upload"
+import type { SkillUsageEvent } from "../usage/types"
 
 // 临时现场
 let home = ""
 let dataDir = ""
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-telemetry-upload-home-"))
-  dataDir = mkdtempSync(join(tmpdir(), "tk-telemetry-upload-data-"))
+  home = mkdtempSync(join(tmpdir(), "tk-usage-upload-home-"))
+  dataDir = mkdtempSync(join(tmpdir(), "tk-usage-upload-data-"))
   setHomeDirForTest(home)
   resetToolkitConfigCache()
 })
@@ -33,7 +33,7 @@ function writeConfig(upload: Record<string, unknown>): void {
   writeFileSync(
     join(home, ".toolkitrc.json"),
     JSON.stringify({
-      telemetry: {
+      usage: {
         enabled: true,
         agents: { trae: true },
         sources: { firstParty: true, thirdParty: false, unmanaged: false },
@@ -62,17 +62,17 @@ function seedEvent(): SkillUsageEvent {
     originAdapter: "test",
     toolkitVersion: "0.0.0",
   }
-  appendEvent(telemetryPaths(dataDir), event, DEFAULT_TELEMETRY_CONFIG)
+  appendEvent(usagePaths(dataDir), event, DEFAULT_USAGE_CONFIG)
   return event
 }
 
 describe("上传端点校验", () => {
   it("非 localhost 必须 HTTPS，localhost 可用 HTTP", () => {
-    const base = normalizeTelemetryConfig({ upload: { enabled: true, protocol: "webhook", endpoint: "http://example.com/hook" } })
+    const base = normalizeUsageConfig({ upload: { enabled: true, protocol: "webhook", endpoint: "http://example.com/hook" } })
     expect(() => validateUploadEndpoint(base)).toThrow("HTTPS")
-    const local = normalizeTelemetryConfig({ upload: { enabled: true, protocol: "webhook", endpoint: "http://localhost:8080/hook" } })
+    const local = normalizeUsageConfig({ upload: { enabled: true, protocol: "webhook", endpoint: "http://localhost:8080/hook" } })
     expect(validateUploadEndpoint(local)?.hostname).toBe("localhost")
-    const secure = normalizeTelemetryConfig({ upload: { enabled: true, protocol: "webhook", endpoint: "https://example.com/hook" } })
+    const secure = normalizeUsageConfig({ upload: { enabled: true, protocol: "webhook", endpoint: "https://example.com/hook" } })
     expect(validateUploadEndpoint(secure)?.protocol).toBe("https:")
   })
 
@@ -126,8 +126,8 @@ describe("上传执行", () => {
 })
 
 describe("静态网络边界", () => {
-  it("除 upload.ts 外，遥测模块不出现网络调用", () => {
-    const root = join(process.cwd(), "src", "telemetry")
+  it("除 upload.ts 外，使用情况模块不出现网络调用", () => {
+    const root = join(process.cwd(), "src", "usage")
     const files: string[] = []
     const walk = (dir: string) => {
       for (const name of readdirSync(dir)) {

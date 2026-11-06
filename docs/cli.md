@@ -13,7 +13,7 @@
 | `toolkit conventions` | 规范载体：结构升级、表格归一、只读体检 | `upgrade` / `status` / `format` | [conventions](./cli/conventions) |
 | `toolkit changelog` | 多语言 CHANGELOG（封装 changesets） | `version` / `format` / `doc` | [changelog](./cli/changelog) |
 | `toolkit skills` | AI 技能分发：安装、状态、卸载、来源与版本 | `install` / `status` / `remove` / `sources` / `bump` | [skills](./cli/skills) |
-| `toolkit telemetry` | 技能使用遥测：开关、统计、导出与诊断（默认关闭） | `status` / `stats` / `export` / `doctor` | [telemetry](./cli/telemetry) |
+| `toolkit usage` | 技能使用情况：开关、统计、导出与诊断（默认关闭） | `status` / `stats` / `export` / `doctor` | [usage](./cli/usage) |
 | `toolkit config` | 配置分层只读体检 | `status` | [config](./cli/config) |
 | `toolkit docs` | 文档站主题校验与写入 | `theme` | [docs theme](./cli/docs-theme) |
 | `toolkit help` | 显示帮助 | — | — |
@@ -27,7 +27,7 @@
 | 新会话恢复 | `toolkit tasks --view all` + `toolkit conventions status` |
 | 发版 | `toolkit changelog version` → `pnpm verify` → 打标签发布 |
 | 技能升级 / 换装 | `toolkit skills status` → `toolkit skills install`（外部来源见 `skills sources`） |
-| 看技能用了多少次 | `toolkit telemetry stats` → `toolkit telemetry top` |
+| 看技能用了多少次 | `toolkit usage stats` → `toolkit usage top` |
 | 规范沉淀 | `toolkit conventions status` → `toolkit conventions upgrade` / `format` |
 | 排查配置 | `toolkit config status`（不打印配置值） |
 | 文档站主题漂移 | `toolkit docs theme --check` |

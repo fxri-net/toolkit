@@ -30,24 +30,27 @@ function backup(file: string): void {
   copyFileSync(file, `${file}.toolkit-backup-${Date.now()}`)
 }
 
+// 旧版命令片段：1.16.0 写入的 Hook 仍指向 telemetry，改名后失效，仅用于提示与清理
+const LEGACY_INGEST_PREFIX = "telemetry ingest --agent "
+
+// 当前版本的 ingest 命令片段
+function ingestNeedle(agent: string): string {
+  return `usage ingest --agent ${agent}`
+}
+
+// 旧版本的 ingest 命令片段
+function legacyIngestNeedle(agent: string): string {
+  return `${LEGACY_INGEST_PREFIX}${agent}`
+}
+
 // 判断配置中是否已有本包 ingest 命令
 export function hasIngestCommand(config: HookConfig, agent: string): boolean {
-  const needle = `telemetry ingest --agent ${agent}`
-  for (const groups of Object.values(config.hooks ?? {})) {
-    if (!Array.isArray(groups)) continue
-    for (const group of groups) {
-      if (!isPlainObject(group) || !Array.isArray(group.hooks)) continue
-      for (const hook of group.hooks) {
-        if (isPlainObject(hook) && typeof hook.command === "string" && hook.command.includes(needle)) return true
-      }
-    }
-  }
-  return false
+  return findIngestCommand(config, agent) !== undefined
 }
 
 // 取第一条本包命令：状态展示用
 export function findIngestCommand(config: HookConfig, agent: string): string | undefined {
-  const needle = `telemetry ingest --agent ${agent}`
+  const needle = ingestNeedle(agent)
   for (const groups of Object.values(config.hooks ?? {})) {
     if (!Array.isArray(groups)) continue
     for (const group of groups) {
@@ -60,11 +63,62 @@ export function findIngestCommand(config: HookConfig, agent: string): string | u
   return undefined
 }
 
+// 取第一条旧版命令：改名后用于提示用户重装 Hook
+export function findLegacyIngestCommand(config: HookConfig, agent: string): string | undefined {
+  const needle = legacyIngestNeedle(agent)
+  for (const groups of Object.values(config.hooks ?? {})) {
+    if (!Array.isArray(groups)) continue
+    for (const group of groups) {
+      if (!isPlainObject(group) || !Array.isArray(group.hooks)) continue
+      for (const hook of group.hooks) {
+        if (isPlainObject(hook) && typeof hook.command === "string" && hook.command.includes(needle)) return hook.command
+      }
+    }
+  }
+  return undefined
+}
+
+// 移除匹配指定片段的 Hook 定义与空组：返回移除条数
+function removeIngestCommands(config: HookConfig, needle: string): number {
+  let removed = 0
+  const hooks = isPlainObject(config.hooks) ? config.hooks : {}
+  for (const [event, groups] of Object.entries(hooks)) {
+    if (!Array.isArray(groups)) continue
+    const nextGroups: unknown[] = []
+    for (const group of groups) {
+      if (!isPlainObject(group) || !Array.isArray(group.hooks)) {
+        nextGroups.push(group)
+        continue
+      }
+      const remaining = group.hooks.filter((hook) => {
+        const matched = isPlainObject(hook) && typeof hook.command === "string" && hook.command.includes(needle)
+        if (matched) removed += 1
+        return !matched
+      })
+      if (remaining.length === group.hooks.length) {
+        nextGroups.push(group)
+      } else if (remaining.length > 0) {
+        nextGroups.push({ ...group, hooks: remaining })
+      }
+    }
+    if (nextGroups.length === 0) delete hooks[event]
+    else hooks[event] = nextGroups
+  }
+  config.hooks = hooks
+  return removed
+}
+
 // 安装标准 Hook：PostToolUse 与 UserPromptSubmit 各一组，已存在则幂等跳过
 export function installStandardHooks(file: string, agent: string, command: string, dryRun = false): HookInstallResult {
   const config = readHookConfig(file)
+  // 先清掉旧版 telemetry 命令，避免新旧两份 Hook 并存、旧命令反复失败
+  const legacyRemoved = removeIngestCommands(config, legacyIngestNeedle(agent))
   if (hasIngestCommand(config, agent)) {
-    return { agent, file, changed: false, command, dryRun }
+    if (legacyRemoved > 0 && !dryRun) {
+      backup(file)
+      writeFileAtomic(file, `${JSON.stringify(config, null, 2)}\n`)
+    }
+    return { agent, file, changed: legacyRemoved > 0, command, dryRun }
   }
   config.version = 1
   const hooks = isPlainObject(config.hooks) ? config.hooks : {}
@@ -87,35 +141,11 @@ export function installStandardHooks(file: string, agent: string, command: strin
   return { agent, file, changed: true, command, dryRun }
 }
 
-// 卸载标准 Hook：只移除包含本包 ingest 命令的 Hook 定义与空组
+// 卸载标准 Hook：同时清理新版与旧版命令，只移除本包条目与空组
 export function uninstallStandardHooks(file: string, agent: string): HookInstallResult {
   const config = readHookConfig(file)
-  const needle = `telemetry ingest --agent ${agent}`
-  let changed = false
-  const hooks = isPlainObject(config.hooks) ? config.hooks : {}
-  for (const [event, groups] of Object.entries(hooks)) {
-    if (!Array.isArray(groups)) continue
-    const nextGroups: unknown[] = []
-    for (const group of groups) {
-      if (!isPlainObject(group) || !Array.isArray(group.hooks)) {
-        nextGroups.push(group)
-        continue
-      }
-      const remaining = group.hooks.filter((hook) => {
-        const matched = isPlainObject(hook) && typeof hook.command === "string" && hook.command.includes(needle)
-        if (matched) changed = true
-        return !matched
-      })
-      if (remaining.length === group.hooks.length) {
-        nextGroups.push(group)
-      } else if (remaining.length > 0) {
-        nextGroups.push({ ...group, hooks: remaining })
-      }
-    }
-    if (nextGroups.length === 0) delete hooks[event]
-    else hooks[event] = nextGroups
-  }
-  config.hooks = hooks
+  const removed = removeIngestCommands(config, ingestNeedle(agent)) + removeIngestCommands(config, legacyIngestNeedle(agent))
+  const changed = removed > 0
   if (changed) {
     backup(file)
     writeFileAtomic(file, `${JSON.stringify(config, null, 2)}\n`)
@@ -123,12 +153,13 @@ export function uninstallStandardHooks(file: string, agent: string): HookInstall
   return { agent, file, changed, command: "", dryRun: false }
 }
 
-// 标准 Hook 状态：只看配置中是否存在本包命令
+// 标准 Hook 状态：检查新版命令，并单独报出旧版命令
 export function standardHookStatus(file: string, agent: string, displayName: string): HookStatus {
   try {
     const config = readHookConfig(file)
     const command = findIngestCommand(config, agent)
-    return { agent, displayName, file, installed: Boolean(command), command }
+    const legacyCommand = findLegacyIngestCommand(config, agent)
+    return { agent, displayName, file, installed: Boolean(command), command, legacyCommand }
   } catch (error) {
     return { agent, displayName, file, installed: false, lastError: (error as Error).message }
   }

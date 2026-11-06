@@ -30,46 +30,46 @@ describe("formatAuditReport", () => {
   it("有候选时输出对象、文件、类型与描述", () => {
     const output = formatAuditReport([
       {
-        object: "toolkit telemetry",
+        object: "toolkit usage",
         entries: [
-          { file: "a.md", type: "新增", text: "`toolkit telemetry` 命令域" },
-          { file: "b.md", type: "修复", text: "`toolkit telemetry` 统计错误" },
+          { file: "a.md", type: "新增", text: "`toolkit usage` 命令域" },
+          { file: "b.md", type: "修复", text: "`toolkit usage` 统计错误" },
         ],
       },
     ])
     expect(output).toContain("发现 1 组候选（只提示，不自动改写）：")
-    expect(output).toContain("- toolkit telemetry")
-    expect(output).toContain("a.md｜新增：`toolkit telemetry` 命令域")
-    expect(output).toContain("b.md｜修复：`toolkit telemetry` 统计错误")
+    expect(output).toContain("- toolkit usage")
+    expect(output).toContain("a.md｜新增：`toolkit usage` 命令域")
+    expect(output).toContain("b.md｜修复：`toolkit usage` 统计错误")
   })
 })
 
 describe("auditChangesets", () => {
   it("同对象新增与修复列为候选，不同对象不误报", () => {
     const dir = changesetDir({
-      "a.md": "---\n\"@fxri/toolkit\": minor\n---\n\n- 新增：`toolkit telemetry` 命令域\n",
-      "b.md": "---\n\"@fxri/toolkit\": patch\n---\n\n- 修复：`toolkit telemetry` 统计错误\n",
+      "a.md": "---\n\"@fxri/toolkit\": minor\n---\n\n- 新增：`toolkit usage` 命令域\n",
+      "b.md": "---\n\"@fxri/toolkit\": patch\n---\n\n- 修复：`toolkit usage` 统计错误\n",
       "c.md": "---\n\"@fxri/toolkit\": patch\n---\n\n- 修复：其他独立问题\n",
       "d.md": "---\n\"@fxri/toolkit\": patch\n---\n\n- 新增：无显式标识的描述\n",
     })
     const candidates = auditChangesets(dir)
     expect(candidates).toHaveLength(1)
-    expect(candidates[0]?.object).toBe("toolkit telemetry")
+    expect(candidates[0]?.object).toBe("toolkit usage")
     expect(candidates[0]?.entries.map((entry) => entry.type).sort()).toEqual(["修复", "新增"])
   })
 
   it("英文前缀归一后同样参与候选", () => {
     const dir = changesetDir({
-      "a.md": "---\n\"@fxri/toolkit\": minor\n---\n\n- Added: `toolkit telemetry` 命令域\n",
-      "b.md": "---\n\"@fxri/toolkit\": patch\n---\n\n- Fixed: `toolkit telemetry` 统计错误\n",
+      "a.md": "---\n\"@fxri/toolkit\": minor\n---\n\n- Added: `toolkit usage` 命令域\n",
+      "b.md": "---\n\"@fxri/toolkit\": patch\n---\n\n- Fixed: `toolkit usage` 统计错误\n",
     })
     expect(auditChangesets(dir)[0]?.entries.map((entry) => entry.type).sort()).toEqual(["修复", "新增"])
   })
 
   it("纯自然语言描述也能识别同对象候选", () => {
     const dir = changesetDir({
-      "a.md": "---\n\"@fxri/toolkit\": minor\n---\n\n- 新增：技能使用遥测支持本地统计\n",
-      "b.md": "---\n\"@fxri/toolkit\": patch\n---\n\n- 修复：技能使用遥测统计结果偶发重复\n",
+      "a.md": "---\n\"@fxri/toolkit\": minor\n---\n\n- 新增：技能使用情况支持本地统计\n",
+      "b.md": "---\n\"@fxri/toolkit\": patch\n---\n\n- 修复：技能使用情况统计结果偶发重复\n",
       "c.md": "---\n\"@fxri/toolkit\": patch\n---\n\n- 修复：登录超时时间过短\n",
     })
     const candidates = auditChangesets(dir)

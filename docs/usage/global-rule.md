@@ -7,16 +7,17 @@ title: 全局规则文案
 > 可复制到任意 Agent 的全局规则文件；toolkit 不自动修改用户规则文件。
 
 ```markdown
-## Skill usage telemetry（可选）
+## Skill usage（技能使用情况，可选）
 - 技能使用统计由 toolkit 的本地 Hook 自动记录；开启后无需手工补记，避免重复计数。
 - 记录默认只保存在本机，不会上传网络；上传需用户显式开启并配置端点。
-- 查看统计使用 `toolkit telemetry stats`；状态异常先运行 `toolkit telemetry doctor`。
-- 不要自行修改遥测文件或把导出内容上传到未授权地址。
+- 查看统计使用 `toolkit usage stats`；状态异常先运行 `toolkit usage doctor`。
+- 不要自行修改使用情况数据文件或把导出内容上传到未授权地址。
 ```
 
-同一份文本可由 `toolkit telemetry rule print` 输出，文档与命令同源，避免两处漂移。
+同一份文本可由 `toolkit usage rule print` 输出，文档与命令同源，避免两处漂移。
 
 ## 注意
 
 - 规则是薄壳，不包含具体 Agent 路径、事件字段或配置细节；这些随技能与 CLI 版本演进。
 - 是否启用仍由用户决定；不要因为规则存在就默认开启采集。
+- 已复制过旧版规则（含 `telemetry` 命令）的，请重新执行 `toolkit usage rule print` 覆盖。

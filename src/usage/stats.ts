@@ -4,8 +4,8 @@ import type {
   SessionUsageSummary,
   SkillUsageEvent,
   SkillUsageSummary,
-  TelemetryQuery,
-  TelemetrySummary,
+  UsageQuery,
+  UsageSummary,
   TriggerUsageSummary,
 } from "./types"
 
@@ -34,7 +34,7 @@ function eventTime(event: SkillUsageEvent): number {
 }
 
 // 过滤事件：按时间、Agent、来源、技能四类条件
-export function filterEvents(events: SkillUsageEvent[], query: TelemetryQuery = {}): SkillUsageEvent[] {
+export function filterEvents(events: SkillUsageEvent[], query: UsageQuery = {}): SkillUsageEvent[] {
   const since = query.since?.getTime()
   return events.filter((event) => {
     if (since !== undefined && eventTime(event) < since) return false
@@ -46,7 +46,7 @@ export function filterEvents(events: SkillUsageEvent[], query: TelemetryQuery = 
 }
 
 // 汇总事件：输出按次数降序，次数相同按名称升序，保证结果稳定
-export function summarize(events: SkillUsageEvent[]): TelemetrySummary {
+export function summarize(events: SkillUsageEvent[]): UsageSummary {
   const skillMap = new Map<string, { count: number; sessions: Set<string>; version: string; source: SkillUsageEvent["skillSource"]; first: number; last: number }>()
   const agentMap = new Map<string, number>()
   const sourceMap = new Map<SkillUsageEvent["skillSource"], number>()

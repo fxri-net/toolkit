@@ -4,10 +4,10 @@ import { listPackageSkills, readSkillsState } from "../skills"
 import { redactText, resolveRedactEnabled } from "../privacy/redact"
 import type {
   SkillUsageEvent,
-  TelemetryConfig,
-  TelemetryEventInput,
-  TelemetrySkillMeta,
-  TelemetrySkillSource,
+  UsageConfig,
+  UsageEventInput,
+  UsageSkillMeta,
+  UsageSkillSource,
 } from "./types"
 
 // toolkit 版本：由 CLI 入口注入，库形态未注入时记为 unknown，避免事件构造依赖包路径
@@ -126,7 +126,7 @@ export function extractSkillArgs(toolInput: unknown): string | undefined {
 }
 
 // 解析技能元数据：包内清单判一方，状态文件中的非内置来源判第三方，其余为未托管
-export function resolveSkillMeta(skill: string): TelemetrySkillMeta {
+export function resolveSkillMeta(skill: string): UsageSkillMeta {
   try {
     const pkgSkill = listPackageSkills().find((item) => item.name === skill)
     if (pkgSkill) {
@@ -153,14 +153,14 @@ export function resolveSkillMeta(skill: string): TelemetrySkillMeta {
 }
 
 // 来源是否被配置开启
-function sourceEnabled(config: TelemetryConfig, source: TelemetrySkillSource): boolean {
+function sourceEnabled(config: UsageConfig, source: UsageSkillSource): boolean {
   if (source === "toolkit-first-party") return config.sources.firstParty
   if (source === "toolkit-third-party") return config.sources.thirdParty
   return config.sources.unmanaged
 }
 
 // 构造事件：字段开关只影响对应字段，不影响事件本身是否落盘
-export function buildEvent(input: TelemetryEventInput, config: TelemetryConfig): SkillUsageEvent {
+export function buildEvent(input: UsageEventInput, config: UsageConfig): SkillUsageEvent {
   const occurredAt = input.occurredAt ?? new Date()
   const meta = resolveSkillMeta(input.skill)
   const redactEnabled = resolveRedactEnabled(undefined)
@@ -191,6 +191,6 @@ export function buildEvent(input: TelemetryEventInput, config: TelemetryConfig):
 }
 
 // 供过滤层复用：来源开关判定
-export function isSourceEnabled(config: TelemetryConfig, source: TelemetrySkillSource): boolean {
+export function isSourceEnabled(config: UsageConfig, source: UsageSkillSource): boolean {
   return sourceEnabled(config, source)
 }

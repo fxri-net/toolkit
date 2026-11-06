@@ -5,13 +5,13 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
-import { claudeAdapter } from "../telemetry/adapters/claude"
-import { traeAdapter } from "../telemetry/adapters/trae"
-import { installStandardHooks, parseStandardEvent, uninstallStandardHooks } from "../telemetry/adapters/standard"
-import { DEFAULT_TELEMETRY_CONFIG } from "../telemetry/config"
-import { processHookEvent, readPromptCache } from "../telemetry/ingest"
-import { readAllEvents, telemetryPaths } from "../telemetry/store"
-import type { NormalizedHookEvent, TelemetryConfig } from "../telemetry/types"
+import { claudeAdapter } from "../usage/adapters/claude"
+import { traeAdapter } from "../usage/adapters/trae"
+import { installStandardHooks, parseStandardEvent, standardHookStatus, uninstallStandardHooks } from "../usage/adapters/standard"
+import { DEFAULT_USAGE_CONFIG } from "../usage/config"
+import { processHookEvent, readPromptCache } from "../usage/ingest"
+import { readAllEvents, usagePaths } from "../usage/store"
+import type { NormalizedHookEvent, UsageConfig } from "../usage/types"
 
 // 临时目录统一清理
 const tempDirs: string[] = []
@@ -30,9 +30,9 @@ afterEach(() => {
 })
 
 // 全开配置：Hook 事件可直接落盘
-function enabledConfig(): TelemetryConfig {
+function enabledConfig(): UsageConfig {
   return {
-    ...DEFAULT_TELEMETRY_CONFIG,
+    ...DEFAULT_USAGE_CONFIG,
     enabled: true,
     agents: { trae: true, claude: true },
     sources: { firstParty: true, thirdParty: true, unmanaged: true },
@@ -43,7 +43,7 @@ function enabledConfig(): TelemetryConfig {
 
 // 测试夹具绝对路径：ESM 下没有 __dirname
 function fixture(name: string): string {
-  return fileURLToPath(new URL(`./fixtures/telemetry/${name}`, import.meta.url))
+  return fileURLToPath(new URL(`./fixtures/usage/${name}`, import.meta.url))
 }
 
 describe("标准 Hook 事件解析", () => {
@@ -77,7 +77,7 @@ describe("Hook 配置安装与卸载", () => {
     const home = tempDir("tk-hook-home-")
     setHomeDirForTest(home)
     mkdirSync(join(home, ".trae-cn"), { recursive: true })
-    const command = `"node" "cli.js" telemetry ingest --agent trae`
+    const command = `"node" "cli.js" usage ingest --agent trae`
     const first = traeAdapter.installHooks({ command })
     expect(first.changed).toBe(true)
     const config = JSON.parse(readFileSync(join(home, ".trae-cn", "hooks.json"), "utf8"))
@@ -92,6 +92,30 @@ describe("Hook 配置安装与卸载", () => {
     expect(after.hooks.PostToolUse).toBeUndefined()
     expect(after.hooks.UserPromptSubmit).toBeUndefined()
     expect(traeAdapter.status().installed).toBe(false)
+  })
+
+  it("识别并清理旧版 telemetry Hook", () => {
+    const file = join(tempDir("tk-hook-legacy-"), "hooks.json")
+    const legacy = `"node" "cli.js" telemetry ingest --agent trae`
+    writeFileSync(
+      file,
+      JSON.stringify({
+        version: 1,
+        hooks: {
+          PostToolUse: [{ matcher: "*", hooks: [{ type: "command", command: legacy, timeout: 10 }] }],
+          UserPromptSubmit: [{ hooks: [{ type: "command", command: legacy, timeout: 10 }] }],
+        },
+      }),
+      "utf8",
+    )
+    const status = standardHookStatus(file, "trae", "Trae")
+    expect(status.installed).toBe(false)
+    expect(status.legacyCommand).toContain("telemetry ingest")
+    expect(installStandardHooks(file, "trae", `"node" "cli.js" usage ingest --agent trae`).changed).toBe(true)
+    const text = JSON.stringify(JSON.parse(readFileSync(file, "utf8")))
+    expect(text).not.toContain("telemetry ingest")
+    expect(text).toContain("usage ingest")
+    expect(standardHookStatus(file, "trae", "Trae").legacyCommand).toBeUndefined()
   })
 
   it("非法 JSON 不覆盖原文件", () => {
@@ -109,7 +133,7 @@ describe("Hook 配置安装与卸载", () => {
     mkdirSync(join(home, ".claude"), { recursive: true })
     const file = join(home, ".claude", "settings.json")
     writeFileSync(file, JSON.stringify({ permissions: { allow: ["Read"] } }), "utf8")
-    claudeAdapter.installHooks({ command: `"node" "cli.js" telemetry ingest --agent claude` })
+    claudeAdapter.installHooks({ command: `"node" "cli.js" usage ingest --agent claude` })
     const config = JSON.parse(readFileSync(file, "utf8"))
     expect(config.permissions.allow).toEqual(["Read"])
     expect(config.hooks.PostToolUse).toHaveLength(1)
@@ -120,7 +144,7 @@ describe("Hook 配置安装与卸载", () => {
 describe("Hook 事件处理", () => {
   it("缓存触发词并在 PostToolUse 中写入事件", () => {
     const root = tempDir("tk-hook-ingest-")
-    const paths = telemetryPaths(root)
+    const paths = usagePaths(root)
     const config = enabledConfig()
     const promptEvent: NormalizedHookEvent = {
       agent: "trae",
@@ -154,7 +178,7 @@ describe("Hook 事件处理", () => {
 
   it("未启用时不写事件也不缓存触发词", () => {
     const root = tempDir("tk-hook-disabled-")
-    const paths = telemetryPaths(root)
+    const paths = usagePaths(root)
     const config = { ...enabledConfig(), enabled: false }
     const promptEvent: NormalizedHookEvent = { agent: "trae", sessionId: "s1", prompt: "x", originAdapter: "trae-hooks" }
     expect(processHookEvent(promptEvent, config, paths).status).toBe("disabled")

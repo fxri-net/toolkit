@@ -1,20 +1,20 @@
-// 遥测内核单测：默认关闭、过滤链、事件 ID、技能识别、存储去重与统计聚合
+// 使用情况内核单测：默认关闭、过滤链、事件 ID、技能识别、存储去重与统计聚合
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
-import { buildEvent, computeEventId, extractSkillName, resolveSkillMeta, toLocalIsoString } from "../telemetry/event"
-import { shouldRecord } from "../telemetry/filter"
-import { DEFAULT_TELEMETRY_CONFIG, loadTelemetryConfig, normalizeTelemetryConfig, resolveTelemetryDir, updateTelemetryConfig } from "../telemetry/config"
-import { appendEvent, dedupeStore, purgeEvents, readAllEvents, readIndex, telemetryPaths } from "../telemetry/store"
-import { eventsToCsv, filterEvents, parseSince, summarize, unusedSkills } from "../telemetry/stats"
-import type { SkillUsageEvent, TelemetryConfig } from "../telemetry/types"
+import { buildEvent, computeEventId, extractSkillName, resolveSkillMeta, toLocalIsoString } from "../usage/event"
+import { shouldRecord } from "../usage/filter"
+import { DEFAULT_USAGE_CONFIG, loadUsageConfig, normalizeUsageConfig, resetUsageConfigWarnings, resolveUsageDir, updateUsageConfig } from "../usage/config"
+import { appendEvent, dedupeStore, purgeEvents, readAllEvents, readIndex, usagePaths } from "../usage/store"
+import { eventsToCsv, filterEvents, parseSince, summarize, unusedSkills } from "../usage/stats"
+import type { SkillUsageEvent, UsageConfig } from "../usage/types"
 
 // 造一个全开配置：便于测试过滤链与事件字段
-function enabledConfig(patch: Partial<TelemetryConfig> = {}): TelemetryConfig {
+function enabledConfig(patch: Partial<UsageConfig> = {}): UsageConfig {
   return {
-    ...DEFAULT_TELEMETRY_CONFIG,
+    ...DEFAULT_USAGE_CONFIG,
     enabled: true,
     agents: { trae: true },
     sources: { firstParty: true, thirdParty: true, unmanaged: true },
@@ -54,18 +54,20 @@ afterEach(() => {
   vi.restoreAllMocks()
   setHomeDirForTest(undefined)
   resetToolkitConfigCache()
+  resetUsageConfigWarnings()
+  delete process.env.TOOLKIT_TELEMETRY_DIR
   for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true })
 })
 
-describe("遥测配置", () => {
+describe("使用情况配置", () => {
   it("默认全部关闭，非法值回落默认", () => {
-    const defaults = normalizeTelemetryConfig(undefined)
+    const defaults = normalizeUsageConfig(undefined)
     expect(defaults.enabled).toBe(false)
     expect(defaults.skills.mode).toBe("none")
     expect(defaults.sources).toEqual({ firstParty: false, thirdParty: false, unmanaged: false })
 
     vi.spyOn(console, "warn").mockImplementation(() => {})
-    const parsed = normalizeTelemetryConfig({
+    const parsed = normalizeUsageConfig({
       enabled: "yes",
       agents: { trae: true, claude: "on" },
       sources: { firstParty: true },
@@ -81,25 +83,44 @@ describe("遥测配置", () => {
     expect(parsed.storage.retentionDays).toBe(180)
   })
 
-  it("只读全局层，并能写回 telemetry 段", () => {
-    const home = tempDir("tk-telemetry-home-")
+  it("只读全局层，并能写回 usage 段", () => {
+    const home = tempDir("tk-usage-home-")
     setHomeDirForTest(home)
     resetToolkitConfigCache()
-    writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ tasks: { dir: "tasks" }, telemetry: { enabled: true } }), "utf8")
-    const config = loadTelemetryConfig()
+    writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ tasks: { dir: "tasks" }, usage: { enabled: true } }), "utf8")
+    const config = loadUsageConfig()
     expect(config.enabled).toBe(true)
-    updateTelemetryConfig({ sources: { firstParty: true } })
+    updateUsageConfig({ sources: { firstParty: true } })
     const raw = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
     expect(raw.tasks.dir).toBe("tasks")
-    expect(raw.telemetry.sources.firstParty).toBe(true)
-    expect(resolveTelemetryDir(undefined, config)).toBe(join(home, ".toolkit", "telemetry"))
+    expect(raw.usage.sources.firstParty).toBe(true)
+    expect(resolveUsageDir(undefined, config)).toBe(join(home, ".toolkit", "usage"))
+  })
+
+  it("旧版 telemetry 段、环境变量与数据目录只提示不生效", () => {
+    const home = tempDir("tk-usage-legacy-")
+    setHomeDirForTest(home)
+    resetToolkitConfigCache()
+    writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ telemetry: { enabled: true } }), "utf8")
+    mkdirSync(join(home, ".toolkit", "telemetry"), { recursive: true })
+    const warns: string[] = []
+    vi.spyOn(console, "warn").mockImplementation((message: unknown) => {
+      warns.push(String(message))
+    })
+    process.env.TOOLKIT_TELEMETRY_DIR = join(home, "legacy-env")
+    const config = loadUsageConfig()
+    expect(config.enabled).toBe(false)
+    expect(resolveUsageDir(undefined, config)).toBe(join(home, ".toolkit", "usage"))
+    expect(warns.join("\n")).toContain("telemetry 段")
+    expect(warns.join("\n")).toContain("TOOLKIT_TELEMETRY_DIR")
+    expect(warns.join("\n")).toContain("旧数据目录")
   })
 })
 
 describe("过滤链", () => {
   it("总开关、Agent、来源、技能范围逐层生效", () => {
     const meta = resolveSkillMeta("fxri-plan-to-task")
-    expect(shouldRecord(DEFAULT_TELEMETRY_CONFIG, "trae", meta)).toBe(false)
+    expect(shouldRecord(DEFAULT_USAGE_CONFIG, "trae", meta)).toBe(false)
     expect(shouldRecord(enabledConfig(), "cursor", meta)).toBe(false)
     expect(shouldRecord(enabledConfig({ sources: { firstParty: false, thirdParty: true, unmanaged: true } }), "trae", meta)).toBe(false)
     expect(shouldRecord(enabledConfig({ skills: { mode: "include", include: [], exclude: [] } }), "trae", meta)).toBe(false)
@@ -151,8 +172,8 @@ describe("事件构造", () => {
 
 describe("存储与统计", () => {
   it("追加写、事件 ID 去重、统计与导出", () => {
-    const root = tempDir("tk-telemetry-store-")
-    const paths = telemetryPaths(root)
+    const root = tempDir("tk-usage-store-")
+    const paths = usagePaths(root)
     const config = enabledConfig()
     const first = makeEvent({ eventId: "sha256:a", occurredAt: "2026-11-06T10:00:00.000+08:00" })
     const second = makeEvent({ eventId: "sha256:b", sessionId: "session-2", occurredAt: "2026-11-06T11:00:00.000+08:00" })
@@ -172,8 +193,8 @@ describe("存储与统计", () => {
   })
 
   it("去重、按保留期清理与全量清理", () => {
-    const root = tempDir("tk-telemetry-maintenance-")
-    const paths = telemetryPaths(root)
+    const root = tempDir("tk-usage-maintenance-")
+    const paths = usagePaths(root)
     mkdirSync(paths.eventsDir, { recursive: true })
     const duplicate = makeEvent({ eventId: "sha256:dup", occurredAt: "2020-01-01T00:00:00.000+08:00" })
     writeFileSync(join(paths.eventsDir, "2026-11.jsonl"), `${JSON.stringify(duplicate)}\n${JSON.stringify(duplicate)}\n`, "utf8")

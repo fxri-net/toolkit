@@ -17,6 +17,7 @@ export interface HookStatus {
   file: string
   installed: boolean
   command?: string
+  legacyCommand?: string
   lastError?: string
 }
 

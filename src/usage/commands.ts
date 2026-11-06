@@ -1,4 +1,4 @@
-// 遥测 CLI：配置开关、统计查询、导出导入、初始化向导与 Hook 管理
+// 使用情况 CLI：配置开关、统计查询、导出导入、初始化向导与 Hook 管理
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import type { Command } from "commander"
@@ -8,11 +8,11 @@ import { AGENT_ADAPTERS, resolveAdapters } from "./adapters"
 import { ingestFromStdin, processHookEvent, readHookActivity, readLastHookError } from "./ingest"
 import { parseTranscript } from "./transcript"
 import { runUploadSetup, uploadOnce, uploadStatus } from "./upload"
-import { installHooks, runTelemetryInitWizard, runTelemetryMenu, runTelemetryUninstall } from "./wizard"
+import { installHooks, runUsageInitWizard, runUsageMenu, runUsageUninstall } from "./wizard"
 import { buildEvent, resolveSkillMeta } from "./event"
 import { shouldRecord } from "./filter"
-import { loadTelemetryConfig, resolveTelemetryDir, telemetryConfigPath, updateTelemetryConfig } from "./config"
-import { TELEMETRY_GLOBAL_RULE } from "./rule"
+import { loadUsageConfig, resolveUsageDir, usageConfigPath, updateUsageConfig } from "./config"
+import { USAGE_GLOBAL_RULE } from "./rule"
 import { eventsToCsv, eventsToJsonl, filterEvents, parseSince, summarize, unusedSkills } from "./stats"
 import {
   appendEvent,
@@ -22,25 +22,25 @@ import {
   readAllEvents,
   readIndex,
   rebuildIndex,
-  telemetryPaths,
+  usagePaths,
 } from "./store"
-import type { SkillUsageEvent, TelemetryConfig, TelemetrySkillSource } from "./types"
+import type { SkillUsageEvent, UsageConfig, UsageSkillSource } from "./types"
 
 // 合法来源枚举：CLI 过滤与导入校验共用
-const SOURCE_VALUES: TelemetrySkillSource[] = ["toolkit-first-party", "toolkit-third-party", "unmanaged", "unknown"]
+const SOURCE_VALUES: UsageSkillSource[] = ["toolkit-first-party", "toolkit-third-party", "unmanaged", "unknown"]
 
 // 运行时上下文：配置、数据目录与路径集合一次算好，避免各命令重复解析
-interface TelemetryContext {
-  config: TelemetryConfig
+interface UsageContext {
+  config: UsageConfig
   dir: string
-  paths: ReturnType<typeof telemetryPaths>
+  paths: ReturnType<typeof usagePaths>
 }
 
 // 取当前上下文：--dir 只影响本次运行，不写配置
-function createContext(cliDir?: string): TelemetryContext {
-  const config = loadTelemetryConfig()
-  const dir = resolveTelemetryDir(cliDir, config)
-  return { config, dir, paths: telemetryPaths(dir) }
+function createContext(cliDir?: string): UsageContext {
+  const config = loadUsageConfig()
+  const dir = resolveUsageDir(cliDir, config)
+  return { config, dir, paths: usagePaths(dir) }
 }
 
 // 打印 JSON：沿用仓库统一的 schemaVersion 锚点
@@ -67,9 +67,9 @@ function parseOnOff(value: string | undefined, flag: string): boolean | null {
 }
 
 // 解析来源过滤：非法取值置退出码并返回 null
-function parseSource(value: string | undefined): TelemetrySkillSource | null {
+function parseSource(value: string | undefined): UsageSkillSource | null {
   if (value === undefined) return null
-  if ((SOURCE_VALUES as string[]).includes(value)) return value as TelemetrySkillSource
+  if ((SOURCE_VALUES as string[]).includes(value)) return value as UsageSkillSource
   console.error(`⚠️ --source 取值须为 ${SOURCE_VALUES.join(" / ")}`)
   process.exitCode = 1
   return null
@@ -92,9 +92,9 @@ function splitNames(value: string | undefined): string[] {
 }
 
 // 打印配置当前值：无参数时供各子命令回显
-function printConfig(config: TelemetryConfig, dir: string): void {
-  console.log(`遥测：${config.enabled ? "已开启" : "已关闭"}`)
-  console.log(`配置：${telemetryConfigPath()}`)
+function printConfig(config: UsageConfig, dir: string): void {
+  console.log(`技能使用情况：${config.enabled ? "已开启" : "已关闭"}`)
+  console.log(`配置：${usageConfigPath()}`)
   console.log(`数据目录：${dir}`)
   const agents = Object.entries(config.agents).filter(([, enabled]) => enabled).map(([name]) => name)
   console.log(`Agent：${agents.length > 0 ? agents.join("、") : "未开启"}`)
@@ -143,8 +143,8 @@ function normalizeImportedEvent(raw: unknown): SkillUsageEvent | null {
   if (typeof item.eventId !== "string" || typeof item.skill !== "string" || typeof item.agent !== "string") return null
   if (typeof item.sessionId !== "string" || typeof item.occurredAt !== "string") return null
   const meta = resolveSkillMeta(item.skill)
-  const source = SOURCE_VALUES.includes(item.skillSource as TelemetrySkillSource)
-    ? (item.skillSource as TelemetrySkillSource)
+  const source = SOURCE_VALUES.includes(item.skillSource as UsageSkillSource)
+    ? (item.skillSource as UsageSkillSource)
     : meta.source
   const event: SkillUsageEvent = {
     schemaVersion: 1,
@@ -213,41 +213,41 @@ function parseImportFile(file: string, format: string): SkillUsageEvent[] | null
   return events
 }
 
-// 注册 telemetry 命令域：所有子命令默认只读或显式写全局配置
-export function registerTelemetryCommands(program: Command): void {
-  const telemetry = program
-    .command("telemetry")
-    .description("技能使用遥测：本地统计、开关与导出（默认关闭，数据只留在本机）")
+// 注册 usage 命令域：所有子命令默认只读或显式写全局配置
+export function registerUsageCommands(program: Command): void {
+  const usage = program
+    .command("usage")
+    .description("技能使用情况：本地统计、开关与导出（默认关闭，数据只留在本机）")
 
   // 无参数：进入交互菜单；非 TTY 打印帮助并以退出码 2 结束
-  telemetry.action(async () => {
-    await runTelemetryMenu()
+  usage.action(async () => {
+    await runUsageMenu()
   })
 
   // 初始化向导：默认保持关闭，所有选择都有默认值；--yes 走非交互预设
-  telemetry
+  usage
     .command("init")
-    .description("初始化遥测：选择 Agent、来源、字段与存储（默认保持关闭）")
+    .description("初始化技能使用情况：选择 Agent、来源、字段与存储（默认保持关闭）")
     .option("--yes", "非交互执行，需配合 --preset 使用")
     .option("--preset <name>", "非交互预设：off / recommended / third-party")
     .option("--agent <names>", "非交互模式指定 Agent（逗号分隔）")
     .action(async (options: { yes?: boolean; preset?: string; agent?: string }) => {
-      await runTelemetryInitWizard(options)
+      await runUsageInitWizard(options)
     })
 
   // 卸载：停用采集、移除 Hook；默认保留数据
-  telemetry
+  usage
     .command("uninstall")
-    .description("停用遥测并卸载 Hook（默认保留本地事件）")
+    .description("停用技能使用情况并卸载 Hook（默认保留本地事件）")
     .option("--yes", "非交互执行")
     .option("--agent <names>", "只处理指定 Agent（逗号分隔）")
     .option("--purge-data", "同时删除本地事件")
     .action(async (options: { yes?: boolean; agent?: string; purgeData?: boolean }) => {
-      await runTelemetryUninstall(options)
+      await runUsageUninstall(options)
     })
 
   // Hook 内部入口：从 stdin 读取事件；stdout 保持为空，避免干扰 Agent
-  telemetry
+  usage
     .command("ingest")
     .description("内部命令：从 stdin 读取 Hook 事件")
     .requiredOption("--agent <id>", "Agent 适配器 id")
@@ -257,7 +257,7 @@ export function registerTelemetryCommands(program: Command): void {
     })
 
   // Hook 管理：安装 / 状态 / 卸载
-  const hooks = telemetry
+  const hooks = usage
     .command("hooks")
     .description("管理 Agent Hook（安装 / 状态 / 卸载）")
 
@@ -279,7 +279,7 @@ export function registerTelemetryCommands(program: Command): void {
         return
       }
       installHooks(adapters, Boolean(options.dryRun))
-      console.log("Hook 安装不等于开启采集；用 toolkit telemetry enable 打开总开关")
+      console.log("Hook 安装不等于开启采集；用 toolkit usage enable 打开总开关")
     })
 
   hooks
@@ -305,6 +305,9 @@ export function registerTelemetryCommands(program: Command): void {
         const status = adapter.status()
         console.log(`${adapter.displayName}：${status.installed ? "已安装" : "未安装"}｜${status.file}`)
         if (status.command) console.log(`  命令：${status.command}`)
+        if (status.legacyCommand) {
+          console.warn(`  ⚠️ 检测到旧版 Hook（telemetry 命令）已失效，请执行 toolkit usage hooks install --agent ${adapter.id}`)
+        }
         if (status.lastError) console.log(`  ⚠️ ${status.lastError}`)
         const last = activity[adapter.id]
         if (last) console.log(`  最近触发：${formatLocalTime(last.lastTriggerAt)}（${last.lastStatus}）`)
@@ -330,9 +333,9 @@ export function registerTelemetryCommands(program: Command): void {
     })
 
   // 状态：配置、目录与事件计数
-  telemetry
+  usage
     .command("status")
-    .description("查看遥测状态：开关、数据目录与事件计数")
+    .description("查看技能使用情况：开关、数据目录与事件计数")
     .option("--dir <path>", "本次使用的数据目录")
     .option("--format <format>", "输出格式（json）")
     .action((options: { dir?: string; format?: string }) => {
@@ -353,7 +356,7 @@ export function registerTelemetryCommands(program: Command): void {
       const lastHookError = readLastHookError(paths)
       const report = {
         enabled: config.enabled,
-        configFile: telemetryConfigPath(),
+        configFile: usageConfigPath(),
         dataDir: dir,
         eventFiles: files.length,
         events: events.length,
@@ -376,24 +379,24 @@ export function registerTelemetryCommands(program: Command): void {
     })
 
   // 总开关：开启前必须已有 Agent 与来源配置，否则记录仍为零
-  telemetry
+  usage
     .command("enable")
-    .description("开启遥测总开关（仍需配置 Agent、来源与技能范围）")
+    .description("开启技能使用情况总开关（仍需配置 Agent、来源与技能范围）")
     .action(() => {
-      updateTelemetryConfig({ enabled: true })
-      console.log("遥测已开启；用 telemetry sources / skills / hooks 配置采集范围")
+      updateUsageConfig({ enabled: true })
+      console.log("技能使用情况已开启；用 usage sources / skills / hooks 配置采集范围")
     })
 
-  telemetry
+  usage
     .command("disable")
-    .description("关闭遥测总开关（已记录数据保留）")
+    .description("关闭技能使用情况总开关（已记录数据保留）")
     .action(() => {
-      updateTelemetryConfig({ enabled: false })
-      console.log("遥测已关闭")
+      updateUsageConfig({ enabled: false })
+      console.log("技能使用情况已关闭")
     })
 
   // 来源开关：一方 / 第三方 / 未托管分别独立
-  telemetry
+  usage
     .command("sources")
     .description("查看或设置来源开关（first-party / third-party / unmanaged）")
     .option("--first-party <state>", "一方技能开关（on / off）")
@@ -412,14 +415,14 @@ export function registerTelemetryCommands(program: Command): void {
       if (first !== null) patch.firstParty = first
       if (third !== null) patch.thirdParty = third
       if (unmanaged !== null) patch.unmanaged = unmanaged
-      if (Object.keys(patch).length > 0) updateTelemetryConfig({ sources: patch })
+      if (Object.keys(patch).length > 0) updateUsageConfig({ sources: patch })
       const { config, dir } = createContext()
       if (options.format === "json") printJson({ sources: config.sources })
       else printConfig(config, dir)
     })
 
   // 技能范围：none / all / include / exclude
-  telemetry
+  usage
     .command("skills")
     .description("查看或设置技能统计范围（none / all / include / exclude）")
     .option("--mode <mode>", "统计模式：none / all / include / exclude")
@@ -428,7 +431,7 @@ export function registerTelemetryCommands(program: Command): void {
     .option("--format <format>", "输出格式（json）")
     .action((options: { mode?: string; add?: string; remove?: string; format?: string }) => {
       if (!assertJsonFormat(options.format)) return
-      const config = loadTelemetryConfig()
+      const config = loadUsageConfig()
       const mode = options.mode ?? config.skills.mode
       if (!["none", "all", "include", "exclude"].includes(mode)) {
         console.error("⚠️ --mode 取值须为 none / all / include / exclude")
@@ -440,9 +443,9 @@ export function registerTelemetryCommands(program: Command): void {
       const base = mode === "exclude" ? config.skills.exclude : config.skills.include
       const list = [...new Set([...base.filter((name) => !remove.has(name)), ...add])].sort()
       if (options.mode !== undefined || options.add !== undefined || options.remove !== undefined) {
-        updateTelemetryConfig({ skills: mode === "exclude" ? { mode, exclude: list } : { mode, include: list } })
+        updateUsageConfig({ skills: mode === "exclude" ? { mode, exclude: list } : { mode, include: list } })
       }
-      const next = loadTelemetryConfig()
+      const next = loadUsageConfig()
       if (options.format === "json") printJson({ skills: next.skills })
       else {
         const names = next.skills.mode === "exclude" ? next.skills.exclude : next.skills.include
@@ -451,7 +454,7 @@ export function registerTelemetryCommands(program: Command): void {
     })
 
   // 字段开关：触发词 / 参数 / 结果默认全部关闭
-  telemetry
+  usage
     .command("capture")
     .description("查看或设置采集字段（trigger / args / outcome）")
     .option("--trigger <state>", "触发词采集（on / off）")
@@ -470,14 +473,14 @@ export function registerTelemetryCommands(program: Command): void {
       if (trigger !== null) patch.triggerPrompt = trigger
       if (args !== null) patch.skillArgs = args
       if (outcome !== null) patch.outcome = outcome
-      if (Object.keys(patch).length > 0) updateTelemetryConfig({ capture: patch })
-      const config = loadTelemetryConfig()
+      if (Object.keys(patch).length > 0) updateUsageConfig({ capture: patch })
+      const config = loadUsageConfig()
       if (options.format === "json") printJson({ capture: config.capture })
       else console.log(`触发词：${config.capture.triggerPrompt ? "开" : "关"}；参数：${config.capture.skillArgs ? "开" : "关"}；结果：${config.capture.outcome ? "开" : "关"}`)
     })
 
   // 存储：目录 / 轮转 / 保留期 / 单文件上限
-  telemetry
+  usage
     .command("storage")
     .description("查看或设置本地存储（目录 / 轮转 / 保留期 / 单文件上限）")
     .option("--dir <path>", "数据目录")
@@ -515,14 +518,14 @@ export function registerTelemetryCommands(program: Command): void {
         }
         patch.maxFileBytes = bytes
       }
-      if (Object.keys(patch).length > 0) updateTelemetryConfig({ storage: patch })
-      const config = loadTelemetryConfig()
+      if (Object.keys(patch).length > 0) updateUsageConfig({ storage: patch })
+      const config = loadUsageConfig()
       if (options.format === "json") printJson({ storage: config.storage })
-      else printConfig(config, resolveTelemetryDir(undefined, config))
+      else printConfig(config, resolveUsageDir(undefined, config))
     })
 
   // 可选上传：默认关闭；配置向导、状态与手工发送
-  const upload = telemetry.command("upload").description("可选上传（默认关闭；需显式配置端点）")
+  const upload = usage.command("upload").description("可选上传（默认关闭；需显式配置端点）")
   upload
     .command("setup")
     .description("上传配置向导：协议、端点、请求头与启用确认")
@@ -583,7 +586,7 @@ export function registerTelemetryCommands(program: Command): void {
     })
 
   // 统计：按技能 / Agent / 来源聚合
-  telemetry
+  usage
     .command("stats")
     .description("技能使用统计（默认全部事件）")
     .option("--since <value>", "起始时间：30d / 24h / 60m / YYYY-MM-DD")
@@ -610,11 +613,11 @@ export function registerTelemetryCommands(program: Command): void {
       }
       printSkillSummary(events)
       if (unused) console.log(`零使用技能：${unused.length > 0 ? unused.join("、") : "无"}`)
-      if (!config.enabled) console.log("提示：遥测当前处于关闭状态")
+      if (!config.enabled) console.log("提示：技能使用情况当前处于关闭状态")
     })
 
   // Top：只输出技能排行
-  telemetry
+  usage
     .command("top")
     .description("按使用次数列出技能排行")
     .option("--limit <count>", "显示条数（默认 10）")
@@ -639,7 +642,7 @@ export function registerTelemetryCommands(program: Command): void {
     })
 
   // 会话：列出使用技能的会话
-  telemetry
+  usage
     .command("sessions")
     .description("按会话列出技能使用情况")
     .option("--since <value>", "起始时间")
@@ -666,7 +669,7 @@ export function registerTelemetryCommands(program: Command): void {
     })
 
   // 触发词：默认脱敏展示
-  telemetry
+  usage
     .command("triggers")
     .description("按触发词查看技能使用（需开启 capture.triggerPrompt）")
     .option("--skill <name>", "按技能过滤")
@@ -687,7 +690,7 @@ export function registerTelemetryCommands(program: Command): void {
     })
 
   // 导出：CSV / JSON / JSONL
-  telemetry
+  usage
     .command("export")
     .description("导出事件（csv / json / jsonl）")
     .option("--format <format>", "导出格式：csv / json / jsonl（默认 json）")
@@ -717,7 +720,7 @@ export function registerTelemetryCommands(program: Command): void {
     })
 
   // 导入：JSON / JSONL / transcript；transcript 从 Claude 或通用会话记录提取 tool_use
-  telemetry
+  usage
     .command("import")
     .description("导入事件（json / jsonl / transcript）")
     .option("--format <format>", "导入格式：json / jsonl / transcript（默认 jsonl）")
@@ -777,7 +780,7 @@ export function registerTelemetryCommands(program: Command): void {
     })
 
   // 手工补录：没有 Hook 的 Agent 使用
-  telemetry
+  usage
     .command("log")
     .description("手工补录一次技能使用")
     .requiredOption("--skill <name>", "技能名")
@@ -792,7 +795,7 @@ export function registerTelemetryCommands(program: Command): void {
     .action((options: { skill: string; session: string; agent?: string; toolUse?: string; prompt?: string; args?: string; outcome?: string; dir?: string; dryRun?: boolean }) => {
       const { config, paths } = createContext(options.dir)
       if (!config.enabled) {
-        console.error("⚠️ 遥测未启用，未写入；先执行 toolkit telemetry enable")
+        console.error("⚠️ 技能使用情况未启用，未写入；先执行 toolkit usage enable")
         process.exitCode = 1
         return
       }
@@ -830,7 +833,7 @@ export function registerTelemetryCommands(program: Command): void {
     })
 
   // 去重：压缩历史重复行并重建索引
-  telemetry
+  usage
     .command("dedupe")
     .description("压缩历史重复事件并重建索引")
     .option("--dir <path>", "本次使用的数据目录")
@@ -841,7 +844,7 @@ export function registerTelemetryCommands(program: Command): void {
     })
 
   // 清理：按保留期或全部删除
-  telemetry
+  usage
     .command("purge")
     .description("清理本地事件（按保留期或全部）")
     .option("--older-than <days>", "删除早于指定天数的记录（缺省用配置保留期）")
@@ -863,9 +866,9 @@ export function registerTelemetryCommands(program: Command): void {
     })
 
   // 诊断：目录、索引、重复与配置边界
-  telemetry
+  usage
     .command("doctor")
-    .description("诊断遥测目录、索引与重复事件")
+    .description("诊断技能使用情况目录、索引与重复事件")
     .option("--dir <path>", "本次使用的数据目录")
     .option("--format <format>", "输出格式（json）")
     .action((options: { dir?: string; format?: string }) => {
@@ -890,7 +893,16 @@ export function registerTelemetryCommands(program: Command): void {
       }
       if (events.length !== unique.size) issues.push(`存在 ${events.length - unique.size} 条重复事件，可执行 dedupe`)
       if (crossAdapters > 0) issues.push(`存在 ${crossAdapters} 组跨适配器重复调用，可执行 dedupe`)
-      if (!config.enabled) issues.push("遥测总开关处于关闭状态")
+      if (!config.enabled) issues.push("技能使用情况总开关处于关闭状态")
+      for (const adapter of AGENT_ADAPTERS) {
+        try {
+          if (adapter.status().legacyCommand) {
+            issues.push(`${adapter.displayName} 的 Hook 仍指向旧命令 telemetry，已失效，请重跑 toolkit usage hooks install --agent ${adapter.id}`)
+          }
+        } catch {
+          // 配置读取失败由 usage hooks status 展示，doctor 不重复报错
+        }
+      }
       const report = { dataDir: dir, events: events.length, unique: unique.size, indexed: index.eventIds.length, crossAdapters, issues }
       if (options.format === "json") {
         printJson(report)
@@ -903,21 +915,21 @@ export function registerTelemetryCommands(program: Command): void {
     })
 
   // 规则文案：供用户复制到全局规则
-  telemetry
+  usage
     .command("rule")
     .description("输出可复制的全局规则文案")
     .argument("[action]", "动作：print", "print")
     .action((action: string) => {
       if (action !== "print") {
-        console.error("⚠️ 仅支持 telemetry rule print")
+        console.error("⚠️ 仅支持 usage rule print")
         process.exitCode = 1
         return
       }
-      console.log(TELEMETRY_GLOBAL_RULE)
+      console.log(USAGE_GLOBAL_RULE)
     })
 
   // 索引重建：doctor 提示后使用
-  telemetry
+  usage
     .command("rebuild")
     .description("从事件文件重建索引")
     .option("--dir <path>", "本次使用的数据目录")

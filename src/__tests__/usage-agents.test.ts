@@ -4,13 +4,13 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { codexAdapter } from "../telemetry/adapters/codex"
-import { copilotAdapter } from "../telemetry/adapters/copilot"
-import { cursorAdapter } from "../telemetry/adapters/cursor"
-import { DEFAULT_TELEMETRY_CONFIG } from "../telemetry/config"
-import { appendEvent, dedupeStore, readAllEvents, telemetryPaths } from "../telemetry/store"
-import { parseTranscript } from "../telemetry/transcript"
-import type { SkillUsageEvent } from "../telemetry/types"
+import { codexAdapter } from "../usage/adapters/codex"
+import { copilotAdapter } from "../usage/adapters/copilot"
+import { cursorAdapter } from "../usage/adapters/cursor"
+import { DEFAULT_USAGE_CONFIG } from "../usage/config"
+import { appendEvent, dedupeStore, readAllEvents, usagePaths } from "../usage/store"
+import { parseTranscript } from "../usage/transcript"
+import type { SkillUsageEvent } from "../usage/types"
 
 // 临时目录统一清理
 const tempDirs: string[] = []
@@ -27,7 +27,7 @@ afterEach(() => {
 
 // 夹具路径：ESM 下没有 __dirname
 function fixture(name: string): string {
-  return fileURLToPath(new URL(`./fixtures/telemetry/${name}`, import.meta.url))
+  return fileURLToPath(new URL(`./fixtures/usage/${name}`, import.meta.url))
 }
 
 // 造一条最小事件
@@ -73,8 +73,8 @@ describe("多 Agent 适配", () => {
 
 describe("跨适配器去重", () => {
   it("同一 session + toolUseId 被不同 Agent 捕获时只保留首条", () => {
-    const paths = telemetryPaths(tempDir("tk-telemetry-agents-"))
-    const config = DEFAULT_TELEMETRY_CONFIG
+    const paths = usagePaths(tempDir("tk-usage-agents-"))
+    const config = DEFAULT_USAGE_CONFIG
     const first = makeEvent({ eventId: "sha256:a", agent: "trae", sessionId: "s1", toolUseId: "t1" })
     const second = makeEvent({ eventId: "sha256:b", agent: "claude", sessionId: "s1", toolUseId: "t1" })
     expect(appendEvent(paths, first, config).written).toBe(true)
@@ -83,8 +83,8 @@ describe("跨适配器去重", () => {
   })
 
   it("dedupe 清理历史跨适配器重复行", () => {
-    const root = tempDir("tk-telemetry-agents-dedupe-")
-    const paths = telemetryPaths(root)
+    const root = tempDir("tk-usage-agents-dedupe-")
+    const paths = usagePaths(root)
     const dir = join(root, "events")
     mkdirSync(dir, { recursive: true })
     const first = makeEvent({ eventId: "sha256:a", agent: "trae", sessionId: "s1", toolUseId: "t1" })

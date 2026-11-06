@@ -1,14 +1,14 @@
-// 遥测 CLI 单测：命令注册、配置写入、统计查询、导出导入与 Hook 管理
+// 使用情况 CLI 单测：命令注册、配置写入、统计查询、导出导入与 Hook 管理
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { Command } from "commander"
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
-import { registerTelemetryCommands } from "../telemetry/commands"
-import { recordHookActivity } from "../telemetry/ingest"
-import { readAllEvents, telemetryPaths } from "../telemetry/store"
-import type { SkillUsageEvent } from "../telemetry/types"
+import { registerUsageCommands } from "../usage/commands"
+import { recordHookActivity } from "../usage/ingest"
+import { readAllEvents, usagePaths } from "../usage/store"
+import type { SkillUsageEvent } from "../usage/types"
 
 // 临时目录与输出缓存
 let home = ""
@@ -16,15 +16,15 @@ let dataDir = ""
 let logs: string[] = []
 let errors: string[] = []
 
-// 初始化现场：全局配置启用遥测，数据目录指向临时目录
+// 初始化现场：全局配置启用使用情况，数据目录指向临时目录
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-telemetry-cli-home-"))
-  dataDir = mkdtempSync(join(tmpdir(), "tk-telemetry-cli-data-"))
+  home = mkdtempSync(join(tmpdir(), "tk-usage-cli-home-"))
+  dataDir = mkdtempSync(join(tmpdir(), "tk-usage-cli-data-"))
   mkdirSync(join(home, ".trae-cn"), { recursive: true })
   writeFileSync(
     join(home, ".toolkitrc.json"),
     JSON.stringify({
-      telemetry: {
+      usage: {
         enabled: true,
         agents: { trae: true },
         sources: { firstParty: true, thirdParty: false, unmanaged: false },
@@ -52,11 +52,11 @@ afterEach(() => {
   rmSync(dataDir, { recursive: true, force: true })
 })
 
-// 执行 telemetry 子命令
+// 执行 usage 子命令
 async function run(args: string[]): Promise<void> {
   const program = new Command()
-  registerTelemetryCommands(program)
-  await program.parseAsync(["node", "toolkit", "telemetry", ...args])
+  registerUsageCommands(program)
+  await program.parseAsync(["node", "toolkit", "usage", ...args])
 }
 
 // 造一条可导入事件
@@ -76,7 +76,7 @@ function event(overrides: Partial<SkillUsageEvent> = {}): SkillUsageEvent {
   }
 }
 
-describe("telemetry CLI", () => {
+describe("usage CLI", () => {
   it("状态与开关命令回显并写全局配置", async () => {
     await run(["status", "--format", "json"])
     expect(logs.join("\n")).toContain('"enabled": true')
@@ -88,10 +88,10 @@ describe("telemetry CLI", () => {
     await run(["capture", "--trigger", "off"])
     await run(["storage", "--retention", "30"])
     const config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
-    expect(config.telemetry.sources.firstParty).toBe(false)
-    expect(config.telemetry.skills.mode).toBe("all")
-    expect(config.telemetry.capture.triggerPrompt).toBe(false)
-    expect(config.telemetry.storage.retentionDays).toBe(30)
+    expect(config.usage.sources.firstParty).toBe(false)
+    expect(config.usage.skills.mode).toBe("all")
+    expect(config.usage.capture.triggerPrompt).toBe(false)
+    expect(config.usage.storage.retentionDays).toBe(30)
   })
 
   it("补录、统计、导出、导入与清理", async () => {
@@ -111,16 +111,16 @@ describe("telemetry CLI", () => {
     const input = join(dataDir, "import.jsonl")
     writeFileSync(input, `${JSON.stringify(event())}\n`, "utf8")
     await run(["import", "--format", "jsonl", "--file", input])
-    expect(readAllEvents(telemetryPaths(dataDir))).toHaveLength(2)
+    expect(readAllEvents(usagePaths(dataDir))).toHaveLength(2)
 
     await run(["dedupe"])
     await run(["doctor", "--format", "json"])
     await run(["rebuild"])
     await run(["rule", "print"])
-    expect(logs.join("\n")).toContain("Skill usage telemetry")
+    expect(logs.join("\n")).toContain("Skill usage（技能使用情况，可选）")
 
     await run(["purge", "--all"])
-    expect(readAllEvents(telemetryPaths(dataDir))).toHaveLength(0)
+    expect(readAllEvents(usagePaths(dataDir))).toHaveLength(0)
   })
 
   it("Hook 安装、状态与卸载", async () => {
@@ -141,25 +141,25 @@ describe("telemetry CLI", () => {
   it("非交互初始化、上传配置与卸载", async () => {
     await run(["init", "--yes", "--preset", "recommended", "--agent", "trae"])
     let config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
-    expect(config.telemetry.enabled).toBe(true)
-    expect(config.telemetry.agents.trae).toBe(true)
-    expect(config.telemetry.sources.firstParty).toBe(true)
-    expect(readFileSync(join(home, ".trae-cn", "hooks.json"), "utf8")).toContain("telemetry ingest --agent trae")
+    expect(config.usage.enabled).toBe(true)
+    expect(config.usage.agents.trae).toBe(true)
+    expect(config.usage.sources.firstParty).toBe(true)
+    expect(readFileSync(join(home, ".trae-cn", "hooks.json"), "utf8")).toContain("usage ingest --agent trae")
 
     const endpoint = join(dataDir, "upload.jsonl")
     await run(["upload", "setup", "--yes", "--protocol", "file", "--endpoint", endpoint])
     config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
-    expect(config.telemetry.upload.enabled).toBe(true)
-    expect(config.telemetry.upload.protocol).toBe("file")
+    expect(config.usage.upload.enabled).toBe(true)
+    expect(config.usage.upload.protocol).toBe("file")
 
-    recordHookActivity(telemetryPaths(dataDir), "trae", "written")
+    recordHookActivity(usagePaths(dataDir), "trae", "written")
     logs = []
     await run(["hooks", "status", "--agent", "trae", "--dir", dataDir])
     expect(logs.join("\n")).toMatch(/最近触发：\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/)
 
     await run(["uninstall", "--yes", "--agent", "trae"])
     config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
-    expect(config.telemetry.enabled).toBe(false)
+    expect(config.usage.enabled).toBe(false)
     const hooks = JSON.parse(readFileSync(join(home, ".trae-cn", "hooks.json"), "utf8"))
     expect(hooks.hooks.PostToolUse).toBeUndefined()
   })

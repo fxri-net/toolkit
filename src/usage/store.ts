@@ -5,13 +5,13 @@ import { writeFileAtomic } from "../write-atomic"
 import type {
   AppendResult,
   SkillUsageEvent,
-  TelemetryConfig,
-  TelemetryIndex,
-  TelemetryRotation,
+  UsageConfig,
+  UsageIndex,
+  UsageRotation,
 } from "./types"
 
 // 存储路径集合：事件、会话状态与索引分目录存放
-export interface TelemetryPaths {
+export interface UsagePaths {
   root: string
   eventsDir: string
   stateDir: string
@@ -20,7 +20,7 @@ export interface TelemetryPaths {
 }
 
 // 计算存储路径：调用方已解析出根目录
-export function telemetryPaths(root: string): TelemetryPaths {
+export function usagePaths(root: string): UsagePaths {
   return {
     root,
     eventsDir: join(root, "events"),
@@ -42,7 +42,7 @@ function monthKey(date: Date): string {
 }
 
 // 事件文件名：按月 / 不轮转 / 按大小三种策略
-export function eventFileName(date: Date, rotation: TelemetryRotation, paths: TelemetryPaths, maxFileBytes: number): string {
+export function eventFileName(date: Date, rotation: UsageRotation, paths: UsagePaths, maxFileBytes: number): string {
   if (rotation === "none") return "events.jsonl"
   const base = `${monthKey(date)}.jsonl`
   if (rotation === "monthly") return base
@@ -62,7 +62,7 @@ export function eventFileName(date: Date, rotation: TelemetryRotation, paths: Te
 }
 
 // 事件文件列表：只认 .jsonl，按文件名升序
-export function listEventFiles(paths: TelemetryPaths): string[] {
+export function listEventFiles(paths: UsagePaths): string[] {
   if (!existsSync(paths.eventsDir)) return []
   return readdirSync(paths.eventsDir)
     .filter((name) => name.endsWith(".jsonl"))
@@ -86,7 +86,7 @@ function parseEventLine(line: string): SkillUsageEvent | null {
 }
 
 // 读取全部事件：按文件顺序拼接，重复事件由调用方按 eventId 去重
-export function readAllEvents(paths: TelemetryPaths): SkillUsageEvent[] {
+export function readAllEvents(paths: UsagePaths): SkillUsageEvent[] {
   const events: SkillUsageEvent[] = []
   for (const file of listEventFiles(paths)) {
     let content: string
@@ -104,7 +104,7 @@ export function readAllEvents(paths: TelemetryPaths): SkillUsageEvent[] {
 }
 
 // 空索引：文件不存在或损坏时使用
-function emptyIndex(): TelemetryIndex {
+function emptyIndex(): UsageIndex {
   return { schemaVersion: 1, updatedAt: new Date().toISOString(), eventIds: [], keys: [] }
 }
 
@@ -114,12 +114,12 @@ export function eventKey(event: SkillUsageEvent): string | null {
 }
 
 // 读取索引：损坏时返回空索引，由 doctor 提示重建
-export function readIndex(paths: TelemetryPaths): TelemetryIndex {
+export function readIndex(paths: UsagePaths): UsageIndex {
   if (!existsSync(paths.indexPath)) return emptyIndex()
   try {
     const parsed: unknown = JSON.parse(readFileSync(paths.indexPath, "utf8"))
     if (typeof parsed !== "object" || parsed === null) return emptyIndex()
-    const index = parsed as Partial<TelemetryIndex>
+    const index = parsed as Partial<UsageIndex>
     if (index.schemaVersion !== 1 || !Array.isArray(index.eventIds)) return emptyIndex()
     return {
       schemaVersion: 1,
@@ -133,13 +133,13 @@ export function readIndex(paths: TelemetryPaths): TelemetryIndex {
 }
 
 // 写入索引：原子写，避免半截文件
-export function writeIndex(paths: TelemetryPaths, index: TelemetryIndex): void {
+export function writeIndex(paths: UsagePaths, index: UsageIndex): void {
   ensureDir(paths.root)
   writeFileAtomic(paths.indexPath, `${JSON.stringify(index, null, 2)}\n`)
 }
 
 // 追加事件：先查索引去重，再写 JSONL，最后更新索引
-export function appendEvent(paths: TelemetryPaths, event: SkillUsageEvent, config: TelemetryConfig): AppendResult {
+export function appendEvent(paths: UsagePaths, event: SkillUsageEvent, config: UsageConfig): AppendResult {
   const index = readIndex(paths)
   const known = new Set(index.eventIds)
   const keys = new Set(index.keys ?? [])
@@ -159,7 +159,7 @@ export function appendEvent(paths: TelemetryPaths, event: SkillUsageEvent, confi
 }
 
 // 重建索引：按事件出现顺序保留每个 eventId 的首条
-export function rebuildIndex(paths: TelemetryPaths): number {
+export function rebuildIndex(paths: UsagePaths): number {
   const seen = new Set<string>()
   const keys = new Set<string>()
   const eventIds: string[] = []
@@ -175,7 +175,7 @@ export function rebuildIndex(paths: TelemetryPaths): number {
 }
 
 // 去重存储：每个事件文件内按 eventId 保留首条，删除重复行
-export function dedupeStore(paths: TelemetryPaths): number {
+export function dedupeStore(paths: UsagePaths): number {
   let removed = 0
   const seen = new Set<string>()
   const keys = new Set<string>()
@@ -209,7 +209,7 @@ export function dedupeStore(paths: TelemetryPaths): number {
 }
 
 // 清理事件：按保留期或全部删除；返回删除条数
-export function purgeEvents(paths: TelemetryPaths, options: { olderThanDays?: number; all?: boolean }): number {
+export function purgeEvents(paths: UsagePaths, options: { olderThanDays?: number; all?: boolean }): number {
   if (options.all) {
     let removed = 0
     for (const file of listEventFiles(paths)) {

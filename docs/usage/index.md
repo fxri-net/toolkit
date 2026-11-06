@@ -1,8 +1,8 @@
 ---
-title: 技能遥测概览
+title: 技能使用情况概览
 ---
 
-# 技能遥测概览
+# 技能使用情况概览
 
 > 统计技能在哪些会话、被哪句话触发、用了多少次；默认关闭，数据只留在本机。
 
@@ -22,7 +22,7 @@ title: 技能遥测概览
 | 技能范围 | `none` |
 | 触发词 / 参数 / 结果 | 全部不采集 |
 | 网络与上传 | 不联网、不上传 |
-| 存储位置 | `~/.toolkit/telemetry` |
+| 存储位置 | `~/.toolkit/usage` |
 | 轮转与保留 | 按月轮转、保留 180 天 |
 
 未开启时，Hook 即使被调用也直接退出，不写文件。
@@ -30,14 +30,14 @@ title: 技能遥测概览
 ## 快速开始
 
 ```bash
-toolkit telemetry status          # 查看当前开关与数据目录
-toolkit telemetry enable          # 打开总开关
-toolkit telemetry sources --first-party on
-toolkit telemetry skills --mode all
-toolkit telemetry stats           # 查看统计
+toolkit usage status          # 查看当前开关与数据目录
+toolkit usage enable          # 打开总开关
+toolkit usage sources --first-party on
+toolkit usage skills --mode all
+toolkit usage stats           # 查看统计
 ```
 
-首次使用建议直接跑 `toolkit telemetry init`，按向导选择 Agent、来源与字段；所有选项都有默认值，直接回车即可完成。
+首次使用建议直接跑 `toolkit usage init`，按向导选择 Agent、来源与字段；所有选项都有默认值，直接回车即可完成。
 
 ## 命令总览
 
@@ -57,11 +57,11 @@ toolkit telemetry stats           # 查看统计
 | `upload setup` / `status` / `--dry-run` / `--once` | 可选上传：默认关闭，需显式配置端点 |
 | `rule print` | 输出可复制的全局规则文案 |
 
-完整参数见 [CLI 参考 · telemetry](../cli/telemetry)，配置字段见 [遥测配置](./configuration)，数据边界见 [隐私与数据边界](./privacy)，事件结构见 [事件 Schema](./schema)。
+完整参数见 [CLI 参考 · usage](../cli/usage)，配置字段见 [使用情况配置](./configuration)，数据边界见 [隐私与数据边界](./privacy)，事件结构见 [事件 Schema](./schema)。
 
 ## 边界与注意
 
 - 历史会话无法自动补录，统计从启用时刻开始。
-- 没有 Hook 的 Agent 用 `telemetry import` 或 `telemetry log` 补录。
+- 没有 Hook 的 Agent 用 `usage import` 或 `usage log` 补录。
 - 上传默认关闭；开启后仍需显式配置端点与认证，详见 [隐私与数据边界](./privacy)。
 - 事件 schema 版本为 `1`，新增字段只增不改，详见 [事件 Schema](./schema)。
