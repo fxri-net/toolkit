@@ -890,7 +890,8 @@ skillsCmd
   .option("--agent <names>", "只写入指定 agent（逗号分隔，含 canonical；本机未检测到的跳过）")
   .option("--all-agents", "写入全部已检测的 agent")
   .option("--no-save-agents", "目标选择只对本次生效，不写回配置")
-  .option("--yes", "接受已保存的技能与目标选择，不进入交互（首次只装 core 与全部可用目标）")
+  .option("--yes", "非交互执行：跳过选择与确认，采用已保存选择（首次只装 core 与全部可用目标）")
+  .option("--use-saved", "技能与目标采用已保存选择，不进入选择交互（仍保留最终确认）")
   .option("--copy", "强制以副本形式写入（仅全局面生效；项目面真源恒为副本、其余目录恒为薄壳）")
   .option("--dir <path>", "额外目标目录（可多次指定，兜底内置表未收录的 agent；不参与后续自动同步，技能变化后需带相同 --dir 重跑）", collectDir, [])
   .option("--dry-run", "预演（只预览将要执行的动作，不写文件）")
@@ -899,7 +900,7 @@ skillsCmd
   .option("--mode <mode>", "技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）")
   .option("--no-skills", "本次不安装任何技能，不改模式与已保存选择")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
-  .action(async (options: { scope?: string; skills?: string; all?: boolean; optional?: boolean; from: string[]; save?: string | boolean; agent?: string; allAgents?: boolean; saveAgents?: boolean; yes?: boolean; copy?: boolean; dir: string[]; dryRun?: boolean; force?: boolean; prune?: boolean; mode?: string; format?: string }) => {
+  .action(async (options: { scope?: string; skills?: string; all?: boolean; optional?: boolean; from: string[]; save?: string | boolean; agent?: string; allAgents?: boolean; saveAgents?: boolean; yes?: boolean; useSaved?: boolean; copy?: boolean; dir: string[]; dryRun?: boolean; force?: boolean; prune?: boolean; mode?: string; format?: string }) => {
     try {
       if (!assertJsonFormat(options.format)) return
       const scope = resolveScopeChoice(options.scope)
@@ -926,6 +927,8 @@ skillsCmd
       const runGlobal = scope.choice !== "project"
       // JSON 消费方通常非 TTY；即使 TTY 也不弹窗，避免提示污染 stdout 的机器可读输出
       const nonInteractive = Boolean(options.yes) || options.format === "json"
+      // 选择阶段的非交互：--yes 或 --use-saved 都跳过选择提示；--use-saved 仍保留最终确认
+      const selectionNonInteractive = nonInteractive || Boolean(options.useSaved)
 
       const fromPaths = options.from ?? []
       if (options.save !== undefined && fromPaths.length !== 1) {
@@ -948,7 +951,7 @@ skillsCmd
       }
       // scope=all 时两面共用一次技能选择：以全局面已保存选择为基准，避免连弹两次交互
       const selectionResult = await resolveSkillSelection(
-        { ...options, skills: noSkills ? undefined : options.skills, noSkills, yes: nonInteractive },
+        { ...options, skills: noSkills ? undefined : options.skills, noSkills, yes: selectionNonInteractive },
         scope.choice === "project" ? "project" : "global",
         items,
       )
@@ -964,13 +967,13 @@ skillsCmd
       let globalTargets: string[] | undefined
       let projectTargets: string[] | undefined
       if (runGlobal) {
-        const chosen = await chooseGlobalTargets({ agent: options.agent, allAgents: options.allAgents, yes: nonInteractive, dir: options.dir })
+        const chosen = await chooseGlobalTargets({ agent: options.agent, allAgents: options.allAgents, yes: selectionNonInteractive, dir: options.dir })
         if (chosen === null) return
         globalTargets = chosen
       }
       if (runProject) {
         if (options.agent !== undefined || options.allAgents) console.warn("⚠️ --agent / --all-agents 仅作用于全局面，项目面按项目目录选择执行")
-        const chosen = await chooseProjectTargets({ dir: options.dir, yes: nonInteractive })
+        const chosen = await chooseProjectTargets({ dir: options.dir, yes: selectionNonInteractive })
         if (chosen === null) return
         projectTargets = chosen
       }

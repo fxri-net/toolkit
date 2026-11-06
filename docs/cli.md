@@ -12,8 +12,8 @@
 | `toolkit tasks` | 任务管理：总览、归档、校验、归一、统计、导入导出 | `archive` / `check` / `normalize` / `stats` | [tasks](./cli/tasks) |
 | `toolkit conventions` | 规范载体：结构升级、表格归一、只读体检 | `upgrade` / `status` / `format` | [conventions](./cli/conventions) |
 | `toolkit changelog` | 多语言 CHANGELOG（封装 changesets） | `version` / `format` / `doc` | [changelog](./cli/changelog) |
-| `toolkit skills` | AI 技能分发：安装、状态、卸载、来源与版本 | `install` / `status` / `remove` / `sources` / `bump` | [skills](./cli/skills) |
-| `toolkit usage` | 技能使用情况：开关、统计、导出与诊断（默认关闭） | `status` / `stats` / `export` / `doctor` | [usage](./cli/usage) |
+| `toolkit skills` | AI 技能分发：安装、状态、卸载、来源与版本 | `install` / `status` / `uninstall` / `sources` / `bump` | [skills](./cli/skills) |
+| `toolkit usage` | 技能使用情况：开关、统计、导出与诊断（默认关闭） | `info` / `stats` / `export` / `doctor` | [usage](./cli/usage) |
 | `toolkit config` | 配置分层只读体检 | `status` | [config](./cli/config) |
 | `toolkit docs` | 文档站主题校验与写入 | `theme` | [docs theme](./cli/docs-theme) |
 | `toolkit help` | 显示帮助 | — | — |
@@ -45,6 +45,8 @@
 
 `--redact` / `--warn` 为**域级开关**：仅 `tasks` 与 `changelog` 两个域支持（`init` / `skills` / `conventions` / `config` / `docs` 域不提供），清单见各域的选项表。
 
+**批量参数**：目标集合是命令主语时省略参数即全部（如 `skills sources refresh`）；否则须显式 `--all`（如 `usage purge --all`、`skills install --all`、`skills bump --all`）。
+
 开关为**双向三档**，优先级从高到低：CLI 参数 > 环境变量 > 配置文件 > 默认开启。对应环境变量：`FX_REDACT`、`FX_CHECK_WARN`（认 `0/1`、`true/false`、`on/off`、`yes/no`）；配置项见[配置参考](./config)。
 
 另有一个独立环境变量 `FX_NO_UPDATE_CHECK`：设为真值时关闭升级检查提示（1.7.0 起支持，行为详见[配置参考 · updateCheck](./config)）。
@@ -59,6 +61,8 @@
 | `1` | 操作失败或校验存在 error 级问题（check 有 error、参数冲突、非法子命令、文件/目录异常等） |
 
 软告警（warn 级）不影响退出码。解析错误的提示格式与 `changelog` 透传差异见[退出码与解析错误](./cli/exit-codes)。
+
+**诊断类命令语义**：`status` / `info` 只汇总现状，退出码恒 0；`doctor` 输出问题与修复建议，退出码恒 0；`check`（`tasks check`、`docs theme check`）发现问题时退出 1，可直接作为门禁步骤。
 
 ## 相关页面
 

@@ -56,14 +56,15 @@ function formatLocalTime(value: string): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
-// 解析 on/off：非法取值置退出码并返回 null
-function parseOnOff(value: string | undefined, flag: string): boolean | null {
-  if (value === undefined) return null
-  if (value === "on" || value === "true") return true
-  if (value === "off" || value === "false") return false
-  console.error(`⚠️ ${flag} 取值须为 on 或 off`)
-  process.exitCode = 1
-  return null
+// 解析 --older-than：只接受 30d / 24h / 60m，返回对应天数（保留小数，供保留期比较）
+function parseOlderThanDays(value: string): number | null {
+  const matched = /^(\d+)([dhm])$/.exec(value.trim())
+  if (!matched) return null
+  const amount = Number(matched[1])
+  if (!Number.isInteger(amount) || amount <= 0) return null
+  const unit = matched[2]
+  const ms = amount * (unit === "d" ? 86_400_000 : unit === "h" ? 3_600_000 : 60_000)
+  return ms / 86_400_000
 }
 
 // 解析来源过滤：非法取值置退出码并返回 null
@@ -241,8 +242,9 @@ export function registerUsageCommands(program: Command): void {
     .description("停用技能使用情况并卸载 Hook（默认保留本地事件）")
     .option("--yes", "非交互执行")
     .option("--agent <names>", "只处理指定 Agent（逗号分隔）")
-    .option("--purge-data", "同时删除本地事件")
-    .action(async (options: { yes?: boolean; agent?: string; purgeData?: boolean }) => {
+    .option("--purge", "同时删除本地事件")
+    .option("--dry-run", "只预览将停用的配置与将移除的 Hook，不写盘")
+    .action(async (options: { yes?: boolean; agent?: string; purge?: boolean; dryRun?: boolean }) => {
       await runUsageUninstall(options)
     })
 
@@ -399,22 +401,19 @@ export function registerUsageCommands(program: Command): void {
   usage
     .command("origins")
     .description("查看或设置来源开关（first-party / third-party / unmanaged）")
-    .option("--first-party <state>", "一方技能开关（on / off）")
-    .option("--third-party <state>", "第三方技能开关（on / off）")
-    .option("--unmanaged <state>", "未托管技能开关（on / off）")
+    .option("--first-party", "开启一方技能")
+    .option("--no-first-party", "关闭一方技能")
+    .option("--third-party", "开启第三方技能")
+    .option("--no-third-party", "关闭第三方技能")
+    .option("--unmanaged", "开启未托管技能")
+    .option("--no-unmanaged", "关闭未托管技能")
     .option("--format <format>", "输出格式（json）")
-    .action((options: { firstParty?: string; thirdParty?: string; unmanaged?: string; format?: string }) => {
+    .action((options: { firstParty?: boolean; thirdParty?: boolean; unmanaged?: boolean; format?: string }) => {
       if (!assertJsonFormat(options.format)) return
-      const first = parseOnOff(options.firstParty, "--first-party")
-      const third = parseOnOff(options.thirdParty, "--third-party")
-      const unmanaged = parseOnOff(options.unmanaged, "--unmanaged")
-      if (first === null && options.firstParty !== undefined) return
-      if (third === null && options.thirdParty !== undefined) return
-      if (unmanaged === null && options.unmanaged !== undefined) return
       const patch: Record<string, unknown> = {}
-      if (first !== null) patch.firstParty = first
-      if (third !== null) patch.thirdParty = third
-      if (unmanaged !== null) patch.unmanaged = unmanaged
+      if (options.firstParty !== undefined) patch.firstParty = options.firstParty
+      if (options.thirdParty !== undefined) patch.thirdParty = options.thirdParty
+      if (options.unmanaged !== undefined) patch.unmanaged = options.unmanaged
       if (Object.keys(patch).length > 0) updateUsageConfig({ sources: patch })
       const { config, dir } = createContext()
       if (options.format === "json") printJson({ sources: config.sources })
@@ -457,22 +456,19 @@ export function registerUsageCommands(program: Command): void {
   usage
     .command("capture")
     .description("查看或设置采集字段（trigger / args / outcome）")
-    .option("--trigger <state>", "触发词采集（on / off）")
-    .option("--args <state>", "技能参数采集（on / off）")
-    .option("--outcome <state>", "执行结果采集（on / off）")
+    .option("--trigger", "采集触发词")
+    .option("--no-trigger", "不采集触发词")
+    .option("--args", "采集技能参数")
+    .option("--no-args", "不采集技能参数")
+    .option("--outcome", "采集执行结果")
+    .option("--no-outcome", "不采集执行结果")
     .option("--format <format>", "输出格式（json）")
-    .action((options: { trigger?: string; args?: string; outcome?: string; format?: string }) => {
+    .action((options: { trigger?: boolean; args?: boolean; outcome?: boolean; format?: string }) => {
       if (!assertJsonFormat(options.format)) return
-      const trigger = parseOnOff(options.trigger, "--trigger")
-      const args = parseOnOff(options.args, "--args")
-      const outcome = parseOnOff(options.outcome, "--outcome")
-      if (trigger === null && options.trigger !== undefined) return
-      if (args === null && options.args !== undefined) return
-      if (outcome === null && options.outcome !== undefined) return
       const patch: Record<string, unknown> = {}
-      if (trigger !== null) patch.triggerPrompt = trigger
-      if (args !== null) patch.skillArgs = args
-      if (outcome !== null) patch.outcome = outcome
+      if (options.trigger !== undefined) patch.triggerPrompt = options.trigger
+      if (options.args !== undefined) patch.skillArgs = options.args
+      if (options.outcome !== undefined) patch.outcome = options.outcome
       if (Object.keys(patch).length > 0) updateUsageConfig({ capture: patch })
       const config = loadUsageConfig()
       if (options.format === "json") printJson({ capture: config.capture })
@@ -693,14 +689,14 @@ export function registerUsageCommands(program: Command): void {
   usage
     .command("export")
     .description("导出事件（csv / json / jsonl）")
-    .option("--format <format>", "导出格式：csv / json / jsonl（默认 json）")
+    .option("--type <format>", "导出格式：csv / json / jsonl（默认 json）")
     .option("--out <path>", "输出文件（缺省打印到 stdout）")
     .option("--since <value>", "起始时间")
     .option("--dir <path>", "本次使用的数据目录")
-    .action((options: { format?: string; out?: string; since?: string; dir?: string }) => {
-      const format = options.format ?? "json"
+    .action((options: { type?: string; out?: string; since?: string; dir?: string }) => {
+      const format = options.type ?? "json"
       if (!["csv", "json", "jsonl"].includes(format)) {
-        console.error("⚠️ --format 取值须为 csv / json / jsonl")
+        console.error("⚠️ --type 取值须为 csv / json / jsonl")
         process.exitCode = 1
         return
       }
@@ -723,15 +719,15 @@ export function registerUsageCommands(program: Command): void {
   usage
     .command("import")
     .description("导入事件（json / jsonl / transcript）")
-    .option("--format <format>", "导入格式：json / jsonl / transcript（默认 jsonl）")
+    .option("--type <format>", "导入格式：json / jsonl / transcript（默认 jsonl）")
     .option("--file <path>", "导入文件")
     .option("--agent <name>", "transcript 归属 Agent（默认 claude）")
     .option("--dir <path>", "本次使用的数据目录")
     .option("--dry-run", "只预览，不写入")
-    .action((options: { format?: string; file?: string; agent?: string; dir?: string; dryRun?: boolean }) => {
-      const format = options.format ?? "jsonl"
+    .action((options: { type?: string; file?: string; agent?: string; dir?: string; dryRun?: boolean }) => {
+      const format = options.type ?? "jsonl"
       if (!["json", "jsonl", "transcript"].includes(format)) {
-        console.error("⚠️ --format 取值须为 json / jsonl / transcript")
+        console.error("⚠️ --type 取值须为 json / jsonl / transcript")
         process.exitCode = 1
         return
       }
@@ -847,22 +843,27 @@ export function registerUsageCommands(program: Command): void {
   usage
     .command("purge")
     .description("清理本地事件（按保留期或全部）")
-    .option("--older-than <days>", "删除早于指定天数的记录（缺省用配置保留期）")
+    .option("--older-than <duration>", "删除早于指定时长的记录，如 30d / 24h / 60m（缺省用配置保留期）")
     .option("--all", "删除全部事件")
+    .option("--dry-run", "只预览将删除的记录数，不写盘")
     .option("--dir <path>", "本次使用的数据目录")
-    .action((options: { olderThan?: string; all?: boolean; dir?: string }) => {
+    .action((options: { olderThan?: string; all?: boolean; dryRun?: boolean; dir?: string }) => {
       const { config, paths } = createContext(options.dir)
-      if (!options.all && options.olderThan !== undefined) {
-        const days = Number(options.olderThan)
-        if (!Number.isInteger(days) || days <= 0) {
-          console.error("⚠️ --older-than 须为正整数")
-          process.exitCode = 1
-          return
-        }
+      const days = options.olderThan !== undefined ? parseOlderThanDays(options.olderThan) : config.storage.retentionDays
+      if (days === null) {
+        console.error("⚠️ --older-than 取值须为 30d / 24h / 60m")
+        process.exitCode = 1
+        return
       }
-      const days = options.olderThan !== undefined ? Number(options.olderThan) : config.storage.retentionDays
+      if (options.dryRun) {
+        const events = readAllEvents(paths)
+        const cutoff = Date.now() - days * 86_400_000
+        const count = options.all ? events.length : events.filter((event) => new Date(event.occurredAt).getTime() < cutoff).length
+        console.log(`[预演] 将删除 ${count} 条记录`)
+        return
+      }
       const removed = purgeEvents(paths, options.all ? { all: true } : { olderThanDays: days })
-      console.log(options.all ? `已删除全部 ${removed} 条记录` : `已删除 ${removed} 条早于 ${days} 天的记录`)
+      console.log(options.all ? `已删除全部 ${removed} 条记录` : `已删除 ${removed} 条早于 ${options.olderThan} 的记录`)
     })
 
   // 诊断：目录、索引、重复与配置边界

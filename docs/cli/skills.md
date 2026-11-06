@@ -14,7 +14,8 @@ toolkit skills install --scope all     # 项目面 + 全局面都执行
 toolkit skills install --skills fxri-plan-to-task,fxri-text-encoding # 只装指定技能（skills 模式下 core 恒装，逗号分隔）
 toolkit skills install --all        # 安装全部技能（含可选技能）
 toolkit skills install --no-optional # 只装 core 技能
-toolkit skills install --yes        # 接受已保存的技能与目标选择，不进入交互（首次按模式默认：skills 装 core、package 零装）
+toolkit skills install --yes        # 非交互执行：跳过选择与确认，采用已保存选择（首次按模式默认：skills 装 core、package 零装）
+toolkit skills install --use-saved # 技能与目标采用已保存选择，不进入选择交互（仍保留最终确认）
 toolkit skills install --agent claude-code,canonical # 只写指定 agent（逗号分隔；canonical 为主目标）
 toolkit skills install --all-agents # 写入全部已检测的 agent
 toolkit skills install --no-save-agents # 目标选择只对本次生效，不写回配置

@@ -83,9 +83,9 @@ describe("usage CLI", () => {
     expect(logs.join("\n")).toContain('"hooks"')
     expect(logs.join("\n")).toContain('"upload"')
 
-    await run(["origins", "--first-party", "off"])
+    await run(["origins", "--no-first-party"])
     await run(["scope", "--mode", "all"])
-    await run(["capture", "--trigger", "off"])
+    await run(["capture", "--no-trigger"])
     await run(["storage", "--retention", "30"])
     const config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
     expect(config.usage.sources.firstParty).toBe(false)
@@ -105,12 +105,12 @@ describe("usage CLI", () => {
     await run(["triggers"])
 
     const out = join(dataDir, "events.csv")
-    await run(["export", "--format", "csv", "--out", out])
+    await run(["export", "--type", "csv", "--out", out])
     expect(readFileSync(out, "utf8")).toContain("fxri-plan-to-task")
 
     const input = join(dataDir, "import.jsonl")
     writeFileSync(input, `${JSON.stringify(event())}\n`, "utf8")
-    await run(["import", "--format", "jsonl", "--file", input])
+    await run(["import", "--type", "jsonl", "--file", input])
     expect(readAllEvents(usagePaths(dataDir))).toHaveLength(2)
 
     await run(["dedupe"])
@@ -118,6 +118,10 @@ describe("usage CLI", () => {
     await run(["rebuild"])
     await run(["rule"])
     expect(logs.join("\n")).toContain("Skill usage（技能使用情况，可选）")
+
+    await run(["purge", "--older-than", "30d", "--dry-run"])
+    expect(logs.join("\n")).toContain("[预演] 将删除")
+    expect(readAllEvents(usagePaths(dataDir))).toHaveLength(2)
 
     await run(["purge", "--all"])
     expect(readAllEvents(usagePaths(dataDir))).toHaveLength(0)
@@ -178,8 +182,8 @@ describe("usage CLI", () => {
   })
 
   it("非法参数不静默回落", async () => {
-    await run(["origins", "--first-party", "maybe"])
-    expect(errors.join("\n")).toContain("取值须为 on 或 off")
+    await run(["purge", "--older-than", "30"])
+    expect(errors.join("\n")).toContain("30d / 24h / 60m")
     expect(process.exitCode).toBe(1)
     process.exitCode = 0
 
@@ -187,5 +191,12 @@ describe("usage CLI", () => {
     expect(errors.join("\n")).toContain("--since")
     expect(process.exitCode).toBe(1)
     process.exitCode = 0
+  })
+
+  it("卸载预演只打印动作，不改配置", async () => {
+    await run(["uninstall", "--yes", "--dry-run", "--agent", "trae"])
+    expect(logs.join("\n")).toContain("[预演]")
+    const config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
+    expect(config.usage.enabled).toBe(true)
   })
 })

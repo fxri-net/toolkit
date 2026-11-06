@@ -18,11 +18,12 @@ export interface InitWizardOptions {
   agent?: string
 }
 
-// 卸载选项：默认保留数据，--purge-data 才删除事件
+// 卸载选项：默认保留数据，--purge 才删除事件
 export interface UninstallOptions {
   yes?: boolean
   agent?: string
-  purgeData?: boolean
+  purge?: boolean
+  dryRun?: boolean
 }
 
 // 逗号分隔 Agent 名单
@@ -216,9 +217,9 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
   }
 }
 
-// 卸载：停用采集、移除本包 Hook；默认保留数据，--purge-data 才删除事件
+// 卸载：停用采集、移除本包 Hook；默认保留数据，--purge 才删除事件
 export async function runUsageUninstall(options: UninstallOptions = {}): Promise<void> {
-  if (!options.yes && !requireTty()) return
+  if (!options.yes && !options.dryRun && !requireTty()) return
   const { adapters, invalid } = resolveAdapters(splitAgentNames(options.agent))
   if (invalid.length > 0) {
     console.error(`⚠️ 未知 Agent：${invalid.join("、")}`)
@@ -226,9 +227,9 @@ export async function runUsageUninstall(options: UninstallOptions = {}): Promise
     return
   }
   let removeHooks = true
-  let purgeData = Boolean(options.purgeData)
+  let purge = Boolean(options.purge)
   try {
-    if (!options.yes) {
+    if (!options.yes && !options.dryRun) {
       const { confirm } = await import("@inquirer/prompts")
       const disable = await confirm({ message: "停用技能使用情况总开关？", default: true })
       if (!disable) {
@@ -236,7 +237,23 @@ export async function runUsageUninstall(options: UninstallOptions = {}): Promise
         return
       }
       removeHooks = await confirm({ message: "卸载已安装的 Hook？", default: true })
-      purgeData = await confirm({ message: "同时删除本地事件？", default: false })
+      purge = await confirm({ message: "同时删除本地事件？", default: false })
+    }
+    // 预演：只打印将执行的动作，不写配置、不动 Hook、不删数据
+    if (options.dryRun) {
+      console.log("[预演] 将停用技能使用情况总开关")
+      if (removeHooks) {
+        for (const adapter of adapters) {
+          const status = adapter.status()
+          const verb = status.installed || status.legacyCommand ? "将移除" : "未发现"
+          console.log(`[预演] ${verb} Hook：${adapter.displayName}｜${status.file}`)
+        }
+      }
+      if (purge) {
+        const config = loadUsageConfig()
+        console.log(`[预演] 将删除本地事件：${resolveUsageDir(undefined, config)}`)
+      }
+      return
     }
     updateUsageConfig({ enabled: false })
     if (removeHooks) {
@@ -245,13 +262,13 @@ export async function runUsageUninstall(options: UninstallOptions = {}): Promise
         console.log(`${adapter.displayName}：${result.changed ? "已移除 Hook" : "未发现本包 Hook"}`)
       }
     }
-    if (purgeData) {
+    if (purge) {
       const config = loadUsageConfig()
       const paths = usagePaths(resolveUsageDir(undefined, config))
       const removed = purgeEvents(paths, { all: true })
       console.log(`已删除 ${removed} 条本地事件`)
     }
-    console.log("技能使用情况已停用；如需彻底删除数据，重跑时加 --purge-data")
+    console.log("技能使用情况已停用；如需彻底删除数据，重跑时加 --purge")
   } catch (error) {
     if (isCancel(error)) {
       console.log("已取消，未修改任何文件")

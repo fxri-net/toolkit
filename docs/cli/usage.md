@@ -12,9 +12,9 @@ title: usage（技能使用情况）
 toolkit usage init            # 初始化向导，默认保持关闭
 toolkit usage info
 toolkit usage enable
-toolkit usage origins --first-party on --third-party on
+toolkit usage origins --first-party --third-party
 toolkit usage scope --mode all
-toolkit usage capture --trigger on
+toolkit usage capture --trigger
 toolkit usage stats --since 30d
 toolkit usage top --limit 10
 toolkit usage doctor
@@ -25,25 +25,25 @@ toolkit usage doctor
 | 子命令 | 说明 | 主要选项 |
 | --- | --- | --- |
 | `init` | 初始化向导：预设、Agent、来源、字段与存储 | `--yes`、`--preset`、`--agent`；非 TTY 退出码 2 |
-| `uninstall` | 停用采集并卸载 Hook，默认保留数据 | `--yes`、`--agent`、`--purge-data` |
+| `uninstall` | 停用采集并卸载 Hook，默认保留数据 | `--yes`、`--agent`、`--purge`、`--dry-run` |
 | `hooks install` | 只写 Hook 配置，不开启采集 | `--agent`、`--dry-run` |
 | `hooks status` | 查看 Hook 安装状态与最近触发时间 | `--agent`、`--dir` |
 | `hooks remove` | 只移除本包 Hook 命令 | `--agent` |
 | `info` | 开关、配置路径、数据目录与计数 | `--dir`、`--format json` |
 | `enable` / `disable` | 打开 / 关闭总开关 | — |
-| `origins` | 查看或设置来源开关 | `--first-party on\|off`、`--third-party`、`--unmanaged` |
+| `origins` | 查看或设置来源开关 | `--first-party` / `--no-first-party`、`--third-party` / `--no-third-party`、`--unmanaged` / `--no-unmanaged` |
 | `scope` | 查看或设置技能范围 | `--mode`、`--add`、`--remove` |
-| `capture` | 查看或设置采集字段 | `--trigger`、`--args`、`--outcome` |
+| `capture` | 查看或设置采集字段 | `--trigger` / `--no-trigger`、`--args` / `--no-args`、`--outcome` / `--no-outcome` |
 | `storage` | 查看或设置存储 | `--dir`、`--rotation`、`--retention`、`--max-size` |
 | `stats` | 按技能 / Agent / 来源聚合 | `--since`、`--agent`、`--source`、`--skill`、`--unused` |
 | `top` | 技能排行 | `--limit`、`--since` |
 | `sessions` | 按会话列出 | `--since`、`--limit` |
 | `triggers` | 按触发词查看 | `--skill`、`--limit`、`--since` |
-| `export` | 导出事件 | `--format csv\|json\|jsonl`、`--out`、`--since` |
-| `import` | 导入事件或 transcript | `--format json\|jsonl\|transcript`、`--file`、`--agent`、`--dry-run` |
+| `export` | 导出事件 | `--type csv\|json\|jsonl`、`--out`、`--since` |
+| `import` | 导入事件或 transcript | `--type json\|jsonl\|transcript`、`--file`、`--agent`、`--dry-run` |
 | `log` | 手工补录一次使用 | `--skill`、`--session`、`--agent`、`--prompt`、`--args`、`--outcome` |
 | `dedupe` | 压缩重复事件 | `--dir` |
-| `purge` | 按保留期或全部清理 | `--older-than`、`--all` |
+| `purge` | 按保留期或全部清理 | `--older-than 30d`、`--all`、`--dry-run` |
 | `rebuild` | 从事件文件重建索引 | `--dir` |
 | `doctor` | 诊断目录、索引与重复 | `--dir`、`--format json` |
 | `upload setup` | 上传配置向导 | `--yes`、`--protocol`、`--endpoint`、`--headers` |
@@ -67,7 +67,7 @@ toolkit usage doctor
 - 触发词默认不采集；开启后截断 200 字并复用全局脱敏规则。
 - `export` 输出的是已落盘事件；触发词是否出现取决于采集开关。
 - `doctor` 只诊断不自动修复；索引不一致时用 `rebuild`，重复事件用 `dedupe`。跨适配器重复按 `(sessionId, toolUseId)` 计数。
-- `import --format transcript` 从 Claude 或通用会话记录提取 `tool_use` 块；时间以导入时刻为准，不还原原始会话时间。
+- `import --type transcript` 从 Claude 或通用会话记录提取 `tool_use` 块；时间以导入时刻为准，不还原原始会话时间。
 
 ## 相关页面
 

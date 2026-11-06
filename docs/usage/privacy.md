@@ -38,7 +38,7 @@ title: 隐私与数据边界
 ## 清理与删除
 
 ```bash
-toolkit usage purge --older-than 30
+toolkit usage purge --older-than 30d
 toolkit usage purge --all
 ```
 

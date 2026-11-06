@@ -30,9 +30,9 @@ title: 技能使用情况概览
 ## 快速开始
 
 ```bash
-toolkit usage info          # 查看当前开关与数据目录
+toolkit usage info            # 查看当前开关与数据目录
 toolkit usage enable          # 打开总开关
-toolkit usage origins --first-party on
+toolkit usage origins --first-party
 toolkit usage scope --mode all
 toolkit usage stats           # 查看统计
 ```

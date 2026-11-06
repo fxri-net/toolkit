@@ -21,7 +21,7 @@ title: Agent 接入
 未列出的 Agent 可用 `usage import` 或 `usage log` 补录：
 
 ```bash
-toolkit usage import --format transcript --file ~/.claude/projects/xxx.jsonl
+toolkit usage import --type transcript --file ~/.claude/projects/xxx.jsonl
 toolkit usage log --skill fxri-plan-to-task --session manual-1 --prompt "归档任务"
 ```
 
@@ -42,7 +42,7 @@ toolkit usage hooks remove --agent trae
 toolkit usage uninstall --agent trae
 ```
 
-`hooks status` 以本地时间显示最近触发时间与最近状态；`uninstall` 停用采集并移除本包 Hook，默认保留事件，`--purge-data` 才删除。Hook 错误写入数据目录的 `hook-errors.log`，只保留最近 200 行。
+`hooks status` 以本地时间显示最近触发时间与最近状态；`uninstall` 停用采集并移除本包 Hook，默认保留事件，`--purge` 才删除。Hook 错误写入数据目录的 `hook-errors.log`，只保留最近 200 行。
 
 ## 触发词如何关联
 
@@ -50,7 +50,7 @@ toolkit usage uninstall --agent trae
 
 ## 补录与去重
 
-- `import --format transcript` 支持 Claude JSONL 与通用 JSON / JSONL，从 `tool_use` 块提取工具调用，并把最近一次用户消息作为触发词。
+- `import --type transcript` 支持 Claude JSONL 与通用 JSON / JSONL，从 `tool_use` 块提取工具调用，并把最近一次用户消息作为触发词。
 - `log` 用于没有 Hook 的 Agent；`manual` 属于用户显式补录，不受 Agent 开关限制。
 - 同一调用被两个适配器捕获时，按 `(sessionId, toolUseId)` 只保留首条；`dedupe` 可清理历史重复，`doctor` 会报告跨适配器重复组数。
 
