@@ -10,7 +10,7 @@ title: Agent 接入
 
 | Agent | 状态 | 配置路径 | 能力 |
 | --- | --- | --- | --- |
-| Trae | 已验证 | `~/.trae-cn/hooks.json`（回退 `~/.trae/hooks.json`） | `PostToolUse` / `UserPromptSubmit` |
+| Trae | 已验证（需在 IDE 内启用） | `~/.trae-cn/hooks.json`（回退 `~/.trae/hooks.json`） | `PostToolUse` / `UserPromptSubmit` |
 | Claude Code | 已验证 | `~/.claude/settings.json`（`CLAUDE_CONFIG_DIR` 可改写） | `PostToolUse` / `UserPromptSubmit` |
 | Cursor | 已接入，需实测 | `~/.cursor/hooks.json` | `PostToolUse` |
 | Codex CLI | 已接入，需实测 | `$CODEX_HOME/hooks.json`（缺省 `~/.codex/hooks.json`） | `PostToolUse` |
@@ -33,6 +33,17 @@ toolkit usage enable                        # 才打开采集总开关
 ```
 
 未开启总开关时，Hook 即使被调用也直接退出，不写文件。`hooks install` 支持 `--dry-run` 预览，写前自动备份原配置；配置无法解析时不覆盖。
+
+### Trae：还需在 IDE 内启用
+
+写完 `~/.trae-cn/hooks.json` 并不等于 Trae 会执行它，还需在 IDE 侧登记启用：
+
+1. 打开 **设置 > Hooks**，配置类型选「全局」；
+2. 在「已配置的 Hooks」处点「创建」（已存在配置文件时用齿轮图标打开），在安全警示面板点「启用」；
+3. 「运行方式」选「本地自动运行」——沙箱方式可能拦截 Hook 写数据目录；
+4. 启用后**重启 Trae 或开新会话**才会重新加载，历史会话不补录。
+
+验证方式：在 Trae 的「输出」面板查看 `Agent Hooks` 通道日志，并执行 `toolkit usage hooks status` 确认「最近触发」出现时间。
 
 重复执行 `toolkit usage init` 会沿用历史选择：已配置时默认「保持当前配置（只重装 Hook）」，选择「自定义」则逐项回填现有值。升级后修复 Hook 路径时优先用「保持当前配置」。
 
