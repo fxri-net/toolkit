@@ -810,7 +810,7 @@ program.addHelpText(
   [
     "",
     "文档站：",
-    `  新手指南 ${INIT_LINKS.gettingStarted}`,
+    `  快速开始 ${INIT_LINKS.gettingStarted}`,
     `  完整攻略 ${INIT_LINKS.guide}`,
     `  全部文档 ${INIT_LINKS.site}`,
   ].join("\n"),
@@ -840,7 +840,7 @@ function printInitReport(report: InitReport): void {
   if (!report.skillsInstalled) {
     console.log("  全局技能：未安装，执行 toolkit skills install 启用（规范触达第一层，不依赖项目内文件；toolkit skills status 可查现场）")
   }
-  console.log(`  新手指南：${INIT_LINKS.gettingStarted}`)
+  console.log(`  快速开始：${INIT_LINKS.gettingStarted}`)
   console.log(`  完整攻略：${INIT_LINKS.guide}`)
 }
 

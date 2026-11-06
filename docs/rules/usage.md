@@ -33,4 +33,4 @@ title: 技能使用情况规则
 ## 相关页面
 
 - 规则：[全局规则索引](./) · [AI 全局规则](./ai) · [提交信息规则](./commit)
-- 参考：[技能使用情况配置](../usage/configuration) · [Agent 接入](../usage/agents) · [FAQ](../faq)
+- 参考：[技能使用情况配置](../usage/configuration) · [Agent 接入](../usage/agents) · [常见问题](../faq)

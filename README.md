@@ -32,7 +32,7 @@ pnpm exec toolkit init
 pnpm exec toolkit tasks
 ```
 
-之后：方案确认后登记为 `.tasks/` 任务文件 → `pnpm exec toolkit tasks check` 校验 → 完成后 `pnpm exec toolkit tasks archive` 归档并做规范沉淀。多任务 / 多仓方案先出纯展示计划表，再逐仓逐任务建档、按序逐个交付提交。完整步骤见 [新手指南](./docs/getting-started.md)。
+之后：方案确认后登记为 `.tasks/` 任务文件 → `pnpm exec toolkit tasks check` 校验 → 完成后 `pnpm exec toolkit tasks archive` 归档并做规范沉淀。多任务 / 多仓方案先出纯展示计划表，再逐仓逐任务建档、按序逐个交付提交。完整步骤见 [快速开始](./docs/getting-started.md)。
 
 ## ✨ 能力矩阵
 
@@ -43,14 +43,14 @@ pnpm exec toolkit tasks
 | 协作规范载体（conventions） | 把任务里提炼的规范收进 `.tasks/conventions/`，成为可检索、可校验的项目规范源；支持结构升级、表格形态归一与只读体检 | [CLI 参考](./docs/cli.md) · [完整攻略](./docs/guide.md#conventions-规范沉淀地) |
 | Node API | 把上述能力嵌进脚本或平台 | [API 参考](./docs/api.md) |
 | 隐私脱敏 | 落盘前自动掩码邮箱、手机号、密钥等 | [配置参考](./docs/config.md) |
-| AI 技能包（skills） | 不装本工具也能让 AI 按同一套规范干活；装了可一键分发技能（`--scope project` 随仓库入库、队友 clone 即用） | [完整攻略](./docs/guide.md#ai-技能包-skills) · [FAQ](./docs/faq.md#工具和-skills-都得装吗) |
+| AI 技能包（skills） | 不装本工具也能让 AI 按同一套规范干活；装了可一键分发技能（`--scope project` 随仓库入库、队友 clone 即用） | [完整攻略](./docs/guide.md#ai-技能包-skills) · [常见问题](./docs/faq.md#工具和-skills-都得装吗) |
 | 配置文件 | 三层（全局 / 项目 / 本地）定制脱敏、告警、导入列映射、语言表；`toolkit config status` 只读查看生效情况与来源 | [CLI 参考](./docs/cli/config.md) · [配置参考](./docs/config.md) |
 
 ## 📚 文档
 
 | 文档 | 适合谁 |
 | --- | --- |
-| [新手指南](./docs/getting-started.md) | 第一次接触，想 30 秒跑起来（含零基础术语表） |
+| [快速开始](./docs/getting-started.md) | 第一次接触，想 30 秒跑起来（含零基础术语表） |
 | [推荐技能包](./docs/packages.md) | 按场景选择技能源（含 playbook 等外部来源） |
 | [操作手册](./docs/handbook.md) | 日常照着做：每个场景该说什么、做什么 |
 | [完整攻略](./docs/guide.md) | 日常使用：工作流、Git 纳管、项目级激活、多语言 CHANGELOG |
@@ -58,7 +58,7 @@ pnpm exec toolkit tasks
 | [API 参考](./docs/api.md) | 作为库引入 Node 项目 |
 | [配置参考](./docs/config.md) | 查配置文件字段（全局 / 项目 / 本地三层） |
 | [更新日志](./docs/changelog.md) | 查各版本变更内容 |
-| [FAQ](./docs/faq.md) | 遇到问题先来这里找 |
+| [常见问题](./docs/faq.md) | 遇到问题先来这里找 |
 | [全局规则索引](./docs/rules/index.md) | 三份可复制规则的总览与组合建议 |
 | [推荐 AI 全局规则](./docs/rules/ai.md) | 想让 AI 助手按本工具的最佳实践协作 |
 | [推荐提交信息规则](./docs/rules/commit.md) | 想让 AI 按统一格式写 git 提交信息 |
@@ -81,7 +81,7 @@ pnpm dlx skills add fxri-net/toolkit                  # 也可用上游安装器
 - [fxri-plan-review](./skills/fxri-plan-review/SKILL.md)：复核已落档任务拆分，输出新增疏漏、建议与修订计划表，按后续是否落档标记
 - [fxri-text-encoding](./skills/fxri-text-encoding/SKILL.md)：文本字节形态基线（文件、管道、命令行、API 请求体，含临时脚本与一次性命令），非 ASCII 文本丢失 / 乱码与首行报错的定位与修复
 
-skills 与工具的关系、只在公司项目激活等说明见 [FAQ](./docs/faq.md) 与 [完整攻略](./docs/guide.md#ai-技能包-skills)。
+skills 与工具的关系、只在公司项目激活等说明见 [常见问题](./docs/faq.md) 与 [完整攻略](./docs/guide.md#ai-技能包-skills)。
 
 ## 📦 安装
 
@@ -91,7 +91,7 @@ pnpm i -g @fxri/toolkit          # 全局（个人多项目推荐；pnpm 不受 
 pnpm dlx @fxri/toolkit tasks     # 不安装临时执行
 ```
 
-npm / yarn / bun 用户与各方式对比见 [新手指南 · 安装](./docs/getting-started.md#安装)。
+npm / yarn / bun 用户与各方式对比见 [快速开始 · 安装](./docs/getting-started.md#安装)。
 
 ## 🔒 隐私脱敏
 
@@ -99,7 +99,7 @@ npm / yarn / bun 用户与各方式对比见 [新手指南 · 安装](./docs/get
 
 ## ⚙️ 环境要求
 
-- Node.js >= 20.19.0（更低版本可安装，changesets 相关子命令不可用，见 [FAQ](./docs/faq.md#node-18-能用吗)）
+- Node.js >= 20.19.0（更低版本可安装，changesets 相关子命令不可用，见 [常见问题](./docs/faq.md#node-18-能用吗)）
 
 ## 📄 版权信息
 

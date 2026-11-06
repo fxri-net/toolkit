@@ -68,7 +68,7 @@ bun add -D @fxri/toolkit
 pnpm exec toolkit tasks
 ```
 
-详细步骤见[新手指南](./getting-started)。
+详细步骤见[快速开始](./getting-started)。
 
 ## 解决什么痛点
 
@@ -83,14 +83,14 @@ pnpm exec toolkit tasks
 
 | 文档 | 适合谁 |
 | --- | --- |
-| [新手指南](./getting-started) | 第一次接触，想 30 秒跑起来 |
+| [快速开始](./getting-started) | 第一次接触，想 30 秒跑起来 |
 | [操作手册](./handbook) | 日常照着做：每个场景该说什么、做什么 |
 | [完整攻略](./guide) | 日常使用：工作流、Git 纳管范围、项目级激活、多语言 CHANGELOG |
 | [CLI 参考](./cli) | 查命令、参数、默认值、退出码 |
 | [API 参考](./api) | 作为库引入 Node 项目，写脚本或二次开发 |
 | [配置参考](./config) | 查 `.toolkitrc.json` 字段 |
 | [更新日志](./changelog) | 查各版本变更内容 |
-| [FAQ](./faq) | 遇到问题先来这里找 |
+| [常见问题](./faq) | 遇到问题先来这里找 |
 | [全局规则索引](./rules/) | 三份可复制规则的总览与组合建议 |
 | [推荐 AI 全局规则](./rules/ai) | 想让 AI 助手按本工具的最佳实践协作 |
 | [推荐提交信息规则](./rules/commit) | 想让 AI 按统一格式写 git 提交信息 |
@@ -107,4 +107,4 @@ pnpm exec toolkit tasks
 
 ## 相关页面
 
-- 参考：[推荐技能包](./packages) · [完整攻略](./guide) · [FAQ](./faq)
+- 参考：[推荐技能包](./packages) · [完整攻略](./guide) · [常见问题](./faq)

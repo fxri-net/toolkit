@@ -6,7 +6,7 @@
 
 ## 一、首次使用
 
-**目标**：装好工具 + skills，跑通一条任务闭环。命令细节与三种安装方式对比见[新手指南 · 安装](./getting-started#安装)。
+**目标**：装好工具 + skills，跑通一条任务闭环。命令细节与三种安装方式对比见[快速开始 · 安装](./getting-started#安装)。
 
 | 步骤 | 该做什么 |
 | --- | --- |
@@ -15,7 +15,7 @@
 | 3 建任务区 | `pnpm exec toolkit init` |
 | 4 配全局规则（可选） | 从 [AI 全局规则](./rules/ai) 复制模板；提交习惯另取[提交信息规则](./rules/commit)；启用使用统计后再按需复制[技能使用情况规则](./rules/usage) |
 
-初始化做了什么、30 秒最短路径见[新手指南 · 30 秒上手](./getting-started#_30-秒上手)。
+初始化做了什么、30 秒最短路径见[快速开始 · 30 秒上手](./getting-started#_30-秒上手)。
 
 ## 二、日常开发
 
@@ -135,4 +135,4 @@ pnpm remove -g @fxri/toolkit     # 2. 再卸 CLI
 
 ## 相关页面
 
-- 参考：[新手指南](./getting-started) · [CLI 参考](./cli) · [FAQ](./faq)
+- 参考：[快速开始](./getting-started) · [CLI 参考](./cli) · [常见问题](./faq)

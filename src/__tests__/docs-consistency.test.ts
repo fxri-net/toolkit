@@ -102,6 +102,58 @@ function resolvePage(page: string, anchorsOf: Map<string, Set<string>>): string 
   return null
 }
 
+// 导航规范：与 playbook fxri-docs-profile 同源，只断言可稳定检出的部分
+describe("文档一致性：导航规范", () => {
+  const config = readDoc("docs/.vitepress/config.mts")
+  // 顶栏与侧栏源码切片：只取 nav / sidebar 两段，避免页面内同名文案干扰
+  const navSrc = /nav:\s*\[([\s\S]*?)\],\s*sidebar:\s*\[/.exec(config)?.[1] ?? ""
+  const sidebarSrc = /sidebar:\s*\[([\s\S]*?)\/\/ 本地搜索/.exec(config)?.[1] ?? ""
+  // 顶栏一级项：以 6 空格缩进的 `{` 起始，取该条目首个 text
+  const navItems = [...navSrc.matchAll(/^\s{6}\{[\s\S]*?text:\s*'([^']+)'/gm)].map((m) => m[1] as string)
+  // 侧栏一级分组：text 行缩进 8 空格（更深的层级是页面条目与子分组）
+  const groupNames = [...sidebarSrc.matchAll(/^\s{8}text:\s*'([^']+)'/gm)].map((m) => m[1] as string)
+  // 汉字计数：英文专有名词（CLI / API / AI）不计入
+  const hanCount = (text: string) => [...text].filter((ch) => /[\u4e00-\u9fa5]/.test(ch)).length
+
+  it("顶栏不超过 5 项，首项为快速开始、末项为帮助", () => {
+    expect(navItems.length, "未解析到顶栏一级项").toBeGreaterThan(0)
+    expect(navItems.length).toBeLessThanOrEqual(5)
+    expect(navItems[0]).toBe("快速开始")
+    expect(navItems[navItems.length - 1]).toBe("帮助")
+  })
+
+  it("帮助下拉包含常见问题与更新日志", () => {
+    const helpBlock = /text:\s*'帮助',[\s\S]*?items:\s*\[([\s\S]*?)\]/.exec(navSrc)?.[1] ?? ""
+    expect(helpBlock, "顶栏未找到帮助分组").toBeTruthy()
+    expect(helpBlock).toContain("常见问题")
+    expect(helpBlock).toContain("更新日志")
+  })
+
+  it("顶栏一级项与侧栏一级分组名均不超过 4 个汉字", () => {
+    expect(groupNames.length, "未解析到侧栏一级分组").toBeGreaterThan(0)
+    expect(navItems.filter((name) => hanCount(name) > 4)).toEqual([])
+    expect(groupNames.filter((name) => hanCount(name) > 4)).toEqual([])
+  })
+
+  it("不出现裸 FAQ、新手指南等旧称呼", () => {
+    for (const page of collectMarkdown("docs", []).filter((file) => !file.endsWith("/changelog.md"))) {
+      const text = readDoc(page)
+      expect(text.includes("新手指南"), `${page} 残留「新手指南」`).toBe(false)
+      expect(/\[FAQ\]|^# FAQ$/m.test(text), `${page} 残留 FAQ 旧称呼`).toBe(false)
+    }
+  })
+
+  it("单页超过 300 行时给出告警（changelog 镜像除外）", () => {
+    const longPages = collectMarkdown("docs", [])
+      .filter((page) => !page.endsWith("/changelog.md"))
+      .map((page) => ({ page, lines: readDoc(page).split("\n").length }))
+      .filter((item) => item.lines > 300)
+    for (const item of longPages) console.warn(`[docs] 页面超过 300 行：${item.page}（${item.lines} 行）`)
+    // 只告警不阻断：阈值用于提醒拆分，不作为失败条件
+    expect(true).toBe(true)
+  })
+})
+
 describe("文档一致性：站内链接目标与锚点可解析", () => {
   it("README / docs / skills 里的链接目标页都存在、#锚点都能在目标页标题中找到（路径打错、页面被删或锚点写错即失败）", async () => {
     const docsDir = join(process.cwd(), "docs")

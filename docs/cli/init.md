@@ -31,4 +31,4 @@ toolkit init --no-hooks               # 不写入 package.json 的 prepare 刷�
 
 ## 相关页面
 
-- 参考：[新手指南 · 30 秒上手](../getting-started#_30-秒上手) · [技能分发](./skills)
+- 参考：[快速开始 · 30 秒上手](../getting-started#_30-秒上手) · [技能分发](./skills)

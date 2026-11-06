@@ -1,10 +1,10 @@
-# FAQ
+# 常见问题
 
 > 目标读者：遇到疑问来查答案的用户（含不熟悉 AI 生态的）。按主题分组，先答结论再给细节。
 
 ## 解决什么问题
 
-新手指南讲最短路径、完整攻略讲全流程，但真实使用中的疑问是碎片化的——本篇按「问题 → 答案」直给。同一事实只在真源页维护一次，本篇只给结论与该问题特有的差异，细节指回真源。没找到答案可去 [GitHub Issues](https://github.com/fxri-net/toolkit/issues) 或 [Gitee Issues](https://gitee.com/fxri/toolkit/issues) 提问。
+快速开始讲最短路径、完整攻略讲全流程，但真实使用中的疑问是碎片化的——本篇按「问题 → 答案」直给。同一事实只在真源页维护一次，本篇只给结论与该问题特有的差异，细节指回真源。没找到答案可去 [GitHub Issues](https://github.com/fxri-net/toolkit/issues) 或 [Gitee Issues](https://gitee.com/fxri/toolkit/issues) 提问。
 
 ## 安装与环境
 
@@ -20,7 +20,7 @@
 
 ### 个人用，全局装还是每个项目里装？
 
-个人多项目使用推荐**双全局**，一次配置所有项目直接可用：工具用 `pnpm i -g @fxri/toolkit` 全局装、skills 用 `toolkit skills install` 全局分发（命令与三种安装方式见[新手指南 · 安装](./getting-started#安装)）。
+个人多项目使用推荐**双全局**，一次配置所有项目直接可用：工具用 `pnpm i -g @fxri/toolkit` 全局装、skills 用 `toolkit skills install` 全局分发（命令与三种安装方式见[快速开始 · 安装](./getting-started#安装)）。
 
 升级一条命令：`pnpm add -g @fxri/toolkit`（软链模式下技能随包自动更新；副本形式需重跑 `toolkit skills install`），skills 升级后开新会话，见「升级后要注意什么」。诚实代价：全局装的版本**不随项目锁定**，团队里会出现「各装各的」版本漂移——所以团队项目推荐工具走项目 devDependency、技能装进项目（`--scope project`），也可用上游安装器项目级安装并把 `skills-lock.json` 提交进仓库锁版本；只想在公司项目生效见下文「只在公司项目激活」。
 
@@ -48,11 +48,11 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 
 ### 除了开发，产品经理、项目经理这类非开发角色能用吗？
 
-能用。任务管理半边对所有角色开放：产品经理把需求清单整理成 Excel/CSV（列名用「任务名/负责人/截止日期」等常见叫法即可），让 AI 执行导入（`toolkit tasks import 需求.xlsx`）转成规范任务文件，内置中文列名映射，非标准列可用配置自定义；项目经理按负责人/状态过滤总览、导出 XLSX 汇报；测试、运维同样适用。CHANGELOG 半边面向有发版需求的软件项目。角色速查表与边界说明见[新手指南 · 谁适合用](./getting-started#谁适合用)。
+能用。任务管理半边对所有角色开放：产品经理把需求清单整理成 Excel/CSV（列名用「任务名/负责人/截止日期」等常见叫法即可），让 AI 执行导入（`toolkit tasks import 需求.xlsx`）转成规范任务文件，内置中文列名映射，非标准列可用配置自定义；项目经理按负责人/状态过滤总览、导出 XLSX 汇报；测试、运维同样适用。CHANGELOG 半边面向有发版需求的软件项目。角色速查表与边界说明见[快速开始 · 谁适合用](./getting-started#谁适合用)。
 
 ### 配好全局规则后，我就完全不用管了？AI 能全程自主吗？
 
-日常可以做到**零操作**：建档、校验、归档与规范沉淀全部由 AI 按全局规则自主完成，你只说自然语言；AI 完成后会回报清单请你确认——这是防写错仓库文件的安全设计，不是操作负担。三个时刻仍需你出手：首次安装（AI 规则明确不自行全局安装）、升级后开新会话、工具不可用时手动保存兜底方案。详见[新手指南 · AI 用户](./getting-started#ai-用户-让-ai-替你操作)。
+日常可以做到**零操作**：建档、校验、归档与规范沉淀全部由 AI 按全局规则自主完成，你只说自然语言；AI 完成后会回报清单请你确认——这是防写错仓库文件的安全设计，不是操作负担。三个时刻仍需你出手：首次安装（AI 规则明确不自行全局安装）、升级后开新会话、工具不可用时手动保存兜底方案。详见[快速开始 · AI 用户](./getting-started#ai-用户-让-ai-替你操作)。
 
 ### AI 沉淀会话时，记什么不记什么？
 
@@ -64,7 +64,7 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 
 ### 用 nvm 切了 Node 版本，全局装的 toolkit 不见了？
 
-全局包绑定在安装时的 Node 版本上，切版本后各版本的 `node_modules` 相互独立，这是 nvm 类工具的机制，不是本工具的问题。处理：新版本下重新安装（`pnpm i -g @fxri/toolkit` 或 `npm i -g @fxri/toolkit`）；改用 pnpm 全局安装可规避（pnpm 全局目录独立于 Node 版本）；团队项目建议改用项目 devDependency 方式（见[新手指南 · 安装](./getting-started#安装)），不受切版本影响。
+全局包绑定在安装时的 Node 版本上，切版本后各版本的 `node_modules` 相互独立，这是 nvm 类工具的机制，不是本工具的问题。处理：新版本下重新安装（`pnpm i -g @fxri/toolkit` 或 `npm i -g @fxri/toolkit`）；改用 pnpm 全局安装可规避（pnpm 全局目录独立于 Node 版本）；团队项目建议改用项目 devDependency 方式（见[快速开始 · 安装](./getting-started#安装)），不受切版本影响。
 
 ### Node 18 能用吗？
 
@@ -187,4 +187,4 @@ toolkit skills install --force   # 把各目标下的同名旧副本重建为软
 
 ## 相关页面
 
-- 参考：[新手指南](./getting-started) · [操作手册](./handbook) · [完整攻略](./guide) · [CLI 参考](./cli)
+- 参考：[快速开始](./getting-started) · [操作手册](./handbook) · [完整攻略](./guide) · [CLI 参考](./cli)

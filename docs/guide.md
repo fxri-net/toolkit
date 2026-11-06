@@ -2,11 +2,11 @@
 
 > 目标读者：已在项目中装好本工具、想了解完整工作流与进阶用法的用户。
 >
-> 本篇讲**原理与完整工作流**：每个能力的机制、边界与取舍。第一次安装、日常按场景该怎么说怎么做，分别见[新手指南](./getting-started)与[操作手册](./handbook)；命令参数统一查 [CLI 参考](./cli)。
+> 本篇讲**原理与完整工作流**：每个能力的机制、边界与取舍。第一次安装、日常按场景该怎么说怎么做，分别见[快速开始](./getting-started)与[操作手册](./handbook)；命令参数统一查 [CLI 参考](./cli)。
 
 ## 解决什么问题
 
-新手指南只覆盖最短路径；本篇回答日常使用的全部问题：任务从哪来、哪些文件进 git、怎么让 AI 只在某些项目激活、会话上下文怎么跨会话保留、CHANGELOG 怎么维护多语言、文档站怎么部署。
+快速开始只覆盖最短路径；本篇回答日常使用的全部问题：任务从哪来、哪些文件进 git、怎么让 AI 只在某些项目激活、会话上下文怎么跨会话保留、CHANGELOG 怎么维护多语言、文档站怎么部署。
 
 ## 工作流总览
 
@@ -175,7 +175,7 @@ pnpm dlx skills add fxri-net/toolkit --global
 
 **项目面分发（`--scope project`）**：真源落 `<仓库根>/.agents/skills/`（完整副本），其余已存在的候选目录各放每个技能一份**入口薄壳**指向真源，避免多目录重复；归属账写 `<仓库根>/.toolkit/state.json`，`prepare` 钩子在 `pnpm install` 时自动刷新，队友 clone 即用。候选目录清单、逐技能现场状态与卸载口径见 [skills 命令](./cli/skills)。
 
-**与 CLI 的关系**：skills 是规范与流程（独立可用），CLI 是自动校验 / 归档 / 发版的加速器；技能末尾的「可选加速」节列出了对应命令，装了就用、没装技能流程照跑。安装与共存、命名规范、发布核对清单见 [skills/README.md](https://github.com/fxri-net/toolkit/blob/main/skills/README.md)；国内网络受限时见 [FAQ](./faq#国内网络优先走哪条渠道)。
+**与 CLI 的关系**：skills 是规范与流程（独立可用），CLI 是自动校验 / 归档 / 发版的加速器；技能末尾的「可选加速」节列出了对应命令，装了就用、没装技能流程照跑。安装与共存、命名规范、发布核对清单见 [skills/README.md](https://github.com/fxri-net/toolkit/blob/main/skills/README.md)；国内网络受限时见 [常见问题](./faq#国内网络优先走哪条渠道)。
 
 ## 项目级激活模板
 
@@ -240,4 +240,4 @@ pnpm exec toolkit changelog doc                # 生成/更新文档站更新日
 
 ## 相关页面
 
-- 参考：[新手指南](./getting-started) · [配置参考](./config) · [FAQ](./faq)
+- 参考：[快速开始](./getting-started) · [配置参考](./config) · [常见问题](./faq)

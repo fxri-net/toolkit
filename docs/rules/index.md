@@ -26,4 +26,4 @@ title: 全局规则
 
 ## 相关页面
 
-- 参考：[操作手册](../handbook) · [FAQ](../faq) · [更新日志](../changelog)
+- 参考：[操作手册](../handbook) · [常见问题](../faq) · [更新日志](../changelog)
