@@ -39,9 +39,10 @@ toolkit telemetry enable                        # 才打开采集总开关
 ```bash
 toolkit telemetry hooks status
 toolkit telemetry hooks uninstall --agent trae
+toolkit telemetry uninstall --agent trae
 ```
 
-`uninstall` 只移除包含 `telemetry ingest --agent <id>` 的命令，不影响用户其它 Hook。Hook 错误写入数据目录的 `hook-errors.log`，只保留最近 200 行。
+`hooks status` 显示最近触发时间与最近状态；`uninstall` 停用采集并移除本包 Hook，默认保留事件，`--purge-data` 才删除。Hook 错误写入数据目录的 `hook-errors.log`，只保留最近 200 行。
 
 ## 触发词如何关联
 

@@ -24,9 +24,10 @@ toolkit telemetry doctor
 
 | 子命令 | 说明 | 主要选项 |
 | --- | --- | --- |
-| `init` | 初始化向导：预设、Agent、来源、字段与存储 | 交互式；非 TTY 退出码 2 |
+| `init` | 初始化向导：预设、Agent、来源、字段与存储 | `--yes`、`--preset`、`--agent`；非 TTY 退出码 2 |
+| `uninstall` | 停用采集并卸载 Hook，默认保留数据 | `--yes`、`--agent`、`--purge-data` |
 | `hooks install` | 只写 Hook 配置，不开启采集 | `--agent`、`--dry-run` |
-| `hooks status` | 查看 Hook 安装状态 | `--agent` |
+| `hooks status` | 查看 Hook 安装状态与最近触发时间 | `--agent`、`--dir` |
 | `hooks uninstall` | 只移除本包 Hook 命令 | `--agent` |
 | `status` | 开关、配置路径、数据目录与计数 | `--dir`、`--format json` |
 | `enable` / `disable` | 打开 / 关闭总开关 | — |
@@ -45,7 +46,7 @@ toolkit telemetry doctor
 | `purge` | 按保留期或全部清理 | `--older-than`、`--all` |
 | `rebuild` | 从事件文件重建索引 | `--dir` |
 | `doctor` | 诊断目录、索引与重复 | `--dir`、`--format json` |
-| `upload setup` | 上传配置向导 | 交互式 |
+| `upload setup` | 上传配置向导 | `--yes`、`--protocol`、`--endpoint`、`--headers` |
 | `upload status` | 上传开关、端点与待上传数量 | `--format json` |
 | `upload --dry-run` | 预览批次与载荷，不发送 | `--limit` |
 | `upload --once` | 手工发送一批 | `--limit` |
@@ -58,7 +59,9 @@ toolkit telemetry doctor
 ## 边界与注意
 
 - 无参数执行 `toolkit telemetry` 进入交互菜单；非 TTY 打印帮助并以退出码 2 结束。
+- 非交互初始化用 `toolkit telemetry init --yes --preset recommended --agent trae`；`custom` / `advanced` 预设仍需交互。
 - 默认总开关、Agent、来源、技能范围、字段全部关闭；只开总开关不会产生记录。
+- `telemetry status` 汇总已安装 Hook、上传开关与最近 Hook 错误；`hooks status` 显示各 Agent 最近触发时间。
 - Hook 安装与采集开启是两步：先 `hooks install`，再 `enable`。支持 Agent 与配置路径见 [Agent 接入](../telemetry/agents)。
 - `include` 空列表等同 `none`；`exclude` 只列出要排除的技能。
 - 触发词默认不采集；开启后截断 200 字并复用全局脱敏规则。

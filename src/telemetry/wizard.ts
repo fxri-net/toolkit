@@ -1,15 +1,72 @@
 // 遥测向导：初始化与无参数菜单；所有选择都有默认值，取消时不留下半成品
-import { detectedAdapters } from "./adapters"
+import { detectedAdapters, resolveAdapters } from "./adapters"
 import type { AgentAdapter } from "./adapters/types"
 import { buildHookCommand } from "./ingest"
 import { loadTelemetryConfig, resolveTelemetryDir, telemetryConfigPath, updateTelemetryConfig } from "./config"
-import { readAllEvents, telemetryPaths } from "./store"
+import { purgeEvents, readAllEvents, telemetryPaths } from "./store"
 import { summarize } from "./stats"
 import { runUploadSetup } from "./upload"
 import type { TelemetryRotation, TelemetrySkillMode } from "./types"
 
 // 预设：默认保持关闭；推荐只开一方技能
 type Preset = "off" | "recommended" | "third-party" | "custom" | "advanced"
+
+// 初始化选项：--yes 走非交互路径，只支持 off / recommended / third-party
+export interface InitWizardOptions {
+  yes?: boolean
+  preset?: string
+  agent?: string
+}
+
+// 卸载选项：默认保留数据，--purge-data 才删除事件
+export interface UninstallOptions {
+  yes?: boolean
+  agent?: string
+  purgeData?: boolean
+}
+
+// 逗号分隔 Agent 名单
+function splitAgentNames(value: string | undefined): string[] {
+  if (!value) return []
+  return [...new Set(value.split(/[,，]/).map((item) => item.trim()).filter(Boolean))]
+}
+
+// 非交互初始化：按预设写入配置并安装 Hook，不做任何提问
+function runNonInteractiveInit(options: InitWizardOptions): void {
+  const preset = options.preset ?? "off"
+  if (preset === "off") {
+    console.log("保持关闭，未修改任何文件")
+    return
+  }
+  if (preset !== "recommended" && preset !== "third-party") {
+    console.error("⚠️ 非交互模式仅支持 --preset off / recommended / third-party")
+    process.exitCode = 1
+    return
+  }
+  const { adapters, invalid } = resolveAdapters(splitAgentNames(options.agent))
+  if (invalid.length > 0) {
+    console.error(`⚠️ 未知 Agent：${invalid.join("、")}`)
+    process.exitCode = 1
+    return
+  }
+  if (adapters.length === 0) {
+    console.error("⚠️ 未检测到可接入的 Agent，可用 --agent 显式指定")
+    process.exitCode = 1
+    return
+  }
+  const config = loadTelemetryConfig()
+  const dir = resolveTelemetryDir(undefined, config)
+  updateTelemetryConfig({
+    enabled: true,
+    agents: Object.fromEntries(adapters.map((adapter) => [adapter.id, true])),
+    sources: { firstParty: true, thirdParty: preset === "third-party", unmanaged: false },
+    skills: { mode: "all", include: [], exclude: [] },
+    capture: { triggerPrompt: false, skillArgs: false, outcome: false },
+    storage: { dir, rotation: "monthly", retentionDays: 180 },
+  })
+  installHooks(adapters)
+  console.log(`已启用遥测（${preset}），数据目录：${dir}`)
+}
 
 // 用户取消（Ctrl+C / ESC）：inquirer 以 ExitPromptError 抛出
 function isCancel(error: unknown): boolean {
@@ -49,7 +106,11 @@ export function installHooks(agents: AgentAdapter[], dryRun = false): void {
 }
 
 // 初始化向导：检测 → 预设 → Agent → 范围 → 字段 → 存储 → 预览 → 应用
-export async function runTelemetryInitWizard(): Promise<void> {
+export async function runTelemetryInitWizard(options: InitWizardOptions = {}): Promise<void> {
+  if (options.yes) {
+    runNonInteractiveInit(options)
+    return
+  }
   if (!requireTty()) return
   const { select, checkbox, confirm, input } = await import("@inquirer/prompts")
   try {
@@ -146,6 +207,51 @@ export async function runTelemetryInitWizard(): Promise<void> {
     console.log("已启用遥测。下一步：")
     console.log("  toolkit telemetry status")
     console.log("  toolkit telemetry stats")
+  } catch (error) {
+    if (isCancel(error)) {
+      console.log("已取消，未修改任何文件")
+      return
+    }
+    throw error
+  }
+}
+
+// 卸载：停用采集、移除本包 Hook；默认保留数据，--purge-data 才删除事件
+export async function runTelemetryUninstall(options: UninstallOptions = {}): Promise<void> {
+  if (!options.yes && !requireTty()) return
+  const { adapters, invalid } = resolveAdapters(splitAgentNames(options.agent))
+  if (invalid.length > 0) {
+    console.error(`⚠️ 未知 Agent：${invalid.join("、")}`)
+    process.exitCode = 1
+    return
+  }
+  let removeHooks = true
+  let purgeData = Boolean(options.purgeData)
+  try {
+    if (!options.yes) {
+      const { confirm } = await import("@inquirer/prompts")
+      const disable = await confirm({ message: "停用遥测总开关？", default: true })
+      if (!disable) {
+        console.log("已取消，未修改任何文件")
+        return
+      }
+      removeHooks = await confirm({ message: "卸载已安装的 Hook？", default: true })
+      purgeData = await confirm({ message: "同时删除本地事件？", default: false })
+    }
+    updateTelemetryConfig({ enabled: false })
+    if (removeHooks) {
+      for (const adapter of adapters) {
+        const result = adapter.uninstallHooks()
+        console.log(`${adapter.displayName}：${result.changed ? "已移除 Hook" : "未发现本包 Hook"}`)
+      }
+    }
+    if (purgeData) {
+      const config = loadTelemetryConfig()
+      const paths = telemetryPaths(resolveTelemetryDir(undefined, config))
+      const removed = purgeEvents(paths, { all: true })
+      console.log(`已删除 ${removed} 条本地事件`)
+    }
+    console.log("遥测已停用；如需彻底删除数据，重跑时加 --purge-data")
   } catch (error) {
     if (isCancel(error)) {
       console.log("已取消，未修改任何文件")

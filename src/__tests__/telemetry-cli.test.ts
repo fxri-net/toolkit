@@ -6,6 +6,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { registerTelemetryCommands } from "../telemetry/commands"
+import { recordHookActivity } from "../telemetry/ingest"
 import { readAllEvents, telemetryPaths } from "../telemetry/store"
 import type { SkillUsageEvent } from "../telemetry/types"
 
@@ -79,6 +80,8 @@ describe("telemetry CLI", () => {
   it("状态与开关命令回显并写全局配置", async () => {
     await run(["status", "--format", "json"])
     expect(logs.join("\n")).toContain('"enabled": true')
+    expect(logs.join("\n")).toContain('"hooks"')
+    expect(logs.join("\n")).toContain('"upload"')
 
     await run(["sources", "--first-party", "off"])
     await run(["skills", "--mode", "all"])
@@ -133,6 +136,32 @@ describe("telemetry CLI", () => {
     await run(["hooks", "uninstall", "--agent", "trae"])
     const after = JSON.parse(readFileSync(join(home, ".trae-cn", "hooks.json"), "utf8"))
     expect(after.hooks.PostToolUse).toBeUndefined()
+  })
+
+  it("非交互初始化、上传配置与卸载", async () => {
+    await run(["init", "--yes", "--preset", "recommended", "--agent", "trae"])
+    let config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
+    expect(config.telemetry.enabled).toBe(true)
+    expect(config.telemetry.agents.trae).toBe(true)
+    expect(config.telemetry.sources.firstParty).toBe(true)
+    expect(readFileSync(join(home, ".trae-cn", "hooks.json"), "utf8")).toContain("telemetry ingest --agent trae")
+
+    const endpoint = join(dataDir, "upload.jsonl")
+    await run(["upload", "setup", "--yes", "--protocol", "file", "--endpoint", endpoint])
+    config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
+    expect(config.telemetry.upload.enabled).toBe(true)
+    expect(config.telemetry.upload.protocol).toBe("file")
+
+    recordHookActivity(telemetryPaths(dataDir), "trae", "written")
+    logs = []
+    await run(["hooks", "status", "--agent", "trae", "--dir", dataDir])
+    expect(logs.join("\n")).toContain("最近触发")
+
+    await run(["uninstall", "--yes", "--agent", "trae"])
+    config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
+    expect(config.telemetry.enabled).toBe(false)
+    const hooks = JSON.parse(readFileSync(join(home, ".trae-cn", "hooks.json"), "utf8"))
+    expect(hooks.hooks.PostToolUse).toBeUndefined()
   })
 
   it("上传默认关闭，dry-run 直接报错", async () => {

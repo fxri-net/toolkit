@@ -43,7 +43,8 @@ toolkit telemetry stats           # 查看统计
 
 | 命令 | 用途 |
 | --- | --- |
-| `status` | 开关、配置路径、数据目录与事件计数 |
+| `status` | 开关、配置路径、数据目录、Hook 与上传汇总 |
+| `init` / `uninstall` | 初始化 / 停用并卸载 Hook（默认保留数据） |
 | `enable` / `disable` | 总开关 |
 | `sources` | 一方 / 第三方 / 未托管来源开关 |
 | `skills` | `none` / `all` / `include` / `exclude` 技能范围 |

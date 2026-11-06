@@ -189,8 +189,65 @@ export function uploadStatus(): { enabled: boolean; protocol: TelemetryUploadPro
   }
 }
 
+// 上传配置选项：--yes 走非交互路径，需同时给出协议与端点
+export interface UploadSetupOptions {
+  yes?: boolean
+  protocol?: string
+  endpoint?: string
+  headers?: string
+}
+
+// 解析请求头 JSON：失败返回 null
+function parseHeaders(raw: string | undefined): Record<string, string> | null {
+  if (!raw) return {}
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null
+    return Object.fromEntries(Object.entries(parsed).filter(([, value]) => typeof value === "string")) as Record<string, string>
+  } catch {
+    return null
+  }
+}
+
+// 非交互上传配置：校验协议、端点与 HTTPS 边界后直接启用
+function runNonInteractiveUploadSetup(options: UploadSetupOptions): void {
+  const protocol = options.protocol
+  if (protocol !== "webhook" && protocol !== "otlp-http" && protocol !== "file") {
+    console.error("⚠️ 非交互模式需显式传 --protocol webhook / otlp-http / file")
+    process.exitCode = 1
+    return
+  }
+  const endpoint = options.endpoint?.trim()
+  if (!endpoint) {
+    console.error("⚠️ 非交互模式需显式传 --endpoint")
+    process.exitCode = 1
+    return
+  }
+  const headers = parseHeaders(options.headers)
+  if (headers === null) {
+    console.error("⚠️ --headers 须为 JSON 对象")
+    process.exitCode = 1
+    return
+  }
+  const config = loadTelemetryConfig()
+  const next: TelemetryConfig = { ...config, upload: { ...config.upload, enabled: true, protocol, endpoint, headers } }
+  try {
+    validateUploadEndpoint(next)
+  } catch (error) {
+    console.error(`⚠️ ${(error as Error).message}`)
+    process.exitCode = 1
+    return
+  }
+  updateTelemetryConfig({ upload: { enabled: true, protocol, endpoint, headers } })
+  console.log("上传已启用；先执行 toolkit telemetry upload --dry-run 预览载荷")
+}
+
 // 上传配置向导：协议 → 端点 → 请求头 → 确认启用
-export async function runUploadSetup(): Promise<void> {
+export async function runUploadSetup(options: UploadSetupOptions = {}): Promise<void> {
+  if (options.yes) {
+    runNonInteractiveUploadSetup(options)
+    return
+  }
   if (!(process.stdin.isTTY && process.stdout.isTTY)) {
     console.error("⚠️ 当前环境不支持交互，请直接编辑 ~/.toolkitrc.json 的 telemetry.upload 段")
     process.exitCode = 2

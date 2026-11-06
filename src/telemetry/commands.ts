@@ -4,11 +4,11 @@ import { dirname, resolve } from "node:path"
 import type { Command } from "commander"
 import { assertJsonFormat, toJsonText } from "../json-output"
 import { redactText, resolveRedactEnabled } from "../privacy/redact"
-import { resolveAdapters } from "./adapters"
-import { ingestFromStdin, processHookEvent } from "./ingest"
+import { AGENT_ADAPTERS, resolveAdapters } from "./adapters"
+import { ingestFromStdin, processHookEvent, readHookActivity, readLastHookError } from "./ingest"
 import { parseTranscript } from "./transcript"
 import { runUploadSetup, uploadOnce, uploadStatus } from "./upload"
-import { installHooks, runTelemetryInitWizard, runTelemetryMenu } from "./wizard"
+import { installHooks, runTelemetryInitWizard, runTelemetryMenu, runTelemetryUninstall } from "./wizard"
 import { buildEvent, resolveSkillMeta } from "./event"
 import { shouldRecord } from "./filter"
 import { loadTelemetryConfig, resolveTelemetryDir, telemetryConfigPath, updateTelemetryConfig } from "./config"
@@ -216,12 +216,26 @@ export function registerTelemetryCommands(program: Command): void {
     await runTelemetryMenu()
   })
 
-  // 初始化向导：默认保持关闭，所有选择都有默认值
+  // 初始化向导：默认保持关闭，所有选择都有默认值；--yes 走非交互预设
   telemetry
     .command("init")
     .description("初始化遥测：选择 Agent、来源、字段与存储（默认保持关闭）")
-    .action(async () => {
-      await runTelemetryInitWizard()
+    .option("--yes", "非交互执行，需配合 --preset 使用")
+    .option("--preset <name>", "非交互预设：off / recommended / third-party")
+    .option("--agent <names>", "非交互模式指定 Agent（逗号分隔）")
+    .action(async (options: { yes?: boolean; preset?: string; agent?: string }) => {
+      await runTelemetryInitWizard(options)
+    })
+
+  // 卸载：停用采集、移除 Hook；默认保留数据
+  telemetry
+    .command("uninstall")
+    .description("停用遥测并卸载 Hook（默认保留本地事件）")
+    .option("--yes", "非交互执行")
+    .option("--agent <names>", "只处理指定 Agent（逗号分隔）")
+    .option("--purge-data", "同时删除本地事件")
+    .action(async (options: { yes?: boolean; agent?: string; purgeData?: boolean }) => {
+      await runTelemetryUninstall(options)
     })
 
   // Hook 内部入口：从 stdin 读取事件；stdout 保持为空，避免干扰 Agent
@@ -262,9 +276,10 @@ export function registerTelemetryCommands(program: Command): void {
 
   hooks
     .command("status")
-    .description("查看 Hook 安装状态")
+    .description("查看 Hook 安装状态与最近触发时间")
     .option("--agent <names>", "只查看指定 Agent（逗号分隔）")
-    .action((options: { agent?: string }) => {
+    .option("--dir <path>", "本次使用的数据目录")
+    .action((options: { agent?: string; dir?: string }) => {
       const { adapters, invalid } = resolveAdapters(splitNames(options.agent))
       if (invalid.length > 0) {
         console.error(`⚠️ 未知 Agent：${invalid.join("、")}`)
@@ -275,12 +290,18 @@ export function registerTelemetryCommands(program: Command): void {
         console.log("未检测到可接入的 Agent")
         return
       }
+      const { paths } = createContext(options.dir)
+      const activity = readHookActivity(paths)
+      const lastError = readLastHookError(paths)
       for (const adapter of adapters) {
         const status = adapter.status()
         console.log(`${adapter.displayName}：${status.installed ? "已安装" : "未安装"}｜${status.file}`)
         if (status.command) console.log(`  命令：${status.command}`)
         if (status.lastError) console.log(`  ⚠️ ${status.lastError}`)
+        const last = activity[adapter.id]
+        if (last) console.log(`  最近触发：${last.lastTriggerAt}（${last.lastStatus}）`)
       }
+      if (lastError) console.log(`最近 Hook 错误：${lastError}`)
     })
 
   hooks
@@ -313,6 +334,15 @@ export function registerTelemetryCommands(program: Command): void {
       const files = listEventFiles(paths)
       const events = readAllEvents(paths)
       const last = events.reduce<string | undefined>((acc, event) => (!acc || event.occurredAt > acc ? event.occurredAt : acc), undefined)
+      const installedHooks = AGENT_ADAPTERS.filter((adapter) => {
+        try {
+          return adapter.status().installed
+        } catch {
+          return false
+        }
+      }).map((adapter) => adapter.id)
+      const upload = uploadStatus()
+      const lastHookError = readLastHookError(paths)
       const report = {
         enabled: config.enabled,
         configFile: telemetryConfigPath(),
@@ -321,14 +351,20 @@ export function registerTelemetryCommands(program: Command): void {
         events: events.length,
         indexed: index.eventIds.length,
         lastEventAt: last ?? null,
+        hooks: installedHooks,
+        upload: { enabled: upload.enabled, pending: upload.pending },
+        lastHookError: lastHookError ?? null,
       }
       if (options.format === "json") {
         printJson(report)
         return
       }
       printConfig(config, dir)
+      console.log(`Hook：${installedHooks.length > 0 ? installedHooks.join("、") : "未安装"}`)
+      console.log(`上传：${upload.enabled ? `已开启（待上传 ${upload.pending} 条）` : "已关闭"}`)
       console.log(`事件：${report.events} 条（索引 ${report.indexed} 条，文件 ${report.eventFiles} 个）`)
       console.log(`最近：${report.lastEventAt ?? "暂无"}`)
+      if (lastHookError) console.log(`最近 Hook 错误：${lastHookError}`)
     })
 
   // 总开关：开启前必须已有 Agent 与来源配置，否则记录仍为零
@@ -482,8 +518,12 @@ export function registerTelemetryCommands(program: Command): void {
   upload
     .command("setup")
     .description("上传配置向导：协议、端点、请求头与启用确认")
-    .action(async () => {
-      await runUploadSetup()
+    .option("--yes", "非交互执行，需同时给出协议与端点")
+    .option("--protocol <name>", "webhook / otlp-http / file")
+    .option("--endpoint <value>", "上传端点或导出路径")
+    .option("--headers <json>", "附加请求头 JSON")
+    .action(async (options: { yes?: boolean; protocol?: string; endpoint?: string; headers?: string }) => {
+      await runUploadSetup(options)
     })
   upload
     .command("status")

@@ -13,6 +13,58 @@ import type { NormalizedHookEvent, TelemetryConfig, TelemetryOutcome } from "./t
 // 触发词缓存有效期：超过一天视为过期，避免读到陈旧会话
 const PROMPT_CACHE_TTL_MS = 24 * 60 * 60 * 1000
 
+// Hook 活跃记录：每个 Agent 最近一次触发时间与处理状态
+export interface HookActivity {
+  lastTriggerAt: string
+  lastStatus: string
+}
+
+// Hook 活跃记录文件
+function hookActivityFile(paths: ReturnType<typeof telemetryPaths>): string {
+  return join(paths.stateDir, "hooks.json")
+}
+
+// 读取 Hook 活跃记录：损坏按空记录处理
+export function readHookActivity(paths: ReturnType<typeof telemetryPaths>): Record<string, HookActivity> {
+  const file = hookActivityFile(paths)
+  if (!existsSync(file)) return {}
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(file, "utf8"))
+    if (typeof parsed !== "object" || parsed === null) return {}
+    const out: Record<string, HookActivity> = {}
+    for (const [agent, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof value !== "object" || value === null) continue
+      const record = value as Partial<HookActivity>
+      if (typeof record.lastTriggerAt === "string" && typeof record.lastStatus === "string") {
+        out[agent] = { lastTriggerAt: record.lastTriggerAt, lastStatus: record.lastStatus }
+      }
+    }
+    return out
+  } catch {
+    return {}
+  }
+}
+
+// 记录 Hook 最近触发：只在采集开启且事件已处理时调用
+export function recordHookActivity(paths: ReturnType<typeof telemetryPaths>, agent: string, status: string): void {
+  const current = readHookActivity(paths)
+  current[agent] = { lastTriggerAt: new Date().toISOString(), lastStatus: status }
+  ensureDir(paths.stateDir)
+  writeFileAtomic(hookActivityFile(paths), `${JSON.stringify(current, null, 2)}\n`)
+}
+
+// 读取最近一条 Hook 错误：状态页展示用
+export function readLastHookError(paths: ReturnType<typeof telemetryPaths>): string | undefined {
+  const file = join(paths.root, "hook-errors.log")
+  if (!existsSync(file)) return undefined
+  try {
+    const lines = readFileSync(file, "utf8").split(/\r?\n/).filter(Boolean)
+    return lines[lines.length - 1]
+  } catch {
+    return undefined
+  }
+}
+
 // Hook 处理结果：CLI 只打印简要状态，不输出大段内容
 export interface IngestResult {
   status: "disabled" | "cached" | "ignored" | "written" | "duplicate" | "filtered" | "error"
@@ -139,8 +191,13 @@ export async function ingestFromStdin(agentId: string): Promise<IngestResult> {
     const text = await readStdin()
     const raw: unknown = JSON.parse(text)
     const event = adapter.parseHookEvent(raw)
-    if (!event) return { status: "ignored" }
-    return processHookEvent(event, config, paths)
+    if (!event) {
+      if (config.enabled) recordHookActivity(paths, agentId, "ignored")
+      return { status: "ignored" }
+    }
+    const result = processHookEvent(event, config, paths)
+    if (result.status !== "disabled") recordHookActivity(paths, event.agent, result.status)
+    return result
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     logHookError(paths, message)
