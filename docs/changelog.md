@@ -12,35 +12,20 @@ outline: [2, 2]
 
 ### 🔧 功能调整
 
-- `fxri-plan-to-task` 主文件收敛体感——新增「场景 → 必读 → 可跳过」读取地图，删除与 references / description 的同义复述，闸门与沉淀条目合并；字符数 7,441 → 5,917，流程步骤与命令参数不变
-- `fxri-release-changelog` 把「记录变更」长句拆为写法、级别、早期自查三个子项，并补明 patch 也可挂「新增：」前缀
-- `fxri-plan-review` 的「何时使用」合并同义触发句，去掉与 `description` 重复的枚举
-- `fxri-session-recap` 主文件收敛为三模式入口——新增读取地图，R3 不再复述载体结构细节（判据仍以 `conventions-spec.md` 为准），模式一合并沉淀与收尾步骤；主文件 6,982 → 5,490 字符
-- `fxri-text-encoding` 主文件收敛为决策流——触发判据合并为四类，基线、写盘行为、判字节命令下沉到新增的 `references/tables.md`，运行期乱码表并入 `references/troubleshooting.md`；主文件 7,497 → 3,721 字符，明细零删除
+- `fxri-plan-to-task` 主文件收敛为「场景 → 必读 → 可跳过」读取地图，删除同义复述，保留流程步骤、目录创建与 conventions 加速提示；字符数 7,441 → 5,917
+- `fxri-release-changelog` 把「记录变更」拆为写法、级别、早期自查三个子项，补明 patch 也可挂「新增：」前缀
+- `fxri-plan-review` 合并同义触发句，保留「审查任务拆分」触发示例
+- `fxri-session-recap` 收敛为三模式入口并新增读取地图，保留归档五步、端名示例、四级时间源与分类标签分册加载等全部约束；主文件 6,982 → 5,490 字符
+- `fxri-text-encoding` 主文件收敛为决策流，触发判据保留「或出现乱码」，基线、写盘与排查细则下沉 references；主文件 7,497 → 3,721 字符
 - `scope` 软告警补空格分支——端名与分类标签含空格时提示改用半角加号连接
 
 ### ⚡ 优化改进
 
-- CLI 参考按用户任务重组并拆为总览 + 分页（tasks / init / conventions / changelog / skills / config / docs theme / 退出码），标题不再带版本号，`tasks check` 与 `skills status` 的长单元格改为分组条目
-- `config.md` 小节改为按主题排序并去掉标题版本括注，跨页锚点改为指向分页
-- 配置参考拆为总览 + 五个分页（脱敏 / 校验与任务区 / 语言与镜像 / 升级检查 / 技能分发），侧边栏改为可折叠分组
-- 配置字段总览补全 changelogDoc、skillsInstall、projectSkills 三个段，与拆页后的配置分页一一对应
-- 跨页配置锚点改为指向对应分页，文档一致性测试同步新的内置规则所在页
-- 收敛文档跨页重复，安装与最短路径归新手指南、完整工作流归完整攻略、命令契约归 CLI 参考、分场景操作归操作手册，FAQ 只答差异并指回真源
-- 统一全部手写文档页的「相关页面」页脚：只保留主题参考，上一篇 / 下一篇交给 VitePress 主题按侧边栏顺序生成，消除重复导航；补齐首页、新手指南、完整攻略与推荐技能包的出链
-- 清理 tasks 命令页拆分时残留的重复引言
-- 完整攻略瘦身至 250 行以内并按工作流顺序重排，命令契约、规范细则与技能分发细节改为指向 CLI 参考与 SPEC，与操作手册互相声明边界
-- 技能分发页压到单页 12k 字符以内，收敛与配置参考重复的自愈细节与共读 agent 枚举，命令契约与限制不变
+- 文档站重构：CLI 参考按用户任务拆为总览 + 分页，配置参考拆为总览 + 五个分页，跨页锚点改为指向分页；收敛跨页重复并统一「相关页面」页脚，完整攻略压到 250 行内、技能分发页压到 12k 字符内，命令契约与限制不变
 
 ### 🐛 问题修复
 
-- `conventions status --dir` 跨仓体检时入口壳与检测入口按 cwd 扫描、报「入口壳 0 个」的问题——改为按任务目录所属仓库（父目录含 package.json / .git）推导扫描根，无标记时回落 cwd
-- `fxri-session-recap` 补回归档五步序列、端名示例与「端清单唯一权威」、形态残留判据；`fxri-plan-to-task` 补回「目录不存在时按规范创建」——逐行审计发现的 4 处细节差异，与精简前对齐
-- `fxri-session-recap` 补回精简时丢失的两条约束——「能用前三级必须用」与「一个任务至少一次提交、允许多次」，跨时区容差恢复显式 14 小时口径
-- `fxri-plan-to-task` 可选加速补回 conventions 命令与流程步骤的对照提示
-- `fxri-session-recap` 的归属判定补回分类标签分册加载规则——`scope` 中非端值且载体下存在同名分册时按该分册加载，避免精简后只读主文件时漏加载
-- `fxri-plan-review` 补回触发示例「审查任务拆分」，`fxri-text-encoding` 触发判据补「或出现乱码」——精简后两处词面损失，与旧技能的触发面重新对齐
-- `tasks check --dir` 跨仓校验时入口壳改为按任务目录所属仓库查找，与 `conventions status --dir` 同口径，不再漏报入口壳告警
+- `conventions status --dir` 与 `tasks check --dir` 跨仓体检改为按任务目录所属仓库推导扫描根，无标记时回落 cwd，不再漏报入口壳告警
 
 ## 1.15.5
 
@@ -65,7 +50,6 @@ outline: [2, 2]
 
 ### 🔧 功能调整
 
-- 移除 `fxri-release-changelog` 新增的镜像页页头统一要求——属项目风格偏好，不构成通用契约
 - `fxri-plan-to-task` 与 `task-spec.md` / `conventions-spec.md` 里的本仓路径、本仓历史案例改为通用措辞，通用技能只保留可移植纪律
 
 ## 1.15.2
@@ -74,7 +58,7 @@ outline: [2, 2]
 
 ### 🔧 功能调整
 
-- `fxri-release-changelog` 明确镜像页页头统一口径——默认 `outline: [2, 2]`（右侧目录只列版本号），不得用 `--no-frontmatter` 或自定义 `--outline` 偏离，并给出已偏离项目的回正步骤
+- `fxri-release-changelog` 的镜像页页头统一要求已撤回——属项目风格偏好，不构成通用契约；`outline` 与 frontmatter 由项目自行决定
 
 ## 1.15.1
 
@@ -83,29 +67,17 @@ outline: [2, 2]
 ### ✨ 新增功能
 
 - 新增 `scripts/check-consistency.mjs` 并挂入 `pnpm verify`，校验技能版本四处一致、技能表用途列片段与任务登记的触达路径
-- `toolkit conventions status` 输出 `checkCoverage`（`covered` / `uncovered` / `unknownIds`），一句话结论追加「其中 N 条无检测入口」
-- 检测代码可用 `// C-<n>` 行内注释标注对应规范，索引外引用以 info 提示
-- 新增 `toolkit skills bump` 递增技能版本，同步改写 frontmatter 与正文首部两处声明
-- `--all` 批量递增、`--set` 直接设定版本，支持 `--dry-run` 与 `--format json`
-- `fxri-plan-to-task` 归档步骤与 `task-spec.md` 的触达登记说明补「归档前运行改动比对」时点，避免归档删掉 active 源文件后比对空转
-- `FX_DEBUG_UPDATE_CHECK=1` 输出每轮提示判定依据到 stderr，不改变提示结果
-- `skills status` 展示上次检查时间与下次可提示时间，JSON 侧补 `checkedAt` / `nextHintAt`
+- `toolkit conventions status` 输出 `checkCoverage`（`covered` / `uncovered` / `unknownIds`），一句话结论追加「其中 N 条无检测入口」；检测代码可用 `// C-<n>` 标注对应规范
+- 新增 `toolkit skills bump` 递增技能版本，支持 `--all` 批量、`--set` 直接设定、`--dry-run` 与 `--format json`
+- 任务正文可用 `- 文档触达：<路径>` 登记触达文件，仓库自检核对路径存在性；`fxri-plan-to-task` references 补触达登记、检测入口标注与「归档前运行改动比对」时点
+- `FX_DEBUG_UPDATE_CHECK=1` 输出每轮提示判定依据到 stderr；`skills status` 展示上次检查时间与下次可提示时间，JSON 补 `checkedAt` / `nextHintAt`
 
 ### 🔧 功能调整
 
-- 任务正文可用 `- 文档触达：<路径>` 登记本次触达文件，仓库自检核对路径存在性
-- `fxri-plan-to-task` references 补触达登记约定
-- `fxri-plan-to-task` references 补「检测入口标注约定」
-- `fxri-plan-review` 输出列名改为「后续是否落档」，取值 `直接落档` / `需要确认` / `仅作提示`
-- 会话内任何评估 / 建议表格都必须带该列，未分类默认 `仅作提示`
-- 技能表与根 README 的用途描述同步新标签
-- 明确「方案确认 ≠ 执行授权」，只读检查可在规划态执行、写操作须明确授权
-- 不可逆动作默认逐次授权，当前指令已含发版 / 推送授权则直接执行
-- 发版技能补授权边界与会话级授权的有效期，`fxri-session-recap` 同步收尾口径
-- 触发词与被动场景改为语义判定，示例非穷举
-- `SPEC.md`、`docs/ai-rules.md`、`AGENTS.md` 与 conventions C-2 同步授权语义
-- `fxri-plan-to-task`、`fxri-plan-review`、`fxri-session-recap` 的触发与只读判据改为按意图与最终动作判定，短语降为示例并标注非穷举，不再并列成词表
-- `skills/README.md` 自查清单把「正向触发词」改为「触发意图与示例（示例非穷举）」，从模板层阻断后续技能继续写词表
+- `fxri-plan-review` 输出列名改为「后续是否落档」，取值 `直接落档` / `需要确认` / `仅作提示`；会话内评估 / 建议表格必须带该列，未分类默认 `仅作提示`，技能表与 README 同步
+- 明确「方案确认 ≠ 执行授权」：只读检查可在规划态执行，写操作须明确授权；不可逆动作默认逐次授权，当前指令已含授权则直接执行
+- 发版技能补授权边界与会话级授权有效期，`fxri-session-recap` 同步收尾口径；`SPEC.md`、`docs/ai-rules.md`、`AGENTS.md` 与 conventions C-2 同步授权语义
+- 触发与只读判据改为按意图与最终动作判定，短语降为示例并标注非穷举；`fxri-plan-to-task`、`fxri-plan-review`、`fxri-session-recap` 与 `skills/README.md` 自查清单同步，不再并列成词表
 - `docs/ai-rules.md` 补「只读型请求默认只读」稳定纪律，规则更新时间锚点同步
 
 ### ⚡ 优化改进
@@ -115,19 +87,11 @@ outline: [2, 2]
 ### 🐛 问题修复
 
 - `config status` 把 `skillsInstall` / `projectSkills` / `changelogDoc` 误报为未知配置段
-- `docs/cli.md` 升级提示渠道与技能 JSON 子命令范围表述过期
-- `docs/ai-rules.md` 技能分工补上落档后复核
+- 升级提示与版本比较统一：外部来源按技能自身 `metadata.version` 比较，安装报告显示真实版本与「当前 → 目标」，提示显示「当前 → 最新」，版本不可比时区分来源侧 / 已装侧
+- 版本比较口径统一——段数不等补零、预发布低于同号正式版、忽略构建元数据、无法解析时不提示；批量抬 minor / major 需交互确认，非交互环境须显式 `--yes`
+- `skills sources` 不再列出内置源；`refresh --dry-run` 显示当前版本，无版本时 JSON 返回 `null`，帮助文案同步
+- `docs/cli.md` 升级提示渠道与技能 JSON 子命令范围表述过期；`docs/ai-rules.md` 技能分工补上落档后复核
 - 只有表态明确指向「接受评估结论并落档」才自动写入，「继续评估 / 可以吧」等不再触发落档
-- 外部来源的技能更新提示改为比较技能自身 `metadata.version`（读自来源缓存目录），不再用来源仓库版本冒充技能版本，消除「install 说已就绪但提示刷不掉」
-- 安装报告显示外部技能真实版本，并对重建 / 更新的技能给出「当前 → 目标」摘要
-- 技能更新提示给出「当前 → 最新」，不再只报最新值
-- 版本比较口径统一——段数不等补零、预发布低于同号正式版、忽略构建元数据、无法解析时不提示
-- 版本不可比条目区分缺的是来源侧还是已装侧
-- 批量抬 minor / major 需交互确认，非交互环境须显式 `--yes`
-- `skills sources` 不再列出内置源 `toolkit`，与「外部来源」定位及 `sources notify` 的内置源拒绝口径一致
-- `skills sources refresh --dry-run` 显示来源当前版本，未知版本标为「未知」/ `null`
-- `sources refresh` 的 JSON 在来源无版本时返回 `null`，不再输出空串
-- `skills sources` 与 `sources refresh` 的帮助文案如实反映「刷新 / 提示频率管理」与「dry-run 显示当前版本」
 - 执行 `skills install` 后同一版本不再重复提示，来源版本变化或 CLI 升级后自动恢复
 
 ## 1.15.0
@@ -302,10 +266,8 @@ outline: [2, 2]
 
 ### 🐛 问题修复
 
-- `fxri-session-recap` 恢复模式二引用兄弟技能 `conventions-migration.md` 时补包内真源兜底，单独加载该篇也能定位升级链路
+- `fxri-session-recap` 恢复模式二按相对路径引用 `conventions-migration.md`，补包内真源兜底；载体形态 v1 / v2 判定与 `retired.md` 按需读清单与主文件 R3 及 `docs/guide.md` 口径一致
 - `fxri-plan-to-task` 的 v2 → v3 升级步骤直接写出 `retired.md` 固定表头，迁移不再需要反向查 `conventions-spec.md`
-- `fxri-session-recap` 恢复模式二的规范核对步骤按相对路径引用兄弟技能 `conventions-migration.md`，与同文件其他引用及技能编写核对项一致
-- 同一处补全载体形态判定「v1 / v2」与按需读清单 `retired.md`，与主文件 R3 及 `docs/guide.md` 口径一致
 
 ## 1.12.5
 
@@ -328,12 +290,9 @@ outline: [2, 2]
 
 ### 📝 文档更新
 
-- 补充 canonical 共读 agent 清单，以及 DeepSeek Harness 全局 / 项目级技能目录说明
-- 更新 canonical 共读 agent 清单与环境变量说明
-- 同步项目级技能目录与入口壳落点的枚举，写明拒绝收录的裸 `skills` 与 `data/skills` 理由
-- `skills install --dir` 的 help 说明补充「不参与后续自动同步，技能变化后需带相同 `--dir` 重跑」，与文档口径一致
-- 补充 `--dir` 自定义技能目录的同步说明——只在当次安装时写入，技能增删后不会自动同步，需带相同 `--dir` 重跑 `toolkit skills install`
-- 补充全局技能目录的环境变量覆盖说明
+- 补充 canonical 共读 agent 清单、DeepSeek Harness 全局 / 项目级技能目录与环境变量覆盖说明
+- 同步项目级技能目录与入口壳落点枚举，写明拒绝收录的裸 `skills` 与 `data/skills` 理由
+- `skills install --dir` 说明只在当次安装写入，技能增删后需带相同 `--dir` 重跑
 
 ## 1.12.4
 
@@ -350,25 +309,19 @@ outline: [2, 2]
 
 ### ⚡ 优化改进
 
-- `fxri-plan-to-task` 的 references 改为按场景读取，普通建档不再提前加载迁移与模板细则
-- `fxri-plan-to-task` 1.9.0 压缩正文，`conventions-spec.md` 拆出存量迁移（`conventions-migration.md`）与文风模板（`conventions-templates.md`）两份按需加载 references，日常只读主文件
-- `fxri-session-recap` 1.5.0 合并重复纪律，规范载体细节改为指针，不再复述 `conventions-spec.md` 内容
-- `fxri-release-changelog` 1.2.0 精简触发词与失败模式说明，`changelog-format.md` 自查说明改为指向检测入口
-- `fxri-session-recap` 1.6.0 将模式二（恢复上下文）与模式三（历史时间修正）下沉为 `references/mode-2-recovery.md` / `mode-3-time-fix.md` 按需加载，主文件只留概要、关键护栏与读取指针，常用且高风险的模式一仍内联
-- `fxri-plan-to-task` 1.9.1 与 `fxri-session-recap` 的存量迁移、载体升级细节压缩为触发条件 + 指针，细则只在 `conventions-migration.md` 维护
+- `fxri-plan-to-task` references 改为按场景读取，正文压缩，迁移与文风模板拆为 `conventions-migration.md` / `conventions-templates.md` 按需加载，日常只读主文件
+- `fxri-session-recap` 合并重复纪律，模式二 / 三下沉 references，主文件保留概要、关键护栏与读取指针，模式一仍内联
+- `fxri-release-changelog` 精简触发词与失败模式说明，`changelog-format.md` 自查说明改为指向检测入口
 
 ### 🐛 问题修复
 
 - 修正文档触达面清单的过期枚举，改为遍历 docs 全量页面，避免新增页面漏检
-- `fxri-release-changelog` 1.2.1 修正 `changelog-format.md` 文件结构示例仍带类型前缀、与「归类后剥离前缀」规则冲突
+- `fxri-release-changelog` 修正 `changelog-format.md` 文件结构示例仍带类型前缀、与「归类后剥离前缀」规则冲突
 
 ### 📝 文档更新
 
-- `SPEC.md`、`README.md`、`docs/getting-started.md`、`docs/handbook.md`、`docs/guide.md` 同步开工门槛与逐任务交付口径
-- 移除全局规则页中重复的升级说明措辞
-- 明确不要把 SKILL.md 链接为常驻规则，并修正兄弟技能 references 的引用纪律
-- `skills/README.md`、`docs/guide.md` 技能版本表随各技能内容改动同步（当前 1.9.2 / 1.2.1 / 1.6.0）
-- `skills/README.md`、`docs/guide.md`、`docs/faq.md` 澄清技能加载口径——`description` 常驻用于匹配触发、正文触发时加载、`references/` 按需读取，不再声称「零上下文占用」「未声明不会自动介入」
+- `SPEC.md`、README、guide/handbook/getting-started 同步开工门槛与逐任务交付口径；移除全局规则页重复的升级说明，明确 SKILL.md 不链接为常驻规则
+- 技能版本表与加载口径同步——`description` 常驻匹配、正文触发时加载、`references/` 按需读取，不再声称「零上下文占用」「未声明不会自动介入」
 - 发布核对清单与单元测试新增加载体积守卫——主干 `SKILL.md` 不超过 8,000 字符
 
 ### 🧹 清理移除
@@ -494,9 +447,8 @@ outline: [2, 2]
 
 ### 📝 文档更新
 
-- 修正 1.11.4 块的条目前缀与归组——本版首度发布的新能力（`init` 发布型包误打包提示、项目面技能分发）原整批登记为 `修复：`、落「问题修复」组；现按变更本身性质逐条定为 `新增：`，归入「新增功能」组（条目前缀与 bump 级别正交，`patch` 亦可挂 `新增：`）
-- `fxri-release-changelog` 技能补失败模式口径——条目前缀按变更本身性质逐条定、与 bump 级别正交，避免因 bump 判为 patch 即整批按 `修复：` 登记新增能力；技能版本 1.1.5 → 1.1.6
-- `fxri-release-changelog` references 补「已发布版本块人工更正边界」口径——已发布版本块原则上不追溯改写，确需更正事实性错误时允许人工修改；仓库为真源，已发布的包产物与版本标签为不可变快照、不回补；技能版本 1.1.6 → 1.1.7
+- `fxri-release-changelog` 技能补失败模式口径——条目前缀按变更本身性质逐条定、与 bump 级别正交，避免因 bump 判为 patch 即整批按 `修复：` 登记新增能力
+- `fxri-release-changelog` references 补「已发布版本块人工更正边界」口径——已发布版本块原则上不追溯改写，确需更正事实性错误时允许人工修改；仓库为真源，已发布的包产物与版本标签为不可变快照、不回补
 
 ### 🧹 清理移除
 
@@ -508,17 +460,12 @@ outline: [2, 2]
 
 ### ✨ 新增功能
 
-- `toolkit init` 新增发布型包误打包提示——`package.json` 未标 `private` 且无 `files` 白名单时提醒发布面风险，判据独立于 `prepare` 刷新钩子（`--no-hooks`、未声明本地依赖、非等价 `prepare` 等情形同样提示）
-- 该提示按现场动态列出会打进包的产物——技能真源 `.agents/skills/`、各已存在的候选技能目录下的入口薄壳（`.trae/skills/`、`.trae-cn/skills/`、`.cursor/skills/`、`.claude/skills/`）与归属账 `.toolkit/`，并含内置任务区 `.tasks/`（任务区外置时不计入），说明 `npm` 无 `.npmignore` 时退回 `.gitignore` 的打包面原理
-- `toolkit skills install` / `status` / `remove` 此前只把技能分发到用户全局目录，项目内装的 toolkit 落点也不在项目、队友 clone 后拿不到；现新增 `--scope <project|global|all>`，缺省按 CLI 安装位置自动判定（项目内装的落项目面、全局装的落全局面），项目面随 git 入库、clone 即用
-- 项目面技能采用「唯一真源 + 多份入口薄壳」形态——完整副本恒定落 `<仓库根>/.agents/skills/`，其余已存在的候选技能目录各放一个指向真源的薄壳 `SKILL.md`，agent 循薄壳读真源，避免重复真源
-- 项目面归属账落 `<仓库根>/.toolkit/state.json`（随仓库入库，记真源与各薄壳落点的仓库相对路径）
-- `toolkit init` 幂等写入 `prepare` 钩子（`toolkit skills install --scope project`），`pnpm install`（含 `pnpm up @fxri/toolkit`）时自动刷新项目面真源与薄壳，消除手动重跑；仅当本包为项目本地依赖时写入，未声明本地依赖（如全局安装）时不写、需要时手工补，绕过 `init` 直接 `skills install --scope project` 启用项目面者需自行补钩子；不需者用 `--no-hooks` 关闭
+- `toolkit init` 新增发布型包误打包提示——`package.json` 未标 `private` 且无 `files` 白名单时提醒发布面风险，并按现场列出会打进包的技能真源、入口薄壳、归属账与内置任务区，说明 `npm` 无 `.npmignore` 时退回 `.gitignore` 的打包面原理
+- `toolkit skills install` / `status` / `remove` 新增 `--scope <project|global|all>` 项目面分发：完整真源落 `<仓库根>/.agents/skills/`，其余候选目录放入口薄壳，归属账落 `.toolkit/state.json`；`init` 幂等写入 `prepare` 钩子自动刷新，`--no-hooks` 可关闭
 
 ### 📝 文档更新
 
-- `docs/faq.md` / `docs/guide.md` / `docs/cli.md` 同步发布型包注意事项
-- 同步 `skills` 域 `--scope`、`init --no-hooks` 与项目面分发说明（README / guide / handbook / faq / getting-started / cli）
+- `docs/faq.md` / `docs/guide.md` / `docs/cli.md` 等同步发布型包注意事项、`--scope`、`init --no-hooks` 与项目面分发说明
 
 ## 1.11.3
 
@@ -587,47 +534,36 @@ outline: [2, 2]
 ### ✨ 新增功能
 
 - `toolkit tasks stats` 支持 `--view` / `--status` 过滤（与 `tasks list` 口径一致，`--view` 默认 `all` 含归档），并补齐 `--date` 与 `--since` / `--until` 的互斥校验
-- `toolkit tasks check` 补「`updated` 早于 `created`」与「归档块完成日期与所属月份目录不符」两项校验，并对 BOM、行尾空白、同文件 CRLF/LF 混用给出软告警（只报不改，修复走 `tasks normalize`）
-- 新增 `toolkit conventions` 命令域：`upgrade` 把 v1 规范载体升级为 v2（发稳定 ID `C-<n>`、演进记录切独立 `history.md`、内部引用改稳定 ID），`status` 做只读体检（形态 / 索引 / 入口层三块，只报不改；体检不阻断、退出码恒 0）
-- `upgrade` 幂等、先判后写，异常形态在写盘前拒绝；已为 v2 时返回 `already-v2`；`--dry-run` 可预演
-- 规范载体引入结构 v2：`index.md` 首行为形态标记、索引表首列改为稳定 ID `C-<n>`（去补零、只追加不重排不回收）、演进记录抽为独立 `history.md`（只追加、不改旧行）；v1 三态兼容读取
-- `toolkit init` 生成 v2 载体骨架（`index.md` + `history.md`）与项目级技能入口壳，并逐项报告实际动作（新建 / 保持 / 追加 / 跳过）
+- `toolkit tasks check` 补「`updated` 早于 `created`」「归档块完成日期与月份目录不符」与 BOM / 行尾空白 / CRLF-LF 混用等软告警，并增扫 `.changeset` 缺类型前缀条目，把检测前移到归档前
+- 新增 `toolkit conventions` 命令域与规范载体 v2：`upgrade` 把 v1 升 v2（稳定 ID `C-<n>`、独立 `history.md`、内部引用改 ID），`status` 只读体检；`upgrade` 幂等、先判后写、异常形态拒绝写盘、支持 `--dry-run`
+- `toolkit init` 生成 v2 载体骨架（`index.md` + `history.md`）与项目级技能入口壳，逐项报告动作；未安装全局技能时补 `toolkit skills install` 指引
 - `toolkit tasks check` 对载体形态异常与技能入口壳给出软告警（壳标记版本不一致、或被 gitignore 覆盖不会随 git 分发）
-- `toolkit tasks check` 增扫 `.changeset/` 下待发布变更集的缺类型前缀条目（逐文件报出缺前缀条数与首条行号），把「变更集缺前缀」的检测前移到归档前；不再等到发版、变更集源被消费删除后才由 changelog 侧兜底告警。前缀识别取全局表与各配置语言自有前缀的并集，缩进续行随父条目迁属、不参与识别
-- `toolkit init` 在检测到尚未安装全局技能时，「下一步」中补一行 `toolkit skills install` 指引（规范触达第一层，不依赖项目内文件；已安装则不重复提示）
 
 ### 🔧 功能调整
 
-- `toolkit init` 生成的规范入口壳改为落在**已存在的**项目级技能目录的每一处（多 agent 混用团队各写一份、互不覆盖），一个候选目录都没有时回落 `.agents/skills`；不再为使用者未安装的 agent 凭空创建目录
-- `init` 写入 `AGENTS.md` 的规范入口指针块改为**去路径化**措辞，只描述入口壳形态、不写死具体落点，避免误导只读其他候选技能目录的 agent
+- `toolkit init` 的规范入口壳落在已存在的项目级技能目录，多 agent 各写一份、互不覆盖；一个候选目录都没有时回落 `.agents/skills`；`AGENTS.md` 指针块改为去路径化措辞
 
 ### ⚡ 优化改进
 
-- `toolkit changelog format` 由全量重建改为只重组识别到的语义分区——未识别分组标题连同条目原样保留、不臆造归属，不再丢内容；`--history format` 恢复幂等（不再逐次注入空行）
-- `toolkit changelog format` 归类前后做条目数自检，减少即 stderr 告警提示人工核对（归类只应搬移、不应减少）
+- `toolkit changelog format` 改为只重组识别到的语义分区，未识别分组原样保留；归类前后做条目数自检，减少即告警；`--history format` 恢复幂等
 - 升级检查前置到提前返回之前，所有子命令路径一致触发，不再有路径漏检
-- 项目无 `AGENTS.md` 时，`init` 的跳过提示补充说明：本项目规范仍可经全局技能 `fxri-plan-to-task` 触达
-- 入口壳告警合并：多落点并存时「壳标记与当前 toolkit 不一致」「壳被 gitignore 覆盖」各只告警一条并内联全部落点路径，不再按壳逐条重复（5 处壳由 10 条降为 2 条）；告警中的落点路径改用**仓库根相对路径**，不再泄露本机绝对路径，与 `check` 其余项口径一致
-- 入口壳版本告警补回定位信息：多落点场景原本文案逐字相同、无路径可定位，现内联各落点的标记版本，`toolkit conventions status` 与 `toolkit tasks check` 文案保持一致
-- `toolkit skills status` 人读输出折叠：全部正常的目标聚合为一行（`<目标>：<目录>　N 项正常`），仅含问题项的目标逐条展开；`--format json` 输出不变、信息不丢
-- 入口壳告警文案中性化：单壳与多壳分支统一为「入口壳标记与当前 toolkit 不一致」（原「落后」措辞在壳标记超前时失真），统一 `标记 v1` / `标记 无` 前缀
-- 入口壳 gitignore 判定由逐壳一次子进程改为一次性批量（`git check-ignore --stdin`），多落点项目的 `toolkit tasks check` 耗时回落
+- 项目无 `AGENTS.md` 时，`init` 的跳过提示说明本项目规范仍可经全局技能 `fxri-plan-to-task` 触达
+- 入口壳告警合并并中性化：多落点各只告警一条、内联仓库相对路径与标记版本，单壳 / 多壳统一文案；gitignore 判定改为批量 `git check-ignore --stdin`
+- `toolkit skills status` 人读输出折叠：全部正常的目标聚合为一行，仅问题项逐条展开；`--format json` 输出不变
 
 ### 🐛 问题修复
 
 - `toolkit tasks export --redact` 改为全部文本列统一脱敏，消除 `任务名` 之外的漏网列
-- `toolkit tasks normalize` 对无法识别完成时间的归档不再落「垃圾路径」，改为告警并跳过该项；`check` / `normalize` 分工在 help 中互相指引（check 只报不修、normalize 负责修）
-- `toolkit skills status` 纳入状态文件登记的目标（不只统计现场目录），软链目标不存在时判为悬空、不再误报 `link-ok`
-- `toolkit skills install --force` 不再把已登记的副本落点翻回软链（冲突解除与落点形态解耦，保留用户既有落点形态）
-- `toolkit skills remove` 回收残留空目录；`skills status` 对软链落点标注「写入将穿透至源目录，改内容请改真源」
+- `toolkit tasks normalize` 对无法识别完成时间的归档不再落「垃圾路径」，改为告警并跳过该项；`check` / `normalize` 分工在 help 中互相指引
+- `toolkit skills status` 纳入状态文件登记的目标，软链目标不存在时判为悬空；`install --force` 保留既有落点形态；`remove` 回收残留空目录并提示软链穿透
 - `toolkit tasks --import` 生成的归档块不再重复 H1，并保留来源 `updated` 字段（缺省时才用当天）
-- `toolkit tasks archive` 同源多落点告警合并为一条；`depends_on` 裸标量按单元素接收、不可解析形态告警（不再静默丢依赖）
+- `toolkit tasks archive` 同源多落点告警合并为一条；`depends_on` 裸标量按单元素接收、不可解析形态告警
 - 未知 `--lang` 值回落默认语言时 stderr 告警，配置项类型不符回落默认值时同样告警（降级不静默）
 - `tasks list` / `tasks stats` 全部 `--status` 取值非法时报错退出（退出码 1），不再静默忽略
-- `tasks archive` / `check` / `normalize` / `stats` 传入不受支持的 `--export`（前三者再传 `--format`）时 stderr 告警忽略、命令继续（降级不静默）
-- 修复技能链接误报与误重指：判定改为「路径不等时比对内容」，链接锚在 pnpm 稳定入口（或另一同内容安装）而内容与真源逐字一致时不再报错，`autoLink` 也不会再把健康链接重指到当前运行源
-- `toolkit init` 重复执行改为按入口壳标记版本分流：标记落后或无标记时就地更新为当前版本（报告为「更新」），标记不旧于当前版本保持不变、不降级覆盖——使告警中「重跑 `toolkit init` 补齐」成为真实可用的修复路径
-- 修复 `toolkit conventions status` 在 @fxri/toolkit 源仓库内误提示「未找到入口壳：执行 toolkit init 可生成」的问题：源仓库本就不生成入口壳（靠 fxri-\* 技能自举），现不再给出补生成建议
+- `tasks archive` / `check` / `normalize` / `stats` 传入不受支持的 `--export`（前三者再传 `--format`）时 stderr 告警忽略、命令继续
+- 修复技能链接误报与误重指：路径不等时比对内容，内容与真源逐字一致时不再报错，`autoLink` 不再把健康链接重指到当前运行源
+- `toolkit init` 重复执行按入口壳标记版本分流：标记落后或无标记时就地更新，标记不旧于当前版本保持不变，使「重跑 `init` 补齐」成为可用修复路径
+- 修复 `toolkit conventions status` 在源仓库内误提示「未找到入口壳」的问题：源仓库不生成入口壳，现不再给出补生成建议
 
 ## 1.10.5
 
@@ -647,11 +583,7 @@ outline: [2, 2]
 
 ### 🐛 问题修复
 
-- 技能软链锚点改用 pnpm 稳定入口，CLI 升级后链接不再悬空
-
-  - 此前软链目标写死为包实体路径（pnpm 全局布局下含版本段 `.pnpm/@fxri+toolkit@x.y.z/...`），CLI 升级时旧版本段目录被 pnpm 剪除即断链；从升级完成到下次运行任意 `toolkit` 命令之间，新会话读不到技能
-  - 改为锚在 pnpm 稳定入口 `<node_modules>/@fxri/toolkit`（升级时由 pnpm 重写该入口），链接跨版本存活，无需任何修复命令
-  - 存量旧锚点链接首次运行 `toolkit` 命令即自动迁移到稳定入口；`skills status` 与 `skills remove` 同时接受新旧两种指向，避免误报或漏摘；同步 `docs/ai-rules.md`、`docs/handbook.md`、`docs/guide.md`、`docs/cli.md`、`docs/faq.md`、`skills/README.md` 的表述
+- 技能软链锚点改用 pnpm 稳定入口，项目内安装升级后链接不再悬空；pnpm 全局布局的稳定入口解析在 1.10.5 修复
 
 ## 1.10.3
 
@@ -769,7 +701,6 @@ outline: [2, 2]
 
   - 条目归入语义分组后，已识别的 `类型：` 前缀被剥离（`- 修复：xxx` → `- xxx`），类型由分组标题承接，明细不再与之重复
   - 未识别的前缀（如正文里的 `说明：`）与依赖源条目 `- 更新依赖`（缩进续行承载包版本）原样保留；剥离后文本为空也不改动
-  - 既有历史块本无前缀，剥离是回归原生形态；1.9.0–1.9.3 块经 `toolkit changelog --history format` 一并统一
   - ⚠️ 按条目类型检索（`grep "^- 修复："`）不再可用：前缀只作归类信号，分组后不再保留
   - `changelog` 域选项透传曾导致 `--history` 写在子命令之后被静默忽略，文档与技能中的 `toolkit changelog format --history` 写法已更正为 `toolkit changelog --history format`
 
@@ -798,7 +729,7 @@ outline: [2, 2]
 
 ### ⚡ 优化改进
 
-- 治理设计审计发现的 14 处不成熟点（写盘事务性、文本协议脆弱性、三方一致性）
+- 任务区写盘、导入与诊断稳定性改进
 
   - 写盘更稳：归档前按块标题去重（重跑幂等）；`normalize --fix` 逐文件容错，单个文件异常不再中断整轮
   - 写入锁记 pid 与进程启动时间：接管前校验持有进程是否存活，释放时校验持有者为自身，降低陈旧锁被误接管的风险
@@ -820,7 +751,7 @@ outline: [2, 2]
 
 ### 📝 文档更新
 
-- 回补三方一致性核对发现的 8 处失同步，`tasks stats --format` 与其余命令对齐
+- 文档与 API 契约补齐，`tasks stats --format` 与其余命令对齐
 
   - `docs/api.md`：`parseBool` 认值补 `yes/no`；补列 `CheckIssue` / `IssueLevel` / `NormalizeIssue` / `NormalizeResult` 四个类型导出
   - `docs/guide.md`：frontmatter 字段表补 `scope`；归档规则补「块间 `---` 是任务块唯一权威边界」；技能表补版本列
@@ -947,11 +878,9 @@ outline: [2, 2]
 
 ### ⚡ 优化改进
 
-- fxri-plan-to-task 升级 1.0.7——completed 按四级时间源取证；归档后做任务级规范沉淀（写入 conventions.md），能力终点由「归档」升级为「归档 + 沉淀」；先查后写时读取并遵守 conventions.md
-- fxri-plan-to-task 升级 1.1.0——「先查后写」强化为「动手前置建档评估」流程落点（所有仓库改动前必做），补同主题判别表：active 同主题更新原文件、archive 同主题无增量提示不重复建档、有增量重建并标注来源链、归档任务不可变
-- fxri-session-recap 升级 1.1.0——会话收尾全量沉淀（先核对清单防漏档）、四级时间源还原真实完成时间、新会话三层恢复覆盖全部任务（含已归档，近窗超阈值自动降级统计）、历史任务时间批量修正、规范沉淀进 `.tasks/conventions.md`
-- fxri-release-changelog 升级 1.0.5——触发词扩充为语义化意图描述（发一版/出个版本/记一下这次改动等近义表达均可触发，不要求字面一致）
-- fxri-release-changelog 升级 1.0.6——description 与「何时使用」补反例排除：「提交个版本/先提交一版/commit」指 git 提交当前改动而非发版，仅在用户明确表达发布/生成 CHANGELOG 时才进入本技能
+- `fxri-plan-to-task`——completed 按四级时间源取证，归档后做任务级规范沉淀；「先查后写」强化为动手前置建档评估，补同主题判别表
+- `fxri-session-recap`——会话收尾全量沉淀、四级时间源还原真实完成时间、新会话三层恢复覆盖全部任务、历史任务时间批量修正、规范沉淀进 `.tasks/conventions.md`
+- `fxri-release-changelog`——触发词改为语义化意图描述，并补反例排除「提交版本 ≠ 发版」
 
 ### 📝 文档更新
 
