@@ -131,6 +131,8 @@ const serialSteps = [
   // 镜像校验依赖 dist/cli.js，须置于构建之后；仅本仓自举产物，不依赖全局工具
   { label: "CHANGELOG 镜像一致（changelog doc --check）", args: ["dist/cli.js", "changelog", "doc", "--check"], env: cliEnv },
   { label: "文档站构建（死链检查）", command: "pnpm", args: ["docs:build"], skip: skipDocs ? "--skip-docs" : docsNeeded ? "" : "未触及 docs/、README.md、skills/" },
+  // 产物断言依赖上一步的 dist，跳过构建时一并跳过
+  { label: "文档站产物（404 排除站点地图与搜索索引）", args: ["scripts/check-docs-dist.mjs"], skip: skipDocs ? "--skip-docs" : docsNeeded ? "" : "未触及 docs/、README.md、skills/" },
   { label: "CLI 冒烟 --help", args: ["dist/cli.js", "--help"], env: cliEnv },
   { label: "CLI 冒烟 tasks --help", args: ["dist/cli.js", "tasks", "--help"], env: cliEnv },
   { label: "CLI 冒烟 changelog --help", args: ["dist/cli.js", "changelog", "--help"], env: cliEnv },
