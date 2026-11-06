@@ -151,7 +151,7 @@
 | 技能 | 版本 | 用途 | 层级 |
 | --- | --- | --- | --- |
 | `fxri-plan-to-task` | 1.9.16 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 | core |
-| `fxri-release-changelog` | 1.3.1 | changesets 发版与多语言 CHANGELOG 维护 | optional |
+| `fxri-release-changelog` | 1.3.2 | changesets 发版与多语言 CHANGELOG 维护 | optional |
 | `fxri-session-recap` | 1.6.9 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | `fxri-plan-review` | 1.0.5 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
 | `fxri-text-encoding` | 1.2.3 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
@@ -208,18 +208,18 @@ pnpm dlx skills add fxri-net/toolkit --global
 封装 changesets，内置 `zh` / `en`，任意语言可配置扩展（差异只在语言表，结构为 `groups` / `replacements` / `deps` / `released` 四段，见[配置参考 · changelog](./config/changelog)）。
 
 ```bash
-pnpm exec toolkit changelog                    # 创建变更集（等价 changeset）
+pnpm exec toolkit changelog add                # 创建变更集（等价 changeset）
 pnpm exec toolkit changelog version            # 发版 + 自动语义分组归类与组标题格式化（默认中文）
-pnpm exec toolkit changelog --lang ja format   # 指定语言仅格式化
-pnpm exec toolkit changelog --history format   # 连带追溯改写历史版本块
+pnpm exec toolkit changelog format --lang ja   # 指定语言仅格式化
+pnpm exec toolkit changelog format --history   # 连带追溯改写历史版本块
 pnpm exec toolkit changelog doc                # 生成/更新文档站更新日志镜像
 ```
 
-`changelog version` 成功后自动同步镜像页（`--no-sync-doc` 关闭）；镜像页由根 `CHANGELOG.md` 剥离 H1 后拼固定页头生成，路径等可用 `--from` / `--to` / `--title` / `--outline` 或 `changelogDoc` 配置段覆盖。
+`changelog version` 成功后自动同步镜像页（`--no-sync-doc` 关闭）；镜像页由根 `CHANGELOG.md` 剥离 H1 后拼固定页头生成，路径等可用 `changelog doc` 的 `--from` / `--to` / `--title` / `--outline` 或 `changelogDoc` 配置段覆盖。
 
 **分组语义**：`version` 消费变更集后按条目自带的 `类型：` 前缀归类——**前缀是唯一归类信号**，无 `###` 分组的版本块同样按前缀生成规范分组并剥离前缀，已分组块内与所属组不符的条目按前缀纠正；无前缀条目按源组标题兜底、无源组时归入其他变更。默认只处理最新一块（`--history` 处理全部）。语言未声明 `groups` 时不改分组、只剥离可识别前缀；变更集条目缺前缀时软告警。前缀只作归类信号，归类后不再保留。
 
-⚠️ `changelog` 域选项须写在子命令**之前**（`--history format` 生效，`format --history` 被静默忽略）。⚠️ 跨语言边界：语言在**首次归组时确定**，换语言重跑不会重新归组既有块；确需改语言只能用 `replacements` 写死「源标题 → 目标标题」映射。
+⚠️ `changelog` 的选项写在各自子命令之后（`format --history`、`version --lang en`）。⚠️ 跨语言边界：语言在**首次归组时确定**，换语言重跑不会重新归组既有块；确需改语言只能用 `replacements` 写死「源标题 → 目标标题」映射。
 
 ## 文档站部署
 

@@ -100,7 +100,7 @@ import {
 } from "./update-check"
 import { collectSkillVersionUpdates, type SkillVersionReport } from "./skills/version-status"
 import { versionGt } from "./version"
-import { setupHelp, shouldPrintChangelogHelp } from "./help"
+import { setupHelp } from "./help"
 import { formatCommanderError } from "./errors"
 import { DESCRIPTION } from "./about"
 
@@ -2046,118 +2046,165 @@ addTasksCommonOptions(tasksCmd.command("import").description("从文件导入任
     await runTasksImport(file, options)
   })
 
-// changelog 域：version/format 自处理，其余子命令透传给 changesets
-const changelogCmd = program
-  .command("changelog")
-  .description("多语言 CHANGELOG（封装 changesets）")
-  .option("--lang <lang>", "语言 zh/en", DEFAULT_LANG)
-  .option("--redact", "开启隐私脱敏")
-  .option("--no-redact", "关闭隐私脱敏")
-  .option("--warn", "开启软告警")
-  .option("--no-warn", "关闭软告警")
-  .option("--history", "追溯改写历史版本块（默认保留）")
-  .option("--audit-net", "审计待发布变更集，列出可能需要在发布前合并的候选（只提示不改写）")
-  .option("--check", "changelog doc：只比对镜像页与根 CHANGELOG，不写文件")
-  .option("--from <path>", "changelog doc：根 CHANGELOG 路径")
-  .option("--to <path>", "changelog doc：镜像页路径")
-  .option("--title <text>", "changelog doc：镜像页标题")
-  .option("--outline <value>", "changelog doc：frontmatter outline")
-  .option("--no-frontmatter", "changelog doc：不写 frontmatter")
-  .option("--no-sync-doc", "changelog version：不自动同步镜像页")
-  .argument("[command...]", "子命令及参数（透传给 changesets）")
-  .passThroughOptions(true)
-  .action(
-    (
-      operands: string[],
-      options: {
-        lang: string
-        redact: boolean | undefined
-        warn: boolean | undefined
-        history: boolean | undefined
-        auditNet?: boolean
-        check?: boolean
-        from?: string
-        to?: string
-        title?: string
-        outline?: string
-        frontmatter?: boolean
-        syncDoc?: boolean
-      },
-    ) => {
-      // 帮助标志紧跟自处理子命令时会被透传语义当作操作数丢弃、命令照跑（真发版 / 真改写 CHANGELOG），此处拦截并打印本域帮助
-      if (shouldPrintChangelogHelp(operands)) {
-        changelogCmd.help()
-        return
-      }
+// changelog 域：doc / version / format / audit 自处理，其余子命令透传给 changesets
 
-      const redact = resolveRedactEnabled(options.redact)
-      const warn = resolveEnabled(options.warn, "FX_CHECK_WARN", getCheckWarnings(), true)
-      const history = options.history === true
-      // 合并配置语言（支持自定义语言与覆盖内置），实现全语言
-      const merged = resolveLanguages()
-      // 语言解析：未知取值回落默认语言，但显式传入却无法采纳的值必须告警（走 stderr，stdout 留给机器可读输出）
-      const { lang, unknown: unknownLang } = resolveLang(merged, options.lang, DEFAULT_LANG)
-      if (unknownLang) console.warn(`⚠️ 未知语言「${unknownLang}」，已回落 ${DEFAULT_LANG}`)
-      // 镜像文件名后缀按用户请求的语言标识取：未知语言已回落默认，避免用配置对象当标记
-      const docLang = unknownLang ? DEFAULT_LANG : options.lang
-      if (options.auditNet) {
-        console.log(formatAuditReport(auditChangesets(".changeset")))
+// 语言与开关选项：自处理子命令共用
+interface ChangelogOptions {
+  lang?: string
+  redact?: boolean
+  warn?: boolean
+}
+
+// 自处理子命令公共选项
+function addChangelogCommonOptions(command: Command): Command {
+  return command
+    .option("--lang <lang>", "语言 zh/en", DEFAULT_LANG)
+    .option("--redact", "开启隐私脱敏")
+    .option("--no-redact", "关闭隐私脱敏")
+    .option("--warn", "开启软告警")
+    .option("--no-warn", "关闭软告警")
+}
+
+// 解析语言与开关：未知语言回落默认并告警
+function resolveChangelogContext(options: ChangelogOptions): {
+  merged: ReturnType<typeof resolveLanguages>
+  lang: ChangelogLanguage
+  docLang: string
+  redact: boolean
+  warn: boolean
+} {
+  const merged = resolveLanguages()
+  const { lang, unknown } = resolveLang(merged, options.lang ?? DEFAULT_LANG, DEFAULT_LANG)
+  if (unknown) console.warn(`⚠️ 未知语言「${unknown}」，已回落 ${DEFAULT_LANG}`)
+  return {
+    merged,
+    lang,
+    docLang: unknown ? DEFAULT_LANG : (options.lang ?? DEFAULT_LANG),
+    redact: resolveRedactEnabled(options.redact),
+    warn: resolveEnabled(options.warn, "FX_CHECK_WARN", getCheckWarnings(), true),
+  }
+}
+
+// 版本：消费变更集 → 归类格式化 → 同步文档镜像
+function runChangelogVersion(options: ChangelogOptions & { history?: boolean; syncDoc?: boolean }): void {
+  const ctx = resolveChangelogContext(options)
+  // 软告警：发版前存在未归档任务
+  if (ctx.warn && hasActiveTasks()) {
+    console.warn("⚠️ 存在未归档的 active 任务，建议先归档再发版")
+  }
+  runChangeset(["version"])
+  // 软告警须前置于归类（须待 changesets 写入新块后再取数，否则无英文源标题块可扫）；
+  // 归类后无前缀条目即并入兜底组，前缀缺失无从统计
+  if (ctx.warn) warnUntypedEntries(Object.values(ctx.merged))
+  formatChangelogs(".", localDate(), ctx.lang, ctx.redact, Boolean(options.history))
+  // 发版后自动同步文档站镜像：失败只告警，不阻断发版（镜像不是发版必需产物）
+  if (options.syncDoc !== false) syncDocAfterVersion(ctx.docLang)
+}
+
+// 格式化：按语言与类型归类重排，不消费变更集
+function runChangelogFormat(options: ChangelogOptions & { history?: boolean }): void {
+  const ctx = resolveChangelogContext(options)
+  if (ctx.warn) warnUntypedEntries(Object.values(ctx.merged))
+  formatChangelogs(".", localDate(), ctx.lang, ctx.redact, Boolean(options.history))
+}
+
+// 文档镜像：默认从根 CHANGELOG.md 生成，--check 只比对不写
+function runChangelogDoc(
+  options: ChangelogOptions & { check?: boolean; from?: string; to?: string; title?: string; outline?: string; frontmatter?: boolean },
+): void {
+  const ctx = resolveChangelogContext(options)
+  try {
+    const docOptions = resolveDocOptions({
+      from: options.from,
+      to: options.to,
+      title: options.title,
+      outline: options.outline,
+      // --no-frontmatter 未传时 commander 给 true，视为未传，交由配置决定
+      frontmatter: options.frontmatter === false ? false : undefined,
+      lang: ctx.docLang,
+    })
+    if (options.check) {
+      const result = checkDoc(docOptions)
+      if (!result.ok) {
+        console.error(`⚠️ CHANGELOG 镜像不一致：第 ${result.line} 行`)
+        if (result.expected !== undefined) console.error(`  期望：${result.expected}`)
+        if (result.actual !== undefined) console.error(`  实际：${result.actual}`)
+        process.exitCode = 1
         return
       }
-      const command = operands[0]
-      if (command === "version") {
-        // 软告警：发版前存在未归档任务
-        if (warn && hasActiveTasks()) {
-          console.warn("⚠️ 存在未归档的 active 任务，建议先归档再发版")
-        }
-        runChangeset(["version"])
-        // 软告警须前置于归类（须待 changesets 写入新块后再取数，否则无英文源标题块可扫）；
-        // 归类后无前缀条目即并入兜底组，前缀缺失无从统计
-        if (warn) warnUntypedEntries(Object.values(merged))
-        formatChangelogs(".", localDate(), lang, redact, history)
-        // 发版后自动同步文档站镜像：失败只告警，不阻断发版（镜像不是发版必需产物）
-        if (options.syncDoc !== false) syncDocAfterVersion(docLang)
-      } else if (command === "doc") {
-        // 文档站镜像：默认从根 CHANGELOG.md 生成 docs/changelog.md，--check 只比对不写
-        try {
-          const docOptions = resolveDocOptions({
-            from: options.from,
-            to: options.to,
-            title: options.title,
-            outline: options.outline,
-            // --no-frontmatter 未传时 commander 给 true，视为未传，交由配置决定
-            frontmatter: options.frontmatter === false ? false : undefined,
-            lang: docLang,
-          })
-          if (options.check) {
-            const result = checkDoc(docOptions)
-            if (!result.ok) {
-              console.error(`⚠️ CHANGELOG 镜像不一致：第 ${result.line} 行`)
-              if (result.expected !== undefined) console.error(`  期望：${result.expected}`)
-              if (result.actual !== undefined) console.error(`  实际：${result.actual}`)
-              process.exitCode = 1
-              return
-            }
-            console.log(`CHANGELOG 镜像一致：${docOptions.target}`)
-            return
-          }
-          const result = syncDoc(docOptions)
-          console.log(result.changed ? `CHANGELOG 镜像已更新：${docOptions.target}` : `CHANGELOG 镜像无变化：${docOptions.target}`)
-        } catch (e) {
-          console.error(`⚠️ ${(e as Error).message}`)
-          process.exitCode = 1
-        }
-      } else if (command === "format") {
-        // 手工 format 路径与 version 同源同开关，告警口径保持一致
-        if (warn) warnUntypedEntries(Object.values(merged))
-        formatChangelogs(".", localDate(), lang, redact, history)
-      } else if (command) {
-        runChangeset(operands)
-      } else {
-        runChangeset([])
-      }
-    },
-  )
+      console.log(`CHANGELOG 镜像一致：${docOptions.target}`)
+      return
+    }
+    const result = syncDoc(docOptions)
+    console.log(result.changed ? `CHANGELOG 镜像已更新：${docOptions.target}` : `CHANGELOG 镜像无变化：${docOptions.target}`)
+  } catch (e) {
+    console.error(`⚠️ ${(e as Error).message}`)
+    process.exitCode = 1
+  }
+}
+
+// 审计：只列出同对象净变更候选，不改写
+function runChangelogAudit(): void {
+  console.log(formatAuditReport(auditChangesets(".changeset")))
+}
+
+const changelogCmd = program.command("changelog").description("多语言 CHANGELOG（封装 changesets）")
+changelogCmd.enablePositionalOptions(true)
+
+addChangelogCommonOptions(changelogCmd.command("version").description("消费变更集并生成新版本块，随后同步文档镜像"))
+  .option("--history", "追溯改写历史版本块（默认保留）")
+  .option("--no-sync-doc", "不自动同步文档站镜像")
+  .action((options: ChangelogOptions & { history?: boolean; syncDoc?: boolean }) => {
+    runChangelogVersion(options)
+  })
+
+addChangelogCommonOptions(changelogCmd.command("format").description("按语言与类型归类重排 CHANGELOG 条目"))
+  .option("--history", "追溯改写历史版本块（默认保留）")
+  .action((options: ChangelogOptions & { history?: boolean }) => {
+    runChangelogFormat(options)
+  })
+
+addChangelogCommonOptions(changelogCmd.command("doc").description("生成或校验文档站 CHANGELOG 镜像页"))
+  .option("--check", "只比对镜像页与根 CHANGELOG，不写文件")
+  .option("--from <path>", "根 CHANGELOG 路径")
+  .option("--to <path>", "镜像页路径")
+  .option("--title <text>", "镜像页标题")
+  .option("--outline <value>", "frontmatter outline")
+  .option("--no-frontmatter", "不写 frontmatter")
+  .action((options: ChangelogOptions & { check?: boolean; from?: string; to?: string; title?: string; outline?: string; frontmatter?: boolean }) => {
+    runChangelogDoc(options)
+  })
+
+addChangelogCommonOptions(changelogCmd.command("audit").description("审计待发布变更集，列出需要合并的候选（只提示不改写）"))
+  .action(() => {
+    runChangelogAudit()
+  })
+
+// 裸 changelog：仍透传给 changesets（无参数时按其默认行为）
+changelogCmd.action(() => {
+  runChangeset([])
+})
+
+// changesets 原生子命令：参数原样透传
+const CHANGESET_PASSTHROUGH: Array<[string, string]> = [
+  ["add", "新增变更集（透传给 changesets）"],
+  ["status", "查看待发布变更集状态（透传给 changesets）"],
+  ["pre", "进入或退出预发布模式（透传给 changesets）"],
+  ["tag", "为已发布版本打标签（透传给 changesets）"],
+  ["init", "初始化 .changeset 配置（透传给 changesets）"],
+  ["publish", "发布变更集（透传给 changesets）"],
+]
+for (const [name, description] of CHANGESET_PASSTHROUGH) {
+  changelogCmd
+    .command(name)
+    .description(description)
+    .allowUnknownOption(true)
+    .allowExcessArguments(true)
+    .argument("[args...]", "透传给 changesets 的参数")
+    .action((args: string[]) => {
+      runChangeset([name, ...(args ?? [])])
+    })
+}
 
 // 使用情况域：技能使用统计（默认关闭，本地存储）
 registerUsageCommands(program)

@@ -301,8 +301,8 @@ describe("顶层命令与外部域", () => {
     expect(help).toContain("只读检查（默认行为，与--fix互斥）")
   })
 
-  it("changelog --lang 未知取值：告警回落默认语言，命令继续（F8）", async () => {
-    const r = await runCli(["changelog", "--lang", "bogus"])
+  it("changelog doc --lang 未知取值：告警回落默认语言，命令继续（F8）", async () => {
+    const r = await runCli(["changelog", "doc", "--check", "--lang", "bogus"])
     expect(r.code).toBe(0)
     expect(r.warn.join("\n")).toContain("未知语言")
     expect(r.warn.join("\n")).toContain("bogus")

@@ -32,7 +32,7 @@
 | C-15 | 规则层更新锚点 | `SPEC.md` / `docs/ai-rules.md` / `docs/commit-rules.md` 各有一行更新锚点，位于规则全文可复制块内部首行；任何内容变更以变更时刻更新所属文件锚点、未变更不刷新、同批取同一时间、不随发版例行抬高 | common | `SPEC.md` 首部 + `docs/ai-rules.md` 与 `docs/commit-rules.md` 规则全文首行 + `AGENTS.md` 质量门第 6 条 |
 | C-16 | 提交信息规则单一真源与独立成页 | 真源为 `.trae/rules/git-commit-message.md`（本仓库自用、不随包分发）；`docs/commit-rules.md` 为其用户侧投影，正文逐字一致、可单独复制采用，两处同步变更 | common | `.trae/rules/git-commit-message.md`（真源）+ `docs/commit-rules.md`（投影） |
 | C-17 | 测试不复刻被测实现 | 派生 / 镜像类逻辑的测试期望须直接调用真实实现，不得在测试内重写同一份转换逻辑（同错复刻会掩盖实现缺陷） | common | `AGENTS.md`「验收方式」 |
-| C-18 | CHANGELOG 历史块归一 | 发版链路步骤 1 人工润色后跑一次 `changelog --history format`，把历史块内多余空行归一；归类只重组识别到的语义分区、未识别标题连同条目原样保留，并做条目数自检 | common | `AGENTS.md`「发版链路」步骤 1 + `skills/fxri-release-changelog/SKILL.md` |
+| C-18 | CHANGELOG 历史块归一 | 发版链路步骤 1 人工润色后跑一次 `changelog format --history`，把历史块内多余空行归一；归类只重组识别到的语义分区、未识别标题连同条目原样保留，并做条目数自检 | common | `AGENTS.md`「发版链路」步骤 1 + `skills/fxri-release-changelog/SKILL.md` |
 | C-19 | 建档判据 = 仓库文件改动 | 同主题判别取客观口径：看本次是否产生仓库文件改动（增 / 改 / 删计入，纯读取 / 执行 / 汇报不计入）；有改动则建档（延续标来源链），无则不重复建档、提示已归档日期后直接执行 | common | `SPEC.md` 协作模型第 1 条 + `skills/fxri-plan-to-task/SKILL.md`（判别表） |
 | C-20 | 收尾动作不算任务 | 提交 / 发版 / 推送 / 部署等收尾动作本身及其固有产物（版本号 / 更新日志 / 标签）不构成任务、不单独建档 | common | `SPEC.md` 协作模型第 3 条 + `docs/ai-rules.md` 稳定纪律 |
 | C-21 | 归档块不可变 + 事实更正例外 | 已归档块不追加内容、元数据行冻结；唯一例外是事实更正——正文末尾追加「修订记录」保留原结论，口径变更类可改受影响事实字段 | common | `SPEC.md` 协作模型第 1 条 + `skills/fxri-plan-to-task/references/task-spec.md`（第 6 节） |
