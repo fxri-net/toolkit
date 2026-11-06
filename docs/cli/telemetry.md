@@ -61,7 +61,7 @@ toolkit telemetry doctor
 - 无参数执行 `toolkit telemetry` 进入交互菜单；非 TTY 打印帮助并以退出码 2 结束。
 - 非交互初始化用 `toolkit telemetry init --yes --preset recommended --agent trae`；`custom` / `advanced` 预设仍需交互。
 - 默认总开关、Agent、来源、技能范围、字段全部关闭；只开总开关不会产生记录。
-- `telemetry status` 汇总已安装 Hook、上传开关与最近 Hook 错误；`hooks status` 显示各 Agent 最近触发时间。
+- `telemetry status` 汇总已安装 Hook、上传开关与最近 Hook 错误；`hooks status` 以本地时间显示各 Agent 最近触发记录。
 - Hook 安装与采集开启是两步：先 `hooks install`，再 `enable`。支持 Agent 与配置路径见 [Agent 接入](../telemetry/agents)。
 - `include` 空列表等同 `none`；`exclude` 只列出要排除的技能。
 - 触发词默认不采集；开启后截断 200 字并复用全局脱敏规则。

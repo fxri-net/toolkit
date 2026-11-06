@@ -29,6 +29,25 @@ export interface AuditCandidate {
   entries: AuditEntry[]
 }
 
+// 自然语言片段的最低长度：低于该长度的常见词不作为对象，避免「配置」「问题」类误报
+const NATURAL_MIN_LENGTH = 5
+
+// 高频泛词：整段命中时跳过，不单独作为对象
+const STOPWORDS = new Set([
+  "当前默认",
+  "默认配置",
+  "支持通过",
+  "可以通过",
+  "需要使用",
+  "同时支持",
+  "相关配置",
+  "命令参数",
+  "工具使用",
+  "问题修复",
+  "功能调整",
+  "优化改进",
+])
+
 // 从条目文本提取显式对象：反引号内容、fxri-* 技能名、toolkit 命令与 --flag
 function extractObjects(text: string): string[] {
   const objects = new Set<string>()
@@ -45,6 +64,26 @@ function extractObjects(text: string): string[] {
     if (match[1]) objects.add(match[1])
   }
   return [...objects]
+}
+
+// 提取自然语言短语：中文按 5–10 字滑窗，英文按 5 字符以上单词，纯自然语言也能参与比对
+function extractNaturalTokens(text: string): string[] {
+  const tokens = new Set<string>()
+  const normalized = text
+    .replace(/`[^`]*`/g, " ")
+    .replace(/[^\u4e00-\u9fa5A-Za-z0-9_-]+/g, " ")
+  for (const run of normalized.match(/[\u4e00-\u9fa5]{5,}/g) ?? []) {
+    for (let size = NATURAL_MIN_LENGTH; size <= Math.min(10, run.length); size += 1) {
+      for (let start = 0; start + size <= run.length; start += 1) {
+        const token = run.slice(start, start + size)
+        if (!STOPWORDS.has(token)) tokens.add(token)
+      }
+    }
+  }
+  for (const word of normalized.match(/[A-Za-z][A-Za-z0-9_-]{4,}/g) ?? []) {
+    if (!STOPWORDS.has(word.toLowerCase())) tokens.add(word)
+  }
+  return [...tokens]
 }
 
 // 解析一行条目：返回类型与描述；不是条目返回 null
@@ -80,10 +119,44 @@ export function auditChangesets(dir = ".changeset"): AuditCandidate[] {
   }
 
   const candidates: AuditCandidate[] = []
-  for (const [object, list] of byObject.entries()) {
-    const types = new Set(list.map((entry) => entry.type).filter((type) => (NET_TYPES as readonly string[]).includes(type)))
-    if (types.size < 2) continue
-    candidates.push({ object, entries: list })
+  const seen = new Set<string>()
+  const sameEntry = (a: AuditEntry, b: AuditEntry) => a.file === b.file && a.type === b.type && a.text === b.text
+  const addCandidate = (label: string, list: AuditEntry[]) => {
+    const unique = [...new Map(list.map((entry) => [`${entry.file}\u0000${entry.type}\u0000${entry.text}`, entry])).values()]
+    const signature = unique
+      .map((entry) => `${entry.file}\u0000${entry.type}\u0000${entry.text}`)
+      .sort()
+      .join("\u0001")
+    if (seen.has(signature)) return
+    // 已被既有候选完整覆盖的组不重复输出，避免显式对象与自然语言候选重复
+    const covered = unique.every((entry) => candidates.some((candidate) => candidate.entries.some((item) => sameEntry(item, entry))))
+    if (covered) return
+    seen.add(signature)
+    candidates.push({ object: label, entries: unique })
   }
+  const hasMultipleNetTypes = (list: AuditEntry[]) => {
+    const types = new Set(list.map((entry) => entry.type).filter((type) => (NET_TYPES as readonly string[]).includes(type)))
+    return types.size >= 2
+  }
+
+  // 显式对象优先：反引号、fxri-*、toolkit 命令与 --flag
+  for (const [object, list] of byObject.entries()) {
+    if (hasMultipleNetTypes(list)) addCandidate(object, list)
+  }
+
+  // 自然语言兜底：同一短语片段出现在不同净变更类型时列为候选
+  const byToken = new Map<string, AuditEntry[]>()
+  for (const entry of entries) {
+    for (const token of extractNaturalTokens(entry.text)) {
+      const list = byToken.get(token) ?? []
+      list.push(entry)
+      byToken.set(token, list)
+    }
+  }
+  const tokenGroups = [...byToken.entries()].sort((a, b) => b[0].length - a[0].length || a[0].localeCompare(b[0]))
+  for (const [token, list] of tokenGroups) {
+    if (hasMultipleNetTypes(list)) addCandidate(`自然语言相似：${token}`, list)
+  }
+
   return candidates.sort((a, b) => a.object.localeCompare(b.object))
 }

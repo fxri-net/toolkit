@@ -44,6 +44,17 @@ describe("auditChangesets", () => {
     expect(auditChangesets(dir)[0]?.entries.map((entry) => entry.type).sort()).toEqual(["修复", "新增"])
   })
 
+  it("纯自然语言描述也能识别同对象候选", () => {
+    const dir = changesetDir({
+      "a.md": "---\n\"@fxri/toolkit\": minor\n---\n\n- 新增：技能使用遥测支持本地统计\n",
+      "b.md": "---\n\"@fxri/toolkit\": patch\n---\n\n- 修复：技能使用遥测统计结果偶发重复\n",
+      "c.md": "---\n\"@fxri/toolkit\": patch\n---\n\n- 修复：登录超时时间过短\n",
+    })
+    const candidates = auditChangesets(dir)
+    expect(candidates.some((candidate) => candidate.object.startsWith("自然语言相似："))).toBe(true)
+    expect(candidates.some((candidate) => candidate.object.includes("登录超时"))).toBe(false)
+  })
+
   it("审计只读，不修改变更集文件", () => {
     const dir = changesetDir({
       "a.md": "---\n\"@fxri/toolkit\": minor\n---\n\n- 新增：`fxri-release-changelog` 净变更规则\n",

@@ -155,7 +155,7 @@ describe("telemetry CLI", () => {
     recordHookActivity(telemetryPaths(dataDir), "trae", "written")
     logs = []
     await run(["hooks", "status", "--agent", "trae", "--dir", dataDir])
-    expect(logs.join("\n")).toContain("最近触发")
+    expect(logs.join("\n")).toMatch(/最近触发：\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/)
 
     await run(["uninstall", "--yes", "--agent", "trae"])
     config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))

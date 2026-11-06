@@ -48,6 +48,14 @@ function printJson(payload: object): void {
   console.log(toJsonText(payload))
 }
 
+// 本地时间格式：把 Hook 记录的 ISO 时间转为 YYYY-MM-DD HH:mm:ss；无法解析时原样返回
+function formatLocalTime(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const pad = (item: number) => String(item).padStart(2, "0")
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
 // 解析 on/off：非法取值置退出码并返回 null
 function parseOnOff(value: string | undefined, flag: string): boolean | null {
   if (value === undefined) return null
@@ -299,7 +307,7 @@ export function registerTelemetryCommands(program: Command): void {
         if (status.command) console.log(`  命令：${status.command}`)
         if (status.lastError) console.log(`  ⚠️ ${status.lastError}`)
         const last = activity[adapter.id]
-        if (last) console.log(`  最近触发：${last.lastTriggerAt}（${last.lastStatus}）`)
+        if (last) console.log(`  最近触发：${formatLocalTime(last.lastTriggerAt)}（${last.lastStatus}）`)
       }
       if (lastError) console.log(`最近 Hook 错误：${lastError}`)
     })
