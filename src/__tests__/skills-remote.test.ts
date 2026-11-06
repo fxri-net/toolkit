@@ -10,8 +10,9 @@ import { installProjectSkills, parseRemoteSpec, resolveSource } from "../skills"
 
 let home = ""
 
+// 临时目录名带空格：git 调用走参数数组直传，路径含空格时不得被 shell 拆成多个参数
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-remote-home-"))
+  home = mkdtempSync(join(tmpdir(), "tk remote home-"))
   setHomeDirForTest(home)
   resetToolkitConfigCache()
 })
@@ -24,7 +25,7 @@ afterEach(() => {
 
 // 建最小 git 仓库作为远程来源：skills.json + 单技能 + v1.0.0 标签
 function makeRepo(): string {
-  const dir = mkdtempSync(join(home, "tk-remote-repo-"))
+  const dir = mkdtempSync(join(home, "tk remote repo-"))
   mkdirSync(join(dir, "skills", "demo"), { recursive: true })
   writeFileSync(
     join(dir, "skills", "demo", "SKILL.md"),

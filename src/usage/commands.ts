@@ -311,6 +311,9 @@ export function registerUsageCommands(program: Command): void {
         if (status.legacyCommand) {
           console.warn(`  ⚠️ 检测到旧版 Hook（telemetry 命令）已失效，请执行 toolkit usage hooks install --agent ${adapter.id}`)
         }
+        if (status.outdatedCommand) {
+          console.warn(`  ⚠️ Hook 命令的平台形态已过期（按旧版方式生成），在所在系统上无法执行，请执行 toolkit usage hooks install --agent ${adapter.id}`)
+        }
         if (status.missingPaths) {
           console.warn(`  ⚠️ Hook 命令中的路径已不存在，需重跑 toolkit usage hooks install --agent ${adapter.id}：${status.missingPaths.join("、")}`)
         }
@@ -861,6 +864,9 @@ export function registerUsageCommands(program: Command): void {
           const status = adapter.status()
           if (status.legacyCommand) {
             issues.push(`${adapter.displayName} 的 Hook 仍指向旧命令 telemetry，已失效，请重跑 toolkit usage hooks install --agent ${adapter.id}`)
+          }
+          if (status.outdatedCommand) {
+            issues.push(`${adapter.displayName} 的 Hook 命令平台形态已过期，在所在系统上无法执行，请重跑 toolkit usage hooks install --agent ${adapter.id}`)
           }
           if (status.missingPaths) {
             issues.push(`${adapter.displayName} 的 Hook 命令路径已失效（${status.missingPaths.join("、")}），请重跑 toolkit usage hooks install --agent ${adapter.id}`)

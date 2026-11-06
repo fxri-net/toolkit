@@ -1,5 +1,6 @@
 // 标准 Hook 配置读写：Trae / Claude 共用同一份 hooks.json 结构，差异只在配置路径
 import { copyFileSync, existsSync, readFileSync } from "node:fs"
+import { isCurrentHookCommand } from "../hook-command"
 import { writeFileAtomic } from "../../write-atomic"
 import type { NormalizedHookEvent } from "../types"
 import type { HookInstallResult, HookStatus } from "./types"
@@ -113,13 +114,17 @@ export function installStandardHooks(file: string, agent: string, command: strin
   const config = readHookConfig(file)
   // 先清掉旧版 telemetry 命令，避免新旧两份 Hook 并存、旧命令反复失败
   const legacyRemoved = removeIngestCommands(config, legacyIngestNeedle(agent))
-  if (hasIngestCommand(config, agent)) {
+  const existing = findIngestCommand(config, agent)
+  // 命令逐字相同才幂等跳过；不同（路径变化或旧版形态在 PowerShell 下不可执行）则替换为新命令
+  if (existing !== undefined && existing === command) {
     if (legacyRemoved > 0 && !dryRun) {
       backup(file)
       writeFileAtomic(file, `${JSON.stringify(config, null, 2)}\n`)
     }
     return { agent, file, changed: legacyRemoved > 0, command, dryRun }
   }
+  // 清掉旧形态命令后按新形态重建，保证「重跑 hooks install」能修复存量配置
+  if (existing !== undefined) removeIngestCommands(config, ingestNeedle(agent))
   config.version = 1
   const hooks = isPlainObject(config.hooks) ? config.hooks : {}
   config.hooks = hooks
@@ -153,23 +158,27 @@ export function uninstallStandardHooks(file: string, agent: string): HookInstall
   return { agent, file, changed, command: "", dryRun: false }
 }
 
-// 从 Hook 命令提取引号包裹的绝对路径：用于校验 node / CLI 是否仍存在
-function extractQuotedPaths(command: string): string[] {
+// 从 Hook 命令提取可执行文件路径：新形态把路径放在单引号内（Windows 外层再包一层 powershell -Command），
+// 旧形态为双引号并列；两种都识别，便于对存量配置报失效路径
+function extractHookPaths(command: string): string[] {
+  const single = [...command.matchAll(/'((?:[^']|'')*)'/g)].map((match) => (match[1] ?? "").replace(/''/g, "'")).filter(Boolean)
+  if (single.length > 0) return single
   return [...command.matchAll(/"([^"]+)"/g)].map((match) => match[1] ?? "").filter(Boolean)
 }
 
 // 找出命令中已不存在的路径：Hook 内嵌的是安装时的绝对路径，升级或清理后可能失效
 export function findMissingHookPaths(command: string): string[] {
-  return extractQuotedPaths(command).filter((path) => !existsSync(path))
+  return extractHookPaths(command).filter((path) => !existsSync(path))
 }
 
-// 标准 Hook 状态：检查新版命令，并单独报出旧版命令与失效路径
+// 标准 Hook 状态：检查新版命令，并单独报出旧版命令、过期形态与失效路径
 export function standardHookStatus(file: string, agent: string, displayName: string): HookStatus {
   try {
     const config = readHookConfig(file)
     const command = findIngestCommand(config, agent)
     const legacyCommand = findLegacyIngestCommand(config, agent)
     const missingPaths = command ? findMissingHookPaths(command) : []
+    const outdatedCommand = command && !isCurrentHookCommand(command, agent) ? command : undefined
     return {
       agent,
       displayName,
@@ -177,6 +186,7 @@ export function standardHookStatus(file: string, agent: string, displayName: str
       installed: Boolean(command),
       command,
       legacyCommand,
+      outdatedCommand,
       missingPaths: missingPaths.length > 0 ? missingPaths : undefined,
     }
   } catch (error) {

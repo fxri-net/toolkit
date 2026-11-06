@@ -438,7 +438,7 @@ function remoteRepoName(url: string): string {
 
 // git 命令执行：失败带上 stderr，git 缺失单独归因
 function runGit(args: string[]): void {
-  const result = spawnSync("git", args, { encoding: "utf8", shell: process.platform === "win32" })
+  const result = spawnSync("git", args, { encoding: "utf8" })
   if (result.error) throw new Error(`git 不可用：${result.error.message}`)
   if (result.status !== 0) throw new Error(`git ${args[0]} 失败：${(result.stderr || result.stdout || "").trim()}`)
 }
@@ -471,12 +471,12 @@ function cloneRemote(spec: RemoteSpec, dest: string): void {
 // 缓存刷新：失败保留旧缓存并告警，不阻断安装
 function refreshRemote(cacheDir: string, spec: RemoteSpec): void {
   const ref = spec.ref ?? "HEAD"
-  const fetched = spawnSync("git", ["-C", cacheDir, "fetch", "--depth", "1", "origin", ref], { encoding: "utf8", shell: process.platform === "win32" })
+  const fetched = spawnSync("git", ["-C", cacheDir, "fetch", "--depth", "1", "origin", ref], { encoding: "utf8" })
   if (fetched.status !== 0) {
     console.warn(`⚠️ 远程来源刷新失败，使用本地缓存：${spec.url}`)
     return
   }
-  const checked = spawnSync("git", ["-C", cacheDir, "checkout", "-q", "FETCH_HEAD"], { encoding: "utf8", shell: process.platform === "win32" })
+  const checked = spawnSync("git", ["-C", cacheDir, "checkout", "-q", "FETCH_HEAD"], { encoding: "utf8" })
   if (checked.status !== 0) console.warn(`⚠️ 远程来源检出失败，使用本地缓存：${spec.url}`)
 }
 

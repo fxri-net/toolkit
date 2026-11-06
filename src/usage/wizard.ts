@@ -1,7 +1,7 @@
 // 使用情况向导：初始化与无参数菜单；所有选择都有默认值，取消时不留下半成品
 import { detectedAdapters, resolveAdapters } from "./adapters"
 import type { AgentAdapter } from "./adapters/types"
-import { buildHookCommand } from "./ingest"
+import { buildHookCommand } from "./hook-command"
 import { loadUsageConfig, resolveUsageDir, usageConfigPath, updateUsageConfig } from "./config"
 import { purgeEvents, readAllEvents, usagePaths } from "./store"
 import { summarize } from "./stats"

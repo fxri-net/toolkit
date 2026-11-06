@@ -59,6 +59,7 @@ toolkit usage doctor
 - 默认总开关、Agent、来源、技能范围、字段全部关闭；只开总开关不会产生记录。
 - `usage info` 汇总已安装 Hook、上传开关与最近 Hook 错误；`hooks status` 以本地时间显示各 Agent 最近触发记录。
 - Hook 安装与采集开启是两步：先 `hooks install`，再 `enable`。支持 Agent 与配置路径见 [Agent 接入](../usage/agents)。
+- Hook 命令按当前平台生成：Windows 经 PowerShell 包装（`powershell -NoProfile -Command "& '…'"`），macOS / Linux 用单引号拼接；升级后重跑 `hooks install` 即可把存量旧形态刷成新形态，`hooks status` / `doctor` 会提示形态过期。
 - `include` 空列表等同 `none`；`exclude` 只列出要排除的技能。
 - 触发词默认不采集；开启后截断 200 字并复用全局脱敏规则。
 - `export` 输出的是已落盘事件；触发词是否出现取决于采集开关。
