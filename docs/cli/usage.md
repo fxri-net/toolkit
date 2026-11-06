@@ -10,10 +10,10 @@ title: usage（技能使用情况）
 
 ```bash
 toolkit usage init            # 初始化向导，默认保持关闭
-toolkit usage status
+toolkit usage info
 toolkit usage enable
-toolkit usage sources --first-party on --third-party on
-toolkit usage skills --mode all
+toolkit usage origins --first-party on --third-party on
+toolkit usage scope --mode all
 toolkit usage capture --trigger on
 toolkit usage stats --since 30d
 toolkit usage top --limit 10
@@ -28,11 +28,11 @@ toolkit usage doctor
 | `uninstall` | 停用采集并卸载 Hook，默认保留数据 | `--yes`、`--agent`、`--purge-data` |
 | `hooks install` | 只写 Hook 配置，不开启采集 | `--agent`、`--dry-run` |
 | `hooks status` | 查看 Hook 安装状态与最近触发时间 | `--agent`、`--dir` |
-| `hooks uninstall` | 只移除本包 Hook 命令 | `--agent` |
-| `status` | 开关、配置路径、数据目录与计数 | `--dir`、`--format json` |
+| `hooks remove` | 只移除本包 Hook 命令 | `--agent` |
+| `info` | 开关、配置路径、数据目录与计数 | `--dir`、`--format json` |
 | `enable` / `disable` | 打开 / 关闭总开关 | — |
-| `sources` | 查看或设置来源开关 | `--first-party on\|off`、`--third-party`、`--unmanaged` |
-| `skills` | 查看或设置技能范围 | `--mode`、`--add`、`--remove` |
+| `origins` | 查看或设置来源开关 | `--first-party on\|off`、`--third-party`、`--unmanaged` |
+| `scope` | 查看或设置技能范围 | `--mode`、`--add`、`--remove` |
 | `capture` | 查看或设置采集字段 | `--trigger`、`--args`、`--outcome` |
 | `storage` | 查看或设置存储 | `--dir`、`--rotation`、`--retention`、`--max-size` |
 | `stats` | 按技能 / Agent / 来源聚合 | `--since`、`--agent`、`--source`、`--skill`、`--unused` |
@@ -50,7 +50,7 @@ toolkit usage doctor
 | `upload status` | 上传开关、端点与待上传数量 | `--format json` |
 | `upload --dry-run` | 预览批次与载荷，不发送 | `--limit` |
 | `upload --once` | 手工发送一批 | `--limit` |
-| `rule print` | 输出可复制全局规则 | — |
+| `rule` | 输出可复制全局规则 | — |
 
 ## 时间参数
 
@@ -61,7 +61,7 @@ toolkit usage doctor
 - 无参数执行 `toolkit usage` 进入交互菜单；非 TTY 打印帮助并以退出码 2 结束。
 - 非交互初始化用 `toolkit usage init --yes --preset recommended --agent trae`；`custom` / `advanced` 预设仍需交互。
 - 默认总开关、Agent、来源、技能范围、字段全部关闭；只开总开关不会产生记录。
-- `usage status` 汇总已安装 Hook、上传开关与最近 Hook 错误；`hooks status` 以本地时间显示各 Agent 最近触发记录。
+- `usage info` 汇总已安装 Hook、上传开关与最近 Hook 错误；`hooks status` 以本地时间显示各 Agent 最近触发记录。
 - Hook 安装与采集开启是两步：先 `hooks install`，再 `enable`。支持 Agent 与配置路径见 [Agent 接入](../usage/agents)。
 - `include` 空列表等同 `none`；`exclude` 只列出要排除的技能。
 - 触发词默认不采集；开启后截断 200 字并复用全局脱敏规则。

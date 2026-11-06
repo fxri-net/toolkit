@@ -514,7 +514,7 @@ function printStatusReport(report: SkillsStatusReport): void {
   if (report.legacyTargets.length > 0) {
     console.log("")
     console.warn(`⚠️ 历史落点残留 ${report.legacyTargets.length} 处：${report.legacyTargets.map((t) => `${t.label}（${t.dir}）`).join("、")}`)
-    console.log("   已不再随本包更新；不需要时先 toolkit skills remove 清理全部本包登记产物，再 toolkit skills install 重新安装")
+    console.log("   已不再随本包更新；不需要时先 toolkit skills uninstall 清理全部本包登记产物，再 toolkit skills install 重新安装")
   }
   console.log("")
   console.log(
@@ -1140,7 +1140,7 @@ skillsCmd
 
 // 卸载：只清理状态文件记载的本包产物，绝不触碰用户自装技能或其他方式安装的技能
 skillsCmd
-  .command("remove")
+  .command("uninstall")
   .description("卸载由本包安装的技能产物（默认按现场判定作用域；只清理归属账记载的条目，不碰用户自装技能）")
   .option("--scope <scope>", "作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）")
   .option("--skills <names>", "只卸载指定技能的选择与产物（逗号分隔；省略时清理全部）")

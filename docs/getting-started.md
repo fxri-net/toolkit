@@ -106,7 +106,7 @@ toolkit skills install --scope project   # --scope 缺省时按 CLI 安装位置
 pnpm dlx skills add fxri-net/toolkit --global   # npm 用户：npx skills add fxri-net/toolkit --global
 ```
 
-`toolkit skills install` 默认软链真源、链接创建失败自动降级副本；安装时先按 `core` / `optional` 选技能、再选目标，`--yes` 跳过交互；`--scope project` 换项目面（真源落 `<仓库根>/.agents/skills/`、其余已存在候选目录落入口薄壳，随 git 入库后队友 clone 即用）；`--mode package` 切纯包管理器模式、`--no-skills` 仅本次零装；另有 `toolkit skills status`（查现场）与 `toolkit skills remove`（卸载）。完整选项、外部来源与现场体检见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)，命令契约见 [skills 命令](./cli/skills)。
+`toolkit skills install` 默认软链真源、链接创建失败自动降级副本；安装时先按 `core` / `optional` 选技能、再选目标，`--yes` 跳过交互；`--scope project` 换项目面（真源落 `<仓库根>/.agents/skills/`、其余已存在候选目录落入口薄壳，随 git 入库后队友 clone 即用）；`--mode package` 切纯包管理器模式、`--no-skills` 仅本次零装；另有 `toolkit skills status`（查现场）与 `toolkit skills uninstall`（卸载）。完整选项、外部来源与现场体检见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)，命令契约见 [skills 命令](./cli/skills)。
 
 GitHub 拉不下来？国内网络走 [Gitee 镜像渠道](./faq#国内网络优先走哪条渠道)，内网 / 离线安装见 [FAQ · 内网或离线环境怎么装](./faq#内网或离线环境怎么装)。
 

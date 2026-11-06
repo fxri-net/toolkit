@@ -32,7 +32,7 @@
 
 项目面分发（`toolkit skills install --scope project`，`--scope` 缺省时项目内装的 CLI 会自动走此面）只保留**一份唯一真源**：`<仓库根>/.agents/skills/`（完整技能内容）；其余**已存在**的候选目录各放**每个技能一个** `SKILL.md` 薄壳——description 从真源派生、正文指明真源路径与版本标记，不重复承载内容；某个候选目录不存在就不凭空创建，候选目录清单见 [skills 命令 · 作用域](./cli/skills#作用域)。
 
-真源、薄壳与归属账（`<仓库根>/.toolkit/state.json`）都要**入库**。队友 clone 后**不必逐台手动重装**：`prepare` 刷新钩子在 `pnpm install` 时自动补齐/刷新（仅当本地依赖含 `@fxri/toolkit`），也可手动重跑 install；现场用 `toolkit skills status --scope project` 查，清理用 `toolkit skills remove --scope project`（只摘本包登记的产物）。
+真源、薄壳与归属账（`<仓库根>/.toolkit/state.json`）都要**入库**。队友 clone 后**不必逐台手动重装**：`prepare` 刷新钩子在 `pnpm install` 时自动补齐/刷新（仅当本地依赖含 `@fxri/toolkit`），也可手动重跑 install；现场用 `toolkit skills status --scope project` 查，清理用 `toolkit skills uninstall --scope project`（只摘本包登记的产物）。
 
 ⚠️ 发布型包要把这些产物加入 `files` 白名单或 `.npmignore`，否则 `npm` 无 `.npmignore` 时可能被打进包（`toolkit init` 会提示、不代改）——完整说明见[完整攻略 · Git 纳管范围](./guide#git-纳管范围)。
 
@@ -109,7 +109,7 @@ toolkit skills install --force   # 把各目标下的同名旧副本重建为软
 
 ### 卸载工具时 skills 怎么办？
 
-**先清技能、再卸工具**：`toolkit skills remove` → `pnpm remove -g @fxri/toolkit`。⚠️ 顺序别反：`skills remove` 要靠 CLI 与包内真源定位产物，CLI 卸了就没工具可用（重装一次再清即可）；软链会随 CLI 卸载悬空，`remove` 会一并摘除，漏摘时手工删 `~/.agents/skills/` 与各 agent 全局技能目录下的 `fxri-*` 链接。项目面产物用 `remove --scope project` 单独清（实体副本不随 CLI 卸载悬空）。完整步骤见[操作手册 · 升级与卸载](./handbook#七、升级与卸载)。
+**先清技能、再卸工具**：`toolkit skills uninstall` → `pnpm remove -g @fxri/toolkit`。⚠️ 顺序别反：`skills uninstall` 要靠 CLI 与包内真源定位产物，CLI 卸了就没工具可用（重装一次再清即可）；软链会随 CLI 卸载悬空，`remove` 会一并摘除，漏摘时手工删 `~/.agents/skills/` 与各 agent 全局技能目录下的 `fxri-*` 链接。项目面产物用 `remove --scope project` 单独清（实体副本不随 CLI 卸载悬空）。完整步骤见[操作手册 · 升级与卸载](./handbook#七、升级与卸载)。
 
 ### `.tasks/` 要提交到 git 吗？哪些文件该提交？
 

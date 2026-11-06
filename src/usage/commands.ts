@@ -248,7 +248,7 @@ export function registerUsageCommands(program: Command): void {
 
   // Hook 内部入口：从 stdin 读取事件；stdout 保持为空，避免干扰 Agent
   usage
-    .command("ingest")
+    .command("ingest", { hidden: true })
     .description("内部命令：从 stdin 读取 Hook 事件")
     .requiredOption("--agent <id>", "Agent 适配器 id")
     .action(async (options: { agent: string }) => {
@@ -316,7 +316,7 @@ export function registerUsageCommands(program: Command): void {
     })
 
   hooks
-    .command("uninstall")
+    .command("remove")
     .description("卸载 Hook（只移除本包命令，不影响其它 Hook）")
     .option("--agent <names>", "只处理指定 Agent（逗号分隔）")
     .action((options: { agent?: string }) => {
@@ -334,7 +334,7 @@ export function registerUsageCommands(program: Command): void {
 
   // 状态：配置、目录与事件计数
   usage
-    .command("status")
+    .command("info")
     .description("查看技能使用情况：开关、数据目录与事件计数")
     .option("--dir <path>", "本次使用的数据目录")
     .option("--format <format>", "输出格式（json）")
@@ -384,7 +384,7 @@ export function registerUsageCommands(program: Command): void {
     .description("开启技能使用情况总开关（仍需配置 Agent、来源与技能范围）")
     .action(() => {
       updateUsageConfig({ enabled: true })
-      console.log("技能使用情况已开启；用 usage sources / skills / hooks 配置采集范围")
+      console.log("技能使用情况已开启；用 usage origins / scope / hooks 配置采集范围")
     })
 
   usage
@@ -397,7 +397,7 @@ export function registerUsageCommands(program: Command): void {
 
   // 来源开关：一方 / 第三方 / 未托管分别独立
   usage
-    .command("sources")
+    .command("origins")
     .description("查看或设置来源开关（first-party / third-party / unmanaged）")
     .option("--first-party <state>", "一方技能开关（on / off）")
     .option("--third-party <state>", "第三方技能开关（on / off）")
@@ -423,7 +423,7 @@ export function registerUsageCommands(program: Command): void {
 
   // 技能范围：none / all / include / exclude
   usage
-    .command("skills")
+    .command("scope")
     .description("查看或设置技能统计范围（none / all / include / exclude）")
     .option("--mode <mode>", "统计模式：none / all / include / exclude")
     .option("--add <names>", "加入 include / exclude 名单（逗号分隔）")
@@ -918,13 +918,7 @@ export function registerUsageCommands(program: Command): void {
   usage
     .command("rule")
     .description("输出可复制的全局规则文案")
-    .argument("[action]", "动作：print", "print")
-    .action((action: string) => {
-      if (action !== "print") {
-        console.error("⚠️ 仅支持 usage rule print")
-        process.exitCode = 1
-        return
-      }
+    .action(() => {
       console.log(USAGE_GLOBAL_RULE)
     })
 

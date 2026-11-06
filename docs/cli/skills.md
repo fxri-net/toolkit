@@ -27,7 +27,7 @@ toolkit skills install --force      # 覆盖同名非本包产物（默认跳过
 toolkit skills install --dir <path> # 额外目标目录（可多次指定；全局面兜底内置表未收录的 agent，项目面须落在仓库内）
 toolkit skills install --from <path|url> # 临时外部来源（本地目录或 Git 地址；副本写入，只写本次，不登记配置；可重复）
 toolkit skills install --from https://github.com/fxri-net/playbook#vX.Y.Z --save play # 远程永久来源（标签以来源仓 Releases 为准）
-toolkit skills remove --source play # 只清理指定外部来源的登记与产物
+toolkit skills uninstall --source play # 只清理指定外部来源的登记与产物
 toolkit skills sources               # 列出外部来源、版本与生效的更新提示频率（内置源不在列表内）
 toolkit skills sources notify play daily # 设置单个来源的提示频率（--scope global|project）
 toolkit skills sources refresh       # 刷新全部外部来源缓存与版本（--dry-run 列出将刷新来源与当前版本，不联网）
@@ -40,11 +40,11 @@ toolkit skills install --format json # JSON 输出：dryRun、scope 与 global /
 toolkit skills status               # 查看技能现场状态与包内技能真源版本（缺省按现场判定作用域）
 toolkit skills status --scope all   # 项目面与全局面都体检
 toolkit skills status --format json # JSON 输出：scope、global / project 各自的现场报告
-toolkit skills remove               # 卸载本包安装的技能产物（缺省按现场判定作用域；目标目录清空后一并回收）
-toolkit skills remove --skills fxri-text-encoding # 只卸载指定技能的选择与产物（逗号分隔）
-toolkit skills remove --scope all   # 项目面与全局面都卸载
-toolkit skills remove --dry-run     # 卸载预演（只预览将移除的条目）
-toolkit skills remove --format json # JSON 输出：dryRun、scope 与 global / project 各自的卸载报告
+toolkit skills uninstall               # 卸载本包安装的技能产物（缺省按现场判定作用域；目标目录清空后一并回收）
+toolkit skills uninstall --skills fxri-text-encoding # 只卸载指定技能的选择与产物（逗号分隔）
+toolkit skills uninstall --scope all   # 项目面与全局面都卸载
+toolkit skills uninstall --dry-run     # 卸载预演（只预览将移除的条目）
+toolkit skills uninstall --format json # JSON 输出：dryRun、scope 与 global / project 各自的卸载报告
 toolkit skills path                 # 输出包根路径（内含 skills/）
 toolkit skills path --format json   # JSON 输出：包根、技能源目录、技能清单
 ```

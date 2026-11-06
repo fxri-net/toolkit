@@ -261,8 +261,8 @@ describe("顶层命令与外部域", () => {
     expect(r.log.join("\n")).toContain("[预演]")
   })
 
-  it("skills remove --dry-run：退出码 0", async () => {
-    const r = await runCli(["skills", "remove", "--dry-run"])
+  it("skills uninstall --dry-run：退出码 0", async () => {
+    const r = await runCli(["skills", "uninstall", "--dry-run"])
     expect(r.code).toBe(0)
     expect(r.log.length).toBeGreaterThan(0)
   })

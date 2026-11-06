@@ -78,13 +78,13 @@ function event(overrides: Partial<SkillUsageEvent> = {}): SkillUsageEvent {
 
 describe("usage CLI", () => {
   it("状态与开关命令回显并写全局配置", async () => {
-    await run(["status", "--format", "json"])
+    await run(["info", "--format", "json"])
     expect(logs.join("\n")).toContain('"enabled": true')
     expect(logs.join("\n")).toContain('"hooks"')
     expect(logs.join("\n")).toContain('"upload"')
 
-    await run(["sources", "--first-party", "off"])
-    await run(["skills", "--mode", "all"])
+    await run(["origins", "--first-party", "off"])
+    await run(["scope", "--mode", "all"])
     await run(["capture", "--trigger", "off"])
     await run(["storage", "--retention", "30"])
     const config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
@@ -116,7 +116,7 @@ describe("usage CLI", () => {
     await run(["dedupe"])
     await run(["doctor", "--format", "json"])
     await run(["rebuild"])
-    await run(["rule", "print"])
+    await run(["rule"])
     expect(logs.join("\n")).toContain("Skill usage（技能使用情况，可选）")
 
     await run(["purge", "--all"])
@@ -133,7 +133,7 @@ describe("usage CLI", () => {
     await run(["hooks", "status", "--agent", "trae"])
     expect(logs.join("\n")).toContain("已安装")
 
-    await run(["hooks", "uninstall", "--agent", "trae"])
+    await run(["hooks", "remove", "--agent", "trae"])
     const after = JSON.parse(readFileSync(join(home, ".trae-cn", "hooks.json"), "utf8"))
     expect(after.hooks.PostToolUse).toBeUndefined()
   })
@@ -178,7 +178,7 @@ describe("usage CLI", () => {
   })
 
   it("非法参数不静默回落", async () => {
-    await run(["sources", "--first-party", "maybe"])
+    await run(["origins", "--first-party", "maybe"])
     expect(errors.join("\n")).toContain("取值须为 on 或 off")
     expect(process.exitCode).toBe(1)
     process.exitCode = 0

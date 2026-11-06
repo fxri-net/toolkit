@@ -205,7 +205,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
     if (preset === "advanced") await runUploadSetup()
     console.log("")
     console.log("已启用技能使用情况。下一步：")
-    console.log("  toolkit usage status")
+    console.log("  toolkit usage info")
     console.log("  toolkit usage stats")
   } catch (error) {
     if (isCancel(error)) {

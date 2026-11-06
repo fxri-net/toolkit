@@ -165,7 +165,7 @@
 toolkit skills install     # 默认软链真源，失败自动降级副本；先按 tier 选技能、再选目标
                            # --scope <project|global|all> 指定作用域；--prune 清理未选择的旧产物
                            # --from <path|url> 临时外部来源，加 --save [name] 登记永久来源
-toolkit skills status      # 查现场与版本；toolkit skills remove 卸载；toolkit skills path 输出包根
+toolkit skills status      # 查现场与版本；toolkit skills uninstall 卸载；toolkit skills path 输出包根
 
 # 方式二：上游安装器（技能走 GitHub 拉取，与 CLI 是两条供应链）
 pnpm dlx skills add fxri-net/toolkit --global

@@ -1,4 +1,4 @@
-// 全局规则文案：与文档站可复制块同源，由 `toolkit usage rule print` 输出
+// 全局规则文案：与文档站可复制块同源，由 `toolkit usage rule` 输出
 // 不自动改写用户全局规则文件，避免替用户做授权决定
 export const USAGE_GLOBAL_RULE = `## Skill usage（技能使用情况，可选）
 - 技能使用统计由 toolkit 的本地 Hook 自动记录；开启后无需手工补记，避免重复计数。

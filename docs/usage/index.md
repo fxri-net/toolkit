@@ -30,10 +30,10 @@ title: 技能使用情况概览
 ## 快速开始
 
 ```bash
-toolkit usage status          # 查看当前开关与数据目录
+toolkit usage info          # 查看当前开关与数据目录
 toolkit usage enable          # 打开总开关
-toolkit usage sources --first-party on
-toolkit usage skills --mode all
+toolkit usage origins --first-party on
+toolkit usage scope --mode all
 toolkit usage stats           # 查看统计
 ```
 
@@ -43,11 +43,11 @@ toolkit usage stats           # 查看统计
 
 | 命令 | 用途 |
 | --- | --- |
-| `status` | 开关、配置路径、数据目录、Hook 与上传汇总 |
+| `info` | 开关、配置路径、数据目录、Hook 与上传汇总 |
 | `init` / `uninstall` | 初始化 / 停用并卸载 Hook（默认保留数据） |
 | `enable` / `disable` | 总开关 |
-| `sources` | 一方 / 第三方 / 未托管来源开关 |
-| `skills` | `none` / `all` / `include` / `exclude` 技能范围 |
+| `origins` | 一方 / 第三方 / 未托管来源开关 |
+| `scope` | `none` / `all` / `include` / `exclude` 技能范围 |
 | `capture` | 触发词 / 参数 / 结果字段开关 |
 | `storage` | 数据目录、轮转、保留期、单文件上限 |
 | `stats` / `top` / `sessions` / `triggers` | 统计与查询 |
@@ -55,7 +55,7 @@ toolkit usage stats           # 查看统计
 | `dedupe` / `purge` / `rebuild` | 去重、清理与索引重建 |
 | `doctor` | 目录、索引与重复事件诊断 |
 | `upload setup` / `status` / `--dry-run` / `--once` | 可选上传：默认关闭，需显式配置端点 |
-| `rule print` | 输出可复制的全局规则文案 |
+| `rule` | 输出可复制的全局规则文案 |
 
 完整参数见 [CLI 参考 · usage](../cli/usage)，配置字段见 [使用情况配置](./configuration)，数据边界见 [隐私与数据边界](./privacy)，事件结构见 [事件 Schema](./schema)。
 

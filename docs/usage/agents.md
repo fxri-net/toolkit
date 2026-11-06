@@ -38,7 +38,7 @@ toolkit usage enable                        # 才打开采集总开关
 
 ```bash
 toolkit usage hooks status
-toolkit usage hooks uninstall --agent trae
+toolkit usage hooks remove --agent trae
 toolkit usage uninstall --agent trae
 ```
 

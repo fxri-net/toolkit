@@ -113,20 +113,20 @@ toolkit skills status       # 查 CLI 版本提示与技能现场
 
 ⚠️ 软链落点是**写入穿透**形态：编辑落点文件等于编辑真源，要改技能内容请改真源（`toolkit skills status` 报告末尾也会提示）。
 
-⚠️ **历史落点残留**：Codex / Pi 的全局落点已改为 canonical（`~/.agents/skills/`），升级前分发到 `~/.codex/skills/`、`~/.pi/agent/skills/` 的产物不再随本包更新；若状态文件仍有登记且目录仍在，`status` 会单列提示，用 `toolkit skills remove` 清理后再 `toolkit skills install` 恢复（只提示、不自动删除）。
+⚠️ **历史落点残留**：Codex / Pi 的全局落点已改为 canonical（`~/.agents/skills/`），升级前分发到 `~/.codex/skills/`、`~/.pi/agent/skills/` 的产物不再随本包更新；若状态文件仍有登记且目录仍在，`status` 会单列提示，用 `toolkit skills uninstall` 清理后再 `toolkit skills install` 恢复（只提示、不自动删除）。
 
 规则细节已收敛进 skills，装完无需手动同步全局规则全文。CLI 检测到新版本会提示；关闭提示：`FX_NO_UPDATE_CHECK=1` 或配置 `updateCheck.enabled: false`。版本兼容（Node 版本要求）见[完整攻略 · 升级与版本兼容](./guide#升级与版本兼容)。
 
 ### 卸载
 
 ```bash
-toolkit skills remove            # 1. 先摘技能产物（只清本包装的，不碰你自己装的技能）
+toolkit skills uninstall            # 1. 先摘技能产物（只清本包装的，不碰你自己装的技能）
 pnpm remove -g @fxri/toolkit     # 2. 再卸 CLI
 ```
 
-⚠️ **顺序别反**：`skills remove` 依赖本工具（CLI + 包内真源）才能定位产物；先卸了 CLI，清技能就没工具可用——重装一次再执行 `toolkit skills remove` 即可。
+⚠️ **顺序别反**：`skills uninstall` 依赖本工具（CLI + 包内真源）才能定位产物；先卸了 CLI，清技能就没工具可用——重装一次再执行 `toolkit skills uninstall` 即可。
 
-⚠️ **软链会悬空**：软链形式的技能指向包内目录，CLI 一卸就成悬空链接（agent 读到空目录）。`toolkit skills remove` 会把悬空链接一并摘除；若已漏摘，手工删除 `~/.agents/skills/` 与各 agent 全局技能目录下的 `fxri-*` 链接。
+⚠️ **软链会悬空**：软链形式的技能指向包内目录，CLI 一卸就成悬空链接（agent 读到空目录）。`toolkit skills uninstall` 会把悬空链接一并摘除；若已漏摘，手工删除 `~/.agents/skills/` 与各 agent 全局技能目录下的 `fxri-*` 链接。
 
 ## 八、隐私与安全
 
