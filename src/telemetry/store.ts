@@ -105,7 +105,12 @@ export function readAllEvents(paths: TelemetryPaths): SkillUsageEvent[] {
 
 // 空索引：文件不存在或损坏时使用
 function emptyIndex(): TelemetryIndex {
-  return { schemaVersion: 1, updatedAt: new Date().toISOString(), eventIds: [] }
+  return { schemaVersion: 1, updatedAt: new Date().toISOString(), eventIds: [], keys: [] }
+}
+
+// 跨适配器去重键：同一 session + toolUseId 只保留首条；缺少 toolUseId 时返回 null
+export function eventKey(event: SkillUsageEvent): string | null {
+  return event.toolUseId ? `${event.sessionId}\u0000${event.toolUseId}` : null
 }
 
 // 读取索引：损坏时返回空索引，由 doctor 提示重建
@@ -120,6 +125,7 @@ export function readIndex(paths: TelemetryPaths): TelemetryIndex {
       schemaVersion: 1,
       updatedAt: typeof index.updatedAt === "string" ? index.updatedAt : new Date().toISOString(),
       eventIds: index.eventIds.filter((id): id is string => typeof id === "string"),
+      keys: Array.isArray(index.keys) ? index.keys.filter((key): key is string => typeof key === "string") : [],
     }
   } catch {
     return emptyIndex()
@@ -136,11 +142,17 @@ export function writeIndex(paths: TelemetryPaths, index: TelemetryIndex): void {
 export function appendEvent(paths: TelemetryPaths, event: SkillUsageEvent, config: TelemetryConfig): AppendResult {
   const index = readIndex(paths)
   const known = new Set(index.eventIds)
+  const keys = new Set(index.keys ?? [])
+  const key = eventKey(event)
   if (known.has(event.eventId)) return { written: false, reason: "duplicate" }
+  // 同一调用被两个适配器捕获时 eventId 不同，按 session + toolUseId 二次去重
+  if (key && keys.has(key)) return { written: false, reason: "duplicate" }
   ensureDir(paths.eventsDir)
   const fileName = eventFileName(new Date(event.occurredAt), config.storage.rotation, paths, config.storage.maxFileBytes)
   appendFileSync(join(paths.eventsDir, fileName), `${JSON.stringify(event)}\n`, "utf8")
   index.eventIds.push(event.eventId)
+  if (key) keys.add(key)
+  index.keys = [...keys]
   index.updatedAt = new Date().toISOString()
   writeIndex(paths, index)
   return { written: true }
@@ -149,13 +161,16 @@ export function appendEvent(paths: TelemetryPaths, event: SkillUsageEvent, confi
 // 重建索引：按事件出现顺序保留每个 eventId 的首条
 export function rebuildIndex(paths: TelemetryPaths): number {
   const seen = new Set<string>()
+  const keys = new Set<string>()
   const eventIds: string[] = []
   for (const event of readAllEvents(paths)) {
     if (seen.has(event.eventId)) continue
     seen.add(event.eventId)
     eventIds.push(event.eventId)
+    const key = eventKey(event)
+    if (key) keys.add(key)
   }
-  writeIndex(paths, { schemaVersion: 1, updatedAt: new Date().toISOString(), eventIds })
+  writeIndex(paths, { schemaVersion: 1, updatedAt: new Date().toISOString(), eventIds, keys: [...keys] })
   return eventIds.length
 }
 
@@ -163,6 +178,7 @@ export function rebuildIndex(paths: TelemetryPaths): number {
 export function dedupeStore(paths: TelemetryPaths): number {
   let removed = 0
   const seen = new Set<string>()
+  const keys = new Set<string>()
   for (const file of listEventFiles(paths)) {
     const kept: string[] = []
     let content: string
@@ -177,16 +193,18 @@ export function dedupeStore(paths: TelemetryPaths): number {
         if (line.trim()) kept.push(line)
         continue
       }
-      if (seen.has(event.eventId)) {
+      const key = eventKey(event)
+      if (seen.has(event.eventId) || (key !== null && keys.has(key))) {
         removed += 1
         continue
       }
       seen.add(event.eventId)
+      if (key) keys.add(key)
       kept.push(JSON.stringify(event))
     }
     writeFileSync(file, kept.length > 0 ? `${kept.join("\n")}\n` : "", "utf8")
   }
-  writeIndex(paths, { schemaVersion: 1, updatedAt: new Date().toISOString(), eventIds: [...seen] })
+  writeIndex(paths, { schemaVersion: 1, updatedAt: new Date().toISOString(), eventIds: [...seen], keys: [...keys] })
   return removed
 }
 
@@ -206,6 +224,7 @@ export function purgeEvents(paths: TelemetryPaths, options: { olderThanDays?: nu
   const cutoff = Date.now() - options.olderThanDays * 24 * 60 * 60 * 1000
   let removed = 0
   const keptIds: string[] = []
+  const keptKeys: string[] = []
   for (const file of listEventFiles(paths)) {
     const kept: string[] = []
     let content: string
@@ -227,9 +246,11 @@ export function purgeEvents(paths: TelemetryPaths, options: { olderThanDays?: nu
       }
       kept.push(JSON.stringify(event))
       keptIds.push(event.eventId)
+      const key = eventKey(event)
+      if (key) keptKeys.push(key)
     }
     writeFileSync(file, kept.length > 0 ? `${kept.join("\n")}\n` : "", "utf8")
   }
-  writeIndex(paths, { schemaVersion: 1, updatedAt: new Date().toISOString(), eventIds: keptIds })
+  writeIndex(paths, { schemaVersion: 1, updatedAt: new Date().toISOString(), eventIds: keptIds, keys: keptKeys })
   return removed
 }

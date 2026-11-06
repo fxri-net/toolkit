@@ -139,28 +139,31 @@ function readString(value: unknown): string | undefined {
   return typeof value === "string" && value !== "" ? value : undefined
 }
 
-// 标准事件解析：Trae / Claude 的 stdin 字段口径一致
+// 标准事件解析：Trae / Claude 用 snake_case，Cursor / Codex / Copilot 可能用 camelCase
 export function parseStandardEvent(agent: string, adapterId: string, raw: unknown): NormalizedHookEvent | null {
   if (!isPlainObject(raw)) return null
-  const sessionId = readString(raw.session_id) ?? readString(process.env.ICUBE_CODEMAIN_SESSION)
+  const sessionId =
+    readString(raw.session_id) ??
+    readString(raw.sessionId) ??
+    readString(process.env.ICUBE_CODEMAIN_SESSION)
   if (!sessionId) return null
-  const eventName = readString(raw.hook_event_name)
-  const project = Array.isArray(raw.workspace_roots)
-    ? readString(raw.workspace_roots[0])
-    : readString(raw.cwd)
+  const eventName = readString(raw.hook_event_name) ?? readString(raw.hookEventName)
+  const workspaceRoots = Array.isArray(raw.workspace_roots) ? raw.workspace_roots : Array.isArray(raw.workspaceRoots) ? raw.workspaceRoots : []
+  const project = readString(workspaceRoots[0]) ?? readString(raw.cwd) ?? readString(raw.workingDirectory)
+  const toolName = readString(raw.llm_tool_name) ?? readString(raw.tool_name) ?? readString(raw.toolName)
   if (eventName === "UserPromptSubmit") {
-    const prompt = readString(raw.prompt)
+    const prompt = readString(raw.prompt) ?? readString(raw.userPrompt)
     if (!prompt) return null
     return { agent, sessionId, prompt, project, originAdapter: adapterId, occurredAt: new Date() }
   }
-  if (eventName === "PostToolUse" || (eventName === undefined && raw.tool_name !== undefined)) {
+  if (eventName === "PostToolUse" || (eventName === undefined && toolName !== undefined)) {
     return {
       agent,
       sessionId,
-      toolUseId: readString(raw.tool_use_id),
-      toolName: readString(raw.llm_tool_name) ?? readString(raw.tool_name),
-      toolInput: raw.tool_input,
-      toolResponse: raw.tool_response,
+      toolUseId: readString(raw.tool_use_id) ?? readString(raw.toolUseId),
+      toolName,
+      toolInput: raw.tool_input ?? raw.toolInput,
+      toolResponse: raw.tool_response ?? raw.toolResponse,
       project,
       originAdapter: adapterId,
       occurredAt: new Date(),

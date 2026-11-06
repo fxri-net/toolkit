@@ -1,10 +1,13 @@
 // 适配器注册表：新增 Agent 只在此登记，CLI 与向导按 id 取用
 import { claudeAdapter } from "./claude"
+import { codexAdapter } from "./codex"
+import { copilotAdapter } from "./copilot"
+import { cursorAdapter } from "./cursor"
 import { traeAdapter } from "./trae"
 import type { AgentAdapter } from "./types"
 
-// 全部适配器：首批 Trae + Claude Code
-export const AGENT_ADAPTERS: AgentAdapter[] = [traeAdapter, claudeAdapter]
+// 全部适配器：Trae / Claude 已验证，Cursor / Codex / Copilot 按标准 Hook 接入
+export const AGENT_ADAPTERS: AgentAdapter[] = [traeAdapter, claudeAdapter, cursorAdapter, codexAdapter, copilotAdapter]
 
 // 按 id 取适配器：未知 id 返回 undefined
 export function getAdapter(id: string): AgentAdapter | undefined {

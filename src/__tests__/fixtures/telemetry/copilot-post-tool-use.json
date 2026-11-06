@@ -1,0 +1,9 @@
+{
+  "sessionId": "copilot-session-1",
+  "workspaceRoots": ["/repo"],
+  "hookEventName": "PostToolUse",
+  "toolUseId": "copilot-1",
+  "toolName": "Read",
+  "toolInput": { "path": "/repo/skills/fxri-text-encoding/SKILL.md" },
+  "toolResponse": { "is_error": false }
+}

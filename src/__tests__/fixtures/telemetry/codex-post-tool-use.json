@@ -1,0 +1,9 @@
+{
+  "session_id": "codex-session-1",
+  "cwd": "/repo",
+  "hook_event_name": "PostToolUse",
+  "tool_use_id": "codex-1",
+  "tool_name": "Skill",
+  "tool_input": { "name": "fxri-release-changelog" },
+  "tool_response": { "exit_code": 0 }
+}

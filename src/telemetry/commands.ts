@@ -5,7 +5,8 @@ import type { Command } from "commander"
 import { assertJsonFormat, toJsonText } from "../json-output"
 import { redactText, resolveRedactEnabled } from "../privacy/redact"
 import { resolveAdapters } from "./adapters"
-import { ingestFromStdin } from "./ingest"
+import { ingestFromStdin, processHookEvent } from "./ingest"
+import { parseTranscript } from "./transcript"
 import { installHooks, runTelemetryInitWizard, runTelemetryMenu } from "./wizard"
 import { buildEvent, resolveSkillMeta } from "./event"
 import { shouldRecord } from "./filter"
@@ -609,18 +610,19 @@ export function registerTelemetryCommands(program: Command): void {
       console.log(`已导出 ${events.length} 条 → ${out}`)
     })
 
-  // 导入：JSON / JSONL；transcript 由多 Agent 适配任务扩展
+  // 导入：JSON / JSONL / transcript；transcript 从 Claude 或通用会话记录提取 tool_use
   telemetry
     .command("import")
-    .description("导入事件（json / jsonl）")
-    .option("--format <format>", "导入格式：json / jsonl（默认 jsonl）")
+    .description("导入事件（json / jsonl / transcript）")
+    .option("--format <format>", "导入格式：json / jsonl / transcript（默认 jsonl）")
     .option("--file <path>", "导入文件")
+    .option("--agent <name>", "transcript 归属 Agent（默认 claude）")
     .option("--dir <path>", "本次使用的数据目录")
     .option("--dry-run", "只预览，不写入")
-    .action((options: { format?: string; file?: string; dir?: string; dryRun?: boolean }) => {
+    .action((options: { format?: string; file?: string; agent?: string; dir?: string; dryRun?: boolean }) => {
       const format = options.format ?? "jsonl"
-      if (!["json", "jsonl"].includes(format)) {
-        console.error("⚠️ --format 取值须为 json / jsonl（transcript 导入见 telemetry agents 文档）")
+      if (!["json", "jsonl", "transcript"].includes(format)) {
+        console.error("⚠️ --format 取值须为 json / jsonl / transcript")
         process.exitCode = 1
         return
       }
@@ -630,6 +632,28 @@ export function registerTelemetryCommands(program: Command): void {
         return
       }
       const { config, paths } = createContext(options.dir)
+      if (format === "transcript") {
+        const file = resolve(options.file)
+        if (!existsSync(file)) {
+          console.error(`⚠️ 导入文件不存在：${file}`)
+          process.exitCode = 1
+          return
+        }
+        const parsed = parseTranscript(readFileSync(file, "utf8"), { agent: options.agent ?? "claude" })
+        let written = 0
+        let skipped = 0
+        for (const event of parsed) {
+          if (options.dryRun) {
+            written += 1
+            continue
+          }
+          const result = processHookEvent(event, config, paths)
+          if (result.status === "written") written += 1
+          else if (result.status !== "cached") skipped += 1
+        }
+        console.log(`${options.dryRun ? "预演" : "导入"}：${written} 条，跳过 ${skipped} 条`)
+        return
+      }
       const events = parseImportFile(resolve(options.file), format)
       if (!events) return
       let written = 0
@@ -746,12 +770,22 @@ export function registerTelemetryCommands(program: Command): void {
       const events = readAllEvents(paths)
       const index = readIndex(paths)
       const unique = new Set(events.map((event) => event.eventId))
+      const keyAgents = new Map<string, Set<string>>()
+      for (const event of events) {
+        if (!event.toolUseId) continue
+        const key = `${event.sessionId}\u0000${event.toolUseId}`
+        const agents = keyAgents.get(key) ?? new Set<string>()
+        agents.add(event.agent)
+        keyAgents.set(key, agents)
+      }
+      const crossAdapters = [...keyAgents.values()].filter((agents) => agents.size > 1).length
       if (index.eventIds.length !== unique.size) {
         issues.push(`索引与事件数不一致：索引 ${index.eventIds.length} / 去重后 ${unique.size}，可执行 rebuild`)
       }
       if (events.length !== unique.size) issues.push(`存在 ${events.length - unique.size} 条重复事件，可执行 dedupe`)
+      if (crossAdapters > 0) issues.push(`存在 ${crossAdapters} 组跨适配器重复调用，可执行 dedupe`)
       if (!config.enabled) issues.push("遥测总开关处于关闭状态")
-      const report = { dataDir: dir, events: events.length, unique: unique.size, indexed: index.eventIds.length, issues }
+      const report = { dataDir: dir, events: events.length, unique: unique.size, indexed: index.eventIds.length, crossAdapters, issues }
       if (options.format === "json") {
         printJson(report)
         return

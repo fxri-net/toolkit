@@ -12,11 +12,18 @@ title: Agent 接入
 | --- | --- | --- | --- |
 | Trae | 已验证 | `~/.trae-cn/hooks.json`（回退 `~/.trae/hooks.json`） | `PostToolUse` / `UserPromptSubmit` |
 | Claude Code | 已验证 | `~/.claude/settings.json`（`CLAUDE_CONFIG_DIR` 可改写） | `PostToolUse` / `UserPromptSubmit` |
-| Cursor | 待接入 | `~/.cursor/hooks.json` | `PostToolUse` |
-| Codex CLI | 待接入 | 由 Hook 载荷或 transcript 提供 | 需实测 |
-| GitHub Copilot CLI | 待接入 | 由 hooks 与 `transcriptPath` 提供 | 需实测 |
+| Cursor | 已接入，需实测 | `~/.cursor/hooks.json` | `PostToolUse` |
+| Codex CLI | 已接入，需实测 | `$CODEX_HOME/hooks.json`（缺省 `~/.codex/hooks.json`） | `PostToolUse` |
+| GitHub Copilot CLI | 已接入，需实测 | `$COPILOT_HOME/hooks.json`（缺省 `~/.copilot/hooks.json`） | `PostToolUse` |
 
-未列出的 Agent 可用 `telemetry import` 或 `telemetry log` 补录。
+「需实测」表示配置路径与载荷字段按公开资料实现，尚未在真实环境验证；接入后先用 `hooks status` 与 `doctor` 核对。
+
+未列出的 Agent 可用 `telemetry import` 或 `telemetry log` 补录：
+
+```bash
+toolkit telemetry import --format transcript --file ~/.claude/projects/xxx.jsonl
+toolkit telemetry log --skill fxri-plan-to-task --session manual-1 --prompt "归档任务"
+```
 
 ## 安装与启用是两步
 
@@ -40,8 +47,14 @@ toolkit telemetry hooks uninstall --agent trae
 
 `UserPromptSubmit` 到达时把 prompt 写入 `state/sessions/<hash>.json`；同会话后续 `PostToolUse` 读取作为触发词。缓存 24 小时过期，避免读到陈旧会话。只有 `capture.triggerPrompt` 开启时才缓存。
 
+## 补录与去重
+
+- `import --format transcript` 支持 Claude JSONL 与通用 JSON / JSONL，从 `tool_use` 块提取工具调用，并把最近一次用户消息作为触发词。
+- `log` 用于没有 Hook 的 Agent；`manual` 属于用户显式补录，不受 Agent 开关限制。
+- 同一调用被两个适配器捕获时，按 `(sessionId, toolUseId)` 只保留首条；`dedupe` 可清理历史重复，`doctor` 会报告跨适配器重复组数。
+
 ## 注意
 
 - Hook 命令写入当前 Node 与 CLI 的绝对路径，不依赖 PATH。
-- 多个 Agent 同时接入时，同一调用可能被多个适配器捕获；跨适配器去重按 `(sessionId, toolUseId)` 在后续版本提供。
 - Windows 下 Hook 由 PowerShell 执行，路径含空格时已用双引号包裹。
+- transcript 的时间以导入时刻为准，不还原原始会话时间。

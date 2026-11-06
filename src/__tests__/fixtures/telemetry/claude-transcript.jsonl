@@ -1,0 +1,3 @@
+{"type":"user","sessionId":"claude-t1","cwd":"/repo","message":{"content":[{"type":"text","text":"帮我归档任务"}]}}
+{"type":"assistant","sessionId":"claude-t1","message":{"content":[{"type":"tool_use","id":"tu1","name":"Skill","input":{"name":"fxri-plan-to-task"}}]}}
+{"type":"assistant","sessionId":"claude-t1","message":{"content":[{"type":"tool_use","id":"tu1","name":"Skill","input":{"name":"fxri-plan-to-task"}}]}}

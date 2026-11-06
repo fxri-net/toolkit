@@ -1,0 +1,9 @@
+{
+  "sessionId": "cursor-session-1",
+  "cwd": "/repo",
+  "hookEventName": "PostToolUse",
+  "toolUseId": "cursor-1",
+  "toolName": "Skill",
+  "toolInput": { "name": "fxri-plan-to-task" },
+  "toolResponse": { "success": true }
+}

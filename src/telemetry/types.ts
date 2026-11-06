@@ -163,6 +163,8 @@ export interface TelemetryIndex {
   schemaVersion: 1
   updatedAt: string
   eventIds: string[]
+  // 跨适配器去重键：sessionId + toolUseId；同一调用被多个 Agent 适配器捕获时只保留首条
+  keys?: string[]
 }
 
 // 写入结果：duplicate 表示命中事件 ID 去重
