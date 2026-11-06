@@ -49,6 +49,7 @@ export default defineConfig({
           { text: 'CLI 参考', link: '/cli' },
           { text: 'API 参考', link: '/api' },
           { text: '配置参考', link: '/config' },
+          { text: '技能遥测', link: '/telemetry/' },
         ],
       },
       { text: 'FAQ', link: '/faq' },
@@ -85,6 +86,7 @@ export default defineConfig({
               { text: '规范载体', link: '/cli/conventions' },
               { text: '发版与更新日志', link: '/cli/changelog' },
               { text: '技能分发', link: '/cli/skills' },
+              { text: '技能遥测', link: '/cli/telemetry' },
               { text: '配置体检', link: '/cli/config' },
               { text: '文档站主题', link: '/cli/docs-theme' },
               { text: '退出码', link: '/cli/exit-codes' },
@@ -104,6 +106,13 @@ export default defineConfig({
             ],
           },
           { text: '更新日志', link: '/changelog' },
+        ],
+      },
+      {
+        text: '技能遥测',
+        items: [
+          { text: '概览', link: '/telemetry/' },
+          { text: '配置', link: '/telemetry/configuration' },
         ],
       },
       {

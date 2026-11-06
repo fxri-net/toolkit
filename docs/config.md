@@ -89,9 +89,12 @@
   "updateCheck":   { "enabled": true },
   "skills":        { "autoLink": true, "autoLinkReplaceForeign": true },
   "skillsInstall": { "mode": "skills" },
-  "projectSkills": { "mode": "skills" }
+  "projectSkills": { "mode": "skills" },
+  "telemetry":     { "enabled": false, "sources": {}, "skills": {}, "capture": {}, "storage": {}, "upload": {} }
 }
 ```
+
+⚠️ `telemetry` 段只读全局层 `~/.toolkitrc.json`；项目层与本地层误写只告警、不生效，避免克隆仓库后被动开启采集。
 
 ## 配置分页
 
@@ -102,6 +105,7 @@
 | [changelog 与 changelogDoc（语言与镜像）](./config/changelog) | 语言表与文档站更新页镜像 |
 | [updateCheck（升级检查）](./config/update) | 提示频率、通道、registry、缓存与诊断 |
 | [skills 相关（技能分发）](./config/skills) | 软链自愈、全局与项目面安装偏好 |
+| [telemetry（技能遥测）](./telemetry/configuration) | 总开关、来源、技能范围、字段、存储与上传；仅全局层 |
 
 ## 相关页面
 

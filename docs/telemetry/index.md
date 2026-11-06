@@ -1,0 +1,65 @@
+---
+title: 技能遥测概览
+---
+
+# 技能遥测概览
+
+> 统计技能在哪些会话、被哪句话触发、用了多少次；默认关闭，数据只留在本机。
+
+## 用途与场景
+
+- 回答「某个技能用了多少次」「哪些技能从未使用」「某次需求由哪句话触发」。
+- 用真实调用记录做技能治理，不依赖人工回忆或模型自述。
+- 记录归 `@fxri/toolkit` 管理，可与任务区、技能分发共用一套工具链。
+
+## 默认值
+
+| 项目 | 默认 |
+| --- | --- |
+| 总开关 | 关闭 |
+| Agent 采集 | 全部关闭 |
+| 技能来源 | 一方 / 第三方 / 未托管全部关闭 |
+| 技能范围 | `none` |
+| 触发词 / 参数 / 结果 | 全部不采集 |
+| 网络与上传 | 不联网、不上传 |
+| 存储位置 | `~/.toolkit/telemetry` |
+| 轮转与保留 | 按月轮转、保留 180 天 |
+
+未开启时，Hook 即使被调用也直接退出，不写文件。
+
+## 快速开始
+
+```bash
+toolkit telemetry status          # 查看当前开关与数据目录
+toolkit telemetry enable          # 打开总开关
+toolkit telemetry sources --first-party on
+toolkit telemetry skills --mode all
+toolkit telemetry stats           # 查看统计
+```
+
+首次使用建议直接跑 `toolkit telemetry init`，按向导选择 Agent、来源与字段；所有选项都有默认值，直接回车即可完成。
+
+## 命令总览
+
+| 命令 | 用途 |
+| --- | --- |
+| `status` | 开关、配置路径、数据目录与事件计数 |
+| `enable` / `disable` | 总开关 |
+| `sources` | 一方 / 第三方 / 未托管来源开关 |
+| `skills` | `none` / `all` / `include` / `exclude` 技能范围 |
+| `capture` | 触发词 / 参数 / 结果字段开关 |
+| `storage` | 数据目录、轮转、保留期、单文件上限 |
+| `stats` / `top` / `sessions` / `triggers` | 统计与查询 |
+| `export` / `import` | 导出与导入事件 |
+| `dedupe` / `purge` / `rebuild` | 去重、清理与索引重建 |
+| `doctor` | 目录、索引与重复事件诊断 |
+| `rule print` | 输出可复制的全局规则文案 |
+
+完整参数见 [CLI 参考 · telemetry](../cli/telemetry)，配置字段见 [遥测配置](./configuration)。
+
+## 边界与注意
+
+- 历史会话无法自动补录，统计从启用时刻开始。
+- 没有 Hook 的 Agent 用 `telemetry import` 或 `telemetry log` 补录。
+- 上传默认关闭；开启后仍需显式配置端点与认证，详见隐私说明（后续页面）。
+- 事件 schema 版本为 `1`，新增字段只增不改。

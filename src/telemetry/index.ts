@@ -1,0 +1,9 @@
+// 遥测域对外出口：CLI 只依赖本文件，内部模块按职责单向引用
+export * from "./types"
+export * from "./config"
+export * from "./event"
+export * from "./filter"
+export * from "./store"
+export * from "./stats"
+export * from "./rule"
+export { registerTelemetryCommands } from "./commands"

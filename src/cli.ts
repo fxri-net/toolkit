@@ -30,6 +30,7 @@ import { upgradeConventions, type UpgradeReport } from "./conventions/upgrade"
 import { formatConventions, type FormatReport } from "./conventions/compact"
 import { conventionsStatus, resolveCarrierRoot, type ConventionsStatusReport } from "./conventions/status"
 import { toJsonText, assertJsonFormat } from "./json-output"
+import { registerTelemetryCommands, setToolkitVersion } from "./telemetry"
 import {
   autoLinkSkills,
   availableTargetNames,
@@ -108,6 +109,8 @@ const require = createRequire(import.meta.url)
 const changesetBin = require.resolve("@changesets/cli/bin.js")
 // 版本号从 package.json 读取，避免与 package.json 重复维护
 const { version } = require("../package.json")
+// 遥测事件记录当前 toolkit 版本：库形态不依赖包路径，由入口统一注入
+setToolkitVersion(version)
 
 // 调用 changesets（子进程执行，继承 stdio）
 const runChangeset = (cmd: string[]) => {
@@ -2095,6 +2098,9 @@ const changelogCmd = program
       }
     },
   )
+
+// 遥测域：技能使用统计（默认关闭，本地存储）
+registerTelemetryCommands(program)
 
 // 帮助口径统一：命令声明完毕后递归换中文帮助文案并对齐父级清单
 // ⚠️ 顺序：须先 setupHelp 再 helpCommand——help 子命令自带 helpOption(false)，反过来会把它的 Usage 撑成 [options] [command]
