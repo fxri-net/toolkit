@@ -107,4 +107,5 @@ pnpm dlx skills add fxri-toolkit --global       # npm 用户把 pnpm dlx 换成 
 - [ ] 技能用途描述已同步 docs/guide 技能表与本文「技能列表」表（含版本标注）
 - [ ] 涉规范载体（conventions）的改动：`fxri-session-recap/SKILL.md` 的 R3 压缩要点已与 `fxri-plan-to-task/references/conventions-spec.md` 同步（引用兄弟技能 references 时须用相对路径并给出包内真源兜底，两处不一致即失一致）
 - [ ] 涉规范载体（conventions）的改动：`src/init.ts` 的 `index.md` / `history.md` 骨架模板与入口壳版本分流、`src/tasks/validate.ts` 的形态告警口径、`src/conventions/` 的形态识别与升级链路、`src/conventions/entry.ts` 的入口壳生成与版本告警已同步（CLI 侧与 skills 细则同源）
+- [ ] 发布前跑 `toolkit changelog --audit-net`，有同对象净变更候选先人工合并；该检查只提示，不挂进 `pnpm verify`
 - [ ] 变更已跑 `pnpm verify` 全绿（单一步骤清单真源，步骤见 `scripts/verify.mjs`）；能力 / 文档 / 技能三方一致已按 `AGENTS.md` 逐篇复核

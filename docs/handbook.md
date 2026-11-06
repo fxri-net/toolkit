@@ -85,6 +85,7 @@ pnpm exec toolkit tasks --import 需求清单.csv --target active
 
 ```bash
 pnpm exec toolkit changelog            # 创建变更集（等价 changeset，选 patch/minor/major）
+pnpm exec toolkit changelog --audit-net # 可选：列出同对象净变更候选，先人工合并
 pnpm exec toolkit changelog version    # 消费变更集：升版本号 + 中文 CHANGELOG + 发布日期
 pnpm exec toolkit changelog doc        # 同步文档站更新日志镜像（version 后也会自动同步）
 # 提交 → 打 vX.Y.Z 标签 → 发布（按项目渠道，如 npm publish）
