@@ -1,0 +1,232 @@
+// 遥测向导：初始化与无参数菜单；所有选择都有默认值，取消时不留下半成品
+import { detectedAdapters } from "./adapters"
+import type { AgentAdapter } from "./adapters/types"
+import { buildHookCommand } from "./ingest"
+import { loadTelemetryConfig, resolveTelemetryDir, telemetryConfigPath, updateTelemetryConfig } from "./config"
+import { readAllEvents, telemetryPaths } from "./store"
+import { summarize } from "./stats"
+import type { TelemetryRotation, TelemetrySkillMode } from "./types"
+
+// 预设：默认保持关闭；推荐只开一方技能
+type Preset = "off" | "recommended" | "third-party" | "custom" | "advanced"
+
+// 用户取消（Ctrl+C / ESC）：inquirer 以 ExitPromptError 抛出
+function isCancel(error: unknown): boolean {
+  return error instanceof Error && (error.name === "ExitPromptError" || error.name === "AbortPromptError")
+}
+
+// 非 TTY：禁止交互，打印可执行命令并以退出码 2 结束
+function requireTty(): boolean {
+  if (process.stdin.isTTY && process.stdout.isTTY) return true
+  console.error("⚠️ 当前环境不支持交互，请显式传入参数，或执行 toolkit telemetry --help")
+  process.exitCode = 2
+  return false
+}
+
+// 打印配置摘要：向导预览与菜单共用
+function printConfigSummary(agents: string[], firstParty: boolean, thirdParty: boolean, mode: TelemetrySkillMode, dir: string, rotation: TelemetryRotation, retention: number): void {
+  console.log("")
+  console.log("即将应用：")
+  console.log(`  Agent：${agents.length > 0 ? agents.join("、") : "无"}`)
+  console.log(`  来源：一方 ${firstParty ? "开" : "关"} / 第三方 ${thirdParty ? "开" : "关"} / 未托管 关`)
+  console.log(`  技能模式：${mode}`)
+  console.log(`  存储：${dir}（${rotation}，保留 ${retention} 天）`)
+  console.log("  上传：关闭")
+}
+
+// 安装 Hook：只在用户确认后调用；返回逐 Agent 结果
+export function installHooks(agents: AgentAdapter[], dryRun = false): void {
+  for (const adapter of agents) {
+    try {
+      const result = adapter.installHooks({ command: buildHookCommand(adapter.id), dryRun })
+      if (result.changed) console.log(`  ${dryRun ? "将安装" : "已安装"} Hook：${adapter.displayName} → ${result.file}`)
+      else console.log(`  Hook 已存在：${adapter.displayName}`)
+    } catch (error) {
+      console.error(`  ⚠️ ${adapter.displayName} Hook 安装失败：${(error as Error).message}`)
+    }
+  }
+}
+
+// 初始化向导：检测 → 预设 → Agent → 范围 → 字段 → 存储 → 预览 → 应用
+export async function runTelemetryInitWizard(): Promise<void> {
+  if (!requireTty()) return
+  const { select, checkbox, confirm, input } = await import("@inquirer/prompts")
+  try {
+    const detected = detectedAdapters()
+    if (detected.length === 0) {
+      console.log("未检测到可接入的 Agent（Trae / Claude Code）；安装后重跑 toolkit telemetry init")
+      return
+    }
+    const preset = await select<Preset>({
+      message: "选择遥测预设（默认保持关闭）",
+      default: "off",
+      choices: [
+        { name: "保持关闭（不安装 Hook、不采集）", value: "off" },
+        { name: "推荐：仅本地 + toolkit 一方技能", value: "recommended" },
+        { name: "本地 + toolkit 一方与第三方技能", value: "third-party" },
+        { name: "自定义", value: "custom" },
+        { name: "高级：本地 + 上传", value: "advanced" },
+      ],
+    })
+    if (preset === "off") {
+      console.log("保持关闭，未修改任何文件。需要时执行 toolkit telemetry enable")
+      return
+    }
+
+    const agentIds = await checkbox<string>({
+      message: "选择要接入的 Agent（空格切换，回车确认）",
+      choices: detected.map((adapter) => ({ name: adapter.displayName, value: adapter.id, checked: false })),
+      required: false,
+    })
+    const selected = detected.filter((adapter) => agentIds.includes(adapter.id))
+    if (selected.length === 0) {
+      console.log("未选择 Agent，未修改任何文件")
+      return
+    }
+
+    const firstParty = await confirm({ message: "统计 toolkit 一方技能（fxri-*）？", default: true })
+    const thirdParty = preset === "third-party" || preset === "advanced" ? true : await confirm({ message: "统计 toolkit 分发的第三方技能？", default: false })
+    const mode = await select<TelemetrySkillMode>({
+      message: "技能统计范围",
+      default: "all",
+      choices: [
+        { name: "全部已开启来源", value: "all" },
+        { name: "只统计指定技能", value: "include" },
+        { name: "排除指定技能", value: "exclude" },
+      ],
+    })
+    let include: string[] = []
+    if (mode === "include" || mode === "exclude") {
+      const raw = await input({ message: mode === "include" ? "要统计的技能名（逗号分隔）" : "要排除的技能名（逗号分隔）", default: "" })
+      include = raw.split(/[,，]/).map((item) => item.trim()).filter(Boolean)
+    }
+    const triggerPrompt = await confirm({ message: "采集触发词（截断 200 字并脱敏）？", default: false })
+    const skillArgs = await confirm({ message: "采集技能参数（截断 500 字并脱敏）？", default: false })
+    const outcome = await confirm({ message: "采集执行结果与耗时？", default: false })
+    const config = loadTelemetryConfig()
+    const dir = await input({ message: "数据目录", default: resolveTelemetryDir(undefined, config) })
+    const rotation = await select<TelemetryRotation>({
+      message: "事件文件轮转",
+      default: "monthly",
+      choices: [
+        { name: "按月轮转", value: "monthly" },
+        { name: "按文件大小轮转", value: "size" },
+        { name: "不轮转", value: "none" },
+      ],
+    })
+    const retentionRaw = await input({ message: "保留天数", default: "180" })
+    const retention = Number(retentionRaw)
+    if (!Number.isInteger(retention) || retention <= 0) {
+      console.error("⚠️ 保留天数须为正整数，未修改任何文件")
+      return
+    }
+
+    printConfigSummary(selected.map((adapter) => adapter.displayName), firstParty, thirdParty, mode, dir, rotation, retention)
+    console.log("  Hook 将写入：")
+    for (const adapter of selected) console.log(`    ${adapter.displayName} → ${adapter.configPath()}`)
+
+    const apply = await confirm({ message: "确认写入配置并安装 Hook？", default: false })
+    if (!apply) {
+      console.log("已取消，未修改任何文件")
+      return
+    }
+
+    updateTelemetryConfig({
+      enabled: true,
+      agents: Object.fromEntries(selected.map((adapter) => [adapter.id, true])),
+      sources: { firstParty, thirdParty, unmanaged: false },
+      skills: { mode, include: mode === "include" ? include : [], exclude: mode === "exclude" ? include : [] },
+      capture: { triggerPrompt, skillArgs, outcome },
+      storage: { dir, rotation, retentionDays: retention },
+    })
+    installHooks(selected)
+    console.log("")
+    console.log("已启用遥测。下一步：")
+    console.log("  toolkit telemetry status")
+    console.log("  toolkit telemetry stats")
+  } catch (error) {
+    if (isCancel(error)) {
+      console.log("已取消，未修改任何文件")
+      return
+    }
+    throw error
+  }
+}
+
+// 无参数菜单：每项执行后回到菜单，q 退出
+export async function runTelemetryMenu(): Promise<void> {
+  if (!requireTty()) return
+  const { select, confirm } = await import("@inquirer/prompts")
+  try {
+    for (;;) {
+      const action = await select<string>({
+        message: "技能遥测",
+        default: "status",
+        choices: [
+          { name: "查看状态", value: "status" },
+          { name: "查看统计", value: "stats" },
+          { name: "修改开关", value: "toggle" },
+          { name: "管理 Hook", value: "hooks" },
+          { name: "配置上传", value: "upload" },
+          { name: "导出 / 清理", value: "maintenance" },
+          { name: "退出", value: "quit" },
+        ],
+      })
+      if (action === "quit") return
+      if (action === "status") {
+        const config = loadTelemetryConfig()
+        const dir = resolveTelemetryDir(undefined, config)
+        console.log(`遥测：${config.enabled ? "已开启" : "已关闭"}；数据目录：${dir}；配置：${telemetryConfigPath()}`)
+        continue
+      }
+      if (action === "stats") {
+        const config = loadTelemetryConfig()
+        const paths = telemetryPaths(resolveTelemetryDir(undefined, config))
+        const summary = summarize(readAllEvents(paths))
+        console.log(`共 ${summary.total} 条；技能 ${summary.bySkill.length} 个`)
+        for (const item of summary.bySkill.slice(0, 10)) console.log(`  ${item.skill}  ${item.count} 次`)
+        continue
+      }
+      if (action === "toggle") {
+        const current = loadTelemetryConfig()
+        const enabled = await confirm({ message: `当前${current.enabled ? "已开启" : "已关闭"}，是否${current.enabled ? "关闭" : "开启"}？`, default: true })
+        if (enabled) {
+          updateTelemetryConfig({ enabled: !current.enabled })
+          console.log(current.enabled ? "已关闭" : "已开启")
+        }
+        continue
+      }
+      if (action === "hooks") {
+        const detected = detectedAdapters()
+        if (detected.length === 0) {
+          console.log("未检测到可接入的 Agent")
+          continue
+        }
+        for (const adapter of detected) {
+          const status = adapter.status()
+          console.log(`${adapter.displayName}：${status.installed ? "已安装" : "未安装"}｜${status.file}`)
+        }
+        const install = await confirm({ message: "是否为已检测的 Agent 安装 Hook？", default: false })
+        if (install) {
+          installHooks(detected)
+          updateTelemetryConfig({ agents: Object.fromEntries(detected.map((adapter) => [adapter.id, true])) })
+          console.log("Hook 已安装；采集总开关仍需 toolkit telemetry enable")
+        }
+        continue
+      }
+      if (action === "upload") {
+        console.log("上传默认关闭；配置命令见 toolkit telemetry upload setup（需显式提供端点与认证）")
+        continue
+      }
+      if (action === "maintenance") {
+        console.log("导出：toolkit telemetry export --format jsonl --out events.jsonl")
+        console.log("清理：toolkit telemetry purge --older-than 180")
+        continue
+      }
+    }
+  } catch (error) {
+    if (isCancel(error)) return
+    throw error
+  }
+}
+

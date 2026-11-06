@@ -9,6 +9,7 @@ title: telemetry（技能使用遥测）
 ## 常用命令
 
 ```bash
+toolkit telemetry init            # 初始化向导，默认保持关闭
 toolkit telemetry status
 toolkit telemetry enable
 toolkit telemetry sources --first-party on --third-party on
@@ -23,6 +24,10 @@ toolkit telemetry doctor
 
 | 子命令 | 说明 | 主要选项 |
 | --- | --- | --- |
+| `init` | 初始化向导：预设、Agent、来源、字段与存储 | 交互式；非 TTY 退出码 2 |
+| `hooks install` | 只写 Hook 配置，不开启采集 | `--agent`、`--dry-run` |
+| `hooks status` | 查看 Hook 安装状态 | `--agent` |
+| `hooks uninstall` | 只移除本包 Hook 命令 | `--agent` |
 | `status` | 开关、配置路径、数据目录与计数 | `--dir`、`--format json` |
 | `enable` / `disable` | 打开 / 关闭总开关 | — |
 | `sources` | 查看或设置来源开关 | `--first-party on\|off`、`--third-party`、`--unmanaged` |
@@ -48,7 +53,9 @@ toolkit telemetry doctor
 
 ## 边界与注意
 
+- 无参数执行 `toolkit telemetry` 进入交互菜单；非 TTY 打印帮助并以退出码 2 结束。
 - 默认总开关、Agent、来源、技能范围、字段全部关闭；只开总开关不会产生记录。
+- Hook 安装与采集开启是两步：先 `hooks install`，再 `enable`。支持 Agent 与配置路径见 [Agent 接入](../telemetry/agents)。
 - `include` 空列表等同 `none`；`exclude` 只列出要排除的技能。
 - 触发词默认不采集；开启后截断 200 字并复用全局脱敏规则。
 - `export` 输出的是已落盘事件；触发词是否出现取决于采集开关。

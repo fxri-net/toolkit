@@ -1,9 +1,12 @@
-// 遥测 CLI：配置开关、统计查询、导出导入与本地维护；交互式向导与 Hook 命令由后续任务扩展
+// 遥测 CLI：配置开关、统计查询、导出导入、初始化向导与 Hook 管理
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import type { Command } from "commander"
 import { assertJsonFormat, toJsonText } from "../json-output"
 import { redactText, resolveRedactEnabled } from "../privacy/redact"
+import { resolveAdapters } from "./adapters"
+import { ingestFromStdin } from "./ingest"
+import { installHooks, runTelemetryInitWizard, runTelemetryMenu } from "./wizard"
 import { buildEvent, resolveSkillMeta } from "./event"
 import { shouldRecord } from "./filter"
 import { loadTelemetryConfig, resolveTelemetryDir, telemetryConfigPath, updateTelemetryConfig } from "./config"
@@ -206,10 +209,94 @@ export function registerTelemetryCommands(program: Command): void {
     .command("telemetry")
     .description("技能使用遥测：本地统计、开关与导出（默认关闭，数据只留在本机）")
 
-  // 无参数：先打印本域帮助，交互菜单由初始化任务扩展
-  telemetry.action(() => {
-    telemetry.help()
+  // 无参数：进入交互菜单；非 TTY 打印帮助并以退出码 2 结束
+  telemetry.action(async () => {
+    await runTelemetryMenu()
   })
+
+  // 初始化向导：默认保持关闭，所有选择都有默认值
+  telemetry
+    .command("init")
+    .description("初始化遥测：选择 Agent、来源、字段与存储（默认保持关闭）")
+    .action(async () => {
+      await runTelemetryInitWizard()
+    })
+
+  // Hook 内部入口：从 stdin 读取事件；stdout 保持为空，避免干扰 Agent
+  telemetry
+    .command("ingest")
+    .description("内部命令：从 stdin 读取 Hook 事件")
+    .requiredOption("--agent <id>", "Agent 适配器 id")
+    .action(async (options: { agent: string }) => {
+      await ingestFromStdin(options.agent)
+      process.exitCode = 0
+    })
+
+  // Hook 管理：安装 / 状态 / 卸载
+  const hooks = telemetry
+    .command("hooks")
+    .description("管理 Agent Hook（安装 / 状态 / 卸载）")
+
+  hooks
+    .command("install")
+    .description("安装 Hook（只写配置，不开启采集）")
+    .option("--agent <names>", "只处理指定 Agent（逗号分隔）")
+    .option("--dry-run", "只预览，不写文件")
+    .action((options: { agent?: string; dryRun?: boolean }) => {
+      const { adapters, invalid } = resolveAdapters(splitNames(options.agent))
+      if (invalid.length > 0) {
+        console.error(`⚠️ 未知 Agent：${invalid.join("、")}`)
+        process.exitCode = 1
+        return
+      }
+      if (adapters.length === 0) {
+        console.error("⚠️ 未检测到可接入的 Agent，可用 --agent 显式指定")
+        process.exitCode = 1
+        return
+      }
+      installHooks(adapters, Boolean(options.dryRun))
+      console.log("Hook 安装不等于开启采集；用 toolkit telemetry enable 打开总开关")
+    })
+
+  hooks
+    .command("status")
+    .description("查看 Hook 安装状态")
+    .option("--agent <names>", "只查看指定 Agent（逗号分隔）")
+    .action((options: { agent?: string }) => {
+      const { adapters, invalid } = resolveAdapters(splitNames(options.agent))
+      if (invalid.length > 0) {
+        console.error(`⚠️ 未知 Agent：${invalid.join("、")}`)
+        process.exitCode = 1
+        return
+      }
+      if (adapters.length === 0) {
+        console.log("未检测到可接入的 Agent")
+        return
+      }
+      for (const adapter of adapters) {
+        const status = adapter.status()
+        console.log(`${adapter.displayName}：${status.installed ? "已安装" : "未安装"}｜${status.file}`)
+        if (status.command) console.log(`  命令：${status.command}`)
+        if (status.lastError) console.log(`  ⚠️ ${status.lastError}`)
+      }
+    })
+
+  hooks
+    .command("uninstall")
+    .description("卸载 Hook（只移除本包命令，不影响其它 Hook）")
+    .option("--agent <names>", "只处理指定 Agent（逗号分隔）")
+    .action((options: { agent?: string }) => {
+      const { adapters, invalid } = resolveAdapters(splitNames(options.agent))
+      if (invalid.length > 0) {
+        console.error(`⚠️ 未知 Agent：${invalid.join("、")}`)
+        process.exitCode = 1
+        return
+      }
+      for (const adapter of adapters) {
+        const result = adapter.uninstallHooks()
+        console.log(`${adapter.displayName}：${result.changed ? "已移除 Hook" : "未发现本包 Hook"}｜${result.file}`)
+      }
+    })
 
   // 状态：配置、目录与事件计数
   telemetry

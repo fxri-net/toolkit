@@ -1,0 +1,11 @@
+{
+  "session_id": "trae-session-1",
+  "cwd": "/repo",
+  "workspace_roots": ["/repo"],
+  "hook_event_name": "PostToolUse",
+  "tool_use_id": "call-1",
+  "tool_name": "Skill",
+  "llm_tool_name": "Skill",
+  "tool_input": { "name": "fxri-plan-to-task", "args": "归档任务" },
+  "tool_response": { "success": true, "duration_ms": 1200 }
+}

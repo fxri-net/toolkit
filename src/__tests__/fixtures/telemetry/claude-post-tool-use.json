@@ -1,0 +1,9 @@
+{
+  "session_id": "claude-session-1",
+  "cwd": "/repo",
+  "hook_event_name": "PostToolUse",
+  "tool_use_id": "toolu_1",
+  "tool_name": "Read",
+  "tool_input": { "file_path": "/repo/skills/fxri-release-changelog/SKILL.md" },
+  "tool_response": { "is_error": false }
+}

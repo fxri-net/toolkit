@@ -113,6 +113,8 @@ export default defineConfig({
         items: [
           { text: '概览', link: '/telemetry/' },
           { text: '配置', link: '/telemetry/configuration' },
+          { text: 'Agent 接入', link: '/telemetry/agents' },
+          { text: '全局规则文案', link: '/telemetry/global-rule' },
         ],
       },
       {

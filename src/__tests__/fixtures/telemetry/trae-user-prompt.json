@@ -1,0 +1,7 @@
+{
+  "session_id": "trae-session-1",
+  "cwd": "/repo",
+  "workspace_roots": ["/repo"],
+  "hook_event_name": "UserPromptSubmit",
+  "prompt": "全部任务落档，按计划执行"
+}
