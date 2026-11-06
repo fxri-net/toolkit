@@ -3,7 +3,7 @@ name: fxri-release-changelog
 description: 基于 changesets 的发版与多语言 CHANGELOG 维护流程：创建变更集、消费发版、把分组标题与条目转为项目语言风格、清理变更集、打标签发布；无 changesets 的项目提供同格式手工模式。用户表达发版或记录变更意图时使用——含创建变更集、changeset、发版、version、CHANGELOG 格式化等说法及口语近义表达（发一版、出个版本、记一下这次改动、生成更新日志）。⚠️ 注意区分：用户说「提交个版本 / 先提交一版 / commit」通常指 git 提交当前改动（走任务收尾后提交），**不是发版**。不用于日常 commit message 撰写、git 提交操作或与发版无关的文档修改。
 license: MIT
 metadata:
-  version: "1.3.0"
+  version: "1.3.1"
   tier: optional
   author: fxri
   source: https://github.com/fxri-net/toolkit
@@ -11,7 +11,7 @@ metadata:
 
 # 发版与 CHANGELOG
 
-> 本技能版本 1.3.0（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.3.1（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -44,7 +44,7 @@ metadata:
    - **写法**：变更描述逐条以 `- 类型：描述` 书写——`类型：` 前缀（`新增：` / `修复：` / `优化：`）作归类信号，`- ` 列表标记让每条独立成项（缺标记的裸行会被 changesets 并入相邻条目作续行，整段塌成一条、只有首行归组剥前缀）
    - **级别**：按改动的能力量级选 bump（破坏性→major、全新大功能 / 独立新能力→minor、存量能力上的修补与增量→patch，完整对照见 `references/changelog-format.md`）；前缀只看变更性质，与 bump 正交，patch 也可挂 `新增：`
    - **早期自查**：写完可跑 `toolkit tasks check`，它扫 `.changeset/` 下待发布变更集，逐文件报出缺前缀条目与未加 `- ` 的裸行及条数（免得到发版、变更集源被消费删除后才由 changelog 侧兜底告警）
-2. 合并同版本变更集：消费前逐条核对 `.changeset/*.md`，以「从上一已发布版本升级上来的用户」为视角，只保留净用户可见结果
+2. 合并同版本变更集：消费前逐条核对 `.changeset/*.md`，以「从上一已发布版本升级上来的用户」为视角，只保留净用户可见结果；可先跑 `toolkit changelog --audit-net` 获取同对象候选（只提示，不自动改写）
    - **判定基准**：看改动对象在上一已发布版本中是否已经存在。上一版不存在的新能力，本次内的 `新增 → 修改 / 修复` 折叠为一条最终状态；上一版已存在的行为，其 `修改` / `修复` 必须体现在最终条目中，不得整条丢弃；本版本内完全回退且从未发布的能力整条删除；`修改` 后又回退到上一版行为属净变更零，同样删除
    - **归并类型**：按相对上一版的净效果定类型——新能力仍是 `新增：`；既有行为的修正用 `修复：`、行为或参数调整用 `修改：`、体验与性能改进用 `优化：`；`重大：` 不降级、不与其它类型合并；依赖更新不参与合并
    - **边界**：只处理同一包、同一版本块（本次发布）；不跨版本、不改历史块；无法确认是否同源时保留原条目，不猜
@@ -85,6 +85,7 @@ metadata:
 
 - `toolkit changelog`：创建变更集（等价 changeset）
 - `toolkit changelog version`：发版并自动做中文分组标题格式化
+- `toolkit changelog --audit-net`：扫描待发布变更集，列出同对象「新增 + 修改 / 修复 / 优化」候选（只提示，不自动改写）
 - `toolkit changelog format`：仅格式化既有 CHANGELOG
 - `toolkit changelog --history format`：连带追溯改写历史版本块（用户主动要求修正历史块时才加，默认不动）
 - `toolkit changelog --lang <语言> …`：切换输出语言（内置 zh / en，其余可配置扩展）

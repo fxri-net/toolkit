@@ -18,6 +18,7 @@ import type { TaskView, TaskFilter, ImportTarget } from "./tasks/types"
 import { ALL_STATUSES } from "./tasks/types"
 import { languages, DEFAULT_LANG, resolveLang, type ChangelogLanguage } from "./changelog/languages"
 import { localDate, formatChangelogs, countUntypedEntries, findUntypedChangesetEntries, findUnbulletedChangesetEntries } from "./changelog/format"
+import { auditChangesets } from "./changelog/audit"
 import { checkDoc, resolveDocOptions, syncDoc, syncDocAfterVersion } from "./changelog/doc"
 import { checkDocsTheme, writeDocsTheme } from "./docs/theme"
 import { resolveRedactEnabled } from "./privacy/redact"
@@ -2002,6 +2003,7 @@ const changelogCmd = program
   .option("--warn", "开启软告警")
   .option("--no-warn", "关闭软告警")
   .option("--history", "追溯改写历史版本块（默认保留）")
+  .option("--audit-net", "审计待发布变更集，列出可能需要在发布前合并的候选（只提示不改写）")
   .option("--check", "changelog doc：只比对镜像页与根 CHANGELOG，不写文件")
   .option("--from <path>", "changelog doc：根 CHANGELOG 路径")
   .option("--to <path>", "changelog doc：镜像页路径")
@@ -2019,6 +2021,7 @@ const changelogCmd = program
         redact: boolean | undefined
         warn: boolean | undefined
         history: boolean | undefined
+        auditNet?: boolean
         check?: boolean
         from?: string
         to?: string
@@ -2044,6 +2047,21 @@ const changelogCmd = program
       if (unknownLang) console.warn(`⚠️ 未知语言「${unknownLang}」，已回落 ${DEFAULT_LANG}`)
       // 镜像文件名后缀按用户请求的语言标识取：未知语言已回落默认，避免用配置对象当标记
       const docLang = unknownLang ? DEFAULT_LANG : options.lang
+      if (options.auditNet) {
+        const candidates = auditChangesets(".changeset")
+        if (candidates.length === 0) {
+          console.log("未发现需要合并的候选")
+          return
+        }
+        console.log(`发现 ${candidates.length} 组候选（只提示，不自动改写）：`)
+        for (const candidate of candidates) {
+          console.log(`- ${candidate.object}`)
+          for (const entry of candidate.entries) {
+            console.log(`  ${entry.file}｜${entry.type}：${entry.text}`)
+          }
+        }
+        return
+      }
       const command = operands[0]
       if (command === "version") {
         // 软告警：发版前存在未归档任务

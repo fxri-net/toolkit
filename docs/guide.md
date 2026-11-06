@@ -151,7 +151,7 @@
 | 技能 | 版本 | 用途 | 层级 |
 | --- | --- | --- | --- |
 | `fxri-plan-to-task` | 1.9.16 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 | core |
-| `fxri-release-changelog` | 1.3.0 | changesets 发版与多语言 CHANGELOG 维护 | optional |
+| `fxri-release-changelog` | 1.3.1 | changesets 发版与多语言 CHANGELOG 维护 | optional |
 | `fxri-session-recap` | 1.6.9 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | `fxri-plan-review` | 1.0.5 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
 | `fxri-text-encoding` | 1.2.3 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
