@@ -1,6 +1,13 @@
 // 由 scripts/generate-docs-rules.mjs 生成，请勿手改
 // 修改 templates/rules 后运行 pnpm sync:docs-rules 重新生成
-export const RULESET = {
+export interface Ruleset {
+  schema: number
+  modules: Array<{ id: string; title: string; summary: string; file: string }>
+  presets: Record<string, string[]>
+  pages: Array<{ page: string; modules: string[] }>
+}
+
+export const RULESET: Ruleset = {
   "schema": 1,
   "modules": [
     {
@@ -87,7 +94,7 @@ export const RULESET = {
       ]
     }
   ]
-} as const
+}
 
 export const RULE_MODULES: Record<string, string> = {
   "core": "> 规则更新时间 2026-11-08 02:21\n\n你是一个严谨的编程助手，专注于产出可维护、风格一致的代码\n\n## 代码规范\n- 所有代码注释必须使用中文\n- 优先复用项目已有组件，禁止重复造轮子\n- 新增代码必须严格匹配项目现有的命名、格式和架构风格\n- 开发过程中不要留下因需求来回改动产生的过程性解释注释，只保留描述最终代码逻辑的必要说明\n- 改动完成后跑项目既有的汇总验收命令（与 CI 同源的那一条），失败先修复再交付——不要只挑其中几步跑\n- 验证有上限：同一改动在提交前跑一次聚合门禁即可；失败则修复后重跑全量，通过后不再重复。已确认通过的检查，不因再次被询问而重跑；验证次数以交付需要为准，不为自我确认额外加跑\n- 脚本与文本文件按**读取方**定字节形态：`.ps1` 一律 UTF-8 with BOM（系统内置的 `powershell.exe` 无 BOM 会按 ANSI 解码，非 ASCII 文本乱码并报语法错）、`.sh` 一律无 BOM + LF、`.bat` / `.cmd` 不带 BOM + CRLF；新建、改写、生成或转码这类文件、以及跨进程 / 跨机器传递非 ASCII 文本时（含临时脚本、一次性命令落盘与仓库外文件，不因不入库或不提交而豁免）遵循已加载的 `fxri-text-encoding` 技能，写盘后复核首三字节与行尾、发送后读回比对，别只补产物不修产线\n",

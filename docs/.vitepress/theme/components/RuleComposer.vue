@@ -5,7 +5,7 @@ import { composeModules, type RuleModule } from "../../../../src/rules/core"
 import { RULESET, RULE_MODULES } from "./rules.generated"
 
 const STORAGE_KEY = "fxri-toolkit:rules:v1"
-const presets = RULESET.presets as Record<string, string[]>
+const presets = RULESET.presets
 const presetNames = Object.keys(presets)
 const presetLabels: Record<string, string> = { minimal: "极简", recommended: "推荐", complete: "AI 全篇", full: "全量" }
 

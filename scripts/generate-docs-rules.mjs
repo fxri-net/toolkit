@@ -12,7 +12,14 @@ const modules = Object.fromEntries(
 )
 const content = `// 由 scripts/generate-docs-rules.mjs 生成，请勿手改
 // 修改 templates/rules 后运行 pnpm sync:docs-rules 重新生成
-export const RULESET = ${JSON.stringify(ruleset, null, 2)} as const
+export interface Ruleset {
+  schema: number
+  modules: Array<{ id: string; title: string; summary: string; file: string }>
+  presets: Record<string, string[]>
+  pages: Array<{ page: string; modules: string[] }>
+}
+
+export const RULESET: Ruleset = ${JSON.stringify(ruleset, null, 2)}
 
 export const RULE_MODULES: Record<string, string> = ${JSON.stringify(modules, null, 2)}
 `
