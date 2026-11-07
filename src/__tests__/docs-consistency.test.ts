@@ -318,6 +318,13 @@ describe("文档一致性：规则层更新锚点", () => {
     expect((fenced as string).trim()).toBe(USAGE_GLOBAL_RULE.trim())
   })
 
+  it("usage 规则保留可执行性措辞：立即上报、只读豁免、回复前自检", () => {
+    // 这三处是规则能否被稳定执行的判据，缺任意一处都会退回「等批次 / 等授权 / 忘报」的旧形态
+    for (const phrase of ["立即执行", "不受「只读型请求默认只读」", "回复前自检"]) {
+      expect(USAGE_GLOBAL_RULE, `规则全文缺少「${phrase}」`).toContain(phrase)
+    }
+  })
+
   it("SPEC.md 正文首行为合法规范更新时间锚点", () => {
     // 无围栏包裹，整篇即快照：标题行之后的首个非空行即锚点
     const body = readDoc("SPEC.md")
