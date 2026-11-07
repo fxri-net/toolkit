@@ -45,7 +45,6 @@
 | C-28 | 规则落门禁 | 规则层新增 / 强化「可自动检出」的要求时，或复核发现既有要求无检测入口时，须同批补落检测入口（`tasks check` / `pnpm verify`）且置于不可逆动作之前 | common | [common.md](./common.md) |
 | C-29 | 门禁与测试的环境无关性 | `pnpm verify` 各步须与运行环境无关（hermetic），涉时间比对的测试 / 步骤固定时区口径、按数据来源分两轴：合成数据钉 `TZ=UTC`，读真实任务数据钉 `TZ=Asia/Shanghai` | common | [common.md](./common.md) |
 | C-30 | 配置分层 | 三层配置模型：全局 `~/.toolkitrc.json`（段级整体覆盖）→ 项目 `.toolkitrc.json`（向上查最近一份）→ 本地 `.toolkitrc.local.json`（止于 home、默认不入库）；合并粒度分层；`config status` 只列层级 / 命中 / 来源 / 键路径、不打印配置值 | common | `docs/config.md`（合并粒度对照表）+ `docs/cli.md`（`config status` 报告字段说明） |
-| C-31 | 变更集级别判定（按能力量级） | 版本号由变更集 bump 声明决定、与条目前缀正交：破坏性→major、全新大功能 / 独立新能力→minor、存量能力上的修补与增量→patch；不得为凑版本号降级 | common | `skills/fxri-release-changelog/references/changelog-format.md` |
 | C-32 | 现场路径形态须归一 | 生产代码对同一资源的不同路径书写形态做比对 / 归属判定时，须先取磁盘真实形态（`fs.realpathSync.native` 等）再比；纯字符串归一不替代真实形态归一，路径不存在时回退原串 | common | [common.md](./common.md) |
 | C-33 | 类型检查须覆盖测试文件 | 类型检查单独走放开测试排除项的 `tsconfig.typecheck.json`（基础 `tsconfig.json` 已排除 `**/__tests__` 等），不得让测试文件落在盲区；eslint 与单测 / 构建不能替代 | common | `AGENTS.md`「验收方式」 |
 | C-34 | 项目面技能分发与真源薄壳 | `skills install` / `status` / `remove` 按 CLI 安装位置自动判定作用域（可 `--scope` 覆盖）；项目面采用「唯一真源 + 多份入口薄壳」；`init` 幂等写 `prepare` 钩子，并附发布型包误打包检查（只提示、不代改） | common | `docs/guide.md`（项目面分发）+ `docs/cli.md`（`skills --scope` / `init --no-hooks`）+ `docs/faq.md` + `skills/README.md` |

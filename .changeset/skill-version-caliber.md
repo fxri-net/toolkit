@@ -1,0 +1,8 @@
+---
+"@fxri/toolkit": patch
+---
+
+- 修改：`fxri-release-changelog` 承载唯一的版本口径——bump 按用户影响阶梯判定（整体重做 major、破坏既有用法需改 minor、其余含新增小能力与同能力替代实现 patch），并写明与 SemVer 的显式偏离
+- 修改：版本口径补迁移护栏（minor 附迁移映射并标注不兼容、patch 只增不改）与技能内容版本口径（小修 +patch、能力级 +minor，与包版本互不推导）
+- 修改：版本口径的归属域即该技能，退出方式为卸载本技能；SKILL.md 新增读取地图指向口径小节
+- 修改：退休 conventions `C-31`（版本级别由技能承载），`AGENTS.md` 质量门第 3 条的递增细节改为引用技能
