@@ -148,6 +148,13 @@ describe("dsh 适配器", () => {
     expect(dshAdapter.status().installed).toBe(false)
   })
 
+  it("已安装官方桥接包时条目用官方包名", () => {
+    const dir = makeProfile("official", "[]\n", { "@deepseek-ai/dsh-hooks-claude-code": "0.0.1-rc.5" })
+    dshAdapter.installHooks({ command: "cmd" })
+    expect(readFileSync(join(dir, "cordis.patch.yml"), "utf8")).toContain('name: "@deepseek-ai/dsh-hooks-claude-code"')
+    expect(dshAdapter.status().warnings).toHaveLength(0)
+  })
+
   it("dry-run 不落盘", () => {
     const dir = makeProfile("desktop", "[]\n")
     const install = dshAdapter.installHooks({ command: "cmd", dryRun: true })

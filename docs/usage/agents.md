@@ -50,11 +50,13 @@ toolkit usage enable                        # 才打开采集总开关
 
 ### DeepSeek Harness：需装桥接插件
 
-dsh 不直接读 `hooks.json`，要经官方桥接插件 `@deepseek-ai/dsh-hooks-claude-code` 才生效，分两步：
+dsh 不直接读 `hooks.json`，要经 Claude Code 兼容层桥接插件才生效，分两步：
 
 1. `toolkit usage hooks install --agent dsh`：写 `~/.dsh/hooks.json`，并在每个已存在的 profile（`~/.dsh/profiles/<name>/cordis.patch.yml`）写入 `# >>> toolkit usage hooks` 标记块，把插件条目的 `configPath` 指向该文件；
-2. 安装桥接插件（只需一次）：先**完全退出**桌面版（含托盘），再执行 `dsh plugin --profile desktop add @deepseek-ai/dsh-hooks-claude-code`，装完重新打开应用。
-   ⚠️ 不要用桌面版「添加插件」：它只接受声明 `dsh.bundle` 的组合包，对本插件会报 `declares no dsh.bundle` 并拒绝安装。
+2. 安装桥接插件（只需一次）：先**完全退出**桌面版（含托盘），再执行 `dsh plugin --profile desktop add @dsh-cc/hooks-claude-code@0.9.2`，装完重新打开应用。
+   - 官方 `@deepseek-ai/dsh-hooks-claude-code`（0.0.1-rc.5）的 peer 依赖停在 0.0.1，与 dsh 0.2.x 不兼容，会被版本校验拒绝；社区版 0.9.2 的 peer 下限是 0.2.0-rc.2，与 0.2.1-rc.3 匹配。升级 dsh 后若被拒绝，改选与运行时 peer 范围相符的版本。
+   - ⚠️ 不要用桌面版「添加插件」：它只接受声明 `dsh.bundle` 的组合包，桥接插件会被拒绝。
+   - `hooks install` 会把**已安装**的桥接包写进 `cordis.patch.yml`（官方版优先），无需手改插件名。
 
 `hooks status --agent dsh` 会在插件缺失或标记块缺失时提示。桥接插件把 `tool_response` 扁平化为文本，`outcome` 字段恒为 `unknown`（Trae 等原生 Hook 会按返回体推断成功与否），其余字段正常。
 

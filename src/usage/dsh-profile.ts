@@ -5,8 +5,10 @@ import { basename, isAbsolute, join } from "node:path"
 import { getHomeDir } from "../config"
 import { writeFileAtomic } from "../write-atomic"
 
-// 官方桥接插件：把 Claude Code 方言的 hooks.json 映射到 dsh 拦截点
-export const DSH_BRIDGE_PLUGIN = "@deepseek-ai/dsh-hooks-claude-code"
+// 默认桥接插件：官方版 peer 依赖停在 0.0.1，与 dsh 0.2.x 不兼容，默认用社区实现
+export const DSH_BRIDGE_PLUGIN = "@dsh-cc/hooks-claude-code"
+// 已知桥接插件：按顺序取第一个已安装的，官方版恢复兼容后可自动切回
+export const DSH_BRIDGE_PLUGINS = ["@deepseek-ai/dsh-hooks-claude-code", DSH_BRIDGE_PLUGIN]
 // 标记块边界：注释行不参与 YAML 结构，便于精确定位与删除
 export const DSH_BLOCK_START = "# >>> toolkit usage hooks（由 toolkit 维护，勿手改）"
 export const DSH_BLOCK_END = "# <<< toolkit usage hooks"
@@ -48,12 +50,12 @@ function toLines(text: string): string[] {
 }
 
 // 标记块内容：路径统一正斜杠并用单引号包裹，避免 Windows 反斜杠触发 YAML 转义
-function renderBlock(configPath: string): string[] {
+function renderBlock(configPath: string, plugin: string): string[] {
   const value = configPath.replace(/\\/g, "/").replace(/'/g, "''")
   return [
     DSH_BLOCK_START,
     `- id: ${DSH_BLOCK_ID}`,
-    `  name: "${DSH_BRIDGE_PLUGIN}"`,
+    `  name: "${plugin}"`,
     "  config:",
     `    configPath: '${value}'`,
     DSH_BLOCK_END,
@@ -75,10 +77,10 @@ export function hasToolkitBlock(text: string): boolean {
 }
 
 // 插入或更新标记块：已存在则原位替换，文件内只有 [] 时替换空数组，否则追加到末尾
-export function upsertToolkitBlock(text: string, configPath: string): string {
+export function upsertToolkitBlock(text: string, configPath: string, plugin = DSH_BRIDGE_PLUGIN): string {
   const eol = detectEol(text)
   const lines = toLines(text)
-  const block = renderBlock(configPath)
+  const block = renderBlock(configPath, plugin)
   const start = lines.indexOf(DSH_BLOCK_START)
   if (start >= 0) {
     const end = lines.indexOf(DSH_BLOCK_END, start)
@@ -156,13 +158,13 @@ export function profileHasToolkitBlock(profileDir: string): boolean {
 }
 
 // 写入或更新标记块：返回是否真的改动文件；dryRun 只计算不落盘
-export function writeToolkitBlock(profileDir: string, configPath: string, dryRun = false): boolean {
+export function writeToolkitBlock(profileDir: string, configPath: string, dryRun = false, plugin = DSH_BRIDGE_PLUGIN): boolean {
   const file = join(profileDir, "cordis.patch.yml")
   if (!existsSync(file)) return false
   const { text, bom } = readPatchFile(file)
   // 非顶层数组结构直接跳过，避免把用户文件写成非法 YAML
   if (!isTopLevelArrayText(text)) return false
-  const next = upsertToolkitBlock(text, configPath)
+  const next = upsertToolkitBlock(text, configPath, plugin)
   if (next === text) return false
   if (!dryRun) writePatchFile(file, next, bom)
   return true
@@ -179,16 +181,22 @@ export function removeToolkitBlockFromProfile(profileDir: string): boolean {
   return true
 }
 
-// profile 是否已安装桥接插件：dsh 的插件安装会写进 profile package.json 的 dependencies
-export function profileHasBridgePlugin(profileDir: string): boolean {
+// profile 已安装的桥接插件：按已知清单顺序取第一个，缺省返回 undefined
+export function profileBridgePlugin(profileDir: string): string | undefined {
   const file = join(profileDir, "package.json")
-  if (!existsSync(file)) return false
+  if (!existsSync(file)) return undefined
   try {
     const data = JSON.parse(readFileSync(file, "utf8").replace(BOM, "")) as { dependencies?: Record<string, unknown> }
-    return Boolean(data.dependencies && Object.prototype.hasOwnProperty.call(data.dependencies, DSH_BRIDGE_PLUGIN))
+    const dependencies = data.dependencies ?? {}
+    return DSH_BRIDGE_PLUGINS.find((name) => Object.prototype.hasOwnProperty.call(dependencies, name))
   } catch {
-    return false
+    return undefined
   }
+}
+
+// profile 是否已安装桥接插件
+export function profileHasBridgePlugin(profileDir: string): boolean {
+  return profileBridgePlugin(profileDir) !== undefined
 }
 
 // profile 名：告警里用短名，命令提示才方便复制

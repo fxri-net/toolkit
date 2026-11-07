@@ -7,6 +7,7 @@ import {
   dshHome,
   dshHooksFile,
   listDshProfiles,
+  profileBridgePlugin,
   profileHasBridgePlugin,
   profileHasToolkitBlock,
   profileName,
@@ -20,7 +21,7 @@ import type { AgentAdapter, HookInstallResult, HookStatus } from "./types"
 // 插件安装提示：桌面版插件页只收声明 dsh.bundle 的组合包，本桥接插件必须经 CLI 装进 profile
 function pluginHint(profile: string): string {
   const name = profileName(profile)
-  return `profile ${name} 未安装桥接插件：先完全退出桌面版（含托盘），执行 dsh plugin --profile ${name} add ${DSH_BRIDGE_PLUGIN}；桌面版「添加插件」只接受声明 dsh.bundle 的组合包，会拒绝本插件`
+  return `profile ${name} 未安装桥接插件：先完全退出桌面版（含托盘），执行 dsh plugin --profile ${name} add ${DSH_BRIDGE_PLUGIN}；官方 @deepseek-ai/dsh-hooks-claude-code 目前与 dsh 0.2.x 不兼容，桌面版「添加插件」也只收声明 dsh.bundle 的组合包`
 }
 
 // DeepSeek Harness 适配器：事件按 Claude Code 方言解析
@@ -45,7 +46,9 @@ export const dshAdapter: AgentAdapter = {
         warnings.push(`profile ${profileName(profile)} 的 cordis.patch.yml 不是顶层数组，已跳过写入（请手工把 ${DSH_BRIDGE_PLUGIN} 条目并入数组）`)
         continue
       }
-      if (writeToolkitBlock(profile, dshHooksFile(), options.dryRun)) changed = true
+      // 已装的桥接包优先：官方版恢复兼容后无需改配置就能切回
+      const plugin = profileBridgePlugin(profile) ?? DSH_BRIDGE_PLUGIN
+      if (writeToolkitBlock(profile, dshHooksFile(), options.dryRun, plugin)) changed = true
       if (!profileHasBridgePlugin(profile)) warnings.push(pluginHint(profile))
     }
     return { ...hooks, changed, warnings }
