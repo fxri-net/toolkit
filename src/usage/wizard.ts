@@ -44,14 +44,15 @@ function runNonInteractiveInit(options: InitWizardOptions): void {
     process.exitCode = 1
     return
   }
-  const { adapters, invalid } = resolveAdapters(splitAgentNames(options.agent))
+  const { adapters, invalid, unavailable } = resolveAdapters(splitAgentNames(options.agent))
   if (invalid.length > 0) {
     console.error(`⚠️ 未知 Agent：${invalid.join("、")}`)
     process.exitCode = 1
     return
   }
+  if (unavailable.length > 0) console.warn(`⚠️ 忽略本机未检测到的 Agent：${unavailable.join("、")}（不凭空创建配置）`)
   if (adapters.length === 0) {
-    console.error("⚠️ 未检测到可接入的 Agent，可用 --agent 显式指定")
+    console.error("⚠️ 没有可接入的 Agent：请先安装对应工具，或用 --agent 指定已安装的 Agent")
     process.exitCode = 1
     return
   }
@@ -100,6 +101,7 @@ export function installHooks(agents: AgentAdapter[], dryRun = false): void {
       const result = adapter.installHooks({ command: buildHookCommand(adapter.id), dryRun })
       if (result.changed) console.log(`  ${dryRun ? "将安装" : "已安装"} Hook：${adapter.displayName} → ${result.file}`)
       else console.log(`  Hook 已存在：${adapter.displayName}`)
+      for (const warning of result.warnings ?? []) console.warn(`  ⚠️ ${adapter.displayName}：${warning}`)
     } catch (error) {
       console.error(`  ⚠️ ${adapter.displayName} Hook 安装失败：${(error as Error).message}`)
     }
@@ -303,7 +305,8 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
 // 卸载：停用采集、移除本包 Hook；默认保留数据，--purge 才删除事件
 export async function runUsageUninstall(options: UninstallOptions = {}): Promise<void> {
   if (!options.yes && !options.dryRun && !requireTty()) return
-  const { adapters, invalid } = resolveAdapters(splitAgentNames(options.agent))
+  // 卸载是清理场景：工具已卸载也要能移除它留下的配置
+  const { adapters, invalid } = resolveAdapters(splitAgentNames(options.agent), { allowUnavailable: true })
   if (invalid.length > 0) {
     console.error(`⚠️ 未知 Agent：${invalid.join("、")}`)
     process.exitCode = 1

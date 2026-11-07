@@ -270,14 +270,15 @@ export function registerUsageCommands(program: Command): void {
     .option("--agent <names>", "只处理指定 Agent（逗号分隔）")
     .option("--dry-run", "只预览，不写文件")
     .action((options: { agent?: string; dryRun?: boolean }) => {
-      const { adapters, invalid } = resolveAdapters(splitNames(options.agent))
+      const { adapters, invalid, unavailable } = resolveAdapters(splitNames(options.agent))
       if (invalid.length > 0) {
         console.error(`⚠️ 未知 Agent：${invalid.join("、")}`)
         process.exitCode = 1
         return
       }
+      if (unavailable.length > 0) console.warn(`⚠️ 忽略本机未检测到的 Agent：${unavailable.join("、")}（不凭空创建配置）`)
       if (adapters.length === 0) {
-        console.error("⚠️ 未检测到可接入的 Agent，可用 --agent 显式指定")
+        console.error("⚠️ 没有可接入的 Agent：请先安装对应工具，或用 --agent 指定已安装的 Agent")
         process.exitCode = 1
         return
       }
@@ -291,12 +292,13 @@ export function registerUsageCommands(program: Command): void {
     .option("--agent <names>", "只查看指定 Agent（逗号分隔）")
     .option("--dir <path>", "本次使用的数据目录")
     .action((options: { agent?: string; dir?: string }) => {
-      const { adapters, invalid } = resolveAdapters(splitNames(options.agent))
+      const { adapters, invalid, unavailable } = resolveAdapters(splitNames(options.agent))
       if (invalid.length > 0) {
         console.error(`⚠️ 未知 Agent：${invalid.join("、")}`)
         process.exitCode = 1
         return
       }
+      if (unavailable.length > 0) console.warn(`⚠️ 忽略本机未检测到的 Agent：${unavailable.join("、")}（不凭空创建配置）`)
       if (adapters.length === 0) {
         console.log("未检测到可接入的 Agent")
         return
@@ -318,6 +320,7 @@ export function registerUsageCommands(program: Command): void {
           console.warn(`  ⚠️ Hook 命令中的路径已不存在，需重跑 toolkit usage hooks install --agent ${adapter.id}：${status.missingPaths.join("、")}`)
         }
         if (status.lastError) console.log(`  ⚠️ ${status.lastError}`)
+        for (const warning of status.warnings ?? []) console.warn(`  ⚠️ ${warning}`)
         const last = activity[adapter.id]
         if (last) console.log(`  最近触发：${formatLocalTime(last.lastTriggerAt)}（${last.lastStatus}）`)
         else if (status.installed) console.log("  最近触发：暂无记录（Hook 已配置，但 Agent 尚未执行过）")
@@ -330,7 +333,8 @@ export function registerUsageCommands(program: Command): void {
     .description("卸载 Hook（只移除本包命令，不影响其它 Hook）")
     .option("--agent <names>", "只处理指定 Agent（逗号分隔）")
     .action((options: { agent?: string }) => {
-      const { adapters, invalid } = resolveAdapters(splitNames(options.agent))
+      // 移除是清理场景：工具已卸载也要能清掉它留下的 Hook
+      const { adapters, invalid } = resolveAdapters(splitNames(options.agent), { allowUnavailable: true })
       if (invalid.length > 0) {
         console.error(`⚠️ 未知 Agent：${invalid.join("、")}`)
         process.exitCode = 1
@@ -871,6 +875,7 @@ export function registerUsageCommands(program: Command): void {
           if (status.missingPaths) {
             issues.push(`${adapter.displayName} 的 Hook 命令路径已失效（${status.missingPaths.join("、")}），请重跑 toolkit usage hooks install --agent ${adapter.id}`)
           }
+          for (const warning of status.warnings ?? []) issues.push(`${adapter.displayName}：${warning}`)
         } catch {
           // 配置读取失败由 usage hooks status 展示，doctor 不重复报错
         }

@@ -8,6 +8,8 @@ export interface HookInstallResult {
   changed: boolean
   command: string
   dryRun: boolean
+  // 安装完成但尚未生效的前置条件（如缺少桥接插件），由调用方打印
+  warnings?: string[]
 }
 
 // Hook 状态：installed 只表示配置中存在本包命令，不代表采集已开启
@@ -20,6 +22,7 @@ export interface HookStatus {
   legacyCommand?: string
   outdatedCommand?: string
   missingPaths?: string[]
+  warnings?: string[]
   lastError?: string
 }
 

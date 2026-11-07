@@ -11,6 +11,7 @@ title: Agent 接入
 | Agent | 状态 | 配置路径 | 能力 |
 | --- | --- | --- | --- |
 | Trae | 已验证（需在 IDE 内启用） | `~/.trae-cn/hooks.json`（回退 `~/.trae/hooks.json`） | `PostToolUse` / `UserPromptSubmit` |
+| DeepSeek Harness | 已接入，需实测 | `~/.dsh/hooks.json` + 各 profile 的 `cordis.patch.yml` | `PostToolUse` / `UserPromptSubmit` |
 | Claude Code | 已接入，需实测 | `~/.claude/settings.json`（`CLAUDE_CONFIG_DIR` 可改写） | `PostToolUse` / `UserPromptSubmit` |
 | Cursor | 已接入，需实测 | `~/.cursor/hooks.json` | `PostToolUse` |
 | Codex CLI | 已接入，需实测 | `$CODEX_HOME/hooks.json`（缺省 `~/.codex/hooks.json`） | `PostToolUse` |
@@ -34,6 +35,8 @@ toolkit usage enable                        # 才打开采集总开关
 
 未开启总开关时，Hook 即使被调用也直接退出，不写文件。`hooks install` 支持 `--dry-run` 预览，写前自动备份原配置；配置无法解析时不覆盖。
 
+`hooks install` 只处理**本机已检测到**的 Agent：Trae 看 `~/.trae-cn` 或 `~/.trae`，DeepSeek Harness 看 `~/.dsh`，Claude Code 看 `CLAUDE_CONFIG_DIR` 或 `~/.claude`，Cursor 看 `~/.cursor`，Codex 看 `CODEX_HOME` 或 `~/.codex`，Copilot 看 `COPILOT_HOME` 或 `~/.copilot`。显式 `--agent` 但本机未检测到时告警跳过，全部跳过时以非 0 退出，不会凭空创建配置；工具卸载后残留的 Hook 用 `hooks remove` / `uninstall` 清理，这两个命令不要求 Agent 仍在本机。
+
 ### Trae：还需在 IDE 内启用
 
 写完 `~/.trae-cn/hooks.json` 并不等于 Trae 会执行它，还需在 IDE 侧登记启用：
@@ -45,17 +48,39 @@ toolkit usage enable                        # 才打开采集总开关
 
 验证方式：在 Trae 的「输出」面板查看 `Agent Hooks` 通道日志，并执行 `toolkit usage hooks status` 确认「最近触发」出现时间。
 
+### DeepSeek Harness：需装桥接插件
+
+dsh 不直接读 `hooks.json`，要经官方桥接插件 `@deepseek-ai/dsh-hooks-claude-code` 才生效，分两步：
+
+1. `toolkit usage hooks install --agent dsh`：写 `~/.dsh/hooks.json`，并在每个已存在的 profile（`~/.dsh/profiles/<name>/cordis.patch.yml`）写入 `# >>> toolkit usage hooks` 标记块，把插件条目的 `configPath` 指向该文件；
+2. 安装桥接插件（只需一次）：
+   - 桌面版：**设置 → Plugins** 搜索 `@deepseek-ai/dsh-hooks-claude-code` 安装，重启应用；
+   - 命令行：先**完全退出**桌面版（含托盘），再执行 `dsh plugin --profile desktop add @deepseek-ai/dsh-hooks-claude-code`。
+
+`hooks status --agent dsh` 会在插件缺失或标记块缺失时提示。桥接插件把 `tool_response` 扁平化为文本，`outcome` 字段可能记 `unknown`，其余字段正常。
+
 重复执行 `toolkit usage init` 会沿用历史选择：已配置时默认「保持当前配置（只重装 Hook）」，选择「自定义」则逐项回填现有值。升级后修复 Hook 路径时优先用「保持当前配置」。
 
-## 管理 Hook
+## 启用、关闭与卸载
 
-```bash
-toolkit usage hooks status
-toolkit usage hooks remove --agent trae
-toolkit usage uninstall --agent trae
-```
+| 目的 | 命令 | 影响 |
+| --- | --- | --- |
+| 只写 Hook 配置 | `toolkit usage hooks install --agent <id>` | 写各 Agent 的 Hook 文件，不打开采集 |
+| 打开采集 | `toolkit usage enable` | 事件开始落盘 |
+| 只关采集 | `toolkit usage disable` | Hook 保留，事件不再写入 |
+| 只删 Hook | `toolkit usage hooks remove --agent <id>` | 只移除本包条目，保留其它 Hook 与数据 |
+| 停用并移除 Hook | `toolkit usage uninstall --agent <id>` | 关闭总开关并删本包 Hook，数据保留；加 `--purge` 删数据 |
 
-`hooks status` 以本地时间显示最近触发时间与最近状态；`uninstall` 停用采集并移除本包 Hook，默认保留事件，`--purge` 才删除。Hook 错误写入数据目录的 `hook-errors.log`，只保留最近 200 行。
+`hooks status` 以本地时间显示最近触发时间与最近状态；`uninstall` 支持 `--dry-run` 预演。Hook 错误写入数据目录的 `hook-errors.log`，只保留最近 200 行。
+
+工具侧若另有 Hook 开关，需要一并处理，否则命令侧删了配置、工具侧仍按旧配置调用：
+
+- **Trae**：在 **设置 > Hooks** 停用或删除该全局 Hook；只跑 `hooks remove` 不在 IDE 里停用时，Trae 仍会调用。
+- **DeepSeek Harness**：`hooks remove --agent dsh` 会删 `~/.dsh/hooks.json` 的本包命令并移除各 profile 的标记块（文件恢复为 `[]`）；桥接插件不自动卸载，可在 **设置 → Plugins** 卸载，或退出桌面版后 `dsh plugin --profile desktop remove @deepseek-ai/dsh-hooks-claude-code`。
+- **Claude Code**：无独立开关，Hook 随 `settings.json` 生效；关闭用 `hooks remove --agent claude`（或手工删掉其中的 `hooks` 段），重启后不再调用。
+- **Cursor / Codex CLI / GitHub Copilot CLI**：配置即刻写入各自 `hooks.json`，关闭用 `hooks remove` 后重启工具或开新会话；工具自带 Hook 管理界面时以其界面为准。
+
+彻底清理顺序：先在工具侧停用或删除 Hook（如有独立开关）→ `usage hooks remove` 或 `usage uninstall` → 需要时 `usage uninstall --purge` 删除事件。
 
 ## 触发词如何关联
 
