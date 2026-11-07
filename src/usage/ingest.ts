@@ -106,6 +106,8 @@ export function extractOutcome(toolResponse: unknown): UsageOutcome {
   const response = toolResponse as Record<string, unknown>
   if (response.is_error === true || response.success === false || typeof response.error === "string") return "failure"
   if (response.success === true || response.exit_code === 0 || response.exitCode === 0) return "success"
+  // 技能工具返回技能正文即视为成功（Trae 的 Skill 工具无成败字段）
+  if (typeof response.skill_path === "string" || typeof response.skill_detail === "string") return "success"
   return "unknown"
 }
 

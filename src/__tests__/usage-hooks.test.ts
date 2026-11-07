@@ -10,7 +10,7 @@ import { traeAdapter } from "../usage/adapters/trae"
 import { installStandardHooks, parseStandardEvent, standardHookStatus, uninstallStandardHooks } from "../usage/adapters/standard"
 import { buildHookCommand, isCurrentHookCommand } from "../usage/hook-command"
 import { DEFAULT_USAGE_CONFIG } from "../usage/config"
-import { processHookEvent, readPromptCache } from "../usage/ingest"
+import { extractOutcome, processHookEvent, readPromptCache } from "../usage/ingest"
 import { readAllEvents, usagePaths } from "../usage/store"
 import type { NormalizedHookEvent, UsageConfig } from "../usage/types"
 
@@ -211,6 +211,17 @@ describe("Hook 命令的平台形态", () => {
     // 两个事件组都用新命令，旧形态不再残留
     expect(commands).toEqual([next, next])
     expect(standardHookStatus(file, "trae", "Trae").outdatedCommand).toBeUndefined()
+  })
+})
+
+describe("工具结果推断", () => {
+  it("技能正文视为成功，显式错误优先判失败", () => {
+    expect(extractOutcome({ skill_path: "C:\\skills\\x", skill_detail: "# skill" })).toBe("success")
+    expect(extractOutcome({ skill_path: "x", error: "boom" })).toBe("failure")
+    expect(extractOutcome({ skill_path: "x", is_error: true })).toBe("failure")
+    // 纯文本（dsh 桥接扁平化）无法判断，保持 unknown
+    expect(extractOutcome("ok")).toBe("unknown")
+    expect(extractOutcome(undefined)).toBe("unknown")
   })
 })
 

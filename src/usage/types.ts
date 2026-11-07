@@ -145,6 +145,8 @@ export interface SessionUsageSummary {
 export interface TriggerUsageSummary {
   prompt: string
   count: number
+  firstAt: string
+  lastAt: string
   skills: string[]
 }
 

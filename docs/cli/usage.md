@@ -57,7 +57,8 @@ toolkit usage doctor
 - 无参数执行 `toolkit usage` 进入交互菜单；非 TTY 打印帮助并以退出码 2 结束。
 - 非交互初始化用 `toolkit usage init --yes --preset recommended --agent trae`；`custom` / `advanced` 预设仍需交互。
 - 默认总开关、Agent、来源、技能范围、字段全部关闭；只开总开关不会产生记录。
-- `usage info` 汇总已安装 Hook、上传开关与最近 Hook 错误；`hooks status` 以本地时间显示各 Agent 最近触发记录。
+- `usage info` 汇总已安装 Hook、上传开关与最近 Hook 错误；`hooks status` 以本地时间显示各 Agent 最近触发记录，`--all` 可一并列出本机未安装的 Agent（查残留配置）。
+- `usage stats --by trigger` 每条输出「次数｜最近调用时间｜触发词｜技能」，便于看某技能的调用明细。
 - Hook 安装与采集开启是两步：先 `hooks install`，再 `enable`。支持 Agent 与配置路径见 [Agent 接入](../usage/agents)。
 - `hooks install` 只处理本机已检测到的 Agent；显式 `--agent` 未检测到时告警跳过，全部跳过才以非 0 退出。`hooks remove` / `uninstall` 不要求 Agent 仍在本机，便于清理残留配置。
 - DeepSeek Harness 还需安装官方桥接插件 `@deepseek-ai/dsh-hooks-claude-code`，步骤见 [Agent 接入](../usage/agents)。

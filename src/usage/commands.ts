@@ -4,7 +4,7 @@ import { dirname, resolve } from "node:path"
 import type { Command } from "commander"
 import { assertJsonFormat, toJsonText } from "../json-output"
 import { redactText, resolveRedactEnabled } from "../privacy/redact"
-import { AGENT_ADAPTERS, resolveAdapters } from "./adapters"
+import { AGENT_ADAPTERS, isAdapterAvailable, resolveAdapters } from "./adapters"
 import { ingestFromStdin, processHookEvent, readHookActivity, readLastHookError } from "./ingest"
 import { parseTranscript } from "./transcript"
 import { runUploadSetup, uploadOnce, uploadStatus } from "./upload"
@@ -134,7 +134,7 @@ function printTriggers(events: SkillUsageEvent[], skill: string | undefined, lim
   }
   const redact = resolveRedactEnabled(undefined)
   for (const item of rows.slice(0, limit)) {
-    console.log(`  ${item.count} 次｜${redactText(item.prompt, redact)}｜${item.skills.join("、")}`)
+    console.log(`  ${item.count} 次｜${formatLocalTime(item.lastAt)}｜${redactText(item.prompt, redact)}｜${item.skills.join("、")}`)
   }
 }
 
@@ -290,9 +290,10 @@ export function registerUsageCommands(program: Command): void {
     .command("status")
     .description("查看 Hook 安装状态与最近触发时间")
     .option("--agent <names>", "只查看指定 Agent（逗号分隔）")
+    .option("--all", "包含本机未安装的 Agent（用于查看残留配置）")
     .option("--dir <path>", "本次使用的数据目录")
-    .action((options: { agent?: string; dir?: string }) => {
-      const { adapters, invalid, unavailable } = resolveAdapters(splitNames(options.agent))
+    .action((options: { agent?: string; all?: boolean; dir?: string }) => {
+      const { adapters, invalid, unavailable } = resolveAdapters(splitNames(options.agent), { allowUnavailable: Boolean(options.all) })
       if (invalid.length > 0) {
         console.error(`⚠️ 未知 Agent：${invalid.join("、")}`)
         process.exitCode = 1
@@ -308,7 +309,8 @@ export function registerUsageCommands(program: Command): void {
       const lastError = readLastHookError(paths)
       for (const adapter of adapters) {
         const status = adapter.status()
-        console.log(`${adapter.displayName}：${status.installed ? "已安装" : "未安装"}｜${status.file}`)
+        const detected = isAdapterAvailable(adapter)
+        console.log(`${adapter.displayName}：${status.installed ? "已安装" : "未安装"}｜${status.file}${detected ? "" : "（本机未检测到安装）"}`)
         if (status.command) console.log(`  命令：${status.command}`)
         if (status.legacyCommand) {
           console.warn(`  ⚠️ 检测到旧版 Hook（telemetry 命令）已失效，请执行 toolkit usage hooks install --agent ${adapter.id}`)

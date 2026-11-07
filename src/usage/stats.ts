@@ -51,7 +51,7 @@ export function summarize(events: SkillUsageEvent[]): UsageSummary {
   const agentMap = new Map<string, number>()
   const sourceMap = new Map<SkillUsageEvent["skillSource"], number>()
   const sessionMap = new Map<string, { agent: string; count: number; first: number; last: number; skills: Set<string> }>()
-  const triggerMap = new Map<string, { count: number; skills: Set<string> }>()
+  const triggerMap = new Map<string, { count: number; skills: Set<string>; first: number; last: number }>()
 
   for (const event of events) {
     const time = eventTime(event)
@@ -87,8 +87,10 @@ export function summarize(events: SkillUsageEvent[]): UsageSummary {
     sessionMap.set(event.sessionId, session)
 
     if (event.triggerPrompt) {
-      const trigger = triggerMap.get(event.triggerPrompt) ?? { count: 0, skills: new Set<string>() }
+      const trigger = triggerMap.get(event.triggerPrompt) ?? { count: 0, skills: new Set<string>(), first: time, last: time }
       trigger.count += 1
+      trigger.first = Math.min(trigger.first, time)
+      trigger.last = Math.max(trigger.last, time)
       trigger.skills.add(event.skill)
       triggerMap.set(event.triggerPrompt, trigger)
     }
@@ -118,7 +120,13 @@ export function summarize(events: SkillUsageEvent[]): UsageSummary {
     .sort((a, b) => b.count - a.count || a.sessionId.localeCompare(b.sessionId))
 
   const triggers: TriggerUsageSummary[] = [...triggerMap.entries()]
-    .map(([prompt, item]) => ({ prompt, count: item.count, skills: [...item.skills].sort() }))
+    .map(([prompt, item]) => ({
+      prompt,
+      count: item.count,
+      firstAt: new Date(item.first).toISOString(),
+      lastAt: new Date(item.last).toISOString(),
+      skills: [...item.skills].sort(),
+    }))
     .sort((a, b) => b.count - a.count || a.prompt.localeCompare(b.prompt))
 
   return {

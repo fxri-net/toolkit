@@ -56,7 +56,7 @@ dsh 不直接读 `hooks.json`，要经官方桥接插件 `@deepseek-ai/dsh-hooks
 2. 安装桥接插件（只需一次）：先**完全退出**桌面版（含托盘），再执行 `dsh plugin --profile desktop add @deepseek-ai/dsh-hooks-claude-code`，装完重新打开应用。
    ⚠️ 不要用桌面版「添加插件」：它只接受声明 `dsh.bundle` 的组合包，对本插件会报 `declares no dsh.bundle` 并拒绝安装。
 
-`hooks status --agent dsh` 会在插件缺失或标记块缺失时提示。桥接插件把 `tool_response` 扁平化为文本，`outcome` 字段可能记 `unknown`，其余字段正常。
+`hooks status --agent dsh` 会在插件缺失或标记块缺失时提示。桥接插件把 `tool_response` 扁平化为文本，`outcome` 字段恒为 `unknown`（Trae 等原生 Hook 会按返回体推断成功与否），其余字段正常。
 
 重复执行 `toolkit usage init` 会沿用历史选择：已配置时默认「保持当前配置（只重装 Hook）」，选择「自定义」则逐项回填现有值。升级后修复 Hook 路径时优先用「保持当前配置」。
 

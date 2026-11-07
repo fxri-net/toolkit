@@ -192,6 +192,15 @@ describe("存储与统计", () => {
     expect(filterEvents(readAllEvents(paths), { since: new Date("2026-11-06T10:30:00.000+08:00") })).toHaveLength(1)
   })
 
+  it("触发词聚合记录首末调用时间", () => {
+    const events = [
+      makeEvent({ eventId: "sha256:t1", triggerPrompt: "归档任务", occurredAt: "2026-11-06T10:00:00.000+08:00" }),
+      makeEvent({ eventId: "sha256:t2", triggerPrompt: "归档任务", occurredAt: "2026-11-06T12:30:00.000+08:00" }),
+    ]
+    const [trigger] = summarize(events).triggers
+    expect(trigger).toMatchObject({ prompt: "归档任务", count: 2, firstAt: "2026-11-06T02:00:00.000Z", lastAt: "2026-11-06T04:30:00.000Z" })
+  })
+
   it("去重、按保留期清理与全量清理", () => {
     const root = tempDir("tk-usage-maintenance-")
     const paths = usagePaths(root)
