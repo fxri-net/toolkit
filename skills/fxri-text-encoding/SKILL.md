@@ -1,9 +1,9 @@
 ---
 name: fxri-text-encoding
-description: 在写脚本、配置、数据交换类文本文件之前，或用 shell 重定向、程序生成 / 导出、转码产出文本文件之前，或把非 ASCII 文本传给命令行参数、环境变量、API 请求体、模板渲染与远端元数据之前——不论临时、一次性、不入库、仓库内外——先加载本技能。判据只看读取方与字节形态：其默认解码不是 UTF-8（`powershell.exe` / `cmd` / Excel / MSVC / 未指定 `-encoding` 的 javac 等按系统代码页，bash / CI 按 locale），或格式要求 / 禁止 BOM、对行尾敏感，或写入经生成 / 转码通道。不按语言 / 扩展名白名单判断，Java / PHP 等按各自编译器与运行时默认解码推导。非 ASCII 内容与原文不一致（丢失、替换、截断、变形、mojibake）时立即用；`?` / `�` 只是表现之一，合法非 ASCII 与 `\uXXXX` / 百分号编码等表示形式不算故障。AI 写入工具默认不写 BOM，落盘后自查首三字节并读回比对。不用于 Base64 / URL 编码、排序计数、文件名规范化、CSV 语法、路径分隔符、时区、提交信息内容风格、任务建档、代码风格。
+description: 在写脚本、配置、数据交换类文本，或用 shell 重定向、程序生成 / 转码产出文本，或把非 ASCII 文本传给命令行 / 环境变量 / API 请求体 / 远端元数据之前加载：按读取方默认解码与字节形态判断，不按语言或扩展名猜。读取方不是 UTF-8、格式对 BOM / 行尾敏感、经过生成 / 转码通道，或已出现乱码、非 ASCII 与原文不一致时适用。不用于 Base64 / URL 编码、排序计数、CSV 语法、路径、时区、提交信息风格、任务建档与代码风格。
 license: MIT
 metadata:
-  version: "1.2.3"
+  version: "1.2.4"
   tier: optional
   author: fxri
   source: https://github.com/fxri-net/toolkit
@@ -11,7 +11,7 @@ metadata:
 
 # 文本编码与字节形态
 
-> 本技能版本 1.2.3（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.2.4（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 读取地图
 
