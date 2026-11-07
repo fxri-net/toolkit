@@ -17,6 +17,7 @@ title: 技能使用情况概览
 | 项目 | 默认 |
 | --- | --- |
 | 总开关 | 关闭 |
+| 采集通道 | `hook`（`rule` 为全局规则上报） |
 | Agent 采集 | 全部关闭 |
 | 技能来源 | 一方 / 第三方 / 未托管全部关闭 |
 | 技能范围 | `none` |
@@ -43,8 +44,10 @@ toolkit usage stats           # 查看统计
 
 | 命令 | 用途 |
 | --- | --- |
-| `info` | 开关、配置路径、数据目录、Hook 与上传汇总 |
+| `info` | 开关、通道、配置路径、数据目录、Hook 与上传汇总 |
 | `init` / `uninstall` | 初始化 / 停用并卸载 Hook（默认保留数据） |
+| `channel` | 采集通道：`rule`（全局规则上报）/ `hook`（Agent Hook） |
+| `record` | 规则通道批量上报一批技能调用（静默、失败不阻断任务） |
 | `enable` / `disable` | 总开关 |
 | `origins` | 一方 / 第三方 / 未托管来源开关 |
 | `scope` | `none` / `all` / `include` / `exclude` 技能范围 |

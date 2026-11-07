@@ -12,12 +12,17 @@ export type UsageSkillSource = "toolkit-first-party" | "toolkit-third-party" | "
 // 上传协议：Webhook / OTLP HTTP / 本地文件导出
 export type UsageUploadProtocol = "webhook" | "otlp-http" | "file"
 
+// 采集通道：rule 由全局规则显式上报 / hook 由 Agent Hook 自动触发；二选一，避免同一调用被记两次
+export type UsageChannel = "rule" | "hook"
+
 // 采集结果：来自 Hook 载荷的可见结果，未知时不伪造
 export type UsageOutcome = "success" | "failure" | "unknown"
 
 // 使用情况配置：usage 段只读全局层，所有开关默认关闭
 export interface UsageConfig {
   enabled: boolean
+  // 采集通道：默认 hook，兼容既有 Hook 采集的存量配置
+  channel: UsageChannel
   // Agent 开关：键为适配器 id（trae / claude / cursor / codex / copilot），未出现即关闭
   agents: Record<string, boolean>
   sources: {

@@ -19,8 +19,8 @@ export function isSkillInScope(config: UsageConfig, skill: string): boolean {
 // 是否记录该事件：总开关、Agent、来源、技能四层全部通过才返回 true
 export function shouldRecord(config: UsageConfig, agent: string, meta: UsageSkillMeta): boolean {
   if (!config.enabled) return false
-  // manual 是用户显式补录，不受 Agent 开关限制；其余来源仍按开关过滤
-  if (agent !== "manual" && !isAgentEnabled(config, agent)) return false
+  // manual 是用户显式补录、rule 是全局规则显式上报，都不受 Agent 开关限制；其余来源仍按开关过滤
+  if (agent !== "manual" && agent !== "rule" && !isAgentEnabled(config, agent)) return false
   if (!isSourceEnabled(config, meta.source)) return false
   return isSkillInScope(config, meta.name)
 }

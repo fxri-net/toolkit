@@ -16,6 +16,7 @@ title: 使用情况配置
 {
   "usage": {
     "enabled": false,
+    "channel": "hook",
     "agents": { "trae": false, "claude": false },
     "sources": { "firstParty": false, "thirdParty": false, "unmanaged": false },
     "skills": { "mode": "none", "include": [], "exclude": [] },
@@ -42,7 +43,8 @@ title: 使用情况配置
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
-| `enabled` | boolean | `false` | 总开关；关闭时 Hook 直接退出 |
+| `enabled` | boolean | `false` | 总开关；关闭时 Hook 与规则上报都不写入 |
+| `channel` | string | `hook` | 采集通道：`rule`（全局规则上报）/ `hook`（Agent Hook）；只认一条，未写按 `hook` 兼容存量配置 |
 | `agents` | object | `{}` | Agent 开关，键为适配器 id（`trae` / `claude` / `cursor` / `codex` / `copilot`），未出现即关闭 |
 | `sources.firstParty` | boolean | `false` | toolkit 一方技能（`fxri-*`） |
 | `sources.thirdParty` | boolean | `false` | toolkit 分发的第三方技能 |
@@ -72,7 +74,11 @@ title: 使用情况配置
 
 ## 过滤顺序
 
-总开关 → Agent 开关 → 来源开关 → 技能模式 → 字段开关。任一步不通过就不落盘；字段开关只影响对应字段，不影响事件本身的写入。
+总开关 → 通道 → Agent 开关 → 来源开关 → 技能模式 → 字段开关。任一步不通过就不落盘；字段开关只影响对应字段，不影响事件本身的写入。
+
+- 通道只决定「哪条路径能写」：`rule` 时 Hook 不写入、`hook` 时规则上报不写入，避免同一调用被记两次。
+- 规则上报（`usage record`）只统计 toolkit 管理的技能，且 Agent 维度按 `rule` 放行、不受 `agents` 开关限制；`sources.unmanaged` 对规则路径不生效。
+- 两者切换用 `toolkit usage channel rule|hook`，不会自动清理另一侧配置。
 
 ## 相关页面
 

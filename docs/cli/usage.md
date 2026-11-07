@@ -11,6 +11,9 @@ title: usage（技能使用情况）
 ```bash
 toolkit usage init            # 初始化向导，默认保持关闭
 toolkit usage info
+toolkit usage channel rule    # 采集通道：rule（全局规则上报）/ hook（Agent Hook）
+toolkit usage rule            # 输出可复制进全局规则的文案
+toolkit usage record --skill fxri-plan-to-task --skill fxri-plan-review   # 规则通道批量上报（静默）
 toolkit usage enable
 toolkit usage origins --first-party --third-party
 toolkit usage scope --mode all
@@ -23,12 +26,14 @@ toolkit usage doctor
 
 | 子命令 | 说明 | 主要选项 |
 | --- | --- | --- |
-| `init` | 初始化向导：预设、Agent、来源、字段与存储；重复执行沿用历史选择，已配置时默认「保持当前配置」并只重装 Hook | `--yes`、`--preset`、`--agent`；非 TTY 退出码 2 |
+| `init` | 初始化向导：预设、通道、Agent（仅 hook）、来源、字段与存储；重复执行沿用历史选择，已配置时默认「保持当前配置」并只重装 Hook | `--yes`、`--preset`、`--channel rule\|hook`、`--agent`；非 TTY 退出码 2 |
 | `uninstall` | 停用采集并卸载 Hook，默认保留数据 | `--yes`、`--agent`、`--purge`、`--dry-run` |
-| `hooks install` | 只写 Hook 配置，不开启采集 | `--agent`、`--dry-run` |
-| `hooks status` | 查看 Hook 安装状态与最近触发时间 | `--agent`、`--dir` |
+| `channel` | 查看或切换采集通道；切到 `rule` 提示清理 Hook，切到 `hook` 提示删除规则段 | `rule\|hook`、`--format json`；非法值报错退出 |
+| `record` | 规则通道批量上报一批技能调用；成功静默、退出码恒 0，失败只走 stderr | `--skill`（可重复或逗号分隔）、`--session`、`--dir` |
+| `hooks install` | 只写 Hook 配置，不开启采集；通道为 rule 时提示不生效 | `--agent`、`--dry-run` |
+| `hooks status` | 查看 Hook 安装状态与最近触发时间；通道与 Hook 不一致时告警 | `--agent`、`--dir` |
 | `hooks remove` | 只移除本包 Hook 命令 | `--agent` |
-| `info` | 开关、配置路径、数据目录与计数 | `--dir`、`--format json` |
+| `info` | 开关、通道、配置路径、数据目录与计数 | `--dir`、`--format json` |
 | `enable` / `disable` | 打开 / 关闭总开关 | — |
 | `origins` | 查看或设置来源开关 | `--first-party` / `--no-first-party`、`--third-party` / `--no-third-party`、`--unmanaged` / `--no-unmanaged` |
 | `scope` | 查看或设置技能范围 | `--mode`、`--add`、`--remove` |
@@ -55,9 +60,12 @@ toolkit usage doctor
 ## 边界与注意
 
 - 无参数执行 `toolkit usage` 进入交互菜单；非 TTY 打印帮助并以退出码 2 结束。
-- 非交互初始化用 `toolkit usage init --yes --preset recommended --agent trae`；`custom` / `advanced` 预设仍需交互。
+- 通道二选一：`usage.channel` 为 `rule` 时只有 `usage record` 写入、Hook 不写入；为 `hook` 时只有 Hook 写入、`record` 静默跳过。切换通道不会自动清理另一侧配置。
+- 非交互初始化用 `toolkit usage init --yes --preset recommended --channel rule`（默认 `rule`）；`--channel hook` 时会安装 Hook 并需要检测到 Agent，`--preset off` 与 `--channel` 同时出现时 `off` 优先；`custom` / `advanced` 预设仍需交互。
 - 默认总开关、Agent、来源、技能范围、字段全部关闭；只开总开关不会产生记录。
-- `usage info` 汇总已安装 Hook、上传开关与最近 Hook 错误；`hooks status` 以本地时间显示各 Agent 最近触发记录，`--all` 可一并列出本机未安装的 Agent（查残留配置）。
+- `usage info` 汇总通道、已安装 Hook、上传开关与最近 Hook 错误；`hooks status` 以本地时间显示各 Agent 最近触发记录，`--all` 可一并列出本机未安装的 Agent（查残留配置）。
+- `record` 只统计 toolkit 管理的技能（包内一方与 toolkit 登记来源），且必须命中 `usage` 配置（总开关、来源、技能范围）；未托管技能与未命中配置的技能静默忽略。规则路径不产生触发词与参数。
+- `rule` 在「当前配置不会统计任何技能」时先向 stderr 提示空转，再输出规则文案。
 - `usage stats --by trigger` 每条输出「次数｜最近调用时间｜触发词｜技能」，便于看某技能的调用明细。
 - Hook 安装与采集开启是两步：先 `hooks install`，再 `enable`。支持 Agent 与配置路径见 [Agent 接入](../usage/agents)。
 - `hooks install` 只处理本机已检测到的 Agent；显式 `--agent` 未检测到时告警跳过，全部跳过才以非 0 退出。`hooks remove` / `uninstall` 不要求 Agent 仍在本机，便于清理残留配置。

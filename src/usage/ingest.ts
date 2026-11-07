@@ -67,7 +67,7 @@ export function readLastHookError(paths: ReturnType<typeof usagePaths>): string 
 
 // Hook 处理结果：CLI 只打印简要状态，不输出大段内容
 export interface IngestResult {
-  status: "disabled" | "cached" | "ignored" | "written" | "duplicate" | "filtered" | "error"
+  status: "disabled" | "cached" | "ignored" | "written" | "duplicate" | "filtered" | "skipped" | "error"
   skill?: string
   message?: string
 }
@@ -177,6 +177,8 @@ export async function readStdin(): Promise<string> {
 // CLI ingest：解析、处理、记录错误；退出码恒 0，避免阻断 Agent
 export async function ingestFromStdin(agentId: string): Promise<IngestResult> {
   const config = loadUsageConfig()
+  // 通道为 rule 时 Hook 不写入：两条通道各自守门，避免同一调用被记两次
+  if (config.channel !== "hook") return { status: "skipped" }
   // 数据目录按统一优先级解析，避免与其它命令不一致
   const paths = usagePaths(resolveUsageDir(undefined, config))
   const adapter = getAdapter(agentId)

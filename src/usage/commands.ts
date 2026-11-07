@@ -12,6 +12,7 @@ import { installHooks, runUsageInitWizard, runUsageMenu, runUsageUninstall } fro
 import { buildEvent, resolveSkillMeta } from "./event"
 import { shouldRecord } from "./filter"
 import { loadUsageConfig, resolveUsageDir, usageConfigPath, updateUsageConfig } from "./config"
+import { hasRecordableSkills, recordSkills } from "./record"
 import { USAGE_GLOBAL_RULE } from "./rule"
 import { eventsToCsv, eventsToJsonl, filterEvents, parseSince, summarize, unusedSkills } from "./stats"
 import {
@@ -95,6 +96,7 @@ function splitNames(value: string | undefined): string[] {
 // 打印配置当前值：无参数时供各子命令回显
 function printConfig(config: UsageConfig, dir: string): void {
   console.log(`技能使用情况：${config.enabled ? "已开启" : "已关闭"}`)
+  console.log(`通道：${config.channel === "rule" ? "rule（全局规则上报）" : "hook（Agent Hook）"}`)
   console.log(`配置：${usageConfigPath()}`)
   console.log(`数据目录：${dir}`)
   const agents = Object.entries(config.agents).filter(([, enabled]) => enabled).map(([name]) => name)
@@ -232,8 +234,9 @@ export function registerUsageCommands(program: Command): void {
     .description("初始化技能使用情况：选择 Agent、来源、字段与存储（默认保持关闭）")
     .option("--yes", "非交互执行，需配合 --preset 使用")
     .option("--preset <name>", "非交互预设：off / recommended / third-party")
-    .option("--agent <names>", "非交互模式指定 Agent（逗号分隔）")
-    .action(async (options: { yes?: boolean; preset?: string; agent?: string }) => {
+    .option("--channel <mode>", "采集通道：rule（默认，全局规则上报）/ hook（Agent Hook）")
+    .option("--agent <names>", "非交互模式指定 Agent（逗号分隔，仅 hook 通道需要）")
+    .action(async (options: { yes?: boolean; preset?: string; agent?: string; channel?: string }) => {
       await runUsageInitWizard(options)
     })
 
@@ -283,6 +286,10 @@ export function registerUsageCommands(program: Command): void {
         return
       }
       installHooks(adapters, Boolean(options.dryRun))
+      // 通道不自动切换：只提示冲突，由用户决定改用哪条通道
+      if (loadUsageConfig().channel === "rule") {
+        console.warn("⚠️ 当前采集通道为 rule（全局规则上报）：Hook 已安装但不会写入，需先执行 toolkit usage channel hook")
+      }
       console.log("Hook 安装不等于开启采集；用 toolkit usage enable 打开总开关")
     })
 
@@ -304,11 +311,13 @@ export function registerUsageCommands(program: Command): void {
         console.log("未检测到可接入的 Agent")
         return
       }
-      const { paths } = createContext(options.dir)
+      const { config, paths } = createContext(options.dir)
       const activity = readHookActivity(paths)
       const lastError = readLastHookError(paths)
+      const installed: string[] = []
       for (const adapter of adapters) {
         const status = adapter.status()
+        if (status.installed) installed.push(adapter.id)
         const detected = isAdapterAvailable(adapter)
         console.log(`${adapter.displayName}：${status.installed ? "已安装" : "未安装"}｜${status.file}${detected ? "" : "（本机未检测到安装）"}`)
         if (status.command) console.log(`  命令：${status.command}`)
@@ -326,6 +335,12 @@ export function registerUsageCommands(program: Command): void {
         const last = activity[adapter.id]
         if (last) console.log(`  最近触发：${formatLocalTime(last.lastTriggerAt)}（${last.lastStatus}）`)
         else if (status.installed) console.log("  最近触发：暂无记录（Hook 已配置，但 Agent 尚未执行过）")
+      }
+      if (config.channel === "rule" && installed.length > 0) {
+        console.warn(`⚠️ 采集通道为 rule（全局规则上报），但仍有 Hook：${installed.join("、")}；建议执行 toolkit usage hooks remove 清理，避免重复采集`)
+      }
+      if (config.channel === "hook" && installed.length === 0) {
+        console.warn("⚠️ 采集通道为 hook，但未安装任何 Hook；执行 toolkit usage hooks install，或切换为 rule（toolkit usage channel rule）")
       }
       if (lastError) console.log(`最近 Hook 错误：${lastError}`)
     })
@@ -372,6 +387,7 @@ export function registerUsageCommands(program: Command): void {
       const lastHookError = readLastHookError(paths)
       const report = {
         enabled: config.enabled,
+        channel: config.channel,
         configFile: usageConfigPath(),
         dataDir: dir,
         eventFiles: files.length,
@@ -387,19 +403,20 @@ export function registerUsageCommands(program: Command): void {
         return
       }
       printConfig(config, dir)
+      if (config.channel === "rule") console.log("规则入口：toolkit usage rule（输出可复制到全局规则的文案）")
       console.log(`Hook：${installedHooks.length > 0 ? installedHooks.join("、") : "未安装"}`)
       console.log(`事件：${report.events} 条（索引 ${report.indexed} 条，文件 ${report.eventFiles} 个）`)
       console.log(`最近：${report.lastEventAt ?? "暂无"}`)
       if (lastHookError) console.log(`最近 Hook 错误：${lastHookError}`)
     })
 
-  // 总开关：开启前必须已有 Agent 与来源配置，否则记录仍为零
+  // 总开关：开启前必须已有通道与来源配置，否则记录仍为零
   usage
     .command("enable")
-    .description("开启技能使用情况总开关（仍需配置 Agent、来源与技能范围）")
+    .description("开启技能使用情况总开关（仍需配置通道、来源与技能范围）")
     .action(() => {
       updateUsageConfig({ enabled: true })
-      console.log("技能使用情况已开启；用 usage origins / scope / hooks 配置采集范围")
+      console.log("技能使用情况已开启；用 usage channel / origins / scope 配置通道与采集范围")
     })
 
   usage
@@ -408,6 +425,38 @@ export function registerUsageCommands(program: Command): void {
     .action(() => {
       updateUsageConfig({ enabled: false })
       console.log("技能使用情况已关闭")
+    })
+
+  // 采集通道：rule 与 hook 二选一，两侧写入各自守门
+  usage
+    .command("channel [mode]")
+    .description("查看或切换采集通道：rule（全局规则上报）/ hook（Agent Hook）")
+    .option("--format <format>", "输出格式（json）")
+    .action((mode: string | undefined, options: { format?: string }) => {
+      if (!assertJsonFormat(options.format)) return
+      const config = loadUsageConfig()
+      if (mode === undefined) {
+        if (options.format === "json") {
+          printJson({ channel: config.channel })
+          return
+        }
+        console.log(`采集通道：${config.channel === "rule" ? "rule（全局规则上报）" : "hook（Agent Hook）"}`)
+        return
+      }
+      if (mode !== "rule" && mode !== "hook") {
+        console.error("⚠️ 通道取值须为 rule / hook")
+        process.exitCode = 1
+        return
+      }
+      updateUsageConfig({ channel: mode })
+      console.log(`采集通道已切换为 ${mode}`)
+      if (mode === "rule") {
+        console.log("规则通道不依赖 Hook：把 toolkit usage rule 的输出复制进 Agent 全局规则")
+        console.log("已安装的 Hook 需自行清理：toolkit usage hooks remove")
+      } else {
+        console.log("Hook 通道需安装 Hook 并配置 Agent：toolkit usage hooks install")
+        console.log("已复制的规则段需自行删除，避免同一调用被记两次")
+      }
     })
 
   // 来源开关：一方 / 第三方 / 未托管分别独立
@@ -745,6 +794,29 @@ export function registerUsageCommands(program: Command): void {
       console.log(`${options.dryRun ? "预演" : "导入"}：${written} 条，重复 ${duplicate} 条`)
     })
 
+  // 规则上报：由全局规则在每批工具调用后合并调用；成功静默、失败也只走 stderr，绝不阻断任务
+  usage
+    .command("record")
+    .description("按全局规则上报一批技能调用（静默执行，失败不阻断任务）")
+    .option(
+      "--skill <names>",
+      "技能名，可重复或用逗号分隔",
+      (value: string, previous: string[] = []) => [...previous, ...splitNames(value)],
+      [] as string[],
+    )
+    .option("--session <id>", "会话标识（缺省按环境变量或日期兜底）")
+    .option("--dir <path>", "本次使用的数据目录")
+    .action((options: { skill: string[]; session?: string; dir?: string }) => {
+      try {
+        recordSkills({ skills: options.skill ?? [], session: options.session, dir: options.dir })
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        console.error(`⚠️ 技能使用上报失败（不影响当前任务）：${message}`)
+      }
+      // 无论成败都以 0 退出：规则路径不得阻断 Agent 的当前任务
+      process.exitCode = 0
+    })
+
   // 手工补录：没有 Hook 的 Agent 使用
   usage
     .command("log")
@@ -865,9 +937,11 @@ export function registerUsageCommands(program: Command): void {
       if (events.length !== unique.size) issues.push(`存在 ${events.length - unique.size} 条重复事件，可执行 dedupe`)
       if (crossAdapters > 0) issues.push(`存在 ${crossAdapters} 组跨适配器重复调用，可执行 dedupe`)
       if (!config.enabled) issues.push("技能使用情况总开关处于关闭状态")
+      const installedHooks: string[] = []
       for (const adapter of AGENT_ADAPTERS) {
         try {
           const status = adapter.status()
+          if (status.installed) installedHooks.push(adapter.id)
           if (status.legacyCommand) {
             issues.push(`${adapter.displayName} 的 Hook 仍指向旧命令 telemetry，已失效，请重跑 toolkit usage hooks install --agent ${adapter.id}`)
           }
@@ -882,6 +956,12 @@ export function registerUsageCommands(program: Command): void {
           // 配置读取失败由 usage hooks status 展示，doctor 不重复报错
         }
       }
+      if (config.channel === "rule" && installedHooks.length > 0) {
+        issues.push(`采集通道为 rule，但本机仍有 Hook（${installedHooks.join("、")}）：执行 toolkit usage hooks remove 清理，避免重复采集`)
+      }
+      if (config.channel === "hook" && installedHooks.length === 0) {
+        issues.push("采集通道为 hook，但未安装任何 Hook：执行 toolkit usage hooks install，或切换为 rule（toolkit usage channel rule）")
+      }
       const report = { dataDir: dir, events: events.length, unique: unique.size, indexed: index.eventIds.length, crossAdapters, issues }
       if (options.format === "json") {
         printJson(report)
@@ -893,11 +973,15 @@ export function registerUsageCommands(program: Command): void {
       else for (const issue of issues) console.log(`⚠️ ${issue}`)
     })
 
-  // 规则文案：供用户复制到全局规则
+  // 规则文案：供用户复制到全局规则；配置不会统计任何技能时先提示空转
   usage
     .command("rule")
     .description("输出可复制的全局规则文案")
     .action(() => {
+      const config = loadUsageConfig()
+      if (!hasRecordableSkills(config)) {
+        console.error("⚠️ 当前配置不会统计任何技能（总开关关闭 / 技能模式为 none / include 为空 / 来源全关），规则执行也不会产生记录")
+      }
       console.log(USAGE_GLOBAL_RULE)
     })
 

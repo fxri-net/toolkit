@@ -4,9 +4,21 @@ title: Agent 接入
 
 # Agent 接入
 
-> Hook 是事件驱动的短进程：Agent 命中事件时启动一次命令，读 stdin、写一行记录后退出；没有常驻进程、没有定时轮询。
+> 采集有两条通道，由 `usage.channel` 二选一：**规则**（默认，AI 每批工具调用后按全局规则执行 `usage record`，不依赖任何 Agent 配置）与 **Hook**（Agent 命中事件时启动短进程，读 stdin、写一行记录后退出，无常驻进程、无轮询）。同一时刻只启用一条，避免同一调用被记两次。
 
-## 支持矩阵
+## 两条通道怎么选
+
+| 对比项 | 规则（`channel=rule`） | Hook（`channel=hook`） |
+| --- | --- | --- |
+| 启用 | `toolkit usage init --yes --preset recommended --channel rule`，再把 `toolkit usage rule` 的输出复制进 Agent 全局规则 | `toolkit usage init --yes --preset recommended --channel hook`（或 `usage hooks install` + `usage enable`） |
+| 依赖 | 只需 Agent 能执行 CLI；与 Agent 配置、IDE 开关、沙箱策略无关 | 依赖各 Agent 的 Hook 配置与执行环境；部分 Agent 还需 IDE 侧启用或桥接插件 |
+| 自动性 | 由 AI 按规则上报，每批工具调用后合并一次；不产生触发词与参数（规则只传技能名） | 由 Agent 触发，可采集触发词、参数与结果，也能识别未托管技能 |
+| 关闭 | 删除全局规则段，或 `toolkit usage channel hook` 切走 | `toolkit usage hooks remove` / `toolkit usage uninstall` |
+| 限制 | 依赖 AI 遵守规则；会话无工具调用时不会产生记录 | 任一环节（配置、IDE 开关、沙箱）失效都会静默无记录，需 `hooks status` / `doctor` 排查 |
+
+切换通道不会自动清理另一侧：切到 `rule` 后应 `usage hooks remove`，切到 `hook` 后应删掉规则段（`usage channel` 切换时会提示）。
+
+## Hook 支持矩阵
 
 | Agent | 状态 | 配置路径 | 能力 |
 | --- | --- | --- | --- |
@@ -19,9 +31,10 @@ title: Agent 接入
 
 「需实测」表示配置路径与载荷字段按公开资料实现，尚未在真实环境验证；接入后先用 `hooks status` 与 `doctor` 核对。
 
-未列出的 Agent 可用 `usage import` 或 `usage log` 补录：
+未列出的 Agent 可用规则通道、`usage import` 或 `usage log` 补录：
 
 ```bash
+toolkit usage record --skill fxri-plan-to-task --skill fxri-plan-review   # 规则通道批量上报（静默）
 toolkit usage import --type transcript --file ~/.claude/projects/xxx.jsonl
 toolkit usage log --skill fxri-plan-to-task --session manual-1 --prompt "归档任务"
 ```
@@ -60,6 +73,8 @@ dsh 不直接读 `hooks.json`，要经 Claude Code 兼容层桥接插件才生�
 
 `hooks status --agent dsh` 会在插件缺失或标记块缺失时提示。桥接插件把 `tool_response` 扁平化为文本，`outcome` 字段恒为 `unknown`（Trae 等原生 Hook 会按返回体推断成功与否），其余字段正常。
 
+⚠️ **运行沙箱限制**：dsh 的 Hook 进程受运行时文件沙箱约束，可能无法写家目录下的统计库，表现为 `usage doctor` / `hooks status` 报 `Access to the path ... is denied` 或始终「暂无记录」。此时 Hook 通道不可用，改用规则通道（`toolkit usage channel rule` + 复制 [技能使用情况规则](../rules/usage)），不依赖任何 Agent 配置。
+
 重复执行 `toolkit usage init` 会沿用历史选择：已配置时默认「保持当前配置（只重装 Hook）」，选择「自定义」则逐项回填现有值。升级后修复 Hook 路径时优先用「保持当前配置」。
 
 ## 启用、关闭与卸载
@@ -73,6 +88,8 @@ dsh 不直接读 `hooks.json`，要经 Claude Code 兼容层桥接插件才生�
 | 停用并移除 Hook | `toolkit usage uninstall --agent <id>` | 关闭总开关并删本包 Hook，数据保留；加 `--purge` 删数据 |
 
 `hooks status` 以本地时间显示最近触发时间与最近状态；`uninstall` 支持 `--dry-run` 预演。Hook 错误写入数据目录的 `hook-errors.log`，只保留最近 200 行。
+
+规则通道不用 Hook：执行 `toolkit usage channel rule` 后，按 [技能使用情况规则](../rules/usage) 把规则段复制进 Agent 全局规则即可；`hooks status` / `doctor` 会在「通道与 Hook 实际状态不一致」时告警。
 
 工具侧若另有 Hook 开关，需要一并处理，否则命令侧删了配置、工具侧仍按旧配置调用：
 
@@ -89,6 +106,7 @@ dsh 不直接读 `hooks.json`，要经 Claude Code 兼容层桥接插件才生�
 
 ## 补录与去重
 
+- `record --skill a --skill b` 是规则通道的批量上报入口：静默执行、退出码恒 0，只统计 toolkit 管理且命中 `usage` 配置的技能，未命中的静默忽略。
 - `import --type transcript` 支持 Claude JSONL 与通用 JSON / JSONL，从 `tool_use` 块提取工具调用，并把最近一次用户消息作为触发词。
 - `log` 用于没有 Hook 的 Agent；`manual` 属于用户显式补录，不受 Agent 开关限制。
 - 同一调用被两个适配器捕获时，按 `(sessionId, toolUseId)` 只保留首条；`dedupe` 可清理历史重复，`doctor` 会报告跨适配器重复组数。

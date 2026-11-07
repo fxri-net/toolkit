@@ -6,6 +6,7 @@ import { getHomeDir, inspectConfigLayers, type ConfigLayerRecord } from "../conf
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
 import type {
+  UsageChannel,
   UsageConfig,
   UsageRotation,
   UsageSkillMode,
@@ -15,6 +16,7 @@ import type {
 // 默认配置：任何开关未显式写出时都按关闭处理
 export const DEFAULT_USAGE_CONFIG: UsageConfig = {
   enabled: false,
+  channel: "hook",
   agents: {},
   sources: { firstParty: false, thirdParty: false, unmanaged: false },
   skills: { mode: "none", include: [], exclude: [] },
@@ -129,6 +131,14 @@ function readUploadProtocol(value: unknown, fallback: UsageUploadProtocol): Usag
   return fallback
 }
 
+// 校验采集通道：非法值回落 hook（存量配置无该字段时同样按 hook）
+function readChannel(value: unknown, fallback: UsageChannel): UsageChannel {
+  if (value === undefined || value === null) return fallback
+  if (value === "rule" || value === "hook") return value
+  warnInvalid("usage.channel", "rule / hook", value)
+  return fallback
+}
+
 // 段读取：非对象告警后按空对象处理，避免后续逐字段重复报错
 function readSection(section: Record<string, unknown>, name: string): Record<string, unknown> {
   const value = section[name]
@@ -158,6 +168,7 @@ export function normalizeUsageConfig(raw: unknown): UsageConfig {
   const uploadRaw = readSection(raw, "upload")
   return {
     enabled: readBoolean(raw.enabled, defaults.enabled, "usage.enabled"),
+    channel: readChannel(raw.channel, defaults.channel),
     agents,
     sources: {
       firstParty: readBoolean(sourcesRaw.firstParty, defaults.sources.firstParty, "usage.sources.firstParty"),

@@ -6,7 +6,7 @@ import { loadUsageConfig, resolveUsageDir, usageConfigPath, updateUsageConfig } 
 import { purgeEvents, readAllEvents, usagePaths } from "./store"
 import { summarize } from "./stats"
 import { runUploadSetup } from "./upload"
-import type { UsageConfig, UsageRotation, UsageSkillMode } from "./types"
+import type { UsageChannel, UsageConfig, UsageRotation, UsageSkillMode } from "./types"
 
 // 预设：默认保持关闭；已配置时可沿用当前配置
 type Preset = "keep" | "off" | "recommended" | "third-party" | "custom" | "advanced"
@@ -16,6 +16,7 @@ export interface InitWizardOptions {
   yes?: boolean
   preset?: string
   agent?: string
+  channel?: string
 }
 
 // 卸载选项：默认保留数据，--purge 才删除事件
@@ -32,9 +33,10 @@ function splitAgentNames(value: string | undefined): string[] {
   return [...new Set(value.split(/[,，]/).map((item) => item.trim()).filter(Boolean))]
 }
 
-// 非交互初始化：按预设写入配置并安装 Hook，不做任何提问
+// 非交互初始化：按预设写入配置并安装 Hook（规则通道不装 Hook），不做任何提问
 function runNonInteractiveInit(options: InitWizardOptions): void {
   const preset = options.preset ?? "off"
+  // --preset off 与 --channel 同时出现时 off 优先：保持关闭、不改任何配置
   if (preset === "off") {
     console.log("保持关闭，未修改任何文件")
     return
@@ -42,6 +44,30 @@ function runNonInteractiveInit(options: InitWizardOptions): void {
   if (preset !== "recommended" && preset !== "third-party") {
     console.error("⚠️ 非交互模式仅支持 --preset off / recommended / third-party")
     process.exitCode = 1
+    return
+  }
+  const rawChannel = options.channel ?? "rule"
+  if (rawChannel !== "rule" && rawChannel !== "hook") {
+    console.error("⚠️ --channel 取值须为 rule / hook")
+    process.exitCode = 1
+    return
+  }
+  const channel: UsageChannel = rawChannel
+  const config = loadUsageConfig()
+  const dir = resolveUsageDir(undefined, config)
+  const base = {
+    enabled: true,
+    channel,
+    sources: { firstParty: true, thirdParty: preset === "third-party", unmanaged: false },
+    skills: { mode: "all" as UsageSkillMode, include: [], exclude: [] },
+    capture: { triggerPrompt: false, skillArgs: false, outcome: false },
+    storage: { dir, rotation: "monthly" as UsageRotation, retentionDays: 180 },
+  }
+  // 规则通道只写采集配置：不装 Hook，也不依赖本机是否检测到 Agent
+  if (channel === "rule") {
+    updateUsageConfig({ ...base, agents: {} })
+    console.log(`已启用技能使用情况（${preset}，通道 rule），数据目录：${dir}`)
+    console.log("规则通道不依赖 Hook：把 toolkit usage rule 的输出复制进 Agent 全局规则")
     return
   }
   const { adapters, invalid, unavailable } = resolveAdapters(splitAgentNames(options.agent))
@@ -52,22 +78,13 @@ function runNonInteractiveInit(options: InitWizardOptions): void {
   }
   if (unavailable.length > 0) console.warn(`⚠️ 忽略本机未检测到的 Agent：${unavailable.join("、")}（不凭空创建配置）`)
   if (adapters.length === 0) {
-    console.error("⚠️ 没有可接入的 Agent：请先安装对应工具，或用 --agent 指定已安装的 Agent")
+    console.error("⚠️ 没有可接入的 Agent：请先安装对应工具，或用 --agent 指定已安装的 Agent；也可改用 --channel rule")
     process.exitCode = 1
     return
   }
-  const config = loadUsageConfig()
-  const dir = resolveUsageDir(undefined, config)
-  updateUsageConfig({
-    enabled: true,
-    agents: Object.fromEntries(adapters.map((adapter) => [adapter.id, true])),
-    sources: { firstParty: true, thirdParty: preset === "third-party", unmanaged: false },
-    skills: { mode: "all", include: [], exclude: [] },
-    capture: { triggerPrompt: false, skillArgs: false, outcome: false },
-    storage: { dir, rotation: "monthly", retentionDays: 180 },
-  })
+  updateUsageConfig({ ...base, agents: Object.fromEntries(adapters.map((adapter) => [adapter.id, true])) })
   installHooks(adapters)
-  console.log(`已启用技能使用情况（${preset}），数据目录：${dir}`)
+  console.log(`已启用技能使用情况（${preset}，通道 hook），数据目录：${dir}`)
 }
 
 // 用户取消（Ctrl+C / ESC）：inquirer 以 ExitPromptError 抛出
@@ -84,10 +101,20 @@ function requireTty(): boolean {
 }
 
 // 打印配置摘要：向导预览与菜单共用
-function printConfigSummary(agents: string[], firstParty: boolean, thirdParty: boolean, mode: UsageSkillMode, dir: string, rotation: UsageRotation, retention: number): void {
+function printConfigSummary(
+  agents: string[],
+  firstParty: boolean,
+  thirdParty: boolean,
+  mode: UsageSkillMode,
+  dir: string,
+  rotation: UsageRotation,
+  retention: number,
+  channel: UsageChannel,
+): void {
   console.log("")
   console.log("即将应用：")
-  console.log(`  Agent：${agents.length > 0 ? agents.join("、") : "无"}`)
+  console.log(`  通道：${channel === "rule" ? "全局规则上报（rule）" : "Agent Hook（hook）"}`)
+  console.log(`  Agent：${channel === "rule" ? "不适用（规则通道）" : agents.length > 0 ? agents.join("、") : "无"}`)
   console.log(`  来源：一方 ${firstParty ? "开" : "关"} / 第三方 ${thirdParty ? "开" : "关"} / 未托管 关`)
   console.log(`  技能模式：${mode}`)
   console.log(`  存储：${dir}（${rotation}，保留 ${retention} 天）`)
@@ -162,10 +189,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
   const { select, checkbox, confirm, input } = await import("@inquirer/prompts")
   try {
     const detected = detectedAdapters()
-    if (detected.length === 0) {
-      console.log("未检测到可接入的 Agent（Trae / Claude Code）；安装后重跑 toolkit usage init")
-      return
-    }
+    if (detected.length === 0) console.log("未检测到可接入的 Agent：本向导将只能使用规则通道（toolkit usage rule）")
     const existingConfig = loadUsageConfig()
     const defaults = resolveInitDefaults(existingConfig)
     const presetChoices: Array<{ name: string; value: Preset }> = [
@@ -186,6 +210,21 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
       return
     }
     if (preset === "keep") {
+      // 规则通道不需要 Hook：只回显当前配置
+      if (existingConfig.channel === "rule") {
+        printConfigSummary(
+          [],
+          defaults.firstParty,
+          defaults.thirdParty,
+          defaults.mode,
+          defaults.dir,
+          defaults.rotation,
+          defaults.retentionDays,
+          "rule",
+        )
+        console.log("当前为规则通道，无需重装 Hook；如需调整配置请选「自定义」")
+        return
+      }
       const selected = detected.filter((adapter) => defaults.agents.includes(adapter.id))
       if (selected.length === 0) {
         console.log("当前配置没有可接入且已启用的 Agent，请改用「自定义」重新选择")
@@ -199,6 +238,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
         defaults.dir,
         defaults.rotation,
         defaults.retentionDays,
+        "hook",
       )
       if (!existingConfig.enabled) console.log("  ⚠️ 当前总开关关闭：Hook 会重装，但不会写入事件")
       const applyKeep = await confirm({ message: "按当前配置重装 Hook？", default: true })
@@ -211,20 +251,34 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
       return
     }
 
-    const agentIds = await checkbox<string>({
-      message: "选择要接入的 Agent（空格切换，回车确认）",
-      choices: detected.map((adapter) => ({ name: adapter.displayName, value: adapter.id, checked: defaults.agents.includes(adapter.id) })),
-      required: false,
-    })
-    const selected = detected.filter((adapter) => agentIds.includes(adapter.id))
-    if (selected.length === 0) {
-      console.log("未选择 Agent，未修改任何文件")
-      return
-    }
-
     // 仅「自定义」回填历史值；推荐 / 第三方 / 高级仍按预设语义取值
     const usingSaved = preset === "custom"
     if (usingSaved && defaults.configured) console.log("⚠️ 本次选择将覆盖现有配置（如需保留原值请重跑并选「保持当前配置」)")
+    // 通道先行：规则通道不依赖任何 Agent 配置，选中时跳过 Agent 与 Hook 步骤
+    const channel = await select<UsageChannel>({
+      message: "采集通道",
+      default: usingSaved ? existingConfig.channel : "rule",
+      choices: [
+        { name: "全局规则上报（不依赖 Agent 配置）", value: "rule" },
+        { name: "Agent Hook（自动触发，需在 Agent 侧启用）", value: "hook" },
+      ],
+    })
+    let selected: AgentAdapter[] = []
+    if (channel === "hook") {
+      const agentIds = await checkbox<string>({
+        message: "选择要接入的 Agent（空格切换，回车确认）",
+        choices: detected.map((adapter) => ({ name: adapter.displayName, value: adapter.id, checked: defaults.agents.includes(adapter.id) })),
+        required: false,
+      })
+      selected = detected.filter((adapter) => agentIds.includes(adapter.id))
+      if (selected.length === 0) {
+        console.log("未选择 Agent，未修改任何文件")
+        return
+      }
+    } else {
+      console.log("规则通道：不安装 Hook；完成后把 toolkit usage rule 的输出复制进全局规则")
+    }
+
     const firstParty = await confirm({ message: "统计 toolkit 一方技能（fxri-*）？", default: usingSaved ? defaults.firstParty : true })
     const thirdParty =
       preset === "third-party" || preset === "advanced"
@@ -269,11 +323,13 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
       return
     }
 
-    printConfigSummary(selected.map((adapter) => adapter.displayName), firstParty, thirdParty, mode, dir, rotation, retention)
-    console.log("  Hook 将写入：")
-    for (const adapter of selected) console.log(`    ${adapter.displayName} → ${adapter.configPath()}`)
+    printConfigSummary(selected.map((adapter) => adapter.displayName), firstParty, thirdParty, mode, dir, rotation, retention, channel)
+    if (channel === "hook") {
+      console.log("  Hook 将写入：")
+      for (const adapter of selected) console.log(`    ${adapter.displayName} → ${adapter.configPath()}`)
+    }
 
-    const apply = await confirm({ message: "确认写入配置并安装 Hook？", default: false })
+    const apply = await confirm({ message: channel === "hook" ? "确认写入配置并安装 Hook？" : "确认写入配置？", default: false })
     if (!apply) {
       console.log("已取消，未修改任何文件")
       return
@@ -281,16 +337,18 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
 
     updateUsageConfig({
       enabled: true,
-      agents: Object.fromEntries(selected.map((adapter) => [adapter.id, true])),
+      channel,
+      agents: channel === "hook" ? Object.fromEntries(selected.map((adapter) => [adapter.id, true])) : {},
       sources: { firstParty, thirdParty, unmanaged: false },
       skills: { mode, include: mode === "include" ? include : [], exclude: mode === "exclude" ? include : [] },
       capture: { triggerPrompt, skillArgs, outcome },
       storage: { dir, rotation, retentionDays: retention },
     })
-    installHooks(selected)
+    if (channel === "hook") installHooks(selected)
     if (preset === "advanced") await runUploadSetup()
     console.log("")
     console.log("已启用技能使用情况。下一步：")
+    if (channel === "rule") console.log("  toolkit usage rule   # 把输出复制进全局规则")
     console.log("  toolkit usage info")
     console.log("  toolkit usage stats")
   } catch (error) {
@@ -387,7 +445,7 @@ export async function runUsageMenu(): Promise<void> {
       if (action === "status") {
         const config = loadUsageConfig()
         const dir = resolveUsageDir(undefined, config)
-        console.log(`技能使用情况：${config.enabled ? "已开启" : "已关闭"}；数据目录：${dir}；配置：${usageConfigPath()}`)
+        console.log(`技能使用情况：${config.enabled ? "已开启" : "已关闭"}；通道：${config.channel}；数据目录：${dir}；配置：${usageConfigPath()}`)
         continue
       }
       if (action === "stats") {

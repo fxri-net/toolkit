@@ -143,7 +143,7 @@ describe("usage CLI", () => {
   })
 
   it("非交互初始化、上传配置与卸载", async () => {
-    await run(["init", "--yes", "--preset", "recommended", "--agent", "trae"])
+    await run(["init", "--yes", "--preset", "recommended", "--channel", "hook", "--agent", "trae"])
     let config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
     expect(config.usage.enabled).toBe(true)
     expect(config.usage.agents.trae).toBe(true)

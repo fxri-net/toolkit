@@ -13,8 +13,8 @@ title: 事件 Schema
 | `schemaVersion` | number | 是 | 固定 `1` |
 | `eventId` | string | 是 | `sha256:` 前缀的稳定 ID |
 | `occurredAt` | string | 是 | 本地时区 ISO 时间 |
-| `agent` | string | 是 | 适配器 id：`trae` / `claude` / `cursor` / `codex` / `copilot` / `manual` |
-| `sessionId` | string | 是 | Agent 会话 id |
+| `agent` | string | 是 | 适配器 id：`trae` / `claude` / `cursor` / `codex` / `copilot` / `manual` / `rule`（规则上报） |
+| `sessionId` | string | 是 | Agent 会话 id；规则通道按 `--session`、已知环境变量或日期兜底 |
 | `toolUseId` | string | 否 | 工具调用 id；缺失时按 2 秒窗口去重 |
 | `project` | string | 否 | 工作区路径 |
 | `skill` | string | 是 | 技能名 |
@@ -25,7 +25,7 @@ title: 事件 Schema
 | `skillArgs` | string | 否 | 技能参数，截断 500 字 |
 | `outcome` | string | 否 | `success` / `failure` / `unknown` |
 | `durationMs` | number | 否 | 工具调用耗时 |
-| `originAdapter` | string | 是 | 采集来源：`trae-hooks` / `claude-hooks` / `transcript` / `manual` 等 |
+| `originAdapter` | string | 是 | 采集来源：`trae-hooks` / `claude-hooks` / `transcript` / `manual` / `rule` 等 |
 | `toolkitVersion` | string | 是 | 写入时的 toolkit 版本 |
 
 ## 示例
