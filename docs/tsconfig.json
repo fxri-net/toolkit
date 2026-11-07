@@ -4,6 +4,6 @@
     "noEmit": true,
     "resolveJsonModule": true
   },
-  "include": ["**/*.ts", "**/*.mts", "**/*.d.ts", "**/*.vue"],
+  "include": ["**/*.ts", "**/*.mts", "**/*.d.ts", "**/*.vue", "../types/**/*.d.ts"],
   "exclude": ["node_modules", ".vitepress/cache", ".vitepress/dist"]
 }

@@ -6,11 +6,12 @@
     "moduleResolution": "Bundler",
     "outDir": "dist",
     "esModuleInterop": true,
+    "resolveJsonModule": true,
     "declaration": true,
     "strict": true,
     // 数组/索引访问结果带 undefined，强制显式兜底（N6 加固）
     "noUncheckedIndexedAccess": true
   },
-  "include": ["./src"],
+  "include": ["./src", "./types"],
   "exclude": ["node_modules", "dist", "**/__tests__", "**/*.test.ts", "**/*.spec.ts"]
 }
