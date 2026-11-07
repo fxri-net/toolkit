@@ -1,5 +1,67 @@
 # 方弦工具集
 
+## 1.16.3
+
+> 2026-11-07 发布
+
+### ✨ 新增功能
+
+- `usage hooks install --agent dsh` 支持 DeepSeek Harness——写 `~/.dsh/hooks.json`，并在各 profile 的 `cordis.patch.yml` 维护桥接插件条目，配合 Claude Code 兼容层桥接插件记录技能使用
+- `usage hooks status --all` 可列出本机未安装的 Agent，便于清理残留配置
+- `usage.channel` 配置与 `usage channel [rule|hook]` 命令——规则上报与 Agent Hook 二选一，非法值报错退出，切换时提示清理另一侧配置
+- `usage init --channel`（默认 `rule`）——规则通道只写采集配置、不安装 Hook、不依赖 Agent 检测；`--preset off` 与 `--channel` 同现时 `off` 优先
+- `usage record --skill <名称> [--skill ...]` 规则通道批量上报——入队即返回，同一技能调用几次就记几次；只统计 toolkit 管理且命中 `usage` 配置的技能，成功静默、退出码恒 0、失败只走 stderr
+- 上报由后台 worker 或下一次 `usage` 命令消费（内部命令 `usage flush`），消费时反查会话记录补齐触发词 / 参数 / 结果 / 耗时（Claude Code 可读；dsh 为 v4 事件流暂未适配；Trae 暂无可读会话），反查失败只丢字段；`usage info` 展示队列积压
+
+### 🔧 功能调整
+
+- `hooks install` 只处理本机已检测到的 Agent，显式指定未安装的 Agent 告警跳过（全部跳过时非 0 退出），不再凭空创建配置；`hooks remove` / `uninstall` 仍可清理已卸载工具的残留
+- `fxri-plan-to-task` 增加讨论态 / 方案态 / 执行态三态闸门，需求清单、意见与「继续评估」不构成执行授权，「开始」按批次失效
+- `fxri-plan-to-task` 区分「落档」与「继续评估」并给出落档的动作边界；任务档在规划态的修订不进入提交，提交只在归档后一次
+- `fxri-plan-review` 落档由 `fxri-plan-to-task` 执行且不提交，闸门判定改指三态
+- `fxri-plan-to-task` 把「开始」定义为建档 + 校验 + 开工——先按展示表（或无表时的方案步骤）建完全部任务档、`tasks check` 通过后才改第一处文件，单任务同样适用；「先落档」等讨论态表达不构成执行授权
+- 任务档须自包含（背景 / 方案 / 影响范围 / 验证 + 计划位置 / 前置 / 后继），禁止指向对话的指代；模板与自查清单同步，任务增删须回写互链
+- `fxri-plan-review` 复核清单补「是否全部任务已建档、每档是否自包含」
+- `fxri-release-changelog` 承载唯一的版本口径——bump 按用户影响阶梯判定（整体重做 major、破坏既有用法需改 minor、其余含新增小能力与同能力替代实现 patch），并写明与 SemVer 的显式偏离
+- 版本口径补迁移护栏（minor 附迁移映射并标注不兼容、patch 只增不改）与技能内容版本口径（小修 +patch、能力级 +minor，与包版本互不推导）
+- 版本口径的归属域即该技能，退出方式为卸载本技能；SKILL.md 新增读取地图指向口径小节
+- 退休 conventions `C-31`（版本级别由技能承载），`AGENTS.md` 质量门第 3 条的递增细节改为引用技能
+- `fxri-release-changelog` 补「发布触发」与判断法——变更集只登记随发布物交付的可感知变化，纯开发侧脚本 / 文档 / 历史更正不单独发版，口径与语言、包管理器、交付形态无关
+- `skills/README.md` 补齐三处缺口——技能触发只靠语义（个人口头禅不进通用触发词、可观测事实优先）、改 `skills/` 须发版才触达用户、发布型包误打包检查只提示不代改
+- `skills/README.md` 增加规则归属判据——写进技能前先问该技能的定位是否就是这类规则的归属域
+- conventions 载体退休 18 条技能已完整承载的条目，索引只保留规则层与本仓治理类条目，退休语义迁入 `retired.md`
+- 技能事件按返回体推断结果——Trae 的 `Skill` 工具返回 `skill_path` / `skill_detail` 判 `success`，显式错误字段仍优先判 `failure`；dsh 桥接为纯文本，保持 `unknown`
+- `usage stats --by trigger` 每条增加最近调用时间，便于查看单个技能的调用明细
+- `usage info`、`hooks status`、`doctor` 展示采集通道，并在「通道与 Hook 实际状态不一致」时告警；`hooks install` 在规则通道下提示 Hook 不会写入
+- `usage rule` 文案改为「每批工具调用结束后合并上报一次」，与 `docs/rules/usage.md` 同源；配置不会统计任何技能时先向 stderr 提示空转
+- 技能识别改用「包内清单 + 状态文件登记来源」的托管名单，不再按 `fxri-` 前缀猜测
+
+### ⚡ 优化改进
+
+- `fxri-plan-to-task` 主文件由 178 行 / 7684 字符收敛到 147 行 / 6500 字符以内——落档的动作边界表下沉 `references/task-spec.md`，讨论态意图、失败模式与可选加速合并同类项，闸门语义与能力不变
+- `fxri-text-encoding` 常驻 description 由 537 字符压到 300 以内，触发细节留在正文
+- `fxri-session-recap` 的归档 / 沉淀顺序条款改为指向 `task-spec.md` §6，不再与 `fxri-plan-to-task` 各写一份
+
+### 🐛 问题修复
+
+- dsh 安装提示改为 CLI 安装，并说明桌面版「添加插件」只接受声明 `dsh.bundle` 的组合包、会拒绝桥接插件
+- 官方桥接插件与 dsh 0.2.x 不兼容，默认改用社区实现 `@dsh-cc/hooks-claude-code`；条目按已安装的包名写入（官方版恢复兼容后自动切回）
+- `cordis.patch.yml` 非顶层数组时跳过写入并告警，避免写坏用户配置
+- 技能远程来源的 git 调用改为参数数组直传，不再经 shell 拼接，Windows 上缓存目录含空格时不再克隆失败
+- Hook 命令改为按平台生成——Windows 经 `powershell -NoProfile -Command "& '…'"` 包装，macOS / Linux 用单引号拼接，解决 PowerShell 下「两个引号串并列」被当表达式导致 Hook 全部失败的问题
+- 重跑 `usage hooks install` 会把存量旧形态命令替换为新形态；`hooks status` 与 `doctor` 新增「命令形态过期」提示
+
+### 📝 文档更新
+
+- Claude Code 的接入状态由「已验证」改为「已接入，需实测」，与实际验证范围一致
+- 补齐各 Agent 的启用、关闭与卸载步骤，新增 DeepSeek Harness 接入说明
+- dsh 的 Hook 进程受运行时文件沙箱限制、可能写不了家目录统计库，说明排查症状与改用规则通道的自报方式
+- `task-spec.md` 新增「落档的动作边界（规划态）」小节，承接原主文件表格
+- 同步 Agent 接入与 usage 命令页的平台说明
+- 同步上述用法，并写明 dsh 的 `outcome` 限制
+- 补规则 / Hook 两通道对比、DeepSeek Harness 运行沙箱限制、明细字段可得性与补救（`usage log` 补录 / 改用 Hook 通道），同步 CLI、配置与事件 Schema
+- 补充 Trae Hook 需在 IDE 内启用的前置条件、运行方式选择与重启生效说明
+
 ## 1.16.2
 
 > 2026-11-06 发布
