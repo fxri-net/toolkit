@@ -123,6 +123,7 @@ export default defineConfig({
               { text: '语言与镜像', link: '/config/changelog' },
               { text: '升级检查', link: '/config/update' },
               { text: '技能分发', link: '/config/skills' },
+              { text: '缓存目录', link: '/config/cache' },
             ],
           },
         ],

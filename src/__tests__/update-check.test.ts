@@ -1,7 +1,7 @@
 // 升级检查单测：配置频率 / 闸门 / registry 解析 / 缓存迁移 / 提示渠道 / 后台刷新
 // 网络与子进程全部注入 mock，tmp 与 home 重定向到独立沙箱，全程不触网、不派生真实进程
 import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from "vitest"
-import { mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs"
+import { existsSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { resetToolkitConfigCache } from "../config"
 
@@ -46,11 +46,14 @@ import { fetchLatestVersion, versionGt } from "../version"
 import { spawn } from "node:child_process"
 
 mkdirSync(HOME, { recursive: true })
+mkdirSync(join(HOME, ".toolkit", "cache"), { recursive: true })
 mkdirSync(WORK, { recursive: true })
 
 const mockedFetch = vi.mocked(fetchLatestVersion)
 const mockedSpawn = vi.mocked(spawn)
-const cacheFile = join(sandbox, ".toolkit-update-check.json")
+const cacheFile = join(HOME, ".toolkit", "cache", "update-check.json")
+// 旧版缓存落点：仅用于迁移用例，正常读取应落到 cacheFile
+const legacyCacheFile = join(sandbox, ".toolkit-update-check.json")
 const originalCwd = process.cwd()
 const HOUR = 60 * 60 * 1000
 let unrefSpy: (...args: unknown[]) => void
@@ -96,6 +99,7 @@ beforeEach(() => {
   resetToolkitConfigCache()
   Object.defineProperty(process.stdout, "isTTY", { value: false, configurable: true })
   rmSync(cacheFile, { force: true })
+  rmSync(legacyCacheFile, { force: true })
   for (const file of [join(WORK, ".toolkitrc.json"), join(WORK, ".npmrc"), join(HOME, ".npmrc")]) rmSync(file, { force: true })
 })
 
@@ -106,6 +110,7 @@ afterEach(() => {
   mockedFetch.mockReset()
   mockedSpawn.mockReset()
   rmSync(cacheFile, { force: true })
+  rmSync(legacyCacheFile, { force: true })
   for (const file of [join(WORK, ".toolkitrc.json"), join(WORK, ".npmrc"), join(HOME, ".npmrc")]) rmSync(file, { force: true })
 })
 
@@ -184,6 +189,13 @@ describe("缓存读取与提示闸门", () => {
     expect(readCachedLatest()).toBe("8.8.8")
     writeFileSync(cacheFile, JSON.stringify({ ts: Date.now(), ok: false, latest: "" }), "utf8")
     expect(readCachedLatest()).toBeNull()
+  })
+
+  it("旧 tmp 缓存惰性迁移到 ~/.toolkit/cache", () => {
+    writeFileSync(legacyCacheFile, JSON.stringify({ latest: "9.9.9", notifiedAt: {}, lastCheckedAt: Date.now() }), "utf8")
+    expect(readCachedLatest()).toBe("9.9.9")
+    expect(existsSync(cacheFile)).toBe(true)
+    expect(existsSync(legacyCacheFile)).toBe(false)
   })
 
   it("关闭开关时不读缓存", () => {

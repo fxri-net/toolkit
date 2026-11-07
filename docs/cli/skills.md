@@ -130,7 +130,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 ## 外部来源
 
-`--from <path|url>` 把符合技能源格式的本地目录或 Git 远程地址纳入同一套 tier / 选择 / 状态 / prune 管理。远程地址支持 `https://`、`ssh://`、`git@`、`github:owner/repo`，可带 `#分支/标签/提交`；浅克隆到 `~/.agents/.toolkit-sources/` 缓存后复用同一套解析，缓存刷新失败时回落到旧缓存并告警。`--save [name]` 将来源登记为永久来源（写入全局层 `skillsInstall.sources`），本地记 `root`、远程记 `url` + `ref`；省略名字时按清单 `name`、仓库名或目录名派生。
+`--from <path|url>` 把符合技能源格式的本地目录或 Git 远程地址纳入同一套 tier / 选择 / 状态 / prune 管理。远程地址支持 `https://`、`ssh://`、`git@`、`github:owner/repo`，可带 `#分支/标签/提交`；浅克隆到 `~/.toolkit/cache/skill-sources/` 缓存后复用同一套解析，缓存刷新失败时回落到旧缓存并告警。`--save [name]` 将来源登记为永久来源（写入全局层 `skillsInstall.sources`），本地记 `root`、远程记 `url` + `ref`；省略名字时按清单 `name`、仓库名或目录名派生。
 
 **来源格式**（按优先级识别）：
 

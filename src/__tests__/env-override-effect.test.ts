@@ -1,7 +1,7 @@
 // 环境变量覆盖组「生效」锚点：逐项验证 CONFIG_ENV_OVERRIDES 声明的 env 名确实改变其目标键的解析结果
 // 既有不变式只锚「覆盖组目标键 ⊆ 展示键清单」的集合关系，env 名与真实消费点脱钩（改名、换键）不会被发现，故逐项走真实消费点
 // 现场：项目层配置写反值作对照，再置 env 断言结果翻转——证明 env 优先于文件且确被消费
-// 沙箱：cwd 与 home 均指向临时目录（不读真实用户配置），tmpdir 重定向（升级检查缓存），子进程派生注入 mock
+// 沙箱：cwd 与 home 均指向临时目录（不读真实用户配置），tmpdir 仅在旧缓存兼容路径中使用，子进程派生注入 mock
 import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from "vitest"
 import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
@@ -12,7 +12,7 @@ const sandbox = vi.hoisted(() => {
   return `${base}/tk-envfx-sandbox-${process.pid.toString(36)}`
 })
 
-// tmpdir 重定向：升级检查缓存落沙箱内，对照组的「无缓存即派生 worker」不被宿主机残留缓存干扰
+// tmpdir 重定向：旧缓存兼容路径落沙箱内；升级缓存本身落在注入 home 的 ~/.toolkit/cache
 vi.mock("node:os", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:os")>()
   return { ...actual, tmpdir: () => sandbox }

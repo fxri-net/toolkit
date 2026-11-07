@@ -1,11 +1,12 @@
 // 升级检查：父进程同步读缓存并提示，缓存不新鲜时派生分离子进程联网刷新（参考 update-notifier 的成熟设计）
 // 设计原则：父进程零网络、不阻塞进程退出；任何失败（离线/内网/超时）静默忽略并记负缓存；默认开启且可关闭
 import { existsSync, mkdirSync } from "node:fs"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { tmpdir } from "node:os"
 import { spawn } from "node:child_process"
 import { fetchLatestVersion, versionGt } from "./version"
 import { getConfigSection, getHomeDir } from "./config"
+import { resolveCacheEntry } from "./cache"
 import { readTextFile } from "./read-text"
 import { writeFileAtomic } from "./write-atomic"
 
@@ -54,9 +55,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value)
 }
 
-// tmp 缓存文件路径：{tmpdir}/.toolkit-update-check.json（按用户级缓存，跨项目共享）
+// 缓存文件路径：~/.toolkit/cache/update-check.json；旧版 {tmpdir}/.toolkit-update-check.json 惰性迁移
 function cacheFile(): string {
-  return join(tmpdir(), ".toolkit-update-check.json")
+  return resolveCacheEntry("update-check.json", join(tmpdir(), ".toolkit-update-check.json"), "file")
 }
 
 // 旧缓存结构：兼容读取 { ts, ok, latest } 并静默迁移
@@ -94,7 +95,7 @@ function readCache(): UpdateCache | null {
 // 写入缓存：失败静默（只读文件系统等场景不影响主流程）
 function writeCache(cache: UpdateCache): void {
   try {
-    mkdirSync(tmpdir(), { recursive: true })
+    mkdirSync(dirname(cacheFile()), { recursive: true })
     writeFileAtomic(cacheFile(), JSON.stringify(cache))
   } catch {
     // 缓存写入失败忽略

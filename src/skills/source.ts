@@ -8,6 +8,7 @@ import { tmpdir } from "node:os"
 import { basename, dirname, isAbsolute, join, normalize, relative, resolve, sep } from "node:path"
 import { fileURLToPath } from "node:url"
 import { getHomeDir } from "../config"
+import { resolveCacheEntry } from "../cache"
 import { normalizePathForCompare } from "../git-ignore"
 import { PROJECT_SKILL_DIRS, resolveProjectSkillDirs } from "../conventions/entry"
 import { readTextFile } from "../read-text"
@@ -424,10 +425,11 @@ export function refreshRemoteSource(spec: string): void {
   else refreshRemote(dest, parsed)
 }
 
-// 远程来源缓存目录：地址 + ref 派生稳定标识，统一落在用户级缓存下
+// 远程来源缓存目录：地址 + ref 派生稳定标识，统一落在用户级缓存 ~/.toolkit/cache/skill-sources
+// 旧版 ~/.agents/.toolkit-sources 在首次访问时惰性迁移
 function remoteCacheDir(spec: RemoteSpec): string {
   const key = createHash("sha256").update(`${spec.url}@${spec.ref ?? ""}`).digest("hex").slice(0, 16)
-  return join(getHomeDir(), ".agents", ".toolkit-sources", key)
+  return resolveCacheEntry(join("skill-sources", key), join(getHomeDir(), ".agents", ".toolkit-sources", key), "dir")
 }
 
 // 仓库名：地址最后一段去 .git 后缀，作为 manifest 未声明 name 时的来源名

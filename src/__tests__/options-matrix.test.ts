@@ -31,7 +31,8 @@ const missingTasksDir = join(sandbox, "missing-tasks")
 const initTasksDir = join(sandbox, "init-tasks")
 // config 用例专用起点目录（空目录，避免向上查找到仓库根）
 const cfgDir = join(sandbox, "cfg-cwd")
-const cacheFile = join(sandbox, ".toolkit-update-check.json")
+// 升级缓存落 home 沙箱的新缓存目录；tmpdir mock 仅用于旧缓存兼容路径
+const cacheFile = join(homeDir, ".toolkit", "cache", "update-check.json")
 
 // CLI 单次运行结果：退出码 + 各输出通道（stdout 单独捕获，帮助/版本走 commander 的 writeOut）
 interface CliRun {
@@ -359,6 +360,7 @@ describe("升级检查提示收口（成功才提示，帮助 / 失败静默）"
     delete process.env.CI
     delete process.env.npm_lifecycle_event
     delete process.env.npm_config_registry
+    mkdirSync(dirname(cacheFile), { recursive: true })
     writeFileSync(cacheFile, JSON.stringify({ latest: "99.0.0", lastCheckedAt: Date.now(), notifiedAt: {} }), "utf8")
   })
 
