@@ -19,13 +19,29 @@ title: Agent 接入
 
 ### 字段可得性
 
-| 字段 | 规则通道 | Hook 通道 |
+| 字段 | Hook 通道 | 规则通道 |
 | --- | --- | --- |
-| 技能名、次数、时间、会话 | 必有（入队即落） | 必有 |
-| 触发词 / 参数 | 反查可读会话时补：Claude Code 可读；dsh 需本机有 `zstd`（会话为 zstd 压缩）；Trae 暂无可读会话记录 | 必有 |
-| 结果 / 耗时 | 同上一行，反查不到留空 | 结果尽力推断，耗时随载荷 |
+| 技能名、次数、时间、会话 | 必有 | 必有（入队即落） |
+| 触发词 / 参数 | 必有（来自 Hook 载荷） | 反查会话记录可得；读不到则留空 |
+| 结果 / 耗时 | 结果尽力推断，耗时随载荷 | 同上一行，反查不到留空 |
+
+规则通道的明细来自「反查」，能不能读到取决于各 Agent 的会话记录形态：
+
+| Agent | 会话记录位置 | 可读条件 |
+| --- | --- | --- |
+| Claude Code | `<CLAUDE_CONFIG_DIR 或 ~/.claude>/projects/<项目>/<sessionId>.jsonl` | 可直接读；`CLAUDE_CONFIG_DIR` 可改写根目录 |
+| DeepSeek Harness | `~/.dsh/sessions/<项目>/session-<id>/session.v4.jsonl.zstd` | zstd 压缩：Node ≥22.15 自带解码，或本机有 `zstd` 命令；两者皆无则跳过 |
+| Trae | 会话正文存于 IDE 内部，本地只有 `memory/` 摘要 | 暂不可读，明细字段留空 |
 
 反查是增强项：会话文件缺失、压缩格式变化、字段结构变更都只丢字段，不影响技能名与次数（基础统计一定成功）。
+
+### 拿不到明细时的三种补救
+
+1. **手工补录**：`toolkit usage log --skill <名称> --session <id> --prompt "…" --args "…" --outcome success`；批量场景用 `usage import` 导入会话文件。
+2. **安装 `zstd` 命令**（让 dsh 反查生效，不改代码）：Windows 用 `winget install Zstandard.Zstd`，或 `scoop install zstd` / `choco install zstd`，也可下载官方 `zstd.exe` 放进 PATH；装完新开终端或重启 Agent。
+3. **升级 Node 到 22.15+**（推荐 22 LTS 或 24 LTS）：用内置 zstd 解码 dsh 会话。⚠️ 这是「想用 Node 20 没有的内置能力」时的可选升级，**本包仍只要求 Node ≥20.19**，基础统计在 Node 20 上完全可用。
+
+三种方式都不影响已有记录；补齐后只对之后的事件生效。
 
 切换通道不会自动清理另一侧：切到 `rule` 后应 `usage hooks remove`，切到 `hook` 后应删掉规则段（`usage channel` 切换时会提示）。
 
