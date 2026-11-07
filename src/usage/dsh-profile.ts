@@ -49,15 +49,17 @@ function toLines(text: string): string[] {
   return text.replace(/\r\n/g, "\n").split("\n")
 }
 
-// 标记块内容：路径统一正斜杠并用单引号包裹，避免 Windows 反斜杠触发 YAML 转义
+// 标记块内容：新增插件须用 insert 列表，否则补丁只覆盖已存在的 id、不会插入
+// 路径统一正斜杠并用单引号包裹，避免 Windows 反斜杠触发 YAML 转义
 function renderBlock(configPath: string, plugin: string): string[] {
   const value = configPath.replace(/\\/g, "/").replace(/'/g, "''")
   return [
     DSH_BLOCK_START,
-    `- id: ${DSH_BLOCK_ID}`,
-    `  name: "${plugin}"`,
-    "  config:",
-    `    configPath: '${value}'`,
+    "- insert:",
+    `    - id: ${DSH_BLOCK_ID}`,
+    `      name: "${plugin}"`,
+    "      config:",
+    `        configPath: '${value}'`,
     DSH_BLOCK_END,
   ]
 }

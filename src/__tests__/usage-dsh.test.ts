@@ -60,6 +60,7 @@ describe("cordis.patch.yml 标记块", () => {
   it("文件内已有空数组 [] 时整体替换，不并存", () => {
     const next = upsertToolkitBlock("# 补丁层\n[]\n", "/home/.dsh/hooks.json")
     expect(next).not.toContain("[]")
+    expect(next).toContain("- insert:")
     expect(next).toContain("configPath: '/home/.dsh/hooks.json'")
   })
 
