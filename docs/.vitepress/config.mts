@@ -63,7 +63,7 @@ export default defineConfig({
       {
         text: '全局规则',
         items: [
-          { text: '规则索引', link: '/rules/' },
+          { text: '规则组合', link: '/rules/' },
           { text: 'AI 全局规则', link: '/rules/ai' },
           { text: '提交信息规则', link: '/rules/commit' },
           { text: '技能使用情况规则', link: '/rules/usage' },
@@ -142,7 +142,7 @@ export default defineConfig({
       {
         text: '全局规则',
         items: [
-          { text: '规则索引', link: '/rules/' },
+          { text: '规则组合', link: '/rules/' },
           { text: 'AI 全局规则', link: '/rules/ai' },
           { text: '提交信息规则', link: '/rules/commit' },
           { text: '技能使用情况规则', link: '/rules/usage' },

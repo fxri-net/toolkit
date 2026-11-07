@@ -26,6 +26,10 @@ title: 技能使用情况规则
 
 同一份文本可由 `toolkit usage rule` 输出，文档与命令同源，避免两处漂移。
 
+## 模块来源
+
+本文对应 `usage` 模块，可由 `toolkit rules compose --module usage` 或 `toolkit usage rule` 输出，也可在[规则组合器](./)中与其他模块自由组合。
+
 ## 注意
 
 - 规则是薄壳，不包含具体 Agent 路径、事件字段或配置细节；这些随技能与 CLI 版本演进。

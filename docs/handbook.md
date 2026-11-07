@@ -13,7 +13,7 @@
 | 1 装 CLI | 团队项目 `pnpm add -D @fxri/toolkit`；个人多项目 `pnpm i -g @fxri/toolkit` |
 | 2 装 skills | `toolkit skills install`；项目面用 `--scope project`（技能随仓库入库、队友 clone 即用） |
 | 3 建任务区 | `pnpm exec toolkit init` |
-| 4 配全局规则（可选） | 从 [AI 全局规则](./rules/ai) 复制模板；提交习惯另取[提交信息规则](./rules/commit)；启用使用统计后再按需复制[技能使用情况规则](./rules/usage) |
+| 4 配全局规则（可选） | 从 [AI 全局规则](./rules/ai) 复制模板；提交习惯另取[提交信息规则](./rules/commit)；启用使用统计后再按需复制[技能使用情况规则](./rules/usage)；也可打开[规则组合器](./rules/)按需勾选模块 |
 
 初始化做了什么、30 秒最短路径见[快速开始 · 30 秒上手](./getting-started#_30-秒上手)。
 
