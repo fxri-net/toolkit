@@ -4,7 +4,7 @@ title: usage（技能使用情况）
 
 # usage（技能使用情况）
 
-> 本地统计技能使用次数、会话与触发词；默认关闭，数据只留在本机。
+> 本机统计技能使用次数、会话与触发词；默认关闭，数据只留在本机。
 
 ## 常用命令
 
@@ -26,7 +26,7 @@ toolkit usage doctor
 
 | 子命令 | 说明 | 主要选项 |
 | --- | --- | --- |
-| `init` | 初始化向导：预设、通道、Agent（仅 hook）、来源、字段与存储；首次执行即启用（默认「本地 + 一方与第三方技能」，采集字段仍默认关闭），重复执行沿用历史选择、已配置时默认「保持当前配置」并只重装 Hook | `--yes`（须显式给 `--preset`）、`--preset off\|recommended\|third-party`、`--channel rule\|hook`、`--agent`；非 TTY 退出码 2 |
+| `init` | 初始化向导：预设、通道、Agent（仅 hook）、来源、字段与存储；首次执行即启用（默认预设「一方 + 第三方技能（数据只留本机，不上传）」，采集字段仍默认关闭），重复执行沿用历史选择、已配置时默认「保持当前配置」并只重装 Hook | `--yes`（须显式给 `--preset`）、`--preset off\|recommended\|third-party`、`--channel rule\|hook`、`--agent`；非 TTY 退出码 2 |
 | `uninstall` | 停用采集并卸载 Hook，默认保留数据 | `--yes`、`--agent`、`--purge`、`--dry-run` |
 | `channel` | 查看或切换采集通道；切到 `rule` 提示清理 Hook，切到 `hook` 提示删除规则段 | `rule\|hook`、`--format json`；非法值报错退出 |
 | `record` | 规则通道批量上报：入队后立即返回、按出现次数计数、静默、退出码恒 0；明细由后台反查补齐 | `--skill`（可重复或逗号分隔）、`--session`、`--dir` |

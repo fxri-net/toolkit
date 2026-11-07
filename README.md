@@ -62,7 +62,7 @@ pnpm exec toolkit tasks
 | [全局规则索引](./docs/rules/index.md) | 三份可复制规则的总览与组合建议 |
 | [推荐 AI 全局规则](./docs/rules/ai.md) | 想让 AI 助手按本工具的最佳实践协作 |
 | [推荐提交信息规则](./docs/rules/commit.md) | 想让 AI 按统一格式写 git 提交信息 |
-| [技能使用情况规则](./docs/rules/usage.md) | 启用本地使用统计后，约束 AI 不重复补记、不外传数据 |
+| [技能使用情况规则](./docs/rules/usage.md) | 启用本机使用统计后，约束 AI 不重复补记、不外传数据 |
 | [完整文档站](https://fxri-net.github.io/toolkit/) | 在线阅读体验 |
 
 ## 🧩 AI 技能包（skills）

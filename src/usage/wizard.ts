@@ -9,7 +9,17 @@ import { runUploadSetup } from "./upload"
 import type { UsageChannel, UsageConfig, UsageRotation, UsageSkillMode } from "./types"
 
 // 预设：已配置时沿用当前配置，首次默认覆盖一方与第三方技能
-type Preset = "keep" | "off" | "recommended" | "third-party" | "custom" | "advanced"
+export type Preset = "keep" | "off" | "recommended" | "third-party" | "custom" | "advanced"
+
+// 预设显示名：易混淆项显式写明是否上传，避免与「本地来源 / 本地目录」混淆
+export const PRESET_LABELS: Record<Preset, string> = {
+  keep: "保持当前配置（按现有选择重装 Hook）",
+  off: "保持关闭（不安装 Hook、不采集）",
+  recommended: "推荐：仅一方技能（数据只留本机，不上传）",
+  "third-party": "一方 + 第三方技能（数据只留本机，不上传）",
+  custom: "自定义（沿用并修改当前选择）",
+  advanced: "高级：一方 + 第三方技能，并配置上传",
+}
 
 // 首次初始化的默认预设：显式执行 init 即启用意图，默认一并统计第三方技能
 export const DEFAULT_INIT_PRESET = "third-party" as const
@@ -204,12 +214,12 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
     // 默认预设：已配置时沿用当前配置，首次默认「一方与第三方」，显式 init 即启用
     const defaultPreset: Preset = defaults.configured ? "keep" : DEFAULT_INIT_PRESET
     const presetChoices: Array<{ name: string; value: Preset }> = [
-      ...(defaults.configured ? [{ name: "保持当前配置（按现有选择重装 Hook）", value: "keep" as Preset }] : []),
-      { name: "本地 + toolkit 一方与第三方技能", value: "third-party" },
-      { name: "推荐：仅本地 + toolkit 一方技能", value: "recommended" },
-      { name: "保持关闭（不安装 Hook、不采集）", value: "off" },
-      { name: "自定义（沿用并修改当前选择）", value: "custom" },
-      { name: "高级：本地 + 上传", value: "advanced" },
+      ...(defaults.configured ? [{ name: PRESET_LABELS.keep, value: "keep" as Preset }] : []),
+      { name: PRESET_LABELS["third-party"], value: "third-party" },
+      { name: PRESET_LABELS.recommended, value: "recommended" },
+      { name: PRESET_LABELS.off, value: "off" },
+      { name: PRESET_LABELS.custom, value: "custom" },
+      { name: PRESET_LABELS.advanced, value: "advanced" },
     ]
     const preset = await select<Preset>({
       message: defaults.configured ? "选择技能使用情况预设（默认沿用当前配置）" : "选择技能使用情况预设（默认启用，数据只留本机）",

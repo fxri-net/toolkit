@@ -1,7 +1,7 @@
 // usage 向导默认值单测：重复执行 init 时应沿用历史选择
 import { describe, expect, it } from "vitest"
 import { DEFAULT_USAGE_CONFIG } from "../usage/config"
-import { DEFAULT_INIT_PRESET, resolveInitDefaults } from "../usage/wizard"
+import { DEFAULT_INIT_PRESET, PRESET_LABELS, resolveInitDefaults } from "../usage/wizard"
 import type { UsageConfig } from "../usage/types"
 
 // 以默认配置为底，按需覆盖
@@ -53,5 +53,16 @@ describe("usage 向导默认值", () => {
     const defaults = resolveInitDefaults(makeConfig({ enabled: false, agents: { trae: true } }))
     expect(defaults.configured).toBe(true)
     expect(defaults.agents).toEqual(["trae"])
+  })
+
+  it("预设文案写明上传口径，不再出现「本地 +」的歧义表述", () => {
+    // 「本地」在 usage 域还指本地来源 / 本地目录，预设名必须显式说清是否上传
+    expect(PRESET_LABELS["third-party"]).toContain("不上传")
+    expect(PRESET_LABELS.recommended).toContain("不上传")
+    expect(PRESET_LABELS.advanced).toContain("配置上传")
+    for (const [key, label] of Object.entries(PRESET_LABELS)) {
+      expect(label, `预设 ${key} 仍含「本地 +」`).not.toContain("本地 +")
+      expect(label, `预设 ${key} 仍含「本地统计」`).not.toContain("本地统计")
+    }
   })
 })
