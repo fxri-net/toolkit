@@ -137,9 +137,9 @@ toolkit skills install --force   # 把各目标下的同名旧副本重建为软
 
 ### 技能次数正常，但触发词 / 参数 / 结果是空的？
 
-这是规则通道的预期表现：规则只上报技能名与次数，触发词、参数、结果与耗时靠工具反查会话记录补齐。读不到记录时字段留空，计数不受影响。常见原因有三种：该 Agent 的会话正文不落可读文件（Trae）、会话是压缩格式且当前环境解不开（dsh 的 zstd，需要 Node ≥22.15 或本机 `zstd` 命令）、或会话记录已过期被清理。
+这是规则通道的预期表现：规则只上报技能名与次数，触发词、参数、结果与耗时靠工具反查会话记录补齐。读不到记录时字段留空，计数不受影响。常见原因有三种：该 Agent 的会话正文不落可读文件（Trae）、会话格式尚未适配（dsh 为 v4 事件流）、或会话记录已过期被清理。
 
-补救三选一：`toolkit usage log --skill <名称> --session <id> --prompt "…" --args "…" --outcome success` 手工补录；安装 `zstd` 命令（如 `winget install Zstandard.Zstd`）后新开终端；升级 Node 到 22.15+。三种方式只对之后的事件生效。完整说明见 [Agent 接入 · 拿不到明细时的三种补救](./usage/agents#拿不到明细时的三种补救)。⚠️ 本包仍只要求 Node ≥20.19，升级只是为了用到 Node 20 没有的内置能力。
+补救两种：`toolkit usage log --skill <名称> --session <id> --prompt "…" --args "…" --outcome success` 手工补录；或改用 Hook 通道（`toolkit usage channel hook`）。两种方式只对之后的事件生效。完整说明见 [Agent 接入 · 拿不到明细时的补救](./usage/agents#拿不到明细时的补救)。⚠️ 升级 Node 或安装 zstd 不会让 dsh 明细出现——它的会话格式尚未适配。
 
 ## 协作与流程
 

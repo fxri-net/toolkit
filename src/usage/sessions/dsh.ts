@@ -1,5 +1,6 @@
 // DeepSeek Harness 反查：会话记录在 ~/.dsh/sessions/<项目>/session-<id>/session.v4.jsonl.zstd
-// Node 20 无内置 zstd 解码，只有本机存在 zstd 命令时才反查；解不开就跳过，不影响基础统计
+// 该会话是 v4 事件流（turn/start、assistant/attempt 等），当前解析器尚未适配，反查恒为空
+// zstd 解码逻辑保留供后续适配；解不开或格式不符都只跳过，不影响基础统计
 import { execFileSync } from "node:child_process"
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
@@ -52,7 +53,7 @@ export function findDshSessionFile(sessionId: string): string | null {
   return exact ?? candidates[candidates.length - 1] ?? null
 }
 
-// 反查 dsh 会话：zstd 不可用、文件损坏或格式不符时返回 null
+// 反查 dsh 会话：会话格式尚未适配，当前恒返回 null；解码失败或文件缺失同样返回 null
 export function lookupDshSession(sessionId: string): SessionLookup | null {
   try {
     const file = findDshSessionFile(sessionId)

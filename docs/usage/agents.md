@@ -30,18 +30,17 @@ title: Agent 接入
 | Agent | 会话记录位置 | 可读条件 |
 | --- | --- | --- |
 | Claude Code | `<CLAUDE_CONFIG_DIR 或 ~/.claude>/projects/<项目>/<sessionId>.jsonl` | 可直接读；`CLAUDE_CONFIG_DIR` 可改写根目录 |
-| DeepSeek Harness | `~/.dsh/sessions/<项目>/session-<id>/session.v4.jsonl.zstd` | zstd 压缩：Node ≥22.15 自带解码，或本机有 `zstd` 命令；两者皆无则跳过 |
+| DeepSeek Harness | `~/.dsh/sessions/<项目>/session-<id>/session.v4.jsonl.zstd` | 会话为 v4 事件流，当前反查尚未适配，字段留空（与 Node 版本、是否安装 zstd 无关） |
 | Trae | 会话正文存于 IDE 内部，本地只有 `memory/` 摘要 | 暂不可读，明细字段留空 |
 
 反查是增强项：会话文件缺失、压缩格式变化、字段结构变更都只丢字段，不影响技能名与次数（基础统计一定成功）。
 
-### 拿不到明细时的三种补救
+### 拿不到明细时的补救
 
 1. **手工补录**：`toolkit usage log --skill <名称> --session <id> --prompt "…" --args "…" --outcome success`；批量场景用 `usage import` 导入会话文件。
-2. **安装 `zstd` 命令**（让 dsh 反查生效，不改代码）：Windows 用 `winget install Zstandard.Zstd`，或 `scoop install zstd` / `choco install zstd`，也可下载官方 `zstd.exe` 放进 PATH；装完新开终端或重启 Agent。
-3. **升级 Node 到 22.15+**（推荐 22 LTS 或 24 LTS）：用内置 zstd 解码 dsh 会话。⚠️ 这是「想用 Node 20 没有的内置能力」时的可选升级，**本包仍只要求 Node ≥20.19**，基础统计在 Node 20 上完全可用。
+2. **改用 Hook 通道**：该 Agent 的 Hook 可用时，`toolkit usage channel hook` + `hooks install` 可取得触发词与参数。
 
-三种方式都不影响已有记录；补齐后只对之后的事件生效。
+两种方式都不影响已有记录；补齐后只对之后的事件生效。⚠️ dsh 的会话是 v4 事件流，当前解析器尚未适配，**升级 Node 或安装 zstd 都不会让明细出现**——该适配属后续能力。
 
 切换通道不会自动清理另一侧：切到 `rule` 后应 `usage hooks remove`，切到 `hook` 后应删掉规则段（`usage channel` 切换时会提示）。
 

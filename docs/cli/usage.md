@@ -67,7 +67,7 @@ toolkit usage doctor
 - `usage info` 汇总通道、已安装 Hook、上传开关与最近 Hook 错误；`hooks status` 以本地时间显示各 Agent 最近触发记录，`--all` 可一并列出本机未安装的 Agent（查残留配置）。
 - `record` 只统计 toolkit 管理的技能（包内一方与 toolkit 登记来源），且必须命中 `usage` 配置（总开关、来源、技能范围）；未托管技能与未命中配置的技能静默忽略。规则路径不产生触发词与参数，这两类字段由后台反查会话记录补齐。
 - **异步消费**：`record` 只入队，随后由派生 worker 或下一次 `usage` 命令消费；`stats` 可能有数秒到一条命令的延迟，`info` 的「队列」行显示积压条数。反查失败只丢明细字段，技能名与次数照常落盘。
-- **明细缺失的三个原因**：该 Agent 会话记录不可读（Trae 不落可读文件）、压缩格式解不开（dsh 需 Node ≥22.15 或本机 `zstd`）、或记录已过期/被清理。补救见 [Agent 接入 · 拿不到明细时的三种补救](../usage/agents#拿不到明细时的三种补救)：`usage log` 手工补录、安装 `zstd`、升级 Node。
+- **明细缺失的三个原因**：该 Agent 会话记录不可读（Trae 不落可读文件）、会话格式尚未适配（dsh 为 v4 事件流）、或记录已过期 / 被清理。补救见 [Agent 接入 · 拿不到明细时的补救](../usage/agents#拿不到明细时的补救)：`usage log` 手工补录、改用 Hook 通道。
 - `rule` 在「当前配置不会统计任何技能」时先向 stderr 提示空转，再输出规则文案。
 - `usage stats --by trigger` 每条输出「次数｜最近调用时间｜触发词｜技能」，便于看某技能的调用明细。
 - Hook 安装与采集开启是两步：先 `hooks install`，再 `enable`。支持 Agent 与配置路径见 [Agent 接入](../usage/agents)。
