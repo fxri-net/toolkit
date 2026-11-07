@@ -11,6 +11,7 @@ title: 缓存目录
 | 路径 | 内容 | 重建方式 |
 | --- | --- | --- |
 | `~/.toolkit/cache/update-check.json` | 升级检查结果与提示节流记录 | 下次命令自动刷新 |
+| `~/.toolkit/cache/rules-selection.json` | 规则组合器在命令行记住的模块顺序 | 下次 `toolkit rules compose` 重新写入 |
 | `~/.toolkit/cache/skill-sources/<标识>/` | 远程技能来源的浅克隆缓存 | `toolkit skills sources refresh` 或下次安装 / 状态解析 |
 
 ## 迁移与清理

@@ -15,7 +15,7 @@ import { loadUsageConfig, resolveUsageDir, usageConfigPath, updateUsageConfig } 
 import { flushQueue } from "./flush"
 import { queueCount } from "./queue"
 import { hasRecordableSkills, recordSkills } from "./record"
-import { USAGE_GLOBAL_RULE } from "./rule"
+import { usageGlobalRule } from "./rule"
 import { eventsToCsv, eventsToJsonl, filterEvents, parseSince, summarize, unusedSkills } from "./stats"
 import {
   appendEvent,
@@ -1016,7 +1016,7 @@ export function registerUsageCommands(program: Command): void {
       if (!hasRecordableSkills(config)) {
         console.error("⚠️ 当前配置不会统计任何技能（总开关关闭 / 技能模式为 none / include 为空 / 来源全关），规则执行也不会产生记录")
       }
-      console.log(USAGE_GLOBAL_RULE)
+      console.log(usageGlobalRule())
     })
 
   // 索引重建：doctor 提示后使用

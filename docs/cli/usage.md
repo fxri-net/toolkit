@@ -52,7 +52,7 @@ toolkit usage doctor
 | `upload status` | 上传开关、端点与待上传数量 | `--format json` |
 | `upload send --dry-run` | 预览批次与载荷，不发送 | `--limit` |
 | `upload send` | 手工发送一批 | `--limit` |
-| `rule` | 输出可复制全局规则 | — |
+| `rule` | 输出可复制全局规则（等价于 `toolkit rules compose --module usage`） | — |
 
 ## 时间参数
 

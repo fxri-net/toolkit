@@ -14,6 +14,7 @@
 | `toolkit changelog` | 多语言 CHANGELOG（封装 changesets） | `version` / `format` / `doc` / `audit` | [changelog](./cli/changelog) |
 | `toolkit skills` | AI 技能分发：安装、状态、卸载、来源与版本 | `install` / `status` / `uninstall` / `sources` / `bump` | [skills](./cli/skills) |
 | `toolkit usage` | 技能使用情况：开关、统计、导出与诊断（默认关闭） | `info` / `stats` / `export` / `doctor` | [usage](./cli/usage) |
+| `toolkit rules` | 全局规则：列出模块、组合输出与缓存管理 | `list` / `compose` / `reset` | [rules](./cli/rules) |
 | `toolkit config` | 配置分层只读体检 | `status` | [config](./cli/config) |
 | `toolkit docs` | 文档站主题校验与写入 | `theme` | [docs theme](./cli/docs-theme) |
 | `toolkit help` | 显示帮助 | — | — |
@@ -28,6 +29,7 @@
 | 发版 | `toolkit changelog version` → `pnpm verify` → 打标签发布 |
 | 技能升级 / 换装 | `toolkit skills status` → `toolkit skills install`（外部来源见 `skills sources`） |
 | 看技能用了多少次 | `toolkit usage stats`（`--by session` / `--by trigger` / `--limit`） |
+| 复制全局规则 | `toolkit rules compose`（按需 `--preset` / `--module`，`--copy` 直接进剪贴板） |
 | 规范沉淀 | `toolkit conventions status` → `toolkit conventions upgrade` / `format` |
 | 排查配置 | `toolkit config status`（不打印配置值） |
 | 文档站主题漂移 | `toolkit docs theme check` |

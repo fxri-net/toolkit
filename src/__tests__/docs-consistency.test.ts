@@ -6,7 +6,7 @@ import { createMarkdownRenderer } from "vitepress"
 import { listBuiltinRuleNames } from "../privacy/redact"
 import { DESCRIPTION } from "../about"
 import { buildDocPage } from "../changelog/doc"
-import { USAGE_GLOBAL_RULE } from "../usage/rule"
+import { composeRules, loadRuleset } from "../rules"
 
 // 提取文档「内置规则：」行的规则名（名称以反引号包裹，括号内为补充说明）
 function docRuleNames(file: string): string[] {
@@ -280,19 +280,16 @@ describe("文档一致性：站点配置引用的静态资源存在", () => {
   })
 })
 
-// 提交信息规则在两处并存：.trae/rules/git-commit-message.md（本仓库自用真源）与 docs/rules/commit.md
-// 的可复制围栏块（用户侧投影）。两者正文须逐字一致（规范 C-16），此前无任何检测入口
-describe("文档一致性：提交信息规则两处真源镜像", () => {
-  it("docs/rules/commit.md 围栏块正文与 .trae/rules/git-commit-message.md 逐字一致（只改一处即失败）", () => {
-    const fenced = /^````markdown\n([\s\S]*?)^````/m.exec(readDoc("docs/rules/commit.md"))?.[1]
-    expect(fenced, "docs/rules/commit.md 缺少 ````markdown 规则全文围栏块").toBeTruthy()
-    // 围栏块首行是只存在于用户侧投影的更新时间锚点（C-15），比对时剔除；
-    // 先断言其存在再剥离——锚点缺失时该正则静默不匹配，比对照样通过
-    expect(fenced as string, "docs/rules/commit.md 围栏块首行缺少规则更新时间锚点").toMatch(/^> 规则更新时间 [^\n]*\n/)
-    const projection = (fenced as string).replace(/^> 规则更新时间 [^\n]*\n/, "").trim()
-    // 真源文件的 frontmatter 是 agent 规则元数据，不进用户侧投影，比对时剔除
+// 提交信息规则的真源已归位 templates/rules/commit.md；.trae 自用规则与 docs 页面均为投影
+// 三处正文须逐字一致（规范 C-16），此处锁模板与 .trae 的镜像，docs 页面另由模块组合测试覆盖
+describe("文档一致性：提交信息规则模板真源镜像", () => {
+  it("templates/rules/commit.md 正文与 .trae/rules/git-commit-message.md 逐字一致（只改一处即失败）", () => {
+    // 模板首行是模块更新时间锚点，比对时剔除；frontmatter 是 agent 规则元数据，同样不进正文
+    const template = readDoc("templates/rules/commit.md")
+    expect(template, "templates/rules/commit.md 首行缺少规则更新时间锚点").toMatch(/^> 规则更新时间 [^\n]*\n/)
+    const body = template.replace(/^> 规则更新时间 [^\n]*\n/, "").trim()
     const source = readDoc(".trae/rules/git-commit-message.md").replace(/^---\n[\s\S]*?\n---\n/, "").trim()
-    expect(projection).toBe(source)
+    expect(body).toBe(source)
   })
 })
 
@@ -312,16 +309,22 @@ describe("文档一致性：规则层更新锚点", () => {
     }
   })
 
-  it("docs/rules/usage.md 围栏块与 USAGE_GLOBAL_RULE 逐字一致", () => {
-    const fenced = /^````markdown\n([\s\S]*?)^````/m.exec(readDoc("docs/rules/usage.md"))?.[1]
-    expect(fenced, "docs/rules/usage.md 缺少 ````markdown 规则全文围栏块").toBeTruthy()
-    expect((fenced as string).trim()).toBe(USAGE_GLOBAL_RULE.trim())
+  it("三篇规则页复制块与模板模块组合逐字一致", () => {
+    // 拆分只允许换载体，不允许改正文：页面投影必须等于 composeRules(pages[].modules)
+    const ruleset = loadRuleset()
+    for (const page of ruleset.pages) {
+      const file = `docs/rules/${page.page}.md`
+      const fenced = /^````markdown\n([\s\S]*?)^````/m.exec(readDoc(file))?.[1]
+      expect(fenced, `${file} 缺少 4 反引号 markdown 规则全文围栏块`).toBeTruthy()
+      expect((fenced as string).trim(), `${file} 与模块组合不一致`).toBe(composeRules(page.modules).trim())
+    }
   })
 
   it("usage 规则保留可执行性措辞：立即上报、只读豁免、回复前自检", () => {
     // 这三处是规则能否被稳定执行的判据，缺任意一处都会退回「等批次 / 等授权 / 忘报」的旧形态
+    const rule = composeRules(["usage"])
     for (const phrase of ["立即执行", "不受「只读型请求默认只读」", "回复前自检"]) {
-      expect(USAGE_GLOBAL_RULE, `规则全文缺少「${phrase}」`).toContain(phrase)
+      expect(rule, `规则全文缺少「${phrase}」`).toContain(phrase)
     }
   })
 

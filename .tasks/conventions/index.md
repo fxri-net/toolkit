@@ -22,8 +22,8 @@
 | C-12 | 机器可读输出与诊断提示分流 | stdout 只承载机器可读内容（如 `--format json`），提示与诊断（升级提示、链接自愈提示）一律走 stderr | common | `docs/cli.md`（`--format json` 行）+ `docs/config/update.md`（升级提示通道）+ `docs/config/skills.md`（链接自愈提示） |
 | C-13 | 验收含类型检查与静态检查 | 类型检查与静态检查是聚合门禁 `pnpm verify` 的内部步骤（步骤定义见 `scripts/verify.mjs`）；不得以 `pnpm lint` / `pnpm build` 替代类型检查 | common | `AGENTS.md`「验收方式」 |
 | C-14 | 路径书写 | 仓库内引用用仓库根相对路径（含行号形如 `src/cli.ts L103`），不写指向本机的绝对 `file:///` 链接；active 可留本机资源路径，归档时归一为占位形式（`<本机>/…`、`~/` 或 `%USERPROFILE%`） | common | `AGENTS.md`「协作流程约束」 |
-| C-15 | 规则层更新锚点 | `SPEC.md` / `docs/rules/ai.md` / `docs/rules/commit.md` / `docs/rules/usage.md` 各有一行更新锚点，位于规则全文可复制块内部首行；任何内容变更以变更时刻更新所属文件锚点、未变更不刷新、同批取同一时间、不随发版例行抬高 | common | `SPEC.md` 首部 + `docs/rules/ai.md`、`docs/rules/commit.md`、`docs/rules/usage.md` 规则全文首行 + `AGENTS.md` 质量门第 6 条 |
-| C-16 | 提交信息规则单一真源与独立成页 | 真源为 `.trae/rules/git-commit-message.md`（本仓库自用、不随包分发）；`docs/rules/commit.md` 为其用户侧投影，正文逐字一致、可单独复制采用，两处同步变更 | common | `.trae/rules/git-commit-message.md`（真源）+ `docs/rules/commit.md`（投影） |
+| C-15 | 规则层更新锚点 | `SPEC.md`、`templates/rules/*.md`（六个模块）、`docs/rules/ai.md`、`docs/rules/commit.md`、`docs/rules/usage.md` 各有一行更新锚点：模块文件首行记录该模块内容变更时间，规则页与组合输出首行取所含模块最大值、模块正文外的页面调整不抬锚点；任何内容变更以变更时刻更新所属锚点、未变更不刷新、同批取同一时间、不随发版例行抬高 | common | `SPEC.md` 首部 + `templates/rules/*.md` 与 `docs/rules/*.md` 规则全文首行 + `AGENTS.md` 质量门第 6 条 |
+| C-16 | 提交信息规则单一真源与独立成页 | 真源为 `templates/rules/commit.md`（随包分发）；`.trae/rules/git-commit-message.md` 与 `docs/rules/commit.md` 均为投影，正文逐字一致、可单独复制采用，三处同步变更 | common | `templates/rules/commit.md`（真源）+ `.trae/rules/git-commit-message.md`、`docs/rules/commit.md`（投影） |
 | C-17 | 测试不复刻被测实现 | 派生 / 镜像类逻辑的测试期望须直接调用真实实现，不得在测试内重写同一份转换逻辑（同错复刻会掩盖实现缺陷） | common | `AGENTS.md`「验收方式」 |
 | C-22 | 门禁单源与时点 | 验收步骤清单唯一真源为 `scripts/verify.mjs`、以 `pnpm verify` 暴露，本地与四处 CI 共用，不得另写步骤枚举；关卡设在发布前；任务收尾顺序为「归档与沉淀 → 验收 → 提交」 | common | `AGENTS.md`「验收方式」+「发版链路」+「协作流程约束」+ `scripts/verify.mjs` + `skills/fxri-release-changelog/SKILL.md` + `skills/fxri-plan-to-task/references/task-spec.md`（第 6 节） |
 | C-23 | 测试假现场须与真实现场形态一致 | 模拟现场的假数据须与真实形态一致；被测逻辑对现场形态存在分支判据时，每种真实形态都要有对应用例 | common | [common.md](./common.md) |

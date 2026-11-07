@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "modules": [
+    {
+      "id": "core",
+      "title": "角色定位与代码规范",
+      "summary": "角色约束与代码规范：注释语言、复用、风格、验收与文本编码纪律",
+      "file": "core.md"
+    },
+    {
+      "id": "output",
+      "title": "输出要求",
+      "summary": "回答风格：直奔主题、不写客套话、代码附中文注释",
+      "file": "output.md"
+    },
+    {
+      "id": "workflow",
+      "title": "工作流与方案落盘",
+      "summary": "方案先行、只读判定、授权边界、任务建档与会话记忆",
+      "file": "workflow.md"
+    },
+    {
+      "id": "env",
+      "title": "环境与版本",
+      "summary": "安装、升级、升级提示与就绪校验",
+      "file": "env.md"
+    },
+    {
+      "id": "commit",
+      "title": "提交信息规则",
+      "summary": "中文提交信息格式、类型字典与正反例",
+      "file": "commit.md"
+    },
+    {
+      "id": "usage",
+      "title": "技能使用情况",
+      "summary": "Skill 调用后的本机使用上报与回复前自检",
+      "file": "usage.md"
+    }
+  ],
+  "presets": {
+    "minimal": ["core"],
+    "recommended": ["core", "output", "workflow"],
+    "complete": ["core", "output", "workflow", "env"],
+    "full": ["core", "output", "workflow", "env", "commit", "usage"]
+  },
+  "pages": [
+    { "page": "ai", "modules": ["core", "output", "workflow", "env"] },
+    { "page": "commit", "modules": ["commit"] },
+    { "page": "usage", "modules": ["usage"] }
+  ]
+}

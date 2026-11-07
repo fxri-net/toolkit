@@ -107,6 +107,7 @@ export default defineConfig({
               { text: '发版与更新日志', link: '/cli/changelog' },
               { text: '技能分发', link: '/cli/skills' },
               { text: '技能使用情况', link: '/cli/usage' },
+              { text: '全局规则', link: '/cli/rules' },
               { text: '配置体检', link: '/cli/config' },
               { text: '文档站主题', link: '/cli/docs-theme' },
               { text: '退出码', link: '/cli/exit-codes' },
