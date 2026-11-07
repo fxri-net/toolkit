@@ -116,7 +116,7 @@ describe("usage CLI", () => {
     await run(["doctor", "--format", "json"])
     await run(["rebuild"])
     await run(["rule"])
-    expect(logs.join("\n")).toContain("Skill usage（技能使用情况）")
+    expect(logs.join("\n")).toContain("技能使用情况")
 
     await run(["purge", "--older-than", "30d", "--dry-run"])
     expect(logs.join("\n")).toContain("[预演] 将删除")

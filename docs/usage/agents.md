@@ -12,9 +12,20 @@ title: Agent 接入
 | --- | --- | --- |
 | 启用 | `toolkit usage init --yes --preset recommended --channel rule`，再把 `toolkit usage rule` 的输出复制进 Agent 全局规则 | `toolkit usage init --yes --preset recommended --channel hook`（或 `usage hooks install` + `usage enable`） |
 | 依赖 | 只需 Agent 能执行 CLI；与 Agent 配置、IDE 开关、沙箱策略无关 | 依赖各 Agent 的 Hook 配置与执行环境；部分 Agent 还需 IDE 侧启用或桥接插件 |
-| 自动性 | 由 AI 按规则上报，每批工具调用后合并一次；不产生触发词与参数（规则只传技能名） | 由 Agent 触发，可采集触发词、参数与结果，也能识别未托管技能 |
+| 自动性 | 由 AI 按规则主动触发（我们自己发起的钩子），每批工具调用后合并一次；按调用次数逐条记录 | 由 Agent 事件被动触发，可采集触发词、参数与结果，也能识别未托管技能 |
+| 明细字段 | 规则只传技能名；触发词 / 参数 / 结果 / 耗时由工具**异步反查会话记录**补齐 | 来自 Hook 载荷，随事件一并到达 |
 | 关闭 | 删除全局规则段，或 `toolkit usage channel hook` 切走 | `toolkit usage hooks remove` / `toolkit usage uninstall` |
-| 限制 | 依赖 AI 遵守规则；会话无工具调用时不会产生记录 | 任一环节（配置、IDE 开关、沙箱）失效都会静默无记录，需 `hooks status` / `doctor` 排查 |
+| 限制 | 依赖 AI 遵守规则；反查依赖会话记录可读，读不到时字段留空但计数不受影响 | 任一环节（配置、IDE 开关、沙箱）失效都会静默无记录，需 `hooks status` / `doctor` 排查 |
+
+### 字段可得性
+
+| 字段 | 规则通道 | Hook 通道 |
+| --- | --- | --- |
+| 技能名、次数、时间、会话 | 必有（入队即落） | 必有 |
+| 触发词 / 参数 | 反查可读会话时补：Claude Code 可读；dsh 需本机有 `zstd`（会话为 zstd 压缩）；Trae 暂无可读会话记录 | 必有 |
+| 结果 / 耗时 | 同上一行，反查不到留空 | 结果尽力推断，耗时随载荷 |
+
+反查是增强项：会话文件缺失、压缩格式变化、字段结构变更都只丢字段，不影响技能名与次数（基础统计一定成功）。
 
 切换通道不会自动清理另一侧：切到 `rule` 后应 `usage hooks remove`，切到 `hook` 后应删掉规则段（`usage channel` 切换时会提示）。
 
@@ -106,7 +117,8 @@ dsh 不直接读 `hooks.json`，要经 Claude Code 兼容层桥接插件才生�
 
 ## 补录与去重
 
-- `record --skill a --skill b` 是规则通道的批量上报入口：静默执行、退出码恒 0，只统计 toolkit 管理且命中 `usage` 配置的技能，未命中的静默忽略。
+- `record --skill a --skill a --skill b` 是规则通道的批量上报入口：入队后立即返回、退出码恒 0，同一技能传几次就记几次；只统计 toolkit 管理且命中 `usage` 配置的技能，未命中的静默忽略。
+- 队列由后台 worker 或下一次 `usage` 命令消费；`info` 的「队列」行显示积压条数，正常情况下应长期为 0。
 - `import --type transcript` 支持 Claude JSONL 与通用 JSON / JSONL，从 `tool_use` 块提取工具调用，并把最近一次用户消息作为触发词。
 - `log` 用于没有 Hook 的 Agent；`manual` 属于用户显式补录，不受 Agent 开关限制。
 - 同一调用被两个适配器捕获时，按 `(sessionId, toolUseId)` 只保留首条；`dedupe` 可清理历史重复，`doctor` 会报告跨适配器重复组数。

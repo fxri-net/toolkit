@@ -12,6 +12,8 @@ import { installHooks, runUsageInitWizard, runUsageMenu, runUsageUninstall } fro
 import { buildEvent, resolveSkillMeta } from "./event"
 import { shouldRecord } from "./filter"
 import { loadUsageConfig, resolveUsageDir, usageConfigPath, updateUsageConfig } from "./config"
+import { flushQueue } from "./flush"
+import { queueCount } from "./queue"
 import { hasRecordableSkills, recordSkills } from "./record"
 import { USAGE_GLOBAL_RULE } from "./rule"
 import { eventsToCsv, eventsToJsonl, filterEvents, parseSince, summarize, unusedSkills } from "./stats"
@@ -228,6 +230,17 @@ export function registerUsageCommands(program: Command): void {
     await runUsageMenu()
   })
 
+  // 惰性兜底：除上报与消费自身外，任何 usage 子命令启动时先消费积压队列；失败不影响当前命令
+  usage.hook("preAction", (_thisCommand, actionCommand) => {
+    const name = actionCommand.name()
+    if (name === "record" || name === "flush" || name === "ingest") return
+    try {
+      flushQueue({ maxBatches: 3 })
+    } catch {
+      // 队列消费失败不影响命令本身
+    }
+  })
+
   // 初始化向导：默认保持关闭，所有选择都有默认值；--yes 走非交互预设
   usage
     .command("init")
@@ -388,6 +401,7 @@ export function registerUsageCommands(program: Command): void {
       const report = {
         enabled: config.enabled,
         channel: config.channel,
+        queued: queueCount(paths),
         configFile: usageConfigPath(),
         dataDir: dir,
         eventFiles: files.length,
@@ -405,6 +419,7 @@ export function registerUsageCommands(program: Command): void {
       printConfig(config, dir)
       if (config.channel === "rule") console.log("规则入口：toolkit usage rule（输出可复制到全局规则的文案）")
       console.log(`Hook：${installedHooks.length > 0 ? installedHooks.join("、") : "未安装"}`)
+      console.log(`队列：${report.queued} 条待处理`)
       console.log(`事件：${report.events} 条（索引 ${report.indexed} 条，文件 ${report.eventFiles} 个）`)
       console.log(`最近：${report.lastEventAt ?? "暂无"}`)
       if (lastHookError) console.log(`最近 Hook 错误：${lastHookError}`)
@@ -794,10 +809,29 @@ export function registerUsageCommands(program: Command): void {
       console.log(`${options.dryRun ? "预演" : "导入"}：${written} 条，重复 ${duplicate} 条`)
     })
 
-  // 规则上报：由全局规则在每批工具调用后合并调用；成功静默、失败也只走 stderr，绝不阻断任务
+  // 内部命令：消费队列并补齐明细，供后台 worker 与惰性兜底调用
+  usage
+    .command("flush", { hidden: true })
+    .description("内部命令：消费上报队列并写入事件")
+    .option("--dir <path>", "本次使用的数据目录")
+    .option("--limit <count>", "单次处理的批次数")
+    .action((options: { dir?: string; limit?: string }) => {
+      const limit = options.limit === undefined ? undefined : Number(options.limit)
+      try {
+        flushQueue({
+          dir: options.dir,
+          maxBatches: Number.isInteger(limit) && (limit as number) > 0 ? limit : undefined,
+        })
+      } catch {
+        // worker 失败保持静默，队列留给下次消费
+      }
+      process.exitCode = 0
+    })
+
+  // 规则上报：由全局规则在每批工具调用后合并调用；入队即返回，成功静默、失败也只走 stderr
   usage
     .command("record")
-    .description("按全局规则上报一批技能调用（静默执行，失败不阻断任务）")
+    .description("按全局规则上报一批技能调用（入队即返回，静默执行，失败不阻断任务）")
     .option(
       "--skill <names>",
       "技能名，可重复或用逗号分隔",

@@ -21,10 +21,10 @@ title: 事件 Schema
 | `skillVersion` | string | 否 | 技能真源版本 |
 | `skillSource` | string | 是 | `toolkit-first-party` / `toolkit-third-party` / `unmanaged` / `unknown` |
 | `managedBy` | string | 是 | `toolkit` / `external` / `unknown` |
-| `triggerPrompt` | string | 否 | 触发词，截断 200 字 |
-| `skillArgs` | string | 否 | 技能参数，截断 500 字 |
-| `outcome` | string | 否 | `success` / `failure` / `unknown` |
-| `durationMs` | number | 否 | 工具调用耗时 |
+| `triggerPrompt` | string | 否 | 触发词，截断 200 字；规则通道由反查补齐 |
+| `skillArgs` | string | 否 | 技能参数，截断 500 字；规则通道由反查补齐 |
+| `outcome` | string | 否 | `success` / `failure` / `unknown`；规则通道由反查补齐 |
+| `durationMs` | number | 否 | 工具调用耗时；规则通道由反查补齐 |
 | `originAdapter` | string | 是 | 采集来源：`trae-hooks` / `claude-hooks` / `transcript` / `manual` / `rule` 等 |
 | `toolkitVersion` | string | 是 | 写入时的 toolkit 版本 |
 
@@ -52,6 +52,7 @@ title: 事件 Schema
 
 - 首选：`agent + sessionId + toolUseId` 生成 `eventId`。
 - 跨适配器：`sessionId + toolUseId` 二次去重，只保留首条。
+- 规则通道：`toolUseId` 为 `rule:<批次ID>:<批次内序号>`，同一技能调用几次就生成几条，不互相去重。
 - 缺少 `toolUseId`：`sessionId + skill + 2 秒窗口`。
 
 机器可读 schema 见仓库根 [schemas/skill-usage-event.v1.json](https://github.com/fxri-net/toolkit/blob/main/schemas/skill-usage-event.v1.json)。

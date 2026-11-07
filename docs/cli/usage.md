@@ -29,11 +29,12 @@ toolkit usage doctor
 | `init` | 初始化向导：预设、通道、Agent（仅 hook）、来源、字段与存储；重复执行沿用历史选择，已配置时默认「保持当前配置」并只重装 Hook | `--yes`、`--preset`、`--channel rule\|hook`、`--agent`；非 TTY 退出码 2 |
 | `uninstall` | 停用采集并卸载 Hook，默认保留数据 | `--yes`、`--agent`、`--purge`、`--dry-run` |
 | `channel` | 查看或切换采集通道；切到 `rule` 提示清理 Hook，切到 `hook` 提示删除规则段 | `rule\|hook`、`--format json`；非法值报错退出 |
-| `record` | 规则通道批量上报一批技能调用；成功静默、退出码恒 0，失败只走 stderr | `--skill`（可重复或逗号分隔）、`--session`、`--dir` |
+| `record` | 规则通道批量上报：入队后立即返回、按出现次数计数、静默、退出码恒 0；明细由后台反查补齐 | `--skill`（可重复或逗号分隔）、`--session`、`--dir` |
+| `flush` | 内部命令：消费上报队列并写入事件（后台 worker 与惰性兜底调用，通常无需手动执行） | `--dir`、`--limit` |
 | `hooks install` | 只写 Hook 配置，不开启采集；通道为 rule 时提示不生效 | `--agent`、`--dry-run` |
 | `hooks status` | 查看 Hook 安装状态与最近触发时间；通道与 Hook 不一致时告警 | `--agent`、`--dir` |
 | `hooks remove` | 只移除本包 Hook 命令 | `--agent` |
-| `info` | 开关、通道、配置路径、数据目录与计数 | `--dir`、`--format json` |
+| `info` | 开关、通道、配置路径、数据目录、队列与计数 | `--dir`、`--format json` |
 | `enable` / `disable` | 打开 / 关闭总开关 | — |
 | `origins` | 查看或设置来源开关 | `--first-party` / `--no-first-party`、`--third-party` / `--no-third-party`、`--unmanaged` / `--no-unmanaged` |
 | `scope` | 查看或设置技能范围 | `--mode`、`--add`、`--remove` |
@@ -64,7 +65,8 @@ toolkit usage doctor
 - 非交互初始化用 `toolkit usage init --yes --preset recommended --channel rule`（默认 `rule`）；`--channel hook` 时会安装 Hook 并需要检测到 Agent，`--preset off` 与 `--channel` 同时出现时 `off` 优先；`custom` / `advanced` 预设仍需交互。
 - 默认总开关、Agent、来源、技能范围、字段全部关闭；只开总开关不会产生记录。
 - `usage info` 汇总通道、已安装 Hook、上传开关与最近 Hook 错误；`hooks status` 以本地时间显示各 Agent 最近触发记录，`--all` 可一并列出本机未安装的 Agent（查残留配置）。
-- `record` 只统计 toolkit 管理的技能（包内一方与 toolkit 登记来源），且必须命中 `usage` 配置（总开关、来源、技能范围）；未托管技能与未命中配置的技能静默忽略。规则路径不产生触发词与参数。
+- `record` 只统计 toolkit 管理的技能（包内一方与 toolkit 登记来源），且必须命中 `usage` 配置（总开关、来源、技能范围）；未托管技能与未命中配置的技能静默忽略。规则路径不产生触发词与参数，这两类字段由后台反查会话记录补齐。
+- **异步消费**：`record` 只入队，随后由派生 worker 或下一次 `usage` 命令消费；`stats` 可能有数秒到一条命令的延迟，`info` 的「队列」行显示积压条数。反查失败只丢明细字段，技能名与次数照常落盘。
 - `rule` 在「当前配置不会统计任何技能」时先向 stderr 提示空转，再输出规则文案。
 - `usage stats --by trigger` 每条输出「次数｜最近调用时间｜触发词｜技能」，便于看某技能的调用明细。
 - Hook 安装与采集开启是两步：先 `hooks install`，再 `enable`。支持 Agent 与配置路径见 [Agent 接入](../usage/agents)。

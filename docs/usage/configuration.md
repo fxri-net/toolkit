@@ -80,6 +80,12 @@ title: 使用情况配置
 - 规则上报（`usage record`）只统计 toolkit 管理的技能，且 Agent 维度按 `rule` 放行、不受 `agents` 开关限制；`sources.unmanaged` 对规则路径不生效。
 - 两者切换用 `toolkit usage channel rule|hook`，不会自动清理另一侧配置。
 
+## 上报与消费（规则通道）
+
+- `usage record` 只把批次写入 `<数据目录>/state/queue/<批次>.json`，随后派生后台 worker 消费；任何 `usage` 命令启动时也会顺带消费积压队列。
+- 消费时先写基础事件（技能名、次数、会话、时间），再按 `capture.*` 与反查结果补触发词、参数、结果、耗时；反查不到就留空，不伪造。
+- 队列条目处理完即删；事件按 `eventId` 去重，worker 重复拉起不会重复计数。
+
 ## 相关页面
 
 - [技能使用情况概览](./index) · [CLI 参考 · usage](../cli/usage) · [配置参考](../config)

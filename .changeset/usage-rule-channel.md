@@ -8,3 +8,7 @@
 - 修改：`usage info`、`hooks status`、`doctor` 展示采集通道，并在「通道与 Hook 实际状态不一致」时告警；`hooks install` 在规则通道下提示 Hook 不会写入
 - 修改：`usage rule` 文案改为「每批工具调用结束后合并上报一次」，与 `docs/rules/usage.md` 同源；配置不会统计任何技能时先向 stderr 提示空转
 - 文档：补规则 / Hook 两通道对比、DeepSeek Harness 运行沙箱限制与改用规则通道的说明，同步 CLI、配置与事件 Schema
+- 修改：`usage record` 改为入队即返回，由后台 worker 或下一次 `usage` 命令消费；同一技能调用几次就记几次，不再去重
+- 新增：消费时反查会话记录补齐触发词 / 参数 / 结果 / 耗时（Claude Code 可读；dsh 需本机 `zstd`；Trae 暂无可读会话），反查失败只丢字段、不影响技能名与次数
+- 新增：内部命令 `usage flush` 与命令入口的惰性兜底，`usage info` 展示队列积压
+- 修改：技能识别改用「包内清单 + 状态文件登记来源」的托管名单，不再按 `fxri-` 前缀猜测

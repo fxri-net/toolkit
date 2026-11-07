@@ -74,13 +74,26 @@ function pickString(payload: Record<string, unknown>, keys: string[]): string | 
   return undefined
 }
 
-// 包内技能名集合：用于判断裸 name 字段是否指向技能
+// 托管技能名集合：包内一方 + 状态文件登记的第三方来源，不按前缀猜
 function knownSkillNames(): Set<string> {
+  const names = new Set<string>()
   try {
-    return new Set(listPackageSkills().map((skill) => skill.name))
+    for (const skill of listPackageSkills()) names.add(skill.name)
   } catch {
-    return new Set()
+    // 包内清单不可读时继续读状态文件
   }
+  try {
+    const state = readSkillsState()
+    for (const source of Object.values(state?.sources ?? {})) {
+      if (source.kind === "builtin") continue
+      for (const target of source.targets) {
+        for (const entry of target.entries) names.add(entry.name)
+      }
+    }
+  } catch {
+    // 状态文件损坏时只认包内技能
+  }
+  return names
 }
 
 // 从工具名与入参中识别技能名：Skill 工具取 name，读取 SKILL.md 时从路径反推
@@ -98,7 +111,7 @@ export function extractSkillName(toolName: string | undefined, toolInput: unknow
     const explicitSkill = pickString(payload, ["skill", "skill_name"])
     if (explicitSkill) return explicitSkill
     const named = pickString(payload, ["name"])
-    if (named && (known.has(named) || named.startsWith("fxri-"))) return named
+    if (named && known.has(named)) return named
     // 读取技能文件：从 skills/<name>/SKILL.md 反推
     const path = pickString(payload, ["file_path", "path", "filename"])
     if (path) {
@@ -107,7 +120,7 @@ export function extractSkillName(toolName: string | undefined, toolInput: unknow
     }
   }
   // 少数 Agent 直接用技能名作为工具名
-  if (known.has(lowerTool) || lowerTool.startsWith("fxri-")) return lowerTool
+  if (known.has(lowerTool)) return lowerTool
   return null
 }
 
