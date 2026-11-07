@@ -32,7 +32,7 @@ pnpm exec toolkit init
 pnpm exec toolkit tasks
 ```
 
-之后：方案确认后登记为 `.tasks/` 任务文件 → `pnpm exec toolkit tasks check` 校验 → 完成后 `pnpm exec toolkit tasks archive` 归档并做规范沉淀。多任务 / 多仓方案先出纯展示计划表，再逐仓逐任务建档、按序逐个交付提交。完整步骤见 [快速开始](./docs/getting-started.md)。
+之后：方案确认后登记为 `.tasks/` 任务文件 → `pnpm exec toolkit tasks check` 校验 → 完成后 `pnpm exec toolkit tasks archive` 归档并做规范沉淀。多任务 / 多仓方案先出纯展示计划表，确认后说「开始」即一次建完全部任务档并校验，再按序逐个交付提交。完整步骤见 [快速开始](./docs/getting-started.md)。
 
 ## ✨ 能力矩阵
 
@@ -75,7 +75,7 @@ pnpm dlx skills add fxri-net/toolkit                  # 也可用上游安装器
 
 技能随包分发（真源为包内 `skills/`），与 CLI 同一发布批次（技能内容版本独立编号）；`toolkit skills install` 默认软链，链接创建失败自动降级副本，`toolkit skills status` 查现场，`toolkit skills uninstall` 卸载。安装分两步交互：先按 `metadata.tier` 选技能（`fxri-plan-to-task`、`fxri-session-recap`、`fxri-plan-review` 为 `core`，`skills` 模式必装、`package` 模式可选；`fxri-release-changelog`、`fxri-text-encoding` 为 `optional`），再选目标（`canonical` 主目标 + 已检测 agent；项目面为候选薄壳目录）；`--skills` / `--all` / `--no-optional` / `--agent` / `--all-agents` / `--yes` 可跳过交互，首次按模式默认（`skills` 装 `core`、`package` 零装）与全部可用目标，`--no-save-agents` 只影响本次；`--mode package` 切纯包管理器模式（core 也可不装、允许零选），`--no-skills` 仅本次零装。选择集分别写入 `~/.toolkitrc.json` 的 `skillsInstall` 与项目层 `.toolkitrc.json` 的 `projectSkills`。外部技能源用 `--from <path|url>` 临时纳入（副本、只写本次），加 `--save [name]` 登记为永久来源（默认软链）；`toolkit skills sources` 查看 / 注销来源。`--scope project` 换项目面——真源落 `<仓库根>/.agents/skills/`、其余候选目录落入口薄壳，随 git 入库后队友 clone 靠 `toolkit init` 写入的 `prepare` 钩子自动补齐。
 
-- [fxri-plan-to-task](./skills/fxri-plan-to-task/SKILL.md)：方案确认后落盘为任务文件（任务分解与纯展示计划表、逐仓逐任务建档、check、归档 + 任务级规范沉淀为强制终点）
+- [fxri-plan-to-task](./skills/fxri-plan-to-task/SKILL.md)：方案确认后落盘为任务文件（任务分解与纯展示计划表、一次建完全部任务档、check、归档 + 任务级规范沉淀为强制终点）
 - [fxri-release-changelog](./skills/fxri-release-changelog/SKILL.md)：发版时创建变更集、格式化多语言 CHANGELOG
 - [fxri-session-recap](./skills/fxri-session-recap/SKILL.md)：会话收尾全量沉淀、新会话三层恢复、历史任务时间批量修正（1.7.0 新增技能）
 - [fxri-plan-review](./skills/fxri-plan-review/SKILL.md)：复核已落档任务拆分，输出新增疏漏、建议与修订计划表，按后续是否落档标记
