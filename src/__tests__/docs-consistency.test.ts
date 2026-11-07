@@ -328,6 +328,12 @@ describe("文档一致性：规则层更新锚点", () => {
     }
   })
 
+  it("组合输出锚点使用「本规则」措辞，避免终端出现「本页」", () => {
+    const first = composeRules(["core"]).split("\n")[0] as string
+    expect(first).toContain("与本规则当前值不一致")
+    expect(first).toContain("重新复制本规则即可")
+  })
+
   it("SPEC.md 正文首行为合法规范更新时间锚点", () => {
     // 无围栏包裹，整篇即快照：标题行之后的首个非空行即锚点
     const body = readDoc("SPEC.md")

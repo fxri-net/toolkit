@@ -42,7 +42,7 @@ describe("规则清单与模块", () => {
   it("组合顺序按传入 id，锚点取最大值", () => {
     const text = composeRules(["usage", "core"])
     const lines = text.split("\n")
-    expect(lines[0]).toContain("2026-11-08 01:48")
+    expect(lines[0]).toContain("2026-11-08 02:21")
     expect(text.indexOf("## 技能使用情况")).toBeLessThan(text.indexOf("## 代码规范"))
     // 锚点与顺序无关
     expect(composeRules(["core", "usage"]).split("\n")[0]).toBe(lines[0])
@@ -66,7 +66,7 @@ describe("规则清单与模块", () => {
     const listed = listRules()
     const core = listed.modules.find((mod) => mod.id === "core")
     expect(core?.presets).toEqual(expect.arrayContaining(["minimal", "recommended", "complete", "full"]))
-    expect(core?.anchor).toBe("2026-11-08 01:48")
+    expect(core?.anchor).toBe("2026-11-08 02:21")
   })
 })
 

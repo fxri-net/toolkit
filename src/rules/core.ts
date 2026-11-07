@@ -19,7 +19,7 @@ export function isRuleAnchor(value: string): boolean {
 
 // 组合输出首行：与三篇规则页现有措辞保持一致，避免拆分后出现无谓 diff
 export function ruleAnchorLine(time: string): string {
-  return `> 规则更新时间 ${time}。本规则内容变更时以变更时刻更新此值；快照与本页当前值不一致即说明已失同步，重新复制本页即可。`
+  return `> 规则更新时间 ${time}。本规则内容变更时以变更时刻更新此值；快照与本规则当前值不一致即说明已失同步，重新复制本规则即可。`
 }
 
 // 按传入顺序组合：重复 id 保留首次位置；锚点取所选模块最大值，与顺序无关
