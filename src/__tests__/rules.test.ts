@@ -1,12 +1,12 @@
 // 规则模块化单测：清单校验、组合顺序、锚点取值、缓存与剪贴板
 import { describe, expect, it, beforeEach, afterEach } from "vitest"
-import { mkdtempSync, rmSync } from "node:fs"
-import { join } from "node:path"
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { dirname, join } from "node:path"
 import { tmpdir } from "node:os"
 import { setHomeDirForTest } from "../config"
 import { composeRules, listRules, loadRuleModules, loadRuleset } from "../rules"
 import { clipboardCommands, copyToClipboard } from "../rules/clipboard"
-import { clearRulesSelection, readRulesSelection, writeRulesSelection } from "../rules/cache"
+import { clearRulesSelection, readRulesSelection, rulesSelectionPath, writeRulesSelection } from "../rules/cache"
 
 let home = ""
 
@@ -78,6 +78,14 @@ describe("规则组合缓存", () => {
     expect(clearRulesSelection()).toBe(true)
     expect(readRulesSelection()).toBeNull()
     expect(clearRulesSelection()).toBe(false)
+  })
+
+  it("读写都去重，并剔除缓存中的未知模块 id", () => {
+    writeRulesSelection(["core", "core", "output"])
+    expect(readRulesSelection(["core", "output", "workflow"])).toEqual({ schema: 1, modules: ["core", "output"] })
+    mkdirSync(dirname(rulesSelectionPath()), { recursive: true })
+    writeFileSync(rulesSelectionPath(), JSON.stringify({ schema: 1, modules: ["core", "absent"] }), "utf8")
+    expect(readRulesSelection(["core", "output"])).toEqual({ schema: 1, modules: ["core"] })
   })
 })
 

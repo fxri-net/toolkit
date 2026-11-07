@@ -58,4 +58,16 @@ describe("用户级缓存目录", () => {
     expect(next).toBe(cachePath("update-check.json"))
     expect(existsSync(next)).toBe(false)
   })
+
+  it("缓存目录不可创建时回退旧路径且不留下新路径", () => {
+    // 把 ~/.toolkit/cache 建成普通文件，使 mkdirSync 父路径失败
+    mkdirSync(join(home, ".toolkit"), { recursive: true })
+    writeFileSync(join(home, ".toolkit", "cache"), "blocked", "utf8")
+    const legacy = join(home, "legacy.json")
+    writeFileSync(legacy, "cached", "utf8")
+    const next = resolveCacheEntry("update-check.json", legacy)
+    expect(next).toBe(legacy)
+    expect(readFileSync(legacy, "utf8")).toBe("cached")
+    expect(existsSync(cachePath("update-check.json"))).toBe(false)
+  })
 })

@@ -18,7 +18,7 @@ title: 缓存目录
 
 - 旧路径（`{tmpdir}/.toolkit-update-check.json`、`~/.agents/.toolkit-sources/`）在首次访问时惰性迁移到新目录，成功后删除旧路径；迁移失败时继续使用旧路径，不丢缓存。
 - 整个 `~/.toolkit/cache/` 可安全删除；删除后首次使用会自动重建。
-- 不提供单独的清理命令：缓存不是用户数据，直接删目录即可。
+- 规则选择可用 `toolkit rules reset` 清除；其余缓存不是用户数据，直接删目录即可。
 
 ## 不在缓存目录的内容
 

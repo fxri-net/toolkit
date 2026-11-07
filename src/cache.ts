@@ -30,7 +30,15 @@ export function resolveCacheEntry(nextRel: string, legacyAbs: string, kind: "fil
     }
     return next
   } catch {
-    // 并发迁移时另一进程可能已完成：新路径已存在即用它，否则继续用旧路径
+    // 复制失败可能留下半截 next：旧路径仍在时以旧路径为准，并清理半截新路径
+    if (existsSync(legacyAbs)) {
+      try {
+        rmSync(next, { recursive: true, force: true })
+      } catch {
+        // 清理失败忽略，至少不把半截新路径当成有效缓存
+      }
+      return legacyAbs
+    }
     return existsSync(next) ? next : legacyAbs
   }
 }

@@ -518,3 +518,27 @@ describe("skills sources 外部来源口径", () => {
     expect(payload.sources[0]).toMatchObject({ status: "refreshed", version: null })
   })
 })
+
+describe("rules 命令参数边界", () => {
+  it("--copy 与 --out 互斥，不生成文件", async () => {
+    const out = join(sandbox, "rules-copy.md")
+    const result = await runCli(["rules", "compose", "--copy", "--out", out])
+    expect(result.code).toBe(1)
+    expect(result.err.join("\n")).toContain("--copy 与 --out")
+    expect(existsSync(out)).toBe(false)
+  })
+
+  it("--module 为空时报错", async () => {
+    const result = await runCli(["rules", "compose", "--module", "", "--no-cache"])
+    expect(result.code).toBe(1)
+    expect(result.err.join("\n") + result.warn.join("\n")).toContain("--module")
+  })
+
+  it("--out 自动创建父目录", async () => {
+    const out = join(sandbox, "rules-out", "nested", "rules.md")
+    const result = await runCli(["rules", "compose", "--preset", "minimal", "--out", out, "--no-cache"])
+    expect(result.code).toBe(0)
+    expect(existsSync(out)).toBe(true)
+    expect(readFileSync(out, "utf8")).toContain("## 代码规范")
+  })
+})

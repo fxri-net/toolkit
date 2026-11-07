@@ -3,8 +3,8 @@
 import { Command, CommanderError } from "commander"
 import { createRequire } from "node:module"
 import { spawnSync } from "node:child_process"
-import { existsSync, readdirSync, statSync } from "node:fs"
-import { join, resolve } from "node:path"
+import { existsSync, mkdirSync, readdirSync, statSync } from "node:fs"
+import { dirname, join, resolve } from "node:path"
 import { renderTaskBoard } from "./tasks/list"
 import { queryTasks } from "./tasks/query"
 import { exportTasks, toJSON } from "./tasks/export"
@@ -2232,7 +2232,7 @@ rulesCmd
     try {
       if (options.format && options.format !== "json") console.error("⚠️ --format 仅支持 json，已回落文本输出")
       const listed = listRules()
-      const selection = readRulesSelection()
+      const selection = readRulesSelection(listed.modules.map((mod) => mod.id))
       if (options.format === "json") {
         console.log(JSON.stringify({ ...listed, selection: selection?.modules ?? null }, null, 2))
         return
@@ -2261,17 +2261,28 @@ rulesCmd
   .option("--no-cache", "不读取也不写入组合缓存")
   .action((options: { preset?: string; module?: string[]; anchor?: boolean; out?: string; copy?: boolean; cache?: boolean }) => {
     try {
-      const modules = (options.module ?? [])
+      if (options.copy && options.out) {
+        console.error("⚠️ --copy 与 --out 不能同时使用")
+        process.exitCode = 1
+        return
+      }
+      const rawModules = options.module ?? []
+      const modules = rawModules
         .flatMap((item) => item.split(/[,，]/))
         .map((item) => item.trim())
         .filter(Boolean)
+      if (rawModules.length > 0 && modules.length === 0) {
+        console.error("⚠️ --module 不能为空")
+        process.exitCode = 1
+        return
+      }
       if (options.preset && modules.length > 0) {
         console.error("⚠️ --preset 与 --module 不能同时使用")
         process.exitCode = 1
         return
       }
       const ruleset = loadRuleset()
-      const cached = options.cache === false ? null : readRulesSelection()
+      const cached = options.cache === false ? null : readRulesSelection(ruleset.modules.map((mod) => mod.id))
       let ids: string[]
       let explicit = false
       if (modules.length > 0) {
@@ -2307,6 +2318,7 @@ rulesCmd
         return
       }
       if (options.out) {
+        mkdirSync(dirname(resolve(options.out)), { recursive: true })
         writeFileAtomic(options.out, `${text}\n`)
         console.error(`已写入：${options.out}`)
         return

@@ -13,7 +13,7 @@ import { composeModules, type RuleModule } from "../../../../src/rules/core"
 const STORAGE_KEY = "fxri-toolkit:rules:v1"
 const presets = ruleset.presets as Record<string, string[]>
 const presetNames = Object.keys(presets)
-const presetLabels: Record<string, string> = { minimal: "极简", recommended: "推荐", complete: "完整", full: "全量" }
+const presetLabels: Record<string, string> = { minimal: "极简", recommended: "推荐", complete: "AI 全篇", full: "全量" }
 const rawById: Record<string, string> = {
   core: coreRaw,
   output: outputRaw,
@@ -54,6 +54,7 @@ const composed = computed(() => {
   }
 })
 const latest = computed(() => selectedModules.value.map((mod) => mod.anchor).sort().pop() ?? "")
+const envHint = computed(() => selected.value.includes("env") && !selected.value.includes("workflow"))
 const cliCommand = computed(() => `toolkit rules compose ${selected.value.map((id) => `--module ${id}`).join(" ")}`)
 const charCount = computed(() => composed.value.length)
 
@@ -69,6 +70,16 @@ function persist(): boolean {
   }
 }
 
+// 清除本机记忆：存储被禁用时 removeItem 也可能抛错，必须单独兜住
+function clearStored(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+    storageAvailable.value = true
+  } catch {
+    storageAvailable.value = false
+  }
+}
+
 // 恢复选择：schema 不符、含未知模块或空列表时清除并回落推荐
 function restore(): void {
   try {
@@ -76,14 +87,14 @@ function restore(): void {
     if (!raw) return
     const parsed = JSON.parse(raw) as { schema?: number; modules?: unknown }
     const ids = Array.isArray(parsed.modules)
-      ? parsed.modules.filter((id): id is string => typeof id === "string" && byId.has(id))
+      ? [...new Set(parsed.modules.filter((id): id is string => typeof id === "string" && byId.has(id)))]
       : []
     if (parsed.schema !== 1 || ids.length === 0) throw new Error("缓存结构不兼容")
     selected.value = ids
     activePreset.value =
       presetNames.find((name) => (presets[name] ?? []).join("|") === ids.join("|")) ?? "custom"
   } catch {
-    localStorage.removeItem(STORAGE_KEY)
+    clearStored()
   }
 }
 onMounted(restore)
@@ -99,7 +110,7 @@ function applyPreset(name: string): void {
   const base = presets[name] ?? []
   const extras = selected.value.filter((id) => !base.includes(id))
   selected.value = [...base, ...extras]
-  activePreset.value = name
+  activePreset.value = extras.length > 0 ? "custom" : name
   persist()
 }
 
@@ -134,11 +145,7 @@ function reset(): void {
   selected.value = [...(presets.recommended ?? [])]
   activePreset.value = "recommended"
   copied.value = false
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    storageAvailable.value = false
-  }
+  clearStored()
 }
 
 function fallbackCopy(text: string): void {
@@ -185,7 +192,11 @@ async function copy(): Promise<void> {
         {{ presetLabels[name] ?? name }}
       </button>
     </div>
-    <p class="rc-hint">默认选中「推荐」；预设只补选与重排，不会丢弃你额外勾选的模块。</p>
+    <p class="rc-hint">默认选中「推荐」；预设只补选与重排，不会丢弃你额外勾选的模块。清空全部模块后刷新会回落推荐集。</p>
+    <p v-if="envHint" class="rc-warning">
+      环境与版本是工作流章节的补充，建议与工作流一起使用；单独复制时正文以
+      <code>- **环境与版本**</code> 开头，不带二级标题。
+    </p>
 
     <div class="rc-grid">
       <section class="rc-modules">
@@ -279,6 +290,10 @@ async function copy(): Promise<void> {
 .rc-summary,
 .rc-empty {
   font-size: 13px;
+}
+.rc-warning {
+  font-size: 13px;
+  color: var(--vp-c-warning-1);
 }
 .rc-meta,
 .rc-summary {

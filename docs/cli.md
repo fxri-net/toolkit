@@ -45,7 +45,7 @@
 | `-h, --help` | 显示帮助（全局或子命令） |
 | `-v, --version` | 显示版本号 |
 
-`--redact` / `--warn` 为**域级开关**：仅 `tasks` 与 `changelog` 两个域支持（`init` / `skills` / `conventions` / `config` / `docs` 域不提供），清单见各域的选项表。
+`--redact` / `--warn` 为**域级开关**：仅 `tasks` 与 `changelog` 两个域支持（`init` / `skills` / `conventions` / `config` / `docs` / `usage` / `rules` 域不提供），清单见各域的选项表。
 
 **批量参数**：目标集合是命令主语时省略参数即全部（如 `skills sources refresh`）；否则须显式 `--all`（如 `usage purge --all`、`skills install --all`、`skills bump --all`）。
 
