@@ -3,6 +3,12 @@
 import { composeRules } from "../rules"
 
 // usage 模块的组合结果；`toolkit rules compose --module usage` 与它等价
-export function usageGlobalRule(): string {
-  return composeRules(["usage"])
+export function usageGlobalRule(dir?: string): string {
+  try {
+    return composeRules(["usage"], { dir })
+  } catch (error) {
+    throw new Error(`无法读取规则模板：${(error as Error).message}；请确认 @fxri/toolkit 的 templates/rules 随包分发`, {
+      cause: error,
+    })
+  }
 }

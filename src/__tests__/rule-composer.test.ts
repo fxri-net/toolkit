@@ -57,4 +57,15 @@ describe("RuleComposer 交互", () => {
     expect(order[0]).toContain("技能使用情况")
     expect(order[1]).toContain("角色定位与代码规范")
   })
+
+  it("复制失败时显示复制失败，不误报已复制", async () => {
+    Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true })
+    const execCommand = vi.fn(() => false)
+    Object.defineProperty(document, "execCommand", { value: execCommand, configurable: true })
+    const wrapper = mount(RuleComposer)
+    await wrapper.find(".rc-primary").trigger("click")
+    await flushPromises()
+    expect(execCommand).toHaveBeenCalledWith("copy")
+    expect(wrapper.find(".rc-primary").text()).toBe("复制失败")
+  })
 })

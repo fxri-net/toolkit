@@ -28,6 +28,7 @@ const byId = new Map(modules.map((mod) => [mod.id, mod]))
 const selected = ref<string[]>([...(presets.recommended ?? [])])
 const activePreset = ref("recommended")
 const copied = ref(false)
+const copyError = ref(false)
 const storageAvailable = ref(true)
 const dragId = ref<string | null>(null)
 
@@ -134,7 +135,7 @@ function reset(): void {
   clearStored()
 }
 
-function fallbackCopy(text: string): void {
+function fallbackCopy(text: string): boolean {
   const area = document.createElement("textarea")
   area.value = text
   area.setAttribute("readonly", "")
@@ -142,25 +143,31 @@ function fallbackCopy(text: string): void {
   area.style.opacity = "0"
   document.body.appendChild(area)
   area.select()
-  document.execCommand("copy")
+  const ok = document.execCommand("copy")
   document.body.removeChild(area)
+  return ok
 }
 
 async function copy(): Promise<void> {
   if (!composed.value) return
+  copyError.value = false
   try {
     if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(composed.value)
-    else fallbackCopy(composed.value)
+    else if (!fallbackCopy(composed.value)) throw new Error("copy failed")
     copied.value = true
     setTimeout(() => {
       copied.value = false
     }, 2000)
   } catch {
     try {
-      fallbackCopy(composed.value)
+      if (!fallbackCopy(composed.value)) throw new Error("copy failed")
       copied.value = true
     } catch {
       copied.value = false
+      copyError.value = true
+      setTimeout(() => {
+        copyError.value = false
+      }, 2000)
     }
   }
 }
@@ -226,7 +233,7 @@ async function copy(): Promise<void> {
     </div>
 
     <div class="rc-toolbar">
-      <button class="rc-primary" :disabled="!composed" @click="copy">{{ copied ? "已复制" : "一键复制" }}</button>
+      <button class="rc-primary" :disabled="!composed" @click="copy">{{ copyError ? "复制失败" : copied ? "已复制" : "一键复制" }}</button>
       <button @click="reset">恢复默认（清除本机记忆）</button>
       <span class="rc-meta">{{ storageAvailable ? "选择只保存在当前浏览器" : "当前浏览器不可用本地存储，本次选择不保留" }}</span>
     </div>

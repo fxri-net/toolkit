@@ -1016,7 +1016,12 @@ export function registerUsageCommands(program: Command): void {
       if (!hasRecordableSkills(config)) {
         console.error("⚠️ 当前配置不会统计任何技能（总开关关闭 / 技能模式为 none / include 为空 / 来源全关），规则执行也不会产生记录")
       }
-      console.log(usageGlobalRule())
+      try {
+        console.log(usageGlobalRule())
+      } catch (error) {
+        console.error(`⚠️ ${(error as Error).message}`)
+        process.exitCode = 1
+      }
     })
 
   // 索引重建：doctor 提示后使用
