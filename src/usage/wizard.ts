@@ -8,8 +8,11 @@ import { summarize } from "./stats"
 import { runUploadSetup } from "./upload"
 import type { UsageChannel, UsageConfig, UsageRotation, UsageSkillMode } from "./types"
 
-// 预设：默认保持关闭；已配置时可沿用当前配置
+// 预设：已配置时沿用当前配置，首次默认覆盖一方与第三方技能
 type Preset = "keep" | "off" | "recommended" | "third-party" | "custom" | "advanced"
+
+// 首次初始化的默认预设：显式执行 init 即启用意图，默认一并统计第三方技能
+export const DEFAULT_INIT_PRESET = "third-party" as const
 
 // 初始化选项：--yes 走非交互路径，只支持 off / recommended / third-party
 export interface InitWizardOptions {
@@ -35,7 +38,13 @@ function splitAgentNames(value: string | undefined): string[] {
 
 // 非交互初始化：按预设写入配置并安装 Hook（规则通道不装 Hook），不做任何提问
 function runNonInteractiveInit(options: InitWizardOptions): void {
-  const preset = options.preset ?? "off"
+  // 非交互模式必须显式给预设：不再回落「关闭」，避免显式 init 变成静默空操作
+  if (!options.preset) {
+    console.error("⚠️ 非交互模式须显式指定 --preset（off / recommended / third-party）")
+    process.exitCode = 1
+    return
+  }
+  const preset = options.preset
   // --preset off 与 --channel 同时出现时 off 优先：保持关闭、不改任何配置
   if (preset === "off") {
     console.log("保持关闭，未修改任何文件")
@@ -192,17 +201,19 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
     if (detected.length === 0) console.log("未检测到可接入的 Agent：本向导将只能使用规则通道（toolkit usage rule）")
     const existingConfig = loadUsageConfig()
     const defaults = resolveInitDefaults(existingConfig)
+    // 默认预设：已配置时沿用当前配置，首次默认「一方与第三方」，显式 init 即启用
+    const defaultPreset: Preset = defaults.configured ? "keep" : DEFAULT_INIT_PRESET
     const presetChoices: Array<{ name: string; value: Preset }> = [
       ...(defaults.configured ? [{ name: "保持当前配置（按现有选择重装 Hook）", value: "keep" as Preset }] : []),
-      { name: "保持关闭（不安装 Hook、不采集）", value: "off" },
-      { name: "推荐：仅本地 + toolkit 一方技能", value: "recommended" },
       { name: "本地 + toolkit 一方与第三方技能", value: "third-party" },
+      { name: "推荐：仅本地 + toolkit 一方技能", value: "recommended" },
+      { name: "保持关闭（不安装 Hook、不采集）", value: "off" },
       { name: "自定义（沿用并修改当前选择）", value: "custom" },
       { name: "高级：本地 + 上传", value: "advanced" },
     ]
     const preset = await select<Preset>({
-      message: defaults.configured ? "选择技能使用情况预设（默认沿用当前配置）" : "选择技能使用情况预设（默认保持关闭）",
-      default: defaults.configured ? "keep" : "off",
+      message: defaults.configured ? "选择技能使用情况预设（默认沿用当前配置）" : "选择技能使用情况预设（默认启用，数据只留本机）",
+      default: defaultPreset,
       choices: presetChoices,
     })
     if (preset === "off") {
@@ -329,7 +340,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
       for (const adapter of selected) console.log(`    ${adapter.displayName} → ${adapter.configPath()}`)
     }
 
-    const apply = await confirm({ message: channel === "hook" ? "确认写入配置并安装 Hook？" : "确认写入配置？", default: false })
+    const apply = await confirm({ message: channel === "hook" ? "确认写入配置并安装 Hook？" : "确认写入配置？", default: true })
     if (!apply) {
       console.log("已取消，未修改任何文件")
       return

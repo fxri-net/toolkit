@@ -263,4 +263,14 @@ describe("usage channel 与 init（沿用上一版语义）", () => {
     expect(process.exitCode).toBe(1)
     process.exitCode = 0
   })
+
+  it("init --yes 未给 preset 时报错且不写配置", async () => {
+    const before = readFileSync(join(home, ".toolkitrc.json"), "utf8")
+    errors = []
+    await run(["init", "--yes"])
+    expect(errors.join("\n")).toContain("--preset")
+    expect(process.exitCode).toBe(1)
+    process.exitCode = 0
+    expect(readFileSync(join(home, ".toolkitrc.json"), "utf8")).toBe(before)
+  })
 })

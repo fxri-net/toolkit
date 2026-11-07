@@ -1,7 +1,7 @@
 // usage 向导默认值单测：重复执行 init 时应沿用历史选择
 import { describe, expect, it } from "vitest"
 import { DEFAULT_USAGE_CONFIG } from "../usage/config"
-import { resolveInitDefaults } from "../usage/wizard"
+import { DEFAULT_INIT_PRESET, resolveInitDefaults } from "../usage/wizard"
 import type { UsageConfig } from "../usage/types"
 
 // 以默认配置为底，按需覆盖
@@ -10,10 +10,13 @@ function makeConfig(patch: Partial<UsageConfig> = {}): UsageConfig {
 }
 
 describe("usage 向导默认值", () => {
-  it("未配置过：保持关闭导向的保守默认", () => {
+  it("未配置过：默认预设覆盖一方与第三方技能", () => {
+    // 默认预设是产品决定：显式执行 init 即启用，并一并统计第三方技能
+    expect(DEFAULT_INIT_PRESET).toBe("third-party")
     const defaults = resolveInitDefaults(makeConfig())
     expect(defaults.configured).toBe(false)
     expect(defaults.agents).toEqual([])
+    // 回填值只反映现有配置（未配置视为一方开、第三方关），第三方由预设分支强制打开
     expect(defaults.firstParty).toBe(true)
     expect(defaults.thirdParty).toBe(false)
     expect(defaults.mode).toBe("none")

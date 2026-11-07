@@ -241,10 +241,10 @@ export function registerUsageCommands(program: Command): void {
     }
   })
 
-  // 初始化向导：默认保持关闭，所有选择都有默认值；--yes 走非交互预设
+  // 初始化向导：执行即启用，所有选择都有默认值；--yes 走非交互预设且须显式给 --preset
   usage
     .command("init")
-    .description("初始化技能使用情况：选择 Agent、来源、字段与存储（默认保持关闭）")
+    .description("初始化技能使用情况：选择 Agent、来源、字段与存储（执行即启用，默认统计一方与第三方技能）")
     .option("--yes", "非交互执行，需配合 --preset 使用")
     .option("--preset <name>", "非交互预设：off / recommended / third-party")
     .option("--channel <mode>", "采集通道：rule（默认，全局规则上报）/ hook（Agent Hook）")
