@@ -53,6 +53,7 @@
     "build": "cross-env NODE_ENV=production tsup",
     "build:debug": "cross-env NODE_ENV=development tsup --config tsup.dev.config.ts",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
+    "typecheck:docs": "vue-tsc --noEmit -p docs/tsconfig.json",
     "lint": "eslint . --cache",
     "lint:fix": "eslint . --fix",
     "test": "vitest run --exclude \"src/__tests__/warn-threshold.test.ts\"",
@@ -94,8 +95,11 @@
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.69.0",
+    "vite": "^8.3.6",
     "vitepress": "^1.6.4",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "vue": "^3.5.42",
+    "vue-tsc": "^3.3.14"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",

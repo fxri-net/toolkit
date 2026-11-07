@@ -110,6 +110,8 @@ const docsNeeded = needDocsBuild()
 // 互不依赖、可并行的前置检查：类型 / 规范一致性 / 静态检查，三者都不读 dist、不写工作区
 const parallelSteps = [
   { label: "类型检查", command: "pnpm", args: ["typecheck"] },
+  // 文档站类型检查：VitePress 构建只转译不类型检查，?raw / JSON / .vue 导入需 vue-tsc 兜住
+  { label: "文档类型检查", command: "pnpm", args: ["typecheck:docs"] },
   // 仓库自检：技能版本四点一致、技能表用途列不残留旧术语、active 任务触达路径存在
   { label: "规范一致性（技能版本 / 用途列 / 触达）", args: ["scripts/check-consistency.mjs"] },
   // eslint 默认缓存加速本地重复运行；CI 与 --full 走冷缓存，且本地冷缓存抖动时缓存本身也会造成「本地绿、CI 红」，故只作本地提速手段
