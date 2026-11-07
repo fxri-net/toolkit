@@ -63,6 +63,7 @@
     "verify": "node scripts/verify.mjs",
     "changeset": "changeset",
     "sync:changelog-doc": "node dist/cli.js changelog doc",
+    "sync:docs-rules": "node scripts/generate-docs-rules.mjs",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",

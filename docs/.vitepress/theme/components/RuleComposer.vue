@@ -1,31 +1,17 @@
 <script setup lang="ts">
 // 规则组合器：模块选择、拖拽排序、实时预览、一键复制与本机记忆
 import { computed, onMounted, ref } from "vue"
-import ruleset from "../../../../templates/rules/ruleset.json"
-import coreRaw from "../../../../templates/rules/core.md?raw"
-import outputRaw from "../../../../templates/rules/output.md?raw"
-import workflowRaw from "../../../../templates/rules/workflow.md?raw"
-import envRaw from "../../../../templates/rules/env.md?raw"
-import commitRaw from "../../../../templates/rules/commit.md?raw"
-import usageRaw from "../../../../templates/rules/usage.md?raw"
 import { composeModules, type RuleModule } from "../../../../src/rules/core"
+import { RULESET, RULE_MODULES } from "./rules.generated"
 
 const STORAGE_KEY = "fxri-toolkit:rules:v1"
-const presets = ruleset.presets as Record<string, string[]>
+const presets = RULESET.presets as Record<string, string[]>
 const presetNames = Object.keys(presets)
 const presetLabels: Record<string, string> = { minimal: "极简", recommended: "推荐", complete: "AI 全篇", full: "全量" }
-const rawById: Record<string, string> = {
-  core: coreRaw,
-  output: outputRaw,
-  workflow: workflowRaw,
-  env: envRaw,
-  commit: commitRaw,
-  usage: usageRaw,
-}
 
 // 模块正文与元数据：首行锚点单独解析，正文交给共享组合函数，避免前端重写拼接逻辑
-const modules: Array<RuleModule & { title: string; summary: string; presets: string[] }> = ruleset.modules.map((meta) => {
-  const raw = rawById[meta.id] ?? ""
+const modules: Array<RuleModule & { title: string; summary: string; presets: string[] }> = RULESET.modules.map((meta) => {
+  const raw = RULE_MODULES[meta.id] ?? ""
   const lines = raw.replace(/\r\n/g, "\n").split("\n")
   const anchor = (lines[0] ?? "").trim().replace(/^> 规则更新时间\s+/, "")
   return {
