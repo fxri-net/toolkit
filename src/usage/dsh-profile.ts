@@ -126,11 +126,28 @@ function writePatchFile(file: string, text: string, bom: boolean): boolean {
   return true
 }
 
+// 补丁文本是否为顶层数组：跳过空行与注释后，首条有效行须为列表项或空数组标记
+function isTopLevelArrayText(text: string): boolean {
+  for (const line of toLines(text)) {
+    const trimmed = line.trim()
+    if (trimmed === "" || trimmed.startsWith("#")) continue
+    return trimmed === "[]" || trimmed.startsWith("- ")
+  }
+  return true
+}
+
 // 读取 profile 的补丁文件内容：文件不存在按空串
 export function readProfilePatch(profileDir: string): string {
   const file = join(profileDir, "cordis.patch.yml")
   if (!existsSync(file)) return ""
   return readPatchFile(file).text
+}
+
+// 补丁文件是否为顶层数组：dsh 只接受数组形态，其它结构下追加列表项会写出非法 YAML
+export function profilePatchIsArray(profileDir: string): boolean {
+  const file = join(profileDir, "cordis.patch.yml")
+  if (!existsSync(file)) return false
+  return isTopLevelArrayText(readPatchFile(file).text)
 }
 
 // 是否已写入本包标记块
@@ -143,6 +160,8 @@ export function writeToolkitBlock(profileDir: string, configPath: string, dryRun
   const file = join(profileDir, "cordis.patch.yml")
   if (!existsSync(file)) return false
   const { text, bom } = readPatchFile(file)
+  // 非顶层数组结构直接跳过，避免把用户文件写成非法 YAML
+  if (!isTopLevelArrayText(text)) return false
   const next = upsertToolkitBlock(text, configPath)
   if (next === text) return false
   if (!dryRun) writePatchFile(file, next, bom)

@@ -11,6 +11,7 @@ import {
   DSH_BRIDGE_PLUGIN,
   profileHasBridgePlugin,
   profileHasToolkitBlock,
+  profilePatchIsArray,
   removeToolkitBlock,
   upsertToolkitBlock,
 } from "../usage/dsh-profile"
@@ -101,6 +102,21 @@ describe("profile 现场检测", () => {
     expect(profileHasBridgePlugin(dir)).toBe(false)
     writeFileSync(join(dir, "package.json"), JSON.stringify({ dependencies: { [DSH_BRIDGE_PLUGIN]: "0.0.1-rc.5" } }), "utf8")
     expect(profileHasBridgePlugin(dir)).toBe(true)
+  })
+
+  it("顶层数组与其它结构可区分", () => {
+    expect(profilePatchIsArray(makeProfile("array-empty", "[]\n"))).toBe(true)
+    expect(profilePatchIsArray(makeProfile("array-items", "# 注释\n- id: ui-chat\n  name: x\n"))).toBe(true)
+    expect(profilePatchIsArray(makeProfile("object", "agent:\n  model: deepseek-flash\n"))).toBe(false)
+  })
+
+  it("非数组结构不写入并给出告警", () => {
+    const dir = makeProfile("objects", "agent:\n  model: deepseek-flash\n")
+    const install = dshAdapter.installHooks({ command: "cmd" })
+    expect(profileHasToolkitBlock(dir)).toBe(false)
+    expect(readFileSync(join(dir, "cordis.patch.yml"), "utf8")).toBe("agent:\n  model: deepseek-flash\n")
+    expect(install.warnings?.join("\n")).toContain("不是顶层数组")
+    expect(dshAdapter.status().warnings?.join("\n")).toContain("不是顶层数组")
   })
 })
 

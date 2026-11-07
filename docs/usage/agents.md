@@ -53,9 +53,8 @@ toolkit usage enable                        # 才打开采集总开关
 dsh 不直接读 `hooks.json`，要经官方桥接插件 `@deepseek-ai/dsh-hooks-claude-code` 才生效，分两步：
 
 1. `toolkit usage hooks install --agent dsh`：写 `~/.dsh/hooks.json`，并在每个已存在的 profile（`~/.dsh/profiles/<name>/cordis.patch.yml`）写入 `# >>> toolkit usage hooks` 标记块，把插件条目的 `configPath` 指向该文件；
-2. 安装桥接插件（只需一次）：
-   - 桌面版：**设置 → Plugins** 搜索 `@deepseek-ai/dsh-hooks-claude-code` 安装，重启应用；
-   - 命令行：先**完全退出**桌面版（含托盘），再执行 `dsh plugin --profile desktop add @deepseek-ai/dsh-hooks-claude-code`。
+2. 安装桥接插件（只需一次）：先**完全退出**桌面版（含托盘），再执行 `dsh plugin --profile desktop add @deepseek-ai/dsh-hooks-claude-code`，装完重新打开应用。
+   ⚠️ 不要用桌面版「添加插件」：它只接受声明 `dsh.bundle` 的组合包，对本插件会报 `declares no dsh.bundle` 并拒绝安装。
 
 `hooks status --agent dsh` 会在插件缺失或标记块缺失时提示。桥接插件把 `tool_response` 扁平化为文本，`outcome` 字段可能记 `unknown`，其余字段正常。
 

@@ -10,16 +10,17 @@ import {
   profileHasBridgePlugin,
   profileHasToolkitBlock,
   profileName,
+  profilePatchIsArray,
   removeToolkitBlockFromProfile,
   writeToolkitBlock,
 } from "../dsh-profile"
 import { installStandardHooks, parseStandardEvent, standardHookStatus, uninstallStandardHooks } from "./standard"
 import type { AgentAdapter, HookInstallResult, HookStatus } from "./types"
 
-// 插件安装提示：桌面版被 Electron 独占，命令行装插件前须完全退出
+// 插件安装提示：桌面版插件页只收声明 dsh.bundle 的组合包，本桥接插件必须经 CLI 装进 profile
 function pluginHint(profile: string): string {
   const name = profileName(profile)
-  return `profile ${name} 未安装桥接插件：在 dsh 设置 → Plugins 搜索安装 ${DSH_BRIDGE_PLUGIN}，或退出桌面版后执行 dsh plugin --profile ${name} add ${DSH_BRIDGE_PLUGIN}`
+  return `profile ${name} 未安装桥接插件：先完全退出桌面版（含托盘），执行 dsh plugin --profile ${name} add ${DSH_BRIDGE_PLUGIN}；桌面版「添加插件」只接受声明 dsh.bundle 的组合包，会拒绝本插件`
 }
 
 // DeepSeek Harness 适配器：事件按 Claude Code 方言解析
@@ -40,6 +41,10 @@ export const dshAdapter: AgentAdapter = {
     }
     let changed = hooks.changed
     for (const profile of profiles) {
+      if (!profilePatchIsArray(profile)) {
+        warnings.push(`profile ${profileName(profile)} 的 cordis.patch.yml 不是顶层数组，已跳过写入（请手工把 ${DSH_BRIDGE_PLUGIN} 条目并入数组）`)
+        continue
+      }
       if (writeToolkitBlock(profile, dshHooksFile(), options.dryRun)) changed = true
       if (!profileHasBridgePlugin(profile)) warnings.push(pluginHint(profile))
     }
@@ -61,6 +66,10 @@ export const dshAdapter: AgentAdapter = {
       warnings.push(`未找到 dsh profile（${join(dshHome(), "profiles")}）`)
     }
     for (const profile of profiles) {
+      if (!profilePatchIsArray(profile)) {
+        warnings.push(`profile ${profileName(profile)} 的 cordis.patch.yml 不是顶层数组，未写入桥接条目`)
+        continue
+      }
       if (!profileHasToolkitBlock(profile)) warnings.push(`profile ${profileName(profile)} 未写入桥接条目，请重跑 toolkit usage hooks install --agent ${this.id}`)
       else if (!profileHasBridgePlugin(profile)) warnings.push(pluginHint(profile))
     }
