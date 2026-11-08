@@ -3,7 +3,7 @@ name: fxri-session-recap
 description: 会话收尾的工作记忆沉淀 + 新会话开场恢复 + 历史任务时间修正：收尾时把整场会话的全部任务完整建档归档，按四级时间源还原真实完成时间，沉淀规范进 conventions 载体；新会话开场按三层恢复（全量索引 + active 精读 + 近窗归档）重建现场并核对规范；也可批量修正历史归档时间。用户表达会话收尾意图（今天先到这、收个尾、归档本次会话、把结论记下来）、接续意图（恢复上下文、继续上次、上次做到哪）或修正历史任务时间时使用。不用于会话中途的常规方案建档（那是 fxri-plan-to-task 的职责）、与工作交接无关的代码技术总结。
 license: MIT
 metadata:
-  version: "1.6.12"
+  version: "1.6.13"
   tier: core
   author: fxri
   source: https://github.com/fxri-net/toolkit
@@ -11,7 +11,7 @@ metadata:
 
 # 会话归档、上下文恢复与历史修正
 
-> 本技能版本 1.6.12（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.6.13（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -67,11 +67,11 @@ metadata:
 ### R3 规范落点：`.tasks/conventions/` 载体
 
 - 唯一落点 `.tasks/conventions/`：`index.md` 唯一入口（形态标记 + 端清单 + 活跃索引），`history.md` 语义演进（仅追加），`retired.md` 退休台账，
-   `common.md` 与 `<端名>.md` / 分类标签分册承载条文；结构与分册表单见 `conventions-spec.md`，读写细则见 `conventions-maintenance.md`
+   `common.md`、端分册与主题分册承载条文；结构与分册表单见 `conventions-spec.md`，读写细则见 `conventions-maintenance.md`
 - 两级沉淀同一载体：**任务级**（fxri-plan-to-task 归档时）只在单任务产出可升格规范时追加，无则静默；**会话级**（本技能）聚合全会话候选，与已有规范合并去重——跨任务重复模式在此补，用户明示规则兜底
-- **归属判定**：先问「是否所有端都适用」→ 是归 `common`，否则逐端写入。禁止跨端合并；`common` 是「所有端」不是「不确定归哪端」的暂存区。
-   端名与 `scope` 取值逐字一致（如 `scope: web+server` → 读 `web.md` + `server.md`），无论命中与否**恒叠加 `common.md`**；
-   `index.md` 顶部的端清单是端的唯一权威，不扫目录；`scope` 中非端值且载体下存在同名分册时，按分类标签分册加载
+- **归属判定**：先问「哪些任务会遇到这条」→ 跨面归 `common`，否则写入主题 / 端分册。禁止跨端合并；`common` 只放跨面原则、不是「不确定归哪」的暂存区。
+   端名与 `scope` 取值逐字一致；`index.md` 顶部的端清单是端的唯一权威，不扫目录。
+   读取按索引路由：按索引行适用面命中即读其归属分册或单一事实源，**无命中即止，不恒叠加 `common.md`**
 - 写前**必须用户确认**；同义规范不重复记录，只补差异或合并增强；一次性决策留在任务正文（升格标准：重复出现 ≥2 次，或用户明示「以后都要这样」）
 - 语义变更走「`history.md` 留痕 + 索引行更新」；条目作废走**迁出 + 三层清理**（索引行删并迁 `retired.md`、物理删除分册小节、外部单一事实源同步删改）
 - 兼容读：先找 `conventions/index.md`，不存在再看旧单文件 `conventions.md`（提示可迁移），并存时以目录形态为准；表格形态按 `conventions-maintenance.md`；

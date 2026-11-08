@@ -33,6 +33,9 @@ toolkit conventions format --format json  # JSON 输出：status、目录、文�
 ⚠️ `format` 只动空白层与分隔行横线长度、不改语义（紧凑是规范形态、填充是偏离）；`tasks check` 与 `conventions status` 会对填充态给软告警、指向本命令，
 `tasks normalize --fix` 不代改空白层。
 
+⚠️ 读取模型由 `index.md` 路由：按索引行的适用面判断是否命中，命中即读其「归属」分册或「单一事实源」，**无命中即止**；
+`common.md` 不再是恒读面，只是跨面原则所在的一个普通分册。
+
 载体结构（v1 / v2 / v3 形态、三分区、稳定 ID、`history.md` / `retired.md`）与读写细则见[完整攻略 · conventions/：
 规范沉淀地](../guide#conventions-规范沉淀地)。
 
