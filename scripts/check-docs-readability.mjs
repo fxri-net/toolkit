@@ -152,6 +152,11 @@ export function run({ root = process.cwd(), argv = process.argv } = {}) {
     return 1
   }
   if (stale.length > 0) console.log(`文档可读性基线可清理：${stale.join("、")}`)
+  // 总行超过 300 只作拆分提醒：口径以正文行为准，超长页可能是代码 / 表格密集，不阻断
+  for (const file of targetPages(root)) {
+    const lines = readFileSync(join(root, file), "utf8").split("\n").length - 1
+    if (lines > 300) console.warn(`[docs] 页面超过 300 行：${file}（${lines} 行）`)
+  }
   const total = [...counted.values()].reduce((sum, list) => sum + list.length, 0)
   const sizeNote = `页面体量：正文 ≤${MAX_PROSE_LINES} 行、字符 ≤${MAX_PAGE_CHARS}`
   console.log(

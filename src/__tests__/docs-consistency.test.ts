@@ -167,16 +167,6 @@ describe("文档一致性：导航规范", () => {
     expect(head, "docs/404.md 缺少 frontmatter").toBeTruthy()
     expect(head).toMatch(/(^|\n)\s*search:\s*false\s*($|\n)/)
   })
-
-  it("单页超过 300 行时给出告警（changelog 镜像除外）", () => {
-    const longPages = collectMarkdown("docs", [])
-      .filter((page) => !page.endsWith("/changelog.md"))
-      .map((page) => ({ page, lines: readDoc(page).split("\n").length }))
-      .filter((item) => item.lines > 300)
-    for (const item of longPages) console.warn(`[docs] 页面超过 300 行：${item.page}（${item.lines} 行）`)
-    // 只告警不阻断：阈值用于提醒拆分，不作为失败条件
-    expect(true).toBe(true)
-  })
 })
 
 describe("文档一致性：站内链接目标与锚点可解析", () => {
