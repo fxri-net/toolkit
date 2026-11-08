@@ -64,16 +64,32 @@ export function renderTaskBoard(rows: TaskRow[], summary: TaskSummary, view: Tas
   printBoardSummary(summary)
 }
 
-// 打印汇总统计（终端末尾）
-function printBoardSummary(summary: TaskSummary): void {
+// 汇总渲染：状态 / 负责人 / 范围 / 批次四类分布，看板与 stats 共用同一维度；
+// includeTotal 控制是否输出总数行（stats 已有自己的样本口径，避免重复）
+export function renderSummaryLines(summary: TaskSummary, includeTotal = true): string[] {
+  const lines: string[] = []
+  if (includeTotal) lines.push(`共 ${summary.total} 个任务`)
   const statuses = STATUS_ORDER.filter((s) => summary.byStatus[s])
   const extras = Object.keys(summary.byStatus).filter((s) => !STATUS_ORDER.includes(s))
-  const owners = Object.keys(summary.byOwner).sort((a, b) => (summary.byOwner[b] ?? 0) - (summary.byOwner[a] ?? 0))
-  console.log(`共 ${summary.total} 个任务`)
-  if (statuses.length > 0 || extras.length > 0) {
-    const parts = statuses.map((s) => `${s} ${summary.byStatus[s]}`)
-    if (extras.length > 0) parts.push(`其他 ${extras.reduce((a, k) => a + (summary.byStatus[k] ?? 0), 0)}`)
-    console.log(`按状态：${parts.join("　")}`)
-  }
-  if (owners.length > 0) console.log(`按负责人：${owners.map((o) => `${o} ${summary.byOwner[o]}`).join("　")}`)
+  const parts = statuses.map((s) => `${s} ${summary.byStatus[s]}`)
+  if (extras.length > 0) parts.push(`其他 ${extras.reduce((a, k) => a + (summary.byStatus[k] ?? 0), 0)}`)
+  if (parts.length > 0) lines.push(`按状态：${parts.join("　")}`)
+  // 各维度按计数降序展示，计数相同保持插入顺序
+  const desc = (map?: Record<string, number>) =>
+    Object.entries(map ?? {})
+      .sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => `${k} ${v}`)
+      .join("　")
+  const owner = desc(summary.byOwner)
+  if (owner) lines.push(`按负责人：${owner}`)
+  const scope = desc(summary.byScope)
+  if (scope) lines.push(`按范围：${scope}`)
+  const batch = desc(summary.byBatch)
+  if (batch) lines.push(`按批次：${batch}`)
+  return lines
+}
+
+// 打印汇总统计（终端末尾）
+function printBoardSummary(summary: TaskSummary): void {
+  for (const line of renderSummaryLines(summary)) console.log(line)
 }

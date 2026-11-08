@@ -74,6 +74,8 @@ export interface TaskRow {
   depends: string[]
   // 来源文件（相对 .tasks 的路径）
   file: string
+  // 批次（解析正文「> 批次：第 N 批…」行；缺省未分批）
+  batch?: string
 }
 
 // 过滤条件
@@ -89,11 +91,13 @@ export interface TaskFilter {
   until?: string
 }
 
-// 汇总统计
+// 汇总统计（四类分布口径统一，看板与 stats 共用；byScope / byBatch 为后加字段，允许旧调用方缺省）
 export interface TaskSummary {
   total: number
   byStatus: Record<string, number>
   byOwner: Record<string, number>
+  byScope?: Record<string, number>
+  byBatch?: Record<string, number>
 }
 
 // 导入目标

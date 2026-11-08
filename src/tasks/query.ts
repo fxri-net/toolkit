@@ -5,7 +5,7 @@ import { join, basename } from "node:path"
 import { listTaskFiles, dateFromFileName } from "./scan"
 import type { MonthRange } from "./scan"
 import { parseArchiveBlocks } from "./archive-block"
-import { parseFrontmatter, titleOf } from "./parse"
+import { parseFrontmatter, stripFrontmatter, titleOf } from "./parse"
 import { parseDepends } from "./depends"
 import { parseMetaSegments } from "./meta"
 import { displayRel } from "./paths"
@@ -33,6 +33,7 @@ export function listActiveTasks(tasksDir = ".tasks"): TaskRow[] {
       completed: fm.completed || "",
       depends: parseDepends(fm.depends_on),
       file: displayRel(tasksDir, file),
+      batch: parseBatch(stripFrontmatter(content)),
     }
   })
 }
@@ -63,6 +64,7 @@ export function listArchivedTasks(tasksDir = ".tasks", months?: MonthRange): Tas
         completed: b.completed,
         depends: [],
         file: displayRel(tasksDir, file),
+        batch: parseBatch(b.body),
       })
     }
   }
@@ -72,6 +74,12 @@ export function listArchivedTasks(tasksDir = ".tasks", months?: MonthRange): Tas
 // 范围字段多值拆分：scope 以半角加号分隔多值（web+server），逐段去首尾空白并忽略空段
 export function splitScope(value: string): string[] {
   return value.split("+").map((s) => s.trim()).filter(Boolean)
+}
+
+// 批次行解析：正文 `> 批次：第 N 批（共 M 批）`，兼容全角/半角冒号与行首空白；缺省归「未分批」
+export function parseBatch(body: string): string {
+  const hit = body.match(/^\s*>?\s*批次\s*[：:]\s*(第\s*\d+\s*批)/m)
+  return hit ? (hit[1] as string).replace(/\s+/g, "") : "未分批"
 }
 
 // scope 命中：过滤值（CLI 侧已按逗号拆多值）与任务范围任一段相等即命中；
@@ -137,11 +145,20 @@ export function orderRows(rows: TaskRow[]): TaskRow[] {
 export function buildSummary(rows: TaskRow[]): TaskSummary {
   const byStatus: Record<string, number> = {}
   const byOwner: Record<string, number> = {}
-  for (const r of rows) {
-    byStatus[r.status] = (byStatus[r.status] || 0) + 1
-    byOwner[r.owner] = (byOwner[r.owner] || 0) + 1
+  const byScope: Record<string, number> = {}
+  const byBatch: Record<string, number> = {}
+  const bump = (map: Record<string, number>, key: string) => {
+    map[key] = (map[key] || 0) + 1
   }
-  return { total: rows.length, byStatus, byOwner }
+  for (const r of rows) {
+    bump(byStatus, r.status)
+    bump(byOwner, r.owner)
+    // 范围多值拆段各计；空值 / 缺省归「未标注」，与看板展示口径一致
+    const scopes = splitScope(r.scope)
+    for (const seg of scopes.length > 0 ? scopes : ["未标注"]) bump(byScope, seg === "-" ? "未标注" : seg)
+    bump(byBatch, r.batch || "未分批")
+  }
+  return { total: rows.length, byStatus, byOwner, byScope, byBatch }
 }
 
 // 由时间过滤推导归档月份目录白名单（YYYYMM 闭区间）：命中判定仍由 matchRow 负责，

@@ -45,6 +45,8 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 | `export <path>` | 导出到文件（按扩展名识别 csv / xlsx / json） |
 | `import <file>` | 从文件导入任务；`--target` 指定 active / archive |
 
+不带子命令时输出待完成看板，末尾汇总与 `stats` 共用同一维度；任务正文的 `> 批次：第 N 批（共 M 批）` 行会被解析进「按批次」汇总。
+
 ### archive
 
 - 条件：`status` 为 `已完成` / `已放弃` 且带 `completed`，按完成日期聚合归档
@@ -77,8 +79,9 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 
 - 完成周期与分布（仅「已完成」，已归档任务创建日期从块标题恢复，缺失者跳过并计数）
 - 未完成任务滞留时长
-- 按完成月 / 负责人 / 范围吞吐汇总
-- `--format json` 输出 JSON（顶层携带 `schemaVersion: 1` 锚点，与 `tasks export` 及各域 `--format json` 同口径），过滤选项与视图查询一致（`--view` 默认 `all`，含归档）
+- 按完成月吞吐汇总
+- 汇总块与 `toolkit tasks` 看板一致：按状态 / 负责人 / 范围 / 批次（范围多值拆段、空值与 `-` 归「未标注」；批次解析正文行 `> 批次：第 N 批（共 M 批）`，无该行归「未分批」）
+- `--format json` 输出 JSON（顶层携带 `schemaVersion: 1` 锚点，与 `tasks export` 及各域 `--format json` 同口径），过滤选项与视图查询一致（`--view` 默认 `all`，含归档）；JSON 的 `byOwner` / `byScope` 仍是完成样本吞吐口径，统一分布见 `summary` 字段
 
 `check` / `normalize` 的问题清单逐条输出为 `文件:行号: 描述`（有行号时便于编辑器跳转）；文件级问题（如重名、游离文件、归档块问题）无对应行，省略行号段，输出为 `文件: 描述`。
 

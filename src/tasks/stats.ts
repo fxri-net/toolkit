@@ -4,8 +4,9 @@
 // 活跃任务只统计滞留时长（统计日 − 创建日，不含已完结状态）。
 import { toYmd, todayDash } from "../date"
 import { DONE_STATUSES } from "./types"
-import type { TaskRow, TaskFilter, TaskView } from "./types"
-import { queryTasks, splitScope } from "./query"
+import type { TaskRow, TaskFilter, TaskView, TaskSummary } from "./types"
+import { buildSummary, queryTasks, splitScope } from "./query"
+import { renderSummaryLines } from "./list"
 
 // 单条周期样本（天）
 interface DurationSample {
@@ -63,6 +64,8 @@ export interface TaskStats {
   byMonth: Record<string, number>
   byOwner: Record<string, number>
   byScope: Record<string, number>
+  // 统一分布：状态 / 负责人 / 范围 / 批次（覆盖视图内全部行，与看板同一口径）
+  summary: TaskSummary
 }
 
 // 单行周期天数：创建日期或完成时间缺失返回 null（含 created 晚于 completed 的数据异常行）
@@ -133,6 +136,7 @@ export function computeStats(tasksDir: string, filter: TaskFilter = {}, view: Ta
     byMonth,
     byOwner,
     byScope,
+    summary: buildSummary(rows),
   }
 }
 
@@ -148,18 +152,12 @@ export function renderStats(s: TaskStats): string[] {
   lines.push("")
   lines.push(`未完成任务：${s.active.count} 个　平均滞留 ${s.active.avgStay} 天　最长滞留 ${s.active.maxStay} 天`)
   lines.push("")
-  // 按完成月升序展示，体现吞吐时间线；负责人/范围按完成数降序
+  // 按完成月升序展示，体现吞吐时间线；其后接统一汇总块（状态 / 负责人 / 范围 / 批次）
   const byMonth = Object.entries(s.byMonth)
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([k, v]) => `${k} ${v}`)
     .join("　")
-  const desc = (m: Record<string, number>) =>
-    Object.entries(m)
-      .sort((a, b) => b[1] - a[1])
-      .map(([k, v]) => `${k} ${v}`)
-      .join("　")
   if (byMonth) lines.push(`按完成月：${byMonth}`)
-  if (s.byOwner && Object.keys(s.byOwner).length > 0) lines.push(`按负责人：${desc(s.byOwner)}`)
-  if (s.byScope && Object.keys(s.byScope).length > 0) lines.push(`按范围：${desc(s.byScope)}`)
+  lines.push(...renderSummaryLines(s.summary, false))
   return lines
 }

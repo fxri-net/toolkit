@@ -31,6 +31,29 @@ describe("printTaskBoard 未知状态（K1）", () => {
   })
 })
 
+describe("printTaskBoard 统一汇总维度", () => {
+  it("看板汇总含状态 / 负责人 / 范围 / 批次四类维度", () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-board-sum-"))
+    mkdirSync(join(dir, "active", "202609"), { recursive: true })
+    writeFileSync(
+      join(dir, "active", "202609", "20260901-张三-a.md"),
+      "---\nowner: 张三\nstatus: 待办\ncreated: 20260901\nupdated: 20260901\ncompleted: ''\ndepends_on: []\nscope: core\n---\n\n# a\n\n> 批次：第 1 批（共 1 批）\n\n正文\n",
+      "utf8",
+    )
+    const lines: string[] = []
+    const spy = vi.spyOn(console, "log").mockImplementation((...a: unknown[]) => lines.push(a.join(" ")))
+    printTaskBoard(dir, "active")
+    spy.mockRestore()
+    const out = lines.join("\n")
+    expect(out).toContain("共 1 个任务")
+    expect(out).toContain("按状态：待办 1")
+    expect(out).toContain("按负责人：张三 1")
+    expect(out).toContain("按范围：core 1")
+    expect(out).toContain("按批次：第1批 1")
+    rmSync(dir, { recursive: true, force: true })
+  })
+})
+
 describe("exportTasks 目录自动创建（K3）", () => {
   it("嵌套目录不存在时自动创建", async () => {
     const dir = mkdtempSync(join(tmpdir(), "tk-exp-"))

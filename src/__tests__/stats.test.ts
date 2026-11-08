@@ -15,10 +15,10 @@ function makeDir(): string {
 }
 
 // 写活跃任务文件（年月子目录 + frontmatter + 正文）
-function writeTask(dir: string, name: string, fm: Record<string, string>): void {
+function writeTask(dir: string, name: string, fm: Record<string, string>, body = "正文"): void {
   mkdirSync(join(dir, "active", name.slice(0, 6)), { recursive: true })
   const lines = Object.entries(fm).map(([k, v]) => `${k}: ${v}`)
-  writeFileSync(join(dir, "active", name.slice(0, 6), `${name}.md`), `---\n${lines.join("\n")}\n---\n\n# ${name}\n\n正文\n`, "utf8")
+  writeFileSync(join(dir, "active", name.slice(0, 6), `${name}.md`), `---\n${lines.join("\n")}\n---\n\n# ${name}\n\n${body}\n`, "utf8")
 }
 
 // 写归档文件（按完成日期分组的任务块）
@@ -129,6 +129,16 @@ describe("computeStats", () => {
     expect(stats.duration.count).toBe(0)
   })
 
+  it("批次从正文解析并汇总，缺省归未分批（兼容全角/半角冒号）", () => {
+    const dir = makeDir()
+    writeTask(dir, "20260901-张三-批一", { owner: "张三", status: "待办", created: "20260901", updated: "20260901", completed: "", depends_on: "[]", scope: "core" }, "> 批次：第 1 批（共 2 批）\n\n正文")
+    writeTask(dir, "20260902-李四-批二", { owner: "李四", status: "待办", created: "20260902", updated: "20260902", completed: "", depends_on: "[]", scope: "core" }, "> 批次: 第 2 批（共 2 批）\n\n正文")
+    writeTask(dir, "20260903-王五-无批次", { owner: "王五", status: "待办", created: "20260903", updated: "20260903", completed: "", depends_on: "[]", scope: "core" })
+    const stats = computeStats(dir)
+    expect(stats.summary.byBatch).toEqual({ 第1批: 1, 第2批: 1, 未分批: 1 })
+    expect(stats.summary.byScope).toEqual({ core: 3 })
+  })
+
   it("过滤参数（owner/scope/status/since/until）联动统计", () => {
     const dir = makeDir()
     writeArchive(dir, "20260905", [
@@ -171,6 +181,7 @@ describe("stats JSON 输出", () => {
     expect(parsed.byMonth).toEqual(stats.byMonth)
     expect(parsed.byOwner).toEqual(stats.byOwner)
     expect(parsed.byScope).toEqual(stats.byScope)
+    expect(parsed.summary).toEqual(stats.summary)
     expect(parsed.skipped).toBe(stats.skipped)
   })
 })
@@ -189,7 +200,10 @@ describe("renderStats", () => {
     expect(text).toContain("未完成任务：1 个")
     expect(text).toContain("平均滞留 4 天")
     expect(text).toContain("按完成月：2026-09 1")
-    expect(text).toContain("按负责人：张三 1")
-    expect(text).toContain("按范围：core 1")
+    // 汇总块与看板统一：状态 / 负责人 / 范围 / 批次四类维度（覆盖视图内全部行）
+    expect(text).toContain("按状态：进行中 1　已完成 1")
+    expect(text).toContain("按负责人：")
+    expect(text).toContain("按范围：core 2")
+    expect(text).toContain("按批次：未分批 2")
   })
 })
