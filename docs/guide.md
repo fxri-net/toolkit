@@ -150,7 +150,7 @@
 
 | 技能 | 版本 | 用途 | 层级 |
 | --- | --- | --- | --- |
-| `fxri-plan-to-task` | 1.10.2 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 | core |
+| `fxri-plan-to-task` | 1.10.3 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 | core |
 | `fxri-release-changelog` | 1.3.4 | changesets 发版与多语言 CHANGELOG 维护 | optional |
 | `fxri-session-recap` | 1.6.11 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | `fxri-plan-review` | 1.0.8 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
@@ -171,7 +171,13 @@ toolkit skills status      # 查现场与版本；toolkit skills uninstall 卸�
 pnpm dlx skills add fxri-net/toolkit --global
 ```
 
-**全局面分发目标三层**：主目标 `~/.agents/skills/`（多家 agent 共读：Cline、Codex、Dexto、Kimi Code CLI、Loaf、Pi、Sarvam Code、Warp、Zed、DeepSeek Harness）→ 内置表中「已安装」的各 agent 全局技能目录 → `--dir` 兜底（自定义目录只在当次写入，技能增删后需带相同 `--dir` 重跑）；未安装的 agent 只报告、不凭空造目录。默认**软链**（Windows 用 junction），⚠️ 软链落点是**写入穿透**形态，改落点文件即改真源，要改技能内容请改真源。升级前的 Codex / Pi 历史落点若仍有登记，`status` 会单列「历史落点残留」提示清理（只提示、不自动删除）。
+**全局面分发目标三层**：主目标 `~/.agents/skills/` → 内置表中「已安装」的各 agent 全局技能目录 → `--dir` 兜底。未安装的 agent 只报告、不凭空造目录。
+
+- **主目标**：由多家 agent 共读，共读清单与判定口径见 [skills 命令 · 作用域](./cli/skills#作用域)
+- **`--dir`**：自定义目录只在当次写入，技能增删后需带相同 `--dir` 重跑
+- **历史落点**：升级前的 Codex / Pi 落点若仍有登记，`status` 会单列「历史落点残留」提示清理（只提示、不自动删除）
+
+默认**软链**（Windows 用 junction）。⚠️ 软链落点是**写入穿透**形态：改落点文件即改真源，要改技能内容请改真源。
 
 **项目面分发（`--scope project`）**：真源落 `<仓库根>/.agents/skills/`（完整副本），其余已存在的候选目录各放每个技能一份**入口薄壳**指向真源，避免多目录重复；归属账写 `<仓库根>/.toolkit/state.json`，`prepare` 钩子在 `pnpm install` 时自动刷新，队友 clone 即用。候选目录清单、逐技能现场状态与卸载口径见 [skills 命令](./cli/skills)。
 

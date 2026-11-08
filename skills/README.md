@@ -8,7 +8,7 @@
 
 | 技能 | 版本 | 用途 | 层级 |
 | --- | --- | --- | --- |
-| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.10.2 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 | core |
+| [fxri-plan-to-task](./fxri-plan-to-task/SKILL.md) | 1.10.3 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；规范载体迁移与升级 | core |
 | [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.3.4 | changesets 发版与多语言 CHANGELOG 维护 | optional |
 | [fxri-session-recap](./fxri-session-recap/SKILL.md) | 1.6.11 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | [fxri-plan-review](./fxri-plan-review/SKILL.md) | 1.0.8 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
@@ -36,11 +36,31 @@ toolkit skills uninstall       # 卸载本包装的产物（只清自己装的�
 ```
 
 - 真源唯一：技能取自已装 CLI 包内的 `skills/`；软链锚在 pnpm 稳定入口，升级 CLI 后自动指向新版（副本形式需重跑 `toolkit skills install`）
-- 目标三层：主目标 `~/.agents/skills/`（多家 agent 共读：Cline、Codex、Dexto、Kimi Code CLI、Loaf、Pi、Sarvam Code、Warp、Zed、DeepSeek Harness）→ 内置表内**已安装**的各 agent 全局技能目录 → `--dir <path>` 兜底（可多次指定，给表外 agent 用；只在当次安装时写入，技能增删后不会自动同步，需带相同 `--dir` 重跑 `toolkit skills install`）；共读 agent 的全局目录即主目标本身，写一次即全部覆盖，`toolkit skills status` 单列「经 canonical 共读的 agent」；升级前的 Codex / Pi 历史落点（`~/.codex/skills`、`~/.pi/agent/skills`）若仍有本包登记，`toolkit skills status` 会单列「历史落点残留」提示清理（只提示、不自动删除）
+- 目标三层：主目标 `~/.agents/skills/` → 内置表内**已安装**的各 agent 全局技能目录 → `--dir <path>` 兜底
+  - 主目标由多家 agent 共读，写一次即全部覆盖；`toolkit skills status` 把它们单列为「经 canonical 共读的 agent」
+  - 共读 agent：Cline、Codex、Dexto、Kimi Code CLI、Loaf、Pi、Sarvam Code、Warp、Zed、DeepSeek Harness
+  - `--dir` 可多次指定，供表外 agent 使用；只在当次安装时写入，技能增删后需带相同 `--dir` 重跑 `toolkit skills install`
+  - 升级前的 Codex / Pi 历史落点（`~/.codex/skills`、`~/.pi/agent/skills`）若仍有本包登记，`toolkit skills status` 会单列「历史落点残留」提示清理（只提示、不自动删除）
 - 默认软链（锚在 pnpm 稳定入口，升级不失效）；链接创建失败自动降级为副本并打印 ⚠️（如无权限建链）；`--copy` 强制副本、`--dry-run` 预演、`--force` 覆盖同名非本包产物（不改本包已登记副本的形态）、`--prune` 清理未选择且内容一致的旧产物
 - 改 `skills/` 须发版才触达用户：技能随包同源分发，调整只有随 `@fxri/toolkit` 发版、使用者升级后才生效（软链自动跟随新包），未发版的改动只存在于本仓库
 - 产物记录在状态文件 `~/.agents/.toolkit-skills.json`（`format` + `schemaVersion` + `sources` 结构，旧结构首次读取时导入并备份 `.bak`）；卸载 CLI 前先跑 `toolkit skills uninstall`，避免留下悬空链接（清理后目标目录若已空会一并回收）
-- **项目面（`--scope project`）**：`--scope` 缺省时按 CLI 安装位置自动判定（项目内装 CLI → 项目面）。真源落 `<仓库根>/.agents/skills/`（完整副本），其余**已存在**的候选目录（`.trae/skills/`、`.claude/skills/`、`agent/skills/`（eve）、`.augment/skills/`、`.codebuddy/skills/`、`.continue/skills/`、`.crush/skills/`、`.devin/skills/`、`.goose/skills/`、`.grok/skills/`、`.hermes/skills/`、`.iflow/skills/`、`.junie/skills/`、`.kiro/skills/`、`.openhands/skills/`、`.qwen/skills/`、`.roo/skills/`、`.windsurf/skills/`）各放每个技能一份入口薄壳指向真源；产物记录在 `<仓库根>/.toolkit/state.json`（与真源、薄壳一并入库）。`toolkit init` 会写入 `prepare` 刷新钩子，`pnpm install` 时自动补齐/刷新，队友 clone 即用；`--copy` 仅全局面生效，项目面恒为副本
+- **项目面（`--scope project`）**：`--scope` 缺省时按 CLI 安装位置自动判定（项目内装 CLI → 项目面）
+  - 真源落 `<仓库根>/.agents/skills/`（完整副本），其余**已存在**的候选目录各放每个技能一份入口薄壳指向真源
+  - 产物记录在 `<仓库根>/.toolkit/state.json`（与真源、薄壳一并入库）
+  - `toolkit init` 会写入 `prepare` 刷新钩子，`pnpm install` 时自动补齐/刷新，队友 clone 即用
+  - `--copy` 仅全局面生效，项目面恒为副本
+  - 项目级候选目录（19 个，仅在目录已存在时落壳）：
+
+| 候选目录 | 候选目录 | 候选目录 |
+| --- | --- | --- |
+| `.agents/skills/`（真源） | `.trae/skills/` | `.claude/skills/` |
+| `agent/skills/`（Eve） | `.augment/skills/` | `.codebuddy/skills/` |
+| `.continue/skills/` | `.crush/skills/` | `.devin/skills/` |
+| `.goose/skills/` | `.grok/skills/` | `.hermes/skills/` |
+| `.iflow/skills/` | `.junie/skills/` | `.kiro/skills/` |
+| `.openhands/skills/` | `.qwen/skills/` | `.roo/skills/` |
+| `.windsurf/skills/` |  |  |
+
 - 发布型包误打包检查：`toolkit init` 在未标 `private` 且无 `files` 白名单的项目里会提示技能产物（`.agents/skills/`）与内置任务区（`.tasks/`）可能被打进 npm 包——只提示、不代改
 
 ### 方式二：上游安装器 `npx skills`（需锁定文件或覆盖表外 agent 时）

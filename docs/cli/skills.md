@@ -151,7 +151,26 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 `install` / `status` / `remove` 三子命令均支持 `--scope <project|global|all>`，缺省按**现场自动判定**：
 
-- **project（项目面）**：仅在**仓库内**生效。真源固定为仓库根下 `.agents/skills/`（完整副本一份、随 git 入库），其余**已存在**的项目级技能目录（`.trae/skills/`、`.claude/skills/`、`agent/skills/`（eve）、`.augment/skills/`、`.codebuddy/skills/`、`.continue/skills/`、`.crush/skills/`、`.devin/skills/`、`.goose/skills/`、`.grok/skills/`、`.hermes/skills/`、`.iflow/skills/`、`.junie/skills/`、`.kiro/skills/`、`.openhands/skills/`、`.qwen/skills/`、`.roo/skills/`、`.windsurf/skills/`；`.cursor/skills/`、`.trae-cn/skills/` 是这两家 agent 的全局目录，不在项目级候选内）各放**每个技能一个薄壳** `SKILL.md`（`description` 派生自真源以保持触发面一致、正文只指向真源路径、带本包标记）；不写到仓库之外的目录（`--dir` 落在仓库外的取值会告警剔除、不静默丢弃），不支持 `--copy`（真源恒为副本、薄壳非副本，传入时告警忽略）；未命中的候选目录只报告、不凭空建
+- **project（项目面）**：仅在**仓库内**生效。
+  - 真源固定为仓库根下 `.agents/skills/`：完整副本一份，随 git 入库。
+  - 其余**已存在**的项目级技能目录，各放**每个技能一个薄壳** `SKILL.md`。薄壳的 `description` 派生自真源以保持触发面一致，正文只指向真源路径，并带本包标记。
+  - 候选目录见下表；未命中的候选目录只报告、不凭空建目录。
+  - `.cursor/skills/`、`.trae-cn/skills/` 是这两家 agent 的**全局**目录，不在项目级候选内。
+  - 不写到仓库之外的目录：`--dir` 落在仓库外会告警剔除，不静默丢弃。
+  - 不支持 `--copy`：真源恒为副本、薄壳非副本，传入时告警忽略。
+
+**项目级候选目录**（19 个，仅在目录已存在时落壳）：
+
+| 候选目录 | 候选目录 | 候选目录 |
+| --- | --- | --- |
+| `.agents/skills/`（真源） | `.trae/skills/` | `.claude/skills/` |
+| `agent/skills/`（Eve） | `.augment/skills/` | `.codebuddy/skills/` |
+| `.continue/skills/` | `.crush/skills/` | `.devin/skills/` |
+| `.goose/skills/` | `.grok/skills/` | `.hermes/skills/` |
+| `.iflow/skills/` | `.junie/skills/` | `.kiro/skills/` |
+| `.openhands/skills/` | `.qwen/skills/` | `.roo/skills/` |
+| `.windsurf/skills/` |  |  |
+
 - **global（全局面）**：写到各 agent 的**全局**技能目录（见下方「全局面分发目标三层」）
 - **all**：两面都执行（报告各自成段）
 
@@ -165,9 +184,11 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 **全局面分发目标三层**（按顺序去重）：
 
-1. 主目标 `~/.agents/skills/`（上游 canonical 目录，多家 agent 共读：Cline、Codex、Dexto、Kimi Code CLI、Loaf、Pi、Sarvam Code、Warp、Zed、DeepSeek Harness）
+1. 主目标 `~/.agents/skills/`：上游 canonical 目录，多家 agent 共读（清单见本节末）
 2. 内置表中「已安装」的各 agent 全局技能目录（判据：agent 配置目录存在或探测路径命中）
 3. `--dir <path>` 指定的兜底目录
+
+共读主目标的 agent：Cline、Codex、Dexto、Kimi Code CLI、Loaf、Pi、Sarvam Code、Warp、Zed、DeepSeek Harness。
 
 上述共读 agent 的全局技能目录就是主目标本身，写入一次即全部覆盖、不需要重复分发；`status` 把它们单列为「经 canonical 共读的 agent」（按探测路径判定是否安装），不进「未安装的 agent」提示。DeepSeek Harness 的项目级技能目录 `<仓库根>/.agents/skills/` 与项目面真源同路径，因此也无需向 `~/.dsh/skills/` 额外写入。
 

@@ -10,7 +10,7 @@
   "docs/cli/exit-codes.md": 1,
   "docs/cli/init.md": 8,
   "docs/cli/rules.md": 1,
-  "docs/cli/skills.md": 28,
+  "docs/cli/skills.md": 26,
   "docs/cli/tasks.md": 6,
   "docs/cli/usage.md": 6,
   "docs/cli.md": 6,
@@ -20,7 +20,7 @@
   "docs/config.md": 8,
   "docs/faq.md": 36,
   "docs/getting-started.md": 5,
-  "docs/guide.md": 33,
+  "docs/guide.md": 32,
   "docs/handbook.md": 9,
   "docs/index.md": 1,
   "docs/rules/ai.md": 4,
@@ -32,7 +32,7 @@
   "docs/usage/schema.md": 1,
   "skills/fxri-plan-review/SKILL.md": 4,
   "skills/fxri-plan-to-task/references/conventions-migration.md": 8,
-  "skills/fxri-plan-to-task/references/conventions-spec.md": 23,
+  "skills/fxri-plan-to-task/references/conventions-spec.md": 22,
   "skills/fxri-plan-to-task/references/conventions-templates.md": 3,
   "skills/fxri-plan-to-task/references/task-spec.md": 19,
   "skills/fxri-plan-to-task/SKILL.md": 9,
@@ -45,5 +45,5 @@
   "skills/fxri-text-encoding/references/tables.md": 2,
   "skills/fxri-text-encoding/references/troubleshooting.md": 1,
   "skills/fxri-text-encoding/SKILL.md": 7,
-  "skills/README.md": 15
+  "skills/README.md": 13
 }
