@@ -78,6 +78,7 @@ toolkit usage doctor
 - 触发词默认不采集；开启后截断 200 字并复用全局脱敏规则。
 - `export` 输出的是已落盘事件；触发词是否出现取决于采集开关。
 - `doctor` 只诊断不自动修复；索引不一致时用 `rebuild`，重复事件用 `dedupe`。跨适配器重复按 `(sessionId, toolUseId)` 计数。
+- `doctor --format json` 的诊断项为 `items: { code, level, message }[]`：`code` 供脚本断言，`level` 区分必须处理（`warn`）与提示（`info`）；文本模式分别以 ⚠️ / ℹ️ 前缀输出。
 - `import --type transcript` 从 Claude 或通用会话记录提取 `tool_use` 块；时间以导入时刻为准，不还原原始会话时间。
 
 ## 相关页面

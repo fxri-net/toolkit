@@ -113,7 +113,8 @@ describe("profile 现场检测", () => {
 
   it("非数组结构不写入并给出告警", () => {
     const dir = makeProfile("objects", "agent:\n  model: deepseek-flash\n")
-    const install = dshAdapter.installHooks({ command: "cmd" })
+    const command = buildHookCommand("dsh", "/opt/cli.js", "/opt/node", process.platform)
+    const install = dshAdapter.installHooks({ command })
     expect(profileHasToolkitBlock(dir)).toBe(false)
     expect(readFileSync(join(dir, "cordis.patch.yml"), "utf8")).toBe("agent:\n  model: deepseek-flash\n")
     expect(install.warnings?.join("\n")).toContain("不是顶层数组")
@@ -149,9 +150,17 @@ describe("dsh 适配器", () => {
     expect(dshAdapter.status().installed).toBe(false)
   })
 
+  it("未安装 Hook 时不提示 profile 级桥接条目（rule 通道不误导）", () => {
+    makeProfile("desktop", "[]\n")
+    const status = dshAdapter.status()
+    expect(status.installed).toBe(false)
+    expect(status.warnings).toHaveLength(0)
+  })
+
   it("已安装官方桥接包时条目用官方包名", () => {
     const dir = makeProfile("official", "[]\n", { "@deepseek-ai/dsh-hooks-claude-code": "0.0.1-rc.5" })
-    dshAdapter.installHooks({ command: "cmd" })
+    const command = buildHookCommand("dsh", "/opt/cli.js", "/opt/node", process.platform)
+    dshAdapter.installHooks({ command })
     expect(readFileSync(join(dir, "cordis.patch.yml"), "utf8")).toContain('name: "@deepseek-ai/dsh-hooks-claude-code"')
     expect(dshAdapter.status().warnings).toHaveLength(0)
   })

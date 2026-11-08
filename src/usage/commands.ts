@@ -951,8 +951,10 @@ export function registerUsageCommands(program: Command): void {
     .action((options: { dir?: string; format?: string }) => {
       if (!assertJsonFormat(options.format)) return
       const { config, dir, paths } = createContext(options.dir)
-      const issues: string[] = []
-      if (!existsSync(dir)) issues.push(`数据目录尚未创建：${dir}`)
+      // 诊断项：code 供脚本断言，level 区分必须处理与提示，message 保持人类可读
+      const items: Array<{ code: string; level: "warn" | "info"; message: string }> = []
+      const add = (code: string, level: "warn" | "info", message: string) => items.push({ code, level, message })
+      if (!existsSync(dir)) add("data-dir-missing", "warn", `数据目录尚未创建：${dir}`)
       const events = readAllEvents(paths)
       const index = readIndex(paths)
       const unique = new Set(events.map((event) => event.eventId))
@@ -966,45 +968,45 @@ export function registerUsageCommands(program: Command): void {
       }
       const crossAdapters = [...keyAgents.values()].filter((agents) => agents.size > 1).length
       if (index.eventIds.length !== unique.size) {
-        issues.push(`索引与事件数不一致：索引 ${index.eventIds.length} / 去重后 ${unique.size}，可执行 rebuild`)
+        add("index-mismatch", "warn", `索引与事件数不一致：索引 ${index.eventIds.length} / 去重后 ${unique.size}，可执行 rebuild`)
       }
-      if (events.length !== unique.size) issues.push(`存在 ${events.length - unique.size} 条重复事件，可执行 dedupe`)
-      if (crossAdapters > 0) issues.push(`存在 ${crossAdapters} 组跨适配器重复调用，可执行 dedupe`)
-      if (!config.enabled) issues.push("技能使用情况总开关处于关闭状态")
+      if (events.length !== unique.size) add("duplicate-events", "warn", `存在 ${events.length - unique.size} 条重复事件，可执行 dedupe`)
+      if (crossAdapters > 0) add("cross-adapter-duplicates", "warn", `存在 ${crossAdapters} 组跨适配器重复调用，可执行 dedupe`)
+      if (!config.enabled) add("disabled", "info", "技能使用情况总开关处于关闭状态")
       const installedHooks: string[] = []
       for (const adapter of AGENT_ADAPTERS) {
         try {
           const status = adapter.status()
           if (status.installed) installedHooks.push(adapter.id)
           if (status.legacyCommand) {
-            issues.push(`${adapter.displayName} 的 Hook 仍指向旧命令 telemetry，已失效，请重跑 toolkit usage hooks install --agent ${adapter.id}`)
+            add("hook-legacy", "warn", `${adapter.displayName} 的 Hook 仍指向旧命令 telemetry，已失效，请重跑 toolkit usage hooks install --agent ${adapter.id}`)
           }
           if (status.outdatedCommand) {
-            issues.push(`${adapter.displayName} 的 Hook 命令平台形态已过期，在所在系统上无法执行，请重跑 toolkit usage hooks install --agent ${adapter.id}`)
+            add("hook-outdated", "warn", `${adapter.displayName} 的 Hook 命令平台形态已过期，在所在系统上无法执行，请重跑 toolkit usage hooks install --agent ${adapter.id}`)
           }
           if (status.missingPaths) {
-            issues.push(`${adapter.displayName} 的 Hook 命令路径已失效（${status.missingPaths.join("、")}），请重跑 toolkit usage hooks install --agent ${adapter.id}`)
+            add("hook-path-missing", "warn", `${adapter.displayName} 的 Hook 命令路径已失效（${status.missingPaths.join("、")}），请重跑 toolkit usage hooks install --agent ${adapter.id}`)
           }
-          for (const warning of status.warnings ?? []) issues.push(`${adapter.displayName}：${warning}`)
+          for (const warning of status.warnings ?? []) add("adapter-warning", "warn", `${adapter.displayName}：${warning}`)
         } catch {
           // 配置读取失败由 usage hooks status 展示，doctor 不重复报错
         }
       }
       if (config.channel === "rule" && installedHooks.length > 0) {
-        issues.push(`采集通道为 rule，但本机仍有 Hook（${installedHooks.join("、")}）：执行 toolkit usage hooks remove 清理，避免重复采集`)
+        add("rule-channel-with-hooks", "warn", `采集通道为 rule，但本机仍有 Hook（${installedHooks.join("、")}）：执行 toolkit usage hooks remove 清理，避免重复采集`)
       }
       if (config.channel === "hook" && installedHooks.length === 0) {
-        issues.push("采集通道为 hook，但未安装任何 Hook：执行 toolkit usage hooks install，或切换为 rule（toolkit usage channel rule）")
+        add("hook-channel-without-hooks", "warn", "采集通道为 hook，但未安装任何 Hook：执行 toolkit usage hooks install，或切换为 rule（toolkit usage channel rule）")
       }
-      const report = { dataDir: dir, events: events.length, unique: unique.size, indexed: index.eventIds.length, crossAdapters, issues }
+      const report = { dataDir: dir, events: events.length, unique: unique.size, indexed: index.eventIds.length, crossAdapters, items }
       if (options.format === "json") {
         printJson(report)
         return
       }
       console.log(`数据目录：${dir}`)
       console.log(`事件：${events.length} 条 / 去重后 ${unique.size} 条 / 索引 ${index.eventIds.length} 条`)
-      if (issues.length === 0) console.log("未发现问题")
-      else for (const issue of issues) console.log(`⚠️ ${issue}`)
+      if (items.length === 0) console.log("未发现问题")
+      else for (const item of items) console.log(`${item.level === "warn" ? "⚠️" : "ℹ️"} ${item.message}`)
     })
 
   // 规则文案：供用户复制到全局规则；配置不会统计任何技能时先提示空转

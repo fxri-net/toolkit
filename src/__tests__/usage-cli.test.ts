@@ -126,6 +126,21 @@ describe("usage CLI", () => {
     expect(readAllEvents(usagePaths(dataDir))).toHaveLength(0)
   })
 
+  it("doctor 输出结构化诊断项，rule 通道下不误报 dsh 桥接条目", async () => {
+    const profile = join(home, ".dsh", "profiles", "desktop")
+    mkdirSync(profile, { recursive: true })
+    writeFileSync(join(profile, "cordis.patch.yml"), "[]\n", "utf8")
+    await run(["doctor", "--format", "json"])
+    const text = logs.join("\n")
+    const parsed = JSON.parse(text.slice(text.indexOf("{"))) as {
+      items: Array<{ code: string; level: string; message: string }>
+    }
+    expect(Array.isArray(parsed.items)).toBe(true)
+    expect(parsed.items.every((i) => i.code !== "" && (i.level === "warn" || i.level === "info"))).toBe(true)
+    expect(parsed.items.some((i) => i.message.includes("桥接条目"))).toBe(false)
+    expect(parsed.items.some((i) => i.code === "rule-channel-with-hooks")).toBe(false)
+  })
+
   it("Hook 安装、状态与卸载", async () => {
     await run(["hooks", "install", "--agent", "trae"])
     expect(logs.join("\n")).toContain("已安装 Hook")

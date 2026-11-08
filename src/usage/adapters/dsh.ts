@@ -63,6 +63,8 @@ export const dshAdapter: AgentAdapter = {
   },
   status(): HookStatus {
     const status = standardHookStatus(dshHooksFile(), this.id, this.displayName)
+    // 未安装本包 Hook 时不做 profile 级提示：rule 通道下这些提示只会引导用户安装用不上的通道
+    if (!status.installed) return { ...status, warnings: [] }
     const warnings: string[] = []
     const profiles = listDshProfiles()
     if (profiles.length === 0) {

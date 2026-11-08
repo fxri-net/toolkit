@@ -99,6 +99,8 @@ dsh 不直接读 `hooks.json`，要经 Claude Code 兼容层桥接插件才生�
 
 `hooks status --agent dsh` 会在插件缺失或标记块缺失时提示。桥接插件把 `tool_response` 扁平化为文本，`outcome` 字段恒为 `unknown`（Trae 等原生 Hook 会按返回体推断成功与否），其余字段正常。
 
+profile 级提示（桥接条目 / 插件缺失）只在 Hook 已安装时出现；使用 rule 通道时无需处理这些提示。
+
 ⚠️ **运行沙箱限制**：dsh 的 Hook 进程受运行时文件沙箱约束，可能无法写家目录下的统计库，表现为 `usage doctor` / `hooks status` 报 `Access to the path ... is denied` 或始终「暂无记录」。此时 Hook 通道不可用，改用规则通道（`toolkit usage channel rule` + 复制 [技能使用情况规则](../rules/usage)），不依赖任何 Agent 配置。
 
 重复执行 `toolkit usage init` 会沿用历史选择：已配置时默认「保持当前配置（只重装 Hook）」，选择「自定义」则逐项回填现有值。升级后修复 Hook 路径时优先用「保持当前配置」。
