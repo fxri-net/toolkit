@@ -32,7 +32,8 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 | `usage` | 技能使用情况 | 全量 |
 
 - 组合更新时间取所选模块的**最新锚点**；`recommended` 默认不含 `env`，`complete`（AI 全篇）才等于 [AI 全局规则](./ai) 整篇。
-- `env` 是工作流章节的补充，单独复制时正文以 `- **环境与版本**` 开头，不带二级标题；建议与 `workflow` 一起使用。
+- 点预设会直接切换为该预设的选择与顺序（与 CLI `rules compose --preset` 一致），手动勾选或排序后视为自定义组合。
+- `env` 是工作流章节的补充，正文以 `## 环境与版本` 开头；建议与 `workflow` 一起使用。
 - 清空全部模块不会持久化，刷新回落 `recommended`。
 - 文档站记忆写在 `localStorage`（键 `fxri-toolkit:rules:v1`），仅当前浏览器；命令行记忆写在 `~/.toolkit/cache/rules-selection.json`，两端不自动同步。
 - 「恢复默认」会清除本机记忆；禁用本地存储时组合器仍可使用，只是不保留选择。

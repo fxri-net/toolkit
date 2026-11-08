@@ -92,12 +92,10 @@ function toggle(id: string, checked: boolean): void {
   persist()
 }
 
-// 预设只负责补选与按预设顺序重排，不丢弃用户额外勾选的模块
+// 预设即一键切换：选择与顺序都直接覆盖为预设内容，与 CLI 的 --preset 口径一致
 function applyPreset(name: string): void {
-  const base = presets[name] ?? []
-  const extras = selected.value.filter((id) => !base.includes(id))
-  selected.value = [...base, ...extras]
-  activePreset.value = extras.length > 0 ? "custom" : name
+  selected.value = [...(presets[name] ?? [])]
+  activePreset.value = name
   persist()
 }
 
@@ -190,11 +188,8 @@ async function copy(): Promise<void> {
         {{ presetLabels[name] ?? name }}
       </button>
     </div>
-    <p class="rc-hint">默认选中「推荐」；预设只补选与重排，不会丢弃你额外勾选的模块。清空全部模块后刷新会回落推荐集。</p>
-    <p v-if="envHint" class="rc-warning">
-      环境与版本是工作流章节的补充，建议与工作流一起使用；单独复制时正文以
-      <code>- **环境与版本**</code> 开头，不带二级标题。
-    </p>
+    <p class="rc-hint">默认选中「推荐」；点预设会直接切换为该预设的选择与顺序，手动勾选或排序后视为自定义组合。清空全部模块后刷新会回落推荐集。</p>
+    <p v-if="envHint" class="rc-warning">环境与版本是工作流章节的补充，建议与工作流一起使用。</p>
 
     <div class="rc-grid">
       <section class="rc-modules">

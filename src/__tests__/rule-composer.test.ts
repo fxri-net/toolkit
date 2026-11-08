@@ -30,13 +30,23 @@ describe("RuleComposer 交互", () => {
     expect(wrapper.text()).toContain("AI 全篇")
   })
 
-  it("点击 AI 全篇预设后追加 env", async () => {
+  it("点击 AI 全篇预设后切换为完整组合", async () => {
     const wrapper = mount(RuleComposer)
     const button = wrapper.findAll(".rc-presets button").find((item) => item.text() === "AI 全篇")
     expect(button).toBeTruthy()
     await button!.trigger("click")
     expect(checkedStates(wrapper)).toEqual([true, true, true, true, false, false])
-    expect(wrapper.find(".rc-preview pre").text()).toContain("环境与版本")
+    expect(wrapper.find(".rc-preview pre").text()).toContain("## 环境与版本")
+  })
+
+  it("预设由多切回少时整体覆盖，不保留上一次的模块", async () => {
+    const wrapper = mount(RuleComposer)
+    const presetButton = (label: string) => wrapper.findAll(".rc-presets button").find((item) => item.text() === label)!
+    await presetButton("全量").trigger("click")
+    expect(checkedStates(wrapper)).toEqual([true, true, true, true, true, true])
+    await presetButton("极简").trigger("click")
+    expect(checkedStates(wrapper)).toEqual([true, false, false, false, false, false])
+    expect(wrapper.findAll(".rc-order li")).toHaveLength(1)
   })
 
   it("上移按钮改变组合顺序", async () => {
@@ -63,6 +73,23 @@ describe("RuleComposer 交互", () => {
     expect(writeText).toHaveBeenCalledTimes(1)
     expect(writeText.mock.calls[0]?.[0]).toContain("## 代码规范")
     expect(wrapper.find(".rc-primary").text()).toBe("已复制")
+  })
+
+  it("复制成功 2 秒后按钮文案复位", async () => {
+    vi.useFakeTimers()
+    try {
+      const writeText = vi.fn().mockResolvedValue(undefined)
+      Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true })
+      const wrapper = mount(RuleComposer)
+      await wrapper.find(".rc-primary").trigger("click")
+      await flushPromises()
+      expect(wrapper.find(".rc-primary").text()).toBe("已复制")
+      vi.advanceTimersByTime(2000)
+      await flushPromises()
+      expect(wrapper.find(".rc-primary").text()).toBe("一键复制")
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it("重新挂载后从 localStorage 恢复选择", async () => {

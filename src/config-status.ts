@@ -65,7 +65,7 @@ export interface ConfigStatusReport {
 const DISPLAY_KEY_SET = new Set(CONFIG_DISPLAY_KEYS)
 
 // 已知段名清单：与 docs/config.md 的字段总览同源，用于把「本版本未读取的段名」与「有效但非展示键的段」区分开
-const KNOWN_SECTIONS = new Set(["redact", "check", "tasks", "changelog", "changelogDoc", "updateCheck", "skills", "skillsInstall", "projectSkills"])
+const KNOWN_SECTIONS = new Set(["redact", "check", "tasks", "changelog", "changelogDoc", "updateCheck", "skills", "skillsInstall", "projectSkills", "usage"])
 
 // 环境变量命中判据：已设置且非空即命中——注意这不等于「开启」能力，是否开启由各生效点的取值解析决定（见 ConfigStatusEnvHit 注释）
 function isEnvHit(env: string): boolean {

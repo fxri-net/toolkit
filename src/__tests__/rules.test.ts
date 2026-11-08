@@ -63,6 +63,11 @@ describe("规则清单与模块", () => {
     expect(text.startsWith("你是一个严谨的编程助手")).toBe(true)
   })
 
+  it("env 单独组合以二级标题开头，与其余模块同级", () => {
+    const text = composeRules(["env"], { anchor: false })
+    expect(text.startsWith("## 环境与版本")).toBe(true)
+  })
+
   it("listRules 返回预设归属与当前锚点", () => {
     const listed = listRules()
     const core = listed.modules.find((mod) => mod.id === "core")
