@@ -36,7 +36,9 @@
 
 ## 全局约定
 
-**调用方式**：下文示例统一用 `toolkit <command>` 直调（已全局安装）或 `pnpm exec toolkit <command>`（项目 devDependency，npm 用户 `npx toolkit`）；不安装临时执行用 `pnpm dlx @fxri/toolkit <command>`。
+**调用方式**：下文示例统一用 `toolkit <command>` 直调（已全局安装）或 `pnpm exec toolkit <command>`（项目 devDependency，npm 用户 `npx toolkit`）。
+
+不安装临时执行用 `pnpm dlx @fxri/toolkit <command>`。
 
 顶层命令支持的开关（`-h` 全局与子命令均可用）：
 
@@ -45,15 +47,23 @@
 | `-h, --help` | 显示帮助（全局或子命令） |
 | `-v, --version` | 显示版本号 |
 
-`--redact` / `--warn` 为**域级开关**：仅 `tasks` 与 `changelog` 两个域支持（`init` / `skills` / `conventions` / `config` / `docs` / `usage` / `rules` 域不提供），清单见各域的选项表。
+`--redact` / `--warn` 为**域级开关**：仅 `tasks` 与 `changelog` 两个域支持。
 
-**批量参数**：目标集合是命令主语时省略参数即全部（如 `skills sources refresh`）；否则须显式 `--all`（如 `usage purge --all`、`skills install --all`、`skills bump --all`）。
+`init` / `skills` / `conventions` / `config` / `docs` / `usage` / `rules` 域不提供，清单见各域的选项表。
 
-开关为**双向三档**，优先级从高到低：CLI 参数 > 环境变量 > 配置文件 > 默认开启。对应环境变量：`FX_REDACT`、`FX_CHECK_WARN`（认 `0/1`、`true/false`、`on/off`、`yes/no`）；配置项见[配置参考](./config)。
+**批量参数**：目标集合是命令主语时省略参数即全部（如 `skills sources refresh`）。
+
+否则须显式 `--all`（如 `usage purge --all`、`skills install --all`、`skills bump --all`）。
+
+开关为**双向三档**，优先级从高到低：CLI 参数 > 环境变量 > 配置文件 > 默认开启。
+
+对应环境变量：`FX_REDACT`、`FX_CHECK_WARN`（认 `0/1`、`true/false`、`on/off`、`yes/no`）；配置项见[配置参考](./config)。
 
 另有一个独立环境变量 `FX_NO_UPDATE_CHECK`：设为真值时关闭升级检查提示（1.7.0 起支持，行为详见[配置参考 · updateCheck](./config)）。
 
-**升级提示收口**：命令成功（退出码 0）时，按 `updateCheck.notify`（默认 `always`）在输出结尾给出一句话提示；TTY 下走 stderr，非 TTY 走 stdout。技能提示会给出「当前 → 最新」；版本比较按数字段补零、预发布低于同号正式版、忽略构建元数据，任一侧无法解析为版本时静默不提示。已尝试修复（执行过 `skills install`）的同一版本不再重复提示，来源版本变化或 CLI 升级后自动恢复；`skills status` 会展示上次检查时间与下次可提示时间。`--help`、`help` 子命令、裸 `toolkit`、`skills path`、`skills status`、`changelog` 透传子命令与 `--format json` 不输出文本提示；`--version`、`--check`、`--export` 的提示只走 stderr。脚本需要稳定输出时请用 `--format json` 或设 `FX_NO_UPDATE_CHECK=1`。
+**升级提示收口**：命令成功（退出码 0）时，按 `updateCheck.notify`（默认 `always`）在输出结尾给出一句话提示；TTY 下走 stderr，非 TTY 走 stdout。
+
+已尝试修复（执行过 `skills install`）的同一版本不再重复提示。哪些子命令不输出、版本比较口径、关闭方式见[配置参考 · updateCheck](./config/update)。
 
 ## 退出码
 
@@ -64,7 +74,11 @@
 
 软告警（warn 级）不影响退出码。解析错误的提示格式与 `changelog` 透传差异见[退出码与解析错误](./cli/exit-codes)。
 
-**诊断类命令语义**：`status` / `info` 只汇总现状，退出码恒 0；`doctor` 输出问题与修复建议，退出码恒 0；`check`（`tasks check`、`docs theme check`）发现问题时退出 1，可直接作为门禁步骤。
+**诊断类命令语义**：
+
+- `status` / `info` 只汇总现状，退出码恒 0
+- `doctor` 输出问题与修复建议，退出码恒 0
+- `check`（`tasks check`、`docs theme check`）发现问题时退出 1，可直接作为门禁步骤
 
 ## 相关页面
 

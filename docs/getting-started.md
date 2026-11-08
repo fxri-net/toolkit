@@ -25,7 +25,10 @@
 | 技术负责人 | 全景总览查成员负载，check 校验保证多人 + 多个 AI 产出格式一致 |
 | 独立开发者 / 自由职业者 | 跨会话工作记忆：AI 会话关掉，结论还在仓库里 |
 
-⚠️ 两条诚实边界：这是**轻量文件型任务管理**，没有甘特图、看板、消息通知、打卡型工时统计（任务完成周期与吞吐可用 `toolkit tasks stats` 统计），Jira 级的复杂项目管理不适用；任务区生长在 git 仓库里，工作产物不进 git 的协作场景（客服工单、招聘流程等）用不上。
+⚠️ 两条诚实边界：
+
+- 这是**轻量文件型任务管理**，没有甘特图、看板、消息通知、打卡型工时统计（任务完成周期与吞吐可用 `toolkit tasks stats` 统计）。Jira 级的复杂项目管理不适用。
+- 任务区生长在 git 仓库里，工作产物不进 git 的协作场景（客服工单、招聘流程等）用不上。
 
 ## 几个术语，先说人话
 
@@ -64,7 +67,9 @@ yarn global add @fxri/toolkit   # 仅 yarn 1.x；v2+ 默认禁用 global，建�
 bun i -g @fxri/toolkit    # bun
 ```
 
-适合个人在多个项目间快速使用。⚠️ 使用 nvm/fnm 等切换 Node 版本的工具时，npm 的全局包**绑定在安装时的 Node 版本上**，切版本后会「消失」——重新执行安装命令即可（pnpm 全局目录独立于 Node 版本，或用方式三规避）。
+适合个人在多个项目间快速使用。
+
+⚠️ 使用 nvm/fnm 等切换 Node 版本的工具时，npm 的全局包**绑定在安装时的 Node 版本上**，切版本后会「消失」。重新执行安装命令即可（pnpm 全局目录独立于 Node 版本，或用方式三规避）。
 
 ### 方式三：不安装、临时执行
 
@@ -106,7 +111,15 @@ toolkit skills install --scope project   # --scope 缺省时按 CLI 安装位置
 pnpm dlx skills add fxri-net/toolkit --global   # npm 用户：npx skills add fxri-net/toolkit --global
 ```
 
-`toolkit skills install` 默认软链真源、链接创建失败自动降级副本；安装时先按 `core` / `optional` 选技能、再选目标，`--yes` 跳过交互；`--scope project` 换项目面（真源落 `<仓库根>/.agents/skills/`、其余已存在候选目录落入口薄壳，随 git 入库后队友 clone 即用）；`--mode package` 切纯包管理器模式、`--no-skills` 仅本次零装；另有 `toolkit skills status`（查现场）与 `toolkit skills uninstall`（卸载）。完整选项、外部来源与现场体检见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)，命令契约见 [skills 命令](./cli/skills)。
+`toolkit skills install` 的默认行为与常用开关：
+
+- **默认**：软链真源，链接创建失败自动降级副本
+- **交互两步**：先按 `core` / `optional` 选技能、再选目标；`--yes` 跳过交互
+- **项目面**：`--scope project` 换项目面，真源落 `<仓库根>/.agents/skills/`、其余已存在候选目录落入口薄壳，随 git 入库后队友 clone 即用
+- **模式与本次开关**：`--mode package` 切纯包管理器模式、`--no-skills` 仅本次零装
+- **另两面**：`toolkit skills status` 查现场，`toolkit skills uninstall` 卸载
+
+完整选项、外部来源与现场体检见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)，命令契约见 [skills 命令](./cli/skills)。
 
 GitHub 拉不下来？国内网络走 [Gitee 镜像渠道](./faq#国内网络优先走哪条渠道)，内网 / 离线安装见 [FAQ · 内网或离线环境怎么装](./faq#内网或离线环境怎么装)。
 
@@ -135,13 +148,17 @@ pnpm exec toolkit tasks archive
 
 ⚠️ `toolkit init` 为 1.7.0 新增；旧版本请手工建 `.tasks/active/{YYYYMM}/` 目录结构。
 
-> 不想把 `.tasks/` 放项目里？配置 `"tasks": { "dir": "../my-tasks-repo" }` 指向独立仓库（或每次用 `--dir` 传参），详见[配置参考 · tasks](./config/check-tasks)。
+> 不想把 `.tasks/` 放项目里？配置 `"tasks": { "dir": "../my-tasks-repo" }` 指向独立仓库（或每次用 `--dir` 传参）。
+> 详见[配置参考 · tasks](./config/check-tasks)。
 
 ## AI 用户（让 AI 替你操作）
 
 不需要懂命令，直接对 AI 说：
 
-- 「新项目，先初始化任务区」→ AI 跑 `toolkit init` 建 `.tasks/` 骨架、`conventions/` 规范载体与技能入口壳，并补齐 `.gitignore` 片段（宿主疑似用 prettier 时另托管 `.prettierignore` 排除任务区，避免格式化器把表格填充出大量空白层；项目本地依赖含 `@fxri/toolkit` 时写入 `prepare` 刷新钩子；逐项报告实际动作；1.7.0 新增命令）
+- 「新项目，先初始化任务区」→ AI 跑 `toolkit init` 建 `.tasks/` 骨架、`conventions/` 规范载体与技能入口壳，并补齐 `.gitignore` 片段（1.7.0 新增命令）
+  - 宿主疑似用 prettier 时另托管 `.prettierignore` 排除任务区，避免格式化器把表格填充出大量空白层
+  - 项目本地依赖含 `@fxri/toolkit` 时写入 `prepare` 刷新钩子
+  - 逐项报告实际动作
 - 「把刚才确认的方案落盘为任务」→ AI 会在 `.tasks/active/` 下建档；方案涉及多个任务或多个仓库时，AI 先出一张纯展示计划表，确认后说「开始」即一次建完全部任务档并校验，再按表顺序逐个交付、逐个提交
 - 「任务做完了，归档」→ AI 归档任务并做任务级规范沉淀（终点；提交、发版、推送不是必经步骤，默认按你的规则约定，当次指令已含授权则直接执行）
 - 「任务做完了，归档并提交」→ AI 先归档与沉淀、后提交，归档文件与代码变更同一 git 提交

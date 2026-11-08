@@ -8,13 +8,23 @@ import { DESCRIPTION } from "../about"
 import { buildDocPage } from "../changelog/doc"
 import { composeRules, loadRuleset } from "../rules"
 
-// 提取文档「内置规则：」行的规则名（名称以反引号包裹，括号内为补充说明）
+// 提取文档「内置规则：」起的规则名清单（名称以反引号包裹，括号内为补充说明）
+// 清单可写成导语行 + 紧随的列表项，读到首个空行即止；单行清单同样适用
 function docRuleNames(file: string): string[] {
-  const line = readFileSync(join(process.cwd(), file), "utf8")
-    .split(/\r?\n/)
-    .find((l) => l.startsWith("内置规则："))
-  expect(line, `${file} 缺少「内置规则：」清单行`).toBeTruthy()
-  return [...(line as string).matchAll(/`([^`]+)`/g)].map((m) => m[1] as string)
+  const lines = readFileSync(join(process.cwd(), file), "utf8").split(/\r?\n/)
+  const start = lines.findIndex((l) => l.startsWith("内置规则："))
+  expect(start, `${file} 缺少「内置规则：」清单行`).toBeGreaterThanOrEqual(0)
+  const block: string[] = []
+  for (let i = start; i < lines.length; i += 1) {
+    const line = lines[i] as string
+    if (i > start && line.trim() === "") {
+      // 导语行与列表项之间允许一个空行；已取到规则名后的空行即清单结束
+      if (block.join("\n").includes("`")) break
+      continue
+    }
+    block.push(line)
+  }
+  return [...block.join("\n").matchAll(/`([^`]+)`/g)].map((m) => m[1] as string)
 }
 
 describe("文档一致性：脱敏内置规则清单", () => {
