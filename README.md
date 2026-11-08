@@ -10,13 +10,17 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 [![文档站](https://img.shields.io/badge/docs-fxri--net.github.io%2Ftoolkit-blueviolet)](https://fxri-net.github.io/toolkit/)
 
-> 国内网络建议优先 [Gitee 镜像](https://gitee.com/fxri/toolkit)（与 GitHub 同源同步，仓库/文档/issues/skills 全渠道可用）；问题反馈走 [GitHub Issues](https://github.com/fxri-net/toolkit/issues) 或 [Gitee Issues](https://gitee.com/fxri/toolkit/issues)。
+> 国内网络建议优先 [Gitee 镜像](https://gitee.com/fxri/toolkit)（与 GitHub 同源同步，仓库/文档/issues/skills 全渠道可用）。
+> 问题反馈走 [GitHub Issues](https://github.com/fxri-net/toolkit/issues)，
+> 或 [Gitee Issues](https://gitee.com/fxri/toolkit/issues)。
 
 专为**多人 + AI 跨项目协作**打造：任务管理 + 多语言 CHANGELOG。
 
-AI 参与开发后，方案与决策散落在对话记录里，会话一关什么都不剩；任务记录零散，谁在做、做到哪，无从查起；发版 CHANGELOG 还要人肉维护多语言。本工具把这条链路沉淀为**仓库内可检索、可校验、可归档的文件**——人离开会话，记忆留在仓库里。
+AI 参与开发后，方案与决策散落在对话记录里，会话一关什么都不剩；任务记录零散，谁在做、做到哪，无从查起；
+发版 CHANGELOG 还要人肉维护多语言。本工具把这条链路沉淀为**仓库内可检索、可校验、可归档的文件**——人离开会话，记忆留在仓库里。
 
-- **零依赖 AI 技能包（skills）**：方案落盘、发版 CHANGELOG 两套工作流沉淀为 Agent Skills，不绑定任何 AI 工具；skills 可以独立工作，CLI 是可选加速——推荐都装，体验最完整（[什么关系？](./docs/faq.md#工具和-skills-都得装吗)）
+- **零依赖 AI 技能包（skills）**：方案落盘、发版 CHANGELOG 两套工作流沉淀为 Agent Skills，不绑定任何 AI 工具；skills 可以独立工作，
+  CLI 是可选加速——推荐都装，体验最完整（[什么关系？](./docs/faq.md#工具和-skills-都得装吗)）
 - **不懂 AI 也能用**：任务管理与 CHANGELOG 是纯 CLI 能力；术语都说了人话（[先看术语表](./docs/getting-started.md#几个术语-先说人话)）
 
 ## 🚀 30 秒上手
@@ -32,7 +36,10 @@ pnpm exec toolkit init
 pnpm exec toolkit tasks
 ```
 
-之后：方案确认后登记为 `.tasks/` 任务文件 → `pnpm exec toolkit tasks check` 校验 → 完成后 `pnpm exec toolkit tasks archive` 归档并做规范沉淀。多任务 / 多仓方案先出纯展示计划表，确认后说「开始」即一次建完全部任务档并校验，再按序逐个交付提交。完整步骤见 [快速开始](./docs/getting-started.md)。
+之后：方案确认后登记为 `.tasks/` 任务文件 → `pnpm exec toolkit tasks check` 校验 →
+完成后 `pnpm exec toolkit tasks archive` 归档并做规范沉淀。
+多任务 / 多仓方案先出纯展示计划表，确认后说「开始」即一次建完全部任务档并校验，再按序逐个交付提交。
+完整步骤见 [快速开始](./docs/getting-started.md)。
 
 ## ✨ 能力矩阵
 
@@ -73,13 +80,26 @@ toolkit skills install --scope project                # 项目面分发：真源
 pnpm dlx skills add fxri-net/toolkit                  # 也可用上游安装器（npm 用户：npx skills add fxri-net/toolkit）
 ```
 
-技能随包分发（真源为包内 `skills/`），与 CLI 同一发布批次（技能内容版本独立编号）；`toolkit skills install` 默认软链，链接创建失败自动降级副本，`toolkit skills status` 查现场，`toolkit skills uninstall` 卸载。安装分两步交互：先按 `metadata.tier` 选技能（`fxri-plan-to-task`、`fxri-session-recap`、`fxri-plan-review` 为 `core`，`skills` 模式必装、`package` 模式可选；`fxri-release-changelog`、`fxri-text-encoding` 为 `optional`），再选目标（`canonical` 主目标 + 已检测 agent；项目面为候选薄壳目录）；`--skills` / `--all` / `--no-optional` / `--agent` / `--all-agents` / `--yes` 可跳过交互，首次按模式默认（`skills` 装 `core`、`package` 零装）与全部可用目标，`--no-save-agents` 只影响本次；`--mode package` 切纯包管理器模式（core 也可不装、允许零选），`--no-skills` 仅本次零装。选择集分别写入 `~/.toolkitrc.json` 的 `skillsInstall` 与项目层 `.toolkitrc.json` 的 `projectSkills`。外部技能源用 `--from <path|url>` 临时纳入（副本、只写本次），加 `--save [name]` 登记为永久来源（默认软链）；`toolkit skills sources` 查看 / 注销来源。`--scope project` 换项目面——真源落 `<仓库根>/.agents/skills/`、其余候选目录落入口薄壳，随 git 入库后队友 clone 靠 `toolkit init` 写入的 `prepare` 钩子自动补齐。
+技能随包分发（真源为包内 `skills/`），与 CLI 同一发布批次（技能内容版本独立编号）。
+
+- **默认形态**：`toolkit skills install` 默认软链，链接创建失败自动降级副本；`toolkit skills status` 查现场，`toolkit skills uninstall` 卸载
+- **交互两步**：先按 `metadata.tier` 选技能，再选目标（`canonical` 主目标 + 已检测 agent；项目面为候选薄壳目录）
+  - `core`：`fxri-plan-to-task`、`fxri-session-recap`、`fxri-plan-review`，`skills` 模式必装、`package` 模式可选
+  - `optional`：`fxri-release-changelog`、`fxri-text-encoding`
+- **跳过交互**：`--skills` / `--all` / `--no-optional` / `--agent` / `--all-agents` / `--yes`
+  首次按模式默认（`skills` 装 `core`、`package` 零装）与全部可用目标，`--no-save-agents` 只影响本次
+- **模式**：`--mode package` 切纯包管理器模式（core 也可不装、允许零选），`--no-skills` 仅本次零装
+  选择集分别写入 `~/.toolkitrc.json` 的 `skillsInstall` 与项目层 `.toolkitrc.json` 的 `projectSkills`
+- **外部来源**：`--from <path|url>` 临时纳入（副本、只写本次），加 `--save [name]` 登记为永久来源（默认软链）；`toolkit skills sources` 查看 / 注销来源
+- **作用域**：`--scope project` 换项目面——真源落 `<仓库根>/.agents/skills/`、其余候选目录落入口薄壳，
+  随 git 入库后队友 clone 靠 `toolkit init` 写入的 `prepare` 钩子自动补齐
 
 - [fxri-plan-to-task](./skills/fxri-plan-to-task/SKILL.md)：方案确认后落盘为任务文件（任务分解与纯展示计划表、一次建完全部任务档、check、归档 + 任务级规范沉淀为强制终点）
 - [fxri-release-changelog](./skills/fxri-release-changelog/SKILL.md)：发版时创建变更集、格式化多语言 CHANGELOG
 - [fxri-session-recap](./skills/fxri-session-recap/SKILL.md)：会话收尾全量沉淀、新会话三层恢复、历史任务时间批量修正（1.7.0 新增技能）
 - [fxri-plan-review](./skills/fxri-plan-review/SKILL.md)：复核已落档任务拆分，输出新增疏漏、建议与修订计划表，按后续是否落档标记
-- [fxri-text-encoding](./skills/fxri-text-encoding/SKILL.md)：文本字节形态基线（文件、管道、命令行、API 请求体，含临时脚本与一次性命令），非 ASCII 文本丢失 / 乱码与首行报错的定位与修复
+- [fxri-text-encoding](./skills/fxri-text-encoding/SKILL.md)：文本字节形态基线（文件、管道、命令行、API 请求体，含临时脚本与一次性命令），
+  非 ASCII 文本丢失 / 乱码与首行报错的定位与修复
 
 skills 与工具的关系、只在公司项目激活等说明见 [常见问题](./docs/faq.md) 与 [完整攻略](./docs/guide.md#ai-技能包-skills)。
 
@@ -95,7 +115,8 @@ npm / yarn / bun 用户与各方式对比见 [快速开始 · 安装](./docs/get
 
 ## 🔒 隐私脱敏
 
-落盘记录默认脱敏敏感信息：内置邮箱、手机号、身份证、IPv4、内网 URL、JWT、AWS / GitHub / OpenAI / Slack 密钥等 13 类规则，支持自定义规则与禁用。开关三档（CLI 参数 > 环境变量 > 配置文件），详见 [配置参考](./docs/config.md)。
+落盘记录默认脱敏敏感信息：内置邮箱、手机号、身份证、IPv4、内网 URL、JWT、AWS / GitHub / OpenAI / Slack 密钥等 13 类规则，
+支持自定义规则与禁用。开关三档（CLI 参数 > 环境变量 > 配置文件），详见 [配置参考](./docs/config.md)。
 
 ## ⚙️ 环境要求
 

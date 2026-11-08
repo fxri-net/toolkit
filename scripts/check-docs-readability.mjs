@@ -54,8 +54,9 @@ function scan(file) {
       inFence = !inFence
       return
     }
-    // 代码块、标题、表格行、HTML 注释不属正文段落
+    // 代码块、标题、表格行、HTML 注释不属正文段落；徽章 / 图片行是机器生成的标记，不按散文计长
     if (inFence || !trimmed || trimmed.startsWith("#") || trimmed.startsWith("|") || trimmed.startsWith("<!--")) return
+    if (trimmed.startsWith("[![") || trimmed.startsWith("![")) return
     const content = normalize(trimmed)
     if (!content) return
     const length = [...content].length

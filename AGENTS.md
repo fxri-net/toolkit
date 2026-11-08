@@ -4,25 +4,50 @@
 
 ## 能力变更三方真实一致（强制质量门）
 
-任何影响对外行为的变更——新增/修改/删除 CLI 命令、参数、输出与告警口径、skills 内容、文档中对其的结构性描述——在任务归档前必须完成三方复核，与 `toolkit tasks check` 同为不可绕过的质量门：
+任何影响对外行为的变更——新增/修改/删除 CLI 命令、参数、输出与告警口径、skills 内容、文档中对其的结构性描述——
+在任务归档前必须完成三方复核，与 `toolkit tasks check` 同为不可绕过的质量门：
 
 1. **能力自身**：代码实际行为、单元测试、CLI help 文案三者一致。
-2. **文档**：`docs/` 下全部 `.md` 与根 `README.md` 逐篇过触达面（不在此枚举，避免新增页面后清单漂移；`docs/changelog.md` 为 `pnpm sync:changelog-doc` 的生成物，只核对镜像结果与源一致）。凡触达处措辞必须与实际行为严格一致，包括「不自动修复」「需人工确认」等限制细节；确认无触达的内容须在对话中明确说明，不得静默跳过。
-   ⚠️ **时点约束**：触达面核对在**变更方案确认时**即按此清单逐篇走查、将结论列入任务文件「影响范围」节（每篇标注 已同步 / 无触达及理由），不延迟到归档时才复核。涉及术语或措辞变更时，先 grep 全仓库定位旧措辞触达点再列清单。
-3. **skills**：`skills/` 下 SKILL.md 与 references 同步新能力/新流程；每个 SKILL.md 的版本写两处且须一致——frontmatter `metadata.version`（机器读取位，`toolkit skills status` / `skills install` 打印的真源版本）与正文首部 `> 本技能版本 x.y.z（随 @fxri/toolkit 同批分发）`（进上下文的自证位）；内容变更时同步递增，递增口径见 `skills/fxri-release-changelog/references/changelog-format.md` 的「版本口径」。
-4. **变更集**：凡影响对外行为的变更，任务归档前必须在 `.changeset/` 建变更集（标注 patch/minor/major 并写用户可感知的变更描述，条目须**逐条以 `- 类型：描述` 书写**——`- ` 列表标记让每条独立成项、`类型：` 前缀作归类信号，前缀表见 `skills/fxri-release-changelog/SKILL.md`）；归档时出现「无变更集」提示即视为本质量门未过。
-5. **全局规则薄引用**：可变流程细节只进 skills（SKILL.md / references），`docs/rules/ai.md` 的「规则全文」保持薄壳——只承载稳定纪律与对 fxri-* skill 的引用，不复述可变细节；凡在 `docs/rules/ai.md` 复述了可变细节的改动即视为违背本规则，须收敛回 skill。原因：全局规则是用户手动复制的快照，细节复述会让能力升级后用户侧规则失同步；收敛进 skills 后技能随包同源分发（与 CLI 同一发布批次），升级只需 `pnpm add -g @fxri/toolkit`（软链自动跟随，副本形式再跑一次 `toolkit skills install`）。
-6. **规则层更新锚点**：`SPEC.md`、`templates/rules/*.md`（六个模块）、`docs/rules/ai.md`、`docs/rules/commit.md`、`docs/rules/usage.md` 各有一行更新锚点；`SPEC.md` 为 `> 规范更新时间 YYYY-MM-DD HH:mm`，模块文件与三个规则页为 `> 规则更新时间 YYYY-MM-DD HH:mm`（24 小时制、本机时区、精确到分、不带秒）。模块文件首行记录该模块内容变更时间；规则页与组合输出的首行取所含模块的**最大值**，模块正文外的页面结构调整不抬锚点。三个规则页以 fenced 代码块作可复制块，锚点位于块内首行；`SPEC.md` 无 fenced 包裹、整篇文件即快照，其锚点位于文件正文首行即合规。纪律：模块正文变更须以变更时刻更新该模块锚点；未变更的模块不得刷新；同一批改动取同一时间；只随内容变更递增、不随发版例行抬高。原因：用户会把规则复制成个人快照，快照首行与页面 / 组合当前值不一致即说明已失同步，时间戳还能看出落后多久。
+2. **文档**：`docs/` 下全部 `.md` 与根 `README.md` 逐篇过触达面（不在此枚举，避免新增页面后清单漂移；
+   `docs/changelog.md` 为 `pnpm sync:changelog-doc` 的生成物，只核对镜像结果与源一致）。
+   凡触达处措辞必须与实际行为严格一致，包括「不自动修复」「需人工确认」等限制细节；确认无触达的内容须在对话中明确说明，不得静默跳过。
+   ⚠️ **时点约束**：触达面核对在**变更方案确认时**即按此清单逐篇走查、将结论列入任务文件「影响范围」节（每篇标注 已同步 / 无触达及理由），
+   不延迟到归档时才复核。涉及术语或措辞变更时，先 grep 全仓库定位旧措辞触达点再列清单。
+3. **skills**：`skills/` 下 SKILL.md 与 references 同步新能力/新流程；每个 SKILL.md 的版本写两处且须一致——
+   frontmatter `metadata.version`（机器读取位，`toolkit skills status` / `skills install` 打印的真源版本）与
+   正文首部 `> 本技能版本 x.y.z（随 @fxri/toolkit 同批分发）`（进上下文的自证位）；内容变更时同步递增，
+   递增口径见 `skills/fxri-release-changelog/references/changelog-format.md` 的「版本口径」。
+4. **变更集**：凡影响对外行为的变更，任务归档前必须在 `.changeset/` 建变更集（标注 patch/minor/major 并写用户可感知的变更描述，
+   条目须**逐条以 `- 类型：描述` 书写**——`- ` 列表标记让每条独立成项、`类型：` 前缀作归类信号，
+   前缀表见 `skills/fxri-release-changelog/SKILL.md`）；归档时出现「无变更集」提示即视为本质量门未过。
+5. **全局规则薄引用**：可变流程细节只进 skills（SKILL.md / references），`docs/rules/ai.md` 的「规则全文」保持薄壳——
+   只承载稳定纪律与对 fxri-* skill 的引用，不复述可变细节；凡在 `docs/rules/ai.md` 复述了可变细节的改动即视为违背本规则，须收敛回 skill。
+   原因：全局规则是用户手动复制的快照，细节复述会让能力升级后用户侧规则失同步；
+   收敛进 skills 后技能随包同源分发（与 CLI 同一发布批次），升级只需 `pnpm add -g @fxri/toolkit`（软链自动跟随，副本形式再跑一次 `toolkit skills install`）。
+6. **规则层更新锚点**：`SPEC.md`、`templates/rules/*.md`（六个模块）、`docs/rules/ai.md`、`docs/rules/commit.md`、
+   `docs/rules/usage.md` 各有一行更新锚点；
+   `SPEC.md` 为 `> 规范更新时间 YYYY-MM-DD HH:mm`，模块文件与三个规则页为 `> 规则更新时间 YYYY-MM-DD HH:mm`（24 小时制、本机时区、精确到分、不带秒）。
+   模块文件首行记录该模块内容变更时间；规则页与组合输出的首行取所含模块的**最大值**，模块正文外的页面结构调整不抬锚点。
+   三个规则页以 fenced 代码块作可复制块，锚点位于块内首行；`SPEC.md` 无 fenced 包裹、整篇文件即快照，其锚点位于文件正文首行即合规。
+   纪律：模块正文变更须以变更时刻更新该模块锚点；未变更的模块不得刷新。
+   同一批改动取同一时间；只随内容变更递增、不随发版例行抬高。
+   原因：用户会把规则复制成个人快照，快照首行与页面 / 组合当前值不一致即说明已失同步，时间戳还能看出落后多久。
 
 ### conventions 同步（独立机制，随上述质量门一并执行）
 
-`.tasks/conventions/` 载体的索引表与 AGENTS / rules / skills 条文存在对应关系：修改 AGENTS.md、`docs/rules/` 下的规则页或 skills 条文的变更，须同步检查索引对应行的「当前语义」是否需要更新；语义变更先在 `history.md` 留痕、再更新索引表内当前语义，随该变更同批落盘。
+`.tasks/conventions/` 载体的索引表与 AGENTS / rules / skills 条文存在对应关系：修改 AGENTS.md、`docs/rules/` 下的规则页或 skills 条文的变更，
+须同步检查索引对应行的「当前语义」是否需要更新；语义变更先在 `history.md` 留痕、再更新索引表内当前语义，随该变更同批落盘。
 
 **动手前先读 `.tasks/conventions/index.md`**：本包源仓库不生成入口壳，AGENTS.md 即其规范触发面——先看端清单与索引了解本项目已确立哪些规范，条文以各文件的单一事实源为准。
 
 ## 验收方式
 
-- 跑 `pnpm verify`——**单一步骤清单真源**，步骤定义在 `scripts/verify.mjs`，本地与四处 CI（GitHub `check` / `windows` / `macos`、GitLab `test`）调用同一份；**禁止在本文件或 CI 配置里另写步骤枚举**，那是清单漂移的根因。跨平台裁剪用 `pnpm verify --skip-coverage --skip-docs`（windows、macos job 即此路径）。任一步失败即不得交付，注意 `pnpm lint` 是 eslint 不做类型检查、`pnpm build` 亦不拦截类型错误，单跑二者不能替代本门禁；且类型检查须覆盖测试文件——基础 `tsconfig.json` 的 `exclude` 排除 `**/__tests__` 等测试路径，类型检查单独走放开该排除项的 `tsconfig.typecheck.json`，不得让测试文件落在盲区；
+- 跑 `pnpm verify`——**单一步骤清单真源**，步骤定义在 `scripts/verify.mjs`，
+  本地与四处 CI（GitHub `check` / `windows` / `macos`、GitLab `test`）调用同一份；
+  **禁止在本文件或 CI 配置里另写步骤枚举**，那是清单漂移的根因。跨平台裁剪用 `pnpm verify --skip-coverage --skip-docs`（windows、macos job 即此路径）。
+  任一步失败即不得交付，注意 `pnpm lint` 是 eslint 不做类型检查、`pnpm build` 亦不拦截类型错误，单跑二者不能替代本门禁；
+  且类型检查须覆盖测试文件——基础 `tsconfig.json` 的 `exclude` 排除 `**/__tests__` 等测试路径，
+  类型检查单独走放开该排除项的 `tsconfig.typecheck.json`，不得让测试文件落在盲区；
 - **验收与提交须串联失败即止**：`pnpm verify` 与 `git commit` 之间用 `&&` 串联或分步执行，禁止用 `;` 串联——门禁失败后仍提交会让问题越过质量门，修复须另起提交并留痕；
 - `toolkit tasks check` 的 error 与 warn 均应为 0（除非任务规格另有豁免）——已在 `pnpm verify` 内执行，此处强调阈值；
 - grep 确认文档与 skills 措辞落地；
@@ -34,26 +59,44 @@
 ## 协作流程约束
 
 - 涉及代码编写、文件修改、命令执行的任务，先输出结构化实施方案（目标 / 实施步骤 / 影响范围 / 验证与回滚），经确认后执行；
-- 动手前先做**建档评估**：涉及仓库文件改动的任务，动手前查 active/archive 判同主题——active 有同主题更新原文件、archive 有同主题且本次不产生仓库文件改动则不重复建档直接执行、均无则先建档再动手（判别细节以 fxri-plan-to-task 最新版为准）；
+- 动手前先做**建档评估**：涉及仓库文件改动的任务，动手前查 active/archive 判同主题——
+  active 有同主题更新原文件、archive 有同主题且本次不产生仓库文件改动则不重复建档直接执行、均无则先建档再动手（判别细节以 fxri-plan-to-task 最新版为准）；
 - 任务管理全流程走 toolkit skills（先 `toolkit init` 建任务区，再建档、执行、归档、沉淀）；
-- 任务收尾按「改完文件 → 归档 → `pnpm verify` → 提交」执行，**验收须晚于归档**：归档会改写 `.tasks/`（写归档文件、删 active 源文件、清理空月份目录）而自身不做阻断式校验，早于归档跑验收就覆盖不到终态，归档产物等于无人校验；
-- 任务时间字段按**四级时间源**取证，口径以 `skills/fxri-plan-to-task/references/task-spec.md` 最新版为准（当场打点 / 聊天记录时间戳 / git 提交时间 / 系统当前时间兜底并标注「收尾补记」）；禁止估算或时区换算，不留与 skill 重复的复制表述，避免版本漂移；
+- 任务收尾按「改完文件 → 归档 → `pnpm verify` → 提交」执行，**验收须晚于归档**：
+  归档会改写 `.tasks/`（写归档文件、删 active 源文件、清理空月份目录）而自身不做阻断式校验，早于归档跑验收就覆盖不到终态，归档产物等于无人校验；
+- 任务时间字段按**四级时间源**取证，口径以 `skills/fxri-plan-to-task/references/task-spec.md` 最新版为准
+  （当场打点 / 聊天记录时间戳 / git 提交时间 / 系统当前时间兜底并标注「收尾补记」）；禁止估算或时区换算，不留与 skill 重复的复制表述，避免版本漂移；
 - 代码注释只保留描述最终代码逻辑的必要注释，不留过程性解释（如「先这样、后来改成那样」的演进记录）；
-- **路径书写**：仓库内引用一律用**以仓库根为基准的相对路径**（含行号时形如 `src/cli.ts L103`），不写指向本机的绝对 `file:///` 链接。**分两阶段**：任务进行中（active）允许保留**需要以绝对路径索引的本机资源路径**（设计素材、仓库外规则文件等），便于当场定位；**归档时必须归一**为占位形式——仓库外文件 `<本机>/…`、家目录 `~/` 或 `%USERPROFILE%`，仅保留可辨识的末段文件名。原因：本机绝对路径随 git 分发后对他人无意义，且泄露作者本机目录结构，故只允许存在于未归档的进行中任务档内；
+- **路径书写**：仓库内引用一律用**以仓库根为基准的相对路径**（含行号时形如 `src/cli.ts L103`），不写指向本机的绝对 `file:///` 链接。
+  **分两阶段**：任务进行中（active）允许保留**需要以绝对路径索引的本机资源路径**（设计素材、仓库外规则文件等），便于当场定位；
+  **归档时必须归一**为占位形式——仓库外文件 `<本机>/…`、家目录 `~/` 或 `%USERPROFILE%`，仅保留可辨识的末段文件名。
+  原因：本机绝对路径随 git 分发后对他人无意义，且泄露作者本机目录结构，故只允许存在于未归档的进行中任务档内；
 - 提交信息遵循 `.trae/rules/git-commit-message.md`（若存在）或遵循下述要点：全中文标题、`类型：描述` 全角冒号、祈使句、30 汉字内；
-- **降级不静默**：用户显式传入的值（CLI 选项值、配置文件项）无法采纳时**不得静默忽略**——命令能继续执行则 stderr 告警说明「忽略了什么、回落到什么」，无法继续执行则报错并以非 0 退出码终止。同一取值集合内部分取值非法按「可继续」处理（告警 + 剔除），全部取值非法按「不可继续」处理（报错退出）。诊断一律走 stderr，stdout 留给机器可读输出。
-- **多系统基线**：平台差异只允许出现在命令 / 路径生成与适配层，业务逻辑不出现 `process.platform` 分支；对外命令须在目标平台的常见宿主可执行（Windows 的 PowerShell / cmd、POSIX 的 bash / sh），两平台分支各有单测；不得只在本机单平台验证就标「已验证」。细则见 `.tasks/conventions/` 的 `C-42`。
+- **降级不静默**：用户显式传入的值（CLI 选项值、配置文件项）无法采纳时**不得静默忽略**——
+  命令能继续执行则 stderr 告警说明「忽略了什么、回落到什么」，无法继续执行则报错并以非 0 退出码终止。
+  同一取值集合内部分取值非法按「可继续」处理（告警 + 剔除），全部取值非法按「不可继续」处理（报错退出）。诊断一律走 stderr，stdout 留给机器可读输出。
+- **多系统基线**：平台差异只允许出现在命令 / 路径生成与适配层，业务逻辑不出现 `process.platform` 分支；
+  对外命令须在目标平台的常见宿主可执行（Windows 的 PowerShell / cmd、POSIX 的 bash / sh），两平台分支各有单测；
+  不得只在本机单平台验证就标「已验证」。细则见 `.tasks/conventions/` 的 `C-42`。
 
 ## 发版链路
 
 发版按以下顺序分步执行，每步产物检查无误后再进行下一步：
 
-1. **消费变更集**：先跑 `node dist/cli.js changelog audit` 列出同对象净变更候选，有候选按净变更规则人工合并（只提示、不自动改写，不挂进 `pnpm verify`）；再执行 `node dist/cli.js changelog version`——按 bump 类型合并 `.changeset/` 全部变更集，生成 CHANGELOG 新版本块（中文分组标题 + 发布日期）并升级 package.json 版本号；生成后人工检查润色条目，再执行 `node dist/cli.js changelog format --history` 归一历史块（人工润色易在条目之间留空行；默认模式不动历史块，必须带 `--history`），最后 `pnpm sync:changelog-doc`（内置 `changelog doc`，`changelog version` 成功时会自动同步）把新版本块镜像进 docs/changelog.md 更新日志页，与版本/CHANGELOG 改动同批提交；
-2. **门禁校验**：`pnpm verify`——含构建（版本号从 package.json 读取进产物）等全部步骤；**任一步失败即中止发版**，不得进入提交、打标签、发布。⚠️ 门禁必须挡在 publish 之前——publish 不可逆（包发出即被使用者安装），而 push 失败重推即可，故关卡设在 publish 前而非推送前；
+1. **消费变更集**：先跑 `node dist/cli.js changelog audit` 列出同对象净变更候选，有候选按净变更规则人工合并（只提示、不自动改写，不挂进 `pnpm verify`）；
+   再执行 `node dist/cli.js changelog version`——按 bump 类型合并 `.changeset/` 全部变更集，
+   生成 CHANGELOG 新版本块（中文分组标题 + 发布日期）并升级 package.json 版本号；
+   生成后人工检查润色条目，再执行 `node dist/cli.js changelog format --history` 归一历史块（人工润色易在条目之间留空行；默认模式不动历史块，必须带 `--history`），
+   最后 `pnpm sync:changelog-doc`（内置 `changelog doc`，`changelog version` 成功时会自动同步）
+   把新版本块镜像进 docs/changelog.md 更新日志页，与版本/CHANGELOG 改动同批提交；
+2. **门禁校验**：`pnpm verify`——含构建（版本号从 package.json 读取进产物）等全部步骤；**任一步失败即中止发版**，不得进入提交、打标签、发布。
+   ⚠️ 门禁必须挡在 publish 之前——publish 不可逆（包发出即被使用者安装），而 push 失败重推即可，故关卡设在 publish 前而非推送前；
 3. **提交**：版本与 CHANGELOG 改动单独提交——发版提交是链路内置动作，独立于任务收尾自动提交（即使全局规则开启任务收尾自动提交，发版提交仍按本链路单独执行，不与普通任务收尾混批）；
 4. **打标签**：提交落盘后立即打 `vX.Y.Z` 标签并用 `git tag` 核对存在；发现历史版本漏打时，在对应发版提交上补打轻量标签；
-5. **发布**：`pnpm publish`——publish 前须用户明确授权；计划表列出发版、上一任务发过版都不构成本次授权；**当前指令已含发版 / 推送授权时直接执行**，不必重复询问；
-6. **推送**：`git remote` 遍历当前**全部已配置远端**逐一推送（配几个推几个，数量不固定）——推送前先向用户列出将推送的远端清单，经确认后执行；用户显式指定单端（如「先推 github」）时按其字面只推该端，不套用全量；当前指令已含推送授权时直接按上述规则执行。
+5. **发布**：`pnpm publish`——publish 前须用户明确授权；计划表列出发版、上一任务发过版都不构成本次授权。
+   **当前指令已含发版 / 推送授权时直接执行**，不必重复询问；
+6. **推送**：`git remote` 遍历当前**全部已配置远端**逐一推送（配几个推几个，数量不固定）——推送前先向用户列出将推送的远端清单，经确认后执行。
+   用户显式指定单端（如「先推 github」）时按其字面只推该端，不套用全量；当前指令已含推送授权时直接按上述规则执行。
 
 ⚠️ package.json 的 `release` script 仅含 `build && publish`，不含 version 步骤——禁止直接跑 `pnpm release` 发版。
 
