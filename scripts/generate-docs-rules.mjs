@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // 生成文档站规则数据模块：避免 ?raw 导入在部分 IDE 中无法识别
-import { readFileSync, writeFileSync } from "node:fs"
+import { readFileSync, renameSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 
 const root = process.cwd()
@@ -40,6 +40,9 @@ if (check) {
   }
   console.log("文档规则数据模块已同步")
 } else {
-  writeFileSync(outFile, content, "utf8")
+  // 先写临时文件再改名：多终端同时启动 docs:dev 时避免读到半截内容
+  const tmp = `${outFile}.tmp`
+  writeFileSync(tmp, content, "utf8")
+  renameSync(tmp, outFile)
   console.log(`已生成：${outFile}`)
 }

@@ -49,6 +49,27 @@ describe("RuleComposer 交互", () => {
     expect(wrapper.findAll(".rc-order li")).toHaveLength(1)
   })
 
+  it("手动调整后显示自定义状态，点预设后消失", async () => {
+    const wrapper = mount(RuleComposer)
+    expect(wrapper.find(".rc-preset-state").exists()).toBe(false)
+    await wrapper.findAll('input[type="checkbox"]')[3]!.setValue(true)
+    expect(wrapper.find(".rc-preset-state").text()).toContain("当前：自定义")
+    const button = wrapper.findAll(".rc-presets button").find((item) => item.text() === "推荐")!
+    await button.trigger("click")
+    expect(wrapper.find(".rc-preset-state").exists()).toBe(false)
+  })
+
+  it("全部取消清空选择、不写记忆，空态下按钮禁用", async () => {
+    const wrapper = mount(RuleComposer)
+    const clear = () => wrapper.findAll(".rc-toolbar button").find((item) => item.text() === "全部取消")!
+    await clear().trigger("click")
+    expect(checkedStates(wrapper)).toEqual([false, false, false, false, false, false])
+    expect(wrapper.find(".rc-empty").exists()).toBe(true)
+    expect(wrapper.find(".rc-primary").attributes("disabled")).toBeDefined()
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
+    expect(clear().attributes("disabled")).toBeDefined()
+  })
+
   it("上移按钮改变组合顺序", async () => {
     const wrapper = mount(RuleComposer)
     const second = wrapper.findAll(".rc-order li")[1]

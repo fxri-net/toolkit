@@ -134,6 +134,15 @@ function reset(): void {
   clearStored()
 }
 
+// 全部取消：清空选择且不写入记忆，与「清空全部模块不持久化」的既有约定一致
+function clearAll(): void {
+  selected.value = []
+  activePreset.value = "custom"
+  copied.value = false
+  copyError.value = false
+  clearStored()
+}
+
 function fallbackCopy(text: string): boolean {
   const area = document.createElement("textarea")
   area.value = text
@@ -187,6 +196,7 @@ async function copy(): Promise<void> {
       >
         {{ presetLabels[name] ?? name }}
       </button>
+      <span v-if="activePreset === 'custom' && selected.length > 0" class="rc-preset-state">当前：自定义</span>
     </div>
     <p class="rc-hint">默认选中「推荐」；点预设会直接切换为该预设的选择与顺序，手动勾选或排序后视为自定义组合。清空全部模块后刷新会回落推荐集。</p>
     <p v-if="envHint" class="rc-warning">环境与版本是工作流章节的补充，建议与工作流一起使用。</p>
@@ -235,6 +245,7 @@ async function copy(): Promise<void> {
     <div class="rc-toolbar">
       <button class="rc-primary" :disabled="!composed" @click="copy">{{ copyError ? "复制失败" : copied ? "已复制" : "一键复制" }}</button>
       <button @click="reset">恢复默认（清除本机记忆）</button>
+      <button :disabled="selected.length === 0" @click="clearAll">全部取消</button>
       <span class="rc-meta">{{ storageAvailable ? "选择只保存在当前浏览器" : "当前浏览器不可用本地存储，本次选择不保留" }}</span>
     </div>
 
@@ -272,6 +283,11 @@ async function copy(): Promise<void> {
   border-color: var(--vp-c-brand-1);
   background: var(--vp-c-brand-1);
   color: #fff;
+}
+.rc-preset-state {
+  align-self: center;
+  font-size: 13px;
+  color: var(--vp-c-text-2);
 }
 .rc-toolbar button:disabled,
 .rc-actions button:disabled {
