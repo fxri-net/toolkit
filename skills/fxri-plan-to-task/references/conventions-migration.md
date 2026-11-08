@@ -1,7 +1,7 @@
 # 规范载体存量迁移
 
 > 本文件为 `conventions-spec.md` 的配套规范，承载载体存量的形态迁移（v0 → v1、v1 → v2、v2 → v3）。仅在迁移存量载体或排查形态异常时加载；日常结构、
-> 读写判定与自查见 `conventions-spec.md`。
+> 读写判定与自查见 `conventions-maintenance.md`。
 
 ## 10.1 旧单文件 → 目录形态（v0 → v1）
 

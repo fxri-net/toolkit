@@ -33,7 +33,7 @@ metadata:
 | 收尾沉淀 | 本文件 R1–R3、规范提炼子流程、模式一 | 模式二 / 三 |
 | 开场恢复 | 本文件 R1 / R2 + `references/mode-2-recovery.md` | 模式一 / 三 |
 | 批量修正历史时间 | 本文件 R1 + `references/mode-3-time-fix.md` | 模式一 / 二 |
-| 读写 conventions 载体 | 本文件 R3 + `../fxri-plan-to-task/references/conventions-spec.md` | 其余 |
+| 读写 conventions 载体 | 本文件 R3 + `../fxri-plan-to-task/references/conventions-spec.md`、`conventions-maintenance.md` | 其余 |
 
 兄弟技能路径不存在时，改读 `toolkit skills status` 打印的「技能源」目录下同名文件。
 
@@ -67,14 +67,14 @@ metadata:
 ### R3 规范落点：`.tasks/conventions/` 载体
 
 - 唯一落点 `.tasks/conventions/`：`index.md` 唯一入口（形态标记 + 端清单 + 活跃索引），`history.md` 语义演进（仅追加），`retired.md` 退休台账，
-   `common.md` 与 `<端名>.md` / 分类标签分册承载条文；结构、表单与读写细则见 `conventions-spec.md`
+   `common.md` 与 `<端名>.md` / 分类标签分册承载条文；结构与分册表单见 `conventions-spec.md`，读写细则见 `conventions-maintenance.md`
 - 两级沉淀同一载体：**任务级**（fxri-plan-to-task 归档时）只在单任务产出可升格规范时追加，无则静默；**会话级**（本技能）聚合全会话候选，与已有规范合并去重——跨任务重复模式在此补，用户明示规则兜底
 - **归属判定**：先问「是否所有端都适用」→ 是归 `common`，否则逐端写入。禁止跨端合并；`common` 是「所有端」不是「不确定归哪端」的暂存区。
    端名与 `scope` 取值逐字一致（如 `scope: web+server` → 读 `web.md` + `server.md`），无论命中与否**恒叠加 `common.md`**；
    `index.md` 顶部的端清单是端的唯一权威，不扫目录；`scope` 中非端值且载体下存在同名分册时，按分类标签分册加载
 - 写前**必须用户确认**；同义规范不重复记录，只补差异或合并增强；一次性决策留在任务正文（升格标准：重复出现 ≥2 次，或用户明示「以后都要这样」）
 - 语义变更走「`history.md` 留痕 + 索引行更新」；条目作废走**迁出 + 三层清理**（索引行删并迁 `retired.md`、物理删除分册小节、外部单一事实源同步删改）
-- 兼容读：先找 `conventions/index.md`，不存在再看旧单文件 `conventions.md`（提示可迁移），并存时以目录形态为准；表格形态按 `conventions-spec.md`；
+- 兼容读：先找 `conventions/index.md`，不存在再看旧单文件 `conventions.md`（提示可迁移），并存时以目录形态为准；表格形态按 `conventions-maintenance.md`；
    载体为 v1 / v2，或已成 v3 却残留 v2 独有列 / 表头首格非 `ID` 的形态残留时，按 `conventions-migration.md` 的迁移与升级链路处置（可中断不丢内容）
 
 ### 规范提炼子流程（三模式共用）
