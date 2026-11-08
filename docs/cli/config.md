@@ -29,6 +29,8 @@ toolkit config status --cwd <path>       # 指定向上查找的起始目录（�
 
 ⚠️ **`items[].level` 只有 `warn` 与 `info` 两值**（对齐 `conventions status`，无 error 级）；`info` 不计入 `warnings` 计数，仅 `warn` 计入——CI 可据 `warnings` 拦错。**`items[].scope` 当前只有 `配置`（配置降级项）与 `本地层`（本地文件忽略态与 home 边界提示）两值**，文本渲染形如 `[配置]` / `[本地层]`。
 
+⚠️ **未知段名提示**：`info` 级，文案后附带可用段名（`CONFIG_KNOWN_SECTIONS` 排序输出），便于直接从输出改正拼写；该清单与 `docs/config.md` 的字段总览由单测锁定一致。
+
 ⚠️ **文本模式折叠 home**：层级路径与待处理项文案中内嵌的路径都把 home 前缀显示为 `~/…`（避免共享日志 / 截图泄露本机目录结构）；`--format json` 保留绝对路径供脚本定位。
 
 ⚠️ **自指关系与取舍**：`tasks check` 的「本地配置文件未入库」软告警受 `check.warnings` 支配，而该开关可被本地层（那个未入库的文件本身）设成 `false` → 告警被同一个文件静音、团队无从察觉。故**不为该告警开例外**，改由 `config status` 的对应提示兜底——它**不受任何配置开关影响**（除 `--format` 非法外恒输出），`level` 为 `warn`、计入 `warnings` 计数。

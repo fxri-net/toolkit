@@ -1,10 +1,10 @@
 // config status 只读体检单测：三层命中与来源层、环境变量层与能力旁路、忽略提示、降级项渲染与 JSON 契约
 // 期望值直接取真实实现导出的常量（CONFIG_DISPLAY_KEYS / CONFIG_ENV_OVERRIDES 等），不在测试内重写派生逻辑
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { configStatus, foldHomeInText } from "../config-status"
+import { configStatus, foldHomeInText, CONFIG_KNOWN_SECTIONS } from "../config-status"
 import { CONFIG_DISPLAY_KEYS, CONFIG_ENV_OVERRIDES, CONFIG_ENV_BYPASS, CONFIG_LOCAL_FILE, setHomeDirForTest } from "../config"
 import { toPosix } from "../git-ignore"
 
@@ -202,7 +202,18 @@ describe("configStatus 提示项与文本折叠", () => {
     expect(unknown[0]!.level).toBe("info")
     expect(unknown[0]!.scope).toBe("配置")
     expect(unknown[0]!.message).toContain("redct")
+    expect(unknown[0]!.message).toContain("可用段名：")
+    expect(unknown[0]!.message).toContain([...CONFIG_KNOWN_SECTIONS].sort().join(" / "))
     expect(report.warnings).toBe(0)
+  })
+
+  it("已知段名清单与 docs/config.md 字段总览逐项一致", () => {
+    const doc = readFileSync(join(process.cwd(), "docs", "config.md"), "utf8")
+    // 文档内有多段 JSON 示例，字段总览以含 projectSkills 的那一段为准
+    const blocks = [...doc.matchAll(/```json\n([\s\S]*?)```/g)].map((m) => m[1] as string)
+    const overview = blocks.find((block) => block.includes('"projectSkills"'))
+    expect(overview, "docs/config.md 缺少字段总览 JSON 块").toBeTruthy()
+    expect(Object.keys(JSON.parse(overview as string))).toEqual([...CONFIG_KNOWN_SECTIONS])
   })
 
   it("home 边界：home 下存在本地配置文件时给 info 提示，不计入 warnings", () => {

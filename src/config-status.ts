@@ -64,8 +64,20 @@ export interface ConfigStatusReport {
 // 展示键集合（叶子键全名）：用于判定某段是否仍有展示键之外的字段
 const DISPLAY_KEY_SET = new Set(CONFIG_DISPLAY_KEYS)
 
-// 已知段名清单：与 docs/config.md 的字段总览同源，用于把「本版本未读取的段名」与「有效但非展示键的段」区分开
-const KNOWN_SECTIONS = new Set(["redact", "check", "tasks", "changelog", "changelogDoc", "updateCheck", "skills", "skillsInstall", "projectSkills", "usage"])
+// 已知段名清单：与 docs/config.md 的字段总览同源（由单测锁定一致），用于把「本版本未读取的段名」与「有效但非展示键的段」区分开
+export const CONFIG_KNOWN_SECTIONS: readonly string[] = [
+  "redact",
+  "check",
+  "tasks",
+  "changelog",
+  "changelogDoc",
+  "updateCheck",
+  "skills",
+  "skillsInstall",
+  "projectSkills",
+  "usage",
+]
+const KNOWN_SECTIONS = new Set(CONFIG_KNOWN_SECTIONS)
 
 // 环境变量命中判据：已设置且非空即命中——注意这不等于「开启」能力，是否开启由各生效点的取值解析决定（见 ConfigStatusEnvHit 注释）
 function isEnvHit(env: string): boolean {
@@ -178,7 +190,7 @@ function unknownSectionItems(levels: ConfigStatusLevel[]): ConfigStatusItem[] {
       items.push({
         level: "info",
         scope: "配置",
-        message: `${level.layer}存在未知配置段「${name}」：本版本未读取，疑似拼写错误`,
+        message: `${level.layer}存在未知配置段「${name}」：本版本未读取，疑似拼写错误；可用段名：${[...CONFIG_KNOWN_SECTIONS].sort().join(" / ")}`,
       })
     }
   }
