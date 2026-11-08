@@ -76,6 +76,18 @@ title: skills 相关（技能分发）
 
 ⚠️ **仅认项目层**：`projectSkills` 只从项目层 `.toolkitrc.json` 读取；写在全局层或本地层时告警并忽略。项目面与全局面的选择集相互独立，`--scope all` 时两面共用本次交互结果。
 
+## 安装目标选择
+
+技能选择之后是**目标选择**：全局面选 agent 目录，项目面选已存在的候选薄壳目录；结果写入 `skillsInstall.targets` / `projectSkills.targets`。
+
+- **优先级**（从高到低）：`--all-agents` / `--agent <names>` 显式指定 → TTY 方向键多选 → 已保存的 targets → 首次全部可用目标
+- **交互**：按「共读（canonical）→ agent → 自定义目录」分组展示；本机未检测到的已保存 agent 置灰保留，不凭空创建目录；只有一个可用目标时跳过选择
+- 选择完成后打印技能 + 目标汇总并二次确认，确认前 `Ctrl+C` 不写任何文件
+- **长期选择**：交互或 `--agent` / `--all-agents` 的结果写回配置；`--no-save-agents` 只影响本次；`--dir` 始终一次性，不写回长期选择
+- **取消目标**：已安装产物默认保留，`status` 将这些目标标为「未选择」并把其产物单列「未选择但已安装」、不计入问题；
+  加 `--prune` 重跑 `install` 才清理本包登记且内容一致的产物，第三方 / 本地改动过的产物永不自动删除
+- **项目面**：`prepare` 等非交互场景按已保存目录刷新，不新增未选择目录；保存的目录已不存在时告警跳过，补齐目录后重跑即可
+
 ## 分发目标与环境变量
 
 各 agent 的全局技能目录以 `~` 为基准，可被 home 类环境变量改写：
@@ -87,6 +99,34 @@ title: skills 相关（技能分发）
 | `SARVAM_HOME` / `CODEX_HOME` / `APPDATA` / `FLATPAK_XDG_CONFIG_HOME` | 仅参与探测，不改变写入落点 |
 
 Codex / Pi 的全局目录就是主目标（`~/.agents/skills/`），`CODEX_HOME` 只用于判断是否安装，不改变写入落点。
+
+### 分发落点
+
+**全局面三层目标**（按顺序去重）：
+
+1. 主目标 `~/.agents/skills/`：上游 canonical 目录，多家 agent 共读
+2. 内置表中「已安装」的各 agent 全局技能目录（判据：agent 配置目录存在或探测路径命中）
+3. `--dir <path>` 指定的兜底目录
+
+共读主目标的 agent：Cline、Codex、Dexto、Kimi Code CLI、Loaf、Pi、Sarvam Code、Warp、Zed、DeepSeek Harness。
+它们读取的就是主目标本身，写入一次即全部覆盖；`status` 单列「经 canonical 共读的 agent」。
+DeepSeek Harness 的项目级技能目录与项目面真源同路径（`<仓库根>/.agents/skills/`），无需向 `~/.dsh/skills/` 额外写入。
+
+⚠️ **`--dir` 自定义目录**：只在当次安装时写入并登记，技能增删后不同步；变化后需带相同 `--dir` 重跑 `toolkit skills install`。
+
+**项目面候选目录**（19 个，仅在目录已存在时落壳）：
+
+| 候选目录 | 候选目录 | 候选目录 |
+| --- | --- | --- |
+| `.agents/skills/`（真源） | `.trae/skills/` | `.claude/skills/` |
+| `agent/skills/`（Eve） | `.augment/skills/` | `.codebuddy/skills/` |
+| `.continue/skills/` | `.crush/skills/` | `.devin/skills/` |
+| `.goose/skills/` | `.grok/skills/` | `.hermes/skills/` |
+| `.iflow/skills/` | `.junie/skills/` | `.kiro/skills/` |
+| `.openhands/skills/` | `.qwen/skills/` | `.roo/skills/` |
+| `.windsurf/skills/` |  |  |
+
+`.cursor/skills/`、`.trae-cn/skills/` 是这两家 agent 的**全局**目录，不在项目级候选内。
 
 ## 相关页面
 

@@ -148,23 +148,8 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 ## 目标选择
 
-技能选择之后是**目标选择**：全局面选 agent 目录，项目面选已存在的候选薄壳目录。
-
-- **优先级**（从高到低）：
-
-  1. `--all-agents` / `--agent <names>` 显式指定
-  2. TTY 方向键多选
-  3. 已保存的 `skillsInstall.targets` / `projectSkills.targets`
-  4. 首次全部可用目标
-
-- **交互**：按「共读（canonical）→ agent → 自定义目录」分组展示
-  - 本机未检测到的已保存 agent 置灰保留，不凭空创建目录
-  - 只有一个可用目标时跳过选择
-  - 选择完成后打印技能 + 目标汇总并二次确认，确认前 `Ctrl+C` 不写任何文件
-- **长期选择**：交互或 `--agent` / `--all-agents` 的结果写回配置；`--no-save-agents` 只影响本次；`--dir` 始终一次性，不写回长期选择
-- **取消目标**：已安装产物默认保留，`status` 将这些目标标为「未选择」，并把其产物单列「未选择但已安装」、不计入问题
-  - 加 `--prune` 重跑 `install` 才清理本包登记且内容一致的产物；第三方 / 本地改动过的产物永不自动删除
-- **项目面**：`prepare` 等非交互场景按已保存目录刷新，不新增未选择目录；保存的目录已不存在时告警跳过，补齐目录后重跑即可
+技能选择之后是目标选择：全局面选 agent 目录，项目面选已存在的候选薄壳目录。
+优先级、交互流程、长期选择写回与取消目标口径见[配置参考 · 安装目标选择](../config/skills#安装目标选择)。
 
 ## 外部来源
 
@@ -202,64 +187,28 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 `install` / `status` / `remove` 三子命令均支持 `--scope <project|global|all>`，缺省按**现场自动判定**：
 
-- **project（项目面）**：仅在**仓库内**生效。
-  - 真源固定为仓库根下 `.agents/skills/`：完整副本一份，随 git 入库。
-  - 其余**已存在**的项目级技能目录，各放**每个技能一个薄壳** `SKILL.md`。薄壳的 `description` 派生自真源以保持触发面一致，正文只指向真源路径，并带本包标记。
-  - 候选目录见下表；未命中的候选目录只报告、不凭空建目录。
-  - `.cursor/skills/`、`.trae-cn/skills/` 是这两家 agent 的**全局**目录，不在项目级候选内。
-  - 不写到仓库之外的目录：`--dir` 落在仓库外会告警剔除，不静默丢弃。
-  - 不支持 `--copy`：真源恒为副本、薄壳非副本，传入时告警忽略。
-
-**项目级候选目录**（19 个，仅在目录已存在时落壳）：
-
-| 候选目录 | 候选目录 | 候选目录 |
-| --- | --- | --- |
-| `.agents/skills/`（真源） | `.trae/skills/` | `.claude/skills/` |
-| `agent/skills/`（Eve） | `.augment/skills/` | `.codebuddy/skills/` |
-| `.continue/skills/` | `.crush/skills/` | `.devin/skills/` |
-| `.goose/skills/` | `.grok/skills/` | `.hermes/skills/` |
-| `.iflow/skills/` | `.junie/skills/` | `.kiro/skills/` |
-| `.openhands/skills/` | `.qwen/skills/` | `.roo/skills/` |
-| `.windsurf/skills/` |  |  |
-
-- **global（全局面）**：写到各 agent 的**全局**技能目录（见下方「全局面分发目标三层」）
+- **project（项目面）**：仅在**仓库内**生效。真源固定为仓库根下 `.agents/skills/`（完整副本一份，随 git 入库），
+  其余**已存在**的候选目录各放每个技能一个薄壳；候选目录清单与落点细节见[配置参考 · 分发落点](../config/skills#分发落点)。
+- **global（全局面）**：写到各 agent 的**全局**技能目录，三层目标与共读 agent 见[配置参考 · 分发落点](../config/skills#分发落点)
 - **all**：两面都执行（报告各自成段）
 
-⚠️ **自动判定判据**：自当前工作目录逐级向上，任一层含 `package.json` 且 CLI 包根真实落在其下 → `project`，否则 `global`。
+薄壳的 `description` 派生自真源以保持触发面一致，正文只指向真源路径并带本包标记；未命中的候选目录只报告、不凭空建目录。
+不写到仓库之外：`--dir` 落在仓库外会告警剔除，不静默丢弃。不支持 `--copy`：真源恒为副本、薄壳非副本，传入时告警忽略。
 
-- monorepo 子目录执行亦能命中项目面
-- **本包源仓库自身视为 `global`**：维护者靠全局技能自举，不把自身 `skills/` 复制进自身仓库
-- 传入非法取值（非 `project` / `global` / `all`）时报错退出（退出码 1），不静默回落默认值
+⚠️ **自动判定判据**：自当前工作目录逐级向上，任一层含 `package.json` 且 CLI 包根真实落在其下 → `project`，否则 `global`。
+monorepo 子目录执行亦能命中项目面；**本包源仓库自身视为 `global`**（维护者靠全局技能自举，不把自身 `skills/` 复制进自身仓库）。
+传入非法取值（非 `project` / `global` / `all`）时报错退出（退出码 1），不静默回落默认值。
 
 ⚠️ **项目面归属账**：产物登记在 `<仓库根>/.toolkit/state.json`，含真源副本、各薄壳目录与逐技能条目（名称 / 版本 / 形态），路径均仓库根相对、随 git 分发。
+`remove` 只清账内条目，不碰账外同名产物；卸载时真源副本内容与包内真源一致才删、薄壳带本包标记才删，其余交人工确认。
 
-- `remove` 只清账内条目，不碰账外同名产物
-- 卸载时真源副本内容与包内真源一致才删、薄壳带本包标记才删，其余交人工确认
-
-⚠️ **项目面逐技能状态**（`status` 口径）：
-
-- 状态取值：`已就绪` / `已漂移`（内容与真源或期望不一致）/ `同名冲突`（非本包产物）/ `缺失`（仅指已选择但缺失）/ `未选择但已安装`（单列提示，不计入问题）
-- 健康目录折叠为一行，仅异常项逐条展开
-- 漂移与缺失用 `install --scope project` 补齐；同名冲突加 `--force` 覆盖；未选择产物需要清理时加 `--prune`
+⚠️ **项目面逐技能状态**（`status` 口径）：取值 `已就绪` / `已漂移`（内容与真源或期望不一致）/ `同名冲突`（非本包产物）/
+`缺失`（仅指已选择但缺失）/ `未选择但已安装`（单列提示，不计入问题）。
+健康目录折叠为一行，仅异常项逐条展开；漂移与缺失用 `install --scope project` 补齐，同名冲突加 `--force` 覆盖，未选择产物需要清理时加 `--prune`。
 
 ⚠️ **clone 即用**：项目面真源副本与归属账随 git 入库，队友 clone 后无需重跑 `skills install` 即开箱可用。
-
-- `toolkit init` 在本地依赖含 `@fxri/toolkit` 时，向 `package.json` 补 `prepare` 钩子（`toolkit skills install --scope project`）
-  - 依赖升级后自动刷新项目面（详见 [init](./init)）
-
-**全局面分发目标三层**（按顺序去重）：
-
-1. 主目标 `~/.agents/skills/`：上游 canonical 目录，多家 agent 共读
-2. 内置表中「已安装」的各 agent 全局技能目录（判据：agent 配置目录存在或探测路径命中）
-3. `--dir <path>` 指定的兜底目录
-
-共读主目标的 agent：Cline、Codex、Dexto、Kimi Code CLI、Loaf、Pi、Sarvam Code、Warp、Zed、DeepSeek Harness。
-
-它们读取的就是主目标本身，写入一次即全部覆盖；`status` 单列「经 canonical 共读的 agent」。
-
-DeepSeek Harness 的项目级技能目录与项目面真源同路径（`<仓库根>/.agents/skills/`），无需向 `~/.dsh/skills/` 额外写入。
-
-⚠️ **`--dir` 自定义目录**：只在当次安装时写入并登记，技能增删后不同步；变化后需带相同 `--dir` 重跑 `toolkit skills install`。
+`toolkit init` 在本地依赖含 `@fxri/toolkit` 时，向 `package.json` 补 `prepare` 钩子（`toolkit skills install --scope project`），
+依赖升级后自动刷新项目面（详见 [init](./init)）。
 
 各 agent 目录的 `~` 基准可被 home 类环境变量改写，清单见[配置参考 · skills](../config/skills#分发目标与环境变量)。
 
