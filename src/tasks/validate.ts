@@ -12,6 +12,7 @@ import { isBeyondTzFuture, MAX_UTC_OFFSET_HOURS } from "../date"
 import {
   CARRIER_VERSION,
   CONVENTIONS_DIR,
+  ENDPOINT_ANCHOR_HEADER,
   ENTRY_VERSION,
   HISTORY_ANCHOR_HEADER,
   HISTORY_FILE,
@@ -55,8 +56,33 @@ export interface CheckResult {
 
 // 合法任务状态与可归档状态直接复用 types.ts 单一事实源（ALL_STATUSES / DONE_STATUSES），避免别名漂移
 
-// 未闭合待办标记：方案正文里出现这些词说明有游离的待办子项未拆成独立任务
-const PENDING_MARKERS = /待办|待实施|待核对|待确认|待开始|待评估|待排期|待做|TODO/
+// 词标记：仅认行首子项形态（列表项或「标记词：」开头），句中引用与标题不算
+const PENDING_WORDS_SRC = "待办|待实施|待核对|待确认|待开始|待评估|待排期|待做|TODO"
+const PENDING_LINE_RE = new RegExp(`^\\s*(?:(?:[-*+]|\\d+\\.)\\s+(${PENDING_WORDS_SRC})|(${PENDING_WORDS_SRC})\\s*[：:])`)
+
+// 词标记命中：跳过 H1、fenced code block 与引用行，只在行首子项形态里找；返回 1 基行号与原词
+function findPendingHit(lines: string[], fmEnd: number): { line: number; word: string } | null {
+  let fence: string | null = null
+  let skippedTitle = false
+  for (let i = fmEnd; i < lines.length; i += 1) {
+    const line = lines[i] ?? ""
+    const fenceHit = /^\s*(```+|~~~+)/.exec(line)
+    if (fenceHit) {
+      const marker = (fenceHit[1] ?? "").startsWith("`") ? "`" : "~"
+      fence = fence === null ? marker : fence === marker ? null : fence
+      continue
+    }
+    if (fence !== null) continue
+    if (!skippedTitle && /^# /.test(line)) {
+      skippedTitle = true
+      continue
+    }
+    if (/^\s*>/.test(line)) continue
+    const hit = PENDING_LINE_RE.exec(line)
+    if (hit) return { line: i + 1, word: hit[1] ?? hit[2] ?? "" }
+  }
+  return null
+}
 
 // 未勾选的 Markdown 任务复选框：正文级探测（行首标志，尾随空白可跨行）
 const CHECKBOX_RE = /^[-*]\s*\[ \]\s/m
@@ -133,8 +159,23 @@ function hygieneIssues(name: string, raw: string): CheckIssue[] {
   return issues
 }
 
+// 端清单：只读 conventions/index.md 的「端名」列；载体或表格缺失返回 null（跳过校验，避免误报）
+function readDeclaredEndpoints(tasksDir: string): Set<string> | null {
+  const file = join(tasksDir, CONVENTIONS_DIR, INDEX_FILE)
+  if (!existsSync(file)) return null
+  const table = findTable(readTextFile(file).split(/\r?\n/), ENDPOINT_ANCHOR_HEADER)
+  const idx = table ? table.header.indexOf(ENDPOINT_ANCHOR_HEADER) : -1
+  if (!table || idx < 0) return null
+  const names = new Set<string>()
+  for (const row of table.rows) {
+    const name = (row[idx] ?? "").trim()
+    if (name) names.add(name)
+  }
+  return names
+}
+
 // 校验单个任务文件，返回问题列表
-export function validateTaskFile(file: string): CheckIssue[] {
+export function validateTaskFile(file: string, endpoints: Set<string> | null = null): CheckIssue[] {
   const issues: CheckIssue[] = []
   const name = basename(file)
   // 卫生检查在原始文本上判定（stripBom 后的文本无从发现 BOM），且须早于 frontmatter 早退：无 frontmatter 也要报
@@ -240,18 +281,33 @@ export function validateTaskFile(file: string): CheckIssue[] {
       issues.push({ level: "warn", file: name, line, message: `scope「${fm.scope}」含空格，端名与分类标签不得含空格（多值请改用半角加号连接，如 scope: web+server）` })
     }
   }
+  // scope 取值须在端清单内或为保留归属 common；载体缺失时跳过校验
+  if (endpoints && fm.scope) {
+    const invalid = fm.scope
+      .split("+")
+      .map((v) => v.trim())
+      .filter((v) => v !== "" && v !== "common" && !endpoints.has(v))
+    if (invalid.length > 0) {
+      issues.push({
+        level: "warn",
+        file: name,
+        line: fmKeyLine(lines, fmEnd, "scope"),
+        message: `scope「${fm.scope}」含不在端清单内的取值：${invalid.join("、")}（请登记端名或改用 common）`,
+      })
+    }
+  }
 
   // 方案正文子项未闭合扫描（软告警，不阻断；check.pendingMarkers=false 可关闭词标记扫描）
-  // 跳过 H1 标题，避免标题含「待办」等词被误报（去标题逻辑与展示层收口于 parse.ts）
+  // 只认行首子项形态，并跳过 H1 / 代码块 / 引用块，避免正文里的正常引用被误判
   const body = bodyWithoutTitle(stripFrontmatter(content))
   const pendingOn = getConfigSection("check")?.pendingMarkers !== false
-  const pending = pendingOn ? body.match(PENDING_MARKERS) : null
+  const pending = pendingOn ? findPendingHit(lines, fmEnd) : null
   if (pending) {
     issues.push({
       level: "warn",
       file: name,
-      line: bodyLine(lines, fmEnd, PENDING_MARKERS),
-      message: `正文含未闭合待办标记「${pending[0]}」，建议拆分为独立 active 任务或明确闭环`,
+      line: pending.line,
+      message: `正文含未闭合待办标记「${pending.word}」，建议拆分为独立 active 任务或明确闭环`,
     })
   }
 
@@ -430,8 +486,9 @@ export function validateTasks(tasksDir = ".tasks", cwd = process.cwd()): CheckRe
   const activeDir = join(tasksDir, "active")
   const files = listTaskFiles(activeDir)
   const issues: CheckIssue[] = []
+  const endpoints = readDeclaredEndpoints(tasksDir)
   for (const f of files) {
-    issues.push(...validateTaskFile(f))
+    issues.push(...validateTaskFile(f, endpoints))
     // 按规范 active 任务应放在 {YYYYMM}/ 月份子目录，直放 active 根目录给出软告警
     if (dirname(f) === activeDir) {
       issues.push({ level: "warn", file: basename(f), message: "active 任务应放入 {YYYYMM} 月份子目录（当前直放 active 根目录）" })

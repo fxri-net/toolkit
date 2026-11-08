@@ -66,6 +66,8 @@ export interface TaskStats {
   byScope: Record<string, number>
   // 统一分布：状态 / 负责人 / 范围 / 批次（覆盖视图内全部行，与看板同一口径）
   summary: TaskSummary
+  // 统计视图：all 含归档，active 仅未完成，archived 仅归档
+  view: TaskView
 }
 
 // 单行周期天数：创建日期或完成时间缺失返回 null（含 created 晚于 completed 的数据异常行）
@@ -137,6 +139,7 @@ export function computeStats(tasksDir: string, filter: TaskFilter = {}, view: Ta
     byOwner,
     byScope,
     summary: buildSummary(rows),
+    view,
   }
 }
 
@@ -144,6 +147,7 @@ export function computeStats(tasksDir: string, filter: TaskFilter = {}, view: Ta
 export function renderStats(s: TaskStats): string[] {
   const lines: string[] = []
   lines.push("任务统计（周期口径：完成日 − 创建日，仅含已完成）")
+  lines.push(`统计口径：${s.view === "all" ? "含归档" : s.view === "active" ? "仅未完成" : "仅已归档"}`)
   lines.push("")
   lines.push(`已完成样本：${s.duration.count} 个${s.skipped > 0 ? `（另跳过 ${s.skipped} 个缺创建日期或日期异常的行）` : ""}`)
   lines.push(`平均周期：${s.duration.avg} 天　最长周期：${s.duration.max} 天`)

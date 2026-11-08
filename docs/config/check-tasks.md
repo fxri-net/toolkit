@@ -12,7 +12,9 @@ title: check 与 tasks（校验与任务区）
 | --- | --- | --- | --- |
 | `warnings` | boolean | `true` | 软告警总开关（`tasks check` 的 warn 输出、归档/发版提醒、changelog 无类型前缀条目告警）；被 `--warn/--no-warn` 与 `FX_CHECK_WARN` 覆盖 |
 | `includeCheckbox` | boolean | `true` | `tasks check` 是否把正文未勾选的 `- [ ]` 扫为未闭合待办 |
-| `pendingMarkers` | boolean | `true` | `tasks check` 是否扫描词标记（待办/待实施/…）；只扫正文不扫标题 |
+| `pendingMarkers` | boolean | `true` | `tasks check` 是否扫描词标记（待办/待实施/…）；只认正文行首子项形态，跳过标题、代码块与引用块 |
+
+`tasks check` 另校验 `scope` 取值是否在 `.tasks/conventions/index.md` 的端清单内（`common` 恒合法），载体缺失时跳过；只校验 active 任务，不回溯归档。
 
 ## tasks：任务目录与导入列映射
 

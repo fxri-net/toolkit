@@ -42,6 +42,37 @@ describe("validateTasks 依赖与命名校验", () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
+  it("词标记只认行首子项形态，代码块与引用块不告警", () => {
+    const dir = taskDir()
+    putFile(dir, "20260903-唐启云-a.md", valid("", "正文提到待办与待核对，但不是行首子项\n\n```\n- 待办：代码块内\n```\n\n> - 待确认：引用块内\n"))
+    expect(warnTexts(dir).some((m) => m.includes("未闭合待办标记"))).toBe(false)
+    putFile(dir, "20260903-唐启云-b.md", valid("", "- 待办：补齐文档\n"))
+    expect(warnTexts(dir).some((m) => m.includes("未闭合待办标记"))).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("scope 取值须在端清单内或为 common，载体缺失时跳过", () => {
+    const dir = taskDir()
+    mkdirSync(join(dir, "conventions"), { recursive: true })
+    writeFileSync(
+      join(dir, "conventions", "index.md"),
+      "<!-- toolkit-conventions: v3 -->\n\n## 一、端清单\n\n| 端名 | 说明 |\n| --- | --- |\n| toolkit | 工具 |\n",
+      "utf8",
+    )
+    putFile(dir, "20260903-唐启云-ok.md", valid().replace("scope: 测", "scope: toolkit"))
+    putFile(dir, "20260903-唐启云-common.md", valid().replace("scope: 测", "scope: common"))
+    putFile(dir, "20260903-唐启云-bad.md", valid().replace("scope: 测", "scope: src/cli.ts"))
+    const invalid = warnTexts(dir).filter((m) => m.includes("不在端清单内"))
+    expect(invalid).toHaveLength(1)
+    expect(invalid[0]).toContain("src/cli.ts")
+
+    const noCarrier = taskDir()
+    putFile(noCarrier, "20260903-唐启云-bad.md", valid().replace("scope: 测", "scope: src/cli.ts"))
+    expect(warnTexts(noCarrier).some((m) => m.includes("不在端清单内"))).toBe(false)
+    rmSync(dir, { recursive: true, force: true })
+    rmSync(noCarrier, { recursive: true, force: true })
+  })
+
   it("依赖引用带 .md 后缀仍能命中（A1）", () => {
     const dir = taskDir()
     putFile(dir, "20260903-唐启云-a.md", valid().replace("depends_on: []", "depends_on: [20260903-唐启云-b.md]"))
@@ -109,7 +140,7 @@ describe("validateTasks 依赖与命名校验", () => {
 
   it("check.pendingMarkers=false 关闭词标记扫描（E8）", () => {
     const dir = taskDir()
-    putFile(dir, "20260903-唐启云-m.md", valid("", "\n说明：仍有待办收尾项。\n"))
+    putFile(dir, "20260903-唐启云-m.md", valid("", "\n待办：收尾项\n"))
     // 默认开：词标记「待办」会告警
     expect(warnTexts(dir).some((m) => m.includes("未闭合待办标记"))).toBe(true)
 
