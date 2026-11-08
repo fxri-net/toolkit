@@ -23,21 +23,50 @@ toolkit config status --cwd <path>       # 指定向上查找的起始目录（�
 | `--format <format>` | `--format json` 输出机器可读报告到 stdout（诊断走 stderr）；非法值按参数错误报错退出 |
 | `--cwd <path>` | 向上查找的起始目录（缺省当前工作目录）；相对路径先 resolve 为绝对；指向不存在 / 非目录的路径时报错退出、不回落当前目录 |
 
-报告（`--format json`）顶层为 `summary`（一句话结论）、`cwd`（查找起点）、`levels[]`（三层明细：`file` / `present` / `ignored` / 段名）、`displayKeys[]`（展示键 → 来源层）、`env[]` / `bypass[]`（环境变量命中，只列键名）、`items[]`（`level` / `scope` / `message`）、`warnings`（计数）。⚠️ **仅 `summary` / `items[]` / `warnings` 为稳定契约**（只增不减，与 `conventions status` 公共字段同形）；其余字段（`cwd` / `levels[]` / `displayKeys[]` / `env[]` / `bypass[]`）属实现细节，可能随版本变更。
+报告（`--format json`）顶层字段：
 
-⚠️ **`summary` 为固定三态文案**（层名一律用「全局层 / 项目层 / 本地层」三词，逐字一致）：命中 ≥1 层输出 `共命中 N 层：<层名、顿号分隔>`；三层全空输出 `三层均无配置文件，全部取默认值`；非 git 仓库时在主句后附 `；未检测到 git 仓库，忽略判定不适用`（旁注，不替换主句）。
+| 字段 | 内容 | 稳定性 |
+| --- | --- | --- |
+| `summary` | 一句话结论 | 稳定契约 |
+| `items[]` | `level` / `scope` / `message` | 稳定契约 |
+| `warnings` | 告警计数 | 稳定契约 |
+| `cwd` / `levels[]` / `displayKeys[]` / `env[]` / `bypass[]` | 实现细节 | 可能随版本变更 |
 
-⚠️ **`items[].level` 只有 `warn` 与 `info` 两值**（对齐 `conventions status`，无 error 级）；`info` 不计入 `warnings` 计数，仅 `warn` 计入——CI 可据 `warnings` 拦错。**`items[].scope` 当前只有 `配置`（配置降级项）与 `本地层`（本地文件忽略态与 home 边界提示）两值**，文本渲染形如 `[配置]` / `[本地层]`。
+⚠️ 仅前三项为稳定契约（只增不减，与 `conventions status` 公共字段同形）；其余属实现细节，可能随版本变更。`levels[]` 承载三层明细（`file` / `present` / `ignored` / 段名）。
+
+⚠️ **`summary` 为固定三态文案**，层名一律用「全局层 / 项目层 / 本地层」三词、逐字一致：
+
+- 命中 ≥1 层：`共命中 N 层：<层名、顿号分隔>`
+- 三层全空：`三层均无配置文件，全部取默认值`
+- 非 git 仓库：在主句后附 `；未检测到 git 仓库，忽略判定不适用`（旁注，不替换主句）
+
+⚠️ **`items[].level` 只有 `warn` 与 `info` 两值**（对齐 `conventions status`，无 error 级）。
+
+`info` 不计入 `warnings` 计数，仅 `warn` 计入——CI 可据 `warnings` 拦错。
+
+`items[].scope` 当前只有两值：`配置`（配置降级项）与 `本地层`（本地文件忽略态与 home 边界提示），文本渲染形如 `[配置]` / `[本地层]`。
 
 ⚠️ **未知段名提示**：`info` 级，文案后附带可用段名（`CONFIG_KNOWN_SECTIONS` 排序输出），便于直接从输出改正拼写；该清单与 `docs/config.md` 的字段总览由单测锁定一致。
 
 ⚠️ **文本模式折叠 home**：层级路径与待处理项文案中内嵌的路径都把 home 前缀显示为 `~/…`（避免共享日志 / 截图泄露本机目录结构）；`--format json` 保留绝对路径供脚本定位。
 
-⚠️ **自指关系与取舍**：`tasks check` 的「本地配置文件未入库」软告警受 `check.warnings` 支配，而该开关可被本地层（那个未入库的文件本身）设成 `false` → 告警被同一个文件静音、团队无从察觉。故**不为该告警开例外**，改由 `config status` 的对应提示兜底——它**不受任何配置开关影响**（除 `--format` 非法外恒输出），`level` 为 `warn`、计入 `warnings` 计数。
+⚠️ **自指关系与取舍**：`tasks check` 的「本地配置文件未入库」软告警受 `check.warnings` 支配，而该开关可被本地层（那个未入库的文件本身）设成 `false`。
 
-⚠️ **与 `conventions status` 的参数差异**：`conventions status` 按**任务目录**定位（提供 `--dir`），`config status` 面向**配置文件向上查找**（**不提供 `--dir`**，改用 `--cwd` 指定查找起点）；两者参数不可互换。
+- 后果：告警被同一个文件静音，团队无从察觉
+- 处置：**不为该告警开例外**，改由 `config status` 的对应提示兜底
+- 该提示**不受任何配置开关影响**（除 `--format` 非法外恒输出），`level` 为 `warn`、计入 `warnings` 计数
 
-⚠️ **与 `tasks check` 的起点差异**：`tasks check` 恒以**运行 cwd** 判定本地配置文件的忽略状态、**无 `--cwd`**；`config status` 可用 `--cwd` 指定起点。两者「本地配置文件是否已忽略」的判据函数共用、态分类一致，仅起点参数能力不同，不可互相替代。
+⚠️ **与 `conventions status` 的参数差异**：
+
+- `conventions status` 按**任务目录**定位（提供 `--dir`）
+- `config status` 面向**配置文件向上查找**：**不提供 `--dir`**，改用 `--cwd` 指定查找起点
+- 两者参数不可互换
+
+⚠️ **与 `tasks check` 的起点差异**：
+
+- `tasks check` 恒以**运行 cwd** 判定本地配置文件的忽略状态、**无 `--cwd`**
+- `config status` 可用 `--cwd` 指定起点
+- 两者「本地配置文件是否已忽略」的判据函数共用、态分类一致，仅起点参数能力不同，不可互相替代
 
 ## 相关页面
 

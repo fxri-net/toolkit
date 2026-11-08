@@ -71,6 +71,18 @@ title: skills 相关（技能分发）
 
 ⚠️ **仅认项目层**：`projectSkills` 只从项目层 `.toolkitrc.json` 读取；写在全局层或本地层时告警并忽略。项目面与全局面的选择集相互独立，`--scope all` 时两面共用本次交互结果。
 
+## 分发目标与环境变量
+
+各 agent 的全局技能目录以 `~` 为基准，可被 home 类环境变量改写：
+
+| 变量 | 作用 |
+| --- | --- |
+| `XDG_CONFIG_HOME` | 改写 amp / devin / goose / opencode / replit / universal 的基准 |
+| `AUTOHAND_HOME` / `CLAUDE_CONFIG_DIR` / `GROK_HOME` / `HERMES_HOME` / `VIBE_HOME` | 各自命中时生效；空值或非绝对路径回落默认 |
+| `SARVAM_HOME` / `CODEX_HOME` / `APPDATA` / `FLATPAK_XDG_CONFIG_HOME` | 仅参与探测，不改变写入落点 |
+
+Codex / Pi 的全局目录就是主目标（`~/.agents/skills/`），`CODEX_HOME` 只用于判断是否安装，不改变写入落点。
+
 ## 相关页面
 
 - 参考：[配置参考总览](../config) · [skills 命令](../cli/skills) · [完整攻略 · AI 技能包](../guide#ai-技能包-skills)
