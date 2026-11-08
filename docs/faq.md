@@ -4,9 +4,7 @@
 
 ## 解决什么问题
 
-快速开始讲最短路径、完整攻略讲全流程，但真实使用中的疑问是碎片化的。本篇按「问题 → 答案」直给。
-
-同一事实只在真源页维护一次：本篇只给结论与该问题特有的差异，细节指回真源。没找到答案可去提问：
+快速开始讲最短路径、完整攻略讲全流程，但真实使用中的疑问是碎片化的。本篇按「问题 → 答案」直给。同一事实只在真源页维护一次：本篇只给结论与该问题特有的差异，细节指回真源。没找到答案可去提问：
 
 - [GitHub Issues](https://github.com/fxri-net/toolkit/issues)
 - [Gitee Issues](https://gitee.com/fxri/toolkit/issues)
@@ -17,8 +15,6 @@
 
 不是都得装。**skills 独立可用，工具是可选加速**：只装 skills 时 AI 照着技能里的规范纯手工跑通建档、校验、归档全流程（零依赖，纯 Markdown）；
 只装工具时人可以用 CLI，但 AI 侧没有规范指引；两者都装时 AI 自动校验、自动归档，体验最完整（推荐）。
-
-一句话：skills 教 AI 怎么做，CLI 帮人（和 AI）做得快。
 
 ### 个人用，全局装还是每个项目里装？
 
@@ -34,16 +30,13 @@
 
 用 `toolkit skills install --mode package` 切换到纯包管理器模式：`core` 也不再强制，可以一个都不选。
 之后按 `--from <path|url> --skills <names>` 只装外部来源技能。
-
 只想本次零装、不改长期模式时用 `--no-skills`，它与 `--skills` / `--all` / `--no-optional` / `--mode` 互斥。
 
 ### 项目内装的技能放在哪、队友 clone 后要重装吗？
 
 项目面分发（`toolkit skills install --scope project`；`--scope` 缺省时项目内装的 CLI 会自动走此面）只保留**一份唯一真源**：`<仓库根>/.agents/skills/`。
 其余**已存在**的候选目录各放**每个技能一个** `SKILL.md` 薄壳，description 从真源派生、正文指明真源路径与版本标记，不重复承载内容。
-某个候选目录不存在就不凭空创建，候选目录清单见 [skills 命令 · 作用域](./cli/skills#作用域)。
-
-真源、薄壳与归属账（`<仓库根>/.toolkit/state.json`）都要**入库**。
+某个候选目录不存在就不凭空创建，候选目录清单见 [skills 命令 · 作用域](./cli/skills#作用域)。真源、薄壳与归属账（`<仓库根>/.toolkit/state.json`）都要**入库**。
 队友 clone 后**不必逐台手动重装**：`prepare` 刷新钩子在 `pnpm install` 时自动补齐/刷新（仅当本地依赖含 `@fxri/toolkit`），也可手动重跑 install。
 现场用 `toolkit skills status --scope project` 查，清理用 `toolkit skills uninstall --scope project`（只摘本包登记的产物）。
 
@@ -53,9 +46,7 @@
 ### skills 是什么？和插件、脚本有什么区别？
 
 skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文件，写清楚某类工作（比如方案落盘、发版）的流程和规范。agent 遇到对应任务时自动读取并照着执行。
-
-与插件/脚本的区别：**它不是可执行代码**，没有安装依赖、没有版本运行环境问题。
-任何兼容 Agent Skills 标准的 AI 工具（Trae、Claude Code、Cursor、Codex 等）都能直接读。
+与插件/脚本的区别：**它不是可执行代码**，没有安装依赖、没有版本运行环境问题，任何兼容 Agent Skills 标准的 AI 工具（Trae、Claude Code 等）都能直接读。
 缺点也来自这里：它依赖 AI 去执行，所以配套 CLI 做自动校验兜底。
 
 ### 我不用 AI，这个工具对我有用吗？
@@ -66,16 +57,12 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 
 能用。任务管理半边对所有角色开放。产品经理把需求清单整理成 Excel/CSV（列名用「任务名/负责人/截止日期」等常见叫法即可），
 让 AI 执行导入（`toolkit tasks import 需求.xlsx`）转成规范任务文件，内置中文列名映射、非标准列可用配置自定义。
-项目经理按负责人/状态过滤总览、导出 XLSX 汇报；测试、运维同样适用。CHANGELOG 半边面向有发版需求的软件项目。
-角色速查表与边界说明见[快速开始 · 谁适合用](./getting-started#谁适合用)。
+项目经理按负责人/状态过滤总览、导出 XLSX 汇报；测试、运维同样适用。CHANGELOG 半边面向有发版需求的软件项目。角色速查表与边界说明见[快速开始 · 谁适合用](./getting-started#谁适合用)。
 
 ### 配好全局规则后，我就完全不用管了？AI 能全程自主吗？
 
-日常可以做到**零操作**：建档、校验、归档与规范沉淀全部由 AI 按全局规则自主完成，你只说自然语言。
-AI 完成后会回报清单请你确认——这是防写错仓库文件的安全设计，不是操作负担。
-
-三个时刻仍需你出手：首次安装（AI 规则明确不自行全局安装）、升级后开新会话、工具不可用时手动保存兜底方案。
-详见[快速开始 · AI 用户](./getting-started#ai-用户-让-ai-替你操作)。
+日常可以做到**零操作**：建档、校验、归档与规范沉淀全部由 AI 按全局规则自主完成，你只说自然语言。AI 完成后会回报清单请你确认——这是防写错仓库文件的安全设计，不是操作负担。
+三个时刻仍需你出手：首次安装（AI 规则明确不自行全局安装）、升级后开新会话、工具不可用时手动保存兜底方案。详见[快速开始 · AI 用户](./getting-started#ai-用户-让-ai-替你操作)。
 
 ### AI 沉淀会话时，记什么不记什么？
 
@@ -84,14 +71,12 @@ AI 完成后会回报清单请你确认——这是防写错仓库文件的安�
 ### skills 需要额外的仓库参考文件吗？
 
 不需要。技能是**自包含**的：SKILL.md 主干 + 规范细节（references/）+ 模板资产（assets/）都在技能目录内，装好即完整，AI 拿到就能按规范执行。
-
 唯一例外：只装 skills、未装 CLI，且项目里没有仓库根 SPEC.md 时，建档格式需按[任务文件规范](https://github.com/fxri-net/toolkit/blob/main/SPEC.md)参照。
 装齐 CLI 或放一份 SPEC.md 即可消除。
 
 ### 用 nvm 切了 Node 版本，全局装的 toolkit 不见了？
 
 全局包绑定在安装时的 Node 版本上，切版本后各版本的 `node_modules` 相互独立。这是 nvm 类工具的机制，不是本工具的问题。
-
 处置三种：新版本下重新安装（`pnpm i -g @fxri/toolkit` 或 `npm i -g @fxri/toolkit`）；
 改用 pnpm 全局安装（pnpm 全局目录独立于 Node 版本）；团队项目改用项目 devDependency 方式，不受切版本影响（见[快速开始 · 安装](./getting-started#安装)）。
 
@@ -128,9 +113,8 @@ AI 完成后会回报清单请你确认——这是防写错仓库文件的安�
   git clone https://gitee.com/fxri/toolkit fxri-toolkit
   pnpm dlx skills add fxri-toolkit --global    # npm 用户把 pnpm dlx 换成 npx
   ```
-- **CLI 本体**：走 npm registry，与镜像无关。
-- **npm 源提速**：`pnpm config set registry https://registry.npmmirror.com`（npm 用户把 `pnpm config` 换成 `npm config`）
-- **问题反馈**：[Gitee Issues](https://gitee.com/fxri/toolkit/issues)
+- **CLI 本体与 npm 源提速**：CLI 走 npm registry，与镜像无关；提速可 `pnpm config set registry https://registry.npmmirror.com`
+  （npm 用户把 `pnpm config` 换成 `npm config`）
 
 ### 之前用 `npx skills` 装过，改用内置命令提示同名冲突怎么办？
 
@@ -141,7 +125,7 @@ AI 完成后会回报清单请你确认——这是防写错仓库文件的安�
 toolkit skills install --force   # 把各目标下的同名旧副本重建为软链（无权限建链时降级为副本）
 ```
 
-`--force` 只解除「同名非本包产物」的跳过判定，按默认形态重建这些未登记的目录；本包自己以 `--copy` 装出、且已在状态文件登记的副本不受影响，仍保持副本。
+`--force` 只解除「同名非本包产物」的跳过判定，按默认形态重建这些未登记的目录；本包自己以 `--copy` 装出、且已在状态文件登记的副本不受影响。
 
 ⚠️ 迁移后两条路径不要混用：再跑 `pnpm dlx skills update -g`（npm 用户 `npx skills update -g`）会把该目录重写回实体副本，冲突复发。
 迁移后 `skills-lock.json` 不再被任何一方维护，可删除，避免与内置命令的真实状态不一致。
@@ -150,7 +134,6 @@ toolkit skills install --force   # 把各目标下的同名旧副本重建为软
 
 **先清技能、再卸工具**：`toolkit skills uninstall` → `pnpm remove -g @fxri/toolkit`。
 ⚠️ 顺序别反：`skills uninstall` 要靠 CLI 与包内真源定位产物，CLI 卸了就没工具可用（重装一次再清即可）。
-
 软链会随 CLI 卸载悬空，`remove` 会一并摘除，漏摘时手工删 `~/.agents/skills/` 与各 agent 全局技能目录下的 `fxri-*` 链接。
 项目面产物用 `remove --scope project` 单独清（实体副本不随 CLI 卸载悬空）。完整步骤见[操作手册 · 升级与卸载](./handbook#七、升级与卸载)。
 
@@ -166,8 +149,7 @@ toolkit skills install --force   # 把各目标下的同名旧副本重建为软
 
 ### AI 换了个会话就不记得之前聊的了，怎么办？
 
-这是所有 agent 的共性约束：新会话读不到其他会话的内部上下文。解法是把记忆**沉淀进仓库文件**（`.tasks/`）。
-会话结束前说「今天先到这 / 收个尾」，AI 全量回放本会话、清单经你核对后落盘归档并做规范沉淀。
+这是所有 agent 的共性约束：新会话读不到其他会话的内部上下文。解法是把记忆**沉淀进仓库文件**（`.tasks/`）。会话结束前说「今天先到这 / 收个尾」，AI 全量回放本会话、清单经你核对后落盘归档并做规范沉淀。
 新会话开头说「恢复上下文 / 上次做到哪了」，AI 读 active 全部与近窗归档接上现场。完整流程见[完整攻略 · 会话沉淀、恢复与历史修正](./guide#会话沉淀、恢复与历史修正)。
 
 ### 为什么 AI 建的档 check 不过？
@@ -182,19 +164,15 @@ toolkit skills install --force   # 把各目标下的同名旧副本重建为软
 ### 归档后发现敏感信息没脱敏？
 
 脱敏只作用于**终端展示、导出文件与归档落盘**。`.tasks/active/` 源文件按原样保存（设计如此，不改动原始正文）。
-
-若某类信息未被掩码，可能未命中内置规则：**团队规则**加到 `.toolkitrc.json`。
-**个人规则**加到 `.toolkitrc.local.json`（仅本人可见、默认不入库），见[配置参考 · redact](./config/redact)。
+若某类信息未被掩码，可能未命中内置规则：**团队规则**加到 `.toolkitrc.json`；**个人规则**加到 `.toolkitrc.local.json`
+（仅本人可见、默认不入库），见[配置参考 · redact](./config/redact)。
 
 ### 技能次数正常，但触发词 / 参数 / 结果是空的？
 
 这是规则通道的预期表现：规则只上报技能名与次数，触发词、参数、结果与耗时靠工具反查会话记录补齐。读不到记录时字段留空，计数不受影响。
-
 常见原因有三种：该 Agent 的会话正文不落可读文件（Trae）、会话格式尚未适配（dsh 为 v4 事件流）、或会话记录已过期被清理。
-
 补救两种：`toolkit usage log --skill <名称> --session <id> --prompt "…" --args "…" --outcome success` 手工补录；
-或改用 Hook 通道（`toolkit usage channel hook`）。两种方式只对之后的事件生效。
-完整说明见 [Agent 接入 · 拿不到明细时的补救](./usage/agents#拿不到明细时的补救)。
+或改用 Hook 通道（`toolkit usage channel hook`）。两种方式只对之后的事件生效。完整说明见 [Agent 接入 · 拿不到明细时的补救](./usage/agents#拿不到明细时的补救)。
 
 ⚠️ 升级 Node 或安装 zstd 不会让 dsh 明细出现——它的会话格式尚未适配。
 
@@ -203,8 +181,7 @@ toolkit skills install --force   # 把各目标下的同名旧副本重建为软
 ### 只在公司项目激活，个人项目不被插入怎么做？
 
 全局装 skills 后，在公司项目根的 AGENTS.md / 项目 rules 中显式引用 fxri 技能并提交。个人项目不放引用文件即可。
-兼容 agent 仍可能按 `description` 匹配自动触发，若需要稳定启用（而非碰运气触发），个人项目同样建议显式声明。
-模板见[完整攻略 · 项目级激活模板](./guide#项目级激活模板)。
+兼容 agent 仍可能按 `description` 匹配自动触发，若需要稳定启用（而非碰运气触发），个人项目同样建议显式声明。模板见[完整攻略 · 项目级激活模板](./guide#项目级激活模板)。
 
 ### 任务做完必须马上归档吗？能不能攒一批？
 
@@ -214,16 +191,12 @@ toolkit skills install --force   # 把各目标下的同名旧副本重建为软
 ### 多人同一天归档，`pull` 时归档文件冲突了怎么办？
 
 归档文件按完成日期聚合成单一文件（`archive/{YYYYMM}/{YYYYMMDD}.md`）。多人同天归档、各自先提交后拉取时，git 会在同一文件上留下冲突标记。
-
 **不用手工逐块合并**：跑 `toolkit tasks normalize --fix` 即可。工具取冲突两侧的任务块并集、按标题去重、按完成时间降序重排，
 丢弃 diff3 的 `|||||||` base 段与全部标记行，得到无标记的规范归档文件（`normalize` 只读检查与 `tasks check` 也会先把这类文件报出来）。
-若由 AI 代为推送与拉取，可让其冲突后直接执行该命令收敛。
 
 ### 任务做完必须提交、发版、推送吗？
 
-都不必须。任务工作流的**强制约束到沉淀为止**：任务置终结态（`已完成`/`已放弃` + `completed`）并归档，再做任务级规范沉淀，归档 + 沉淀即流程终点。
-提交、发版、推送由你的规则约定，也可在当次指令里直接授权。
-
+都不必须。任务工作流的**强制约束到沉淀为止**：任务置终结态（`已完成`/`已放弃` + `completed`）并归档，再做任务级规范沉淀，归档 + 沉淀即流程终点。提交、发版、推送由你的规则约定，也可在当次指令里直接授权。
 ⚠️ 唯一保留的顺序约束：**若提交代码，必须先归档与沉淀、再跑项目验收命令、后提交**（验收须晚于归档）。
 归档文件、规范变更与代码变更落在同一 git 提交，完整口径见[完整攻略 · 方案落盘工作流](./guide#方案落盘工作流)。
 
@@ -238,9 +211,8 @@ toolkit skills install --force   # 把各目标下的同名旧副本重建为软
 
 ### 载体已经是 `conventions/` 目录了，还要升级什么？
 
-目录形态另有**结构版本**：最新为 **v3** 三分区（常驻 `index.md`、按需分册、归档面 `history.md` / `retired.md`，索引表首列为稳定 ID `C-<n>`）。
+目录形态另有**结构版本**：最新为 **v3** 三分区（常驻 `index.md`、按需分册、归档面 `history.md` / `retired.md`，索引表首列为稳定 ID `C-<n>`）；
 v2 有标记与稳定 ID 但无归档面，v1 连标记都没有。
-
 升级说一句「把规范载体升到 v3」，或跑 `toolkit conventions upgrade`：`--dry-run` 预演、幂等、异常形态拒绝写盘，v1 / v2 链式升级。
 各版本差异见[完整攻略 · 存量规范载体迁移](./guide#存量规范载体迁移)。
 
@@ -254,7 +226,6 @@ v2 有标记与稳定 ID 但无归档面，v1 连标记都没有。
 
 它是在**已存在的**项目级技能目录（如 `.agents/skills/toolkit-conventions/SKILL.md`）生成的**只作入口、不承载条文**的小技能壳。
 多个候选目录并存时每处各写一份，一个都不存在则回落 `.agents/skills/`；壳让 AI 在项目里能按需发现 `.tasks/conventions/` 载体，正文指回 `index.md`。
-
 它属侵入性写入，`init` 会逐项报告实际动作。落点被 `.gitignore` 覆盖时报告会提示（**不代改 `.gitignore`**），因为那样壳不会随 git 分发。
 不需要可直接删除，重跑 `init` 会补回；壳标记落后于当前 toolkit 时，重跑 `init` 会就地更新为当前版本。
 
@@ -266,7 +237,7 @@ v2 有标记与稳定 ID 但无归档面，v1 连标记都没有。
 ### 升级后要注意什么？
 
 技能**默认自动跟随** CLI 升级（软链锚在 pnpm 稳定入口）。
-用了 `--copy` 或建链失败降级为副本的需重跑 `toolkit skills install`，项目面由 `prepare` 钩子自动刷新，三种情形都要**开新会话**才读到新技能。
+用了 `--copy` 或建链失败降级为副本的需重跑 `toolkit skills install`，项目面由 `prepare` 钩子自动刷新；三种情形都要**开新会话**才读到新技能。
 升级命令与三步检查见[操作手册 · 升级](./handbook#升级)，Node 版本兼容见[完整攻略 · 升级与版本兼容](./guide#升级与版本兼容)。
 
 ### fork 本仓库怎么部署文档站？
