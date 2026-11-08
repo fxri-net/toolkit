@@ -38,6 +38,7 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 
 | 子命令 | 一句话 |
 | --- | --- |
+| `list` | 待完成看板（等价于裸 `tasks`，隐式子命令） |
 | `archive` | 把终结态任务按完成日期聚合归档；`--dry-run` 预演 |
 | `check` | 校验 active 任务、规范载体、入口壳、变更集与文件卫生（只报不改） |
 | `normalize` | 检查并修复归档块；`--fix` 修复，`--check` 显式声明只读 |

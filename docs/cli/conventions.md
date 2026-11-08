@@ -20,6 +20,8 @@ toolkit conventions format --format json  # JSON 输出：status、目录、文�
 
 裸 `toolkit conventions` 打印本域帮助（列出 3 个子命令）。
 
+`conventions check` 为 `conventions status` 的别名，参数与输出完全一致（补命令名与直觉不一致的入口）。
+
 | 子命令 | 行为 |
 | --- | --- |
 | `upgrade` | 把 v1 / v2 载体升为 **v3 三分区**：v1 输入先升 v2 再升 v3（首行补形态标记、标题归一、「演进记录」节抽为独立 `history.md`、索引表首列 `#` → `ID`、内部引用改写为稳定 ID `C-<n>`）；v2 → v3 再删索引表「状态」「确立来源任务」两列、`history.md` 表头首格归一为稳定 ID `ID`（与索引表首列同归一）、把状态为 `已废弃` 的行迁入按需创建的 `retired.md`（并从 Z1 索引删除、同步物理删分册内对应小节）、`history.md` 首列补 `C-<n>` 与来源列补录（首列已为行内代码包裹的 `C-<n>` 不误报）、`index.md` 表外自由文本残留 v2 措辞（「确立来源任务」「状态改为已废弃」等）复核、首行标记升 v3。以上无法机械判定的项列为人工复核项 `reviews`（只报不改）。**幂等**——已是 v3 返回 `already-v3`、不改动；未初始化（缺 `index.md`）或形态异常（标记 / `history.md` / 索引表首列三者不一致）在**写盘前**拒绝执行并给非 0 退出码，不写任何文件。`--dry-run` 只报告不改动；`--format json` 输出 `status`、`idMap`、`refs`、`changes`、`reviews`（ID 映射只随报告输出、不落盘） |

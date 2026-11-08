@@ -255,6 +255,20 @@ describe("顶层命令与外部域", () => {
     expect(r.code).toBe(0)
   })
 
+  it("conventions check 等价于 status（别名）", async () => {
+    const status = await runCli(["conventions", "status", "--dir", missingTasksDir])
+    const check = await runCli(["conventions", "check", "--dir", missingTasksDir])
+    expect(check.code).toBe(0)
+    expect(check.log).toEqual(status.log)
+  })
+
+  it("tasks list 等价于裸 tasks 看板", async () => {
+    const board = await runCli(["tasks", "--dir", missingTasksDir])
+    const list = await runCli(["tasks", "list", "--dir", missingTasksDir])
+    expect(list.code).toBe(0)
+    expect(list.log).toEqual(board.log)
+  })
+
   it("conventions format --dir 不存在：报错并以非 0 退出码终止", async () => {
     const r = await runCli(["conventions", "format", "--dir", missingTasksDir])
     expect(r.code).toBe(1)
@@ -520,6 +534,24 @@ describe("skills sources 外部来源口径", () => {
 })
 
 describe("rules 命令参数边界", () => {
+  it("--out 不写组合缓存，裸 compose 仍按原默认组合", async () => {
+    const cache = join(homeDir, ".toolkit", "cache", "rules-selection.json")
+    rmSync(cache, { force: true })
+    const out = join(sandbox, "rules-nocache.md")
+    const exportRun = await runCli(["rules", "compose", "--preset", "minimal", "--out", out])
+    expect(exportRun.code).toBe(0)
+    expect(exportRun.err.join("\n")).toContain("已跳过组合缓存写入")
+    expect(existsSync(cache)).toBe(false)
+    // 裸 compose 仍按推荐集输出（含输出要求），证明导出未改默认组合
+    const bare = await runCli(["rules", "compose", "--no-anchor"])
+    expect(bare.log.join("\n")).toContain("## 输出要求")
+    // 不带导出时仍写缓存
+    const remember = await runCli(["rules", "compose", "--preset", "minimal"])
+    expect(remember.err.join("\n")).toContain("已记住本次组合")
+    expect(existsSync(cache)).toBe(true)
+    rmSync(cache, { force: true })
+  })
+
   it("--copy 与 --out 互斥，不生成文件", async () => {
     const out = join(sandbox, "rules-copy.md")
     const result = await runCli(["rules", "compose", "--copy", "--out", out])

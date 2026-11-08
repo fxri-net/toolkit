@@ -1622,6 +1622,7 @@ conventionsCmd
 // 状态：只读体检，只报不改（不给 --fix）；体检本身不阻断、退出码恒 0，仅 --format 传非法值时按参数错误报错退出
 conventionsCmd
   .command("status")
+  .alias("check")
   .description("规范载体只读体检：形态 / 索引 / 入口层三块（只报不改，体检不阻断、退出码恒 0；仅 --format 传非法值时按参数错误报错退出）")
   .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）；入口壳与检测入口按该目录所属仓库扫描")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
@@ -2018,6 +2019,14 @@ tasksCmd
     await runTasksOverview(options)
   })
 
+// list 为隐式子命令：`toolkit tasks list` 等价于裸 `tasks` 看板，补命令名与直觉不一致的入口
+const tasksListCmd = tasksCmd.command("list", { hidden: true })
+addTasksCommonOptions(tasksListCmd)
+addTasksFilterOptions(tasksListCmd)
+tasksListCmd.option("--format <format>", "输出格式（json，输出到 stdout）").action(async (options: TasksQueryOptions) => {
+  await runTasksOverview(options)
+})
+
 addTasksCommonOptions(tasksCmd.command("archive").description("归档已完成任务"))
   .option("--dry-run", "预演（只预览，不落盘）")
   .action((options: TasksCommonOptions & { dryRun?: boolean }) => {
@@ -2304,8 +2313,13 @@ rulesCmd
       }
       const text = composeRules(ids, { anchor: options.anchor !== false })
       if (explicit && options.cache !== false) {
-        writeRulesSelection(ids)
-        console.error(`已记住本次组合（${ids.join(" → ")}），下次直接 rules compose 复用`)
+        // 导出 / 复制属一次性动作，不改变「下次裸跑 compose」的默认组合
+        if (options.out || options.copy) {
+          console.error("已跳过组合缓存写入（--out / --copy 不改变默认组合）")
+        } else {
+          writeRulesSelection(ids)
+          console.error(`已记住本次组合（${ids.join(" → ")}），下次直接 rules compose 复用`)
+        }
       }
       if (options.copy) {
         const result = copyToClipboard(text)
