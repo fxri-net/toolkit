@@ -30,41 +30,15 @@
 > 完整规范以仓库根 [SPEC.md](https://github.com/fxri-net/toolkit/blob/main/SPEC.md) 为单一事实源，
 > 命令与校验细则见 [tasks 命令](./cli/tasks)；此处只列日常速查。
 
-### 目录结构
+任务区骨架为 `active/{YYYYMM}/{YYYYMMDD}-{用户名}-{任务简述}.md`、`archive/{YYYYMM}/{YYYYMMDD}.md` 与可选的 `conventions/` 载体。
+`conventions/` 不是任务文件：tasks 子命令不读其内容、check 不因**条文内容**告警（细则见 [conventions 命令](./cli/conventions)）。
 
-```
-.tasks/
-├── active/{YYYYMM}/{YYYYMMDD}-{用户名}-{任务简述}.md   # 实时任务，按月分目录
-├── archive/{YYYYMM}/{YYYYMMDD}.md                     # 已归档，按完成日期聚合、块降序
-└── conventions/                                       # 项目协作规范载体（可选）
-    ├── index.md      # 唯一入口与唯一权威（常驻读）：首行形态标记、索引表首列稳定 ID
-    ├── history.md    # 规范语义演进记录（只追加、不改旧行；归档面、按需读）
-    ├── retired.md    # 退休台账：已作废规范的冻结语义（按需创建；归档面、按需读）
-    ├── common.md     # 全端通用条文（按需创建）
-    └── <端名>.md / <分类标签>.md   # 端分册 / 按 scope 标签命中加载的分册（按需创建）
-```
-
-`conventions/` 不是任务文件：tasks 子命令不读其内容、check 不因**条文内容**告警，只对载体形态、入口壳与表格填充态软告警（细则见 [conventions 命令](./cli/conventions)）。
-
-### frontmatter 字段
-
-| 字段 | 说明 |
-| --- | --- |
-| `owner` | 负责人（git 用户名） |
-| `status` | `待办` / `进行中` / `阻塞` / `已完成` / `已放弃`（后两者为可归档终结态） |
-| `created` | 创建日 `YYYYMMDD`，必须等于文件名日期前缀 |
-| `updated` | 更新日 `YYYYMMDD` |
-| `completed` | 完成时间 `YYYY-MM-DD HH:mm`，终结态必填；按四级时间源取证（见[会话沉淀](#会话沉淀、恢复与历史修正)） |
-| `depends_on` | 依赖任务文件名数组 |
-| `scope` | 影响范围；只标本仓内的端 / 面，多值以半角加号分隔（如 `web+server`），顿号 / 逗号列表属误写会触发 check 软告警 |
-
-### 归档规则要点
+归档要点四条：
 
 - 只有 `已完成` / `已放弃` 且带 `completed` 可归档；归档是人工 / 事件驱动，若提交代码须早于 `git commit`
-- 归档块是终结记录，不追加新工作内容（延续走新任务并标注来源链）；唯一例外是**事实更正**——在正文末尾追加「修订记录」，保留原结论、附更正时刻与依据，唯一键 / 完成时间 / 状态 / 负责人仍冻结
-- 文件按完成日期聚合、块按完成时间降序，**块间的 `---` 是唯一权威边界**；`toolkit tasks archive` 自动完成并加排他锁（并发时跳过并告警，残留锁自动接管）
-- `toolkit tasks normalize` 检查元数据、日期漂移、排序与时间异常（完成时间晚于当前系统时间超过 14 小时、或恰为零点整），`--fix` 自动修复
-  但时间异常需人工确认；多人同天归档产生的 git 冲突标记按并集去重 + 降序**确定性**解决
+- 归档块是终结记录，不追加新工作内容（延续走新任务并标注来源链），唯一例外是**事实更正**（末尾追加「修订记录」）
+- 文件按完成日期聚合、块按完成时间降序，**块间的 `---` 是唯一权威边界**，`toolkit tasks archive` 自动完成并加排他锁
+- `toolkit tasks normalize` 检查元数据、日期漂移、排序与时间异常，`--fix` 自动修复但时间异常需人工确认
 
 ## 方案落盘工作流
 
@@ -72,8 +46,7 @@
 
 1. **动手前置建档评估（先查后写）**：动手改仓库文件前先 `toolkit tasks` 查 active、核对 archive——active 有同主题更新原文件；
    archive 有同主题时看**本次是否产生仓库文件改动**：无改动不重复建档，有改动重新建档并标注来源链；均无则建档后再动手。
-   改动口径 = 需写入版本控制的工作区文件的增 / 改 / 删（纯读取、纯执行、纯汇报不计入）。归档块不可变，延续需求走新任务；
-   **跨仓库改动各自归档**：任务档只记本仓的改动与动机。
+   改动口径 = 需写入版本控制的工作区文件的增 / 改 / 删（纯读取、纯执行、纯汇报不计入）。归档块不可变，延续需求走新任务；**跨仓库改动各自归档**：任务档只记本仓的改动与动机。
 2. **建档**：在 `active/{YYYYMM}/` 按命名规范创建任务文件（AI 用户直接说「把方案落盘为任务」）。
    **多任务 / 多仓方案**先出一张纯展示计划表（序号 | 仓库 | 任务 | 前置，不落档），再逐仓逐任务建档，全部建档后才改第一处文件；只读参与的仓库不建档。
    方案已确认时收到推进授权（如「开始 / 按计划执行」）就**一次建完全部任务档**并跑 `tasks check`（error 与 warn 均为 0），不再逐个补建。
@@ -123,9 +96,7 @@
 
 ### 统一收尾链路（能力终点 = 沉淀）
 
-```
-任务终结 → 归档 → 规范沉淀（.tasks/conventions/，硬终点） → 提交/发版/推送（默认需确认；当次指令已含授权则直接执行）
-```
+任务终结 → 归档 → 规范沉淀（`.tasks/conventions/`，硬终点）→ 提交 / 发版 / 推送（默认需确认；当次指令已含授权则直接执行）。
 
 ### 会话沉淀（收尾执行）
 
@@ -153,11 +124,10 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 写入先问「是否所有端都适用」，是则归 `common`，否则逐端各记一条——`common` 是「所有端」而非「不确定归哪端」的暂存区。
 
 **内容修订**：语义变更先在 `history.md` 追加留痕、再更新索引行当前语义；规则**作废**走「迁出 + 三层清理」——
-索引行从 `index.md` 删除并迁入 `retired.md`（冻结退休时语义、记后继与条文去向），
-同时物理删除分册内该条小节、同步删改外部单一事实源，不留「已废弃」占位。
+索引行从 `index.md` 删除并迁入 `retired.md`（冻结退休时语义、记后继与条文去向），同时物理删除分册内该条小节、同步删改外部单一事实源，不留「已废弃」占位。
 
 **表格形态**：任务区 md 表格以**紧凑形态**（`| a | b |`）为规范形态；prettier 等格式化器填充出的列对齐空白属偏离。
-`toolkit init` 幂等托管 `.prettierignore`（任务区不参与格式化），`toolkit conventions format` 把存量表格压回紧凑形态
+`toolkit init` 幂等托管 `.prettierignore`（任务区不参与格式化）；`toolkit conventions format` 把存量表格压回紧凑形态
 （只动空白层、跳过 fenced code block、幂等）。
 
 ### 存量规范载体迁移
@@ -183,33 +153,19 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 | `fxri-plan-review` | 1.0.9 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
 | `fxri-text-encoding` | 1.2.5 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
 
-版本号取自各 SKILL.md 的 frontmatter `metadata.version`（`toolkit skills status` 打印的真源版本），
-层级取自 `metadata.tier`（`core` 必装、`optional` 可选）。
+版本号取自各 SKILL.md 的 frontmatter `metadata.version`，层级取自 `metadata.tier`（`core` 必装、`optional` 可选）。
 
-**安装**（两种方式选一）：
+**安装**：装了 CLI 后一键分发（推荐，技能随包分发、与 CLI 同一发布批次）用 `toolkit skills install`；
+也可用上游安装器 `pnpm dlx skills add fxri-net/toolkit --global` 从 GitHub 拉取。命令、作用域与全部选项见 [skills 命令](./cli/skills)。
 
-```bash
-# 方式一：装了 CLI 一键分发（推荐，技能随包分发，与 CLI 同一发布批次）
-toolkit skills install     # 默认软链真源，失败自动降级副本；先按 tier 选技能、再选目标
-                           # --scope <project|global|all> 指定作用域；--prune 清理未选择的旧产物
-                           # --from <path|url> 临时外部来源，加 --save [name] 登记永久来源
-toolkit skills status      # 查现场与版本；toolkit skills uninstall 卸载；toolkit skills path 输出包根
-
-# 方式二：上游安装器（技能走 GitHub 拉取，与 CLI 是两条供应链）
-pnpm dlx skills add fxri-net/toolkit --global
-```
-
-**全局面分发目标三层**：主目标 `~/.agents/skills/` → 内置表中「已安装」的各 agent 全局技能目录 → `--dir` 兜底。未安装的 agent 只报告、不凭空造目录。
-
-- **主目标**：由多家 agent 共读，共读清单与判定口径见 [skills 命令 · 作用域](./cli/skills#作用域)
-- **`--dir`**：自定义目录只在当次写入，技能增删后需带相同 `--dir` 重跑
-- **历史落点**：升级前的 Codex / Pi 落点若仍有登记，`status` 会单列「历史落点残留」提示清理（只提示、不自动删除）
+**全局面分发目标三层**：主目标 `~/.agents/skills/`（多家 agent 共读，清单与判定口径见 [skills 命令 · 作用域](./cli/skills#作用域)）
+→ 内置表内「已安装」的各 agent 全局目录 → `--dir` 兜底；未安装的 agent 只报告、不凭空造目录。
+升级前的 Codex / Pi 落点若仍有登记，`status` 会单列「历史落点残留」提示清理（只提示、不自动删除）。
 
 默认**软链**（Windows 用 junction）。⚠️ 软链落点是**写入穿透**形态：改落点文件即改真源，要改技能内容请改真源。
 
-**项目面分发（`--scope project`）**：真源落 `<仓库根>/.agents/skills/`（完整副本），其余已存在的候选目录各放每个技能一份**入口薄壳**指向真源，避免多目录重复；
-归属账写 `<仓库根>/.toolkit/state.json`，`prepare` 钩子在 `pnpm install` 时自动刷新，队友 clone 即用。
-候选目录清单、逐技能现场状态与卸载口径见 [skills 命令](./cli/skills)。
+**项目面分发（`--scope project`）**：真源落 `<仓库根>/.agents/skills/`（完整副本），其余已存在候选目录各放每个技能一份**入口薄壳**；
+归属账写 `<仓库根>/.toolkit/state.json`，`prepare` 钩子在 `pnpm install` 时自动刷新，队友 clone 即用。候选目录与现场状态见 [skills 命令](./cli/skills)。
 
 **与 CLI 的关系**：skills 是规范与流程（独立可用），CLI 是自动校验 / 归档 / 发版的加速器；技能末尾的「可选加速」节列出了对应命令，装了就用、没装技能流程照跑。
 安装与共存、命名规范、发布核对清单见 [skills/README.md](https://github.com/fxri-net/toolkit/blob/main/skills/README.md)；
@@ -220,8 +176,7 @@ pnpm dlx skills add fxri-net/toolkit --global
 需求：**只在公司项目激活 toolkit 技能，个人项目不被插入**（全局安装 skills 会污染所有项目）。做法二选一：
 
 **路径一 · 项目面分发（推荐，clone 即用）**：项目里以 devDependency 装 CLI，执行 `toolkit skills install --scope project`——
-技能真源与入口薄壳一并入库，队友 `pnpm install` 即补齐；个人项目不装 CLI 即不受影响。
-`--scope` 缺省时按 CLI 安装位置自动判定（项目内装的走项目面，全局装的走全局面）。
+技能真源与入口薄壳一并入库，队友 `pnpm install` 即补齐；个人项目不装 CLI 即不受影响。`--scope` 缺省时按 CLI 安装位置自动判定（项目内装的走项目面，全局装的走全局面）。
 
 **路径二 · 全局面 + rules 选择性引用**（仓库根放引用文件并提交）：
 
