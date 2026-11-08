@@ -30,15 +30,43 @@
 > 完整规范以仓库根 [SPEC.md](https://github.com/fxri-net/toolkit/blob/main/SPEC.md) 为单一事实源，
 > 命令与校验细则见 [tasks 命令](./cli/tasks)；此处只列日常速查。
 
-任务区骨架为 `active/{YYYYMM}/{YYYYMMDD}-{用户名}-{任务简述}.md`、`archive/{YYYYMM}/{YYYYMMDD}.md` 与可选的 `conventions/` 载体。
-`conventions/` 不是任务文件：tasks 子命令不读其内容、check 不因**条文内容**告警（细则见 [conventions 命令](./cli/conventions)）。
+### 目录结构
 
-归档要点四条：
+```
+.tasks/
+├── active/{YYYYMM}/{YYYYMMDD}-{用户名}-{任务简述}.md   # 实时任务，按月分目录
+├── archive/{YYYYMM}/{YYYYMMDD}.md                     # 已归档，按完成日期聚合、块降序
+└── conventions/                                       # 项目协作规范载体（可选）
+    ├── index.md      # 唯一入口与唯一权威（常驻读）：首行形态标记、索引表首列稳定 ID
+    ├── history.md    # 规范语义演进记录（只追加、不改旧行；归档面、按需读）
+    ├── retired.md    # 退休台账：已作废规范的冻结语义（按需创建；归档面、按需读）
+    ├── common.md     # 全端通用条文（按需创建）
+    └── <端名>.md / <分类标签>.md   # 端分册 / 按 scope 标签命中加载的分册（按需创建）
+```
+
+`conventions/` 不是任务文件：tasks 子命令不读其内容、check 不因**条文内容**告警，只对载体形态、入口壳与表格填充态软告警（细则见 [conventions 命令](./cli/conventions)）。
+
+### frontmatter 字段
+
+| 字段 | 说明 |
+| --- | --- |
+| `owner` | 负责人（git 用户名） |
+| `status` | `待办` / `进行中` / `阻塞` / `已完成` / `已放弃`（后两者为可归档终结态） |
+| `created` | 创建日 `YYYYMMDD`，必须等于文件名日期前缀 |
+| `updated` | 更新日 `YYYYMMDD` |
+| `completed` | 完成时间 `YYYY-MM-DD HH:mm`，终结态必填；按四级时间源取证（见[会话沉淀](#会话沉淀、恢复与历史修正)） |
+| `depends_on` | 依赖任务文件名数组 |
+| `scope` | 影响范围；只标本仓内的端 / 面，多值以半角加号分隔（如 `web+server`），顿号 / 逗号列表属误写会触发 check 软告警 |
+
+### 归档规则要点
 
 - 只有 `已完成` / `已放弃` 且带 `completed` 可归档；归档是人工 / 事件驱动，若提交代码须早于 `git commit`
-- 归档块是终结记录，不追加新工作内容（延续走新任务并标注来源链），唯一例外是**事实更正**（末尾追加「修订记录」）
-- 文件按完成日期聚合、块按完成时间降序，**块间的 `---` 是唯一权威边界**，`toolkit tasks archive` 自动完成并加排他锁
-- `toolkit tasks normalize` 检查元数据、日期漂移、排序与时间异常，`--fix` 自动修复但时间异常需人工确认
+- 归档块是终结记录，不追加新工作内容（延续走新任务并标注来源链）；唯一例外是**事实更正**——在正文末尾追加「修订记录」，
+  保留原结论、附更正时刻与依据，唯一键 / 完成时间 / 状态 / 负责人仍冻结
+- 文件按完成日期聚合、块按完成时间降序，**块间的 `---` 是唯一权威边界**；
+  `toolkit tasks archive` 自动完成并加排他锁（并发时跳过并告警，残留锁自动接管）
+- `toolkit tasks normalize` 检查元数据、日期漂移、排序与时间异常（完成时间晚于当前系统时间超过 14 小时、或恰为零点整），
+  `--fix` 自动修复但时间异常需人工确认；多人同天归档产生的 git 冲突标记按并集去重 + 降序**确定性**解决
 
 ## 方案落盘工作流
 
@@ -164,8 +192,9 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 
 默认**软链**（Windows 用 junction）。⚠️ 软链落点是**写入穿透**形态：改落点文件即改真源，要改技能内容请改真源。
 
-**项目面分发（`--scope project`）**：真源落 `<仓库根>/.agents/skills/`（完整副本），其余已存在候选目录各放每个技能一份**入口薄壳**；
-归属账写 `<仓库根>/.toolkit/state.json`，`prepare` 钩子在 `pnpm install` 时自动刷新，队友 clone 即用。候选目录与现场状态见 [skills 命令](./cli/skills)。
+**项目面分发（`--scope project`）**：真源落 `<仓库根>/.agents/skills/`（完整副本），其余已存在候选目录各放每个技能一份**入口薄壳**指向真源，避免多目录重复；
+归属账写 `<仓库根>/.toolkit/state.json`，`prepare` 钩子在 `pnpm install` 时自动刷新，队友 clone 即用。
+候选目录清单、逐技能现场状态与卸载口径见 [skills 命令](./cli/skills)。
 
 **与 CLI 的关系**：skills 是规范与流程（独立可用），CLI 是自动校验 / 归档 / 发版的加速器；技能末尾的「可选加速」节列出了对应命令，装了就用、没装技能流程照跑。
 安装与共存、命名规范、发布核对清单见 [skills/README.md](https://github.com/fxri-net/toolkit/blob/main/skills/README.md)；
