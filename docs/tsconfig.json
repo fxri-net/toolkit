@@ -4,7 +4,7 @@
     "noEmit": true,
     "resolveJsonModule": true
   },
-  "include": ["**/*.ts", "**/*.mts", "**/*.d.ts", "**/*.vue", "../types/**/*.d.ts"],
+  "include": ["**/*.ts", "**/*.mts", "**/*.d.ts", "../types/**/*.d.ts"],
   "files": [".vitepress/theme/components/RuleComposer.vue"],
   "exclude": ["node_modules", ".vitepress/cache", ".vitepress/dist"]
 }

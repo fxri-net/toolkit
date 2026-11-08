@@ -132,6 +132,7 @@ function reset(): void {
   selected.value = [...(presets.recommended ?? [])]
   activePreset.value = "recommended"
   copied.value = false
+  copyError.value = false
   clearStored()
 }
 
@@ -142,10 +143,13 @@ function fallbackCopy(text: string): boolean {
   area.style.position = "fixed"
   area.style.opacity = "0"
   document.body.appendChild(area)
-  area.select()
-  const ok = document.execCommand("copy")
-  document.body.removeChild(area)
-  return ok
+  try {
+    area.select()
+    return document.execCommand("copy")
+  } finally {
+    // execCommand 抛错时也要移除临时节点
+    area.remove()
+  }
 }
 
 async function copy(): Promise<void> {

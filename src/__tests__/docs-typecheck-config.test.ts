@@ -21,11 +21,9 @@ describe("文档类型检查配置", () => {
   it("docs tsconfig 显式包含 RuleComposer.vue", () => {
     const config = JSON.parse(readFileSync(join(docsRoot, "tsconfig.json"), "utf8")) as {
       files?: string[]
-      include?: string[]
     }
     // TS 的 include 不会展开 .vue，必须有 files 显式列出
     expect(config.files).toContain(".vitepress/theme/components/RuleComposer.vue")
-    expect(config.include).toContain("**/*.vue")
   })
 
   it("docs 下所有 .vue 都显式列入 tsconfig files", () => {
