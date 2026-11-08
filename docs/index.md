@@ -103,7 +103,8 @@ pnpm exec toolkit tasks
 ## 相关仓库文件
 
 - [任务文件规范 SPEC.md](https://github.com/fxri-net/toolkit/blob/main/SPEC.md)：任务文件格式的单一事实源
-- [AI 技能包 skills/](https://github.com/fxri-net/toolkit/tree/main/skills)：零依赖 Agent Skills，可用 `toolkit skills install` 分发到各 agent 全局技能目录
+- [AI 技能包 skills/](https://github.com/fxri-net/toolkit/tree/main/skills)：零依赖 Agent Skills，
+   可用 `toolkit skills install` 分发到各 agent 全局技能目录
 
 ## 相关页面
 

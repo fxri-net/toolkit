@@ -60,7 +60,8 @@ toolkit usage stats           # 查看统计
 | `upload setup` / `status` / `send`（`--dry-run`） | 可选上传：默认关闭，需显式配置端点 |
 | `rule` | 输出可复制的全局规则文案 |
 
-完整参数见 [CLI 参考 · usage](../cli/usage)，配置字段见 [使用情况配置](./configuration)，数据边界见 [隐私与数据边界](./privacy)，事件结构见 [事件 Schema](./schema)。
+完整参数见 [CLI 参考 · usage](../cli/usage)，配置字段见 [使用情况配置](./configuration)，数据边界见 [隐私与数据边界](./privacy)，
+事件结构见 [事件 Schema](./schema)。
 
 ## 边界与注意
 

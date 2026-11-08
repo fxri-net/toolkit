@@ -62,23 +62,30 @@ toolkit usage doctor
 
 - 无参数执行 `toolkit usage` 进入交互菜单；非 TTY 打印帮助并以退出码 2 结束。
 - 通道二选一：`usage.channel` 为 `rule` 时只有 `usage record` 写入、Hook 不写入；为 `hook` 时只有 Hook 写入、`record` 静默跳过。切换通道不会自动清理另一侧配置。
-- 非交互初始化用 `toolkit usage init --yes --preset recommended --channel rule`（默认 `rule`）；`--channel hook` 时会安装 Hook 并需要检测到 Agent，`--preset off` 与 `--channel` 同时出现时 `off` 优先；`custom` / `advanced` 预设仍需交互。
+- 非交互初始化用 `toolkit usage init --yes --preset recommended --channel rule`（默认 `rule`）；
+   `--channel hook` 时会安装 Hook 并需要检测到 Agent，`--preset off` 与 `--channel` 同时出现时 `off` 优先；
+   `custom` / `advanced` 预设仍需交互。
 - 默认总开关、Agent、来源、技能范围、字段全部关闭；只开总开关不会产生记录。
 - `usage info` 汇总通道、已安装 Hook、上传开关与最近 Hook 错误；`hooks status` 以本地时间显示各 Agent 最近触发记录，`--all` 可一并列出本机未安装的 Agent（查残留配置）。
-- `record` 只统计 toolkit 管理的技能（包内一方与 toolkit 登记来源），且必须命中 `usage` 配置（总开关、来源、技能范围）；未托管技能与未命中配置的技能静默忽略。规则路径不产生触发词与参数，这两类字段由后台反查会话记录补齐。
+- `record` 只统计 toolkit 管理的技能（包内一方与 toolkit 登记来源），且必须命中 `usage` 配置（总开关、来源、技能范围）；未托管技能与未命中配置的技能静默忽略。
+   规则路径不产生触发词与参数，这两类字段由后台反查会话记录补齐。
 - **异步消费**：`record` 只入队，随后由派生 worker 或下一次 `usage` 命令消费；`stats` 可能有数秒到一条命令的延迟，`info` 的「队列」行显示积压条数。反查失败只丢明细字段，技能名与次数照常落盘。
-- **明细缺失的三个原因**：该 Agent 会话记录不可读（Trae 不落可读文件）、会话格式尚未适配（dsh 为 v4 事件流）、或记录已过期 / 被清理。补救见 [Agent 接入 · 拿不到明细时的补救](../usage/agents#拿不到明细时的补救)：`usage log` 手工补录、改用 Hook 通道。
+- **明细缺失的三个原因**：该 Agent 会话记录不可读（Trae 不落可读文件）、会话格式尚未适配（dsh 为 v4 事件流）、或记录已过期 / 被清理。
+   补救见 [Agent 接入 · 拿不到明细时的补救](../usage/agents#拿不到明细时的补救)：`usage log` 手工补录、改用 Hook 通道。
 - `rule` 在「当前配置不会统计任何技能」时先向 stderr 提示空转，再输出规则文案。
 - `usage stats --by trigger` 每条输出「次数｜最近调用时间｜触发词｜技能」，便于看某技能的调用明细。
 - Hook 安装与采集开启是两步：先 `hooks install`，再 `enable`。支持 Agent 与配置路径见 [Agent 接入](../usage/agents)。
-- `hooks install` 只处理本机已检测到的 Agent；显式 `--agent` 未检测到时告警跳过，全部跳过才以非 0 退出。`hooks remove` / `uninstall` 不要求 Agent 仍在本机，便于清理残留配置。
+- `hooks install` 只处理本机已检测到的 Agent；显式 `--agent` 未检测到时告警跳过，全部跳过才以非 0 退出。
+   `hooks remove` / `uninstall` 不要求 Agent 仍在本机，便于清理残留配置。
 - DeepSeek Harness 还需安装官方桥接插件 `@deepseek-ai/dsh-hooks-claude-code`，步骤见 [Agent 接入](../usage/agents)。
-- Hook 命令按当前平台生成：Windows 经 PowerShell 包装（`powershell -NoProfile -Command "& '…'"`），macOS / Linux 用单引号拼接；升级后重跑 `hooks install` 即可把存量旧形态刷成新形态，`hooks status` / `doctor` 会提示形态过期。
+- Hook 命令按当前平台生成：Windows 经 PowerShell 包装（`powershell -NoProfile -Command "& '…'"`），macOS / Linux 用单引号拼接；
+   升级后重跑 `hooks install` 即可把存量旧形态刷成新形态，`hooks status` / `doctor` 会提示形态过期。
 - `include` 空列表等同 `none`；`exclude` 只列出要排除的技能。
 - 触发词默认不采集；开启后截断 200 字并复用全局脱敏规则。
 - `export` 输出的是已落盘事件；触发词是否出现取决于采集开关。
 - `doctor` 只诊断不自动修复；索引不一致时用 `rebuild`，重复事件用 `dedupe`。跨适配器重复按 `(sessionId, toolUseId)` 计数。
-- `doctor --format json` 的诊断项为 `items: { code, level, message }[]`：`code` 供脚本断言，`level` 区分必须处理（`warn`）与提示（`info`）；文本模式分别以 ⚠️ / ℹ️ 前缀输出。
+- `doctor --format json` 的诊断项为 `items: { code, level, message }[]`：`code` 供脚本断言，
+   `level` 区分必须处理（`warn`）与提示（`info`）；文本模式分别以 ⚠️ / ℹ️ 前缀输出。
 - `import --type transcript` 从 Claude 或通用会话记录提取 `tool_use` 块；时间以导入时刻为准，不还原原始会话时间。
 
 ## 相关页面

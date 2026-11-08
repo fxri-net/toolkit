@@ -35,7 +35,8 @@ toolkit rules reset
 ## 边界与注意
 
 - `--module` 的出现顺序即输出顺序；`--preset` 按清单顺序；二者同时出现报错。
-- 显式传入 `--preset` / `--module` 时默认写入缓存（含顺序），`--no-cache` 可关闭；带 `--out` / `--copy` 时不写缓存（一次性导出不改变默认组合），缓存损坏或含未知模块时告警并回落 `recommended`。
+- 显式传入 `--preset` / `--module` 时默认写入缓存（含顺序），`--no-cache` 可关闭；带 `--out` / `--copy` 时不写缓存（一次性导出不改变默认组合），
+   缓存损坏或含未知模块时告警并回落 `recommended`。
 - `--out` / `--copy` 时 stdout 为空，确认与错误提示走 stderr；剪贴板写入失败以非 0 退出。
 - 组合只输出文本，不自动改写任何 Agent 的全局规则文件。
 - `usage` 模块与 `toolkit usage rule` 同源；后者等价于 `rules compose --module usage`。

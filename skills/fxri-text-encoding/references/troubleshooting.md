@@ -43,7 +43,8 @@
 | 代码报语法错，字符看着像英文标点 | 全角标点 `“”（）：，；－` | 全文替换为半角，检查输入法全角态 |
 | Python 输出 `\u4e2d\u6587`、git 把中文路径显示成 `\346\226\207` | `json.dump` 默认 `ensure_ascii=True`；`core.quotepath` 默认开启 | 分别传 `ensure_ascii=False`、`git -c core.quotepath=false`，都不是乱码 |
 
-定位不可见字符：GNU grep `grep -nP '[\x{00A0}\x{200B}\x{3000}\x{FEFF}\x{200E}\x{200F}]' f`；`powershell.exe` `Select-String -Path f -Pattern '[\u00A0\u200B\u3000\uFEFF\u200E\u200F]'`。
+定位不可见字符：GNU grep `grep -nP '[\x{00A0}\x{200B}\x{3000}\x{FEFF}\x{200E}\x{200F}]' f`；
+`powershell.exe` `Select-String -Path f -Pattern '[\u00A0\u200B\u3000\uFEFF\u200E\u200F]'`。
 
 ## 运行期乱码（不落盘）
 

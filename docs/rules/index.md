@@ -13,7 +13,8 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 ## 用途与场景
 
 - 全局规则会整段进入 Agent 上下文：只选当前需要的模块，避免无关纪律占用上下文。
-- `recommended` 是默认集（角色与代码规范 + 输出要求 + 工作流）；`complete` 等于 [AI 全局规则](./ai) 整篇；`commit` 与既有 Conventional Commits / commitlint 互斥；`usage` 需先开启技能使用统计。
+- `recommended` 是默认集（角色与代码规范 + 输出要求 + 工作流）；`complete` 等于 [AI 全局规则](./ai) 整篇；
+   `commit` 与既有 Conventional Commits / commitlint 互斥；`usage` 需先开启技能使用统计。
 - 三篇规则页是「整篇阅读」入口，组合器负责细粒度生成；两者内容由测试锁定同源。
 
 ## 规则组合器

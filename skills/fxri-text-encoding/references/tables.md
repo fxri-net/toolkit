@@ -44,8 +44,11 @@
 
 ## 判字节与批量巡检
 
-- 判首三字节：`powershell.exe` `[IO.File]::ReadAllBytes($p)[0..2] -join ','`（`239,187,191` 即有 BOM）、Node `fs.readFileSync(p).subarray(0,3).toString("hex")`（`efbbbf`）、bash `head -c 3 f | xxd -p`
+- 判首三字节：`powershell.exe` `[IO.File]::ReadAllBytes($p)[0..2] -join ','`（`239,187,191` 即有 BOM）、
+   Node `fs.readFileSync(p).subarray(0,3).toString("hex")`（`efbbbf`）、bash `head -c 3 f | xxd -p`
 - 行尾：`file f` 报 `with CRLF, LF line terminators` 即混用；末尾缺换行 `tail -c 1 f | xxd -p` 非 `0a` 即缺
-- 补 BOM（内容已是 UTF-8）：`[IO.File]::WriteAllText($p, [IO.File]::ReadAllText($p), [Text.UTF8Encoding]::new($true))`；Node 读回后前置 `"\uFEFF"`
+- 补 BOM（内容已是 UTF-8）：
+   `[IO.File]::WriteAllText($p, [IO.File]::ReadAllText($p), [Text.UTF8Encoding]::new($true))`；
+   Node 读回后前置 `"\uFEFF"`
 - Node `readFileSync(p, "utf8")` 会保留 `\uFEFF`，解析前 `s.replace(/^\uFEFF/, "")`
 - 全仓巡检：`git ls-files` 后按基线表筛出敏感类型逐个判首三字节；行尾混用一次性捞全 `git ls-files -z | xargs -0 file | grep CRLF`。人眼抽查只用于验证产线，别当门禁

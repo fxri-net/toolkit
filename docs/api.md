@@ -63,7 +63,8 @@ ESM 与 CJS 双形态入口（`import` / `require` 均可）；类型随函数�
 | `toCSV(rows, redact?)` / `toJSON(rows, summary, redact?)` | 直接取文本（`.xlsx` 无纯文本形态） |
 | `importTasks(file, dir?, opts?)` | 回读三种格式生成任务；`opts.target`: `active`/`archive`，`opts.importColumns` 自定义列映射，`opts.dryRun` 预演 |
 
-JSON 结构：`{ schemaVersion: 1, summary, items }`；`items` 为英文 key 完整字段（`view/title/status/owner/scope/created/updated/completed/depends[]/file`）。
+JSON 结构：`{ schemaVersion: 1, summary, items }`；
+`items` 为英文 key 完整字段（`view/title/status/owner/scope/created/updated/completed/depends[]/file`）。
 
 ## CHANGELOG
 
@@ -94,11 +95,15 @@ languages.ja = {
 }
 ```
 
-归类完成后，条目已识别的 `类型：` 前缀会被剥离（`- 修复：xxx` → `- xxx`），类型由分组标题承接；未识别的前缀（如正文里的 `说明：`）与依赖源条目 `- Updated dependencies`（缩进续行承载包版本）原样保留，剥离后文本为空也不改动。
+归类完成后，条目已识别的 `类型：` 前缀会被剥离（`- 修复：xxx` → `- xxx`），类型由分组标题承接；
+未识别的前缀（如正文里的 `说明：`）与依赖源条目 `- Updated dependencies`（缩进续行承载包版本）原样保留，剥离后文本为空也不改动。
 
-`ChangelogLanguage` 四段结构：`groups`（语义分组表，每项 `{ slot, title, prefixes? }`，可选；缺省时不改分组、只剥离可识别前缀）/ `replacements`（兜底替换映射）/ `deps`（依赖更新条目文案）/ `released`（发布日期后缀，同时用于识别既有日期行）。
+`ChangelogLanguage` 四段结构：`groups`（语义分组表，每项 `{ slot, title, prefixes? }`，可选；缺省时不改分组、
+只剥离可识别前缀）/ `replacements`（兜底替换映射）/ `deps`（依赖更新条目文案）/ `released`（发布日期后缀，同时用于识别既有日期行）。
 
-⚠️ 跨语言边界：语言在首次归组时确定——标题→槽位的反查只认目标语言自己的 `groups[].title` 与 `LEGACY_TITLE_SLOTS`（无跨语言别名），换语言重跑不会重排既有块的组标题。重排发生在含英文源组（`### Major/Minor/Patch/Dependent Changes`）的块与无 `###` 分组的最新版本块上（`history=true` 时放宽为全部版本块）；块内识别不到槽位的分组不臆造归属，连同标题原样附于块末，故不存在静默丢弃。跨语言改标题只能用 `replacements` 写死原文映射。
+⚠️ 跨语言边界：语言在首次归组时确定——标题→槽位的反查只认目标语言自己的 `groups[].title` 与 `LEGACY_TITLE_SLOTS`（无跨语言别名），换语言重跑不会重排既有块的组标题。
+重排发生在含英文源组（`### Major/Minor/Patch/Dependent Changes`）的块与无 `###` 分组的最新版本块上（`history=true` 时放宽为全部版本块）；
+块内识别不到槽位的分组不臆造归属，连同标题原样附于块末，故不存在静默丢弃。跨语言改标题只能用 `replacements` 写死原文映射。
 
 ## 隐私脱敏与开关
 

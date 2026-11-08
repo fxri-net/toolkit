@@ -1,6 +1,7 @@
 # 规范载体规范（conventions）
 
-> 面向多人 + AI 协作，任何语言项目可直接使用，仅依赖文件读写能力。本文件为 SKILL.md 的配套规范，定义 `.tasks/conventions/` 的目录结构、归属分类、读写判定与内容修订；存量迁移见 `conventions-migration.md`，文风与模板见 `conventions-templates.md`；任务文件本身的规范见 `task-spec.md`。
+> 面向多人 + AI 协作，任何语言项目可直接使用，仅依赖文件读写能力。本文件为 SKILL.md 的配套规范，定义 `.tasks/conventions/` 的目录结构、归属分类、读写判定与内容修订；
+> 存量迁移见 `conventions-migration.md`，文风与模板见 `conventions-templates.md`；任务文件本身的规范见 `task-spec.md`。
 
 ## 1. 载体结构
 
@@ -24,7 +25,8 @@
 - `retired.md` 是退休台账：条目作废即从索引迁出至此并冻结语义；与 `index.md` 分离，使废弃正文不再落入任何常规读面
 - 分册**按需创建**，判据是「该归属下有无需独立承载的条文」，不设条数阈值——溯源索引式项目可能始终只有 `index.md`
 - 目录与任务目录同在 `.tasks/` 根层，纯 Markdown 随 git 走；默认 `.tasks` 目录名可随任务区自定而变，内部结构不变
-- 非任务文件：`toolkit tasks` 各子命令不读其内容，`check` 不因内容告警；仅在**载体形态异常**时给软告警（旧单文件残留、缺 `index.md`、标记与结构不一致）；**入口层现场异常**（壳标记与当前 toolkit 不一致、壳被 gitignore 覆盖）另见下段入口壳
+- 非任务文件：`toolkit tasks` 各子命令不读其内容，`check` 不因内容告警；仅在**载体形态异常**时给软告警（旧单文件残留、缺 `index.md`、标记与结构不一致）；
+   **入口层现场异常**（壳标记与当前 toolkit 不一致、壳被 gitignore 覆盖）另见下段入口壳
 
 ### 1.1 三分区与不变量
 
@@ -74,7 +76,12 @@
 | `.openhands/skills/` | `.qwen/skills/` | `.roo/skills/` |
 | `.windsurf/skills/` |  |  |
 
-规范触发面共三层，**任一层可用即可触达**：① 全局技能 `fxri-plan-to-task`（随包分发到各 agent 全局技能目录，其工作流第 1 步即要求读 `conventions/index.md`）——**不依赖项目内任何文件、恒在兜底**；② 上述项目级入口壳（用户不主动发问也能被 agent 读到）；③ `AGENTS.md` 指针块（仅在文件已存在时幂等追加，不存在不新建，跳过时提示仍有第 1 层可触达）。三层同时缺席的唯一情形：装包后未跑 `toolkit skills install`（或 agent 不加载全局技能），且项目既无 `AGENTS.md` 又未跑 `toolkit init`——`init` 检测到尚未安装全局技能时会在「下一步」中补一行 `toolkit skills install` 指引（已安装则不重复提示），把这一情形收敛为「用户忽略了 `init` 的提示」。
+规范触发面共三层，**任一层可用即可触达**：① 全局技能 `fxri-plan-to-task`（随包分发到各 agent 全局技能目录，
+其工作流第 1 步即要求读 `conventions/index.md`）——**不依赖项目内任何文件、恒在兜底**；② 上述项目级入口壳（用户不主动发问也能被 agent 读到）；
+③ `AGENTS.md` 指针块（仅在文件已存在时幂等追加，不存在不新建，跳过时提示仍有第 1 层可触达）。三层同时缺席的唯一情形：
+装包后未跑 `toolkit skills install`（或 agent 不加载全局技能），
+且项目既无 `AGENTS.md` 又未跑 `toolkit init`——`init` 检测到尚未安装全局技能时会在「下一步」中补一行 `toolkit skills install` 指引（已安装则不重复提示），
+把这一情形收敛为「用户忽略了 `init` 的提示」。
 
 ## 2. index.md 结构
 
@@ -115,7 +122,8 @@
 | C-1 | 四级时间源 | 时间取证优先级：当场打点 > 聊天记录时间戳 > git 提交时间 > 系统时间兜底 | common | skills/<技能名>/references/task-spec.md（口径随版本走） |
 ```
 
-- **列集合固定为五列**：`ID | 规则 | 当前语义 | 归属 | 单一事实源`，列名与次序均不得增减或调换——列集合即读接口，漂移会破坏机械读写；`toolkit tasks check` / `toolkit conventions status` 检出列集合偏离（列名 / 次序 / 列数不符）并软告警（只报不改，须人工确认后按本规范归一）
+- **列集合固定为五列**：`ID | 规则 | 当前语义 | 归属 | 单一事实源`，列名与次序均不得增减或调换——列集合即读接口，漂移会破坏机械读写；
+   `toolkit tasks check` / `toolkit conventions status` 检出列集合偏离（列名 / 次序 / 列数不符）并软告警（只报不改，须人工确认后按本规范归一）
 - **ID**：`C-<n>`（`C` 表 conventions），**去补零、不带端前缀、只追加不重排不回收**；插入或重排不漂移，废弃条目不回收其 ID（容量不是问题，去补零取的是可读性）
 - **引用**：载体内部引用一律行内代码包裹（如 `` `C-17` ``），便于机械匹配；v1 遗留的裸「第 N 条」在升级时改写（见 `conventions-migration.md` §10.2）
 - **归属**：取值必须对应一个实际承接处——`common`、端清单中的端名、或载体目录下存在的分类标签分册名，否则为悬空指针（需修正）
@@ -140,7 +148,9 @@
 （条文全文）
 ```
 
-端分册同构，首部 `# {端名} 规范`、`> 归属：{端名}`；分类标签分册同构，首部 `# {标签} 规范`。小节标题用稳定 ID（`## C-<n>. {规则名}`），与 `index.md` 索引一致，便于互引。条文正文的子项与次序见 `conventions-templates.md`（T4）；分册内不写「确立来源」行——来源已由 `index.md` 索引列与 `history.md` 承载（见 `conventions-templates.md`）。
+端分册同构，首部 `# {端名} 规范`、`> 归属：{端名}`；分类标签分册同构，首部 `# {标签} 规范`。小节标题用稳定 ID（`## C-<n>. {规则名}`），与 `index.md` 索引一致，便于互引。
+条文正文的子项与次序见 `conventions-templates.md`（T4）；
+分册内不写「确立来源」行——来源已由 `index.md` 索引列与 `history.md` 承载（见 `conventions-templates.md`）。
 
 ### 3.2 history.md 结构
 
@@ -156,8 +166,12 @@
 | --- | --- | --- |
 ```
 
-- **首列记为行内代码包裹的裸 ID `C-<n>`，不写规则名**（规范名以 `index.md` 索引表为准；规则改名等沿革信息作前置括注记入「修订内容」列，如「（原名「X」）」）。此为硬性要求：`toolkit tasks check` 与 `toolkit conventions status` 检出非 ID 首列并软告警（只报不改——历史行只追加不改旧行的元规则下，补齐须人工确认）
-- **「修订内容」列只记该条自身语义**：新立条目直接写其语义；语义变更写「旧语义」→「新语义」（箭头两侧文本加全角引号）。两条禁令——不得写自指套话（如「（本次起入表）」「新立条目：」，表内每行本就是入表记录、自指零信息量）；不得复述 `index.md` 索引列信息（如「；条文全文落 `common.md`」与索引「单一事实源」列重复，违反 §1.1 不变量 I4）。规范名沿革作前置括注（如「（原名「增量判别」）」）。**措辞归一例外**：措辞层归一（表格形态归一见 §9，规范词归一见 `conventions-templates.md` T5）属非语义变更，可原地改写旧行、不入 `history.md` 留痕行。`toolkit tasks check` / `toolkit conventions status` 检出禁用语料并软告警（只报不改，改写须人工确认）
+- **首列记为行内代码包裹的裸 ID `C-<n>`，不写规则名**（规范名以 `index.md` 索引表为准；规则改名等沿革信息作前置括注记入「修订内容」列，如「（原名「X」）」）。此为硬性要求：
+   `toolkit tasks check` 与 `toolkit conventions status` 检出非 ID 首列并软告警（只报不改——历史行只追加不改旧行的元规则下，补齐须人工确认）
+- **「修订内容」列只记该条自身语义**：新立条目直接写其语义；语义变更写「旧语义」→「新语义」（箭头两侧文本加全角引号）。两条禁令——不得写自指套话（如「（本次起入表）」「新立条目：」，表内每行本就是入表记录、
+   自指零信息量）；不得复述 `index.md` 索引列信息（如「；条文全文落 `common.md`」与索引「单一事实源」列重复，违反 §1.1 不变量 I4）。规范名沿革作前置括注（如「（原名「增量判别」）」）。
+   **措辞归一例外**：措辞层归一（表格形态归一见 §9，规范词归一见 `conventions-templates.md` T5）属非语义变更，可原地改写旧行、不入 `history.md` 留痕行。
+   `toolkit tasks check` / `toolkit conventions status` 检出禁用语料并软告警（只报不改，改写须人工确认）
 - **表头固定**：须恰为 `ID | 修订内容 | 修订来源任务` 三列，逐格一致（含列名与次序）；`toolkit tasks check` / `toolkit conventions status` 检出表头偏离并软告警
 - **表语义边界写死**：载体结构升级（如 v1 / v2 → v3）、入口壳生成 / 删除、条目退休都不入表——表只记**规范语义**变更
 
@@ -175,7 +189,8 @@
 | C-7 | 旧示例规则 | （退休当时的语义原文） | web | `C-41` | 20261016-某任务 | 已删分册小节 `web.md` |
 ```
 
-- **表头固定**：须恰为 `ID | 规则 | 退休时语义（冻结） | 归属 | 后继 | 退休来源任务 | 条文去向` 七列，逐格一致（含列名与次序）；`toolkit tasks check` / `toolkit conventions status` 检出表头偏离并软告警
+- **表头固定**：须恰为 `ID | 规则 | 退休时语义（冻结） | 归属 | 后继 | 退休来源任务 | 条文去向` 七列，逐格一致（含列名与次序）；
+   `toolkit tasks check` / `toolkit conventions status` 检出表头偏离并软告警
 - **退休时语义（冻结）**：退休当时的语义原文，不再随修订变动（区别于 Z1 的活语义）
 - **后继**：替代它的新条目 ID；无则填 `—`
 - **退休来源任务**：执行这次退休的任务
@@ -186,14 +201,16 @@
 - **与任务 frontmatter `scope` 取值逐字一致**：两者共用同一套词表，读取时才能机械匹配（任务写 `scope: web+server` → 加载 `web.md` + `server.md`）
 - **形态约束**：非空、不含空格、不含路径分隔符（`/ \ : * ? " < > |`）
 - **保留字**：`index`、`common` 不得作端名
-- **分类标签**：`scope` 中既不在端清单、又非保留字的值视为分类标签；若载体目录下存在同名分册（如 `ui还原.md`）则按需加载，否则静默跳过（见 §5）。用途是把巨型 `common.md` 中按主题聚拢的条文下沉为平铺分册，使任务只加载相关主题——端清单不含分类标签，故不影响端归属判定
+- **分类标签**：`scope` 中既不在端清单、又非保留字的值视为分类标签；若载体目录下存在同名分册（如 `ui还原.md`）则按需加载，否则静默跳过（见 §5）。
+   用途是把巨型 `common.md` 中按主题聚拢的条文下沉为平铺分册，使任务只加载相关主题——端清单不含分类标签，故不影响端归属判定
 - **风格**：随项目 `scope` 既有写法（`web` / `server` / `admin` / `前端` 均成立），无全局词表——工具无法预知项目端构成，故不硬编码取值
 - **跨仓归属**：跨仓库改造时任务 `scope` 只标本仓内的端 / 面，不写另一仓的端名——任务档是仓库自述（见 `SPEC.md` §0）
 
 ## 5. 读取判定（分层）
 
 1. **常驻**：只读 `index.md`（端清单 + 活跃索引），成本与规范条数成线性、不随分册增大。`history.md` / `retired.md` 属 Z3 归档，**不进常驻读面**，仅审计 / 恢复时按需查阅
-2. **按需（叠加）**：取当前任务 `scope` 的每个值——命中端清单者加载对应端分册；未命中但载体目录下存在同名分册（分类标签分册，如 `ui还原.md`）者加载之；两者皆非则静默跳过、不报错。无论命中与否，**恒叠加 `common.md`**
+2. **按需（叠加）**：取当前任务 `scope` 的每个值——命中端清单者加载对应端分册；未命中但载体目录下存在同名分册（分类标签分册，如 `ui还原.md`）者加载之；两者皆非则静默跳过、不报错。无论命中与否，
+    **恒叠加 `common.md`**
 3. **空 scope**：只加载 `common.md`（保守，不臆测端归属）
 
 ## 6. 写入判定（沉淀归属）
@@ -230,15 +247,23 @@
 
 ## 9. 表格形态（紧凑为规范形态）
 
-载体内所有表格（`index.md` 端清单与索引表、`history.md` 演进记录、`retired.md` 退休记录、各分册与任务文件表格）一律采用**紧凑形态**：单元格之间只留一个空格（`| 值 | 值 |`），不做列对齐填充。理由：填充出的空白层在渲染预览时不显示，却在纯文本阅读时把表格撑成难读的宽行——紧凑形态在渲染与源码两侧都最易读。
+载体内所有表格（`index.md` 端清单与索引表、`history.md` 演进记录、`retired.md` 退休记录、各分册与任务文件表格）一律采用**紧凑形态**：
+单元格之间只留一个空格（`| 值 | 值 |`），不做列对齐填充。理由：填充出的空白层在渲染预览时不显示，却在纯文本阅读时把表格撑成难读的宽行——紧凑形态在渲染与源码两侧都最易读。
 
 - **填充态来源**：宿主仓库若对任务区跑 prettier，GFM 表格会被**列对齐填充**——按列内最宽单元格补空格，分隔行（`| --- |`）的横线也一并被补长到列宽——格式化器的刻意行为，非本工具写入
-- **判据**：内容行——任一行去缩进后若 `行 !== "| " + 各单元格以 " | " 相连 + " |"` 即为填充态；分隔行——横线被补长（超出规范形 `---`）亦属填充态，归一目标即 `---`（保留对齐标记 `:---` / `---:` / `:---:`）。同一判据既用于归一写入、也用于体检检出（本包 CLI 内实现）
-- **列数自洽**：任一张表的表头行与紧随其后的分隔行列数须相等——列数脱节是表结构损坏（多列提示漏删分隔格、少列提示漏补），渲染与解析都会错位；`toolkit tasks check` / `toolkit conventions status` 对载体各文件（`index.md`、分册、`history.md`、`retired.md`）检出并软告警，跳过 fenced code block（块内表为示例、不参与检测）
+- **判据**：内容行——任一行去缩进后若 `行 !== "| " + 各单元格以 " | " 相连 + " |"` 即为填充态；分隔行——横线被补长（超出规范形 `---`）亦属填充态，
+   归一目标即 `---`（保留对齐标记 `:---` / `---:` / `:---:`）。同一判据既用于归一写入、也用于体检检出（本包 CLI 内实现）
+- **列数自洽**：任一张表的表头行与紧随其后的分隔行列数须相等——列数脱节是表结构损坏（多列提示漏删分隔格、少列提示漏补），渲染与解析都会错位；
+   `toolkit tasks check` / `toolkit conventions status` 对载体各文件（`index.md`、分册、`history.md`、`retired.md`）检出并软告警，
+   跳过 fenced code block（块内表为示例、不参与检测）
 - **写入纪律**：手工建档、沉淀、归档时写表一律用紧凑形态，**不为对齐空格手工补齐**；工具自身写入的表格（`init` 骨架、`upgrade` 改写、`archive` 归档块）本就紧凑
-- **豁免托管**：`toolkit init` 检测到宿主疑似用 prettier 时幂等托管 `.prettierignore`、把任务区**整目录**排除，从源头不再被填充（本包源仓库自身、任务区在仓库外或即仓库根、无 prettier 迹象三种情形跳过；末者报告提示「项目启用 prettier 后重跑 `toolkit init` 会自动补上」）
-- **存量归一**：`toolkit conventions format` 把已存在的填充收敛回紧凑形态——只动单元格间距、分隔行横线长度与列对齐填充、**不改语义**，跳过 fenced code block（代码块内原样保留），保留对齐标记（`:---` / `---:`）与行尾符，**幂等**（已紧凑时原样返回并报 `already-compact`），`--dry-run` 只预览行号不写盘；范围为任务区全部 md（载体各文件 + `active/` + `archive/`）。**归一不入 `history.md`**——属形态变更、非规范语义变更
-- **检出告警**：`toolkit conventions status` 与 `toolkit tasks check` 对填充态软告警（前者聚合为一条、后者逐文件一条），指向上述两种处置；只报形态、不阻断（`status` 退出码恒 0、`check` 计 warn）
+- **豁免托管**：`toolkit init` 检测到宿主疑似用 prettier 时幂等托管 `.prettierignore`、把任务区**整目录**排除，从源头不再被填充（本包源仓库自身、
+   任务区在仓库外或即仓库根、无 prettier 迹象三种情形跳过；末者报告提示「项目启用 prettier 后重跑 `toolkit init` 会自动补上」）
+- **存量归一**：`toolkit conventions format` 把已存在的填充收敛回紧凑形态——只动单元格间距、分隔行横线长度与列对齐填充、**不改语义**，
+   跳过 fenced code block（代码块内原样保留），保留对齐标记（`:---` / `---:`）与行尾符，**幂等**（已紧凑时原样返回并报 `already-compact`），
+   `--dry-run` 只预览行号不写盘；范围为任务区全部 md（载体各文件 + `active/` + `archive/`）。**归一不入 `history.md`**——属形态变更、非规范语义变更
+- **检出告警**：`toolkit conventions status` 与 `toolkit tasks check` 对填充态软告警（前者聚合为一条、后者逐文件一条），指向上述两种处置；只报形态、
+   不阻断（`status` 退出码恒 0、`check` 计 warn）
 
 ## 10. 存量迁移
 
@@ -246,20 +271,27 @@
 
 ## 11. 兼容读（迁移期）
 
-读取时先找 `conventions/index.md`；不存在再看旧单文件 `conventions.md`，存在则按旧单文件内容读取并**在对话中提示可迁移**。两者并存时以目录形态为准，并提示旧文件待清理。v1 / v2 / v3 都按目录形态正常读取，形态判据见 `conventions-migration.md` §10.3（`index.md` 首行标记：无标记为 v1，`v2` 且含 `history.md` 与首列 `ID` 为 v2，`v3` 且含 `history.md` 与首列 `ID` 为 v3）。
+读取时先找 `conventions/index.md`；不存在再看旧单文件 `conventions.md`，存在则按旧单文件内容读取并**在对话中提示可迁移**。两者并存时以目录形态为准，并提示旧文件待清理。
+v1 / v2 / v3 都按目录形态正常读取，形态判据见 `conventions-migration.md` §10.3（`index.md` 首行标记：无标记为 v1，
+`v2` 且含 `history.md` 与首列 `ID` 为 v2，`v3` 且含 `history.md` 与首列 `ID` 为 v3）。
 
 ## 12. 自查清单
 
 - [ ] `index.md` 首行为形态标记（v3 为 `<!-- toolkit-conventions: v3 -->`）
 - [ ] `conventions/` 存在时必有 `index.md`（缺则为形态异常）
 - [ ] 索引表首列为 `ID`，取值为 `C-<n>`：去补零、无重复、退休条目不复用其 ID
-- [ ] v3 形态必有 `history.md`，表头为 `ID | 修订内容 | 修订来源任务`，首列均为行内代码包裹的裸 ID `` `C-<n>` ``，且不改旧行（表头首格非 `ID` 时 `toolkit tasks check` / `toolkit conventions status` 检出并软告警）
-- [ ] `history.md`「修订内容」列无禁用语料：自指套话（「（本次起入表）」「新立条目：」）、重复索引列的条文去向（「条文全文落 X」）；`toolkit tasks check` / `toolkit conventions status` 检出并软告警（见 §3.2）
-- [ ] `index.md` 索引表列集合恰为五列 `ID | 规则 | 当前语义 | 归属 | 单一事实源`，列名与次序均无增删调换（`toolkit tasks check` / `toolkit conventions status` 检出并软告警）
+- [ ] v3 形态必有 `history.md`，表头为 `ID | 修订内容 | 修订来源任务`，首列均为行内代码包裹的裸 ID `` `C-<n>` ``，
+   且不改旧行（表头首格非 `ID` 时 `toolkit tasks check` / `toolkit conventions status` 检出并软告警）
+- [ ] `history.md`「修订内容」列无禁用语料：自指套话（「（本次起入表）」「新立条目：」）、重复索引列的条文去向（「条文全文落 X」）；
+   `toolkit tasks check` / `toolkit conventions status` 检出并软告警（见 §3.2）
+- [ ] `index.md` 索引表列集合恰为五列 `ID | 规则 | 当前语义 | 归属 | 单一事实源`，
+   列名与次序均无增删调换（`toolkit tasks check` / `toolkit conventions status` 检出并软告警）
 - [ ] 索引表不含「状态」「确立来源任务」两列（属 v2 遗留，升级时删除；`toolkit tasks check` / `toolkit conventions status` 检出并软告警）
 - [ ] 索引表无已退休条目（退休条目已迁入 `retired.md`，其分册小节已删）
 - [ ] `retired.md` 若存在，表头为 `ID | 规则 | 退休时语义（冻结） | 归属 | 后继 | 退休来源任务 | 条文去向`
-- [ ] 载体各文件（`index.md`、分册、`history.md`、`retired.md`）每张表的表头行与紧随分隔行列数一致（`toolkit tasks check` / `toolkit conventions status` 检出并软告警，跳过 fenced code block）
+- [ ] 载体各文件（`index.md`、分册、`history.md`、
+   `retired.md`）每张表的表头行与紧随分隔行列数一致（`toolkit tasks check` / `toolkit conventions status` 检出并软告警，
+   跳过 fenced code block）
 - [ ] 载体内部引用均为 `` `C-<n>` ``，无残留裸「第 N 条」
 - [ ] 端清单非空且不含保留字 `index` / `common`
 - [ ] 索引表「归属」列取值为 `common`、端清单端名或已存在的分类标签分册名（无悬空指针）
@@ -268,7 +300,8 @@
 - [ ] 有入口壳时其标记与当前 toolkit 一致（落后或无标记可重跑 `toolkit init` 就地更新）、且未被 `.gitignore` 覆盖（否则 `check` / `conventions status` 告警）
 - [ ] 载体与任务区表格为紧凑形态（无列对齐填充、无按列宽补长的分隔行横线；`toolkit conventions format` 可归一，`check` / `conventions status` 会检出）
 - [ ] 规范写入均经用户确认，来源可溯：活跃条目记于写入任务文件正文，退休条目记入 `retired.md` 的「退休来源任务」列
-- [ ] 分册内无「确立来源」行（来源由 `index.md` 索引列与 `history.md` / `retired.md` 承载；`toolkit tasks check` / `toolkit conventions status` 检出并软告警，见 `conventions-templates.md`）
+- [ ] 分册内无「确立来源」行（来源由 `index.md` 索引列与 `history.md` / `retired.md` 承载；
+   `toolkit tasks check` / `toolkit conventions status` 检出并软告警，见 `conventions-templates.md`）
 
 ## 13. 载体文风与模板
 

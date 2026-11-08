@@ -1,6 +1,6 @@
 // 文档可读性检查：正文段落单行 ≤120 字符、单句全角分号 ≤2 个（规范 C-43）
 // 只服务本仓库（不属产品能力）：用 node 直跑，由 scripts/verify.mjs 统一挂载
-// 存量超标按文件记「允许行数」基线（棘轮），只在超出基线时失败；--write-baseline 按当前实测重写基线
+// 默认全量阻断；可选基线文件按文件记「允许行数」用于渐进收敛，--write-baseline 按当前实测重写
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
 import { join, relative } from "node:path"
 
@@ -100,4 +100,8 @@ if (failures.length > 0) {
 }
 if (stale.length > 0) console.log(`文档可读性基线可清理：${stale.join("、")}`)
 const total = [...counted.values()].reduce((sum, list) => sum + list.length, 0)
-console.log(`文档可读性检查：正文单行 ≤${MAX_CHARS} 字符、分号 ≤${MAX_SEMICOLONS} 个；存量 ${total} 处均在基线内（${relative(root, baselineFile)}）`)
+console.log(
+  existsSync(baselineFile)
+    ? `文档可读性检查：正文单行 ≤${MAX_CHARS} 字符、分号 ≤${MAX_SEMICOLONS} 个；存量 ${total} 处均在基线内（${relative(root, baselineFile)}）`
+    : `文档可读性检查：正文单行 ≤${MAX_CHARS} 字符、分号 ≤${MAX_SEMICOLONS} 个；全仓 ${total} 处超标`,
+)

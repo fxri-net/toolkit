@@ -23,8 +23,10 @@
 
 ## 构造示例
 
-- `curl`：请求体先落 UTF-8 文件，再 `curl -sS -X PUT -H "Content-Type: application/json; charset=utf-8" --data-binary @body.json "$URL"`。
-- `powershell.exe`：`$bytes = [Text.Encoding]::UTF8.GetBytes($json)`，`Invoke-RestMethod -Body $bytes -ContentType 'application/json; charset=utf-8'`；不要依赖字符串 `-Body` 的默认编码。
+- `curl`：请求体先落 UTF-8 文件，
+   再 `curl -sS -X PUT -H "Content-Type: application/json; charset=utf-8" --data-binary @body.json "$URL"`。
+- `powershell.exe`：`$bytes = [Text.Encoding]::UTF8.GetBytes($json)`，
+   `Invoke-RestMethod -Body $bytes -ContentType 'application/json; charset=utf-8'`；不要依赖字符串 `-Body` 的默认编码。
 - Node：`Buffer.from(JSON.stringify(body), "utf8")` 作为 `fetch` 的 body；读回用同一编码解析。
 - Python：`json.dumps(obj, ensure_ascii=False).encode("utf-8")` 作为请求体；不要省略 `ensure_ascii` 后又按字面量当正文。
 - 模板：模板与产物都用 UTF-8 读写；替换后立即读回，确认占位符位置与原文一致。

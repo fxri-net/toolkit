@@ -55,7 +55,9 @@ title: 事件 Schema
 - 规则通道：`toolUseId` 为 `rule:<批次ID>:<批次内序号>`，同一技能调用几次就生成几条，不互相去重。
 - 缺少 `toolUseId`：`sessionId + skill + 2 秒窗口`。
 
-机器可读 schema 见仓库根 [schemas/skill-usage-event.v1.json](https://github.com/fxri-net/toolkit/blob/main/schemas/skill-usage-event.v1.json)。
+机器可读 schema 见仓库根 `schemas/` 目录：
+
+- [skill-usage-event.v1.json](https://github.com/fxri-net/toolkit/blob/main/schemas/skill-usage-event.v1.json)
 
 ## 兼容策略
 
