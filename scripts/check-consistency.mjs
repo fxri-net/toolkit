@@ -1,4 +1,4 @@
-// 仓库自检：技能版本四点一致、技能表用途列不残留旧术语、active 任务登记的触达路径真实存在
+// 仓库自检：技能版本四点一致、技能表用途列不残留旧术语、SKILL 引用的 references 存在、active 任务登记的触达路径真实存在
 // 只服务本仓库（不属产品能力）：用 node 直跑，由 scripts/verify.mjs 统一挂载
 // 另提供 --diff [base]：归档前比对「登记了触达却没改 / 改了触达面却没登记」，仅告警不阻断
 import { spawnSync } from "node:child_process"
@@ -108,6 +108,43 @@ for (const file of tableFiles) {
   }
 }
 
+// 技能内 references 引用：SKILL.md 与 references 里指向 `references/xxx.md` 的写法必须可解析，
+// 防止拆档、改名后引用悬空；用户项目文件名（index.md / common.md 等）与兄弟技能的裸文件名不在检查面内
+function skillMarkdowns(dir) {
+  const files = []
+  for (const entry of readdirSync(join(root, dir), { withFileTypes: true })) {
+    const rel = `${dir}/${entry.name}`
+    if (entry.isDirectory()) files.push(...skillMarkdowns(rel))
+    else if (entry.name.endsWith(".md")) files.push(rel)
+  }
+  return files
+}
+
+// 提取 .md 引用：内联代码与相对链接两种写法
+function markdownRefs(text) {
+  const refs = new Set()
+  for (const matched of text.matchAll(/`([^`\n]+?\.md)`/g)) refs.add(matched[1])
+  for (const matched of text.matchAll(/\]\(([^)\s]+?\.md)(?:#[^)]*)?\)/g)) refs.add(matched[1])
+  return refs
+}
+
+for (const name of skillNames) {
+  const skillRoot = `skills/${name}`
+  for (const file of skillMarkdowns(skillRoot)) {
+    const fileDir = file.slice(0, file.lastIndexOf("/"))
+    for (const ref of markdownRefs(read(file))) {
+      const base = ref.split("#")[0]
+      // 只看 references 目录：外链、占位符、用户项目文件与兄弟技能裸名均不参与解析
+      if (!/(^|\/)references\//.test(base) || /^[a-z]+:\/\//i.test(base) || base.includes("<")) continue
+      // 依次按「引用所在文件目录」「skills/ 根（兄弟技能路径）」「技能根」解析
+      const candidates = [join(fileDir, base), join("skills", base), join(skillRoot, base)]
+      if (!candidates.some((candidate) => existsSync(join(root, candidate)))) {
+        errors.push(`${file} 引用的 ${ref} 不存在`)
+      }
+    }
+  }
+}
+
 // active 任务「影响范围」里登记的触达路径（`- 文档触达：a、b`，可选）
 function activeTaskFiles(dir) {
   if (!existsSync(dir)) return []
@@ -192,4 +229,6 @@ if (errors.length > 0) {
   for (const error of errors) console.error(`【error】${error}`)
   process.exit(1)
 }
-console.log(`规范一致性检查：${skillNames.length} 个技能版本与用途列一致，active 任务触达路径均存在${diffRan ? "；改动比对已执行" : ""}`)
+console.log(
+  `规范一致性检查：${skillNames.length} 个技能版本与用途列一致，references 引用可解析，active 任务触达路径均存在${diffRan ? "；改动比对已执行" : ""}`,
+)
