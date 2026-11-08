@@ -14,7 +14,7 @@ title: check 与 tasks（校验与任务区）
 | `includeCheckbox` | boolean | `true` | `tasks check` 是否把正文未勾选的 `- [ ]` 扫为未闭合待办 |
 | `pendingMarkers` | boolean | `true` | `tasks check` 是否扫描词标记（待办/待实施/…）；只认正文行首子项形态，跳过标题、代码块与引用块 |
 
-`tasks check` 另校验 `scope` 取值是否在 `.tasks/conventions/index.md` 的端清单内（`common` 恒合法），载体缺失时跳过；只校验 active 任务，不回溯归档。
+`tasks check` 另校验 `scope` 取值是否在 `.tasks/conventions/index.md` 的端清单内（`common` 恒合法），载体缺失或端清单为空表时跳过；只校验 active 任务，不回溯归档。
 
 ## tasks：任务目录与导入列映射
 

@@ -23,6 +23,7 @@
 ## 验收方式
 
 - 跑 `pnpm verify`——**单一步骤清单真源**，步骤定义在 `scripts/verify.mjs`，本地与四处 CI（GitHub `check` / `windows` / `macos`、GitLab `test`）调用同一份；**禁止在本文件或 CI 配置里另写步骤枚举**，那是清单漂移的根因。跨平台裁剪用 `pnpm verify --skip-coverage --skip-docs`（windows、macos job 即此路径）。任一步失败即不得交付，注意 `pnpm lint` 是 eslint 不做类型检查、`pnpm build` 亦不拦截类型错误，单跑二者不能替代本门禁；且类型检查须覆盖测试文件——基础 `tsconfig.json` 的 `exclude` 排除 `**/__tests__` 等测试路径，类型检查单独走放开该排除项的 `tsconfig.typecheck.json`，不得让测试文件落在盲区；
+- **验收与提交须串联失败即止**：`pnpm verify` 与 `git commit` 之间用 `&&` 串联或分步执行，禁止用 `;` 串联——门禁失败后仍提交会让问题越过质量门，修复须另起提交并留痕；
 - `toolkit tasks check` 的 error 与 warn 均应为 0（除非任务规格另有豁免）——已在 `pnpm verify` 内执行，此处强调阈值；
 - grep 确认文档与 skills 措辞落地；
 - 验证有上限：同一改动在提交前跑一次 `pnpm verify` 即可，失败则修复后重跑全量、通过后不再重复；已确认通过的检查不因再次被询问而重跑，不为自我确认额外加跑；

@@ -38,7 +38,7 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 
 | 子命令 | 一句话 |
 | --- | --- |
-| `list` | 待完成看板（等价于裸 `tasks`，隐式子命令） |
+| `list` | 待完成看板（等价于裸 `tasks`；隐式子命令，帮助中不展示） |
 | `archive` | 把终结态任务按完成日期聚合归档；`--dry-run` 预演 |
 | `check` | 校验 active 任务、规范载体、入口壳、变更集与文件卫生（只报不改） |
 | `normalize` | 检查并修复归档块；`--fix` 修复，`--check` 显式声明只读 |
@@ -83,7 +83,7 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 - 未完成任务滞留时长
 - 按完成月吞吐汇总
 - 汇总块与 `toolkit tasks` 看板一致：按状态 / 负责人 / 范围 / 批次（范围多值拆段、空值与 `-` 归「未标注」；批次解析正文行 `> 批次：第 N 批（共 M 批）`，无该行归「未分批」）
-- `--format json` 输出 JSON（顶层携带 `schemaVersion: 1` 锚点，与 `tasks export` 及各域 `--format json` 同口径），过滤选项与视图查询一致（`--view` 默认 `all`，含归档）；JSON 的 `byOwner` / `byScope` 仍是完成样本吞吐口径，统一分布见 `summary` 字段
+- `--format json` 输出 JSON（顶层携带 `schemaVersion: 1` 锚点，与 `tasks export` 及各域 `--format json` 同口径），过滤选项与视图查询一致（`--view` 默认 `all`，含归档）；JSON 的 `byOwner` / `byScope` 仍是完成样本吞吐口径，统一分布见 `summary` 字段，`view` 记录本次统计视图（`all` / `active` / `archived`）
 
 `check` / `normalize` 的问题清单逐条输出为 `文件:行号: 描述`（有行号时便于编辑器跳转）；文件级问题（如重名、游离文件、归档块问题）无对应行，省略行号段，输出为 `文件: 描述`。
 
