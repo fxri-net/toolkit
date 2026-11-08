@@ -171,7 +171,8 @@ function readDeclaredEndpoints(tasksDir: string): Set<string> | null {
     const name = (row[idx] ?? "").trim()
     if (name) names.add(name)
   }
-  return names
+  // 端清单为空表视为未声明端名（单端项目常见），跳过校验而不是把所有 scope 判为非法
+  return names.size > 0 ? names : null
 }
 
 // 校验单个任务文件，返回问题列表

@@ -22,10 +22,10 @@ describe("M1 标题含待办词不误报", () => {
     expect(warnTexts(dirA).some((m) => m.includes("未闭合待办标记"))).toBe(false)
     rmSync(dirA, { recursive: true, force: true })
 
-    // 正文含待办词：仍应告警
+    // 正文行首子项含待办词：仍应告警
     const dirB = rootDir()
     mkdirSync(join(dirB, "active", "202609"), { recursive: true })
-    writeFileSync(join(dirB, "active", "202609", "20260903-唐启云-m1b.md"), header + "# 正常标题\n\n说明：仍有待办收尾项。\n", "utf8")
+    writeFileSync(join(dirB, "active", "202609", "20260903-唐启云-m1b.md"), header + "# 正常标题\n\n- 待办：收尾项\n", "utf8")
     expect(warnTexts(dirB).some((m) => m.includes("未闭合待办标记"))).toBe(true)
     rmSync(dirB, { recursive: true, force: true })
   })
