@@ -84,3 +84,22 @@ describe("文档可读性检查：基线语义", () => {
     expect(run(root).status).toBe(0)
   })
 })
+
+describe("文档可读性检查：页面体量（C-40）", () => {
+  it("正文超过 150 行即阻断，正好 150 行放行", () => {
+    const over = createFixture({ "docs/long.md": `${Array.from({ length: 151 }, () => "a").join("\n")}\n` })
+    const result = run(over)
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("正文 151 行")
+    const fit = createFixture({ "docs/fit.md": `${Array.from({ length: 150 }, () => "a").join("\n")}\n` })
+    expect(run(fit).status).toBe(0)
+  })
+
+  it("字符数超过 12k 即阻断（表格与代码块不计正文行，但计入字符）", () => {
+    const body = Array.from({ length: 120 }, () => "a".repeat(110)).join("\n")
+    const root = createFixture({ "docs/heavy.md": `${body}\n` })
+    const result = run(root)
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("字符（上限 12000）")
+  })
+})

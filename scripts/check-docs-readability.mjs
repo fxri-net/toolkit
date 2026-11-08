@@ -7,6 +7,9 @@ import { fileURLToPath } from "node:url"
 
 export const MAX_CHARS = 120
 export const MAX_SEMICOLONS = 2
+// 页面体量（C-40）：正文行不计表格、代码块、标题与空行；徽章 / 图片行同样不计
+export const MAX_PROSE_LINES = 150
+export const MAX_PAGE_CHARS = 12000
 export const BASELINE_PATH = ["scripts", "docs-readability-baseline.json"]
 
 // 检查面：门面与根规则 + 文档站页面 + 技能正文
@@ -66,15 +69,49 @@ export function scanContent(text) {
   return violations
 }
 
+/** 检查面内的全部页面（仓库根相对路径） */
+export function targetPages(root) {
+  const dirs = TARGET_DIRS.flatMap((dir) => (existsSync(join(root, dir)) ? collectMarkdown(root, dir) : []))
+  return [...TARGET_FILES, ...dirs].filter((item) => existsSync(join(root, item)))
+}
+
 /** 扫描整个任务区，返回「文件 → 违规列表」映射 */
 export function collectViolations(root) {
   const counted = new Map()
-  const files = [...TARGET_FILES, ...TARGET_DIRS.flatMap((dir) => (existsSync(join(root, dir)) ? collectMarkdown(root, dir) : []))]
-  for (const file of files.filter((item) => existsSync(join(root, item)))) {
+  for (const file of targetPages(root)) {
     const violations = scanContent(readFileSync(join(root, file), "utf8"))
     if (violations.length > 0) counted.set(file, violations)
   }
   return counted
+}
+
+/** 单页体量：正文行数与字符数（C-40） */
+export function pageStats(text) {
+  const lines = text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").split("\n")
+  let inFence = false
+  let prose = 0
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (trimmed.startsWith("```")) {
+      inFence = !inFence
+      continue
+    }
+    if (inFence || !trimmed || trimmed.startsWith("#") || trimmed.startsWith("|")) continue
+    if (trimmed.startsWith("[![") || trimmed.startsWith("![")) continue
+    prose += 1
+  }
+  return { prose, chars: [...text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n")].length }
+}
+
+/** 页面体量超限明细（不设基线，硬校验） */
+export function pageFailures(root) {
+  const failures = []
+  for (const file of targetPages(root)) {
+    const { prose, chars } = pageStats(readFileSync(join(root, file), "utf8"))
+    if (prose > MAX_PROSE_LINES) failures.push(`${file} 正文 ${prose} 行（上限 ${MAX_PROSE_LINES}）`)
+    if (chars > MAX_PAGE_CHARS) failures.push(`${file} ${chars} 字符（上限 ${MAX_PAGE_CHARS}）`)
+  }
+  return failures
 }
 
 /** 按基线汇总判定：返回失败明细与可清理的基线键 */
@@ -107,17 +144,20 @@ export function run({ root = process.cwd(), argv = process.argv } = {}) {
   // 基线缺省为全量阻断；已不存在的文件或未再超标的文件提示清理，避免基线长期虚高
   const baseline = existsSync(baselineFile) ? JSON.parse(readFileSync(baselineFile, "utf8")) : {}
   const { failures, stale } = evaluate(counted, baseline)
-  if (failures.length > 0) {
+  const oversized = pageFailures(root)
+  if (failures.length > 0 || oversized.length > 0) {
     console.error("文档可读性检查：")
     for (const failure of failures) console.error(`【error】${failure}`)
+    for (const failure of oversized) console.error(`【error】${failure}`)
     return 1
   }
   if (stale.length > 0) console.log(`文档可读性基线可清理：${stale.join("、")}`)
   const total = [...counted.values()].reduce((sum, list) => sum + list.length, 0)
+  const sizeNote = `页面体量：正文 ≤${MAX_PROSE_LINES} 行、字符 ≤${MAX_PAGE_CHARS}`
   console.log(
     existsSync(baselineFile)
-      ? `文档可读性检查：正文单行 ≤${MAX_CHARS} 字符、分号 ≤${MAX_SEMICOLONS} 个；存量 ${total} 处均在基线内（${relative(root, baselineFile)}）`
-      : `文档可读性检查：正文单行 ≤${MAX_CHARS} 字符、分号 ≤${MAX_SEMICOLONS} 个；全仓 ${total} 处超标`,
+      ? `文档可读性检查：正文单行 ≤${MAX_CHARS} 字符、分号 ≤${MAX_SEMICOLONS} 个；${sizeNote}；存量 ${total} 处均在基线内（${relative(root, baselineFile)}）`
+      : `文档可读性检查：正文单行 ≤${MAX_CHARS} 字符、分号 ≤${MAX_SEMICOLONS} 个；${sizeNote}；全仓 ${total} 处超标`,
   )
   return 0
 }
