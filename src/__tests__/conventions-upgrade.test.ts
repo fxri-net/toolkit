@@ -278,7 +278,7 @@ describe("v2 → v3 迁移", () => {
   it("history 首列为行内代码包裹 ID 时不提示补录，为裸规则名时才提示", () => {
     const root = makeDir("tk-upgrade-hid-")
     makeV2(root)
-    // 规范要求引用以反引号包裹：`C-1`
+    // 规范要求引用以反引号包裹：ID 单元格带反引号
     writeFileSync(
       join(root, "conventions", "history.md"),
       V2_HISTORY.replace("| 四级时间源 |", `| \`${idOf(1)}\` |`),

@@ -112,10 +112,10 @@ export interface RefHit {
 }
 
 // 稳定 ID 形态：`C-<n>` 去补零、不带端前缀（与 idOf 同一份约定，供校验侧复用）
-// 只接受 1 起的无前导零序号：C-001 属违规写法，规范形态为 C-1
+// 只接受 1 起的无前导零序号：补零写法（如 C-001）属违规，规范形态为去补零写法
 export const ID_RE = /^C-[1-9]\d*$/
 
-// 补零 ID 形态（C-01 / C-001）：单独识别，供校验侧给出「应写作 C-1」的定向提示
+// 补零 ID 形态（C-01 / C-001）：单独识别，供校验侧给出「应写作去补零形态」的定向提示
 export const PADDED_ID_RE = /^C-0\d+$/
 
 // 序号转稳定 ID：去补零、不带端前缀，只追加不重排不回收
@@ -123,7 +123,7 @@ export function idOf(n: number): string {
   return `C-${n}`
 }
 
-// 剥去单元格的行内代码包裹（规范要求引用以反引号包裹），供 ID 判据容忍 `C-4` 与 C-4 两种写法
+// 剥去单元格的行内代码包裹（规范要求引用以反引号包裹），供 ID 判据容忍行内代码与裸写两种形态
 export function stripCode(cell: string): string {
   return cell.trim().replace(/^`+|`+$/g, "").trim()
 }
@@ -138,7 +138,7 @@ export function isPaddedIdCell(cell: string): boolean {
   return PADDED_ID_RE.test(stripCode(cell))
 }
 
-// 补零 ID 的规范写法（C-001 → C-1），非补零输入原样返回：仅供告警文案拼装，不用于改写载体
+// 补零 ID 的规范写法（把补零 ID 转为去补零形态），非补零输入原样返回：仅供告警文案拼装，不用于改写载体
 export function canonicalId(cell: string): string {
   const id = stripCode(cell)
   return isPaddedIdCell(id) ? idOf(Number(id.slice(2))) : id

@@ -669,7 +669,7 @@ describe("检测入口覆盖统计", () => {
       root,
       [`| ${idOf(1)} | 四级时间源 | 当场打点优先 | common | common.md |`, `| ${idOf(2)} | 无检测规则 | 仅人工复核 | common | common.md |`].join("\n"),
     )
-    // 代码里只标注 C-1，另引用一个索引中不存在的 ID；用拼接避免源码本身被自检扫成引用
+    // 代码里只标注一个已存在的 ID，另引用一个索引中不存在的 ID；用拼接避免源码本身被自检扫成引用
     const known = "C-" + "1"
     const unknown = "C-" + "99"
     mkdirSync(join(cwd, "src", "tasks"), { recursive: true })
