@@ -154,6 +154,7 @@ function fallbackCopy(text: string): boolean {
 
 async function copy(): Promise<void> {
   if (!composed.value) return
+  copied.value = false
   copyError.value = false
   try {
     if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(composed.value)

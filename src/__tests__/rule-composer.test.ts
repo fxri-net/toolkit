@@ -1,14 +1,22 @@
 // @vitest-environment happy-dom
 // RuleComposer 交互：默认选择、预设、排序、复制与 localStorage 恢复
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { flushPromises, mount } from "@vue/test-utils"
 import RuleComposer from "../../docs/.vitepress/theme/components/RuleComposer.vue"
 
 const STORAGE_KEY = "fxri-toolkit:rules:v1"
+const originalClipboard = navigator.clipboard
+const originalExecCommand = document.execCommand
 
 beforeEach(() => {
   localStorage.clear()
   vi.restoreAllMocks()
+})
+
+afterEach(() => {
+  // 恢复测试改写的原生对象，避免后续用例依赖执行顺序
+  Object.defineProperty(navigator, "clipboard", { value: originalClipboard, configurable: true })
+  Object.defineProperty(document, "execCommand", { value: originalExecCommand, configurable: true })
 })
 
 function checkedStates(wrapper: ReturnType<typeof mount>): boolean[] {
@@ -96,5 +104,18 @@ describe("RuleComposer 交互", () => {
     const resetButton = wrapper.findAll(".rc-toolbar button").find((item) => item.text().includes("恢复默认"))
     await resetButton!.trigger("click")
     expect(wrapper.find(".rc-primary").text()).toBe("一键复制")
+  })
+
+  it("连续复制先成功后失败时不残留已复制状态", async () => {
+    const writeText = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("copy failed"))
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true })
+    Object.defineProperty(document, "execCommand", { value: vi.fn(() => false), configurable: true })
+    const wrapper = mount(RuleComposer)
+    await wrapper.find(".rc-primary").trigger("click")
+    await flushPromises()
+    expect(wrapper.find(".rc-primary").text()).toBe("已复制")
+    await wrapper.find(".rc-primary").trigger("click")
+    await flushPromises()
+    expect(wrapper.find(".rc-primary").text()).toBe("复制失败")
   })
 })
