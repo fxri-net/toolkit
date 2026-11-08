@@ -5,7 +5,7 @@ import { execSync } from "node:child_process"
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { conventionsStatus, resolveCarrierRoot } from "../conventions/status"
+import { conventionsStatus, resolveCarrierRoot, SEMANTIC_MAX_CHARS } from "../conventions/status"
 import {
   CARRIER_MARKER,
   CARRIER_VERSION,
@@ -300,6 +300,34 @@ describe("索引体检", () => {
     const orphan = report.items.filter((i) => i.message.includes("在索引表中无对应条目"))
     expect(orphan).toHaveLength(1)
     expect(orphan.some((i) => i.message.includes("common.md") && i.message.includes("C-9"))).toBe(true)
+  })
+})
+
+describe("索引语义路由写法体检", () => {
+  it("「当前语义」超过上限时提示改写为路由写法，只提示不阻断结论", () => {
+    const root = makeDir("tk-status-route-long-")
+    const cwd = makeDir("tk-status-route-long-cwd-")
+    const tooLong = "适".repeat(SEMANTIC_MAX_CHARS + 1)
+    makeCarrier(root, `| ${idOf(1)} | 长语义 | ${tooLong} | common | common.md |`)
+
+    const report = conventionsStatus(root, cwd)
+    const hits = report.items.filter((i) => i.message.includes("路由写法"))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]!.level).toBe("warn")
+    expect(hits[0]!.scope).toBe("索引")
+    expect(hits[0]!.message).toContain(idOf(1))
+    expect(hits[0]!.message).toContain(String(SEMANTIC_MAX_CHARS))
+  })
+
+  it("「当前语义」恰在上限内时不告警", () => {
+    const root = makeDir("tk-status-route-edge-")
+    const cwd = makeDir("tk-status-route-edge-cwd-")
+    const exact = "适".repeat(SEMANTIC_MAX_CHARS)
+    makeCarrier(root, `| ${idOf(1)} | 边界语义 | ${exact} | common | common.md |`)
+
+    const report = conventionsStatus(root, cwd)
+    expect(report.items.filter((i) => i.message.includes("路由写法"))).toEqual([])
+    expect(report.warnings).toBe(0)
   })
 })
 

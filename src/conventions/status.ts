@@ -240,6 +240,24 @@ function checkIndex(state: CarrierState, items: ConventionsStatusItem[]): void {
   }
 }
 
+// 路由质量块：索引「当前语义」是读取侧的唯一判据，写成整段要求会让路由失焦、命中率下降
+// 长度可机器检出，只提示不阻断；改写措辞（何时适用 + 一句话要求）仍需人工按 conventions 文档的归一清单核对
+export const SEMANTIC_MAX_CHARS = 120
+function checkSemanticRouting(state: CarrierState, items: ConventionsStatusItem[]): void {
+  const semanticIdx = columnIndex(state.header, INDEX_ANCHOR_HEADER)
+  if (semanticIdx === -1) return
+  for (const entry of state.entries) {
+    const semantic = entry.cells[semanticIdx] ?? ""
+    const length = [...semantic].length
+    if (length <= SEMANTIC_MAX_CHARS) continue
+    items.push({
+      level: "warn",
+      scope: "索引",
+      message: `条目 ${entry.id} 的「${INDEX_ANCHOR_HEADER}」${length} 字符（上限 ${SEMANTIC_MAX_CHARS}）：建议改写为路由写法（何时适用 + 一句话要求），条文细节放归属分册`,
+    })
+  }
+}
+
 // 表形态速检块：形态判定只看标记 + history 存在 + 索引表首列，列集合与列数漂移捕获不到，故在此补齐
 // 判据与 tasks check 共用 detectShapeDefects，两处口径一致
 function checkTableShape(state: CarrierState, items: ConventionsStatusItem[]): void {
@@ -356,6 +374,7 @@ export function conventionsStatus(tasksDir = ".tasks", cwd = process.cwd()): Con
   const items: ConventionsStatusItem[] = []
   checkForm(state, items)
   checkIndex(state, items)
+  checkSemanticRouting(state, items)
   checkTableShape(state, items)
   checkTableForm(tasksDir, items)
   checkHistoryIdColumn(state, items)

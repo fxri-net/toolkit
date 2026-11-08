@@ -24,6 +24,8 @@
 - 多个归属命中时各读一次，同一分册不重复读
 - 旧载体只有 `common.md` 时，归属写作 `common`、命中即读 `common.md`，行为不失效
 - 判定依据只有索引一行，因此「当前语义」须写明适用面，而不是完整条文
+- 「当前语义」超 120 字符时，`toolkit conventions status` 软告警提示改写为路由写法（何时适用 + 一句话要求）；
+  存量载体的归一清单见 `docs/cli/conventions.md`
 
 ## 6. 写入判定（沉淀归属）
 
@@ -100,6 +102,7 @@ v1 / v2 / v3 都按目录形态正常读取，形态判据见 `conventions-migra
 - [ ] `index.md` 索引表列集合恰为五列 `ID | 规则 | 当前语义 | 归属 | 单一事实源`，
    列名与次序均无增删调换（`toolkit tasks check` / `toolkit conventions status` 检出并软告警）
 - [ ] 索引表不含「状态」「确立来源任务」两列（属 v2 遗留，升级时删除；`toolkit tasks check` / `toolkit conventions status` 检出并软告警）
+- [ ] 索引「当前语义」为路由写法（何时适用 + 一句话要求），超 120 字符时 `toolkit conventions status` 软告警提示改写
 - [ ] 索引表无已退休条目（退休条目已迁入 `retired.md`，其分册小节已删）
 - [ ] `retired.md` 若存在，表头为 `ID | 规则 | 退休时语义（冻结） | 归属 | 后继 | 退休来源任务 | 条文去向`
 - [ ] 载体各文件（`index.md`、分册、`history.md`、
