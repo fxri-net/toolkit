@@ -69,6 +69,18 @@ describe("validateTasks 依赖与命名校验", () => {
     const noCarrier = taskDir()
     putFile(noCarrier, "20260903-唐启云-bad.md", valid().replace("scope: 测", "scope: src/cli.ts"))
     expect(warnTexts(noCarrier).some((m) => m.includes("不在端清单内"))).toBe(false)
+
+    // 载体存在但端清单为空表：视为未声明端名，同样跳过校验
+    const emptyList = taskDir()
+    mkdirSync(join(emptyList, "conventions"), { recursive: true })
+    writeFileSync(
+      join(emptyList, "conventions", "index.md"),
+      "<!-- toolkit-conventions: v3 -->\n\n## 一、端清单\n\n| 端名 | 说明 |\n| --- | --- |\n",
+      "utf8",
+    )
+    putFile(emptyList, "20260903-唐启云-bad.md", valid().replace("scope: 测", "scope: src/cli.ts"))
+    expect(warnTexts(emptyList).some((m) => m.includes("不在端清单内"))).toBe(false)
+    rmSync(emptyList, { recursive: true, force: true })
     rmSync(dir, { recursive: true, force: true })
     rmSync(noCarrier, { recursive: true, force: true })
   })

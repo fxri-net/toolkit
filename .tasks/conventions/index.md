@@ -25,7 +25,7 @@
 | C-15 | 规则层更新锚点 | `SPEC.md`、`templates/rules/*.md`（六个模块）、`docs/rules/ai.md`、`docs/rules/commit.md`、`docs/rules/usage.md` 各有一行更新锚点：模块文件首行记录该模块内容变更时间，规则页与组合输出首行取所含模块最大值、模块正文外的页面调整不抬锚点；任何内容变更以变更时刻更新所属锚点、未变更不刷新、同批取同一时间、不随发版例行抬高 | common | `SPEC.md` 首部 + `templates/rules/*.md` 与 `docs/rules/*.md` 规则全文首行 + `AGENTS.md` 质量门第 6 条 |
 | C-16 | 提交信息规则单一真源与独立成页 | 真源为 `templates/rules/commit.md`（随包分发）；`.trae/rules/git-commit-message.md` 与 `docs/rules/commit.md` 均为投影，正文逐字一致、可单独复制采用，三处同步变更 | common | `templates/rules/commit.md`（真源）+ `.trae/rules/git-commit-message.md`、`docs/rules/commit.md`（投影） |
 | C-17 | 测试不复刻被测实现 | 派生 / 镜像类逻辑的测试期望须直接调用真实实现，不得在测试内重写同一份转换逻辑（同错复刻会掩盖实现缺陷） | common | `AGENTS.md`「验收方式」 |
-| C-22 | 门禁单源与时点 | 验收步骤清单唯一真源为 `scripts/verify.mjs`、以 `pnpm verify` 暴露，本地与四处 CI 共用，不得另写步骤枚举；关卡设在发布前；任务收尾顺序为「归档与沉淀 → 验收 → 提交」 | common | `AGENTS.md`「验收方式」+「发版链路」+「协作流程约束」+ `scripts/verify.mjs` + `skills/fxri-release-changelog/SKILL.md` + `skills/fxri-plan-to-task/references/task-spec.md`（第 6 节） |
+| C-22 | 门禁单源与时点 | 验收步骤清单唯一真源为 `scripts/verify.mjs`、以 `pnpm verify` 暴露，本地与四处 CI 共用，不得另写步骤枚举；关卡设在发布前；任务收尾顺序为「归档与沉淀 → 验收 → 提交」；验收与提交须串联失败即止（`&&` 或分步，禁止 `;` 串联） | common | `AGENTS.md`「验收方式」+「发版链路」+「协作流程约束」+ `scripts/verify.mjs` + `skills/fxri-release-changelog/SKILL.md` + `skills/fxri-plan-to-task/references/task-spec.md`（第 6 节） |
 | C-23 | 测试假现场须与真实现场形态一致 | 模拟现场的假数据须与真实形态一致；被测逻辑对现场形态存在分支判据时，每种真实形态都要有对应用例 | common | [common.md](./common.md) |
 | C-25 | 版本括注口径 | `（x.y.z 新增）` 类括注只标命令 / 技能 / 配置项 / 单一能力点的首次引入版本且紧邻该对象；跨版本演进清单不挂句末括注，扩展史由 `CHANGELOG.md` 承载 | common | [common.md](./common.md) |
 | C-26 | 降级不静默 | 用户显式传入的值（CLI 选项值、配置文件项）无法采纳时不得静默忽略：能继续执行则 stderr 告警「忽略了什么、回落到什么」，无法继续则报错并以非 0 退出码终止 | common | `AGENTS.md`「协作流程约束」+ `docs/cli.md`（`--status` / `--lang` / `--format` 行） |
