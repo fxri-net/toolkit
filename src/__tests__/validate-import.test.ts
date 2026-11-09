@@ -5,6 +5,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { validateTasks } from "../tasks/validate"
 import { importTasks } from "../tasks/import"
+import { parseTaskName } from "../tasks/name"
 import { resetToolkitConfigCache } from "../config"
 import { todayCompact } from "../date"
 
@@ -19,11 +20,12 @@ function taskDir(): string {
   return mkdtempSync(join(tmpdir(), "tk-active-"))
 }
 
-// 写 active 文件（202609 子目录）
+// 写 active 文件（202609 子目录）；正文标题按文件名简述回填，夹具自身满足「简述源出标题」
 function putFile(dir: string, name: string, content: string): void {
   const p = join(dir, "active", "202609", name)
   mkdirSync(join(dir, "active", "202609"), { recursive: true })
-  writeFileSync(p, content, "utf8")
+  const brief = parseTaskName(name)?.brief
+  writeFileSync(p, brief ? content.replace(/^# 标题$/m, `# ${brief}`) : content, "utf8")
 }
 
 // 默认合法文件内容

@@ -1,7 +1,8 @@
 import { readFileSync, mkdirSync, unlinkSync, existsSync, readdirSync, rmdirSync } from "node:fs"
 import { join, basename, dirname, resolve, sep } from "node:path"
-import { parseFrontmatter, stripFrontmatter } from "./parse"
+import { parseFrontmatter, stripFrontmatter, titleOf } from "./parse"
 import { listTaskFiles, dateFromFileName } from "./scan"
+import { briefMatchesTitle, parseTaskName } from "./name"
 import { DONE_STATUSES } from "./types"
 import { redactText } from "../privacy/redact"
 import { isBeyondTzFuture, MAX_UTC_OFFSET_HOURS } from "../date"
@@ -46,7 +47,7 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
   }
 
   // 收集本次可归档的任务（状态已终结且带完成时间）
-  const doneTasks: Array<{ file: string; name: string; owner: string; status: string; scope: string; completed: string; body: string }> = []
+  const doneTasks: Array<{ file: string; name: string; title: string; owner: string; status: string; scope: string; completed: string; body: string }> = []
   const skipped: string[] = []
   for (const file of files) {
     // 统一换行为 LF：正文可能携带 CRLF（Windows 编辑器写入），若不归一，写盘时 `\n → eol` 会把已有 `\r\n` 二次转换成 `\r\r\n`
@@ -67,6 +68,7 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
     doneTasks.push({
       file,
       name: basename(file, ".md"),
+      title: titleOf(content),
       owner: fm.owner || "未标注",
       status: fm.status || "未标注",
       scope: fm.scope || "-",
@@ -80,17 +82,23 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
     return { archived: 0, skipped, warnings }
   }
 
-  // 软告警：完成时间与创建日不一致（日期漂移）、晚于系统时间（时间源错误）、恰为零点整（疑似只填日期被补零）；
-  // 同类问题合并为一条，避免任务多时逐条刷屏
+  // 软告警：完成时间与创建日不一致（日期漂移）、晚于系统时间（时间源错误）、恰为零点整（疑似只填日期被补零）、
+  // 文件名简述与标题不同源（固化后难改）；同类问题合并为一条，避免任务多时逐条刷屏
   if (warn) {
     const drift: string[] = []
     const future: string[] = []
     const midnight: string[] = []
+    const mismatched: string[] = []
     for (const t of doneTasks) {
       const completedDate = t.completed.replace(/-/g, "").slice(0, 8)
       const createdDate = dateFromFileName(t.file)
       if (createdDate && completedDate !== createdDate) {
         drift.push(`${t.name}（完成时间 ${t.completed}，创建日 ${createdDate}）`)
+      }
+      // 固化前提示：归档块标题直接取自文件名，简述与标题不同源的错误一旦归档即成冻结记录
+      const parsed = parseTaskName(t.name)
+      if (parsed && t.title && !briefMatchesTitle(parsed.brief, t.title)) {
+        mismatched.push(`${t.name}（简述「${parsed.brief}」≠ 标题「${t.title}」）`)
       }
       // 未来时间检测：写入时刻晚于系统时间说明时间源有误，归档前最后一道关口提醒；留跨时区容差（详见 src/date.ts）避免 UTC 运行环境误报
       if (isBeyondTzFuture(t.completed)) {
@@ -108,6 +116,9 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
     }
     if (midnight.length > 0) {
       warnings.push(`完成时间恰为零点整、疑似只填了日期被补零的 ${midnight.length} 个任务：${midnight.join("；")}`)
+    }
+    if (mismatched.length > 0) {
+      warnings.push(`文件名简述与正文标题不同源、归档块标题将随文件名固化的 ${mismatched.length} 个任务：${mismatched.join("；")}`)
     }
   }
 

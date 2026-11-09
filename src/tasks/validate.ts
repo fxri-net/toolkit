@@ -4,7 +4,8 @@ import { statSync, readdirSync, existsSync, readFileSync } from "node:fs"
 import { join, basename, dirname } from "node:path"
 import { readTextFile, stripBom } from "../read-text"
 import { listTaskFiles } from "./scan"
-import { parseFrontmatterRaw, stripFrontmatter, bodyWithoutTitle, FRONTMATTER_RE } from "./parse"
+import { parseFrontmatterRaw, stripFrontmatter, bodyWithoutTitle, titleOf, FRONTMATTER_RE } from "./parse"
+import { briefMatchesTitle, briefNameIssues, parseTaskName } from "./name"
 import { parseArchiveBlocks } from "./archive-block"
 import { checkArchive } from "./normalize"
 import { getConfigSection, resolveLocalConfigPath } from "../config"
@@ -262,6 +263,27 @@ export function validateTaskFile(file: string, endpoints: Set<string> | null = n
     issues.push({ level: "warn", file: name, message: "文件名不符合规范 {YYYYMMDD}-{负责人}-{简述}.md" })
   } else if (fm.created && /^\d{8}$/.test(fm.created.trim()) && nameMatch && fm.created.trim() !== nameMatch[1]) {
     issues.push({ level: "warn", file: name, message: `文件名日期 ${nameMatch[1]} 与 created ${fm.created.trim()} 不一致` })
+  }
+
+  // 文件名三段各对真源负责：日期↔created（上一条）、用户名↔owner、简述↔正文标题；
+  // 判据只看是否源出标题，不限制语种——中文项目自然得中文名，英文项目自然得英文名
+  const parsedName = parseTaskName(name)
+  if (parsedName) {
+    const title = titleOf(content)
+    if (title && !briefMatchesTitle(parsedName.brief, title)) {
+      issues.push({
+        level: "warn",
+        file: name,
+        message: `文件名简述「${parsedName.brief}」与正文标题「${title}」不同源，简述应取自标题（不翻译、不音译、不缩写）`,
+      })
+    }
+    const formIssues = briefNameIssues(parsedName.brief)
+    if (formIssues.length > 0) {
+      issues.push({ level: "warn", file: name, message: `文件名简述存在跨平台问题：${formIssues.join("；")}` })
+    }
+    if (fm.owner && parsedName.owner.trim() !== fm.owner.trim()) {
+      issues.push({ level: "warn", file: name, message: `文件名用户名「${parsedName.owner}」与 owner「${fm.owner}」不一致` })
+    }
   }
 
   // 范围字段形态软告警：scope 为分类短词，多值以半角加号分隔，端名不含路径分隔符；

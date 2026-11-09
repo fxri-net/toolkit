@@ -13,6 +13,7 @@ import type { ImportOptions, ImportResult } from "./types"
 import { writeFileAtomic } from "../write-atomic"
 import { acquireArchiveLock, releaseArchiveLock } from "./lock"
 import { displayRel } from "./paths"
+import { taskBrief } from "./name"
 
 const require = createRequire(import.meta.url)
 
@@ -181,14 +182,6 @@ function readRowsJSON(content: string, custom: Record<string, string>): Record<s
   return out
 }
 
-// 文件名简述：去文件系统非法字符，压缩空白，限长 24；超长返回 truncated 供调用方告警
-function slugTitle(title: string): { slug: string; truncated: boolean } {
-  const clean = title.trim().replace(/[\\/:*?"<>|]/g, " ").replace(/\s+/g, " ")
-  const truncated = clean.length > 24
-  const brief = clean.slice(0, 24).trim()
-  return { slug: brief.replace(/\s+/g, "-") || "任务", truncated }
-}
-
 // 收集自定义列：已知字段之外的原样透传为 frontmatter 扩展字段（键序沿用来源列序）；
 // 列名非简单标识符或值含换行时不写入并告警——脏数据会破坏 frontmatter 结构
 function collectExtraFields(rec: Record<string, string>, title: string, warnings: string[]): Record<string, string> {
@@ -272,7 +265,7 @@ interface TaskWrite {
 function writeActiveTask(tasksDir: string, t: TaskWrite, dryRun: boolean, warnings: string[]): string {
   const created = t.created || todayCompact()
   const monthDir = join(tasksDir, "active", created.slice(0, 6))
-  const { slug, truncated } = slugTitle(t.title)
+  const { brief: slug, truncated } = taskBrief(t.title)
   if (truncated) warnings.push(`任务「${t.title}」标题过长，文件名已截断`)
   const base = `${created}-${t.owner}-${slug}`
   let seq = 1
