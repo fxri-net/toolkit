@@ -5,7 +5,7 @@ import { versionGt } from "../version"
 import { listPackageSkills, readSkillVersion } from "./source"
 import { readProjectState, readSkillsState } from "./state"
 import { resolveProjectTargets } from "./source"
-import type { SkillsState } from "./types"
+import type { SkillsState, SkillStateEntry } from "./types"
 
 // 单个可更新技能：installed 为已安装版本，latest 为来源 / 包内真源版本
 export interface SkillUpdateInfo {
@@ -49,6 +49,13 @@ interface SourceAccumulator {
   versions: Map<string, string>
 }
 
+// 已装版本取证：link 模式内容随真源升级，直接读目标目录的 SKILL.md；
+// copy / shell 是独立产物，不会随包更新，仍以状态登记为准
+function installedVersion(targetDir: string, entry: SkillStateEntry): string {
+  if (entry.mode !== "link") return entry.version
+  return readSkillVersion(join(targetDir, entry.name)) || entry.version
+}
+
 // 合并状态文件来源：全局与项目状态同构，按来源名聚合技能与已安装版本
 function accumulate(states: Array<SkillsState | null>): Map<string, SourceAccumulator> {
   const result = new Map<string, SourceAccumulator>()
@@ -61,8 +68,9 @@ function accumulate(states: Array<SkillsState | null>): Map<string, SourceAccumu
       acc.temporary = acc.temporary || source.temporary
       for (const target of source.targets) {
         for (const entry of target.entries) {
+          const installed = installedVersion(target.dir, entry)
           const current = acc.versions.get(entry.name) ?? ""
-          if (!current || versionGt(current, entry.version)) acc.versions.set(entry.name, entry.version)
+          if (!current || versionGt(current, installed)) acc.versions.set(entry.name, installed)
         }
       }
       result.set(sourceName, acc)

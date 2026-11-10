@@ -52,6 +52,7 @@ registry 解析顺序（前者优先）：
 - 忽略构建元数据（`+build`）
 - 任一侧无法解析为版本时不提示
 - 外部来源比较的是**技能自身**的 `metadata.version`（读自来源缓存目录），不用来源仓库的包版本——两者独立编号
+- 已装版本按落点形态取证：`link` 读目标目录下 `SKILL.md` 的实际版本（升级后自动跟随，不看状态登记）；`copy` / `shell` 是独立产物，以 `skills install` 写入的状态登记为准
 
 **已尝试修复即收敛**：执行过 `skills install` 后，本次仍未解决的条目按「技能 + 最新版本」记入缓存（`~/.toolkit/cache/update-check.json` 的 `dismissed`）。
 
