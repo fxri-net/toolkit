@@ -80,6 +80,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - 项目面按「作用域」节体检
 - `--format json` 输出机器可读报告到 stdout（含 `scope`、`versionStatus`、`selection` 与 `targetSelection`）
   - 两面报告含 `skillVersions`；全局面另含 `canonicalReaders` 与 `legacyTargets`
+  - 真源不可读时版本用状态登记值兜底，同名技能列入 `skillVersionsFromState`，人读视图标注「（登记值）」，不冒充当期真源版本
   - 折叠不丢信息（替代人读版），无末尾汇总行
 - `versionStatus` 含 `cliVersion`、`latestVersion`、`updateAvailable`、`registry: { value, source }`、`channels`
   - `sources`：来源名 / 版本 / 是否临时 / 生效频率 / 频率来源
@@ -112,7 +113,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 | --- | --- |
 | `install` / `status` / `uninstall` | `scope`（本次实际作用域）、`dryRun`（区分预演与实跑）；报告主体按 `global` / `project` 分面承载，未执行的面为 `null` |
 | `install` / `status` | `mode`（当前安装模式）、`selection`（技能选择集）、`targetSelection`（目标选择集） |
-| `status` | 两面报告另含 `skillVersions`（各技能真源版本，用于与会话上下文中已加载的技能内容对照） |
+| `status` | 两面报告另含 `skillVersions`（各技能真源版本，用于与会话上下文中已加载的技能内容对照）与 `skillVersionsFromState`（版本取自状态登记的技能名） |
 
 ## 技能选择
 

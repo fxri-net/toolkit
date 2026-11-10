@@ -53,6 +53,8 @@ interface SkillRef {
   dir: string
   linkTarget: string
   tier: SkillTier
+  // 版本取自状态登记（来源真源不可读）：展示层需标注，避免冒充当期真源版本
+  fromState?: boolean
 }
 
 // 技能名 → 状态条目：同一目标内按名字取登记
@@ -132,6 +134,12 @@ function collectStatusSources(state: ReturnType<typeof readSkillsState>): { refs
       return { name: skillName, dir, version: fallbackVersions.get(skillName) ?? "", tier: "optional", requires: [] }
     })
     addSource(name, source.kind === "builtin" ? "builtin" : "local", source.root, source.version, source.temporary, synthetic)
+    // 合成条目的版本来自状态登记：打标，供展示层标注「登记值」
+    for (const skill of synthetic) {
+      if (skills.some((item) => item.name === skill.name)) continue
+      const current = refs.get(skill.name)
+      if (current) refs.set(skill.name, { ...current, fromState: true })
+    }
     // 兜底条目的链接指向按来源根拼，来源缺失时表现为悬空
     if (synthetic.length > 0 && source.kind !== "builtin") {
       for (const skill of synthetic) {
@@ -300,6 +308,7 @@ export function skillsStatus(): SkillsStatusReport {
   return {
     source: skillsSourceDir(),
     skills: allNames,
+    skillVersionsFromState: [...refs.entries()].filter(([, ref]) => ref.fromState).map(([name]) => name),
     mode,
     selection,
     targetSelection: savedTargets ?? [],
@@ -417,6 +426,7 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
     root,
     sourceDir: targets.sourceDir,
     skills: allNames,
+    skillVersionsFromState: [...refs.entries()].filter(([, ref]) => ref.fromState).map(([name]) => name),
     mode,
     selection,
     targetSelection: savedTargets ?? [],

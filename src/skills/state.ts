@@ -186,11 +186,14 @@ export function writeSkillsState(state: SkillsState): void {
   writeFileAtomic(file, `${JSON.stringify(state, null, 2)}\n`)
 }
 
-// 是否已装有全局技能：只读状态文件（任一来源目标登记了技能即视为已安装），不做全量现场校验、不起进程
+// 是否已装有全局技能：只读状态文件，但登记不等于现场——至少一个登记产物仍在目标目录才算已安装；
+// 目标目录被人工删除后不再误判（否则 init 会跳过 skills install 指引）
 export function hasGlobalSkillsInstalled(): boolean {
   const state = readSkillsState()
   if (!state) return false
-  return Object.values(state.sources).some((source) => source.targets.some((target) => target.entries.length > 0))
+  return Object.values(state.sources).some((source) =>
+    source.targets.some((target) => target.entries.some((entry) => existsSync(join(target.dir, entry.name)))),
+  )
 }
 
 // 读取项目态账：不存在 / 损坏返回 null；旧结构导入成功后返回新结构

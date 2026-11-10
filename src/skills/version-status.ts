@@ -50,10 +50,13 @@ interface SourceAccumulator {
 }
 
 // 已装版本取证：link 模式内容随真源升级，直接读目标目录的 SKILL.md；
+// 目标不存在（悬空链接）时登记值不可信，返回空串交给 unknown；文件在但版本缺失才回退登记；
 // copy / shell 是独立产物，不会随包更新，仍以状态登记为准
 function installedVersion(targetDir: string, entry: SkillStateEntry): string {
   if (entry.mode !== "link") return entry.version
-  return readSkillVersion(join(targetDir, entry.name)) || entry.version
+  const dir = join(targetDir, entry.name)
+  if (!existsSync(dir)) return ""
+  return readSkillVersion(dir) || entry.version
 }
 
 // 合并状态文件来源：全局与项目状态同构，按来源名聚合技能与已安装版本

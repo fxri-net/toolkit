@@ -770,11 +770,16 @@ describe("hasGlobalSkillsInstalled 安装态探测", () => {
     expect(hasGlobalSkillsInstalled()).toBe(false)
   })
 
-  it("任一目标登记了链接或副本即为已安装", () => {
+  it("任一目标的登记产物仍存在才算已安装", () => {
+    mkdirSync(join(primaryDir(), "fxri-plan-to-task"), { recursive: true })
     writeState([{ dir: primaryDir(), links: ["fxri-plan-to-task"] }])
     expect(hasGlobalSkillsInstalled()).toBe(true)
     writeState([{ dir: primaryDir(), copies: ["fxri-plan-to-task"] }])
     expect(hasGlobalSkillsInstalled()).toBe(true)
+    // 登记在但产物被删：登记不等于现场，回到未安装
+    rmSync(join(primaryDir(), "fxri-plan-to-task"), { recursive: true, force: true })
+    writeState([{ dir: primaryDir(), links: ["fxri-plan-to-task"] }])
+    expect(hasGlobalSkillsInstalled()).toBe(false)
   })
 })
 
@@ -794,6 +799,32 @@ describe("skillsStatus 现场状态", () => {
     rmSync(primaryDir(), { recursive: true, force: true })
     installSkills({ copy: true })
     expect(skillsStatus().targets.find((t) => t.kind === "primary")?.items.every((i) => i.state === "copy")).toBe(true)
+  })
+
+  it("来源真源不可读时版本取自登记并打标", () => {
+    mkdirSync(join(home, ".agents"), { recursive: true })
+    writeFileSync(
+      skillsStateFile(),
+      JSON.stringify({
+        format: "fxri.toolkit.skills-state",
+        schemaVersion: 1,
+        updatedAt: "",
+        sources: {
+          play: {
+            kind: "local",
+            version: "1.0.0",
+            temporary: false,
+            root: join(home, "gone-source"),
+            targets: [{ id: "primary", dir: primaryDir(), label: "canonical", kind: "primary", entries: [{ name: "fxri-demo-missing", version: "1.2.3", mode: "link" }] }],
+          },
+        },
+      }),
+      "utf8",
+    )
+    const report = skillsStatus()
+    // 来源根缺失时仍能展示现场，但版本来自状态登记，须打标供展示层标注
+    expect(report.skillVersions["fxri-demo-missing"]).toBe("1.2.3")
+    expect(report.skillVersionsFromState).toContain("fxri-demo-missing")
   })
 
   it("副本被改动报漂移，产物被删除报缺失", () => {

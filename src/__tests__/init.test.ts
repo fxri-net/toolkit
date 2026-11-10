@@ -255,10 +255,15 @@ describe("initWorkspace 全局技能安装态", () => {
     expect(initWorkspace(".tasks", cwd).skillsInstalled).toBe(false)
   })
 
-  it("状态文件登记了本包技能时 skillsInstalled 为真，CLI 不再重复提示", () => {
+  it("登记产物仍在磁盘时 skillsInstalled 为真，CLI 不再重复提示", () => {
+    const installed = join(home, ".agents", "skills", "fxri-plan-to-task")
+    mkdirSync(installed, { recursive: true })
     writeState(["fxri-plan-to-task"])
     const { cwd } = track(runInDir("tk-init-hasskills-"))
     expect(initWorkspace(".tasks", cwd).skillsInstalled).toBe(true)
+    // 登记不等于现场：产物被删后回到未安装
+    rmSync(installed, { recursive: true, force: true })
+    expect(initWorkspace(".tasks", cwd).skillsInstalled).toBe(false)
   })
 })
 

@@ -254,6 +254,8 @@ export interface SkillsStatusReport {
   sources: SkillSourceStatus[]
   // 各技能真源版本，作为「会话上下文已过期」判定的磁盘基准值
   skillVersions: Record<string, string>
+  // 版本取自状态登记（来源真源不可读）的技能名：消费方需标注，勿当真源版本使用
+  skillVersionsFromState: string[]
   // 版本双写位（frontmatter / 正文）不一致的技能，供软告警提示同步递增
   versionMismatches: SkillVersionMismatch[]
   stateFile: string
@@ -431,6 +433,8 @@ export interface ProjectStatusReport {
   targetSelection: string[]
   sources: SkillSourceStatus[]
   skillVersions: Record<string, string>
+  // 版本取自状态登记（真源不可读）的技能名
+  skillVersionsFromState: string[]
   versionMismatches: SkillVersionMismatch[]
   stateFile: string
   stateExists: boolean

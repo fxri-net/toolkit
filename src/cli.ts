@@ -427,6 +427,12 @@ function skillLabel(name: string, version: string): string {
   return version ? `${name}@${version}` : name
 }
 
+// 技能版本行：真源不可读时的登记值显式标注，避免冒充当期版本（status / 项目面共用）
+function skillVersionLine(report: { skills: string[]; skillVersions: Record<string, string>; skillVersionsFromState: string[] }): string {
+  const stateOnly = new Set(report.skillVersionsFromState)
+  return report.skills.map((name) => `${skillLabel(name, report.skillVersions[name] ?? "")}${stateOnly.has(name) ? "（登记值）" : ""}`).join("、") || "无"
+}
+
 // 打印安装报告：按目标分组列出新建/更新/跳过/降级/失败，并给出未纳入目标的处理入口
 function printInstallReport(report: InstallReport, dryRun: boolean): void {
   const tag = dryRun ? "[预演] " : ""
@@ -468,7 +474,7 @@ function printInstallReport(report: InstallReport, dryRun: boolean): void {
 // 多 agent 机器上目标数可达十余个，逐技能刷「软链正常」会把真正的问题淹没在噪音里
 function printStatusReport(report: SkillsStatusReport): void {
   console.log(`技能源：${report.source}`)
-  console.log(`技能版本：${report.skills.map((name) => skillLabel(name, report.skillVersions[name] ?? "")).join("、") || "无"}`)
+  console.log(`技能版本：${skillVersionLine(report)}`)
   console.log(`选择集（${report.selection.length}）：${report.selection.join("、") || "无"}`)
   console.log(`目标选择集：${report.targetSelection.length > 0 ? report.targetSelection.join("、") : "全部可用目标（未保存过目标选择）"}`)
   // 软告警：真源内版本双写位（frontmatter / 正文）不一致，提示按规则同步递增
@@ -605,7 +611,7 @@ function printProjectInstallReport(report: ProjectInstallReport, dryRun: boolean
 function printProjectStatusReport(report: ProjectStatusReport): void {
   console.log(`项目面 · 项目根：${report.root}`)
   console.log(`项目面 · 技能真源：${report.sourceDir}`)
-  console.log(`项目面 · 技能版本：${report.skills.map((name) => skillLabel(name, report.skillVersions[name] ?? "")).join("、") || "无"}`)
+  console.log(`项目面 · 技能版本：${skillVersionLine(report)}`)
   console.log(`项目面 · 选择集（${report.selection.length}）：${report.selection.join("、") || "无"}`)
   console.log(`项目面 · 目录选择集：${report.targetSelection.length > 0 ? report.targetSelection.join("、") : "全部已存在候选目录（未保存过目录选择）"}`)
   for (const m of report.versionMismatches) {

@@ -103,8 +103,17 @@ describe("collectSkillVersionUpdates", () => {
     expect(report.external.find((item) => item.name === "fxri-dev-profile-web")).toMatchObject({ installed: "1.0.0", latest: "2.0.0" })
   })
 
-  it("link 模式目标文件缺失时回退状态登记", () => {
+  it("link 模式目标不存在（悬空）时不计入已装", () => {
     writeSourceSkill("fxri-dev-profile-web", "2.0.0")
+    writeSkillsState(state({ play: source([{ name: "fxri-dev-profile-web", version: "1.0.0" }], { version: "2.0.0" }) }))
+    const report = collectSkillVersionUpdates()
+    expect(report.external).toHaveLength(0)
+    expect(report.unknown.find((item) => item.name === "fxri-dev-profile-web")).toMatchObject({ missing: "installed" })
+  })
+
+  it("link 模式文件在但版本缺失时回退状态登记", () => {
+    writeSourceSkill("fxri-dev-profile-web", "2.0.0")
+    writeInstalledSkill("fxri-dev-profile-web", "")
     writeSkillsState(state({ play: source([{ name: "fxri-dev-profile-web", version: "1.0.0" }], { version: "2.0.0" }) }))
     const report = collectSkillVersionUpdates()
     expect(report.external.find((item) => item.name === "fxri-dev-profile-web")).toMatchObject({ installed: "1.0.0", latest: "2.0.0" })
@@ -113,6 +122,7 @@ describe("collectSkillVersionUpdates", () => {
   it("技能版本与缓存一致或更高时不提示降级；缓存缺失技能时归入 unknown 并标明缺 latest", () => {
     writeSourceSkill("fxri-dev-profile-web", "2.0.0")
     writeInstalledSkill("fxri-dev-profile-web", "3.0.0")
+    writeInstalledSkill("fxri-dev-profile-vue", "1.0.0")
     writeSkillsState(
       state({
         play: source([{ name: "fxri-dev-profile-web", version: "3.0.0" }], { version: "2.0.0" }),
