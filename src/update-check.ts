@@ -473,17 +473,26 @@ function debugHint(currentVersion: string, latest: string | null, alerts: SkillA
 }
 
 // 命令收口提示：只在成功时输出；帮助 / 裸命令 / JSON / 透传跳过；TTY 走 stderr，非 TTY 走 stdout
-export function emitVersionHint(currentVersion: string, options: { argv: string[]; exitCode: number; skillAlerts?: SkillAlert[] }): void {
+// skillAlerts 可传提供者：不可提示的命令不求值，避免每条命令都去读技能文件
+export function emitVersionHint(
+  currentVersion: string,
+  options: { argv: string[]; exitCode: number; skillAlerts?: SkillAlert[] | (() => SkillAlert[]) },
+): void {
   refreshCacheIfNeeded()
   const latest = readCachedLatest()
-  const allAlerts = options.skillAlerts ?? []
+  const resolveAlerts = (): SkillAlert[] => (typeof options.skillAlerts === "function" ? options.skillAlerts() : options.skillAlerts ?? [])
+  const debug = isDebugUpdateCheck()
+  // 可提示性判定前置：不输出提示的命令不必取证，调试开关下才求值用于诊断
+  if (options.exitCode !== 0 || shouldSkipHint(options.argv)) {
+    if (debug) debugHint(currentVersion, latest, resolveAlerts(), readDismissed(currentVersion))
+    return
+  }
+  const allAlerts = resolveAlerts()
   const dismissed = readDismissed(currentVersion)
   const alerts = allAlerts.filter(
     (alert) => dismissed[alertKey(alert)] !== alert.latest && shouldShowUpdateHint(alert.channel, alert.current, alert.source, currentVersion),
   )
-  if (isDebugUpdateCheck()) debugHint(currentVersion, latest, allAlerts, dismissed)
-  if (options.exitCode !== 0) return
-  if (shouldSkipHint(options.argv)) return
+  if (debug) debugHint(currentVersion, latest, allAlerts, dismissed)
   const cliOutdated = latest !== null && versionGt(latest, currentVersion) && shouldShowUpdateHint("cli", currentVersion)
   if (!cliOutdated && alerts.length === 0) return
   const line = formatCombinedHint(currentVersion, cliOutdated ? latest : null, alerts)

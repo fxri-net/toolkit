@@ -1,7 +1,7 @@
 // 技能版本检测：内置技能对比包内真源、外部来源对比缓存目录内的技能版本；
 // 已装侧按落点形态取证——link 读目标文件实际版本，copy / shell 读状态登记
-import { describe, it, expect, beforeEach, afterEach, afterAll } from "vitest"
-import { mkdirSync, rmSync, writeFileSync } from "node:fs"
+import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from "vitest"
+import { mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { collectSkillVersionUpdates } from "../skills/version-status"
@@ -13,7 +13,23 @@ const home = join(sandbox, "home")
 const work = join(sandbox, "work")
 const sourceRoot = join(work, "source")
 const targetDir = join(home, ".agents", "skills")
+const secondTargetDir = join(home, ".copilot", "skills")
+const targetRoots = [targetDir, secondTargetDir]
 const originalCwd = process.cwd()
+
+// 目标侧版本读取计数：验证多目标同源时按真实路径去重，只读一次
+const readCounter = vi.hoisted(() => ({ targetReads: 0 }))
+
+vi.mock("../skills/source", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../skills/source")>()
+  return {
+    ...actual,
+    readSkillVersion: (dir: string) => {
+      if (targetRoots.some((root) => dir.startsWith(root))) readCounter.targetReads += 1
+      return actual.readSkillVersion(dir)
+    },
+  }
+})
 
 function state(sources: SkillsState["sources"]): SkillsState {
   return { format: "fxri.toolkit.skills-state", schemaVersion: 1, updatedAt: "", sources }
@@ -117,6 +133,33 @@ describe("collectSkillVersionUpdates", () => {
     writeSkillsState(state({ play: source([{ name: "fxri-dev-profile-web", version: "1.0.0" }], { version: "2.0.0" }) }))
     const report = collectSkillVersionUpdates()
     expect(report.external.find((item) => item.name === "fxri-dev-profile-web")).toMatchObject({ installed: "1.0.0", latest: "2.0.0" })
+  })
+
+  it("多目标指向同一真源时版本文件只读一次", () => {
+    writeSourceSkill("fxri-dev-profile-web", "2.0.0")
+    writeInstalledSkill("fxri-dev-profile-web", "2.0.0")
+    // 第二个目标用软链指向第一份真源，模拟 canonical 与各 agent 共读同一份技能
+    mkdirSync(secondTargetDir, { recursive: true })
+    symlinkSync(join(targetDir, "fxri-dev-profile-web"), join(secondTargetDir, "fxri-dev-profile-web"), process.platform === "win32" ? "junction" : "dir")
+    const entry = { name: "fxri-dev-profile-web", version: "2.0.0", mode: "link" as const }
+    writeSkillsState(
+      state({
+        play: {
+          kind: "local",
+          version: "2.0.0",
+          temporary: false,
+          root: sourceRoot,
+          targets: [
+            { id: "primary", dir: targetDir, label: "canonical", kind: "primary", entries: [entry] },
+            { id: "agent", dir: secondTargetDir, label: "copilot", kind: "agent", entries: [entry] },
+          ],
+        },
+      }),
+    )
+    readCounter.targetReads = 0
+    const report = collectSkillVersionUpdates()
+    expect(report.external).toHaveLength(0)
+    expect(readCounter.targetReads).toBe(1)
   })
 
   it("技能版本与缓存一致或更高时不提示降级；缓存缺失技能时归入 unknown 并标明缺 latest", () => {

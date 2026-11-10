@@ -1,5 +1,5 @@
 // 技能版本更新检测：只读状态文件与包内 / 来源缓存真源版本，不联网
-import { existsSync } from "node:fs"
+import { existsSync, realpathSync } from "node:fs"
 import { join } from "node:path"
 import { versionGt } from "../version"
 import { listPackageSkills, readSkillVersion } from "./source"
@@ -52,16 +52,29 @@ interface SourceAccumulator {
 // 已装版本取证：link 模式内容随真源升级，直接读目标目录的 SKILL.md；
 // 目标不存在（悬空链接）时登记值不可信，返回空串交给 unknown；文件在但版本缺失才回退登记；
 // copy / shell 是独立产物，不会随包更新，仍以状态登记为准
-function installedVersion(targetDir: string, entry: SkillStateEntry): string {
+function installedVersion(targetDir: string, entry: SkillStateEntry, cache: Map<string, string>): string {
   if (entry.mode !== "link") return entry.version
   const dir = join(targetDir, entry.name)
-  if (!existsSync(dir)) return ""
-  return readSkillVersion(dir) || entry.version
+  let key: string
+  try {
+    // 解析真实路径兼作存在性判定：失败即目标不存在或不可解析
+    key = realpathSync.native(dir)
+  } catch {
+    return ""
+  }
+  // 多个目标常指向同一真源（canonical + 各 agent 软链）：按真实路径去重，同一次检测内只读一次
+  const hit = cache.get(key)
+  if (hit !== undefined) return hit
+  const version = readSkillVersion(dir) || entry.version
+  cache.set(key, version)
+  return version
 }
 
 // 合并状态文件来源：全局与项目状态同构，按来源名聚合技能与已安装版本
 function accumulate(states: Array<SkillsState | null>): Map<string, SourceAccumulator> {
   const result = new Map<string, SourceAccumulator>()
+  // 单次检测内的版本读取缓存：同源多目标复用，避免重复读盘
+  const linkCache = new Map<string, string>()
   for (const state of states) {
     if (!state) continue
     for (const [sourceName, source] of Object.entries(state.sources)) {
@@ -71,7 +84,7 @@ function accumulate(states: Array<SkillsState | null>): Map<string, SourceAccumu
       acc.temporary = acc.temporary || source.temporary
       for (const target of source.targets) {
         for (const entry of target.entries) {
-          const installed = installedVersion(target.dir, entry)
+          const installed = installedVersion(target.dir, entry, linkCache)
           const current = acc.versions.get(entry.name) ?? ""
           if (!current || versionGt(current, installed)) acc.versions.set(entry.name, installed)
         }

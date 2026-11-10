@@ -2388,12 +2388,15 @@ async function main(): Promise<void> {
     else process.stderr.write(commanderErrBuffer)
     process.exitCode = err.exitCode
   } finally {
-    // 所有路径统一收口：成功命令按通道输出一行提示；帮助 / 版本 / JSON / 透传在函数内跳过
-    const updates = collectSkillVersionUpdates()
-    const skillAlerts: SkillAlert[] = [
-      ...updates.builtin.map((item) => ({ channel: "builtin" as const, name: item.name, current: item.installed, latest: item.latest })),
-      ...updates.external.map((item) => ({ channel: "external" as const, source: item.source, name: item.name, current: item.installed, latest: item.latest })),
-    ]
+    // 所有路径统一收口：成功命令按通道输出一行提示；帮助 / 版本 / JSON / 透传在函数内跳过。
+    // 技能取证按需触发：不可提示的命令不读技能文件
+    const skillAlerts = () => {
+      const updates = collectSkillVersionUpdates()
+      return [
+        ...updates.builtin.map((item) => ({ channel: "builtin" as const, name: item.name, current: item.installed, latest: item.latest })),
+        ...updates.external.map((item) => ({ channel: "external" as const, source: item.source, name: item.name, current: item.installed, latest: item.latest })),
+      ]
+    }
     emitVersionHint(version, {
       argv: process.argv.slice(2),
       exitCode: typeof process.exitCode === "number" ? process.exitCode : 0,

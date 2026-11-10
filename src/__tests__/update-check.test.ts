@@ -286,6 +286,26 @@ describe("emitVersionHint 提示渠道与例外", () => {
     expect(formatUpdateHint("9.9.9", "1.0.0").split("\n")).toHaveLength(1)
   })
 
+  it("不可提示的命令不触发技能取证（惰性）", () => {
+    writeOkCache("9.9.9")
+    const provider = vi.fn(() => [])
+    for (const argv of [[], ["--help"], ["help", "tasks"], ["skills", "status"], ["tasks", "--format", "json"]]) {
+      captureOutput()
+      emitVersionHint("1.0.0", { argv, exitCode: 0, skillAlerts: provider })
+    }
+    captureOutput()
+    emitVersionHint("1.0.0", { argv: ["tasks"], exitCode: 1, skillAlerts: provider })
+    expect(provider).not.toHaveBeenCalled()
+  })
+
+  it("可提示的命令才求值技能取证，且仅一次", () => {
+    writeOkCache("1.0.0")
+    const provider = vi.fn(() => [])
+    captureOutput()
+    emitVersionHint("1.0.0", { argv: ["tasks"], exitCode: 0, skillAlerts: provider })
+    expect(provider).toHaveBeenCalledTimes(1)
+  })
+
   it("提示给出「当前 → 最新」，已尝试修复同一版本后不再提示，版本变化或 CLI 升级后恢复", () => {
     writeOkCache("1.0.0")
     const alert = { channel: "external" as const, source: "play", name: "fxri-x", current: "1.0.0", latest: "2.0.0" }
