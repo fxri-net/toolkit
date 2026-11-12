@@ -6,6 +6,24 @@ outline: [2, 2]
 
 > 完整变更历史以根 `CHANGELOG.md` 为准，本页由 `toolkit changelog doc` 自动同步，请勿手改。
 
+## 1.16.11
+
+> 2026-11-12 发布
+
+### ✨ 新增功能
+
+- `docs nav check` 与 `docs dist check`，文档站导航与产物校验随包分发为单一实现，各站点不再各自维护校验脚本
+- 随包分发 `schemas/site-nav.schema.json`，导航数据改为 `docs/site-nav.json` 单一真源，`docs nav check` 先校验结构再判定规则
+
+### ⚡ 优化改进
+
+- CLI 按能力域拆分为 `src/commands/` 九个独立模块（skills / init / tasks / changelog / conventions / config / docs / rules），`cli.ts` 由 2536 行收敛为 116 行的命令装配入口
+- `skills` 的源能力与安装流程按职责拆分到独立子模块，原文件保留为统一出口
+- `usage` 子命令按组拆分，`commands.ts` 由 995 行收敛为 32 行的域入口；`tasks` 校验按类别拆分，`validate.ts` 保留公开出口与编排
+- 命令顺序、help 文案、退出码与输出逐字不变；新增 81 条 CLI 行为基线快照用例持续守护
+- `docs nav check` 支持 `--format json`，输出含独立于包版本的 `ruleVersion`
+- 删去重复的静态 `sitemap.transformItems` 断言，404 排除由产物断言覆盖
+
 ## 1.16.10
 
 > 2026-11-12 发布
