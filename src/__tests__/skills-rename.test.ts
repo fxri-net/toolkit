@@ -307,6 +307,30 @@ describe("改名后的现场与状态", () => {
     expect(report.targets[0]!.conflicts).not.toContain("copy-old")
   })
 
+  it("旧名清理后目标目录变空则一并回收，非空则保留", () => {
+    const root = join(work, "src8")
+    writeSkill(join(root, "skills", "keep8"), "keep8", "1.0.0")
+    writeManifest(root, ["skills/keep8"])
+    const extra = join(work, "extra-dir")
+    installSkills({ targets: ["canonical"], externalSources: [{ path: root, name: "ext", temporary: false }], dirs: [extra], skills: ["keep8"] })
+    // 制造「目录内只剩旧名残留」的现场
+    rmSync(join(extra, "keep8"), { recursive: true, force: true })
+    danglingLink(join(extra, "orphan-old"), join(home, ".toolkit", "cache", "skill-sources", "deadbeef", "skills", "orphan-old"))
+    const report = removeSkills({ skills: ["orphan-old"] })
+    const bucket = report.targets.find((item) => item.dir === extra)!
+    expect(bucket.removed).toContain("orphan-old")
+    expect(bucket.dirReclaimed).toBe(true)
+    expect(existsSync(extra)).toBe(false)
+
+    // 目录内还有其他内容时不回收
+    const busy = join(work, "busy-dir")
+    installSkills({ targets: ["canonical"], externalSources: [{ path: root, name: "ext", temporary: false }], dirs: [busy], skills: ["keep8"] })
+    danglingLink(join(busy, "orphan-two"), join(home, ".toolkit", "cache", "skill-sources", "deadbeef", "skills", "orphan-two"))
+    const kept = removeSkills({ skills: ["orphan-two"] })
+    expect(kept.targets.find((item) => item.dir === busy)!.dirReclaimed).toBe(false)
+    expect(existsSync(busy)).toBe(true)
+  })
+
   it("本次零装不把来源选择集写成空数组", () => {
     const root = join(work, "src6")
     writeSkill(join(root, "skills", "alpha"), "alpha", "1.0.0")

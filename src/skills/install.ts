@@ -714,6 +714,19 @@ export function removeSkills(options: RemoveSkillsOptions = {}): SkillsRemoveRep
           bucket.removed.push(name)
         }
       }
+      // 旧名清理后目标目录若已空则一并回收，与常规卸载路径保持同一口径
+      if (!options.dryRun) {
+        for (const dir of dirs) {
+          const bucket = results.find((item) => pathKey(item.dir) === pathKey(dir))
+          if (!bucket || bucket.removed.length === 0 || !isEmptyDir(dir)) continue
+          try {
+            rmSync(dir, { recursive: true, force: true })
+            bucket.dirReclaimed = true
+          } catch {
+            // 回收失败不影响移除结果：产物已清理，仅多留一个空目录
+          }
+        }
+      }
     }
 
     const nothingLeft = results.every((result) => result.skippedForeign.length === 0)
