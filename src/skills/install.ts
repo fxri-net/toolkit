@@ -1,7 +1,7 @@
 // 技能安装与卸载：全局（软链 / 副本到各 agent 目录）与项目（唯一真源副本 + 各候选目录薄壳）
 // 安装按选择集写产物；--prune 只清理本包登记且内容一致的未选择产物；remove 顺序为「配置 → 产物 → 状态」
-import { existsSync, lstatSync, mkdirSync, readdirSync, rmSync, symlinkSync } from "node:fs"
-import { dirname, join, resolve } from "node:path"
+import { existsSync, lstatSync, mkdirSync, readdirSync, readlinkSync, rmSync, symlinkSync } from "node:fs"
+import { dirname, isAbsolute, join, resolve } from "node:path"
 import { getConfigSection, getHomeDir } from "../config"
 import { isCiEnv } from "../update-check"
 import { writeFileAtomic } from "../write-atomic"
@@ -16,8 +16,10 @@ import {
   expandSkillRequires,
   isEmptyDir,
   isInside,
+  isToolkitArtifactLink,
   listPackageSkills,
   pathKey,
+  pathPresent,
   readSkillDescription,
   readSkillShellVersion,
   removeArtifact,
@@ -31,6 +33,7 @@ import {
   skillsLinkDir,
   skillsSourceDir,
   sourceSkillItems,
+  stripTailSep,
   targetId,
   toRepoRel,
   writeArtifact,
@@ -163,6 +166,7 @@ export function skillTargetsBySource(sources: SkillSource[]): Map<string, { dir:
 }
 
 // 清理未选择的本包产物：只删链接指向本包 / 副本内容与真源一致的条目；来源已不可解析时保留
+// 来源已无此名（改名 / 移除）的条目：链接形态仍可确认归属（含悬空），直接摘除；副本无从校验，保留交人工
 function pruneEntries(
   previous: SkillStateTarget | undefined,
   selected: Set<string>,
@@ -173,9 +177,19 @@ function pruneEntries(
   const pruned: string[] = []
   for (const entry of previous.entries) {
     if (selected.has(entry.name)) continue
-    const skill = byName.get(entry.name)
-    if (!skill) continue
     const dest = join(dir, entry.name)
+    const skill = byName.get(entry.name)
+    if (!skill) {
+      if (entry.mode !== "link") continue
+      try {
+        if (!lstatSync(dest).isSymbolicLink()) continue
+        removeArtifact(dest)
+        pruned.push(entry.name)
+      } catch {
+        // 清理失败保留记录，下次再试
+      }
+      continue
+    }
     const kind = classifyExisting(dest, skill.linkTarget, undefined, skill.dir)
     const consistent = kind === "link-ok" || (kind === "dir" && existsSync(skill.dir) && dirsEqual(skill.dir, dest))
     if (!consistent) continue
@@ -248,6 +262,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
         links: [],
         copies: [],
         pruned: [],
+        migrated: [],
       }
       const entriesBySource = new Map<string, SkillStateEntry[]>()
       for (const item of items) {
@@ -302,6 +317,30 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
           result.failed.push({ name: item.name, reason: (e as Error).message })
         }
       }
+      // 曾用名迁移：旧名产物能确认归属才清理（链接或同内容副本），其余留作冲突交人工
+      const removedAliases = new Set<string>()
+      for (const item of items) {
+        for (const old of item.previousNames) {
+          const dest = join(target.dir, old)
+          const kind = classifyExisting(dest, item.linkTarget, undefined, item.dir)
+          if (kind === "absent") continue
+          const removable = kind === "dangling" || kind === "link-ok" || (kind === "dir" && existsSync(item.dir) && dirsEqual(item.dir, dest))
+          if (!removable) {
+            result.conflicts.push(old)
+            continue
+          }
+          if (!options.dryRun) {
+            try {
+              removeArtifact(dest)
+            } catch {
+              result.conflicts.push(old)
+              continue
+            }
+          }
+          removedAliases.add(old)
+          result.migrated.push({ from: old, to: item.name })
+        }
+      }
       if (options.prune && !options.dryRun) {
         for (const source of sources) {
           result.pruned.push(...pruneEntries(prevBySourceDir.get(source.name)?.get(dirKey), selected, target.dir, byName))
@@ -314,7 +353,9 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
           const previousTarget = prevBySourceDir.get(source.name)?.get(dirKey)
           const entries = [
             ...(entriesBySource.get(source.name) ?? []),
-            ...(previousTarget?.entries.filter((entry) => !selected.has(entry.name) && !prunedSet.has(entry.name) && existsSync(join(target.dir, entry.name))) ?? []),
+            ...(previousTarget?.entries.filter(
+              (entry) => !selected.has(entry.name) && !prunedSet.has(entry.name) && !removedAliases.has(entry.name) && pathPresent(join(target.dir, entry.name)),
+            ) ?? []),
           ]
           if (entries.length > 0) {
             nextBySource.get(source.name)!.push({
@@ -351,6 +392,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
               links: [],
               copies: [],
               pruned,
+              migrated: [],
             })
             const prunedSet = new Set(pruned)
             entries = entries.filter((entry) => !prunedSet.has(entry.name))
@@ -443,7 +485,10 @@ function saveGlobalSelection(sources: SkillSource[], items: SkillItem[]): void {
         delete selection[source.name]
         continue
       }
-      selection[source.name] = items.filter((item) => item.source === source.name).map((item) => item.name)
+      const names = items.filter((item) => item.source === source.name).map((item) => item.name)
+      // 本次零装不写空数组：空名单会被当成「该来源一个都不选」，把一次性的名单失效固化成永久排除
+      if (names.length > 0) selection[source.name] = names
+      else delete selection[source.name]
     }
     writeSkillsInstallConfig({ selection: Object.keys(selection).length > 0 ? selection : undefined })
   } catch (e) {
@@ -516,6 +561,20 @@ export function sourceSkillMap(name: string, source: SkillStateSource): Map<stri
     return skillTargetsBySource([resolveLocalSource(source.root, { name, temporary: source.temporary })])
   } catch {
     return new Map()
+  }
+}
+
+// 未登记旧名的兜底判定：只认本工具形态链接（技能源缓存 / 本包目录）或指向已登记来源根的链接
+// 用户显式点名才走到这里，仍要求形态可确认归属，避免误删用户自装产物
+function orphanArtifactRemovable(dest: string, roots: string[]): boolean {
+  if (isToolkitArtifactLink(dest)) return true
+  try {
+    if (!lstatSync(dest).isSymbolicLink()) return false
+    const target = readlinkSync(dest)
+    const abs = stripTailSep(isAbsolute(target) ? target : resolve(dirname(dest), target))
+    return roots.some((root) => isInside(abs, root))
+  } catch {
+    return false
   }
 }
 
@@ -617,6 +676,43 @@ export function removeSkills(options: RemoveSkillsOptions = {}): SkillsRemoveRep
         if (kept.length > 0) nextTargets.push({ ...target, entries: kept })
       }
       if (nextTargets.length > 0) nextSources[sourceName] = { ...source, targets: nextTargets }
+    }
+
+    // 状态里未登记、但用户显式点名的旧名：按本工具形态链接兜底摘除，恢复改名后的卸载路径
+    if (wanted) {
+      const registered = new Set<string>()
+      const dirs = new Set<string>()
+      const roots = new Set<string>()
+      for (const [sourceName, source] of Object.entries(state.sources)) {
+        if (options.source && options.source !== sourceName) continue
+        if (source.root) roots.add(source.root)
+        for (const target of source.targets) {
+          dirs.add(target.dir)
+          for (const entry of target.entries) registered.add(entry.name)
+        }
+      }
+      for (const entry of Object.values(readSkillsInstallConfig().sources ?? {})) {
+        if (entry.root) roots.add(entry.root)
+      }
+      for (const name of [...wanted].filter((item) => !registered.has(item))) {
+        for (const dir of dirs) {
+          const dest = join(dir, name)
+          if (!orphanArtifactRemovable(dest, [...roots])) continue
+          if (!options.dryRun) {
+            try {
+              removeArtifact(dest)
+            } catch {
+              failed = true
+              continue
+            }
+          }
+          const existing = results.find((item) => pathKey(item.dir) === pathKey(dir))
+          const bucket =
+            existing ?? { dir, label: skillTargetLabel(dir) || null, removed: [], missing: [], skippedForeign: [], dirReclaimed: false }
+          if (!existing) results.push(bucket)
+          bucket.removed.push(name)
+        }
+      }
     }
 
     const nothingLeft = results.every((result) => result.skippedForeign.length === 0)
@@ -780,7 +876,7 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
       const previousTarget = prevTarget(item.name, "source", targets.sourceDir)
       const entries = [
         ...(sourceEntriesBySource.get(item.name) ?? []),
-        ...(previousTarget?.entries.filter((entry) => !selected.has(entry.name) && !prunedSource.has(entry.name) && existsSync(join(sourceAbs, entry.name))) ?? []),
+        ...(previousTarget?.entries.filter((entry) => !selected.has(entry.name) && !prunedSource.has(entry.name) && pathPresent(join(sourceAbs, entry.name))) ?? []),
       ]
       if (entries.length > 0) nextBySource.get(item.name)!.push({ id: "source", dir: targets.sourceDir, label: "真源副本", kind: "source", entries })
     }
@@ -798,6 +894,31 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
           }
         } catch (e) {
           result.failed.push({ name: item.name, reason: (e as Error).message })
+        }
+      }
+      // 曾用名迁移：旧名薄壳带本包标记才清理（标记即归属证明，旧真源已不存在、无从比对内容）
+      for (const item of items) {
+        for (const old of item.previousNames) {
+          const oldDir = join(root, dir, old)
+          const oldFile = join(oldDir, SKILL_ENTRY)
+          if (!existsSync(oldFile)) continue
+          let content: string
+          try {
+            content = readTextFile(oldFile)
+          } catch {
+            continue
+          }
+          if (readSkillShellVersion(content) === null) continue
+          if (options.dryRun) {
+            result.pruned.push(old)
+            continue
+          }
+          try {
+            removeArtifact(oldDir)
+            result.pruned.push(old)
+          } catch {
+            // 清理失败保留现场，由状态报告暴露
+          }
         }
       }
       if (options.prune && !options.dryRun) {
@@ -819,7 +940,7 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
         const previousTarget = prevTarget(source.name, "shell", dir)
         const entries = [
           ...(entriesBySource.get(source.name) ?? []),
-          ...(previousTarget?.entries.filter((entry) => !selected.has(entry.name) && !pruned.has(entry.name) && existsSync(join(root, dir, entry.name))) ?? []),
+          ...(previousTarget?.entries.filter((entry) => !selected.has(entry.name) && !pruned.has(entry.name) && pathPresent(join(root, dir, entry.name))) ?? []),
         ]
         if (entries.length > 0) nextBySource.get(source.name)!.push({ id: dir, dir, label: "薄壳", kind: "shell", entries })
       }

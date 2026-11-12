@@ -33,9 +33,10 @@ toolkit skills install      # 2. 把包内技能装到各 agent 的全局技能�
                             #    --skills <names> / --all / --no-optional / --yes 可跳过技能与目标交互
                             #    --scope project 换项目面：真源落 <仓库根>/.agents/skills/、其余候选目录落入口薄壳
                             #    --from <path|url> 临时外部来源（副本）；--save [name] 登记永久来源（默认软链）
-toolkit skills status       # 查现场状态（悬空 / 指向其他版本 / 副本漂移 / 缺失 / 同名冲突 / 未选择但已安装；历史落点残留单列提示；--scope project 查项目面）
+toolkit skills status       # 查现场状态（悬空 / 指向其他版本 / 副本漂移 / 缺失 / 同名冲突 / 未选择但已安装；历史落点与疑似残留单列提示；--scope project 查项目面）
                             # 前五类重跑 toolkit skills install 补齐，同名冲突需 toolkit skills install --force 覆盖，未选择产物加 --prune 清理
-toolkit skills uninstall       # 卸载本包装的产物（只清自己装的，不碰用户自装技能；--skills 只清指定技能；--scope project 清项目面）
+                            # 来源已无此名的旧名（改名后）用 toolkit skills uninstall --skills <旧名> 清理
+toolkit skills uninstall       # 卸载本包装的产物（只清自己装的，不碰用户自装技能；--skills 只清指定技能，含未登记的旧名；--scope project 清项目面）
 ```
 
 - 真源唯一：技能取自已装 CLI 包内的 `skills/`；软链锚在 pnpm 稳定入口，升级 CLI 后自动指向新版（副本形式需重跑 `toolkit skills install`）
@@ -44,6 +45,9 @@ toolkit skills uninstall       # 卸载本包装的产物（只清自己装的�
   - 共读 agent：Cline、Codex、Dexto、Kimi Code CLI、Loaf、Pi、Sarvam Code、Warp、Zed、DeepSeek Harness
   - `--dir` 可多次指定，供表外 agent 使用；只在当次安装时写入，技能增删后需带相同 `--dir` 重跑 `toolkit skills install`
   - 升级前的 Codex / Pi 历史落点（`~/.codex/skills`、`~/.pi/agent/skills`）若仍有本包登记，`toolkit skills status` 会单列「历史落点残留」提示清理（只提示、不自动删除）
+  - 指向技能源缓存或本包技能目录、却未在任何来源 / 状态登记的链接，`toolkit skills status` 会单列「疑似残留」提示清理（同样只提示，确认后按名字 `uninstall --skills`）
+- **技能改名**：外部来源可在 `skills.json` 条目或 `SKILL.md` frontmatter 声明 `previousNames`；安装时选择集与状态按别名迁移、旧名产物按归属清理。
+  未声明时也不会丢：旧名断链保留登记并在 `status` 报出，来源整份名单失效时按默认口径重算（内置取 `core`、外部取全部）
 - 默认软链（锚在 pnpm 稳定入口，升级不失效）；链接创建失败自动降级为副本并打印 ⚠️（如无权限建链）；`--copy` 强制副本、`--dry-run` 预演、
    `--force` 覆盖同名非本包产物（不改本包已登记副本的形态）、`--prune` 清理未选择且内容一致的旧产物
 - 改 `skills/` 须发版才触达用户：技能随包同源分发，调整只有随 `@fxri/toolkit` 发版、使用者升级后才生效（软链自动跟随新包），未发版的改动只存在于本仓库

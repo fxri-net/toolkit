@@ -504,9 +504,9 @@ describe("readSkillBodyVersion / findSkillVersionMismatches 版本双写位", ()
     const diff = bodySkillDir("mm-diff", '---\nname: mm-diff\nmetadata:\n  version: "1.0.1"\n---\n\n> 本技能版本 1.0.0（随包分发）\n')
     const missing = bodySkillDir("mm-missing", '---\nname: mm-missing\nmetadata:\n  version: "2.0.0"\n---\n\n无版本声明\n')
     const mismatches = findSkillVersionMismatches([
-      { name: "mm-ok", dir: ok, version: "1.0.0", tier: "optional", requires: [] },
-      { name: "mm-diff", dir: diff, version: "1.0.1", tier: "optional", requires: [] },
-      { name: "mm-missing", dir: missing, version: "2.0.0", tier: "optional", requires: [] },
+      { name: "mm-ok", dir: ok, version: "1.0.0", tier: "optional", requires: [], previousNames: [] },
+      { name: "mm-diff", dir: diff, version: "1.0.1", tier: "optional", requires: [], previousNames: [] },
+      { name: "mm-missing", dir: missing, version: "2.0.0", tier: "optional", requires: [], previousNames: [] },
     ])
     expect(mismatches).toEqual([
       { name: "mm-diff", frontmatter: "1.0.1", body: "1.0.0" },
@@ -516,7 +516,7 @@ describe("readSkillBodyVersion / findSkillVersionMismatches 版本双写位", ()
 
   it("未声明 frontmatter 版本（第三方技能）跳过比对，不误报", () => {
     const dir = bodySkillDir("mm-third", "# 第三方技能\n\n无版本声明\n")
-    expect(findSkillVersionMismatches([{ name: "mm-third", dir, version: "", tier: "optional", requires: [] }])).toEqual([])
+    expect(findSkillVersionMismatches([{ name: "mm-third", dir, version: "", tier: "optional", requires: [], previousNames: [] }])).toEqual([])
   })
 
   it("包内全部技能双写位一致（仓库现场无漂移）", () => {

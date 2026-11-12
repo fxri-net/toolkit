@@ -4,8 +4,8 @@ import { buildSkillChoices, planSkillSelection } from "../skills/prompt"
 import type { PackageSkill } from "../skills/types"
 
 const skills: PackageSkill[] = [
-  { name: "core-a", dir: "/a", version: "1.0.0", tier: "core", requires: [] },
-  { name: "opt-b", dir: "/b", version: "1.0.0", tier: "optional", requires: [] },
+  { name: "core-a", dir: "/a", version: "1.0.0", tier: "core", requires: [], previousNames: [] },
+  { name: "opt-b", dir: "/b", version: "1.0.0", tier: "optional", requires: [], previousNames: [] },
 ]
 
 describe("package 模式技能选择", () => {

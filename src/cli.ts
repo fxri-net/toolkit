@@ -43,7 +43,10 @@ import {
   buildProjectTargetChoices,
   collectSkillItems,
   detectSkillScope,
+  expiredSelectionWarnings,
   expandSkillRequires,
+  findStaleArtifacts,
+  findUnselectedSkills,
   installProjectSkills,
   installSkills,
   isInteractiveTty,
@@ -56,6 +59,8 @@ import {
   readProjectSkillsConfig,
   readSkillsInstallConfig,
   readSkillsState,
+  resolveSavedProjectSelection,
+  resolveSavedSelection,
   writeProjectSkillsConfig,
   removeProjectSkills,
   removeSkills,
@@ -295,28 +300,20 @@ async function resolveSkillSelection(
   let saved: string[] | undefined
   // --mode 显式切换时按新模式基线，不沿用旧模式的保存选择
   if (options.mode === undefined) {
-    if (face === "global") {
-      const bySource = readSkillsInstallConfig().selection
-      // 按来源回显：已登记的来源用保存值，新来源默认全选，避免新增外部来源被静默漏装
-      saved =
-        bySource && Object.keys(bySource).length > 0
-          ? skills
-              .filter((item) => {
-                const names = bySource[item.source]
-                return names === undefined || names.includes(item.name)
-              })
-              .map((item) => item.name)
-          : undefined
-    } else {
-      const flat = readProjectSkillsConfig().selection
-      // 项目面选择集是平铺名单；外部来源未单独登记时默认选中
-      saved =
-        flat && flat.length > 0
-          ? [...new Set([...flat, ...skills.filter((item) => item.sourceKind !== "builtin").map((item) => item.name)])].filter((name) =>
-              skills.some((item) => item.name === name),
-            )
-          : undefined
-    }
+    // 已保存名单统一走选择解析：曾用名迁移、整份失效重算，两面同一口径
+    const view = skills.map((item) => ({
+      name: item.name,
+      source: item.source,
+      sourceKind: item.sourceKind,
+      tier: item.tier,
+      previousNames: item.previousNames,
+    }))
+    const resolved =
+      face === "global"
+        ? resolveSavedSelection(view, readSkillsInstallConfig().selection)
+        : resolveSavedProjectSelection(view, readProjectSkillsConfig().selection)
+    for (const line of expiredSelectionWarnings(resolved)) console.warn(line)
+    saved = resolved.saved
   }
   // 显式传了 --skills 但取值为空（如 --skills ""）按全部非法处理，不静默当作未传
   const explicit = options.skills !== undefined ? (splitMulti(options.skills) ?? []) : undefined
@@ -447,6 +444,7 @@ function printInstallReport(report: InstallReport, dryRun: boolean): void {
     if (t.skipped.length > 0) console.log(`  跳过（已就绪）：${t.skipped.join("、")}`)
     if (t.conflicts.length > 0) console.log(`  跳过（同名非本包产物，如需覆盖加 --force）：${t.conflicts.join("、")}`)
     if (t.pruned.length > 0) console.log(`  清理（未选择）：${t.pruned.join("、")}`)
+    for (const m of t.migrated) console.log(`  已改名迁移：${m.from} → ${m.to}`)
     for (const d of t.degraded) console.log(`  ⚠️ 降级为副本：${d.name}（链接创建失败：${d.reason}）`)
     for (const f of t.failed) console.log(`  ⚠️ 失败：${f.name}（${f.reason}）`)
     const modes: string[] = []
@@ -476,6 +474,11 @@ function printStatusReport(report: SkillsStatusReport): void {
   console.log(`技能源：${report.source}`)
   console.log(`技能版本：${skillVersionLine(report)}`)
   console.log(`选择集（${report.selection.length}）：${report.selection.join("、") || "无"}`)
+  // 来源内存在但未选择的技能：改名 / 新增后不再静默不可见；零选择时不刷全量清单
+  const unselectedSkills = report.selection.length > 0 ? findUnselectedSkills(report) : []
+  for (const item of unselectedSkills) {
+    console.log(`来源 ${item.source} 内未选择（不在选择集，也不计入问题）：${item.names.join("、")}`)
+  }
   console.log(`目标选择集：${report.targetSelection.length > 0 ? report.targetSelection.join("、") : "全部可用目标（未保存过目标选择）"}`)
   // 软告警：真源内版本双写位（frontmatter / 正文）不一致，提示按规则同步递增
   for (const m of report.versionMismatches) {
@@ -497,7 +500,11 @@ function printStatusReport(report: SkillsStatusReport): void {
       continue
     }
     console.log(head)
-    for (const item of bad) console.log(`  ${item.name}：${SKILL_STATE_LABEL[item.state]}`)
+    for (const item of bad) {
+      // 真源已无此名（来源改名的旧名）：install 无法补齐，只能按名字显式卸载，避免把用户引到死路
+      const hint = item.source === "" ? `（来源中已无此技能，用 toolkit skills uninstall --skills ${item.name} 清理）` : ""
+      console.log(`  ${item.name}：${SKILL_STATE_LABEL[item.state]}${hint}`)
+    }
     for (const item of unselected) console.log(`  ${item.name}：未选择但已安装（保留不影响使用，需要清理时加 --prune 重跑 install）`)
     const ok = t.items.length - bad.length - unselected.length
     if (ok > 0) console.log(`  其余 ${ok} 项正常`)
@@ -518,6 +525,13 @@ function printStatusReport(report: SkillsStatusReport): void {
     console.log("")
     console.warn(`⚠️ 历史落点残留 ${report.legacyTargets.length} 处：${report.legacyTargets.map((t) => `${t.label}（${t.dir}）`).join("、")}`)
     console.log("   已不再随本包更新；不需要时先 toolkit skills uninstall 清理全部本包登记产物，再 toolkit skills install 重新安装")
+  }
+  // 未登记的疑似残留：来源改名后旧登记可能已丢失，按指向技能源缓存 / 本包目录的链接兜底呈现；只提示不删除
+  const staleArtifacts = findStaleArtifacts(report)
+  if (staleArtifacts.length > 0) {
+    console.log("")
+    console.warn(`⚠️ 疑似残留 ${staleArtifacts.length} 项（未登记，仅提示）：${staleArtifacts.map((item) => `${item.name}（${item.dir}）`).join("、")}`)
+    console.log("   确认不再需要时按名字显式清理：toolkit skills uninstall --skills <名字>")
   }
   console.log("")
   console.log(

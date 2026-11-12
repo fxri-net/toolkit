@@ -151,13 +151,22 @@ export function readSkillTier(dir: string): SkillTier {
 }
 
 // 读取依赖声明：frontmatter metadata.requires，支持 [a, b] 行内数组与单值
-// 行内数组含引号，不能复用只认无引号值的 readFrontmatterIndented
 export function readSkillRequires(dir: string): string[] {
+  return readFrontmatterList(dir, "requires")
+}
+
+// 读取曾用名：frontmatter metadata.previousNames，语法同 requires
+export function readSkillPreviousNames(dir: string): string[] {
+  return readFrontmatterList(dir, "previousNames")
+}
+
+// 读取 frontmatter metadata 下的缩进行内数组键：兼容 [a, b] 与单值，去引号与空项
+function readFrontmatterList(dir: string, key: string): string[] {
   try {
     const content = readTextFile(join(dir, SKILL_ENTRY))
     const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
     if (!frontmatter) return []
-    const matched = (frontmatter[1] ?? "").match(/^[ \t]+requires:[ \t]*(.+)$/m)
+    const matched = (frontmatter[1] ?? "").match(new RegExp(`^[ \\t]+${key}:[ \\t]*(.+)$`, "m"))
     if (!matched) return []
     const raw = (matched[1] ?? "").trim()
     const inner = raw.startsWith("[") && raw.endsWith("]") ? raw.slice(1, -1) : raw
@@ -232,7 +241,14 @@ export function listPackageSkills(): PackageSkill[] {
       continue
     }
     if (!existsSync(join(dir, SKILL_ENTRY))) continue
-    out.push({ name, dir, version: readSkillVersion(dir), tier: readSkillTier(dir), requires: readSkillRequires(dir) })
+    out.push({
+      name,
+      dir,
+      version: readSkillVersion(dir),
+      tier: readSkillTier(dir),
+      requires: readSkillRequires(dir),
+      previousNames: readSkillPreviousNames(dir),
+    })
   }
   return out
 }
@@ -254,10 +270,11 @@ export function readSkillName(dir: string): string {
 export const SKILLS_MANIFEST_FILE = "skills.json"
 const MANIFEST_FORMAT_VERSION = 1
 
-// 清单条目：path 相对来源根；name 可覆盖目录名
+// 清单条目：path 相对来源根；name 可覆盖目录名；previousNames 声明曾用名
 interface ManifestEntry {
   name?: string
   path: string
+  previousNames?: string[]
 }
 
 interface SkillsManifest {
@@ -309,6 +326,7 @@ function readManifest(root: string): SkillsManifest | null {
     skills.push({
       path: entry.path,
       name: typeof entry.name === "string" && entry.name.trim() !== "" ? entry.name.trim() : undefined,
+      previousNames: readManifestPreviousNames(entry.previousNames, file),
     })
   }
   return {
@@ -317,6 +335,18 @@ function readManifest(root: string): SkillsManifest | null {
     version: typeof data.version === "string" ? data.version : undefined,
     skills,
   }
+}
+
+// 清单曾用名解析：缺省为空；声明了但不是字符串数组直接报错，不静默丢弃
+function readManifestPreviousNames(value: unknown, file: string): string[] | undefined {
+  if (value === undefined) return undefined
+  if (!Array.isArray(value)) throw new Error(`技能清单条目 previousNames 须为字符串数组：${file}`)
+  const names = value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean)
+  if (names.length !== value.length) throw new Error(`技能清单条目 previousNames 含非字符串或空串条目：${file}`)
+  return [...new Set(names)]
 }
 
 // 校验技能目录落在来源根之内：软链解析后越界即拒绝，避免把来源外内容纳入分发
@@ -328,14 +358,30 @@ function assertInsideSource(root: string, dir: string): string {
   return realDir
 }
 
-// 构造包内技能条目：名称优先取 frontmatter name，其次目录名
-function packageSkill(dir: string, name?: string): PackageSkill {
+// 构造包内技能条目：名称优先取 frontmatter name，其次目录名；清单声明的曾用名优先于 frontmatter
+function packageSkill(dir: string, name?: string, previousNames?: string[]): PackageSkill {
+  const resolved = name || readSkillName(dir) || basename(dir)
   return {
-    name: name || readSkillName(dir) || basename(dir),
+    name: resolved,
     dir,
     version: readSkillVersion(dir),
     tier: readSkillTier(dir),
     requires: readSkillRequires(dir),
+    previousNames: [...new Set((previousNames ?? readSkillPreviousNames(dir)).filter((item) => item !== resolved))],
+  }
+}
+
+// 曾用名校验：别名不得与来源内任何现用名或另一条别名重复，否则改名迁移会产生歧义
+function assertSkillAliases(sourceName: string, skills: PackageSkill[]): void {
+  const names = new Set(skills.map((skill) => skill.name))
+  const owners = new Map<string, string>()
+  for (const skill of skills) {
+    for (const old of skill.previousNames) {
+      if (names.has(old)) throw new Error(`来源 ${sourceName} 内技能曾用名与现用名重复：${old}`)
+      const previous = owners.get(old)
+      if (previous !== undefined) throw new Error(`来源 ${sourceName} 内技能曾用名重复：${old}（${previous} / ${skill.name}）`)
+      owners.set(old, skill.name)
+    }
   }
 }
 
@@ -354,7 +400,9 @@ export function resolveLocalSource(src: string, options: { name?: string; tempor
   const manifest = readManifest(realRoot)
   const skills: PackageSkill[] = []
   if (manifest) {
-    for (const entry of manifest.skills) skills.push(packageSkill(assertInsideSource(realRoot, resolve(realRoot, entry.path)), entry.name))
+    for (const entry of manifest.skills) {
+      skills.push(packageSkill(assertInsideSource(realRoot, resolve(realRoot, entry.path)), entry.name, entry.previousNames))
+    }
   } else if (existsSync(join(realRoot, SKILL_ENTRY))) {
     skills.push(packageSkill(realRoot))
   } else {
@@ -375,6 +423,7 @@ export function resolveLocalSource(src: string, options: { name?: string; tempor
   }
   const derived = (options.name || manifest?.name || basename(realRoot)).trim()
   if (!derived) throw new Error(`无法确定来源名：${realRoot}`)
+  assertSkillAliases(derived, skills)
   return {
     name: derived,
     kind: "local",
@@ -505,13 +554,15 @@ export function resolveRemoteSource(spec: string, options: { name?: string; temp
 
 // 内置来源：包内 skills/
 export function resolveBuiltinSource(): SkillSource {
+  const skills = listPackageSkills()
+  assertSkillAliases(BUILTIN_SOURCE, skills)
   return {
     name: BUILTIN_SOURCE,
     kind: "builtin",
     root: skillsPackageDir(),
     version: packageVersion(),
     temporary: false,
-    skills: listPackageSkills(),
+    skills,
   }
 }
 
@@ -530,12 +581,23 @@ export function sourceSkillItems(source: SkillSource): SkillItem[] {
 }
 
 // 跨来源同名检查：同名技能会共用落点与状态条目，直接报错而非静默覆盖
+// 曾用名同样参与唯一性检查：别名与现用名或其他别名重复时，改名迁移会产生歧义
 export function assertUniqueSkillNames(items: SkillItem[]): void {
   const seen = new Map<string, string>()
   for (const item of items) {
     const previous = seen.get(item.name)
     if (previous !== undefined) throw new Error(`技能名冲突：${item.name}（来源 ${previous} / ${item.source}）`)
     seen.set(item.name, item.source)
+  }
+  const names = new Set(items.map((item) => item.name))
+  const aliasOwners = new Map<string, string>()
+  for (const item of items) {
+    for (const old of item.previousNames) {
+      if (names.has(old)) throw new Error(`技能曾用名与现用名冲突：${old}（来源 ${item.source} 的技能 ${item.name}）`)
+      const owner = aliasOwners.get(old)
+      if (owner !== undefined) throw new Error(`技能曾用名冲突：${old}（${owner} / ${item.name}）`)
+      aliasOwners.set(old, item.name)
+    }
   }
 }
 
@@ -615,6 +677,38 @@ export function classifyExisting(dest: string, source: string, entry?: EntryType
     return "link-ok"
   }
   return dirent.isDirectory() ? "dir" : "file"
+}
+
+// 现场存在判定：lstat 成功即算（悬空链接仍属现场），仅「确实不存在」返回 false
+export function pathPresent(p: string): boolean {
+  try {
+    lstatSync(p)
+    return true
+  } catch {
+    return false
+  }
+}
+
+// 残留判定：条目是本工具形态的链接（含悬空 / junction），且指向技能源缓存或本包技能目录
+// 只用于报告，不用于删除：它无法证明归属，清理仍须用户显式点名
+export function isToolkitArtifactLink(dest: string): boolean {
+  let stat
+  try {
+    stat = lstatSync(dest)
+  } catch {
+    return false
+  }
+  if (!stat.isSymbolicLink()) return false
+  let target = ""
+  try {
+    target = readlinkSync(dest)
+  } catch {
+    return false
+  }
+  const abs = stripTailSep(isAbsolute(target) ? target : resolve(dirname(dest), target))
+  const normalized = abs.split("\\").join("/")
+  if (normalized.includes("/.toolkit/cache/skill-sources/")) return true
+  return /\/node_modules\/@fxri\/toolkit\/skills\//.test(normalized)
 }
 
 // 目录是否存在且为空（不存在 / 不可读按「非空」处理，避免误删有内容的目录）

@@ -154,6 +154,8 @@ export interface PackageSkill {
   tier: SkillTier
   // SKILL.md frontmatter metadata.requires；缺省为空数组
   requires: string[]
+  // 曾用名：SKILL.md frontmatter metadata.previousNames 或清单条目 previousNames，供改名后迁移选择集与状态
+  previousNames: string[]
 }
 
 // 统一技能条目：内置源与外部来源共用同一视图，安装 / 选择 / 状态按此遍历
@@ -284,6 +286,8 @@ export interface TargetInstallResult {
   copies: string[]
   // --prune 清理掉的未选择产物
   pruned: string[]
+  // 曾用名迁移：旧名 → 新名（改名后旧产物已按归属清理）
+  migrated: Array<{ from: string; to: string }>
 }
 
 export interface InstallReport {

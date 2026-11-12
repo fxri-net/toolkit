@@ -1,6 +1,6 @@
 // 技能现场状态：全局（软链 / 副本）与项目（真源副本 + 薄壳）两面体检，按来源统一呈现
 // missing 只表示「已选择但缺失」；未选择且无产物不展示；未选择但有产物单列 installed-unselected，不计入 problems
-import { existsSync, lstatSync, readlinkSync } from "node:fs"
+import { existsSync, lstatSync, readdirSync, readlinkSync } from "node:fs"
 import { dirname, isAbsolute, join } from "node:path"
 import {
   buildSkillShell,
@@ -9,6 +9,7 @@ import {
   dirsEqual,
   findSkillVersionMismatches,
   isEmptyDir,
+  isToolkitArtifactLink,
   legacySkillDirLabel,
   listDirEntries,
   pathKey,
@@ -27,6 +28,7 @@ import {
   type ExistingKind,
 } from "./source"
 import { projectStateFile, readProjectState, readSkillsState, skillsStateFile } from "./state"
+import { resolveSavedProjectSelection, resolveSavedSelection, type SelectionSkill } from "./selection"
 import { readProjectSkillsConfig, readSkillsInstallConfig } from "./config"
 import { readTextFile } from "../read-text"
 import {
@@ -49,10 +51,13 @@ import {
 // 状态判定所需的技能真源信息：按技能名索引，跨来源唯一（安装时已保证同名报错）
 interface SkillRef {
   source: string
+  sourceKind: "builtin" | "local"
   version: string
   dir: string
   linkTarget: string
   tier: SkillTier
+  // 曾用名：改名后按别名迁移选择集与状态
+  previousNames: string[]
   // 版本取自状态登记（来源真源不可读）：展示层需标注，避免冒充当期真源版本
   fromState?: boolean
 }
@@ -85,10 +90,12 @@ function collectStatusSources(state: ReturnType<typeof readSkillsState>): { refs
       if (refs.has(item.name)) continue
       refs.set(item.name, {
         source: name,
+        sourceKind: kind,
         version: item.version,
         dir: item.dir,
         linkTarget: kind === "builtin" ? join(root, "skills", item.name) : item.dir,
         tier: item.tier,
+        previousNames: item.previousNames,
       })
     }
   }
@@ -97,7 +104,15 @@ function collectStatusSources(state: ReturnType<typeof readSkillsState>): { refs
   addSource(builtin.name, "builtin", builtin.root, builtin.version, false, builtin.skills)
   // 内置源链接锚在 pnpm 稳定入口，不能用包根拼
   for (const item of sourceSkillItems(builtin)) {
-    refs.set(item.name, { source: item.source, version: item.version, dir: item.dir, linkTarget: item.linkTarget, tier: item.tier })
+    refs.set(item.name, {
+      source: item.source,
+      sourceKind: item.sourceKind,
+      version: item.version,
+      dir: item.dir,
+      linkTarget: item.linkTarget,
+      tier: item.tier,
+      previousNames: item.previousNames,
+    })
   }
 
   const config = readSkillsInstallConfig()
@@ -131,7 +146,7 @@ function collectStatusSources(state: ReturnType<typeof readSkillsState>): { refs
       const resolved = skills.find((skill) => skill.name === skillName)
       if (resolved) return resolved
       const dir = source.root ? join(source.root, skillName) : skillName
-      return { name: skillName, dir, version: fallbackVersions.get(skillName) ?? "", tier: "optional", requires: [] }
+      return { name: skillName, dir, version: fallbackVersions.get(skillName) ?? "", tier: "optional", requires: [], previousNames: [] }
     })
     addSource(name, source.kind === "builtin" ? "builtin" : "local", source.root, source.version, source.temporary, synthetic)
     // 合成条目的版本来自状态登记：打标，供展示层标注「登记值」
@@ -149,6 +164,17 @@ function collectStatusSources(state: ReturnType<typeof readSkillsState>): { refs
     }
   }
   return { refs, sources }
+}
+
+// 状态侧技能视图 → 选择解析所需结构：与安装侧共用同一份选择口径
+function toSelectionSkills(refs: Map<string, SkillRef>): SelectionSkill[] {
+  return [...refs.entries()].map(([name, ref]) => ({
+    name,
+    source: ref.source,
+    sourceKind: ref.sourceKind,
+    tier: ref.tier,
+    previousNames: ref.previousNames,
+  }))
 }
 
 // 无真源信息时的现场判型：链接按目标是否存在判悬空，实体按目录 / 文件分类
@@ -227,14 +253,13 @@ export function skillsStatus(): SkillsStatusReport {
   const allNames = [...refs.keys()].sort()
   const mode = config.mode ?? "skills"
   const savedBySource = config.selection
+  const selectionSkills = toSelectionSkills(refs)
   // 键存在即已保存（含显式空数组）；空对象视为未保存
   const hasSaved = savedBySource !== undefined && Object.keys(savedBySource).length > 0
-  const selection = hasSaved
-    ? allNames.filter((name) => {
-        const ref = refs.get(name)!
-        const saved = savedBySource[ref.source]
-        return saved === undefined || saved.includes(name)
-      })
+  // 已保存名单按曾用名迁移；整份失效时按默认口径重算，与安装侧同口径
+  const savedSelection = hasSaved ? resolveSavedSelection(selectionSkills, savedBySource) : undefined
+  const selection = savedSelection
+    ? (savedSelection.saved ?? [])
     : mode === "package"
       ? []
       : allNames.filter((name) => refs.get(name)!.tier === "core")
@@ -304,7 +329,7 @@ export function skillsStatus(): SkillsStatusReport {
     })
   }
 
-  const packageSkills = [...refs.entries()].map(([name, ref]) => ({ name, dir: ref.dir, version: ref.version, tier: ref.tier, requires: [] }))
+  const packageSkills = [...refs.entries()].map(([name, ref]) => ({ name, dir: ref.dir, version: ref.version, tier: ref.tier, requires: [], previousNames: ref.previousNames }))
   return {
     source: skillsSourceDir(),
     skills: allNames,
@@ -352,9 +377,11 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
   const mode = config.mode ?? "skills"
   // 空数组是显式空选择，与未保存区分
   const saved = config.selection !== undefined ? config.selection : undefined
+  // 平铺名单按曾用名迁移，外部来源技能默认选中；整份失效时按默认口径重算
+  const savedSelection = saved !== undefined ? resolveSavedProjectSelection(toSelectionSkills(refs), saved) : undefined
   // 显式选择（含空数组）按名单取；未保存过时才按模式默认
-  const selection = saved !== undefined
-    ? allNames.filter((name) => saved.includes(name))
+  const selection = savedSelection
+    ? (savedSelection.saved ?? [])
     : mode === "package"
       ? []
       : allNames.filter((name) => refs.get(name)!.tier === "core")
@@ -421,7 +448,7 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
     if (status.items.length > 0) dirs.push(status)
   }
 
-  const packageSkills = [...refs.entries()].map(([name, ref]) => ({ name, dir: ref.dir, version: ref.version, tier: ref.tier, requires: [] }))
+  const packageSkills = [...refs.entries()].map(([name, ref]) => ({ name, dir: ref.dir, version: ref.version, tier: ref.tier, requires: [], previousNames: ref.previousNames }))
   return {
     root,
     sourceDir: targets.sourceDir,
@@ -438,4 +465,39 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
     dirs,
     missingDirs: targets.missingDirs,
   }
+}
+
+// ===== 文本层补充视图（不进 JSON 报告契约） =====
+
+// 来源内存在但不在选择集的技能：供 status 一行汇总，避免改名 / 新增后静默不可见
+export function findUnselectedSkills(report: SkillsStatusReport): Array<{ source: string; names: string[] }> {
+  const selected = new Set(report.selection)
+  const out: Array<{ source: string; names: string[] }> = []
+  for (const source of report.sources) {
+    const names = source.skills.filter((name) => !selected.has(name)).sort()
+    if (names.length > 0) out.push({ source: source.name, names })
+  }
+  return out
+}
+
+// 疑似残留：未在任何来源或登记里的本工具形态链接（指向技能源缓存或本包技能目录）
+// 只报告不删除：归属无法确证，清理须用户显式点名 uninstall --skills
+export function findStaleArtifacts(report: SkillsStatusReport): Array<{ name: string; dir: string }> {
+  const known = new Set(report.skills)
+  for (const target of report.targets) for (const item of target.items) known.add(item.name)
+  const out: Array<{ name: string; dir: string }> = []
+  for (const target of report.targets) {
+    let entries
+    try {
+      entries = readdirSync(target.dir, { withFileTypes: true })
+    } catch {
+      continue
+    }
+    for (const entry of entries) {
+      if (known.has(entry.name)) continue
+      if (!isToolkitArtifactLink(join(target.dir, entry.name))) continue
+      out.push({ name: entry.name, dir: target.dir })
+    }
+  }
+  return out
 }
