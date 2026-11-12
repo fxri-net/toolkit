@@ -84,7 +84,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - **历史落点**：Codex / Pi 的升级前落点（`~/.codex/skills`、`~/.pi/agent/skills`）在状态文件有登记且目录仍在时，标注为「历史落点」并在报告末尾单列「历史落点残留」
   - 只提示不自动删除，指引用 `remove` 清理
 - **疑似残留**：未在任何来源或状态登记、但指向技能源缓存（`~/.toolkit/cache/skill-sources/`）或本包技能目录的链接，单列「疑似残留（仅提示）」
-  - 同样只报告不删除，确认不再需要时按名字显式 `uninstall --skills <名字>`
+  - 只报告不删除；给出含实际名字的 `uninstall` 命令
 - **canonical 共读**：本机已安装且经 canonical 共读的 agent（按探测路径判定）另单列一行说明其读取主目标、无需单独写入
 - 项目面按「作用域」节体检
 - `--format json` 输出机器可读报告到 stdout（含 `scope`、`versionStatus`、`selection` 与 `targetSelection`）
@@ -103,6 +103,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - `--skills` 只清指定技能的选择与产物，省略时清空全部；`--source` 只清指定外部来源的登记与产物
 - 状态里未登记但显式点名的名字（如改名后的旧名）：只摘除「本工具形态」的同名链接（指向技能源缓存、本包技能目录或已登记来源根），其余仍交人工确认
   - 该类名字若完全未命中可清理产物，stderr 告警「未找到可清理的产物」并说明未执行删除，退出码不变
+- **无参全量卸载**时检测疑似残留：TTY 下询问一并清理，确认后先摘旧名；非交互与 `--dry-run` 只提示
 - 项目面按「作用域」节清理归属账记载的条目
 - `--format json` 输出机器可读卸载报告到 stdout（含各目标 `dirReclaimed` 回收标记与 `dryRun` / `scope` 标记）
 

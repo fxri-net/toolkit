@@ -23,6 +23,9 @@ vi.mock("node:child_process", async (importOriginal) => {
   return { ...actual, spawn: vi.fn(), spawnSync: vi.fn(() => ({ status: 0 })) }
 })
 
+// 交互确认直接返回 true：只模拟按键结果，不开真实终端
+vi.mock("@inquirer/prompts", () => ({ confirm: vi.fn(async () => true) }))
+
 // 沙箱内固定路径
 const homeDir = join(sandbox, "home")
 // 始终不存在的任务目录：验证默认容错为空结果（--strict 才报错）
@@ -44,6 +47,15 @@ interface CliRun {
 }
 
 const originalArgv = process.argv
+
+// 交互确认只在 stdin / stdout 同时为 TTY 时触发：用例内按需临时标记，结束后删除自有属性
+function setTty(value: boolean): void {
+  for (const stream of [process.stdin, process.stdout]) Object.defineProperty(stream, "isTTY", { value, configurable: true })
+}
+
+function restoreTty(): void {
+  for (const stream of [process.stdin, process.stdout]) Reflect.deleteProperty(stream, "isTTY")
+}
 
 // 跑一次 CLI：重置模块注册表 → 注入 home 与 argv → 动态导入 cli 并 await 主流程 → 收集输出
 async function runCli(args: string[]): Promise<CliRun> {
@@ -285,6 +297,77 @@ describe("顶层命令与外部域", () => {
       expect(r.warn.join("\n")).toContain("未找到可清理的产物")
       expect(r.warn.join("\n")).toContain("ghost-skill")
     } finally {
+      rmSync(stateFile, { force: true })
+    }
+  })
+
+  it("skills status 疑似残留直接给出可复制的清理命令", async () => {
+    const canonical = join(homeDir, ".agents", "skills")
+    mkdirSync(canonical, { recursive: true })
+    const cacheTarget = join(homeDir, ".toolkit", "cache", "skill-sources", "deadbeef", "skills", "ghost-old")
+    mkdirSync(cacheTarget, { recursive: true })
+    const stale = join(canonical, "ghost-old")
+    symlinkSync(cacheTarget, stale, process.platform === "win32" ? "junction" : "dir")
+    rmSync(join(homeDir, ".toolkit", "cache", "skill-sources", "deadbeef"), { recursive: true, force: true })
+    try {
+      const r = await runCli(["skills", "status"])
+      const text = r.log.join("\n")
+      expect(r.warn.join("\n")).toContain("疑似残留")
+      expect(text).toContain("--skills ghost-old")
+      expect(text).toContain("--dry-run")
+    } finally {
+      rmSync(stale, { recursive: true, force: true })
+    }
+  })
+
+  it("skills uninstall 无参交互确认后一并清理疑似残留", async () => {
+    const canonical = join(homeDir, ".agents", "skills")
+    const stateFile = join(homeDir, ".agents", ".toolkit-skills.json")
+    mkdirSync(canonical, { recursive: true })
+    writeFileSync(
+      stateFile,
+      JSON.stringify({
+        format: "fxri.toolkit.skills-state",
+        schemaVersion: 1,
+        updatedAt: new Date().toISOString(),
+        sources: {
+          toolkit: {
+            kind: "builtin",
+            version: "0.0.0",
+            temporary: false,
+            root: "",
+            targets: [
+              {
+                id: "primary",
+                dir: canonical,
+                label: "canonical",
+                kind: "primary",
+                entries: [{ name: "fxri-plan-review", version: "0.0.0", mode: "link" }],
+              },
+            ],
+          },
+        },
+      }),
+      "utf8",
+    )
+    const cacheTarget = join(homeDir, ".toolkit", "cache", "skill-sources", "deadbeef", "skills", "ghost-old")
+    mkdirSync(cacheTarget, { recursive: true })
+    const stale = join(canonical, "ghost-old")
+    symlinkSync(cacheTarget, stale, process.platform === "win32" ? "junction" : "dir")
+    rmSync(join(homeDir, ".toolkit", "cache", "skill-sources", "deadbeef"), { recursive: true, force: true })
+    setTty(true)
+    try {
+      const r = await runCli(["skills", "uninstall", "--scope", "global"])
+      expect(r.code).toBe(0)
+      expect(r.log.join("\n")).toContain("检测到疑似残留")
+      const prompts = await import("@inquirer/prompts")
+      const asked = (prompts.confirm as unknown as { mock: { calls: Array<[{ message: string }]> } }).mock.calls
+      expect(asked.some(([arg]) => arg.message.includes("疑似残留"))).toBe(true)
+      expect(existsSync(stale)).toBe(false)
+      expect(existsSync(stateFile)).toBe(false)
+    } finally {
+      restoreTty()
+      rmSync(stale, { recursive: true, force: true })
       rmSync(stateFile, { force: true })
     }
   })

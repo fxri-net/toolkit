@@ -536,7 +536,10 @@ function printStatusReport(report: SkillsStatusReport): void {
   if (staleArtifacts.length > 0) {
     console.log("")
     console.warn(`⚠️ 疑似残留 ${staleArtifacts.length} 项（未登记，仅提示）：${staleArtifacts.map((item) => `${item.name}（${item.dir}）`).join("、")}`)
-    console.log("   确认不再需要时按名字显式清理：toolkit skills uninstall --skills <名字>")
+    // 指引直接给出含实际名字的完整命令，避免用户手填占位符
+    const staleNames = [...new Set(staleArtifacts.map((item) => item.name))].join(",")
+    console.log(`   确认不再需要时执行：toolkit skills uninstall --scope global --skills ${staleNames}`)
+    console.log("   实跑前可加 --dry-run 预演")
   }
   console.log("")
   console.log(
@@ -576,6 +579,56 @@ function printRemoveReport(report: SkillsRemoveReport, dryRun: boolean): void {
   if (dryRun) console.log("[预演] 未执行删除；无遗留条目时将同时删除状态文件")
   else if (report.stateRemoved) console.log("状态文件已删除，本包产物清理完毕")
   else console.log("状态文件已保留（存在需人工确认或未移除的条目）")
+}
+
+// 无参卸载前确认：检测疑似残留，TTY 下询问是否一并清理；非 TTY 与预演只提示不询问
+async function confirmStaleCleanup(dryRun: boolean): Promise<{ cancelled: boolean; report: SkillsRemoveReport | null }> {
+  const stale = findStaleArtifacts(skillsStatus())
+  if (stale.length === 0) return { cancelled: false, report: null }
+  const detail = stale.map((item) => `${item.name}（${item.dir}）`).join("、")
+  if (dryRun) {
+    console.log(`[预演] 另有疑似残留 ${stale.length} 项（未登记）：${detail}；实跑时会询问是否一并清理`)
+    return { cancelled: false, report: null }
+  }
+  if (!isInteractiveTty()) {
+    console.log(`另有疑似残留 ${stale.length} 项（未登记）：${detail}；交互终端下会询问是否一并清理`)
+    return { cancelled: false, report: null }
+  }
+  console.log(`检测到疑似残留 ${stale.length} 项（未登记）：${detail}`)
+  const answer = await promptConfirm("是否连同疑似残留一并清理？")
+  if (answer === null) return { cancelled: true, report: null }
+  if (!answer) return { cancelled: false, report: null }
+  // 必须先摘旧名：全量清理会删除状态文件，之后 orphan 清理无从定位目标目录
+  return { cancelled: false, report: removeSkills({ skills: [...new Set(stale.map((item) => item.name))] }) }
+}
+
+// 合并两次卸载报告：同一目录合并条目，状态标记取并集
+function mergeRemoveReports(primary: SkillsRemoveReport | null, extra: SkillsRemoveReport | null): SkillsRemoveReport | null {
+  if (!primary) return extra
+  if (!extra) return primary
+  const targets = primary.targets.map((target) => ({
+    ...target,
+    removed: [...target.removed],
+    missing: [...target.missing],
+    skippedForeign: [...target.skippedForeign],
+  }))
+  for (const target of extra.targets) {
+    const found = targets.find((item) => item.dir === target.dir)
+    if (!found) {
+      targets.push(target)
+      continue
+    }
+    found.removed.push(...target.removed)
+    found.missing.push(...target.missing)
+    found.skippedForeign.push(...target.skippedForeign)
+    found.dirReclaimed = found.dirReclaimed || target.dirReclaimed
+  }
+  return {
+    stateFile: primary.stateFile,
+    stateExists: primary.stateExists || extra.stateExists,
+    targets,
+    stateRemoved: primary.stateRemoved || extra.stateRemoved,
+  }
 }
 
 // 项目面现场状态的中文文案（项目侧重：真源副本漂移与薄壳过时，无软链相关状态）
@@ -1181,7 +1234,7 @@ skillsCmd
   .option("--source <name>", "只清理指定外部来源的登记与产物（仅全局面）")
   .option("--dry-run", "预演（只预览将要移除的条目，不删文件）")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
-  .action((options: { scope?: string; skills?: string; source?: string; dryRun?: boolean; format?: string }) => {
+  .action(async (options: { scope?: string; skills?: string; source?: string; dryRun?: boolean; format?: string }) => {
     try {
       if (!assertJsonFormat(options.format)) return
       const scope = resolveScopeChoice(options.scope)
@@ -1197,8 +1250,19 @@ skillsCmd
       const dryRun = Boolean(options.dryRun)
       const runProject = scope.choice !== "global"
       const runGlobal = scope.choice !== "project"
+      // 无参全量卸载时询问是否连同疑似残留一并清理；显式点名、指定来源与非 TTY 环境保持原行为
+      let staleReport: SkillsRemoveReport | null = null
+      if (runGlobal && names === undefined && options.source === undefined && readSkillsState() !== null) {
+        const stale = await confirmStaleCleanup(dryRun)
+        if (stale.cancelled) {
+          console.error("已取消，未执行任何清理")
+          process.exitCode = 130
+          return
+        }
+        staleReport = stale.report
+      }
       const project = runProject ? removeProjectSkills({ dryRun, skills: names }) : null
-      const global = runGlobal ? removeSkills({ dryRun, skills: names, source: options.source }) : null
+      const global = mergeRemoveReports(runGlobal ? removeSkills({ dryRun, skills: names, source: options.source }) : null, staleReport)
       // 显式点名的名字若在报告里完全未命中，说明未登记且产物无法确认归属：告警说明未删除，不静默成功
       if (names && names.length > 0) {
         const mentioned = new Set<string>()
