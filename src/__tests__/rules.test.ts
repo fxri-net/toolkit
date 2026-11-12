@@ -43,7 +43,12 @@ describe("规则清单与模块", () => {
   it("组合顺序按传入 id，锚点取最大值", () => {
     const text = composeRules(["usage", "core"])
     const lines = text.split("\n")
-    expect(lines[0]).toContain("2026-11-08 02:21")
+    // 期望值取参与模块真源的锚点最大值：锚点随规则变更递增，不在测试里写死具体时刻
+    const anchors = loadRuleModules()
+      .filter((mod) => mod.id === "usage" || mod.id === "core")
+      .map((mod) => mod.anchor)
+      .sort()
+    expect(lines[0]).toContain(anchors[anchors.length - 1])
     expect(text.indexOf("## 技能使用情况")).toBeLessThan(text.indexOf("## 代码规范"))
     // 锚点与顺序无关
     expect(composeRules(["core", "usage"]).split("\n")[0]).toBe(lines[0])
@@ -71,8 +76,9 @@ describe("规则清单与模块", () => {
   it("listRules 返回预设归属与当前锚点", () => {
     const listed = listRules()
     const core = listed.modules.find((mod) => mod.id === "core")
+    const coreAnchor = loadRuleModules().find((mod) => mod.id === "core")?.anchor
     expect(core?.presets).toEqual(expect.arrayContaining(["minimal", "recommended", "complete", "full"]))
-    expect(core?.anchor).toBe("2026-11-08 02:21")
+    expect(core?.anchor).toBe(coreAnchor)
   })
 })
 
