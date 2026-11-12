@@ -372,6 +372,52 @@ describe("顶层命令与外部域", () => {
     }
   })
 
+  it("skills status 旧名残留汇总给出可复制的清理命令", async () => {
+    const canonical = join(homeDir, ".agents", "skills")
+    const stateFile = join(homeDir, ".agents", ".toolkit-skills.json")
+    mkdirSync(canonical, { recursive: true })
+    writeFileSync(
+      stateFile,
+      JSON.stringify({
+        format: "fxri.toolkit.skills-state",
+        schemaVersion: 1,
+        updatedAt: new Date().toISOString(),
+        sources: {
+          toolkit: {
+            kind: "builtin",
+            version: "0.0.0",
+            temporary: false,
+            root: "",
+            targets: [
+              {
+                id: "primary",
+                dir: canonical,
+                label: "canonical",
+                kind: "primary",
+                entries: [{ name: "legacy-gone", version: "0.0.0", mode: "link" }],
+              },
+            ],
+          },
+        },
+      }),
+      "utf8",
+    )
+    const cacheTarget = join(homeDir, ".toolkit", "cache", "skill-sources", "deadbeef", "skills", "legacy-gone")
+    mkdirSync(cacheTarget, { recursive: true })
+    const stale = join(canonical, "legacy-gone")
+    symlinkSync(cacheTarget, stale, process.platform === "win32" ? "junction" : "dir")
+    rmSync(join(homeDir, ".toolkit", "cache", "skill-sources", "deadbeef"), { recursive: true, force: true })
+    try {
+      const r = await runCli(["skills", "status"])
+      const text = r.log.join("\n")
+      expect(text).toContain("旧名残留")
+      expect(text).toContain("--scope global --skills legacy-gone")
+    } finally {
+      rmSync(stale, { recursive: true, force: true })
+      rmSync(stateFile, { force: true })
+    }
+  })
+
   it("conventions status：只读体检退出码 0", async () => {
     const r = await runCli(["conventions", "status", "--dir", missingTasksDir])
     expect(r.code).toBe(0)

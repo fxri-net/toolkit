@@ -489,14 +489,16 @@ function printStatusReport(report: SkillsStatusReport): void {
   console.log(`状态文件：${report.stateFile}${report.stateExists ? "" : "（未记录，尚未执行过 toolkit skills install）"}`)
   let problems = 0
   let unselectedCount = 0
-  // 来源已无此名的旧名残留：install 无法补齐，汇总时单独指引
+  // 来源已无此名的旧名残留：install 无法补齐，汇总时给出含实际名字的可复制命令
   let staleNameCount = 0
+  const staleNames = new Set<string>()
   for (const t of report.targets) {
     const head = `${t.label}：${t.dir}${t.dirExists ? "" : "（目录未创建）"}${t.selected ? "" : "（未选择）"}`
     const bad = t.items.filter((item) => SKILL_PROBLEM_STATES.includes(item.state))
     const unselected = t.items.filter((item) => item.state === "installed-unselected")
     problems += bad.length
     unselectedCount += unselected.length
+    for (const item of bad) if (item.source === "") staleNames.add(item.name)
     staleNameCount += bad.filter((item) => item.source === "").length
     console.log("")
     // 健康目标折叠为一行：逐技能刷「软链正常」在目标多时纯属噪音（完整信息另见 --format json）
@@ -548,7 +550,7 @@ function printStatusReport(report: SkillsStatusReport): void {
       : "所有已纳入的目标均正常",
   )
   if (staleNameCount > 0) {
-    console.log(`其中 ${staleNameCount} 项为来源已无此名的旧名残留：install 无法补齐，用 toolkit skills uninstall --skills <名字> 清理`)
+    console.log(`其中 ${staleNameCount} 项为来源已无此名的旧名残留：install 无法补齐，执行 toolkit skills uninstall --scope global --skills ${[...staleNames].join(",")} 清理`)
   }
   if (unselectedCount > 0) {
     console.log(`未选择但已安装 ${unselectedCount} 项：保留不影响使用，需要清理时运行 toolkit skills install --prune`)
