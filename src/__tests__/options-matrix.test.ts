@@ -492,6 +492,24 @@ describe("skills sources 外部来源口径", () => {
     expect(text.log.join("\n")).not.toContain("toolkit（")
   })
 
+  it("技能清单标注失效旧名，JSON 输出保持原样", async () => {
+    mkdirSync(join(localSource, "skills", "ext-alpha"), { recursive: true })
+    writeFileSync(join(localSource, "skills", "ext-alpha", "SKILL.md"), "---\nname: ext-alpha\ndescription: 现用技能\n---\n", "utf8")
+    writeFixture(configFile, { skillsInstall: { sources: { play: { root: localSource } } } })
+    writeFixture(stateFile, {
+      format: "fxri.toolkit.skills-state",
+      schemaVersion: 1,
+      updatedAt: "",
+      sources: { play: sourceFixture("1.2.3", ["ext-alpha", "ext-gone"]) },
+    })
+    const text = await runCli(["skills", "sources"])
+    expect(text.log.join("\n")).toContain("ext-gone（已失效）")
+    expect(text.log.join("\n")).toContain("ext-alpha")
+    const json = await runCli(["skills", "sources", "--format", "json"])
+    const payload = JSON.parse(json.log.join("\n")) as { sources: Array<{ skills: string[] }> }
+    expect(payload.sources[0]!.skills).toEqual(["ext-alpha", "ext-gone"])
+  })
+
   it("refresh --dry-run 显示当前版本，未知版本显示未知 / null", async () => {
     writeFixture(configFile, { skillsInstall: { sources: { play: { root: join(sandbox, "play-src") } } } })
     writeFixture(stateFile, {

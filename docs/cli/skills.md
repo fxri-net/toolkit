@@ -106,6 +106,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 ### sources
 
 - 列出已登记永久来源与状态中的临时来源（来源名 / 根目录 / 版本 / 生效提示频率 / 技能清单，临时来源标注「临时」）
+  - 技能清单里状态有登记但当前来源已无的名字标注「（已失效）」；`--format json` 的 `skills` 数组保持原样，不加标记
 - `sources notify <name> --frequency <always|daily|weekly|off>`：写单个来源的提示频率
   - 默认写全局层；`--scope project` 写项目层并向上找 git 根，非 git 仓库报错
 - `sources refresh [name]`：刷新来源缓存与版本，只更新元数据、不自动安装；`--dry-run` 只列出将刷新的来源

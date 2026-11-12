@@ -67,6 +67,7 @@ import {
   removeSkills,
   resolveSource,
   resolveProjectTargets,
+  resolveLocalSource,
   resolveSkillTargets,
   refreshRemoteSource,
   acquireSkillsLock,
@@ -1322,9 +1323,22 @@ const sourcesCmd = skillsCmd
         console.log("未登记外部来源")
         return
       }
+      // 来源当前技能集：只读本地根 / 缓存，不触发远程刷新；解析失败时不标注（无从判断）
+      const currentSkills = (row: { name: string; root: string; url?: string }): Set<string> | null => {
+        const entry = config.sources?.[row.name]
+        const location = row.url ? state?.sources?.[row.name]?.root : entry?.root ?? row.root
+        if (!location) return null
+        try {
+          return new Set(resolveLocalSource(location, { name: row.name, temporary: false }).skills.map((skill) => skill.name))
+        } catch {
+          return null
+        }
+      }
       for (const row of rows) {
         const kind = row.name === BUILTIN_SOURCE ? "内置" : row.registered ? "已登记" : row.temporary ? "临时" : "状态登记"
-        const skills = row.skills.length > 0 ? `　技能：${row.skills.join("、")}` : ""
+        const current = currentSkills(row)
+        const labeled = row.skills.map((name) => (current && !current.has(name) ? `${name}（已失效）` : name))
+        const skills = labeled.length > 0 ? `　技能：${labeled.join("、")}` : ""
         const location = row.url ? `${row.url}${row.ref ? `#${row.ref}` : ""}` : row.root
         console.log(`${row.name}（${kind}）：${location || "（来源根缺失）"}　版本：${row.version || "未知"}　更新提示：${row.notify}${skills}`)
       }
