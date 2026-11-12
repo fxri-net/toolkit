@@ -153,6 +153,33 @@ describe("checkDocsNav", () => {
     expect(ids()).toContain("nav/group-name-length")
   })
 
+  it("允许 VitePress 官方导航字段，不再判为未知字段", () => {
+    writeSite({
+      ...MINIMAL,
+      nav: [
+        { text: "快速开始", link: "/start", activeMatch: "/start", target: "_self", rel: "noopener", noIcon: true },
+        { text: "帮助", items: [{ text: "常见问题", link: "/faq", target: "_blank" }, { text: "更新日志", link: "/changelog" }] },
+      ],
+      sidebar: [{ text: "开始", items: [{ text: "首页", link: "/", base: "/", docFooterText: "开始页", rel: "prev" }] }],
+    })
+    expect(checkDocsNav(dir).problems).toEqual([])
+  })
+
+  it("schema 使用未支持的关键字时报错，不静默忽略", () => {
+    writeSite(MINIMAL)
+    const schemaFile = join(dir, "schema.json")
+    writeFileSync(
+      schemaFile,
+      JSON.stringify({
+        type: "object",
+        properties: { nav: { type: "array", items: { type: "object", pattern: "^x" } } },
+      }),
+    )
+    const result = checkDocsNav(dir, { schemaFile })
+    expect(result.ok).toBe(false)
+    expect(result.problems.map((problem) => problem.message).join("\n")).toContain("未支持的关键字 pattern")
+  })
+
   it("单页超过 300 行只告警，不影响通过", () => {
     writeSite(MINIMAL)
     writeFileSync(join(dir, "long.md"), `${Array.from({ length: 301 }, (_, index) => `第 ${index} 行`).join("\n")}\n`)

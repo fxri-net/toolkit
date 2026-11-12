@@ -9,7 +9,8 @@ import type { DocsProblem, ProblemLevel } from "./types"
 
 // 规则版本：规则或结构变更时递增（与包版本无关），供下游门禁比对与 --format json 输出
 // 1.1.0：支持顶栏二级分组，阈值改为可配置
-export const NAV_RULES_VERSION = "1.1.0"
+// 1.2.0：schema 字段与 VitePress 官方 NavItem / SidebarItem 对齐，校验器增加关键字守卫
+export const NAV_RULES_VERSION = "1.2.0"
 
 // 校验结果：navCount / sidebarCount 供人类输出汇总
 export interface NavCheckResult {
@@ -74,9 +75,35 @@ function isObject(value: unknown): boolean {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
+// 校验器支持的关键字：schema 用了清单外的关键字直接报错，避免「扩了 schema 但检查器静默忽略」
+const SUPPORTED_KEYWORDS = new Set([
+  "$schema",
+  "$id",
+  "title",
+  "description",
+  "$defs",
+  "$ref",
+  "type",
+  "required",
+  "properties",
+  "additionalProperties",
+  "items",
+  "minItems",
+  "maxItems",
+  "minLength",
+  "oneOf",
+  "enum",
+])
+
 // 递归校验：oneOf 分支只声明 required，故对象校验不能只在 type === "object" 时触发
 function validate(value: unknown, rawSchema: JsonSchema, root: JsonSchema, path: string, out: string[]): void {
   const schema = refTarget(rawSchema, root)
+  // 关键字守卫先行：未支持的约束无法执行，必须报出来而不是当作通过
+  const unsupported = Object.keys(schema).filter((key) => !SUPPORTED_KEYWORDS.has(key))
+  if (unsupported.length > 0) {
+    out.push(`schema 在 ${path} 使用了未支持的关键字 ${unsupported.join(" / ")}，检查器无法按该约束校验`)
+    return
+  }
   const type = typeof schema.type === "string" ? schema.type : ""
   if (type && !typeOk(value, type)) {
     out.push(`${path} 应为 ${type}，实际为 ${describeType(value)}`)
@@ -111,6 +138,9 @@ function validate(value: unknown, rawSchema: JsonSchema, root: JsonSchema, path:
     const text = value as string
     const minLength = typeof schema.minLength === "number" ? schema.minLength : 0
     if (text.length < minLength) out.push(`${path} 不能为空`)
+  }
+  if (Array.isArray(schema.enum) && !(schema.enum as unknown[]).includes(value)) {
+    out.push(`${path} 取值须为 ${(schema.enum as unknown[]).map((item) => String(item)).join(" / ")} 之一`)
   }
   if (Array.isArray(schema.oneOf)) {
     const branches = schema.oneOf as JsonSchema[]

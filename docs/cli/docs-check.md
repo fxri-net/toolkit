@@ -31,6 +31,9 @@ export default defineConfig({
 结构定义随包分发（`schemas/site-nav.schema.json`），编辑器可据此补全；`docs nav check` 先按同一份 schema 校验结构，
 字段拼错（如把 `link` 写成 `linkk`）或类型不符会直接报出字段路径，再进入导航规则。
 
+结构定义已覆盖 VitePress 官方 `NavItem` / `SidebarItem` 的常用字段：`activeMatch`、`rel`、`target`、`noIcon`、`base`、`docFooterText`。
+用到清单外字段时须先扩充 schema；检查器遇到未支持的关键字会直接报错，不会静默放过。
+
 ⚠️ 文件缺失时命令报错并提示迁移，不会回退去解析 `config.mts`：源码解析对写法敏感，跨 VitePress 版本不稳定。
 
 ## 规则清单
