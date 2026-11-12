@@ -12,7 +12,8 @@ import type { DocsProblem, ProblemLevel } from "./types"
 // 1.2.0：schema 字段与 VitePress 官方 NavItem / SidebarItem 对齐，校验器增加关键字守卫
 // 1.3.0：支持对象形态侧栏与 locales 多语言结构
 // 1.4.0：新增配置接线断言（数据文件未被站点配置引用时报错）
-export const NAV_RULES_VERSION = "1.4.0"
+// 1.4.1：侧栏分组允许 collapsed（VitePress 官方字段）
+export const NAV_RULES_VERSION = "1.4.1"
 
 // 校验结果：navCount / sidebarCount 供人类输出汇总，localeCount 标明语言包数量
 export interface NavCheckResult {
@@ -153,9 +154,9 @@ function validate(value: unknown, rawSchema: JsonSchema, root: JsonSchema, path:
       return messages.length === 0
     }).length
     if (passed !== 1) {
-      // 各分支字段一致、差异只在 required：直接给出人话结论
+      // 各分支字段一致、差异只在 required：直接给出人话结论；分支无 required 时说明形态不符
       const options = branches.map((branch) => ((branch.required as string[] | undefined) ?? []).join(" + ")).filter(Boolean)
-      out.push(`${path} 须且只能提供 ${options.join(" 或 ")} 之一`)
+      out.push(options.length > 0 ? `${path} 须且只能提供 ${options.join(" 或 ")} 之一` : `${path} 的结构不符合任一允许形态`)
     }
   }
 }

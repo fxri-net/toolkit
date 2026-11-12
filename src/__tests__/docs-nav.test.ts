@@ -236,6 +236,14 @@ describe("checkDocsNav", () => {
     expect(ids()).not.toContain("nav/config-not-wired")
   })
 
+  it("侧栏分组允许 collapsed，与 VitePress 官方字段一致", () => {
+    writeSite({
+      ...MINIMAL,
+      sidebar: [{ text: "开始", collapsed: false, items: [{ text: "首页", link: "/" }] }],
+    })
+    expect(checkDocsNav(dir).problems).toEqual([])
+  })
+
   it("单页超过 300 行只告警，不影响通过", () => {
     writeSite(MINIMAL)
     writeFileSync(join(dir, "long.md"), `${Array.from({ length: 301 }, (_, index) => `第 ${index} 行`).join("\n")}\n`)
