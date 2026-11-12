@@ -10,6 +10,8 @@ title: docs nav / docs dist（文档站校验）
 toolkit docs nav check                  # 校验 docs/site-nav.json 的结构与导航规则
 toolkit docs nav check --format json    # 机器可读输出（含规则版本）
 toolkit docs nav check --dir <path>     # 指定文档目录（缺省 docs）
+toolkit docs nav init                   # 从站点配置抽取 nav / sidebar 生成 site-nav.json
+toolkit docs nav init --force           # 已存在 site-nav.json 时覆盖
 toolkit docs dist check                 # 校验构建产物：404 不进 sitemap 与站内搜索索引
 toolkit docs dist check --format json   # 机器可读输出（含规则版本与跳过标记）
 ```
@@ -55,6 +57,17 @@ export default defineConfig({
 | `dist/not-found-title` | error | `docs/404.md` 缺一级标题，无法断言搜索索引 |
 | `dist/search-404` | error | 站内搜索索引分块含 404 页标题 |
 | `dist/search-index-missing` | warn | 未启用本地搜索，跳过 404 索引断言 |
+
+## 迁移
+
+已有站点用一次性助手抽取数据，省去手工搬运：
+
+```bash
+toolkit docs nav init                 # 读 docs/.vitepress/config.mts，生成 docs/site-nav.json
+toolkit docs nav init --config <path> # 指定站点配置文件
+```
+
+助手只解析字面量（字符串、数字、布尔、数组、对象）；遇到变量引用、函数调用、展开语法会报错并停下，不落半截文件。生成后须人工核对，再把站点配置改为引用展开。
 
 ## 配置
 

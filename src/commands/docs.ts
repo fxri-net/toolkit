@@ -4,6 +4,7 @@ import type { Command } from "commander"
 import { checkDocsTheme, writeDocsTheme } from "../docs/theme"
 import { checkDocsDist, DIST_RULES_VERSION } from "../docs/dist"
 import { checkDocsNav, NAV_RULES_VERSION } from "../docs/nav"
+import { migrateSiteNav } from "../docs/migrate"
 import { overriddenRules, resolveDocsCheckConfig } from "../docs/config"
 import type { DocsProblem } from "../docs/types"
 import { assertJsonFormat, toJsonText } from "../json-output"
@@ -81,6 +82,27 @@ export function registerDocsCommands(program: Command): void {
   navCmd.action(() => {
     navCmd.help()
   })
+
+  navCmd
+    .command("init")
+    .description("从站点配置抽取 nav / sidebar 生成 docs/site-nav.json（一次性迁移助手）")
+    .option("--dir <path>", `文档目录（默认 ${DOCS_DIR}）`)
+    .option("--config <path>", "站点配置文件（默认 <文档目录>/.vitepress/config.mts）")
+    .option("--force", "已存在 site-nav.json 时覆盖")
+    .action((options: { dir?: string; config?: string; force?: boolean }) => {
+      const docsDir = resolve(options.dir ?? DOCS_DIR)
+      try {
+        const result = migrateSiteNav(docsDir, {
+          configFile: options.config ? resolve(options.config) : undefined,
+          force: options.force,
+        })
+        console.log(`已生成 ${result.file}：顶栏 ${result.navCount} 项、侧栏 ${result.sidebarCount} 组`)
+        console.log("下一步：站点配置改为 from '../site-nav.json' 引用展开，再运行 toolkit docs nav check")
+      } catch (e) {
+        console.error(`⚠️ ${(e as Error).message}`)
+        process.exitCode = 1
+      }
+    })
 
   navCmd
     .command("check")
