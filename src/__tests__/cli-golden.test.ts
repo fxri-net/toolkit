@@ -30,6 +30,8 @@ vi.mock("@inquirer/prompts", () => ({ confirm: vi.fn(async () => true), checkbox
 
 // 仓库根：归一化时把绝对路径折叠为占位符
 const repoRoot = process.cwd()
+// toolkit 自身版本：发版后输出里的版本号会变，快照只锁结构不锁版本
+const toolkitVersion = (JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf8")) as { version: string }).version
 // 时区固定为 UTC：本地日期 / 周期统计的输出不随运行机器时区漂移（结束后还原）
 const originalTz = process.env.TZ
 process.env.TZ = "UTC"
@@ -60,6 +62,8 @@ function normalize(text: string): string {
     out = out.split(from.replace(/\\/g, "/")).join(to)
     out = out.split(from.replace(/\\/g, "\\\\")).join(to)
   }
+  // 仅折叠 toolkit 自身版本，技能版本号原样保留，保持对技能版本变化的检出
+  out = out.split(toolkitVersion).join("<VERSION>")
   return out.replace(/\\/g, "/")
 }
 

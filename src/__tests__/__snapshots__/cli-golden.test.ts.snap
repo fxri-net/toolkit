@@ -587,7 +587,7 @@ exports[`各域行为与错误路径 > skills path 1`] = `
 exports[`各域行为与错误路径 > skills status 1`] = `
 "退出码：0
 --- stdout ---
-toolkit 版本：1.16.10（最新版本未知（版本检查已关闭））
+toolkit 版本：<VERSION>（最新版本未知（版本检查已关闭））
 registry：registry.npmjs.org（来源：默认）
 提示频率：cli always / 内置 inherit / 第三方 always
 检查时间：尚未检查（下次可提示：随时）
@@ -634,7 +634,7 @@ exports[`各域行为与错误路径 > skills 来源列表 1`] = `
 exports[`各域行为与错误路径 > skills 项目面状态 1`] = `
 "退出码：0
 --- stdout ---
-toolkit 版本：1.16.10（最新版本未知（版本检查已关闭））
+toolkit 版本：<VERSION>（最新版本未知（版本检查已关闭））
 registry：registry.npmjs.org（来源：默认）
 提示频率：cli always / 内置 inherit / 第三方 always
 检查时间：尚未检查（下次可提示：随时）
@@ -1664,7 +1664,7 @@ Commands:
 exports[`帮助与版本口径 > 版本号 1`] = `
 "退出码：0
 --- stdout ---
-1.16.10
+<VERSION>
 
 --- stderr ---
 "
