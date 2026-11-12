@@ -3,7 +3,7 @@ name: fxri-release-changelog
 description: 基于 changesets 的发版与多语言 CHANGELOG 维护流程：创建变更集、消费发版、把分组标题与条目转为项目语言风格、清理变更集、打标签发布；无 changesets 的项目提供同格式手工模式。用户表达发版或记录变更意图时使用——含创建变更集、changeset、发版、version、CHANGELOG 格式化等说法及口语近义表达（发一版、出个版本、记一下这次改动、生成更新日志）。⚠️ 注意区分：用户说「提交个版本 / 先提交一版 / commit」通常指 git 提交当前改动（走任务收尾后提交），**不是发版**。不用于日常 commit message 撰写、git 提交操作或与发版无关的文档修改。
 license: MIT
 metadata:
-  version: "1.3.5"
+  version: "1.3.6"
   tier: optional
   author: fxri
   source: https://github.com/fxri-net/toolkit
@@ -11,7 +11,7 @@ metadata:
 
 # 发版与 CHANGELOG
 
-> 本技能版本 1.3.5（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.3.6（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -57,6 +57,7 @@ metadata:
       `- ` 列表标记让每条独立成项（缺标记的裸行会被 changesets 并入相邻条目作续行，整段塌成一条、只有首行归组剥前缀）
    - **级别**：按用户影响阶梯选 bump（整体重做→major、破坏既有用法需改→minor、其余含新增小能力与同能力替代实现→patch，
       含 SemVer 偏离与迁移护栏的完整口径见 `references/changelog-format.md` 的「版本口径」）；前缀只看变更性质，与 bump 正交，patch 也可挂 `新增：`
+   - **归属**：一个变更集只记一个任务内的用户可感知改动；同一任务可有多条变更集，一个变更集不得跨任务记录（任务粒度见 `fxri-plan-to-task`）
    - **早期自查**：写完可跑 `toolkit tasks check`，它扫 `.changeset/` 下待发布变更集，逐文件报出缺前缀条目与未加 `- ` 的裸行及条数（免得到发版、
       变更集源被消费删除后才由 changelog 侧兜底告警）
 2. 合并同版本变更集：消费前逐条核对 `.changeset/*.md`，以「从上一已发布版本升级上来的用户」为视角，只保留净用户可见结果；可先跑 `toolkit changelog audit` 获取同对象候选（只提示，不自动改写）
