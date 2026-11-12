@@ -5,20 +5,47 @@
   "description": "docs/site-nav.json 的结构定义：config.mts 引用该文件展开 nav 与 sidebar，toolkit docs nav check 按同一份定义校验结构。",
   "type": "object",
   "additionalProperties": false,
-  "required": ["nav", "sidebar"],
   "properties": {
     "nav": {
       "type": "array",
       "minItems": 1,
       "items": { "$ref": "#/$defs/navItem" }
     },
+    "sidebar": { "$ref": "#/$defs/sidebar" },
+    "locales": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/localeEntry" }
+    }
+  },
+  "oneOf": [{ "required": ["nav", "sidebar"] }, { "required": ["locales"] }],
+  "$defs": {
     "sidebar": {
+      "oneOf": [
+        { "$ref": "#/$defs/sidebarList" },
+        {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/sidebarList" }
+        }
+      ]
+    },
+    "sidebarList": {
       "type": "array",
       "minItems": 1,
       "items": { "$ref": "#/$defs/sidebarGroup" }
-    }
-  },
-  "$defs": {
+    },
+    "localeEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nav", "sidebar"],
+      "properties": {
+        "nav": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/navItem" }
+        },
+        "sidebar": { "$ref": "#/$defs/sidebar" }
+      }
+    },
     "navItem": {
       "type": "object",
       "additionalProperties": false,

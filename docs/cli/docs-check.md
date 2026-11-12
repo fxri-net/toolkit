@@ -86,12 +86,19 @@ export default defineConfig({
 | `docs.nav.helpChildren` | 常见问题、更新日志 | 末项下拉的必备项 |
 | `docs.nav.maxPageLines` | `300` | 单页体量告警阈值 |
 | `docs.nav.pageSizeExclude` | `changelog.md` | 不参与体量告警的文件 |
+| `docs.nav.locales` | `{}` | 各语言包的首末项与帮助必备项，未声明则跳过语言相关规则 |
 | `docs.dist.dir` | `.vitepress/dist` | 产物目录，相对文档目录 |
 | `docs.dist.sitemap` | `error` | sitemap 缺失时按 `error` / `warn` / `off` 处置 |
 | `docs.dist.searchProvider` | `local` | 设 `none` 时跳过搜索索引断言 |
 | `docs.rules` | `{}` | 按规则 id 覆盖级别，`off` 关闭该规则 |
 
 ⚠️ 类型非法或枚举取值不认识的键按未写处理并回落默认，不产出半截配置；存在规则覆盖时命令会打印覆盖清单。
+
+## 数据结构
+
+- 侧栏两种形态：分组数组，或「路径前缀 → 分组数组」的对象（多路径侧栏）；两种形态的分组名都参与命名校验。
+- 站点两种形态：单语言 `{ nav, sidebar }`，或多语言 `{ locales: { root: {...}, en: {...} } }`。
+- 多语言站须在 `docs.nav.locales` 为每个语言包声明首末项与帮助必备项；未声明的语言包只跑语言无关规则，并给一条 `nav/locale-unconfigured` 告警。
 
 ## 退出码与输出
 

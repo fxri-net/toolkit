@@ -180,6 +180,46 @@ describe("checkDocsNav", () => {
     expect(result.problems.map((problem) => problem.message).join("\n")).toContain("未支持的关键字 pattern")
   })
 
+  it("侧栏支持对象形态，各路径分组都参与命名校验", () => {
+    writeSite({
+      ...MINIMAL,
+      sidebar: { "/": [{ text: "开始", items: [{ text: "首页", link: "/" }] }], "/guide/": [{ text: "指南", items: [{ text: "手册", link: "/guide/x" }] }] },
+    })
+    expect(checkDocsNav(dir).ok).toBe(true)
+
+    writeSite({
+      ...MINIMAL,
+      sidebar: { "/": [{ text: "快速开始指南", items: [{ text: "首页", link: "/" }] }] },
+    })
+    expect(ids()).toContain("nav/group-name-length")
+  })
+
+  it("locales 形态：未声明的语言包只给 warn，不套中文口径", () => {
+    const multi = {
+      locales: {
+        root: MINIMAL,
+        en: {
+          nav: [
+            { text: "Getting Started", link: "/en/start" },
+            { text: "Help", items: [{ text: "FAQ", link: "/en/faq" }, { text: "Changelog", link: "/en/changelog" }] },
+          ],
+          sidebar: [{ text: "Start", items: [{ text: "Home", link: "/en/" }] }],
+        },
+      },
+    }
+    writeSite(multi)
+    const fallback = checkDocsNav(dir)
+    expect(fallback.ok).toBe(true)
+    expect(fallback.problems.map((problem) => problem.id)).toContain("nav/locale-unconfigured")
+    expect(fallback.problems.map((problem) => problem.id)).not.toContain("nav/first-item")
+
+    const configured = checkDocsNav(dir, {
+      config: { locales: { en: { firstItem: "Getting Started", lastItem: "Help", helpChildren: ["FAQ", "Changelog"] } } },
+    })
+    expect(configured.ok).toBe(true)
+    expect(configured.problems.map((problem) => problem.id)).not.toContain("nav/locale-unconfigured")
+  })
+
   it("单页超过 300 行只告警，不影响通过", () => {
     writeSite(MINIMAL)
     writeFileSync(join(dir, "long.md"), `${Array.from({ length: 301 }, (_, index) => `第 ${index} 行`).join("\n")}\n`)

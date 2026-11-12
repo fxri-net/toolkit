@@ -9,6 +9,13 @@ export type RuleSetting = ProblemLevel | "off"
 // sitemap 缺失时的处置：默认报错，站点有意禁用 sitemap 时可降为告警或跳过
 export type SitemapPolicy = "error" | "warn" | "off"
 
+// 语言包期望：中文口径只适用于 root，其他语言包各自声明首末项与帮助项，未声明则跳过语言相关规则
+export interface DocsLocaleExpect {
+  firstItem?: string
+  lastItem?: string
+  helpChildren?: string[]
+}
+
 // 导航默认口径：与规范条款一一对应
 export interface DocsNavConfig {
   dir: string
@@ -19,6 +26,7 @@ export interface DocsNavConfig {
   helpChildren: string[]
   maxPageLines: number
   pageSizeExclude: string[]
+  locales: Record<string, DocsLocaleExpect>
 }
 
 // 产物校验默认口径：dir 相对文档目录
@@ -45,6 +53,7 @@ export const DEFAULT_DOCS_NAV: Readonly<DocsNavConfig> = {
   helpChildren: ["常见问题", "更新日志"],
   maxPageLines: 300,
   pageSizeExclude: ["changelog.md"],
+  locales: {},
 }
 
 export const DEFAULT_DOCS_DIST: Readonly<DocsDistConfig> = {
@@ -75,6 +84,23 @@ function textList(value: unknown, fallback: readonly string[]): string[] {
   return value as string[]
 }
 
+// 解析语言包期望：只收显式写出且类型合法的字段，未写字段保持 undefined 供调用方判定
+function resolveLocales(value: unknown): Record<string, DocsLocaleExpect> {
+  if (!isObject(value)) return {}
+  const out: Record<string, DocsLocaleExpect> = {}
+  for (const [key, entry] of Object.entries(value)) {
+    if (!isObject(entry)) continue
+    const expect: DocsLocaleExpect = {}
+    if (typeof entry.firstItem === "string" && entry.firstItem.trim() !== "") expect.firstItem = entry.firstItem
+    if (typeof entry.lastItem === "string" && entry.lastItem.trim() !== "") expect.lastItem = entry.lastItem
+    if (Array.isArray(entry.helpChildren) && entry.helpChildren.length > 0 && entry.helpChildren.every((item) => typeof item === "string")) {
+      expect.helpChildren = entry.helpChildren as string[]
+    }
+    if (Object.keys(expect).length > 0) out[key] = expect
+  }
+  return out
+}
+
 // 解析导航配置：逐字段取配置值，缺省落默认
 function resolveNav(section: Record<string, unknown>): DocsNavConfig {
   return {
@@ -86,6 +112,7 @@ function resolveNav(section: Record<string, unknown>): DocsNavConfig {
     helpChildren: textList(section.helpChildren, DEFAULT_DOCS_NAV.helpChildren),
     maxPageLines: positiveInt(section.maxPageLines, DEFAULT_DOCS_NAV.maxPageLines),
     pageSizeExclude: textList(section.pageSizeExclude, DEFAULT_DOCS_NAV.pageSizeExclude),
+    locales: resolveLocales(section.locales),
   }
 }
 

@@ -10,7 +10,8 @@ import type { DocsProblem, ProblemLevel } from "./types"
 // 规则版本：规则或结构变更时递增（与包版本无关），供下游门禁比对与 --format json 输出
 // 1.1.0：支持顶栏二级分组，阈值改为可配置
 // 1.2.0：schema 字段与 VitePress 官方 NavItem / SidebarItem 对齐，校验器增加关键字守卫
-export const NAV_RULES_VERSION = "1.2.0"
+// 1.3.0：支持对象形态侧栏与 locales 多语言结构
+export const NAV_RULES_VERSION = "1.3.0"
 
 // 校验结果：navCount / sidebarCount 供人类输出汇总
 export interface NavCheckResult {
@@ -198,6 +199,20 @@ interface SidebarGroupLike {
   text: string
 }
 
+// 侧栏既可为分组数组，也可为「路径前缀 → 分组数组」的对象形态
+type SidebarLike = SidebarGroupLike[] | Record<string, SidebarGroupLike[]>
+
+// 语言包条目：结构与站点根一致
+interface LocaleEntry {
+  nav: NavItemLike[]
+  sidebar: SidebarLike
+}
+
+// 侧栏分组归一：对象形态按路径前缀展开，顺序沿用声明顺序
+function sidebarGroups(sidebar: SidebarLike): SidebarGroupLike[] {
+  return Array.isArray(sidebar) ? sidebar : Object.values(sidebar).flat()
+}
+
 // 校验文档站导航：文件缺失与结构不符直接返回，避免基于错误结构产出规则噪音
 // config 未传时取规范默认值；rules 用于按规则 id 覆盖严重度或关闭
 export function checkDocsNav(
@@ -245,26 +260,48 @@ export function checkDocsNav(
     return failed()
   }
 
-  const nav = (data as { nav: NavItemLike[] }).nav
-  const sidebar = (data as { sidebar: SidebarGroupLike[] }).sidebar
+  // 站点数据两种形态：单语言（nav + sidebar）或语言包（locales.<键> 各自一套）
+  const root = data as { nav?: NavItemLike[]; sidebar?: SidebarLike; locales?: Record<string, LocaleEntry> }
+  const multiLocale = root.locales !== undefined
+  const locales: Array<{ key: string; nav: NavItemLike[]; sidebar: SidebarLike }> = multiLocale
+    ? Object.entries(root.locales ?? {}).map(([key, entry]) => ({ key, nav: entry.nav, sidebar: entry.sidebar }))
+    : [{ key: "root", nav: root.nav ?? [], sidebar: root.sidebar ?? [] }]
 
-  if (nav.length > cfg.maxItems) add("nav/max-items", `顶栏一级项 ${nav.length} 个，超过 ${cfg.maxItems} 个`)
-  if (nav[0]?.text !== cfg.firstItem) add("nav/first-item", `顶栏首项应为「${cfg.firstItem}」，实际「${nav[0]?.text ?? "无"}」`)
-  const last = nav[nav.length - 1]
-  if (last?.text !== cfg.lastItem) add("nav/last-item", `顶栏末项应为「${cfg.lastItem}」，实际「${last?.text ?? "无"}」`)
+  for (const locale of locales) {
+    // 语言包形态才标出语言键，单语言站的提示保持原样
+    const tag = multiLocale ? `[${locale.key}] ` : ""
+    const { nav } = locale
+    if (nav.length > cfg.maxItems) add("nav/max-items", `${tag}顶栏一级项 ${nav.length} 个，超过 ${cfg.maxItems} 个`)
 
-  // 帮助下拉必须承载常见问题与更新日志，避免二者各占一级入口
-  if (last?.text === cfg.lastItem && !Array.isArray(last.items)) {
-    add("nav/help-children", `顶栏「${cfg.lastItem}」须为下拉，含${cfg.helpChildren.join("、")}`)
-  } else if (last?.text === cfg.lastItem) {
-    const children = new Set((last.items ?? []).map((item) => item.text))
-    for (const required of cfg.helpChildren) {
-      if (!children.has(required)) add("nav/help-children", `「${cfg.lastItem}」下拉缺少「${required}」`)
+    // 语言相关规则需要该语言的期望文案：root 用默认口径，其余语言包须显式声明
+    const expect =
+      locale.key === "root"
+        ? { firstItem: cfg.firstItem, lastItem: cfg.lastItem, helpChildren: cfg.helpChildren }
+        : cfg.locales[locale.key]
+    if (!expect?.firstItem || !expect.lastItem || !expect.helpChildren) {
+      add("nav/locale-unconfigured", `${tag}该语言包未在 .toolkitrc 的 docs.locales 中声明首末项与帮助项，跳过语言相关规则`, "warn")
+    } else {
+      if (nav[0]?.text !== expect.firstItem) {
+        add("nav/first-item", `${tag}顶栏首项应为「${expect.firstItem}」，实际「${nav[0]?.text ?? "无"}」`)
+      }
+      const last = nav[nav.length - 1]
+      if (last?.text !== expect.lastItem) {
+        add("nav/last-item", `${tag}顶栏末项应为「${expect.lastItem}」，实际「${last?.text ?? "无"}」`)
+      }
+      // 帮助下拉必须承载常见问题与更新日志，避免二者各占一级入口
+      if (last?.text === expect.lastItem && !Array.isArray(last.items)) {
+        add("nav/help-children", `${tag}顶栏「${expect.lastItem}」须为下拉，含${expect.helpChildren.join("、")}`)
+      } else if (last?.text === expect.lastItem) {
+        const children = new Set((last.items ?? []).map((item) => item.text))
+        for (const required of expect.helpChildren) {
+          if (!children.has(required)) add("nav/help-children", `${tag}「${expect.lastItem}」下拉缺少「${required}」`)
+        }
+      }
     }
-  }
 
-  for (const name of [...collectNavGroupNames(nav), ...sidebar.map((group) => group.text)]) {
-    if (hanCount(name) > cfg.maxGroupHan) add("nav/group-name-length", `分组名「${name}」超过 ${cfg.maxGroupHan} 个汉字`)
+    for (const name of [...collectNavGroupNames(nav), ...sidebarGroups(locale.sidebar).map((group) => group.text)]) {
+      if (hanCount(name) > cfg.maxGroupHan) add("nav/group-name-length", `${tag}分组名「${name}」超过 ${cfg.maxGroupHan} 个汉字`)
+    }
   }
 
   // 404 页须退出站内搜索：产物断言只验结果，frontmatter 缺失时结果仍可能侥幸通过
@@ -287,8 +324,8 @@ export function checkDocsNav(
 
   return {
     ok: !problems.some((problem) => problem.level === "error"),
-    navCount: nav.length,
-    sidebarCount: sidebar.length,
+    navCount: locales[0]?.nav.length ?? 0,
+    sidebarCount: locales.reduce((sum, locale) => sum + sidebarGroups(locale.sidebar).length, 0),
     problems,
   }
 }
