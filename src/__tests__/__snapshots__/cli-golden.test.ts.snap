@@ -1,0 +1,1233 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`写盘产物 > init 生成任务区骨架与入口壳 1`] = `
+"退出码：0
+--- stdout ---
+任务区：.tasks
+  新建 .tasks/active/202611/、.tasks/archive/（已创建）
+  新建 .tasks/conventions/index.md（已创建（端清单 / 索引 / 用法说明三节））
+  新建 .tasks/conventions/history.md（已创建（规范演进记录））
+  新建 .gitignore（已创建并写入 # @fxri/toolkit 忽略片段（覆盖 .archive.lock / .toolkitrc.local.json））
+  跳过 .prettierignore（未见 prettier 使用迹象，跳过任务区排除行写入）
+    提示：项目启用 prettier 后重跑 toolkit init 会自动补上该排除行
+  新建 .agents/skills/toolkit-conventions/SKILL.md（已创建（只作入口，不承载条文））
+  跳过 AGENTS.md（文件不存在；不新建，需要时手工添加或先建文件再重跑 toolkit init）
+    提示：无该指针块不影响规范可用：本项目规范仍可经全局技能 fxri-plan-to-task 触达（其工作流第一步即读 conventions/index.md）
+  跳过 package.json（本地依赖未声明 @fxri/toolkit，不写入 prepare 钩子）
+    提示：技能副本随 git 分发即可 clone 即用；依赖装在本项目后需要时手工加 "prepare": "toolkit skills install --scope project" 以在安装依赖后自动刷新
+
+下一步：
+  全局技能：未安装，执行 toolkit skills install 启用（规范触达第一层，不依赖项目内文件；toolkit skills status 可查现场）
+  快速开始：https://fxri-net.github.io/toolkit/getting-started
+  完整攻略：https://fxri-net.github.io/toolkit/guide
+--- stderr ---
+"
+`;
+
+exports[`写盘产物 > init 生成任务区骨架与入口壳 2`] = `
+"### .agents/skills/toolkit-conventions/SKILL.md
+---
+name: toolkit-conventions
+description: 本项目协作规范入口。当需要查阅或遵循本项目沉淀的协作规范、判断某条规范如何落地、或新增与修订规范时使用。
+---
+
+<!-- toolkit-conventions-entry: v2 -->
+<!-- 由 toolkit init 生成，可安全删除；需要时重跑 toolkit init 即可补齐 -->
+本技能只是入口，不承载条文：读本项目任务区（默认 \`.tasks\`，已配置 \`tasks.dir\` 时按配置声明）下的 \`conventions/index.md\`，按其「用法说明」节执行；条文以各文件的单一事实源为准。
+
+
+### .gitignore
+# @fxri/toolkit 忽略片段（运行时文件与个人本地配置，不入库）
+# 不想改团队 .gitignore 者，可把这些忽略行写进 .git/info/exclude（本地排除、不进版本控制）
+.archive.lock
+.toolkitrc.local.json
+
+
+### .tasks/conventions/history.md
+# 规范演进记录
+
+> 元规则：规则语义变更时不得覆盖旧语义直接丢史——在「演进记录」追加一条（规则 ID → 修订内容 → 修订来源任务；修订内容新立条目直接写其语义、语义变更写「旧语义」→「新语义」），\`index.md\` 索引表只保留当前语义；规则层源头变更（\`AGENTS.md\` / \`docs/rules/ai.md\` / skills 条文）随该变更同批落盘。
+> 表语义边界：本表只记**规范语义变更**；载体结构升级、入口壳生成 / 删除、条目退休均不入表（退休见 \`retired.md\`）。
+
+| ID | 修订内容 | 修订来源任务 |
+| --- | --- | --- |
+
+
+### .tasks/conventions/index.md
+<!-- toolkit-conventions: v3 -->
+# 项目协作规范索引
+
+> 唯一入口与唯一权威：端清单在此声明、每条规范在此留一行指针；分册（\`common.md\` / \`<端名>.md\`）按需创建。
+> 端名与任务 frontmatter 的 \`scope\` 取值共用同一套词表、逐字一致；保留字 \`index\` / \`common\` 不得作端名。
+> 演进记录见 \`history.md\`；超长条目升级见分册。
+
+## 一、端清单
+
+| 端名 | 说明 |
+| --- | --- |
+
+## 二、索引
+
+| ID | 规则 | 当前语义 | 归属 | 单一事实源 |
+| --- | --- | --- | --- | --- |
+
+## 三、用法说明
+
+（在此写明本项目采用溯源索引式还是条文式、读写判定要点、规则层源头变更时的同步纪律）
+
+
+### package.json
+{
+  "name": "init-target",
+  "private": true
+}
+
+"
+`;
+
+exports[`各域行为与错误路径 > changelog audit 1`] = `
+"退出码：0
+--- stdout ---
+未发现需要合并的候选
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > changelog doc 校验 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ ENOENT: no such file or directory, open '<SANDBOX>/workspace/CHANGELOG.md'"
+`;
+
+exports[`各域行为与错误路径 > config status 1`] = `
+"退出码：0
+--- stdout ---
+共命中 1 层：项目层
+查找起点：<SANDBOX>/workspace
+
+层级：
+  全局层：无
+  项目层：<SANDBOX>/workspace/.toolkitrc.json
+  本地层：无
+
+展示键来源：
+  tasks.dir：项目层
+  redact.enabled：默认值
+  updateCheck.enabled：默认值
+  check.warnings：默认值
+
+环境变量层：FX_NO_UPDATE_CHECK → updateCheck.enabled
+能力旁路：CI → skills.autoLink
+
+其余已配置段：无
+
+无待处理项
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > config status JSON 1`] = `
+"退出码：0
+--- stdout ---
+{
+  "schemaVersion": 1,
+  "summary": "共命中 1 层：项目层",
+  "cwd": "<SANDBOX>//workspace",
+  "levels": [
+    {
+      "layer": "全局层",
+      "file": null,
+      "present": false,
+      "ignored": null,
+      "sections": [],
+      "otherSections": []
+    },
+    {
+      "layer": "项目层",
+      "file": "<SANDBOX>//workspace//.toolkitrc.json",
+      "present": true,
+      "ignored": null,
+      "sections": [
+        "tasks"
+      ],
+      "otherSections": []
+    },
+    {
+      "layer": "本地层",
+      "file": null,
+      "present": false,
+      "ignored": null,
+      "sections": [],
+      "otherSections": []
+    }
+  ],
+  "displayKeys": [
+    {
+      "key": "tasks.dir",
+      "source": "项目层"
+    },
+    {
+      "key": "redact.enabled",
+      "source": null
+    },
+    {
+      "key": "updateCheck.enabled",
+      "source": null
+    },
+    {
+      "key": "check.warnings",
+      "source": null
+    }
+  ],
+  "env": [
+    {
+      "env": "FX_NO_UPDATE_CHECK",
+      "key": "updateCheck.enabled"
+    }
+  ],
+  "bypass": [
+    {
+      "env": "CI",
+      "key": "skills.autoLink"
+    }
+  ],
+  "items": [],
+  "warnings": 0
+}
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > conventions format 预演 1`] = `
+"退出码：0
+--- stdout ---
+[预演] 任务区：.tasks（扫描 3 个 .md）
+[预演] 表格已全部为紧凑形态，无需归一
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > conventions status 1`] = `
+"退出码：0
+--- stdout ---
+未找到 .tasks/conventions/，先执行 toolkit init
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > conventions status JSON 1`] = `
+"退出码：0
+--- stdout ---
+{
+  "schemaVersion": 1,
+  "initialized": false,
+  "tasksDir": ".tasks",
+  "dir": ".tasks//conventions",
+  "form": "none",
+  "carrierVersion": null,
+  "entries": 0,
+  "shells": [],
+  "items": [
+    {
+      "level": "info",
+      "scope": "形态",
+      "message": "未找到 .tasks//conventions/，先执行 toolkit init"
+    }
+  ],
+  "warnings": 0,
+  "summary": "未找到 .tasks//conventions/，先执行 toolkit init",
+  "checkCoverage": {
+    "covered": [],
+    "uncovered": [],
+    "unknownIds": []
+  }
+}
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > conventions upgrade 预演 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ 升级失败：未找到 .tasks/conventions/index.md，先执行 toolkit init"
+`;
+
+exports[`各域行为与错误路径 > docs theme 校验 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ 主题与模板不一致（2 项）
+  - 缺少 index.ts（执行 toolkit docs theme --write 生成）：<SANDBOX>/workspace/docs/.vitepress/theme/index.ts
+  - 缺少 custom.css（执行 toolkit docs theme --write 生成）：<SANDBOX>/workspace/docs/.vitepress/theme/custom.css"
+`;
+
+exports[`各域行为与错误路径 > rules compose 单模块 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ 未知规则模块「common」，可选：core / output / workflow / env / commit / usage"
+`;
+
+exports[`各域行为与错误路径 > rules compose 未知预设 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ 未知预设「bogus」，可选：minimal / recommended / complete / full"
+`;
+
+exports[`各域行为与错误路径 > rules list 1`] = `
+"退出码：0
+--- stdout ---
+规则模块：
+    core     2026-11-12 15:18  角色定位与代码规范（minimal / recommended / complete / full）
+    output   2026-11-08 02:21  输出要求（recommended / complete / full）
+    workflow 2026-11-12 15:06  工作流与方案落盘（recommended / complete / full）
+    env      2026-11-08 08:31  环境与版本（complete / full）
+    commit   2026-11-08 02:21  提交信息规则（full）
+    usage    2026-11-08 02:21  技能使用情况（full）
+预设：minimal=core；recommended=core+output+workflow；complete=core+output+workflow+env；full=core+output+workflow+env+commit+usage
+当前缓存：无（默认 recommended）
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > rules list JSON 1`] = `
+"退出码：0
+--- stdout ---
+{
+  "presets": {
+    "minimal": [
+      "core"
+    ],
+    "recommended": [
+      "core",
+      "output",
+      "workflow"
+    ],
+    "complete": [
+      "core",
+      "output",
+      "workflow",
+      "env"
+    ],
+    "full": [
+      "core",
+      "output",
+      "workflow",
+      "env",
+      "commit",
+      "usage"
+    ]
+  },
+  "pages": [
+    {
+      "page": "ai",
+      "modules": [
+        "core",
+        "output",
+        "workflow",
+        "env"
+      ]
+    },
+    {
+      "page": "commit",
+      "modules": [
+        "commit"
+      ]
+    },
+    {
+      "page": "usage",
+      "modules": [
+        "usage"
+      ]
+    }
+  ],
+  "modules": [
+    {
+      "id": "core",
+      "title": "角色定位与代码规范",
+      "summary": "角色约束与代码规范：注释语言、复用、风格、验收与文本编码纪律",
+      "file": "core.md",
+      "anchor": "2026-11-12 15:18",
+      "presets": [
+        "minimal",
+        "recommended",
+        "complete",
+        "full"
+      ]
+    },
+    {
+      "id": "output",
+      "title": "输出要求",
+      "summary": "回答风格：直奔主题、不写客套话、代码附中文注释",
+      "file": "output.md",
+      "anchor": "2026-11-08 02:21",
+      "presets": [
+        "recommended",
+        "complete",
+        "full"
+      ]
+    },
+    {
+      "id": "workflow",
+      "title": "工作流与方案落盘",
+      "summary": "方案先行、只读判定、授权边界、任务建档与会话记忆",
+      "file": "workflow.md",
+      "anchor": "2026-11-12 15:06",
+      "presets": [
+        "recommended",
+        "complete",
+        "full"
+      ]
+    },
+    {
+      "id": "env",
+      "title": "环境与版本",
+      "summary": "安装、升级、升级提示与就绪校验",
+      "file": "env.md",
+      "anchor": "2026-11-08 08:31",
+      "presets": [
+        "complete",
+        "full"
+      ]
+    },
+    {
+      "id": "commit",
+      "title": "提交信息规则",
+      "summary": "中文提交信息格式、类型字典与正反例",
+      "file": "commit.md",
+      "anchor": "2026-11-08 02:21",
+      "presets": [
+        "full"
+      ]
+    },
+    {
+      "id": "usage",
+      "title": "技能使用情况",
+      "summary": "Skill 调用后的本机使用上报与回复前自检",
+      "file": "usage.md",
+      "anchor": "2026-11-08 02:21",
+      "presets": [
+        "full"
+      ]
+    }
+  ],
+  "selection": null
+}
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > rules reset 1`] = `
+"退出码：0
+--- stdout ---
+无规则组合缓存可清除
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > skills path 1`] = `
+"退出码：0
+--- stdout ---
+<REPO>
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > skills status 1`] = `
+"退出码：0
+--- stdout ---
+toolkit 版本：1.16.10（最新版本未知（版本检查已关闭））
+registry：registry.npmjs.org（来源：默认）
+提示频率：cli always / 内置 inherit / 第三方 always
+检查时间：尚未检查（下次可提示：随时）
+
+作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
+
+技能源：<REPO>/skills
+技能版本：fxri-plan-review@1.0.11、fxri-plan-to-task@1.10.9、fxri-release-changelog@1.3.6、fxri-session-recap@1.6.13、fxri-text-encoding@1.2.5
+选择集（3）：fxri-plan-review、fxri-plan-to-task、fxri-session-recap
+来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-release-changelog、fxri-text-encoding
+目标选择集：全部可用目标（未保存过目标选择）
+状态文件：<SANDBOX>/home/.agents/.toolkit-skills.json（未记录，尚未执行过 toolkit skills install）
+
+canonical（多家 agent 共读）：<SANDBOX>/home/.agents/skills（目录未创建）
+  fxri-plan-review：缺失
+  fxri-plan-to-task：缺失
+  fxri-session-recap：缺失
+
+未安装的 agent 65 个未纳入分发（需要时用 toolkit skills install --dir <路径> 指定）
+
+共 3 处需处理：缺失 / 悬空 / 指向其他版本 / 副本漂移用 toolkit skills install 补齐，同名冲突用 toolkit skills install --force 覆盖
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > tasks check 1`] = `
+"退出码：0
+--- stdout ---
+任务校验：
+【error】0 项
+未发现问题
+【warn】1 项
+  20261111-唐启云-基线示例已完成任务.md: 文件名日期 20261111 与 created 20261109 不一致
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > tasks normalize 1`] = `
+"退出码：0
+--- stdout ---
+归档归一化检查：发现 0 处问题
+未发现问题
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > tasks stats 1`] = `
+"退出码：0
+--- stdout ---
+任务统计（周期口径：完成日 − 创建日，仅含已完成）
+统计口径：含归档
+
+已完成样本：2 个
+平均周期：1 天　最长周期：2 天
+周期分布：
+  ≤1 天　1 个
+  2-3 天　1 个
+  4-7 天　0 个
+  8-14 天　0 个
+  15-30 天　0 个
+  >30 天　0 个
+
+未完成任务：1 个　平均滞留 2 天　最长滞留 2 天
+
+按完成月：2026-10 1　2026-11 1
+按状态：进行中 1　已完成 2
+按负责人：唐启云 3
+按范围：toolkit 3
+按批次：未分批 3
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > tasks 导出缺参数 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+error: missing required argument 'path'
+"
+`;
+
+exports[`各域行为与错误路径 > tasks 总览 1`] = `
+"退出码：0
+--- stdout ---
+任务总览（待完成）：
+
+【进行中】1 项
+  2026-11-10  唐启云       基线示例进行中任务（toolkit）
+
+【已完成】1 项
+  2026-11-09  唐启云       基线示例已完成任务（toolkit）
+
+共 2 个任务
+按状态：进行中 1　已完成 1
+按负责人：唐启云 2
+按范围：toolkit 2
+按批次：未分批 2
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > tasks 总览 JSON 1`] = `
+"退出码：0
+--- stdout ---
+{
+  "schemaVersion": 1,
+  "summary": {
+    "total": 2,
+    "byStatus": {
+      "进行中": 1,
+      "已完成": 1
+    },
+    "byOwner": {
+      "唐启云": 2
+    },
+    "byScope": {
+      "toolkit": 2
+    },
+    "byBatch": {
+      "未分批": 2
+    }
+  },
+  "items": [
+    {
+      "view": "active",
+      "title": "基线示例进行中任务",
+      "status": "进行中",
+      "owner": "唐启云",
+      "scope": "toolkit",
+      "created": "20261110",
+      "updated": "20261111",
+      "completed": "",
+      "depends": [],
+      "file": "active/202611/20261110-唐启云-基线示例进行中任务.md"
+    },
+    {
+      "view": "active",
+      "title": "基线示例已完成任务",
+      "status": "已完成",
+      "owner": "唐启云",
+      "scope": "toolkit",
+      "created": "20261109",
+      "updated": "20261111",
+      "completed": "2026-11-11 10:00",
+      "depends": [],
+      "file": "active/202611/20261111-唐启云-基线示例已完成任务.md"
+    }
+  ]
+}
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > tasks 未知选项 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ 未知选项「--bogus」。
+运行 toolkit --help 查看可用命令"
+`;
+
+exports[`各域行为与错误路径 > tasks 状态过滤全部非法 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ --status 全部取值非法：bogus（合法：待办/进行中/已完成/阻塞/已放弃）"
+`;
+
+exports[`各域行为与错误路径 > tasks 状态过滤部分非法 1`] = `
+"退出码：0
+--- stdout ---
+任务总览（待完成）：
+
+【已完成】1 项
+  2026-11-09  唐启云       基线示例已完成任务（toolkit）
+
+共 1 个任务
+按状态：已完成 1
+按负责人：唐启云 1
+按范围：toolkit 1
+按批次：未分批 1
+--- stderr ---
+⚠️ 忽略非法状态值：bogus（合法：待办/进行中/已完成/阻塞/已放弃）"
+`;
+
+exports[`各域行为与错误路径 > usage doctor 1`] = `
+"退出码：0
+--- stdout ---
+数据目录：<SANDBOX>/home/.toolkit/usage
+事件：0 条 / 去重后 0 条 / 索引 0 条
+⚠️ 数据目录尚未创建：<SANDBOX>/home/.toolkit/usage
+ℹ️ 技能使用情况总开关处于关闭状态
+⚠️ 采集通道为 hook，但未安装任何 Hook：执行 toolkit usage hooks install，或切换为 rule（toolkit usage channel rule）
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > usage info 1`] = `
+"退出码：0
+--- stdout ---
+技能使用情况：已关闭
+通道：hook（Agent Hook）
+配置：<SANDBOX>/home/.toolkitrc.json
+数据目录：<SANDBOX>/home/.toolkit/usage
+Agent：未开启
+来源：一方 关 / 第三方 关 / 未托管 关
+技能模式：none
+字段：触发词 关 / 参数 关 / 结果 关
+存储：monthly / 保留 180 天 / 单文件 8388608 字节
+上传：已关闭
+Hook：未安装
+队列：0 条待处理
+事件：0 条（索引 0 条，文件 0 个）
+最近：暂无
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > usage rule 1`] = `
+"退出码：0
+--- stdout ---
+> 规则更新时间 2026-11-08 02:21。本规则内容变更时以变更时刻更新此值；快照与本规则当前值不一致即说明已失同步，重新复制本规则即可。
+
+## 技能使用情况（必做）
+- 每次调用 Skill 工具（加载并遵循某个技能）后，立即执行 \`toolkit usage record --skill <技能名>\`；同一技能调用几次就重复传几次，未调用 Skill 工具则不执行。
+- 同一轮连续调用多个技能时，可在本轮最后一次调用后合并为一条命令；不得拖到下一轮或会话结束。
+- 给出最终回复前自检：本轮调用过 Skill 却尚未上报的，先补报；命令无法执行时在回复中说明原因，不静默跳过。
+- \`usage record\` 只把技能名写入本机 usage 队列，不改仓库、不改远端、不上传，因此不受「只读型请求默认只读」「方案确认不等于执行授权」限制，也无需逐次确认。
+- 上报只传技能名，触发词 / 参数 / 结果 / 耗时由工具反查会话记录补齐；统计范围与上传由本机 \`toolkit usage info\` 的配置决定，数据只留本机。
+- 查看统计用 \`toolkit usage stats\`；异常先 \`toolkit usage doctor\`；不要自行修改数据文件或把导出内容上传到未授权地址。
+--- stderr ---
+⚠️ 当前配置不会统计任何技能（总开关关闭 / 技能模式为 none / include 为空 / 来源全关），规则执行也不会产生记录"
+`;
+
+exports[`各域行为与错误路径 > usage stats 1`] = `
+"退出码：0
+--- stdout ---
+技能使用统计：共 0 条
+暂无记录
+提示：技能使用情况当前处于关闭状态
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > changelog version 帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit changelog version [options]
+
+消费变更集并生成新版本块，随后同步文档镜像
+
+Options:
+  --lang <lang>  语言 zh/en (default: "zh")
+  --redact       开启隐私脱敏
+  --no-redact    关闭隐私脱敏
+  --warn         开启软告警
+  --no-warn      关闭软告警
+  --history      追溯改写历史版本块（默认保留）
+  --no-sync-doc  不自动同步文档站镜像
+  -h, --help     显示帮助
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > changelog 帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit changelog [options] [command]
+
+多语言 CHANGELOG（封装 changesets）
+
+Options:
+  -h, --help                   显示帮助
+
+Commands:
+  version [options]            消费变更集并生成新版本块，随后同步文档镜像
+  format [options]             按语言与类型归类重排 CHANGELOG 条目
+  doc [options]                生成或校验文档站 CHANGELOG 镜像页
+  audit [options]              审计待发布变更集，列出需要合并的候选（只提示不改写）
+  add [options] [args...]      新增变更集（透传给 changesets）
+  status [options] [args...]   查看待发布变更集状态（透传给 changesets）
+  pre [options] [args...]      进入或退出预发布模式（透传给 changesets）
+  tag [options] [args...]      为已发布版本打标签（透传给 changesets）
+  init [options] [args...]     初始化 .changeset 配置（透传给 changesets）
+  publish [options] [args...]  发布变更集（透传给 changesets）
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > config 帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit config [options] [command]
+
+配置分层：只读查看三层配置文件（全局层 / 项目层 / 本地层）的生效情况与来源
+
+Options:
+  -h, --help        显示帮助
+
+Commands:
+  status [options]  配置分层只读体检：三层命中 / 来源层 / 环境变量层（只读、退出码恒 0；无 --dir，可用 --cwd
+                    指定查找起点）
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > conventions format 帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit conventions format [options]
+
+归一表格形态为紧凑形态（只动单元格间距、分隔行横线长度与列对齐填充；幂等、跳过 fenced code block，先报后写）
+
+Options:
+  --dir <path>       任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）
+  --dry-run          预演（只预览将要归一的行，不写文件）
+  --format <format>  输出格式（json，输出到 stdout）
+  -h, --help         显示帮助
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > conventions 帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit conventions [options] [command]
+
+项目协作规范载体：结构升级（v1 / v2 → v3）、表格形态归一（紧凑形态）与只读体检（形态 / 索引 / 入口层）
+
+Options:
+  -h, --help         显示帮助
+
+Commands:
+  upgrade [options]  把 v1 / v2 规范载体升级为 v3（v2：删「状态」「确立来源任务」两列、退休条目迁入 retired.md
+                     并删分册小节；v1 链式升级；幂等，先判后写）
+  format [options]   归一表格形态为紧凑形态（只动单元格间距、分隔行横线长度与列对齐填充；幂等、跳过 fenced code
+                     block，先报后写）
+  status [options]   规范载体只读体检：形态 / 索引 / 入口层三块（只报不改，体检不阻断、退出码恒 0；仅 --format
+                     传非法值时按参数错误报错退出）
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > docs dist 帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit docs dist [options] [command]
+
+文档站产物：校验 404 不进站点地图与站内搜索索引（需先构建）
+
+Options:
+  -h, --help       显示帮助
+
+Commands:
+  check [options]  校验构建产物：404 页不进 sitemap 与站内搜索索引（产物缺失时跳过）
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > docs nav 帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit docs nav [options] [command]
+
+文档站导航：按 site-nav.json 校验顶栏、侧栏、命名与页面体量
+
+Options:
+  -h, --help       显示帮助
+
+Commands:
+  check [options]  校验 docs/site-nav.json 的结构与导航规则（数据单一真源，不解析站点配置）
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > docs theme 帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit docs theme [options] [command]
+
+统一文档站主题：校验或写入（公共规则随包分发，品牌段由各站自留）
+
+Options:
+  -h, --help       显示帮助
+
+Commands:
+  check [options]  校验主题与模板是否一致（默认动作）
+  write [options]  写入或刷新模板，保留既有品牌段
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > docs 帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit docs [options] [command]
+
+文档站工具：主题、导航与产物的校验与写入
+
+Options:
+  -h, --help                 显示帮助
+
+Commands:
+  theme [options] [command]  统一文档站主题：校验或写入（公共规则随包分发，品牌段由各站自留）
+  nav [options] [command]    文档站导航：按 site-nav.json 校验顶栏、侧栏、命名与页面体量
+  dist [options] [command]   文档站产物：校验 404 不进站点地图与站内搜索索引（需先构建）
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > help tasks 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit tasks [options] [command]
+
+任务管理
+
+Options:
+  --dir <path>             任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）
+  --redact                 开启隐私脱敏
+  --no-redact              关闭隐私脱敏
+  --warn                   开启软告警
+  --no-warn                关闭软告警
+  --strict                 任务目录不存在时报错退出（默认容错为空结果）
+  --view <view>            任务视图：active / archived / all（总览与导出默认 active，stats 默认
+                           all）
+  --owner <name>           按负责人过滤（逗号分隔多值）
+  --scope <scope>          按范围过滤（逗号分隔多值）
+  --status <status>        按状态过滤（逗号分隔多值）
+  --date <date>            按单日过滤（YYYY-MM-DD，与 --since/--until 互斥）
+  --since <date>           起始日期（含当天）
+  --until <date>           结束日期（含当天）
+  --format <format>        输出格式（json，输出到 stdout）
+  -h, --help               显示帮助
+
+Commands:
+  archive [options]        归档已完成任务
+  check [options]          校验任务区：规则与变更集前缀，存在 error 时退出码 1
+  normalize [options]      归档块归一化：默认只读检查，--fix 修复
+  stats [options]          任务统计：周期 / 滞留 / 吞吐
+  export [options] <path>  导出任务到文件（.csv / .xlsx / .json）
+  import [options] <file>  从文件导入任务（.csv / .xlsx / .json）
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > help 子命令 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit [options] [command]
+
+专为多人 + AI 跨项目协作打造：任务管理 + 多语言 CHANGELOG。
+
+Options:
+  -v, --version                    显示版本号
+  -h, --help                       显示帮助
+
+Commands:
+  init [options]                   初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐
+                                   .gitignore 片段与 prepare 刷新钩子）
+  skills [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源 / 路径（包内 skills/ 与
+                                   --from 外部来源统一管理）
+  conventions [options] [command]  项目协作规范载体：结构升级（v1 / v2 →
+                                   v3）、表格形态归一（紧凑形态）与只读体检（形态 / 索引 / 入口层）
+  config [options] [command]       配置分层：只读查看三层配置文件（全局层 / 项目层 / 本地层）的生效情况与来源
+  docs [options] [command]         文档站工具：主题、导航与产物的校验与写入
+  tasks [options] [command]        任务管理
+  changelog [options] [command]    多语言 CHANGELOG（封装 changesets）
+  rules [options] [command]        全局规则：列出模块、组合输出与缓存管理
+  usage [options] [command]        技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
+  help [command]                   显示帮助
+
+
+文档站：
+  快速开始 https://fxri-net.github.io/toolkit/getting-started
+  完整攻略 https://fxri-net.github.io/toolkit/guide
+  全部文档 https://fxri-net.github.io/toolkit/
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > init 帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit init [options]
+
+初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐 .gitignore 片段与 prepare 刷新钩子）
+
+Options:
+  --dir <path>  任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）
+  --no-hooks    不写入 package.json 的 prepare 刷新钩子（默认写入，仅当本地依赖含 @xfri/toolkit）
+  -h, --help    显示帮助
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > rules compose 帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit rules compose [options]
+
+组合规则模块并输出（默认输出到 stdout）
+
+Options:
+  --preset <name>   预设：minimal / recommended / complete / full
+  --module <id...>  模块 id（可重复，也可逗号分隔）
+  --no-anchor       不输出首行更新时间锚点
+  --out <file>      写入文件（stdout 为空）
+  --copy            写入系统剪贴板（stdout 为空）
+  --no-cache        不读取也不写入组合缓存
+  -h, --help        显示帮助
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > rules 帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit rules [options] [command]
+
+全局规则：列出模块、组合输出与缓存管理
+
+Options:
+  -h, --help         显示帮助
+
+Commands:
+  list [options]     列出规则模块、预设与当前缓存选择
+  compose [options]  组合规则模块并输出（默认输出到 stdout）
+  reset [options]    清除规则组合缓存
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > skills install 帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit skills install [options]
+
+安装技能（默认按现场判定作用域：仓库内写项目面副本 + 薄壳，否则写全局目录；包内 skills/ 与 --from 外部来源统一处理）
+
+Options:
+  --scope <scope>    作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）
+  --skills <names>   只安装指定技能（逗号分隔；core 技能恒装）
+  --all              安装包内全部技能（含可选技能）
+  --no-optional      只安装 core 技能（不含可选技能）
+  --from <path|url>  外部技能来源目录或 Git 地址（可重复；默认临时，只写本次） (default: [])
+  --save [name]      把 --from 来源登记为永久来源（可选来源名，缺省按目录 / 清单派生）
+  --agent <names>    只写入指定 agent（逗号分隔，含 canonical；本机未检测到的跳过）
+  --all-agents       写入全部已检测的 agent
+  --no-save-agents   目标选择只对本次生效，不写回配置
+  --yes              非交互执行：跳过选择与确认，采用已保存选择（首次只装 core 与全部可用目标）
+  --use-saved        技能与目标采用已保存选择，不进入选择交互（仍保留最终确认）
+  --copy             强制以副本形式写入（仅全局面生效；项目面真源恒为副本、其余目录恒为薄壳）
+  --dir <path>       额外目标目录（可多次指定，兜底内置表未收录的 agent；不参与后续自动同步，技能变化后需带相同 --dir 重跑）
+                     (default: [])
+  --dry-run          预演（只预览将要执行的动作，不写文件）
+  --force            覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
+  --prune            清理未选择且内容与本包真源一致的旧产物（只清本包登记条目）
+  --mode <mode>      技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）
+  --no-skills        本次不安装任何技能，不改模式与已保存选择
+  --format <format>  输出格式（json，输出到 stdout）
+  -h, --help         显示帮助
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > skills 帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit skills [options] [command]
+
+AI 技能包分发：安装 / 状态 / 卸载 / 来源 / 路径（包内 skills/ 与 --from 外部来源统一管理）
+
+Options:
+  -h, --help                    显示帮助
+
+Commands:
+  install [options]             安装技能（默认按现场判定作用域：仓库内写项目面副本 + 薄壳，否则写全局目录；包内
+                                skills/ 与 --from 外部来源统一处理）
+  status [options]              查看技能现场状态与真源版本（默认按现场判定作用域；含悬空 / 指向其他版本 / 漂移 / 缺失
+                                / 同名冲突）
+  uninstall [options]           卸载由本包安装的技能产物（默认按现场判定作用域；只清理归属账记载的条目，不碰用户自装技能）
+  bump [options] [name] [type]  递增技能版本（两处版本声明同源改写；--all 批量、--set 直接设定）
+  sources [options] [command]   查看 / 刷新 / 注销外部技能来源，并管理来源提示频率
+  path [options]                输出包根路径（内含 skills/，可委托上游安装器安装到表外 agent）
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > tasks 帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit tasks [options] [command]
+
+任务管理
+
+Options:
+  --dir <path>             任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）
+  --redact                 开启隐私脱敏
+  --no-redact              关闭隐私脱敏
+  --warn                   开启软告警
+  --no-warn                关闭软告警
+  --strict                 任务目录不存在时报错退出（默认容错为空结果）
+  --view <view>            任务视图：active / archived / all（总览与导出默认 active，stats 默认
+                           all）
+  --owner <name>           按负责人过滤（逗号分隔多值）
+  --scope <scope>          按范围过滤（逗号分隔多值）
+  --status <status>        按状态过滤（逗号分隔多值）
+  --date <date>            按单日过滤（YYYY-MM-DD，与 --since/--until 互斥）
+  --since <date>           起始日期（含当天）
+  --until <date>           结束日期（含当天）
+  --format <format>        输出格式（json，输出到 stdout）
+  -h, --help               显示帮助
+
+Commands:
+  archive [options]        归档已完成任务
+  check [options]          校验任务区：规则与变更集前缀，存在 error 时退出码 1
+  normalize [options]      归档块归一化：默认只读检查，--fix 修复
+  stats [options]          任务统计：周期 / 滞留 / 吞吐
+  export [options] <path>  导出任务到文件（.csv / .xlsx / .json）
+  import [options] <file>  从文件导入任务（.csv / .xlsx / .json）
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > usage stats 帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit usage stats [options]
+
+技能使用统计（默认按技能聚合）
+
+Options:
+  --by <view>        聚合视图：skill / session / trigger（默认 skill）
+  --limit <count>    显示条数（默认 20）
+  --since <value>    起始时间：30d / 24h / 60m / YYYY-MM-DD
+  --agent <name>     按 Agent 过滤
+  --source <source>  按来源过滤：toolkit-first-party / toolkit-third-party / unmanaged
+                     / unknown
+  --skill <name>     按技能过滤
+  --unused           列出零使用技能（仅 --by skill 有效）
+  --dir <path>       本次使用的数据目录
+  --format <format>  输出格式（json）
+  -h, --help         显示帮助
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > usage 帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit usage [options] [command]
+
+技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
+
+Options:
+  -h, --help                  显示帮助
+
+Commands:
+  init [options]              初始化技能使用情况：选择 Agent、来源、字段与存储（执行即启用，默认统计一方与第三方技能）
+  uninstall [options]         停用技能使用情况并卸载 Hook（默认保留本地事件）
+  hooks [options] [command]   管理 Agent Hook（安装 / 状态 / 卸载）
+  info [options]              查看技能使用情况：开关、数据目录与事件计数
+  enable [options]            开启技能使用情况总开关（仍需配置通道、来源与技能范围）
+  disable [options]           关闭技能使用情况总开关（已记录数据保留）
+  channel [options] [mode]    查看或切换采集通道：rule（全局规则上报）/ hook（Agent Hook）
+  origins [options]           查看或设置来源开关（first-party / third-party / unmanaged）
+  scope [options]             查看或设置技能统计范围（none / all / include / exclude）
+  capture [options]           查看或设置采集字段（trigger / args / outcome）
+  storage [options]           查看或设置本地存储（目录 / 轮转 / 保留期 / 单文件上限）
+  upload [options] [command]  可选上传（默认关闭；需显式配置端点）
+  stats [options]             技能使用统计（默认按技能聚合）
+  export [options]            导出事件（csv / json / jsonl）
+  import [options]            导入事件（json / jsonl / transcript）
+  record [options]            按全局规则上报一批技能调用（入队即返回，静默执行，失败不阻断任务）
+  log [options]               手工补录一次技能使用
+  dedupe [options]            压缩历史重复事件并重建索引
+  purge [options]             清理本地事件（按保留期或全部）
+  doctor [options]            诊断技能使用情况目录、索引与重复事件
+  rule [options]              输出可复制的全局规则文案
+  rebuild [options]           从事件文件重建索引
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > 无参默认帮助 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+Usage: toolkit [options] [command]
+
+专为多人 + AI 跨项目协作打造：任务管理 + 多语言 CHANGELOG。
+
+Options:
+  -v, --version                    显示版本号
+  -h, --help                       显示帮助
+
+Commands:
+  init [options]                   初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐
+                                   .gitignore 片段与 prepare 刷新钩子）
+  skills [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源 / 路径（包内 skills/ 与
+                                   --from 外部来源统一管理）
+  conventions [options] [command]  项目协作规范载体：结构升级（v1 / v2 →
+                                   v3）、表格形态归一（紧凑形态）与只读体检（形态 / 索引 / 入口层）
+  config [options] [command]       配置分层：只读查看三层配置文件（全局层 / 项目层 / 本地层）的生效情况与来源
+  docs [options] [command]         文档站工具：主题、导航与产物的校验与写入
+  tasks [options] [command]        任务管理
+  changelog [options] [command]    多语言 CHANGELOG（封装 changesets）
+  rules [options] [command]        全局规则：列出模块、组合输出与缓存管理
+  usage [options] [command]        技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
+  help [command]                   显示帮助
+
+文档站：
+  快速开始 https://fxri-net.github.io/toolkit/getting-started
+  完整攻略 https://fxri-net.github.io/toolkit/guide
+  全部文档 https://fxri-net.github.io/toolkit/
+"
+`;
+
+exports[`帮助与版本口径 > 根帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit [options] [command]
+
+专为多人 + AI 跨项目协作打造：任务管理 + 多语言 CHANGELOG。
+
+Options:
+  -v, --version                    显示版本号
+  -h, --help                       显示帮助
+
+Commands:
+  init [options]                   初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐
+                                   .gitignore 片段与 prepare 刷新钩子）
+  skills [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源 / 路径（包内 skills/ 与
+                                   --from 外部来源统一管理）
+  conventions [options] [command]  项目协作规范载体：结构升级（v1 / v2 →
+                                   v3）、表格形态归一（紧凑形态）与只读体检（形态 / 索引 / 入口层）
+  config [options] [command]       配置分层：只读查看三层配置文件（全局层 / 项目层 / 本地层）的生效情况与来源
+  docs [options] [command]         文档站工具：主题、导航与产物的校验与写入
+  tasks [options] [command]        任务管理
+  changelog [options] [command]    多语言 CHANGELOG（封装 changesets）
+  rules [options] [command]        全局规则：列出模块、组合输出与缓存管理
+  usage [options] [command]        技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
+  help [command]                   显示帮助
+
+
+文档站：
+  快速开始 https://fxri-net.github.io/toolkit/getting-started
+  完整攻略 https://fxri-net.github.io/toolkit/guide
+  全部文档 https://fxri-net.github.io/toolkit/
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > 版本号 1`] = `
+"退出码：0
+--- stdout ---
+1.16.10
+
+--- stderr ---
+"
+`;
