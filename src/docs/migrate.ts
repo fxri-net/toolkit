@@ -185,6 +185,10 @@ export function migrateSiteNav(docsDir: string, options: { configFile?: string; 
   if (existsSync(target) && !options.force) throw new Error(`已存在 ${target}，确认覆盖请加 --force`)
 
   const source = readTextFile(configFile)
+  // 多语言配置里第一个 nav 属于某个语言包，直接抽取会生成单语言数据，宁可拒绝交人工
+  if (/(^|[\s,{])locales\s*:\s*\{/.test(source)) {
+    throw new Error("检测到 locales 多语言配置，无法自动抽取，请手工迁移为 locales.<键> 结构")
+  }
   const nav = parseValue(new Scanner(source, locate(source, "nav")))
   if (!Array.isArray(nav)) throw new Error("nav 字段不是数组，无法迁移")
   const sidebar = parseValue(new Scanner(source, locate(source, "sidebar")))

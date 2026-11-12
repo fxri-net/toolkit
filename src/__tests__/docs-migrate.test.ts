@@ -69,6 +69,12 @@ const config = defineConfig({
     expect(migrateSiteNav(dir, { force: true }).navCount).toBe(1)
   })
 
+  it("多语言配置直接拒绝，不生成单语言数据", () => {
+    writeConfig(`export default { themeConfig: { locales: { root: { nav: [{ text: 'a', link: '/' }], sidebar: [] } } } }\n`)
+    expect(() => migrateSiteNav(dir)).toThrow("locales")
+    expect(existsSync(join(dir, "site-nav.json"))).toBe(false)
+  })
+
   it("缺少 nav / sidebar 字段时给出明确错误", () => {
     writeConfig("export default { themeConfig: {} }\n")
     expect(() => migrateSiteNav(dir)).toThrow("未找到 nav 字段")
