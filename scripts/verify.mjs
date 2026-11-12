@@ -1,5 +1,6 @@
 import { spawn, spawnSync } from "node:child_process"
 import { readFileSync, statSync } from "node:fs"
+import { createRequire } from "node:module"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -8,15 +9,19 @@ import { fileURLToPath } from "node:url"
 // 本文件不入 npm 包（files 白名单不含 scripts）
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const isWindows = process.platform === "win32"
+const require = createRequire(import.meta.url)
 
 const flags = new Set(process.argv.slice(2))
 const skipCoverage = flags.has("--skip-coverage")
 const skipDocs = flags.has("--skip-docs")
+// --local 强制本地口径：IDE / 终端可能注入 CI=true，导致本地迭代也走全量（文档必建、eslint 冷缓存、强制安装）。
+// 提交前最终验收仍应跑不带 --local 的全量，避免把本地裁剪带进 CI。
+const forceLocal = flags.has("--local")
 // --full 强制全量：忽略本地缓存与改动面判断，等价于 CI 口径
-const full = flags.has("--full")
+const full = !forceLocal && flags.has("--full")
 // CI 环境一律全量：本地按改动面裁剪只应让步于开发效率，不能让 CI 漏检死链与冷缓存问题
 const ciValue = process.env.CI ?? ""
-const isCI = ciValue !== "" && ciValue !== "0" && ciValue.toLowerCase() !== "false"
+const isCI = !forceLocal && ciValue !== "" && ciValue !== "0" && ciValue.toLowerCase() !== "false"
 
 /**
  * 读取文本文件并去除首尾空白。
@@ -97,50 +102,113 @@ function needInstall() {
   }
 }
 
-// 步骤清单即门禁定义：顺序有依赖（build 先于冒烟与任务区体检），增删步骤只改这里
-// 时区（TZ）按「数据来源」分两轴钉死，避免「本地绿、CI 红」的时区耦合回归（墙上时间串不带时区，解析结果随运行环境漂移）：
-// ① 合成数据步骤（单元测试 / 覆盖率门槛）钉 TZ=UTC：被测数据由测试当场构造、与运行环境时区无关，钉 UTC 使本地与全部 CI 同轴；
-// ② 读真实任务数据的步骤（本源仓库自检 / 任务区体检 / 归档块归一核验）钉 TZ=Asia/Shanghai：任务档按本地时区书写，须在数据原地时区判定，
-//    否则 UTC 环境会把 +8 墙上串前移 8 小时而误报「未来时间」，该误报正是本次拆解的目标
-// CLI 冒烟与任务区体检统一关闭升级提示：门禁输出保持确定，提示行为由单测覆盖
+// 本地包 bin 解析：直调 node + 入口，绕过 pnpm / corepack 垫片（Windows 上每步可省约 1 秒）；失败返回 null 由调用方回落
+const TOOL_PACKAGES = {
+  tsc: "typescript",
+  "vue-tsc": "vue-tsc",
+  eslint: "eslint",
+  vitest: "vitest",
+  tsup: "tsup",
+  vitepress: "vitepress",
+}
+function localBin(tool) {
+  const pkg = TOOL_PACKAGES[tool]
+  if (!pkg) return null
+  try {
+    const pkgFile = require.resolve(`${pkg}/package.json`)
+    const meta = JSON.parse(readFileSync(pkgFile, "utf8"))
+    const rel = typeof meta.bin === "string" ? meta.bin : meta.bin?.[tool]
+    return rel ? join(dirname(pkgFile), rel) : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 步骤执行方式：声明了 tool 时优先直调本地入口，解析失败回落 pnpm exec；其余按 node 脚本或 pnpm 执行。
+ * @param {object} step 步骤定义
+ * @return {{command: string, args: string[], shell: boolean, env?: object}} 启动参数
+ */
+function commandOf(step) {
+  if (step.tool) {
+    const bin = localBin(step.tool)
+    if (bin) return { command: process.execPath, args: [bin, ...step.args], shell: false, env: step.env }
+    return { command: "pnpm", args: ["exec", step.tool, ...step.args], shell: isWindows, env: step.env }
+  }
+  if (step.command) return { command: step.command, args: step.args, shell: step.command === "pnpm" && isWindows, env: step.env }
+  return { command: process.execPath, args: step.args, shell: false, env: step.env }
+}
+
+/**
+ * 运行单个步骤并捕获输出，用于并行组（并发时继承 stdio 会互相穿插，故先缓存再按步骤顺序回放）。
+ * @param {object} step 步骤定义
+ * @return {Promise<{step: object, code: number, stdout: string, stderr: string, seconds: number}>} 步骤与退出码、输出、耗时
+ */
+function runCaptured(step) {
+  return new Promise((resolve) => {
+    const { command, args, shell, env } = commandOf(step)
+    const started = Date.now()
+    const child = spawn(command, args, { cwd: root, shell, env: { ...process.env, ...env } })
+    let stdout = ""
+    let stderr = ""
+    child.stdout.on("data", (chunk) => (stdout += chunk))
+    child.stderr.on("data", (chunk) => (stderr += chunk))
+    child.on("error", (err) => resolve({ step, code: 1, stdout, stderr: `${stderr}${err}`, seconds: (Date.now() - started) / 1000 }))
+    child.on("close", (code) => resolve({ step, code: code ?? 1, stdout, stderr, seconds: (Date.now() - started) / 1000 }))
+  })
+}
+
 const cliEnv = { FX_NO_UPDATE_CHECK: "1" }
 const installNeeded = needInstall()
 const docsNeeded = needDocsBuild()
+const docsSkip = skipDocs ? "--skip-docs" : docsNeeded ? "" : "未触及 docs/、README.md、skills/"
+// 文档类型检查只随改动面跳过：--skip-docs 属跨平台裁剪（Windows / macOS job），类型检查仍保留
+const docsTypeSkip = docsNeeded ? "" : "未触及 docs/、README.md、skills/"
 
-// 互不依赖、可并行的前置检查：类型 / 规范一致性 / 静态检查，三者都不读 dist、不写工作区
+// 阶段一：互不依赖、可并行的前置检查；类型 / 规范一致性 / 静态检查都不读 dist、不写工作区
 const parallelSteps = [
-  { label: "类型检查", command: "pnpm", args: ["typecheck"] },
+  { label: "类型检查", tool: "tsc", args: ["--noEmit", "-p", "tsconfig.typecheck.json"] },
   // 文档站类型检查：VitePress 构建只转译不类型检查，?raw / JSON / .vue 导入需 vue-tsc 兜住
-  { label: "文档类型检查", command: "pnpm", args: ["typecheck:docs"] },
+  { label: "文档类型检查", tool: "vue-tsc", args: ["--noEmit", "-p", "docs/tsconfig.json"], skip: docsTypeSkip },
   // 文档规则数据由 templates/rules 生成，检查生成物未漂移
   { label: "文档规则产物同步", args: ["scripts/generate-docs-rules.mjs", "--check"] },
   // 仓库自检：技能版本四点一致、技能表用途列不残留旧术语、active 任务触达路径存在
   { label: "规范一致性（技能版本 / 用途列 / 触达）", args: ["scripts/check-consistency.mjs"] },
   // 仓库自检：正文段落单行行宽与分号数（规范 C-43），存量按基线棘轮、只在超出时失败
   { label: "文档可读性（段落行宽 / 分号）", args: ["scripts/check-docs-readability.mjs"] },
-  // 仓库自检：与最近版本 tag 比对整句，提示可能被删掉的事实（只告警不阻断）
-  { label: "文档无损（整句比对）", args: ["scripts/check-doc-loss.mjs"] },
   // eslint 默认缓存加速本地重复运行；CI 与 --full 走冷缓存，且本地冷缓存抖动时缓存本身也会造成「本地绿、CI 红」，故只作本地提速手段
-  { label: isCI || full ? "静态检查（冷缓存）" : "静态检查", command: "pnpm", args: ["exec", "eslint", ".", ...(isCI || full ? ["--no-cache"] : ["--cache"])] },
+  { label: isCI || full ? "静态检查（冷缓存）" : "静态检查", tool: "eslint", args: [".", ...(isCI || full ? ["--no-cache"] : ["--cache"])] },
 ]
 
-// 串行步骤：单测与 build 之后再跑以下步骤，避免并行抢占 CPU 与读写产物
-const serialSteps = [
+// 阶段二：单测独占。覆盖率插桩 + 真实 git 操作用例对 CPU / 磁盘敏感，与构建、文档构建并发会触发随机超时（实测 15s 上限被打穿），
+// 因此单测不与其它重步骤并发；构建、文档构建、仓库自检互不依赖，放到下一阶段并发。
+const heavySteps = [
   {
     label: skipCoverage ? "单元测试（不含覆盖率）" : "单元测试 + 覆盖率门槛",
-    command: "pnpm",
+    tool: "vitest",
     // 覆盖率与单测合并为一次运行：同一批测试不再跑两遍，检查项与阈值判定不变
-    args: ["exec", "vitest", "run", ...(skipCoverage ? [] : ["--coverage"]), "--exclude", "src/__tests__/warn-threshold.test.ts"],
+    args: ["run", ...(skipCoverage ? [] : ["--coverage", "--coverage.reporter=text"]), "--exclude", "src/__tests__/warn-threshold.test.ts"],
     env: { TZ: "UTC" },
   },
-  // 本仓库自检：读真实 .tasks/.changeset 断言双零，须在数据原地时区（Asia/Shanghai）判定，故不走钉 UTC 的常规单测步
-  { label: "本源仓库自检（真实数据双零）", command: "pnpm", args: ["test:repo-guard"], env: { TZ: "Asia/Shanghai" } },
-  { label: "构建", command: "pnpm", args: ["build"] },
+]
+
+// 阶段三：构建（写 dist）、文档构建（写文档产物）、仓库自检（只读真实任务区）互不依赖，并发压缩墙钟时间
+const buildSteps = [
+  // 构建：tsup 直接调用，NODE_ENV 与 package.json 的 build 脚本保持一致
+  { label: "构建", tool: "tsup", args: [], env: { NODE_ENV: "production" } },
+  { label: "文档站构建（死链检查）", tool: "vitepress", args: ["build", "docs"], skip: docsSkip },
+  // 本仓库自检：读真实 .tasks/.changeset 断言双零，须在数据原地时区（Asia/Shanghai）判定
+  { label: "本源仓库自检（真实数据双零）", tool: "vitest", args: ["run", "src/__tests__/warn-threshold.test.ts"], env: { TZ: "Asia/Shanghai" } },
+]
+
+// 阶段四：依赖 dist / 文档产物的收尾步骤，按序执行
+const tailSteps = [
+  // 仓库自检：与最近版本 tag 比对整句，提示可能被删掉的事实（只告警不阻断）
+  { label: "文档无损（整句比对）", args: ["scripts/check-doc-loss.mjs"] },
   // 镜像校验依赖 dist/cli.js，须置于构建之后；仅本仓自举产物，不依赖全局工具
   { label: "CHANGELOG 镜像一致（changelog doc --check）", args: ["dist/cli.js", "changelog", "doc", "--check"], env: cliEnv },
-  { label: "文档站构建（死链检查）", command: "pnpm", args: ["docs:build"], skip: skipDocs ? "--skip-docs" : docsNeeded ? "" : "未触及 docs/、README.md、skills/" },
-  // 产物断言依赖上一步的 dist，跳过构建时一并跳过
-  { label: "文档站产物（404 排除站点地图与搜索索引）", args: ["scripts/check-docs-dist.mjs"], skip: skipDocs ? "--skip-docs" : docsNeeded ? "" : "未触及 docs/、README.md、skills/" },
+  // 产物断言依赖上一步 dist 与文档构建，跳过文档构建时一并跳过
+  { label: "文档站产物（404 排除站点地图与搜索索引）", args: ["scripts/check-docs-dist.mjs"], skip: docsSkip },
   { label: "CLI 冒烟 --help", args: ["dist/cli.js", "--help"], env: cliEnv },
   { label: "CLI 冒烟 tasks --help", args: ["dist/cli.js", "tasks", "--help"], env: cliEnv },
   { label: "CLI 冒烟 changelog --help", args: ["dist/cli.js", "changelog", "--help"], env: cliEnv },
@@ -149,31 +217,61 @@ const serialSteps = [
 ]
 
 /**
- * 运行单个步骤并捕获输出，用于并行组（并发时继承 stdio 会互相穿插，故先缓存再按步骤顺序回放）。
- * @param {{label: string, command?: string, args: string[], env?: Record<string, string>}} step 步骤定义
- * @return {Promise<{step: object, code: number, stdout: string, stderr: string}>} 步骤与退出码、输出
+ * 执行一个并行阶段：先打印跳过项，再并发运行，最后按定义顺序回放输出与耗时。
+ * @param {string} label 阶段名
+ * @param {object[]} steps 步骤定义
+ * @return {Promise<string[]>} 失败步骤标签
  */
-function runCaptured(step) {
-  return new Promise((resolve) => {
-    const command = step.command ?? process.execPath
-    const child = spawn(command, step.args, { cwd: root, shell: command === "pnpm" && isWindows, env: { ...process.env, ...step.env } })
-    let stdout = ""
-    let stderr = ""
-    child.stdout.on("data", (chunk) => (stdout += chunk))
-    child.stderr.on("data", (chunk) => (stderr += chunk))
-    child.on("error", (err) => resolve({ step, code: 1, stdout, stderr: `${stderr}${err}` }))
-    child.on("close", (code) => resolve({ step, code: code ?? 1, stdout, stderr }))
-  })
+async function runPhase(label, steps) {
+  for (const step of steps) {
+    if (step.skip) console.log(`\n⊘ ${step.label}（${step.skip}，跳过）`)
+  }
+  const active = steps.filter((step) => !step.skip)
+  if (active.length === 0) return []
+  console.log(`\n▶ ${label}（${active.length} 项：${active.map((step) => step.label).join(" / ")}）`)
+  const started = Date.now()
+  const results = await Promise.all(active.map((step) => runCaptured(step)))
+  for (const { step, code, stdout, stderr, seconds } of results) {
+    console.log(`\n—— ${step.label} ——（${seconds.toFixed(1)}s）`)
+    if (stdout) process.stdout.write(stdout)
+    if (stderr) process.stderr.write(stderr)
+    if (code !== 0) console.log(`✖ ${step.label} 失败`)
+  }
+  console.log(`◀ ${label} 完成（${((Date.now() - started) / 1000).toFixed(1)}s）`)
+  return results.filter((result) => result.code !== 0).map((result) => result.step.label)
+}
+
+/**
+ * 串行执行收尾步骤，保留实时输出。
+ * @param {object[]} steps 步骤定义
+ * @return {string[]} 失败步骤标签
+ */
+function runSerial(steps) {
+  const failures = []
+  for (const step of steps) {
+    if (step.skip) {
+      console.log(`\n⊘ ${step.label}（${step.skip}，跳过）`)
+      continue
+    }
+    console.log(`\n▶ ${step.label}`)
+    const { command, args, shell, env } = commandOf(step)
+    const started = Date.now()
+    const result = spawnSync(command, args, { cwd: root, stdio: "inherit", shell, env: { ...process.env, ...env } })
+    console.log(`  ⏱ ${((Date.now() - started) / 1000).toFixed(1)}s`)
+    if (result.status !== 0) failures.push(step.label)
+  }
+  return failures
 }
 
 reportToolchain()
+// 环境提示：CI 变量被 IDE 注入时，本地门禁会按 CI 全量执行，先让人看见原因与快速入口
+if (!forceLocal && isCI && !(process.env.GITHUB_ACTIONS || process.env.GITLAB_CI)) {
+  console.log("提示：检测到 CI 环境变量（可能由 IDE / 终端注入），本次按 CI 全量执行；本地迭代可加 --local 恢复改动面裁剪与缓存")
+}
 const startedAt = Date.now()
-const failures = []
-let executed = 0
 
 if (installNeeded) {
   console.log("\n▶ 安装依赖（frozen 锁文件）")
-  executed += 1
   // pnpm 在 Windows 上是 .cmd，需经 shell 调用；node 用 process.execPath 直呼，避免路径含空格时被 shell 拆断
   const install = spawnSync("pnpm", ["install", "--frozen-lockfile"], { cwd: root, stdio: "inherit", shell: isWindows })
   if (install.status !== 0) {
@@ -185,28 +283,13 @@ if (installNeeded) {
   console.log("\n⊘ 安装依赖（lockfile 未变化，跳过；--full 强制全量）")
 }
 
-console.log(`\n▶ 并行检查（${parallelSteps.length} 项：${parallelSteps.map((s) => s.label).join(" / ")}）`)
-executed += parallelSteps.length
-const parallelResults = await Promise.all(parallelSteps.map(runCaptured))
-for (const { step, code, stdout, stderr } of parallelResults) {
-  console.log(`\n—— ${step.label} ——`)
-  if (stdout) process.stdout.write(stdout)
-  if (stderr) process.stderr.write(stderr)
-  if (code !== 0) failures.push(step.label)
-}
-
-for (const step of serialSteps) {
-  if (step.skip) {
-    console.log(`\n⊘ ${step.label}（${step.skip}，跳过）`)
-    continue
-  }
-  console.log(`\n▶ ${step.label}`)
-  executed += 1
-  const command = step.command ?? process.execPath
-  const result = spawnSync(command, step.args, { cwd: root, stdio: "inherit", shell: command === "pnpm" && isWindows, env: { ...process.env, ...step.env } })
-  if (result.status !== 0) failures.push(step.label)
-}
-
+const phaseStarted = Date.now()
+const failures = [
+  ...(await runPhase("并行检查", parallelSteps)),
+  ...(await runPhase("重步骤（单测独占）", heavySteps)),
+  ...(await runPhase("构建与文档", buildSteps)),
+  ...runSerial(tailSteps),
+]
 const seconds = ((Date.now() - startedAt) / 1000).toFixed(1)
 
 if (failures.length > 0) {
@@ -215,4 +298,4 @@ if (failures.length > 0) {
   process.exit(1)
 }
 
-console.log(`\n✔ 门禁全部通过（共 ${executed} 步，用时 ${seconds}s）`)
+console.log(`\n✔ 门禁全部通过（三步阶段共 ${((Date.now() - phaseStarted) / 1000).toFixed(1)}s，总计 ${seconds}s）`)

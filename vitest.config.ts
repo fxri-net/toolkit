@@ -6,9 +6,9 @@ export default defineConfig({
   // 组件测试需要编译 .vue（RuleComposer）
   plugins: [vue()],
   test: {
-    // 覆盖率插桩与并行加载会把重用例推过默认 5 秒阈值（无覆盖率时全绿），抬高上限避免门禁随机红
-    testTimeout: 15000,
-    hookTimeout: 15000,
+    // 覆盖率插桩与并行加载会把重用例推过默认 5 秒阈值；门禁并发重步骤时进一步拉长，留足余量避免随机红
+    testTimeout: 30000,
+    hookTimeout: 30000,
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
