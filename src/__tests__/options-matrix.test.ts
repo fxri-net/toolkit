@@ -2,7 +2,7 @@
 // ⚠️ cli.ts 顶层即执行主流程，无法被静态导入：每个用例重置模块注册表后动态 import ../cli 并 await 其导出的 cliReady
 // 沙箱隔离：home 指向临时目录（skills 与配置），升级缓存经 mock 的 tmpdir 落沙箱，子进程派生注入 mock（不真跑进程）
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from "vitest"
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, lstatSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 
 // 沙箱路径用 vi.hoisted 构造（mock 工厂早于模块顶层求值执行，不能引用未初始化的顶层变量）
@@ -590,6 +590,48 @@ describe("skills 选择集失效告警（CLI 口径）", () => {
     const status = await runCli(["skills", "status"])
     expect(status.code).toBe(0)
     expect(status.warn.join("\n")).not.toContain("已失效")
+  })
+})
+
+describe("skills 安装预演标记", () => {
+  const configFile = join(homeDir, ".toolkitrc.json")
+  const sourceRoot = join(sandbox, "rename-source")
+
+  it("预演的迁移行带 [预演] 前缀，实跑不带", async () => {
+    rmSync(configFile, { force: true })
+    rmSync(sourceRoot, { recursive: true, force: true })
+    mkdirSync(join(sourceRoot, "skills", "new-name"), { recursive: true })
+    writeFileSync(
+      join(sourceRoot, "skills", "new-name", "SKILL.md"),
+      '---\nname: new-name\ndescription: 改名迁移用例\nmetadata:\n  version: "1.0.0"\n---\n\n# new-name\n',
+      "utf8",
+    )
+    writeFileSync(
+      join(sourceRoot, "skills.json"),
+      JSON.stringify({ formatVersion: 1, name: "rename", skills: [{ path: "skills/new-name", previousNames: ["old-name"] }] }),
+      "utf8",
+    )
+    mkdirSync(dirname(configFile), { recursive: true })
+    writeFileSync(configFile, JSON.stringify({ skillsInstall: { sources: { rename: { root: sourceRoot } } } }), "utf8")
+    // 旧名悬空链接：预演应报告迁移计划但不删除
+    const target = join(homeDir, ".agents", "skills")
+    const gone = join(sandbox, "gone-src", "skills", "old-name")
+    mkdirSync(target, { recursive: true })
+    mkdirSync(gone, { recursive: true })
+    symlinkSync(gone, join(target, "old-name"), process.platform === "win32" ? "junction" : "dir")
+    rmSync(join(sandbox, "gone-src"), { recursive: true, force: true })
+
+    const preview = await runCli(["skills", "install", "--yes", "--dry-run", "--skills", "new-name"])
+    expect(preview.code).toBe(0)
+    expect(preview.log.join("\n")).toContain("[预演] 已改名迁移：old-name → new-name")
+    // 悬空链接：existsSync 为假，用 lstat 判存在
+    expect(lstatSync(join(target, "old-name")).isSymbolicLink()).toBe(true)
+
+    const real = await runCli(["skills", "install", "--yes", "--skills", "new-name"])
+    expect(real.code).toBe(0)
+    const out = real.log.join("\n")
+    expect(out).toContain("已改名迁移：old-name → new-name")
+    expect(out).not.toContain("[预演] 已改名迁移")
   })
 })
 

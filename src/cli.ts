@@ -446,7 +446,7 @@ function printInstallReport(report: InstallReport, dryRun: boolean): void {
     if (t.skipped.length > 0) console.log(`  跳过（已就绪）：${t.skipped.join("、")}`)
     if (t.conflicts.length > 0) console.log(`  跳过（同名非本包产物，如需覆盖加 --force）：${t.conflicts.join("、")}`)
     if (t.pruned.length > 0) console.log(`  清理（未选择）：${t.pruned.join("、")}`)
-    for (const m of t.migrated) console.log(`  已改名迁移：${m.from} → ${m.to}`)
+    for (const m of t.migrated) console.log(`  ${tag}已改名迁移：${m.from} → ${m.to}`)
     for (const d of t.degraded) console.log(`  ⚠️ 降级为副本：${d.name}（链接创建失败：${d.reason}）`)
     for (const f of t.failed) console.log(`  ⚠️ 失败：${f.name}（${f.reason}）`)
     const modes: string[] = []
