@@ -23,8 +23,8 @@ vi.mock("node:child_process", async (importOriginal) => {
   return { ...actual, spawn: vi.fn(), spawnSync: vi.fn(() => ({ status: 0 })) }
 })
 
-// 交互确认直接返回 true：只模拟按键结果，不开真实终端
-vi.mock("@inquirer/prompts", () => ({ confirm: vi.fn(async () => true) }))
+// 交互确认直接返回 true、多选默认空选：只模拟按键结果，不开真实终端
+vi.mock("@inquirer/prompts", () => ({ confirm: vi.fn(async () => true), checkbox: vi.fn(async () => [] as string[]) }))
 
 // 沙箱内固定路径
 const homeDir = join(sandbox, "home")
@@ -320,7 +320,8 @@ describe("顶层命令与外部域", () => {
     }
   })
 
-  it("skills uninstall 无参交互确认后一并清理疑似残留", async () => {
+  // 造一份全局状态：entries 为登记的技能名；不落实际产物，卸载时按「已不存在」处理
+  function writeGlobalState(entries: string[]): string {
     const canonical = join(homeDir, ".agents", "skills")
     const stateFile = join(homeDir, ".agents", ".toolkit-skills.json")
     mkdirSync(canonical, { recursive: true })
@@ -342,7 +343,7 @@ describe("顶层命令与外部域", () => {
                 dir: canonical,
                 label: "canonical",
                 kind: "primary",
-                entries: [{ name: "fxri-plan-review", version: "0.0.0", mode: "link" }],
+                entries: entries.map((name) => ({ name, version: "0.0.0", mode: "link" })),
               },
             ],
           },
@@ -350,6 +351,12 @@ describe("顶层命令与外部域", () => {
       }),
       "utf8",
     )
+    return stateFile
+  }
+
+  it("skills uninstall 无参多选只卸载所选（含疑似残留）", async () => {
+    const stateFile = writeGlobalState(["fxri-plan-review", "fxri-plan-to-task"])
+    const canonical = join(homeDir, ".agents", "skills")
     const cacheTarget = join(homeDir, ".toolkit", "cache", "skill-sources", "deadbeef", "skills", "ghost-old")
     mkdirSync(cacheTarget, { recursive: true })
     const stale = join(canonical, "ghost-old")
@@ -357,19 +364,55 @@ describe("顶层命令与外部域", () => {
     rmSync(join(homeDir, ".toolkit", "cache", "skill-sources", "deadbeef"), { recursive: true, force: true })
     setTty(true)
     try {
+      const prompts = await import("@inquirer/prompts")
+      const checkbox = prompts.checkbox as unknown as { mockResolvedValueOnce: (value: string[]) => void }
+      checkbox.mockResolvedValueOnce(["s:ghost-old"])
       const r = await runCli(["skills", "uninstall", "--scope", "global"])
       expect(r.code).toBe(0)
-      expect(r.log.join("\n")).toContain("检测到疑似残留")
-      const prompts = await import("@inquirer/prompts")
-      const asked = (prompts.confirm as unknown as { mock: { calls: Array<[{ message: string }]> } }).mock.calls
-      expect(asked.some(([arg]) => arg.message.includes("疑似残留"))).toBe(true)
       expect(existsSync(stale)).toBe(false)
-      expect(existsSync(stateFile)).toBe(false)
+      // 未选中的已登记技能保留在状态里
+      expect(existsSync(stateFile)).toBe(true)
+      expect(readFileSync(stateFile, "utf8")).toContain("fxri-plan-review")
     } finally {
       restoreTty()
       rmSync(stale, { recursive: true, force: true })
       rmSync(stateFile, { force: true })
     }
+  })
+
+  it("skills uninstall 无参非交互直接报错给用法", async () => {
+    const r = await runCli(["skills", "uninstall", "--scope", "global"])
+    expect(r.code).toBe(1)
+    expect(r.err.join("\n")).toContain("未指定要卸载的技能")
+  })
+
+  it("skills uninstall --all 非交互未加 --yes 时报错", async () => {
+    const stateFile = writeGlobalState(["fxri-plan-review"])
+    try {
+      const r = await runCli(["skills", "uninstall", "--scope", "global", "--all"])
+      expect(r.code).toBe(1)
+      expect(r.err.join("\n")).toContain("--yes")
+      expect(existsSync(stateFile)).toBe(true)
+    } finally {
+      rmSync(stateFile, { force: true })
+    }
+  })
+
+  it("skills uninstall --all --yes 全量卸载并删除状态", async () => {
+    const stateFile = writeGlobalState(["fxri-plan-review"])
+    try {
+      const r = await runCli(["skills", "uninstall", "--scope", "global", "--all", "--yes"])
+      expect(r.code).toBe(0)
+      expect(existsSync(stateFile)).toBe(false)
+    } finally {
+      rmSync(stateFile, { force: true })
+    }
+  })
+
+  it("skills uninstall 的 --skills 与 --all 互斥", async () => {
+    const r = await runCli(["skills", "uninstall", "--scope", "global", "--skills", "fxri-plan-review", "--all"])
+    expect(r.code).toBe(1)
+    expect(r.err.join("\n")).toContain("互斥")
   })
 
   it("skills status 旧名残留汇总给出可复制的清理命令", async () => {

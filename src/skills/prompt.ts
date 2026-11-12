@@ -199,11 +199,34 @@ export async function promptTargetSelection(choices: TargetChoice[], message: st
   }
 }
 
-// 汇总确认：返回 true 继续、false 放弃、null 取消（Ctrl+C）
-export async function promptConfirm(message: string): Promise<boolean | null> {
+// 汇总确认：返回 true 继续、false 放弃、null 取消（Ctrl+C）；破坏性操作应传 defaultValue = false
+export async function promptConfirm(message: string, defaultValue = true): Promise<boolean | null> {
   const { confirm } = await import("@inquirer/prompts")
   try {
-    return await confirm({ message, default: true })
+    return await confirm({ message, default: defaultValue })
+  } catch (error) {
+    if (isPromptCancel(error)) return null
+    throw error
+  }
+}
+
+// 卸载候选项：value 带面 / 类型前缀，保证跨面同名可区分；group 用于分组展示
+export interface UninstallChoice {
+  value: string
+  group: string
+  label: string
+}
+
+// 卸载多选：默认全不选，空格勾选、回车确认；返回 null 表示取消，空数组表示未选择
+export async function promptUninstallSelection(choices: UninstallChoice[]): Promise<string[] | null> {
+  const { checkbox } = await import("@inquirer/prompts")
+  try {
+    return await checkbox({
+      message: "选择要卸载的技能（空格选择，回车确认）",
+      choices: choices.map((item) => ({ name: `${item.group}｜${item.label}`, value: item.value })),
+      pageSize: 15,
+      required: false,
+    })
   } catch (error) {
     if (isPromptCancel(error)) return null
     throw error

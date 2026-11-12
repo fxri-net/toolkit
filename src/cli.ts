@@ -57,7 +57,9 @@ import {
   promptConfirm,
   promptSkillSelection,
   promptTargetSelection,
+  promptUninstallSelection,
   readProjectSkillsConfig,
+  readProjectState,
   readSkillsInstallConfig,
   readSkillsState,
   resolveSavedProjectSelection,
@@ -93,6 +95,7 @@ import {
   type SkillsMode,
   type SkillsRemoveReport,
   type SkillsStatusReport,
+  type UninstallChoice,
 } from "./skills"
 import {
   emitVersionHint,
@@ -583,25 +586,37 @@ function printRemoveReport(report: SkillsRemoveReport, dryRun: boolean): void {
   else console.log("状态文件已保留（存在需人工确认或未移除的条目）")
 }
 
-// 无参卸载前确认：检测疑似残留，TTY 下询问是否一并清理；非 TTY 与预演只提示不询问
-async function confirmStaleCleanup(dryRun: boolean): Promise<{ cancelled: boolean; report: SkillsRemoveReport | null }> {
-  const stale = findStaleArtifacts(skillsStatus())
-  if (stale.length === 0) return { cancelled: false, report: null }
-  const detail = stale.map((item) => `${item.name}（${item.dir}）`).join("、")
-  if (dryRun) {
-    console.log(`[预演] 另有疑似残留 ${stale.length} 项（未登记）：${detail}；实跑时会询问是否一并清理`)
-    return { cancelled: false, report: null }
+// 疑似残留名字（去重）：全量卸载与裸命令预演共用
+function staleArtifactNames(): string[] {
+  return [...new Set(findStaleArtifacts(skillsStatus()).map((item) => item.name))]
+}
+
+// 已登记条目数：全量卸载的确认文案展示范围（同一技能可在多个目标各有一条）
+function registeredSkillCount(runGlobal: boolean, runProject: boolean): number {
+  const countOf = (state: ReturnType<typeof readSkillsState>): number =>
+    Object.values(state?.sources ?? {}).reduce((sum, source) => sum + source.targets.reduce((n, target) => n + target.entries.length, 0), 0)
+  let count = 0
+  if (runGlobal) count += countOf(readSkillsState())
+  if (runProject) count += countOf(readProjectState(resolveProjectTargets().root))
+  return count
+}
+
+// 卸载候选：按面与类型分组，value 前缀区分，避免跨面同名混淆
+function collectUninstallCandidates(runGlobal: boolean, runProject: boolean): UninstallChoice[] {
+  const out: UninstallChoice[] = []
+  const pushRegistered = (state: ReturnType<typeof readSkillsState>, prefix: string, group: string): void => {
+    const names = new Set<string>()
+    for (const source of Object.values(state?.sources ?? {})) {
+      for (const target of source.targets) for (const entry of target.entries) names.add(entry.name)
+    }
+    for (const name of [...names].sort()) out.push({ value: `${prefix}${name}`, group, label: name })
   }
-  if (!isInteractiveTty()) {
-    console.log(`另有疑似残留 ${stale.length} 项（未登记）：${detail}；交互终端下会询问是否一并清理`)
-    return { cancelled: false, report: null }
+  if (runGlobal) {
+    pushRegistered(readSkillsState(), "g:", "全局")
+    for (const name of staleArtifactNames().sort()) out.push({ value: `s:${name}`, group: "疑似残留", label: name })
   }
-  console.log(`检测到疑似残留 ${stale.length} 项（未登记）：${detail}`)
-  const answer = await promptConfirm("是否连同疑似残留一并清理？")
-  if (answer === null) return { cancelled: true, report: null }
-  if (!answer) return { cancelled: false, report: null }
-  // 必须先摘旧名：全量清理会删除状态文件，之后 orphan 清理无从定位目标目录
-  return { cancelled: false, report: removeSkills({ skills: [...new Set(stale.map((item) => item.name))] }) }
+  if (runProject) pushRegistered(readProjectState(resolveProjectTargets().root), "p:", "项目")
+  return out
 }
 
 // 合并两次卸载报告：同一目录合并条目，状态标记取并集
@@ -1232,11 +1247,13 @@ skillsCmd
   .command("uninstall")
   .description("卸载由本包安装的技能产物（默认按现场判定作用域；只清理归属账记载的条目，不碰用户自装技能）")
   .option("--scope <scope>", "作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）")
-  .option("--skills <names>", "只卸载指定技能的选择与产物（逗号分隔；省略时清理全部）")
+  .option("--skills <names>", "只卸载指定技能的选择与产物（逗号分隔）")
+  .option("--all", "卸载全部已登记技能与疑似残留（非交互执行须加 --yes）")
+  .option("--yes", "配合 --all：非交互环境确认执行")
   .option("--source <name>", "只清理指定外部来源的登记与产物（仅全局面）")
-  .option("--dry-run", "预演（只预览将要移除的条目，不删文件）")
+  .option("--dry-run", "预演（按全量预览将要移除的条目，不删文件）")
   .option("--format <format>", "输出格式（json，输出到 stdout）")
-  .action(async (options: { scope?: string; skills?: string; source?: string; dryRun?: boolean; format?: string }) => {
+  .action(async (options: { scope?: string; skills?: string; all?: boolean; yes?: boolean; source?: string; dryRun?: boolean; format?: string }) => {
     try {
       if (!assertJsonFormat(options.format)) return
       const scope = resolveScopeChoice(options.scope)
@@ -1248,23 +1265,85 @@ skillsCmd
         process.exitCode = 1
         return
       }
+      if (options.all && names !== undefined) {
+        console.error("⚠️ --skills 与 --all 互斥，未执行卸载")
+        process.exitCode = 1
+        return
+      }
+      if (options.yes && !options.all) console.warn("⚠️ --yes 仅配合 --all 使用，已忽略")
       if (options.source !== undefined && scope.choice !== "global") console.warn("⚠️ --source 仅作用于全局面；项目面按全部来源清理")
       const dryRun = Boolean(options.dryRun)
       const runProject = scope.choice !== "global"
       const runGlobal = scope.choice !== "project"
-      // 无参全量卸载时询问是否连同疑似残留一并清理；显式点名、指定来源与非 TTY 环境保持原行为
-      let staleReport: SkillsRemoveReport | null = null
-      if (runGlobal && names === undefined && options.source === undefined && readSkillsState() !== null) {
-        const stale = await confirmStaleCleanup(dryRun)
-        if (stale.cancelled) {
-          console.error("已取消，未执行任何清理")
-          process.exitCode = 130
-          return
+      // --format json 视为非交互：交互 UI 不写入 stdout，避免污染机器可读输出
+      const interactive = isInteractiveTty() && options.format !== "json"
+      let globalNames: string[] | undefined = names
+      let projectNames: string[] | undefined = names
+      // 全量口径：显式 --all，或裸命令预演（预演不删除，沿用原预览行为）
+      const allScope = names === undefined && (Boolean(options.all) || dryRun)
+      let staleNames: string[] = []
+      if (names === undefined) {
+        if (!allScope) {
+          // 裸命令：交互多选；非交互报错给用法，不再默认全删
+          if (!interactive) {
+            console.error("⚠️ 未指定要卸载的技能：精确卸载用 --skills a,b，全量卸载用 --all（非交互须加 --yes）")
+            process.exitCode = 1
+            return
+          }
+          const candidates = collectUninstallCandidates(runGlobal, runProject)
+          if (candidates.length === 0) {
+            console.log("没有可卸载的技能")
+            return
+          }
+          const picked = await promptUninstallSelection(candidates)
+          if (picked === null) {
+            console.error("已取消，未执行任何清理")
+            process.exitCode = 130
+            return
+          }
+          if (picked.length === 0) {
+            console.log("未选择任何技能，未执行卸载")
+            return
+          }
+          globalNames = []
+          projectNames = []
+          for (const value of picked) {
+            if (value.startsWith("s:")) staleNames.push(value.slice(2))
+            else if (value.startsWith("p:")) projectNames.push(value.slice(2))
+            else globalNames.push(value.slice(2))
+          }
+        } else {
+          if (runGlobal) staleNames = staleArtifactNames()
+          // --all 实跑需确认（默认否）；预演不询问
+          if (!dryRun) {
+            if (!interactive) {
+              if (!options.yes) {
+                console.error("⚠️ 非交互环境执行全量卸载需显式加 --yes，未执行卸载")
+                process.exitCode = 1
+                return
+              }
+            } else {
+              const staleText = staleNames.length > 0 ? `，并清理疑似残留 ${staleNames.length} 项` : ""
+              const answer = await promptConfirm(`将卸载已登记的 ${registeredSkillCount(runGlobal, runProject)} 项${staleText}，是否继续？`, false)
+              if (answer === null) {
+                console.error("已取消，未执行任何清理")
+                process.exitCode = 130
+                return
+              }
+              if (!answer) {
+                console.log("已取消，未执行任何清理")
+                return
+              }
+            }
+          }
         }
-        staleReport = stale.report
       }
-      const project = runProject ? removeProjectSkills({ dryRun, skills: names }) : null
-      const global = mergeRemoveReports(runGlobal ? removeSkills({ dryRun, skills: names, source: options.source }) : null, staleReport)
+      // 先摘疑似残留：全量清理会删除状态文件，之后 orphan 清理无从定位目标目录
+      const staleReport = staleNames.length > 0 ? removeSkills({ dryRun, skills: [...new Set(staleNames)] }) : null
+      const runFullGlobal = runGlobal && (allScope || (globalNames?.length ?? 0) > 0)
+      const runFullProject = runProject && (allScope || (projectNames?.length ?? 0) > 0)
+      const project = runFullProject ? removeProjectSkills({ dryRun, skills: allScope ? undefined : projectNames }) : null
+      const global = mergeRemoveReports(runFullGlobal ? removeSkills({ dryRun, skills: allScope ? undefined : globalNames, source: options.source }) : null, staleReport)
       // 显式点名的名字若在报告里完全未命中，说明未登记且产物无法确认归属：告警说明未删除，不静默成功
       if (names && names.length > 0) {
         const mentioned = new Set<string>()
