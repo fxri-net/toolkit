@@ -317,9 +317,11 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
           result.failed.push({ name: item.name, reason: (e as Error).message })
         }
       }
-      // 曾用名迁移：旧名产物能确认归属才清理（链接或同内容副本），其余留作冲突交人工
+      // 曾用名迁移：仅当新名本次已就绪（新建 / 更新 / 跳过）时才清理旧名，避免新名冲突或失败时两头落空
+      const readyNames = new Set([...result.created, ...result.updated, ...result.skipped])
       const removedAliases = new Set<string>()
       for (const item of items) {
+        if (!readyNames.has(item.name)) continue
         for (const old of item.previousNames) {
           const dest = join(target.dir, old)
           const kind = classifyExisting(dest, item.linkTarget, undefined, item.dir)

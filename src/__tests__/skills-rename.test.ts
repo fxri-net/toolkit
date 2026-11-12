@@ -350,6 +350,25 @@ describe("改名后的现场与状态", () => {
     expect(findUnselectedSkills(report).find((item) => item.source === "toolkit")?.names).toContain("fxri-plan-to-task")
   })
 
+  it("新名位置被占用导致冲突时，不清理旧名产物", () => {
+    const root = join(work, "src9")
+    writeSkill(join(root, "skills", "keep9"), "keep9", "1.0.0")
+    writeManifest(root, ["skills/keep9"])
+    const sources = [{ path: root, name: "ext", temporary: false }]
+    installSkills({ targets: ["canonical"], externalSources: sources, skills: ["keep9"] })
+    const canonical = join(home, ".agents", "skills")
+    renameSync(join(root, "skills", "keep9"), join(root, "skills", "keep9-new"))
+    writeSkill(join(root, "skills", "keep9-new"), "keep9-new", "2.0.0")
+    writeManifest(root, [{ path: "skills/keep9-new", previousNames: ["keep9"] }])
+    // 新名位置被用户目录占用：安装按同名冲突跳过，此时旧名不应被清理
+    mkdirSync(join(canonical, "keep9-new"), { recursive: true })
+    writeFileSync(join(canonical, "keep9-new", "own.txt"), "user", "utf8")
+    const report = installSkills({ targets: ["canonical"], externalSources: sources, skills: ["keep9-new"] })
+    expect(report.targets[0]!.conflicts).toContain("keep9-new")
+    expect(report.targets[0]!.migrated).toEqual([])
+    expect(lstatSync(join(canonical, "keep9")).isSymbolicLink()).toBe(true)
+  })
+
   it("本次零装不把来源选择集写成空数组", () => {
     const root = join(work, "src6")
     writeSkill(join(root, "skills", "alpha"), "alpha", "1.0.0")
