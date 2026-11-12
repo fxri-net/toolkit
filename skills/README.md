@@ -46,8 +46,9 @@ toolkit skills uninstall       # 卸载本包装的产物（只清自己装的�
   - `--dir` 可多次指定，供表外 agent 使用；只在当次安装时写入，技能增删后需带相同 `--dir` 重跑 `toolkit skills install`
   - 升级前的 Codex / Pi 历史落点（`~/.codex/skills`、`~/.pi/agent/skills`）若仍有本包登记，`toolkit skills status` 会单列「历史落点残留」提示清理（只提示、不自动删除）
   - 指向技能源缓存或本包技能目录、却未在任何来源 / 状态登记的链接，`toolkit skills status` 会单列「疑似残留」提示清理（同样只提示，确认后按名字 `uninstall --skills`）
-- **技能改名**：外部来源可在 `skills.json` 条目或 `SKILL.md` frontmatter 声明 `previousNames`；安装时选择集与状态按别名迁移、旧名产物按归属清理。
-  未声明时也不会丢：旧名断链保留登记并在 `status` 报出，来源整份名单失效时按默认口径重算（内置取 `core`、外部取全部）
+- **技能改名**：外部来源可在 `skills.json` 条目或 `SKILL.md` frontmatter 声明 `previousNames`
+  - 安装时选择集与状态按别名迁移、旧名产物按归属清理；新名冲突或失败时保留旧名，沿用既有冲突 / 失败报告
+  - 未声明时也不会丢：旧名断链保留登记并在 `status` 报出，来源整份名单失效时按默认口径重算（内置取 `core`、外部取全部）
 - 默认软链（锚在 pnpm 稳定入口，升级不失效）；链接创建失败自动降级为副本并打印 ⚠️（如无权限建链）；`--copy` 强制副本、`--dry-run` 预演、
    `--force` 覆盖同名非本包产物（不改本包已登记副本的形态）、`--prune` 清理未选择且内容一致的旧产物
 - 改 `skills/` 须发版才触达用户：技能随包同源分发，调整只有随 `@fxri/toolkit` 发版、使用者升级后才生效（软链自动跟随新包），未发版的改动只存在于本仓库

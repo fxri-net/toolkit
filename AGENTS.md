@@ -44,7 +44,8 @@
 
 - 跑 `pnpm verify`——**单一步骤清单真源**，步骤定义在 `scripts/verify.mjs`，
   本地与四处 CI（GitHub `check` / `windows` / `macos`、GitLab `test`）调用同一份；
-  **禁止在本文件或 CI 配置里另写步骤枚举**，那是清单漂移的根因。跨平台裁剪用 `pnpm verify --skip-coverage --skip-docs`（windows、macos job 即此路径）。
+  **禁止在本文件或 CI 配置里另写步骤枚举**，那是清单漂移的根因。跨平台裁剪用 `pnpm verify --skip-coverage --skip-docs`（windows、macos job 即此路径）；
+  本地迭代用 `--local`（忽略 IDE / 终端注入的 `CI` 变量，恢复改动面裁剪与缓存），需强制全量时用 `--full`。
   任一步失败即不得交付，注意 `pnpm lint` 是 eslint 不做类型检查、`pnpm build` 亦不拦截类型错误，单跑二者不能替代本门禁；
   且类型检查须覆盖测试文件——基础 `tsconfig.json` 的 `exclude` 排除 `**/__tests__` 等测试路径，
   类型检查单独走放开该排除项的 `tsconfig.typecheck.json`，不得让测试文件落在盲区；
