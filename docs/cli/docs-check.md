@@ -95,6 +95,8 @@ export default defineConfig({
 
 ⚠️ 类型非法或枚举取值不认识的键按未写处理并回落默认，不产出半截配置；存在规则覆盖时命令会打印覆盖清单。
 
+⚠️ `docs theme` 没有规则 id，不参与 `docs.rules` 覆盖；主题模板的一致性仍由其自身命令判定。
+
 ## 数据结构
 
 - 侧栏两种形态：分组数组，或「路径前缀 → 分组数组」的对象（多路径侧栏）；两种形态的分组名都参与命名校验。
@@ -108,6 +110,18 @@ export default defineConfig({
 - `--format json` 输出 `{ schemaVersion, command, ruleVersion, ok, problems }`。
 - `problems` 每项含 `id` / `level` / `file` / `message` 四个字段。
 - `ruleVersion` 独立于包版本，规则或结构变化时才递增，便于下游门禁比对。
+
+### 规则版本
+
+| 命令 | ruleVersion | 变更 | 首次发布 |
+| --- | --- | --- | --- |
+| `docs nav check` | 1.0.0 | 初版规则 | 1.16.11 |
+| `docs nav check` | 1.1.0 | 支持顶栏二级分组；阈值改为可配置 | 1.16.12 |
+| `docs nav check` | 1.2.0 | 字段对齐 VitePress；schema 关键字守卫 | 1.16.12 |
+| `docs nav check` | 1.3.0 | 多路径侧栏与 `locales` 多语言 | 1.16.12 |
+| `docs nav check` | 1.4.0 | 接线断言 `nav/config-not-wired` | 1.16.12 |
+| `docs dist check` | 1.0.0 | 初版规则 | 1.16.11 |
+| `docs dist check` | 1.1.0 | sitemap 可降级；产物目录与搜索实现可配 | 1.16.12 |
 
 ## 相关页面
 

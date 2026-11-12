@@ -95,7 +95,9 @@ export function registerDocsCommands(program: Command): void {
       if (options.format === "json") {
         console.log(toJsonText({ command: "docs nav check", ruleVersion: NAV_RULES_VERSION, ok: result.ok, problems: result.problems }))
       } else if (result.ok) {
-        console.log(`导航校验通过：顶栏 ${result.navCount} 项、侧栏 ${result.sidebarCount} 组`)
+        // 多语言站标明语言包数量，避免把首个语言包的顶栏数当成全站
+        const scope = result.localeCount > 1 ? `${result.localeCount} 个语言包、` : ""
+        console.log(`导航校验通过：${scope}顶栏 ${result.navCount} 项、侧栏 ${result.sidebarCount} 组`)
       } else {
         console.error(`⚠️ 导航校验失败（${result.problems.filter((problem) => problem.level === "error").length} 项）`)
       }
@@ -128,7 +130,8 @@ export function registerDocsCommands(program: Command): void {
       } else if (result.skipped) {
         console.log(`跳过文档站产物校验：未找到 ${config.dist.dir}（需先执行文档站构建）`)
       } else if (result.ok) {
-        console.log("文档站产物校验通过：sitemap 不含 404、搜索索引不含 404 页")
+        // 未跑搜索索引断言时如实说明，不宣称未校验的项通过
+        console.log(result.searchChecked ? "文档站产物校验通过：sitemap 不含 404、搜索索引不含 404 页" : "文档站产物校验通过：sitemap 不含 404（未校验搜索索引）")
       } else {
         console.error(`⚠️ 文档站产物校验失败（${result.problems.filter((problem) => problem.level === "error").length} 项）`)
       }

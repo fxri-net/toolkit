@@ -14,11 +14,12 @@ import type { DocsProblem, ProblemLevel } from "./types"
 // 1.4.0：新增配置接线断言（数据文件未被站点配置引用时报错）
 export const NAV_RULES_VERSION = "1.4.0"
 
-// 校验结果：navCount / sidebarCount 供人类输出汇总
+// 校验结果：navCount / sidebarCount 供人类输出汇总，localeCount 标明语言包数量
 export interface NavCheckResult {
   ok: boolean
   navCount: number
   sidebarCount: number
+  localeCount: number
   problems: DocsProblem[]
 }
 
@@ -245,7 +246,7 @@ export function checkDocsNav(
     const effective = effectiveLevel(rules, id, level)
     if (effective) problems.push({ id, level: effective, file, message })
   }
-  const failed = (): NavCheckResult => ({ ok: false, navCount: 0, sidebarCount: 0, problems })
+  const failed = (): NavCheckResult => ({ ok: false, navCount: 0, sidebarCount: 0, localeCount: 0, problems })
 
   if (!existsSync(navFile)) {
     add(
@@ -346,6 +347,7 @@ export function checkDocsNav(
     ok: !problems.some((problem) => problem.level === "error"),
     navCount: locales[0]?.nav.length ?? 0,
     sidebarCount: locales.reduce((sum, locale) => sum + sidebarGroups(locale.sidebar).length, 0),
+    localeCount: locales.length,
     problems,
   }
 }

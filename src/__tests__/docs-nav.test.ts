@@ -222,6 +222,7 @@ describe("checkDocsNav", () => {
       config: { locales: { en: { firstItem: "Getting Started", lastItem: "Help", helpChildren: ["FAQ", "Changelog"] } } },
     })
     expect(configured.ok).toBe(true)
+    expect(configured.localeCount).toBe(2)
     expect(configured.problems.map((problem) => problem.id)).not.toContain("nav/locale-unconfigured")
   })
 

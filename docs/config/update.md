@@ -39,7 +39,7 @@ registry 解析顺序（前者优先）：
 提示只在**命令成功**（退出码 0）时输出。以下情形不输出文本提示：
 
 - `--help` / `help` 子命令 / 裸 `toolkit`
-- `skills path` / `skills status` / `tasks export` / `docs theme`
+- `skills path` / `skills status` / `tasks export` / `docs` 全域（输出会被门禁直接消费）
 - `changelog` 的非 version / format / doc 子命令
 - `--format json`
 

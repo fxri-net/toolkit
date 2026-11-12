@@ -13,6 +13,8 @@ export interface DistCheckResult {
   ok: boolean
   // 产物不存在时为 true：由调用方决定是提示漏跑构建还是静默跳过
   skipped: boolean
+  // 是否真的跑了搜索索引断言：searchProvider 为 none 时不跑，输出文案须如实说明
+  searchChecked: boolean
   problems: DocsProblem[]
 }
 
@@ -45,7 +47,7 @@ export function checkDocsDist(
     if (effective) problems.push({ id, level: effective, file, message })
   }
 
-  if (!existsSync(distDir)) return { ok: true, skipped: true, problems }
+  if (!existsSync(distDir)) return { ok: true, skipped: true, searchChecked: false, problems }
 
   const sitemapFile = join(distDir, "sitemap.xml")
   if (!existsSync(sitemapFile)) {
@@ -61,7 +63,7 @@ export function checkDocsDist(
 
   // 站内搜索：仅本地搜索有可断言的索引分块，其他实现显式跳过
   if (cfg.searchProvider === "none") {
-    return { ok: !problems.some((problem) => problem.level === "error"), skipped: false, problems }
+    return { ok: !problems.some((problem) => problem.level === "error"), skipped: false, searchChecked: false, problems }
   }
   const title = notFoundTitle(docsDir)
   if (!title) {
@@ -81,5 +83,5 @@ export function checkDocsDist(
     }
   }
 
-  return { ok: !problems.some((problem) => problem.level === "error"), skipped: false, problems }
+  return { ok: !problems.some((problem) => problem.level === "error"), skipped: false, searchChecked: true, problems }
 }

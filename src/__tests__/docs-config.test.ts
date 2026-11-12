@@ -146,6 +146,7 @@ describe("配置对校验行为的实际影响", () => {
     writeFileSync(join(dist, "sitemap.xml"), "<urlset></urlset>", "utf8")
     const result = checkDocsDist(docsDir, { config: { searchProvider: "none" } })
     expect(result.ok).toBe(true)
+    expect(result.searchChecked).toBe(false)
     expect(result.problems).toEqual([])
   })
 })
