@@ -147,6 +147,15 @@ function displayPath(abs: string): string {
   return rel === "" || rel.startsWith("..") ? abs.split("\\").join("/") : rel
 }
 
+// 分组名收集：一级项一律参与，更深层级只取带子项的节点（纯页面条目豁免长度限制）
+function collectNavGroupNames(items: NavItemLike[], depth = 0, out: string[] = []): string[] {
+  for (const item of items) {
+    if (depth === 0 || item.items) out.push(item.text)
+    if (item.items) collectNavGroupNames(item.items, depth + 1, out)
+  }
+  return out
+}
+
 // 递归收集文档页，跳过构建产物与依赖目录
 function collectPages(dir: string, found: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -158,11 +167,11 @@ function collectPages(dir: string, found: string[] = []): string[] {
   return found
 }
 
-// 顶点结构：只取校验需要的字段，实际类型由 schema 保证
+// 导航项结构：下拉可再分级（如「参考 → 内核 / 数据」），故 items 与自身同构
 interface NavItemLike {
   text: string
   link?: string
-  items?: Array<{ text: string; link: string }>
+  items?: NavItemLike[]
 }
 interface SidebarGroupLike {
   text: string
@@ -225,7 +234,7 @@ export function checkDocsNav(docsDir: string, options: { schemaFile?: string } =
     }
   }
 
-  for (const name of [...nav.map((item) => item.text), ...sidebar.map((group) => group.text)]) {
+  for (const name of [...collectNavGroupNames(nav), ...sidebar.map((group) => group.text)]) {
     if (hanCount(name) > MAX_GROUP_HAN) add("nav/group-name-length", `分组名「${name}」超过 ${MAX_GROUP_HAN} 个汉字`)
   }
 

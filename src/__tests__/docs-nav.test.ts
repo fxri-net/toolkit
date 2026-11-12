@@ -125,6 +125,34 @@ describe("checkDocsNav", () => {
     expect(ids()).toContain("nav/not-found-page")
   })
 
+  it("顶栏下拉支持二级分组，分组名同样受字数限制", () => {
+    writeSite({
+      ...MINIMAL,
+      nav: [
+        { text: "快速开始", link: "/start" },
+        {
+          text: "参考",
+          items: [
+            { text: "内核", items: [{ text: "装配", link: "/kernel" }] },
+            { text: "数据", items: [{ text: "参数", link: "/param" }] },
+          ],
+        },
+        { text: "帮助", items: [{ text: "常见问题", link: "/faq" }, { text: "更新日志", link: "/changelog" }] },
+      ],
+    })
+    expect(checkDocsNav(dir).ok).toBe(true)
+
+    writeSite({
+      ...MINIMAL,
+      nav: [
+        { text: "快速开始", link: "/start" },
+        { text: "参考", items: [{ text: "内核与装配", items: [{ text: "装配", link: "/kernel" }] }] },
+        { text: "帮助", items: [{ text: "常见问题", link: "/faq" }, { text: "更新日志", link: "/changelog" }] },
+      ],
+    })
+    expect(ids()).toContain("nav/group-name-length")
+  })
+
   it("单页超过 300 行只告警，不影响通过", () => {
     writeSite(MINIMAL)
     writeFileSync(join(dir, "long.md"), `${Array.from({ length: 301 }, (_, index) => `第 ${index} 行`).join("\n")}\n`)
