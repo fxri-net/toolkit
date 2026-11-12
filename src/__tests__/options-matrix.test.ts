@@ -533,6 +533,48 @@ describe("skills sources 外部来源口径", () => {
   })
 })
 
+describe("skills 选择集失效告警（CLI 口径）", () => {
+  const configFile = join(homeDir, ".toolkitrc.json")
+  const sourceRoot = join(sandbox, "expired-source")
+
+  // 写全局层配置：本块独立于其它 describe 的夹具
+  function writeConfig(data: unknown): void {
+    mkdirSync(dirname(configFile), { recursive: true })
+    writeFileSync(configFile, `${JSON.stringify(data, null, 2)}\n`, "utf8")
+  }
+
+  // 最小外部来源：清单声明一个现用技能，用来对照「旧名全失效」的自愈结果
+  function writeSource(): void {
+    mkdirSync(join(sourceRoot, "skills", "fresh"), { recursive: true })
+    writeFileSync(
+      join(sourceRoot, "skills", "fresh", "SKILL.md"),
+      '---\nname: fresh\ndescription: 失效告警用例\nmetadata:\n  version: "1.0.0"\n---\n\n# fresh\n',
+      "utf8",
+    )
+    writeFileSync(join(sourceRoot, "skills.json"), `${JSON.stringify({ formatVersion: 1, name: "expired", skills: ["skills/fresh"] }, null, 2)}\n`, "utf8")
+  }
+
+  it("整份名单失效时 install 向 stderr 告警且退出码 0，status 只读不重复告警", async () => {
+    rmSync(configFile, { force: true })
+    rmSync(sourceRoot, { recursive: true, force: true })
+    writeSource()
+    writeConfig({
+      skillsInstall: { sources: { expired: { root: sourceRoot } }, selection: { expired: ["old-a", "old-b"] } },
+    })
+    const install = await runCli(["skills", "install", "--yes"])
+    expect(install.code).toBe(0)
+    const warned = install.warn.join("\n")
+    expect(warned).toContain("已失效")
+    expect(warned).toContain("按默认口径重算")
+    expect(warned).toContain("old-a")
+    expect(warned).toContain("fresh")
+
+    const status = await runCli(["skills", "status"])
+    expect(status.code).toBe(0)
+    expect(status.warn.join("\n")).not.toContain("已失效")
+  })
+})
+
 describe("rules 命令参数边界", () => {
   it("--out 不写组合缓存，裸 compose 仍按原默认组合", async () => {
     const cache = join(homeDir, ".toolkit", "cache", "rules-selection.json")
