@@ -98,7 +98,9 @@ exports[`各域行为与错误路径 > changelog doc 校验 1`] = `
 --- stdout ---
 
 --- stderr ---
-⚠️ ENOENT: no such file or directory, open '<SANDBOX>/workspace/CHANGELOG.md'"
+⚠️ CHANGELOG 镜像不一致：第 1 行
+  期望：---
+  实际：# 更新日志"
 `;
 
 exports[`各域行为与错误路径 > changelog 格式化 1`] = `
@@ -113,6 +115,7 @@ exports[`各域行为与错误路径 > changelog 版本 1`] = `
 "退出码：0
 --- stdout ---
 无 CHANGELOG 需要更新
+CHANGELOG 镜像已更新：docs/changelog.md
 --- stderr ---
 ⚠️ 存在未归档的 active 任务，建议先归档再发版"
 `;
@@ -150,7 +153,7 @@ exports[`各域行为与错误路径 > config status JSON 1`] = `
 {
   "schemaVersion": 1,
   "summary": "共命中 1 层：项目层",
-  "cwd": "<SANDBOX>//workspace",
+  "cwd": "<SANDBOX>/workspace",
   "levels": [
     {
       "layer": "全局层",
@@ -162,7 +165,7 @@ exports[`各域行为与错误路径 > config status JSON 1`] = `
     },
     {
       "layer": "项目层",
-      "file": "<SANDBOX>//workspace//.toolkitrc.json",
+      "file": "<SANDBOX>/workspace/.toolkitrc.json",
       "present": true,
       "ignored": null,
       "sections": [
@@ -257,7 +260,7 @@ exports[`各域行为与错误路径 > conventions status JSON 1`] = `
   "schemaVersion": 1,
   "initialized": false,
   "tasksDir": ".tasks",
-  "dir": ".tasks//conventions",
+  "dir": ".tasks/conventions",
   "form": "none",
   "carrierVersion": null,
   "entries": 0,
@@ -266,11 +269,11 @@ exports[`各域行为与错误路径 > conventions status JSON 1`] = `
     {
       "level": "info",
       "scope": "形态",
-      "message": "未找到 .tasks//conventions/，先执行 toolkit init"
+      "message": "未找到 .tasks/conventions/，先执行 toolkit init"
     }
   ],
   "warnings": 0,
-  "summary": "未找到 .tasks//conventions/，先执行 toolkit init",
+  "summary": "未找到 .tasks/conventions/，先执行 toolkit init",
   "checkCoverage": {
     "covered": [],
     "uncovered": [],

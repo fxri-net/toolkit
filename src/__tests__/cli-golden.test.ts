@@ -48,14 +48,16 @@ const realHomes = [process.env.USERPROFILE, process.env.HOME, process.env.HOMEPA
   .filter((value): value is string => Boolean(value))
   .map((value) => value.replace(/[\\/]+$/, ""))
 
-// 输出归一化：路径折叠 + 当天日期折叠 + 行尾与分隔符统一
+// 输出归一化：路径折叠 + 版本折叠 + 行尾与分隔符统一
 function normalize(text: string): string {
   let out = text.replace(/\r\n/g, "\n")
-  const replacements: Array<[string, string]> = [
+  const base: Array<[string, string]> = [
     [sandbox, "<SANDBOX>"],
     [repoRoot, "<REPO>"],
     ...realHomes.map((home): [string, string] => [home, "<HOME>"]),
   ]
+  // macOS 的 /tmp、/var 是符号链接，真实路径带 /private 前缀：两种形态都要折叠
+  const replacements = [...base.flatMap(([from, to]): Array<[string, string]> => [[`/private${from}`, to], [from, to]])]
   for (const [from, to] of replacements) {
     // JSON 输出会把反斜杠转义为双反斜杠，三种形态都要折叠，否则分隔符归一后会出现 <SANDBOX> 未命中的 // 片段
     out = out.split(from).join(to)
@@ -64,7 +66,8 @@ function normalize(text: string): string {
   }
   // 仅折叠 toolkit 自身版本，技能版本号原样保留，保持对技能版本变化的检出
   out = out.split(toolkitVersion).join("<VERSION>")
-  return out.replace(/\\/g, "/")
+  // 反斜杠统一后再折叠重复斜杠：Windows 的 JSON 转义会留下 //，POSIX 只有单斜杠；保留 :// 以不影响 URL
+  return out.replace(/\\/g, "/").replace(/([^:])\/{2,}/g, "$1/")
 }
 
 // 单次 CLI 运行的观测结果
@@ -244,6 +247,9 @@ beforeAll(() => {
   putFile(workspace, ".tasks/active/202611/20261111-唐启云-基线示例已完成任务.md", DONE_TASK)
   putFile(workspace, ".tasks/archive/202610/20261030.md", ARCHIVE_FILE)
   putFile(workspace, ".changeset/golden-change.md", '---\n"@fxri/toolkit": patch\n---\n\n- 优化：基线夹具示例条目\n')
+  // CHANGELOG 夹具：让 changelog doc --check 走「不一致」比对分支，避免 ENOENT 文案在 Windows / POSIX 写法不同
+  putFile(workspace, "CHANGELOG.md", "# 方弦工具集\n\n## 1.0.0\n\n> 2026-11-12 发布\n\n### ✨ 新增功能\n\n- 示例条目\n")
+  putFile(workspace, "docs/changelog.md", "# 更新日志\n")
 })
 
 beforeEach(() => {
