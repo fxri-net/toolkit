@@ -112,60 +112,15 @@ function resolvePage(page: string, anchorsOf: Map<string, Set<string>>): string 
   return null
 }
 
-// 导航规范：与 playbook fxri-docs-profile 同源，只断言可稳定检出的部分
-describe("文档一致性：导航规范", () => {
-  const config = readDoc("docs/.vitepress/config.mts")
-  // 顶栏与侧栏源码切片：只取 nav / sidebar 两段，避免页面内同名文案干扰
-  const navSrc = /nav:\s*\[([\s\S]*?)\],\s*sidebar:\s*\[/.exec(config)?.[1] ?? ""
-  const sidebarSrc = /sidebar:\s*\[([\s\S]*?)\/\/ 本地搜索/.exec(config)?.[1] ?? ""
-  // 顶栏一级项：以 6 空格缩进的 `{` 起始，取该条目首个 text
-  const navItems = [...navSrc.matchAll(/^\s{6}\{[\s\S]*?text:\s*'([^']+)'/gm)].map((m) => m[1] as string)
-  // 侧栏一级分组：text 行缩进 8 空格（更深的层级是页面条目与子分组）
-  const groupNames = [...sidebarSrc.matchAll(/^\s{8}text:\s*'([^']+)'/gm)].map((m) => m[1] as string)
-  // 汉字计数：英文专有名词（CLI / API / AI）不计入
-  const hanCount = (text: string) => [...text].filter((ch) => /[\u4e00-\u9fa5]/.test(ch)).length
-
-  it("顶栏不超过 5 项，首项为快速开始、末项为帮助", () => {
-    expect(navItems.length, "未解析到顶栏一级项").toBeGreaterThan(0)
-    expect(navItems.length).toBeLessThanOrEqual(5)
-    expect(navItems[0]).toBe("快速开始")
-    expect(navItems[navItems.length - 1]).toBe("帮助")
-  })
-
-  it("帮助下拉包含常见问题与更新日志", () => {
-    const helpBlock = /text:\s*'帮助',[\s\S]*?items:\s*\[([\s\S]*?)\]/.exec(navSrc)?.[1] ?? ""
-    expect(helpBlock, "顶栏未找到帮助分组").toBeTruthy()
-    expect(helpBlock).toContain("常见问题")
-    expect(helpBlock).toContain("更新日志")
-  })
-
-  it("顶栏一级项与侧栏一级分组名均不超过 4 个汉字", () => {
-    expect(groupNames.length, "未解析到侧栏一级分组").toBeGreaterThan(0)
-    expect(navItems.filter((name) => hanCount(name) > 4)).toEqual([])
-    expect(groupNames.filter((name) => hanCount(name) > 4)).toEqual([])
-  })
-
+// 导航数据已抽为 docs/site-nav.json（单一真源）：结构与命名规则由 `toolkit docs nav check` 校验，
+// 此处只保留无法机检的旧称呼清理，避免同一事实两处维护
+describe("文档一致性：导航文案", () => {
   it("不出现裸 FAQ、新手指南等旧称呼", () => {
     for (const page of collectMarkdown("docs", []).filter((file) => !file.endsWith("/changelog.md"))) {
       const text = readDoc(page)
       expect(text.includes("新手指南"), `${page} 残留「新手指南」`).toBe(false)
       expect(/\[FAQ\]|^# FAQ$/m.test(text), `${page} 残留 FAQ 旧称呼`).toBe(false)
     }
-  })
-
-  it("404 页不进站点地图：sitemap 段含过滤 404 的 transformItems", () => {
-    // 只取 sitemap 与 themeConfig 之间的片段，避免其他配置里的同名键干扰
-    const sitemapSrc = /sitemap:\s*\{([\s\S]*?)\n\s*\},\n\s*themeConfig/.exec(config)?.[1] ?? ""
-    expect(sitemapSrc, "站点配置未找到 sitemap 段").toBeTruthy()
-    expect(sitemapSrc).toContain("transformItems")
-    expect(sitemapSrc, "transformItems 未过滤 404 页").toMatch(/404/)
-  })
-
-  it("404 页不进站内搜索索引：frontmatter 含 search: false", () => {
-    // 行尾归一后再取 frontmatter：Windows 检出为 CRLF 时直接匹配会失效
-    const head = /^---\n([\s\S]*?)\n---/.exec(readDoc("docs/404.md").replace(/\r\n/g, "\n"))?.[1] ?? ""
-    expect(head, "docs/404.md 缺少 frontmatter").toBeTruthy()
-    expect(head).toMatch(/(^|\n)\s*search:\s*false\s*($|\n)/)
   })
 })
 
@@ -242,19 +197,19 @@ describe("文档一致性：站内链接目标与锚点可解析", () => {
 })
 
 // 站点导航/侧边栏链接不在 VitePress 死链检查范围内（实测改坏 nav 后 build 仍成功），
-// 故从配置里提取引号包裹的站内 link，落到 docs/ 下做存在性校验
+// 故从导航数据里提取站内 link，落到 docs/ 下做存在性校验
 describe("文档一致性：站点导航与侧边栏链接目标存在", () => {
-  it("docs/.vitepress/config.mts 的 nav / sidebar 站内链接都指向存在的文档页（路径打错或页面被删即失败）", () => {
-    // 只取引号包裹的 '/...' 写法：天然排除 socialLinks 的变量写法与 editLink.pattern 的 :path 模板
+  it("docs/site-nav.json 的站内链接都指向存在的文档页（路径打错或页面被删即失败）", () => {
+    // 只取以 / 开头的站内写法：外链（http…）与相对路径天然不参与
     const pages = new Map<string, Set<string>>(collectMarkdown("docs", []).map((p) => [p, new Set<string>()]))
     const problems: string[] = []
-    for (const matched of readDoc("docs/.vitepress/config.mts").matchAll(/link:\s*'(\/[^']*)'/g)) {
+    for (const matched of readDoc("docs/site-nav.json").matchAll(/"link":\s*"(\/[^"]*)"/g)) {
       const href = matched[1] as string
       const clean = (href.split("#")[0] as string).replace(/^\/+/, "")
       // 站点根链接（'/'）视作首页 docs/index.md
       const page = normalize(join("docs", clean === "" ? "index.md" : clean)).replace(/\\/g, "/")
       if (!resolvePage(page, pages)) {
-        problems.push(`docs/.vitepress/config.mts：导航链接「${href}」指向的页面 ${page} 不存在`)
+        problems.push(`docs/site-nav.json：导航链接「${href}」指向的页面 ${page} 不存在`)
       }
     }
     expect(problems).toEqual([])

@@ -205,10 +205,12 @@ const buildSteps = [
 const tailSteps = [
   // 仓库自检：与最近版本 tag 比对整句，提示可能被删掉的事实（只告警不阻断）
   { label: "文档无损（整句比对）", args: ["scripts/check-doc-loss.mjs"] },
+  // 导航校验读 docs/site-nav.json，规则随包分发（不依赖文档构建产物）
+  { label: "文档站导航规范（结构 / 命名 / 顶栏 / 侧栏）", args: ["dist/cli.js", "docs", "nav", "check"], env: cliEnv },
   // 镜像校验依赖 dist/cli.js，须置于构建之后；仅本仓自举产物，不依赖全局工具
   { label: "CHANGELOG 镜像一致（changelog doc --check）", args: ["dist/cli.js", "changelog", "doc", "--check"], env: cliEnv },
   // 产物断言依赖上一步 dist 与文档构建，跳过文档构建时一并跳过
-  { label: "文档站产物（404 排除站点地图与搜索索引）", args: ["scripts/check-docs-dist.mjs"], skip: docsSkip },
+  { label: "文档站产物（404 排除站点地图与搜索索引）", args: ["dist/cli.js", "docs", "dist", "check"], skip: docsSkip, env: cliEnv },
   { label: "CLI 冒烟 --help", args: ["dist/cli.js", "--help"], env: cliEnv },
   { label: "CLI 冒烟 tasks --help", args: ["dist/cli.js", "tasks", "--help"], env: cliEnv },
   { label: "CLI 冒烟 changelog --help", args: ["dist/cli.js", "changelog", "--help"], env: cliEnv },

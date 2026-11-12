@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitepress'
 import { DESCRIPTION } from '../../src/about'
+import siteNav from '../site-nav.json'
 
 // 站点基础路径：默认按 GitHub Pages 子路径 /toolkit/，其他部署场景经 VITEPRESS_BASE 环境变量覆盖
 const base = process.env.VITEPRESS_BASE || '/toolkit/'
@@ -43,119 +44,9 @@ export default defineConfig({
   themeConfig: {
     // 导航栏 logo（字符串路径由 VitePress 自动拼接 base 前缀）
     logo: '/logo.png',
-    nav: [
-      { text: '快速开始', link: '/getting-started' },
-      {
-        text: '指南',
-        items: [
-          { text: '操作手册', link: '/handbook' },
-          { text: '完整攻略', link: '/guide' },
-        ],
-      },
-      {
-        text: '参考',
-        items: [
-          { text: 'CLI 参考', link: '/cli' },
-          { text: 'API 参考', link: '/api' },
-          { text: '配置参考', link: '/config' },
-        ],
-      },
-      {
-        text: '全局规则',
-        items: [
-          { text: '规则组合', link: '/rules/' },
-          { text: 'AI 全局规则', link: '/rules/ai' },
-          { text: '提交信息规则', link: '/rules/commit' },
-          { text: '技能使用情况规则', link: '/rules/usage' },
-        ],
-      },
-      {
-        text: '帮助',
-        items: [
-          { text: '常见问题', link: '/faq' },
-          { text: '更新日志', link: '/changelog' },
-        ],
-      },
-    ],
-    sidebar: [
-      {
-        text: '开始',
-        items: [
-          { text: '首页', link: '/' },
-          { text: '快速开始', link: '/getting-started' },
-          { text: '推荐技能包', link: '/packages' },
-        ],
-      },
-      {
-        text: '指南',
-        items: [
-          { text: '操作手册', link: '/handbook' },
-          { text: '完整攻略', link: '/guide' },
-        ],
-      },
-      {
-        text: '参考',
-        items: [
-          {
-            text: 'CLI 参考',
-            link: '/cli',
-            collapsed: false,
-            items: [
-              { text: '任务区', link: '/cli/tasks' },
-              { text: '初始化', link: '/cli/init' },
-              { text: '规范载体', link: '/cli/conventions' },
-              { text: '发版与更新日志', link: '/cli/changelog' },
-              { text: '技能分发', link: '/cli/skills' },
-              { text: '技能使用情况', link: '/cli/usage' },
-              { text: '全局规则', link: '/cli/rules' },
-              { text: '配置体检', link: '/cli/config' },
-              { text: '文档站主题', link: '/cli/docs-theme' },
-              { text: '退出码', link: '/cli/exit-codes' },
-            ],
-          },
-          { text: 'API 参考', link: '/api' },
-          {
-            text: '配置参考',
-            link: '/config',
-            collapsed: false,
-            items: [
-              { text: '脱敏', link: '/config/redact' },
-              { text: '校验与任务区', link: '/config/check-tasks' },
-              { text: '语言与镜像', link: '/config/changelog' },
-              { text: '升级检查', link: '/config/update' },
-              { text: '技能分发', link: '/config/skills' },
-              { text: '缓存目录', link: '/config/cache' },
-            ],
-          },
-        ],
-      },
-      {
-        text: '使用统计',
-        items: [
-          { text: '概览', link: '/usage/' },
-          { text: '配置', link: '/usage/configuration' },
-          { text: 'Agent 接入', link: '/usage/agents' },
-          { text: '隐私与数据边界', link: '/usage/privacy' },
-          { text: '事件 Schema', link: '/usage/schema' },
-        ],
-      },
-      {
-        text: '全局规则',
-        items: [
-          { text: '规则组合', link: '/rules/' },
-          { text: 'AI 全局规则', link: '/rules/ai' },
-          { text: '提交信息规则', link: '/rules/commit' },
-          { text: '技能使用情况规则', link: '/rules/usage' },
-        ],
-      },
-      {
-        text: '帮助',
-        items: [
-          { text: '常见问题', link: '/faq' },
-          { text: '更新日志', link: '/changelog' },
-        ],
-      },
-    ],
+    // 导航与侧栏的唯一真源：docs/site-nav.json（toolkit docs nav check 按同一份数据校验）
+    nav: siteNav.nav,
+    sidebar: siteNav.sidebar,
     // 本地搜索 + 中文界面文案
     search: {
       provider: 'local',

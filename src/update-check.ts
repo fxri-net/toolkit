@@ -411,7 +411,8 @@ function shouldSkipHint(argv: string[]): boolean {
   if (argv[0] === "skills" && argv[1] === "path") return true
   if (argv[0] === "skills" && argv[1] === "status") return true
   if (argv[0] === "tasks" && argv[1] === "export") return true
-  if (argv[0] === "docs" && argv[1] === "theme") return true
+  // 文档站命令的输出会被门禁直接消费，不追加升级提示
+  if (argv[0] === "docs") return true
   if (argv[0] === "changelog" && !["version", "format", "doc"].includes(argv[1] ?? "")) return true
   return hasJsonFormat(argv)
 }

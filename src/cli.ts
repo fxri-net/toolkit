@@ -21,6 +21,9 @@ import { localDate, formatChangelogs, countUntypedEntries, findUntypedChangesetE
 import { auditChangesets, formatAuditReport } from "./changelog/audit"
 import { checkDoc, resolveDocOptions, syncDoc, syncDocAfterVersion } from "./changelog/doc"
 import { checkDocsTheme, writeDocsTheme } from "./docs/theme"
+import { checkDocsDist, DIST_RULES_VERSION } from "./docs/dist"
+import { checkDocsNav, NAV_RULES_VERSION } from "./docs/nav"
+import type { DocsProblem } from "./docs/types"
 import { resolveRedactEnabled } from "./privacy/redact"
 import { resolveEnabled } from "./switch"
 import { getConfigSection, getHomeDir, resolveTasksDir } from "./config"
@@ -1933,8 +1936,8 @@ configCmd.action(() => {
   configCmd.help()
 })
 
-// docs 域：文档站工具，当前提供统一主题模板的校验与写入
-const docsCmd = program.command("docs").description("文档站工具：统一主题模板的校验与写入")
+// docs 域：文档站工具，提供主题、导航与构建产物的校验与写入
+const docsCmd = program.command("docs").description("文档站工具：主题、导航与产物的校验与写入")
 
 // 默认主题目录：VitePress 约定的 docs/.vitepress/theme
 const THEME_DIR = "docs/.vitepress/theme"
@@ -1980,6 +1983,69 @@ themeCmd
       console.error(`⚠️ ${(e as Error).message}`)
       process.exitCode = 1
     }
+  })
+
+// 默认文档目录：VitePress 约定的 docs
+const DOCS_DIR = "docs"
+
+// 文档站校验问题输出：warn 用 ⚠️、error 用 ✖，附规则 id 便于对照文档
+function printDocsProblems(problems: DocsProblem[]): void {
+  for (const problem of problems) {
+    const mark = problem.level === "warn" ? "⚠️" : "✖"
+    console.error(`  ${mark} [${problem.id}] ${problem.message}（${problem.file}）`)
+  }
+}
+
+const navCmd = docsCmd.command("nav").description("文档站导航：按 site-nav.json 校验顶栏、侧栏、命名与页面体量")
+navCmd.action(() => {
+  navCmd.help()
+})
+
+navCmd
+  .command("check")
+  .description("校验 docs/site-nav.json 的结构与导航规则（数据单一真源，不解析站点配置）")
+  .option("--dir <path>", `文档目录（默认 ${DOCS_DIR}）`)
+  .option("--format <format>", "输出格式（json）")
+  .action((options: { dir?: string; format?: string }) => {
+    if (!assertJsonFormat(options.format)) return
+    const result = checkDocsNav(resolve(options.dir ?? DOCS_DIR))
+    if (options.format === "json") {
+      console.log(toJsonText({ command: "docs nav check", ruleVersion: NAV_RULES_VERSION, ok: result.ok, problems: result.problems }))
+    } else if (result.ok) {
+      console.log(`导航校验通过：顶栏 ${result.navCount} 项、侧栏 ${result.sidebarCount} 组`)
+    } else {
+      console.error(`⚠️ 导航校验失败（${result.problems.filter((problem) => problem.level === "error").length} 项）`)
+    }
+    if (options.format !== "json") printDocsProblems(result.problems)
+    if (!result.ok) process.exitCode = 1
+  })
+
+const distCmd = docsCmd.command("dist").description("文档站产物：校验 404 不进站点地图与站内搜索索引（需先构建）")
+distCmd.action(() => {
+  distCmd.help()
+})
+
+distCmd
+  .command("check")
+  .description("校验构建产物：404 页不进 sitemap 与站内搜索索引（产物缺失时跳过）")
+  .option("--dir <path>", `文档目录（默认 ${DOCS_DIR}）`)
+  .option("--format <format>", "输出格式（json）")
+  .action((options: { dir?: string; format?: string }) => {
+    if (!assertJsonFormat(options.format)) return
+    const result = checkDocsDist(resolve(options.dir ?? DOCS_DIR))
+    if (options.format === "json") {
+      console.log(
+        toJsonText({ command: "docs dist check", ruleVersion: DIST_RULES_VERSION, ok: result.ok, skipped: result.skipped, problems: result.problems }),
+      )
+    } else if (result.skipped) {
+      console.log("跳过文档站产物校验：未找到 .vitepress/dist（需先执行文档站构建）")
+    } else if (result.ok) {
+      console.log("文档站产物校验通过：sitemap 不含 404、搜索索引不含 404 页")
+    } else {
+      console.error(`⚠️ 文档站产物校验失败（${result.problems.filter((problem) => problem.level === "error").length} 项）`)
+    }
+    if (options.format !== "json") printDocsProblems(result.problems)
+    if (!result.ok) process.exitCode = 1
   })
 
 // 裸 `toolkit docs`：打印本域帮助

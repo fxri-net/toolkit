@@ -16,7 +16,7 @@
 | `toolkit usage` | 技能使用情况：开关、统计、导出与诊断（默认关闭） | `info` / `stats` / `export` / `doctor` | [usage](./cli/usage) |
 | `toolkit rules` | 全局规则：列出模块、组合输出与缓存管理 | `list` / `compose` / `reset` | [rules](./cli/rules) |
 | `toolkit config` | 配置分层只读体检 | `status` | [config](./cli/config) |
-| `toolkit docs` | 文档站主题校验与写入 | `theme` | [docs theme](./cli/docs-theme) |
+| `toolkit docs` | 文档站主题校验与写入、导航与产物校验 | `theme` / `nav` / `dist` | [docs theme](./cli/docs-theme) · [docs 校验](./cli/docs-check) |
 | `toolkit help` | 显示帮助 | — | — |
 
 ## 按场景找命令
@@ -33,6 +33,7 @@
 | 规范沉淀 | `toolkit conventions status` → `toolkit conventions upgrade` / `format` |
 | 排查配置 | `toolkit config status`（不打印配置值） |
 | 文档站主题漂移 | `toolkit docs theme check` |
+| 文档站导航或产物不合规 | `toolkit docs nav check` / `toolkit docs dist check` |
 
 ## 全局约定
 
@@ -78,7 +79,7 @@
 
 - `status` / `info` 只汇总现状，退出码恒 0
 - `doctor` 输出问题与修复建议，退出码恒 0
-- `check`（`tasks check`、`docs theme check`）发现问题时退出 1，可直接作为门禁步骤
+- `check`（`tasks check`、`docs theme check`、`docs nav check`、`docs dist check`）发现问题时退出 1，可直接作为门禁步骤
 
 ## 相关页面
 
