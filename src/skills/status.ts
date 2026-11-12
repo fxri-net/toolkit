@@ -479,7 +479,11 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
 // ===== 文本层补充视图（不进 JSON 报告契约） =====
 
 // 来源内存在但不在选择集的技能：供 status 一行汇总，避免改名 / 新增后静默不可见
-export function findUnselectedSkills(report: SkillsStatusReport): Array<{ source: string; names: string[] }> {
+// 入参只依赖 sources 与 selection，全局面与项目面报告结构均可直接传入
+export function findUnselectedSkills(report: {
+  sources: Array<{ name: string; skills: string[] }>
+  selection: string[]
+}): Array<{ source: string; names: string[] }> {
   const selected = new Set(report.selection)
   const out: Array<{ source: string; names: string[] }> = []
   for (const source of report.sources) {

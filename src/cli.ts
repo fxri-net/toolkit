@@ -635,6 +635,11 @@ function printProjectStatusReport(report: ProjectStatusReport): void {
   console.log(`项目面 · 技能真源：${report.sourceDir}`)
   console.log(`项目面 · 技能版本：${skillVersionLine(report)}`)
   console.log(`项目面 · 选择集（${report.selection.length}）：${report.selection.join("、") || "无"}`)
+  // 与全局面同口径：来源内存在但未选择的技能给出汇总，零选择时不刷清单
+  const unselectedProjectSkills = report.selection.length > 0 ? findUnselectedSkills(report) : []
+  for (const item of unselectedProjectSkills) {
+    console.log(`来源 ${item.source} 内未选择（不在选择集，也不计入问题）：${item.names.join("、")}`)
+  }
   console.log(`项目面 · 目录选择集：${report.targetSelection.length > 0 ? report.targetSelection.join("、") : "全部已存在候选目录（未保存过目录选择）"}`)
   for (const m of report.versionMismatches) {
     console.warn(`⚠️ 技能版本双写位不一致：${m.name}（frontmatter ${m.frontmatter} / 正文 ${m.body || "未声明"}）`)

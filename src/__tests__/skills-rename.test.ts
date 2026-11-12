@@ -7,6 +7,7 @@ import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import {
   findProjectRenamedArtifacts,
   findStaleArtifacts,
+  findUnselectedSkills,
   installProjectSkills,
   installSkills,
   projectSkillsStatus,
@@ -338,6 +339,15 @@ describe("改名后的现场与状态", () => {
     // 目标选择集排除 canonical：status 报告会折叠该目标，但残留仍应被扫到
     writeSkillsInstallConfig({ targets: ["github-copilot"] })
     expect(findStaleArtifacts(skillsStatus())).toContainEqual({ name: "zeta-old", dir: canonical })
+  })
+
+  it("项目面汇总列出未选择的来源技能", () => {
+    const root = join(work, "proj-unselected")
+    mkdirSync(root, { recursive: true })
+    installProjectSkills({ cwd: root, targetDirs: [], skills: ["fxri-text-encoding"] })
+    const report = projectSkillsStatus(root)
+    expect(report.selection).toEqual(["fxri-text-encoding"])
+    expect(findUnselectedSkills(report).find((item) => item.source === "toolkit")?.names).toContain("fxri-plan-to-task")
   })
 
   it("本次零装不把来源选择集写成空数组", () => {
