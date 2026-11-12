@@ -52,6 +52,44 @@ export default defineConfig({
 | `dist/search-404` | error | 站内搜索索引分块含 404 页标题 |
 | `dist/search-index-missing` | warn | 未启用本地搜索，跳过 404 索引断言 |
 
+## 配置
+
+默认值即规范口径；站点可在 `.toolkitrc.json` 的 `docs` 段显式偏离（三层合并规则见[配置参考](../config)）。
+
+```json
+{
+  "docs": {
+    "nav": {
+      "maxItems": 5,
+      "maxGroupHan": 4,
+      "firstItem": "快速开始",
+      "lastItem": "帮助",
+      "helpChildren": ["常见问题", "更新日志"],
+      "maxPageLines": 300,
+      "pageSizeExclude": ["changelog.md"]
+    },
+    "dist": { "dir": ".vitepress/dist", "sitemap": "error", "searchProvider": "local" },
+    "rules": { "nav/page-size": "off" }
+  }
+}
+```
+
+| 键 | 默认 | 说明 |
+| --- | --- | --- |
+| `docs.nav.dir` | `docs` | 文档目录，`--dir` 优先 |
+| `docs.nav.maxItems` | `5` | 顶栏一级项上限 |
+| `docs.nav.maxGroupHan` | `4` | 分组名汉字上限 |
+| `docs.nav.firstItem` / `lastItem` | 快速开始 / 帮助 | 顶栏首末项文案 |
+| `docs.nav.helpChildren` | 常见问题、更新日志 | 末项下拉的必备项 |
+| `docs.nav.maxPageLines` | `300` | 单页体量告警阈值 |
+| `docs.nav.pageSizeExclude` | `changelog.md` | 不参与体量告警的文件 |
+| `docs.dist.dir` | `.vitepress/dist` | 产物目录，相对文档目录 |
+| `docs.dist.sitemap` | `error` | sitemap 缺失时按 `error` / `warn` / `off` 处置 |
+| `docs.dist.searchProvider` | `local` | 设 `none` 时跳过搜索索引断言 |
+| `docs.rules` | `{}` | 按规则 id 覆盖级别，`off` 关闭该规则 |
+
+⚠️ 类型非法或枚举取值不认识的键按未写处理并回落默认，不产出半截配置；存在规则覆盖时命令会打印覆盖清单。
+
 ## 退出码与输出
 
 - 存在 error 级问题退出 1，仅 warn 退出 0。

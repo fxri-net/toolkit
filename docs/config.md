@@ -100,7 +100,8 @@
   "skills":        { "autoLink": true, "autoLinkReplaceForeign": true },
   "skillsInstall": { "mode": "skills" },
   "projectSkills": { "mode": "skills" },
-  "usage":         { "enabled": false, "sources": {}, "skills": {}, "capture": {}, "storage": {}, "upload": {} }
+  "usage":         { "enabled": false, "sources": {}, "skills": {}, "capture": {}, "storage": {}, "upload": {} },
+  "docs":          { "nav": {}, "dist": {}, "rules": {} }
 }
 ```
 
@@ -118,6 +119,7 @@
 | [updateCheck（升级检查）](./config/update) | 提示频率、通道、registry、缓存与诊断 |
 | [skills 相关（技能分发）](./config/skills) | 软链自愈、全局与项目面安装偏好 |
 | [usage（技能使用情况）](./usage/configuration) | 总开关、来源、技能范围、字段、存储与上传；仅全局层 |
+| [docs（文档站校验）](./cli/docs-check#配置) | 导航阈值、产物目录、sitemap 策略、搜索实现与规则开关 |
 
 ## 相关页面
 

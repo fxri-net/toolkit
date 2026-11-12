@@ -2,10 +2,12 @@
 import { existsSync, readdirSync } from "node:fs"
 import { join, relative } from "node:path"
 import { readTextFile } from "../read-text"
-import type { DocsProblem } from "./types"
+import { DEFAULT_DOCS_DIST, effectiveLevel, type DocsDistConfig, type RuleSetting } from "./config"
+import type { DocsProblem, ProblemLevel } from "./types"
 
-// 规则版本：规则集变更时递增（与包版本无关），供下游门禁比对与 --format json 输出
-export const DIST_RULES_VERSION = "1.0.0"
+// 规则版本：规则或结构变更时递增（与包版本无关），供下游门禁比对与 --format json 输出
+// 1.1.0：sitemap 缺失可降级、产物目录与搜索实现可配置
+export const DIST_RULES_VERSION = "1.1.0"
 
 export interface DistCheckResult {
   ok: boolean
@@ -29,18 +31,26 @@ function notFoundTitle(docsDir: string): string {
 }
 
 // 校验构建产物：dist 不存在即跳过，其余断言全部基于真实产物
-export function checkDocsDist(docsDir: string): DistCheckResult {
+// config 未传时取规范默认值；rules 用于按规则 id 覆盖严重度或关闭
+export function checkDocsDist(
+  docsDir: string,
+  options: { config?: Partial<DocsDistConfig>; rules?: Record<string, RuleSetting> } = {},
+): DistCheckResult {
+  const cfg: DocsDistConfig = { ...DEFAULT_DOCS_DIST, ...options.config }
+  const rules = options.rules ?? {}
   const problems: DocsProblem[] = []
-  const distDir = join(docsDir, ".vitepress", "dist")
-  const add = (id: string, message: string, level: "error" | "warn" = "error", file = displayPath(distDir)): void => {
-    problems.push({ id, level, file, message })
+  const distDir = join(docsDir, cfg.dir)
+  const add = (id: string, message: string, level: ProblemLevel = "error", file = displayPath(distDir)): void => {
+    const effective = effectiveLevel(rules, id, level)
+    if (effective) problems.push({ id, level: effective, file, message })
   }
 
   if (!existsSync(distDir)) return { ok: true, skipped: true, problems }
 
   const sitemapFile = join(distDir, "sitemap.xml")
   if (!existsSync(sitemapFile)) {
-    add("dist/sitemap-missing", "缺少 sitemap.xml 产物", "error", displayPath(sitemapFile))
+    // 站点可有意禁用 sitemap：配置为 off 时整条断言跳过，warn 时只提示
+    if (cfg.sitemap !== "off") add("dist/sitemap-missing", "缺少 sitemap.xml 产物", cfg.sitemap, displayPath(sitemapFile))
   } else {
     // 兼容 cleanUrls 与默认 .html 两种写法：URL 可能是绝对地址、带前导斜杠或裸路径
     const hits = [...readTextFile(sitemapFile).matchAll(/<loc>([^<]+)<\/loc>/g)]
@@ -49,7 +59,10 @@ export function checkDocsDist(docsDir: string): DistCheckResult {
     if (hits.length > 0) add("dist/sitemap-404", `sitemap.xml 含 404 页：${hits.join("、")}`, "error", displayPath(sitemapFile))
   }
 
-  // 本地搜索索引按页分块，文件名形如 @localSearchIndexroot.<hash>.js
+  // 站内搜索：仅本地搜索有可断言的索引分块，其他实现显式跳过
+  if (cfg.searchProvider === "none") {
+    return { ok: !problems.some((problem) => problem.level === "error"), skipped: false, problems }
+  }
   const title = notFoundTitle(docsDir)
   if (!title) {
     add("dist/not-found-title", "docs/404.md 缺失或没有一级标题，无法断言搜索索引", "error", displayPath(join(docsDir, "404.md")))

@@ -4,6 +4,7 @@ import type { Command } from "commander"
 import { checkDocsTheme, writeDocsTheme } from "../docs/theme"
 import { checkDocsDist, DIST_RULES_VERSION } from "../docs/dist"
 import { checkDocsNav, NAV_RULES_VERSION } from "../docs/nav"
+import { overriddenRules, resolveDocsCheckConfig } from "../docs/config"
 import type { DocsProblem } from "../docs/types"
 import { assertJsonFormat, toJsonText } from "../json-output"
 
@@ -69,6 +70,13 @@ export function registerDocsCommands(program: Command): void {
     }
   }
 
+  // 规则覆盖提示：配置偏离默认时明示，避免把站点配置误读成规范变更
+  function printRuleOverrides(rules: Record<string, "off" | "error" | "warn">): void {
+    const ids = overriddenRules(rules)
+    if (ids.length === 0) return
+    console.log(`规则覆盖（来自 .toolkitrc）：${ids.map((id) => `${id}=${rules[id]}`).join("、")}`)
+  }
+
   const navCmd = docsCmd.command("nav").description("文档站导航：按 site-nav.json 校验顶栏、侧栏、命名与页面体量")
   navCmd.action(() => {
     navCmd.help()
@@ -81,7 +89,9 @@ export function registerDocsCommands(program: Command): void {
     .option("--format <format>", "输出格式（json）")
     .action((options: { dir?: string; format?: string }) => {
       if (!assertJsonFormat(options.format)) return
-      const result = checkDocsNav(resolve(options.dir ?? DOCS_DIR))
+      // 目录优先级：CLI --dir > 配置 docs.nav.dir > 默认 docs
+      const config = resolveDocsCheckConfig()
+      const result = checkDocsNav(resolve(options.dir ?? config.nav.dir), { config: config.nav, rules: config.rules })
       if (options.format === "json") {
         console.log(toJsonText({ command: "docs nav check", ruleVersion: NAV_RULES_VERSION, ok: result.ok, problems: result.problems }))
       } else if (result.ok) {
@@ -89,7 +99,10 @@ export function registerDocsCommands(program: Command): void {
       } else {
         console.error(`⚠️ 导航校验失败（${result.problems.filter((problem) => problem.level === "error").length} 项）`)
       }
-      if (options.format !== "json") printDocsProblems(result.problems)
+      if (options.format !== "json") {
+        printDocsProblems(result.problems)
+        printRuleOverrides(config.rules)
+      }
       if (!result.ok) process.exitCode = 1
     })
 
@@ -105,19 +118,24 @@ export function registerDocsCommands(program: Command): void {
     .option("--format <format>", "输出格式（json）")
     .action((options: { dir?: string; format?: string }) => {
       if (!assertJsonFormat(options.format)) return
-      const result = checkDocsDist(resolve(options.dir ?? DOCS_DIR))
+      // 目录优先级：CLI --dir > 配置 docs.nav.dir 所在文档目录 > 默认 docs
+      const config = resolveDocsCheckConfig()
+      const result = checkDocsDist(resolve(options.dir ?? config.nav.dir), { config: config.dist, rules: config.rules })
       if (options.format === "json") {
         console.log(
           toJsonText({ command: "docs dist check", ruleVersion: DIST_RULES_VERSION, ok: result.ok, skipped: result.skipped, problems: result.problems }),
         )
       } else if (result.skipped) {
-        console.log("跳过文档站产物校验：未找到 .vitepress/dist（需先执行文档站构建）")
+        console.log(`跳过文档站产物校验：未找到 ${config.dist.dir}（需先执行文档站构建）`)
       } else if (result.ok) {
         console.log("文档站产物校验通过：sitemap 不含 404、搜索索引不含 404 页")
       } else {
         console.error(`⚠️ 文档站产物校验失败（${result.problems.filter((problem) => problem.level === "error").length} 项）`)
       }
-      if (options.format !== "json") printDocsProblems(result.problems)
+      if (options.format !== "json") {
+        printDocsProblems(result.problems)
+        printRuleOverrides(config.rules)
+      }
       if (!result.ok) process.exitCode = 1
     })
 

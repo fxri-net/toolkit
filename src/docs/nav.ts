@@ -4,21 +4,12 @@ import { existsSync, readdirSync } from "node:fs"
 import { join, relative } from "node:path"
 import { readTextFile } from "../read-text"
 import { skillsPackageDir } from "../skills"
-import type { DocsProblem } from "./types"
+import { DEFAULT_DOCS_NAV, effectiveLevel, type DocsNavConfig, type RuleSetting } from "./config"
+import type { DocsProblem, ProblemLevel } from "./types"
 
-// 规则版本：规则集变更时递增（与包版本无关），供下游门禁比对与 --format json 输出
-export const NAV_RULES_VERSION = "1.0.0"
-
-// 顶栏一级项上限：超过即失去一眼扫完的导航
-const MAX_NAV_ITEMS = 5
-// 分组名汉字上限；英文专有名词（CLI / API）不计入
-const MAX_GROUP_HAN = 4
-// 单页体量告警阈值：只提示不阻断
-const MAX_PAGE_LINES = 300
-// 生成镜像页不参与体量告警：长度由发版流程决定，拆分无意义
-const PAGE_SIZE_EXCLUDED = new Set(["changelog.md"])
-// 帮助下拉的必备项
-const HELP_REQUIRED = ["常见问题", "更新日志"]
+// 规则版本：规则或结构变更时递增（与包版本无关），供下游门禁比对与 --format json 输出
+// 1.1.0：支持顶栏二级分组，阈值改为可配置
+export const NAV_RULES_VERSION = "1.1.0"
 
 // 校验结果：navCount / sidebarCount 供人类输出汇总
 export interface NavCheckResult {
@@ -178,11 +169,19 @@ interface SidebarGroupLike {
 }
 
 // 校验文档站导航：文件缺失与结构不符直接返回，避免基于错误结构产出规则噪音
-export function checkDocsNav(docsDir: string, options: { schemaFile?: string } = {}): NavCheckResult {
+// config 未传时取规范默认值；rules 用于按规则 id 覆盖严重度或关闭
+export function checkDocsNav(
+  docsDir: string,
+  options: { schemaFile?: string; config?: Partial<DocsNavConfig>; rules?: Record<string, RuleSetting> } = {},
+): NavCheckResult {
+  const cfg: DocsNavConfig = { ...DEFAULT_DOCS_NAV, ...options.config }
+  const rules = options.rules ?? {}
   const problems: DocsProblem[] = []
   const navFile = siteNavFile(docsDir)
-  const add = (id: string, message: string, level: "error" | "warn" = "error", file = displayPath(navFile)): void => {
-    problems.push({ id, level, file, message })
+  const add = (id: string, message: string, level: ProblemLevel = "error", file = displayPath(navFile)): void => {
+    // 配置可关闭规则或改级别；关闭时不产出问题，连 warn 也不留
+    const effective = effectiveLevel(rules, id, level)
+    if (effective) problems.push({ id, level: effective, file, message })
   }
   const failed = (): NavCheckResult => ({ ok: false, navCount: 0, sidebarCount: 0, problems })
 
@@ -219,23 +218,23 @@ export function checkDocsNav(docsDir: string, options: { schemaFile?: string } =
   const nav = (data as { nav: NavItemLike[] }).nav
   const sidebar = (data as { sidebar: SidebarGroupLike[] }).sidebar
 
-  if (nav.length > MAX_NAV_ITEMS) add("nav/max-items", `顶栏一级项 ${nav.length} 个，超过 ${MAX_NAV_ITEMS} 个`)
-  if (nav[0]?.text !== "快速开始") add("nav/first-item", `顶栏首项应为「快速开始」，实际「${nav[0]?.text ?? "无"}」`)
+  if (nav.length > cfg.maxItems) add("nav/max-items", `顶栏一级项 ${nav.length} 个，超过 ${cfg.maxItems} 个`)
+  if (nav[0]?.text !== cfg.firstItem) add("nav/first-item", `顶栏首项应为「${cfg.firstItem}」，实际「${nav[0]?.text ?? "无"}」`)
   const last = nav[nav.length - 1]
-  if (last?.text !== "帮助") add("nav/last-item", `顶栏末项应为「帮助」，实际「${last?.text ?? "无"}」`)
+  if (last?.text !== cfg.lastItem) add("nav/last-item", `顶栏末项应为「${cfg.lastItem}」，实际「${last?.text ?? "无"}」`)
 
   // 帮助下拉必须承载常见问题与更新日志，避免二者各占一级入口
-  if (last?.text === "帮助" && !Array.isArray(last.items)) {
-    add("nav/help-children", "顶栏「帮助」须为下拉，含常见问题与更新日志")
-  } else if (last?.text === "帮助") {
+  if (last?.text === cfg.lastItem && !Array.isArray(last.items)) {
+    add("nav/help-children", `顶栏「${cfg.lastItem}」须为下拉，含${cfg.helpChildren.join("、")}`)
+  } else if (last?.text === cfg.lastItem) {
     const children = new Set((last.items ?? []).map((item) => item.text))
-    for (const required of HELP_REQUIRED) {
-      if (!children.has(required)) add("nav/help-children", `帮助下拉缺少「${required}」`)
+    for (const required of cfg.helpChildren) {
+      if (!children.has(required)) add("nav/help-children", `「${cfg.lastItem}」下拉缺少「${required}」`)
     }
   }
 
   for (const name of [...collectNavGroupNames(nav), ...sidebar.map((group) => group.text)]) {
-    if (hanCount(name) > MAX_GROUP_HAN) add("nav/group-name-length", `分组名「${name}」超过 ${MAX_GROUP_HAN} 个汉字`)
+    if (hanCount(name) > cfg.maxGroupHan) add("nav/group-name-length", `分组名「${name}」超过 ${cfg.maxGroupHan} 个汉字`)
   }
 
   // 404 页须退出站内搜索：产物断言只验结果，frontmatter 缺失时结果仍可能侥幸通过
@@ -251,9 +250,9 @@ export function checkDocsNav(docsDir: string, options: { schemaFile?: string } =
 
   // 页面体量只告警：拆分判据涉及读者与主题，机器不宜阻断
   for (const page of collectPages(docsDir)) {
-    if (PAGE_SIZE_EXCLUDED.has(page.split(/[\\/]/).pop() ?? "")) continue
+    if (cfg.pageSizeExclude.includes(page.split(/[\\/]/).pop() ?? "")) continue
     const lines = readTextFile(page).replace(/\r\n/g, "\n").split("\n").length
-    if (lines > MAX_PAGE_LINES) add("nav/page-size", `页面超过 ${MAX_PAGE_LINES} 行（${lines} 行），考虑拆分`, "warn", displayPath(page))
+    if (lines > cfg.maxPageLines) add("nav/page-size", `页面超过 ${cfg.maxPageLines} 行（${lines} 行），考虑拆分`, "warn", displayPath(page))
   }
 
   return {
