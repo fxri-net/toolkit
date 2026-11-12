@@ -290,6 +290,23 @@ describe("改名后的现场与状态", () => {
     expect(findProjectRenamedArtifacts(report)["proj-old"]).toBe("proj-new")
   })
 
+  it("旧名副本无法自动清理时按失败条目回报，不冒充同名冲突", () => {
+    const root = join(work, "src7")
+    writeSkill(join(root, "skills", "copy-old"), "copy-old", "1.0.0")
+    writeManifest(root, ["skills/copy-old"])
+    const sources = [{ path: root, name: "ext", temporary: false }]
+    // 以副本形态安装：旧产物是实体目录，改名后无从校验、不能自动删
+    installSkills({ targets: ["canonical"], externalSources: sources, copy: true })
+    const canonical = join(home, ".agents", "skills")
+    renameSync(join(root, "skills", "copy-old"), join(root, "skills", "copy-new"))
+    writeSkill(join(root, "skills", "copy-new"), "copy-new", "2.0.0")
+    writeManifest(root, [{ path: "skills/copy-new", previousNames: ["copy-old"] }])
+    const report = installSkills({ targets: ["canonical"], externalSources: sources, skills: ["copy-new"] })
+    expect(existsSync(join(canonical, "copy-old"))).toBe(true)
+    expect(report.targets[0]!.failed.some((item) => item.name === "copy-old" && item.reason.includes("人工清理"))).toBe(true)
+    expect(report.targets[0]!.conflicts).not.toContain("copy-old")
+  })
+
   it("本次零装不把来源选择集写成空数组", () => {
     const root = join(work, "src6")
     writeSkill(join(root, "skills", "alpha"), "alpha", "1.0.0")

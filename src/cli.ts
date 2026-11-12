@@ -488,12 +488,15 @@ function printStatusReport(report: SkillsStatusReport): void {
   console.log(`状态文件：${report.stateFile}${report.stateExists ? "" : "（未记录，尚未执行过 toolkit skills install）"}`)
   let problems = 0
   let unselectedCount = 0
+  // 来源已无此名的旧名残留：install 无法补齐，汇总时单独指引
+  let staleNameCount = 0
   for (const t of report.targets) {
     const head = `${t.label}：${t.dir}${t.dirExists ? "" : "（目录未创建）"}${t.selected ? "" : "（未选择）"}`
     const bad = t.items.filter((item) => SKILL_PROBLEM_STATES.includes(item.state))
     const unselected = t.items.filter((item) => item.state === "installed-unselected")
     problems += bad.length
     unselectedCount += unselected.length
+    staleNameCount += bad.filter((item) => item.source === "").length
     console.log("")
     // 健康目标折叠为一行：逐技能刷「软链正常」在目标多时纯属噪音（完整信息另见 --format json）
     if (bad.length === 0 && unselected.length === 0) {
@@ -540,6 +543,9 @@ function printStatusReport(report: SkillsStatusReport): void {
       ? `共 ${problems} 处需处理：缺失 / 悬空 / 指向其他版本 / 副本漂移用 toolkit skills install 补齐，同名冲突用 toolkit skills install --force 覆盖`
       : "所有已纳入的目标均正常",
   )
+  if (staleNameCount > 0) {
+    console.log(`其中 ${staleNameCount} 项为来源已无此名的旧名残留：install 无法补齐，用 toolkit skills uninstall --skills <名字> 清理`)
+  }
   if (unselectedCount > 0) {
     console.log(`未选择但已安装 ${unselectedCount} 项：保留不影响使用，需要清理时运行 toolkit skills install --prune`)
   }
@@ -2056,7 +2062,7 @@ tasksListCmd.option("--format <format>", "输出格式（json，输出到 stdout
 
 addTasksCommonOptions(tasksCmd.command("archive").description("归档已完成任务"))
   .option("--dry-run", "预演（只预览，不落盘）")
-  .option("--task <key>", "只归档指定任务（唯一键）；匹配多个任务时建议逐个归档以匹配逐任务提交")
+  .option("--task <key>", "只归档指定任务（唯一键）")
   .action((options: TasksCommonOptions & { dryRun?: boolean; task?: string }) => {
     runTasksArchive(options)
   })

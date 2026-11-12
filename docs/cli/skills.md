@@ -67,6 +67,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - **曾用名迁移**：来源声明 `previousNames` 时，旧名产物按归属清理（链接或同内容副本）并回显「已改名迁移：旧名 → 新名」；新名建立后写入状态，旧名不再残留
 - 项目面按「作用域」节的副本 + 薄壳口径写入
 - `--format json` 输出机器可读安装报告到 stdout（含 `dryRun` / `scope` 标记与 `selection` / `targetSelection`）
+  - 各目标另含 `migrated`（旧名 → 现用名）：改名迁移已清理的旧产物记录
 
 ### status
 
@@ -88,6 +89,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
   - 两面报告含 `skillVersions`；全局面另含 `canonicalReaders` 与 `legacyTargets`
   - 真源不可读时版本用状态登记值兜底，同名技能列入 `skillVersionsFromState`，人读视图标注「（登记值）」，不冒充当期真源版本
   - 折叠不丢信息（替代人读版），无末尾汇总行
+  - ⚠️ 文本层补充视图不进 JSON：疑似残留、来源内未选择汇总、项目面旧名改名指引仅出现在人读输出
 - `versionStatus` 含 `cliVersion`、`latestVersion`、`updateAvailable`、`registry: { value, source }`、`channels`
   - `sources`：来源名 / 版本 / 是否临时 / 生效频率 / 频率来源
   - 两面报告另含 `skillsOutdated`（内置技能落后清单）

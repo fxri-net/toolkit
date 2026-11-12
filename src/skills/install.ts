@@ -326,14 +326,15 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
           if (kind === "absent") continue
           const removable = kind === "dangling" || kind === "link-ok" || (kind === "dir" && existsSync(item.dir) && dirsEqual(item.dir, dest))
           if (!removable) {
-            result.conflicts.push(old)
+            // 不以 conflicts 呈现：--force 对旧名副本无效，按失败条目给出人工清理指引
+            result.failed.push({ name: old, reason: `旧名产物无法确认归属，需人工清理：${dest}` })
             continue
           }
           if (!options.dryRun) {
             try {
               removeArtifact(dest)
             } catch {
-              result.conflicts.push(old)
+              result.failed.push({ name: old, reason: `旧名产物清理失败，需人工处理：${dest}` })
               continue
             }
           }
