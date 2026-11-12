@@ -186,7 +186,10 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 3. `<root>/skills/*/SKILL.md`：多技能来源
 
 **曾用名**（`previousNames`）：清单条目级优先，其次 `SKILL.md` frontmatter 的 `metadata.previousNames`（行内数组，语法同 `requires`）。
-技能改名后声明旧名，选择集与状态会按别名迁移，旧名产物在下次 `install` 时按归属清理；只支持一级，且不得与同源现用名或其他别名重复，违反即整源报错。
+
+- 技能改名后声明旧名，选择集与状态会按别名迁移，旧名产物在下次 `install` 时按归属清理
+- 只支持一级；须为单段名字（不含路径分隔符、不为 `.` / `..`），且不得与同源现用名或其他别名重复
+- 违反上述约束即整源报错，不静默剔除
 
 **规则**：
 

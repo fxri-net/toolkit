@@ -377,6 +377,8 @@ function assertSkillAliases(sourceName: string, skills: PackageSkill[]): void {
   const owners = new Map<string, string>()
   for (const skill of skills) {
     for (const old of skill.previousNames) {
+      // 单段名字约束：含路径分隔符或点段会在安装清理阶段越出目标目录
+      if (old === "." || old === ".." || /[\\/]/.test(old)) throw new Error(`来源 ${sourceName} 内技能曾用名非法（须为单段名字）：${old}`)
       if (names.has(old)) throw new Error(`来源 ${sourceName} 内技能曾用名与现用名重复：${old}`)
       const previous = owners.get(old)
       if (previous !== undefined) throw new Error(`来源 ${sourceName} 内技能曾用名重复：${old}（${previous} / ${skill.name}）`)

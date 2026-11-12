@@ -133,6 +133,15 @@ describe("曾用名声明解析", () => {
       installSkills({ targets: ["canonical"], externalSources: [{ path: root, name: "ext", temporary: true }], skills: ["alpha"] }),
     ).toThrow(/曾用名与现用名冲突/)
   })
+
+  it("曾用名含路径分隔符或点段时整源报错", () => {
+    for (const bad of ["../evil", "a/b", "a\\b", ".", ".."]) {
+      const root = join(work, `bad-alias-${bad.replace(/[\\/.]/g, "_")}`)
+      writeSkill(join(root, "skills", "gamma"), "gamma", "1.0.0")
+      writeManifest(root, [{ path: "skills/gamma", previousNames: [bad] }])
+      expect(() => resolveLocalSource(root, { name: "ext" })).toThrow(/曾用名非法/)
+    }
+  })
 })
 
 describe("已保存选择解析", () => {
