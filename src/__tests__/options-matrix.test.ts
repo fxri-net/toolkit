@@ -250,6 +250,45 @@ describe("顶层命令与外部域", () => {
     expect(r.log.length).toBeGreaterThan(0)
   })
 
+  it("skills uninstall 显式名字完全未命中：告警说明未删除", async () => {
+    const stateFile = join(homeDir, ".agents", ".toolkit-skills.json")
+    mkdirSync(dirname(stateFile), { recursive: true })
+    writeFileSync(
+      stateFile,
+      JSON.stringify({
+        format: "fxri.toolkit.skills-state",
+        schemaVersion: 1,
+        updatedAt: new Date().toISOString(),
+        sources: {
+          toolkit: {
+            kind: "builtin",
+            version: "0.0.0",
+            temporary: false,
+            root: "",
+            targets: [
+              {
+                id: "primary",
+                dir: join(homeDir, ".agents", "skills"),
+                label: "canonical",
+                kind: "primary",
+                entries: [{ name: "fxri-plan-review", version: "0.0.0", mode: "link" }],
+              },
+            ],
+          },
+        },
+      }),
+      "utf8",
+    )
+    try {
+      const r = await runCli(["skills", "uninstall", "--scope", "global", "--skills", "ghost-skill", "--dry-run"])
+      expect(r.code).toBe(0)
+      expect(r.warn.join("\n")).toContain("未找到可清理的产物")
+      expect(r.warn.join("\n")).toContain("ghost-skill")
+    } finally {
+      rmSync(stateFile, { force: true })
+    }
+  })
+
   it("conventions status：只读体检退出码 0", async () => {
     const r = await runCli(["conventions", "status", "--dir", missingTasksDir])
     expect(r.code).toBe(0)

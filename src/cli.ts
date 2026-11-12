@@ -1199,6 +1199,18 @@ skillsCmd
       const runGlobal = scope.choice !== "project"
       const project = runProject ? removeProjectSkills({ dryRun, skills: names }) : null
       const global = runGlobal ? removeSkills({ dryRun, skills: names, source: options.source }) : null
+      // 显式点名的名字若在报告里完全未命中，说明未登记且产物无法确认归属：告警说明未删除，不静默成功
+      if (names && names.length > 0) {
+        const mentioned = new Set<string>()
+        if (global?.stateExists) {
+          for (const target of global.targets) for (const name of [...target.removed, ...target.missing, ...target.skippedForeign]) mentioned.add(name)
+        }
+        if (project?.stateExists) {
+          for (const dir of project.dirs) for (const name of [...dir.removed, ...dir.missing, ...dir.skippedForeign]) mentioned.add(name)
+        }
+        const unmatched = [...new Set(names)].filter((name) => !mentioned.has(name))
+        if (unmatched.length > 0) console.warn(`⚠️ 未找到可清理的产物：${unmatched.join("、")}（未登记或不符合本工具产物形态，未执行删除）`)
+      }
       if (options.format === "json") printJson({ dryRun, scope: scope.choice, global, project })
       else printRemoveReports(scope, global, project, dryRun)
     } catch (e) {
