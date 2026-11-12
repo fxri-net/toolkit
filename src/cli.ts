@@ -47,6 +47,7 @@ import {
   expandSkillRequires,
   findStaleArtifacts,
   findUnselectedSkills,
+  findProjectRenamedArtifacts,
   installProjectSkills,
   installSkills,
   isInteractiveTty,
@@ -632,6 +633,8 @@ function printProjectStatusReport(report: ProjectStatusReport): void {
     console.warn(`⚠️ 技能版本双写位不一致：${m.name}（frontmatter ${m.frontmatter} / 正文 ${m.body || "未声明"}）`)
   }
   console.log(`项目面 · 状态文件：${report.stateFile}${report.stateExists ? "" : "（未记录，尚未执行过 toolkit init / skills install）"}`)
+  // 项目面曾用名视图：旧名副本无从校验、不自动删，但要让用户看清「这是旧名、该删哪个」
+  const renamed = findProjectRenamedArtifacts(report)
   let problems = 0
   let unselectedCount = 0
   for (const d of report.dirs) {
@@ -647,7 +650,11 @@ function printProjectStatusReport(report: ProjectStatusReport): void {
       continue
     }
     console.log(head)
-    for (const item of bad) console.log(`  ${item.name}：${PROJECT_STATE_LABEL[item.state]}`)
+    for (const item of bad) {
+      const target = renamed[item.name]
+      const hint = target ? `（已改名为 ${target}，确认后手工删除旧副本）` : ""
+      console.log(`  ${item.name}：${PROJECT_STATE_LABEL[item.state]}${hint}`)
+    }
     for (const item of unselected) console.log(`  ${item.name}：未选择但已安装（保留不影响使用，需要清理时加 --prune 重跑 install）`)
     const ok = d.items.length - bad.length - unselected.length
     if (ok > 0) console.log(`  其余 ${ok} 项正常`)

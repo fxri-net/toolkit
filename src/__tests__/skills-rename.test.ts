@@ -5,8 +5,11 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import {
+  findProjectRenamedArtifacts,
   findStaleArtifacts,
+  installProjectSkills,
   installSkills,
+  projectSkillsStatus,
   readSkillsInstallConfig,
   readSkillsState,
   removeSkills,
@@ -264,6 +267,27 @@ describe("改名后的现场与状态", () => {
 
     const stale = findStaleArtifacts(skillsStatus())
     expect(stale).toEqual([{ name: "epsilon-old", dir: canonical }])
+  })
+
+  it("项目面改名后旧副本仍报漂移，并提供旧名到新名的指引", () => {
+    const root = join(work, "proj")
+    mkdirSync(root, { recursive: true })
+    const src = join(work, "srcp")
+    writeSkill(join(src, "skills", "proj-old"), "proj-old", "1.0.0")
+    writeManifest(src, ["skills/proj-old"])
+    const sources = [{ path: src, name: "ext", temporary: false }]
+    installProjectSkills({ cwd: root, targetDirs: [], externalSources: sources })
+
+    renameSync(join(src, "skills", "proj-old"), join(src, "skills", "proj-new"))
+    writeSkill(join(src, "skills", "proj-new"), "proj-new", "2.0.0")
+    writeManifest(src, [{ path: "skills/proj-new", previousNames: ["proj-old"] }])
+    installProjectSkills({ cwd: root, targetDirs: [], externalSources: sources, skills: ["proj-new"] })
+
+    const report = projectSkillsStatus(root)
+    const sourceDir = report.dirs.find((dir) => dir.kind === "source")!
+    // 旧副本仍为漂移（不自动删），但能通过曾用名视图给出「已改名为 X」
+    expect(sourceDir.items.find((item) => item.name === "proj-old")?.state).toBe("drift")
+    expect(findProjectRenamedArtifacts(report)["proj-old"]).toBe("proj-new")
   })
 
   it("本次零装不把来源选择集写成空数组", () => {

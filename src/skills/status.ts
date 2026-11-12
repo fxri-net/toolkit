@@ -389,9 +389,18 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
   const savedTargets = config.targets && config.targets.length > 0 ? config.targets : undefined
   const targetSelected = (dir: string): boolean => !savedTargets || savedTargets.includes(dir)
   const stateTargets = Object.values(state?.sources ?? {}).flatMap((source) => source.targets)
-  const recordedSource = stateTargets.find((target) => target.kind === "source" && target.dir === targets.sourceDir)
-  const recordedShells = new Map(stateTargets.filter((target) => target.kind === "shell").map((target) => [target.dir, target]))
-  const sourceRecorded = new Set(recordedSource?.entries.map((entry) => entry.name) ?? [])
+  // 同一目录可能被多个来源登记（内置源 + 外部来源）：按目录合并条目，避免只看首个来源把其他来源的产物误判为冲突
+  const recordedSourceTargets = stateTargets.filter((target) => target.kind === "source" && target.dir === targets.sourceDir)
+  const recordedSourceEntries = recordedSourceTargets.flatMap((target) => target.entries)
+  const recordedSource: SkillStateTarget | undefined =
+    recordedSourceTargets.length > 0 ? { ...recordedSourceTargets[0]!, entries: recordedSourceEntries } : undefined
+  const recordedShells = new Map<string, SkillStateTarget>()
+  for (const target of stateTargets.filter((item) => item.kind === "shell")) {
+    const existing = recordedShells.get(target.dir)
+    if (existing) existing.entries.push(...target.entries)
+    else recordedShells.set(target.dir, { ...target, entries: [...target.entries] })
+  }
+  const sourceRecorded = new Set(recordedSourceEntries.map((entry) => entry.name))
   const knownNames = new Set(allNames)
   // 未保存过选择集时（升级前的旧归属账）按既有登记视为已选择
   const selectedFor = (names: Set<string>): Set<string> => (saved === undefined ? new Set([...baseSelected, ...names]) : baseSelected)
@@ -500,4 +509,15 @@ export function findStaleArtifacts(report: SkillsStatusReport): Array<{ name: st
     }
   }
   return out
+}
+
+// 项目面曾用名视图：旧名 → 现用名；只读项目归属账与已登记来源（不触发远程刷新），供文本层给出改名指引
+export function findProjectRenamedArtifacts(report: ProjectStatusReport): Record<string, string> {
+  const state = readProjectState(report.root)
+  const { refs } = collectStatusSources(state)
+  const map: Record<string, string> = {}
+  for (const [name, ref] of refs) {
+    for (const old of ref.previousNames) map[old] = name
+  }
+  return map
 }
