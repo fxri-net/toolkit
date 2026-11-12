@@ -13,6 +13,7 @@ import {
   legacySkillDirLabel,
   listDirEntries,
   pathKey,
+  realPath,
   readSkillDescription,
   readSkillShellVersion,
   resolveBuiltinSource,
@@ -498,10 +499,16 @@ export function findUnselectedSkills(report: {
 export function findStaleArtifacts(report: SkillsStatusReport): Array<{ name: string; dir: string }> {
   const known = new Set(report.skills)
   for (const target of report.targets) for (const item of target.items) known.add(item.name)
-  const dirs = new Set(report.targets.map((target) => target.dir))
-  for (const target of resolveSkillTargets()) if (target.dirExists) dirs.add(target.dir)
+  // 目录按真实路径合并：状态账里的旧写法（尾分隔符 / 大小写）与 junction 别名可能指向同一物理目录，不合并会把同一残留重复列出
+  const dirs = new Map<string, string>()
+  const remember = (dir: string): void => {
+    const key = pathKey(realPath(dir))
+    if (!dirs.has(key)) dirs.set(key, dir)
+  }
+  for (const target of report.targets) remember(target.dir)
+  for (const target of resolveSkillTargets()) if (target.dirExists) remember(target.dir)
   const out: Array<{ name: string; dir: string }> = []
-  for (const dir of dirs) {
+  for (const dir of dirs.values()) {
     let entries
     try {
       entries = readdirSync(dir, { withFileTypes: true })

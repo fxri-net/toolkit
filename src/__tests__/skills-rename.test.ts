@@ -341,6 +341,20 @@ describe("改名后的现场与状态", () => {
     expect(findStaleArtifacts(skillsStatus())).toContainEqual({ name: "zeta-old", dir: canonical })
   })
 
+  it("同一物理目录的 junction 别名只报一条残留", () => {
+    const canonical = join(home, ".agents", "skills")
+    danglingLink(join(canonical, "eta-old"), join(home, ".toolkit", "cache", "skill-sources", "deadbeef", "skills", "eta-old"))
+    // junction 别名与 canonical 指向同一物理目录，两条目录同时进入扫描范围
+    const alias = join(work, "alias-skills")
+    symlinkSync(canonical, alias, process.platform === "win32" ? "junction" : "dir")
+    const root = join(work, "src10")
+    writeSkill(join(root, "skills", "keep10"), "keep10", "1.0.0")
+    writeManifest(root, ["skills/keep10"])
+    installSkills({ targets: [], dirs: [alias], externalSources: [{ path: root, name: "ext", temporary: false }] })
+
+    expect(findStaleArtifacts(skillsStatus())).toEqual([{ name: "eta-old", dir: canonical }])
+  })
+
   it("项目面汇总列出未选择的来源技能", () => {
     const root = join(work, "proj-unselected")
     mkdirSync(root, { recursive: true })
