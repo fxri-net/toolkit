@@ -77,9 +77,25 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
     })
   }
 
+  // 单任务归档：只处理显式点名的唯一键；键不存在或尚未终结都直接报错，不静默落到全量
+  if (options.task) {
+    const key = options.task.trim()
+    const matched = doneTasks.filter((task) => task.name === key)
+    if (matched.length === 0) {
+      const exists = files.some((file) => basename(file, ".md") === key)
+      throw new Error(exists ? `任务未处于已完成 / 已放弃状态：${key}` : `未找到任务：${key}`)
+    }
+    doneTasks.splice(0, doneTasks.length, ...matched)
+  }
+
   if (doneTasks.length === 0) {
     console.log("本次无可归档任务")
     return { archived: 0, skipped, warnings }
+  }
+
+  // 逐任务提交的配套提示：一次归档多个任务容易顺手合成一个提交，只提示不阻断
+  if (warn && !options.task && doneTasks.length > 1) {
+    warnings.push(`本次同时归档 ${doneTasks.length} 个任务，建议按任务逐个归档（tasks archive --task <唯一键>），以匹配逐任务提交`)
   }
 
   // 软告警：完成时间与创建日不一致（日期漂移）、晚于系统时间（时间源错误）、恰为零点整（疑似只填日期被补零）、

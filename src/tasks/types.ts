@@ -50,6 +50,8 @@ export interface ArchiveOptions {
   dryRun?: boolean
   // 软告警开关：是否打印告警（日期漂移、重复归档等），默认 true
   warn?: boolean
+  // 只归档指定任务（唯一键）；缺省归档全部终结态任务
+  task?: string
 }
 
 // ---- 任务查询 / 导入导出（1.4.0）----

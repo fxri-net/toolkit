@@ -13,6 +13,7 @@ toolkit tasks                     # 待完成总览（默认）
 toolkit tasks --view archived     # 仅已归档
 toolkit tasks --view all          # 待完成 + 已归档（状态分组，来源可辨）
 toolkit tasks archive             # 归档已完成任务
+toolkit tasks archive --task 20261112-唐启云-示例任务 # 只归档指定任务（唯一键）
 toolkit tasks archive --dry-run   # 归档预演（只预览，不落盘）
 toolkit tasks check               # 校验 active 与变更集写法
 toolkit tasks normalize           # 检查归档块（默认只读）
@@ -39,7 +40,7 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 | 子命令 | 一句话 |
 | --- | --- |
 | `list` | 待完成看板（等价于裸 `tasks`；隐式子命令，帮助中不展示） |
-| `archive` | 把终结态任务按完成日期聚合归档；`--dry-run` 预演 |
+| `archive` | 把终结态任务按完成日期聚合归档；`--task` 只归档指定任务，`--dry-run` 预演 |
 | `check` | 校验 active 任务、规范载体、入口壳、变更集与文件卫生（只报不改） |
 | `normalize` | 检查并修复归档块；`--fix` 修复，`--check` 显式声明只读 |
 | `stats` | 周期统计（人用视图，不落盘） |
@@ -51,6 +52,8 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 ### archive
 
 - 条件：`status` 为 `已完成` / `已放弃` 且带 `completed`，按完成日期聚合归档
+- `--task <唯一键>` 只归档指定任务；键不存在或尚未终结时报错退出（退出码 1），不落到全量
+- 未指定 `--task` 且同时归档多个任务时，stderr 提示建议逐个归档以匹配逐任务提交（不阻断）
 - 排他锁防并发；缺 `completed` 的终结态任务跳过并提示
 - 完成时间晚于当前系统时间超过 14 小时（跨时区容差）或恰为零点整（疑似只填日期被补零）时软告警
 - 文件名简述与正文标题不同源时在固化前软告警（归档块标题取自文件名，固化后不再改）

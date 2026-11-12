@@ -1894,12 +1894,12 @@ async function runTasksOverview(options: TasksQueryOptions): Promise<void> {
 }
 
 // 归档：只归档终结态任务，--dry-run 只预览
-function runTasksArchive(options: TasksCommonOptions & { dryRun?: boolean }): void {
+function runTasksArchive(options: TasksCommonOptions & { dryRun?: boolean; task?: string }): void {
   const ctx = resolveTasksContext(options)
   if (!ctx) return
   const dryRun = Boolean(options.dryRun)
   try {
-    const result = archiveTasks(ctx.dir, ctx.redact, { dryRun, warn: ctx.warn })
+    const result = archiveTasks(ctx.dir, ctx.redact, { dryRun, warn: ctx.warn, task: options.task })
     // 软告警：归档了任务但无待发布变更集（仅真实归档时提示，预演不提示）
     if (ctx.warn && !dryRun && result.archived > 0 && !hasPendingChangeset()) {
       console.warn("⚠️ 本次归档了任务，但 .changeset 无待发布变更集，如需发版请先创建变更集")
@@ -2049,7 +2049,8 @@ tasksListCmd.option("--format <format>", "输出格式（json，输出到 stdout
 
 addTasksCommonOptions(tasksCmd.command("archive").description("归档已完成任务"))
   .option("--dry-run", "预演（只预览，不落盘）")
-  .action((options: TasksCommonOptions & { dryRun?: boolean }) => {
+  .option("--task <key>", "只归档指定任务（唯一键）；匹配多个任务时建议逐个归档以匹配逐任务提交")
+  .action((options: TasksCommonOptions & { dryRun?: boolean; task?: string }) => {
     runTasksArchive(options)
   })
 
