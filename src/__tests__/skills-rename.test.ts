@@ -19,6 +19,7 @@ import {
   resolveSavedProjectSelection,
   resolveSavedSelection,
   skillsStatus,
+  writeSkillsInstallConfig,
   type SelectionSkill,
 } from "../skills"
 
@@ -329,6 +330,14 @@ describe("改名后的现场与状态", () => {
     const kept = removeSkills({ skills: ["orphan-two"] })
     expect(kept.targets.find((item) => item.dir === busy)!.dirReclaimed).toBe(false)
     expect(existsSync(busy)).toBe(true)
+  })
+
+  it("未选中目标目录里的残留也能被疑似残留检测扫到", () => {
+    const canonical = join(home, ".agents", "skills")
+    danglingLink(join(canonical, "zeta-old"), join(home, ".toolkit", "cache", "skill-sources", "deadbeef", "skills", "zeta-old"))
+    // 目标选择集排除 canonical：status 报告会折叠该目标，但残留仍应被扫到
+    writeSkillsInstallConfig({ targets: ["github-copilot"] })
+    expect(findStaleArtifacts(skillsStatus())).toContainEqual({ name: "zeta-old", dir: canonical })
   })
 
   it("本次零装不把来源选择集写成空数组", () => {

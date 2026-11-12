@@ -490,22 +490,24 @@ export function findUnselectedSkills(report: SkillsStatusReport): Array<{ source
 }
 
 // 疑似残留：未在任何来源或登记里的本工具形态链接（指向技能源缓存或本包技能目录）
-// 只报告不删除：归属无法确证，清理须用户显式点名 uninstall --skills
+// 扫描范围含报告未展开的目标（未选择且无已知条目），否则改名残留会因目标被折叠而漏检；只报告不删除
 export function findStaleArtifacts(report: SkillsStatusReport): Array<{ name: string; dir: string }> {
   const known = new Set(report.skills)
   for (const target of report.targets) for (const item of target.items) known.add(item.name)
+  const dirs = new Set(report.targets.map((target) => target.dir))
+  for (const target of resolveSkillTargets()) if (target.dirExists) dirs.add(target.dir)
   const out: Array<{ name: string; dir: string }> = []
-  for (const target of report.targets) {
+  for (const dir of dirs) {
     let entries
     try {
-      entries = readdirSync(target.dir, { withFileTypes: true })
+      entries = readdirSync(dir, { withFileTypes: true })
     } catch {
       continue
     }
     for (const entry of entries) {
       if (known.has(entry.name)) continue
-      if (!isToolkitArtifactLink(join(target.dir, entry.name))) continue
-      out.push({ name: entry.name, dir: target.dir })
+      if (!isToolkitArtifactLink(join(dir, entry.name))) continue
+      out.push({ name: entry.name, dir })
     }
   }
   return out
