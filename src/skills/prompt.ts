@@ -210,6 +210,25 @@ export async function promptConfirm(message: string, defaultValue = true): Promi
   }
 }
 
+// 多选项：与 @inquirer/prompts 的 checkbox 条目结构一致，install / uninstall 共用
+interface PromptCheckboxItem {
+  value: string
+  name: string
+  checked?: boolean
+  disabled?: boolean | string
+}
+
+// 多选基底：统一动态导入、分页与取消语义；返回 null 表示取消
+async function promptCheckbox(message: string, choices: PromptCheckboxItem[], pageSize: number): Promise<string[] | null> {
+  const { checkbox } = await import("@inquirer/prompts")
+  try {
+    return await checkbox({ message, choices, pageSize, required: false })
+  } catch (error) {
+    if (isPromptCancel(error)) return null
+    throw error
+  }
+}
+
 // 卸载候选项：value 带面 / 类型前缀，保证跨面同名可区分；group 用于分组展示
 export interface UninstallChoice {
   value: string
@@ -219,39 +238,23 @@ export interface UninstallChoice {
 
 // 卸载多选：默认全不选，空格勾选、回车确认；返回 null 表示取消，空数组表示未选择
 export async function promptUninstallSelection(choices: UninstallChoice[]): Promise<string[] | null> {
-  const { checkbox } = await import("@inquirer/prompts")
-  try {
-    return await checkbox({
-      message: "选择要卸载的技能（空格选择，回车确认）",
-      choices: choices.map((item) => ({ name: `${item.group}｜${item.label}`, value: item.value })),
-      pageSize: 15,
-      required: false,
-    })
-  } catch (error) {
-    if (isPromptCancel(error)) return null
-    throw error
-  }
+  return promptCheckbox(
+    "选择要卸载的技能（空格选择，回车确认）",
+    choices.map((item) => ({ name: `${item.group}｜${item.label}`, value: item.value })),
+    15,
+  )
 }
 
 // TTY 多选：core 默认选中且禁用切换；返回 null 表示用户取消（调用方不得写任何文件）
 export async function promptSkillSelection(skills: PackageSkill[], saved?: string[], mode: SkillsMode = "skills"): Promise<string[] | null> {
-  const { checkbox } = await import("@inquirer/prompts")
   const choices = buildSkillChoices(skills, saved, mode).map((choice) => ({
     value: choice.name,
     name: mode === "skills" && choice.tier === "core" ? `${choice.name}（core）` : choice.name,
     checked: choice.selected,
     disabled: mode === "skills" && choice.tier === "core" ? "core（必装）" : false,
   }))
-  try {
-    const picked = await checkbox({
-      message: mode === "package" ? "选择要安装的技能（空格切换，回车确认；全不选即纯包管理器模式）" : "选择要安装的技能（空格切换，回车确认；core 必装）",
-      choices,
-      pageSize: 12,
-      required: false,
-    })
-    return mode === "package" ? picked : withCore(skills, picked)
-  } catch (error) {
-    if (isPromptCancel(error)) return null
-    throw error
-  }
+  const message = mode === "package" ? "选择要安装的技能（空格切换，回车确认；全不选即纯包管理器模式）" : "选择要安装的技能（空格切换，回车确认；core 必装）"
+  const picked = await promptCheckbox(message, choices, 12)
+  if (picked === null) return null
+  return mode === "package" ? picked : withCore(skills, picked)
 }
