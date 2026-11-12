@@ -11,7 +11,8 @@ import type { DocsProblem, ProblemLevel } from "./types"
 // 1.1.0：支持顶栏二级分组，阈值改为可配置
 // 1.2.0：schema 字段与 VitePress 官方 NavItem / SidebarItem 对齐，校验器增加关键字守卫
 // 1.3.0：支持对象形态侧栏与 locales 多语言结构
-export const NAV_RULES_VERSION = "1.3.0"
+// 1.4.0：新增配置接线断言（数据文件未被站点配置引用时报错）
+export const NAV_RULES_VERSION = "1.4.0"
 
 // 校验结果：navCount / sidebarCount 供人类输出汇总
 export interface NavCheckResult {
@@ -178,6 +179,22 @@ function collectNavGroupNames(items: NavItemLike[], depth = 0, out: string[] = [
   return out
 }
 
+// 站点配置候选文件名：VitePress 支持 .mts / .ts / .mjs / .js
+const CONFIG_FILES = ["config.mts", "config.ts", "config.mts", "config.mjs", "config.js"]
+
+// 数据接线检查：数据文件存在但站点配置没引用它时，改数据不会生效——这类假绿必须报出来
+function addWiringProblem(add: (id: string, message: string, level: ProblemLevel, file: string) => void, docsDir: string): void {
+  const dir = join(docsDir, ".vitepress")
+  const found = [...new Set(CONFIG_FILES)].map((name) => join(dir, name)).find((file) => existsSync(file))
+  if (!found) {
+    add("nav/config-not-wired", "未找到 docs/.vitepress/config.*：无法确认站点配置引用了 site-nav.json", "error", displayPath(dir))
+    return
+  }
+  if (!readTextFile(found).includes("site-nav.json")) {
+    add("nav/config-not-wired", "站点配置未引用 site-nav.json，导航数据不会生效", "error", displayPath(found))
+  }
+}
+
 // 递归收集文档页，跳过构建产物与依赖目录
 function collectPages(dir: string, found: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -259,6 +276,9 @@ export function checkDocsNav(
     for (const message of structural) add("nav/schema-invalid", message)
     return failed()
   }
+
+  // 数据接线：site-nav.json 存在但站点配置未引用时，数据等于没生效
+  addWiringProblem(add, docsDir)
 
   // 站点数据两种形态：单语言（nav + sidebar）或语言包（locales.<键> 各自一套）
   const root = data as { nav?: NavItemLike[]; sidebar?: SidebarLike; locales?: Record<string, LocaleEntry> }

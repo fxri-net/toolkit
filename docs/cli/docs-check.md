@@ -48,6 +48,7 @@ export default defineConfig({
 | `nav/help-children` | error | 「帮助」不是下拉，或缺少「常见问题」「更新日志」 |
 | `nav/group-name-length` | error | 顶栏一级项或侧栏分组名超过 4 个汉字 |
 | `nav/not-found-page` | error | 缺少 `docs/404.md`，或其 frontmatter 缺 `search: false` |
+| `nav/config-not-wired` | error | 站点配置未引用 `site-nav.json`，数据不会生效 |
 | `nav/page-size` | warn | 单页超过 300 行（`changelog.md` 除外） |
 | `dist/sitemap-missing` | error | 产物缺少 `sitemap.xml` |
 | `dist/sitemap-404` | error | `sitemap.xml` 含 404 页 |
@@ -106,7 +107,7 @@ export default defineConfig({
 - `docs dist check` 在产物目录缺失时跳过并退出 0，是否漏跑构建由调用方判断。
 - `--format json` 输出 `{ schemaVersion, command, ruleVersion, ok, problems }`。
 - `problems` 每项含 `id` / `level` / `file` / `message` 四个字段。
-- `ruleVersion` 独立于包版本，规则集变化时才递增，便于下游门禁比对。
+- `ruleVersion` 独立于包版本，规则或结构变化时才递增，便于下游门禁比对。
 
 ## 相关页面
 

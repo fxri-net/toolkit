@@ -49,6 +49,8 @@ function writeSite(navItems: unknown[]): string {
     "utf8",
   )
   writeFileSync(join(docsDir, "404.md"), "---\nsearch: false\n---\n\n# 页面未找到\n", "utf8")
+  mkdirSync(join(docsDir, ".vitepress"), { recursive: true })
+  writeFileSync(join(docsDir, ".vitepress", "config.mts"), "import siteNav from '../site-nav.json'\nexport default { themeConfig: siteNav }\n", "utf8")
   return docsDir
 }
 

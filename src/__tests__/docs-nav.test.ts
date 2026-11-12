@@ -1,6 +1,6 @@
 // 文档站导航校验：数据契约优先，每条规则至少一正一反
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { checkDocsNav } from "../docs/nav"
@@ -31,10 +31,15 @@ const MINIMAL = {
   sidebar: [{ text: "开始", items: [{ text: "首页", link: "/" }] }],
 }
 
-// 写入站点数据与 404 页
+// 写入站点数据、404 页与引用数据的站点配置
 function writeSite(nav: unknown, notFound = "---\nsearch: false\n---\n\n# 页面未找到\n"): void {
   writeFileSync(join(dir, "site-nav.json"), JSON.stringify(nav, null, 2))
   writeFileSync(join(dir, "404.md"), notFound)
+  mkdirSync(join(dir, ".vitepress"), { recursive: true })
+  writeFileSync(
+    join(dir, ".vitepress", "config.mts"),
+    "import siteNav from '../site-nav.json'\nexport default { themeConfig: { nav: siteNav.nav, sidebar: siteNav.sidebar } }\n",
+  )
 }
 
 // 取问题 id 集合，断言不必依赖文案详略
@@ -218,6 +223,16 @@ describe("checkDocsNav", () => {
     })
     expect(configured.ok).toBe(true)
     expect(configured.problems.map((problem) => problem.id)).not.toContain("nav/locale-unconfigured")
+  })
+
+  it("站点配置未引用 site-nav.json 时报错，引用后通过", () => {
+    writeSite(MINIMAL)
+    writeFileSync(join(dir, ".vitepress", "config.mts"), "import { defineConfig } from 'vitepress'\nexport default defineConfig({})\n")
+    expect(ids()).toContain("nav/config-not-wired")
+    expect(checkDocsNav(dir, { rules: { "nav/config-not-wired": "off" } }).ok).toBe(true)
+
+    writeFileSync(join(dir, ".vitepress", "config.mts"), "import siteNav from '../site-nav.json'\nexport default { themeConfig: siteNav }\n")
+    expect(ids()).not.toContain("nav/config-not-wired")
   })
 
   it("单页超过 300 行只告警，不影响通过", () => {
