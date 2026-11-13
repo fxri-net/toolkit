@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync, writeFileSync } from "node:fs"
-import { collectChangelogs } from "./collect"
+import { collectChangelogs, type CollectOptions } from "./collect"
 import { redactText } from "../privacy/redact"
 import { todayDash } from "../date"
 import {
@@ -134,9 +134,10 @@ export function formatChangelogs(
   lang: ChangelogLanguage,
   redact = true,
   history = false,
+  collect: CollectOptions = {},
 ): string[] {
   const changed: string[] = []
-  for (const file of collectChangelogs(dir)) {
+  for (const file of collectChangelogs(dir, collect)) {
     if (formatChangelog(file, today, lang, redact, history)) changed.push(file)
   }
   if (changed.length === 0) {
@@ -150,10 +151,10 @@ export function formatChangelogs(
 // 统计变更集源组块内缺类型前缀的条目数（cli 软告警预扫用，属内部工具、不对外导出）：
 // 归类完成即前缀缺失信息丢失，故须在归类前取数；历史版本块不参与计数；
 // 前缀识别与 findUntypedChangesetEntries 口径一致，取全局表与各配置语言自有前缀的并集，自定义语言不误报
-export function countUntypedEntries(dir: string, langs: ChangelogLanguage[]): number {
+export function countUntypedEntries(dir: string, langs: ChangelogLanguage[], collect: CollectOptions = {}): number {
   const extra = extraPrefixes(langs.flatMap((lang) => lang.groups ?? []))
   let count = 0
-  for (const file of collectChangelogs(dir)) {
+  for (const file of collectChangelogs(dir, collect)) {
     const { blocks } = parseBlocks(normalize(readFileSync(file, "utf8")).split("\n"))
     for (const block of blocks) {
       for (const section of block.sections) {

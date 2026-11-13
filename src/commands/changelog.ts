@@ -5,6 +5,7 @@ import { join } from "node:path"
 import type { Command } from "commander"
 import { DEFAULT_LANG, resolveLang, type ChangelogLanguage } from "../changelog/languages"
 import { countUntypedEntries, formatChangelogs, localDate } from "../changelog/format"
+import type { CollectOptions } from "../changelog/collect"
 import { auditChangesets, formatAuditReport } from "../changelog/audit"
 import { checkDoc, resolveDocOptions, syncDoc, syncDocAfterVersion } from "../changelog/doc"
 import { resolveRedactEnabled } from "../privacy/redact"
@@ -29,11 +30,19 @@ function hasActiveTasks(dir = ".tasks"): boolean {
 
 // changelog 软告警：提示缺类型前缀的变更集条目（须在归类前取数，归类后前缀缺失信息即丢失）
 // 传全部配置语言，前缀识别与 tasks check 侧 changesetPrefixIssues 同一并集口径
-function warnUntypedEntries(langs: ChangelogLanguage[]) {
-  const count = countUntypedEntries(".", langs)
+function warnUntypedEntries(langs: ChangelogLanguage[], collect: CollectOptions) {
+  const count = countUntypedEntries(".", langs, collect)
   if (count > 0) {
     console.warn(`⚠️ ${count} 条变更集条目缺类型前缀，建议按「类型：描述」撰写`)
   }
+}
+
+// 把逗号分隔的目录列表解析为数组：空值与空白项丢弃，保持用户书写顺序
+function splitDirs(value?: string): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
 }
 
 // 注册 changelog 命令：装配点只负责按序调用
@@ -78,8 +87,9 @@ export function registerChangelogCommands(program: Command): void {
   }
 
   // 版本：消费变更集 → 归类格式化 → 同步文档镜像
-  function runChangelogVersion(options: ChangelogOptions & { history?: boolean; syncDoc?: boolean }): void {
+  function runChangelogVersion(options: ChangelogOptions & { history?: boolean; syncDoc?: boolean; exclude?: string; include?: string }): void {
     const ctx = resolveChangelogContext(options)
+    const collect: CollectOptions = { exclude: splitDirs(options.exclude), include: splitDirs(options.include) }
     // 软告警：发版前存在未归档任务
     if (ctx.warn && hasActiveTasks()) {
       console.warn("⚠️ 存在未归档的 active 任务，建议先归档再发版")
@@ -87,17 +97,18 @@ export function registerChangelogCommands(program: Command): void {
     runChangeset(["version"])
     // 软告警须前置于归类（须待 changesets 写入新块后再取数，否则无英文源标题块可扫）；
     // 归类后无前缀条目即并入兜底组，前缀缺失无从统计
-    if (ctx.warn) warnUntypedEntries(Object.values(ctx.merged))
-    formatChangelogs(".", localDate(), ctx.lang, ctx.redact, Boolean(options.history))
+    if (ctx.warn) warnUntypedEntries(Object.values(ctx.merged), collect)
+    formatChangelogs(".", localDate(), ctx.lang, ctx.redact, Boolean(options.history), collect)
     // 发版后自动同步文档站镜像：失败只告警，不阻断发版（镜像不是发版必需产物）
     if (options.syncDoc !== false) syncDocAfterVersion(ctx.docLang)
   }
 
   // 格式化：按语言与类型归类重排，不消费变更集
-  function runChangelogFormat(options: ChangelogOptions & { history?: boolean }): void {
+  function runChangelogFormat(options: ChangelogOptions & { history?: boolean; exclude?: string; include?: string }): void {
     const ctx = resolveChangelogContext(options)
-    if (ctx.warn) warnUntypedEntries(Object.values(ctx.merged))
-    formatChangelogs(".", localDate(), ctx.lang, ctx.redact, Boolean(options.history))
+    const collect: CollectOptions = { exclude: splitDirs(options.exclude), include: splitDirs(options.include) }
+    if (ctx.warn) warnUntypedEntries(Object.values(ctx.merged), collect)
+    formatChangelogs(".", localDate(), ctx.lang, ctx.redact, Boolean(options.history), collect)
   }
 
   // 文档镜像：默认从根 CHANGELOG.md 生成，--check 只比对不写
@@ -146,13 +157,17 @@ export function registerChangelogCommands(program: Command): void {
   addChangelogCommonOptions(changelogCmd.command("version").description("消费变更集并生成新版本块，随后同步文档镜像"))
     .option("--history", "追溯改写历史版本块（默认保留）")
     .option("--no-sync-doc", "不自动同步文档站镜像")
-    .action((options: ChangelogOptions & { history?: boolean; syncDoc?: boolean }) => {
+    .option("--exclude <dirs>", "额外跳过的目录，逗号分隔（默认已跳过依赖、产物与 gitignore 目录）")
+    .option("--include <dirs>", "强制处理的目录，逗号分隔（覆盖默认跳过名单）")
+    .action((options: ChangelogOptions & { history?: boolean; syncDoc?: boolean; exclude?: string; include?: string }) => {
       runChangelogVersion(options)
     })
 
   addChangelogCommonOptions(changelogCmd.command("format").description("按语言与类型归类重排 CHANGELOG 条目"))
     .option("--history", "追溯改写历史版本块（默认保留）")
-    .action((options: ChangelogOptions & { history?: boolean }) => {
+    .option("--exclude <dirs>", "额外跳过的目录，逗号分隔（默认已跳过依赖、产物与 gitignore 目录）")
+    .option("--include <dirs>", "强制处理的目录，逗号分隔（覆盖默认跳过名单）")
+    .action((options: ChangelogOptions & { history?: boolean; exclude?: string; include?: string }) => {
       runChangelogFormat(options)
     })
 

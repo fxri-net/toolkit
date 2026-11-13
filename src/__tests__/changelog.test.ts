@@ -1,5 +1,6 @@
 // changelog 域单测：语义分组归类、标题多语言替换、commit hash 前缀清理、重复条目/依赖合并、发布日期补齐、脱敏
 import { describe, it, expect, vi } from "vitest"
+import { spawnSync } from "node:child_process"
 import { mkdtempSync, writeFileSync, mkdirSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -861,6 +862,58 @@ describe("collectChangelogs", () => {
     const found = collectChangelogs(dir).map((p) => p.replaceAll("\\", "/").replace(dir.replaceAll("\\", "/"), ""))
     expect(found.sort()).toEqual(["/CHANGELOG.md", "/pkg/CHANGELOG.md"])
     expect(formatChangelogs(dir, "2026-09-03", zh)).toHaveLength(0)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  // 依赖目录即便被提交到版本库也不属于本仓自己的包，仍须跳过（vendor 常被 PHP 项目整目录入库）
+  it("跳过依赖安装目录与构建产物目录，不看是否被 git 跟踪（G2）", () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-col-"))
+    writeFileSync(join(dir, "CHANGELOG.md"), "", "utf8")
+    for (const dep of ["vendor/acme/pkg", "node_modules/lib", "target/release", ".venv/lib/python3/site-packages/pkg"]) {
+      mkdirSync(join(dir, dep), { recursive: true })
+      writeFileSync(join(dir, dep, "CHANGELOG.md"), "## 1.0.0\n\n- 第三方包的原始日志\n", "utf8")
+    }
+    const found = collectChangelogs(dir).map((p) => p.replaceAll("\\", "/").replace(dir.replaceAll("\\", "/"), ""))
+    expect(found).toEqual(["/CHANGELOG.md"])
+    // 第三方日志不被改写：日期行没有被补上
+    expect(formatChangelogs(dir, "2026-09-03", zh)).toHaveLength(0)
+    expect(readFileSync(join(dir, "vendor", "acme", "pkg", "CHANGELOG.md"), "utf8")).toBe("## 1.0.0\n\n- 第三方包的原始日志\n")
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("composer 自定义依赖目录按 config.vendor-dir 一并跳过（G2）", () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-col-"))
+    writeFileSync(join(dir, "composer.json"), JSON.stringify({ config: { "vendor-dir": "libs/vendor" } }), "utf8")
+    mkdirSync(join(dir, "libs", "vendor", "pkg"), { recursive: true })
+    writeFileSync(join(dir, "libs", "vendor", "pkg", "CHANGELOG.md"), "", "utf8")
+    expect(collectChangelogs(dir)).toEqual([])
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("exclude 追加跳过目录、include 强制放行（G3）", () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-col-"))
+    for (const sub of ["deps-mirror/x", "vendor/y"]) {
+      mkdirSync(join(dir, sub), { recursive: true })
+      writeFileSync(join(dir, sub, "CHANGELOG.md"), "", "utf8")
+    }
+    const rel = (list: string[]) => list.map((p) => p.replaceAll("\\", "/").replace(dir.replaceAll("\\", "/"), "")).sort()
+    // 自造的依赖目录名不在内置名单内，默认会被收集，须由 exclude 显式排除
+    expect(rel(collectChangelogs(dir))).toEqual(["/deps-mirror/x/CHANGELOG.md"])
+    expect(rel(collectChangelogs(dir, { exclude: ["deps-mirror"] }))).toEqual([])
+    // include 优先于内置名单：显式声明要处理 vendor 时不再跳过
+    expect(rel(collectChangelogs(dir, { exclude: ["deps-mirror"], include: ["vendor"] }))).toEqual(["/vendor/y/CHANGELOG.md"])
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  // gitignore 兜底：项目自造的依赖目录名不在内置名单里，靠忽略规则整棵跳过
+  it("跳过被 gitignore 覆盖的目录（G4）", () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-col-"))
+    const git = (args: string[]) => spawnSync("git", args, { cwd: dir, encoding: "utf8" })
+    git(["init", "-q"])
+    writeFileSync(join(dir, ".gitignore"), "mirror/\n", "utf8")
+    mkdirSync(join(dir, "mirror", "pkg"), { recursive: true })
+    writeFileSync(join(dir, "mirror", "pkg", "CHANGELOG.md"), "", "utf8")
+    expect(collectChangelogs(dir)).toEqual([])
     rmSync(dir, { recursive: true, force: true })
   })
 })

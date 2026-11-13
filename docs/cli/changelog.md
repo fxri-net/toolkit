@@ -28,6 +28,8 @@ toolkit changelog add / status / publish # 其余 changeset 子命令透传
 | `--redact` / `--no-redact` | version / format / doc | 开启/关闭隐私脱敏（默认开启；作用于 CHANGELOG 终端展示与落盘） |
 | `--warn` / `--no-warn` | version / format / doc | 开启/关闭软告警（默认开启；作用于发版前未归档任务提醒与无类型前缀条目计数告警） |
 | `--history` | version / format | 追溯改写全部历史版本块（默认只处理 changesets 新写入块与无分组的最新版本块） |
+| `--exclude <dirs>` | version / format | 额外跳过的目录，逗号分隔；默认已跳过依赖安装目录、构建产物与 gitignore 覆盖的目录 |
+| `--include <dirs>` | version / format | 强制处理的目录，逗号分隔；优先于默认跳过名单 |
 | `--no-sync-doc` | version | 发版后不自动同步镜像页 |
 | `--check` | doc | 只比对镜像页与根 CHANGELOG，不写文件；不一致时输出首个差异行并以 1 退出 |
 | `--from <path>` / `--to <path>` | doc | 根 CHANGELOG 与镜像页路径，默认 `CHANGELOG.md` / `docs/changelog.md` |
@@ -42,6 +44,8 @@ toolkit changelog add / status / publish # 其余 changeset 子命令透传
   - 默认 `CHANGELOG.md` → `docs/changelog.md`
   - `version` 成功后自动执行一次（`--no-sync-doc` 关闭），失败只告警不阻断发版
 - `version`：先透传 changesets 消费变更集，再对 CHANGELOG 做语义分组归类——**条目前缀是唯一归类信号**。
+  - 改写范围只覆盖本仓自身的包：跳过依赖安装目录（`vendor`、`node_modules`、`.venv` 等，含 composer `config.vendor-dir` 自定义目录）
+    与构建产物目录、gitignore 覆盖的目录。判据不看文件是否被 git 跟踪，把 `vendor` 提交进版本库的项目同样不会改写第三方日志
   - 归类信号：`类型：` 前缀归入「新增功能 / 问题修复 / …」等分组；含英文源组的块内条目按前缀纠正到正确分组
   - 分组生成：无 `###` 分组的版本块按前缀生成规范分组（默认只处理最新一块，`--history` 处理全部版本块）；无前缀条目按所属源组标题兜底、无源组时归入其他变更
   - 清理变更集条目双前缀伪影：以 `- ` 开头的条目会被 changesets 二次加前缀为 `- - 条目` 并缩进续行，格式化时还原为顶层条目

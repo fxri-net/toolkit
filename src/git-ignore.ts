@@ -3,7 +3,7 @@
 // 只依赖 node:child_process、node:fs 与 node:path，不引入任何业务模块，保证被任意域安全复用
 import { spawnSync } from "node:child_process"
 import { realpathSync } from "node:fs"
-import { basename, dirname, isAbsolute, join } from "node:path"
+import { basename, dirname, isAbsolute, join, resolve } from "node:path"
 
 // 本地配置文件忽略判定：四态（已忽略 / 已跟踪 / 未忽略 / 不适用两态）+ 一诊断态
 export type LocalConfigIgnoreState = "ignored" | "tracked" | "not-ignored" | "not-a-repo" | "outside-repo" | "unavailable"
@@ -82,6 +82,19 @@ export function gitIgnoredSet(cwd: string, rels: string[]): Set<string> {
     if (line) ignored.add(line)
   }
   return ignored
+}
+
+// 批量列被 git 忽略的路径：--directory 让整体被忽略的子树折叠成一条，供目录遍历时整棵跳过
+// 返回绝对路径集合（正斜杠），非 git 仓库或执行出错返回空集，调用方按「未忽略」继续
+export function gitIgnoredDirs(cwd: string): Set<string> {
+  const out = new Set<string>()
+  const res = runGit(["ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z"], cwd)
+  if (res.status !== 0) return out
+  for (const line of res.stdout.split("\0")) {
+    if (!line) continue
+    out.add(toPosix(resolve(cwd, line.replace(/\/$/, ""))))
+  }
+  return out
 }
 
 // 判本地配置文件在所属仓库中的忽略状态：仓库探针 → 工作树归属 → 是否已跟踪 → 忽略规则，逐级归因

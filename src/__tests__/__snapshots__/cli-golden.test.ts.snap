@@ -1141,14 +1141,16 @@ Usage: toolkit changelog version [options]
 消费变更集并生成新版本块，随后同步文档镜像
 
 Options:
-  --lang <lang>  语言 zh/en (default: "zh")
-  --redact       开启隐私脱敏
-  --no-redact    关闭隐私脱敏
-  --warn         开启软告警
-  --no-warn      关闭软告警
-  --history      追溯改写历史版本块（默认保留）
-  --no-sync-doc  不自动同步文档站镜像
-  -h, --help     显示帮助
+  --lang <lang>     语言 zh/en (default: "zh")
+  --redact          开启隐私脱敏
+  --no-redact       关闭隐私脱敏
+  --warn            开启软告警
+  --no-warn         关闭软告警
+  --history         追溯改写历史版本块（默认保留）
+  --no-sync-doc     不自动同步文档站镜像
+  --exclude <dirs>  额外跳过的目录，逗号分隔（默认已跳过依赖、产物与 gitignore 目录）
+  --include <dirs>  强制处理的目录，逗号分隔（覆盖默认跳过名单）
+  -h, --help        显示帮助
 
 --- stderr ---
 "

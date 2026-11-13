@@ -16,6 +16,7 @@ export type { NormalizeIssue, NormalizeResult } from "./tasks/normalize"
 // changelog 域
 export * from "./changelog/languages"
 export { collectChangelogs } from "./changelog/collect"
+export type { CollectOptions } from "./changelog/collect"
 export { localDate, formatChangelog, formatChangelogs } from "./changelog/format"
 export { buildDocPage, checkDoc, syncDoc, resolveDocOptions, syncDocAfterVersion } from "./changelog/doc"
 export type { DocOptions, DocCliOptions, DocCheckResult } from "./changelog/doc"
