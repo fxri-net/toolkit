@@ -51,7 +51,7 @@ export default defineConfig({
 | `nav/group-name-length` | error | 顶栏一级项或侧栏分组名超过 4 个汉字 |
 | `nav/not-found-page` | error | 缺少 `docs/404.md`，或其 frontmatter 缺 `search: false` |
 | `nav/config-not-wired` | error | 站点配置未引用 `site-nav.json`，数据不会生效 |
-| `nav/page-size` | warn | 单页超过 300 行（`changelog.md` 除外） |
+| `nav/page-size` | warn | 单页超过 300 行（`changelog.md` 除外）；只统计本仓自身页面，依赖与产物目录下的 md 不计入 |
 | `dist/sitemap-missing` | error | 产物缺少 `sitemap.xml` |
 | `dist/sitemap-404` | error | `sitemap.xml` 含 404 页 |
 | `dist/not-found-title` | error | `docs/404.md` 缺一级标题，无法断言搜索索引 |

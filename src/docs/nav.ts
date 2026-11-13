@@ -1,7 +1,8 @@
 // 文档站导航校验：以 docs/site-nav.json 为唯一数据来源，先按随包 schema 校验结构，再判定导航与命名规则
 // 数据契约替代源码解析：检查器不读 config.mts，也不随 VitePress 版本变化
-import { existsSync, readdirSync } from "node:fs"
+import { existsSync } from "node:fs"
 import { join, relative } from "node:path"
+import { walkFiles } from "../fs-scope"
 import { readTextFile } from "../read-text"
 import { skillsPackageDir } from "../skills"
 import { DEFAULT_DOCS_NAV, effectiveLevel, type DocsNavConfig, type RuleSetting } from "./config"
@@ -197,17 +198,6 @@ function addWiringProblem(add: (id: string, message: string, level: ProblemLevel
   }
 }
 
-// 递归收集文档页，跳过构建产物与依赖目录
-function collectPages(dir: string, found: string[] = []): string[] {
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === "node_modules" || entry.name === "cache" || entry.name === "dist" || entry.name === "public") continue
-    const full = join(dir, entry.name)
-    if (entry.isDirectory()) collectPages(full, found)
-    else if (entry.name.endsWith(".md")) found.push(full)
-  }
-  return found
-}
-
 // 导航项结构：下拉可再分级（如「参考 → 内核 / 数据」），故 items 与自身同构
 interface NavItemLike {
   text: string
@@ -338,7 +328,8 @@ export function checkDocsNav(
   }
 
   // 页面体量只告警：拆分判据涉及读者与主题，机器不宜阻断
-  for (const page of collectPages(docsDir)) {
+  // 遍历范围走共用判据（跳过依赖、产物与 gitignore 目录），站点自有的 cache / public 一并排除
+  for (const page of walkFiles(docsDir, (name) => name.endsWith(".md"), { exclude: ["cache", "public"] })) {
     if (cfg.pageSizeExclude.includes(page.split(/[\\/]/).pop() ?? "")) continue
     const lines = readTextFile(page).replace(/\r\n/g, "\n").split("\n").length
     if (lines > cfg.maxPageLines) add("nav/page-size", `页面超过 ${cfg.maxPageLines} 行（${lines} 行），考虑拆分`, "warn", displayPath(page))

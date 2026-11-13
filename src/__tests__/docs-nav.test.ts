@@ -252,4 +252,15 @@ describe("checkDocsNav", () => {
     expect(result.problems.map((problem) => problem.id)).toContain("nav/page-size")
     expect(result.problems.every((problem) => problem.level === "warn")).toBe(true)
   })
+
+  // 依赖目录下的 md 不是站点页面：即便超长也不该计入体量告警（vendor 常被提交进版本库的 PHP 项目同样适用）
+  it("依赖与产物目录下的 md 不计入页面体量", () => {
+    writeSite(MINIMAL)
+    const long = `${Array.from({ length: 301 }, (_, index) => `第 ${index} 行`).join("\n")}\n`
+    for (const sub of ["vendor/acme/pkg", "node_modules/lib", "dist"]) {
+      mkdirSync(join(dir, sub), { recursive: true })
+      writeFileSync(join(dir, sub, "CHANGELOG.md"), long)
+    }
+    expect(ids()).not.toContain("nav/page-size")
+  })
 })
