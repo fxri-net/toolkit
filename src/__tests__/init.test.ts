@@ -150,6 +150,15 @@ describe("initWorkspace 技能入口层", () => {
     expect(report.products.some((p) => p.target === rel && p.action === "created")).toBe(true)
   })
 
+  // 同名文件占位时 mkdirSync 只抛 ENOENT，无从归因；须给出路径与可执行处置方式
+  it("技能目录路径被文件占位时报出归因与处置方式", () => {
+    const { cwd } = track(runInDir("tk-init-blocked-"))
+    writeFileSync(join(cwd, ".agents"), "占位文件", "utf8")
+
+    expect(() => initWorkspace(".tasks", cwd)).toThrow(/\.agents 是文件而非目录/)
+    expect(() => initWorkspace(".tasks", cwd)).toThrow(/删除该文件/)
+  })
+
   it("多个候选目录并存时各落一份入口壳，指针块去路径化覆盖全部落点", () => {
     const { cwd } = track(runInDir("tk-init-shellmulti-"))
     const skillDirs = [".agents/skills", ".trae/skills"]

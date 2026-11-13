@@ -1,6 +1,6 @@
 // init 命令实现：生成任务区骨架、规范载体与技能入口壳，补齐 .gitignore 片段
 // 重复执行幂等：业务文件已存在一律保持不覆盖；仅入口壳按标记版本分流（落后或无标记就地更新为当前版本）
-import { existsSync, readFileSync, mkdirSync } from "node:fs"
+import { existsSync, readFileSync, mkdirSync, statSync } from "node:fs"
 import { isAbsolute, join, relative, resolve } from "node:path"
 import { writeFileAtomic } from "./write-atomic"
 import { readTextFile } from "./read-text"
@@ -299,6 +299,19 @@ export function appendPrettierignore(cwd: string, root: string): InitProduct[] {
   return [{ target, action: "appended", detail: `已追加任务区排除行（${row}）` }]
 }
 
+// 判定目录链上是否有同名文件占位：返回首个被普通文件占用的仓库相对路径，无占用返回 null
+// mkdirSync 遇到该情形只抛 ENOENT，报错无从归因，故在创建前显式识别
+function findBlockingFile(cwd: string, target: string): string | null {
+  const parts = relative(cwd, target).split(/[\\/]/).filter(Boolean)
+  let current = cwd
+  for (const part of parts) {
+    current = join(current, part)
+    if (!existsSync(current)) return null
+    if (!statSync(current).isDirectory()) return relative(cwd, current).replace(/\\/g, "/")
+  }
+  return null
+}
+
 // 技能入口层：生成项目级入口壳 + 在已存在的 AGENTS.md 中幂等追加指针块
 // 源仓库靠 fxri-* 技能自举，不生成自己的入口壳（内部判定，不暴露 CLI 参数）
 function scaffoldEntryLayer(cwd: string): InitProduct[] {
@@ -320,6 +333,11 @@ function scaffoldEntryLayer(cwd: string): InitProduct[] {
     const dir = join(cwd, skillDir, ENTRY_SHELL_NAME)
     const file = join(dir, SKILL_ENTRY)
     const rel = `${skillDir}/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}`
+    // 路径上有同名文件时直接给出归因与处置方式，不让 mkdirSync 抛裸 ENOENT
+    const blocker = findBlockingFile(cwd, dir)
+    if (blocker) {
+      throw new Error(`技能入口壳无法创建：${blocker} 是文件而非目录；请先删除该文件，或改名为目录后重跑 toolkit init`)
+    }
     const ignoredHere = ignored.has(rel)
     if (existsSync(file)) {
       const version = readEntryVersion(readTextFile(file))
