@@ -117,6 +117,8 @@ export function initWorkspace(dir = ".tasks", cwd = process.cwd(), options: Init
   // resolve：dir 为绝对路径（项目外独立仓库）时直接使用，相对路径时基于 cwd 解析
   const root = resolve(cwd, dir)
   const rootExisted = existsSync(root)
+  // 任务区根或其祖先被普通文件占用时先给出归因，避免 mkdirSync 抛裸 ENOENT
+  assertCreatable(cwd, root, "任务区")
   mkdirSync(join(root, "active", month), { recursive: true })
   mkdirSync(join(root, "archive"), { recursive: true })
   const products: InitProduct[] = [
@@ -125,7 +127,7 @@ export function initWorkspace(dir = ".tasks", cwd = process.cwd(), options: Init
       action: rootExisted ? "kept" : "created",
       detail: rootExisted ? "任务区已存在，保持不变" : "已创建",
     },
-    ...scaffoldConventions(root, dir),
+    ...scaffoldConventions(cwd, root, dir),
     ...appendGitignore(cwd),
     ...appendPrettierignore(cwd, root),
     ...scaffoldEntryLayer(cwd),
@@ -139,7 +141,7 @@ export function initWorkspace(dir = ".tasks", cwd = process.cwd(), options: Init
 
 // 生成规范载体骨架（index.md + history.md）；已存在索引、或存在待迁移的旧单文件 conventions.md 时不动
 // 旧文件在时不建空骨架：否则空骨架会抢占目录形态的优先地位，旧内容形同被吞
-function scaffoldConventions(root: string, display: string): InitProduct[] {
+function scaffoldConventions(cwd: string, root: string, display: string): InitProduct[] {
   const dir = join(root, CONVENTIONS_DIR)
   const index = join(dir, INDEX_FILE)
   const target = `${posix(display)}/${CONVENTIONS_DIR}/${INDEX_FILE}`
@@ -157,6 +159,8 @@ function scaffoldConventions(root: string, display: string): InitProduct[] {
       },
     ]
   }
+  // 规范载体目录被同名文件占用时同样先归因，不让 mkdirSync 抛裸 ENOENT
+  assertCreatable(cwd, dir, "规范载体")
   mkdirSync(dir, { recursive: true })
   writeFileAtomic(index, CONVENTIONS_INDEX)
   writeFileAtomic(join(dir, HISTORY_FILE), HISTORY_SKELETON)
@@ -299,8 +303,14 @@ export function appendPrettierignore(cwd: string, root: string): InitProduct[] {
   return [{ target, action: "appended", detail: `已追加任务区排除行（${row}）` }]
 }
 
+// 创建前校验路径可落地：目录链上有同名文件时报出占位路径与处置方式
+// mkdirSync 遇到该情形只抛 ENOENT，报错无从归因，故统一在创建前显式识别
+function assertCreatable(base: string, target: string, label: string): void {
+  const blocker = findBlockingFile(base, target)
+  if (blocker) throw new Error(`${label}无法创建：${blocker} 是文件而非目录；请先删除该文件或改为目录后重跑 toolkit init`)
+}
+
 // 判定目录链上是否有同名文件占位：返回首个被普通文件占用的仓库相对路径，无占用返回 null
-// mkdirSync 遇到该情形只抛 ENOENT，报错无从归因，故在创建前显式识别
 function findBlockingFile(cwd: string, target: string): string | null {
   const parts = relative(cwd, target).split(/[\\/]/).filter(Boolean)
   let current = cwd
@@ -334,10 +344,7 @@ function scaffoldEntryLayer(cwd: string): InitProduct[] {
     const file = join(dir, SKILL_ENTRY)
     const rel = `${skillDir}/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}`
     // 路径上有同名文件时直接给出归因与处置方式，不让 mkdirSync 抛裸 ENOENT
-    const blocker = findBlockingFile(cwd, dir)
-    if (blocker) {
-      throw new Error(`技能入口壳无法创建：${blocker} 是文件而非目录；请先删除该文件，或改名为目录后重跑 toolkit init`)
-    }
+    assertCreatable(cwd, dir, "技能入口壳")
     const ignoredHere = ignored.has(rel)
     if (existsSync(file)) {
       const version = readEntryVersion(readTextFile(file))

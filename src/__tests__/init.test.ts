@@ -159,6 +159,18 @@ describe("initWorkspace 技能入口层", () => {
     expect(() => initWorkspace(".tasks", cwd)).toThrow(/删除该文件/)
   })
 
+  // 任务区与规范载体同样可能被同名文件占用，归因口径须与入口壳一致
+  it("任务区与规范载体路径被文件占位时同样报出归因", () => {
+    const blockedTasks = track(runInDir("tk-init-blocked-tasks-"))
+    writeFileSync(join(blockedTasks.cwd, ".tasks"), "占位文件", "utf8")
+    expect(() => initWorkspace(".tasks", blockedTasks.cwd)).toThrow(/任务区无法创建：\.tasks 是文件而非目录/)
+
+    const blockedCarrier = track(runInDir("tk-init-blocked-carrier-"))
+    mkdirSync(join(blockedCarrier.cwd, ".tasks"), { recursive: true })
+    writeFileSync(join(blockedCarrier.cwd, ".tasks", "conventions"), "占位文件", "utf8")
+    expect(() => initWorkspace(".tasks", blockedCarrier.cwd)).toThrow(/规范载体无法创建：\.tasks\/conventions 是文件而非目录/)
+  })
+
   it("多个候选目录并存时各落一份入口壳，指针块去路径化覆盖全部落点", () => {
     const { cwd } = track(runInDir("tk-init-shellmulti-"))
     const skillDirs = [".agents/skills", ".trae/skills"]
