@@ -416,7 +416,7 @@ exports[`各域行为与错误路径 > rules list 1`] = `
     output   2026-11-08 02:21  输出要求（recommended / complete / full）
     workflow 2026-11-12 15:06  工作流与方案落盘（recommended / complete / full）
     env      2026-11-08 08:31  环境与版本（complete / full）
-    commit   2026-11-08 02:21  提交信息规则（full）
+    commit   2026-11-13 10:13  提交信息规则（full）
     usage    2026-11-08 02:21  技能使用情况（full）
 预设：minimal=core；recommended=core+output+workflow；complete=core+output+workflow+env；full=core+output+workflow+env+commit+usage
 当前缓存：无（默认 recommended）
@@ -529,7 +529,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
       "title": "提交信息规则",
       "summary": "中文提交信息格式、类型字典与正反例",
       "file": "commit.md",
-      "anchor": "2026-11-08 02:21",
+      "anchor": "2026-11-13 10:13",
       "presets": [
         "full"
       ]
