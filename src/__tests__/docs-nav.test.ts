@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { checkDocsNav } from "../docs/nav"
+import { checkDocsNav, CONFIG_FILES } from "../docs/nav"
 
 // 临时文档目录：每个用例独立，避免互相污染
 let dir: string
@@ -262,5 +262,11 @@ describe("checkDocsNav", () => {
       writeFileSync(join(dir, sub, "CHANGELOG.md"), long)
     }
     expect(ids()).not.toContain("nav/page-size")
+  })
+
+  // 候选清单按优先级取首个命中，重复项会让「优先级」失去意义
+  it("站点配置候选文件名清单无重复项", () => {
+    expect(new Set(CONFIG_FILES).size).toBe(CONFIG_FILES.length)
+    expect(CONFIG_FILES[0]).toBe("config.mts")
   })
 })

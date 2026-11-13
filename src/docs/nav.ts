@@ -182,13 +182,13 @@ function collectNavGroupNames(items: NavItemLike[], depth = 0, out: string[] = [
   return out
 }
 
-// 站点配置候选文件名：VitePress 支持 .mts / .ts / .mjs / .js
-const CONFIG_FILES = ["config.mts", "config.ts", "config.mts", "config.mjs", "config.js"]
+// 站点配置候选文件名：VitePress 支持 .mts / .ts / .mjs / .js，按此顺序取首个命中
+export const CONFIG_FILES = ["config.mts", "config.ts", "config.mjs", "config.js"]
 
 // 数据接线检查：数据文件存在但站点配置没引用它时，改数据不会生效——这类假绿必须报出来
 function addWiringProblem(add: (id: string, message: string, level: ProblemLevel, file: string) => void, docsDir: string): void {
   const dir = join(docsDir, ".vitepress")
-  const found = [...new Set(CONFIG_FILES)].map((name) => join(dir, name)).find((file) => existsSync(file))
+  const found = CONFIG_FILES.map((name) => join(dir, name)).find((file) => existsSync(file))
   if (!found) {
     add("nav/config-not-wired", "未找到 docs/.vitepress/config.*：无法确认站点配置引用了 site-nav.json", "error", displayPath(dir))
     return
