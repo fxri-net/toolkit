@@ -10,7 +10,7 @@
 - 任务记录零散，谁在做、做到哪、为什么这么做，无从查起
 - 发版 CHANGELOG 要人肉维护多语言
 
-本工具用一套**纯 Markdown 任务文件 + 一条 CLI** 解决前三点，第四点见[完整攻略 · 多语言 CHANGELOG](./guide#多语言-changelog)。
+本工具用一套**纯 Markdown 任务文件 + 一条 CLI** 解决前两点，第三点见[完整攻略 · 多语言 CHANGELOG](./guide#多语言-changelog)。
 
 ## 谁适合用
 
