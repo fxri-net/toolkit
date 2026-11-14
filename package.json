@@ -75,6 +75,11 @@
     "changelog",
     "changesets",
     "i18n",
+    "skills",
+    "agents",
+    "rules",
+    "docs",
+    "usage",
     "fxri"
   ],
   "engines": {

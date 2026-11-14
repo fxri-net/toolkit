@@ -19,6 +19,8 @@
 AI 参与开发后，方案与决策散落在对话记录里，会话一关什么都不剩；任务记录零散，谁在做、做到哪，无从查起；
 发版 CHANGELOG 还要人肉维护多语言。本工具把这条链路沉淀为**仓库内可检索、可校验、可归档的文件**——人离开会话，记忆留在仓库里。
 
+除两条主线外，CLI 还提供规范载体（conventions）、技能分发（skills）、规则组合（rules）、文档站校验（docs）与使用统计（usage）。
+
 - **零依赖 AI 技能包（skills）**：方案落盘、发版 CHANGELOG 两套工作流沉淀为 Agent Skills，不绑定任何 AI 工具；skills 可以独立工作，
   CLI 是可选加速——推荐都装，体验最完整（[什么关系？](./docs/faq.md#工具和-skills-都得装吗)）
 - **不懂 AI 也能用**：任务管理与 CHANGELOG 是纯 CLI 能力；术语都说了人话（[先看术语表](./docs/getting-started.md#几个术语-先说人话)）
@@ -48,10 +50,13 @@ pnpm exec toolkit tasks
 | 任务管理（tasks） | 方案落盘、总览过滤、校验归档、导入导出 CSV / XLSX / JSON | [CLI 参考](./docs/cli.md) · [任务文件规范](./docs/guide.md#任务文件规范) |
 | 多语言 CHANGELOG（changelog） | 封装 changesets 发版、分组标题本地化 | [CLI 参考](./docs/cli/changelog.md) |
 | 协作规范载体（conventions） | 把任务里提炼的规范收进 `.tasks/conventions/`，成为可检索、可校验的项目规范源；支持结构升级、表格形态归一与只读体检 | [CLI 参考](./docs/cli.md) · [完整攻略](./docs/guide.md#conventions-规范沉淀地) |
-| Node API | 把上述能力嵌进脚本或平台 | [API 参考](./docs/api.md) |
-| 隐私脱敏 | 落盘前自动掩码邮箱、手机号、密钥等 | [配置参考](./docs/config.md) |
 | AI 技能包（skills） | 不装本工具也能让 AI 按同一套规范干活；装了可一键分发技能（`--scope project` 随仓库入库、队友 clone 即用） | [完整攻略](./docs/guide.md#ai-技能包-skills) · [常见问题](./docs/faq.md#工具和-skills-都得装吗) |
+| 全局规则（rules） | 按模块组合、排序与复制 AI 全局规则（含提交信息、技能使用情况等模块），预设与缓存随包分发 | [CLI 参考](./docs/cli/rules.md) |
+| 技能使用统计（usage） | 统计技能调用次数、触发词与结果；默认关闭、不联网、数据只留本机 | [CLI 参考](./docs/cli/usage.md) · [使用统计](./docs/usage/index.md) |
+| 文档站工具（docs） | 校验主题一致性、导航结构与构建产物，规则随包分发、跨仓样式漂移可发现 | [CLI 参考](./docs/cli/docs-theme.md) · [docs 校验](./docs/cli/docs-check.md) |
+| 隐私脱敏 | 落盘前自动掩码邮箱、手机号、密钥等 | [配置参考](./docs/config.md) |
 | 配置文件 | 三层（全局 / 项目 / 本地）定制脱敏、告警、导入列映射、语言表；`toolkit config status` 只读查看生效情况与来源 | [CLI 参考](./docs/cli/config.md) · [配置参考](./docs/config.md) |
+| Node API | 把上述能力嵌进脚本或平台 | [API 参考](./docs/api.md) |
 
 ## 📚 文档
 
@@ -64,6 +69,7 @@ pnpm exec toolkit tasks
 | [CLI 参考](./docs/cli.md) | 查命令、参数、默认值、退出码 |
 | [API 参考](./docs/api.md) | 作为库引入 Node 项目 |
 | [配置参考](./docs/config.md) | 查配置文件字段（全局 / 项目 / 本地三层） |
+| [使用统计](./docs/usage/index.md) | 启用后可查技能调用次数、触发词与采集边界 |
 | [更新日志](./docs/changelog.md) | 查各版本变更内容 |
 | [常见问题](./docs/faq.md) | 遇到问题先来这里找 |
 | [全局规则索引](./docs/rules/index.md) | 规则组合器：6 个模块自由勾选、排序与一键复制 |
