@@ -21,7 +21,10 @@ hero:
 features:
   - icon: ✅
     title: 方案落盘即约束
-    details: 方案确认完就丢、AI 会话一关什么都不剩？任务文件落在仓库 .tasks/，toolkit tasks check 校验、tasks archive 归档，沉淀规范进 conventions 载体，能力终点到沉淀为止。
+    details: 方案确认完就丢、AI 会话一关什么都不剩？任务文件落在仓库 .tasks/，toolkit tasks check 校验、tasks archive 归档，决策不再随会话消失。
+  - icon: 📐
+    title: 规范载体可校验
+    details: 任务里提炼的规范收进 .tasks/conventions/：v3 三分区、稳定 ID 索引、结构升级与表格归一，规范可检索也可体检。
   - icon: 🔒
     title: 多人协作不互踩
     details: 任务唯一键 + 先查后写约定 + 归档排他锁，多人（含多个 AI）同时维护任务不会互相覆盖。
@@ -31,12 +34,21 @@ features:
   - icon: 🌍
     title: 多语言 CHANGELOG
     details: 封装 changesets，条目按变更类型（新增/修复/优化…）语义分组，分组标题不再被英文格式头绑架，任意语言可配置扩展。
-  - icon: 🛡️
-    title: 隐私脱敏
-    details: 任务正文与 CHANGELOG 落盘前自动掩码邮箱、手机号、密钥等敏感信息，多人协作不泄密。
+  - icon: 🧭
+    title: 全局规则可组合
+    details: 按模块组合、排序与复制 AI 全局规则（角色、输出、工作流、提交、使用统计等），预设与缓存随包分发，升级后重新组合即同步。
   - icon: 🧩
     title: AI 技能包
     details: 不装本工具，也能让 AI 按同一套规范干活——零依赖 Agent Skills，各 agent 全局技能目录通用；装了 CLI 可 `toolkit skills install` 一键分发，与 CLI 同一发布批次。
+  - icon: 📈
+    title: 技能使用有据可查
+    details: 统计技能在哪些会话、被哪句话触发、用了多少次；默认关闭、不联网、数据只留本机。
+  - icon: 🛡️
+    title: 隐私脱敏
+    details: 任务正文与 CHANGELOG 落盘前自动掩码邮箱、手机号、密钥等敏感信息，多人协作不泄密。
+  - icon: 🌐
+    title: 文档站工程化
+    details: 主题、导航与构建产物按随包规则校验，多仓文档站样式与导航漂移一条命令发现。
 ---
 
 ## 30 秒上手
@@ -78,6 +90,8 @@ pnpm exec toolkit tasks
 | 多人（含多个 AI）同时维护任务，互相覆盖 | 任务唯一键 + 「先查后写」约定 + 归档排他锁 |
 | 任务散落各处，总览、过滤、统计靠人肉 | 一条命令扫 `.tasks/` 全目录，按状态/负责人/范围/日期过滤，可导出 CSV / XLSX / JSON |
 | 发版 CHANGELOG 分组标题是英文，且分组维度与变更类型对不上 | 封装 changesets，条目按变更类型语义分组并内置中文格式化，任意语言可配置扩展 |
+| 全局规则散在各人手里，升级后每份快照都不同步 | `toolkit rules` 按模块组合与复制，规则正文随包分发，升级后重新组合即同步 |
+| 多个仓库的文档站样式与导航各写一套，漂移无人发现 | `toolkit docs theme check` / `nav check` / `dist check` 按随包规则统一校验 |
 
 ## 文档索引
 
