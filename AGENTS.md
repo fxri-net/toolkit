@@ -12,7 +12,8 @@
    `docs/changelog.md` 为 `pnpm sync:changelog-doc` 的生成物，只核对镜像结果与源一致）。
    凡触达处措辞必须与实际行为严格一致，包括「不自动修复」「需人工确认」等限制细节；确认无触达的内容须在对话中明确说明，不得静默跳过。
    ⚠️ **时点约束**：触达面核对在**变更方案确认时**即按此清单逐篇走查、将结论列入任务文件「影响范围」节（每篇标注 已同步 / 无触达及理由），
-   不延迟到归档时才复核。涉及术语或措辞变更时，先 grep 全仓库定位旧措辞触达点再列清单。
+   不延迟到归档时才复核。涉及术语或措辞变更时，先 grep 全仓库定位旧措辞触达点再列清单；
+   仓库外平台侧（仓库简介、social preview、npm 页）不在 grep 范围，须另列清单人工同步。
 3. **skills**：`skills/` 下 SKILL.md 与 references 同步新能力/新流程；每个 SKILL.md 的版本写两处且须一致——
    frontmatter `metadata.version`（机器读取位，`toolkit skills status` / `skills install` 打印的真源版本）与
    正文首部 `> 本技能版本 x.y.z（随 @fxri/toolkit 同批分发）`（进上下文的自证位）；内容变更时同步递增，

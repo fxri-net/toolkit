@@ -19,7 +19,7 @@
 | --- | --- | --- | --- | --- |
 | C-2 | 能力终点与授权 | 做任务收尾时：归档 + 沉淀即终点，提交自动执行，发版与推送须明确授权 | common | `docs/rules/ai.md` 稳定纪律 |
 | C-6 | 细节只进 skills | 写规则时：可变流程只进 skills，规则层不复述，防用户快照失同步 | common | `AGENTS.md` 质量门 5 |
-| C-7 | 触达核对前置 | 改能力或措辞前：先 grep 全仓定位触达点，影响范围逐篇核对 | common | `AGENTS.md` 质量门 2 |
+| C-7 | 触达核对前置 | 改能力或措辞前：先 grep 全仓定位触达点并另列仓库外平台侧（仓库简介 / social preview / npm 页），影响范围逐篇核对 | common | `AGENTS.md` 质量门 2 |
 | C-8 | 文档三层职责 | 写文档或规则时：手册＝用户视图、skills＝细节真源、`ai.md`＝薄壳 | common | `docs/rules/ai.md`、`AGENTS.md` 质量门 5 |
 | C-12 | 输出分流 | 对外输出：stdout 只放数据，诊断走 stderr | common | `docs/cli.md`、`docs/config/update.md`、`docs/config/skills.md` |
 | C-13 | 验收含类型与静态检查 | 定验收时：类型检查与静态检查属 `pnpm verify` 步骤，不得用 lint / build 替代 | common | `AGENTS.md` 验收方式 |
