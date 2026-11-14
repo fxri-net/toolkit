@@ -21,7 +21,7 @@ AI 参与开发后，方案与决策散落在对话记录里，会话一关什�
 
 除任务主线外，CLI 还提供规范载体（conventions）、技能分发（skills）、规则组合（rules）、文档站校验（docs）与使用统计（usage）。
 
-- **零依赖 AI 技能包（skills）**：方案落盘、发版 CHANGELOG 两套工作流沉淀为 Agent Skills，不绑定任何 AI 工具；skills 可以独立工作，
+- **零依赖 AI 技能包（skills）**：方案落盘、会话收尾、发版 CHANGELOG 等工作流沉淀为 Agent Skills，不绑定任何 AI 工具；skills 可以独立工作，
   CLI 是可选加速——推荐都装，体验最完整（[什么关系？](./docs/faq.md#工具和-skills-都得装吗)）
 - **不懂 AI 也能用**：任务管理与多语言 CHANGELOG 是纯 CLI 能力；术语都说了人话（[先看术语表](./docs/getting-started.md#几个术语-先说人话)）
 
