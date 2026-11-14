@@ -1,11 +1,11 @@
 ---
 layout: home
 # 首页无正文 h1，显式给 title 避免浏览器标签出现「方弦工具集 - 方弦工具集」重复
-title: 任务管理 + 多语言 CHANGELOG
+title: 任务管理与配套 AI 协作工具
 
 hero:
   name: 方弦工具集
-  text: 任务管理 + 多语言 CHANGELOG
+  text: 任务管理与配套 AI 协作工具
   tagline: 专为多人 + AI 跨项目协作打造。把方案确认、任务校验、归档链路沉淀为仓库内可检索、可校验的文件，顺手解决发版 CHANGELOG 的多语言维护问题。
   actions:
     - theme: brand
