@@ -1353,7 +1353,7 @@ exports[`帮助与版本口径 > help 子命令 1`] = `
 --- stdout ---
 Usage: toolkit [options] [command]
 
-专为多人 + AI 跨项目协作打造：任务管理与配套的规范沉淀、规则、技能分发为主，附带 CHANGELOG 与文档站。
+专为多人 + AI 跨项目协作打造：任务管理与配套的规范沉淀、规则、技能分发为主，附带多语言 CHANGELOG 与文档站。
 
 Options:
   -v, --version                    显示版本号
@@ -1603,7 +1603,7 @@ exports[`帮助与版本口径 > 无参默认帮助 1`] = `
 --- stderr ---
 Usage: toolkit [options] [command]
 
-专为多人 + AI 跨项目协作打造：任务管理与配套的规范沉淀、规则、技能分发为主，附带 CHANGELOG 与文档站。
+专为多人 + AI 跨项目协作打造：任务管理与配套的规范沉淀、规则、技能分发为主，附带多语言 CHANGELOG 与文档站。
 
 Options:
   -v, --version                    显示版本号
@@ -1636,7 +1636,7 @@ exports[`帮助与版本口径 > 根帮助 1`] = `
 --- stdout ---
 Usage: toolkit [options] [command]
 
-专为多人 + AI 跨项目协作打造：任务管理与配套的规范沉淀、规则、技能分发为主，附带 CHANGELOG 与文档站。
+专为多人 + AI 跨项目协作打造：任务管理与配套的规范沉淀、规则、技能分发为主，附带多语言 CHANGELOG 与文档站。
 
 Options:
   -v, --version                    显示版本号

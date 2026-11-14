@@ -14,7 +14,7 @@
 > 问题反馈走 [GitHub Issues](https://github.com/fxri-net/toolkit/issues)，
 > 或 [Gitee Issues](https://gitee.com/fxri/toolkit/issues)。
 
-专为**多人 + AI 跨项目协作**打造：任务管理与配套的规范沉淀、规则、技能分发为主，附带 CHANGELOG 与文档站。
+专为**多人 + AI 跨项目协作**打造：任务管理与配套的规范沉淀、规则、技能分发为主，附带多语言 CHANGELOG 与文档站。
 
 AI 参与开发后，方案与决策散落在对话记录里，会话一关什么都不剩；任务记录零散，谁在做、做到哪，无从查起；
 发版 CHANGELOG 还要人肉维护多语言。本工具把这条链路沉淀为**仓库内可检索、可校验、可归档的文件**——人离开会话，记忆留在仓库里。
