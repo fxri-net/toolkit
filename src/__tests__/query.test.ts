@@ -3,7 +3,8 @@ import { describe, it, expect } from "vitest"
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { queryTasks } from "../tasks/query"
+import { orderRows, queryTasks } from "../tasks/query"
+import type { TaskRow } from "../tasks/types"
 
 function makeDir(): string {
   const dir = mkdtempSync(join(tmpdir(), "tk-query-"))
@@ -60,5 +61,24 @@ describe("queryTasks 过滤", () => {
     expect(queryTasks(dir, "active", { scope: ["web"] }).rows).toHaveLength(1)
     expect(queryTasks(dir, "archived", { scope: ["server"] }).rows).toHaveLength(1)
     rmSync(dir, { recursive: true, force: true })
+  })
+})
+
+describe("STATUS_ORDER 分组顺序", () => {
+  it("搁置排在阻塞之后、已完成之前（不被当成未知状态兜到底部）", () => {
+    const row = (status: string): TaskRow => ({
+      view: "待完成",
+      title: status,
+      status,
+      owner: "唐启云",
+      scope: "-",
+      created: "20260903",
+      updated: "20260903",
+      completed: "",
+      depends: [],
+      file: `active/202609/${status}.md`,
+    })
+    const ordered = orderRows(["已完成", "搁置", "待办", "阻塞", "进行中"].map(row))
+    expect(ordered.map((r) => r.status)).toEqual(["待办", "进行中", "阻塞", "搁置", "已完成"])
   })
 })

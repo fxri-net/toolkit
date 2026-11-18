@@ -121,6 +121,20 @@ describe("computeStats", () => {
     expect(stats.duration.count).toBe(1)
   })
 
+  it("搁置不计入活跃滞留，单列 held 计数（状态分布仍计入）", () => {
+    freezeToday("2026-09-30")
+    const dir = makeDir()
+    writeTask(dir, "20260901-张三-在做的", { owner: "张三", status: "进行中", created: "20260901", updated: "20260901", completed: "", depends_on: "[]", scope: "core" })
+    writeTask(dir, "20260801-李四-搁置很久", { owner: "李四", status: "搁置", created: "20260801", updated: "20260801", completed: "", depends_on: "[]", scope: "core" })
+    const stats = computeStats(dir)
+    // 活跃样本只剩进行中那一条，滞留按它算（30 天），不被 60 天的搁置项拉高
+    expect(stats.active.count).toBe(1)
+    expect(stats.active.held).toBe(1)
+    expect(stats.active.maxStay).toBe(29)
+    // 状态分布不受口径影响，搁置照常计数
+    expect(stats.summary.byStatus).toEqual({ 进行中: 1, 搁置: 1 })
+  })
+
   it("created 晚于 completed 的异常行跳过", () => {
     const dir = makeDir()
     writeArchive(dir, "20260905", ["## 20260910-张三-日期异常\n\n> 负责人：张三　状态：已完成　范围：core　完成时间：2026-09-05 10:00\n\n正文\n"])
@@ -199,7 +213,7 @@ describe("renderStats", () => {
     expect(text).toContain("统计口径：含归档")
     expect(text).toContain("平均周期：1 天")
     expect(text).toContain("≤1 天　1 个")
-    expect(text).toContain("未完成任务：1 个")
+    expect(text).toContain("活跃任务：1 个")
     expect(text).toContain("平均滞留 4 天")
     expect(text).toContain("按完成月：2026-09 1")
     // 汇总块与看板统一：状态 / 负责人 / 范围 / 批次四类维度（覆盖视图内全部行）

@@ -161,7 +161,7 @@ toolkit skills install --force   # 把各目标下的同名旧副本重建为软
 
 ### 归档提示「本次无可归档任务」？
 
-任务文件的 frontmatter 里 `status` 仍是 `待办`/`进行中`/`阻塞`（这三态不归档），或终结态但缺 `completed` 完成时间（会明确提示跳过）。先打开任务文件确认 frontmatter 状态。
+任务文件的 frontmatter 里 `status` 仍是 `待办`/`进行中`/`阻塞`/`搁置`（这四类都不归档），或终结态但缺 `completed` 完成时间（会明确提示跳过）。先打开任务文件确认 frontmatter 状态。
 
 ### 归档后发现敏感信息没脱敏？
 

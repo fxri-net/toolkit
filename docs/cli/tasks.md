@@ -92,12 +92,14 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 ### stats
 
 - 完成周期与分布（仅「已完成」，已归档任务创建日期从块标题恢复，缺失者跳过并计数）
-- 未完成任务滞留时长
+- 活跃任务滞留时长（不含搁置：搁置是有意不投入，计入会把平均滞留长期拉高；搁置项在输出末单列「另有搁置 N 个」）
 - 按完成月吞吐汇总
 - 汇总块与 `toolkit tasks` 看板一致：按状态 / 负责人 / 范围 / 批次（范围多值拆段、空值与 `-` 归「未标注」；批次解析正文行 `> 批次：第 N 批（共 M 批）`，无该行归「未分批」）
 - `--format json` 输出 JSON（顶层携带 `schemaVersion: 1` 锚点，与 `tasks export` 及各域 `--format json` 同口径），
    过滤选项与视图查询一致（`--view` 默认 `all`，含归档）；JSON 的 `byOwner` / `byScope` 仍是完成样本吞吐口径，统一分布见 `summary` 字段，
    `view` 记录本次统计视图（`all` / `active` / `archived`）
+- ⚠️ JSON 的 `active.count` / `avgStay` / `maxStay` 均为**不含搁置**口径（字段名未变、含义变更，新增搁置状态后的口径调整）；
+  搁置项数在 `active.held` 中单列，读旧脚本时请据此调整
 
 `check` / `normalize` 的问题清单逐条输出为 `文件:行号: 描述`（有行号时便于编辑器跳转）；文件级问题（如重名、游离文件、归档块问题）无对应行，省略行号段，输出为 `文件: 描述`。
 
@@ -114,6 +116,14 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 | `--until <date>` | 结束日期（含当天） |
 
 ⚠️ 过滤只作用于所选视图；不指定 `--view` 时默认只查待完成，过滤落空会附 `--view` 引导提示。日期口径：待完成看创建/更新，已归档看完成时间。
+
+`--view active` 包含搁置项（它们仍在 `.tasks/active/`）。只看真正在推进的任务：
+
+```bash
+toolkit tasks --view active --status 待办,进行中,阻塞
+```
+
+只盘点搁置项：`toolkit tasks --status 搁置`。
 
 ## 导出与导入
 

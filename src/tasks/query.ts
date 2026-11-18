@@ -13,7 +13,7 @@ import { toYmd } from "../date"
 import type { TaskRow, TaskView, TaskFilter, TaskSummary } from "./types"
 
 // 终端展示与导出的状态分组顺序
-export const STATUS_ORDER = ["待办", "进行中", "阻塞", "已完成", "已放弃", "未标注"]
+export const STATUS_ORDER = ["待办", "进行中", "阻塞", "搁置", "已完成", "已放弃", "未标注"]
 
 // 读取待完成任务（active）为统一行
 export function listActiveTasks(tasksDir = ".tasks"): TaskRow[] {

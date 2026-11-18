@@ -48,7 +48,7 @@
 ```yaml
 ---
 owner: 唐启云          # 负责人（git 用户名）
-status: 进行中         # 待办 / 进行中 / 已完成 / 阻塞 / 已放弃
+status: 进行中         # 待办 / 进行中 / 阻塞 / 搁置 / 已完成 / 已放弃
 created: 20260902     # 创建日 YYYYMMDD，须等于文件名日期前缀
 updated: 20260902     # 最近更新日 YYYYMMDD
 completed: ''         # 完成时间 YYYY-MM-DD HH:mm；仅终结态必填
@@ -104,7 +104,7 @@ scope: app            # 影响范围；只标本仓内的端 / 面（跨仓库�
 ## 5. 自查清单（校验）
 
 - [ ] frontmatter 存在且七字段齐全
-- [ ] status 为五枚举之一；终结态已填 completed
+- [ ] status 为六值之一（待办 / 进行中 / 阻塞 / 搁置 / 已完成 / 已放弃）；终结态已填 completed，非终结态不留 completed
 - [ ] completed 为 `YYYY-MM-DD HH:mm` 且日期真实存在，且不晚于当前系统时间（时间按四级时间源取证：当场打点 / 聊天记录时间戳 / git 提交时间 / 兜底标注补记，非估算）
 - [ ] created 为 YYYYMMDD 且等于文件名日期前缀
 - [ ] 文件名符合 `{YYYYMMDD}-{用户名}-{任务简述}.md`，且用户名与 `owner` 一致、简述源出正文标题（不翻译 / 不音译 / 不缩写）

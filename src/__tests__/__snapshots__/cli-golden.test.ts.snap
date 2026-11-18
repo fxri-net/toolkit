@@ -565,7 +565,7 @@ exports[`各域行为与错误路径 > skills install 预演 1`] = `
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
 [预演] 技能源：<REPO>/skills
-[预演] 本次选择（5）：fxri-plan-review@1.0.11、fxri-plan-to-task@1.10.9、fxri-release-changelog@1.3.6、fxri-session-recap@1.6.13、fxri-text-encoding@1.2.5
+[预演] 本次选择（5）：fxri-plan-review@1.0.11、fxri-plan-to-task@1.11.0、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.0、fxri-text-encoding@1.2.5
 [预演] 本次目标（1）：canonical
 
 canonical（多家 agent 共读）：<SANDBOX>/home/.agents/skills
@@ -598,7 +598,7 @@ registry：registry.npmjs.org（来源：默认）
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
 技能源：<REPO>/skills
-技能版本：fxri-plan-review@1.0.11、fxri-plan-to-task@1.10.9、fxri-release-changelog@1.3.6、fxri-session-recap@1.6.13、fxri-text-encoding@1.2.5
+技能版本：fxri-plan-review@1.0.11、fxri-plan-to-task@1.11.0、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.0、fxri-text-encoding@1.2.5
 选择集（3）：fxri-plan-review、fxri-plan-to-task、fxri-session-recap
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-release-changelog、fxri-text-encoding
 目标选择集：全部可用目标（未保存过目标选择）
@@ -646,7 +646,7 @@ registry：registry.npmjs.org（来源：默认）
 
 项目面 · 项目根：<SANDBOX>/workspace
 项目面 · 技能真源：.agents/skills
-项目面 · 技能版本：fxri-plan-review@1.0.11、fxri-plan-to-task@1.10.9、fxri-release-changelog@1.3.6、fxri-session-recap@1.6.13、fxri-text-encoding@1.2.5
+项目面 · 技能版本：fxri-plan-review@1.0.11、fxri-plan-to-task@1.11.0、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.0、fxri-text-encoding@1.2.5
 项目面 · 选择集（3）：fxri-plan-review、fxri-plan-to-task、fxri-session-recap
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-release-changelog、fxri-text-encoding
 项目面 · 目录选择集：全部已存在候选目录（未保存过目录选择）
@@ -688,7 +688,7 @@ exports[`各域行为与错误路径 > skills 项目面预演 1`] = `
 作用域：项目面（仓库内唯一真源副本 + 各候选目录薄壳）（--scope 指定）
 
 [预演] 项目面 · 项目根：<SANDBOX>/workspace
-[预演] 项目面 · 本次选择（5）：fxri-plan-review@1.0.11、fxri-plan-to-task@1.10.9、fxri-release-changelog@1.3.6、fxri-session-recap@1.6.13、fxri-text-encoding@1.2.5
+[预演] 项目面 · 本次选择（5）：fxri-plan-review@1.0.11、fxri-plan-to-task@1.11.0、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.0、fxri-text-encoding@1.2.5
 [预演] 项目面 · 本次目录（0）：无
 
   真源副本（仓库内唯一，随 git 入库）：
@@ -765,7 +765,7 @@ exports[`各域行为与错误路径 > tasks stats 1`] = `
   15-30 天　0 个
   >30 天　0 个
 
-未完成任务：1 个　平均滞留 2 天　最长滞留 2 天
+活跃任务：1 个　平均滞留 2 天　最长滞留 2 天
 
 按完成月：2026-10 1　2026-11 1
 按状态：进行中 1　已完成 2
@@ -797,6 +797,7 @@ exports[`各域行为与错误路径 > tasks stats JSON 1`] = `
   },
   "active": {
     "count": 1,
+    "held": 0,
     "avgStay": 2,
     "maxStay": 2
   },
@@ -936,7 +937,7 @@ exports[`各域行为与错误路径 > tasks 状态过滤全部非法 1`] = `
 --- stdout ---
 
 --- stderr ---
-⚠️ --status 全部取值非法：bogus（合法：待办/进行中/已完成/阻塞/已放弃）"
+⚠️ --status 全部取值非法：bogus（合法：待办/进行中/已完成/阻塞/已放弃/搁置）"
 `;
 
 exports[`各域行为与错误路径 > tasks 状态过滤部分非法 1`] = `
@@ -953,7 +954,7 @@ exports[`各域行为与错误路径 > tasks 状态过滤部分非法 1`] = `
 按范围：toolkit 1
 按批次：未分批 1
 --- stderr ---
-⚠️ 忽略非法状态值：bogus（合法：待办/进行中/已完成/阻塞/已放弃）"
+⚠️ 忽略非法状态值：bogus（合法：待办/进行中/已完成/阻塞/已放弃/搁置）"
 `;
 
 exports[`各域行为与错误路径 > usage doctor 1`] = `

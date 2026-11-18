@@ -1,7 +1,7 @@
 // 任务周期统计（1.7.0）：基于 query 层行数据零字段推导，不改任务结构
 // 口径（与作者确认）：完成周期 = 完成日 − 创建日（天），仅统计「已完成」；
 // 已归档任务的创建日期从块标题恢复（YYYYMMDD-负责人-简述），缺失者跳过并计数；
-// 活跃任务只统计滞留时长（统计日 − 创建日，不含已完结状态）。
+// 活跃任务只统计滞留时长（统计日 − 创建日，不含已完结状态与搁置；搁置单列计数）。
 import { toYmd, todayDash } from "../date"
 import { DONE_STATUSES } from "./types"
 import type { TaskRow, TaskFilter, TaskView, TaskSummary } from "./types"
@@ -54,9 +54,11 @@ export interface TaskStats {
     count: number
     buckets: Record<string, number>
   }
-  // 活跃滞留指标（不含已完结状态）
+  // 活跃滞留指标（不含已完结状态与搁置）
   active: {
     count: number
+    // 搁置项数：不计入活跃滞留，单列以免"未完成数"凭空变小
+    held: number
     avgStay: number
     maxStay: number
   }
@@ -85,7 +87,9 @@ export function computeStats(tasksDir: string, filter: TaskFilter = {}, view: Ta
   const { rows } = queryTasks(tasksDir, view, filter)
   const today = todayDash()
   const done = rows.filter((r) => r.status === "已完成")
-  const open = rows.filter((r) => r.view === "待完成" && !(DONE_STATUSES as readonly string[]).includes(r.status))
+  const held = rows.filter((r) => r.view === "待完成" && r.status === "搁置")
+  // 搁置是有意不投入，计入滞留会把"平均滞留"长期拉高，故从活跃集合中排除并单列计数
+  const open = rows.filter((r) => r.view === "待完成" && !(DONE_STATUSES as readonly string[]).includes(r.status) && r.status !== "搁置")
 
   // 周期样本收集（已完成；缺创建日期/完成时间/日期异常的行跳过并计数）
   let skipped = 0
@@ -132,6 +136,7 @@ export function computeStats(tasksDir: string, filter: TaskFilter = {}, view: Ta
     },
     active: {
       count: open.length,
+      held: held.length,
       avgStay: stays.length > 0 ? Math.round((stays.reduce((a, b) => a + b, 0) / stays.length) * 10) / 10 : 0,
       maxStay: stays.length > 0 ? Math.max(...stays) : 0,
     },
@@ -154,7 +159,9 @@ export function renderStats(s: TaskStats): string[] {
   lines.push("周期分布：")
   for (const [label, n] of Object.entries(s.duration.buckets)) lines.push(`  ${label}　${n} 个`)
   lines.push("")
-  lines.push(`未完成任务：${s.active.count} 个　平均滞留 ${s.active.avgStay} 天　最长滞留 ${s.active.maxStay} 天`)
+  // 活跃口径不含搁置：搁置项单列，避免"未完成数"与状态分布同屏互相矛盾
+  const heldNote = s.active.held > 0 ? `　另有搁置 ${s.active.held} 个（不计入滞留）` : ""
+  lines.push(`活跃任务：${s.active.count} 个　平均滞留 ${s.active.avgStay} 天　最长滞留 ${s.active.maxStay} 天${heldNote}`)
   lines.push("")
   // 按完成月升序展示，体现吞吐时间线；其后接统一汇总块（状态 / 负责人 / 范围 / 批次）
   const byMonth = Object.entries(s.byMonth)

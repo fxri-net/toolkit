@@ -29,6 +29,22 @@ function withCompleted(completed: string): string {
   return dir
 }
 
+describe("搁置状态校验", () => {
+  it("搁置属合法状态且不要求 completed", () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-held-"))
+    mkdirSync(join(dir, "active", "209901"), { recursive: true })
+    writeFileSync(
+      join(dir, "active", "209901", "20990101-唐启云-搁置校验.md"),
+      "---\nowner: 唐启云\nstatus: 搁置\ncreated: 20990101\nupdated: 20990101\ncompleted: ''\ndepends_on: []\nscope: x\n---\n\n# t\n\n- 搁置原因：本阶段不投入\n- 重启条件：季度复盘再定\n",
+      "utf8",
+    )
+    const { issues } = validateTasks(dir)
+    expect(issues.filter((i) => i.level === "error")).toEqual([])
+    expect(issues.some((i) => i.message.includes("缺少 completed"))).toBe(false)
+    rmSync(dir, { recursive: true, force: true })
+  })
+})
+
 describe("completed 未来时间检测", () => {
   it("completed 晚于当前系统时间告警（时间源错误检测）", () => {
     const dir = withCompleted("2099-01-01 00:00")

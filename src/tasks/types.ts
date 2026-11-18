@@ -1,8 +1,9 @@
 // 任务状态
-export type TaskStatus = "待办" | "进行中" | "已完成" | "阻塞" | "已放弃"
+export type TaskStatus = "待办" | "进行中" | "已完成" | "阻塞" | "已放弃" | "搁置"
 
-// 全部合法状态（check 校验与 CLI --status 过滤共用）
-export const ALL_STATUSES: TaskStatus[] = ["待办", "进行中", "已完成", "阻塞", "已放弃"]
+// 全部合法状态（check 校验与 CLI --status 过滤共用）；新值一律追加在末尾——
+// 本表顺序会进入 --status 非法值告警与 help 文案，重排会波及既有快照，展示顺序由 query.ts 的 STATUS_ORDER 负责
+export const ALL_STATUSES: TaskStatus[] = ["待办", "进行中", "已完成", "阻塞", "已放弃", "搁置"]
 
 // 已终结状态（可归档）
 export const DONE_STATUSES: TaskStatus[] = ["已完成", "已放弃"]
