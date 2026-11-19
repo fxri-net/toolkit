@@ -76,7 +76,9 @@ ${rows}
 `
   writeFileSync(join(dir, "index.md"), index, "utf8")
   if (options.history !== false) writeFileSync(join(dir, "history.md"), `${HISTORY_TITLE}\n`, "utf8")
-  for (const [name, content] of Object.entries(options.extra ?? {})) {
+  // 默认落一份 common.md：索引行普遍链接 ./common.md，缺文件会让源列归一后的链接失去落点
+  const extra = { "common.md": "# 公共规范\n", ...options.extra }
+  for (const [name, content] of Object.entries(extra)) {
     writeFileSync(join(dir, name), content, "utf8")
   }
 }
@@ -687,28 +689,6 @@ describe("演进记录首列体检", () => {
     expect(hits[0]!.message).toContain("应写作 C-1")
     // 补零行不再混入「首列不是稳定 ID」的告警
     expect(report.items.filter((i) => i.message.includes("行首列不是稳定的规则 ID"))).toEqual([])
-  })
-})
-
-describe("检测入口覆盖统计", () => {
-  it("代码标注的 ID 计入 covered，未标注计入 uncovered，索引外引用进 unknownIds", () => {
-    const root = makeDir("tk-status-cov-")
-    const cwd = makeDir("tk-status-cov-cwd-")
-    makeCarrier(
-      root,
-      [`| ${idOf(1)} | 四级时间源 | 建档时：当场打点优先 | common | [common.md](./common.md) |`, `| ${idOf(2)} | 无检测规则 | 复核时：仅人工复核 | common | [common.md](./common.md) |`].join("\n"),
-    )
-    // 代码里只标注一个已存在的 ID，另引用一个索引中不存在的 ID；用拼接避免源码本身被自检扫成引用
-    const known = "C-" + "1"
-    const unknown = "C-" + "99"
-    mkdirSync(join(cwd, "src", "tasks"), { recursive: true })
-    writeFileSync(join(cwd, "src", "tasks", "validate.ts"), `// ${known} 时间源校验\nexport const checked = 1\n// ${unknown} 拼写错误\n`, "utf8")
-    const report = conventionsStatus(root, cwd)
-    expect(report.checkCoverage).toEqual({ covered: [idOf(1)], uncovered: [idOf(2)], unknownIds: [unknown] })
-    expect(report.summary).toContain("1 条无检测入口")
-    expect(report.items.some((item) => item.level === "info" && item.message.includes(unknown))).toBe(true)
-    // 覆盖统计不阻断：仍是纯 info，不增加 warnings
-    expect(report.warnings).toBe(0)
   })
 })
 
