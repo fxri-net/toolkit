@@ -67,3 +67,39 @@ describe("规范一致性：技能 references 引用", () => {
     expect(result.stdout).toContain("references 引用可解析")
   })
 })
+
+// 站点导航锚点：锚点按标题归一比对，写错即报 error（页面标题见 docs/faq.md 的 H2）
+const faqDoc = ["# 常见问题", "", "## 安装与环境", "", "### 示例问题", "", "略。", ""].join("\n")
+
+function navDoc(anchor: string): string {
+  return JSON.stringify(
+    {
+      nav: [],
+      sidebar: [
+        {
+          text: "帮助",
+          items: [{ text: "常见问题", collapsed: false, items: [{ text: "安装与环境", link: `/faq#${anchor}` }] }],
+        },
+      ],
+    },
+    null,
+    2,
+  )
+}
+
+describe("规范一致性：站点导航锚点", () => {
+  const base = { "skills/fxri-demo/references/task-spec.md": "# 任务规范\n", "docs/faq.md": faqDoc }
+
+  it("锚点与页面标题一致时通过", () => {
+    const root = createFixture({ ...base, "docs/site-nav.json": navDoc("安装与环境") })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(0)
+  })
+
+  it("锚点写错时报 error 并指出该锚点", () => {
+    const root = createFixture({ ...base, "docs/site-nav.json": navDoc("安装与配境") })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("/faq#安装与配境")
+  })
+})

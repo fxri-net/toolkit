@@ -145,6 +145,68 @@ for (const name of skillNames) {
   }
 }
 
+// 站点导航锚点：site-nav.json 不在 docs-consistency 的 markdown 链接校验面内，锚点写错或标题改名会让深链静默失效
+const NAV_FILE = "docs/site-nav.json"
+
+// 归一口径：去空白、去标点与符号、转小写。只抓「锚点写错 / 标题被改名」，不复刻 VitePress 的 slugify 细节
+function normalizeHeading(text) {
+  return text.toLowerCase().replace(/[\s\p{P}\p{S}]/gu, "")
+}
+
+// 站内路径 → 页面文件：/ 映射 docs/index.md，/cli 兼容 docs/cli.md 与 docs/cli/index.md
+function resolveDocPage(pathname) {
+  const trimmed = pathname.replace(/\/+$/, "")
+  const candidates = trimmed === "" ? ["docs/index.md"] : [`docs${trimmed}.md`, `docs${trimmed}/index.md`]
+  return candidates.find((candidate) => existsSync(join(root, candidate)))
+}
+
+// 取文件里的真实标题：跳过 fenced code block，避免把代码注释里的 # 当成标题
+function headingTexts(file) {
+  const headings = []
+  let fenced = false
+  for (const line of read(file).split("\n")) {
+    if (/^\s*(```|~~~)/.test(line)) {
+      fenced = !fenced
+      continue
+    }
+    if (fenced) continue
+    const matched = /^#{1,6}\s+(.+?)\s*#*$/.exec(line)
+    if (matched) headings.push(matched[1])
+  }
+  return headings
+}
+
+if (existsSync(join(root, NAV_FILE))) {
+  const nav = JSON.parse(read(NAV_FILE))
+  const links = []
+  const collectLinks = (items) => {
+    for (const item of items ?? []) {
+      if (typeof item.link === "string") links.push(item.link)
+      collectLinks(item.items)
+    }
+  }
+  collectLinks(nav.nav)
+  collectLinks(nav.sidebar)
+  for (const link of links) {
+    const [pathname, anchor] = link.split("#")
+    if (!anchor || !pathname.startsWith("/")) continue
+    const page = resolveDocPage(pathname)
+    if (!page) {
+      errors.push(`${NAV_FILE} 的 ${link} 指向不存在的页面 ${pathname}`)
+      continue
+    }
+    const headings = headingTexts(page)
+    const target = normalizeHeading(anchor)
+    const matched = headings.some((heading) => {
+      const normalized = normalizeHeading(heading)
+      return normalized === target || normalized.includes(target) || target.includes(normalized)
+    })
+    if (!matched) {
+      errors.push(`${NAV_FILE} 的 ${link} 在 ${page} 中找不到对应标题（可用：${headings.slice(0, 12).join(" / ")}）`)
+    }
+  }
+}
+
 // active 任务「影响范围」里登记的触达路径（`- 文档触达：a、b`，可选）
 function activeTaskFiles(dir) {
   if (!existsSync(dir)) return []

@@ -108,7 +108,16 @@
     {
       "text": "帮助",
       "items": [
-        { "text": "常见问题", "link": "/faq" },
+        {
+          "text": "常见问题",
+          "collapsed": false,
+          "items": [
+            { "text": "安装与环境", "link": "/faq#安装与环境" },
+            { "text": "技能与规则", "link": "/faq#技能与规则" },
+            { "text": "任务与流程", "link": "/faq#任务与流程" },
+            { "text": "发版与升级", "link": "/faq#发版与升级" }
+          ]
+        },
         { "text": "更新日志", "link": "/changelog" }
       ]
     }
