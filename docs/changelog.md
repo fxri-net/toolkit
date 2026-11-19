@@ -6,6 +6,14 @@ outline: [2, 2]
 
 > 完整变更历史以根 `CHANGELOG.md` 为准，本页由 `toolkit changelog doc` 自动同步，请勿手改。
 
+## 1.16.17
+
+> 2026-11-19 发布
+
+### 🔧 功能调整
+
+- `fxri-text-encoding` 补提交信息 / tag 注释的编码通道口径——非 ASCII 元数据优先走 UTF-8 无 BOM 文件（`git commit -F` / `git tag -F`）或 stdin 并回读核对，`-m` 仅用于纯 ASCII 或已验证通道；同时明确「提交信息的内容风格」与「编码通道」的归属边界
+
 ## 1.16.16
 
 > 2026-11-19 发布
