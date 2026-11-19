@@ -1,7 +1,7 @@
 // 文档无损检查：以最近版本 tag 为基线，按「去空白整句比对」列出基线有、当前找不到的句子
 // 只服务本仓库（不属产品能力）：只告警不阻断，用于发现「为压行数删掉事实」这类有损压缩
 // 基线取 tag 而非 HEAD：verify 在归档后执行，用 HEAD 会把本任务自己的改动当成基线，永远无差异
-import { execFileSync } from "node:child_process"
+import { execFileSync, spawnSync } from "node:child_process"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 
@@ -37,6 +37,37 @@ const files = listed
   .split(/\r?\n/)
   .filter((file) => file.endsWith(".md") && !EXCLUDED.has(file))
   .filter((file) => TARGET_FILES.includes(file) || TARGET_PREFIXES.some((prefix) => file.startsWith(prefix)))
+
+// 批量取基线内容：一次 git cat-file --batch 读完全部文件，避免逐文件各起一个子进程（二三十次进程启动即秒级开销）
+// 协议按字节长度切分内容，不能按字符串长度；内容含换行，须靠 size 定界
+function batchBaseline(tag, files) {
+  const input = files.map((file) => `${tag}:${file}`).join("\n") + "\n"
+  const result = spawnSync("git", ["cat-file", "--batch"], { input, maxBuffer: 64 * 1024 * 1024 })
+  if (result.status !== 0) return null
+  const buffer = result.stdout
+  const contents = new Map()
+  let pos = 0
+  for (const file of files) {
+    const newline = buffer.indexOf(0x0a, pos)
+    if (newline === -1) return null
+    const header = buffer.toString("utf8", pos, newline)
+    pos = newline + 1
+    const parts = header.split(" ")
+    // 缺失对象只有两段（`<name> missing`），按取不到内容处理
+    if (parts.length < 3) continue
+    const size = Number(parts[2])
+    contents.set(file, buffer.toString("utf8", pos, pos + size))
+    pos += size + 1
+  }
+  return contents
+}
+
+// 拿不到基线内容整体跳过：与找不到 tag 同属「无法比对」现场，只告警不阻断
+const baseline = batchBaseline(tag, files)
+if (baseline === null) {
+  console.log(`文档无损检查：跳过（无法读取基线 ${tag} 的文件内容）`)
+  process.exit(0)
+}
 
 // 归一：只留中英文与数字，去掉空白与标点——断句、标点替换不算改动
 const normalize = (text) => text.replace(/[^\u4e00-\u9fa5A-Za-z0-9]/g, "")
@@ -89,8 +120,8 @@ const corpus = files
 const corpusGrams = bigrams(corpus)
 
 for (const file of files) {
-  const old = git(["show", `${tag}:${file}`])
-  if (old === null) continue
+  const old = baseline.get(file)
+  if (!old) continue
   const exists = existsSync(join(process.cwd(), file))
   const missing = segments(old)
     .map((sentence) => ({ sentence, ratio: coverage(sentence, corpusGrams) }))

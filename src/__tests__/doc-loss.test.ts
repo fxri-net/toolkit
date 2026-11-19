@@ -60,6 +60,15 @@ describe("文档无损检查：整句比对", () => {
     expect(result.stdout).toContain("未发现整句丢失")
   })
 
+  it("整句仅改写措辞不算丢失", () => {
+    const root = createRepo({ "docs/a.md": "本项目采用统一的中文注释规范，所有新增代码必须遵守，不得留下过程性解释。\n" })
+    git(root, ["tag", "v0.0.1"])
+    writeFileSync(join(root, "docs/a.md"), "本项目采用统一中文注释规范，所有新增代码都要遵守，不留下过程性解释。\n", "utf8")
+    const result = run(root)
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain("未发现整句丢失")
+  })
+
   it("没有版本 tag 时跳过且不阻断", () => {
     const root = createRepo({ "docs/a.md": ORIGINAL })
     const result = run(root)
