@@ -56,9 +56,6 @@ export function compactTableLine(line: string): string {
   return `${indentOf(line)}| ${body.join(" | ")} |`
 }
 
-// 标注各行是否位于 fenced code block 之外：代码块内的行不参与归一（表格样例须原样保留）；实现见 format.ts，供归一与形态检测共用
-export { outsideFenceMask } from "./format"
-
 // 单文件归一：逐行扫表格行改写为紧凑形态，保留原行尾符（CRLF / LF）
 export function compactMarkdown(content: string): CompactResult {
   const eol = content.includes("\r\n") ? "\r\n" : "\n"

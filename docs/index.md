@@ -24,7 +24,7 @@ features:
     details: 方案确认完就丢、AI 会话一关什么都不剩？任务文件落在仓库 .tasks/，toolkit tasks check 校验、tasks archive 归档，决策不再随会话消失。
   - icon: 📐
     title: 规范载体可校验
-    details: 任务里提炼的规范收进 .tasks/conventions/：v3 三分区、稳定 ID 索引、结构升级与表格归一，规范可检索也可体检。
+    details: 任务里提炼的规范收进 .tasks/conventions/：v3 三分区、稳定 ID 索引、结构升级与表格 / 索引单元格归一，规范可检索也可体检。
   - icon: 🔒
     title: 多人协作不互踩
     details: 任务唯一键 + 先查后写约定 + 归档排他锁，多人（含多个 AI）同时维护任务不会互相覆盖。
