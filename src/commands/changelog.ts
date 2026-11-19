@@ -15,11 +15,16 @@ import { getCheckWarnings, resolveLanguages } from "./shared"
 
 const require = createRequire(import.meta.url)
 // 解析 @changesets/cli 的 bin 绝对路径（pnpm 下 bin 不提升到使用方，需显式定位）
-const changesetBin = require.resolve("@changesets/cli/bin.js")
+// 该解析要遍历 node_modules 并取真实路径，实测约 90ms；只有透传子命令需要，故延迟到首次执行时并缓存
+let changesetBin: string | null = null
+function resolveChangesetBin(): string {
+  if (changesetBin === null) changesetBin = require.resolve("@changesets/cli/bin.js")
+  return changesetBin
+}
 
 // 调用 changesets（子进程执行，继承 stdio）
 const runChangeset = (cmd: string[]) => {
-  const res = spawnSync(process.execPath, [changesetBin, ...cmd], { stdio: "inherit" })
+  const res = spawnSync(process.execPath, [resolveChangesetBin(), ...cmd], { stdio: "inherit" })
   if (res.status !== 0) process.exit(res.status ?? 1)
 }
 
