@@ -1,9 +1,9 @@
 ---
 name: fxri-text-encoding
-description: 在写脚本、配置、数据交换类文本，或用 shell 重定向、程序生成 / 转码产出文本，或把非 ASCII 文本传给命令行 / 环境变量 / API 请求体 / 远端元数据之前加载：按读取方默认解码与字节形态判断，不按语言或扩展名猜。读取方不是 UTF-8、格式对 BOM / 行尾敏感、经过生成 / 转码通道，或已出现乱码、非 ASCII 与原文不一致时适用。不用于 Base64 / URL 编码、排序计数、CSV 语法、路径、时区、提交信息的内容风格、宿主 shell / 语言的语法差异排查（后两者的编码通道仍适用）、任务建档与代码风格。
+description: 在写脚本、配置、数据交换类文本，或用 shell 重定向、程序生成 / 转码产出文本，或把非 ASCII 文本传给命令行 / 环境变量 / API 请求体 / 远端元数据之前加载：按读取方默认解码与字节形态判断，不按语言或扩展名猜。读取方不是 UTF-8、格式对 BOM / 行尾敏感、经过生成 / 转码通道，或已出现乱码、非 ASCII 与原文不一致时适用。不用于 Base64 / URL 编码、排序计数、CSV 语法、路径、时区、提交信息的内容风格（其编码通道仍适用）、宿主 shell / 语言的语法差异排查、任务建档与代码风格。
 license: MIT
 metadata:
-  version: "1.2.8"
+  version: "1.2.9"
   tier: optional
   author: fxri
   source: https://github.com/fxri-net/toolkit
@@ -11,7 +11,7 @@ metadata:
 
 # 文本编码与字节形态
 
-> 本技能版本 1.2.8（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.2.9（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 读取地图
 
@@ -20,7 +20,7 @@ metadata:
 | 写脚本 / 配置 / 数据文件 | 本文件 + `references/tables.md`（基线、写盘行为、判字节命令） | troubleshooting、boundaries |
 | 命令行 / 管线里出现乱码、重定向落盘 | 本文件乱码三问 + `references/troubleshooting.md`「运行期乱码」 | tables、boundaries |
 | 非 ASCII 跨进程 / 跨机器传递 | 本文件乱码三问 + `references/boundaries.md` | tables |
-| 已出故障、要按表现反查 | `references/troubleshooting.md` | 其余 |
+| 已出故障、要按表现反查 | 本文件「先分诊」+ `references/troubleshooting.md` | 其余 |
 
 ## 触发判据（按读取方默认解码与字节形态判断，不按语言 / 扩展名白名单）
 
