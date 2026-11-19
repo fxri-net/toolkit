@@ -3,7 +3,7 @@ name: fxri-plan-to-task
 description: 将已确认的实施方案分解为可独立交付的任务并给出计划表，再落盘为标准任务文件并跟踪至归档：建档评估（查 active/archive 判同主题）、按模板建档、状态机更新（含搁置）、四级时间源取证、自查、任务级规范沉淀与归档。方案确认后表达「开始落地/登记记录」的意图，或即将改仓库文件时使用——含任务分解、建档、任务登记、落盘、归档、任务校验、规范载体迁移与升级（conventions 单文件升目录、v1 / v2 升 v3）等说法及口语近义表达（如记一下、建个任务跟踪、先落档）均触发。执行授权另按开工词判定：方案可以 / 定稿 / 落档 / 继续评估都不等于开工，见「开工闸门」。不用于方案未确认的对话、会话收尾整场沉淀（fxri-session-recap 模式一）、与任务记录无关的普通 TODO、issue 管理或日常提交信息撰写。
 license: MIT
 metadata:
-  version: "1.12.1"
+  version: "1.12.2"
   tier: core
   author: fxri
   source: https://github.com/fxri-net/toolkit
@@ -11,7 +11,7 @@ metadata:
 
 # 方案落盘：任务建档与归档
 
-> 本技能版本 1.12.1（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.12.2（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -30,20 +30,9 @@ metadata:
 
 `task-spec.md`（任务文件规范）、`conventions-spec.md`（载体结构）与 `conventions-maintenance.md`（载体维护）是规则真源，本文件只写流程；不涉场景不读。
 
-## 核心规则
-
-### 四级时间源（completed 取证唯一口径）
-
-终结态补 `completed` 时按以下优先级取证，禁止凭记忆估算或做时区换算：
-
-| 级 | 时间源 | 取证 |
-| --- | --- | --- |
-| 0 | 当场打点 | 完成时立即取时（Windows `Get-Date -Format "yyyy-MM-dd HH:mm"`，macOS/Linux `date "+%Y-%m-%d %H:%M"`）——首选 |
-| 1 | 聊天记录时间戳 | 用户贴过的日志 / 输出时间戳、口述的确定时刻 |
-| 2 | git 提交时间 | `git log --format="%h %ci" <file>` |
-| 3 | 系统时间兜底 | 当场取时 + 正文标注「收尾补记」 |
-
 ## 工作流
+
+> 终结态补 `completed` 的取证口径见 `references/task-spec.md` §2.2（四级时间源：当场打点 / 聊天记录 / git 提交 / 系统时间兜底）。
 
 ### 开工闸门（先判定所处状态，再进入后续步骤）
 
