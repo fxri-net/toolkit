@@ -12,13 +12,14 @@ const isWindows = process.platform === "win32"
 const require = createRequire(import.meta.url)
 
 const flags = new Set(process.argv.slice(2))
-const skipCoverage = flags.has("--skip-coverage")
 const skipDocs = flags.has("--skip-docs")
 // --local 强制本地口径：IDE / 终端可能注入 CI=true，导致本地迭代也走全量（文档必建、eslint 冷缓存、强制安装）。
 // 提交前最终验收仍应跑不带 --local 的全量，避免把本地裁剪带进 CI。
 const forceLocal = flags.has("--local")
-// --full 强制全量：忽略本地缓存与改动面判断，等价于 CI 口径
-const full = !forceLocal && flags.has("--full")
+// --full 强制全量：忽略本地缓存与改动面判断，等价于 CI 口径；与 --local 同时出现时以 --full 为准
+const full = flags.has("--full")
+// 覆盖率是门禁最重单项，本地口径默认跳过；提交前不带 --local 的全量仍跑覆盖率（--full 优先）
+const skipCoverage = flags.has("--skip-coverage") || (forceLocal && !full)
 // CI 环境一律全量：本地按改动面裁剪只应让步于开发效率，不能让 CI 漏检死链与冷缓存问题
 const ciValue = process.env.CI ?? ""
 const isCI = !forceLocal && ciValue !== "" && ciValue !== "0" && ciValue.toLowerCase() !== "false"
@@ -293,7 +294,7 @@ function runSerial(steps) {
 reportToolchain()
 // 环境提示：CI 变量被 IDE 注入时，本地门禁会按 CI 全量执行，先让人看见原因与快速入口
 if (!forceLocal && isCI && !(process.env.GITHUB_ACTIONS || process.env.GITLAB_CI)) {
-  console.log("提示：检测到 CI 环境变量（可能由 IDE / 终端注入），本次按 CI 全量执行；本地迭代可加 --local 恢复改动面裁剪与缓存")
+  console.log("提示：检测到 CI 环境变量（可能由 IDE / 终端注入），本次按 CI 全量执行；本地迭代可加 --local 恢复改动面裁剪与缓存，并默认跳过覆盖率")
 }
 const startedAt = Date.now()
 
