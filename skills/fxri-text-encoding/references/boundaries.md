@@ -19,7 +19,7 @@
 | 环境变量 | CI 变量、启动脚本注入 | 子进程按自身默认编码读取，跨 shell 后失真 | 在 UTF-8 shell / `pwsh` 中设置；`powershell.exe` 下非 ASCII 变量优先落文件再读 |
 | HTTP / RPC 请求体 | 项目描述、release、issue / PR 正文、Webhook | 客户端按 ASCII / ANSI 编码请求体；服务端或数据库再次转换、截断 | 请求体以 UTF-8 字节发送并声明 charset；写后 GET 读回比对 |
 | 模板渲染 | 仓库模板、占位符替换、`sed` / `envsubst` / 程序内 replace | 模板源正常，产物由最后写入者决定 | 读写两端都显式 UTF-8；产物读回比对；不靠控制台默认编码 |
-| git / 远端元数据 | tag 注释、项目描述、仓库设置 | CLI / API 默认编码不一致，远端二次处理 | 与请求体同法；提交信息的内容风格另见提交信息规则 |
+| git / 远端元数据 | `git commit -m` / `git tag -m`、tag 注释、项目描述、仓库设置 | 非 ASCII 经参数按 ANSI / OEM 或 CLI 默认编码传递，远端二次处理 | 非 ASCII 优先走 UTF-8 无 BOM 文件（`git commit -F` / `git tag -F`）或 stdin，`-m` 只用于纯 ASCII 或已验证通道；写后 `git log -1 --format=%s` / `git tag -n` 回读核对；提交信息的内容风格另见提交信息规则 |
 
 ## 构造示例
 
