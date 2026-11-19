@@ -11,6 +11,9 @@
 | `pwsh`、Node、Python 3、Go、Rust | UTF-8 |
 | bash / sh / 各语言 `open()` | 按 locale，`LANG=C` 时为 ASCII |
 
+本表只作**文件读取**基线的推导依据；参数通道（命令行参数、环境变量）按 console 代码页与 `$OutputEncoding` 现场判定，不套用本表。
+`chcp 65001` 与 UTF-8 输出编码下非 ASCII 参数可正常往返，故「简体中文均为 936」只是未改代码页时的读取基线，不能跨机器推定。
+
 ## 文件类型基线（示例，非白名单）
 
 | 文件类型 | 字符集 | BOM | 行尾 | 理由 |

@@ -548,7 +548,7 @@ exports[`各域行为与错误路径 > skills install 预演 1`] = `
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
 [预演] 技能源：<REPO>/skills
-[预演] 本次选择（5）：fxri-plan-review@1.0.12、fxri-plan-to-task@1.12.8、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.2、fxri-text-encoding@1.2.7
+[预演] 本次选择（5）：fxri-plan-review@1.0.12、fxri-plan-to-task@1.12.8、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.2、fxri-text-encoding@1.2.8
 [预演] 本次目标（1）：canonical
 
 canonical（多家 agent 共读）：<SANDBOX>/home/.agents/skills
@@ -581,7 +581,7 @@ registry：registry.npmjs.org（来源：默认）
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
 技能源：<REPO>/skills
-技能版本：fxri-plan-review@1.0.12、fxri-plan-to-task@1.12.8、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.2、fxri-text-encoding@1.2.7
+技能版本：fxri-plan-review@1.0.12、fxri-plan-to-task@1.12.8、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.2、fxri-text-encoding@1.2.8
 选择集（3）：fxri-plan-review、fxri-plan-to-task、fxri-session-recap
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-release-changelog、fxri-text-encoding
 目标选择集：全部可用目标（未保存过目标选择）
@@ -629,7 +629,7 @@ registry：registry.npmjs.org（来源：默认）
 
 项目面 · 项目根：<SANDBOX>/workspace
 项目面 · 技能真源：.agents/skills
-项目面 · 技能版本：fxri-plan-review@1.0.12、fxri-plan-to-task@1.12.8、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.2、fxri-text-encoding@1.2.7
+项目面 · 技能版本：fxri-plan-review@1.0.12、fxri-plan-to-task@1.12.8、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.2、fxri-text-encoding@1.2.8
 项目面 · 选择集（3）：fxri-plan-review、fxri-plan-to-task、fxri-session-recap
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-release-changelog、fxri-text-encoding
 项目面 · 目录选择集：全部已存在候选目录（未保存过目录选择）
@@ -671,7 +671,7 @@ exports[`各域行为与错误路径 > skills 项目面预演 1`] = `
 作用域：项目面（仓库内唯一真源副本 + 各候选目录薄壳）（--scope 指定）
 
 [预演] 项目面 · 项目根：<SANDBOX>/workspace
-[预演] 项目面 · 本次选择（5）：fxri-plan-review@1.0.12、fxri-plan-to-task@1.12.8、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.2、fxri-text-encoding@1.2.7
+[预演] 项目面 · 本次选择（5）：fxri-plan-review@1.0.12、fxri-plan-to-task@1.12.8、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.2、fxri-text-encoding@1.2.8
 [预演] 项目面 · 本次目录（0）：无
 
   真源副本（仓库内唯一，随 git 入库）：

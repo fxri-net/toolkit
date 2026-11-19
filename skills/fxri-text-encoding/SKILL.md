@@ -3,7 +3,7 @@ name: fxri-text-encoding
 description: 在写脚本、配置、数据交换类文本，或用 shell 重定向、程序生成 / 转码产出文本，或把非 ASCII 文本传给命令行 / 环境变量 / API 请求体 / 远端元数据之前加载：按读取方默认解码与字节形态判断，不按语言或扩展名猜。读取方不是 UTF-8、格式对 BOM / 行尾敏感、经过生成 / 转码通道，或已出现乱码、非 ASCII 与原文不一致时适用。不用于 Base64 / URL 编码、排序计数、CSV 语法、路径、时区、提交信息的内容风格、宿主 shell / 语言的语法差异排查（后两者的编码通道仍适用）、任务建档与代码风格。
 license: MIT
 metadata:
-  version: "1.2.7"
+  version: "1.2.8"
   tier: optional
   author: fxri
   source: https://github.com/fxri-net/toolkit
@@ -11,7 +11,7 @@ metadata:
 
 # 文本编码与字节形态
 
-> 本技能版本 1.2.7（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.2.8（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 读取地图
 

@@ -21,6 +21,8 @@
 | 模板渲染 | 仓库模板、占位符替换、`sed` / `envsubst` / 程序内 replace | 模板源正常，产物由最后写入者决定 | 读写两端都显式 UTF-8；产物读回比对；不靠控制台默认编码 |
 | git / 远端元数据 | `git commit -m` / `git tag -m`、tag 注释、项目描述、仓库设置 | 非 ASCII 经参数按 ANSI / OEM 或 CLI 默认编码传递，远端二次处理 | 非 ASCII 优先走 UTF-8 无 BOM 文件（`git commit -F` / `git tag -F`）或 stdin，`-m` 只用于纯 ASCII 或已验证通道；写后 `git log -1 --format=%s` / `git tag -n` 回读核对；提交信息的内容风格另见提交信息规则 |
 
+「已验证通道」指当前机器与当前宿主实测往返一致；机器、宿主、CI 任一变化即视为未验证，先小样往返读回再批量执行。
+
 ## 构造示例
 
 - `curl`：请求体先落 UTF-8 文件，
