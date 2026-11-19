@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from "node:child_process"
-import { readFileSync, statSync } from "node:fs"
+import { readFileSync, statSync, existsSync } from "node:fs"
 import { createRequire } from "node:module"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -102,6 +102,30 @@ function needInstall() {
   }
 }
 
+// 构建的触发面：dist/ 只由源码、构建配置与依赖决定；只改文档 / 技能 / 测试时复用既有产物，收尾步骤不受影响
+const BUILD_TOUCH_PREFIXES = ["src/"]
+const BUILD_TOUCH_FILES = new Set(["package.json", "pnpm-lock.yaml", "tsup.config.ts", "tsup.dev.config.ts"])
+
+/**
+ * 判断本次是否需要重新构建。
+ * @return {string} 空串表示需要构建；非空为跳过原因
+ */
+function buildSkipReason() {
+  if (isCI || full) return ""
+  const names = changedFiles()
+  // 拿不到改动面时保守构建
+  if (names === null) return ""
+  // dist 缺失时无从复用
+  if (!existsSync(join(root, "dist", "cli.js"))) return ""
+  for (const name of names) {
+    if (BUILD_TOUCH_PREFIXES.some((prefix) => name.startsWith(prefix))) return ""
+    if (BUILD_TOUCH_FILES.has(name)) return ""
+    // 根 tsconfig 决定 dts 产物，派生配置同样可能影响构建
+    if (/^tsconfig[^/]*\.json$/.test(name)) return ""
+  }
+  return "未触及 src/、构建配置与依赖"
+}
+
 // 本地包 bin 解析：直调 node + 入口，绕过 pnpm / corepack 垫片（Windows 上每步可省约 1 秒）；失败返回 null 由调用方回落
 const TOOL_PACKAGES = {
   tsc: "typescript",
@@ -161,6 +185,7 @@ function runCaptured(step) {
 const cliEnv = { FX_NO_UPDATE_CHECK: "1" }
 const installNeeded = needInstall()
 const docsNeeded = needDocsBuild()
+const buildSkip = buildSkipReason()
 const docsSkip = skipDocs ? "--skip-docs" : docsNeeded ? "" : "未触及 docs/、README.md、skills/"
 // 文档类型检查只随改动面跳过：--skip-docs 属跨平台裁剪（Windows / macOS job），类型检查仍保留
 const docsTypeSkip = docsNeeded ? "" : "未触及 docs/、README.md、skills/"
@@ -195,7 +220,7 @@ const heavySteps = [
 // 阶段三：构建（写 dist）、文档构建（写文档产物）、仓库自检（只读真实任务区）互不依赖，并发压缩墙钟时间
 const buildSteps = [
   // 构建：tsup 直接调用，NODE_ENV 与 package.json 的 build 脚本保持一致
-  { label: "构建", tool: "tsup", args: [], env: { NODE_ENV: "production" } },
+  { label: "构建", tool: "tsup", args: [], env: { NODE_ENV: "production" }, skip: buildSkip },
   { label: "文档站构建（死链检查）", tool: "vitepress", args: ["build", "docs"], skip: docsSkip },
   // 本仓库自检：读真实 .tasks/.changeset 断言双零，须在数据原地时区（Asia/Shanghai）判定
   { label: "本源仓库自检（真实数据双零）", tool: "vitest", args: ["run", "src/__tests__/warn-threshold.test.ts"], env: { TZ: "Asia/Shanghai" } },
