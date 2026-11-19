@@ -553,7 +553,7 @@ exports[`各域行为与错误路径 > skills install 预演 1`] = `
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
 [预演] 技能源：<REPO>/skills
-[预演] 本次选择（5）：fxri-plan-review@1.0.12、fxri-plan-to-task@1.12.2、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.1、fxri-text-encoding@1.2.5
+[预演] 本次选择（5）：fxri-plan-review@1.0.12、fxri-plan-to-task@1.12.3、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.1、fxri-text-encoding@1.2.5
 [预演] 本次目标（1）：canonical
 
 canonical（多家 agent 共读）：<SANDBOX>/home/.agents/skills
@@ -586,7 +586,7 @@ registry：registry.npmjs.org（来源：默认）
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
 技能源：<REPO>/skills
-技能版本：fxri-plan-review@1.0.12、fxri-plan-to-task@1.12.2、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.1、fxri-text-encoding@1.2.5
+技能版本：fxri-plan-review@1.0.12、fxri-plan-to-task@1.12.3、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.1、fxri-text-encoding@1.2.5
 选择集（3）：fxri-plan-review、fxri-plan-to-task、fxri-session-recap
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-release-changelog、fxri-text-encoding
 目标选择集：全部可用目标（未保存过目标选择）
@@ -634,7 +634,7 @@ registry：registry.npmjs.org（来源：默认）
 
 项目面 · 项目根：<SANDBOX>/workspace
 项目面 · 技能真源：.agents/skills
-项目面 · 技能版本：fxri-plan-review@1.0.12、fxri-plan-to-task@1.12.2、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.1、fxri-text-encoding@1.2.5
+项目面 · 技能版本：fxri-plan-review@1.0.12、fxri-plan-to-task@1.12.3、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.1、fxri-text-encoding@1.2.5
 项目面 · 选择集（3）：fxri-plan-review、fxri-plan-to-task、fxri-session-recap
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-release-changelog、fxri-text-encoding
 项目面 · 目录选择集：全部已存在候选目录（未保存过目录选择）
@@ -676,7 +676,7 @@ exports[`各域行为与错误路径 > skills 项目面预演 1`] = `
 作用域：项目面（仓库内唯一真源副本 + 各候选目录薄壳）（--scope 指定）
 
 [预演] 项目面 · 项目根：<SANDBOX>/workspace
-[预演] 项目面 · 本次选择（5）：fxri-plan-review@1.0.12、fxri-plan-to-task@1.12.2、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.1、fxri-text-encoding@1.2.5
+[预演] 项目面 · 本次选择（5）：fxri-plan-review@1.0.12、fxri-plan-to-task@1.12.3、fxri-release-changelog@1.3.6、fxri-session-recap@1.7.1、fxri-text-encoding@1.2.5
 [预演] 项目面 · 本次目录（0）：无
 
   真源副本（仓库内唯一，随 git 入库）：
@@ -1197,7 +1197,7 @@ exports[`帮助与版本口径 > conventions format 帮助 1`] = `
 --- stdout ---
 Usage: toolkit conventions format [options]
 
-归一表格形态为紧凑形态（只动单元格间距、分隔行横线长度与列对齐填充；幂等、跳过 fenced code block，先报后写）
+归一表格与索引表单元格形态（紧凑形态 + 单一事实源链接化、归属裸值、规则去引号；当前语义只报不改；幂等、跳过 fenced code block，先报后写）
 
 Options:
   --dir <path>       任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）
@@ -1214,7 +1214,7 @@ exports[`帮助与版本口径 > conventions 帮助 1`] = `
 --- stdout ---
 Usage: toolkit conventions [options] [command]
 
-项目协作规范载体：结构升级（v1 / v2 → v3）、表格形态归一（紧凑形态）与只读体检（形态 / 索引 / 入口层）
+项目协作规范载体：结构升级（v1 / v2 → v3）、表格与索引单元格形态归一、只读体检（形态 / 索引 / 入口层）
 
 Options:
   -h, --help         显示帮助
@@ -1222,8 +1222,8 @@ Options:
 Commands:
   upgrade [options]  把 v1 / v2 规范载体升级为 v3（v2：删「状态」「确立来源任务」两列、退休条目迁入 retired.md
                      并删分册小节；v1 链式升级；幂等，先判后写）
-  format [options]   归一表格形态为紧凑形态（只动单元格间距、分隔行横线长度与列对齐填充；幂等、跳过 fenced code
-                     block，先报后写）
+  format [options]   归一表格与索引表单元格形态（紧凑形态 + 单一事实源链接化、归属裸值、规则去引号；当前语义只报不改；幂等、跳过
+                     fenced code block，先报后写）
   status [options]   规范载体只读体检：形态 / 索引 / 入口层三块（只报不改，体检不阻断、退出码恒 0；仅 --format
                      传非法值时按参数错误报错退出）
 
@@ -1357,7 +1357,7 @@ Commands:
   skills [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源 / 路径（包内 skills/ 与
                                    --from 外部来源统一管理）
   conventions [options] [command]  项目协作规范载体：结构升级（v1 / v2 →
-                                   v3）、表格形态归一（紧凑形态）与只读体检（形态 / 索引 / 入口层）
+                                   v3）、表格与索引单元格形态归一、只读体检（形态 / 索引 / 入口层）
   config [options] [command]       配置分层：只读查看三层配置文件（全局层 / 项目层 / 本地层）的生效情况与来源
   docs [options] [command]         文档站工具：主题、导航与产物的校验与写入
   tasks [options] [command]        任务管理
@@ -1607,7 +1607,7 @@ Commands:
   skills [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源 / 路径（包内 skills/ 与
                                    --from 外部来源统一管理）
   conventions [options] [command]  项目协作规范载体：结构升级（v1 / v2 →
-                                   v3）、表格形态归一（紧凑形态）与只读体检（形态 / 索引 / 入口层）
+                                   v3）、表格与索引单元格形态归一、只读体检（形态 / 索引 / 入口层）
   config [options] [command]       配置分层：只读查看三层配置文件（全局层 / 项目层 / 本地层）的生效情况与来源
   docs [options] [command]         文档站工具：主题、导航与产物的校验与写入
   tasks [options] [command]        任务管理
@@ -1640,7 +1640,7 @@ Commands:
   skills [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源 / 路径（包内 skills/ 与
                                    --from 外部来源统一管理）
   conventions [options] [command]  项目协作规范载体：结构升级（v1 / v2 →
-                                   v3）、表格形态归一（紧凑形态）与只读体检（形态 / 索引 / 入口层）
+                                   v3）、表格与索引单元格形态归一、只读体检（形态 / 索引 / 入口层）
   config [options] [command]       配置分层：只读查看三层配置文件（全局层 / 项目层 / 本地层）的生效情况与来源
   docs [options] [command]         文档站工具：主题、导航与产物的校验与写入
   tasks [options] [command]        任务管理

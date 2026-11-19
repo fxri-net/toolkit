@@ -5,6 +5,7 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os"
 import { join, relative } from "node:path"
 import { compactMarkdown, compactTableLine, filledTableLines, formatConventions, listMarkdownFiles } from "../conventions/compact"
+import { CARRIER_MARKER, INDEX_TABLE_LINES } from "../conventions/format"
 
 // 各用例独立建临时目录，结束后统一清理
 const dirs: string[] = []
@@ -196,5 +197,89 @@ describe("formatConventions 归一主流程", () => {
     expect(report.status).toBe("already-compact")
     expect(readFileSync(a, "utf8")).toBe("```\n| a   | b |\n```\n")
     expect(existsSync(a)).toBe(true)
+  })
+})
+
+// 索引表单元格归一：只处理 conventions/index.md，且只做可确定项
+function writeIndex(root: string, rows: string[]): string {
+  const content = [
+    CARRIER_MARKER,
+    "# 项目协作规范索引",
+    "",
+    "## 二、索引",
+    "",
+    ...INDEX_TABLE_LINES.split("\n"),
+    ...rows,
+    "",
+  ].join("\n")
+  return writeFile(root, "conventions/index.md", content)
+}
+
+describe("formatConventions 索引表单元格归一", () => {
+  it("反引号分册名与裸文件名转相对链接，归属去包裹，规则去引号", () => {
+    const root = makeDir("tk-fmt-cells-")
+    writeFile(root, "conventions/common.md", "# 通用规范\n")
+    const index = writeIndex(root, [
+      "| C-1 | 「四级时间源」 | 建档时：当场打点优先 | `common` | `common.md` |",
+      "| C-2 | 路径书写 | 写路径时：仓库根相对路径 | common | common.md |",
+    ])
+
+    formatConventions(root)
+
+    const content = readFileSync(index, "utf8")
+    expect(content).toContain("| C-1 | 四级时间源 | 建档时：当场打点优先 | common | [common.md](./common.md) |")
+    expect(content).toContain("| C-2 | 路径书写 | 写路径时：仓库根相对路径 | common | [common.md](./common.md) |")
+  })
+
+  it("载体外文件保持行内代码；裸文件名目标不在载体内时原样保留并告警", () => {
+    const root = makeDir("tk-fmt-cells-out-")
+    const index = writeIndex(root, [
+      "| C-1 | 细节只进 skills | 写规则时：可变流程只进 skills | common | `AGENTS.md` 质量门 5 |",
+      "| C-2 | 门禁 | 改验收时：只认 verify | common | AGENTS.md 质量门 2 |",
+    ])
+
+    const report = formatConventions(root)
+
+    const content = readFileSync(index, "utf8")
+    expect(content).toContain("| C-1 | 细节只进 skills | 写规则时：可变流程只进 skills | common | `AGENTS.md` 质量门 5 |")
+    expect(content).toContain("| C-2 | 门禁 | 改验收时：只认 verify | common | AGENTS.md 质量门 2 |")
+    expect(report.warnings.some((w) => w.includes("AGENTS.md") && w.includes("目标不在载体内"))).toBe(true)
+  })
+
+  it("当前语义缺全角冒号时只告警不改写", () => {
+    const root = makeDir("tk-fmt-cells-colon-")
+    writeFile(root, "conventions/common.md", "# 通用规范\n")
+    const index = writeIndex(root, ["| C-1 | 四级时间源 | 当场打点优先 | common | [common.md](./common.md) |"])
+
+    const report = formatConventions(root)
+
+    expect(readFileSync(index, "utf8")).toContain("| C-1 | 四级时间源 | 当场打点优先 | common | [common.md](./common.md) |")
+    expect(report.status).toBe("already-compact")
+    expect(report.warnings.some((w) => w.includes("C-1") && w.includes("全角冒号"))).toBe(true)
+  })
+
+  it("归一后幂等：二次执行为 already-compact 且无告警", () => {
+    const root = makeDir("tk-fmt-cells-idem-")
+    writeFile(root, "conventions/common.md", "# 通用规范\n")
+    writeIndex(root, ["| C-1 | 四级时间源 | 建档时：当场打点优先 | `common` | `common.md` |"])
+
+    formatConventions(root)
+    const second = formatConventions(root)
+    expect(second.status).toBe("already-compact")
+    expect(second.changedLines).toBe(0)
+    expect(second.warnings).toEqual([])
+  })
+
+  it("代码块内的索引表样例不参与单元格归一", () => {
+    const root = makeDir("tk-fmt-cells-fence-")
+    const index = writeFile(
+      root,
+      "conventions/index.md",
+      ["```", "| ID | 规则 | 当前语义 | 归属 | 单一事实源 |", "| --- | --- | --- | --- | --- |", "| C-1 | 甲 | 乙 | `common` | `common.md` |", "```", ""].join("\n"),
+    )
+
+    const report = formatConventions(root)
+    expect(report.status).toBe("already-compact")
+    expect(readFileSync(index, "utf8")).toContain("| C-1 | 甲 | 乙 | `common` | `common.md` |")
   })
 })

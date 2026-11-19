@@ -75,7 +75,7 @@ const V2_INDEX = `${CARRIER_MARKER}
 ## 二、索引
 
 ${INDEX_TABLE_LINES}
-| ${idOf(1)} | 四级时间源 | 当场打点优先 | common | common.md |
+| ${idOf(1)} | 四级时间源 | 建档时：当场打点优先 | common | [common.md](./common.md) |
 `
 
 describe("规范载体 v2 形态告警", () => {
@@ -356,6 +356,69 @@ describe("演进记录措辞告警", () => {
 
     const warns = warnTexts(dir, cwd)
     expect(warns.filter((m) => m.includes("「修订内容」列含禁用语料"))).toEqual([])
+    rmSync(dir, { recursive: true, force: true })
+    rmSync(cwd, { recursive: true, force: true })
+  })
+})
+
+describe("索引单元格形态告警", () => {
+  // 建 v3 载体现场：索引表数据行由用例给入
+  const build = (dir: string, rows: string, extra: Record<string, string> = {}): void => {
+    mkdirSync(join(dir, "active"), { recursive: true })
+    mkdirSync(join(dir, "conventions"), { recursive: true })
+    const index = `${CARRIER_MARKER}
+# 项目协作规范索引
+
+## 二、索引
+
+${INDEX_TABLE_LINES}
+${rows}
+`
+    writeFileSync(join(dir, "conventions", "index.md"), index, "utf8")
+    writeFileSync(join(dir, "conventions", "history.md"), `${HISTORY_TITLE}\n`, "utf8")
+    for (const [name, content] of Object.entries(extra)) writeFileSync(join(dir, "conventions", name), content, "utf8")
+  }
+
+  it("单一事实源写成反引号分册名或裸文件名时告警并指向 conventions format", () => {
+    const dir = makeTmp("tk-conv-cell-source-")
+    const cwd = makeTmp("tk-conv-cell-source-cwd-")
+    build(dir, ["| C-1 | 四级时间源 | 建档时：当场打点优先 | common | `common.md` |", "| C-2 | 路径书写 | 写路径时：仓库根相对路径 | common | AGENTS.md 质量门 2 |"].join("\n"), {
+      "common.md": "# 通用规范\n",
+    })
+
+    const warns = warnTexts(dir, cwd)
+    const hits = warns.filter((m) => m.includes("单一事实源") && m.includes("相对链接"))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]).toContain("另有 1 处")
+    expect(hits[0]).toContain("toolkit conventions format")
+    rmSync(dir, { recursive: true, force: true })
+    rmSync(cwd, { recursive: true, force: true })
+  })
+
+  it("归属列含反引号或链接时告警", () => {
+    const dir = makeTmp("tk-conv-cell-owner-")
+    const cwd = makeTmp("tk-conv-cell-owner-cwd-")
+    build(dir, "| C-1 | 四级时间源 | 建档时：当场打点优先 | `common` | [common.md](./common.md) |")
+
+    const warns = warnTexts(dir, cwd)
+    const hits = warns.filter((m) => m.includes("归属") && m.includes("只填裸值"))
+    expect(hits).toHaveLength(1)
+    rmSync(dir, { recursive: true, force: true })
+    rmSync(cwd, { recursive: true, force: true })
+  })
+
+  it("当前语义缺全角冒号时告警，且合规行不产生单元格形态告警", () => {
+    const dir = makeTmp("tk-conv-cell-colon-")
+    const cwd = makeTmp("tk-conv-cell-colon-cwd-")
+    build(dir, "| C-1 | 四级时间源 | 当场打点优先 | common | [common.md](./common.md) |")
+
+    const warns = warnTexts(dir, cwd)
+    expect(warns.filter((m) => m.includes("全角冒号"))).toHaveLength(1)
+
+    // 补上冒号后该类告警消失
+    build(dir, "| C-1 | 四级时间源 | 建档时：当场打点优先 | common | [common.md](./common.md) |")
+    const after = warnTexts(dir, cwd)
+    expect(after.filter((m) => m.includes("全角冒号"))).toEqual([])
     rmSync(dir, { recursive: true, force: true })
     rmSync(cwd, { recursive: true, force: true })
   })

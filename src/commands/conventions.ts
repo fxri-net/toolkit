@@ -64,29 +64,36 @@ export function registerConventionsCommands(program: Command): void {
     for (const item of report.items) console.log(`${item.level === "warn" ? "⚠️" : "·"} [${item.scope}] ${foldHomeInText(item.message)}`)
   }
 
-  // 打印归一报告：先给一句话结论，再列发生改动的文件与行号（风格与 upgrade 预演一致）
+  // 打印归一报告：先给一句话结论，再列发生改动的文件与行号，最后列无法机械归一须人工确认的项
   function printConventionsFormat(report: FormatReport, dryRun: boolean): void {
     const tag = dryRun ? "[预演] " : ""
     console.log(`${tag}任务区：${report.tasksDir}（扫描 ${report.files} 个 .md）`)
     if (report.status === "already-compact") {
       console.log(`${tag}表格已全部为紧凑形态，无需归一`)
-      return
+    } else {
+      console.log("")
+      console.log(`${tag}归一改动：${report.changedFiles} 个文件 / ${report.changedLines} 行`)
+      for (const c of report.changes) {
+        const shown = c.lines.slice(0, 6).join("、")
+        console.log(`  ${c.file}：${c.lines.length} 行（${shown}${c.lines.length > 6 ? " …" : ""}）`)
+      }
+      console.log("")
+      if (dryRun) console.log("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行")
+      else console.log("已写入；紧凑形态即规范形态，重复执行不改动")
     }
-    console.log("")
-    console.log(`${tag}归一改动：${report.changedFiles} 个文件 / ${report.changedLines} 行`)
-    for (const c of report.changes) {
-      const shown = c.lines.slice(0, 6).join("、")
-      console.log(`  ${c.file}：${c.lines.length} 行（${shown}${c.lines.length > 6 ? " …" : ""}）`)
+    // 语义列缺冒号、裸文件名目标不在载体内等项不做机械改写，只在此列出
+    if (report.warnings.length > 0) {
+      console.log("")
+      console.log("待人工处理（只报不改）：")
+      for (const warning of report.warnings.slice(0, 10)) console.log(`  ⚠️ ${warning}`)
+      if (report.warnings.length > 10) console.log(`  …另有 ${report.warnings.length - 10} 项`)
     }
-    console.log("")
-    if (dryRun) console.log("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行")
-    else console.log("已写入；紧凑形态即规范形态，重复执行不改动")
   }
 
   // conventions 域：规范载体的结构升级、表格形态归一与只读体检（载体细则见 skills/fxri-plan-to-task/references/conventions-spec.md）
   const conventionsCmd = program
     .command("conventions")
-    .description("项目协作规范载体：结构升级（v1 / v2 → v3）、表格形态归一（紧凑形态）与只读体检（形态 / 索引 / 入口层）")
+    .description("项目协作规范载体：结构升级（v1 / v2 → v3）、表格与索引单元格形态归一、只读体检（形态 / 索引 / 入口层）")
 
   // 升级：纯机械结构升级，先判后写；形态异常或未初始化时拒绝执行并给非 0 退出码（异常态不写任何文件）
   conventionsCmd
@@ -107,10 +114,10 @@ export function registerConventionsCommands(program: Command): void {
       }
     })
 
-  // 归一：把格式化器填充出的表格收敛回紧凑形态（只动空白层与分隔行横线长度、不改语义；幂等，跳过代码块，先判后写）
+  // 归一：表格压回紧凑形态，并把索引表单元格收敛到规范写法（只做可确定项，语义列只报不改；幂等，跳过代码块，先判后写）
   conventionsCmd
     .command("format")
-    .description("归一表格形态为紧凑形态（只动单元格间距、分隔行横线长度与列对齐填充；幂等、跳过 fenced code block，先报后写）")
+    .description("归一表格与索引表单元格形态（紧凑形态 + 单一事实源链接化、归属裸值、规则去引号；当前语义只报不改；幂等、跳过 fenced code block，先报后写）")
     .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）")
     .option("--dry-run", "预演（只预览将要归一的行，不写文件）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")

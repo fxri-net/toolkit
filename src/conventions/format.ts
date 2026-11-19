@@ -228,6 +228,35 @@ export function isSeparatorRow(line: string): boolean {
   return cells.length > 0 && cells.every((c) => /^:?-{2,}:?$/.test(c))
 }
 
+// fenced code block 起始 / 结束行判据（``` 或 ~~~，长度 ≥3）
+const FENCE_RE = /^\s*(`{3,}|~{3,})/
+
+// 读行首围栏（无则 null）：返回围栏字符与长度，闭合判据据此比对
+function fenceOf(line: string): { char: string; len: number } | null {
+  const token = FENCE_RE.exec(line)?.[1]
+  return token ? { char: token.charAt(0), len: token.length } : null
+}
+
+// 标注各行是否位于 fenced code block 之外：代码块内的行不参与归一（表格样例须原样保留）；供归一与形态检测共用
+export function outsideFenceMask(lines: string[]): boolean[] {
+  const mask = lines.map(() => true)
+  let fence: { char: string; len: number } | null = null
+  for (let i = 0; i < lines.length; i++) {
+    const here = fenceOf(lines[i] ?? "")
+    if (fence === null) {
+      if (here) {
+        fence = here
+        mask[i] = false
+      }
+      continue
+    }
+    mask[i] = false
+    // 闭合须同类字符且不短于起始串（CommonMark 规则）
+    if (here && here.char === fence.char && here.len >= fence.len) fence = null
+  }
+  return mask
+}
+
 // 定位表格：表头行含指定单元格、且下一行为分隔行；数据行取到首个非表格行止
 export function findTable(lines: string[], headerCell: string): TableBlock | null {
   for (let i = 0; i + 1 < lines.length; i++) {

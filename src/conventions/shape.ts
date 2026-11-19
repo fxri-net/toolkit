@@ -1,24 +1,28 @@
-// 载体表形态偏离检测：S1 索引表列集合、S2 演进记录 / 退休台账表头、S3 载体文件内表头与分隔行列数、S4 分册残留「确立来源」子项、S5 演进记录「修订内容」列禁用语料
+// 载体表形态偏离检测：S1 索引表列集合、S2 演进记录 / 退休台账表头、S3 载体文件内表头与分隔行列数、S4 分册残留「确立来源」子项、S5 演进记录「修订内容」列禁用语料、S6–S8 索引表单元格形态
 // 供 conventions status 与 tasks check 共用，两处只做各自的路径与级别渲染，判据不各写一份
 // 只报不改：命中的偏离一律交人工确认后按 conventions-spec 归一
 import { existsSync } from "node:fs"
 import { basename } from "node:path"
 import { readTextFile } from "../read-text"
-import { outsideFenceMask } from "./compact"
+import { findBareFileNames, findCodeVolumeNames, hasWrappedOwner, lacksRoutingColon, readIndexRows } from "./cells"
 import {
   HISTORY_ANCHOR_HEADER,
   HISTORY_COLUMNS,
   HISTORY_FILE,
+  INDEX_ANCHOR_HEADER,
   INDEX_COLUMNS,
   INDEX_FILE,
+  OWNER_HEADER,
   REVISION_HEADER,
   RETIRED_ANCHOR_HEADER,
   RETIRED_COLUMNS,
   RETIRED_FILE,
+  SOURCE_HEADER,
   carrierFiles,
   columnIndex,
   findColumnCountMismatches,
   findTable,
+  outsideFenceMask,
   type CarrierState,
 } from "./format"
 
@@ -148,12 +152,55 @@ function historyWordingDefects(state: CarrierState): ShapeDefect[] {
   ]
 }
 
+// S6–S8：索引表单元格形态（单一事实源须相对链接或行内代码、归属须裸值、当前语义须含全角冒号）
+// 逐类聚合成一条（首个命中行 + 「另有 N 处」），避免每条索引行各报一次把体检刷满
+function indexCellDefects(state: CarrierState): ShapeDefect[] {
+  const rows = readIndexRows(readTextFile(state.indexFile))
+  const defects: ShapeDefect[] = []
+  const report = (hits: number[], message: string): void => {
+    const first = hits[0]
+    if (first === undefined) return
+    const extra = hits.length > 1 ? `（另有 ${hits.length - 1} 处）` : ""
+    defects.push({ file: state.indexFile, line: first, message: `${message}${extra}` })
+  }
+
+  // 单一事实源：裸文件名与反引号包裹的分册名都属偏离，前者补行内代码、后者补相对链接
+  const sourceRows = rows.filter((row) => findBareFileNames(row.source).length > 0 || findCodeVolumeNames(row.source, state.dir).length > 0)
+  const sourceSample = sourceRows.map((row) => findBareFileNames(row.source)[0] ?? findCodeVolumeNames(row.source, state.dir)[0] ?? "").find((name) => name !== "")
+  if (sourceSample) {
+    report(
+      sourceRows.map((row) => row.line),
+      `${INDEX_FILE}「${SOURCE_HEADER}」列写成了裸文件名或反引号分册名（如 \`${sourceSample}\`）：载体内分册写相对链接，载体外文件写行内代码；执行 toolkit conventions format 可机械归一`,
+    )
+  }
+
+  const ownerRows = rows.filter((row) => hasWrappedOwner(row.owner))
+  if (ownerRows.length > 0) {
+    report(ownerRows.map((row) => row.line), `${INDEX_FILE}「${OWNER_HEADER}」列含反引号或链接（如 ${ownerRows[0]!.owner}）：该列只填裸值；执行 toolkit conventions format 可机械归一`)
+  }
+
+  const semanticRows = rows.filter((row) => lacksRoutingColon(row.semantic))
+  if (semanticRows.length > 0) {
+    report(
+      semanticRows.map((row) => row.line),
+      `${INDEX_FILE} 条目 ${semanticRows[0]!.id} 等的「${INDEX_ANCHOR_HEADER}」缺全角冒号：应写作「何时适用：一句话要求」，语义重写须人工确认`,
+    )
+  }
+  return defects
+}
+
 // 载体表形态检测入口：无 index.md 一律无偏离；文风与列集合类只在 v3 校验，列数脱节对任何形态都校验
 export function detectShapeDefects(state: CarrierState): ShapeDefect[] {
   if (!state.hasIndex) return []
   const defects: ShapeDefect[] = []
   if (state.form === "v3")
-    defects.push(...indexColumnDefects(state), ...ledgerDefects(state), ...straySourceDefects(state), ...historyWordingDefects(state))
+    defects.push(
+      ...indexColumnDefects(state),
+      ...ledgerDefects(state),
+      ...straySourceDefects(state),
+      ...historyWordingDefects(state),
+      ...indexCellDefects(state),
+    )
   defects.push(...columnCountDefects(state))
   return defects
 }

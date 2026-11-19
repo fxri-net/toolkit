@@ -1,11 +1,13 @@
-// 表格形态归一：紧凑形态（单元格间单空格）即规范形态，格式化器填充出的列对齐与补长横线为偏离
+// 表格与单元格形态归一：紧凑形态（单元格间单空格）即规范形态，格式化器填充出的列对齐与补长横线为偏离
+// 另把 conventions/index.md 的索引表单元格归一到规范形态：单一事实源按载体内外二分、归属去包裹、规则去引号；语义列只报不改
 // 归一范围＝任务区全部 .md（载体三件 + active + archive）；fenced code block 内的表格样例不动（示例须按原样保留）
-// 归一不触语义：只动单元格间距、分隔行横线长度与列对齐填充，单元格文本、分隔行对齐标记与行尾符一律保留
+// 归一不触语义：间距与分隔行只动空白与横线，单元格只改写「写在代码里还是链接里」，条文文字与行尾符一律保留
 import { existsSync, readdirSync } from "node:fs"
 import { join, relative } from "node:path"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
-import { isSeparatorRow, isTableRow, splitRow } from "./format"
+import { normalizeIndexCells } from "./cells"
+import { CONVENTIONS_DIR, INDEX_FILE, isSeparatorRow, isTableRow, outsideFenceMask, splitRow } from "./format"
 
 // 单文件归一结果：changedLines 为发生改动的 1 基行号
 export interface CompactResult {
@@ -26,20 +28,13 @@ export interface FormatReport {
   changedFiles: number
   changedLines: number
   changes: FormatChange[]
+  // 无法机械归一、须人工确认的项（如语义列缺全角冒号、裸文件名目标不在载体内）
+  warnings: string[]
   dryRun: boolean
 }
 
 export interface FormatOptions {
   dryRun?: boolean
-}
-
-// fenced code block 起始 / 结束行判据（``` 或 ~~~，长度 ≥3）
-const FENCE_RE = /^\s*(`{3,}|~{3,})/
-
-// 读行首围栏（无则 null）：返回围栏字符与长度，闭合判据据此比对
-function fenceOf(line: string): { char: string; len: number } | null {
-  const token = FENCE_RE.exec(line)?.[1]
-  return token ? { char: token.charAt(0), len: token.length } : null
 }
 
 // 取行首缩进前缀（表格行可能带缩进，归一须保留）
@@ -61,25 +56,8 @@ export function compactTableLine(line: string): string {
   return `${indentOf(line)}| ${body.join(" | ")} |`
 }
 
-// 标注各行是否位于 fenced code block 之外：代码块内的行不参与归一（表格样例须原样保留）；导出供形态检测复用
-export function outsideFenceMask(lines: string[]): boolean[] {
-  const mask = lines.map(() => true)
-  let fence: { char: string; len: number } | null = null
-  for (let i = 0; i < lines.length; i++) {
-    const here = fenceOf(lines[i] ?? "")
-    if (fence === null) {
-      if (here) {
-        fence = here
-        mask[i] = false
-      }
-      continue
-    }
-    mask[i] = false
-    // 闭合须同类字符且不短于起始串（CommonMark 规则）
-    if (here && here.char === fence.char && here.len >= fence.len) fence = null
-  }
-  return mask
-}
+// 标注各行是否位于 fenced code block 之外：代码块内的行不参与归一（表格样例须原样保留）；实现见 format.ts，供归一与形态检测共用
+export { outsideFenceMask } from "./format"
 
 // 单文件归一：逐行扫表格行改写为紧凑形态，保留原行尾符（CRLF / LF）
 export function compactMarkdown(content: string): CompactResult {
@@ -129,12 +107,23 @@ export function listMarkdownFiles(root: string): string[] {
 }
 
 // 归一主流程：先全量扫描再统一写盘（dryRun 只报不改）；已是紧凑形态时幂等返回 already-compact
+// 索引表另做单元格形态归一（仅 conventions/index.md），无法机械判定的项只进 warnings
 export function formatConventions(tasksDir = ".tasks", options: FormatOptions = {}): FormatReport {
   if (!existsSync(tasksDir)) throw new Error(`任务区目录不存在：${tasksDir}（先执行 toolkit init 初始化）`)
   const files = listMarkdownFiles(tasksDir)
+  const indexFile = join(tasksDir, CONVENTIONS_DIR, INDEX_FILE)
   const changes: FormatChange[] = []
+  const warnings: string[] = []
   for (const file of files) {
-    const { content, changedLines } = compactMarkdown(readTextFile(file))
+    const compacted = compactMarkdown(readTextFile(file))
+    let content = compacted.content
+    let changedLines = compacted.changedLines
+    if (file === indexFile) {
+      const cells = normalizeIndexCells(content, join(tasksDir, CONVENTIONS_DIR), `${CONVENTIONS_DIR}/${INDEX_FILE}`)
+      content = cells.content
+      changedLines = [...new Set([...changedLines, ...cells.changedLines])].sort((a, b) => a - b)
+      warnings.push(...cells.warnings)
+    }
     if (changedLines.length === 0) continue
     if (!options.dryRun) writeFileAtomic(file, content)
     changes.push({ file: relative(tasksDir, file).replace(/\\/g, "/"), lines: changedLines })
@@ -146,6 +135,7 @@ export function formatConventions(tasksDir = ".tasks", options: FormatOptions = 
     changedFiles: changes.length,
     changedLines: changes.reduce((n, c) => n + c.lines.length, 0),
     changes,
+    warnings,
     dryRun: Boolean(options.dryRun),
   }
 }

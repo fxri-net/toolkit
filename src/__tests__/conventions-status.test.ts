@@ -81,8 +81,8 @@ ${rows}
   }
 }
 
-// 良构单行索引：归属取保留值 common（恒合法，不进端清单）
-const cleanRows = `| ${idOf(1)} | 四级时间源 | 当场打点优先 | common | common.md |`
+// 良构单行索引：语义带全角冒号、分册写相对链接、归属取保留值 common（合规形态）
+const cleanRows = `| ${idOf(1)} | 四级时间源 | 建档时：当场打点优先 | common | [common.md](./common.md) |`
 
 // 写入项目级入口壳
 function writeShell(cwd: string, skillDir: string, content: string): void {
@@ -172,7 +172,7 @@ describe("索引体检", () => {
   it("首列不合稳定 ID 形态时告警", () => {
     const root = makeDir("tk-status-idshape-")
     const cwd = makeDir("tk-status-idshape-cwd-")
-    makeCarrier(root, "| X-1 | 四级时间源 | 当场打点优先 | common | common.md |")
+    makeCarrier(root, "| X-1 | 四级时间源 | 建档时：当场打点优先 | common | [common.md](./common.md) |")
 
     const report = conventionsStatus(root, cwd)
     expect(report.form).toBe(`v${CARRIER_VERSION}`)
@@ -182,7 +182,7 @@ describe("索引体检", () => {
   it("首列为行内代码包裹的稳定 ID 时不误报形态", () => {
     const root = makeDir("tk-status-idcode-")
     const cwd = makeDir("tk-status-idcode-cwd-")
-    makeCarrier(root, `| \`${idOf(1)}\` | 四级时间源 | 当场打点优先 | common | common.md |`)
+    makeCarrier(root, `| \`${idOf(1)}\` | 四级时间源 | 建档时：当场打点优先 | common | [common.md](./common.md) |`)
 
     const report = conventionsStatus(root, cwd)
     expect(report.form).toBe(`v${CARRIER_VERSION}`)
@@ -192,7 +192,7 @@ describe("索引体检", () => {
   it("首列为补零 ID 时告警并给出去补零写法", () => {
     const root = makeDir("tk-status-idpad-")
     const cwd = makeDir("tk-status-idpad-cwd-")
-    makeCarrier(root, "| C-001 | 四级时间源 | 当场打点优先 | common | common.md |")
+    makeCarrier(root, "| C-001 | 四级时间源 | 建档时：当场打点优先 | common | [common.md](./common.md) |")
 
     const report = conventionsStatus(root, cwd)
     const hits = report.items.filter((i) => i.scope === "索引" && i.message.includes("补零"))
@@ -207,7 +207,7 @@ describe("索引体检", () => {
     const cwd = makeDir("tk-status-dupid-cwd-")
     makeCarrier(
       root,
-      `| ${idOf(1)} | 四级时间源 | 当场打点优先 | common | common.md |
+      `| ${idOf(1)} | 四级时间源 | 建档时：当场打点优先 | common | [common.md](./common.md) |
 | ${idOf(1)} | 路径书写 | 仓库根相对路径 | common | common.md |`,
     )
 
@@ -220,10 +220,10 @@ describe("索引体检", () => {
     const cwd = makeDir("tk-status-owner-cwd-")
     makeCarrier(
       root,
-      `| ${idOf(1)} | 四级时间源 | 当场打点优先 | web | common.md |
-| ${idOf(2)} | 建档评估 | 先查后写 | common | common.md |
-| ${idOf(3)} | 路径书写 | 仓库根相对路径 | index | common.md |
-| ${idOf(4)} | 测试不复刻 | 期望值取真实实现 | mobile | common.md |`,
+      `| ${idOf(1)} | 四级时间源 | 建档时：当场打点优先 | web | [common.md](./common.md) |
+| ${idOf(2)} | 建档评估 | 建档时：先查后写 | common | [common.md](./common.md) |
+| ${idOf(3)} | 路径书写 | 写路径时：仓库根相对路径 | index | [common.md](./common.md) |
+| ${idOf(4)} | 测试不复刻 | 写测试时：期望值取真实实现 | mobile | [common.md](./common.md) |`,
     )
 
     const report = conventionsStatus(root, cwd)
@@ -241,7 +241,7 @@ describe("索引体检", () => {
 
 以 pnpm 为准。
 `
-    makeCarrier(root, `| ${idOf(1)} | 构建口径 | 以 pnpm 为准 | build | build.md |`, { extra: { "build.md": build } })
+    makeCarrier(root, `| ${idOf(1)} | 构建口径 | 构建时：以 pnpm 为准 | build | [build.md](./build.md) |`, { extra: { "build.md": build } })
 
     const report = conventionsStatus(root, cwd)
     expect(report.items.filter((i) => i.message.includes("不在端清单"))).toEqual([])
@@ -252,7 +252,7 @@ describe("索引体检", () => {
   it("归属 common 且语义含端限定语并提及端名时提示确认是否下沉", () => {
     const root = makeDir("tk-status-common-")
     const cwd = makeDir("tk-status-common-cwd-")
-    makeCarrier(root, `| ${idOf(1)} | 网页端缓存 | 仅 web 端缓存走 CDN | common | common.md |`)
+    makeCarrier(root, `| ${idOf(1)} | 网页端缓存 | 写缓存时：仅 web 端缓存走 CDN | common | [common.md](./common.md) |`)
 
     const report = conventionsStatus(root, cwd)
     const hits = report.items.filter((i) => i.message.includes("确认是否应下沉为端归属"))
@@ -263,7 +263,7 @@ describe("索引体检", () => {
   it("归属 common 语义提及端名但为例举（无端限定语）时不误报", () => {
     const root = makeDir("tk-status-common-fp-")
     const cwd = makeDir("tk-status-common-fp-cwd-")
-    makeCarrier(root, `| ${idOf(1)} | 缓存口径 | web 端缓存走 CDN | common | common.md |`)
+    makeCarrier(root, `| ${idOf(1)} | 缓存口径 | 写缓存时：web 端缓存走 CDN | common | [common.md](./common.md) |`)
 
     const report = conventionsStatus(root, cwd)
     expect(report.items.filter((i) => i.message.includes("确认是否应下沉为端归属"))).toEqual([])
@@ -273,7 +273,7 @@ describe("索引体检", () => {
   it("端限定语后提及端名时大小写不敏感（大写 Web 亦命中）", () => {
     const root = makeDir("tk-status-common-case-")
     const cwd = makeDir("tk-status-common-case-cwd-")
-    makeCarrier(root, `| ${idOf(1)} | 网页端缓存 | 仅 Web 端缓存走 CDN | common | common.md |`)
+    makeCarrier(root, `| ${idOf(1)} | 网页端缓存 | 写缓存时：仅 Web 端缓存走 CDN | common | [common.md](./common.md) |`)
 
     const report = conventionsStatus(root, cwd)
     const hits = report.items.filter((i) => i.message.includes("确认是否应下沉为端归属"))
@@ -307,8 +307,9 @@ describe("索引语义路由写法体检", () => {
   it("「当前语义」超过上限时提示改写为路由写法，只提示不阻断结论", () => {
     const root = makeDir("tk-status-route-long-")
     const cwd = makeDir("tk-status-route-long-cwd-")
-    const tooLong = "适".repeat(SEMANTIC_MAX_CHARS + 1)
-    makeCarrier(root, `| ${idOf(1)} | 长语义 | ${tooLong} | common | common.md |`)
+    // 路由写法须含全角冒号，长度口径仍按整格字符数
+    const tooLong = "适".repeat(SEMANTIC_MAX_CHARS) + "："
+    makeCarrier(root, `| ${idOf(1)} | 长语义 | ${tooLong} | common | [common.md](./common.md) |`)
 
     const report = conventionsStatus(root, cwd)
     const hits = report.items.filter((i) => i.message.includes("路由写法"))
@@ -322,8 +323,8 @@ describe("索引语义路由写法体检", () => {
   it("「当前语义」恰在上限内时不告警", () => {
     const root = makeDir("tk-status-route-edge-")
     const cwd = makeDir("tk-status-route-edge-cwd-")
-    const exact = "适".repeat(SEMANTIC_MAX_CHARS)
-    makeCarrier(root, `| ${idOf(1)} | 边界语义 | ${exact} | common | common.md |`)
+    const exact = "适".repeat(SEMANTIC_MAX_CHARS - 1) + "："
+    makeCarrier(root, `| ${idOf(1)} | 边界语义 | ${exact} | common | [common.md](./common.md) |`)
 
     const report = conventionsStatus(root, cwd)
     expect(report.items.filter((i) => i.message.includes("路由写法"))).toEqual([])
@@ -453,7 +454,7 @@ describe("表格形态体检", () => {
   it("载体表格被列对齐填充时报一条告警并指向 conventions format", () => {
     const root = makeDir("tk-status-table-")
     const cwd = makeDir("tk-status-table-cwd-")
-    makeCarrier(root, `| ${idOf(1)}     | 四级时间源 | 当场打点优先 | common | common.md |`)
+    makeCarrier(root, `| ${idOf(1)}     | 四级时间源 | 建档时：当场打点优先 | common | [common.md](./common.md) |`)
 
     const report = conventionsStatus(root, cwd)
     const hits = report.items.filter((i) => i.message.includes("表格存在列对齐填充"))
@@ -695,7 +696,7 @@ describe("检测入口覆盖统计", () => {
     const cwd = makeDir("tk-status-cov-cwd-")
     makeCarrier(
       root,
-      [`| ${idOf(1)} | 四级时间源 | 当场打点优先 | common | common.md |`, `| ${idOf(2)} | 无检测规则 | 仅人工复核 | common | common.md |`].join("\n"),
+      [`| ${idOf(1)} | 四级时间源 | 建档时：当场打点优先 | common | [common.md](./common.md) |`, `| ${idOf(2)} | 无检测规则 | 复核时：仅人工复核 | common | [common.md](./common.md) |`].join("\n"),
     )
     // 代码里只标注一个已存在的 ID，另引用一个索引中不存在的 ID；用拼接避免源码本身被自检扫成引用
     const known = "C-" + "1"
