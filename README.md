@@ -113,7 +113,7 @@ skills 与工具的关系、只在公司项目激活等说明见 [常见问题](
 
 ```bash
 pnpm add -D @fxri/toolkit        # 项目 devDependency（团队项目推荐，版本随仓库锁定）
-pnpm i -g @fxri/toolkit          # 全局（个人多项目推荐；pnpm 不受 nvm 切版本影响）
+pnpm add -g @fxri/toolkit          # 全局（个人多项目推荐；pnpm 不受 nvm 切版本影响）
 pnpm dlx @fxri/toolkit tasks     # 不安装临时执行
 ```
 

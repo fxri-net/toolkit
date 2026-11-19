@@ -61,11 +61,13 @@ pnpm add -D @fxri/toolkit
 ### 方式二：全局安装
 
 ```bash
-pnpm i -g @fxri/toolkit   # pnpm（bin 落在 pnpm home，不受 nvm 切版本影响）
-npm i -g @fxri/toolkit    # npm（bin 硬链在 Node 目录，切版本需重装）
-yarn global add @fxri/toolkit   # 仅 yarn 1.x；v2+ 默认禁用 global，建议改用 pnpm
-bun i -g @fxri/toolkit    # bun
+pnpm add -g @fxri/toolkit       # pnpm（bin 落在 pnpm home，不受 nvm 切版本影响）
+npm add -g @fxri/toolkit        # npm（= npm i -g；bin 硬链在 Node 目录，切版本需重装）
+yarn global add @fxri/toolkit   # yarn 1.x；2+ 无全局安装，改用 yarn dlx
+bun add -g @fxri/toolkit        # bun
 ```
+
+升级用同一条安装命令即可。各管理器的全局安装语法并不同一（yarn 1.x 是 `global add`、2+ 没有全局安装），上表按管理器列出可直接复制的形式。
 
 适合个人在多个项目间快速使用。
 

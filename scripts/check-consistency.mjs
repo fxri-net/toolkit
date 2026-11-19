@@ -221,7 +221,8 @@ if (diffBase) {
 
 // 规则模块体量棘轮：全局规则是用户手动复制的快照，细节应进 skills（AGENTS 质量门 5）。
 // 上限取收敛后实测值约 1.1 倍；调高须在同一提交说明理由，否则棘轮会被随手抬高而失效
-const RULE_BUDGETS = { "workflow.md": 770, "core.md": 580, "env.md": 165, "usage.md": 595, "output.md": 170, "commit.md": 1040 }
+// env 上限 220：需容纳「pnpm / npm / bun / yarn 四种管理器写法」的半句说明（实测 198，取 1.1 倍）
+const RULE_BUDGETS = { "workflow.md": 770, "core.md": 580, "env.md": 220, "usage.md": 595, "output.md": 170, "commit.md": 1040 }
 for (const [file, budget] of Object.entries(RULE_BUDGETS)) {
   const rel = `templates/rules/${file}`
   // 假现场 / 裁剪仓库可能没有规则模块：缺失即跳过，不把 ENOENT 当违规抛出

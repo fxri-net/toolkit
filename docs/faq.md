@@ -19,7 +19,7 @@
 
 ### 个人用，全局装还是每个项目里装？
 
-个人多项目使用推荐**双全局**，一次配置所有项目直接可用：工具用 `pnpm i -g @fxri/toolkit` 全局装、skills 用 `toolkit skills install` 全局分发。
+个人多项目使用推荐**双全局**，一次配置所有项目直接可用：工具用 `pnpm add -g @fxri/toolkit` 全局装、skills 用 `toolkit skills install` 全局分发。
 命令与三种安装方式见[快速开始 · 安装](./getting-started#安装)。升级一条命令：`pnpm add -g @fxri/toolkit`。
 软链模式下技能随包自动更新；副本形式需重跑 `toolkit skills install`；skills 升级后开新会话，见「升级后要注意什么」。
 
@@ -84,7 +84,7 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 ### 用 nvm 切了 Node 版本，全局装的 toolkit 不见了？
 
 全局包绑定在安装时的 Node 版本上，切版本后各版本的 `node_modules` 相互独立。这是 nvm 类工具的机制，不是本工具的问题。
-处置三种：新版本下重新安装（`pnpm i -g @fxri/toolkit` 或 `npm i -g @fxri/toolkit`）；
+处置三种：新版本下重新安装（`pnpm add -g @fxri/toolkit` 或 `npm i -g @fxri/toolkit`）；
 改用 pnpm 全局安装（pnpm 全局目录独立于 Node 版本）；团队项目改用项目 devDependency 方式，不受切版本影响（见[快速开始 · 安装](./getting-started#安装)）。
 
 ### Node 18 能用吗？
