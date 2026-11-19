@@ -1,9 +1,9 @@
 // 表格与单元格形态归一：紧凑形态（单元格间单空格）即规范形态，格式化器填充出的列对齐与补长横线为偏离
-// 另把 conventions/index.md 的索引表单元格归一到规范形态：单一事实源按载体内外二分、归属去包裹、规则去引号；语义列只报不改
+// 另把 conventions/index.md 的索引表单元格归一到规范形态：单一事实源按「可解析即链接」、归属去包裹、规则去引号；语义列只报不改
 // 归一范围＝任务区全部 .md（载体三件 + active + archive）；fenced code block 内的表格样例不动（示例须按原样保留）
 // 归一不触语义：间距与分隔行只动空白与横线，单元格只改写「写在代码里还是链接里」，条文文字与行尾符一律保留
 import { existsSync, readdirSync } from "node:fs"
-import { join, relative } from "node:path"
+import { dirname, join, relative, resolve } from "node:path"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
 import { normalizeIndexCells } from "./cells"
@@ -116,7 +116,9 @@ export function formatConventions(tasksDir = ".tasks", options: FormatOptions = 
     let content = compacted.content
     let changedLines = compacted.changedLines
     if (file === indexFile) {
-      const cells = normalizeIndexCells(content, join(tasksDir, CONVENTIONS_DIR), `${CONVENTIONS_DIR}/${INDEX_FILE}`)
+      // 仓库根取任务目录的上一级：索引里的载体外路径（AGENTS.md、docs/…）按它解析
+      const repoRoot = dirname(resolve(tasksDir))
+      const cells = normalizeIndexCells(content, join(tasksDir, CONVENTIONS_DIR), repoRoot, `${CONVENTIONS_DIR}/${INDEX_FILE}`)
       content = cells.content
       changedLines = [...new Set([...changedLines, ...cells.changedLines])].sort((a, b) => a - b)
       warnings.push(...cells.warnings)

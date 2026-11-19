@@ -422,4 +422,33 @@ ${rows}
     rmSync(dir, { recursive: true, force: true })
     rmSync(cwd, { recursive: true, force: true })
   })
+
+  it("归属分册与源列指向不同分册时告警", () => {
+    const dir = makeTmp("tk-conv-cell-owner-src-")
+    const cwd = makeTmp("tk-conv-cell-owner-src-cwd-")
+    build(dir, "| C-1 | 四级时间源 | 建档时：当场打点优先 | testing | [common.md](./common.md) |", {
+      "common.md": "# 通用规范\n",
+      "testing.md": "# 测试规范\n",
+    })
+
+    const warns = warnTexts(dir, cwd)
+    const hits = warns.filter((m) => m.includes("指向不同分册"))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]).toContain("testing")
+    rmSync(dir, { recursive: true, force: true })
+    rmSync(cwd, { recursive: true, force: true })
+  })
+
+  it("归属分册与源列链接一致时不告警", () => {
+    const dir = makeTmp("tk-conv-cell-owner-src-ok-")
+    const cwd = makeTmp("tk-conv-cell-owner-src-ok-cwd-")
+    build(dir, "| C-1 | 四级时间源 | 建档时：当场打点优先 | testing | [testing.md](./testing.md) |", {
+      "testing.md": "# 测试规范\n",
+    })
+
+    const warns = warnTexts(dir, cwd)
+    expect(warns.filter((m) => m.includes("指向不同分册"))).toEqual([])
+    rmSync(dir, { recursive: true, force: true })
+    rmSync(cwd, { recursive: true, force: true })
+  })
 })

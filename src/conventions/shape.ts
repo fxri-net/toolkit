@@ -1,10 +1,10 @@
-// 载体表形态偏离检测：S1 索引表列集合、S2 演进记录 / 退休台账表头、S3 载体文件内表头与分隔行列数、S4 分册残留「确立来源」子项、S5 演进记录「修订内容」列禁用语料、S6–S8 索引表单元格形态
+// 载体表形态偏离检测：S1 索引表列集合、S2 演进记录 / 退休台账表头、S3 载体文件内表头与分隔行列数、S4 分册残留「确立来源」子项、S5 演进记录「修订内容」列禁用语料、S6–S8 / S10 索引表单元格形态
 // 供 conventions status 与 tasks check 共用，两处只做各自的路径与级别渲染，判据不各写一份
 // 只报不改：命中的偏离一律交人工确认后按 conventions-spec 归一
 import { existsSync } from "node:fs"
-import { basename } from "node:path"
+import { basename, dirname, resolve } from "node:path"
 import { readTextFile } from "../read-text"
-import { findBareFileNames, findCodeVolumeNames, hasWrappedOwner, lacksRoutingColon, readIndexRows } from "./cells"
+import { findBareFileNames, findCodeFileTargets, hasWrappedOwner, lacksRoutingColon, linkedTargets, readIndexRows } from "./cells"
 import {
   HISTORY_ANCHOR_HEADER,
   HISTORY_COLUMNS,
@@ -152,7 +152,7 @@ function historyWordingDefects(state: CarrierState): ShapeDefect[] {
   ]
 }
 
-// S6–S8：索引表单元格形态（单一事实源须相对链接或行内代码、归属须裸值、当前语义须含全角冒号）
+// S6–S8 / S10：索引表单元格形态（单一事实源须可解析即相对链接、归属须裸值且与源列指向一致、当前语义须含全角冒号）
 // 逐类聚合成一条（首个命中行 + 「另有 N 处」），避免每条索引行各报一次把体检刷满
 function indexCellDefects(state: CarrierState): ShapeDefect[] {
   const rows = readIndexRows(readTextFile(state.indexFile))
@@ -163,14 +163,20 @@ function indexCellDefects(state: CarrierState): ShapeDefect[] {
     const extra = hits.length > 1 ? `（另有 ${hits.length - 1} 处）` : ""
     defects.push({ file: state.indexFile, line: first, message: `${message}${extra}` })
   }
+  // 仓库根：任务目录的上一级；索引里的载体外路径（AGENTS.md、docs/…）按它解析
+  const repoRoot = dirname(dirname(resolve(state.dir)))
 
-  // 单一事实源：裸文件名与反引号包裹的分册名都属偏离，前者补行内代码、后者补相对链接
-  const sourceRows = rows.filter((row) => findBareFileNames(row.source).length > 0 || findCodeVolumeNames(row.source, state.dir).length > 0)
-  const sourceSample = sourceRows.map((row) => findBareFileNames(row.source)[0] ?? findCodeVolumeNames(row.source, state.dir)[0] ?? "").find((name) => name !== "")
+  // 单一事实源：裸路径与「行内代码包裹但可解析」的路径都属偏离，应一律写成相对链接
+  const sourceRows = rows.filter(
+    (row) => findBareFileNames(row.source).length > 0 || findCodeFileTargets(row.source, state.dir, repoRoot).length > 0,
+  )
+  const sourceSample = sourceRows
+    .map((row) => findBareFileNames(row.source)[0] ?? findCodeFileTargets(row.source, state.dir, repoRoot)[0] ?? "")
+    .find((name) => name !== "")
   if (sourceSample) {
     report(
       sourceRows.map((row) => row.line),
-      `${INDEX_FILE}「${SOURCE_HEADER}」列写成了裸文件名或反引号分册名（如 \`${sourceSample}\`）：载体内分册写相对链接，载体外文件写行内代码；执行 toolkit conventions format 可机械归一`,
+      `${INDEX_FILE}「${SOURCE_HEADER}」列写成了裸路径或行内代码（如 ${sourceSample}）：能落到具体文件的写相对链接，通配与不存在项才写行内代码；执行 toolkit conventions format 可机械归一`,
     )
   }
 
@@ -184,6 +190,23 @@ function indexCellDefects(state: CarrierState): ShapeDefect[] {
     report(
       semanticRows.map((row) => row.line),
       `${INDEX_FILE} 条目 ${semanticRows[0]!.id} 等的「${INDEX_ANCHOR_HEADER}」缺全角冒号：应写作「何时适用：一句话要求」，语义重写须人工确认`,
+    )
+  }
+
+  // S10：归属为单个主题分册时，源列须链接到该分册；指向别的分册即路由错位
+  // common / index 为保留归属（跨面原则），其源列可指向载体外文件，不参与此项
+  const volumes = new Set(carrierFiles(state).filter((file) => file !== state.indexFile).map((file) => basename(file, ".md")))
+  const mismatched = rows.filter((row) => {
+    const owner = row.owner.trim()
+    if (owner === "common" || owner === "index" || !volumes.has(owner) || /[、,，]/.test(owner)) return false
+    const expected = resolve(state.dir, `${owner}.md`)
+    return !linkedTargets(row.source, state.dir).some((target) => resolve(target) === expected)
+  })
+  if (mismatched.length > 0) {
+    const first = mismatched[0]!
+    report(
+      mismatched.map((row) => row.line),
+      `${INDEX_FILE} 条目 ${first.id} 的「${OWNER_HEADER}」与「${SOURCE_HEADER}」指向不同分册（归属 ${first.owner.trim()}，源列未链接到同名分册）：请按条文实际所在分册修正`,
     )
   }
   return defects

@@ -77,11 +77,12 @@
 - **存量归一**：`toolkit conventions format` 把已存在的填充收敛回紧凑形态——只动单元格间距、分隔行横线长度与列对齐填充、**不改语义**，
    跳过 fenced code block（代码块内原样保留），保留对齐标记（`:---` / `---:`）与行尾符，**幂等**（已紧凑时原样返回并报 `already-compact`），
    `--dry-run` 只预览行号不写盘；范围为任务区全部 md（载体各文件 + `active/` + `archive/`）。
-   另把 `conventions/index.md` 的索引表单元格归一到 §2.2 的「单元格书写形态」：单一事实源的载体内分册名（裸写或反引号包裹）转相对链接、
-   载体外文件保持行内代码，归属去反引号与链接、规则去首尾引号；目标不在载体内时原样保留并告警（不写死链），**当前语义不改写**、缺全角冒号只出清单。
+   另把 `conventions/index.md` 的索引表单元格归一到 §2.2 的「单元格书写形态」：单一事实源中可解析到具体 `.md` 的路径
+   （含载体外文件，裸写或反引号包裹）转相对链接，通配与不可解析项保持行内代码，归属去反引号与链接、规则去首尾引号；
+   目标不可解析时原样保留并告警（不写死链），**当前语义不改写**、缺全角冒号只出清单。
    **归一不入 `history.md`**——属形态变更、非规范语义变更
 - **检出告警**：`toolkit conventions status` 与 `toolkit tasks check` 对填充态与索引表单元格形态偏离软告警（前者聚合为一条、后者逐文件一条），
-   指向上述两种处置；只报形态、不阻断（`status` 退出码恒 0、`check` 计 warn）
+   含「归属为单个主题分册时源列须指向该分册」的一致性核对；只报形态、不阻断（`status` 退出码恒 0、`check` 计 warn）
 
 ## 10. 存量迁移
 
@@ -118,7 +119,7 @@ v1 / v2 / v3 都按目录形态正常读取，形态判据见 `conventions-migra
 - [ ] 旧单文件 `conventions.md` 已迁移（不存在，或已提示待清理）
 - [ ] 有入口壳时其标记与当前 toolkit 一致（落后或无标记可重跑 `toolkit init` 就地更新）、且未被 `.gitignore` 覆盖（否则 `check` / `conventions status` 告警）
 - [ ] 载体与任务区表格为紧凑形态（无列对齐填充、无按列宽补长的分隔行横线；`toolkit conventions format` 可归一，`check` / `conventions status` 会检出）
-- [ ] 索引表单元格符合 `conventions-spec.md` §2.2 书写形态（单一事实源为链接或行内代码、归属裸值、当前语义含全角冒号；前两类 `format` 可归一）
+- [ ] 索引表单元格符合 `conventions-spec.md` §2.2 书写形态（单一事实源为链接或行内代码、归属裸值、当前语义含全角冒号；可解析路径未链接与归属 / 源列不一致均可检出）
 - [ ] 规范写入均经用户确认，来源可溯：活跃条目记于写入任务文件正文，退休条目记入 `retired.md` 的「退休来源任务」列
 - [ ] 分册内无「确立来源」行（来源由 `index.md` 索引列与 `history.md` / `retired.md` 承载；
    `toolkit tasks check` / `toolkit conventions status` 检出并软告警，见 `conventions-templates.md`）

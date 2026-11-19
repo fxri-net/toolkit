@@ -1,23 +1,33 @@
-// 索引表单元格形态：单一事实源按「载体内分册 → 相对链接 / 载体外文件 → 行内代码」二分，归属只填裸值，规则不加引号
-// 归一只做可确定项：语义列（何时适用 + 一句话要求）无法机械化，缺全角冒号时只报告不改写
+// 索引表单元格形态：单一事实源按「可解析即相对链接」归一——能落到具体 .md 文件就写链接，通配与目标不存在才写行内代码
+// 归属只填裸值、规则不加引号；归一只做可确定项，语义列（何时适用 + 一句话要求）无法机械化，缺全角冒号时只报告不改写
 // 判定函数与 conventions status / tasks check 的软告警共用，避免两处各写一份口径
 import { existsSync } from "node:fs"
-import { join } from "node:path"
+import { basename, join, relative } from "node:path"
 import { columnIndex, findTable, INDEX_ANCHOR_HEADER, NAME_HEADER, OWNER_HEADER, outsideFenceMask, SOURCE_HEADER } from "./format"
 
 // 行内代码与链接整体占位：裸文件名的判定须跳过它们内部，否则会误命中的链接目标
 const CODE_OR_LINK_RE = /(`[^`\n]*`|\[[^\]\n]*\]\([^)\n]*\))/g
 // 单元格里的文件名形态：允许路径前缀，用于识别裸写与反引号包裹
 const FILE_NAME_RE = /[A-Za-z0-9_.~/-]+\.md/g
-
-// 载体内分册名形态：不含路径分隔符、无空白的裸文件名
-function isVolumeName(text: string): boolean {
-  return /^[^/\s]+\.md$/.test(text)
-}
+// 单元格里的相对链接目标
+const LINK_TARGET_RE = /\[[^\]\n]*\]\(([^)\n]+)\)/g
 
 // 把行内代码与链接替换为空白占位，返回可安全匹配裸文本的字符串（长度不参与判定，故直接等量替换为空格）
 function maskCodeAndLinks(cell: string): string {
   return cell.replace(CODE_OR_LINK_RE, (matched) => " ".repeat(matched.length))
+}
+
+// 目标解析：含路径分隔符的按仓库根解析；裸文件名先按载体目录、再按仓库根；通配与不存在返回 null
+function resolveTarget(target: string, dir: string, repoRoot: string): string | null {
+  if (target.includes("*")) return null
+  const candidates = target.includes("/") ? [join(repoRoot, target)] : [join(dir, target), join(repoRoot, target)]
+  return candidates.find((candidate) => existsSync(candidate)) ?? null
+}
+
+// 相对链接写法：文案取文件名末段，目标按载体目录算相对路径（同级补 ./，跨层用 ../../）
+function linkOf(file: string, dir: string): string {
+  const rel = relative(dir, file).replace(/\\/g, "/")
+  return `[${basename(file)}](${rel.startsWith(".") ? rel : `./${rel}`})`
 }
 
 // 裸文件名：不在行内代码、也不在链接目标内的 .md 文件名
@@ -25,12 +35,13 @@ export function findBareFileNames(cell: string): string[] {
   return [...maskCodeAndLinks(cell).matchAll(FILE_NAME_RE)].map((m) => m[0])
 }
 
-// 反引号包裹的载体内分册名：应写作相对链接
-export function findCodeVolumeNames(cell: string, dir: string): string[] {
+// 反引号包裹且可解析到文件的 .md 路径：应写作相对链接（通配与不存在的不算）
+export function findCodeFileTargets(cell: string, dir: string, repoRoot: string): string[] {
   const hits: string[] = []
   for (const matched of cell.matchAll(/`([^`\n]+)`/g)) {
-    const name = matched[1] ?? ""
-    if (isVolumeName(name) && existsSync(join(dir, name))) hits.push(name)
+    const name = (matched[1] ?? "").trim()
+    if (!name.endsWith(".md") || resolveTarget(name, dir, repoRoot) === null) continue
+    hits.push(name)
   }
   return hits
 }
@@ -45,25 +56,33 @@ export function lacksRoutingColon(cell: string): boolean {
   return cell.trim() !== "" && !cell.includes("：")
 }
 
-// 单一事实源单元格归一：反引号分册名与裸文件名转相对链接；目标不在载体内时原样保留并记告警
-function normalizeSourceCell(cell: string, dir: string, label: string, warnings: string[]): string {
+// 单一事实源里的链接目标（按载体目录解析后的绝对路径），供归属一致性核对使用
+export function linkedTargets(cell: string, dir: string): string[] {
+  const targets: string[] = []
+  for (const matched of cell.matchAll(LINK_TARGET_RE)) {
+    const target = (matched[1] ?? "").trim()
+    if (!target || /^[a-z]+:\/\//i.test(target)) continue
+    targets.push(join(dir, target))
+  }
+  return targets
+}
+
+// 单一事实源单元格归一：可解析的 .md（反引号包裹或裸写）转相对链接；通配与不存在项保持原样并记告警
+function normalizeSourceCell(cell: string, dir: string, repoRoot: string, label: string, warnings: string[]): string {
   const linked = cell.replace(/`([^`\n]+)`/g, (matched, name: string) => {
-    if (!isVolumeName(name) || !existsSync(join(dir, name))) return matched
-    return `[${name}](./${name})`
+    const target = name.trim()
+    if (!target.endsWith(".md")) return matched
+    const file = resolveTarget(target, dir, repoRoot)
+    return file ? linkOf(file, dir) : matched
   })
   // 再对裸文件名做链接化：先把已存在的链接与代码段占位，避免二次命中
   const spans: string[] = []
   const masked = linked.replace(CODE_OR_LINK_RE, (matched) => `${spans.push(matched) - 1}@@SPAN@@`)
   const rewritten = masked.replace(FILE_NAME_RE, (token) => {
-    if (!isVolumeName(token)) {
-      warnings.push(`${label}：单一事实源「${token}」是裸路径，应写作行内代码（载体外文件）`)
-      return token
-    }
-    if (!existsSync(join(dir, token))) {
-      warnings.push(`${label}：单一事实源「${token}」目标不在载体内，未改为链接；请确认该分册是否存在或改写为行内代码`)
-      return token
-    }
-    return `[${token}](./${token})`
+    const file = resolveTarget(token, dir, repoRoot)
+    if (file) return linkOf(file, dir)
+    warnings.push(`${label}：单一事实源「${token}」是裸路径，目标不可解析；请确认路径后改写为相对链接，或用行内代码包裹非条文文件`)
+    return token
   })
   return rewritten.replace(/\d+@@SPAN@@/g, (placeholder) => spans[Number(placeholder.replace("@@SPAN@@", ""))] ?? placeholder)
 }
@@ -88,7 +107,8 @@ export interface CellNormalizeResult {
 }
 
 // 索引表单元格归一入口：只处理载体内 index.md 的索引表，跳过 fenced code block 内的示例表
-export function normalizeIndexCells(content: string, dir: string, label: string): CellNormalizeResult {
+// repoRoot 为仓库根（通常为任务目录的上一级），用于解析「载体外文件」的相对路径
+export function normalizeIndexCells(content: string, dir: string, repoRoot: string, label: string): CellNormalizeResult {
   const eol = content.includes("\r\n") ? "\r\n" : "\n"
   const lines = content.split(/\r?\n/)
   const mask = outsideFenceMask(lines)
@@ -110,7 +130,9 @@ export function normalizeIndexCells(content: string, dir: string, label: string)
     const next = [...cells]
     if (nameIdx !== -1) next[nameIdx] = normalizeNameCell(next[nameIdx] ?? "")
     if (ownerIdx !== -1) next[ownerIdx] = normalizeOwnerCell(next[ownerIdx] ?? "")
-    if (sourceIdx !== -1) next[sourceIdx] = normalizeSourceCell(next[sourceIdx] ?? "", dir, `${label} 行 ${lineIndex + 1}`, warnings)
+    if (sourceIdx !== -1) {
+      next[sourceIdx] = normalizeSourceCell(next[sourceIdx] ?? "", dir, repoRoot, `${label} 行 ${lineIndex + 1}`, warnings)
+    }
     if (semanticIdx !== -1 && lacksRoutingColon(next[semanticIdx] ?? "")) {
       warnings.push(`${label} 行 ${lineIndex + 1}：条目 ${id} 的「当前语义」缺全角冒号，应写作「何时适用：一句话要求」（语义重写须人工确认，未自动改写）`)
     }

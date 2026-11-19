@@ -231,7 +231,23 @@ describe("formatConventions 索引表单元格归一", () => {
     expect(content).toContain("| C-2 | 路径书写 | 写路径时：仓库根相对路径 | common | [common.md](./common.md) |")
   })
 
-  it("载体外文件保持行内代码；裸文件名目标不在载体内时原样保留并告警", () => {
+  it("行内代码包裹的载体外文件若目标存在同样转相对链接", () => {
+    const repo = makeDir("tk-fmt-cells-ext-")
+    writeFile(repo, "AGENTS.md", "# 规则\n")
+    writeFile(repo, "docs/rules/ai.md", "# AI 规则\n")
+    const index = writeIndex(join(repo, ".tasks"), [
+      "| C-1 | 细节只进 skills | 写规则时：可变流程只进 skills | common | `AGENTS.md` 质量门 5 |",
+      "| C-2 | 输出分流 | 对外输出：stdout 只放数据 | common | `docs/rules/ai.md` |",
+    ])
+
+    formatConventions(join(repo, ".tasks"))
+
+    const content = readFileSync(index, "utf8")
+    expect(content).toContain("[AGENTS.md](../../AGENTS.md) 质量门 5")
+    expect(content).toContain("[ai.md](../../docs/rules/ai.md)")
+  })
+
+  it("载体外文件目标不存在时保持行内代码并告警", () => {
     const root = makeDir("tk-fmt-cells-out-")
     const index = writeIndex(root, [
       "| C-1 | 细节只进 skills | 写规则时：可变流程只进 skills | common | `AGENTS.md` 质量门 5 |",
@@ -243,7 +259,7 @@ describe("formatConventions 索引表单元格归一", () => {
     const content = readFileSync(index, "utf8")
     expect(content).toContain("| C-1 | 细节只进 skills | 写规则时：可变流程只进 skills | common | `AGENTS.md` 质量门 5 |")
     expect(content).toContain("| C-2 | 门禁 | 改验收时：只认 verify | common | AGENTS.md 质量门 2 |")
-    expect(report.warnings.some((w) => w.includes("AGENTS.md") && w.includes("目标不在载体内"))).toBe(true)
+    expect(report.warnings.some((w) => w.includes("AGENTS.md") && w.includes("目标不可解析"))).toBe(true)
   })
 
   it("当前语义缺全角冒号时只告警不改写", () => {
