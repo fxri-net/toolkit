@@ -3,7 +3,7 @@ name: fxri-session-recap
 description: 会话收尾的工作记忆沉淀 + 新会话开场恢复 + 历史任务时间修正：收尾时把整场会话的全部任务完整建档归档，按四级时间源还原真实完成时间，沉淀规范进 conventions 载体；新会话开场按三层恢复（全量索引 + active 精读 + 近窗归档）重建现场并核对规范；也可批量修正历史归档时间。用户表达会话收尾意图（今天先到这、收个尾、归档本次会话、把结论记下来）、接续意图（恢复上下文、继续上次、上次做到哪）或修正历史任务时间时使用。不用于会话中途的常规方案建档（那是 fxri-plan-to-task 的职责）、与工作交接无关的代码技术总结。
 license: MIT
 metadata:
-  version: "1.7.1"
+  version: "1.7.2"
   tier: core
   author: fxri
   source: https://github.com/fxri-net/toolkit
@@ -11,7 +11,7 @@ metadata:
 
 # 会话归档、上下文恢复与历史修正
 
-> 本技能版本 1.7.1（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.7.2（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -142,6 +142,6 @@ metadata:
 - `toolkit tasks archive`：模式一归档自动化（排他锁防并发；`--dry-run` 预演）
 - `toolkit tasks normalize`：模式三迁移核验（`--fix` 迁移 / 只读检查）
 - `toolkit tasks check`：落盘后校验
-- `toolkit conventions status|upgrade|format`：载体体检 / v1、v2 升级 / 表格归一
+- `toolkit conventions status|upgrade|format`：载体体检 / v1、v2 升级 / 表格与索引单元格归一
 - `toolkit skills install` / `skills status`：分发技能与查看现场（技能随包同源分发，与 CLI 同一发布批次；技能版本独立编号）
 - 任务目录非默认 `.tasks` 时加 `--dir <path>`

@@ -102,4 +102,26 @@ describe("规范一致性：站点导航锚点", () => {
     expect(result.status).toBe(1)
     expect(result.stderr).toContain("/faq#安装与配境")
   })
+
+  it("近似但不等于标题的锚点同样报 error（判据取等值）", () => {
+    const root = createFixture({ ...base, "docs/site-nav.json": navDoc("安装") })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("/faq#安装")
+  })
+
+  it("locales 分支里的锚点同样参与校验", () => {
+    const locales = JSON.stringify({
+      locales: {
+        root: {
+          nav: [],
+          sidebar: [{ text: "帮助", items: [{ text: "常见问题", items: [{ text: "安装与环境", link: "/faq#安装与配境" }] }] }],
+        },
+      },
+    })
+    const root = createFixture({ ...base, "docs/site-nav.json": locales })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("/faq#安装与配境")
+  })
 })

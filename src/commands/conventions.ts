@@ -39,7 +39,11 @@ export function registerConventionsCommands(program: Command): void {
     }
     console.log("")
     if (dryRun) console.log("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行")
-    else console.log("已写入；升级前原件可由本次迁移提交的父提交复现")
+    else {
+      console.log("已写入；升级前原件可由本次迁移提交的父提交复现")
+      // 升级只做结构迁移，索引表单元格沿用原写法，故补一步归一提示
+      console.log("建议随后执行 toolkit conventions format，把索引表单元格归一到规范写法")
+    }
   }
 
   // 打印体检报告：先给一句话结论，再列载体 / 入口壳现场与逐项待处理项（warn 带 ⚠️，info 带 ·）

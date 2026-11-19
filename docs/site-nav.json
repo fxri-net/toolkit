@@ -110,6 +110,7 @@
       "items": [
         {
           "text": "常见问题",
+          "link": "/faq",
           "collapsed": false,
           "items": [
             { "text": "安装与环境", "link": "/faq#安装与环境" },

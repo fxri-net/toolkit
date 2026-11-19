@@ -179,14 +179,17 @@ function headingTexts(file) {
 if (existsSync(join(root, NAV_FILE))) {
   const nav = JSON.parse(read(NAV_FILE))
   const links = []
-  const collectLinks = (items) => {
-    for (const item of items ?? []) {
-      if (typeof item.link === "string") links.push(item.link)
-      collectLinks(item.items)
+  // 通用遍历：nav / sidebar / locales.<语言> 三种形状都含 link 与 items 嵌套，逐层收集即可覆盖
+  const collectLinks = (node) => {
+    if (Array.isArray(node)) {
+      node.forEach(collectLinks)
+      return
     }
+    if (!node || typeof node !== "object") return
+    if (typeof node.link === "string") links.push(node.link)
+    Object.values(node).forEach(collectLinks)
   }
-  collectLinks(nav.nav)
-  collectLinks(nav.sidebar)
+  collectLinks(nav)
   for (const link of links) {
     const [pathname, anchor] = link.split("#")
     if (!anchor || !pathname.startsWith("/")) continue
@@ -197,10 +200,8 @@ if (existsSync(join(root, NAV_FILE))) {
     }
     const headings = headingTexts(page)
     const target = normalizeHeading(anchor)
-    const matched = headings.some((heading) => {
-      const normalized = normalizeHeading(heading)
-      return normalized === target || normalized.includes(target) || target.includes(normalized)
-    })
+    // 判据取等值：包含关系会把近似标题当命中（如锚点「安装」放过「安装与环境」）
+    const matched = headings.some((heading) => normalizeHeading(heading) === target)
     if (!matched) {
       errors.push(`${NAV_FILE} 的 ${link} 在 ${page} 中找不到对应标题（可用：${headings.slice(0, 12).join(" / ")}）`)
     }

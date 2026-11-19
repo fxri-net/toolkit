@@ -3,7 +3,7 @@ name: fxri-plan-to-task
 description: 将已确认的实施方案分解为可独立交付的任务并给出计划表，再落盘为标准任务文件并跟踪至归档：建档评估（查 active/archive 判同主题）、按模板建档、状态机更新（含搁置）、四级时间源取证、自查、任务级规范沉淀与归档。方案确认后表达「开始落地/登记记录」的意图，或即将改仓库文件时使用——含任务分解、建档、任务登记、落盘、归档、任务校验、规范载体迁移与升级（conventions 单文件升目录、v1 / v2 升 v3）等说法及口语近义表达（如记一下、建个任务跟踪、先落档）均触发。执行授权另按开工词判定：方案可以 / 定稿 / 落档 / 继续评估都不等于开工，见「开工闸门」。不用于方案未确认的对话、会话收尾整场沉淀（fxri-session-recap 模式一）、与任务记录无关的普通 TODO、issue 管理或日常提交信息撰写。
 license: MIT
 metadata:
-  version: "1.12.3"
+  version: "1.12.8"
   tier: core
   author: fxri
   source: https://github.com/fxri-net/toolkit
@@ -11,7 +11,7 @@ metadata:
 
 # 方案落盘：任务建档与归档
 
-> 本技能版本 1.12.3（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.12.8（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -163,6 +163,6 @@ metadata:
 
 - `toolkit tasks` / `check` / `archive`：总览、自动校验、自动归档（替代第 1 / 4 / 5 步；archive 带排他锁，`--dry-run` 预演）
 - `toolkit tasks normalize`：归档后核验，`--fix` 自动修复
-- `toolkit conventions status` / `upgrade` / `format`：载体体检、v1 / v2 → v3 升级、表格归一（均幂等，`--dry-run` 预演；替代第 1 步判形态、
+- `toolkit conventions status` / `upgrade` / `format`：载体体检、v1 / v2 → v3 升级、表格与索引单元格归一（均幂等，`--dry-run` 预演；替代第 1 步判形态、
    第 5.5 步沉淀前后自查）
 - 任务目录非默认 `.tasks` 时加 `--dir <path>`
