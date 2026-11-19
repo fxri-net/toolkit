@@ -69,6 +69,10 @@ bun add -g @fxri/toolkit        # bun
 
 升级用同一条安装命令即可。各管理器的全局安装语法并不同一（yarn 1.x 是 `global add`、2+ 没有全局安装），上表按管理器列出可直接复制的形式。
 
+没有全局安装的包管理器（yarn 2+ 等）：把 CLI 装成项目 devDependency（`yarn add -D @fxri/toolkit`），
+再跑 `toolkit skills install --scope project`——技能真源落 `<仓库根>/.agents/skills/`，随仓库入库、队友 clone 即用；
+临时执行可用 `yarn dlx @fxri/toolkit <命令>`。技能落点与包管理器的「全局」概念无关，换管理器不影响技能位置。
+
 适合个人在多个项目间快速使用。
 
 ⚠️ 使用 nvm/fnm 等切换 Node 版本的工具时，npm 的全局包**绑定在安装时的 Node 版本上**，切版本后会「消失」。重新执行安装命令即可（pnpm 全局目录独立于 Node 版本，或用方式三规避）。
