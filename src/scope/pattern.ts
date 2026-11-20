@@ -1,10 +1,8 @@
-// 作用域模式：语法层（glob / re: 编译与校验）与路径层（归一化后匹配）分离
-// 语法层只处理模式文本，供路径名单与技能名匹配共用；路径层负责 ~ / 相对路径 / 真实形态归一
+// 作用域模式：语法层（glob / re: 编译与校验）与路径层（字符串归一后匹配）分离
+// 语法层只处理模式文本，供路径名单与技能名匹配共用；路径层负责 ~ / 相对路径 / 统一口径归一
 import { homedir } from "node:os"
-import { isAbsolute, resolve } from "node:path"
-import { canonicalPath, normalizePathForCompare } from "../git-ignore"
+import { normalizeRulePath } from "./paths"
 import { globToRegExp } from "./glob"
-import { expandHome } from "./paths"
 
 // 模式类型：glob 为默认语法，re: 前缀切换为正则
 export type PatternKind = "glob" | "regex"
@@ -65,21 +63,19 @@ export interface PathPatternOptions {
   baseDir: string
   // home 目录：测试与跨平台场景可注入，缺省取当前用户
   home?: string
-  caseInsensitive?: boolean
 }
 
-// 路径层匹配：目标取真实形态；glob 规则先展开 ~ 与相对路径，正则按归一后的路径匹配
-// 大小写口径全平台一致：glob 与正则都按不区分大小写处理（目标已折小写，正则恒定带 i）
+// 路径层匹配：两侧都走字符串口径归一（展开 ~、按基准解析、统一分隔符与大小写），不解析符号链接
+// 正则规则按原文匹配归一后的目标；大小写口径全平台一致，恒定不区分
 export function matchPathPattern(path: string, pattern: string, options: PathPatternOptions): boolean {
   const home = options.home ?? homedir()
-  const expanded = expandHome(pattern, home)
-  const isRegex = expanded.startsWith(REGEX_PREFIX)
   // 正则按原文匹配归一后的目标路径；glob 需要先把规则解析为绝对路径并统一分隔符
-  const source = isRegex
-    ? expanded
-    : normalizePathForCompare(canonicalPath(isAbsolute(expanded) ? expanded : resolve(options.baseDir, expanded)))
+  const source = pattern.startsWith(REGEX_PREFIX) ? pattern : normalizeRulePath(pattern, options.baseDir, home)
   const compiled = compilePattern(source, true)
   if (!compiled.ok) return false
-  const target = normalizePathForCompare(canonicalPath(isAbsolute(path) ? path : resolve(options.baseDir, path)))
-  return compiled.pattern.test(target)
+  const target = normalizeRulePath(path, options.baseDir, home)
+  if (compiled.pattern.test(target)) return true
+  // Windows 归一的绝对路径带盘符：规则按 `/...` 书写时再去盘符比对一次，使同一份规则在各系统结论一致
+  const withoutDrive = target.replace(/^[a-z]:/, "")
+  return withoutDrive !== target && compiled.pattern.test(withoutDrive)
 }

@@ -1,7 +1,7 @@
 // 作用域向导：状态查看、扫描选目录、规则归属（全局 / 项目 / 本地）、目录增删与批量挂载
 import { existsSync } from "node:fs"
 import { relative } from "node:path"
-import { canonicalPath, normalizePathForCompare } from "../git-ignore"
+import { normalizePathForCompare } from "../git-ignore"
 import { BACK_CHOICE, LIST_PAGE_SIZE, askWithBack, loadPrompts, requireInteractive } from "../prompts"
 import { BUILTIN_SOURCE, installProjectSkills, installSkills, listPackageSkills, readSkillsInstallConfig, writeSkillsInstallConfig } from "../skills"
 import { globalConfigPath, layerConfigTarget, readLayerConfig, writeLayerConfig, type ConfigLayer, type LayerConfigTarget } from "./config-file"
@@ -36,9 +36,9 @@ function appendUnique(list: string[], additions: string[]): string[] {
   return result
 }
 
-// 路径比较键：真实形态 + 统一分隔符与大小写
+// 路径比较键：绝对路径 + 统一分隔符与大小写，不解析符号链接
 function pathKey(input: string): string {
-  return normalizePathForCompare(canonicalPath(input))
+  return normalizePathForCompare(resolveComparablePath(input))
 }
 
 // 查看当前判定

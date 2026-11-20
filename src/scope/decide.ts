@@ -4,31 +4,27 @@ import { matchPathPattern, matchPattern } from "./pattern"
 import { normalizeRemote } from "./paths"
 import type { ActivationConfig, ScopeContext, ScopeDecision, SkillActivationConfig } from "./types"
 
-// 路径规则首处命中：按判定基准（项目根）解析 glob / re: 规则
+// 路径规则首处命中：按判定基准（项目根）解析 glob / re: 规则，全平台统一不区分大小写
 function firstPathMatch(list: string[], target: string, context: ScopeContext): string | null {
-  return (
-    list.find((pattern) =>
-      matchPathPattern(target, pattern, { baseDir: context.baseDir, caseInsensitive: context.caseInsensitive }),
-    ) ?? null
-  )
+  return list.find((pattern) => matchPathPattern(target, pattern, { baseDir: context.baseDir })) ?? null
 }
 
 // 远端规则首处命中：远端已归一，按扁平文本 glob 匹配，不走路径解析
-function firstRemoteMatch(list: string[], remote: string, caseInsensitive: boolean): string | null {
-  return list.find((pattern) => matchGlob(remote, pattern, caseInsensitive)) ?? null
+// 大小写口径与路径一致（全平台不区分），避免同一份规则按平台得出不同结论
+function firstRemoteMatch(list: string[], remote: string): string | null {
+  return list.find((pattern) => matchGlob(remote, pattern, true)) ?? null
 }
 
 // 技能级规则：精确键优先，其次按技能名模式匹配（最长键优先，避免宽泛规则抢先生效）
 function resolveSkillRule(
   activation: ActivationConfig,
   skill: string | undefined,
-  caseInsensitive: boolean,
 ): { key: string; rule: SkillActivationConfig } | null {
   if (!skill || !activation.skills) return null
   const exact = activation.skills[skill]
   if (exact) return { key: skill, rule: exact }
   const matched = Object.keys(activation.skills)
-    .filter((key) => matchPattern(skill, key, caseInsensitive))
+    .filter((key) => matchPattern(skill, key, true))
     .sort((left, right) => right.length - left.length)[0]
   const rule = matched ? activation.skills[matched] : undefined
   return matched && rule ? { key: matched, rule } : null
@@ -51,7 +47,7 @@ export function decideScope(
       reason: "未配置作用域（默认全域生效）",
     }
   }
-  const skillRule = resolveSkillRule(activation, context.skill, context.caseInsensitive)
+  const skillRule = resolveSkillRule(activation, context.skill)
   const effective: ActivationConfig = skillRule
     ? {
         ...activation,
@@ -93,7 +89,7 @@ export function decideScope(
   if (effective.gitRemotes.length > 0) {
     const remote = context.gitRemote
     if (!remote) return inactive("未检测到 git 远端，无法匹配 gitRemotes")
-    const remoteHit = firstRemoteMatch(effective.gitRemotes, normalizeRemote(remote), context.caseInsensitive)
+    const remoteHit = firstRemoteMatch(effective.gitRemotes, normalizeRemote(remote))
     if (!remoteHit) return inactive(`git 远端未命中：${remote}`)
   }
 

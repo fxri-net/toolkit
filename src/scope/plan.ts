@@ -1,7 +1,7 @@
 // 作用域向导的纯计划：目录扫描与 activation 段合并，便于单测
 import { existsSync, readdirSync } from "node:fs"
 import { basename, join } from "node:path"
-import { canonicalPath } from "../git-ignore"
+import { normalizePathForCompare } from "../git-ignore"
 import type { ActivationMode } from "./types"
 
 // 扫描时跳过的目录：避免把依赖与产物当仓库
@@ -110,11 +110,11 @@ export function scanRepositoryTree(parent: string, options: ScanOptions = {}): S
     visited += 1
     const kind = detectRepository(dir)
     if (kind) {
-      // 取真实形态去重，避免软链或多路径写法重复收录
-      const real = canonicalPath(dir)
-      if (!seen.has(real)) {
-        seen.add(real)
-        repos.push({ name: basename(dir), path: real, kind })
+      // 按字符串口径去重：同一路径的不同写法只收录一次，不解析符号链接
+      const key = normalizePathForCompare(dir)
+      if (!seen.has(key)) {
+        seen.add(key)
+        repos.push({ name: basename(dir), path: dir, kind })
       }
       // 仓库内部不再下探：node_modules / vendor 等依赖因此永远不会被当成项目
       if (kind === "git" && !options.nested) {

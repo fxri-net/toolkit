@@ -11,7 +11,6 @@ function context(overrides: Partial<ScopeContext> = {}): ScopeContext {
     gitRoot: "/home/u/work/repo",
     gitRemote: null,
     markers: new Set<string>(),
-    caseInsensitive: false,
     ...overrides,
   }
 }
@@ -83,6 +82,15 @@ describe("decideScope", () => {
     // Windows 归一后的绝对路径带盘符，正则用可选盘符前缀兼容两平台
     expect(decideScope(activation({ include: ["re:^([a-z]:)?/tk-fixture/u/work/repo"] }), inSubdir).active).toBe(true)
     expect(decideScope(activation({ include: ["re:^([a-z]:)?/tk-fixture/u/other"] }), inSubdir).active).toBe(false)
+  })
+
+  it("技能名匹配不区分大小写，与平台无关", () => {
+    const config = activation({
+      mode: "allowlist",
+      include: ["/home/u/work/repo"],
+      skills: { "FXRI-PLAN-REVIEW": { mode: "denylist", exclude: ["/home/u/work/repo"] } },
+    })
+    expect(decideScope(config, { ...context(), skill: "fxri-plan-review" }).active).toBe(false)
   })
 
   it("技能级规则覆盖目录级，未命中的技能回落目录级", () => {

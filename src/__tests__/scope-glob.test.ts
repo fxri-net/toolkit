@@ -1,4 +1,6 @@
 // 作用域 glob 与路径展开：最小子集语义与边界
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs"
+import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { matchGlob } from "../scope/glob"
@@ -84,11 +86,46 @@ describe("matchPathPattern", () => {
 
   it("正则按归一后的路径匹配，大小写与既有 glob 口径一致", () => {
     // 夹具根在真实文件系统中不存在：macOS 的 /home 指向 /System/Volumes/Data/home，
-    // 用 /home 会让 canonicalPath 改写前缀，断言随宿主文件系统漂移
+    // 用 /home 会让历史实现改写前缀，断言随宿主文件系统漂移
     const root = "/tk-fixture/u"
     // 全平台统一不区分大小写：大写正则在小写路径上同样命中
     expect(matchPathPattern(`${root}/work/repo`, "re:^([a-z]:)?/TK-FIXTURE/U/WORK/REPO$", { baseDir: root })).toBe(true)
     expect(matchPathPattern("/TK-FIXTURE/U/Work/Repo", "re:^([a-z]:)?/tk-fixture/u/work/repo$", { baseDir: root })).toBe(true)
     expect(matchPathPattern(`${root}/work/repo`, "re:^([a-z]:)?/tk-fixture/u/other", { baseDir: root })).toBe(false)
+  })
+})
+
+describe("跨平台字符串口径", () => {
+  it("不解析符号链接前缀：逻辑路径与真实路径各按书写形态匹配", () => {
+    expect(matchPathPattern("/tmp/work/repo", "/tmp/work/**", { baseDir: "/tmp" })).toBe(true)
+    expect(matchPathPattern("/private/tmp/work/repo", "/tmp/work/**", { baseDir: "/private/tmp" })).toBe(false)
+    expect(matchPathPattern("/tmp/work/repo", "re:^/tmp/work/repo$", { baseDir: "/tmp" })).toBe(true)
+    expect(matchPathPattern("/private/tmp/work/repo", "re:^/tmp/work/repo$", { baseDir: "/private/tmp" })).toBe(false)
+  })
+
+  it("glob 与 re: 对同一目标给出一致结论", () => {
+    const target = "/data/u/work/repo"
+    const glob = matchPathPattern(target, "/data/u/work/**", { baseDir: "/data/u" })
+    const regex = matchPathPattern(target, "re:^/data/u/work/", { baseDir: "/data/u" })
+    expect(glob).toBe(regex)
+  })
+
+  it("真实符号链接不被解析：链接与目标各按自己的字符串匹配", () => {
+    const root = mkdtempSync(join(tmpdir(), "tk-scope-link-"))
+    const real = join(root, "real")
+    mkdirSync(real)
+    const link = join(root, "link")
+    try {
+      symlinkSync(real, link, "dir")
+    } catch {
+      // Windows 无符号链接权限时跳过该用例
+      rmSync(root, { recursive: true, force: true })
+      return
+    }
+    const linkKey = link.replace(/\\/g, "/")
+    const realKey = real.replace(/\\/g, "/")
+    expect(matchPathPattern(linkKey, `${linkKey}/**`, { baseDir: root })).toBe(true)
+    expect(matchPathPattern(linkKey, `${realKey}/**`, { baseDir: root })).toBe(false)
+    rmSync(root, { recursive: true, force: true })
   })
 })

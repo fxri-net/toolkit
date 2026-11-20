@@ -1,9 +1,9 @@
-// 作用域路径工具：展开 ~、取真实形态、定位 git 根与远端；不做目录遍历
+// 作用域路径工具：展开 ~、按字符串口径归一、定位 git 根与远端；不做目录遍历
 import { spawnSync } from "node:child_process"
 import { existsSync } from "node:fs"
 import { homedir } from "node:os"
 import { dirname, isAbsolute, join, resolve } from "node:path"
-import { canonicalPath } from "../git-ignore"
+import { normalizePathForCompare } from "../git-ignore"
 
 // 展开 ~ 前缀；其余原样返回
 export function expandHome(input: string, home = homedir()): string {
@@ -12,11 +12,15 @@ export function expandHome(input: string, home = homedir()): string {
   return input
 }
 
-// 把用户书写的路径归一为可比较的绝对路径：展开 ~、相对路径按 base 解析、取真实形态
+// 归一为绝对路径：展开 ~、相对路径按 base 解析，只做词法归一——不解析符号链接，避免结论随宿主漂移
 export function resolveComparablePath(input: string, base = process.cwd(), home = homedir()): string {
   const expanded = expandHome(input, home)
-  const absolute = isAbsolute(expanded) ? expanded : resolve(base, expanded)
-  return canonicalPath(absolute)
+  return isAbsolute(expanded) ? resolve(expanded) : resolve(base, expanded)
+}
+
+// 规则匹配口径：绝对路径再统一分隔符、大小写并去尾斜杠——同一份规则在三平台得到同一结论
+export function normalizeRulePath(input: string, base = process.cwd(), home = homedir()): string {
+  return normalizePathForCompare(resolveComparablePath(input, base, home))
 }
 
 // 向上查找 git 根：命中 .git（普通仓库目录或 worktree 文件）即返回，找不到返回 null

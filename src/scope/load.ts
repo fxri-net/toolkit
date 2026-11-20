@@ -1,11 +1,11 @@
 // 作用域配置加载：沿用现有三层配置（就近覆盖），解析 activation 段并组装判定现场
 import { existsSync } from "node:fs"
-import { join, resolve } from "node:path"
+import { join } from "node:path"
 import { inspectConfigLayers } from "../config"
 import { canonicalPath } from "../git-ignore"
 import { decideScope } from "./decide"
-import { compilePattern } from "./pattern"
-import { findGitRoot, findProjectRoot, readGitRemote } from "./paths"
+import { compilePattern, matchPathPattern } from "./pattern"
+import { findGitRoot, findProjectRoot, normalizeRulePath, readGitRemote } from "./paths"
 import type { ActivationConfig, ActivationMode, LoadedActivation, ScopeContext, ScopeDecision, SkillActivationConfig } from "./types"
 
 const MODES = new Set<ActivationMode>(["all", "allowlist", "denylist"])
@@ -133,9 +133,10 @@ export function loadActivation(startDir = process.cwd()): LoadedActivation {
 // 传入技能名时命中技能级规则则覆盖 mode / include / exclude，其余条件沿用目录级
 export function resolveScope(startDir = process.cwd(), skillName?: string): ScopeReport {
   const { activation, sourceFile, layer, warnings } = loadActivation(startDir)
-  const cwd = canonicalPath(resolve(startDir))
+  // 判定现场统一走字符串口径：不解析符号链接，同一份规则在各系统结论一致
+  const cwd = normalizeRulePath(startDir)
   // 判定基准取项目根：子目录内按整个项目匹配，精确路径即可覆盖其下所有层级
-  const baseDir = canonicalPath(findProjectRoot(startDir))
+  const baseDir = normalizeRulePath(findProjectRoot(startDir))
   const context: ScopeContext = {
     cwd,
     baseDir,
@@ -143,7 +144,6 @@ export function resolveScope(startDir = process.cwd(), skillName?: string): Scop
     gitRoot: null,
     gitRemote: null,
     markers: new Set<string>(),
-    caseInsensitive: process.platform === "win32",
   }
   if (activation) {
     const markerNames = [...activation.markers.include, ...activation.markers.exclude]
@@ -155,7 +155,20 @@ export function resolveScope(startDir = process.cwd(), skillName?: string): Scop
     if (activation.gitRemotes.length > 0 && context.gitRoot) context.gitRemote = readGitRemote(context.gitRoot)
   }
   const decision = decideScope(activation, context, sourceFile)
-  return { decision, activation, context, layer, warnings, migrationHint: migrationHint(activation, context, decision, sourceFile) }
+  const hint = migrationHint(activation, context, decision, sourceFile) ?? legacyPathHint(activation, context)
+  return { decision, activation, context, layer, warnings, migrationHint: hint }
+}
+
+// 真实路径迁移提示：符号链接前缀不再自动解析，旧规则按真实形态写入时提示改用 pwd 看到的路径
+// 仅诊断用 realpath，不参与匹配结论；由 scope status 打印，guard 不输出
+function legacyPathHint(activation: ActivationConfig | null, context: ScopeContext): string | null {
+  if (!activation) return null
+  const realBase = canonicalPath(context.baseDir)
+  if (realBase === context.baseDir) return null
+  const rules = [...activation.include, ...activation.exclude]
+  const hit = rules.find((rule) => matchPathPattern(realBase, rule, { baseDir: realBase }))
+  if (!hit) return null
+  return `规则「${hit}」疑似按真实路径写入：符号链接前缀不再解析，请改用 pwd 看到的路径（当前项目根 ${context.baseDir}）`
 }
 
 // 判定基准迁移提示：仅路径规则参与对比；markers / gitRemotes 不依赖基准，避免假告警

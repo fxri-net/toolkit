@@ -1,5 +1,5 @@
 // 作用域配置加载：三层就近覆盖、来源文件与非法值告警
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
@@ -74,6 +74,23 @@ describe("resolveScope", () => {
     expect(report.decision.active).toBe(true)
     expect(report.decision.baseDir.endsWith("repo")).toBe(true)
     expect(report.migrationHint ?? "").toContain("判定基准已改为项目根")
+  })
+
+  it("旧规则按真实路径写入时给出迁移提示，不改变判定", () => {
+    const real = join(home, "real-project")
+    mkdirSync(join(real, ".git"), { recursive: true })
+    const link = join(home, "link-project")
+    try {
+      symlinkSync(real, link, "dir")
+    } catch {
+      // Windows 无符号链接权限时跳过该用例
+      return
+    }
+    writeGlobal({ activation: { mode: "allowlist", include: [real.replace(/\\/g, "/")] } })
+    const report = resolveScope(link)
+    // 字符串口径：按真实路径写的规则不再命中链接路径，结论不生效
+    expect(report.decision.active).toBe(false)
+    expect(report.migrationHint ?? "").toContain("真实路径")
   })
 
   it("非法路径规则告警并剔除，不参与判定", () => {
