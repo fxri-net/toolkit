@@ -39,6 +39,45 @@ function paint(code: string, text: string): string {
   return isStyleEnabled() ? `${code}${text}${SGR.reset}` : text
 }
 
+// 行首语义符号对应的颜色：统一输出出口据此兜底，命令层不必逐条判断
+const LINE_STYLES: ReadonlyArray<readonly [string, string]> = [
+  ["✔", SGR.green],
+  ["⚠️", SGR.yellow],
+  ["✖", SGR.red],
+  ["·", SGR.dim],
+]
+
+// 按行首语义符号着色：保留缩进与符号，只给其后文本上色
+// 已含 ANSI 的文本（调用方显式用过 style.*）原样放行，避免二次上色；只处理首行，多行正文不逐行改写
+export function decorate(text: string): string {
+  if (!isStyleEnabled() || text.includes("\u001b")) return text
+  const newline = text.indexOf("\n")
+  const first = newline === -1 ? text : text.slice(0, newline)
+  for (const [symbol, code] of LINE_STYLES) {
+    const at = first.indexOf(symbol)
+    // 只认行首缩进后的符号：正文中间出现的符号不参与
+    if (at === -1 || first.slice(0, at).trim() !== "") continue
+    const rest = first.slice(at + symbol.length).replace(/^\s+/, "")
+    if (rest === "") return text
+    const colored = `${first.slice(0, at)}${symbol} ${code}${rest}${SGR.reset}`
+    return newline === -1 ? colored : `${colored}${text.slice(newline)}`
+  }
+  return text
+}
+
+// 统一输出出口：包装 console 三个写入方法，按行首符号兜底着色
+// 幂等：重复调用只包一层，避免多次进入 CLI 或测试时叠加包装
+let consoleStyled = false
+export function installConsoleStyle(): void {
+  if (consoleStyled) return
+  consoleStyled = true
+  for (const method of ["log", "warn", "error"] as const) {
+    const original = console[method]
+    console[method] = ((...args: unknown[]) =>
+      original.apply(console, args.map((arg) => (typeof arg === "string" ? decorate(arg) : arg)))) as typeof console[typeof method]
+  }
+}
+
 // 语义色唯一入口：成功 / 告警 / 失败 / 次要说明 / 行内强调
 // ⚠️ 只传文本、不传 emoji：emoji 宽度按 2 计，与文本一起上色在部分终端会错位
 export const style = {

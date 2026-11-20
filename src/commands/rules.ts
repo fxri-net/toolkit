@@ -7,6 +7,7 @@ import { clearRulesSelection, readRulesSelection, writeRulesSelection } from "..
 import { copyToClipboard } from "../rules/clipboard"
 import { buildPresetChoices, CUSTOM_PRESET, normalizePickedModules } from "../rules/select"
 import { exitOnPromptCancel, isInteractive, loadPrompts } from "../prompts"
+import { style } from "../term-style"
 import { writeFileAtomic } from "../write-atomic"
 
 // 交互式选择：返回模块 id 顺序；用户取消向调用方冒泡，由命令层以 130 收口
@@ -143,13 +144,13 @@ export function registerRulesCommands(program: Command): void {
             process.exitCode = 1
             return
           }
-          console.error(`已复制到剪贴板（${result.label}）`)
+          console.error(`✔ ${style.ok(`已复制到剪贴板（${result.label}）`)}`)
           return
         }
         if (options.out) {
           mkdirSync(dirname(resolve(options.out)), { recursive: true })
           writeFileAtomic(options.out, `${text}\n`)
-          console.error(`已写入：${options.out}`)
+          console.error(`✔ ${style.ok("已写入")}：${style.accent(options.out)}`)
           return
         }
         console.log(text)
@@ -158,8 +159,8 @@ export function registerRulesCommands(program: Command): void {
           const copied = copyToClipboard(text)
           console.error(
             copied.ok
-              ? `已复制到剪贴板（${copied.label}），可直接粘贴到 Agent 的全局规则入口`
-              : "未检测到可用剪贴板，已输出到 stdout，可手动复制",
+              ? `✔ ${style.ok(`已复制到剪贴板（${copied.label}）`)}，${style.hint("可直接粘贴到 Agent 的全局规则入口")}`
+              : style.hint("未检测到可用剪贴板，已输出到 stdout，可手动复制"),
           )
         }
       } catch (error) {

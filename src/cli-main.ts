@@ -1,5 +1,5 @@
 import { warnLegacyEnvOnce } from "./legacy-env"
-import { setStyleEnabled } from "./term-style"
+import { installConsoleStyle, setStyleEnabled } from "./term-style"
 
 // 常规 CLI：命令注册、解析与统一收口；由入口按需加载，避免 guard 快速路径承担完整命令集的启动成本
 export async function runCli(version: string): Promise<void> {
@@ -57,6 +57,8 @@ export async function runCli(version: string): Promise<void> {
   // 同时须先于任何提示落定——解析期才生效会让首条提示忽略 --no-color
   const argv = process.argv.filter((arg) => arg !== "--no-color")
   if (argv.length !== process.argv.length) setStyleEnabled(false)
+  // 统一输出出口：命令层不用逐条判断，带语义符号的提示自动着色
+  installConsoleStyle()
 
   // 旧环境变量名一次性提示：仅诊断，不读取旧值（C-26 降级不静默）
   warnLegacyEnvOnce()

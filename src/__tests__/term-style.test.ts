@@ -1,6 +1,6 @@
 // 终端样式基建：启用判定矩阵、五种语义色转义、关闭时原样返回、显式开关优先于环境
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { isStyleEnabled, setStyleEnabled, style } from "../term-style"
+import { decorate, isStyleEnabled, setStyleEnabled, style } from "../term-style"
 
 // 仿 TTY：分别控制 stdout / stderr，还原时删掉自建属性
 function setTty(stdout: boolean, stderr: boolean): void {
@@ -131,5 +131,41 @@ describe("语义色", () => {
     expect(style.error("失败")).toBe("失败")
     expect(style.hint("说明")).toBe("说明")
     expect(style.accent("toolkit tasks")).toBe("toolkit tasks")
+  })
+})
+
+describe("输出出口装饰", () => {
+  beforeEach(() => {
+    setStyleEnabled(true)
+  })
+
+  it("按行首语义符号着色，符号本身不参与着色", () => {
+    expect(decorate("✔ 完成")).toBe("✔ \u001b[32m完成\u001b[0m")
+    expect(decorate("⚠️ 注意")).toBe("⚠️ \u001b[33m注意\u001b[0m")
+    expect(decorate("✖ 失败")).toBe("✖ \u001b[31m失败\u001b[0m")
+    expect(decorate("· 说明")).toBe("· \u001b[2m说明\u001b[0m")
+  })
+
+  it("保留行首缩进", () => {
+    expect(decorate("  ⚠️ 提示")).toBe("  ⚠️ \u001b[33m提示\u001b[0m")
+  })
+
+  it("只处理首行，多行正文不被改写", () => {
+    expect(decorate("⚠️ 第一行\n第二行")).toBe("⚠️ \u001b[33m第一行\u001b[0m\n第二行")
+  })
+
+  it("符号不在行首或无符号时原样返回", () => {
+    expect(decorate("操作失败 ⚠️ 说明")).toBe("操作失败 ⚠️ 说明")
+    expect(decorate("已导出 3 个任务")).toBe("已导出 3 个任务")
+  })
+
+  it("已含 ANSI 的文本原样放行，避免二次上色", () => {
+    const styled = "✔ \u001b[32m已上色\u001b[0m"
+    expect(decorate(styled)).toBe(styled)
+  })
+
+  it("关闭颜色时原样返回", () => {
+    setStyleEnabled(false)
+    expect(decorate("⚠️ 注意")).toBe("⚠️ 注意")
   })
 })
