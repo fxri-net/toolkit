@@ -55,7 +55,6 @@ afterEach(() => {
   setHomeDirForTest(undefined)
   resetToolkitConfigCache()
   resetUsageConfigWarnings()
-  delete process.env.TOOLKIT_TELEMETRY_DIR
   for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true })
 })
 
@@ -97,7 +96,7 @@ describe("使用情况配置", () => {
     expect(resolveUsageDir(undefined, config)).toBe(join(home, ".toolkit", "usage"))
   })
 
-  it("旧版 telemetry 段、环境变量与数据目录只提示不生效", () => {
+  it("旧版 telemetry 段与数据目录只提示不生效", () => {
     const home = tempDir("tk-usage-legacy-")
     setHomeDirForTest(home)
     resetToolkitConfigCache()
@@ -107,12 +106,10 @@ describe("使用情况配置", () => {
     vi.spyOn(console, "warn").mockImplementation((message: unknown) => {
       warns.push(String(message))
     })
-    process.env.TOOLKIT_TELEMETRY_DIR = join(home, "legacy-env")
     const config = loadUsageConfig()
     expect(config.enabled).toBe(false)
     expect(resolveUsageDir(undefined, config)).toBe(join(home, ".toolkit", "usage"))
     expect(warns.join("\n")).toContain("telemetry 段")
-    expect(warns.join("\n")).toContain("TOOLKIT_TELEMETRY_DIR")
     expect(warns.join("\n")).toContain("旧数据目录")
   })
 })

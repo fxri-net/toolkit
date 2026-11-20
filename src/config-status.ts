@@ -225,9 +225,10 @@ export function configStatus(cwd: string = process.cwd()): ConfigStatusReport {
     key,
     source: resolveLeafSource(layers, key),
   }))
-  const env: ConfigStatusEnvHit[] = CONFIG_ENV_OVERRIDES.filter(
-    (item) => isEnvHit(item.env) || (item.legacy ?? []).some((name) => isEnvHit(name)),
-  ).map((item) => ({ env: item.env, key: item.key }))
+  const env: ConfigStatusEnvHit[] = CONFIG_ENV_OVERRIDES.filter((item) => isEnvHit(item.env)).map((item) => ({
+    env: item.env,
+    key: item.key,
+  }))
   const bypass = CONFIG_ENV_BYPASS.filter((item) => isEnvHit(item.env))
 
   const items: ConfigStatusItem[] = [...fallbackItems(layers.fallbacks)]

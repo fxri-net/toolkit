@@ -63,11 +63,10 @@ export interface ConfigLayers {
 export const CONFIG_DISPLAY_KEYS: readonly string[] = DISPLAY_KEY_TYPES.map((item) => item.key)
 
 // 环境变量覆盖组：环境变量名 → 目标配置键；优先级高于三层文件，作 config status 与文档的共同真源
-// legacy 为旧名（下个 major 移除），config status 命中判定同时看新旧名
-export const CONFIG_ENV_OVERRIDES: ReadonlyArray<{ env: string; key: string; legacy?: readonly string[] }> = [
-  { env: "FX_TOOLKIT_REDACT", key: "redact.enabled", legacy: ["FX_REDACT"] },
-  { env: "FX_TOOLKIT_NO_UPDATE_CHECK", key: "updateCheck.enabled", legacy: ["FX_NO_UPDATE_CHECK"] },
-  { env: "FX_TOOLKIT_CHECK_WARN", key: "check.warnings", legacy: ["FX_CHECK_WARN"] },
+export const CONFIG_ENV_OVERRIDES: ReadonlyArray<{ env: string; key: string }> = [
+  { env: "FX_TOOLKIT_REDACT", key: "redact.enabled" },
+  { env: "FX_TOOLKIT_NO_UPDATE_CHECK", key: "updateCheck.enabled" },
+  { env: "FX_TOOLKIT_CHECK_WARN", key: "check.warnings" },
 ]
 
 // 能力旁路组：非配置键覆盖（CI 下跳过 skills.autoLink 自愈），须与覆盖组分开呈现，避免被当作配置覆盖排查

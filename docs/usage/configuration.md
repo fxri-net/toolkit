@@ -70,8 +70,6 @@ title: 使用情况配置
 
 `--dir` > `FX_TOOLKIT_USAGE_DIR` > `storage.dir` > `~/.toolkit/usage`。
 
-旧名 `TOOLKIT_USAGE_DIR` 仍可读（生效时 stderr 提示一次），下个 major 移除。
-
 相对路径按 `process.cwd()` 解析；`~` 展开为当前用户家目录。
 
 ## 过滤顺序

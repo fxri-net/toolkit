@@ -4,7 +4,6 @@ import { existsSync } from "node:fs"
 import { join, resolve } from "node:path"
 import { getHomeDir, inspectConfigLayers, type ConfigLayerRecord } from "../config"
 import { readTextFile } from "../read-text"
-import { readEnvWithLegacy } from "../switch"
 import { writeFileAtomic } from "../write-atomic"
 import type {
   UsageChannel,
@@ -242,10 +241,7 @@ function expandHome(path: string): string {
 // 解析数据目录：CLI > 环境变量 > 配置 > 默认 ~/.toolkit/usage
 export function resolveUsageDir(cliDir?: string, config?: UsageConfig): string {
   const cfg = config ?? loadUsageConfig()
-  if (process.env.TOOLKIT_TELEMETRY_DIR) {
-    warnLegacyOnce("env", "⚠️ 已忽略环境变量 TOOLKIT_TELEMETRY_DIR：已更名为 FX_TOOLKIT_USAGE_DIR")
-  }
-  const envDir = readEnvWithLegacy("FX_TOOLKIT_USAGE_DIR")
+  const envDir = process.env.FX_TOOLKIT_USAGE_DIR
   const legacyDir = join(getHomeDir(), ".toolkit", "telemetry")
   if (!cliDir && !envDir && !cfg.storage.dir && existsSync(legacyDir)) {
     warnLegacyOnce("dir", `⚠️ 检测到旧数据目录 ${legacyDir}：已停用且不再读取，如需沿用请用 --dir 或 storage.dir 指定`)

@@ -1,6 +1,5 @@
 // 队列消费：先写基础事件（技能名 + 次数），再尽力反查会话补齐明细；反查失败不影响计数
 import { spawn } from "node:child_process"
-import { readEnvWithLegacy } from "../switch"
 import { loadUsageConfig, resolveUsageDir } from "./config"
 import { buildEvent, resolveSkillMeta } from "./event"
 import { shouldRecord } from "./filter"
@@ -108,7 +107,7 @@ export function flushQueue(options: FlushOptions = {}): FlushResult {
 // 派发后台 worker：派生失败只返回 false，由下次命令的惰性兜底接管
 export function spawnFlushWorker(): boolean {
   // 测试环境关闭派生：vitest 的 argv[1] 不是 CLI，误派生会拉起重跑测试
-  if (readEnvWithLegacy("FX_TOOLKIT_USAGE_NO_WORKER") === "1") return false
+  if (process.env.FX_TOOLKIT_USAGE_NO_WORKER === "1") return false
   try {
     const cli = process.argv[1]
     if (!cli) return false

@@ -1,6 +1,6 @@
 // 开关解析单测（T-8）：宽松布尔解析与「CLI > 环境变量 > 配置 > 默认值」优先级
-import { describe, it, expect, afterEach, vi } from "vitest"
-import { parseBool, readEnvWithLegacy, resolveEnabled } from "../switch"
+import { describe, it, expect, afterEach } from "vitest"
+import { parseBool, resolveEnabled } from "../switch"
 
 const ENV_KEY = "FX_TEST_SWITCH"
 
@@ -51,37 +51,5 @@ describe("resolveEnabled 优先级", () => {
     process.env[ENV_KEY] = "maybe"
     expect(resolveEnabled(undefined, ENV_KEY, false, true)).toBe(true)
     expect(resolveEnabled(undefined, ENV_KEY, undefined, true)).toBe(true)
-  })
-})
-
-describe("环境变量旧名兼容", () => {
-  afterEach(() => {
-    delete process.env.FX_TEST_NEW
-    delete process.env.FX_TEST_LEGACY
-    vi.restoreAllMocks()
-  })
-
-  it("新旧并存时取新名且不告警", () => {
-    const warn = vi.spyOn(console, "error").mockImplementation(() => {})
-    process.env.FX_TEST_NEW = "new"
-    process.env.FX_TEST_LEGACY = "legacy"
-    expect(readEnvWithLegacy("FX_TEST_NEW", ["FX_TEST_LEGACY"])).toBe("new")
-    expect(warn).not.toHaveBeenCalled()
-  })
-
-  it("仅旧名时仍生效并告警一次", () => {
-    const warn = vi.spyOn(console, "error").mockImplementation(() => {})
-    process.env.FX_TEST_LEGACY = "legacy"
-    expect(readEnvWithLegacy("FX_TEST_NEW", ["FX_TEST_LEGACY"])).toBe("legacy")
-    expect(warn).toHaveBeenCalledTimes(1)
-    const message = String(warn.mock.calls[0]?.[0] ?? "")
-    expect(message).toContain("FX_TEST_LEGACY")
-    expect(message).toContain("FX_TEST_NEW")
-  })
-
-  it("新旧都未设置时返回 undefined 且不告警", () => {
-    const warn = vi.spyOn(console, "error").mockImplementation(() => {})
-    expect(readEnvWithLegacy("FX_TEST_NEW", ["FX_TEST_LEGACY"])).toBeUndefined()
-    expect(warn).not.toHaveBeenCalled()
   })
 })
