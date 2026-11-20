@@ -2,10 +2,44 @@
 import { mkdirSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import type { Command } from "commander"
-import { composeRules, listRules, loadRuleset } from "../rules"
+import { composeRules, listRules, loadRuleset, type Ruleset } from "../rules"
 import { clearRulesSelection, readRulesSelection, writeRulesSelection } from "../rules/cache"
 import { copyToClipboard } from "../rules/clipboard"
+import { buildPresetChoices, CUSTOM_PRESET, normalizePickedModules } from "../rules/select"
+import { isPromptCancel, loadPrompts } from "../prompts"
+import { isInteractiveTty } from "../skills"
 import { writeFileAtomic } from "../write-atomic"
+
+// 交互式选择：返回模块 id 顺序；用户取消返回 null（调用方不写缓存、不输出）
+async function selectInteractively(ruleset: Ruleset, cached: string[] | null): Promise<string[] | null> {
+  const { select, checkbox } = await loadPrompts()
+  const fallback = cached ?? ruleset.presets.recommended ?? []
+  try {
+    const choice = await select<string>({
+      message: "选择规则组合",
+      default: cached ? CUSTOM_PRESET : "recommended",
+      choices: buildPresetChoices(ruleset.presets),
+    })
+    if (choice !== CUSTOM_PRESET) return ruleset.presets[choice] ?? []
+    const picked = await checkbox({
+      message: "选择要包含的规则模块（空格切换，回车确认）",
+      choices: ruleset.modules.map((mod) => ({
+        name: `${mod.id}｜${mod.title}`,
+        value: mod.id,
+        checked: fallback.includes(mod.id),
+      })),
+      pageSize: 10,
+      required: false,
+    })
+    return normalizePickedModules(
+      ruleset.modules.map((mod) => mod.id),
+      picked,
+    )
+  } catch (error) {
+    if (isPromptCancel(error)) return null
+    throw error
+  }
+}
 
 // 注册 rules 命令：装配点只负责按序调用
 export function registerRulesCommands(program: Command): void {
@@ -43,14 +77,14 @@ export function registerRulesCommands(program: Command): void {
 
   rulesCmd
     .command("compose")
-    .description("组合规则模块并输出（默认输出到 stdout）")
+    .description("组合规则模块并输出（TTY 无参时交互选择；非 TTY 按缓存 > recommended）")
     .option("--preset <name>", "预设：minimal / recommended / complete / full")
     .option("--module <id...>", "模块 id（可重复，也可逗号分隔）")
     .option("--no-anchor", "不输出首行更新时间锚点")
     .option("--out <file>", "写入文件（stdout 为空）")
     .option("--copy", "写入系统剪贴板（stdout 为空）")
     .option("--no-cache", "不读取也不写入组合缓存")
-    .action((options: { preset?: string; module?: string[]; anchor?: boolean; out?: string; copy?: boolean; cache?: boolean }) => {
+    .action(async (options: { preset?: string; module?: string[]; anchor?: boolean; out?: string; copy?: boolean; cache?: boolean }) => {
       try {
         if (options.copy && options.out) {
           console.error("⚠️ --copy 与 --out 不能同时使用")
@@ -74,6 +108,8 @@ export function registerRulesCommands(program: Command): void {
         }
         const ruleset = loadRuleset()
         const cached = options.cache === false ? null : readRulesSelection(ruleset.modules.map((mod) => mod.id))
+        // 无显式选择且处于 TTY 时进入交互，与 skills / usage 等命令保持一致
+        const interactive = isInteractiveTty() && !options.preset && modules.length === 0
         let ids: string[]
         let explicit = false
         if (modules.length > 0) {
@@ -88,6 +124,14 @@ export function registerRulesCommands(program: Command): void {
           }
           ids = preset
           explicit = true
+        } else if (interactive) {
+          const picked = await selectInteractively(ruleset, cached?.modules ?? null)
+          if (picked === null) {
+            process.exitCode = 130
+            return
+          }
+          ids = picked
+          explicit = true
         } else if (cached) {
           ids = cached.modules
         } else {
@@ -100,7 +144,7 @@ export function registerRulesCommands(program: Command): void {
             console.error("已跳过组合缓存写入（--out / --copy 不改变默认组合）")
           } else {
             writeRulesSelection(ids)
-            console.error(`已记住本次组合（${ids.join(" → ")}），下次直接 rules compose 复用`)
+            console.error(`已记住本次组合（${ids.join(" → ")}），下次 rules compose 会作为默认勾选`)
           }
         }
         if (options.copy) {
@@ -120,6 +164,15 @@ export function registerRulesCommands(program: Command): void {
           return
         }
         console.log(text)
+        // 交互模式：输出后尽量直接送剪贴板，少一步手动复制；失败只提示，不影响退出码
+        if (interactive) {
+          const copied = copyToClipboard(text)
+          console.error(
+            copied.ok
+              ? `已复制到剪贴板（${copied.command}），可直接粘贴到 Agent 的全局规则入口`
+              : "未检测到可用剪贴板，已输出到 stdout，可手动复制",
+          )
+        }
       } catch (error) {
         console.error(`⚠️ ${(error as Error).message}`)
         process.exitCode = 1

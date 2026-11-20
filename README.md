@@ -34,21 +34,16 @@ pnpm add -g @fxri/toolkit
 # 2. 安装 AI 技能包（装到各 agent 的全局技能目录）
 toolkit skills install
 
-# 3. 组合并复制自己的全局规则，再粘贴到所用 Agent 的全局规则入口
-toolkit rules compose --preset recommended --copy   # 剪贴板不可用时去掉 --copy，手动复制输出
+# 3. 交互式组合自己的全局规则，选完直接粘贴到所用 Agent 的全局规则入口
+toolkit rules compose
 ```
 
-进入项目后初始化任务区并查看总览：
-
-```bash
-toolkit init      # 生成 .tasks/ 骨架、规范载体与技能入口壳
-toolkit tasks     # 查看任务总览
-```
+进入项目后，对 AI 说「初始化任务区」即可（AI 执行 `toolkit init` 并完成建档与校验）。
 
 > 团队项目改用 devDependency 锁定版本：`pnpm add -D @fxri/toolkit` + `toolkit skills install --scope project`；
 > 项目内执行命令用 `pnpm exec toolkit`。
 
-之后：方案确认后登记为 `.tasks/` 任务文件 → `toolkit tasks check` 校验 →
+之后：方案确认后由 AI 登记为 `.tasks/` 任务文件 → `toolkit tasks check` 校验 →
 完成后 `toolkit tasks archive` 归档并做规范沉淀。
 多任务 / 多仓方案先出纯展示计划表，确认后说「开始」即一次建完全部任务档并校验，再按序逐个交付提交。
 完整步骤见 [快速开始](./docs/getting-started.md)。

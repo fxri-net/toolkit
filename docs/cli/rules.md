@@ -16,14 +16,17 @@ title: rules（全局规则）
 ## 常用命令
 
 ```bash
+toolkit rules compose                # 交互式选择预设或自定义模块，选完尝试复制到剪贴板
 toolkit rules list
-toolkit rules compose
 toolkit rules compose --preset recommended
 toolkit rules compose --module usage --module core
 toolkit rules compose --module core --copy
 toolkit rules compose --preset complete --out AGENTS.md
 toolkit rules reset
 ```
+
+无参且处于 TTY 时进入交互（预设 / 自定义两步）；非 TTY 或显式传 `--preset` / `--module` 时保持确定性输出，供脚本使用。
+交互模式下选择会写入缓存，下一次 `toolkit rules compose` 以缓存为默认勾选。
 
 ## 子命令与选项
 

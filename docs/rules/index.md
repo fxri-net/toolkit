@@ -51,7 +51,7 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 
 ## 怎么落地
 
-命令行 `toolkit rules compose --preset recommended --copy` 或文档站组合器复制后，粘贴到所用 Agent 的全局规则入口：
+命令行 `toolkit rules compose` 交互式选择（或文档站组合器复制）后，粘贴到所用 Agent 的全局规则入口：
 
 | Agent | 全局规则入口 |
 | --- | --- |

@@ -76,12 +76,11 @@ bun add -g @fxri/toolkit
 :::
 
 ```sh
-toolkit skills install                              # 装技能到各 agent 全局技能目录
-toolkit rules compose --preset recommended --copy   # 组合全局规则；粘贴到所用 Agent 的规则入口
-toolkit init                                        # 进入项目后初始化任务区
+toolkit skills install      # 装技能到各 agent 全局技能目录
+toolkit rules compose       # 交互式选择模块，选完粘贴到所用 Agent 的规则入口
 ```
 
-剪贴板不可用时去掉 `--copy` 手动复制输出。团队项目改用 `pnpm add -D @fxri/toolkit` +
+任务区初始化交给 AI：进入项目后说「初始化任务区」即可。团队项目改用 `pnpm add -D @fxri/toolkit` +
 `toolkit skills install --scope project` 锁定版本，项目内执行命令用 `pnpm exec toolkit`。
 
 详细步骤见[快速开始](./getting-started)。

@@ -132,18 +132,18 @@ GitHub 拉不下来？国内网络走 [Gitee 镜像渠道](./faq#国内网络优
 全局规则会整段进入 Agent 上下文，按需组合、只留当前需要的模块：
 
 ```bash
-toolkit rules list                                    # 查看模块、预设与当前选择
-toolkit rules compose --preset recommended --copy     # 组合并直接复制到剪贴板
-toolkit rules compose --module core --module workflow # 自定义组合（顺序即输出顺序）
+toolkit rules compose   # 交互式选择预设或自定义模块，选完自动尝试复制到剪贴板
 ```
 
-- 预设：`minimal` / `recommended` / `complete`（自用全篇）/ `full`
-- `--copy` 失败（无剪贴板）时去掉它，手动复制 stdout 输出
+- 预设：`minimal` / `recommended` / `complete`（自用全篇）/ `full`；也可选「自定义」逐项勾选
+- 非交互环境（脚本 / CI）用 `--preset` 或 `--module`；`toolkit rules list` 查看模块与当前选择
 - 组合只输出文本，**需粘贴到所用 Agent 的全局规则入口**（如 Trae 的规则设置、Claude Code 的 `CLAUDE.md`、
   Cursor 的全局 Rules）；入口随工具版本变化，以各工具官方文档为准
 - 也可在文档站[规则组合器](./rules/)里勾选模块后一键复制
 
 ## 30 秒上手
+
+装了 skills 时，进入项目对 AI 说「初始化任务区」即可（AI 执行 `toolkit init` 并完成建档）；下面是手操 CLI 的完整路径。
 
 ```bash
 # 1. 初始化任务区（生成 .tasks/ 骨架、conventions/ 规范载体与技能入口壳，补齐 .gitignore 片段）

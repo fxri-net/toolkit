@@ -1,7 +1,7 @@
 // 技能选择：纯函数负责「已保存选择 / 显式参数 / 非 TTY 回落」，交互层只做 TTY 下的多选
 // core 技能默认选中且不可取消；optional 可切换；只有一个可选层级时跳过交互
 import type { PackageSkill, SkillsMode, SkillTarget } from "./types"
-import { loadPrompts } from "../prompts"
+import { isPromptCancel, loadPrompts } from "../prompts"
 
 // 单个技能在交互界面中的选项
 export interface SkillChoice {
@@ -99,12 +99,6 @@ export function planSkillSelection(input: SkillSelectionInput): SkillSelectionPl
 // 是否处于可交互 TTY：stdin 与 stdout 同时为 TTY 才启用方向键多选
 export function isInteractiveTty(): boolean {
   return Boolean(process.stdin.isTTY && process.stdout.isTTY)
-}
-
-// 判断是否用户取消（Ctrl+C / ESC）：inquirer 以 ExitPromptError / AbortPromptError 抛出
-function isPromptCancel(error: unknown): boolean {
-  if (!(error instanceof Error)) return false
-  return error.name === "ExitPromptError" || error.name === "AbortPromptError" || /force closed|cancel/i.test(error.message)
 }
 
 // 目标选择项：value 全局面为 canonical / agent name，项目面为仓库相对目录

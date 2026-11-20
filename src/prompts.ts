@@ -20,6 +20,12 @@ export async function loadPrompts(): Promise<typeof import("@inquirer/prompts")>
   }
 }
 
+// 判断是否用户取消（Ctrl+C / ESC）：inquirer 以 ExitPromptError / AbortPromptError 抛出
+export function isPromptCancel(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  return error.name === "ExitPromptError" || error.name === "AbortPromptError" || /force closed|cancel/i.test(error.message)
+}
+
 // 组装加载失败提示：保留底层原因，并给出升级与非交互两条出路
 export function formatPromptsLoadError(error: unknown, version = process.versions.node): string {
   const reason = error instanceof Error ? error.message : String(error)

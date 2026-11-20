@@ -12,8 +12,8 @@
 | --- | --- |
 | 1 装 CLI | 个人多项目 `pnpm add -g @fxri/toolkit`（默认，配合全局技能与全局规则）；团队项目 `pnpm add -D @fxri/toolkit`（版本随仓库锁定） |
 | 2 装 skills | `toolkit skills install`；项目面用 `--scope project`（技能随仓库入库、队友 clone 即用） |
-| 3 配全局规则（推荐） | `toolkit rules compose --preset recommended --copy` 后粘贴到所用 Agent 的全局规则入口；也可从 [AI 全局规则](./rules/ai) 复制模板，提交习惯另取[提交信息规则](./rules/commit) |
-| 4 建任务区 | `toolkit init`（项目内安装用 `pnpm exec toolkit init`） |
+| 3 配全局规则（推荐） | `toolkit rules compose` 交互式选择后粘贴到所用 Agent 的全局规则入口；也可从 [AI 全局规则](./rules/ai) 复制模板，提交习惯另取[提交信息规则](./rules/commit) |
+| 4 建任务区 | 对 AI 说「初始化任务区」（AI 执行 `toolkit init` 并完成建档；也可自己运行 `toolkit init`） |
 
 初始化做了什么、30 秒最短路径见[快速开始 · 30 秒上手](./getting-started#_30-秒上手)。
 
