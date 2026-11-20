@@ -101,11 +101,11 @@ export function registerScopeCommands(program: Command): void {
     })
 
   scopeCmd
-    .command("add [dir]")
-    .description("把目录加入白名单（只写全局配置）")
-    .action(async (dir?: string) => {
+    .command("add [dirs...]")
+    .description("把目录加入白名单（只写全局配置；无参进入扫描流程）")
+    .action(async (dirs: string[] = []) => {
       try {
-        await runScopeAdd(dir)
+        await runScopeAdd(dirs)
       } catch (error) {
         console.error(`⚠️ ${(error as Error).message}`)
         process.exitCode = 1
