@@ -4,7 +4,7 @@ import type { Command } from "commander"
 import { resolveScope } from "../scope"
 import { runGuard } from "../scope/guard"
 import { formatList, formatStatus } from "../scope/print"
-import { exitOnPromptCancel } from "../prompts"
+import { requireInteractive, runInteractive } from "../prompts"
 import { resolveComparablePath } from "../scope/paths"
 import { runScopeAdd, runScopeMount, runScopeRemove, runScopeWizard } from "../scope/wizard"
 
@@ -12,17 +12,8 @@ import { runScopeAdd, runScopeMount, runScopeRemove, runScopeWizard } from "../s
 export function registerScopeCommands(program: Command): void {
   const scopeCmd = program.command("scope").description("作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效）")
   scopeCmd.action(async () => {
-    if (!(process.stdin.isTTY && process.stdout.isTTY)) {
-      scopeCmd.help()
-      return
-    }
-    try {
-      await runScopeWizard()
-    } catch (error) {
-      if (exitOnPromptCancel(error)) return
-      console.error(`⚠️ ${(error as Error).message}`)
-      process.exitCode = 1
-    }
+    if (!requireInteractive({ action: "作用域菜单", hint: "非交互场景请直接使用 toolkit scope status / list / add / remove" })) return
+    await runInteractive(() => runScopeWizard())
   })
 
   scopeCmd
@@ -121,13 +112,7 @@ export function registerScopeCommands(program: Command): void {
     .description("把目录加入白名单（无参进入扫描流程；带参可指定配置层）")
     .option("--layer <layer>", "配置层：global / project / local（缺省 global）")
     .action(async (dirs: string[] = [], options: { layer?: string } = {}) => {
-      try {
-        await runScopeAdd(dirs, options.layer as "global" | "project" | "local" | undefined)
-      } catch (error) {
-        if (exitOnPromptCancel(error)) return
-        console.error(`⚠️ ${(error as Error).message}`)
-        process.exitCode = 1
-      }
+      await runInteractive(() => runScopeAdd(dirs, options.layer as "global" | "project" | "local" | undefined))
     })
 
   scopeCmd
@@ -135,13 +120,7 @@ export function registerScopeCommands(program: Command): void {
     .description("从白名单 / 黑名单移除或互转目录（可指定配置层）")
     .option("--layer <layer>", "配置层：global / project / local（缺省 global）")
     .action(async (dirs: string[] = [], options: { layer?: string } = {}) => {
-      try {
-        await runScopeRemove(dirs, options.layer as "global" | "project" | "local" | undefined)
-      } catch (error) {
-        if (exitOnPromptCancel(error)) return
-        console.error(`⚠️ ${(error as Error).message}`)
-        process.exitCode = 1
-      }
+      await runInteractive(() => runScopeRemove(dirs, options.layer as "global" | "project" | "local" | undefined))
     })
 
   scopeCmd
@@ -149,12 +128,6 @@ export function registerScopeCommands(program: Command): void {
     .description("在指定父目录下的项目里安装技能（会向所选项目写文件）")
     .option("--dry-run", "只预览，不写入")
     .action(async (dir: string | undefined, options: { dryRun?: boolean }) => {
-      try {
-        await runScopeMount(dir, Boolean(options.dryRun))
-      } catch (error) {
-        if (exitOnPromptCancel(error)) return
-        console.error(`⚠️ ${(error as Error).message}`)
-        process.exitCode = 1
-      }
+      await runInteractive(() => runScopeMount(dir, Boolean(options.dryRun)))
     })
 }

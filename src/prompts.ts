@@ -23,6 +23,37 @@ const CANCEL_ERROR_NAMES = new Set(["ExitPromptError", "AbortPromptError", "Canc
 // 交互取消的退出码：与 shell 对 SIGINT 的惯例一致
 export const CANCEL_EXIT_CODE = 130
 
+// 需要交互但当前环境不支持的退出码：脚本据此区分「环境不支持」与业务失败
+export const INTERACTIVE_EXIT = 2
+
+// 列表统一分页：各命令不再各写一个数字
+export const LIST_PAGE_SIZE = 15
+
+// 统一「返回」项：置于菜单末位，选中即回上一层
+export const BACK_CHOICE = { name: "← 返回", value: "back" } as const
+
+// 统一「退出」项：顶层菜单末位
+export const EXIT_CHOICE = { name: "退出", value: "exit" } as const
+
+// 交互可用性：唯一 TTY 判定，避免各处重复拼 stdin / stdout
+export function isInteractive(): boolean {
+  return Boolean(process.stdin.isTTY && process.stdout.isTTY)
+}
+
+// 交互前置：无交互等价路径时报 2；有等价路径时返回 false，交由调用方回落
+export function requireInteractive(options: { action: string; hint: string; fallback?: boolean }): boolean {
+  if (isInteractive()) return true
+  if (options.fallback) return false
+  console.error(`⚠️ 当前环境不支持交互（${options.action}）：${options.hint}`)
+  process.exitCode = INTERACTIVE_EXIT
+  return false
+}
+
+// 取消提示：诊断统一走 stderr，stdout 只放数据
+export function reportCancelled(message = "已取消，未修改任何文件"): void {
+  console.error(message)
+}
+
 export function isPromptCancel(error: unknown): boolean {
   if (!(error instanceof Error)) return false
   return CANCEL_ERROR_NAMES.has(error.name) || /force closed/i.test(error.message)
@@ -62,6 +93,22 @@ export async function askWithBack<T>(factory: () => Promise<T>): Promise<AskResu
     throw error
   } finally {
     process.stdin.removeListener("keypress", onKey)
+  }
+}
+
+// 统一提问入口：back 打开 ESC 返回；返回值形状一致，调用方只判断 back / value
+export async function ask<Value>(factory: () => Promise<Value>, options: { back?: boolean } = {}): Promise<AskResult<Value>> {
+  return options.back ? await askWithBack(factory) : { value: await factory() }
+}
+
+// 命令层交互收口：取消以 130 结束，其余异常统一提示并以 1 收尾
+export async function runInteractive(fn: () => Promise<void>): Promise<void> {
+  try {
+    await fn()
+  } catch (error) {
+    if (exitOnPromptCancel(error)) return
+    console.error(`⚠️ ${(error as Error).message}`)
+    process.exitCode = 1
   }
 }
 

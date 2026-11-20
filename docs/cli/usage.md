@@ -60,7 +60,8 @@ toolkit usage doctor
 
 ## 边界与注意
 
-- 无参数执行 `toolkit usage` 进入交互菜单；非 TTY 打印帮助并以退出码 2 结束。
+- 无参数执行 `toolkit usage` 进入交互菜单；非 TTY 输出 `⚠️` 提示并以退出码 2 结束。
+- `usage init` 的多步向导支持按 ESC 回到上一步、按 Ctrl+C 取消（退出码 130，不写任何文件）；首步按 ESC 等同取消。
 - 通道二选一：`usage.channel` 为 `rule` 时只有 `usage record` 写入、Hook 不写入；为 `hook` 时只有 Hook 写入、`record` 静默跳过。切换通道不会自动清理另一侧配置。
 - 非交互初始化用 `toolkit usage init --yes --preset recommended --channel rule`（默认 `rule`）；
    `--channel hook` 时会安装 Hook 并需要检测到 Agent，`--preset off` 与 `--channel` 同时出现时 `off` 优先；

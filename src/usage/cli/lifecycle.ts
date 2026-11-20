@@ -1,7 +1,7 @@
 // 使用情况 CLI（lifecycle）：自 commands.ts 按子命令组拆分，文案与顺序逐字未改
 import type { Command } from "commander"
 import { assertJsonFormat } from "../../json-output"
-import { exitOnPromptCancel } from "../../prompts"
+import { runInteractive } from "../../prompts"
 import { AGENT_ADAPTERS, isAdapterAvailable, resolveAdapters } from "../adapters"
 import { ingestFromStdin, readHookActivity, readLastHookError } from "../ingest"
 import { uploadStatus } from "../upload"
@@ -22,13 +22,7 @@ export function registerUsageLifecycleCommands(usage: Command): void {
       .option("--channel <mode>", "采集通道：rule（默认，全局规则上报）/ hook（Agent Hook）")
       .option("--agent <names>", "非交互模式指定 Agent（逗号分隔，仅 hook 通道需要）")
       .action(async (options: { yes?: boolean; preset?: string; agent?: string; channel?: string }) => {
-        try {
-          await runUsageInitWizard(options)
-        } catch (error) {
-          if (exitOnPromptCancel(error)) return
-          console.error(`⚠️ ${(error as Error).message}`)
-          process.exitCode = 1
-        }
+        await runInteractive(() => runUsageInitWizard(options))
       })
 
     // 卸载：停用采集、移除 Hook；默认保留数据
@@ -40,13 +34,7 @@ export function registerUsageLifecycleCommands(usage: Command): void {
       .option("--purge", "同时删除本地事件")
       .option("--dry-run", "只预览将停用的配置与将移除的 Hook，不写盘")
       .action(async (options: { yes?: boolean; agent?: string; purge?: boolean; dryRun?: boolean }) => {
-        try {
-          await runUsageUninstall(options)
-        } catch (error) {
-          if (exitOnPromptCancel(error)) return
-          console.error(`⚠️ ${(error as Error).message}`)
-          process.exitCode = 1
-        }
+        await runInteractive(() => runUsageUninstall(options))
       })
 
     // Hook 内部入口：从 stdin 读取事件；stdout 保持为空，避免干扰 Agent

@@ -6,7 +6,7 @@ import { loadUsageConfig, resolveUsageDir, usageConfigPath, updateUsageConfig } 
 import { purgeEvents, readAllEvents, usagePaths } from "./store"
 import { summarize } from "./stats"
 import { runUploadSetup } from "./upload"
-import { isPromptCancel, loadPrompts } from "../prompts"
+import { LIST_PAGE_SIZE, ask, exitWithCancel, isPromptCancel, loadPrompts, requireInteractive } from "../prompts"
 import type { UsageChannel, UsageConfig, UsageRotation, UsageSkillMode } from "./types"
 
 // 预设：已配置时沿用当前配置，首次默认覆盖一方与第三方技能
@@ -107,14 +107,6 @@ function runNonInteractiveInit(options: InitWizardOptions): void {
   console.log(`已启用技能使用情况（${preset}，通道 hook），数据目录：${dir}`)
 }
 
-// 非 TTY：禁止交互，打印可执行命令并以退出码 2 结束
-function requireTty(): boolean {
-  if (process.stdin.isTTY && process.stdout.isTTY) return true
-  console.error("⚠️ 当前环境不支持交互，请显式传入参数，或执行 toolkit usage --help")
-  process.exitCode = 2
-  return false
-}
-
 // 打印配置摘要：向导预览与菜单共用
 function printConfigSummary(
   agents: string[],
@@ -200,7 +192,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
     runNonInteractiveInit(options)
     return
   }
-  if (!requireTty()) return
+  if (!requireInteractive({ action: "usage init", hint: "非交互请用 --yes --preset，或执行 toolkit usage --help" })) return
   const { select, checkbox, confirm, input } = await loadPrompts()
   try {
     const detected = detectedAdapters()
@@ -271,101 +263,281 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
     // 仅「自定义」回填历史值；推荐 / 第三方 / 高级仍按预设语义取值
     const usingSaved = preset === "custom"
     if (usingSaved && defaults.configured) console.log("⚠️ 本次选择将覆盖现有配置（如需保留原值请重跑并选「保持当前配置」)")
-    // 通道先行：规则通道不依赖任何 Agent 配置，选中时跳过 Agent 与 Hook 步骤
-    const channel = await select<UsageChannel>({
-      message: "采集通道",
-      default: usingSaved ? existingConfig.channel : "rule",
-      choices: [
-        { name: "全局规则上报（不依赖 Agent 配置）", value: "rule" },
-        { name: "Agent Hook（自动触发，需在 Agent 侧启用）", value: "hook" },
-      ],
-    })
-    let selected: AgentAdapter[] = []
-    if (channel === "hook") {
-      const agentIds = await checkbox<string>({
-        message: "选择要接入的 Agent（空格切换，回车确认）",
-        choices: detected.map((adapter) => ({ name: adapter.displayName, value: adapter.id, checked: defaults.agents.includes(adapter.id) })),
-        required: false,
-      })
-      selected = detected.filter((adapter) => agentIds.includes(adapter.id))
-      if (selected.length === 0) {
-        console.log("未选择 Agent，未修改任何文件")
+    // 步骤机：ESC 回到上一步；顺序随通道变化（hook 多一步 Agent 选择）
+    const state = {
+      channel: (usingSaved ? existingConfig.channel : "rule") as UsageChannel,
+      agents: detected.filter((adapter) => defaults.agents.includes(adapter.id)),
+      firstParty: usingSaved ? defaults.firstParty : true,
+      thirdParty: preset === "third-party" || preset === "advanced" ? true : usingSaved ? defaults.thirdParty : false,
+      mode: (usingSaved ? defaults.mode : "all") as UsageSkillMode,
+      include: [] as string[],
+      triggerPrompt: usingSaved ? defaults.triggerPrompt : false,
+      skillArgs: usingSaved ? defaults.skillArgs : false,
+      outcome: usingSaved ? defaults.outcome : false,
+      dir: usingSaved ? defaults.dir : resolveUsageDir(undefined, existingConfig),
+      rotation: (usingSaved ? defaults.rotation : "monthly") as UsageRotation,
+      retention: usingSaved ? String(defaults.retentionDays) : "180",
+    }
+    // 步骤顺序：规则通道跳过 Agent 选择
+    const flow = (): string[] =>
+      state.channel === "hook"
+        ? ["channel", "agents", "firstParty", "thirdParty", "mode", "include", "trigger", "args", "outcome", "dir", "rotation", "retention", "confirm"]
+        : ["channel", "firstParty", "thirdParty", "mode", "include", "trigger", "args", "outcome", "dir", "rotation", "retention", "confirm"]
+    // 首步按 ESC = 放弃整个向导，按取消口径退出
+    const abortWizard = (): never => {
+      console.error("已取消，未修改任何文件")
+      exitWithCancel()
+    }
+    let index = 0
+    for (;;) {
+      const steps = flow()
+      if (index >= steps.length) break
+      const step = steps[index]
+      if (step === "channel") {
+        const answer = await ask(
+          () =>
+            select<UsageChannel>({
+              message: "采集通道",
+              default: state.channel,
+              choices: [
+                { name: "全局规则上报（不依赖 Agent 配置）", value: "rule" },
+                { name: "Agent Hook（自动触发，需在 Agent 侧启用）", value: "hook" },
+              ],
+            }),
+          { back: true },
+        )
+        if ("back" in answer) {
+          abortWizard()
+          return
+        }
+        state.channel = answer.value
+        if (state.channel === "rule") console.log("规则通道：不安装 Hook；完成后把 toolkit usage rule 的输出复制进全局规则")
+        index += 1
+        continue
+      }
+      if (step === "agents") {
+        const answer = await ask(
+          () =>
+            checkbox<string>({
+              message: "选择要接入的 Agent（空格切换，回车确认）",
+              choices: detected.map((adapter) => ({
+                name: adapter.displayName,
+                value: adapter.id,
+                checked: state.agents.some((item) => item.id === adapter.id),
+              })),
+              pageSize: LIST_PAGE_SIZE,
+              required: false,
+            }),
+          { back: true },
+        )
+        if ("back" in answer) {
+          index -= 1
+          continue
+        }
+        state.agents = detected.filter((adapter) => answer.value.includes(adapter.id))
+        if (state.agents.length === 0) {
+          console.log("未选择 Agent，未修改任何文件")
+          return
+        }
+        index += 1
+        continue
+      }
+      if (step === "firstParty") {
+        const answer = await ask(() => confirm({ message: "统计 toolkit 一方技能（fxri-*）？", default: state.firstParty }), { back: true })
+        if ("back" in answer) {
+          index -= 1
+          continue
+        }
+        state.firstParty = answer.value
+        index += 1
+        continue
+      }
+      if (step === "thirdParty") {
+        // 预设已确定第三方来源时不再重复提问
+        if (preset === "third-party" || preset === "advanced") {
+          state.thirdParty = true
+          index += 1
+          continue
+        }
+        const answer = await ask(() => confirm({ message: "统计 toolkit 分发的第三方技能？", default: state.thirdParty }), { back: true })
+        if ("back" in answer) {
+          index -= 1
+          continue
+        }
+        state.thirdParty = answer.value
+        index += 1
+        continue
+      }
+      if (step === "mode") {
+        const answer = await ask(
+          () =>
+            select<UsageSkillMode>({
+              message: "技能统计范围",
+              default: state.mode,
+              choices: [
+                { name: "全部已开启来源", value: "all" },
+                { name: "只统计指定技能", value: "include" },
+                { name: "排除指定技能", value: "exclude" },
+                { name: "不统计任何技能", value: "none" },
+              ],
+            }),
+          { back: true },
+        )
+        if ("back" in answer) {
+          index -= 1
+          continue
+        }
+        state.mode = answer.value
+        index += 1
+        continue
+      }
+      if (step === "include") {
+        // 点名统计仅在有 include / exclude 时出现，其余模式直接跳过
+        if (state.mode !== "include" && state.mode !== "exclude") {
+          index += 1
+          continue
+        }
+        const savedList = state.mode === "include" ? defaults.include : defaults.exclude
+        const answer = await ask(
+          () =>
+            input({
+              message: state.mode === "include" ? "要统计的技能名（逗号分隔）" : "要排除的技能名（逗号分隔）",
+              default: usingSaved ? savedList.join("，") : "",
+            }),
+          { back: true },
+        )
+        if ("back" in answer) {
+          index -= 1
+          continue
+        }
+        state.include = (answer.value ?? "")
+          .split(/[,，]/)
+          .map((item) => item.trim())
+          .filter(Boolean)
+        index += 1
+        continue
+      }
+      if (step === "trigger" || step === "args" || step === "outcome") {
+        const labels: Record<string, { message: string; current: boolean }> = {
+          trigger: { message: "采集触发词（截断 200 字并脱敏）？", current: state.triggerPrompt },
+          args: { message: "采集技能参数（截断 500 字并脱敏）？", current: state.skillArgs },
+          outcome: { message: "采集执行结果与耗时？", current: state.outcome },
+        }
+        const item = labels[step]
+        if (!item) {
+          index += 1
+          continue
+        }
+        const answer = await ask(() => confirm({ message: item.message, default: item.current }), { back: true })
+        if ("back" in answer) {
+          index -= 1
+          continue
+        }
+        if (step === "trigger") state.triggerPrompt = answer.value
+        if (step === "args") state.skillArgs = answer.value
+        if (step === "outcome") state.outcome = answer.value
+        index += 1
+        continue
+      }
+      if (step === "dir") {
+        const answer = await ask(() => input({ message: "数据目录", default: state.dir }), { back: true })
+        if ("back" in answer) {
+          index -= 1
+          continue
+        }
+        state.dir = answer.value || state.dir
+        index += 1
+        continue
+      }
+      if (step === "rotation") {
+        const answer = await ask(
+          () =>
+            select<UsageRotation>({
+              message: "事件文件轮转",
+              default: state.rotation,
+              choices: [
+                { name: "按月轮转", value: "monthly" },
+                { name: "按文件大小轮转", value: "size" },
+                { name: "不轮转", value: "none" },
+              ],
+            }),
+          { back: true },
+        )
+        if ("back" in answer) {
+          index -= 1
+          continue
+        }
+        state.rotation = answer.value
+        index += 1
+        continue
+      }
+      if (step === "retention") {
+        // 非法取值就地重问，不前进也不写盘
+        const answer = await ask(() => input({ message: "保留天数", default: state.retention }), { back: true })
+        if ("back" in answer) {
+          index -= 1
+          continue
+        }
+        const retention = Number(answer.value)
+        if (!Number.isInteger(retention) || retention <= 0) {
+          console.error("⚠️ 保留天数须为正整数，请重新输入（ESC 返回上一步）")
+          continue
+        }
+        state.retention = String(retention)
+        index += 1
+        continue
+      }
+      if (step !== "confirm") {
+        index += 1
+        continue
+      }
+      printConfigSummary(
+        state.agents.map((adapter) => adapter.displayName),
+        state.firstParty,
+        state.thirdParty,
+        state.mode,
+        state.dir,
+        state.rotation,
+        Number(state.retention),
+        state.channel,
+      )
+      if (state.channel === "hook") {
+        console.log("  Hook 将写入：")
+        for (const adapter of state.agents) console.log(`    ${adapter.displayName} → ${adapter.configPath()}`)
+      }
+      const apply = await ask(
+        () => confirm({ message: state.channel === "hook" ? "确认写入配置并安装 Hook？" : "确认写入配置？", default: true }),
+        { back: true },
+      )
+      if ("back" in apply) {
+        index -= 1
+        continue
+      }
+      if (!apply.value) {
+        console.log("已取消，未修改任何文件")
         return
       }
-    } else {
-      console.log("规则通道：不安装 Hook；完成后把 toolkit usage rule 的输出复制进全局规则")
-    }
-
-    const firstParty = await confirm({ message: "统计 toolkit 一方技能（fxri-*）？", default: usingSaved ? defaults.firstParty : true })
-    const thirdParty =
-      preset === "third-party" || preset === "advanced"
-        ? true
-        : await confirm({ message: "统计 toolkit 分发的第三方技能？", default: usingSaved ? defaults.thirdParty : false })
-    const mode = await select<UsageSkillMode>({
-      message: "技能统计范围",
-      default: usingSaved ? defaults.mode : "all",
-      choices: [
-        { name: "全部已开启来源", value: "all" },
-        { name: "只统计指定技能", value: "include" },
-        { name: "排除指定技能", value: "exclude" },
-        { name: "不统计任何技能", value: "none" },
-      ],
-    })
-    let include: string[] = []
-    if (mode === "include" || mode === "exclude") {
-      const savedList = mode === "include" ? defaults.include : defaults.exclude
-      const raw = await input({
-        message: mode === "include" ? "要统计的技能名（逗号分隔）" : "要排除的技能名（逗号分隔）",
-        default: usingSaved ? savedList.join("，") : "",
-      })
-      include = raw.split(/[,，]/).map((item) => item.trim()).filter(Boolean)
-    }
-    const triggerPrompt = await confirm({ message: "采集触发词（截断 200 字并脱敏）？", default: usingSaved ? defaults.triggerPrompt : false })
-    const skillArgs = await confirm({ message: "采集技能参数（截断 500 字并脱敏）？", default: usingSaved ? defaults.skillArgs : false })
-    const outcome = await confirm({ message: "采集执行结果与耗时？", default: usingSaved ? defaults.outcome : false })
-    const dir = await input({ message: "数据目录", default: usingSaved ? defaults.dir : resolveUsageDir(undefined, existingConfig) })
-    const rotation = await select<UsageRotation>({
-      message: "事件文件轮转",
-      default: usingSaved ? defaults.rotation : "monthly",
-      choices: [
-        { name: "按月轮转", value: "monthly" },
-        { name: "按文件大小轮转", value: "size" },
-        { name: "不轮转", value: "none" },
-      ],
-    })
-    const retentionRaw = await input({ message: "保留天数", default: usingSaved ? String(defaults.retentionDays) : "180" })
-    const retention = Number(retentionRaw)
-    if (!Number.isInteger(retention) || retention <= 0) {
-      console.error("⚠️ 保留天数须为正整数，未修改任何文件")
-      return
-    }
-
-    printConfigSummary(selected.map((adapter) => adapter.displayName), firstParty, thirdParty, mode, dir, rotation, retention, channel)
-    if (channel === "hook") {
-      console.log("  Hook 将写入：")
-      for (const adapter of selected) console.log(`    ${adapter.displayName} → ${adapter.configPath()}`)
-    }
-
-    const apply = await confirm({ message: channel === "hook" ? "确认写入配置并安装 Hook？" : "确认写入配置？", default: true })
-    if (!apply) {
-      console.log("已取消，未修改任何文件")
-      return
+      index += 1
     }
 
     updateUsageConfig({
       enabled: true,
-      channel,
-      agents: channel === "hook" ? Object.fromEntries(selected.map((adapter) => [adapter.id, true])) : {},
-      sources: { firstParty, thirdParty, unmanaged: false },
-      skills: { mode, include: mode === "include" ? include : [], exclude: mode === "exclude" ? include : [] },
-      capture: { triggerPrompt, skillArgs, outcome },
-      storage: { dir, rotation, retentionDays: retention },
+      channel: state.channel,
+      agents: state.channel === "hook" ? Object.fromEntries(state.agents.map((adapter) => [adapter.id, true])) : {},
+      sources: { firstParty: state.firstParty, thirdParty: state.thirdParty, unmanaged: false },
+      skills: {
+        mode: state.mode,
+        include: state.mode === "include" ? state.include : [],
+        exclude: state.mode === "exclude" ? state.include : [],
+      },
+      capture: { triggerPrompt: state.triggerPrompt, skillArgs: state.skillArgs, outcome: state.outcome },
+      storage: { dir: state.dir, rotation: state.rotation, retentionDays: Number(state.retention) },
     })
-    if (channel === "hook") installHooks(selected)
+    if (state.channel === "hook") installHooks(state.agents)
     if (preset === "advanced") await runUploadSetup()
     console.log("")
     console.log("已启用技能使用情况。下一步：")
-    if (channel === "rule") console.log("  toolkit usage rule   # 把输出复制进全局规则")
+    if (state.channel === "rule") console.log("  toolkit usage rule   # 把输出复制进全局规则")
     console.log("  toolkit usage info")
     console.log("  toolkit usage stats")
   } catch (error) {
@@ -376,7 +548,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
 
 // 卸载：停用采集、移除本包 Hook；默认保留数据，--purge 才删除事件
 export async function runUsageUninstall(options: UninstallOptions = {}): Promise<void> {
-  if (!options.yes && !options.dryRun && !requireTty()) return
+  if (!options.yes && !options.dryRun && !requireInteractive({ action: "usage uninstall", hint: "非交互请加 --yes，或执行 toolkit usage --help" })) return
   // 卸载是清理场景：工具已卸载也要能移除它留下的配置
   const { adapters, invalid } = resolveAdapters(splitAgentNames(options.agent), { allowUnavailable: true })
   if (invalid.length > 0) {
@@ -435,7 +607,7 @@ export async function runUsageUninstall(options: UninstallOptions = {}): Promise
 
 // 无参数菜单：每项执行后回到菜单，q 退出
 export async function runUsageMenu(): Promise<void> {
-  if (!requireTty()) return
+  if (!requireInteractive({ action: "usage 菜单", hint: "非交互请直接使用 toolkit usage 子命令，或执行 toolkit usage --help" })) return
   const { select, confirm } = await loadPrompts()
   for (;;) {
     const action = await select<string>({

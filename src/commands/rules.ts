@@ -6,8 +6,7 @@ import { composeRules, listRules, loadRuleset, type Ruleset } from "../rules"
 import { clearRulesSelection, readRulesSelection, writeRulesSelection } from "../rules/cache"
 import { copyToClipboard } from "../rules/clipboard"
 import { buildPresetChoices, CUSTOM_PRESET, normalizePickedModules } from "../rules/select"
-import { exitOnPromptCancel, loadPrompts } from "../prompts"
-import { isInteractiveTty } from "../skills"
+import { exitOnPromptCancel, isInteractive, loadPrompts } from "../prompts"
 import { writeFileAtomic } from "../write-atomic"
 
 // 交互式选择：返回模块 id 顺序；用户取消向调用方冒泡，由命令层以 130 收口
@@ -104,7 +103,7 @@ export function registerRulesCommands(program: Command): void {
         const ruleset = loadRuleset()
         const cached = options.cache === false ? null : readRulesSelection(ruleset.modules.map((mod) => mod.id))
         // 无显式选择且处于 TTY 时进入交互，与 skills / usage 等命令保持一致
-        const interactive = isInteractiveTty() && !options.preset && modules.length === 0
+        const interactive = isInteractive() && !options.preset && modules.length === 0
         let ids: string[]
         let explicit = false
         if (modules.length > 0) {

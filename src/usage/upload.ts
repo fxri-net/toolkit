@@ -2,7 +2,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, isAbsolute, join } from "node:path"
 import { writeFileAtomic } from "../write-atomic"
-import { isPromptCancel, loadPrompts } from "../prompts"
+import { isPromptCancel, loadPrompts, requireInteractive } from "../prompts"
 import { loadUsageConfig, resolveUsageDir, updateUsageConfig } from "./config"
 import { readAllEvents, usagePaths, type UsagePaths } from "./store"
 import type { SkillUsageEvent, UsageConfig, UsageUploadProtocol } from "./types"
@@ -249,11 +249,7 @@ export async function runUploadSetup(options: UploadSetupOptions = {}): Promise<
     runNonInteractiveUploadSetup(options)
     return
   }
-  if (!(process.stdin.isTTY && process.stdout.isTTY)) {
-    console.error("⚠️ 当前环境不支持交互，请直接编辑 ~/.toolkitrc.json 的 usage.upload 段")
-    process.exitCode = 2
-    return
-  }
+  if (!requireInteractive({ action: "usage upload setup", hint: "请直接编辑 ~/.toolkitrc.json 的 usage.upload 段" })) return
   const { select, input, confirm } = await loadPrompts()
   try {
     const config = loadUsageConfig()

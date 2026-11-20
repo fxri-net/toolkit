@@ -3,7 +3,7 @@ import { join } from "node:path"
 import type { Command } from "commander"
 import { getHomeDir } from "../config"
 import { assertJsonFormat } from "../json-output"
-import { exitWithCancel } from "../prompts"
+import { exitWithCancel, isInteractive } from "../prompts"
 import { collectSkillVersionUpdates, type SkillVersionReport } from "../skills/version-status"
 import { versionGt } from "../version"
 import {
@@ -19,7 +19,6 @@ import {
   findProjectRenamedArtifacts,
   installProjectSkills,
   installSkills,
-  isInteractiveTty,
   listPackageSkills,
   planSkillSelection,
   projectSkillsStatus,
@@ -170,7 +169,7 @@ async function resolveSkillSelection(
     all: Boolean(options.all),
     noOptional: options.optional === false,
     mode,
-    interactive: isInteractiveTty(),
+    interactive: isInteractive(),
     yes: Boolean(options.yes),
   })
   if (plan.error) {
@@ -219,7 +218,7 @@ async function chooseGlobalTargets(options: { agent?: string; allAgents?: boolea
     }
     return parsed.names
   }
-  if (!isInteractiveTty() || options.yes) return undefined
+  if (!isInteractive() || options.yes) return undefined
   const all = resolveSkillTargets()
   const choices = buildGlobalTargetChoices(all, readSkillsInstallConfig().targets, options.dir)
   const selectable = choices.filter((choice) => !choice.disabled)
@@ -236,7 +235,7 @@ async function chooseGlobalTargets(options: { agent?: string; allAgents?: boolea
 
 // 项目目标选择：TTY 交互多选已存在候选目录；非交互返回 undefined 交由 install 读取保存选择
 async function chooseProjectTargets(options: { dir: string[]; yes?: boolean }): Promise<string[] | undefined | null> {
-  if (!isInteractiveTty() || options.yes) return undefined
+  if (!isInteractive() || options.yes) return undefined
   const targets = resolveProjectTargets()
   const choices = buildProjectTargetChoices(targets.shellDirs, readProjectSkillsConfig().targets, options.dir, targets.missingDirs)
   const selectable = choices.filter((choice) => !choice.disabled)
@@ -849,7 +848,7 @@ export function registerSkillsCommands(program: Command): void {
         }
 
         // 汇总确认：交互模式下确认前不写任何文件
-        if (!nonInteractive && isInteractiveTty()) {
+        if (!nonInteractive && isInteractive()) {
           console.log("")
           console.log("即将安装：")
           console.log(`  技能：${selection.join("、") || "无"}`)
@@ -1045,7 +1044,7 @@ export function registerSkillsCommands(program: Command): void {
         const runProject = scope.choice !== "global"
         const runGlobal = scope.choice !== "project"
         // --format json 视为非交互：交互 UI 不写入 stdout，避免污染机器可读输出
-        const interactive = isInteractiveTty() && options.format !== "json"
+        const interactive = isInteractive() && options.format !== "json"
         let globalNames: string[] | undefined = names
         let projectNames: string[] | undefined = names
         // 全量口径：显式 --all，或裸命令预演（预演不删除，沿用原预览行为）
@@ -1173,7 +1172,7 @@ export function registerSkillsCommands(program: Command): void {
         }
         // 批量抬 minor / major 影响面大：交互态先确认，非交互须显式 --yes
         if (options.all && !options.set && kind !== "patch" && !options.dryRun && options.yes !== true) {
-          if (!process.stdin.isTTY) {
+          if (!isInteractive()) {
             console.error(`⚠️ 批量按 ${kind} 递增需显式 --yes（当前为非交互环境）`)
             process.exitCode = 1
             return

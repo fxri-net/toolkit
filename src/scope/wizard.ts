@@ -2,7 +2,7 @@
 import { existsSync } from "node:fs"
 import { relative } from "node:path"
 import { canonicalPath, normalizePathForCompare } from "../git-ignore"
-import { askWithBack, loadPrompts } from "../prompts"
+import { BACK_CHOICE, LIST_PAGE_SIZE, askWithBack, loadPrompts, requireInteractive } from "../prompts"
 import { BUILTIN_SOURCE, installProjectSkills, installSkills, listPackageSkills, readSkillsInstallConfig, writeSkillsInstallConfig } from "../skills"
 import { globalConfigPath, layerConfigTarget, readLayerConfig, writeLayerConfig, type ConfigLayer, type LayerConfigTarget } from "./config-file"
 import { formatStatus } from "./print"
@@ -41,12 +41,6 @@ function pathKey(input: string): string {
   return normalizePathForCompare(canonicalPath(input))
 }
 
-// 交互前置：非 TTY 时给出可执行替代，不静默失败
-function requireTty(action: string, hint: string): void {
-  if (process.stdin.isTTY && process.stdout.isTTY) return
-  throw new Error(`当前环境不支持交互（${action}）：${hint}`)
-}
-
 // 查看当前判定
 export function printScopeStatus(): void {
   const report = resolveScope()
@@ -74,7 +68,7 @@ async function selectLayer(select: Awaited<ReturnType<typeof loadPrompts>>["sele
         value: "local",
         disabled: local.available ? false : local.reason,
       },
-      { name: "← 返回", value: "back" },
+      BACK_CHOICE,
     ],
   })
   return chosen === undefined || chosen === "back" ? null : chosen
@@ -121,7 +115,7 @@ async function pickFromScan(
             { name: "下探更深", value: "deeper" },
             { name: "包含隐藏目录", value: "hidden" },
             { name: "包含嵌套仓库", value: "nested" },
-            { name: "← 返回", value: "back" },
+            BACK_CHOICE,
           ],
         }),
       )
@@ -147,7 +141,7 @@ async function pickFromScan(
             { name: "保持跳过（默认）", value: "keep" },
             { name: "包含隐藏目录", value: "hidden" },
             { name: "包含嵌套仓库", value: "nested" },
-            { name: "← 返回", value: "back" },
+            BACK_CHOICE,
           ],
         }),
       )
@@ -177,7 +171,7 @@ async function pickFromScan(
           value: repo.path,
           checked: false,
         })),
-        pageSize: 15,
+        pageSize: LIST_PAGE_SIZE,
         required: false,
       }),
     )
@@ -304,7 +298,7 @@ async function configureProjectScope(
       choices: [
         { name: "生效", value: "yes" },
         { name: "不生效", value: "no" },
-        { name: "← 返回", value: "back" },
+        BACK_CHOICE,
       ],
     }),
   )
@@ -322,7 +316,7 @@ async function configureProjectScope(
 
 // 设置生效范围：选归属 → 扫描 / 手动选目录 → 选去向 → 预览写入
 export async function runScopeSetScope(): Promise<void> {
-  requireTty("设置生效范围", "请直接编辑配置文件的 activation 段；交互终端下可重跑 toolkit scope")
+  if (!requireInteractive({ action: "设置生效范围", hint: "请直接编辑配置文件的 activation 段；交互终端下可重跑 toolkit scope" })) return
   const { select, checkbox, input, confirm } = await loadPrompts()
   const layerAsk = await askWithBack(() => selectLayer(select))
   if ("back" in layerAsk || !layerAsk.value) return
@@ -341,7 +335,7 @@ export async function runScopeSetScope(): Promise<void> {
         { name: "扫描项目并加入名单", value: "scan" },
         { name: "手动输入目录", value: "manual" },
         { name: "清除限制（全部生效）", value: "reset" },
-        { name: "← 返回", value: "back" },
+        BACK_CHOICE,
       ],
     }),
   )
@@ -393,7 +387,7 @@ export async function runScopeRemove(dirs?: string[], layer?: ConfigLayer): Prom
   const { select, checkbox } = await loadPrompts()
   let targetLayer = layer
   if (!targetLayer) {
-    requireTty("移除目录", "请改用 toolkit scope remove <dir>... --layer global|project|local")
+    if (!requireInteractive({ action: "移除目录", hint: "请改用 toolkit scope remove <dir>... --layer global|project|local" })) return
     const layerAsk = await askWithBack(() => selectLayer(select))
     if ("back" in layerAsk || !layerAsk.value) return
     targetLayer = layerAsk.value
@@ -419,7 +413,7 @@ export async function runScopeRemove(dirs?: string[], layer?: ConfigLayer): Prom
       checkbox({
         message: `选择条目（写入 ${target.file}）`,
         choices: statuses.map((item) => ({ name: describeEntry(item), value: item.path })),
-        pageSize: 15,
+        pageSize: LIST_PAGE_SIZE,
         required: false,
       }),
     )
@@ -440,7 +434,7 @@ export async function runScopeRemove(dirs?: string[], layer?: ConfigLayer): Prom
           { name: "移出名单", value: "remove" },
           { name: "白名单转黑名单", value: "to-exclude" },
           { name: "黑名单转白名单", value: "to-include" },
-          { name: "← 返回", value: "back" },
+          BACK_CHOICE,
         ],
       }),
     )
@@ -485,7 +479,7 @@ function describeEntry(item: { path: string; list: "include" | "exclude"; exists
 
 // 批量挂载：扫描父目录一层、多选仓库、显式确认后逐仓安装（会向项目写文件）
 export async function runScopeMount(parent?: string, dryRun = false): Promise<void> {
-  requireTty("批量挂载", "请在交互终端运行；挂载需要逐个项目确认")
+  if (!requireInteractive({ action: "批量挂载", hint: "请在交互终端运行；挂载需要逐个项目确认" })) return
   const { checkbox, confirm } = await loadPrompts()
   const root = parent ?? process.cwd()
   if (!existsSync(root)) {
@@ -503,7 +497,7 @@ export async function runScopeMount(parent?: string, dryRun = false): Promise<vo
     checkbox({
       message: "选择要安装技能的项目（会把技能文件写入这些项目）",
       choices: repos.map((repo) => ({ name: repo.name, value: repo.path })),
-      pageSize: 15,
+      pageSize: LIST_PAGE_SIZE,
       required: false,
     }),
   )
@@ -541,7 +535,7 @@ export async function runScopeMount(parent?: string, dryRun = false): Promise<vo
 
 // 内容闸门：查看 / 切换入口壳形态；切换后按已保存选择（无则 core）刷新产物
 export async function runScopeGate(): Promise<void> {
-  requireTty("内容闸门", "请改用 toolkit skills install --gate / --embed 直接切换")
+  if (!requireInteractive({ action: "内容闸门", hint: "请改用 toolkit skills install --gate / --embed 直接切换" })) return
   const { select, confirm } = await loadPrompts()
   const enabled = readSkillsInstallConfig().gate === true
   const choiceAsk = await askWithBack(() =>
@@ -601,7 +595,7 @@ export async function runScopeWizard(): Promise<void> {
           choices: [
             { name: "添加目录到白名单", value: "add" },
             { name: "移除目录", value: "remove" },
-            { name: "← 返回", value: "back" },
+            BACK_CHOICE,
           ],
         }),
       )

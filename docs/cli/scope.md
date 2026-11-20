@@ -30,7 +30,7 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 
 ## 交互与批量挂载
 
-- 无参 `toolkit scope` 在 TTY 下进入交互菜单；非 TTY 打印帮助
+- 无参 `toolkit scope` 在 TTY 下进入交互菜单；非 TTY 输出 `⚠️` 提示并以退出码 `2` 结束（提示里给出 `status` / `list` / `add` / `remove` 等非交互入口）
 - 选择页统一提供「← 返回」（末位）与 ESC 返回上一级：只回到上一层菜单，不写任何文件；
   任一提示按 Ctrl+C 会直接结束整个命令（退出码 `130`），不继续弹后续提示；主动选「退出」按成功计 `0`
 - ESC 有约 500ms 判定延迟（readline 需先排除方向键序列），属正常现象
@@ -51,7 +51,7 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 - `scope mount` 仍只扫一层（`.git` / `package.json` / `.tasks`），不会因作用域扫描改为递归而扩大写入范围；
   作用域设置流程使用递归发现：命中 `.git` 即剪枝，依赖与产物目录不进入，默认跳过隐藏目录与嵌套仓库
 - 「内容闸门」项显示当前开关（读 `skillsInstall.gate`），切换后可按已保存选择（无则 core）立即刷新产物，拒绝刷新则提示运行 `toolkit skills install`
-- 非 TTY 环境：向导与 `mount` 会提示无法交互；`add` / `remove` 请直接带目录参数
+- 非 TTY 环境：向导与 `mount` 会提示无法交互（退出码 `2`）；`add` / `remove` 请直接带目录参数
 
 ## 内容闸门 guard
 

@@ -1,7 +1,7 @@
 // 技能选择：纯函数负责「已保存选择 / 显式参数 / 非 TTY 回落」，交互层只做 TTY 下的多选
 // core 技能默认选中且不可取消；optional 可切换；只有一个可选层级时跳过交互
 import type { PackageSkill, SkillsMode, SkillTarget } from "./types"
-import { isPromptCancel, loadPrompts } from "../prompts"
+import { LIST_PAGE_SIZE, isPromptCancel, loadPrompts } from "../prompts"
 
 // 单个技能在交互界面中的选项
 export interface SkillChoice {
@@ -96,11 +96,6 @@ export function planSkillSelection(input: SkillSelectionInput): SkillSelectionPl
   return { names: base, invalid: [], savedInvalid, needsPrompt }
 }
 
-// 是否处于可交互 TTY：stdin 与 stdout 同时为 TTY 才启用方向键多选
-export function isInteractiveTty(): boolean {
-  return Boolean(process.stdin.isTTY && process.stdout.isTTY)
-}
-
 // 目标选择项：value 全局面为 canonical / agent name，项目面为仓库相对目录
 export interface TargetChoice {
   value: string
@@ -185,7 +180,7 @@ export async function promptTargetSelection(choices: TargetChoice[], message: st
         checked: choice.checked,
         disabled: choice.disabled ?? false,
       })),
-      pageSize: 15,
+      pageSize: LIST_PAGE_SIZE,
       required: false,
     })
   } catch (error) {
@@ -249,7 +244,7 @@ export async function promptSkillSelection(skills: PackageSkill[], saved?: strin
     disabled: mode === "skills" && choice.tier === "core" ? "core（必装）" : false,
   }))
   const message = mode === "package" ? "选择要安装的技能（空格切换，回车确认；全不选即纯包管理器模式）" : "选择要安装的技能（空格切换，回车确认；core 必装）"
-  const picked = await promptCheckbox(message, choices, 12)
+  const picked = await promptCheckbox(message, choices, LIST_PAGE_SIZE)
   if (picked === null) return null
   return mode === "package" ? picked : withCore(skills, picked)
 }

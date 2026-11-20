@@ -1,7 +1,7 @@
 // 使用情况 CLI（upload）：自 commands.ts 按子命令组拆分，文案与顺序逐字未改
 import type { Command } from "commander"
 import { assertJsonFormat } from "../../json-output"
-import { exitOnPromptCancel } from "../../prompts"
+import { runInteractive } from "../../prompts"
 import { runUploadSetup, uploadOnce, uploadStatus } from "../upload"
 import { printJson } from "./context"
 
@@ -17,13 +17,7 @@ export function registerUsageUploadCommands(usage: Command): void {
       .option("--endpoint <value>", "上传端点或导出路径")
       .option("--headers <json>", "附加请求头 JSON")
       .action(async (options: { yes?: boolean; protocol?: string; endpoint?: string; headers?: string }) => {
-        try {
-          await runUploadSetup(options)
-        } catch (error) {
-          if (exitOnPromptCancel(error)) return
-          console.error(`⚠️ ${(error as Error).message}`)
-          process.exitCode = 1
-        }
+        await runInteractive(() => runUploadSetup(options))
       })
     upload
       .command("status")
