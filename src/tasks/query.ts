@@ -9,7 +9,7 @@ import { parseFrontmatter, stripFrontmatter, titleOf } from "./parse"
 import { parseDepends } from "./depends"
 import { parseMetaSegments } from "./meta"
 import { displayRel } from "./paths"
-import { toYmd } from "../date"
+import { toYmd, todayDash } from "../date"
 import type { TaskRow, TaskView, TaskFilter, TaskSummary } from "./types"
 
 // 终端展示与导出的状态分组顺序
@@ -22,10 +22,12 @@ export function listActiveTasks(tasksDir = ".tasks"): TaskRow[] {
     const content = readFileSync(file, "utf8")
     const fm = parseFrontmatter(content)
     const title = titleOf(content) || basename(file, ".md")
+    const status = fm.status || "未标注"
+    const held = heldInfo(status, stripFrontmatter(content), fm.updated || "")
     return {
       view: "待完成",
       title,
-      status: fm.status || "未标注",
+      status,
       owner: fm.owner || "未标注",
       scope: fm.scope || "-",
       created: fm.created || dateFromFileName(file),
@@ -34,8 +36,34 @@ export function listActiveTasks(tasksDir = ".tasks"): TaskRow[] {
       depends: parseDepends(fm.depends_on),
       file: displayRel(tasksDir, file),
       batch: parseBatch(stripFrontmatter(content)),
+      heldDays: held.days ?? undefined,
+      heldDaysApprox: held.approx || undefined,
     }
   })
+}
+
+// 搁置日期行：搁置节四行之一，形如 `- 搁置日期：2026-11-20`
+const HELD_DATE_RE = /^\s*[-*+]\s*搁置日期\s*[：:]\s*(\d{4}-\d{1,2}-\d{1,2})\s*$/m
+
+// 日期差（天）：两端都按 UTC 零点解析，日差不随运行环境时区变化；未来日期按 0 计（check 已就未来日期告警）
+function heldDayDiff(date: string): number | null {
+  const m = date.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+  if (!m) return null
+  const today = todayDash().split("-").map(Number)
+  const end = Date.UTC(today[0] ?? 1970, (today[1] ?? 1) - 1, today[2] ?? 1)
+  const start = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  const diff = Math.round((end - start) / 86_400_000)
+  return diff > 0 ? diff : 0
+}
+
+// 搁置天数：以正文「搁置日期」为准；缺该行（旧档或不合规档）时回落 updated 并标记近似
+function heldInfo(status: string, body: string, updated: string): { days: number | null; approx: boolean } {
+  if (status !== "搁置") return { days: null, approx: false }
+  const hit = body.match(HELD_DATE_RE)
+  if (hit?.[1]) return { days: heldDayDiff(hit[1]), approx: false }
+  const compact = updated.trim().match(/^(\d{4})(\d{2})(\d{2})$/)
+  if (!compact) return { days: null, approx: false }
+  return { days: heldDayDiff(`${compact[1]}-${compact[2]}-${compact[3]}`), approx: true }
 }
 
 // 从块元数据行提取 负责人/状态/范围（复用公共解析，缺省兜底）

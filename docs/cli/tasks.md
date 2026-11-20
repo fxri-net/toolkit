@@ -67,6 +67,8 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 - **时间**：completed 晚于当前系统时间超过 14 小时（跨时区容差）或恰为零点整时软告警
 - **范围字段**：顿号 / 逗号疑似多值分隔（请改半角加号）、括号疑似注释（请移入正文）、含空格（端名与分类标签不得含空格）；取值须在 conventions 端清单内（`common` 恒合法），载体缺失时跳过
 - **词标记**：只认正文行首子项形态（列表项或「标记词：」开头），跳过标题、代码块与引用块，叙述性引用不再误报
+- **搁置节**：`status: 搁置` 的档须在正文第一个二级标题处有 `## 搁置` 节，四行顺序固定（搁置原因 / 重启条件 / 进度锚点 / 搁置日期）、
+   全角冒号、搁置日期为 `YYYY-MM-DD`；非搁置档残留该节亦提示（转「已放弃」时保留不计）——均软告警
 - **文件位置**：游离于 `active/` 层级外的日期前缀文件
 - **规范载体**：旧单文件 `conventions.md` 残留待迁移；
    `conventions/` 缺 `index.md`；形态异常（形态标记、`history.md` 与索引表首列 ID 三者不一致）；
@@ -124,7 +126,8 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 toolkit tasks --view active --status 待办,进行中,阻塞
 ```
 
-只盘点搁置项：`toolkit tasks --status 搁置`。
+只盘点搁置项：`toolkit tasks --status 搁置`。搁置行附「搁置 N 天」——天数按正文「搁置日期」计算，缺该行回落 `updated` 并标「近似」；
+超 90 天标 `⚠️`、超 1 年提示「建议终结」。`--format json` 的行对象含 `heldDays`（无搁置日期为空）与 `heldDaysApprox`。
 
 ## 导出与导入
 
@@ -134,6 +137,9 @@ toolkit tasks --view active --status 待办,进行中,阻塞
 | `import <file>` | 从 `.csv`/`.xlsx`/`.json` 导入；`--target active`（默认，生成任务文件）/ `--target archive`（直接写归档块）；`--dry-run` 预演；`--owner`/`--scope` 作为导入行缺失字段的默认值 |
 
 `--format json` 只用于 `tasks` 总览与 `tasks stats` 的 stdout；导出文件格式由 `export <path>` 的扩展名决定。
+
+导出产物含派生列「搁置天数」（JSON items 为 `heldDays` / `heldDaysApprox`，非搁置行为空；归档 sheet 不含）：由正文「搁置日期」计算，
+导入端不识别该列、按未知列忽略，不写入任何任务字段。
 
 导入细节：兼容本工具三种导出产物（JSON 另兼容裸数组格式）；XLSX 自动跳过名为「汇总」的 sheet、支持表头不在首行；表头自动识别中英文别名（不区分大小写），
 `.toolkitrc.json` 的 `tasks.importColumns` 自定义映射优先级最高；

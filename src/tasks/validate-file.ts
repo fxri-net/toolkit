@@ -5,7 +5,7 @@ import { readTextFile, stripBom } from "../read-text"
 import { parseFrontmatterRaw, stripFrontmatter, bodyWithoutTitle, titleOf, FRONTMATTER_RE } from "./parse"
 import { briefMatchesTitle, briefNameIssues, parseTaskName } from "./name"
 import { getConfigSection } from "../config"
-import { isBeyondTzFuture, MAX_UTC_OFFSET_HOURS } from "../date"
+import { isBeyondTzFuture, MAX_UTC_OFFSET_HOURS, todayDash } from "../date"
 import { CONVENTIONS_DIR, ENDPOINT_ANCHOR_HEADER, INDEX_FILE, findTable } from "../conventions/format"
 import { ALL_STATUSES, DONE_STATUSES, FRONTMATTER_KEYS } from "./types"
 import type { TaskFrontmatter, TaskStatus } from "./types"
@@ -129,6 +129,101 @@ export function readDeclaredEndpoints(tasksDir: string): Set<string> | null {
   }
   // 端清单为空表视为未声明端名（单端项目常见），跳过校验而不是把所有 scope 判为非法
   return names.size > 0 ? names : null
+}
+
+// 搁置节规范：节标题精确匹配二级标题；四行固定顺序、全角冒号；搁置日期 YYYY-MM-DD
+const HELD_LABELS = ["搁置原因", "重启条件", "进度锚点", "搁置日期"] as const
+const HELD_HEADING_RE = /^##\s+搁置\s*$/
+const HELD_ITEM_RE = /^\s*[-*+]\s*(搁置原因|重启条件|进度锚点|搁置日期)\s*([：:])(.*)$/
+const H2_RE = /^##\s+\S/
+
+// 搁置节形态校验（软告警）：位置、四行、冒号与日期口径；非搁置档残留节同样提示
+function heldSectionIssues(name: string, lines: string[], fmEnd: number, status: string): CheckIssue[] {
+  const issues: CheckIssue[] = []
+  // 只认精确标题，避免误命中「## 搁置方案」之类小节
+  let head = -1
+  for (let i = fmEnd; i < lines.length; i++) {
+    if (HELD_HEADING_RE.test(lines[i] ?? "")) {
+      head = i
+      break
+    }
+  }
+
+  if (status !== "搁置") {
+    // 已放弃允许保留该节——归档块内它就是「为何放弃」的终结理由；其余状态残留说明唤醒时未删节
+    if (head >= 0 && status !== "已放弃") {
+      issues.push({ level: "warn", file: name, line: head + 1, message: "status 非搁置但正文残留「## 搁置」节，唤醒后应删除该节" })
+    }
+    return issues
+  }
+
+  if (head < 0) {
+    issues.push({ level: "warn", file: name, message: "status 为搁置但正文缺少「## 搁置」节（四行摘要无处承载）" })
+    return issues
+  }
+
+  // 位置：正文第一个二级标题须是本节（跳过 H1 与计划位置引用行），否则恢复时无法只读开头取摘要
+  for (let i = fmEnd; i < lines.length; i++) {
+    if (!H2_RE.test(lines[i] ?? "")) continue
+    if (i !== head) {
+      issues.push({
+        level: "warn",
+        file: name,
+        line: head + 1,
+        message: "「## 搁置」应位于正文第一个二级标题位置（标题与计划位置行之后、背景之前）",
+      })
+    }
+    break
+  }
+
+  // 节范围：到下一个二级标题或文件尾
+  let end = lines.length
+  for (let i = head + 1; i < lines.length; i++) {
+    if (H2_RE.test(lines[i] ?? "")) {
+      end = i
+      break
+    }
+  }
+  const found: Array<{ label: string; line: number; colon: string; value: string }> = []
+  for (let i = head + 1; i < end; i++) {
+    const hit = HELD_ITEM_RE.exec(lines[i] ?? "")
+    if (hit) found.push({ label: hit[1] ?? "", line: i + 1, colon: hit[2] ?? "", value: (hit[3] ?? "").trim() })
+  }
+
+  for (let k = 0; k < HELD_LABELS.length; k++) {
+    const label = HELD_LABELS[k] as string
+    const hit = found.find((f) => f.label === label)
+    if (!hit) {
+      issues.push({ level: "warn", file: name, line: head + 1, message: `搁置节缺少「${label}」一行` })
+      continue
+    }
+    if (hit.colon !== "：") {
+      issues.push({ level: "warn", file: name, line: hit.line, message: `「${label}」须用全角冒号「：」` })
+    }
+    const prevLabel = k > 0 ? (HELD_LABELS[k - 1] as string) : ""
+    const prev = prevLabel ? found.find((f) => f.label === prevLabel) : undefined
+    if (prev && hit.line < prev.line) {
+      issues.push({ level: "warn", file: name, line: hit.line, message: `搁置四行顺序应为 ${HELD_LABELS.join(" / ")}` })
+    }
+  }
+
+  const dateItem = found.find((f) => f.label === "搁置日期")
+  if (dateItem) {
+    const v = dateItem.value
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+      issues.push({ level: "warn", file: name, line: dateItem.line, message: `搁置日期「${v}」格式非法，应为 YYYY-MM-DD` })
+    } else if (!isRealDate(v)) {
+      issues.push({ level: "warn", file: name, line: dateItem.line, message: `搁置日期「${v}」日期不存在，请核对` })
+    } else {
+      // 未来日期检测留 1 天容差：UTC 与东八区运行环境下「今天」可能相差一天
+      const expired = new Date(`${v}T00:00:00Z`).getTime() > new Date(`${todayDash()}T00:00:00Z`).getTime() + 86_400_000
+      if (expired) {
+        issues.push({ level: "warn", file: name, line: dateItem.line, message: `搁置日期「${v}」晚于今天，疑似时间源错误，请核实` })
+      }
+    }
+  }
+
+  return issues
 }
 
 // 校验单个任务文件，返回问题列表
@@ -299,6 +394,9 @@ export function validateTaskFile(file: string, endpoints: Set<string> | null = n
       message: "正文含未勾选待办项「- [ ]」，建议拆分为独立 active 任务或勾选完成",
     })
   }
+
+  // 搁置节形态：位置 / 四行 / 冒号 / 日期口径，以及非搁置档的残留节（均软告警）
+  issues.push(...heldSectionIssues(name, lines, fmEnd, fm.status ?? ""))
 
   return issues
 }

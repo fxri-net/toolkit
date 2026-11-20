@@ -35,7 +35,7 @@ describe("搁置状态校验", () => {
     mkdirSync(join(dir, "active", "209901"), { recursive: true })
     writeFileSync(
       join(dir, "active", "209901", "20990101-唐启云-搁置校验.md"),
-      "---\nowner: 唐启云\nstatus: 搁置\ncreated: 20990101\nupdated: 20990101\ncompleted: ''\ndepends_on: []\nscope: x\n---\n\n# t\n\n- 搁置原因：本阶段不投入\n- 重启条件：季度复盘再定\n",
+      "---\nowner: 唐启云\nstatus: 搁置\ncreated: 20990101\nupdated: 20990101\ncompleted: ''\ndepends_on: []\nscope: x\n---\n\n# t\n\n## 搁置\n\n- 搁置原因：本阶段不投入\n- 重启条件：季度复盘再定\n- 进度锚点：方案已定稿，未开工\n- 搁置日期：2026-01-01\n",
       "utf8",
     )
     const { issues } = validateTasks(dir)

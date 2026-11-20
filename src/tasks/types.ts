@@ -79,6 +79,10 @@ export interface TaskRow {
   file: string
   // 批次（解析正文「> 批次：第 N 批…」行；缺省未分批）
   batch?: string
+  // 搁置天数（仅待完成视图中 status 为搁置且可计算时给出；按正文「搁置日期」计算）
+  heldDays?: number
+  // 搁置天数是否取自 frontmatter updated 的近似值（正文缺「搁置日期」时）
+  heldDaysApprox?: boolean
 }
 
 // 过滤条件

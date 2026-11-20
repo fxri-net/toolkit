@@ -15,6 +15,9 @@ function ensureExportDir(file: string): void {
   mkdirSync(dirname(file), { recursive: true })
 }
 
+// 搁置天数展示值：非搁置行留空；近似值附括注（与终端展示同一口径）
+const heldCell = (r: TaskRow) => (r.heldDays == null ? "" : `${r.heldDays}${r.heldDaysApprox ? "（近似）" : ""}`)
+
 // 超集列：统一展示/CSV/汇总明细使用（缺字段留空）；仅模块内使用，不必对外导出
 const PUBLIC_COLUMNS: Array<{ label: string; value: (r: TaskRow) => string }> = [
   { label: "视图", value: (r) => (r.view === "已归档" ? "已归档" : "待完成") },
@@ -27,6 +30,8 @@ const PUBLIC_COLUMNS: Array<{ label: string; value: (r: TaskRow) => string }> = 
   { label: "完成时间", value: (r) => r.completed },
   { label: "依赖", value: (r) => r.depends.join(", ") },
   { label: "来源文件", value: (r) => r.file },
+  // 派生列：搁置天数（新增列一律追加在末尾，避免既有列位次变化）
+  { label: "搁置天数", value: heldCell },
 ]
 
 // 待完成 sheet 列
@@ -40,6 +45,7 @@ const ACTIVE_COLUMNS: Array<{ label: string; value: (r: TaskRow) => string }> = 
   { label: "完成时间", value: (r) => r.completed },
   { label: "依赖", value: (r) => r.depends.join(", ") },
   { label: "来源文件", value: (r) => r.file },
+  { label: "搁置天数", value: heldCell },
 ]
 
 // 已归档 sheet 列（含创建日期，保证归档行往返导入后 created 不回落当天）
@@ -80,6 +86,9 @@ export function toJSON(rows: TaskRow[], summary: TaskSummary, redact = true): st
     completed: redactText(r.completed, redact),
     depends: r.depends.map((d) => redactText(d, redact)),
     file: redactText(r.file, redact),
+    // 派生字段：搁置天数与近似标记（非搁置行分别为 null / false），与 CSV 列同口径
+    heldDays: r.heldDays ?? null,
+    heldDaysApprox: r.heldDaysApprox ?? false,
   }))
   return JSON.stringify({ schemaVersion: 1, summary, items }, null, 2)
 }

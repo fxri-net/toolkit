@@ -35,6 +35,14 @@ export function printTaskBoard(tasksDir = ".tasks", view: TaskView = "active", f
   renderTaskBoard(rows, summary, view, filter, redact)
 }
 
+// 搁置行后缀：仅待完成视图中的搁置行显示天数；超过 90 天加警示、超过 1 年提示终结
+function heldSuffix(r: TaskRow): string {
+  if (r.view === "已归档" || r.heldDays == null) return ""
+  const approx = r.heldDaysApprox ? "（近似）" : ""
+  const flag = r.heldDays > 365 ? " ⚠️ 建议终结" : r.heldDays > 90 ? " ⚠️" : ""
+  return `　搁置 ${r.heldDays} 天${approx}${flag}`
+}
+
 // 渲染任务总览：接收已算好的查询结果，供调用方复用（避免同一视图重复查询）
 export function renderTaskBoard(rows: TaskRow[], summary: TaskSummary, view: TaskView = "active", filter: TaskFilter = {}, redact = true): void {
   const viewName = view === "active" ? "待完成" : view === "archived" ? "已归档" : "待完成 + 已归档"
@@ -57,7 +65,7 @@ export function renderTaskBoard(rows: TaskRow[], summary: TaskSummary, view: Tas
     console.log(`【${status}】${list.length} 项`)
     for (const r of list) {
       const tag = view === "all" ? `${r.view} ` : ""
-      console.log(`  ${displayDate(r)}  ${tag}${(r.owner || "未标注").padEnd(8)}  ${redactText(r.title, redact)}（${r.scope || "-"}）`)
+      console.log(`  ${displayDate(r)}  ${tag}${(r.owner || "未标注").padEnd(8)}  ${redactText(r.title, redact)}（${r.scope || "-"}）${heldSuffix(r)}`)
     }
     console.log("")
   }
