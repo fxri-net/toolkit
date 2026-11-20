@@ -1,5 +1,5 @@
 // 作用域 glob 与路径展开：最小子集语义与边界
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs"
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
@@ -116,14 +116,16 @@ describe("跨平台字符串口径", () => {
     mkdirSync(real)
     const link = join(root, "link")
     try {
-      symlinkSync(real, link, "dir")
+      // Windows 用 junction（无需管理员权限），其余平台用目录软链
+      symlinkSync(real, link, process.platform === "win32" ? "junction" : "dir")
     } catch {
-      // Windows 无符号链接权限时跳过该用例
+      // 无符号链接权限时跳过该用例
       rmSync(root, { recursive: true, force: true })
       return
     }
+    // 目标取真实形态：临时目录本身可能是软链（macOS /var）或短名（Windows 8.3）
     const linkKey = link.replace(/\\/g, "/")
-    const realKey = real.replace(/\\/g, "/")
+    const realKey = realpathSync.native(real).replace(/\\/g, "/")
     expect(matchPathPattern(linkKey, `${linkKey}/**`, { baseDir: root })).toBe(true)
     expect(matchPathPattern(linkKey, `${realKey}/**`, { baseDir: root })).toBe(false)
     rmSync(root, { recursive: true, force: true })

@@ -1,5 +1,5 @@
 // 作用域配置加载：三层就近覆盖、来源文件与非法值告警
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
@@ -89,16 +89,19 @@ describe("resolveScope", () => {
   })
 
   it("旧规则按真实路径写入时给出迁移提示，不改变判定", () => {
-    const real = join(home, "real-project")
-    mkdirSync(join(real, ".git"), { recursive: true })
+    const realPath = join(home, "real-project")
+    mkdirSync(join(realPath, ".git"), { recursive: true })
     const link = join(home, "link-project")
     try {
-      symlinkSync(real, link, "dir")
+      // Windows 用 junction（无需管理员权限），其余平台用目录软链
+      symlinkSync(realPath, link, process.platform === "win32" ? "junction" : "dir")
     } catch {
-      // Windows 无符号链接权限时跳过该用例
+      // 无符号链接权限时跳过该用例
       return
     }
-    writeGlobal({ activation: { mode: "allowlist", include: [real.replace(/\\/g, "/")] } })
+    // 规则须按真实形态书写：临时目录本身可能是软链（macOS /var）或短名（Windows 8.3）
+    const realKey = realpathSync.native(realPath).replace(/\\/g, "/")
+    writeGlobal({ activation: { mode: "allowlist", include: [realKey] } })
     const report = resolveScope(link)
     // 字符串口径：按真实路径写的规则不再命中链接路径，结论不生效
     expect(report.decision.active).toBe(false)
@@ -116,7 +119,7 @@ describe("resolveScope", () => {
       activation: {
         mode: "allowlist",
         include: [link.replace(/\\/g, "/")],
-        skills: { "fxri-plan-review": { exclude: [real.replace(/\\/g, "/")] } },
+        skills: { "fxri-plan-review": { exclude: [realKey] } },
       },
     })
     resetToolkitConfigCache()
