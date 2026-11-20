@@ -8,6 +8,7 @@ import { globalConfigPath, layerConfigTarget, readLayerConfig, writeLayerConfig,
 import { formatStatus } from "./print"
 import { resolveScope } from "./load"
 import { scanRepositories, scanRepositoryTree, type ScanOptions } from "./plan"
+import { matchPathPattern } from "./pattern"
 import { resolveComparablePath } from "./paths"
 import type { ActivationMode } from "./types"
 
@@ -327,38 +328,97 @@ export async function runScopeAdd(dirs?: string[]): Promise<void> {
   console.log(`已加入白名单：${paths.join("、")}（模式已切换为 allowlist，写入 ${target.file}）`)
 }
 
-// 移除目录：带参数从两列表移除，否则交互多选
-export async function runScopeRemove(dir?: string): Promise<void> {
-  if (!dir) requireTty("移除目录", "请改用 toolkit scope remove <dir> 直接指定目录")
-  const { checkbox } = await loadPrompts()
-  const config = readLayerConfig("global")
-  const activation = currentActivation(config)
-  const include = stringList(activation.include)
-  const exclude = stringList(activation.exclude)
-  let targets: string[]
-  if (dir) {
-    targets = [dir]
-  } else {
+// 移除目录：按层管理名单，支持一步互转与悬空条目提示
+export async function runScopeRemove(dirs?: string[], layer?: ConfigLayer): Promise<void> {
+  const { select, checkbox } = await loadPrompts()
+  let targetLayer = layer
+  if (!targetLayer) {
+    requireTty("移除目录", "请改用 toolkit scope remove <dir>... --layer global|project|local")
     try {
-      targets = await checkbox({
-        message: "选择要移除的目录",
-        choices: [...new Set([...include, ...exclude])].map((item) => ({ name: item, value: item })),
-        pageSize: 15,
-        required: false,
-      })
+      const chosen = await selectLayer(select)
+      if (!chosen) return
+      targetLayer = chosen
     } catch (error) {
       if (cancelled(error)) return
       throw error
     }
   }
+  if (targetLayer !== "global" && targetLayer !== "project" && targetLayer !== "local") {
+    throw new Error(`未知配置层：${String(targetLayer)}（可选 global / project / local）`)
+  }
+  const target = layerConfigTarget(targetLayer)
+  if (!target.available) throw new Error(target.reason)
+  const config = readLayerConfig(targetLayer)
+  const activation = currentActivation(config)
+  const include = stringList(activation.include)
+  const exclude = stringList(activation.exclude)
+  let targets: string[]
+  try {
+    if (dirs && dirs.length > 0) {
+      targets = dirs.map((dir) => resolveComparablePath(dir))
+    } else {
+      const statuses = [
+        ...entryStatuses(include, "include", [...include, ...exclude]),
+        ...entryStatuses(exclude, "exclude", [...include, ...exclude]),
+      ]
+      targets = await checkbox({
+        message: `选择条目（写入 ${target.file}）`,
+        choices: statuses.map((item) => ({ name: describeEntry(item), value: item.path })),
+        pageSize: 15,
+        required: false,
+      })
+    }
+  } catch (error) {
+    if (cancelled(error)) return
+    throw error
+  }
   if (targets.length === 0) {
     console.log("未选择任何目录")
     return
   }
-  const keptInclude = include.filter((item) => !targets.includes(item))
-  const keptExclude = exclude.filter((item) => !targets.includes(item))
-  writeLayerConfig("global", { ...config, activation: { ...activation, include: keptInclude, exclude: keptExclude } })
-  console.log(`已移除 ${targets.length} 条目录规则`)
+  const keys = new Set(targets.map(pathKey))
+  let action = "remove"
+  if (!dirs || dirs.length === 0) {
+    const chosen = await select<string>({
+      message: "处理方式",
+      choices: [
+        { name: "移出名单", value: "remove" },
+        { name: "白名单转黑名单", value: "to-exclude" },
+        { name: "黑名单转白名单", value: "to-include" },
+        { name: "取消", value: "cancel" },
+      ],
+    })
+    if (chosen === undefined || chosen === "cancel") return
+    action = chosen
+  }
+  let nextInclude = include.filter((item) => !keys.has(pathKey(item)))
+  let nextExclude = exclude.filter((item) => !keys.has(pathKey(item)))
+  if (action === "to-exclude") nextExclude = appendUnique(nextExclude, targets)
+  if (action === "to-include") nextInclude = appendUnique(nextInclude, targets)
+  writeLayerConfig(targetLayer, { ...config, activation: { ...activation, include: nextInclude, exclude: nextExclude } })
+  console.log(`已更新 ${target.file}（${targets.length} 条）`)
+}
+
+// 条目状态：路径是否存在、是否被同层其它规则覆盖
+function entryStatuses(entries: string[], list: "include" | "exclude", all: string[]): Array<{ path: string; list: "include" | "exclude"; exists: boolean; coveredBy: string | null }> {
+  return entries.map((item) => ({
+    path: item,
+    list,
+    exists: existsSync(resolveComparablePath(item)),
+    // 同层另一条规则命中该路径时提示被覆盖，避免用户误以为单条规则独立生效
+    coveredBy:
+      all
+        .filter((other) => other !== item && matchPathPattern(item, other, { baseDir: process.cwd() }))
+        .sort((left, right) => left.length - right.length)[0] ?? null,
+  }))
+}
+
+// 条目人读文案：白 / 黑、路径存在性与覆盖提示
+function describeEntry(item: { path: string; list: "include" | "exclude"; exists: boolean; coveredBy: string | null }): string {
+  const tag = item.list === "include" ? "[白]" : "[黑]"
+  const missing = item.exists ? "" : "（路径不存在）"
+  const covered = item.coveredBy ? `（已被 ${item.coveredBy} 覆盖）` : ""
+  return `${tag} ${item.path}${missing}${covered}`
 }
 
 // 批量挂载：扫描父目录一层、多选仓库、显式确认后逐仓安装（会向项目写文件）

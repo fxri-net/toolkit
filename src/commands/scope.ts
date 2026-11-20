@@ -1,8 +1,10 @@
 // scope 命令：状态与规则清单只读；向导、目录增删与批量挂载在 TTY 下交互
+import { existsSync } from "node:fs"
 import type { Command } from "commander"
 import { resolveScope } from "../scope"
 import { runGuard } from "../scope/guard"
 import { formatList, formatStatus } from "../scope/print"
+import { resolveComparablePath } from "../scope/paths"
 import { runScopeAdd, runScopeMount, runScopeRemove, runScopeWizard } from "../scope/wizard"
 
 // 注册 scope 命令：默认行为不变（无配置时全域生效）
@@ -66,6 +68,12 @@ export function registerScopeCommands(program: Command): void {
         const report = resolveScope()
         for (const warning of report.warnings) console.error(`⚠️ ${warning}`)
         const activation = report.activation
+        const include = activation?.include ?? []
+        const exclude = activation?.exclude ?? []
+        const items = [
+          ...include.map((path) => ({ path, list: "include", exists: existsSync(resolveComparablePath(path)) })),
+          ...exclude.map((path) => ({ path, list: "exclude", exists: existsSync(resolveComparablePath(path)) })),
+        ]
         if (options.format === "json") {
           console.log(
             JSON.stringify(
@@ -74,10 +82,11 @@ export function registerScopeCommands(program: Command): void {
                 sourceFile: report.decision.sourceFile,
                 baseDir: report.decision.baseDir,
                 mode: report.decision.mode,
-                include: activation?.include ?? [],
-                exclude: activation?.exclude ?? [],
+                include,
+                exclude,
                 markers: activation?.markers ?? { include: [], exclude: [] },
                 gitRemotes: activation?.gitRemotes ?? [],
+                items,
               },
               null,
               2,
@@ -86,6 +95,8 @@ export function registerScopeCommands(program: Command): void {
           return
         }
         for (const line of formatList(report)) console.log(line)
+        const missing = items.filter((item) => !item.exists)
+        if (missing.length > 0) console.log(`  条目异常：${missing.map((item) => item.path).join("、")}（路径不存在）`)
       } catch (error) {
         console.error(`⚠️ ${(error as Error).message}`)
         process.exitCode = 1
@@ -113,11 +124,12 @@ export function registerScopeCommands(program: Command): void {
     })
 
   scopeCmd
-    .command("remove [dir]")
-    .description("从白名单 / 黑名单移除目录（只写全局配置）")
-    .action(async (dir?: string) => {
+    .command("remove [dirs...]")
+    .description("从白名单 / 黑名单移除或互转目录（可指定配置层）")
+    .option("--layer <layer>", "配置层：global / project / local（缺省 global）")
+    .action(async (dirs: string[] = [], options: { layer?: string } = {}) => {
       try {
-        await runScopeRemove(dir)
+        await runScopeRemove(dirs, options.layer as "global" | "project" | "local" | undefined)
       } catch (error) {
         console.error(`⚠️ ${(error as Error).message}`)
         process.exitCode = 1

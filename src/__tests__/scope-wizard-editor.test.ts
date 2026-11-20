@@ -4,7 +4,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
-import { runScopeAdd, runScopeSetScope } from "../scope/wizard"
+import { runScopeAdd, runScopeRemove, runScopeSetScope } from "../scope/wizard"
 
 // 交互应答队列：按调用顺序消费，未提供时给出安全默认值
 const answers = vi.hoisted(() => ({
@@ -146,5 +146,33 @@ describe("scope add 非交互", () => {
     expect(activation.mode).toBe("allowlist")
     expect((activation.include as string[]).some((item) => item.endsWith("repo"))).toBe(true)
     expect((activation.exclude as string[]).length).toBe(0)
+  })
+})
+
+describe("scope remove 名单管理", () => {
+  it("交互模式支持白名单转黑名单", async () => {
+    writeFileSync(
+      join(home, ".toolkitrc.json"),
+      JSON.stringify({ activation: { mode: "allowlist", include: [repo], exclude: [] } }),
+    )
+    answers.select.push("global", "to-exclude")
+    answers.checkbox.push([repo])
+    await runScopeRemove()
+    const activation = globalConfig().activation ?? {}
+    expect((activation.include as string[]).length).toBe(0)
+    expect((activation.exclude as string[]).some((item) => item.endsWith("repo"))).toBe(true)
+  })
+
+  it("非交互按层移除项目层条目", async () => {
+    process.chdir(repo)
+    writeFileSync(
+      join(repo, ".toolkitrc.json"),
+      JSON.stringify({ activation: { mode: "allowlist", include: [repo], exclude: [] } }),
+    )
+    await runScopeRemove([repo], "project")
+    const projectConfig = JSON.parse(readFileSync(join(repo, ".toolkitrc.json"), "utf8")) as {
+      activation?: { include?: string[] }
+    }
+    expect(projectConfig.activation?.include?.length).toBe(0)
   })
 })
