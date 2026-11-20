@@ -1,4 +1,5 @@
 import { warnLegacyEnvOnce } from "./legacy-env"
+import { setStyleEnabled } from "./term-style"
 
 // 常规 CLI：命令注册、解析与统一收口；由入口按需加载，避免 guard 快速路径承担完整命令集的启动成本
 export async function runCli(version: string): Promise<void> {
@@ -52,6 +53,11 @@ export async function runCli(version: string): Promise<void> {
     return
   }
 
+  // 颜色开关允许出现在任意位置：先摘除再交给 commander（否则子命令会按未知选项报错），
+  // 同时须先于任何提示落定——解析期才生效会让首条提示忽略 --no-color
+  const argv = process.argv.filter((arg) => arg !== "--no-color")
+  if (argv.length !== process.argv.length) setStyleEnabled(false)
+
   // 旧环境变量名一次性提示：仅诊断，不读取旧值（C-26 降级不静默）
   warnLegacyEnvOnce()
 
@@ -65,6 +71,7 @@ export async function runCli(version: string): Promise<void> {
     .name("toolkit")
     .description(DESCRIPTION)
     .version(version, "-v, --version", "显示版本号")
+    .option("--no-color", "关闭终端颜色输出")
     .enablePositionalOptions(true)
     // 交回解析错误的控制权（否则 commander 自行 process.exit，异常捕不到）
     // ⚠️ 须在声明任何子命令之前调用：_exitCallback 只在 .command() 建子命令时按引用复制，之后再设不回溯
@@ -113,7 +120,7 @@ export async function runCli(version: string): Promise<void> {
   // 提示走 stderr：stdout 为机器可读输出（--format json）的专用通道，不得混入诊断信息
   if (repaired > 0) console.error(`已自动修复 ${repaired} 个技能链接（如不需要可配置 .toolkitrc.json 的 skills.autoLink: false 关闭）`)
   try {
-    await program.parseAsync(process.argv)
+    await program.parseAsync(argv)
   } catch (err) {
     // exitOverride 后 commander 把「解析失败」与「已输出帮助/版本」统一改为抛异常，均经此收口
     if (!(err instanceof CommanderError)) throw err
@@ -133,7 +140,7 @@ export async function runCli(version: string): Promise<void> {
       ]
     }
     emitVersionHint(version, {
-      argv: process.argv.slice(2),
+      argv: argv.slice(2),
       exitCode: typeof process.exitCode === "number" ? process.exitCode : 0,
       skillAlerts,
     })

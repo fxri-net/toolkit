@@ -13,6 +13,21 @@ const NODE_BASELINE_BANS = [
   ["CallExpression[callee.property.name='toWellFormed']", "String.prototype.toWellFormed"],
 ]
 
+// 运行时基线禁用项：统一转成 eslint 选择器
+const NODE_BASELINE_RULES = NODE_BASELINE_BANS.map(([selector, api]) => ({
+  selector,
+  message: `${api} 需要 Node 20+；本项目 engines 基线为 18.17.0，请改用兼容写法`,
+}))
+
+// 着色入口唯一：ANSI 转义只允许出现在 src/term-style.ts，业务代码一律走 style.*
+const ANSI_MESSAGE = "ANSI 转义只能写在 src/term-style.ts，业务代码请改用 style.ok / warn / error / hint / accent"
+const ANSI_LITERAL_BANS = [
+  // 字符串字面量里的真实 ESC 字符（源码写作 \u001b / \x1b）
+  { selector: "Literal[value=/[\\u001b\\x1b]/]", message: ANSI_MESSAGE },
+  // 模板字面量保留原样的转义写法（raw 中为反斜杠 + u001b / x1b）
+  { selector: "TemplateElement[value.raw=/\\\\u001b|\\\\x1b/]", message: ANSI_MESSAGE },
+]
+
 export default tseslint.config(
   { ignores: ["dist/**", "node_modules/**", "coverage/**", "local/**", ".toolkit-verify/**", "docs/.vitepress/dist/**", "docs/.vitepress/cache/**"] },
   js.configs.recommended,
@@ -41,13 +56,15 @@ export default tseslint.config(
     // 最低版本兼容：新 API 须先在 engines 下限验证，不得只为省事使用高版本内置
     files: ["src/**/*.ts", "scripts/**/*.mjs"],
     rules: {
-      "no-restricted-syntax": [
-        "error",
-        ...NODE_BASELINE_BANS.map(([selector, api]) => ({
-          selector,
-          message: `${api} 需要 Node 20+；本项目 engines 基线为 18.17.0，请改用兼容写法`,
-        })),
-      ],
+      "no-restricted-syntax": ["error", ...NODE_BASELINE_RULES],
+    },
+  },
+  {
+    // 样式基建自身与其单测需要直接书写转义序列，其余 src 代码禁止散装 ANSI
+    files: ["src/**/*.ts"],
+    ignores: ["src/term-style.ts", "src/__tests__/term-style.test.ts"],
+    rules: {
+      "no-restricted-syntax": ["error", ...NODE_BASELINE_RULES, ...ANSI_LITERAL_BANS],
     },
   },
   {

@@ -1366,6 +1366,7 @@ Usage: toolkit [options] [command]
 
 Options:
   -v, --version                    显示版本号
+  --no-color                       关闭终端颜色输出
   -h, --help                       显示帮助
 
 Commands:
@@ -1623,6 +1624,7 @@ Usage: toolkit [options] [command]
 
 Options:
   -v, --version                    显示版本号
+  --no-color                       关闭终端颜色输出
   -h, --help                       显示帮助
 
 Commands:
@@ -1660,6 +1662,7 @@ Usage: toolkit [options] [command]
 
 Options:
   -v, --version                    显示版本号
+  --no-color                       关闭终端颜色输出
   -h, --help                       显示帮助
 
 Commands:

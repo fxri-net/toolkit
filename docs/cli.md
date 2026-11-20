@@ -48,6 +48,7 @@
 | --- | --- |
 | `-h, --help` | 显示帮助（全局或子命令） |
 | `-v, --version` | 显示版本号 |
+| `--no-color` | 关闭终端颜色输出（优先于 `NO_COLOR` / `FORCE_COLOR`，可写在任意位置） |
 
 `--redact` / `--warn` 为**域级开关**：仅 `tasks` 与 `changelog` 两个域支持。
 

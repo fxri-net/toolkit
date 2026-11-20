@@ -42,7 +42,7 @@
 | C-42 | 多系统与多 Shell | 写命令或平台分支时：平台差异只进适配层，两平台各有单测，文档给多平台写法 | platform | [platform.md](./platform.md) |
 | C-43 | 段落级可读性 | 写正文段落时：单行 ≤120 字符、单句分号 ≤2 个、并列 ≥5 改列表 | docs | [docs.md](./docs.md) |
 | C-44 | 自检脚本配假现场 | 改 `scripts/check-*.mjs` 时：每个新增或修改的校验都要有假现场用例（合规通过 / 违规报出），容错分支同样要锁 | testing | [testing.md](./testing.md) |
-| C-45 | 命名与封装统一 | 写代码或命名时：动词族与谓词形态固定、参数用 options/config、fx 只用于 src/shared/、全局命名带 FX_TOOLKIT_ 标识；兼容读取须写明移除版本 | common | [common.md](./common.md) |
+| C-45 | 命名与封装统一 | 写代码或命名时：动词族与谓词形态固定、参数用 options/config、fx 只用于 src/shared/、全局命名带 FX_TOOLKIT_ 标识；展示基建须收敛单模块并落门禁；兼容读取须写明移除版本 | common | [common.md](./common.md) |
 | C-46 | 运行时版本基线 | 写代码时：以 engines 为唯一基线、只用基线已稳定 API、最低版本须有 CI 回归入口、类型声明与基线一致 | platform | [platform.md](./platform.md) |
 
 ## 三、用法说明

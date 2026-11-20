@@ -40,7 +40,7 @@
   - 文件：kebab-case；角色后缀主体在前（`cli-main.ts`、`cli-guard.ts`），不新增 `-cmd` 一类后缀。
   - 前缀：`fx` 只用于 `src/shared/` 跨模块基础封装层；通用能力（文件、路径、时间、版本）与业务域（scope / skills / tasks / usage / changelog）不加前缀；包名 `@fxri/toolkit`、技能名 `fxri-*` 保持既有。
   - 全局命名空间：环境变量一律 `FX_TOOLKIT_<用途>`，不写 `FX_<用途>`（多产品并存会串）；文件与目录优先放进 `.toolkit/`、`~/.toolkit/`、`.toolkitrc*.json` 等产品目录，必须落在通用目录时文件名带 `toolkit`；生成文件的标记键同样带 `toolkit`（如 `toolkit-usage-hooks`）。例外：`.tasks/.archive.lock` 位于共享任务目录，改名会让新旧版本互斥失效，维持不改。
-  - 封装优先：文件读写与主目录解析只走 `readTextFile` / `writeFileAtomic` / `getHomeDir`。
+  - 封装优先：文件读写与主目录解析只走 `readTextFile` / `writeFileAtomic` / `getHomeDir`；终端样式等跨命令的展示能力收敛到单一模块（如 `src/term-style.ts`）并落 lint 门禁，禁止在各命令内联 ANSI 转义。
   - 存量策略：内部函数分批重命名；`src/index.ts` 公共导出改名保留旧名别名并标注弃用，或按 major 处理；环境变量等对外名称的兼容读取须写明移除版本与告警文案，不无限期保留。
 - **反例**：同一读取动作在不同模块分别叫 `readX` / `loadX` / `getX`；布尔函数叫 `pathPresent` / `dirsEqual`；配置对象参数写 `cfg` / `opts`；环境变量只写 `FX_USAGE_DIR`，与同组其它产品撞名；改名后旧名静默失效，用户升级即断。
 - **理由**：命名是检索面与调用面的共同契约；动词、谓词与命名空间不统一时，同一能力会出现多套入口，文档与测试也得各自记住，长期维护成本随模块数增长。
