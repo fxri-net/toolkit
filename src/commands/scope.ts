@@ -6,7 +6,7 @@ import { runGuard } from "../scope/guard"
 import { formatList, formatStatus } from "../scope/print"
 import { isInteractive, runInteractive } from "../prompts"
 import { resolveComparablePath } from "../scope/paths"
-import { runScopeMount, runScopeWizard } from "../scope/wizard"
+import { runScopeWizard } from "../scope/wizard"
 import { line } from "../term-style"
 import { assertJsonFormat } from "../json-output"
 import { assertChoice, fail } from "../cli-ui"
@@ -247,14 +247,5 @@ export function registerScopeCommands(program: Command): void {
     .option("--yes", "跳过写前确认（预览照常打印）")
     .action(async (options: { layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {
       await runInteractive(() => runReset(options))
-    })
-
-  scopeCmd
-    .command("mount [dir]")
-    .description("已迁移：请改用 toolkit skills mount（本命令保留为别名，下一版本移除）")
-    .option("--dry-run", "只预览，不写入")
-    .action(async (dir: string | undefined, options: { dryRun?: boolean }) => {
-      console.warn("⚠️ scope mount 已迁至 skills 域：请改用 toolkit skills mount（本命令保留为别名，下一版本移除）")
-      await runInteractive(() => runScopeMount(dir, Boolean(options.dryRun)))
     })
 }

@@ -24,7 +24,7 @@ toolkit skills install --mode package # 纯包管理器模式：core 也可不�
 toolkit skills install --no-skills  # 仅本次零装，不改模式与已保存选择
 toolkit skills install --gate       # 内容闸门：按 skillsInstall.gate 规则接管技能为入口壳，--embed 回退
 toolkit skills gate [on|off]        # 查看或切换内容闸门；切换后运行 skills install 生成 / 还原入口壳
-toolkit skills mount --dry-run      # 批量挂载：预览将写入的项目（原 scope mount，已迁入 skills 域）
+toolkit skills mount --dry-run      # 批量挂载：预览将写入的项目（由 scope mount 迁入，原命令已移除）
 toolkit skills install --copy       # 强制副本形式（仅全局面生效；项目面真源恒为副本、薄壳非副本；`--gate` 下被接管技能改用入口壳并告警）
 toolkit skills install --dry-run    # 预演：只预览将执行的动作，不写文件
 toolkit skills install --force      # 覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
@@ -135,7 +135,8 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 - 在父目录（缺省当前目录）下扫一层仓库（`.git` / `package.json` / `.tasks`），交互多选并确认后逐仓安装；`--dry-run` 只预览
 - 会向所选项目写入技能文件，确认信息写明项目数
-- 原 `toolkit scope mount` 保留为别名并提示迁移（下一版本移除）；非 TTY 环境直接提示无法交互（退出码 `2`）
+- 由 `toolkit scope mount` 迁入（该命令已移除），统一从 skills 域使用
+- 非 TTY 环境提示无法交互（退出码 `2`），批量项目安装请在终端运行
 
 ### sources
 

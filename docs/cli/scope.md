@@ -34,7 +34,7 @@ toolkit skills mount ~/work --dry-run  # 批量项目面安装：先预览（原
 toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域输出技能正文（未激活退出码 3）
 ```
 
-## 交互与批量挂载
+## 交互与写命令
 
 - 无参 `toolkit scope`：TTY 下进入状态优先向导；非 TTY 输出状态摘要与子命令提示并以 `0` 退出。
   交互入口也可显式运行 `toolkit scope wizard`（非 TTY 退出码 `2`）
@@ -46,7 +46,7 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 - 项目层 / 本地层额外提供「仅本项目生效」「在本项目内排除」两个快捷项，落到同一配置模型，不再走独立分支
 - 管理条目合并两列表并标注 `[白]` / `[黑]`、路径存在性与被覆盖提示；勾选后移出或转到另一侧，写前展示 diff
 - 高级规则（启用标记 / git 远端 / 技能级规则）只读展示并给出配置文件路径，复制后自行编辑，不自造低频编辑 UI
-- 内容闸门与批量挂载不再放在本菜单：闸门用 `toolkit skills gate on|off` 切换，
+- 内容闸门与批量挂载已移出本域：闸门用 `toolkit skills gate on|off` 切换，
   `toolkit skills install --gate` / `--embed` 生成或还原入口壳；批量挂载用 `toolkit skills mount`
 - 选择页统一提供「← 返回」（末位）与 ESC 返回上一级；顶层「退出」按成功计 `0`，Ctrl+C 结束整个命令（退出码 `130`）
 - ESC 有约 500ms 判定延迟（readline 需先排除方向键序列），属正常现象
@@ -59,11 +59,8 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 - 相对路径按目标层项目根解析（全局层按当前目录）；`--layer global|project|local` 缺省全局
 - `scope list` 同时输出条目存在性：文本模式列出「条目异常」，`--format json` 的 `items` 含 `path` / `list` / `exists`；
   相对路径条目按所属配置层的项目根解析
-- `skills mount` 会**向所选项目写入技能文件**，必须显式勾选并确认；`--dry-run` 只预览
-- `skills mount` 仍只扫一层（`.git` / `package.json` / `.tasks`），不会因作用域扫描改为递归而扩大写入范围；
-  作用域设置流程使用递归发现：命中 `.git` 即剪枝，依赖与产物目录不进入，默认跳过隐藏目录与嵌套仓库
-- 非 TTY 环境：`wizard` 与 `skills mount` 会提示无法交互（退出码 `2`）；写命令请直接带参数
-- `toolkit scope mount` 保留为别名：执行前在 stderr 提示改用 `toolkit skills mount`，下一版本移除
+- 批量项目面安装已迁至 `toolkit skills mount`（原 `scope mount` 已移除）；写入边界与 `--dry-run` 见 [skills 命令 · mount](./skills#mount)
+- 非 TTY 环境：`wizard` 会提示无法交互（退出码 `2`）；写命令请直接带参数
 
 ## 内容闸门 guard
 
