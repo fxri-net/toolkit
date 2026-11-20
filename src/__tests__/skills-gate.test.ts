@@ -5,7 +5,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { runGuard } from "../scope/guard"
-import { GATE_SKILLS, autoLinkSkills, installSkills, isSkillGateShell, readSkillsState, removeSkills, skillsSourceDir, skillsStateFile, skillsStatus } from "../skills"
+import { GATE_SKILLS, autoLinkSkills, installSkills, isSkillGateShell, readSkillsInstallConfig, readSkillsState, removeSkills, skillsSourceDir, skillsStateFile, skillsStatus } from "../skills"
 
 // 临时 home：产物只落在临时目录，不触碰真实用户全局技能目录
 let home = ""
@@ -90,6 +90,15 @@ describe("内容闸门安装形态", () => {
     const primary = skillsStatus().targets.find((t) => t.dir === primaryDir())
     const item = primary?.items.find((i) => i.name === "fxri-plan-to-task")
     expect(item?.state).toBe("gate")
+  })
+
+  it("闸门开关随安装成功落盘，预演不写", () => {
+    installSkills({ gate: true, dryRun: true })
+    expect(readSkillsInstallConfig().gate).toBeUndefined()
+    installSkills({ gate: true })
+    expect(readSkillsInstallConfig().gate).toBe(true)
+    installSkills({ gate: false })
+    expect(readSkillsInstallConfig().gate).toBe(false)
   })
 
   it("入口壳内容过期时 status 报 gate-drift，重跑 install 恢复", () => {

@@ -290,6 +290,20 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
       }
     }
 
+    // 内容闸门开关随安装结果落盘：显式传入才写，预演与存在失败条目不写，避免开关与产物脱节
+    if (options.gate !== undefined && !options.dryRun) {
+      const failures = results.reduce((count, result) => count + result.failed.length, 0)
+      if (failures > 0) {
+        console.warn(`⚠️ 内容闸门开关未保存：本次有 ${failures} 个技能安装失败，修复后重跑 toolkit skills install`)
+      } else {
+        try {
+          writeSkillsInstallConfig({ gate: options.gate })
+        } catch (e) {
+          console.warn(`⚠️ 内容闸门开关保存失败：${(e as Error).message}`)
+        }
+      }
+    }
+
     // 本次选择的真源版本：外部技能也按自身 frontmatter 取值，不再只认包内技能
     const versions = Object.fromEntries(items.map((item) => [item.name, item.version]))
     // 重建 / 更新时给出「当前 → 目标」：旧值取安装前的登记版本

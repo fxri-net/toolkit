@@ -825,15 +825,8 @@ export function registerSkillsCommands(program: Command): void {
           if (scope.choice === "global" || scope.choice === "all") writeSkillsInstallConfig({ mode })
           if (scope.choice === "project" || scope.choice === "all") writeProjectSkillsConfig({ mode })
         }
-        // 内容闸门开关同样在安装前持久化，便于下次裸 install 沿用；--dry-run 不写
+        // 内容闸门开关由安装结果决定落盘时机（成功后才写），此处只计算本次取值
         const gateOption = options.gate ? true : options.embed ? false : undefined
-        if (gateOption !== undefined && runGlobal && !dryRun) {
-          try {
-            writeSkillsInstallConfig({ gate: gateOption })
-          } catch (e) {
-            console.warn(`⚠️ 内容闸门开关保存失败：${(e as Error).message}`)
-          }
-        }
         // 降级不静默：闸门生效时接入技能以入口壳写入，--copy 对其无法采纳
         const effectiveGate = gateOption ?? readSkillsInstallConfig().gate === true
         if (options.copy && runGlobal && effectiveGate) {

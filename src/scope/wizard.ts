@@ -222,19 +222,22 @@ export async function runScopeGate(): Promise<void> {
     })
     if (choice === "keep") return
     const gate = choice === "on"
-    writeSkillsInstallConfig({ gate })
-    console.log(`已${gate ? "开启" : "关闭"}内容闸门（写入 skillsInstall.gate）`)
     const apply = await confirm({ message: "现在按已保存选择刷新技能产物？", default: true })
     if (!apply) {
-      console.log("未刷新产物：需要时运行 toolkit skills install")
+      // 拒绝刷新时只切开关，产物留给用户之后显式安装
+      writeSkillsInstallConfig({ gate })
+      console.log(`已${gate ? "开启" : "关闭"}内容闸门（写入 skillsInstall.gate）；产物未刷新，需要时运行 toolkit skills install`)
       return
     }
     // 与 skills install 的默认口径一致：已保存选择优先，未保存过时只装 core
     const saved = readSkillsInstallConfig().selection?.[BUILTIN_SOURCE] ?? []
     const skills = saved.length > 0 ? saved : listPackageSkills().filter((skill) => skill.tier === "core").map((skill) => skill.name)
+    // 开关由 installSkills 在成功且无失败条目时落盘
     const report = installSkills({ skills, gate })
     const gates = report.targets.reduce((count, target) => count + target.gates.length, 0)
-    console.log(`✓ 已刷新：入口壳 ${gates} 个`)
+    const failures = report.targets.reduce((count, target) => count + target.failed.length, 0)
+    if (failures > 0) console.warn(`入口壳 ${gates} 个，另有 ${failures} 个失败；开关未保存`)
+    else console.log(`✓ 已刷新：入口壳 ${gates} 个，开关已保存`)
   } catch (error) {
     if (!cancelled(error)) throw error
   }
