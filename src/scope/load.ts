@@ -5,7 +5,7 @@ import { inspectConfigLayers } from "../config"
 import { canonicalPath } from "../git-ignore"
 import { decideScope } from "./decide"
 import { compilePattern, matchPathPattern } from "./pattern"
-import { findGitRoot, findProjectRoot, normalizeRulePath, readGitRemote } from "./paths"
+import { findGitRoot, findProjectRoot, readGitRemote, resolveComparablePath } from "./paths"
 import type { ActivationConfig, ActivationMode, LoadedActivation, ScopeContext, ScopeDecision, SkillActivationConfig } from "./types"
 
 const MODES = new Set<ActivationMode>(["all", "allowlist", "denylist"])
@@ -133,10 +133,10 @@ export function loadActivation(startDir = process.cwd()): LoadedActivation {
 // 传入技能名时命中技能级规则则覆盖 mode / include / exclude，其余条件沿用目录级
 export function resolveScope(startDir = process.cwd(), skillName?: string): ScopeReport {
   const { activation, sourceFile, layer, warnings } = loadActivation(startDir)
-  // 判定现场统一走字符串口径：不解析符号链接，同一份规则在各系统结论一致
-  const cwd = normalizeRulePath(startDir)
+  // 展示与文件系统判断保留原始大小写与分隔符；大小写折叠只发生在规则匹配函数内部
+  const cwd = resolveComparablePath(startDir)
   // 判定基准取项目根：子目录内按整个项目匹配，精确路径即可覆盖其下所有层级
-  const baseDir = normalizeRulePath(findProjectRoot(startDir))
+  const baseDir = resolveComparablePath(findProjectRoot(startDir))
   const context: ScopeContext = {
     cwd,
     baseDir,
@@ -160,13 +160,18 @@ export function resolveScope(startDir = process.cwd(), skillName?: string): Scop
 }
 
 // 真实路径迁移提示：符号链接前缀不再自动解析，旧规则按真实形态写入时提示改用 pwd 看到的路径
-// 仅诊断用 realpath，不参与匹配结论；由 scope status 打印，guard 不输出
+// 仅诊断用 realpath，不参与匹配结论；只在「当前基准不命中、真实形态基准命中」时提示，避免大小写差异误报
+// 由 scope status 打印，guard 不输出
 function legacyPathHint(activation: ActivationConfig | null, context: ScopeContext): string | null {
   if (!activation) return null
   const realBase = canonicalPath(context.baseDir)
   if (realBase === context.baseDir) return null
   const rules = [...activation.include, ...activation.exclude]
-  const hit = rules.find((rule) => matchPathPattern(realBase, rule, { baseDir: realBase }))
+  const hit = rules.find(
+    (rule) =>
+      !matchPathPattern(context.baseDir, rule, { baseDir: context.baseDir }) &&
+      matchPathPattern(realBase, rule, { baseDir: realBase }),
+  )
   if (!hit) return null
   return `规则「${hit}」疑似按真实路径写入：符号链接前缀不再解析，请改用 pwd 看到的路径（当前项目根 ${context.baseDir}）`
 }

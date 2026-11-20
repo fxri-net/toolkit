@@ -76,6 +76,18 @@ describe("resolveScope", () => {
     expect(report.migrationHint ?? "").toContain("判定基准已改为项目根")
   })
 
+  it("展示路径保留原始大小写，marker 在大写目录下仍可识别", () => {
+    const upper = join(home, "Work", "Repo")
+    mkdirSync(upper, { recursive: true })
+    writeGlobal({ activation: { mode: "all", markers: { include: [".toolkit-scope"] } } })
+    writeFileSync(join(upper, ".toolkit-scope"), "")
+    const report = resolveScope(upper)
+    // 展示值与文件系统判断都用原始大小写，大小写折叠只发生在匹配函数内部
+    expect(report.context.cwd.endsWith(join("Work", "Repo"))).toBe(true)
+    expect(report.decision.baseDir.endsWith(join("Work", "Repo"))).toBe(true)
+    expect(report.decision.active).toBe(true)
+  })
+
   it("旧规则按真实路径写入时给出迁移提示，不改变判定", () => {
     const real = join(home, "real-project")
     mkdirSync(join(real, ".git"), { recursive: true })
@@ -91,6 +103,13 @@ describe("resolveScope", () => {
     // 字符串口径：按真实路径写的规则不再命中链接路径，结论不生效
     expect(report.decision.active).toBe(false)
     expect(report.migrationHint ?? "").toContain("真实路径")
+
+    // 规则按链接路径书写时本就命中，不应触发迁移提示
+    writeGlobal({ activation: { mode: "allowlist", include: [link.replace(/\\/g, "/")] } })
+    resetToolkitConfigCache()
+    const matched = resolveScope(link)
+    expect(matched.decision.active).toBe(true)
+    expect(matched.migrationHint).toBeNull()
   })
 
   it("非法路径规则告警并剔除，不参与判定", () => {
