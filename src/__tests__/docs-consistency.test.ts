@@ -260,7 +260,7 @@ describe("文档一致性：规则层更新锚点", () => {
 
   it("docs/rules/commit.md、docs/rules/ai.md 与 docs/rules/usage.md 的规则全文首行为合法更新时间锚点", () => {
     for (const file of ["docs/rules/commit.md", "docs/rules/ai.md", "docs/rules/usage.md"]) {
-      expect(fenceAnchor(file), `${file} 的规则全文首行不是合法更新时间锚点`).toMatch(/^> 规则更新时间 \d{4}-\d{2}-\d{2} \d{2}:\d{2}。/)
+      expect(fenceAnchor(file), `${file} 的规则全文首行不是合法更新时间锚点`).toMatch(/^> 规则更新时间 \d{4}-\d{2}-\d{2} \d{2}:\d{2}$/)
     }
   })
 
@@ -283,10 +283,11 @@ describe("文档一致性：规则层更新锚点", () => {
     }
   })
 
-  it("组合输出锚点使用「本规则」措辞，避免终端出现「本页」", () => {
-    const first = composeRules(["core"]).split("\n")[0] as string
-    expect(first).toContain("与本规则当前值不一致")
-    expect(first).toContain("重新复制本规则即可")
+  it("组合输出首行为纯更新时间锚点，快照同步说明不进块内", () => {
+    // 首行只留时间戳：同步说明属于规则页读者，留在围栏外
+    const rule = composeRules(["core"])
+    expect(rule.split("\n")[0]).toMatch(/^> 规则更新时间 \d{4}-\d{2}-\d{2} \d{2}:\d{2}$/)
+    expect(rule).not.toContain("重新复制本规则即可")
   })
 
   it("SPEC.md 正文首行为合法规范更新时间锚点", () => {
