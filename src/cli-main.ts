@@ -1,3 +1,5 @@
+import { warnLegacyEnvOnce } from "./legacy-env"
+
 // 常规 CLI：命令注册、解析与统一收口；由入口按需加载，避免 guard 快速路径承担完整命令集的启动成本
 export async function runCli(version: string): Promise<void> {
   // 重度模块按需动态加载：命令模块与交互组件只为常规命令付出加载成本
@@ -49,6 +51,9 @@ export async function runCli(version: string): Promise<void> {
     await runUpdateCheckWorker()
     return
   }
+
+  // 旧环境变量名一次性提示：仅诊断，不读取旧值（C-26 降级不静默）
+  warnLegacyEnvOnce()
 
   const program = new Command()
 

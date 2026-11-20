@@ -61,7 +61,12 @@
 
 对应环境变量：`FX_TOOLKIT_REDACT`、`FX_TOOLKIT_CHECK_WARN`（认 `0/1`、`true/false`、`on/off`、`yes/no`）；配置项见[配置参考](./config)。
 
-另有独立环境变量 `FX_TOOLKIT_NO_UPDATE_CHECK`：设为真值时关闭升级检查提示（1.7.0 起支持，行为详见[配置参考 · updateCheck](./config)）。
+环境变量只认 `FX_TOOLKIT_` 前缀。旧名（如 `FX_REDACT`、`TOOLKIT_USAGE_DIR`）不再读取：
+命中时只在 stderr 提示一次，取值按新名或默认值处理。
+
+另有独立环境变量 `FX_TOOLKIT_NO_UPDATE_CHECK`：设为真值时关闭升级检查提示。
+
+升级检查自 1.7.0 引入；变量名随前缀统一为 `FX_TOOLKIT_`，行为详见[配置参考 · updateCheck](./config)。
 
 **升级提示收口**：命令成功（退出码 0）时，按 `updateCheck.notify`（默认 `always`）在输出结尾给出一句话提示；TTY 下走 stderr，非 TTY 走 stdout。
 

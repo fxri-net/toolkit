@@ -4,3 +4,4 @@
 
 - 修改：环境变量统一为 `FX_TOOLKIT_` 前缀（`FX_TOOLKIT_REDACT` / `FX_TOOLKIT_CHECK_WARN` / `FX_TOOLKIT_NO_UPDATE_CHECK` / `FX_TOOLKIT_DEBUG_UPDATE_CHECK` / `FX_TOOLKIT_USAGE_DIR` / `FX_TOOLKIT_USAGE_AGENT` / `FX_TOOLKIT_USAGE_NO_WORKER` / `FX_TOOLKIT_USAGE_SESSION`），避免同组多产品变量撞名
 - 修改：旧名 `FX_*` 与 `TOOLKIT_USAGE_*` 不再读取；升级后请改用新名（本项目未保留兼容层）
+- 修改：命中旧名时在 stderr 提示一次改用新名，取值仍按新名或默认值处理，不复活兼容读取
