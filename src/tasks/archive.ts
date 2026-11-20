@@ -136,6 +136,13 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
     if (mismatched.length > 0) {
       warnings.push(`文件名简述与正文标题不同源、归档块标题将随文件名固化的 ${mismatched.length} 个任务：${mismatched.join("；")}`)
     }
+    // 放弃理由：归档后正文即成冻结记录，缺理由则事后无法回答「为何放弃」；只提示不阻断
+    const noReason = doneTasks
+      .filter((t) => t.status === "已放弃" && !/^\s*>\s*放弃原因\s*[：:]\s*\S/m.test(t.body))
+      .map((t) => t.name)
+    if (noReason.length > 0) {
+      warnings.push(`已放弃但正文缺少「> 放弃原因：」的 ${noReason.length} 个任务：${noReason.join("、")}`)
+    }
   }
 
   // 按完成时间日期（YYYYMMDD）分组

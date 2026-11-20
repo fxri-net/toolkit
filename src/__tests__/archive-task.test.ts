@@ -10,8 +10,8 @@ function taskDir(): string {
   return mkdtempSync(join(tmpdir(), "tk-archive-task-"))
 }
 
-// 写 active 任务：status / completed 可按用例覆盖
-function putTask(dir: string, name: string, status = "已完成", completed = "2026-11-12 10:00"): void {
+// 写 active 任务：status / completed / 正文可按用例覆盖
+function putTask(dir: string, name: string, status = "已完成", completed = "2026-11-12 10:00", body = ""): void {
   mkdirSync(join(dir, "active", "202611"), { recursive: true })
   const content = [
     "---",
@@ -25,6 +25,7 @@ function putTask(dir: string, name: string, status = "已完成", completed = "2
     "---",
     "",
     `# ${name.split("-").slice(2).join("-")}`,
+    body,
   ].join("\n")
   writeFileSync(join(dir, "active", "202611", `${name}.md`), content, "utf8")
 }
@@ -98,6 +99,43 @@ describe("tasks archive --task", () => {
       expect(result.archived).toBe(1)
       expect(existsSync(join(dir, "active", "202611", `${KEY_B}.md`))).toBe(true)
       expect(existsSync(join(dir, "archive"))).toBe(false)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})
+
+describe("归档软告警：已放弃缺放弃原因", () => {
+  it("缺理由时告警且归档照常完成", () => {
+    const dir = taskDir()
+    try {
+      putTask(dir, KEY_A, "已放弃", "2026-11-12 10:00", "方案正文")
+      const result = archiveTasks(dir, false)
+      expect(result.archived).toBe(1)
+      expect(result.warnings.some((w) => w.includes("放弃原因"))).toBe(true)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it("带非空理由时不告警，且理由随正文进归档块", () => {
+    const dir = taskDir()
+    try {
+      putTask(dir, KEY_A, "已放弃", "2026-11-12 10:00", "> 放弃原因：成本高于收益")
+      const result = archiveTasks(dir, false)
+      expect(result.warnings.some((w) => w.includes("放弃原因"))).toBe(false)
+      expect(readFileSync(join(dir, "archive", "202611", "20261112.md"), "utf8")).toContain("> 放弃原因：成本高于收益")
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it("预演同样告警；--no-warn 时不输出", () => {
+    const dir = taskDir()
+    try {
+      putTask(dir, KEY_A, "已放弃", "2026-11-12 10:00")
+      expect(archiveTasks(dir, false, { dryRun: true }).warnings.some((w) => w.includes("放弃原因"))).toBe(true)
+      expect(archiveTasks(dir, false, { warn: false }).warnings.some((w) => w.includes("放弃原因"))).toBe(false)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

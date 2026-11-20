@@ -226,6 +226,34 @@ function heldSectionIssues(name: string, lines: string[], fmEnd: number, status:
   return issues
 }
 
+// 放弃理由行：与计划位置同范式的引用行元数据，值为空视为未写
+const ABANDON_REASON_RE = /^\s*>\s*放弃原因\s*[：:]\s*(.*)$/
+
+// 放弃理由校验（软告警）：已放弃须有非空理由；其它状态残留该行说明状态改回时未清理
+function abandonReasonIssues(name: string, lines: string[], fmEnd: number, status: string): CheckIssue[] {
+  const issues: CheckIssue[] = []
+  let line = -1
+  let value = ""
+  for (let i = fmEnd; i < lines.length; i++) {
+    const hit = ABANDON_REASON_RE.exec(lines[i] ?? "")
+    if (hit) {
+      line = i + 1
+      value = (hit[1] ?? "").trim()
+      break
+    }
+  }
+  if (status === "已放弃") {
+    if (line < 0) {
+      issues.push({ level: "warn", file: name, message: "status 为已放弃但正文缺少「> 放弃原因：」行" })
+    } else if (!value) {
+      issues.push({ level: "warn", file: name, line, message: "「> 放弃原因：」值为空，请写明放弃理由" })
+    }
+  } else if (line >= 0) {
+    issues.push({ level: "warn", file: name, line, message: "status 非已放弃但正文残留「> 放弃原因：」行，状态改回后应删除" })
+  }
+  return issues
+}
+
 // 校验单个任务文件，返回问题列表
 export function validateTaskFile(file: string, endpoints: Set<string> | null = null): CheckIssue[] {
   const issues: CheckIssue[] = []
@@ -397,6 +425,9 @@ export function validateTaskFile(file: string, endpoints: Set<string> | null = n
 
   // 搁置节形态：位置 / 四行 / 冒号 / 日期口径，以及非搁置档的残留节（均软告警）
   issues.push(...heldSectionIssues(name, lines, fmEnd, fm.status ?? ""))
+
+  // 放弃理由：已放弃须有非空理由行，其它状态不得残留
+  issues.push(...abandonReasonIssues(name, lines, fmEnd, fm.status ?? ""))
 
   return issues
 }
