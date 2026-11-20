@@ -38,10 +38,10 @@ export function checkDocsDist(
   docsDir: string,
   options: { config?: Partial<DocsDistConfig>; rules?: Record<string, RuleSetting> } = {},
 ): DistCheckResult {
-  const cfg: DocsDistConfig = { ...DEFAULT_DOCS_DIST, ...options.config }
+  const config: DocsDistConfig = { ...DEFAULT_DOCS_DIST, ...options.config }
   const rules = options.rules ?? {}
   const problems: DocsProblem[] = []
-  const distDir = join(docsDir, cfg.dir)
+  const distDir = join(docsDir, config.dir)
   const add = (id: string, message: string, level: ProblemLevel = "error", file = displayPath(distDir)): void => {
     const effective = effectiveLevel(rules, id, level)
     if (effective) problems.push({ id, level: effective, file, message })
@@ -52,7 +52,7 @@ export function checkDocsDist(
   const sitemapFile = join(distDir, "sitemap.xml")
   if (!existsSync(sitemapFile)) {
     // 站点可有意禁用 sitemap：配置为 off 时整条断言跳过，warn 时只提示
-    if (cfg.sitemap !== "off") add("dist/sitemap-missing", "缺少 sitemap.xml 产物", cfg.sitemap, displayPath(sitemapFile))
+    if (config.sitemap !== "off") add("dist/sitemap-missing", "缺少 sitemap.xml 产物", config.sitemap, displayPath(sitemapFile))
   } else {
     // 兼容 cleanUrls 与默认 .html 两种写法：URL 可能是绝对地址、带前导斜杠或裸路径
     const hits = [...readTextFile(sitemapFile).matchAll(/<loc>([^<]+)<\/loc>/g)]
@@ -62,7 +62,7 @@ export function checkDocsDist(
   }
 
   // 站内搜索：仅本地搜索有可断言的索引分块，其他实现显式跳过
-  if (cfg.searchProvider === "none") {
+  if (config.searchProvider === "none") {
     return { ok: !problems.some((problem) => problem.level === "error"), skipped: false, searchChecked: false, problems }
   }
   const title = notFoundTitle(docsDir)

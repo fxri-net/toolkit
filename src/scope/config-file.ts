@@ -1,7 +1,8 @@
 // 作用域配置文件读写：全局 / 项目 / 本地三层，读-合并-原子写
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { getHomeDir } from "../config"
+import { readTextFile } from "../read-text"
 import { findProjectRoot } from "./paths"
 import { writeFileAtomic } from "../write-atomic"
 
@@ -42,7 +43,7 @@ export function layerConfigTarget(layer: ConfigLayer, startDir = process.cwd()):
 export function readLayerConfig(layer: ConfigLayer, startDir = process.cwd()): Record<string, unknown> {
   const { file } = layerConfigTarget(layer, startDir)
   if (!existsSync(file)) return {}
-  const parsed = JSON.parse(readFileSync(file, "utf8")) as unknown
+  const parsed = JSON.parse(readTextFile(file)) as unknown
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error(`${file} 不是合法的 JSON 对象，请先手动修正`)
   }

@@ -1,5 +1,7 @@
 // 技能版本递增：只改 SKILL.md 的 frontmatter metadata.version 与正文首部「本技能版本」两处
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
+import { existsSync, readdirSync } from "node:fs"
+import { readTextFile } from "../read-text"
+import { writeFileAtomic } from "../write-atomic"
 import { join } from "node:path"
 
 export type BumpType = "patch" | "minor" | "major"
@@ -99,7 +101,7 @@ export function bumpSkillVersions(options: BumpOptions): BumpResult[] {
   const pending: Array<{ file: string; content: string }> = []
   for (const name of targets) {
     const file = join(skillsDir, name, SKILL_ENTRY)
-    const content = readFileSync(file, "utf8")
+    const content = readTextFile(file)
     const from = readFrontmatterVersion(content)
     if (!from) throw new Error(`技能 ${name} 的 frontmatter 未声明 metadata.version，无法递增`)
     const to = options.set ? options.set.trim() : bumpVersion(from, options.type ?? "patch")
@@ -109,6 +111,6 @@ export function bumpSkillVersions(options: BumpOptions): BumpResult[] {
     pending.push({ file, content: writeBodyVersion(withFrontmatter, to) })
     results.push({ name, from, to, file })
   }
-  if (!dryRun) for (const item of pending) writeFileSync(item.file, item.content, "utf8")
+  if (!dryRun) for (const item of pending) writeFileAtomic(item.file, item.content)
   return results
 }

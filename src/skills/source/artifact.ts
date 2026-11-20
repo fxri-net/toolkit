@@ -3,7 +3,7 @@ import { cpSync, existsSync, lstatSync, mkdirSync, readlinkSync, rmSync, symlink
 import { dirname, isAbsolute, join, resolve } from "node:path"
 import { writeFileAtomic } from "../../write-atomic"
 import { SKILL_ENTRY, type ArtifactMode } from "../types"
-import { pathKey, sameDirContent, stripTailSep } from "./paths"
+import { pathKey, isSameDirContent, stripTailSep } from "./paths"
 
 
 export type ExistingKind = "absent" | "link-ok" | "wrong" | "dangling" | "dir" | "file"
@@ -40,8 +40,8 @@ export function classifyExisting(dest: string, source: string, entry?: EntryType
     const targetKey = pathKey(absTarget)
     if (targetKey !== pathKey(source) && !(altSource && targetKey === pathKey(altSource))) {
       // 路径不同不等于内容不同：链接锚在别的安装时路径天然不相等，只要内容与真源逐字一致即视为正常
-      const sameAsSource = sameDirContent(source, absTarget)
-      const sameAsAlt = altSource !== "" && sameDirContent(altSource, absTarget)
+      const sameAsSource = isSameDirContent(source, absTarget)
+      const sameAsAlt = altSource !== "" && isSameDirContent(altSource, absTarget)
       if (!sameAsSource && !sameAsAlt) return "wrong"
     }
     return "link-ok"

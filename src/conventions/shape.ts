@@ -4,7 +4,7 @@
 import { existsSync } from "node:fs"
 import { basename, dirname, resolve } from "node:path"
 import { readTextFile } from "../read-text"
-import { findBareFileNames, findCodeFileTargets, hasWrappedOwner, lacksRoutingColon, linkedTargets, readIndexRows } from "./cells"
+import { findBareFileNames, findCodeFileTargets, hasRoutingColon, hasWrappedOwner, linkedTargets, readIndexRows } from "./cells"
 import {
   HISTORY_ANCHOR_HEADER,
   HISTORY_COLUMNS,
@@ -22,7 +22,7 @@ import {
   columnIndex,
   findColumnCountMismatches,
   findTable,
-  outsideFenceMask,
+  buildOutsideFenceMask,
   type CarrierState,
 } from "./format"
 
@@ -87,7 +87,7 @@ function columnCountDefects(state: CarrierState): ShapeDefect[] {
   for (const file of files) {
     if (!existsSync(file)) continue
     const lines = readTextFile(file).split(/\r?\n/)
-    const mask = outsideFenceMask(lines)
+    const mask = buildOutsideFenceMask(lines)
     // 围栏内行替换为空行占位：既跳过检测又保留行号，与 filledTableLines 口径一致
     const scrubbed = lines.map((line, i) => (mask[i] ? line : ""))
     const mismatches = findColumnCountMismatches(scrubbed)
@@ -110,7 +110,7 @@ function straySourceDefects(state: CarrierState): ShapeDefect[] {
   for (const file of files) {
     if (!existsSync(file)) continue
     const lines = readTextFile(file).split(/\r?\n/)
-    const mask = outsideFenceMask(lines)
+    const mask = buildOutsideFenceMask(lines)
     // 围栏内行按示例处理：跳过后行号仍与文件实际行号对齐
     const hits: number[] = []
     lines.forEach((line, i) => {
@@ -185,7 +185,7 @@ function indexCellDefects(state: CarrierState): ShapeDefect[] {
     report(ownerRows.map((row) => row.line), `${INDEX_FILE}「${OWNER_HEADER}」列含反引号或链接（如 ${ownerRows[0]!.owner}）：该列只填裸值；执行 toolkit conventions format 可机械归一`)
   }
 
-  const semanticRows = rows.filter((row) => lacksRoutingColon(row.semantic))
+  const semanticRows = rows.filter((row) => !hasRoutingColon(row.semantic))
   if (semanticRows.length > 0) {
     report(
       semanticRows.map((row) => row.line),

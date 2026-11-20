@@ -238,7 +238,7 @@ function fenceOf(line: string): { char: string; len: number } | null {
 }
 
 // 标注各行是否位于 fenced code block 之外：代码块内的行不参与归一（表格样例须原样保留）；供归一与形态检测共用
-export function outsideFenceMask(lines: string[]): boolean[] {
+export function buildOutsideFenceMask(lines: string[]): boolean[] {
   const mask = lines.map(() => true)
   let fence: { char: string; len: number } | null = null
   for (let i = 0; i < lines.length; i++) {

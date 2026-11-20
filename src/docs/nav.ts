@@ -228,7 +228,7 @@ export function checkDocsNav(
   docsDir: string,
   options: { schemaFile?: string; config?: Partial<DocsNavConfig>; rules?: Record<string, RuleSetting> } = {},
 ): NavCheckResult {
-  const cfg: DocsNavConfig = { ...DEFAULT_DOCS_NAV, ...options.config }
+  const config: DocsNavConfig = { ...DEFAULT_DOCS_NAV, ...options.config }
   const rules = options.rules ?? {}
   const problems: DocsProblem[] = []
   const navFile = siteNavFile(docsDir)
@@ -283,13 +283,13 @@ export function checkDocsNav(
     // 语言包形态才标出语言键，单语言站的提示保持原样
     const tag = multiLocale ? `[${locale.key}] ` : ""
     const { nav } = locale
-    if (nav.length > cfg.maxItems) add("nav/max-items", `${tag}顶栏一级项 ${nav.length} 个，超过 ${cfg.maxItems} 个`)
+    if (nav.length > config.maxItems) add("nav/max-items", `${tag}顶栏一级项 ${nav.length} 个，超过 ${config.maxItems} 个`)
 
     // 语言相关规则需要该语言的期望文案：root 用默认口径，其余语言包须显式声明
     const expect =
       locale.key === "root"
-        ? { firstItem: cfg.firstItem, lastItem: cfg.lastItem, helpChildren: cfg.helpChildren }
-        : cfg.locales[locale.key]
+        ? { firstItem: config.firstItem, lastItem: config.lastItem, helpChildren: config.helpChildren }
+        : config.locales[locale.key]
     if (!expect?.firstItem || !expect.lastItem || !expect.helpChildren) {
       add("nav/locale-unconfigured", `${tag}该语言包未在 .toolkitrc 的 docs.locales 中声明首末项与帮助项，跳过语言相关规则`, "warn")
     } else {
@@ -312,7 +312,7 @@ export function checkDocsNav(
     }
 
     for (const name of [...collectNavGroupNames(nav), ...sidebarGroups(locale.sidebar).map((group) => group.text)]) {
-      if (hanCount(name) > cfg.maxGroupHan) add("nav/group-name-length", `${tag}分组名「${name}」超过 ${cfg.maxGroupHan} 个汉字`)
+      if (hanCount(name) > config.maxGroupHan) add("nav/group-name-length", `${tag}分组名「${name}」超过 ${config.maxGroupHan} 个汉字`)
     }
   }
 
@@ -330,9 +330,9 @@ export function checkDocsNav(
   // 页面体量只告警：拆分判据涉及读者与主题，机器不宜阻断
   // 遍历范围走共用判据（跳过依赖、产物与 gitignore 目录），站点自有的 cache / public 一并排除
   for (const page of walkFiles(docsDir, (name) => name.endsWith(".md"), { exclude: ["cache", "public"] })) {
-    if (cfg.pageSizeExclude.includes(page.split(/[\\/]/).pop() ?? "")) continue
+    if (config.pageSizeExclude.includes(page.split(/[\\/]/).pop() ?? "")) continue
     const lines = readTextFile(page).replace(/\r\n/g, "\n").split("\n").length
-    if (lines > cfg.maxPageLines) add("nav/page-size", `页面超过 ${cfg.maxPageLines} 行（${lines} 行），考虑拆分`, "warn", displayPath(page))
+    if (lines > config.maxPageLines) add("nav/page-size", `页面超过 ${config.maxPageLines} 行（${lines} 行），考虑拆分`, "warn", displayPath(page))
   }
 
   return {

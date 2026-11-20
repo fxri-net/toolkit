@@ -1,8 +1,9 @@
 // 技能操作锁：安装 / 卸载时防止多进程同时改写状态与产物
 // 全局锁 ~/.agents/.toolkit-skills.lock、项目锁 <repo>/.toolkit/skills.lock；5 分钟过期，记录 pid / host / startedAt
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { hostname } from "node:os"
 import { dirname, join } from "node:path"
+import { readTextFile } from "../read-text"
 
 // 锁文件名：与上游安装器的锁文件分开命名
 export const SKILLS_LOCK_FILE = ".toolkit-skills.lock"
@@ -32,7 +33,7 @@ export function projectSkillsLockFile(root: string): string {
 function readLock(file: string): LockInfo | null {
   if (!existsSync(file)) return null
   try {
-    const parsed = JSON.parse(readFileSync(file, "utf8")) as Partial<LockInfo>
+    const parsed = JSON.parse(readTextFile(file)) as Partial<LockInfo>
     if (typeof parsed.pid !== "number" || typeof parsed.host !== "string" || typeof parsed.startedAt !== "string") return null
     return { pid: parsed.pid, host: parsed.host, startedAt: parsed.startedAt }
   } catch {
@@ -70,6 +71,7 @@ export function acquireSkillsLock(file: string): () => void {
   const info: LockInfo = { pid: process.pid, host: hostname(), startedAt: new Date().toISOString() }
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
+      // 例外：锁文件用 O_EXCL 原子创建（flag: wx）作为互斥手段，不能换成先写临时文件再 rename 的原子写
       writeFileSync(file, `${JSON.stringify(info, null, 2)}\n`, { flag: "wx" })
       return () => releaseLock(file, info)
     } catch (e) {

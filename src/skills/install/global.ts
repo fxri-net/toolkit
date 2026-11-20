@@ -4,13 +4,13 @@ import { dirname, join } from "node:path"
 import { getHomeDir } from "../../config"
 import { readTextFile } from "../../read-text"
 import { writeFileAtomic } from "../../write-atomic"
-import { assertUniqueSkillNames, buildSkillGateShell, classifyExisting, dirsEqual, isEmptyDir, isSkillGateShell, pathKey, pathPresent, readSkillDescription, removeArtifact, resolveSkillTargets, resolveTargetsByName, skillTargetLabel, skillsSourceDir, sourceSkillItems, targetId, writeArtifact, writeGateArtifact, type SkillSource } from "../source"
+import { assertUniqueSkillNames, buildSkillGateShell, classifyExisting, isSameDir, isEmptyDir, isSkillGateShell, pathKey, isPathPresent, readSkillDescription, removeArtifact, resolveSkillTargets, resolveTargetsByName, skillTargetLabel, skillsSourceDir, sourceSkillItems, targetId, writeArtifact, writeGateArtifact, type SkillSource } from "../source"
 import { acquireSkillsLock, skillsLockFile } from "../lock"
 import { readSkillsState, skillsStateFile, writeSkillsState } from "../state"
 import { readSkillsInstallConfig, writeSkillsInstallConfig } from "../config"
 import { isSkillGated, resolveGateSetting } from "../gate"
 import { SKILL_ENTRY, STATE_FORMAT, STATE_SCHEMA_VERSION, type InstallReport, type RemoveResult, type SkillStateEntry, type SkillStateSource, type SkillStateTarget, type SkillItem, type SkillsRemoveReport, type TargetInstallResult } from "../types"
-import { collectSources, filterSkillItems, orphanArtifactRemovable, pruneEntries, sourceSkillMap, type InstallOptions, type RemoveSkillsOptions } from "./common"
+import { collectSources, filterSkillItems, canRemoveOrphanArtifact, pruneEntries, sourceSkillMap, type InstallOptions, type RemoveSkillsOptions } from "./common"
 
 
 export function installSkills(options: InstallOptions = {}): InstallReport {
@@ -137,7 +137,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
             result.conflicts.push(item.name)
             continue
           }
-          if (recordedCopyHere && dirsEqual(item.dir, dest)) {
+          if (recordedCopyHere && isSameDir(item.dir, dest)) {
             result.skipped.push(item.name)
             result.copies.push(item.name)
             entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: "copy" }])
@@ -181,7 +181,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
           const dest = join(target.dir, old)
           const kind = classifyExisting(dest, item.linkTarget, undefined, item.dir)
           if (kind === "absent") continue
-          const removable = kind === "dangling" || kind === "link-ok" || (kind === "dir" && existsSync(item.dir) && dirsEqual(item.dir, dest))
+          const removable = kind === "dangling" || kind === "link-ok" || (kind === "dir" && existsSync(item.dir) && isSameDir(item.dir, dest))
           if (!removable) {
             // 不以 conflicts 呈现：--force 对旧名副本无效，按失败条目给出人工清理指引
             result.failed.push({ name: old, reason: `旧名产物无法确认归属，需人工清理：${dest}` })
@@ -212,7 +212,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
           const entries = [
             ...(entriesBySource.get(source.name) ?? []),
             ...(previousTarget?.entries.filter(
-              (entry) => !selected.has(entry.name) && !prunedSet.has(entry.name) && !removedAliases.has(entry.name) && pathPresent(join(target.dir, entry.name)),
+              (entry) => !selected.has(entry.name) && !prunedSet.has(entry.name) && !removedAliases.has(entry.name) && isPathPresent(join(target.dir, entry.name)),
             ) ?? []),
           ]
           if (entries.length > 0) {
@@ -503,7 +503,7 @@ export function removeSkills(options: RemoveSkillsOptions = {}): SkillsRemoveRep
           // 闸门入口壳与本包其它产物同属登记范围：目录内容与真源不同，按标记确认归属
           const gateFile = join(dest, SKILL_ENTRY)
           const gateDir = kind === "dir" && entry.mode === "gate" && existsSync(gateFile) && isSkillGateShell(readTextFile(gateFile))
-          if (kind === "wrong" || kind === "file" || (kind === "dir" && !dirsEqual(skill.dir, dest) && !gateDir)) {
+          if (kind === "wrong" || kind === "file" || (kind === "dir" && !isSameDir(skill.dir, dest) && !gateDir)) {
             result.skippedForeign.push(entry.name)
             kept.push(entry)
             continue
@@ -556,7 +556,7 @@ export function removeSkills(options: RemoveSkillsOptions = {}): SkillsRemoveRep
       for (const name of [...wanted].filter((item) => !registered.has(item))) {
         for (const dir of dirs) {
           const dest = join(dir, name)
-          if (!orphanArtifactRemovable(dest, [...roots])) continue
+          if (!canRemoveOrphanArtifact(dest, [...roots])) continue
           if (!options.dryRun) {
             try {
               removeArtifact(dest)

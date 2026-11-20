@@ -3,7 +3,7 @@
 // 判定函数与 conventions status / tasks check 的软告警共用，避免两处各写一份口径
 import { existsSync } from "node:fs"
 import { basename, join, relative } from "node:path"
-import { columnIndex, findTable, INDEX_ANCHOR_HEADER, NAME_HEADER, OWNER_HEADER, outsideFenceMask, SOURCE_HEADER } from "./format"
+import { columnIndex, findTable, INDEX_ANCHOR_HEADER, NAME_HEADER, OWNER_HEADER, buildOutsideFenceMask, SOURCE_HEADER } from "./format"
 
 // 行内代码与链接整体占位：裸文件名的判定须跳过它们内部，否则会误命中的链接目标
 const CODE_OR_LINK_RE = /(`[^`\n]*`|\[[^\]\n]*\]\([^)\n]*\))/g
@@ -51,9 +51,9 @@ export function hasWrappedOwner(cell: string): boolean {
   return /`|\[[^\]]*\]\([^)]*\)/.test(cell)
 }
 
-// 当前语义缺全角冒号（规范形态「何时适用：一句话要求」）
-export function lacksRoutingColon(cell: string): boolean {
-  return cell.trim() !== "" && !cell.includes("：")
+// 当前语义含全角冒号（规范形态「何时适用：一句话要求」）
+export function hasRoutingColon(cell: string): boolean {
+  return cell.trim() !== "" && cell.includes("：")
 }
 
 // 单一事实源里的链接目标（按载体目录解析后的绝对路径），供归属一致性核对使用
@@ -111,7 +111,7 @@ export interface CellNormalizeResult {
 export function normalizeIndexCells(content: string, dir: string, repoRoot: string, label: string): CellNormalizeResult {
   const eol = content.includes("\r\n") ? "\r\n" : "\n"
   const lines = content.split(/\r?\n/)
-  const mask = outsideFenceMask(lines)
+  const mask = buildOutsideFenceMask(lines)
   const table = findTable(lines, INDEX_ANCHOR_HEADER)
   // 表未定位、或定位到的表在代码块内（示例）时不动
   if (!table || !mask[table.headerLine]) return { content, changedLines: [], warnings: [] }
@@ -133,7 +133,7 @@ export function normalizeIndexCells(content: string, dir: string, repoRoot: stri
     if (sourceIdx !== -1) {
       next[sourceIdx] = normalizeSourceCell(next[sourceIdx] ?? "", dir, repoRoot, `${label} 行 ${lineIndex + 1}`, warnings)
     }
-    if (semanticIdx !== -1 && lacksRoutingColon(next[semanticIdx] ?? "")) {
+    if (semanticIdx !== -1 && !hasRoutingColon(next[semanticIdx] ?? "")) {
       warnings.push(`${label} 行 ${lineIndex + 1}：条目 ${id} 的「当前语义」缺全角冒号，应写作「何时适用：一句话要求」（语义重写须人工确认，未自动改写）`)
     }
     if (next.some((cell, index) => cell !== cells[index])) {
@@ -158,7 +158,7 @@ export interface IndexCellRow {
 // 读出索引表的逐行单元格；表未定位或落在代码块内时返回空集
 export function readIndexRows(content: string): IndexCellRow[] {
   const lines = content.split(/\r?\n/)
-  const mask = outsideFenceMask(lines)
+  const mask = buildOutsideFenceMask(lines)
   const table = findTable(lines, INDEX_ANCHOR_HEADER)
   if (!table || !mask[table.headerLine]) return []
   const pick = (cells: string[], header: string): string => {

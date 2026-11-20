@@ -3,7 +3,7 @@ import { existsSync, lstatSync, mkdirSync, readlinkSync } from "node:fs"
 import { dirname, isAbsolute, join, resolve } from "node:path"
 import { writeFileAtomic } from "../../write-atomic"
 import { readTextFile } from "../../read-text"
-import { assertUniqueSkillNames, classifyExisting, copyArtifact, currentSkillShellVersion, dirsEqual, expandSkillRequires, isInside, isSkillGateShell, isToolkitArtifactLink, pathKey, readSkillShellVersion, removeArtifact, resolveBuiltinSource, resolveLocalSource, resolveSource, sourceSkillItems, stripTailSep, type SkillSource } from "../source"
+import { assertUniqueSkillNames, classifyExisting, copyArtifact, currentSkillShellVersion, isSameDir, expandSkillRequires, isInside, isSkillGateShell, isToolkitArtifactLink, pathKey, readSkillShellVersion, removeArtifact, resolveBuiltinSource, resolveLocalSource, resolveSource, sourceSkillItems, stripTailSep, type SkillSource } from "../source"
 import { readSkillsInstallConfig } from "../config"
 import { BUILTIN_SOURCE, SKILL_ENTRY, type GateRules, type ProjectDirResult, type SkillStateSource, type SkillStateTarget, type SkillItem, type SkillsMode } from "../types"
 
@@ -134,7 +134,7 @@ export function pruneEntries(
     // 闸门入口壳内容与真源不同，按标记确认归属后才算可清理
     const gateFile = join(dest, SKILL_ENTRY)
     const gateConsistent = entry.mode === "gate" && kind === "dir" && existsSync(gateFile) && isSkillGateShell(readTextFile(gateFile))
-    const consistent = kind === "link-ok" || (kind === "dir" && existsSync(skill.dir) && dirsEqual(skill.dir, dest)) || gateConsistent
+    const consistent = kind === "link-ok" || (kind === "dir" && existsSync(skill.dir) && isSameDir(skill.dir, dest)) || gateConsistent
     if (!consistent) continue
     try {
       removeArtifact(dest)
@@ -160,7 +160,7 @@ export function sourceSkillMap(name: string, source: SkillStateSource): Map<stri
 
 // 未登记旧名的兜底判定：只认本工具形态链接（技能源缓存 / 本包目录）或指向已登记来源根的链接
 // 用户显式点名才走到这里，仍要求形态可确认归属，避免误删用户自装产物
-export function orphanArtifactRemovable(dest: string, roots: string[]): boolean {
+export function canRemoveOrphanArtifact(dest: string, roots: string[]): boolean {
   if (isToolkitArtifactLink(dest)) return true
   try {
     if (!lstatSync(dest).isSymbolicLink()) return false
@@ -188,7 +188,7 @@ export function applySourceCopy(source: string, dest: string, recorded: boolean,
     if (!dryRun) copyArtifact(source, dest)
     return "created"
   }
-  if (dirsEqual(source, dest)) return "skipped"
+  if (isSameDir(source, dest)) return "skipped"
   if (!recorded && !force) return "conflict"
   if (!dryRun) {
     removeArtifact(dest)
@@ -218,12 +218,12 @@ export function applyShell(file: string, expected: string, force: boolean, dryRu
 // 项目侧安装：真源副本（仓库内唯一一份，入库）+ 各候选目录薄壳（指向真源）
 // 真源只此一份，其余目录放薄壳引用，避免多份副本互相漂移
 
-export function consistentSourceCopy(dest: string, sourceDir: string | undefined): boolean {
-  return Boolean(sourceDir) && dirsEqual(sourceDir as string, dest)
+export function isConsistentSourceCopy(dest: string, sourceDir: string | undefined): boolean {
+  return Boolean(sourceDir) && isSameDir(sourceDir as string, dest)
 }
 
 // 薄壳一致性：带本包标记即可安全删除（内容已由真源派生，不逐字比对）
-export function consistentShell(skillDir: string): boolean {
+export function isConsistentShell(skillDir: string): boolean {
   try {
     return readSkillShellVersion(readTextFile(join(skillDir, SKILL_ENTRY))) !== null
   } catch {

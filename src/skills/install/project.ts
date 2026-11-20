@@ -2,12 +2,12 @@
 import { existsSync, rmSync } from "node:fs"
 import { join, resolve } from "node:path"
 import { readTextFile } from "../../read-text"
-import { assertUniqueSkillNames, buildSkillShell, isEmptyDir, isInside, listPackageSkills, pathPresent, readSkillDescription, readSkillShellVersion, removeArtifact, resolveProjectTargets, sourceSkillItems, toRepoRel } from "../source"
+import { assertUniqueSkillNames, buildSkillShell, isEmptyDir, isInside, listPackageSkills, isPathPresent, readSkillDescription, readSkillShellVersion, removeArtifact, resolveProjectTargets, sourceSkillItems, toRepoRel } from "../source"
 import { acquireSkillsLock, projectSkillsLockFile } from "../lock"
 import { projectStateFile, readProjectState, removeProjectStateFile, writeProjectState } from "../state"
 import { readProjectSkillsConfig, writeProjectSkillsConfig } from "../config"
 import { BUILTIN_SOURCE, SKILL_ENTRY, type ProjectDirResult, type ProjectInstallReport, type ProjectRemoveReport, type ProjectRemoveResult, type SkillStateEntry, type SkillStateSource, type SkillStateTarget, type SkillsMode } from "../types"
-import { applyShell, applySourceCopy, collectSources, consistentShell, consistentSourceCopy, filterSkillItems, pruneEntries, recordAction, type ExternalSourceOption } from "./common"
+import { applyShell, applySourceCopy, collectSources, isConsistentShell, isConsistentSourceCopy, filterSkillItems, pruneEntries, recordAction, type ExternalSourceOption } from "./common"
 
 
 export interface ProjectInstallOptions {
@@ -114,7 +114,7 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
       const previousTarget = prevTarget(item.name, "source", targets.sourceDir)
       const entries = [
         ...(sourceEntriesBySource.get(item.name) ?? []),
-        ...(previousTarget?.entries.filter((entry) => !selected.has(entry.name) && !prunedSource.has(entry.name) && pathPresent(join(sourceAbs, entry.name))) ?? []),
+        ...(previousTarget?.entries.filter((entry) => !selected.has(entry.name) && !prunedSource.has(entry.name) && isPathPresent(join(sourceAbs, entry.name))) ?? []),
       ]
       if (entries.length > 0) nextBySource.get(item.name)!.push({ id: "source", dir: targets.sourceDir, label: "真源副本", kind: "source", entries })
     }
@@ -178,7 +178,7 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
         const previousTarget = prevTarget(source.name, "shell", dir)
         const entries = [
           ...(entriesBySource.get(source.name) ?? []),
-          ...(previousTarget?.entries.filter((entry) => !selected.has(entry.name) && !pruned.has(entry.name) && pathPresent(join(root, dir, entry.name))) ?? []),
+          ...(previousTarget?.entries.filter((entry) => !selected.has(entry.name) && !pruned.has(entry.name) && isPathPresent(join(root, dir, entry.name))) ?? []),
         ]
         if (entries.length > 0) nextBySource.get(source.name)!.push({ id: dir, dir, label: "薄壳", kind: "shell", entries })
       }
@@ -347,7 +347,7 @@ export function removeProjectSkills(options: { cwd?: string; dryRun?: boolean; s
           changed = true
           continue
         }
-        const consistent = target.kind === "source" ? consistentSourceCopy(skillDir, sourceByName.get(entry.name)) : consistentShell(skillDir)
+        const consistent = target.kind === "source" ? isConsistentSourceCopy(skillDir, sourceByName.get(entry.name)) : isConsistentShell(skillDir)
         if (!consistent) {
           result.skippedForeign.push(entry.name)
           kept.push(entry)

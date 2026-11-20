@@ -83,10 +83,10 @@ function loadConfig(): RedactConfig | null {
 // 规则缓存（自定义规则 + 内置规则合成后的结果）；库形态长驻进程/测试中需响应配置变更，故不缓存
 // （正则编译开销可忽略，配置本身由 config.ts 统一缓存，变更后可 resetToolkitConfigCache 失效）
 function getRules(): RedactRule[] {
-  const cfg = loadConfig()
-  const disabled = new Set(cfg?.disable ?? [])
+  const config = loadConfig()
+  const disabled = new Set(config?.disable ?? [])
   const custom: RedactRule[] = []
-  for (const r of cfg?.rules ?? []) {
+  for (const r of config?.rules ?? []) {
     try {
       custom.push({ name: r.name, pattern: new RegExp(r.pattern, r.flags ?? ""), replacement: r.replacement })
     } catch {

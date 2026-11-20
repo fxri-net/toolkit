@@ -1,4 +1,6 @@
-import { readFileSync, readdirSync, writeFileSync } from "node:fs"
+import { readdirSync } from "node:fs"
+import { readTextFile } from "../read-text"
+import { writeFileAtomic } from "../write-atomic"
 import { collectChangelogs, type CollectOptions } from "./collect"
 import { redactText } from "../privacy/redact"
 import { todayDash } from "../date"
@@ -56,7 +58,7 @@ export function formatChangelog(
   redact = true,
   history = false,
 ): boolean {
-  const raw = readFileSync(file, "utf8")
+  const raw = readTextFile(file)
   // 记录原换行符（LF/CRLF），统一按 LF 处理后原样还原，避免 Windows 下出现混合换行
   const eol = raw.includes("\r\n") ? "\r\n" : "\n"
   // 归一化后的原始内容作为「是否有净改动」的判定基线
@@ -121,7 +123,7 @@ export function formatChangelog(
   // 写回前对变更条目等自由文本脱敏（redact=false 时原样返回）
   const output = redactText(next, redact)
   if (output !== baseline) {
-    writeFileSync(file, output.replace(/\n/g, eol), "utf8")
+    writeFileAtomic(file, output.replace(/\n/g, eol))
     return true
   }
   return false
@@ -155,7 +157,7 @@ export function countUntypedEntries(dir: string, langs: ChangelogLanguage[], col
   const extra = extraPrefixes(langs.flatMap((lang) => lang.groups ?? []))
   let count = 0
   for (const file of collectChangelogs(dir, collect)) {
-    const { blocks } = parseBlocks(normalize(readFileSync(file, "utf8")).split("\n"))
+    const { blocks } = parseBlocks(normalize(readTextFile(file)).split("\n"))
     for (const block of blocks) {
       for (const section of block.sections) {
         if (SOURCE_GROUP_SLOTS[section.title] === undefined) continue
@@ -195,7 +197,7 @@ export function findUntypedChangesetEntries(dir: string, langs: ChangelogLanguag
   }
   for (const name of names.sort()) {
     const file = `${dir}/${name}`
-    const lines = readFileSync(file, "utf8").replace(/\r\n/g, "\n").split("\n")
+    const lines = readTextFile(file).replace(/\r\n/g, "\n").split("\n")
     // 跳过 YAML frontmatter（首行 --- 到其配对 ---），使行号与原文对齐
     let start = 0
     if ((lines[0] ?? "").trim() === "---") {
@@ -235,7 +237,7 @@ export function findUnbulletedChangesetEntries(dir: string): UntypedChangesetEnt
   }
   for (const name of names.sort()) {
     const file = `${dir}/${name}`
-    const lines = readFileSync(file, "utf8").replace(/\r\n/g, "\n").split("\n")
+    const lines = readTextFile(file).replace(/\r\n/g, "\n").split("\n")
     // 跳过 YAML frontmatter（首行 --- 到其配对 ---），使行号与原文对齐
     let start = 0
     if ((lines[0] ?? "").trim() === "---") {

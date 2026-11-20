@@ -204,7 +204,7 @@ function collectExtraFields(rec: Record<string, string>, title: string, warnings
 }
 
 // 规范化一条导入记录：返回可写任务字段，非法/缺失项进入 warnings
-function normalizeRecord(rec: Record<string, string>, opts: ImportOptions, warnings: string[]): { ok: true; t: TaskWrite } | { ok: false } {
+function normalizeRecord(rec: Record<string, string>, options: ImportOptions, warnings: string[]): { ok: true; t: TaskWrite } | { ok: false } {
   const title = (rec.title || "").trim()
   if (!title) {
     warnings.push(`跳过一行：缺少任务名（${Object.entries(rec).slice(0, 3).map(([k, v]) => `${k}=${v}`).join(" ")}）`)
@@ -220,9 +220,9 @@ function normalizeRecord(rec: Record<string, string>, opts: ImportOptions, warni
     warnings.push(`任务「${title}」带完成时间但状态为「${status}」，已置为已完成`)
     status = "已完成"
   }
-  let owner = (rec.owner || "").trim() || opts.owner || ""
+  let owner = (rec.owner || "").trim() || options.owner || ""
   owner = owner.replace(/\s+/g, "")
-  const scope = (rec.scope || "").trim() || opts.scope || "-"
+  const scope = (rec.scope || "").trim() || options.scope || "-"
   // 范围字段形态入口提示：表格单元格常见顿号/逗号列表写法，此处只提示不自动转换（转换存在「分隔还是内容」的语义二义）
   if (rec.scope && /[、，,()（）]/.test(rec.scope.trim())) {
     warnings.push(`任务「${title}」范围「${rec.scope.trim()}」含顿号/逗号/括号，将按单值写入；多值请用半角加号（如 web+server），括号注释请移入正文`)
@@ -336,11 +336,11 @@ function writeArchiveGroup(tasksDir: string, date: string, incoming: ArchiveBloc
 }
 
 // 导入主入口：file 扩展名决定解析方式（csv/xlsx/json），返回创建/跳过统计
-export async function importTasks(file: string, tasksDir = ".tasks", opts: ImportOptions = {}): Promise<ImportResult> {
-  const dryRun = !!opts.dryRun
+export async function importTasks(file: string, tasksDir = ".tasks", options: ImportOptions = {}): Promise<ImportResult> {
+  const dryRun = !!options.dryRun
   const warnings: string[] = []
   // 自定义列映射与内置别名一致按小写匹配（列名不区分大小写），避免英文大写键失效
-  const custom = Object.fromEntries(Object.entries(opts.importColumns ?? {}).map(([k, v]) => [String(k).trim().toLowerCase(), String(v)]))
+  const custom = Object.fromEntries(Object.entries(options.importColumns ?? {}).map(([k, v]) => [String(k).trim().toLowerCase(), String(v)]))
   const ext = file.split(".").pop()?.toLowerCase()
   let records: Record<string, string>[]
   if (ext === "csv") {
@@ -361,7 +361,7 @@ export async function importTasks(file: string, tasksDir = ".tasks", opts: Impor
   let skipped = 0
   // 归档目标的放弃理由缺失记录：循环内只收集，循环外合并为一条告警，避免逐条刷屏
   const noAbandonReason: string[] = []
-  const target = opts.target ?? "active"
+  const target = options.target ?? "active"
   // archive 目标按目标日期聚合，循环结束后逐日期整文件写一次（同日多记录不再逐条 read→render→write）
   const archiveGroups = new Map<string, ArchiveBlockInfo[]>()
 
@@ -378,7 +378,7 @@ export async function importTasks(file: string, tasksDir = ".tasks", opts: Impor
 
   try {
     for (const rec of records) {
-      const norm = normalizeRecord(rec, opts, warnings)
+      const norm = normalizeRecord(rec, options, warnings)
       if (!norm.ok) {
         skipped++
         continue

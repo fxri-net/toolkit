@@ -1,6 +1,6 @@
 // init 命令实现：生成任务区骨架、规范载体与技能入口壳，补齐 .gitignore 片段
 // 重复执行幂等：业务文件已存在一律保持不覆盖；仅入口壳按标记版本分流（落后或无标记就地更新为当前版本）
-import { existsSync, readFileSync, mkdirSync, statSync } from "node:fs"
+import { existsSync, mkdirSync, statSync } from "node:fs"
 import { isAbsolute, join, relative, resolve } from "node:path"
 import { writeFileAtomic } from "./write-atomic"
 import { readTextFile } from "./read-text"
@@ -192,7 +192,7 @@ export function appendGitignore(cwd: string): InitProduct[] {
     writeFileAtomic(file, `${head.join("\n")}\n${GITIGNORE_ROWS.map((item) => item.row).join("\n")}\n`)
     return [{ target: ".gitignore", action: "created", detail: `已创建并写入 ${GITIGNORE_MARKER} 忽略片段（${cover}）` }]
   }
-  const raw = readFileSync(file, "utf8")
+  const raw = readTextFile(file)
   // 保留原换行风格；统一为 LF 后逐行判定，任一等价写法命中即该行已覆盖
   const eol = raw.includes("\r\n") ? "\r\n" : "\n"
   const lines = raw.replace(/\r\n/g, "\n").split("\n")
@@ -288,7 +288,7 @@ export function appendPrettierignore(cwd: string, root: string): InitProduct[] {
     writeFileAtomic(file, `${head}\n${row}\n`)
     return [{ target, action: "created", detail: `已创建并写入任务区排除行（${row}）` }]
   }
-  const raw = readFileSync(file, "utf8")
+  const raw = readTextFile(file)
   const eol = raw.includes("\r\n") ? "\r\n" : "\n"
   const lines = raw.replace(/\r\n/g, "\n").split("\n")
   if (lines.some((line) => norm(line) === dir)) {

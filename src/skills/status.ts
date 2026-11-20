@@ -7,7 +7,7 @@ import {
   buildSkillShell,
   classifyExisting,
   currentSkillShellVersion,
-  dirsEqual,
+  isSameDir,
   findSkillVersionMismatches,
   isEmptyDir,
   isSkillGateShell,
@@ -252,7 +252,7 @@ function statusItems(
         // 壳文本与当前期望不一致（CLI 升级、描述变更或手改）即视为过期，由 install 按内容比对刷新
         const expected = ref ? buildSkillGateShell(name, readSkillDescription(ref.dir)) : null
         state = gateContent !== null && isSkillGateShell(gateContent) && (expected === null || gateContent === expected) ? "gate" : "gate-drift"
-      } else if (ref && existsSync(ref.dir) && dirsEqual(ref.dir, dest)) state = isSelected ? "copy" : "installed-unselected"
+      } else if (ref && existsSync(ref.dir) && isSameDir(ref.dir, dest)) state = isSelected ? "copy" : "installed-unselected"
       else state = entries.get(name)?.mode === "copy" ? "copy-drift" : "conflict"
     } else state = isSelected ? "missing" : "not-selected"
     if (state !== "not-selected") items.push({ name, state, version: ref?.version ?? "", source: ref?.source ?? "" })
@@ -432,7 +432,7 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
     const dest = join(root, targets.sourceDir, name)
     let stateName: ProjectItemState
     if (!existsSync(dest)) stateName = sourceSelected.has(name) ? "missing" : "not-selected"
-    else if (ref && dirsEqual(ref.dir, dest)) stateName = sourceSelected.has(name) ? "ready" : "installed-unselected"
+    else if (ref && isSameDir(ref.dir, dest)) stateName = sourceSelected.has(name) ? "ready" : "installed-unselected"
     else stateName = sourceRecorded.has(name) ? "drift" : "conflict"
     if (stateName !== "not-selected") sourceItems.push({ name, state: stateName, version: ref?.version ?? "", source: ref?.source ?? "" })
   }

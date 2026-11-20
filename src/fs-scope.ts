@@ -1,6 +1,7 @@
 // 目录遍历范围判据：决定哪些目录不属于本仓自身的包，供 CHANGELOG 收集与文档页收集共用
 // 判据与 git 跟踪状态解耦：把依赖目录提交进版本库的项目同样不参与遍历
-import { readFileSync, readdirSync } from "node:fs"
+import { readdirSync } from "node:fs"
+import { readTextFile } from "./read-text"
 import { join, resolve } from "node:path"
 import { gitIgnoredDirs, toPosix } from "./git-ignore"
 
@@ -38,7 +39,7 @@ export type DirSkipper = (name: string, rel: string, abs: string) => boolean
 // 读取 composer 自定义依赖目录：config.vendor-dir 可改名，改名后内置的 vendor 判据需相应跟随
 function composerVendorDir(root: string): string[] {
   try {
-    const parsed = JSON.parse(readFileSync(join(root, "composer.json"), "utf8")) as { config?: { "vendor-dir"?: unknown } }
+    const parsed = JSON.parse(readTextFile(join(root, "composer.json"))) as { config?: { "vendor-dir"?: unknown } }
     const value = parsed.config?.["vendor-dir"]
     if (typeof value !== "string" || value.trim() === "") return []
     // 归一为仓库相对路径，供前缀比对；绝对路径与 ../ 越界写法不作判据

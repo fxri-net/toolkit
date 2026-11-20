@@ -18,7 +18,7 @@ export function stripTailSep(p: string): string {
 
 // 分类现场产物：不存在 / 链接且指向真源或同内容目录 / 链接但指向其他版本 / 悬空链接 / 实体目录 / 普通文件
 
-export function pathPresent(p: string): boolean {
+export function isPathPresent(p: string): boolean {
   try {
     lstatSync(p)
     return true
@@ -59,12 +59,12 @@ export function isEmptyDir(dir: string): boolean {
 }
 
 // 两目录内容是否逐字一致（任一侧缺失即按不一致处理）
-export function sameDirContent(a: string, b: string): boolean {
-  return existsSync(a) && existsSync(b) && dirsEqual(a, b)
+export function isSameDirContent(a: string, b: string): boolean {
+  return existsSync(a) && existsSync(b) && isSameDir(a, b)
 }
 
 // 递归比对两个目录内容是否一致（用于副本幂等判断与漂移检测），任何读取失败按「不一致」处理
-export function dirsEqual(a: string, b: string): boolean {
+export function isSameDir(a: string, b: string): boolean {
   let aNames: string[]
   let bNames: string[]
   try {
@@ -87,7 +87,7 @@ export function dirsEqual(a: string, b: string): boolean {
     }
     if (sa.isDirectory() !== sb.isDirectory()) return false
     if (sa.isDirectory()) {
-      if (!dirsEqual(pa, pb)) return false
+      if (!isSameDir(pa, pb)) return false
     } else {
       try {
         if (!readFileSync(pa).equals(readFileSync(pb))) return false

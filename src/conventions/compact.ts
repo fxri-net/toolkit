@@ -7,7 +7,7 @@ import { dirname, join, relative, resolve } from "node:path"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
 import { normalizeIndexCells } from "./cells"
-import { CONVENTIONS_DIR, INDEX_FILE, isSeparatorRow, isTableRow, outsideFenceMask, splitRow } from "./format"
+import { CONVENTIONS_DIR, INDEX_FILE, isSeparatorRow, isTableRow, buildOutsideFenceMask, splitRow } from "./format"
 
 // 单文件归一结果：changedLines 为发生改动的 1 基行号
 export interface CompactResult {
@@ -60,7 +60,7 @@ export function compactTableLine(line: string): string {
 export function compactMarkdown(content: string): CompactResult {
   const eol = content.includes("\r\n") ? "\r\n" : "\n"
   const lines = content.split(/\r?\n/)
-  const mask = outsideFenceMask(lines)
+  const mask = buildOutsideFenceMask(lines)
   const changedLines: number[] = []
   for (let i = 0; i < lines.length; i++) {
     if (!mask[i]) continue
@@ -77,7 +77,7 @@ export function compactMarkdown(content: string): CompactResult {
 // 检出填充态表格行（1 基行号）：行内容与紧凑形态不等即视为被格式化器填充过
 export function filledTableLines(content: string): number[] {
   const lines = content.split(/\r?\n/)
-  const mask = outsideFenceMask(lines)
+  const mask = buildOutsideFenceMask(lines)
   const hits: number[] = []
   for (let i = 0; i < lines.length; i++) {
     if (!mask[i]) continue

@@ -1,5 +1,6 @@
 // 变更集净变更审计：找出同一对象上同时出现新增与修改 / 修复 / 优化的条目，只提示不自动改
-import { existsSync, readFileSync, readdirSync } from "node:fs"
+import { existsSync, readdirSync } from "node:fs"
+import { readTextFile } from "../read-text"
 import { join } from "node:path"
 
 // 参与净变更合并的类型：文档、清理、依赖与重大变更不参与
@@ -114,7 +115,7 @@ export function auditChangesets(dir = ".changeset"): AuditCandidate[] {
   const entries: AuditEntry[] = []
   for (const name of readdirSync(dir).sort()) {
     if (!name.endsWith(".md") || name === "README.md") continue
-    const content = readFileSync(join(dir, name), "utf8")
+    const content = readTextFile(join(dir, name))
     for (const line of content.split(/\r?\n/)) {
       const parsed = parseEntry(line)
       if (!parsed) continue
