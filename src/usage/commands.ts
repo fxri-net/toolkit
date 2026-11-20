@@ -1,5 +1,6 @@
 // 使用情况 CLI：配置开关、统计查询、导出导入、初始化向导与 Hook 管理
 import type { Command } from "commander"
+import { exitOnPromptCancel } from "../prompts"
 import { runUsageMenu } from "./wizard"
 import { flushQueue } from "./flush"
 import { registerUsageLifecycleCommands } from "./cli/lifecycle"
@@ -18,7 +19,8 @@ export function registerUsageCommands(program: Command): void {
     try {
       await runUsageMenu()
     } catch (error) {
-      // 交互组件加载失败等异常统一收口，避免英文堆栈直出
+      // 用户中断按 130 收口；其余异常统一提示，避免英文堆栈直出
+      if (exitOnPromptCancel(error)) return
       console.error(`⚠️ ${(error as Error).message}`)
       process.exitCode = 1
     }

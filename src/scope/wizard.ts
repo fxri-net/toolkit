@@ -2,7 +2,7 @@
 import { existsSync } from "node:fs"
 import { relative } from "node:path"
 import { canonicalPath, normalizePathForCompare } from "../git-ignore"
-import { isPromptCancel, loadPrompts } from "../prompts"
+import { askWithBack, loadPrompts } from "../prompts"
 import { BUILTIN_SOURCE, installProjectSkills, installSkills, listPackageSkills, readSkillsInstallConfig, writeSkillsInstallConfig } from "../skills"
 import { globalConfigPath, layerConfigTarget, readLayerConfig, writeLayerConfig, type ConfigLayer, type LayerConfigTarget } from "./config-file"
 import { formatStatus } from "./print"
@@ -41,11 +41,6 @@ function pathKey(input: string): string {
   return normalizePathForCompare(canonicalPath(input))
 }
 
-// 取消统一处理：内存态不变
-function cancelled(error: unknown): boolean {
-  return isPromptCancel(error)
-}
-
 // 交互前置：非 TTY 时给出可执行替代，不静默失败
 function requireTty(action: string, hint: string): void {
   if (process.stdin.isTTY && process.stdout.isTTY) return
@@ -60,11 +55,12 @@ export function printScopeStatus(): void {
   for (const line of formatStatus(report)) console.log(line)
 }
 
-// 选择规则归属：项目层 / 本地层在当前目录无法定位项目根时置灰并说明原因
+// 选择规则归属：项目层 / 本地层在当前目录无法定位项目根时置灰并说明原因；
+// 「返回」与 ESC 同义，回到作用域主菜单
 async function selectLayer(select: Awaited<ReturnType<typeof loadPrompts>>["select"]): Promise<ConfigLayer | null> {
   const project = layerConfigTarget("project")
   const local = layerConfigTarget("local")
-  const chosen = await select<ConfigLayer>({
+  const chosen = await select<ConfigLayer | "back">({
     message: "这套规则作用于",
     choices: [
       { name: `我所有的项目（全局 ${globalConfigPath()}）`, value: "global" },
@@ -78,19 +74,21 @@ async function selectLayer(select: Awaited<ReturnType<typeof loadPrompts>>["sele
         value: "local",
         disabled: local.available ? false : local.reason,
       },
+      { name: "← 返回", value: "back" },
     ],
   })
-  return chosen ?? null
+  return chosen === undefined || chosen === "back" ? null : chosen
 }
 
-// 扫描父目录并多选项目：0 结果时就地提供下探 / 隐藏 / 嵌套选项
+// 扫描父目录并多选项目：0 结果时就地提供下探 / 隐藏 / 嵌套选项；返回 null 表示回主菜单
 async function pickFromScan(
   input: Awaited<ReturnType<typeof loadPrompts>>["input"],
   checkbox: Awaited<ReturnType<typeof loadPrompts>>["checkbox"],
   select: Awaited<ReturnType<typeof loadPrompts>>["select"],
-): Promise<string[]> {
-  const answer = await input({ message: "要扫描的父目录（多个用逗号或换行分隔）", default: process.cwd() })
-  const requested = (answer ?? "")
+): Promise<string[] | null> {
+  const answer = await askWithBack(() => input({ message: "要扫描的父目录（多个用逗号或换行分隔）", default: process.cwd() }))
+  if ("back" in answer) return null
+  const requested = (answer.value ?? "")
     .split(/[,，;\n]/)
     .map((item) => item.trim())
     .filter(Boolean)
@@ -99,7 +97,7 @@ async function pickFromScan(
     console.error(`⚠️ 目录不存在：${parent}`)
     return false
   })
-  if (parents.length === 0) return []
+  if (parents.length === 0) return null
   let options: ScanOptions = {}
   let prompted = false
   for (;;) {
@@ -116,19 +114,21 @@ async function pickFromScan(
         return true
       })
     if (repos.length === 0) {
-      const next = await select<string>({
-        message: "未发现仓库，下一步",
-        choices: [
-          { name: "下探更深", value: "deeper" },
-          { name: "包含隐藏目录", value: "hidden" },
-          { name: "包含嵌套仓库", value: "nested" },
-          { name: "取消", value: "cancel" },
-        ],
-      })
-      if (next === "cancel" || next === undefined) return []
-      if (next === "deeper") options = { ...options, maxDepth: (options.maxDepth ?? 8) + 8 }
-      if (next === "hidden") options = { ...options, hidden: true }
-      if (next === "nested") options = { ...options, nested: true }
+      const next = await askWithBack(() =>
+        select<string>({
+          message: "未发现仓库，下一步",
+          choices: [
+            { name: "下探更深", value: "deeper" },
+            { name: "包含隐藏目录", value: "hidden" },
+            { name: "包含嵌套仓库", value: "nested" },
+            { name: "← 返回", value: "back" },
+          ],
+        }),
+      )
+      if ("back" in next || next.value === "back") return null
+      if (next.value === "deeper") options = { ...options, maxDepth: (options.maxDepth ?? 8) + 8 }
+      if (next.value === "hidden") options = { ...options, hidden: true }
+      if (next.value === "nested") options = { ...options, nested: true }
       continue
     }
     // 结果页固定展示跳过统计：让用户知道还有目录未被纳入，而不是只在空结果时提示
@@ -140,39 +140,49 @@ async function pickFromScan(
     // 只有确实跳过了隐藏目录时才打断；未展开仓库属默认剪枝的常态，只展示计数，避免每次扫描都弹选择
     if (!prompted && hiddenCount > 0) {
       prompted = true
-      const scopeChoice = await select<string>({
-        message: "是否调整扫描范围",
-        choices: [
-          { name: "保持跳过（默认）", value: "keep" },
-          { name: "包含隐藏目录", value: "hidden" },
-          { name: "包含嵌套仓库", value: "nested" },
-        ],
-      })
-      if (scopeChoice === "hidden") {
+      const scopeChoice = await askWithBack(() =>
+        select<string>({
+          message: "是否调整扫描范围",
+          choices: [
+            { name: "保持跳过（默认）", value: "keep" },
+            { name: "包含隐藏目录", value: "hidden" },
+            { name: "包含嵌套仓库", value: "nested" },
+            { name: "← 返回", value: "back" },
+          ],
+        }),
+      )
+      if ("back" in scopeChoice || scopeChoice.value === "back") return null
+      if (scopeChoice.value === "hidden") {
         options = { ...options, hidden: true }
         continue
       }
-      if (scopeChoice === "nested") {
+      if (scopeChoice.value === "nested") {
         options = { ...options, nested: true }
         continue
       }
     }
     if (repos.length > 30) {
-      const keyword = (await input({ message: `发现 ${repos.length} 个项目，可输入关键字过滤（留空不过滤）`, default: "" })) ?? ""
-      const needle = keyword.trim().toLowerCase()
+      const keywordAsk = await askWithBack(() =>
+        input({ message: `发现 ${repos.length} 个项目，可输入关键字过滤（留空不过滤）`, default: "" }),
+      )
+      if ("back" in keywordAsk) return null
+      const needle = (keywordAsk.value ?? "").trim().toLowerCase()
       if (needle) repos = repos.filter((repo) => repo.name.toLowerCase().includes(needle) || repo.path.toLowerCase().includes(needle))
     }
-    const picked = await checkbox<string>({
-      message: `选择项目（共 ${repos.length} 个，空格切换，回车确认）`,
-      choices: repos.map((repo) => ({
-        name: `${repo.name} · ${relativeToParents(parents, repo.path)}${repo.kind === "npm" ? " · 非 git" : ""}`,
-        value: repo.path,
-        checked: false,
-      })),
-      pageSize: 15,
-      required: false,
-    })
-    return picked ?? []
+    const picked = await askWithBack(() =>
+      checkbox<string>({
+        message: `选择项目（共 ${repos.length} 个，空格切换，回车确认）`,
+        choices: repos.map((repo) => ({
+          name: `${repo.name} · ${relativeToParents(parents, repo.path)}${repo.kind === "npm" ? " · 非 git" : ""}`,
+          value: repo.path,
+          checked: false,
+        })),
+        pageSize: 15,
+        required: false,
+      }),
+    )
+    if ("back" in picked) return null
+    return picked.value ?? []
   }
 }
 
@@ -185,10 +195,11 @@ function relativeToParents(parents: string[], target: string): string {
   return matched || target
 }
 
-// 手动输入目录：支持逗号 / 分号 / 换行分隔与 ~ 展开
-async function pickManual(input: Awaited<ReturnType<typeof loadPrompts>>["input"]): Promise<string[]> {
-  const answer = await input({ message: "输入目录（绝对路径或 ~，多个用逗号分隔）", default: "" })
-  return (answer ?? "")
+// 手动输入目录：支持逗号 / 分号 / 换行分隔与 ~ 展开；返回 null 表示回主菜单
+async function pickManual(input: Awaited<ReturnType<typeof loadPrompts>>["input"]): Promise<string[] | null> {
+  const answer = await askWithBack(() => input({ message: "输入目录（绝对路径或 ~，多个用逗号分隔）", default: "" }))
+  if ("back" in answer) return null
+  return (answer.value ?? "")
     .split(/[,，;\n]/)
     .map((item) => item.trim())
     .filter(Boolean)
@@ -214,15 +225,19 @@ async function applyDestinations(
   select: Awaited<ReturnType<typeof loadPrompts>>["select"],
   confirm: Awaited<ReturnType<typeof loadPrompts>>["confirm"],
 ): Promise<void> {
-  const destination = await select<string>({
-    message: "处理方式",
-    choices: [
-      { name: "加入白名单", value: "include" },
-      { name: "加入黑名单", value: "exclude" },
-      { name: "从名单移除", value: "remove" },
-      { name: "保持不动", value: "keep" },
-    ],
-  })
+  const destinationAsk = await askWithBack(() =>
+    select<string>({
+      message: "处理方式",
+      choices: [
+        { name: "加入白名单", value: "include" },
+        { name: "加入黑名单", value: "exclude" },
+        { name: "从名单移除", value: "remove" },
+        { name: "保持不动", value: "keep" },
+      ],
+    }),
+  )
+  if ("back" in destinationAsk) return
+  const destination = destinationAsk.value
   if (destination === "keep" || destination === undefined) return
   const include = stringList(activation.include)
   const exclude = stringList(activation.exclude)
@@ -233,11 +248,13 @@ async function applyDestinations(
   if (destination === "include") {
     const conflicts = exclude.filter((item) => keys.has(pathKey(item)))
     if (conflicts.length > 0) {
-      const move = await confirm({
-        message: `${conflicts.length} 个目录已在黑名单，移入白名单并从黑名单删除？`,
-        default: true,
-      })
-      if (!move) return
+      const moveAsk = await askWithBack(() =>
+        confirm({
+          message: `${conflicts.length} 个目录已在黑名单，移入白名单并从黑名单删除？`,
+          default: true,
+        }),
+      )
+      if ("back" in moveAsk || !moveAsk.value) return
       nextExclude = exclude.filter((item) => !keys.has(pathKey(item)))
     }
     nextInclude = appendUnique(include, dirs)
@@ -248,8 +265,10 @@ async function applyDestinations(
     nextInclude = include.filter((item) => !keys.has(pathKey(item)))
     nextExclude = exclude.filter((item) => !keys.has(pathKey(item)))
   }
-  const confirmed = await confirm({ message: `${describeChange(target, mode, nextInclude, nextExclude)}\n继续写入？`, default: true })
-  if (!confirmed) return
+  const confirmedAsk = await askWithBack(() =>
+    confirm({ message: `${describeChange(target, mode, nextInclude, nextExclude)}\n继续写入？`, default: true }),
+  )
+  if ("back" in confirmedAsk || !confirmedAsk.value) return
   writeLayerConfig(layer, { ...config, activation: { ...activation, mode, include: nextInclude, exclude: nextExclude } })
   console.log(`已写入 ${target.file}；运行 toolkit scope status 查看当前目录判定`)
 }
@@ -262,8 +281,10 @@ async function clearRestriction(
   activation: Record<string, unknown>,
   confirm: Awaited<ReturnType<typeof loadPrompts>>["confirm"],
 ): Promise<void> {
-  const confirmed = await confirm({ message: `${describeChange(target, "all", [], [])}\n继续写入？`, default: true })
-  if (!confirmed) return
+  const confirmedAsk = await askWithBack(() =>
+    confirm({ message: `${describeChange(target, "all", [], [])}\n继续写入？`, default: true }),
+  )
+  if ("back" in confirmedAsk || !confirmedAsk.value) return
   writeLayerConfig(layer, { ...config, activation: { ...activation, mode: "all", include: [], exclude: [] } })
   console.log(`已写入 ${target.file}：全部项目生效`)
 }
@@ -277,18 +298,24 @@ async function configureProjectScope(
   select: Awaited<ReturnType<typeof loadPrompts>>["select"],
   confirm: Awaited<ReturnType<typeof loadPrompts>>["confirm"],
 ): Promise<void> {
-  const choice = await select<string>({
-    message: "本项目是否生效",
-    choices: [
-      { name: "生效", value: "yes" },
-      { name: "不生效", value: "no" },
-    ],
-  })
-  if (choice === undefined) return
+  const choiceAsk = await askWithBack(() =>
+    select<string>({
+      message: "本项目是否生效",
+      choices: [
+        { name: "生效", value: "yes" },
+        { name: "不生效", value: "no" },
+        { name: "← 返回", value: "back" },
+      ],
+    }),
+  )
+  if ("back" in choiceAsk || choiceAsk.value === "back" || choiceAsk.value === undefined) return
+  const choice = choiceAsk.value
   const include = choice === "yes" && target.root ? [target.root] : []
   const exclude = stringList(activation.exclude)
-  const confirmed = await confirm({ message: `${describeChange(target, "allowlist", include, exclude)}\n继续写入？`, default: true })
-  if (!confirmed) return
+  const confirmedAsk = await askWithBack(() =>
+    confirm({ message: `${describeChange(target, "allowlist", include, exclude)}\n继续写入？`, default: true }),
+  )
+  if ("back" in confirmedAsk || !confirmedAsk.value) return
   writeLayerConfig(layer, { ...config, activation: { ...activation, mode: "allowlist", include, exclude } })
   console.log(`已写入 ${target.file}；运行 toolkit scope status 查看当前目录判定`)
 }
@@ -297,40 +324,41 @@ async function configureProjectScope(
 export async function runScopeSetScope(): Promise<void> {
   requireTty("设置生效范围", "请直接编辑配置文件的 activation 段；交互终端下可重跑 toolkit scope")
   const { select, checkbox, input, confirm } = await loadPrompts()
-  try {
-    const layer = await selectLayer(select)
-    if (!layer) return
-    const target = layerConfigTarget(layer)
-    const config = readLayerConfig(layer)
-    const activation = currentActivation(config)
-    if (layer !== "global") {
-      await configureProjectScope(layer, target, config, activation, select, confirm)
-      return
-    }
-    const action = await select<string>({
+  const layerAsk = await askWithBack(() => selectLayer(select))
+  if ("back" in layerAsk || !layerAsk.value) return
+  const layer = layerAsk.value
+  const target = layerConfigTarget(layer)
+  const config = readLayerConfig(layer)
+  const activation = currentActivation(config)
+  if (layer !== "global") {
+    await configureProjectScope(layer, target, config, activation, select, confirm)
+    return
+  }
+  const actionAsk = await askWithBack(() =>
+    select<string>({
       message: "操作",
       choices: [
         { name: "扫描项目并加入名单", value: "scan" },
         { name: "手动输入目录", value: "manual" },
         { name: "清除限制（全部生效）", value: "reset" },
-        { name: "取消", value: "cancel" },
+        { name: "← 返回", value: "back" },
       ],
-    })
-    if (action === "cancel" || action === undefined) return
-    if (action === "reset") {
-      await clearRestriction(layer, target, config, activation, confirm)
-      return
-    }
-    const raw = action === "scan" ? await pickFromScan(input, checkbox, select) : await pickManual(input)
-    const dirs = appendUnique([], raw.map((dir) => resolveComparablePath(dir)))
-    if (dirs.length === 0) {
-      console.log("未选择目录，已取消")
-      return
-    }
-    await applyDestinations(layer, target, config, activation, dirs, select, confirm)
-  } catch (error) {
-    if (!cancelled(error)) throw error
+    }),
+  )
+  if ("back" in actionAsk || actionAsk.value === "back" || actionAsk.value === undefined) return
+  const action = actionAsk.value
+  if (action === "reset") {
+    await clearRestriction(layer, target, config, activation, confirm)
+    return
   }
+  const raw = action === "scan" ? await pickFromScan(input, checkbox, select) : await pickManual(input)
+  if (raw === null) return
+  const dirs = appendUnique([], raw.map((dir) => resolveComparablePath(dir)))
+  if (dirs.length === 0) {
+    console.log("未选择目录，已取消")
+    return
+  }
+  await applyDestinations(layer, target, config, activation, dirs, select, confirm)
 }
 
 // 添加目录：带参数直接追加白名单（非交互，可指定配置层），无参进入完整流程
@@ -366,14 +394,9 @@ export async function runScopeRemove(dirs?: string[], layer?: ConfigLayer): Prom
   let targetLayer = layer
   if (!targetLayer) {
     requireTty("移除目录", "请改用 toolkit scope remove <dir>... --layer global|project|local")
-    try {
-      const chosen = await selectLayer(select)
-      if (!chosen) return
-      targetLayer = chosen
-    } catch (error) {
-      if (cancelled(error)) return
-      throw error
-    }
+    const layerAsk = await askWithBack(() => selectLayer(select))
+    if ("back" in layerAsk || !layerAsk.value) return
+    targetLayer = layerAsk.value
   }
   if (targetLayer !== "global" && targetLayer !== "project" && targetLayer !== "local") {
     throw new Error(`未知配置层：${String(targetLayer)}（可选 global / project / local）`)
@@ -385,24 +408,23 @@ export async function runScopeRemove(dirs?: string[], layer?: ConfigLayer): Prom
   const include = stringList(activation.include)
   const exclude = stringList(activation.exclude)
   let targets: string[]
-  try {
-    if (dirs && dirs.length > 0) {
-      targets = dirs.map((dir) => resolveComparablePath(dir))
-    } else {
-      const statuses = [
-        ...entryStatuses(include, "include", [...include, ...exclude], target.root ?? process.cwd()),
-        ...entryStatuses(exclude, "exclude", [...include, ...exclude], target.root ?? process.cwd()),
-      ]
-      targets = await checkbox({
+  if (dirs && dirs.length > 0) {
+    targets = dirs.map((dir) => resolveComparablePath(dir))
+  } else {
+    const statuses = [
+      ...entryStatuses(include, "include", [...include, ...exclude], target.root ?? process.cwd()),
+      ...entryStatuses(exclude, "exclude", [...include, ...exclude], target.root ?? process.cwd()),
+    ]
+    const picked = await askWithBack(() =>
+      checkbox({
         message: `选择条目（写入 ${target.file}）`,
         choices: statuses.map((item) => ({ name: describeEntry(item), value: item.path })),
         pageSize: 15,
         required: false,
-      })
-    }
-  } catch (error) {
-    if (cancelled(error)) return
-    throw error
+      }),
+    )
+    if ("back" in picked) return
+    targets = picked.value
   }
   if (targets.length === 0) {
     console.log("未选择任何目录")
@@ -411,17 +433,19 @@ export async function runScopeRemove(dirs?: string[], layer?: ConfigLayer): Prom
   const keys = new Set(targets.map(pathKey))
   let action = "remove"
   if (!dirs || dirs.length === 0) {
-    const chosen = await select<string>({
-      message: "处理方式",
-      choices: [
-        { name: "移出名单", value: "remove" },
-        { name: "白名单转黑名单", value: "to-exclude" },
-        { name: "黑名单转白名单", value: "to-include" },
-        { name: "取消", value: "cancel" },
-      ],
-    })
-    if (chosen === undefined || chosen === "cancel") return
-    action = chosen
+    const actionAsk = await askWithBack(() =>
+      select<string>({
+        message: "处理方式",
+        choices: [
+          { name: "移出名单", value: "remove" },
+          { name: "白名单转黑名单", value: "to-exclude" },
+          { name: "黑名单转白名单", value: "to-include" },
+          { name: "← 返回", value: "back" },
+        ],
+      }),
+    )
+    if ("back" in actionAsk || actionAsk.value === "back" || actionAsk.value === undefined) return
+    action = actionAsk.value
   }
   let nextInclude = include.filter((item) => !keys.has(pathKey(item)))
   let nextExclude = exclude.filter((item) => !keys.has(pathKey(item)))
@@ -475,41 +499,43 @@ export async function runScopeMount(parent?: string, dryRun = false): Promise<vo
     console.log("未发现仓库（按 .git / package.json / .tasks 识别）")
     return
   }
-  try {
-    const picked = await checkbox({
+  const pickedAsk = await askWithBack(() =>
+    checkbox({
       message: "选择要安装技能的项目（会把技能文件写入这些项目）",
       choices: repos.map((repo) => ({ name: repo.name, value: repo.path })),
       pageSize: 15,
       required: false,
-    })
-    if (picked.length === 0) {
-      console.log("未选择项目，已取消")
-      return
-    }
-    if (!dryRun) {
-      const confirmed = await confirm({
+    }),
+  )
+  if ("back" in pickedAsk) return
+  const picked = pickedAsk.value
+  if (picked.length === 0) {
+    console.log("未选择项目，已取消")
+    return
+  }
+  if (!dryRun) {
+    const confirmedAsk = await askWithBack(() =>
+      confirm({
         message: `将向 ${picked.length} 个项目写入技能真源 / 薄壳 / 状态账（可能含项目配置），继续？`,
         default: false,
-      })
-      if (!confirmed) return
+      }),
+    )
+    if ("back" in confirmedAsk || !confirmedAsk.value) return
+  }
+  const skills = listPackageSkills()
+    .filter((skill) => skill.tier === "core")
+    .map((skill) => skill.name)
+  for (const repo of picked) {
+    if (dryRun) {
+      console.log(`[预演] 将安装到 ${repo}（技能 ${skills.length} 个）`)
+      continue
     }
-    const skills = listPackageSkills()
-      .filter((skill) => skill.tier === "core")
-      .map((skill) => skill.name)
-    for (const repo of picked) {
-      if (dryRun) {
-        console.log(`[预演] 将安装到 ${repo}（技能 ${skills.length} 个）`)
-        continue
-      }
-      try {
-        const report = installProjectSkills({ cwd: repo, skills, mode: "skills", saveSelection: true, saveTargets: true })
-        console.log(`✓ ${report.root}：技能 ${report.selection.length} 个，薄壳 ${report.shells.length} 个`)
-      } catch (error) {
-        console.error(`⚠️ ${repo}：${(error as Error).message}`)
-      }
+    try {
+      const report = installProjectSkills({ cwd: repo, skills, mode: "skills", saveSelection: true, saveTargets: true })
+      console.log(`✓ ${report.root}：技能 ${report.selection.length} 个，薄壳 ${report.shells.length} 个`)
+    } catch (error) {
+      console.error(`⚠️ ${repo}：${(error as Error).message}`)
     }
-  } catch (error) {
-    if (!cancelled(error)) throw error
   }
 }
 
@@ -518,8 +544,8 @@ export async function runScopeGate(): Promise<void> {
   requireTty("内容闸门", "请改用 toolkit skills install --gate / --embed 直接切换")
   const { select, confirm } = await loadPrompts()
   const enabled = readSkillsInstallConfig().gate === true
-  try {
-    const choice = await select<string>({
+  const choiceAsk = await askWithBack(() =>
+    select<string>({
       message: `内容闸门（当前：${enabled ? "入口壳" : "全文"}）`,
       default: enabled ? "off" : "on",
       choices: [
@@ -527,69 +553,61 @@ export async function runScopeGate(): Promise<void> {
         { name: "关闭：回退全文安装", value: "off" },
         { name: "保持现状", value: "keep" },
       ],
-    })
-    if (choice === "keep") return
-    const gate = choice === "on"
-    const apply = await confirm({ message: "现在按已保存选择刷新技能产物？", default: true })
-    if (!apply) {
-      // 拒绝刷新时只切开关，产物留给用户之后显式安装
-      writeSkillsInstallConfig({ gate })
-      console.log(`已${gate ? "开启" : "关闭"}内容闸门（写入 skillsInstall.gate）；产物未刷新，需要时运行 toolkit skills install`)
-      return
-    }
-    // 与 skills install 的默认口径一致：已保存选择优先，未保存过时只装 core
-    const saved = readSkillsInstallConfig().selection?.[BUILTIN_SOURCE] ?? []
-    const skills = saved.length > 0 ? saved : listPackageSkills().filter((skill) => skill.tier === "core").map((skill) => skill.name)
-    // 开关由 installSkills 在成功且无失败条目时落盘
-    const report = installSkills({ skills, gate })
-    const gates = report.targets.reduce((count, target) => count + target.gates.length, 0)
-    const failures = report.targets.reduce((count, target) => count + target.failed.length, 0)
-    if (failures > 0) console.warn(`入口壳 ${gates} 个，另有 ${failures} 个失败；开关未保存`)
-    else console.log(`✓ 已刷新：入口壳 ${gates} 个，开关已保存`)
-  } catch (error) {
-    if (!cancelled(error)) throw error
+    }),
+  )
+  if ("back" in choiceAsk || choiceAsk.value === "keep" || choiceAsk.value === undefined) return
+  const gate = choiceAsk.value === "on"
+  const applyAsk = await askWithBack(() => confirm({ message: "现在按已保存选择刷新技能产物？", default: true }))
+  if ("back" in applyAsk) return
+  if (!applyAsk.value) {
+    // 拒绝刷新时只切开关，产物留给用户之后显式安装
+    writeSkillsInstallConfig({ gate })
+    console.log(`已${gate ? "开启" : "关闭"}内容闸门（写入 skillsInstall.gate）；产物未刷新，需要时运行 toolkit skills install`)
+    return
   }
+  // 与 skills install 的默认口径一致：已保存选择优先，未保存过时只装 core
+  const saved = readSkillsInstallConfig().selection?.[BUILTIN_SOURCE] ?? []
+  const skills = saved.length > 0 ? saved : listPackageSkills().filter((skill) => skill.tier === "core").map((skill) => skill.name)
+  // 开关由 installSkills 在成功且无失败条目时落盘
+  const report = installSkills({ skills, gate })
+  const gates = report.targets.reduce((count, target) => count + target.gates.length, 0)
+  const failures = report.targets.reduce((count, target) => count + target.failed.length, 0)
+  if (failures > 0) console.warn(`入口壳 ${gates} 个，另有 ${failures} 个失败；开关未保存`)
+  else console.log(`✓ 已刷新：入口壳 ${gates} 个，开关已保存`)
 }
 
-// 无参入口：交互菜单，循环直到退出
+// 无参入口：交互菜单，循环直到退出；Ctrl+C 直接冒泡到命令层以 130 收口
 export async function runScopeWizard(): Promise<void> {
   const { select } = await loadPrompts()
   for (;;) {
-    let action: string
-    try {
-      action = await select<string>({
-        message: "作用域",
-        choices: [
-          { name: "查看当前状态", value: "status" },
-          { name: "设置生效范围（扫描 / 手动）", value: "scope" },
-          { name: "添加 / 移除目录", value: "dirs" },
-          { name: "内容闸门（全文 / 入口壳）", value: "gate" },
-          { name: "批量安装技能到项目（会写项目文件）", value: "mount" },
-          { name: "退出", value: "exit" },
-        ],
-      })
-    } catch (error) {
-      if (cancelled(error)) return
-      throw error
-    }
+    const action = await select<string>({
+      message: "作用域",
+      choices: [
+        { name: "查看当前状态", value: "status" },
+        { name: "设置生效范围（扫描 / 手动）", value: "scope" },
+        { name: "添加 / 移除目录", value: "dirs" },
+        { name: "内容闸门（全文 / 入口壳）", value: "gate" },
+        { name: "批量安装技能到项目（会写项目文件）", value: "mount" },
+        { name: "退出", value: "exit" },
+      ],
+    })
     if (action === "exit") return
     if (action === "status") printScopeStatus()
     if (action === "scope") await runScopeSetScope()
     if (action === "dirs") {
-      try {
-        const { select: selectDir } = await loadPrompts()
-        const choice = await selectDir<string>({
+      const choiceAsk = await askWithBack(() =>
+        select<string>({
           message: "目录管理",
           choices: [
             { name: "添加目录到白名单", value: "add" },
             { name: "移除目录", value: "remove" },
+            { name: "← 返回", value: "back" },
           ],
-        })
-        if (choice === "add") await runScopeAdd()
-        else await runScopeRemove()
-      } catch (error) {
-        if (!cancelled(error)) throw error
-      }
+        }),
+      )
+      if ("back" in choiceAsk || choiceAsk.value === "back" || choiceAsk.value === undefined) continue
+      if (choiceAsk.value === "add") await runScopeAdd()
+      else await runScopeRemove()
     }
     if (action === "gate") await runScopeGate()
     if (action === "mount") await runScopeMount()

@@ -17,10 +17,52 @@ export async function loadPrompts(): Promise<typeof import("@inquirer/prompts")>
   }
 }
 
-// 判断是否用户取消（Ctrl+C / ESC）：inquirer 以 ExitPromptError / AbortPromptError 抛出
+// 判断是否用户取消（Ctrl+C / 程序 cancel）：inquirer 以专用错误名抛出
+const CANCEL_ERROR_NAMES = new Set(["ExitPromptError", "AbortPromptError", "CancelPromptError"])
+
+// 交互取消的退出码：与 shell 对 SIGINT 的惯例一致
+export const CANCEL_EXIT_CODE = 130
+
 export function isPromptCancel(error: unknown): boolean {
   if (!(error instanceof Error)) return false
-  return error.name === "ExitPromptError" || error.name === "AbortPromptError" || /force closed|cancel/i.test(error.message)
+  return CANCEL_ERROR_NAMES.has(error.name) || /force closed/i.test(error.message)
+}
+
+// 交互取消的终止出口：置 130 后立即结束进程，避免在残留的 readline 状态上继续开提示；
+// 无法拿到原始错误的位置也可直接调用
+export function exitWithCancel(): never {
+  process.exitCode = CANCEL_EXIT_CODE
+  process.exit(CANCEL_EXIT_CODE)
+}
+
+// 交互取消统一出口：命中取消即按取消退出，其余错误交回调用方
+export function exitOnPromptCancel(error: unknown): boolean {
+  if (!isPromptCancel(error)) return false
+  process.exitCode = CANCEL_EXIT_CODE
+  process.exit(CANCEL_EXIT_CODE)
+  return true
+}
+
+// 提示返回结果：value 为正常应答，back 表示用户按 ESC 返回上一级
+export type AskResult<T> = { value: T } | { back: true }
+
+// ESC 返回：@inquirer 的提示未绑定 escape，这里在提示存活期间自建监听并调用其 cancel()，
+// 走 inquirer 自身的清理，不产生 SIGINT，也就不会留下 raw mode / readline 的中间态
+export async function askWithBack<T>(factory: () => Promise<T>): Promise<AskResult<T>> {
+  const prompt = factory()
+  const cancel = (prompt as unknown as { cancel?: () => void }).cancel
+  const onKey = (_input: string, key?: { name?: string }): void => {
+    if (key?.name === "escape") cancel?.()
+  }
+  process.stdin.on("keypress", onKey)
+  try {
+    return { value: await prompt }
+  } catch (error) {
+    if (error instanceof Error && error.name === "CancelPromptError") return { back: true }
+    throw error
+  } finally {
+    process.stdin.removeListener("keypress", onKey)
+  }
 }
 
 // 组装加载失败提示：保留底层原因，并给出升级与非交互两条出路

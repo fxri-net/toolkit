@@ -1,9 +1,9 @@
 // skills 命令：技能分发、状态、卸载与来源管理的注册入口与报告打印
-// skills 命令：技能分发、状态、卸载与来源管理的注册入口与报告打印
 import { join } from "node:path"
 import type { Command } from "commander"
 import { getHomeDir } from "../config"
 import { assertJsonFormat } from "../json-output"
+import { exitWithCancel } from "../prompts"
 import { collectSkillVersionUpdates, type SkillVersionReport } from "../skills/version-status"
 import { versionGt } from "../version"
 import {
@@ -190,8 +190,7 @@ async function resolveSkillSelection(
   const picked = await promptSkillSelection(skills, saved, mode)
   if (picked === null) {
     console.error("已取消技能选择，未写入任何文件")
-    process.exitCode = 130
-    return null
+    exitWithCancel()
   }
   return { names: expand(picked), mode, saveSelection: true }
 }
@@ -229,8 +228,7 @@ async function chooseGlobalTargets(options: { agent?: string; allAgents?: boolea
   const picked = await promptTargetSelection(choices, "选择要写入技能的目标（空格切换，回车确认）")
   if (picked === null) {
     console.error("已取消目标选择，未写入任何文件")
-    process.exitCode = 130
-    return null
+    exitWithCancel()
   }
   const known = new Set(all.filter((target) => target.name).map((target) => target.name))
   return picked.filter((value) => known.has(value))
@@ -247,8 +245,7 @@ async function chooseProjectTargets(options: { dir: string[]; yes?: boolean }): 
   const picked = await promptTargetSelection(choices, "选择要写入的项目技能目录（空格切换，回车确认）")
   if (picked === null) {
     console.error("已取消目录选择，未写入任何文件")
-    process.exitCode = 130
-    return null
+    exitWithCancel()
   }
   return picked.filter((value) => targets.shellDirs.includes(value))
 }
@@ -862,8 +859,7 @@ export function registerSkillsCommands(program: Command): void {
           const ok = await promptConfirm("确认执行安装？")
           if (ok === null) {
             console.error("已取消安装，未写入任何文件")
-            process.exitCode = 130
-            return
+            exitWithCancel()
           }
           if (!ok) {
             console.log("已取消安装，未写入任何文件")
@@ -1071,8 +1067,7 @@ export function registerSkillsCommands(program: Command): void {
             const picked = await promptUninstallSelection(candidates)
             if (picked === null) {
               console.error("已取消，未执行任何清理")
-              process.exitCode = 130
-              return
+              exitWithCancel()
             }
             if (picked.length === 0) {
               console.log("未选择任何技能，未执行卸载")
@@ -1100,8 +1095,7 @@ export function registerSkillsCommands(program: Command): void {
                 const answer = await promptConfirm(`将卸载已登记的 ${registeredSkillCount(runGlobal, runProject)} 项${staleText}，是否继续？`, false)
                 if (answer === null) {
                   console.error("已取消，未执行任何清理")
-                  process.exitCode = 130
-                  return
+                  exitWithCancel()
                 }
                 if (!answer) {
                   console.log("已取消，未执行任何清理")
@@ -1185,7 +1179,11 @@ export function registerSkillsCommands(program: Command): void {
             return
           }
           const confirmed = await promptConfirm(`将把全部技能按 ${kind} 递增，确认继续？`)
-          if (confirmed !== true) {
+          if (confirmed === null) {
+            console.error("已取消，未写入任何文件")
+            exitWithCancel()
+          }
+          if (!confirmed) {
             console.log("已取消，未写入任何文件")
             return
           }

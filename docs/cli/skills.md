@@ -157,7 +157,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 3. TTY 交互：未传上述参数且未传 `--yes` 时，以方向键多选列出技能
    - `skills` 模式下 `core` 已选中且不可取消；`package` 模式下全部默认不选、`core` 可取消
    - `Enter` 确认、`Ctrl+C` 取消（取消时不写任何文件，退出码 130）
-4. 已保存选择：非 TTY、传入 `--yes` 或交互取消后无写入时，按保存的选择回显
+4. 已保存选择：非 TTY 或传入 `--yes` 时按保存的选择回显（交互取消会直接以退出码 130 结束，不再回落）
    - 全局层读 `~/.toolkitrc.json` 的 `skillsInstall.selection`；项目层读 `.toolkitrc.json` 的 `projectSkills.selection`
    - 保存名单里的曾用名（来源声明的 `previousNames`）会迁移为现用名后再回显
    - 某个来源的整份名单都已不存在（来源整体改名 / 重构）时，按默认口径重算：内置源取 `core`、外部来源取全部，并向 stderr 告警一次

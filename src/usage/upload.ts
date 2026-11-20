@@ -2,7 +2,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, isAbsolute, join } from "node:path"
 import { writeFileAtomic } from "../write-atomic"
-import { loadPrompts } from "../prompts"
+import { isPromptCancel, loadPrompts } from "../prompts"
 import { loadUsageConfig, resolveUsageDir, updateUsageConfig } from "./config"
 import { readAllEvents, usagePaths, type UsagePaths } from "./store"
 import type { SkillUsageEvent, UsageConfig, UsageUploadProtocol } from "./types"
@@ -286,10 +286,7 @@ export async function runUploadSetup(options: UploadSetupOptions = {}): Promise<
     updateUsageConfig({ upload: { enabled: true, protocol, endpoint, headers } })
     console.log("上传已启用；先执行 toolkit usage upload --dry-run 预览载荷")
   } catch (error) {
-    if (error instanceof Error && (error.name === "ExitPromptError" || error.name === "AbortPromptError")) {
-      console.log("已取消，未修改任何配置")
-      return
-    }
+    if (isPromptCancel(error)) console.error("已取消，未修改任何配置")
     throw error
   }
 }

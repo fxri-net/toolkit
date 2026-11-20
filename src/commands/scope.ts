@@ -4,6 +4,7 @@ import type { Command } from "commander"
 import { resolveScope } from "../scope"
 import { runGuard } from "../scope/guard"
 import { formatList, formatStatus } from "../scope/print"
+import { exitOnPromptCancel } from "../prompts"
 import { resolveComparablePath } from "../scope/paths"
 import { runScopeAdd, runScopeMount, runScopeRemove, runScopeWizard } from "../scope/wizard"
 
@@ -18,6 +19,7 @@ export function registerScopeCommands(program: Command): void {
     try {
       await runScopeWizard()
     } catch (error) {
+      if (exitOnPromptCancel(error)) return
       console.error(`⚠️ ${(error as Error).message}`)
       process.exitCode = 1
     }
@@ -122,6 +124,7 @@ export function registerScopeCommands(program: Command): void {
       try {
         await runScopeAdd(dirs, options.layer as "global" | "project" | "local" | undefined)
       } catch (error) {
+        if (exitOnPromptCancel(error)) return
         console.error(`⚠️ ${(error as Error).message}`)
         process.exitCode = 1
       }
@@ -135,6 +138,7 @@ export function registerScopeCommands(program: Command): void {
       try {
         await runScopeRemove(dirs, options.layer as "global" | "project" | "local" | undefined)
       } catch (error) {
+        if (exitOnPromptCancel(error)) return
         console.error(`⚠️ ${(error as Error).message}`)
         process.exitCode = 1
       }
@@ -148,6 +152,7 @@ export function registerScopeCommands(program: Command): void {
       try {
         await runScopeMount(dir, Boolean(options.dryRun))
       } catch (error) {
+        if (exitOnPromptCancel(error)) return
         console.error(`⚠️ ${(error as Error).message}`)
         process.exitCode = 1
       }

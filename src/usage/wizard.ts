@@ -6,7 +6,7 @@ import { loadUsageConfig, resolveUsageDir, usageConfigPath, updateUsageConfig } 
 import { purgeEvents, readAllEvents, usagePaths } from "./store"
 import { summarize } from "./stats"
 import { runUploadSetup } from "./upload"
-import { loadPrompts } from "../prompts"
+import { isPromptCancel, loadPrompts } from "../prompts"
 import type { UsageChannel, UsageConfig, UsageRotation, UsageSkillMode } from "./types"
 
 // 预设：已配置时沿用当前配置，首次默认覆盖一方与第三方技能
@@ -105,11 +105,6 @@ function runNonInteractiveInit(options: InitWizardOptions): void {
   updateUsageConfig({ ...base, agents: Object.fromEntries(adapters.map((adapter) => [adapter.id, true])) })
   installHooks(adapters)
   console.log(`已启用技能使用情况（${preset}，通道 hook），数据目录：${dir}`)
-}
-
-// 用户取消（Ctrl+C / ESC）：inquirer 以 ExitPromptError 抛出
-function isCancel(error: unknown): boolean {
-  return error instanceof Error && (error.name === "ExitPromptError" || error.name === "AbortPromptError")
 }
 
 // 非 TTY：禁止交互，打印可执行命令并以退出码 2 结束
@@ -374,10 +369,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
     console.log("  toolkit usage info")
     console.log("  toolkit usage stats")
   } catch (error) {
-    if (isCancel(error)) {
-      console.log("已取消，未修改任何文件")
-      return
-    }
+    if (isPromptCancel(error)) console.error("已取消，未修改任何文件")
     throw error
   }
 }
@@ -436,10 +428,7 @@ export async function runUsageUninstall(options: UninstallOptions = {}): Promise
     }
     console.log("技能使用情况已停用；如需彻底删除数据，重跑时加 --purge")
   } catch (error) {
-    if (isCancel(error)) {
-      console.log("已取消，未修改任何文件")
-      return
-    }
+    if (isPromptCancel(error)) console.error("已取消，未修改任何文件")
     throw error
   }
 }
@@ -448,76 +437,71 @@ export async function runUsageUninstall(options: UninstallOptions = {}): Promise
 export async function runUsageMenu(): Promise<void> {
   if (!requireTty()) return
   const { select, confirm } = await loadPrompts()
-  try {
-    for (;;) {
-      const action = await select<string>({
-        message: "技能使用情况",
-        default: "status",
-        choices: [
-          { name: "查看状态", value: "status" },
-          { name: "查看统计", value: "stats" },
-          { name: "修改开关", value: "toggle" },
-          { name: "管理 Hook", value: "hooks" },
-          { name: "配置上传", value: "upload" },
-          { name: "导出 / 清理", value: "maintenance" },
-          { name: "退出", value: "quit" },
-        ],
-      })
-      if (action === "quit") return
-      if (action === "status") {
-        const config = loadUsageConfig()
-        const dir = resolveUsageDir(undefined, config)
-        console.log(`技能使用情况：${config.enabled ? "已开启" : "已关闭"}；通道：${config.channel}；数据目录：${dir}；配置：${usageConfigPath()}`)
-        continue
-      }
-      if (action === "stats") {
-        const config = loadUsageConfig()
-        const paths = usagePaths(resolveUsageDir(undefined, config))
-        const summary = summarize(readAllEvents(paths))
-        console.log(`共 ${summary.total} 条；技能 ${summary.bySkill.length} 个`)
-        for (const item of summary.bySkill.slice(0, 10)) console.log(`  ${item.skill}  ${item.count} 次`)
-        continue
-      }
-      if (action === "toggle") {
-        const current = loadUsageConfig()
-        const enabled = await confirm({ message: `当前${current.enabled ? "已开启" : "已关闭"}，是否${current.enabled ? "关闭" : "开启"}？`, default: true })
-        if (enabled) {
-          updateUsageConfig({ enabled: !current.enabled })
-          console.log(current.enabled ? "已关闭" : "已开启")
-        }
-        continue
-      }
-      if (action === "hooks") {
-        const detected = detectedAdapters()
-        if (detected.length === 0) {
-          console.log("未检测到可接入的 Agent")
-          continue
-        }
-        for (const adapter of detected) {
-          const status = adapter.status()
-          console.log(`${adapter.displayName}：${status.installed ? "已安装" : "未安装"}｜${status.file}`)
-        }
-        const install = await confirm({ message: "是否为已检测的 Agent 安装 Hook？", default: false })
-        if (install) {
-          installHooks(detected)
-          updateUsageConfig({ agents: Object.fromEntries(detected.map((adapter) => [adapter.id, true])) })
-          console.log("Hook 已安装；采集总开关仍需 toolkit usage enable")
-        }
-        continue
-      }
-      if (action === "upload") {
-        await runUploadSetup()
-        continue
-      }
-      if (action === "maintenance") {
-        console.log("导出：toolkit usage export --format jsonl --out events.jsonl")
-        console.log("清理：toolkit usage purge --older-than 180")
-        continue
-      }
+  for (;;) {
+    const action = await select<string>({
+      message: "技能使用情况",
+      default: "status",
+      choices: [
+        { name: "查看状态", value: "status" },
+        { name: "查看统计", value: "stats" },
+        { name: "修改开关", value: "toggle" },
+        { name: "管理 Hook", value: "hooks" },
+        { name: "配置上传", value: "upload" },
+        { name: "导出 / 清理", value: "maintenance" },
+        { name: "退出", value: "quit" },
+      ],
+    })
+    if (action === "quit") return
+    if (action === "status") {
+      const config = loadUsageConfig()
+      const dir = resolveUsageDir(undefined, config)
+      console.log(`技能使用情况：${config.enabled ? "已开启" : "已关闭"}；通道：${config.channel}；数据目录：${dir}；配置：${usageConfigPath()}`)
+      continue
     }
-  } catch (error) {
-    if (isCancel(error)) return
-    throw error
+    if (action === "stats") {
+      const config = loadUsageConfig()
+      const paths = usagePaths(resolveUsageDir(undefined, config))
+      const summary = summarize(readAllEvents(paths))
+      console.log(`共 ${summary.total} 条；技能 ${summary.bySkill.length} 个`)
+      for (const item of summary.bySkill.slice(0, 10)) console.log(`  ${item.skill}  ${item.count} 次`)
+      continue
+    }
+    if (action === "toggle") {
+      const current = loadUsageConfig()
+      const enabled = await confirm({ message: `当前${current.enabled ? "已开启" : "已关闭"}，是否${current.enabled ? "关闭" : "开启"}？`, default: true })
+      if (enabled) {
+        updateUsageConfig({ enabled: !current.enabled })
+        console.log(current.enabled ? "已关闭" : "已开启")
+      }
+      continue
+    }
+    if (action === "hooks") {
+      const detected = detectedAdapters()
+      if (detected.length === 0) {
+        console.log("未检测到可接入的 Agent")
+        continue
+      }
+      for (const adapter of detected) {
+        const status = adapter.status()
+        console.log(`${adapter.displayName}：${status.installed ? "已安装" : "未安装"}｜${status.file}`)
+      }
+      const install = await confirm({ message: "是否为已检测的 Agent 安装 Hook？", default: false })
+      if (install) {
+        installHooks(detected)
+        updateUsageConfig({ agents: Object.fromEntries(detected.map((adapter) => [adapter.id, true])) })
+        console.log("Hook 已安装；采集总开关仍需 toolkit usage enable")
+      }
+      continue
+    }
+    if (action === "upload") {
+      await runUploadSetup()
+      continue
+    }
+    if (action === "maintenance") {
+      console.log("导出：toolkit usage export --format jsonl --out events.jsonl")
+      console.log("清理：toolkit usage purge --older-than 180")
+      continue
+    }
   }
 }
 
