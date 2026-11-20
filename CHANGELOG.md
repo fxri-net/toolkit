@@ -1,5 +1,41 @@
 # 方弦工具集
 
+## 1.17.5
+
+> 2026-11-21 发布
+
+### ✨ 新增功能
+
+- 新增统一交互基座（菜单 / 返回 / 确认 / 结果块），`rules compose` 接入 ESC 返回与 `--dry-run`
+- 新增 `scope exclude` / `scope default` / `scope reset` 与 `scope remove --from/--to`，补齐黑名单与默认值的非交互入口
+- 新增 `scope wizard` 状态优先菜单，白名单 / 黑名单 / 条目互转 / 默认值与高级规则一步可达
+- 新增 `skills gate [on|off]` 查看 / 切换内容闸门，`skills mount [dir]` 承接批量挂载
+- 新增 `usage wizard` 交互菜单，状态、统计、开关、Hook、上传与导出清理直接复用对应子命令实现
+
+### 🔧 功能调整
+
+- `rules` / `scope` 的 `--format` 非法值改为报错退出 1，不再回落文本
+- `scope add/exclude/remove` 需显式目录，写前统一预览并输出结果块；相对路径按目标层项目根解析
+- `mode: denylist` 兼容读为 `all`，`status` / `list` 明确标注并在写入时归一
+- 裸 `scope` 非 TTY 改为输出状态摘要并退出 0；内容闸门与批量挂载从菜单移除，改用 `skills install --gate` 与 `skills mount`
+- `skills install` 三步交互支持 ESC 逐级返回，取消与确认统一走交互基座，互斥校验收敛为冲突表
+- `skills install --all` 与 `skills bump --all`（含 patch / --set）非交互须显式 `--yes`，`--dry-run` 只预览
+- `skills sources notify` 接受 `--layer` 作为配置层别名，与 `--scope` 冲突时报错
+- `scope mount` 已移除，批量挂载统一由 `skills mount` 承接
+- 裸 `usage` 非 TTY 改为输出 info 摘要与子命令提示并退出 0，不再以退出码 2 结束
+- `enable` / `disable` / `origins` / `scope` / `capture` / `storage` 支持 `--format json`，`origins` 与 `storage` 文本输出只打印本段
+- `hooks install` / `hooks remove` / `uninstall` 写前统一预览确认，非 TTY 须显式 `--yes`
+
+### ⚡ 优化改进
+
+- 各域 `--format` 帮助统一为「json，输出到 stdout」，scope 的 `--yes` 写明跳过写前确认
+- 规范一致性检查新增入口矩阵、术语表与退出码断言，`cli-golden` 补裸命令矩阵快照
+
+### 📝 文档更新
+
+- `docs/cli.md` 新增裸命令入口矩阵与术语表，退出码表补齐 `3` 与交互适用面
+- `skills` 命令页压缩示例并下沉全局面分发细节至配置参考，scope 页同步挂载迁移措辞
+
 ## 1.17.4
 
 > 2026-11-21 发布
