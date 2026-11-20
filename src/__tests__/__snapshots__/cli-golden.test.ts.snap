@@ -1106,16 +1106,24 @@ exports[`各域行为与错误路径 > usage doctor 1`] = `
 "
 `;
 
+exports[`各域行为与错误路径 > usage hooks 卸载非交互 1`] = `
+"退出码：2
+--- stdout ---
+
+--- stderr ---
+⚠️ 当前环境不支持交互（usage hooks remove）：非交互请加 --yes，或执行 toolkit usage --help"
+`;
+
 exports[`各域行为与错误路径 > usage info 1`] = `
 "退出码：0
 --- stdout ---
 技能使用情况：已关闭
-通道：hook（Agent Hook）
+采集通道：hook（Agent Hook）
 配置：<SANDBOX>/home/.toolkitrc.json
 数据目录：<SANDBOX>/home/.toolkit/usage
 Agent：未开启
 来源：一方 关 / 第三方 关 / 未托管 关
-技能模式：none
+技能模式：none；名单：空
 字段：触发词 关 / 参数 关 / 结果 关
 存储：monthly / 保留 180 天 / 单文件 8388608 字节
 上传：已关闭
@@ -1154,10 +1162,18 @@ exports[`各域行为与错误路径 > usage stats 1`] = `
 "
 `;
 
+exports[`各域行为与错误路径 > usage wizard 非交互 1`] = `
+"退出码：2
+--- stdout ---
+
+--- stderr ---
+⚠️ 当前环境不支持交互（usage 向导）：非交互请直接使用 toolkit usage 子命令，或在终端运行 toolkit usage wizard"
+`;
+
 exports[`各域行为与错误路径 > usage 关闭 1`] = `
 "退出码：0
 --- stdout ---
-✔ 技能使用情况已关闭
+技能使用情况：已关闭
 --- stderr ---
 "
 `;
@@ -1173,7 +1189,7 @@ exports[`各域行为与错误路径 > usage 去重 1`] = `
 exports[`各域行为与错误路径 > usage 字段 1`] = `
 "退出码：0
 --- stdout ---
-触发词：关；参数：关；结果：关
+字段：触发词 关 / 参数 关 / 结果 关
 --- stderr ---
 "
 `;
@@ -1181,16 +1197,7 @@ exports[`各域行为与错误路径 > usage 字段 1`] = `
 exports[`各域行为与错误路径 > usage 存储 1`] = `
 "退出码：0
 --- stdout ---
-技能使用情况：已关闭
-通道：hook（Agent Hook）
-配置：<SANDBOX>/home/.toolkitrc.json
-数据目录：<SANDBOX>/home/.toolkit/usage
-Agent：未开启
-来源：一方 关 / 第三方 关 / 未托管 关
-技能模式：none
-字段：触发词 关 / 参数 关 / 结果 关
 存储：monthly / 保留 180 天 / 单文件 8388608 字节
-上传：已关闭
 --- stderr ---
 "
 `;
@@ -1210,7 +1217,19 @@ exports[`各域行为与错误路径 > usage 导出空数据 1`] = `
 exports[`各域行为与错误路径 > usage 开启 1`] = `
 "退出码：0
 --- stdout ---
-✔ 技能使用情况已开启；用 usage channel / origins / scope 配置通道与采集范围
+技能使用情况：已开启
+用 usage channel / origins / scope 配置通道与采集范围
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > usage 开启 JSON 1`] = `
+"退出码：0
+--- stdout ---
+{
+  "schemaVersion": 1,
+  "enabled": true
+}
 --- stderr ---
 "
 `;
@@ -1218,16 +1237,22 @@ exports[`各域行为与错误路径 > usage 开启 1`] = `
 exports[`各域行为与错误路径 > usage 来源 1`] = `
 "退出码：0
 --- stdout ---
-技能使用情况：已关闭
-通道：hook（Agent Hook）
-配置：<SANDBOX>/home/.toolkitrc.json
-数据目录：<SANDBOX>/home/.toolkit/usage
-Agent：未开启
 来源：一方 关 / 第三方 关 / 未托管 关
-技能模式：none
-字段：触发词 关 / 参数 关 / 结果 关
-存储：monthly / 保留 180 天 / 单文件 8388608 字节
-上传：已关闭
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > usage 来源 JSON 1`] = `
+"退出码：0
+--- stdout ---
+{
+  "schemaVersion": 1,
+  "sources": {
+    "firstParty": false,
+    "thirdParty": false,
+    "unmanaged": false
+  }
+}
 --- stderr ---
 "
 `;
@@ -1254,6 +1279,28 @@ exports[`各域行为与错误路径 > usage 补录预演 1`] = `
 
 --- stderr ---
 ⚠️ 技能使用情况未启用，未写入；先执行 toolkit usage enable"
+`;
+
+exports[`各域行为与错误路径 > usage 裸命令 1`] = `
+"退出码：0
+--- stdout ---
+技能使用情况：已关闭
+采集通道：hook（Agent Hook）
+配置：<SANDBOX>/home/.toolkitrc.json
+数据目录：<SANDBOX>/home/.toolkit/usage
+Agent：未开启
+来源：一方 关 / 第三方 关 / 未托管 关
+技能模式：none；名单：空
+字段：触发词 关 / 参数 关 / 结果 关
+存储：monthly / 保留 180 天 / 单文件 8388608 字节
+上传：已关闭
+Hook：未安装
+队列：0 条待处理
+事件：0 条（索引 0 条，文件 0 个）
+最近：暂无
+交互向导请运行 toolkit usage wizard；单项操作见 toolkit usage --help
+--- stderr ---
+"
 `;
 
 exports[`各域行为与错误路径 > usage 通道 1`] = `
@@ -1717,6 +1764,7 @@ Options:
   -h, --help                  显示帮助
 
 Commands:
+  wizard [options]            交互向导：状态、统计、开关、Hook、上传、导出与清理
   init [options]              初始化技能使用情况：选择 Agent、来源、字段与存储（执行即启用，默认统计一方与第三方技能）
   uninstall [options]         停用技能使用情况并卸载 Hook（默认保留本地事件）
   hooks [options] [command]   管理 Agent Hook（安装 / 状态 / 卸载）

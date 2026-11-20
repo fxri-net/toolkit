@@ -10,6 +10,7 @@ title: usage（技能使用情况）
 
 ```bash
 toolkit usage init            # 初始化向导，回车即按默认启用（一方 + 第三方技能）
+toolkit usage wizard          # 交互菜单：状态、统计、开关、Hook、上传、导出与清理
 toolkit usage info
 toolkit usage channel rule    # 采集通道：rule（全局规则上报）/ hook（Agent Hook）
 toolkit usage rule            # 输出可复制进全局规则的文案
@@ -27,19 +28,20 @@ toolkit usage doctor
 | 子命令 | 说明 | 主要选项 |
 | --- | --- | --- |
 | `init` | 初始化向导：预设、通道、Agent（仅 hook）、来源、字段与存储；首次执行即启用（默认预设「一方 + 第三方技能（数据只留本机，不上传）」，采集字段仍默认关闭），重复执行沿用历史选择、已配置时默认「保持当前配置」并只重装 Hook | `--yes`（须显式给 `--preset`）、`--preset off\|recommended\|third-party`、`--channel rule\|hook`、`--agent`；非 TTY 退出码 2 |
-| `uninstall` | 停用采集并卸载 Hook，默认保留数据 | `--yes`、`--agent`、`--purge`、`--dry-run` |
+| `wizard` | 交互菜单：状态、统计、开关、Hook 管理、上传、导出与清理；子页 ESC 返回、顶层退出、Ctrl+C 退出码 130 | — |
+| `uninstall` | 停用采集并卸载 Hook，默认保留数据；写前预览，取消即不写 | `--yes`、`--agent`、`--purge`、`--dry-run` |
 | `channel` | 查看或切换采集通道；切到 `rule` 提示清理 Hook，切到 `hook` 提示删除规则段 | `rule\|hook`、`--format json`；非法值报错退出 |
 | `record` | 规则通道批量上报：入队后立即返回、按出现次数计数、静默、退出码恒 0；明细由后台反查补齐 | `--skill`（可重复或逗号分隔）、`--session`、`--dir` |
 | `flush` | 内部命令：消费上报队列并写入事件（后台 worker 与惰性兜底调用，通常无需手动执行） | `--dir`、`--limit` |
-| `hooks install` | 只写 Hook 配置，不开启采集；通道为 rule 时提示不生效 | `--agent`、`--dry-run` |
+| `hooks install` | 只写 Hook 配置，不开启采集；写前预览并确认，通道为 rule 时提示不生效 | `--agent`、`--yes`、`--dry-run` |
 | `hooks status` | 查看 Hook 安装状态与最近触发时间；通道与 Hook 不一致时告警 | `--agent`、`--dir` |
-| `hooks remove` | 只移除本包 Hook 命令 | `--agent` |
+| `hooks remove` | 只移除本包 Hook 命令；写前预览并确认 | `--agent`、`--yes` |
 | `info` | 开关、通道、配置路径、数据目录、队列与计数 | `--dir`、`--format json` |
-| `enable` / `disable` | 打开 / 关闭总开关 | — |
-| `origins` | 查看或设置来源开关 | `--first-party` / `--no-first-party`、`--third-party` / `--no-third-party`、`--unmanaged` / `--no-unmanaged` |
-| `scope` | 查看或设置技能范围 | `--mode`、`--add`、`--remove` |
-| `capture` | 查看或设置采集字段 | `--trigger` / `--no-trigger`、`--args` / `--no-args`、`--outcome` / `--no-outcome` |
-| `storage` | 查看或设置存储 | `--dir`、`--rotation`、`--retention`、`--max-size` |
+| `enable` / `disable` | 打开 / 关闭总开关 | `--format json` |
+| `origins` | 查看或设置来源开关（只打印来源段） | `--first-party` / `--no-first-party`、`--third-party` / `--no-third-party`、`--unmanaged` / `--no-unmanaged`、`--format json` |
+| `scope` | 查看或设置技能范围 | `--mode`、`--add`、`--remove`、`--format json` |
+| `capture` | 查看或设置采集字段 | `--trigger` / `--no-trigger`、`--args` / `--no-args`、`--outcome` / `--no-outcome`、`--format json` |
+| `storage` | 查看或设置存储 | `--dir`、`--rotation`、`--retention`、`--max-size`、`--format json` |
 | `stats` | 按技能 / 会话 / 触发词聚合 | `--by skill\|session\|trigger`、`--limit`、`--since`、`--agent`、`--source`、`--skill`、`--unused` |
 | `export` | 导出事件 | `--type csv\|json\|jsonl`、`--out`、`--since` |
 | `import` | 导入事件或 transcript | `--type json\|jsonl\|transcript`、`--file`、`--agent`、`--dry-run` |
@@ -60,7 +62,12 @@ toolkit usage doctor
 
 ## 边界与注意
 
-- 无参数执行 `toolkit usage` 进入交互菜单；非 TTY 输出 `⚠️` 提示并以退出码 2 结束。
+- 裸 `toolkit usage` 在 TTY 下进入交互菜单；非 TTY 输出 `info` 摘要与子命令提示并以退出码 0 结束。
+  需要显式交互入口时用 `toolkit usage wizard`（非 TTY 退出码 2）；菜单子页按 ESC 返回、顶层按 ESC 或选「退出」结束，Ctrl+C 退出码 130，取消不写任何文件。
+- `enable` / `disable` / `channel` / `origins` / `scope` / `capture` / `storage` 均支持 `--format json`：文本与 JSON 由同一份摘要数据渲染，
+  文本模式只输出本段（`origins` 不再打印整份配置），JSON 模式只含本段载荷（前置 `schemaVersion`）。
+- `hooks install` / `hooks remove` / `uninstall` 写前统一打印预览并确认；非 TTY 须显式加 `--yes`，否则以退出码 2 提示用法。
+  `uninstall --dry-run` 只打印预览，不写配置、不动 Hook、不删数据。
 - `usage init` 的多步向导支持按 ESC 回到上一步、按 Ctrl+C 取消（退出码 130，不写任何文件）；首步按 ESC 等同取消。
 - 通道二选一：`usage.channel` 为 `rule` 时只有 `usage record` 写入、Hook 不写入；为 `hook` 时只有 Hook 写入、`record` 静默跳过。切换通道不会自动清理另一侧配置。
 - 非交互初始化用 `toolkit usage init --yes --preset recommended --channel rule`（默认 `rule`）；

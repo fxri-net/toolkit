@@ -18,6 +18,50 @@ import { appendEvent, dedupeStore, purgeEvents, readAllEvents, readIndex, rebuil
 import { createContext, parseImportFile, parseOlderThanDays, parseSinceOption, parseSource, printJson, printSkillSummary, printTriggers, splitNames } from "./context"
 
 
+// 导出事件：csv / json / jsonl，缺省打印到 stdout；菜单与 export 子命令共用
+export function exportUsageEvents(options: { type?: string; out?: string; since?: string; dir?: string }): void {
+  const format = options.type ?? "json"
+  if (!["csv", "json", "jsonl"].includes(format)) {
+    console.error("⚠️ --type 取值须为 csv / json / jsonl")
+    process.exitCode = 1
+    return
+  }
+  const since = parseSinceOption(options.since)
+  if (since === null) return
+  const { paths } = createContext(options.dir)
+  const events = filterEvents(readAllEvents(paths), { since })
+  const content = format === "csv" ? eventsToCsv(events) : format === "jsonl" ? eventsToJsonl(events) : `${JSON.stringify({ schemaVersion: 1, events }, null, 2)}\n`
+  if (!options.out) {
+    process.stdout.write(content)
+    return
+  }
+  const out = resolve(options.out)
+  mkdirSync(dirname(out), { recursive: true })
+  writeFileSync(out, content, "utf8")
+  console.log(line.ok(`已导出 ${events.length} 条 → ${out}`))
+}
+
+// 清理事件：按保留期或全部；菜单与 purge 子命令共用
+export function purgeUsageEvents(options: { olderThan?: string; all?: boolean; dryRun?: boolean; dir?: string }): void {
+  const { config, paths } = createContext(options.dir)
+  const days = options.olderThan !== undefined ? parseOlderThanDays(options.olderThan) : config.storage.retentionDays
+  if (days === null) {
+    console.error("⚠️ --older-than 取值须为 30d / 24h / 60m")
+    process.exitCode = 1
+    return
+  }
+  if (options.dryRun) {
+    const events = readAllEvents(paths)
+    const cutoff = Date.now() - days * 86_400_000
+    const count = options.all ? events.length : events.filter((event) => new Date(event.occurredAt).getTime() < cutoff).length
+    console.log(`[预演] 将删除 ${count} 条记录`)
+    return
+  }
+  const removed = purgeEvents(paths, options.all ? { all: true } : { olderThanDays: days })
+  console.log(options.all ? line.ok(`已删除全部 ${removed} 条记录`) : line.ok(`已删除 ${removed} 条早于 ${options.olderThan ?? `${days} 天`}的记录`))
+}
+
+
 export function registerUsageDataCommands(usage: Command): void {
     // 统计：按技能 / 会话 / 触发词三种视图聚合
     usage
@@ -88,25 +132,7 @@ export function registerUsageDataCommands(usage: Command): void {
       .option("--since <value>", "起始时间")
       .option("--dir <path>", "本次使用的数据目录")
       .action((options: { type?: string; out?: string; since?: string; dir?: string }) => {
-        const format = options.type ?? "json"
-        if (!["csv", "json", "jsonl"].includes(format)) {
-          console.error("⚠️ --type 取值须为 csv / json / jsonl")
-          process.exitCode = 1
-          return
-        }
-        const since = parseSinceOption(options.since)
-        if (since === null) return
-        const { paths } = createContext(options.dir)
-        const events = filterEvents(readAllEvents(paths), { since })
-        const content = format === "csv" ? eventsToCsv(events) : format === "jsonl" ? eventsToJsonl(events) : `${JSON.stringify({ schemaVersion: 1, events }, null, 2)}\n`
-        if (!options.out) {
-          process.stdout.write(content)
-          return
-        }
-        const out = resolve(options.out)
-        mkdirSync(dirname(out), { recursive: true })
-        writeFileSync(out, content, "utf8")
-        console.log(line.ok(`已导出 ${events.length} 条 → ${out}`))
+        exportUsageEvents(options)
       })
 
     // 导入：JSON / JSONL / transcript；transcript 从 Claude 或通用会话记录提取 tool_use
@@ -284,22 +310,7 @@ export function registerUsageDataCommands(usage: Command): void {
       .option("--dry-run", "只预览将删除的记录数，不写盘")
       .option("--dir <path>", "本次使用的数据目录")
       .action((options: { olderThan?: string; all?: boolean; dryRun?: boolean; dir?: string }) => {
-        const { config, paths } = createContext(options.dir)
-        const days = options.olderThan !== undefined ? parseOlderThanDays(options.olderThan) : config.storage.retentionDays
-        if (days === null) {
-          console.error("⚠️ --older-than 取值须为 30d / 24h / 60m")
-          process.exitCode = 1
-          return
-        }
-        if (options.dryRun) {
-          const events = readAllEvents(paths)
-          const cutoff = Date.now() - days * 86_400_000
-          const count = options.all ? events.length : events.filter((event) => new Date(event.occurredAt).getTime() < cutoff).length
-          console.log(`[预演] 将删除 ${count} 条记录`)
-          return
-        }
-        const removed = purgeEvents(paths, options.all ? { all: true } : { olderThanDays: days })
-        console.log(options.all ? line.ok(`已删除全部 ${removed} 条记录`) : line.ok(`已删除 ${removed} 条早于 ${options.olderThan} 的记录`))
+        purgeUsageEvents(options)
       })
 
     // 诊断：目录、索引、重复与配置边界

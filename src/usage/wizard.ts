@@ -1,13 +1,16 @@
 // 使用情况向导：初始化与无参数菜单；所有选择都有默认值，取消时不留下半成品
-import { detectedAdapters, resolveAdapters } from "./adapters"
+import { AGENT_ADAPTERS, detectedAdapters, isAdapterAvailable, resolveAdapters } from "./adapters"
 import type { AgentAdapter } from "./adapters/types"
 import { buildHookCommand } from "./hook-command"
 import { loadUsageConfig, resolveUsageDir, usageConfigPath, updateUsageConfig } from "./config"
-import { purgeEvents, readAllEvents, usagePaths } from "./store"
-import { summarize } from "./stats"
+import { purgeEvents, usagePaths } from "./store"
 import { runUploadSetup } from "./upload"
+import { readHookActivity, readLastHookError } from "./ingest"
 import { line, style } from "../term-style"
 import { LIST_PAGE_SIZE, ask, exitWithCancel, isPromptCancel, loadPrompts, requireInteractive } from "../prompts"
+import { askCheckbox, askConfirm, askInput, confirmWrite, runMenu } from "../cli-ui"
+import { createContext, formatLocalTime, printDefaultStats, printUsageInfo } from "./cli/context"
+import { exportUsageEvents, purgeUsageEvents } from "./cli/data"
 import type { UsageChannel, UsageConfig, UsageRotation, UsageSkillMode } from "./types"
 
 // 预设：已配置时沿用当前配置，首次默认覆盖一方与第三方技能
@@ -557,33 +560,37 @@ export async function runUsageUninstall(options: UninstallOptions = {}): Promise
     process.exitCode = 1
     return
   }
-  let removeHooks = true
-  let purge = Boolean(options.purge)
   try {
+    let removeHooks = true
+    let purge = Boolean(options.purge)
     if (!options.yes && !options.dryRun) {
-      const { confirm } = await loadPrompts()
-      const disable = await confirm({ message: "停用技能使用情况总开关？", default: true })
-      if (!disable) {
-        console.log(line.hint("已取消，未修改任何文件"))
+      const hooksAnswer = await askConfirm({ message: "卸载已安装的 Hook？", default: true })
+      if (hooksAnswer === null) {
+        console.error(line.hint("已取消，未修改任何文件"))
         return
       }
-      removeHooks = await confirm({ message: "卸载已安装的 Hook？", default: true })
-      purge = await confirm({ message: "同时删除本地事件？", default: false })
+      removeHooks = hooksAnswer
+      const purgeAnswer = await askConfirm({ message: "同时删除本地事件？", default: false })
+      if (purgeAnswer === null) {
+        console.error(line.hint("已取消，未修改任何文件"))
+        return
+      }
+      purge = purgeAnswer
     }
-    // 预演：只打印将执行的动作，不写配置、不动 Hook、不删数据
-    if (options.dryRun) {
-      console.log("[预演] 将停用技能使用情况总开关")
-      if (removeHooks) {
-        for (const adapter of adapters) {
-          const status = adapter.status()
-          const verb = status.installed || status.legacyCommand ? "将移除" : "未发现"
-          console.log(`[预演] ${verb} Hook：${adapter.displayName}｜${status.file}`)
-        }
+    const dir = resolveUsageDir(undefined, loadUsageConfig())
+    const preview: string[] = ["停用技能使用情况总开关"]
+    if (removeHooks) {
+      for (const adapter of adapters) {
+        const status = adapter.status()
+        const verb = status.installed || status.legacyCommand ? "移除" : "未发现"
+        preview.push(`${verb} Hook：${adapter.displayName}｜${status.file}`)
       }
-      if (purge) {
-        const config = loadUsageConfig()
-        console.log(`[预演] 将删除本地事件：${resolveUsageDir(undefined, config)}`)
-      }
+    }
+    if (purge) preview.push(`删除本地事件：${dir}`)
+    const confirmed = await confirmWrite({ title: "即将卸载：", lines: preview, yes: options.yes, dryRun: options.dryRun })
+    if (options.dryRun) return
+    if (!confirmed) {
+      console.error(line.hint("已取消，未修改任何文件"))
       return
     }
     updateUsageConfig({ enabled: false })
@@ -594,8 +601,7 @@ export async function runUsageUninstall(options: UninstallOptions = {}): Promise
       }
     }
     if (purge) {
-      const config = loadUsageConfig()
-      const paths = usagePaths(resolveUsageDir(undefined, config))
+      const paths = usagePaths(resolveUsageDir(undefined, loadUsageConfig()))
       const removed = purgeEvents(paths, { all: true })
       console.log(line.ok(`已删除 ${removed} 条本地事件`))
     }
@@ -606,75 +612,224 @@ export async function runUsageUninstall(options: UninstallOptions = {}): Promise
   }
 }
 
-// 无参数菜单：每项执行后回到菜单，q 退出
-export async function runUsageMenu(): Promise<void> {
-  if (!requireInteractive({ action: "usage 菜单", hint: "非交互请直接使用 toolkit usage 子命令，或执行 toolkit usage --help" })) return
-  const { select, confirm } = await loadPrompts()
+// Hook 状态：菜单与 hooks status 共用同一份输出
+export function printHooksStatus(options: { agent?: string; all?: boolean; dir?: string } = {}): void {
+  const { adapters, invalid, unavailable } = resolveAdapters(splitAgentNames(options.agent), { allowUnavailable: Boolean(options.all) })
+  if (invalid.length > 0) {
+    console.error(`⚠️ 未知 Agent：${invalid.join("、")}`)
+    process.exitCode = 1
+    return
+  }
+  if (unavailable.length > 0) console.warn(`⚠️ 忽略本机未检测到的 Agent：${unavailable.join("、")}（不凭空创建配置）`)
+  if (adapters.length === 0) {
+    console.log(line.hint("未检测到可接入的 Agent"))
+    return
+  }
+  const { config, paths } = createContext(options.dir)
+  const activity = readHookActivity(paths)
+  const lastError = readLastHookError(paths)
+  const installed: string[] = []
+  for (const adapter of adapters) {
+    const status = adapter.status()
+    if (status.installed) installed.push(adapter.id)
+    const detected = isAdapterAvailable(adapter)
+    console.log(`${adapter.displayName}：${status.installed ? "已安装" : "未安装"}｜${status.file}${detected ? "" : "（本机未检测到安装）"}`)
+    if (status.command) console.log(`  命令：${status.command}`)
+    if (status.legacyCommand) {
+      console.warn(`  ⚠️ 检测到旧版 Hook（telemetry 命令）已失效，请执行 toolkit usage hooks install --agent ${adapter.id}`)
+    }
+    if (status.outdatedCommand) {
+      console.warn(`  ⚠️ Hook 命令的平台形态已过期（按旧版方式生成），在所在系统上无法执行，请执行 toolkit usage hooks install --agent ${adapter.id}`)
+    }
+    if (status.missingPaths) {
+      console.warn(`  ⚠️ Hook 命令中的路径已不存在，需重跑 toolkit usage hooks install --agent ${adapter.id}：${status.missingPaths.join("、")}`)
+    }
+    if (status.lastError) console.log(`  ⚠️ ${status.lastError}`)
+    for (const warning of status.warnings ?? []) console.warn(`  ⚠️ ${warning}`)
+    const last = activity[adapter.id]
+    if (last) console.log(`  最近触发：${formatLocalTime(last.lastTriggerAt)}（${last.lastStatus}）`)
+    else if (status.installed) console.log("  最近触发：暂无记录（Hook 已配置，但 Agent 尚未执行过）")
+  }
+  if (config.channel === "rule" && installed.length > 0) {
+    console.warn(`⚠️ 采集通道为 rule（全局规则上报），但仍有 Hook：${installed.join("、")}；建议执行 toolkit usage hooks remove 清理，避免重复采集`)
+  }
+  if (config.channel === "hook" && installed.length === 0) {
+    console.warn("⚠️ 采集通道为 hook，但未安装任何 Hook；执行 toolkit usage hooks install，或切换为 rule（toolkit usage channel rule）")
+  }
+  if (lastError) console.log(`最近 Hook 错误：${lastError}`)
+}
+
+// Hook 安装：写前统一预览与确认，非交互须显式 --yes
+export async function installUsageHooks(options: { agent?: string; dryRun?: boolean; yes?: boolean } = {}): Promise<void> {
+  if (!options.yes && !options.dryRun && !requireInteractive({ action: "usage hooks install", hint: "非交互请加 --yes，或执行 toolkit usage --help" })) return
+  const { adapters, invalid, unavailable } = resolveAdapters(splitAgentNames(options.agent))
+  if (invalid.length > 0) {
+    console.error(`⚠️ 未知 Agent：${invalid.join("、")}`)
+    process.exitCode = 1
+    return
+  }
+  if (unavailable.length > 0) console.warn(`⚠️ 忽略本机未检测到的 Agent：${unavailable.join("、")}（不凭空创建配置）`)
+  if (adapters.length === 0) {
+    console.error("⚠️ 没有可接入的 Agent：请先安装对应工具，或用 --agent 指定已安装的 Agent")
+    process.exitCode = 1
+    return
+  }
+  const confirmed = await confirmWrite({
+    title: "即将安装 Hook：",
+    lines: adapters.map((adapter) => `${adapter.displayName} → ${adapter.configPath()}`),
+    yes: options.yes,
+    dryRun: options.dryRun,
+  })
+  if (options.dryRun) return
+  if (!confirmed) {
+    console.error(line.hint("已取消，未写入任何文件"))
+    return
+  }
+  installHooks(adapters)
+  // 通道不自动切换：只提示冲突，由用户决定改用哪条通道
+  if (loadUsageConfig().channel === "rule") {
+    console.warn("⚠️ 当前采集通道为 rule（全局规则上报）：Hook 已安装但不会写入，需先执行 toolkit usage channel hook")
+  }
+  console.log(line.hint("Hook 安装不等于开启采集；用 toolkit usage enable 打开总开关"))
+}
+
+// Hook 卸载：只移除本包命令；写前预览，非交互须显式 --yes
+export async function removeUsageHooks(options: { agent?: string; yes?: boolean } = {}): Promise<void> {
+  if (!options.yes && !requireInteractive({ action: "usage hooks remove", hint: "非交互请加 --yes，或执行 toolkit usage --help" })) return
+  const { adapters, invalid } = resolveAdapters(splitAgentNames(options.agent), { allowUnavailable: true })
+  if (invalid.length > 0) {
+    console.error(`⚠️ 未知 Agent：${invalid.join("、")}`)
+    process.exitCode = 1
+    return
+  }
+  const lines = adapters.map((adapter) => {
+    const status = adapter.status()
+    return `${status.installed || status.legacyCommand ? "移除" : "未发现"}：${adapter.displayName}｜${status.file}`
+  })
+  const confirmed = await confirmWrite({ title: "即将移除 Hook：", lines, yes: options.yes })
+  if (!confirmed) {
+    console.error(line.hint("已取消，未写入任何文件"))
+    return
+  }
+  for (const adapter of adapters) {
+    const result = adapter.uninstallHooks()
+    console.log(`${adapter.displayName}：${result.changed ? "已移除 Hook" : "未发现本包 Hook"}｜${result.file}`)
+  }
+}
+
+// 菜单子页：Hook 管理
+async function hooksFlow(): Promise<void> {
+  const action = await runMenu<string>({
+    message: "Hook 管理",
+    back: true,
+    choices: [
+      { name: "查看状态", value: "status" },
+      { name: "安装 Hook…", value: "install" },
+      { name: "卸载 Hook…", value: "remove" },
+    ],
+  })
+  if (action === "back" || action === "exit") return
+  if (action === "status") {
+    printHooksStatus()
+    return
+  }
+  if (action === "install") {
+    const detected = detectedAdapters()
+    if (detected.length === 0) {
+      console.log(line.hint("未检测到可接入的 Agent"))
+      return
+    }
+    const picked = await askCheckbox({
+      message: "选择要安装 Hook 的 Agent（安装不等于开启采集）",
+      choices: detected.map((adapter) => ({ name: adapter.displayName, value: adapter.id })),
+      pageSize: LIST_PAGE_SIZE,
+    })
+    if (picked === null || picked.length === 0) return
+    await installUsageHooks({ agent: picked.join(","), yes: true })
+    return
+  }
+  const installed = AGENT_ADAPTERS.filter((adapter) => {
+    try {
+      return adapter.status().installed
+    } catch {
+      return false
+    }
+  })
+  if (installed.length === 0) {
+    console.log(line.hint("未发现本包 Hook"))
+    return
+  }
+  const picked = await askCheckbox({
+    message: "选择要移除 Hook 的 Agent",
+    choices: installed.map((adapter) => ({ name: adapter.displayName, value: adapter.id })),
+    pageSize: LIST_PAGE_SIZE,
+  })
+  if (picked === null || picked.length === 0) return
+  await removeUsageHooks({ agent: picked.join(","), yes: true })
+}
+
+// 菜单子页：导出 / 清理
+async function maintenanceFlow(): Promise<void> {
+  const action = await runMenu<string>({
+    message: "导出 / 清理",
+    back: true,
+    choices: [
+      { name: "导出事件到文件（JSONL）", value: "export" },
+      { name: "清理早于保留期的事件", value: "purge" },
+    ],
+  })
+  if (action === "back" || action === "exit") return
+  if (action === "export") {
+    const out = await askInput({ message: "导出文件路径", default: "usage-events.jsonl" })
+    if (!out) return
+    exportUsageEvents({ out })
+    return
+  }
+  purgeUsageEvents({ dryRun: true })
+  const confirmed = await askConfirm({ message: "确认删除上述记录？", default: false })
+  if (confirmed !== true) return
+  purgeUsageEvents({})
+}
+
+// 菜单子页：总开关
+async function toggleFlow(): Promise<void> {
+  const current = loadUsageConfig()
+  const next = !current.enabled
+  const confirmed = await confirmWrite({
+    title: "即将修改总开关：",
+    lines: [`技能使用情况：${current.enabled ? "开启 → 关闭" : "关闭 → 开启"}`, `配置：${usageConfigPath()}`],
+  })
+  if (!confirmed) {
+    console.error(line.hint("已取消，未修改任何文件"))
+    return
+  }
+  updateUsageConfig({ enabled: next })
+  console.log(line.ok(next ? "技能使用情况已开启" : "技能使用情况已关闭"))
+}
+
+// 无参菜单：每项调用对应子命令的实现；顶层退出、Ctrl+C 取消
+export async function runUsageWizard(): Promise<void> {
+  if (!requireInteractive({ action: "usage 向导", hint: "非交互请直接使用 toolkit usage 子命令，或在终端运行 toolkit usage wizard" })) return
   for (;;) {
-    const action = await select<string>({
+    const config = loadUsageConfig()
+    const action = await runMenu<string>({
       message: "技能使用情况",
-      default: "status",
       choices: [
-        { name: "查看状态", value: "status" },
+        { name: "查看状态", value: "info" },
         { name: "查看统计", value: "stats" },
-        { name: "修改开关", value: "toggle" },
-        { name: "管理 Hook", value: "hooks" },
-        { name: "配置上传", value: "upload" },
-        { name: "导出 / 清理", value: "maintenance" },
-        { name: "退出", value: "quit" },
+        { name: `打开 / 关闭采集（当前：${config.enabled ? "已开启" : "已关闭"}）…`, value: "toggle" },
+        { name: "管理 Hook…", value: "hooks" },
+        { name: "配置上传…", value: "upload" },
+        { name: "导出 / 清理…", value: "maintenance" },
       ],
     })
-    if (action === "quit") return
-    if (action === "status") {
-      const config = loadUsageConfig()
-      const dir = resolveUsageDir(undefined, config)
-      console.log(`技能使用情况：${config.enabled ? "已开启" : "已关闭"}；通道：${config.channel}；数据目录：${dir}；配置：${usageConfigPath()}`)
-      continue
-    }
-    if (action === "stats") {
-      const config = loadUsageConfig()
-      const paths = usagePaths(resolveUsageDir(undefined, config))
-      const summary = summarize(readAllEvents(paths))
-      console.log(`共 ${summary.total} 条；技能 ${summary.bySkill.length} 个`)
-      for (const item of summary.bySkill.slice(0, 10)) console.log(`  ${item.skill}  ${item.count} 次`)
-      continue
-    }
-    if (action === "toggle") {
-      const current = loadUsageConfig()
-      const enabled = await confirm({ message: `当前${current.enabled ? "已开启" : "已关闭"}，是否${current.enabled ? "关闭" : "开启"}？`, default: true })
-      if (enabled) {
-        updateUsageConfig({ enabled: !current.enabled })
-        console.log(line.ok(current.enabled ? "已关闭" : "已开启"))
-      }
-      continue
-    }
-    if (action === "hooks") {
-      const detected = detectedAdapters()
-      if (detected.length === 0) {
-        console.log(line.hint("未检测到可接入的 Agent"))
-        continue
-      }
-      for (const adapter of detected) {
-        const status = adapter.status()
-        console.log(`${adapter.displayName}：${status.installed ? "已安装" : "未安装"}｜${status.file}`)
-      }
-      const install = await confirm({ message: "是否为已检测的 Agent 安装 Hook？", default: false })
-      if (install) {
-        installHooks(detected)
-        updateUsageConfig({ agents: Object.fromEntries(detected.map((adapter) => [adapter.id, true])) })
-        console.log(`${line.ok("Hook 已安装")}；${style.hint("采集总开关仍需 toolkit usage enable")}`)
-      }
-      continue
-    }
-    if (action === "upload") {
-      await runUploadSetup()
-      continue
-    }
-    if (action === "maintenance") {
-      console.log("导出：toolkit usage export --format jsonl --out events.jsonl")
-      console.log("清理：toolkit usage purge --older-than 180")
-      continue
-    }
+    if (action === "exit") return
+    if (action === "info") printUsageInfo()
+    else if (action === "stats") printDefaultStats(10)
+    else if (action === "toggle") await toggleFlow()
+    else if (action === "hooks") await hooksFlow()
+    else if (action === "upload") await runUploadSetup()
+    else if (action === "maintenance") await maintenanceFlow()
   }
 }
 

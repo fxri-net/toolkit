@@ -3,7 +3,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, isAbsolute, join } from "node:path"
 import { writeFileAtomic } from "../write-atomic"
 import { line, style } from "../term-style"
-import { isPromptCancel, loadPrompts, requireInteractive } from "../prompts"
+import { isPromptCancel, requireInteractive } from "../prompts"
+import { askInput, askSelect, confirmWrite } from "../cli-ui"
 import { loadUsageConfig, resolveUsageDir, updateUsageConfig } from "./config"
 import { readAllEvents, usagePaths, type UsagePaths } from "./store"
 import type { SkillUsageEvent, UsageConfig, UsageUploadProtocol } from "./types"
@@ -241,20 +242,19 @@ function runNonInteractiveUploadSetup(options: UploadSetupOptions): void {
     return
   }
   updateUsageConfig({ upload: { enabled: true, protocol, endpoint, headers } })
-  console.log(`${line.ok("上传已启用")}；${style.hint("先执行 toolkit usage upload --dry-run 预览载荷")}`)
+  console.log(`${line.ok("上传已启用")}；${style.hint("先执行 toolkit usage upload send --dry-run 预览载荷")}`)
 }
 
-// 上传配置向导：协议 → 端点 → 请求头 → 确认启用
+// 上传配置向导：协议 → 端点 → 请求头 → 预览确认启用
 export async function runUploadSetup(options: UploadSetupOptions = {}): Promise<void> {
   if (options.yes) {
     runNonInteractiveUploadSetup(options)
     return
   }
   if (!requireInteractive({ action: "usage upload setup", hint: "请直接编辑 ~/.toolkitrc.json 的 usage.upload 段" })) return
-  const { select, input, confirm } = await loadPrompts()
   try {
     const config = loadUsageConfig()
-    const protocol = await select<UsageUploadProtocol>({
+    const protocol = await askSelect<UsageUploadProtocol>({
       message: "上传协议",
       default: config.upload.protocol,
       choices: [
@@ -263,8 +263,20 @@ export async function runUploadSetup(options: UploadSetupOptions = {}): Promise<
         { name: "本地文件（追加 JSONL）", value: "file" },
       ],
     })
-    const endpoint = await input({ message: protocol === "file" ? "导出文件路径" : "上传端点 URL", default: config.upload.endpoint })
-    const headersRaw = await input({ message: "附加请求头 JSON（可留空）", default: JSON.stringify(config.upload.headers) })
+    if (protocol === null) {
+      console.error(line.hint("已取消，未修改任何配置"))
+      return
+    }
+    const endpoint = await askInput({ message: protocol === "file" ? "导出文件路径" : "上传端点 URL", default: config.upload.endpoint })
+    if (endpoint === null) {
+      console.error(line.hint("已取消，未修改任何配置"))
+      return
+    }
+    const headersRaw = await askInput({ message: "附加请求头 JSON（可留空）", default: JSON.stringify(config.upload.headers) })
+    if (headersRaw === null) {
+      console.error(line.hint("已取消，未修改任何配置"))
+      return
+    }
     let headers: Record<string, string> = {}
     try {
       const parsed: unknown = JSON.parse(headersRaw || "{}")
@@ -275,13 +287,20 @@ export async function runUploadSetup(options: UploadSetupOptions = {}): Promise<
       console.error("⚠️ 请求头不是合法 JSON，未修改配置")
       return
     }
-    const enabled = await confirm({ message: "确认启用上传？", default: config.upload.enabled })
-    if (!enabled) {
-      console.log(line.hint("已取消，未修改任何配置"))
+    const confirmed = await confirmWrite({
+      title: "即将启用上传：",
+      lines: [
+        `协议：${protocol}`,
+        `端点：${endpoint || "未填写"}`,
+        `请求头：${Object.keys(headers).length > 0 ? JSON.stringify(headers) : "无"}`,
+      ],
+    })
+    if (!confirmed) {
+      console.error(line.hint("已取消，未修改任何配置"))
       return
     }
     updateUsageConfig({ upload: { enabled: true, protocol, endpoint, headers } })
-    console.log(`${line.ok("上传已启用")}；${style.hint("先执行 toolkit usage upload --dry-run 预览载荷")}`)
+    console.log(`${line.ok("上传已启用")}；${style.hint("先执行 toolkit usage upload send --dry-run 预览载荷")}`)
   } catch (error) {
     if (isPromptCancel(error)) console.error(line.hint("已取消，未修改任何配置"))
     throw error

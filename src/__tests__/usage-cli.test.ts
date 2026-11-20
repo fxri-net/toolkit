@@ -142,7 +142,7 @@ describe("usage CLI", () => {
   })
 
   it("Hook 安装、状态与卸载", async () => {
-    await run(["hooks", "install", "--agent", "trae"])
+    await run(["hooks", "install", "--agent", "trae", "--yes"])
     expect(logs.join("\n")).toContain("已安装 Hook")
     const hookConfig = JSON.parse(readFileSync(join(home, ".trae-cn", "hooks.json"), "utf8"))
     expect(hookConfig.hooks.PostToolUse).toHaveLength(1)
@@ -152,9 +152,62 @@ describe("usage CLI", () => {
     expect(logs.join("\n")).toContain("已安装")
     expect(logs.join("\n")).toContain("尚未执行")
 
-    await run(["hooks", "remove", "--agent", "trae"])
+    await run(["hooks", "remove", "--agent", "trae", "--yes"])
     const after = JSON.parse(readFileSync(join(home, ".trae-cn", "hooks.json"), "utf8"))
     expect(after.hooks.PostToolUse).toBeUndefined()
+  })
+
+  it("Hook 写操作在非交互环境需显式 --yes", async () => {
+    await run(["hooks", "install", "--agent", "trae"])
+    expect(errors.join("\n")).toContain("--yes")
+    expect(process.exitCode).toBe(2)
+    process.exitCode = 0
+
+    await run(["hooks", "remove", "--agent", "trae"])
+    expect(errors.join("\n")).toContain("--yes")
+    expect(process.exitCode).toBe(2)
+    process.exitCode = 0
+  })
+
+  it("裸 usage 输出摘要成功退出，wizard 在非交互环境报错退出", async () => {
+    await run([])
+    expect(logs.join("\n")).toContain("技能使用情况")
+    expect(logs.join("\n")).toContain("toolkit usage wizard")
+    expect(process.exitCode).toBe(0)
+
+    logs = []
+    errors = []
+    await run(["wizard"])
+    expect(errors.join("\n")).toContain("toolkit usage wizard")
+    expect(process.exitCode).toBe(2)
+    process.exitCode = 0
+  })
+
+  it("开关类命令的 --format json 只输出本段载荷", async () => {
+    await run(["enable", "--format", "json"])
+    expect(JSON.parse(logs.join("\n"))).toEqual({ schemaVersion: 1, enabled: true })
+
+    logs = []
+    await run(["origins", "--format", "json"])
+    const sources = JSON.parse(logs.join("\n")) as { sources: { firstParty: boolean } }
+    expect(sources.sources.firstParty).toBe(true)
+    expect((sources as { enabled?: boolean }).enabled).toBeUndefined()
+
+    logs = []
+    await run(["scope", "--format", "json"])
+    expect(JSON.parse(logs.join("\n"))).toHaveProperty("skills")
+
+    logs = []
+    await run(["capture", "--format", "json"])
+    expect(JSON.parse(logs.join("\n"))).toHaveProperty("capture")
+
+    logs = []
+    await run(["storage", "--format", "json"])
+    expect(JSON.parse(logs.join("\n"))).toHaveProperty("storage")
+
+    logs = []
+    await run(["disable", "--format", "json"])
+    expect(JSON.parse(logs.join("\n"))).toEqual({ schemaVersion: 1, enabled: false })
   })
 
   it("非交互初始化、上传配置与卸载", async () => {

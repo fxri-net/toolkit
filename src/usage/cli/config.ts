@@ -2,9 +2,9 @@
 import { resolve } from "node:path"
 import type { Command } from "commander"
 import { assertJsonFormat } from "../../json-output"
-import { line, style } from "../../term-style"
-import { loadUsageConfig, resolveUsageDir, updateUsageConfig } from "../config"
-import { createContext, printConfig, printJson, splitNames } from "./context"
+import { line } from "../../term-style"
+import { loadUsageConfig, updateUsageConfig } from "../config"
+import { printSegment, splitNames } from "./context"
 
 
 export function registerUsageConfigCommands(usage: Command): void {
@@ -12,17 +12,22 @@ export function registerUsageConfigCommands(usage: Command): void {
     usage
       .command("enable")
       .description("开启技能使用情况总开关（仍需配置通道、来源与技能范围）")
-      .action(() => {
+      .option("--format <format>", "输出格式（json）")
+      .action((options: { format?: string }) => {
+        if (!assertJsonFormat(options.format)) return
         updateUsageConfig({ enabled: true })
-        console.log(`${line.ok("技能使用情况已开启")}；${style.hint("用 usage channel / origins / scope 配置通道与采集范围")}`)
+        printSegment(loadUsageConfig(), "enabled", options.format)
+        if (options.format !== "json") console.log(line.hint("用 usage channel / origins / scope 配置通道与采集范围"))
       })
 
     usage
       .command("disable")
       .description("关闭技能使用情况总开关（已记录数据保留）")
-      .action(() => {
+      .option("--format <format>", "输出格式（json）")
+      .action((options: { format?: string }) => {
+        if (!assertJsonFormat(options.format)) return
         updateUsageConfig({ enabled: false })
-        console.log(line.ok("技能使用情况已关闭"))
+        printSegment(loadUsageConfig(), "enabled", options.format)
       })
 
     // 采集通道：rule 与 hook 二选一，两侧写入各自守门
@@ -34,11 +39,7 @@ export function registerUsageConfigCommands(usage: Command): void {
         if (!assertJsonFormat(options.format)) return
         const config = loadUsageConfig()
         if (mode === undefined) {
-          if (options.format === "json") {
-            printJson({ channel: config.channel })
-            return
-          }
-          console.log(`采集通道：${config.channel === "rule" ? "rule（全局规则上报）" : "hook（Agent Hook）"}`)
+          printSegment(config, "channel", options.format)
           return
         }
         if (mode !== "rule" && mode !== "hook") {
@@ -47,6 +48,10 @@ export function registerUsageConfigCommands(usage: Command): void {
           return
         }
         updateUsageConfig({ channel: mode })
+        if (options.format === "json") {
+          printSegment(loadUsageConfig(), "channel", options.format)
+          return
+        }
         console.log(line.ok(`采集通道已切换为 ${mode}`))
         if (mode === "rule") {
           console.log(line.hint("规则通道不依赖 Hook：把 toolkit usage rule 的输出复制进 Agent 全局规则"))
@@ -75,9 +80,7 @@ export function registerUsageConfigCommands(usage: Command): void {
         if (options.thirdParty !== undefined) patch.thirdParty = options.thirdParty
         if (options.unmanaged !== undefined) patch.unmanaged = options.unmanaged
         if (Object.keys(patch).length > 0) updateUsageConfig({ sources: patch })
-        const { config, dir } = createContext()
-        if (options.format === "json") printJson({ sources: config.sources })
-        else printConfig(config, dir)
+        printSegment(loadUsageConfig(), "sources", options.format)
       })
 
     // 技能范围：none / all / include / exclude
@@ -104,12 +107,7 @@ export function registerUsageConfigCommands(usage: Command): void {
         if (options.mode !== undefined || options.add !== undefined || options.remove !== undefined) {
           updateUsageConfig({ skills: mode === "exclude" ? { mode, exclude: list } : { mode, include: list } })
         }
-        const next = loadUsageConfig()
-        if (options.format === "json") printJson({ skills: next.skills })
-        else {
-          const names = next.skills.mode === "exclude" ? next.skills.exclude : next.skills.include
-          console.log(`技能模式：${next.skills.mode}；名单：${names.join("、") || "空"}`)
-        }
+        printSegment(loadUsageConfig(), "skills", options.format)
       })
 
     // 字段开关：触发词 / 参数 / 结果默认全部关闭
@@ -130,9 +128,7 @@ export function registerUsageConfigCommands(usage: Command): void {
         if (options.args !== undefined) patch.skillArgs = options.args
         if (options.outcome !== undefined) patch.outcome = options.outcome
         if (Object.keys(patch).length > 0) updateUsageConfig({ capture: patch })
-        const config = loadUsageConfig()
-        if (options.format === "json") printJson({ capture: config.capture })
-        else console.log(`触发词：${config.capture.triggerPrompt ? "开" : "关"}；参数：${config.capture.skillArgs ? "开" : "关"}；结果：${config.capture.outcome ? "开" : "关"}`)
+        printSegment(loadUsageConfig(), "capture", options.format)
       })
 
     // 存储：目录 / 轮转 / 保留期 / 单文件上限
@@ -175,8 +171,6 @@ export function registerUsageConfigCommands(usage: Command): void {
           patch.maxFileBytes = bytes
         }
         if (Object.keys(patch).length > 0) updateUsageConfig({ storage: patch })
-        const config = loadUsageConfig()
-        if (options.format === "json") printJson({ storage: config.storage })
-        else printConfig(config, resolveUsageDir(undefined, config))
+        printSegment(loadUsageConfig(), "storage", options.format)
       })
 }

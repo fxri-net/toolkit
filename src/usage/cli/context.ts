@@ -5,9 +5,12 @@ import { line } from "../../term-style"
 import { redactText, resolveRedactEnabled } from "../../privacy/redact"
 import { uploadStatus } from "../upload"
 import { resolveSkillMeta } from "../event"
+import { AGENT_ADAPTERS } from "../adapters"
+import { queueCount } from "../queue"
 import { loadUsageConfig, resolveUsageDir, usageConfigPath } from "../config"
 import { parseSince, summarize } from "../stats"
-import { usagePaths } from "../store"
+import { listEventFiles, readAllEvents, readIndex, usagePaths } from "../store"
+import { readLastHookError } from "../ingest"
 import type { SkillUsageEvent, UsageConfig, UsageSkillSource } from "../types"
 
 
@@ -77,24 +80,103 @@ export function splitNames(value: string | undefined): string[] {
   return [...new Set(value.split(/[,，]/).map((item) => item.trim()).filter(Boolean))]
 }
 
+// 开关类命令的摘要段：文本与 JSON 由同一份载荷渲染，避免两处口径漂移
+export type ConfigSegment = "enabled" | "channel" | "sources" | "skills" | "capture" | "storage"
+
+export interface SegmentReport {
+  payload: Record<string, unknown>
+  lines: string[]
+}
+
+// 生成摘要段：payload 供 --format json，lines 供人读模式
+export function buildSegmentReport(config: UsageConfig, segment: ConfigSegment): SegmentReport {
+  if (segment === "enabled") {
+    return { payload: { enabled: config.enabled }, lines: [`技能使用情况：${config.enabled ? "已开启" : "已关闭"}`] }
+  }
+  if (segment === "channel") {
+    const label = config.channel === "rule" ? "rule（全局规则上报）" : "hook（Agent Hook）"
+    return { payload: { channel: config.channel }, lines: [`采集通道：${label}`] }
+  }
+  if (segment === "sources") {
+    const { firstParty, thirdParty, unmanaged } = config.sources
+    return {
+      payload: { sources: config.sources },
+      lines: [`来源：一方 ${firstParty ? "开" : "关"} / 第三方 ${thirdParty ? "开" : "关"} / 未托管 ${unmanaged ? "开" : "关"}`],
+    }
+  }
+  if (segment === "skills") {
+    const names = config.skills.mode === "exclude" ? config.skills.exclude : config.skills.include
+    return { payload: { skills: config.skills }, lines: [`技能模式：${config.skills.mode}；名单：${names.join("、") || "空"}`] }
+  }
+  if (segment === "capture") {
+    const { triggerPrompt, skillArgs, outcome } = config.capture
+    return {
+      payload: { capture: config.capture },
+      lines: [`字段：触发词 ${triggerPrompt ? "开" : "关"} / 参数 ${skillArgs ? "开" : "关"} / 结果 ${outcome ? "开" : "关"}`],
+    }
+  }
+  const { rotation, retentionDays, maxFileBytes } = config.storage
+  return {
+    payload: { storage: config.storage },
+    lines: [`存储：${rotation} / 保留 ${retentionDays} 天 / 单文件 ${maxFileBytes} 字节`],
+  }
+}
+
+// 打印摘要段：json 只放载荷，文本按同一份数据渲染
+export function printSegment(config: UsageConfig, segment: ConfigSegment, format?: string): void {
+  const report = buildSegmentReport(config, segment)
+  if (format === "json") {
+    printJson(report.payload)
+    return
+  }
+  for (const text of report.lines) console.log(text)
+}
+
 // 打印配置当前值：无参数时供各子命令回显
 export function printConfig(config: UsageConfig, dir: string): void {
-  console.log(`技能使用情况：${config.enabled ? "已开启" : "已关闭"}`)
-  console.log(`通道：${config.channel === "rule" ? "rule（全局规则上报）" : "hook（Agent Hook）"}`)
+  const segment = (part: ConfigSegment): string => buildSegmentReport(config, part).lines[0] ?? ""
+  console.log(segment("enabled"))
+  console.log(segment("channel"))
   console.log(`配置：${usageConfigPath()}`)
   console.log(`数据目录：${dir}`)
   const agents = Object.entries(config.agents).filter(([, enabled]) => enabled).map(([name]) => name)
   console.log(`Agent：${agents.length > 0 ? agents.join("、") : "未开启"}`)
-  console.log(
-    `来源：一方 ${config.sources.firstParty ? "开" : "关"} / 第三方 ${config.sources.thirdParty ? "开" : "关"} / 未托管 ${config.sources.unmanaged ? "开" : "关"}`,
-  )
-  console.log(`技能模式：${config.skills.mode}`)
-  console.log(
-    `字段：触发词 ${config.capture.triggerPrompt ? "开" : "关"} / 参数 ${config.capture.skillArgs ? "开" : "关"} / 结果 ${config.capture.outcome ? "开" : "关"}`,
-  )
-  console.log(`存储：${config.storage.rotation} / 保留 ${config.storage.retentionDays} 天 / 单文件 ${config.storage.maxFileBytes} 字节`)
+  console.log(segment("sources"))
+  console.log(segment("skills"))
+  console.log(segment("capture"))
+  console.log(segment("storage"))
   const upload = uploadStatus()
   console.log(`上传：${upload.enabled ? `已开启（待上传 ${upload.pending} 条）` : "已关闭"}`)
+}
+
+// 状态摘要：裸 usage 与 info 子命令共用同一份文本口径
+export function printUsageInfo(dirOption?: string): void {
+  const { config, dir, paths } = createContext(dirOption)
+  const index = readIndex(paths)
+  const files = listEventFiles(paths)
+  const events = readAllEvents(paths)
+  const last = events.reduce<string | undefined>((acc, event) => (!acc || event.occurredAt > acc ? event.occurredAt : acc), undefined)
+  const installedHooks = AGENT_ADAPTERS.filter((adapter) => {
+    try {
+      return adapter.status().installed
+    } catch {
+      return false
+    }
+  }).map((adapter) => adapter.id)
+  const lastHookError = readLastHookError(paths)
+  printConfig(config, dir)
+  if (config.channel === "rule") console.log("规则入口：toolkit usage rule（输出可复制到全局规则的文案）")
+  console.log(`Hook：${installedHooks.length > 0 ? installedHooks.join("、") : "未安装"}`)
+  console.log(`队列：${queueCount(paths)} 条待处理`)
+  console.log(`事件：${events.length} 条（索引 ${index.eventIds.length} 条，文件 ${files.length} 个）`)
+  console.log(`最近：${last ?? "暂无"}`)
+  if (lastHookError) console.log(`最近 Hook 错误：${lastHookError}`)
+}
+
+// 默认统计视图：菜单与 stats 子命令共用同一个打印器
+export function printDefaultStats(limit = 20, dir?: string): void {
+  const { paths } = createContext(dir)
+  printSkillSummary(readAllEvents(paths), limit)
 }
 
 // 打印技能统计：按次数降序，最多显示 limit 条

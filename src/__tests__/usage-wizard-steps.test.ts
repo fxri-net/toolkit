@@ -5,7 +5,7 @@ import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { loadUsageConfig } from "../usage/config"
-import { runUsageInitWizard } from "../usage/wizard"
+import { runUsageInitWizard, runUsageWizard } from "../usage/wizard"
 
 // 调用计数：用于断言某一步被重新提问
 const calls = vi.hoisted(() => ({
@@ -38,6 +38,8 @@ vi.mock("../prompts", async (importOriginal) => {
       ({
         select: async (options: { message?: string; default?: unknown; choices?: Array<{ value: unknown }> }) => {
           calls.selectMessages.push(String(options.message ?? ""))
+          // 顶层菜单选「退出」，避免用例里循环回菜单
+          if (String(options.message ?? "") === "技能使用情况") return "exit"
           return options.default ?? options.choices?.[0]?.value
         },
         checkbox: async () => [],
@@ -100,5 +102,10 @@ describe("usage init 步骤机", () => {
     // 第一次触发词确认被 ESC 取消，随后重新提问一次
     expect(calls.trigger).toBe(2)
     expect(loadUsageConfig().enabled).toBe(true)
+  })
+
+  it("菜单顶层选「退出」：不改任何配置", async () => {
+    await runUsageWizard()
+    expect(loadUsageConfig().enabled).toBe(false)
   })
 })
