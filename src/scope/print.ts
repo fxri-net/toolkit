@@ -1,12 +1,19 @@
 // 作用域输出的统一文本：命令与向导共用同一套人读口径
 import { getHomeDir } from "../config"
+import { normalizePathForCompare, toPosix } from "../git-ignore"
 import type { ScopeReport } from "./load"
 
 // 展示用路径：折叠 home 前缀，便于人读
+// 前缀判断按大小写口径归一（Windows / macOS 默认不区分大小写），输出保留用户原始写法
 export function displayPath(path: string | null): string {
   if (!path) return "默认（未配置）"
   const home = getHomeDir()
-  return home && path.startsWith(home) ? `~${path.slice(home.length)}` : path
+  if (!home) return path
+  const pathKey = normalizePathForCompare(path)
+  const homeKey = normalizePathForCompare(home)
+  if (pathKey === homeKey) return "~"
+  if (!pathKey.startsWith(`${homeKey}/`)) return path
+  return `~${toPosix(path).slice(toPosix(home).replace(/\/+$/, "").length)}`
 }
 
 // 空列表显示「未配置」
