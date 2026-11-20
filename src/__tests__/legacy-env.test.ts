@@ -16,6 +16,12 @@ describe("旧环境变量名提示", () => {
     expect(String(warn.mock.calls[0]?.[0])).toContain("FX_TOOLKIT_USAGE_DIR")
   })
 
+  it("更早的 telemetry 数据目录旧名同样指向 usage 新名", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    expect(warnLegacyEnvOnce({ TOOLKIT_TELEMETRY_DIR: "/tmp/telemetry" })).toEqual(["TOOLKIT_TELEMETRY_DIR"])
+    expect(String(warn.mock.calls[0]?.[0])).toContain("FX_TOOLKIT_USAGE_DIR")
+  })
+
   it("新旧名同时设置时视为已迁移，不告警", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const hits = warnLegacyEnvOnce({ TOOLKIT_USAGE_DIR: "/old", FX_TOOLKIT_USAGE_DIR: "/new" })

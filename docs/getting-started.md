@@ -193,7 +193,7 @@ toolkit tasks archive
 
 不需要懂命令，直接对 AI 说：
 
-- 「新项目，先初始化任务区」→ AI 跑 `toolkit init` 建 `.tasks/` 骨架、`conventions/` 规范载体与技能入口壳，并补齐 `.gitignore` 片段（1.7.0 新增命令）
+- 「新项目，先初始化任务区」→ AI 跑 `toolkit init`（1.7.0 新增命令）建 `.tasks/` 骨架、`conventions/` 规范载体与技能入口壳，并补齐 `.gitignore` 片段
   - 宿主疑似用 prettier 时另托管 `.prettierignore` 排除任务区，避免格式化器把表格填充出大量空白层
   - 项目本地依赖含 `@fxri/toolkit` 时写入 `prepare` 刷新钩子
   - 逐项报告实际动作

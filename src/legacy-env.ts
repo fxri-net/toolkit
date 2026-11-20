@@ -6,12 +6,13 @@ export interface LegacyEnvName {
   current: string
 }
 
-// 旧名 → 新名对照：名称统一前发布过的两代前缀
+// 旧名 → 新名对照：名称统一前发布过的两代产品前缀
 export const LEGACY_ENV_NAMES: readonly LegacyEnvName[] = [
   { legacy: "FX_REDACT", current: "FX_TOOLKIT_REDACT" },
   { legacy: "FX_CHECK_WARN", current: "FX_TOOLKIT_CHECK_WARN" },
   { legacy: "FX_NO_UPDATE_CHECK", current: "FX_TOOLKIT_NO_UPDATE_CHECK" },
   { legacy: "FX_DEBUG_UPDATE_CHECK", current: "FX_TOOLKIT_DEBUG_UPDATE_CHECK" },
+  { legacy: "TOOLKIT_TELEMETRY_DIR", current: "FX_TOOLKIT_USAGE_DIR" },
   { legacy: "TOOLKIT_USAGE_DIR", current: "FX_TOOLKIT_USAGE_DIR" },
   { legacy: "TOOLKIT_USAGE_AGENT", current: "FX_TOOLKIT_USAGE_AGENT" },
   { legacy: "TOOLKIT_USAGE_NO_WORKER", current: "FX_TOOLKIT_USAGE_NO_WORKER" },

@@ -61,7 +61,7 @@
 
 对应环境变量：`FX_TOOLKIT_REDACT`、`FX_TOOLKIT_CHECK_WARN`（认 `0/1`、`true/false`、`on/off`、`yes/no`）；配置项见[配置参考](./config)。
 
-环境变量只认 `FX_TOOLKIT_` 前缀。旧名（如 `FX_REDACT`、`TOOLKIT_USAGE_DIR`）不再读取：
+本工具自身的环境变量只认 `FX_TOOLKIT_` 前缀。旧名（如 `FX_REDACT`、`TOOLKIT_USAGE_DIR`）不再读取：
 命中时只在 stderr 提示一次，取值按新名或默认值处理。
 
 另有独立环境变量 `FX_TOOLKIT_NO_UPDATE_CHECK`：设为真值时关闭升级检查提示。
