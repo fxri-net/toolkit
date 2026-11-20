@@ -359,6 +359,8 @@ export async function importTasks(file: string, tasksDir = ".tasks", opts: Impor
 
   let created = 0
   let skipped = 0
+  // 归档目标的放弃理由缺失记录：循环内只收集，循环外合并为一条告警，避免逐条刷屏
+  const noAbandonReason: string[] = []
   const target = opts.target ?? "active"
   // archive 目标按目标日期聚合，循环结束后逐日期整文件写一次（同日多记录不再逐条 read→render→write）
   const archiveGroups = new Map<string, ArchiveBlockInfo[]>()
@@ -388,6 +390,8 @@ export async function importTasks(file: string, tasksDir = ".tasks", opts: Impor
           skipped++
           continue
         }
+        // 归档后正文即成冻结记录：已放弃却无「> 放弃原因：」时登记，循环外统一告警
+        if (t.status === "已放弃" && !/^\s*>\s*放弃原因\s*[：:]\s*\S/m.test(t.body)) noAbandonReason.push(t.title)
         // 同日期同标题以记录中的最后一条为准（与 renderArchiveFile 的「后写覆盖」口径一致）
         const group = archiveGroups.get(built.date)
         if (group) group.push(built.block)
@@ -402,6 +406,12 @@ export async function importTasks(file: string, tasksDir = ".tasks", opts: Impor
     // 落盘：每个目标日期文件只读改写一次；锁已持有，写盘期间不会被并发导入穿插
     if (!dryRun) {
       for (const [date, blocks] of archiveGroups) writeArchiveGroup(tasksDir, date, blocks)
+    }
+    // 文案说明「来源未提供正文」：tasks export 的 JSON 不含正文字段，回导时必然触发，属数据缺失而非用户漏写
+    if (noAbandonReason.length > 0) {
+      warnings.push(
+        `已放弃但来源未提供正文或正文缺「> 放弃原因：」的 ${noAbandonReason.length} 条记录：${noAbandonReason.join("、")}`,
+      )
     }
   } finally {
     if (lockFd !== null) {

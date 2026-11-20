@@ -226,6 +226,114 @@ function heldSectionIssues(name: string, lines: string[], fmEnd: number, status:
   return issues
 }
 
+// 阻塞节规范：三行固定（阻塞原因 / 解除条件 / 阻塞日期），解除后保留并追加解除记录
+const BLOCK_LABELS = ["阻塞原因", "解除条件", "阻塞日期"] as const
+const BLOCK_HEADING_RE = /^##\s+阻塞\s*$/
+const BLOCK_ITEM_RE = /^\s*[-*+]\s*(阻塞原因|解除条件|阻塞日期)\s*([：:])(.*)$/
+const BLOCK_RELEASE_RE = /^\s*[-*+]\s*解除记录\s*[：:]\s*(\d{4}-\d{1,2}-\d{1,2})/
+
+// 阻塞节校验（软告警）：只约束当前处于阻塞的档；非阻塞档保留该节属历史注记，不校验形态与位置
+function blockSectionIssues(name: string, lines: string[], fmEnd: number, status: string): CheckIssue[] {
+  const issues: CheckIssue[] = []
+  if (status !== "阻塞") return issues
+
+  let head = -1
+  for (let i = fmEnd; i < lines.length; i++) {
+    if (BLOCK_HEADING_RE.test(lines[i] ?? "")) {
+      head = i
+      break
+    }
+  }
+  if (head < 0) {
+    issues.push({ level: "warn", file: name, message: "status 为阻塞但正文缺少「## 阻塞」节（三行摘要无处承载）" })
+    return issues
+  }
+
+  // 位置：当前状态的节须是正文第一个二级标题（历史状态节可排在其后）
+  for (let i = fmEnd; i < lines.length; i++) {
+    if (!H2_RE.test(lines[i] ?? "")) continue
+    if (i !== head) {
+      issues.push({
+        level: "warn",
+        file: name,
+        line: head + 1,
+        message: "「## 阻塞」应位于正文第一个二级标题位置（标题与计划位置行之后、背景之前）",
+      })
+    }
+    break
+  }
+
+  let end = lines.length
+  for (let i = head + 1; i < lines.length; i++) {
+    if (H2_RE.test(lines[i] ?? "")) {
+      end = i
+      break
+    }
+  }
+  const found: Array<{ label: string; line: number; colon: string; value: string }> = []
+  const releases: Array<{ line: number; date: string }> = []
+  for (let i = head + 1; i < end; i++) {
+    const line = lines[i] ?? ""
+    const hit = BLOCK_ITEM_RE.exec(line)
+    if (hit) {
+      found.push({ label: hit[1] ?? "", line: i + 1, colon: hit[2] ?? "", value: (hit[3] ?? "").trim() })
+      continue
+    }
+    const rel = BLOCK_RELEASE_RE.exec(line)
+    if (rel?.[1]) releases.push({ line: i + 1, date: rel[1] })
+  }
+
+  for (let k = 0; k < BLOCK_LABELS.length; k++) {
+    const label = BLOCK_LABELS[k] as string
+    const hit = found.find((f) => f.label === label)
+    if (!hit) {
+      issues.push({ level: "warn", file: name, line: head + 1, message: `阻塞节缺少「${label}」一行` })
+      continue
+    }
+    if (hit.colon !== "：") {
+      issues.push({ level: "warn", file: name, line: hit.line, message: `「${label}」须用全角冒号「：」` })
+    }
+    const prevLabel = k > 0 ? (BLOCK_LABELS[k - 1] as string) : ""
+    const prev = prevLabel ? found.find((f) => f.label === prevLabel) : undefined
+    if (prev && hit.line < prev.line) {
+      issues.push({ level: "warn", file: name, line: hit.line, message: `阻塞三行顺序应为 ${BLOCK_LABELS.join(" / ")}` })
+    }
+  }
+
+  const dateItem = found.find((f) => f.label === "阻塞日期")
+  let blockDate = ""
+  if (dateItem) {
+    const v = dateItem.value
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+      issues.push({ level: "warn", file: name, line: dateItem.line, message: `阻塞日期「${v}」格式非法，应为 YYYY-MM-DD` })
+    } else if (!isRealDate(v)) {
+      issues.push({ level: "warn", file: name, line: dateItem.line, message: `阻塞日期「${v}」日期不存在，请核对` })
+    } else {
+      blockDate = v
+      // 与搁置日期同口径：留 1 天容差，避免跨时区误报
+      const expired = new Date(`${v}T00:00:00Z`).getTime() > new Date(`${todayDash()}T00:00:00Z`).getTime() + 86_400_000
+      if (expired) {
+        issues.push({ level: "warn", file: name, line: dateItem.line, message: `阻塞日期「${v}」晚于今天，疑似时间源错误，请核实` })
+      }
+    }
+  }
+
+  // 已解除未转态：按日期比较，重复进入阻塞时保留的旧解除记录（早于本次阻塞日期）不误报
+  if (blockDate) {
+    const released = releases.find((r) => r.date > blockDate)
+    if (released) {
+      issues.push({
+        level: "warn",
+        file: name,
+        line: released.line,
+        message: "已记录解除（日期晚于阻塞日期）但仍为阻塞状态，请转回进行中（解除记录保留）",
+      })
+    }
+  }
+
+  return issues
+}
+
 // 放弃理由行：与计划位置同范式的引用行元数据，值为空视为未写
 const ABANDON_REASON_RE = /^\s*>\s*放弃原因\s*[：:]\s*(.*)$/
 
@@ -428,6 +536,9 @@ export function validateTaskFile(file: string, endpoints: Set<string> | null = n
 
   // 放弃理由：已放弃须有非空理由行，其它状态不得残留
   issues.push(...abandonReasonIssues(name, lines, fmEnd, fm.status ?? ""))
+
+  // 阻塞节：仅约束当前处于阻塞的档，非阻塞档保留该节不校验
+  issues.push(...blockSectionIssues(name, lines, fmEnd, fm.status ?? ""))
 
   return issues
 }

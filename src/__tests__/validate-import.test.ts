@@ -412,3 +412,45 @@ describe("importTasks 写入与映射", () => {
     rmSync(dir, { recursive: true, force: true })
   })
 })
+
+describe("import --target archive 的放弃理由告警", () => {
+  it("多条缺理由记录合并为一条告警", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-import-abandon-"))
+    mkdirSync(join(dir, "active"), { recursive: true })
+    mkdirSync(join(dir, "archive"), { recursive: true })
+    const csv = join(dir, "in.csv")
+    writeFileSync(csv, "任务名,负责人,状态,完成时间\n放弃甲,甲,已放弃,2026-09-03 10:00\n放弃乙,甲,已放弃,2026-09-03 11:00\n", "utf8")
+    const res = await importTasks(csv, dir, { target: "archive" })
+    const hits = res.warnings.filter((w) => w.includes("放弃原因"))
+    expect(hits).toHaveLength(1)
+    expect(hits[0]).toContain("2 条")
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("备注带放弃原因时不告警，理由随正文进归档块", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-import-abandon2-"))
+    mkdirSync(join(dir, "active"), { recursive: true })
+    mkdirSync(join(dir, "archive"), { recursive: true })
+    const csv = join(dir, "in.csv")
+    writeFileSync(csv, "任务名,负责人,状态,完成时间,备注\n放弃甲,甲,已放弃,2026-09-03 10:00,> 放弃原因：成本高于收益\n", "utf8")
+    const res = await importTasks(csv, dir, { target: "archive" })
+    expect(res.warnings.some((w) => w.includes("放弃原因"))).toBe(false)
+    expect(readFileSync(join(dir, "archive", "202609", "20260903.md"), "utf8")).toContain("> 放弃原因：成本高于收益")
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("JSON 来源无正文列时告警文案说明数据缺失", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "tk-import-abandon3-"))
+    mkdirSync(join(dir, "active"), { recursive: true })
+    mkdirSync(join(dir, "archive"), { recursive: true })
+    const json = join(dir, "in.json")
+    writeFileSync(
+      json,
+      JSON.stringify({ schemaVersion: 1, summary: {}, items: [{ title: "放弃甲", owner: "甲", status: "已放弃", completed: "2026-09-03 10:00" }] }),
+      "utf8",
+    )
+    const res = await importTasks(json, dir, { target: "archive" })
+    expect(res.warnings.some((w) => w.includes("来源未提供正文"))).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+})
