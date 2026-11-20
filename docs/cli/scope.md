@@ -21,6 +21,7 @@ toolkit scope status --skill fxri-plan-review # 按技能级规则判定单个�
 toolkit scope status --format json    # 给 AI / 脚本消费
 toolkit scope list                    # 规则、来源与优先级
 toolkit scope add ~/work              # 加入白名单（只写全局配置）
+toolkit scope add ~/work --layer project # 写入当前项目层（随仓库共享）
 toolkit scope remove ~/work/legacy    # 从规则中移除
 toolkit scope remove --layer project  # 交互管理指定层的名单，可白黑互转
 toolkit scope mount ~/work --dry-run  # 批量项目面安装：先预览
@@ -35,8 +36,9 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 - 全局归属下可扫描父目录（递归发现、依赖目录不进入）或手动输入路径，再选择加入白名单 / 黑名单 / 移出；
   同一路径已在另一侧时提供就地互转，写入前展示模式与两列表预览
 - 扫描支持多父目录（逗号或换行分隔）与关键字过滤；0 结果时可选择下探更深、包含隐藏目录或嵌套仓库
-- `scope add <dir>...` 无参进入同一流程；带参时为非交互追加白名单，遇到黑名单同路径自动互转并告警
-- `scope add/remove` 只改配置文件（读 → 合并 → 原子写），具体层由交互选择；带参形式写全局层
+- `scope add <dir>...` 无参进入同一流程；带参时为非交互追加白名单，支持 `--layer global|project|local`（缺省全局），
+  遇到黑名单同路径自动互转并告警
+- `scope add/remove` 只改配置文件（读 → 合并 → 原子写）；交互时选择层，带参形式缺省全局，可用 `--layer` 指定
 - `scope remove` 交互按层列出 `[白]` / `[黑]` 条目与状态（路径不存在、已被同层规则覆盖），可移出或一步白黑互转；
   非交互用 `--layer global|project|local` 指定层，缺省全局
 - `scope list` 同时输出条目存在性：文本模式列出「条目异常」，`--format json` 的 `items` 含 `path` / `list` / `exists`；

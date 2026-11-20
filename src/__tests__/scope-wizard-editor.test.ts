@@ -151,6 +151,21 @@ describe("scope add 非交互", () => {
     expect((activation.include as string[]).some((item) => item.endsWith("repo"))).toBe(true)
     expect((activation.exclude as string[]).length).toBe(0)
   })
+
+  it("支持按层写入项目白名单", async () => {
+    process.chdir(repo)
+    await runScopeAdd([repo], "project")
+    const projectConfig = JSON.parse(readFileSync(join(repo, ".toolkitrc.json"), "utf8")) as {
+      activation?: { mode?: string; include?: string[] }
+    }
+    expect(projectConfig.activation?.mode).toBe("allowlist")
+    expect(projectConfig.activation?.include?.some((item) => item.endsWith("repo"))).toBe(true)
+  })
+
+  it("项目层不可用时直接报错", async () => {
+    process.chdir(scanRoot)
+    await expect(runScopeAdd([repo], "project")).rejects.toThrow("无法定位项目根")
+  })
 })
 
 describe("scope remove 名单管理", () => {

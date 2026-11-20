@@ -116,10 +116,11 @@ export function registerScopeCommands(program: Command): void {
 
   scopeCmd
     .command("add [dirs...]")
-    .description("把目录加入白名单（只写全局配置；无参进入扫描流程）")
-    .action(async (dirs: string[] = []) => {
+    .description("把目录加入白名单（无参进入扫描流程；带参可指定配置层）")
+    .option("--layer <layer>", "配置层：global / project / local（缺省 global）")
+    .action(async (dirs: string[] = [], options: { layer?: string } = {}) => {
       try {
-        await runScopeAdd(dirs)
+        await runScopeAdd(dirs, options.layer as "global" | "project" | "local" | undefined)
       } catch (error) {
         console.error(`⚠️ ${(error as Error).message}`)
         process.exitCode = 1

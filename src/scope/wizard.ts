@@ -306,22 +306,27 @@ export async function runScopeSetScope(): Promise<void> {
   }
 }
 
-// 添加目录：带参数直接追加白名单（非交互），无参进入完整流程
-export async function runScopeAdd(dirs?: string[]): Promise<void> {
+// 添加目录：带参数直接追加白名单（非交互，可指定配置层），无参进入完整流程
+export async function runScopeAdd(dirs?: string[], layer?: ConfigLayer): Promise<void> {
   if (!dirs || dirs.length === 0) {
     await runScopeSetScope()
     return
   }
-  const config = readLayerConfig("global")
+  const targetLayer = layer ?? "global"
+  if (targetLayer !== "global" && targetLayer !== "project" && targetLayer !== "local") {
+    throw new Error(`未知配置层：${String(targetLayer)}（可选 global / project / local）`)
+  }
+  const target = layerConfigTarget(targetLayer)
+  if (!target.available) throw new Error(target.reason)
+  const config = readLayerConfig(targetLayer)
   const activation = currentActivation(config)
   const include = stringList(activation.include)
   const exclude = stringList(activation.exclude)
-  const paths = appendUnique([], dirs.map((dir) => resolveComparablePath(dir)))
+  const paths = appendUnique([], dirs.map((dir) => resolveComparablePath(dir, target.root ?? process.cwd())))
   const keys = new Set(paths.map(pathKey))
   const moved = exclude.filter((item) => keys.has(pathKey(item)))
   if (moved.length > 0) console.warn(`⚠️ 已从黑名单移入白名单：${moved.join("、")}`)
-  const target = layerConfigTarget("global")
-  writeLayerConfig("global", {
+  writeLayerConfig(targetLayer, {
     ...config,
     activation: { ...activation, mode: "allowlist", include: appendUnique(include, paths), exclude: exclude.filter((item) => !keys.has(pathKey(item))) },
   })
