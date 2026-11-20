@@ -17,6 +17,7 @@ title: scope（作用域）
 ```bash
 toolkit scope                         # 交互菜单：看状态 / 设范围 / 管目录 / 内容闸门 / 批量挂载
 toolkit scope status                  # 当前目录的判定与原因
+toolkit scope status --skill fxri-plan-review # 按技能级规则判定单个技能
 toolkit scope status --format json    # 给 AI / 脚本消费
 toolkit scope list                    # 规则、来源与优先级
 toolkit scope add ~/work              # 加入白名单（只写全局配置）
@@ -65,8 +66,9 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 5. `mode = allowlist`：未命中 `include` → 不生效；`mode = denylist` / `all`：生效
 
 判定基准为项目根：优先 git 根，其次最近的 `.tasks` 根，都没有则回落当前目录；子目录内按项目根匹配。
-`scope status --format json` 输出 `active` / `mode` / `baseDir` / `sourceFile` / `matchedRule` / `reason`；
+`scope status --format json` 输出 `active` / `mode` / `baseDir` / `skill` / `sourceFile` / `matchedRule` / `reason`；
 基准变化导致新旧结论不同时，状态输出会在 stderr 给出提示。
+`scope status --skill <name>` 应用 `activation.skills` 的技能级规则，`matchedRule` 以 `skill:<键>:` 前缀标明来源。
 
 ## 边界
 

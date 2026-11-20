@@ -6,7 +6,7 @@ import { canonicalPath } from "../git-ignore"
 import { decideScope } from "./decide"
 import { compilePattern } from "./pattern"
 import { findGitRoot, findProjectRoot, readGitRemote } from "./paths"
-import type { ActivationConfig, ActivationMode, LoadedActivation, ScopeContext, ScopeDecision } from "./types"
+import type { ActivationConfig, ActivationMode, LoadedActivation, ScopeContext, ScopeDecision, SkillActivationConfig } from "./types"
 
 const MODES = new Set<ActivationMode>(["all", "allowlist", "denylist"])
 
@@ -73,7 +73,45 @@ function parseActivation(raw: unknown, file: string, warnings: string[]): Activa
       exclude: stringArray(markers.exclude, "markers.exclude", file, warnings),
     },
     gitRemotes: stringArray(raw.gitRemotes, "gitRemotes", file, warnings),
+    skills: parseSkillRules(raw.skills, file, warnings),
   }
+}
+
+// 技能级规则：键支持 glob / re:，非法键或取值告警剔除；只覆盖 mode / include / exclude
+function parseSkillRules(
+  value: unknown,
+  file: string,
+  warnings: string[],
+): Record<string, SkillActivationConfig> | undefined {
+  if (value === undefined) return undefined
+  if (!isRecord(value)) {
+    warnings.push(`${file} 的 activation.skills 须为对象，已忽略`)
+    return undefined
+  }
+  const out: Record<string, SkillActivationConfig> = {}
+  for (const [key, raw] of Object.entries(value)) {
+    const compiled = compilePattern(key)
+    if (!key.trim() || !compiled.ok) {
+      warnings.push(`${file} 的 activation.skills 键「${key}」已忽略${compiled.ok ? "" : `：${compiled.reason}`}`)
+      continue
+    }
+    if (!isRecord(raw)) {
+      warnings.push(`${file} 的 activation.skills.${key} 须为对象，已忽略`)
+      continue
+    }
+    const rule: SkillActivationConfig = {}
+    if (raw.mode !== undefined) {
+      if (typeof raw.mode === "string" && MODES.has(raw.mode as ActivationMode)) {
+        rule.mode = raw.mode as ActivationMode
+      } else {
+        warnings.push(`${file} 的 activation.skills.${key}.mode 非法（${String(raw.mode)}），已忽略该项`)
+      }
+    }
+    if (raw.include !== undefined) rule.include = patternArray(raw.include, `skills.${key}.include`, file, warnings)
+    if (raw.exclude !== undefined) rule.exclude = patternArray(raw.exclude, `skills.${key}.exclude`, file, warnings)
+    out[key] = rule
+  }
+  return Object.keys(out).length > 0 ? out : undefined
 }
 
 // 按就近覆盖取 activation：本地层 → 项目层 → 全局层；非法段继续向下一层查找
@@ -92,7 +130,8 @@ export function loadActivation(startDir = process.cwd()): LoadedActivation {
 }
 
 // 组装判定现场并给出结论：未配置 gitRemotes / markers 时不启动 git、不查标记
-export function resolveScope(startDir = process.cwd()): ScopeReport {
+// 传入技能名时命中技能级规则则覆盖 mode / include / exclude，其余条件沿用目录级
+export function resolveScope(startDir = process.cwd(), skillName?: string): ScopeReport {
   const { activation, sourceFile, layer, warnings } = loadActivation(startDir)
   const cwd = canonicalPath(resolve(startDir))
   // 判定基准取项目根：子目录内按整个项目匹配，精确路径即可覆盖其下所有层级
@@ -100,6 +139,7 @@ export function resolveScope(startDir = process.cwd()): ScopeReport {
   const context: ScopeContext = {
     cwd,
     baseDir,
+    skill: skillName,
     gitRoot: null,
     gitRemote: null,
     markers: new Set<string>(),

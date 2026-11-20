@@ -42,5 +42,13 @@ export function formatList(report: ScopeReport): string[] {
     `  启用标记：${displayList(activation?.markers.include ?? [])}`,
     `  排除标记：${displayList(activation?.markers.exclude ?? [])}`,
     `  git 远端：${displayList(activation?.gitRemotes ?? [])}`,
+    `  技能级规则：${formatSkillRules(activation?.skills ?? {})}`,
   ]
+}
+
+// 技能级规则摘要：键 + 覆盖的模式，避免把整段对象塞进一行
+function formatSkillRules(rules: Record<string, { mode?: string }>): string {
+  const entries = Object.entries(rules)
+  if (entries.length === 0) return "未配置"
+  return entries.map(([key, rule]) => `${key}（${rule.mode ?? "继承模式"}）`).join("、")
 }

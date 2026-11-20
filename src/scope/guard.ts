@@ -56,7 +56,7 @@ export function packageSkillDir(name: string): string {
 // 解析 guard 结果：激活时读取正文，未激活时给出原因（不做任何写操作）
 export function resolveGuard(name: string, startDir = process.cwd()): GuardResult {
   const skillDir = packageSkillDir(name)
-  const report = resolveScope(startDir)
+  const report = resolveScope(startDir, name)
   if (!report.decision.active) {
     return { name, active: false, content: "", skillDir, referencesDir: "", reason: report.decision.reason, report }
   }

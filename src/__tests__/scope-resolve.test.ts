@@ -82,4 +82,18 @@ describe("resolveScope", () => {
     expect(report.warnings.join("\n")).toContain("已忽略")
     expect(report.decision.active).toBe(false)
   })
+
+  it("技能级规则按技能名生效，未命中的技能回落目录级", () => {
+    writeGlobal({
+      activation: {
+        mode: "allowlist",
+        include: [project.replace(/\\/g, "/")],
+        skills: { "fxri-plan-review": { mode: "denylist", exclude: [project.replace(/\\/g, "/")] } },
+      },
+    })
+    const review = resolveScope(project, "fxri-plan-review")
+    expect(review.decision.active).toBe(false)
+    expect(review.decision.reason).toContain("技能级规则")
+    expect(resolveScope(project, "fxri-text-encoding").decision.active).toBe(true)
+  })
 })

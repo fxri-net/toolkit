@@ -82,4 +82,26 @@ describe("decideScope", () => {
     expect(decideScope(activation({ include: ["re:^([a-z]:)?/home/u/work/repo"] }), inSubdir).active).toBe(true)
     expect(decideScope(activation({ include: ["re:^([a-z]:)?/home/u/other"] }), inSubdir).active).toBe(false)
   })
+
+  it("技能级规则覆盖目录级，未命中的技能回落目录级", () => {
+    const config = activation({
+      mode: "allowlist",
+      include: ["/home/u/work/repo"],
+      skills: { "fxri-plan-review": { mode: "denylist", exclude: ["/home/u/work/repo"] } },
+    })
+    const base = context()
+    const review = decideScope(config, { ...base, skill: "fxri-plan-review" })
+    expect(review.active).toBe(false)
+    expect(review.matchedRule).toContain("skill:fxri-plan-review:exclude:")
+    expect(review.reason).toContain("技能级规则")
+    // 未配置技能级规则的技能仍走目录级白名单
+    expect(decideScope(config, { ...base, skill: "fxri-text-encoding" }).active).toBe(true)
+  })
+
+  it("技能级键支持模式匹配", () => {
+    const config = activation({ mode: "allowlist", include: [], skills: { "fxri-*": { mode: "all" } } })
+    const decision = decideScope(config, { ...context(), skill: "fxri-plan-to-task" })
+    expect(decision.active).toBe(true)
+    expect(decision.matchedRule).toBeNull()
+  })
 })

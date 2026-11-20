@@ -27,10 +27,11 @@ export function registerScopeCommands(program: Command): void {
     .command("status")
     .description("查看当前目录的作用域判定与原因")
     .option("--format <format>", "输出格式（json）")
-    .action((options: { format?: string }) => {
+    .option("--skill <name>", "按指定技能判定（应用技能级规则）")
+    .action((options: { format?: string; skill?: string }) => {
       try {
         if (options.format && options.format !== "json") console.error("⚠️ --format 仅支持 json，已回落文本输出")
-        const report = resolveScope()
+        const report = resolveScope(undefined, options.skill)
         for (const warning of report.warnings) console.error(`⚠️ ${warning}`)
         if (report.migrationHint) console.error(`⚠️ ${report.migrationHint}`)
         if (options.format === "json") {
@@ -41,6 +42,7 @@ export function registerScopeCommands(program: Command): void {
                 active: decision.active,
                 mode: decision.mode,
                 baseDir: decision.baseDir,
+                skill: options.skill ?? null,
                 sourceFile: decision.sourceFile,
                 matchedRule: decision.matchedRule,
                 reason: decision.reason,
@@ -86,6 +88,7 @@ export function registerScopeCommands(program: Command): void {
                 exclude,
                 markers: activation?.markers ?? { include: [], exclude: [] },
                 gitRemotes: activation?.gitRemotes ?? [],
+                skills: activation?.skills ?? {},
                 items,
               },
               null,
