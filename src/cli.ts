@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { createRequire } from "node:module"
+import { MIN_NODE, nodeVersionAtLeast } from "./node-version"
 
 const require = createRequire(import.meta.url)
 
@@ -32,6 +33,13 @@ function guardTarget(argv: string[]): string | null {
 // 两者拆成独立入口，保证 guard 的启动成本不含完整命令集的解析开销
 async function main(): Promise<void> {
   ensureUtf8()
+  // 运行时下限：低于门槛时交互组件与部分内置导出不可用，两条路径都先给可执行提示
+  if (!nodeVersionAtLeast(MIN_NODE)) {
+    console.error(`⚠️ 当前 Node ${process.versions.node} 低于运行要求（>= ${MIN_NODE.major}.${MIN_NODE.minor}.0），已停止执行。`)
+    console.error("   升级 Node 后重试；版本要求见文档站「快速开始 · 环境要求」")
+    process.exitCode = 1
+    return
+  }
   const guardName = guardTarget(process.argv.slice(2))
   if (guardName) {
     process.exitCode = (await import("./guard-cli.js")).runGuard(guardName)

@@ -3,7 +3,7 @@ import { existsSync } from "node:fs"
 import { dirname } from "node:path"
 import { getHomeDir } from "../config"
 import { isPromptCancel, loadPrompts } from "../prompts"
-import { installProjectSkills, listPackageSkills } from "../skills"
+import { BUILTIN_SOURCE, installProjectSkills, installSkills, listPackageSkills, readSkillsInstallConfig, writeSkillsInstallConfig } from "../skills"
 import { globalConfigPath, readGlobalConfig, writeGlobalConfig } from "./config-file"
 import { formatStatus } from "./print"
 import { resolveScope } from "./load"
@@ -205,6 +205,41 @@ export async function runScopeMount(parent?: string, dryRun = false): Promise<vo
   }
 }
 
+// 内容闸门：查看 / 切换入口壳形态；切换后按已保存选择（无则 core）刷新产物
+export async function runScopeGate(): Promise<void> {
+  requireTty("内容闸门", "请改用 toolkit skills install --gate / --embed 直接切换")
+  const { select, confirm } = await loadPrompts()
+  const enabled = readSkillsInstallConfig().gate === true
+  try {
+    const choice = await select<string>({
+      message: `内容闸门（当前：${enabled ? "入口壳" : "全文"}）`,
+      default: enabled ? "off" : "on",
+      choices: [
+        { name: "开启：首批接入技能改写为入口壳", value: "on" },
+        { name: "关闭：回退全文安装", value: "off" },
+        { name: "保持现状", value: "keep" },
+      ],
+    })
+    if (choice === "keep") return
+    const gate = choice === "on"
+    writeSkillsInstallConfig({ gate })
+    console.log(`已${gate ? "开启" : "关闭"}内容闸门（写入 skillsInstall.gate）`)
+    const apply = await confirm({ message: "现在按已保存选择刷新技能产物？", default: true })
+    if (!apply) {
+      console.log("未刷新产物：需要时运行 toolkit skills install")
+      return
+    }
+    // 与 skills install 的默认口径一致：已保存选择优先，未保存过时只装 core
+    const saved = readSkillsInstallConfig().selection?.[BUILTIN_SOURCE] ?? []
+    const skills = saved.length > 0 ? saved : listPackageSkills().filter((skill) => skill.tier === "core").map((skill) => skill.name)
+    const report = installSkills({ skills, gate })
+    const gates = report.targets.reduce((count, target) => count + target.gates.length, 0)
+    console.log(`✓ 已刷新：入口壳 ${gates} 个`)
+  } catch (error) {
+    if (!cancelled(error)) throw error
+  }
+}
+
 // 无参入口：交互菜单，循环直到退出
 export async function runScopeWizard(): Promise<void> {
   const { select } = await loadPrompts()
@@ -217,6 +252,7 @@ export async function runScopeWizard(): Promise<void> {
           { name: "查看当前状态", value: "status" },
           { name: "设置生效范围", value: "scope" },
           { name: "添加 / 移除目录", value: "dirs" },
+          { name: "内容闸门（全文 / 入口壳）", value: "gate" },
           { name: "在项目里批量安装技能（会写项目文件）", value: "mount" },
           { name: "退出", value: "exit" },
         ],
@@ -244,6 +280,7 @@ export async function runScopeWizard(): Promise<void> {
         if (!cancelled(error)) throw error
       }
     }
+    if (action === "gate") await runScopeGate()
     if (action === "mount") await runScopeMount()
   }
 }

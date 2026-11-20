@@ -23,8 +23,8 @@ export const STATE_FORMAT = "fxri.toolkit.skills-state"
 export const STATE_SCHEMA_VERSION = 1
 // 内置技能来源名：本任务只支持包内源，外部来源由后续能力扩展
 export const BUILTIN_SOURCE = "toolkit"
-// 内容闸门首批接入技能：仅内置源的这批技能改写为入口壳，未接入技能保持全文
-export const GATE_SKILLS = new Set(["fxri-plan-to-task", "fxri-session-recap", "fxri-plan-review"])
+// 内容闸门首批接入技能：开启闸门时这批技能改写为入口壳，其余技能保持全文（按技能身份判定，不区分来源）
+export const GATE_SKILLS: ReadonlySet<string> = new Set(["fxri-plan-to-task", "fxri-session-recap", "fxri-plan-review"])
 // 项目侧真源目录（仓库根相对、posix 分隔）：完整副本只此一份，其余候选目录放薄壳指向它
 export const PROJECT_SOURCE_DIR = FALLBACK_SKILL_DIR
 // 项目态归属账目录与文件名（仓库根相对、posix 分隔）

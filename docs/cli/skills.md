@@ -23,7 +23,7 @@ toolkit skills install --prune      # 清理未选择且内容与本包真源一
 toolkit skills install --mode package # 纯包管理器模式：core 也可不装，允许零选
 toolkit skills install --no-skills  # 仅本次零装，不改模式与已保存选择
 toolkit skills install --gate       # 内容闸门：首批 core 技能改用入口壳，--embed 回退
-toolkit skills install --copy       # 强制副本形式（仅全局面生效；项目面真源恒为副本、薄壳非副本，忽略并告警）
+toolkit skills install --copy       # 强制副本形式（仅全局面生效；项目面真源恒为副本、薄壳非副本；`--gate` 下接入技能改用入口壳并告警）
 toolkit skills install --dry-run    # 预演：只预览将执行的动作，不写文件
 toolkit skills install --force      # 覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
 toolkit skills install --dir <path> # 额外目标目录（可多次指定；全局面兜底内置表未收录的 agent，项目面须落在仓库内）

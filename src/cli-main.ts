@@ -10,7 +10,6 @@ export async function runCli(version: string): Promise<void> {
     { collectSkillVersionUpdates },
     { setupHelp },
     { formatCommanderError },
-    { MIN_NODE, nodeVersionAtLeast },
     { DESCRIPTION },
     { registerInitCommands },
     { registerSkillsCommands },
@@ -30,7 +29,6 @@ export async function runCli(version: string): Promise<void> {
     import("./skills/version-status"),
     import("./help"),
     import("./errors"),
-    import("./prompts"),
     import("./about"),
     import("./commands/init"),
     import("./commands/skills"),
@@ -46,13 +44,6 @@ export async function runCli(version: string): Promise<void> {
   // 使用情况事件记录当前 toolkit 版本：库形态不依赖包路径，由入口统一注入
   setToolkitVersion(version)
 
-  // 运行时下限：低于门槛时交互组件会在加载期抛英文模块错误，这里先给可执行提示并停止
-  if (!nodeVersionAtLeast(MIN_NODE)) {
-    console.error(`⚠️ 当前 Node ${process.versions.node} 低于运行要求（>= ${MIN_NODE.major}.${MIN_NODE.minor}.0），已停止执行。`)
-    console.error("   升级 Node 后重试；版本要求见文档站「快速开始 · 环境要求」")
-    process.exitCode = 1
-    return
-  }
   // 内部升级检查 worker：仅联网刷新缓存后退出，不执行命令、不做技能自愈（参数由版本提示器派生时注入）
   if (process.argv[2] === UPDATE_CHECK_WORKER_ARG) {
     await runUpdateCheckWorker()

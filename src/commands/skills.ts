@@ -53,6 +53,7 @@ import {
   bumpSkillVersions,
   isValidVersion,
   BUILTIN_SOURCE,
+  GATE_SKILLS,
   packageVersion,
   type InstallReport,
   type ProjectDirResult,
@@ -311,7 +312,14 @@ function printInstallReport(report: InstallReport, dryRun: boolean): void {
 function printStatusReport(report: SkillsStatusReport): void {
   console.log(`技能源：${report.source}`)
   console.log(`技能版本：${skillVersionLine(report)}`)
-  console.log(`内容闸门：${report.gate ? "已开启（首批接入技能为入口壳，正文由 toolkit scope guard 下发）" : "未开启（全文安装）"}`)
+  // 闸门状态按实际产物分流：开关已开但尚未生成入口壳时，不能让用户以为已是入口壳形态
+  const gateArtifacts = report.targets.reduce((count, target) => count + target.items.filter((item) => item.state === "gate").length, 0)
+  const gateText = !report.gate
+    ? "未开启（全文安装）"
+    : gateArtifacts > 0
+      ? `已开启（${gateArtifacts} 个入口壳，正文由 toolkit scope guard 下发）`
+      : "已开启（尚未生成入口壳产物，运行 toolkit skills install 生效）"
+  console.log(`内容闸门：${gateText}`)
   console.log(`选择集（${report.selection.length}）：${report.selection.join("、") || "无"}`)
   // 来源内存在但未选择的技能：改名 / 新增后不再静默不可见；零选择时不刷全量清单
   const unselectedSkills = report.selection.length > 0 ? findUnselectedSkills(report) : []
@@ -824,6 +832,12 @@ export function registerSkillsCommands(program: Command): void {
           } catch (e) {
             console.warn(`⚠️ 内容闸门开关保存失败：${(e as Error).message}`)
           }
+        }
+        // 降级不静默：闸门生效时接入技能以入口壳写入，--copy 对其无法采纳
+        const effectiveGate = gateOption ?? readSkillsInstallConfig().gate === true
+        if (options.copy && runGlobal && effectiveGate) {
+          const gated = selection.filter((name) => GATE_SKILLS.has(name))
+          if (gated.length > 0) console.warn(`⚠️ 内容闸门下 ${gated.join("、")} 以入口壳写入，--copy 对其不生效`)
         }
 
         let globalTargets: string[] | undefined

@@ -128,7 +128,7 @@ export function buildSkillGateShell(name: string, description: string): string {
     "",
     `<!-- ${SKILL_GATE_MARKER} -->`,
     "<!-- 由 toolkit 生成的内容闸门入口壳；需要全文时运行 toolkit skills install --embed -->",
-    `本技能已开启内容闸门：先运行 \`toolkit scope guard ${name}\` 获取正文；未激活即停止，不要凭猜测执行流程。`,
+    `本技能已开启内容闸门：先运行 \`toolkit scope guard ${name}\`；未激活即停止。`,
     "",
   ].join("\n")
 }

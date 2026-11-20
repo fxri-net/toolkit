@@ -1,14 +1,11 @@
 // 交互组件统一加载：@inquirer/prompts 为 ESM-only 且可能依赖较新 Node 的内置导出，
 // 加载失败时把底层模块错误转成可执行中文提示，避免把英文原文透给用户
 
-// 运行时下限：低于该版本无法保证交互组件可用（@inquirer/prompts 经 mute-stream 声明 ^18.17.0）
-export const MIN_NODE = { major: 18, minor: 17 } as const
+// 运行时下限真源移到轻量模块，交互组件与 cli 快速路径共用同一份判定
+import { MIN_NODE } from "./node-version"
 
-// 判断 Node 版本是否达到下限：version 缺省取当前进程，解析失败按不满足处理
-export function nodeVersionAtLeast(min: { major: number; minor: number }, version = process.versions.node): boolean {
-  const [major = 0, minor = 0] = version.split(".").map((part) => Number(part))
-  return major > min.major || (major === min.major && minor >= min.minor)
-}
+// 再导出保持既有引用面不变（测试与命令层仍从本模块取）
+export { MIN_NODE, nodeVersionAtLeast } from "./node-version"
 
 // 加载交互组件：失败时抛出带当前版本与替代参数的中文错误，由命令层统一打印
 export async function loadPrompts(): Promise<typeof import("@inquirer/prompts")> {

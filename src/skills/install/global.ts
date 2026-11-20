@@ -8,7 +8,7 @@ import { assertUniqueSkillNames, buildSkillGateShell, classifyExisting, dirsEqua
 import { acquireSkillsLock, skillsLockFile } from "../lock"
 import { readSkillsState, skillsStateFile, writeSkillsState } from "../state"
 import { readSkillsInstallConfig, writeSkillsInstallConfig } from "../config"
-import { BUILTIN_SOURCE, GATE_SKILLS, SKILL_ENTRY, STATE_FORMAT, STATE_SCHEMA_VERSION, type InstallReport, type RemoveResult, type SkillStateEntry, type SkillStateSource, type SkillStateTarget, type SkillItem, type SkillsRemoveReport, type TargetInstallResult } from "../types"
+import { GATE_SKILLS, SKILL_ENTRY, STATE_FORMAT, STATE_SCHEMA_VERSION, type InstallReport, type RemoveResult, type SkillStateEntry, type SkillStateSource, type SkillStateTarget, type SkillItem, type SkillsRemoveReport, type TargetInstallResult } from "../types"
 import { collectSources, filterSkillItems, orphanArtifactRemovable, pruneEntries, sourceSkillMap, type InstallOptions, type RemoveSkillsOptions } from "./common"
 
 
@@ -83,8 +83,8 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
         const recordedEntry = prevBySourceDir.get(item.source)?.get(dirKey)?.entries.find((entry) => entry.name === item.name)
         const recordedCopyHere = recordedEntry?.mode === "copy"
         const recordedGateHere = recordedEntry?.mode === "gate"
-        // 内容闸门只作用于内置源首批接入技能；其余技能不受开关影响，保持全文
-        if (gateEnabled && item.source === BUILTIN_SOURCE && GATE_SKILLS.has(item.name)) {
+        // 内容闸门只作用于首批接入技能，按技能身份判定；其余技能不受开关影响，保持全文
+        if (gateEnabled && GATE_SKILLS.has(item.name)) {
           const expected = buildSkillGateShell(item.name, readSkillDescription(item.dir))
           const gateFile = join(dest, SKILL_ENTRY)
           const current = kind === "dir" && existsSync(gateFile) ? readTextFile(gateFile) : null

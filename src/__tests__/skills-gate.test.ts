@@ -61,6 +61,8 @@ describe("内容闸门安装形态", () => {
     const content = readFileSync(join(gatedDir, "SKILL.md"), "utf8")
     expect(isSkillGateShell(content)).toBe(true)
     expect(content).toContain("toolkit scope guard fxri-plan-to-task")
+    // 正文只保留 guard 指示与识别标记，不夹带方案之外的流程提示
+    expect(content).not.toContain("不要凭猜测")
     // 入口壳只含 SKILL.md，不携带 references，避免未激活目录读到正文流程
     expect(existsSync(join(gatedDir, "references"))).toBe(false)
     expect(stateEntries(primaryDir(), "gate")).toContain("fxri-plan-to-task")
