@@ -83,9 +83,12 @@ describe("matchPathPattern", () => {
   })
 
   it("正则按归一后的路径匹配，大小写与既有 glob 口径一致", () => {
+    // 夹具根在真实文件系统中不存在：macOS 的 /home 指向 /System/Volumes/Data/home，
+    // 用 /home 会让 canonicalPath 改写前缀，断言随宿主文件系统漂移
+    const root = "/tk-fixture/u"
     // 全平台统一不区分大小写：大写正则在小写路径上同样命中
-    expect(matchPathPattern("/home/u/work/repo", "re:^([a-z]:)?/HOME/U/WORK/REPO$", { baseDir: "/home/u" })).toBe(true)
-    expect(matchPathPattern("/Home/U/Work/Repo", "re:^([a-z]:)?/home/u/work/repo$", { baseDir: "/home/u" })).toBe(true)
-    expect(matchPathPattern("/home/u/work/repo", "re:^([a-z]:)?/home/u/other", { baseDir: "/home/u" })).toBe(false)
+    expect(matchPathPattern(`${root}/work/repo`, "re:^([a-z]:)?/TK-FIXTURE/U/WORK/REPO$", { baseDir: root })).toBe(true)
+    expect(matchPathPattern("/TK-FIXTURE/U/Work/Repo", "re:^([a-z]:)?/tk-fixture/u/work/repo$", { baseDir: root })).toBe(true)
+    expect(matchPathPattern(`${root}/work/repo`, "re:^([a-z]:)?/tk-fixture/u/other", { baseDir: root })).toBe(false)
   })
 })

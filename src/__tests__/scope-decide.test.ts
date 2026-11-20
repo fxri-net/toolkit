@@ -75,12 +75,14 @@ describe("decideScope", () => {
   })
 
   it("相对路径与 re: 正则按项目根匹配", () => {
-    const inSubdir = context({ cwd: "/home/u/work/repo/src", baseDir: "/home/u/work/repo" })
+    // 夹具根在真实文件系统中不存在，避免 macOS 把 /home 解析为 /System/Volumes/Data/home 后改写前缀
+    const root = "/tk-fixture/u"
+    const inSubdir = context({ cwd: `${root}/work/repo/src`, baseDir: `${root}/work/repo` })
     // 相对规则按判定基准解析："." 解析为基准目录自身
-    expect(decideScope(activation({ include: ["."] }), { ...inSubdir, baseDir: "/home/u/work" }).active).toBe(true)
+    expect(decideScope(activation({ include: ["."] }), { ...inSubdir, baseDir: `${root}/work` }).active).toBe(true)
     // Windows 归一后的绝对路径带盘符，正则用可选盘符前缀兼容两平台
-    expect(decideScope(activation({ include: ["re:^([a-z]:)?/home/u/work/repo"] }), inSubdir).active).toBe(true)
-    expect(decideScope(activation({ include: ["re:^([a-z]:)?/home/u/other"] }), inSubdir).active).toBe(false)
+    expect(decideScope(activation({ include: ["re:^([a-z]:)?/tk-fixture/u/work/repo"] }), inSubdir).active).toBe(true)
+    expect(decideScope(activation({ include: ["re:^([a-z]:)?/tk-fixture/u/other"] }), inSubdir).active).toBe(false)
   })
 
   it("技能级规则覆盖目录级，未命中的技能回落目录级", () => {

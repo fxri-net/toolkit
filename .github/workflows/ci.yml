@@ -44,6 +44,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 18.17.0
+          # 该 job 只用 npm 安装包产物，不需要 pnpm；setup-node v5 默认按 packageManager 自动启用 pnpm 缓存，未装 pnpm 会直接失败
+          package-manager-cache: false
       - uses: actions/download-artifact@v4
         with:
           name: toolkit-tgz
