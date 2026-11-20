@@ -13,6 +13,8 @@ const answers = vi.hoisted(() => ({
   checkbox: [] as unknown[],
   input: [] as string[],
   checkboxOptions: null as unknown,
+  selectOptions: null as unknown,
+  selectCalls: [] as unknown[],
 }))
 
 vi.mock("../prompts", async (importOriginal) => {
@@ -21,7 +23,11 @@ vi.mock("../prompts", async (importOriginal) => {
     ...actual,
     loadPrompts: async () =>
       ({
-        select: async () => answers.select.shift(),
+        select: async (options: unknown) => {
+          answers.selectOptions = options
+          answers.selectCalls.push(options)
+          return answers.select.shift()
+        },
         confirm: async () => answers.confirm.shift() ?? true,
         checkbox: async (options: unknown) => {
           answers.checkboxOptions = options
@@ -48,6 +54,9 @@ function resetAnswers(): void {
   answers.confirm.length = 0
   answers.checkbox.length = 0
   answers.input.length = 0
+  answers.selectCalls.length = 0
+  answers.selectOptions = null
+  answers.checkboxOptions = null
 }
 
 // 读取全局层配置
@@ -185,6 +194,19 @@ describe("scope add 非交互", () => {
   it("项目层不可用时直接报错", async () => {
     process.chdir(scanRoot)
     await expect(runScopeAdd([repo], "project")).rejects.toThrow("无法定位项目根")
+  })
+})
+
+describe("scope 归属层选择", () => {
+  it("cwd 不在仓库内时项目层 / 本机层置灰", async () => {
+    process.chdir(scanRoot)
+    answers.select.push("global")
+    await runScopeSetScope()
+    const options = answers.selectCalls[0] as { choices: Array<{ value: string; disabled?: boolean | string }> }
+    const project = options.choices.find((choice) => choice.value === "project")
+    const local = options.choices.find((choice) => choice.value === "local")
+    expect(project?.disabled).toBeTruthy()
+    expect(local?.disabled).toBeTruthy()
   })
 })
 

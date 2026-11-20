@@ -123,6 +123,19 @@ describe("内容闸门安装形态", () => {
     expect(stateEntries(primaryDir(), "gate")).toEqual(expect.arrayContaining(ALL_SKILLS))
   })
 
+  it("失效外部来源安装时跳过并告警", () => {
+    writeFileSync(
+      join(home, ".toolkitrc.json"),
+      JSON.stringify({ skillsInstall: { sources: { gone: { root: join(home, "missing-source") } } } }),
+    )
+    resetToolkitConfigCache()
+    const warn = vi.mocked(console.warn)
+    warn.mockClear()
+    const report = installSkills({ skills: ["fxri-plan-to-task"], gate: false })
+    expect(report.skills).toContain("fxri-plan-to-task")
+    expect(warn.mock.calls.some((call) => String(call[0]).includes("跳过失效的外部来源"))).toBe(true)
+  })
+
   it("status 将入口壳单列为 gate 形态且不计入问题", () => {
     installSkills({ gate: true })
     const primary = skillsStatus().targets.find((t) => t.dir === primaryDir())
@@ -210,5 +223,30 @@ describe("guard 契约", () => {
     expect(runGuard("no-such-skill")).toBe(1)
     expect(runGuard("../package")).toBe(1)
     expect(io.err()).toContain("技能名非法")
+  })
+
+  it("外部来源技能按状态文件登记解析正文", () => {
+    const pkgRoot = mkdtempSync(join(tmpdir(), "tk-gate-pkg-"))
+    mkdirSync(join(pkgRoot, "skills"), { recursive: true })
+    setPackageRootForTest(pkgRoot)
+    const sourceRoot = mkdtempSync(join(tmpdir(), "tk-gate-ext-"))
+    mkdirSync(join(sourceRoot, "ext-skill"), { recursive: true })
+    const body = "# 外部技能\n\n正文\n"
+    writeFileSync(join(sourceRoot, "ext-skill", "SKILL.md"), body)
+    mkdirSync(join(home, ".agents"), { recursive: true })
+    writeFileSync(
+      skillsStateFile(),
+      JSON.stringify({
+        format: "fxri.toolkit.skills-state",
+        schemaVersion: 1,
+        updatedAt: new Date().toISOString(),
+        sources: { ext: { kind: "local", version: "1.0.0", temporary: false, root: sourceRoot, targets: [] } },
+      }),
+    )
+    const io = capture()
+    expect(runGuard("ext-skill")).toBe(0)
+    expect(io.out()).toBe(body)
+    rmSync(pkgRoot, { recursive: true, force: true })
+    rmSync(sourceRoot, { recursive: true, force: true })
   })
 })

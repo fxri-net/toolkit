@@ -96,4 +96,19 @@ describe("resolveScope", () => {
     expect(review.decision.reason).toContain("技能级规则")
     expect(resolveScope(project, "fxri-text-encoding").decision.active).toBe(true)
   })
+
+  it("技能级规则随所在层整体生效，不跨层合并", () => {
+    writeGlobal({ activation: { mode: "denylist", exclude: [`${home.replace(/\\/g, "/")}/work/**`] } })
+    writeFileSync(
+      join(project, ".toolkitrc.local.json"),
+      JSON.stringify({ activation: { skills: { "fxri-plan-review": { mode: "all" } } } }),
+    )
+    resetToolkitConfigCache()
+    const review = resolveScope(project, "fxri-plan-review")
+    // 本地层整段覆盖全局层：全局的 exclude 不再参与，技能级规则生效
+    expect(review.decision.sourceFile?.endsWith(".toolkitrc.local.json")).toBe(true)
+    expect(review.decision.active).toBe(true)
+    expect(review.decision.reason).toContain("技能级规则")
+    expect(resolveScope(project, "fxri-text-encoding").decision.active).toBe(true)
+  })
 })
