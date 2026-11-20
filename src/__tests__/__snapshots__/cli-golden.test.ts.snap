@@ -1385,6 +1385,9 @@ Commands:
   help [command]                   显示帮助
 
 
+常用入口：
+  作用域 toolkit scope（按目录决定技能 / 规则是否生效，默认全域）
+
 文档站：
   快速开始 https://fxri-net.github.io/toolkit/getting-started
   完整攻略 https://fxri-net.github.io/toolkit/guide
@@ -1637,6 +1640,9 @@ Commands:
   usage [options] [command]        技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
   help [command]                   显示帮助
 
+常用入口：
+  作用域 toolkit scope（按目录决定技能 / 规则是否生效，默认全域）
+
 文档站：
   快速开始 https://fxri-net.github.io/toolkit/getting-started
   完整攻略 https://fxri-net.github.io/toolkit/guide
@@ -1671,6 +1677,9 @@ Commands:
   usage [options] [command]        技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
   help [command]                   显示帮助
 
+
+常用入口：
+  作用域 toolkit scope（按目录决定技能 / 规则是否生效，默认全域）
 
 文档站：
   快速开始 https://fxri-net.github.io/toolkit/getting-started

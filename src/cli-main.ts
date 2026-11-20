@@ -71,6 +71,9 @@ export async function runCli(version: string): Promise<void> {
     "after",
     [
       "",
+      "常用入口：",
+      "  作用域 toolkit scope（按目录决定技能 / 规则是否生效，默认全域）",
+      "",
       "文档站：",
       `  快速开始 ${INIT_LINKS.gettingStarted}`,
       `  完整攻略 ${INIT_LINKS.guide}`,

@@ -5,7 +5,8 @@
       "text": "指南",
       "items": [
         { "text": "操作手册", "link": "/handbook" },
-        { "text": "完整攻略", "link": "/guide" }
+        { "text": "完整攻略", "link": "/guide" },
+        { "text": "项目级激活", "link": "/guide#项目级激活模板" }
       ]
     },
     {
@@ -47,7 +48,8 @@
       "text": "指南",
       "items": [
         { "text": "操作手册", "link": "/handbook" },
-        { "text": "完整攻略", "link": "/guide" }
+        { "text": "完整攻略", "link": "/guide" },
+        { "text": "项目级激活", "link": "/guide#项目级激活模板" }
       ]
     },
     {
@@ -60,12 +62,12 @@
           "items": [
             { "text": "任务区", "link": "/cli/tasks" },
             { "text": "初始化", "link": "/cli/init" },
+            { "text": "作用域", "link": "/cli/scope" },
             { "text": "规范载体", "link": "/cli/conventions" },
             { "text": "发版与更新日志", "link": "/cli/changelog" },
             { "text": "技能分发", "link": "/cli/skills" },
             { "text": "技能使用情况", "link": "/cli/usage" },
             { "text": "全局规则", "link": "/cli/rules" },
-            { "text": "作用域", "link": "/cli/scope" },
             { "text": "配置体检", "link": "/cli/config" },
             { "text": "文档站主题", "link": "/cli/docs-theme" },
             { "text": "文档站校验", "link": "/cli/docs-check" },

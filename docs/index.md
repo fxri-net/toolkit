@@ -40,6 +40,9 @@ features:
   - icon: 🧩
     title: AI 技能包
     details: 不装本工具，也能让 AI 按同一套规范干活——零依赖 Agent Skills，各 agent 全局技能目录通用；装了 CLI 可 `toolkit skills install` 一键分发，与 CLI 同一发布批次。
+  - icon: 🎯
+    title: 作用域按目录生效
+    details: 默认全域生效；只想在公司项目生效、个人项目不被插入时，用 toolkit scope 设白名单 / 黑名单、标记或 git 远端，必要时 scope mount 做项目面安装。
   - icon: 📈
     title: 技能使用有据可查
     details: 统计技能在哪些会话、被哪句话触发、用了多少次；默认关闭、不联网、数据只留本机。
@@ -78,6 +81,7 @@ bun add -g @fxri/toolkit
 ```sh
 toolkit skills install      # 装技能到各 agent 全局技能目录
 toolkit rules compose       # 交互式选择模块，选完粘贴到所用 Agent 的规则入口
+toolkit scope               # （可选）按目录限定技能 / 规则的生效范围，默认全域
 ```
 
 任务区初始化交给 AI：进入项目后说「初始化任务区」即可。团队项目改用 `pnpm add -D @fxri/toolkit` +
@@ -94,6 +98,7 @@ toolkit rules compose       # 交互式选择模块，选完粘贴到所用 Agen
 | 任务散落各处，总览、过滤、统计靠人肉 | 一条命令扫 `.tasks/` 全目录，按状态/负责人/范围/日期过滤，可导出 CSV / XLSX / JSON |
 | 发版 CHANGELOG 分组标题是英文，且分组维度与变更类型对不上 | 封装 changesets，条目按变更类型语义分组并内置中文格式化，任意语言可配置扩展 |
 | 全局规则散在各人手里，升级后每份快照都不同步 | `toolkit rules` 按模块组合与复制，规则正文随包分发，升级后重新组合即同步 |
+| 全局技能与规则在所有项目都被触发，个人项目也被插入 | 默认全域生效；`toolkit scope` 按白名单 / 黑名单 / 标记 / git 远端限定生效目录，必要时 `scope mount` 做项目面安装 |
 | 多个仓库的文档站样式与导航各写一套，漂移无人发现 | `toolkit docs theme check` / `nav check` / `dist check` 按随包规则统一校验 |
 
 ## 文档索引
