@@ -136,7 +136,7 @@ export function registerTasksCommands(program: Command): void {
     }
     return {
       redact: resolveRedactEnabled(options.redact),
-      warn: resolveEnabled(options.warn, "FX_CHECK_WARN", getCheckWarnings(), true),
+      warn: resolveEnabled(options.warn, "FX_TOOLKIT_CHECK_WARN", getCheckWarnings(), true),
       dir,
     }
   }

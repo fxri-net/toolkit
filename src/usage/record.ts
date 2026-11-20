@@ -10,6 +10,7 @@ import type { UsageConfig } from "./types"
 
 // 已知会话变量：各家 Agent 暴露的会话标识不一，按顺序取第一个非空值
 const SESSION_ENV_KEYS = [
+  "FX_TOOLKIT_USAGE_SESSION",
   "TOOLKIT_USAGE_SESSION",
   "CLAUDE_SESSION_ID",
   "TRAE_SESSION_ID",

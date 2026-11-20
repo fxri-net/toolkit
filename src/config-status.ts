@@ -35,7 +35,7 @@ export interface ConfigStatusKeySource {
   source: ConfigLayerName | null
 }
 
-// 环境变量命中：只列键名不列值；命中 = 已设置且非空，不代表「开启」——FX_REDACT=0 / FX_CHECK_WARN=0 会被列出但实际关闭该能力，FX_NO_UPDATE_CHECK 设真值反而关闭更新检查
+// 环境变量命中：只列键名不列值；命中 = 已设置且非空，不代表「开启」——FX_TOOLKIT_REDACT=0 / FX_TOOLKIT_CHECK_WARN=0 会被列出但实际关闭该能力，FX_TOOLKIT_NO_UPDATE_CHECK 设真值反而关闭更新检查
 export interface ConfigStatusEnvHit {
   env: string
   key: string
@@ -225,7 +225,9 @@ export function configStatus(cwd: string = process.cwd()): ConfigStatusReport {
     key,
     source: resolveLeafSource(layers, key),
   }))
-  const env = CONFIG_ENV_OVERRIDES.filter((item) => isEnvHit(item.env))
+  const env: ConfigStatusEnvHit[] = CONFIG_ENV_OVERRIDES.filter(
+    (item) => isEnvHit(item.env) || (item.legacy ?? []).some((name) => isEnvHit(name)),
+  ).map((item) => ({ env: item.env, key: item.key }))
   const bypass = CONFIG_ENV_BYPASS.filter((item) => isEnvHit(item.env))
 
   const items: ConfigStatusItem[] = [...fallbackItems(layers.fallbacks)]

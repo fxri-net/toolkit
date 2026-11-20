@@ -9,6 +9,7 @@ import { getConfigSection, getHomeDir } from "./config"
 import { resolveCacheEntry } from "./cache"
 import { readTextFile } from "./read-text"
 import { writeFileAtomic } from "./write-atomic"
+import { readEnvWithLegacy } from "./switch"
 
 // 成功检查有效期：24 小时内不重复请求 registry
 const CHECK_TTL = 24 * 60 * 60 * 1000
@@ -19,9 +20,9 @@ const DAY = 24 * 60 * 60 * 1000
 const WEEK = 7 * DAY
 
 // 环境变量名：设为任意「真值」即关闭检查（CI/离线环境可显式关闭）
-export const UPDATE_CHECK_ENV = "FX_NO_UPDATE_CHECK"
+export const UPDATE_CHECK_ENV = "FX_TOOLKIT_NO_UPDATE_CHECK"
 // 诊断开关：输出每条提示的判定依据到 stderr，不改变提示行为
-export const UPDATE_CHECK_DEBUG_ENV = "FX_DEBUG_UPDATE_CHECK"
+export const UPDATE_CHECK_DEBUG_ENV = "FX_TOOLKIT_DEBUG_UPDATE_CHECK"
 // 内部 worker 参数：子进程以 `cli.js <该参数>` 启动，只刷新缓存、不执行用户命令
 export const UPDATE_CHECK_WORKER_ARG = "--fxri-update-check-worker"
 
@@ -111,9 +112,9 @@ function needsRefresh(cache: UpdateCache | null): boolean {
   return true
 }
 
-// 关闭判定：FX_NO_UPDATE_CHECK 环境变量为真值，或配置文件 updateCheck.enabled === false
+// 关闭判定：FX_TOOLKIT_NO_UPDATE_CHECK 环境变量为真值，或配置文件 updateCheck.enabled === false
 function isDisabled(): boolean {
-  const v = process.env[UPDATE_CHECK_ENV]
+  const v = readEnvWithLegacy(UPDATE_CHECK_ENV)
   if (v !== undefined && v !== "") {
     // 与 soft-switch 同口径：0/false/off/no 视为「未关闭」，其余视为关闭
     return !["0", "false", "off", "no"].includes(v.trim().toLowerCase())
@@ -322,7 +323,7 @@ export function markNotified(channel: UpdateChannel, source?: string): void {
 
 // 诊断开关是否开启：与关闭开关同口径解析真值
 export function isDebugUpdateCheck(): boolean {
-  const value = process.env[UPDATE_CHECK_DEBUG_ENV]
+  const value = readEnvWithLegacy(UPDATE_CHECK_DEBUG_ENV)
   if (value === undefined || value === "") return false
   return !["0", "false", "off", "no"].includes(value.trim().toLowerCase())
 }

@@ -49,7 +49,7 @@ afterEach(() => {
   setHomeDirForTest(undefined)
   resetToolkitConfigCache()
   delete process.env.CLAUDE_CONFIG_DIR
-  delete process.env.TOOLKIT_USAGE_AGENT
+  delete process.env.FX_TOOLKIT_USAGE_AGENT
   delete process.env.CLAUDE_SESSION_ID
   delete process.env.TRAE_SESSION_ID
   delete process.env.DSH_SESSION_ID
@@ -91,7 +91,7 @@ describe("Claude 会话定位", () => {
 
 describe("Agent 识别", () => {
   it("显式变量优先，其次各 Agent 变量与目录", () => {
-    expect(detectAgent({ TOOLKIT_USAGE_AGENT: "custom" })).toBe("custom")
+    expect(detectAgent({ FX_TOOLKIT_USAGE_AGENT: "custom" })).toBe("custom")
     expect(detectAgent({ CLAUDE_SESSION_ID: "s" })).toBe("claude")
     expect(detectAgent({ TRAE_SESSION_ID: "s" })).toBe("trae")
     expect(detectAgent({ DSH_SESSION_ID: "s" })).toBe("dsh")

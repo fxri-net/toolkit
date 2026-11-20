@@ -137,7 +137,7 @@ exports[`各域行为与错误路径 > config status 1`] = `
   updateCheck.enabled：默认值
   check.warnings：默认值
 
-环境变量层：FX_NO_UPDATE_CHECK → updateCheck.enabled
+环境变量层：FX_TOOLKIT_NO_UPDATE_CHECK → updateCheck.enabled
 能力旁路：CI → skills.autoLink
 
 其余已配置段：无
@@ -202,7 +202,7 @@ exports[`各域行为与错误路径 > config status JSON 1`] = `
   ],
   "env": [
     {
-      "env": "FX_NO_UPDATE_CHECK",
+      "env": "FX_TOOLKIT_NO_UPDATE_CHECK",
       "key": "updateCheck.enabled"
     }
   ],

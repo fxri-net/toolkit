@@ -91,7 +91,7 @@ beforeEach(() => {
   unrefSpy = vi.fn()
   mockedSpawn.mockReturnValue({ unref: unrefSpy } as unknown as ReturnType<typeof spawn>)
   process.chdir(WORK)
-  delete process.env.FX_NO_UPDATE_CHECK
+  delete process.env.FX_TOOLKIT_NO_UPDATE_CHECK
   delete process.env.CI
   delete process.env.npm_lifecycle_event
   delete process.env.npm_config_registry
@@ -200,7 +200,7 @@ describe("缓存读取与提示闸门", () => {
 
   it("关闭开关时不读缓存", () => {
     writeOkCache("9.9.9")
-    process.env.FX_NO_UPDATE_CHECK = "1"
+    process.env.FX_TOOLKIT_NO_UPDATE_CHECK = "1"
     expect(readCachedLatest()).toBeNull()
     expect(shouldShowUpdateHint("cli", "1.0.0")).toBe(false)
   })
@@ -332,12 +332,12 @@ describe("emitVersionHint 提示渠道与例外", () => {
 
   it("诊断开关输出判定依据到 stderr，且不改变提示结果", () => {
     writeOkCache("1.0.0")
-    process.env.FX_DEBUG_UPDATE_CHECK = "1"
+    process.env.FX_TOOLKIT_DEBUG_UPDATE_CHECK = "1"
     const out = captureOutput()
     emitVersionHint("1.0.0", { argv: ["skills", "status"], exitCode: 0, skillAlerts: [] })
     expect(out.err.join("\n")).toContain("[update-check] CLI 当前 1.0.0")
     expect(out.log).toHaveLength(0)
-    delete process.env.FX_DEBUG_UPDATE_CHECK
+    delete process.env.FX_TOOLKIT_DEBUG_UPDATE_CHECK
   })
 
   it("readHintTiming：无缓存尚未检查、always 随时、off 已关闭", () => {

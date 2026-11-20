@@ -8,7 +8,7 @@ title: 隐私与数据边界
 
 ## 本地存储
 
-- 默认目录 `~/.toolkit/usage`，可用 `storage.dir`、`TOOLKIT_USAGE_DIR` 或 `--dir` 改写。
+- 默认目录 `~/.toolkit/usage`，可用 `storage.dir`、`FX_TOOLKIT_USAGE_DIR` 或 `--dir` 改写。
 - 事件按 JSONL 追加写，默认按月轮转、保留 180 天。
 - `index.json` 与 `upload-ledger.json` 是可重建的辅料，不作为唯一真源。
 

@@ -106,7 +106,7 @@ export function redactText(text: string, enabled: boolean): string {
   return out
 }
 
-// 解析脱敏总开关：CLI > 环境变量 FX_REDACT > 配置 enabled > 默认开启（双向，见 switch.resolveEnabled）
+// 解析脱敏总开关：CLI > 环境变量 FX_TOOLKIT_REDACT > 配置 enabled > 默认开启（双向，见 switch.resolveEnabled）
 export function resolveRedactEnabled(cliEnabled: boolean | undefined): boolean {
-  return resolveEnabled(cliEnabled, "FX_REDACT", loadConfig()?.enabled, true)
+  return resolveEnabled(cliEnabled, "FX_TOOLKIT_REDACT", loadConfig()?.enabled, true)
 }

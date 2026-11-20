@@ -62,7 +62,7 @@ registry 解析顺序（前者优先）：
 - `skills status` 展示上次检查时间与下次可提示时间（`always` 为「随时」、`off` 为「已关闭」）
 - JSON 侧对应 `versionStatus.checkedAt` / `versionStatus.nextHintAt`
 
-**诊断开关** `FX_DEBUG_UPDATE_CHECK=1`：在 stderr 输出每轮判定依据，不改变提示结果，也不污染 stdout。
+**诊断开关** `FX_TOOLKIT_DEBUG_UPDATE_CHECK=1`：在 stderr 输出每轮判定依据，不改变提示结果，也不污染 stdout。
 
 判定依据含：CLI 当前 / 缓存最新 / 检查时间 / 频率与来源、每个技能的已装与最新版本、被跳过的原因。排查「为什么一直提示 / 为什么不提示」时使用。
 
@@ -74,9 +74,9 @@ CLI 每次命令执行时**同步读取本地缓存**；缓存不新鲜时派生
 - 过期不删除上次成功版本，按 stale-while-revalidate 继续用旧值提示并后台刷新
 - 提示只来自缓存，因此首次运行只静默刷新缓存，下一次命令才提示新版本
 
-关闭方式二选一：环境变量 `FX_NO_UPDATE_CHECK` 设为真值（`0/false/off/no` 视为未关闭），或配置 `enabled: false`。
+关闭方式二选一：环境变量 `FX_TOOLKIT_NO_UPDATE_CHECK` 设为真值（`0/false/off/no` 视为未关闭），或配置 `enabled: false`。
 
-关闭后不派生后台进程、不发起任何网络请求。脚本需要稳定输出时请用 `--format json` 或设 `FX_NO_UPDATE_CHECK=1`。
+关闭后不派生后台进程、不发起任何网络请求。脚本需要稳定输出时请用 `--format json` 或设 `FX_TOOLKIT_NO_UPDATE_CHECK=1`。
 
 ## 相关页面
 

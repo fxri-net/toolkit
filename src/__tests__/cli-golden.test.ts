@@ -258,12 +258,12 @@ beforeEach(() => {
   vi.setSystemTime(FROZEN_NOW)
   // CI 标记跳过技能链接自愈；升级检查关闭，避免网络与随机提示
   process.env.CI = "1"
-  process.env.FX_NO_UPDATE_CHECK = "1"
+  process.env.FX_TOOLKIT_NO_UPDATE_CHECK = "1"
 })
 
 afterEach(() => {
   delete process.env.CI
-  delete process.env.FX_NO_UPDATE_CHECK
+  delete process.env.FX_TOOLKIT_NO_UPDATE_CHECK
   process.argv = originalArgv
   process.exitCode = 0
   vi.restoreAllMocks()

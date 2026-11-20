@@ -31,7 +31,7 @@ import { resolveRedactEnabled } from "../privacy/redact"
 import { startUpdateCheck } from "../update-check"
 
 // 会被本文件读到的环境变量：逐条清空 / 还原，避免宿主机环境串味
-const ENV_KEYS = ["FX_REDACT", "FX_NO_UPDATE_CHECK", "FX_CHECK_WARN"]
+const ENV_KEYS = ["FX_TOOLKIT_REDACT", "FX_TOOLKIT_NO_UPDATE_CHECK", "FX_TOOLKIT_CHECK_WARN"]
 const savedEnv: Record<string, string | undefined> = {}
 const originalCwd = process.cwd()
 // 项目层配置落点（cwd 即配置查找起点）与全局层 home 落点，两者互为兄弟目录，避免相互命中
@@ -80,7 +80,7 @@ function useProjectConfig(config: object): void {
 }
 
 describe("环境变量覆盖组：置 env 后目标键解析结果确实改变", () => {
-  it("FX_REDACT 覆盖 redact.enabled：文件写开启、env 置 0 则解析为关闭", () => {
+  it("FX_TOOLKIT_REDACT 覆盖 redact.enabled：文件写开启、env 置 0 则解析为关闭", () => {
     const { env } = overrideOf("redact.enabled")
     useProjectConfig({ redact: { enabled: true } })
     // 对照组：无 env 时取文件值
@@ -89,7 +89,7 @@ describe("环境变量覆盖组：置 env 后目标键解析结果确实改变",
     expect(resolveRedactEnabled(undefined)).toBe(false)
   })
 
-  it("FX_CHECK_WARN 覆盖 check.warnings：文件写关闭、env 置 1 则解析为开启", () => {
+  it("FX_TOOLKIT_CHECK_WARN 覆盖 check.warnings：文件写关闭、env 置 1 则解析为开启", () => {
     const { env } = overrideOf("check.warnings")
     useProjectConfig({ check: { warnings: false } })
     // 与 cli.ts 同形调用：env 名取自覆盖组，文件值取自配置层
@@ -99,7 +99,7 @@ describe("环境变量覆盖组：置 env 后目标键解析结果确实改变",
     expect(resolveEnabled(undefined, env, configured(), true)).toBe(true)
   })
 
-  it("FX_NO_UPDATE_CHECK 覆盖 updateCheck.enabled：文件写开启、env 置 1 则关闭升级检查", () => {
+  it("FX_TOOLKIT_NO_UPDATE_CHECK 覆盖 updateCheck.enabled：文件写开启、env 置 1 则关闭升级检查", () => {
     const { env } = overrideOf("updateCheck.enabled")
     useProjectConfig({ updateCheck: { enabled: true } })
     // 对照组：无 env 时检查照常跑（无缓存 → 派生后台 worker）
@@ -112,7 +112,7 @@ describe("环境变量覆盖组：置 env 后目标键解析结果确实改变",
   })
 
   it("覆盖组逐项均有生效断言：新增条目未补用例即失败", () => {
-    const covered = ["FX_REDACT", "FX_NO_UPDATE_CHECK", "FX_CHECK_WARN"].sort()
+    const covered = ["FX_TOOLKIT_REDACT", "FX_TOOLKIT_NO_UPDATE_CHECK", "FX_TOOLKIT_CHECK_WARN"].sort()
     expect(CONFIG_ENV_OVERRIDES.map((item) => item.env).sort()).toEqual(covered)
   })
 })

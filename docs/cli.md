@@ -59,9 +59,11 @@
 
 开关为**双向三档**，优先级从高到低：CLI 参数 > 环境变量 > 配置文件 > 默认开启。
 
-对应环境变量：`FX_REDACT`、`FX_CHECK_WARN`（认 `0/1`、`true/false`、`on/off`、`yes/no`）；配置项见[配置参考](./config)。
+对应环境变量：`FX_TOOLKIT_REDACT`、`FX_TOOLKIT_CHECK_WARN`（认 `0/1`、`true/false`、`on/off`、`yes/no`）。
+旧名 `FX_REDACT` / `FX_CHECK_WARN` 仍可读（下个 major 移除）；配置项见[配置参考](./config)。
 
-另有一个独立环境变量 `FX_NO_UPDATE_CHECK`：设为真值时关闭升级检查提示（1.7.0 起支持，行为详见[配置参考 · updateCheck](./config)）。
+另有独立环境变量 `FX_TOOLKIT_NO_UPDATE_CHECK`：设为真值时关闭升级检查提示（1.7.0 起支持，行为详见[配置参考 · updateCheck](./config)）。
+旧名 `FX_NO_UPDATE_CHECK` 仍可读，下个 major 移除。
 
 **升级提示收口**：命令成功（退出码 0）时，按 `updateCheck.notify`（默认 `always`）在输出结尾给出一句话提示；TTY 下走 stderr，非 TTY 走 stdout。
 

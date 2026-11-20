@@ -183,7 +183,7 @@ function runCaptured(step) {
   })
 }
 
-const cliEnv = { FX_NO_UPDATE_CHECK: "1" }
+const cliEnv = { FX_TOOLKIT_NO_UPDATE_CHECK: "1" }
 const installNeeded = needInstall()
 const docsNeeded = needDocsBuild()
 const buildSkip = buildSkipReason()

@@ -87,7 +87,7 @@ export function registerChangelogCommands(program: Command): void {
       lang,
       docLang: unknown ? DEFAULT_LANG : (options.lang ?? DEFAULT_LANG),
       redact: resolveRedactEnabled(options.redact),
-      warn: resolveEnabled(options.warn, "FX_CHECK_WARN", getCheckWarnings(), true),
+      warn: resolveEnabled(options.warn, "FX_TOOLKIT_CHECK_WARN", getCheckWarnings(), true),
     }
   }
 

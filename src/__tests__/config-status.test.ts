@@ -9,7 +9,7 @@ import { CONFIG_DISPLAY_KEYS, CONFIG_ENV_OVERRIDES, CONFIG_ENV_BYPASS, CONFIG_LO
 import { toPosix } from "../git-ignore"
 
 // 会被本文件读到的环境变量：逐条保存 / 清空 / 还原，避免宿主机环境串味
-const ENV_KEYS = ["CI", "FX_REDACT", "FX_NO_UPDATE_CHECK", "FX_CHECK_WARN"]
+const ENV_KEYS = ["CI", "FX_TOOLKIT_REDACT", "FX_TOOLKIT_NO_UPDATE_CHECK", "FX_TOOLKIT_CHECK_WARN"]
 const savedEnv: Record<string, string | undefined> = {}
 const dirs: string[] = []
 // home 临时目录：用例内需向其写全局层配置文件，故提到文件级共享
@@ -94,15 +94,15 @@ describe("configStatus 三层现场", () => {
 
 describe("configStatus 环境变量层与能力旁路", () => {
   it("非空即命中，覆盖组与旁路组分别呈现", () => {
-    process.env.FX_CHECK_WARN = "1"
+    process.env.FX_TOOLKIT_CHECK_WARN = "1"
     process.env.CI = "1"
     const report = configStatus(makeDir("tk-cfgst-env-"))
-    expect(report.env).toEqual([{ env: "FX_CHECK_WARN", key: "check.warnings" }])
+    expect(report.env).toEqual([{ env: "FX_TOOLKIT_CHECK_WARN", key: "check.warnings" }])
     expect(report.bypass).toEqual([{ env: "CI", key: "skills.autoLink" }])
   })
 
   it("命中只判非空，与是否开启无关", () => {
-    process.env.FX_REDACT = ""
+    process.env.FX_TOOLKIT_REDACT = ""
     process.env.CI = ""
     const report = configStatus(makeDir("tk-cfgst-env0-"))
     expect(report.env).toEqual([])
@@ -110,13 +110,13 @@ describe("configStatus 环境变量层与能力旁路", () => {
   })
 
   it("关闭态取值仍计入 env[]：命中 = 已设置且非空，不代表开启", () => {
-    process.env.FX_CHECK_WARN = "0"
-    process.env.FX_NO_UPDATE_CHECK = "1"
+    process.env.FX_TOOLKIT_CHECK_WARN = "0"
+    process.env.FX_TOOLKIT_NO_UPDATE_CHECK = "1"
     const report = configStatus(makeDir("tk-cfgst-envoff-"))
-    // 键序跟随 CONFIG_ENV_OVERRIDES（FX_NO_UPDATE_CHECK 在 FX_CHECK_WARN 之前）
+    // 键序跟随 CONFIG_ENV_OVERRIDES（FX_TOOLKIT_NO_UPDATE_CHECK 在 FX_TOOLKIT_CHECK_WARN 之前）
     expect(report.env).toEqual([
-      { env: "FX_NO_UPDATE_CHECK", key: "updateCheck.enabled" },
-      { env: "FX_CHECK_WARN", key: "check.warnings" },
+      { env: "FX_TOOLKIT_NO_UPDATE_CHECK", key: "updateCheck.enabled" },
+      { env: "FX_TOOLKIT_CHECK_WARN", key: "check.warnings" },
     ])
   })
 })

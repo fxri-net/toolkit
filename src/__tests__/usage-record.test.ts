@@ -37,8 +37,8 @@ beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), "tk-usage-queue-home-"))
   dataDir = mkdtempSync(join(tmpdir(), "tk-usage-queue-data-"))
   mkdirSync(join(home, ".trae-cn"), { recursive: true })
-  process.env.TOOLKIT_USAGE_NO_WORKER = "1"
-  delete process.env.TOOLKIT_USAGE_AGENT
+  process.env.FX_TOOLKIT_USAGE_NO_WORKER = "1"
+  delete process.env.FX_TOOLKIT_USAGE_AGENT
   delete process.env.CLAUDE_SESSION_ID
   delete process.env.TRAE_SESSION_ID
   delete process.env.DSH_SESSION_ID
@@ -54,7 +54,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks()
   process.exitCode = 0
-  delete process.env.TOOLKIT_USAGE_NO_WORKER
+  delete process.env.FX_TOOLKIT_USAGE_NO_WORKER
   setHomeDirForTest(undefined)
   resetToolkitConfigCache()
   rmSync(home, { recursive: true, force: true })
@@ -113,7 +113,7 @@ describe("usage record：入队", () => {
 
   it("批次 ID 唯一，会话标识三级兜底", () => {
     expect(createBatchId()).not.toBe(createBatchId())
-    expect(resolveRecordSession("s1", { TOOLKIT_USAGE_SESSION: "env" })).toBe("s1")
+    expect(resolveRecordSession("s1", { FX_TOOLKIT_USAGE_SESSION: "env" })).toBe("s1")
     expect(resolveRecordSession(undefined, { CLAUDE_SESSION_ID: "claude" })).toBe("claude")
     expect(resolveRecordSession(undefined, {})).toMatch(/^rule-\d{4}-\d{2}-\d{2}$/)
   })

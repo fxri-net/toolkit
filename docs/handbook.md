@@ -130,7 +130,7 @@ toolkit skills status       # 查 CLI 版本提示与技能现场
 `~/.pi/agent/skills/` 的产物不再随本包更新；若状态文件仍有登记且目录仍在，`status` 会单列提示，
 用 `toolkit skills uninstall --all` 清理后再 `toolkit skills install` 恢复（只提示、不自动删除）。
 
-规则细节已收敛进 skills，装完无需手动同步全局规则全文。CLI 检测到新版本会提示；关闭提示：`FX_NO_UPDATE_CHECK=1` 或配置 `updateCheck.enabled: false`。
+规则细节已收敛进 skills，装完无需手动同步全局规则全文。CLI 检测到新版本会提示；关闭提示：`FX_TOOLKIT_NO_UPDATE_CHECK=1` 或配置 `updateCheck.enabled: false`。
 版本兼容（Node 版本要求）见[完整攻略 · 升级与版本兼容](./guide#升级与版本兼容)。
 
 ### 卸载

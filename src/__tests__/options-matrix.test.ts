@@ -102,12 +102,12 @@ beforeEach(() => {
   // CI 标记跳过技能链接自愈（skills.ts 的 autoLinkSkills），避免用例写盘到沙箱外
   process.env.CI = "1"
   // 默认关闭升级检查；缺陷 13 用例内单独删除该变量
-  process.env.FX_NO_UPDATE_CHECK = "1"
+  process.env.FX_TOOLKIT_NO_UPDATE_CHECK = "1"
 })
 
 afterEach(() => {
   delete process.env.CI
-  delete process.env.FX_NO_UPDATE_CHECK
+  delete process.env.FX_TOOLKIT_NO_UPDATE_CHECK
   process.argv = originalArgv
   process.exitCode = 0
   vi.restoreAllMocks()
@@ -581,7 +581,7 @@ describe("tasks check 装配位：变更集缺前缀并入软告警", () => {
 describe("升级检查提示收口（成功才提示，帮助 / 失败静默）", () => {
   beforeEach(() => {
     // 打开升级检查并清掉 CI / npm script 闸门：只验证命令路径规则
-    delete process.env.FX_NO_UPDATE_CHECK
+    delete process.env.FX_TOOLKIT_NO_UPDATE_CHECK
     delete process.env.CI
     delete process.env.npm_lifecycle_event
     delete process.env.npm_config_registry

@@ -8,7 +8,7 @@ title: redact（隐私脱敏）
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
-| `enabled` | boolean | `true` | 总开关；被 CLI `--redact/--no-redact` 与环境变量 `FX_REDACT` 覆盖 |
+| `enabled` | boolean | `true` | 总开关；被 CLI `--redact/--no-redact` 与环境变量 `FX_TOOLKIT_REDACT` 覆盖 |
 | `disable` | string[] | `[]` | 按 `name` 禁用内置规则（如 `["手机号"]`），被禁用规则不再匹配，对应信息原样保留 |
 | `rules` | object[] | `[]` | 自定义规则，**优先于内置**；同 `name` 可覆盖内置 |
 
