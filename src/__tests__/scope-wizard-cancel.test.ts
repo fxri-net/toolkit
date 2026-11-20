@@ -1,13 +1,20 @@
 // 交互取消：验证取消向外传播、返回项、退出码与 ESC 返回键
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { mkdtempSync, rmSync } from "node:fs"
+import { join } from "node:path"
+import { tmpdir } from "node:os"
+import { setHomeDirForTest } from "../config"
 import { askWithBack, exitOnPromptCancel, exitWithCancel, isPromptCancel } from "../prompts"
-import { runScopeSetScope, runScopeWizard } from "../scope/wizard"
+import { runScopeWizard } from "../scope/wizard"
+
+let home = ""
 
 // 交互应答队列：按调用顺序消费；throwAt 指定第几次 select 抛取消
 const answers = vi.hoisted(() => ({
   select: [] as unknown[],
   selectCalls: [] as unknown[],
   throwAt: 0,
+  cancelName: "ExitPromptError",
 }))
 
 // 构造 inquirer 风格的取消错误
@@ -23,7 +30,7 @@ vi.mock("../prompts", async (importOriginal) => {
       ({
         select: async (options: unknown) => {
           answers.selectCalls.push(options)
-          if (answers.throwAt > 0 && answers.selectCalls.length === answers.throwAt) throw cancelError()
+          if (answers.throwAt > 0 && answers.selectCalls.length === answers.throwAt) throw cancelError(answers.cancelName)
           return answers.select.shift()
         },
         checkbox: async () => [],
@@ -40,14 +47,19 @@ function setTty(value: boolean): void {
 }
 
 beforeEach(() => {
+  home = mkdtempSync(join(tmpdir(), "tk-scope-cancel-"))
+  setHomeDirForTest(home)
   answers.select.length = 0
   answers.selectCalls.length = 0
   answers.throwAt = 0
+  answers.cancelName = "ExitPromptError"
   setTty(true)
   vi.spyOn(console, "log").mockImplementation(() => {})
 })
 
 afterEach(() => {
+  setHomeDirForTest(undefined)
+  rmSync(home, { recursive: true, force: true })
   vi.restoreAllMocks()
   delete (process.stdin as { isTTY?: boolean }).isTTY
   delete (process.stdout as { isTTY?: boolean }).isTTY
@@ -108,23 +120,25 @@ describe("ESC 返回", () => {
 })
 
 describe("作用域向导取消与返回", () => {
-  it("设置生效范围取消时向外抛出，不再静默回菜单", async () => {
+  it("层选择按 ESC 返回并结束向导", async () => {
+    answers.cancelName = "CancelPromptError"
     answers.throwAt = 1
-    await expect(runScopeSetScope()).rejects.toMatchObject({ name: "ExitPromptError" })
+    await expect(runScopeWizard()).resolves.toBeUndefined()
     expect(answers.selectCalls).toHaveLength(1)
   })
 
-  it("主菜单取消只发起一次提示并向外抛出", async () => {
+  it("层选择 Ctrl+C 向外抛出", async () => {
+    answers.cancelName = "ExitPromptError"
     answers.throwAt = 1
     await expect(runScopeWizard()).rejects.toMatchObject({ name: "ExitPromptError" })
     expect(answers.selectCalls).toHaveLength(1)
   })
 
-  it("层选择提供返回项，选中后直接回菜单", async () => {
-    answers.select.push("back")
-    await runScopeSetScope()
-    const options = answers.selectCalls[0] as { choices: Array<{ value: string }> }
-    expect(options.choices.map((choice) => choice.value)).toContain("back")
-    expect(answers.selectCalls).toHaveLength(1)
+  it("主菜单取消只发起两次提示并向外抛出", async () => {
+    answers.select.push("global")
+    answers.cancelName = "ExitPromptError"
+    answers.throwAt = 2
+    await expect(runScopeWizard()).rejects.toMatchObject({ name: "ExitPromptError" })
+    expect(answers.selectCalls).toHaveLength(2)
   })
 })

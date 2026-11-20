@@ -4,25 +4,14 @@ import type { Command } from "commander"
 import { resolveScope } from "../scope"
 import { runGuard } from "../scope/guard"
 import { formatList, formatStatus } from "../scope/print"
-import { isInteractive, requireInteractive, runInteractive } from "../prompts"
+import { isInteractive, runInteractive } from "../prompts"
 import { resolveComparablePath } from "../scope/paths"
 import { runScopeMount, runScopeWizard } from "../scope/wizard"
 import { line } from "../term-style"
 import { assertJsonFormat } from "../json-output"
-import { assertChoice, confirmWrite, fail, reportWrite } from "../cli-ui"
-import {
-  applyPlan,
-  describePlan,
-  modeLabel,
-  planAdd,
-  planDefault,
-  planRemove,
-  planReset,
-  readScopeState,
-  type ScopeEditPlan,
-  type ScopeList,
-  type RemoveFrom,
-} from "../scope/edit"
+import { assertChoice, fail } from "../cli-ui"
+import { modeLabel, planAdd, planDefault, planRemove, planReset, readScopeState, type ScopeList, type RemoveFrom } from "../scope/edit"
+import { applyScopePlan } from "../scope/apply"
 
 // 配置层取值
 const LAYERS = ["global", "project", "local"] as const
@@ -33,33 +22,12 @@ function resolveLayer(value?: string): (typeof LAYERS)[number] | null {
   return assertChoice(layer, LAYERS, "--layer") ? layer : null
 }
 
-// 统一写盘流程：预览 → 确认 → 落盘 → 结果块；--dry-run 只预览，--yes 与管道输入跳过确认
-async function applyScopePlan(title: string, plan: ScopeEditPlan, options: { dryRun?: boolean; yes?: boolean }): Promise<void> {
-  if (!plan.changed) {
-    for (const text of describePlan(plan)) console.log(line.hint(text))
-    return
-  }
-  const confirmed = await confirmWrite({
-    title,
-    lines: describePlan(plan),
-    yes: Boolean(options.yes) || !isInteractive(),
-    dryRun: Boolean(options.dryRun),
-  })
-  if (options.dryRun) return
-  if (!confirmed) {
-    console.error(line.hint("已取消，未写入任何文件"))
-    return
-  }
-  applyPlan(plan)
-  reportWrite({ file: plan.target.file, notes: plan.changes, mode: modeLabel(plan.nextMode) })
-}
-
 // 加入白 / 黑名单
 async function runListEdit(kind: ScopeList, dirs: string[], options: { layer?: string; dryRun?: boolean; yes?: boolean }): Promise<void> {
   const layer = resolveLayer(options.layer)
   if (!layer) return
   if (dirs.length === 0) {
-    fail("请指定目录；交互设置请运行 toolkit scope")
+    fail("请指定目录；交互设置请运行 toolkit scope wizard")
     return
   }
   await applyScopePlan(kind === "include" ? "作用域：加入白名单" : "作用域：加入黑名单", planAdd(readScopeState(layer), kind, dirs), options)
@@ -70,7 +38,7 @@ async function runRemove(dirs: string[], options: { layer?: string; dryRun?: boo
   const layer = resolveLayer(options.layer)
   if (!layer) return
   if (dirs.length === 0) {
-    fail("请指定目录；交互管理请运行 toolkit scope")
+    fail("请指定目录；交互管理请运行 toolkit scope wizard")
     return
   }
   const from = (options.from ?? "both") as RemoveFrom
@@ -118,9 +86,23 @@ async function runReset(options: { layer?: string; dryRun?: boolean; yes?: boole
 export function registerScopeCommands(program: Command): void {
   const scopeCmd = program.command("scope").description("作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效）")
   scopeCmd.action(async () => {
-    if (!requireInteractive({ action: "作用域菜单", hint: "非交互场景请直接使用 toolkit scope status / list / add / remove" })) return
+    // 裸命令：非 TTY 输出状态摘要并成功退出，交互入口显式交给 scope wizard
+    if (!isInteractive()) {
+      const report = resolveScope()
+      for (const warning of report.warnings) console.error(`⚠️ ${warning}`)
+      for (const text of formatStatus(report)) console.log(text)
+      console.log(line.hint("非交互环境已输出状态摘要；交互向导请运行 toolkit scope wizard"))
+      return
+    }
     await runInteractive(() => runScopeWizard())
   })
+
+  scopeCmd
+    .command("wizard")
+    .description("交互向导：状态、名单、默认值、高级规则")
+    .action(async () => {
+      await runInteractive(() => runScopeWizard())
+    })
 
   scopeCmd
     .command("status")

@@ -342,6 +342,8 @@ describe("各域行为与错误路径", () => {
     ["rules reset", ["rules", "reset"]],
     ["rules list 非法格式", ["rules", "list", "--format", "xml"]],
     ["scope status 非法格式", ["scope", "status", "--format", "xml"]],
+    ["scope 裸命令", ["scope"]],
+    ["scope wizard 非交互", ["scope", "wizard"]],
     ["scope default 查看", ["scope", "default"]],
     ["scope add 缺参数", ["scope", "add"]],
     ["scope exclude 预演", ["scope", "exclude", "work", "--dry-run"]],

@@ -184,6 +184,39 @@ export function planRemove(
   })
 }
 
+// 管理条目：remove 移出两列表；flip 从所在侧转到另一侧，两侧同时存在时一并移除
+export function planManage(state: ScopeState, dirs: string[], action: "remove" | "flip", startDir = process.cwd()): ScopeEditPlan {
+  const paths = resolveDirs(state, dirs, startDir)
+  return buildPlan(state, (current) => {
+    const keys = new Set(paths.map(pathKey))
+    const include = current.include.filter((item) => !keys.has(pathKey(item)))
+    const exclude = current.exclude.filter((item) => !keys.has(pathKey(item)))
+    const changes: string[] = []
+    let mode = current.mode
+    for (const path of paths) {
+      const key = pathKey(path)
+      const wasInclude = current.include.some((item) => pathKey(item) === key)
+      const wasExclude = current.exclude.some((item) => pathKey(item) === key)
+      if (action === "remove") {
+        if (wasInclude) changes.push(`移除：[白] ${path}`)
+        if (wasExclude) changes.push(`移除：[黑] ${path}`)
+        continue
+      }
+      if (wasInclude && wasExclude) {
+        changes.push(`移除：[白/黑] ${path}（两列表同时存在，已一并移除）`)
+      } else if (wasInclude) {
+        exclude.push(path)
+        changes.push(`转入：[黑] ${path}`)
+      } else if (wasExclude) {
+        include.push(path)
+        mode = "allowlist"
+        changes.push(`转入：[白] ${path}`)
+      }
+    }
+    return { mode, include, exclude, changes, warnings: [] }
+  })
+}
+
 // 切换默认值：on = 全部生效，off = 仅名单内生效
 export function planDefault(state: ScopeState, on: boolean): ScopeEditPlan {
   return buildPlan(state, (current) => ({
