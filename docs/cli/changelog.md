@@ -61,9 +61,7 @@ toolkit changelog add / status / publish # 其余 changeset 子命令透传
   - 未识别的前缀（如正文里的 `说明：`）与依赖源条目 `- Updated dependencies`（续行承载包版本）原样保留
   - 语言未声明 `groups` 时不改分组、只剥离可识别前缀
 - 其余子命令（`add`/`status`/`publish`/…）原样透传给 changesets
-- ⚠️ Node 18 与 Node 20.0–20.18 下依赖 changesets 的子命令不可用。
-  - 原因是上游 ESM-only 限制需宿主默认开启 `require(esm)`，即 Node ≥ 20.19.0、22 线 ≥ 22.12.0
-  - `format` 等纯格式化不受影响
+- 透传子命令以 changesets 2.27 为准；运行时下限 Node.js >= 18.17.0（Node 18 已 EOL，仅保证可运行）
 
 ## 相关页面
 

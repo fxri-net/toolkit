@@ -2,6 +2,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, isAbsolute, join } from "node:path"
 import { writeFileAtomic } from "../write-atomic"
+import { loadPrompts } from "../prompts"
 import { loadUsageConfig, resolveUsageDir, updateUsageConfig } from "./config"
 import { readAllEvents, usagePaths, type UsagePaths } from "./store"
 import type { SkillUsageEvent, UsageConfig, UsageUploadProtocol } from "./types"
@@ -253,7 +254,7 @@ export async function runUploadSetup(options: UploadSetupOptions = {}): Promise<
     process.exitCode = 2
     return
   }
-  const { select, input, confirm } = await import("@inquirer/prompts")
+  const { select, input, confirm } = await loadPrompts()
   try {
     const config = loadUsageConfig()
     const protocol = await select<UsageUploadProtocol>({

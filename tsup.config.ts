@@ -10,5 +10,5 @@ export default defineConfig({
   external: ["@changesets/cli", "commander"], // 运行时依赖不打包进产物
   shims: true, // 为 cjs 输出提供 import.meta 等 shim
   minify: process.env.NODE_ENV === "production",
-  target: "node20" // Node.js版本目标
+  target: "node18" // Node.js 运行时下限（与 package.json engines 对齐）
 })

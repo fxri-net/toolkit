@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/fxri-net/toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/fxri-net/toolkit/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@fxri/toolkit)](https://www.npmjs.com/package/@fxri/toolkit)
-[![Node](https://img.shields.io/badge/node-%E2%89%A520.19-brightgreen)](./docs/getting-started.md#安装)
+[![Node](https://img.shields.io/badge/node-%E2%89%A518.17-brightgreen)](./docs/getting-started.md#安装)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 [![文档站](https://img.shields.io/badge/docs-fxri--net.github.io%2Ftoolkit-blueviolet)](https://fxri-net.github.io/toolkit/)
 
@@ -127,7 +127,8 @@ npm / yarn / bun 用户与各方式对比见 [快速开始 · 安装](./docs/get
 
 ## ⚙️ 环境要求
 
-- Node.js >= 20.19.0（更低版本可安装，changesets 相关子命令不可用，见 [常见问题](./docs/faq.md#node-18-能用吗)）
+- 运行环境 Node.js >= 18.17.0（Node 18 已 EOL，仅保证可运行，见 [常见问题](./docs/faq.md#node-18-能用吗)）
+- 开发本仓库 Node.js >= 20.19（以 `.node-version` 为准）
 
 ## 📄 版权信息
 

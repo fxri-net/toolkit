@@ -3,6 +3,8 @@
   // 本配置放开测试与根配置文件的覆盖面，只做 --noEmit 检查，不参与构建产物（tsup 有独立配置）。
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    // 运行时代码只认 ES2022（Node 18 下限）；测试会直接操作文档站 Vue 组件的 DOM，故仅在门禁配置补 DOM
+    "lib": ["ES2022", "DOM"],
     // 不检查 node_modules 内的 .d.ts：第三方声明文件的既有缺陷不该拦本仓库门禁
     "skipLibCheck": true,
     // 允许解析并推断 .mjs（scripts/ 下的 Node 脚本被测试直接导入，无声明文件）

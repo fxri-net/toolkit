@@ -6,6 +6,7 @@ import { loadUsageConfig, resolveUsageDir, usageConfigPath, updateUsageConfig } 
 import { purgeEvents, readAllEvents, usagePaths } from "./store"
 import { summarize } from "./stats"
 import { runUploadSetup } from "./upload"
+import { loadPrompts } from "../prompts"
 import type { UsageChannel, UsageConfig, UsageRotation, UsageSkillMode } from "./types"
 
 // 预设：已配置时沿用当前配置，首次默认覆盖一方与第三方技能
@@ -205,7 +206,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
     return
   }
   if (!requireTty()) return
-  const { select, checkbox, confirm, input } = await import("@inquirer/prompts")
+  const { select, checkbox, confirm, input } = await loadPrompts()
   try {
     const detected = detectedAdapters()
     if (detected.length === 0) console.log("未检测到可接入的 Agent：本向导将只能使用规则通道（toolkit usage rule）")
@@ -395,7 +396,7 @@ export async function runUsageUninstall(options: UninstallOptions = {}): Promise
   let purge = Boolean(options.purge)
   try {
     if (!options.yes && !options.dryRun) {
-      const { confirm } = await import("@inquirer/prompts")
+      const { confirm } = await loadPrompts()
       const disable = await confirm({ message: "停用技能使用情况总开关？", default: true })
       if (!disable) {
         console.log("已取消，未修改任何文件")
@@ -446,7 +447,7 @@ export async function runUsageUninstall(options: UninstallOptions = {}): Promise
 // 无参数菜单：每项执行后回到菜单，q 退出
 export async function runUsageMenu(): Promise<void> {
   if (!requireTty()) return
-  const { select, confirm } = await import("@inquirer/prompts")
+  const { select, confirm } = await loadPrompts()
   try {
     for (;;) {
       const action = await select<string>({

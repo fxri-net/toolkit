@@ -9,6 +9,7 @@ import { emitVersionHint, runUpdateCheckWorker, UPDATE_CHECK_WORKER_ARG } from "
 import { collectSkillVersionUpdates } from "./skills/version-status"
 import { setupHelp } from "./help"
 import { formatCommanderError } from "./errors"
+import { MIN_NODE, nodeVersionAtLeast } from "./prompts"
 import { DESCRIPTION } from "./about"
 import { registerInitCommands } from "./commands/init"
 import { registerSkillsCommands } from "./commands/skills"
@@ -107,6 +108,13 @@ program.helpCommand("help [command]", "显示帮助")
 ensureUtf8()
 // main 包装：兼容 CJS 产物（顶层 await 仅 ESM 支持）；主命令完成后同步读缓存提示升级（零网络、不影响退出码）
 async function main(): Promise<void> {
+  // 运行时下限：低于门槛时交互组件会在加载期抛英文模块错误，这里先给可执行提示并停止
+  if (!nodeVersionAtLeast(MIN_NODE)) {
+    console.error(`⚠️ 当前 Node ${process.versions.node} 低于运行要求（>= ${MIN_NODE.major}.${MIN_NODE.minor}.0），已停止执行。`)
+    console.error("   升级 Node 后重试；版本要求见文档站「快速开始 · 环境要求」")
+    process.exitCode = 1
+    return
+  }
   // 内部升级检查 worker：仅联网刷新缓存后退出，不执行命令、不做技能自愈（参数由版本提示器派生时注入）
   if (process.argv[2] === UPDATE_CHECK_WORKER_ARG) {
     await runUpdateCheckWorker()

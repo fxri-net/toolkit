@@ -15,7 +15,13 @@ export function registerUsageCommands(program: Command): void {
 
   // 无参数：进入交互菜单；非 TTY 打印帮助并以退出码 2 结束
   usage.action(async () => {
-    await runUsageMenu()
+    try {
+      await runUsageMenu()
+    } catch (error) {
+      // 交互组件加载失败等异常统一收口，避免英文堆栈直出
+      console.error(`⚠️ ${(error as Error).message}`)
+      process.exitCode = 1
+    }
   })
 
   // 惰性兜底：除上报与消费自身外，任何 usage 子命令启动时先消费积压队列；失败不影响当前命令

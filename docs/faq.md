@@ -52,9 +52,9 @@
 
 ### Node 18 能用吗？
 
-能安装、能跑 tasks 总览/归档和 CHANGELOG 格式化。但 `changelog` 走 changesets 的子命令（add/version/publish）不可用。
-原因是上游依赖 `human-id` 仅支持 ESM，需宿主 Node 默认开启 `require(esm)`（Node ≥ 20.19.0 / 22 线 ≥ 22.12.0）。
-这属 changesets 生态限制，正式支持 Node >= 20.19.0。
+能。运行时下限为 Node.js >= 18.17.0，全部命令（含交互式选择与 `changelog` 透传子命令）在该版本上可用。
+Node 18 已于 2025-04 EOL，只保证可运行、不再有安全补丁，条件允许时建议升级到 Node 20.19+。
+低于 18.17.0 时 CLI 会输出中文提示并以非 0 退出，不静默降级。
 
 ### 内网或离线环境怎么装？
 

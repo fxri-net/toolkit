@@ -276,8 +276,7 @@ pnpm exec toolkit changelog doc                # 生成/更新文档站更新日
 
 ## 升级与版本兼容
 
-- 环境要求 Node.js >= 20.19.0（22 线为 >= 22.12.0）；Node 18 与 20.0–20.18 可安装，
-  但 `changelog` 依赖 changesets 的子命令不可用（上游 `human-id` ESM-only 限制）
+- 环境要求 Node.js >= 18.17.0（Node 18 已 EOL，仅保证可运行）；低于该版本时 CLI 会输出中文提示并以非 0 退出
 - 升级：`pnpm add -g @fxri/toolkit`——默认软链模式下技能随 CLI 自动更新；副本形式需重跑 `toolkit skills install`；
   项目面由 `prepare` 钩子自动刷新；**升级后开新会话**使 AI 侧技能与 CLI 版本对齐
 - 1.7.0 起 CLI 内置升级检查提示；1.15.0 起收敛为统一提示：命令成功时按 `updateCheck.notify`（默认 `always`）在结尾给出一句话，

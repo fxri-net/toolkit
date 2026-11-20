@@ -83,18 +83,18 @@
     "fxri"
   ],
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=18.17.0"
   },
   "packageManager": "pnpm@10.34.4",
   "dependencies": {
-    "@changesets/cli": "^2.31.1",
-    "@inquirer/prompts": "^8.7.5",
-    "commander": "^14.0.3",
+    "@changesets/cli": "2.27.12",
+    "@inquirer/prompts": "^7.10.1",
+    "commander": "^13.1.0",
     "exceljs": "^4.4.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^20.19.21",
+    "@types/node": "^18.19.0",
     "@vitejs/plugin-vue": "^6.0.10",
     "@vitest/coverage-v8": "^4.1.11",
     "@vue/test-utils": "^2.5.1",

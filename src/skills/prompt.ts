@@ -1,6 +1,7 @@
 // 技能选择：纯函数负责「已保存选择 / 显式参数 / 非 TTY 回落」，交互层只做 TTY 下的多选
 // core 技能默认选中且不可取消；optional 可切换；只有一个可选层级时跳过交互
 import type { PackageSkill, SkillsMode, SkillTarget } from "./types"
+import { loadPrompts } from "../prompts"
 
 // 单个技能在交互界面中的选项
 export interface SkillChoice {
@@ -180,7 +181,7 @@ export function buildProjectTargetChoices(
 // 目标多选：返回选中值；用户取消返回 null（调用方不得写任何文件）
 export async function promptTargetSelection(choices: TargetChoice[], message: string): Promise<string[] | null> {
   if (choices.length === 0) return []
-  const { checkbox } = await import("@inquirer/prompts")
+  const { checkbox } = await loadPrompts()
   try {
     return await checkbox({
       message,
@@ -201,7 +202,7 @@ export async function promptTargetSelection(choices: TargetChoice[], message: st
 
 // 汇总确认：返回 true 继续、false 放弃、null 取消（Ctrl+C）；破坏性操作应传 defaultValue = false
 export async function promptConfirm(message: string, defaultValue = true): Promise<boolean | null> {
-  const { confirm } = await import("@inquirer/prompts")
+  const { confirm } = await loadPrompts()
   try {
     return await confirm({ message, default: defaultValue })
   } catch (error) {
@@ -220,7 +221,7 @@ interface PromptCheckboxItem {
 
 // 多选基底：统一动态导入、分页与取消语义；返回 null 表示取消
 async function promptCheckbox(message: string, choices: PromptCheckboxItem[], pageSize: number): Promise<string[] | null> {
-  const { checkbox } = await import("@inquirer/prompts")
+  const { checkbox } = await loadPrompts()
   try {
     return await checkbox({ message, choices, pageSize, required: false })
   } catch (error) {

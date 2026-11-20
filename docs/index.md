@@ -115,7 +115,7 @@ pnpm exec toolkit tasks
 
 ## 环境要求
 
-- Node.js >= 20.19.0
+- Node.js >= 18.17.0（Node 18 已 EOL，仅保证可运行）
 
 ## 相关仓库文件
 
