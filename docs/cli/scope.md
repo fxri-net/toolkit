@@ -15,10 +15,22 @@ title: scope（作用域）
 ## 常用命令
 
 ```bash
+toolkit scope                         # 交互菜单：看状态 / 设范围 / 管目录 / 批量挂载
 toolkit scope status                  # 当前目录的判定与原因
 toolkit scope status --format json    # 给 AI / 脚本消费
 toolkit scope list                    # 规则、来源与优先级
+toolkit scope add ~/work              # 加入白名单（只写全局配置）
+toolkit scope remove ~/work/legacy    # 从规则中移除
+toolkit scope mount ~/work --dry-run  # 批量项目面安装：先预览
 ```
+
+## 交互与批量挂载
+
+- 无参 `toolkit scope` 在 TTY 下进入交互菜单；非 TTY 打印帮助
+- 设置范围只需选模式并勾选目录，不要求手写 glob；保存前会展示将写入的目录数
+- `scope add/remove` 只改 `~/.toolkitrc.json`（读 → 合并 → 原子写），不动项目文件
+- `scope mount` 会**向所选项目写入技能文件**，必须显式勾选并确认；`--dry-run` 只预览
+- 非 TTY 环境：向导与 `mount` 会提示无法交互；`add` / `remove` 请直接带目录参数
 
 ## 判定顺序
 

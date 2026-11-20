@@ -1,25 +1,23 @@
-// scope 命令：作用域状态与规则清单（本任务只读，不写任何配置）
+// scope 命令：状态与规则清单只读；向导、目录增删与批量挂载在 TTY 下交互
 import type { Command } from "commander"
-import { getHomeDir } from "../config"
 import { resolveScope } from "../scope"
+import { formatList, formatStatus } from "../scope/print"
+import { runScopeAdd, runScopeMount, runScopeRemove, runScopeWizard } from "../scope/wizard"
 
-// 展示用路径：折叠 home 前缀，便于人读
-function displayPath(path: string | null): string {
-  if (!path) return "默认（未配置）"
-  const home = getHomeDir()
-  return home && path.startsWith(home) ? `~${path.slice(home.length)}` : path
-}
-
-// 文本清单：空数组显示「未配置」
-function displayList(items: string[]): string {
-  return items.length > 0 ? items.join("、") : "未配置"
-}
-
-// 注册 scope 命令：只读查询，判定逻辑见 src/scope
+// 注册 scope 命令：默认行为不变（无配置时全域生效）
 export function registerScopeCommands(program: Command): void {
   const scopeCmd = program.command("scope").description("作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效）")
-  scopeCmd.action(() => {
-    scopeCmd.help()
+  scopeCmd.action(async () => {
+    if (!(process.stdin.isTTY && process.stdout.isTTY)) {
+      scopeCmd.help()
+      return
+    }
+    try {
+      await runScopeWizard()
+    } catch (error) {
+      console.error(`⚠️ ${(error as Error).message}`)
+      process.exitCode = 1
+    }
   })
 
   scopeCmd
@@ -31,8 +29,8 @@ export function registerScopeCommands(program: Command): void {
         if (options.format && options.format !== "json") console.error("⚠️ --format 仅支持 json，已回落文本输出")
         const report = resolveScope()
         for (const warning of report.warnings) console.error(`⚠️ ${warning}`)
-        const { decision } = report
         if (options.format === "json") {
+          const { decision } = report
           console.log(
             JSON.stringify(
               {
@@ -48,13 +46,7 @@ export function registerScopeCommands(program: Command): void {
           )
           return
         }
-        console.log("作用域状态：")
-        console.log(`  当前目录：${report.context.cwd}`)
-        console.log(`  结果：${decision.active ? "生效" : "未生效"}`)
-        console.log(`  模式：${decision.mode}`)
-        console.log(`  命中规则：${decision.matchedRule ?? "未命中"}`)
-        console.log(`  来源：${displayPath(decision.sourceFile)}`)
-        console.log(`  原因：${decision.reason}`)
+        for (const line of formatStatus(report)) console.log(line)
       } catch (error) {
         console.error(`⚠️ ${(error as Error).message}`)
         process.exitCode = 1
@@ -70,28 +62,63 @@ export function registerScopeCommands(program: Command): void {
         if (options.format && options.format !== "json") console.error("⚠️ --format 仅支持 json，已回落文本输出")
         const report = resolveScope()
         for (const warning of report.warnings) console.error(`⚠️ ${warning}`)
-        const { activation } = report
-        const payload = {
-          configured: Boolean(activation),
-          sourceFile: report.decision.sourceFile,
-          mode: report.decision.mode,
-          include: activation?.include ?? [],
-          exclude: activation?.exclude ?? [],
-          markers: activation?.markers ?? { include: [], exclude: [] },
-          gitRemotes: activation?.gitRemotes ?? [],
-        }
+        const activation = report.activation
         if (options.format === "json") {
-          console.log(JSON.stringify(payload, null, 2))
+          console.log(
+            JSON.stringify(
+              {
+                configured: Boolean(activation),
+                sourceFile: report.decision.sourceFile,
+                mode: report.decision.mode,
+                include: activation?.include ?? [],
+                exclude: activation?.exclude ?? [],
+                markers: activation?.markers ?? { include: [], exclude: [] },
+                gitRemotes: activation?.gitRemotes ?? [],
+              },
+              null,
+              2,
+            ),
+          )
           return
         }
-        console.log("作用域规则：")
-        console.log(`  来源：${displayPath(payload.sourceFile)}${report.layer ? `（${report.layer}）` : ""}`)
-        console.log(`  模式：${payload.mode}`)
-        console.log(`  白名单：${displayList(payload.include)}`)
-        console.log(`  黑名单：${displayList(payload.exclude)}`)
-        console.log(`  启用标记：${displayList(payload.markers.include)}`)
-        console.log(`  排除标记：${displayList(payload.markers.exclude)}`)
-        console.log(`  git 远端：${displayList(payload.gitRemotes)}`)
+        for (const line of formatList(report)) console.log(line)
+      } catch (error) {
+        console.error(`⚠️ ${(error as Error).message}`)
+        process.exitCode = 1
+      }
+    })
+
+  scopeCmd
+    .command("add [dir]")
+    .description("把目录加入白名单（只写全局配置）")
+    .action(async (dir?: string) => {
+      try {
+        await runScopeAdd(dir)
+      } catch (error) {
+        console.error(`⚠️ ${(error as Error).message}`)
+        process.exitCode = 1
+      }
+    })
+
+  scopeCmd
+    .command("remove [dir]")
+    .description("从白名单 / 黑名单移除目录（只写全局配置）")
+    .action(async (dir?: string) => {
+      try {
+        await runScopeRemove(dir)
+      } catch (error) {
+        console.error(`⚠️ ${(error as Error).message}`)
+        process.exitCode = 1
+      }
+    })
+
+  scopeCmd
+    .command("mount [dir]")
+    .description("在指定父目录下的项目里安装技能（会向所选项目写文件）")
+    .option("--dry-run", "只预览，不写入")
+    .action(async (dir: string | undefined, options: { dryRun?: boolean }) => {
+      try {
+        await runScopeMount(dir, Boolean(options.dryRun))
       } catch (error) {
         console.error(`⚠️ ${(error as Error).message}`)
         process.exitCode = 1
