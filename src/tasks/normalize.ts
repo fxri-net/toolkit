@@ -133,6 +133,15 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
     const fileDate = basename(file).replace(/\.md$/, "")
     const content = readFileSync(file, "utf8")
 
+    // 文件卫生：BOM 不影响解析（parseArchiveBlocks 已剥），但对其它工具不友好；独立报告，不与冲突标记互斥
+    if (content.startsWith("\uFEFF")) {
+      issues.push({
+        file: display,
+        message: "归档文件含 UTF-8 BOM，可用 `toolkit tasks normalize --fix` 去除",
+        fixable: true,
+      })
+    }
+
     // 冲突标记优先检出：命中即可 --fix 按并集去重 + 降序重排解决；
     // 跳过该文件其余检查项，避免在未解析的冲突内容上产生噪声问题
     if (hasConflictMarkers(content)) {

@@ -94,7 +94,7 @@ function bodyLine(lines: string[], fmEnd: number, re: RegExp): number {
 function hygieneIssues(name: string, raw: string): CheckIssue[] {
   const issues: CheckIssue[] = []
   if (raw.startsWith("\uFEFF")) {
-    issues.push({ level: "warn", file: name, line: 1, message: "文件含 UTF-8 BOM，建议去除（部分解析工具会异常）" })
+    issues.push({ level: "warn", file: name, line: 1, message: "文件含 UTF-8 BOM，建议去除（部分解析工具会异常）；可用 `toolkit tasks normalize --fix` 修复" })
   }
   const rawLines = raw.split(/\r?\n/)
   const twIdx = rawLines.findIndex((l) => /[ \t]+$/.test(l))
