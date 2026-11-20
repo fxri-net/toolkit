@@ -156,7 +156,7 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 
 全局装 skills 后，可以先用 `toolkit scope` 设置生效范围（只在我选的目录 / 除了我选的目录），再在公司项目根的 AGENTS.md / 项目 rules 中显式引用 fxri 技能并提交；个人项目不放引用文件即可。
 介于两者之间可用**内容闸门**（`toolkit skills install --gate`）：技能壳仍全局可见，正文按作用域由 `toolkit scope guard` 下发。
-需要绝对隔离（技能物理不在场）时用 `toolkit scope mount <父目录>` 批量做项目面安装。
+需要绝对隔离（技能物理不在场）时用 `toolkit skills mount <父目录>` 批量做项目面安装。
 兼容 agent 仍可能按 `description` 匹配自动触发，若需要稳定启用（而非碰运气触发），个人项目同样建议显式声明。
 模板见[完整攻略 · 项目级激活模板](./guide#项目级激活模板)，判定与范围配置见[作用域](./config/activation)。
 
@@ -167,7 +167,7 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 只保留 `name` / `description` 与一句「先运行 `toolkit scope guard <技能名>`」，正文由 guard 按当前目录判定——激活时输出正文，未激活以退出码 3 结束（stdout 为空）。
 需要全文时随时 `toolkit skills install --embed` 回退；开关与命令契约见 [scope 命令 · 内容闸门](./cli/scope#内容闸门-guard)。
 
-⚠️ 入口壳只降低正文被读取的概率，不是物理隔离；需要绝对干净用 `toolkit scope mount` 或 `toolkit skills install --scope project`。
+⚠️ 入口壳只降低正文被读取的概率，不是物理隔离；需要绝对干净用 `toolkit skills mount` 或 `toolkit skills install --scope project`。
 
 ## 任务与流程
 

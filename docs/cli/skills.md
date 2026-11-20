@@ -23,6 +23,8 @@ toolkit skills install --prune      # 清理未选择且内容与本包真源一
 toolkit skills install --mode package # 纯包管理器模式：core 也可不装，允许零选
 toolkit skills install --no-skills  # 仅本次零装，不改模式与已保存选择
 toolkit skills install --gate       # 内容闸门：按 skillsInstall.gate 规则接管技能为入口壳，--embed 回退
+toolkit skills gate [on|off]        # 查看或切换内容闸门；切换后运行 skills install 生成 / 还原入口壳
+toolkit skills mount --dry-run      # 批量挂载：预览将写入的项目（原 scope mount，已迁入 skills 域）
 toolkit skills install --copy       # 强制副本形式（仅全局面生效；项目面真源恒为副本、薄壳非副本；`--gate` 下被接管技能改用入口壳并告警）
 toolkit skills install --dry-run    # 预演：只预览将执行的动作，不写文件
 toolkit skills install --force      # 覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
@@ -36,7 +38,7 @@ toolkit skills sources refresh       # 刷新全部外部来源缓存与版本�
 toolkit skills sources remove play --prune # 注销来源登记并清理其产物、状态与提示配置
 toolkit skills bump fxri-plan-to-task patch # 递增技能版本（frontmatter 与正文首部两处同源改写）
 toolkit skills bump --all --dry-run      # 预演批量递增全部技能，只打印 from → to
-toolkit skills bump --all minor --yes    # 批量抬 minor（非交互环境须显式 --yes）
+toolkit skills bump --all minor --yes    # 批量递增（非交互环境须显式 --yes；patch 与 --set 同样适用）
 toolkit skills bump fxri-plan-review --set 2.0.0 # 直接设定版本（与递增类型互斥）
 toolkit skills install --format json # JSON 输出：dryRun、scope 与 global / project 各自的安装报告
 toolkit skills status               # 查看技能现场状态与包内技能真源版本（缺省按现场判定作用域）
@@ -72,6 +74,18 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - `--format json` 输出机器可读安装报告到 stdout（含 `dryRun` / `scope` 标记与 `selection` / `targetSelection`）
   - 各目标另含 `gates`（入口壳）与 `migrated`（旧名 → 现用名）：改名迁移已清理的旧产物记录
 
+非交互语义（`--yes` / `--use-saved` / `--no-save-agents` 的组合结果）：
+
+| 组合 | 技能选择 | 目标选择 | 最终确认 | 说明 |
+| --- | --- | --- | --- | --- |
+| 无参数（TTY） | 交互 | 交互 | 有 | ESC 逐级返回；技能页 ESC 等同取消（130） |
+| `--use-saved` | 跳过 | 跳过 | 有 | 沿用已保存选择；确认「否」按成功退出 0 |
+| `--yes` | 跳过 | 跳过 | 跳过 | 非交互首选；首次只装 core 与全部可用目标 |
+| 非 TTY 未给 `--yes` / `--use-saved` | 跳过 | 跳过 | 无 | 按已保存选择安装 |
+| `--all`（非 TTY） | 跳过 | 跳过 | 不适用 | 须显式 `--yes`，否则报错退出 1 |
+| `--no-save-agents` | 不变 | 交互 | 有 | 目标选择只本次生效，不写回配置 |
+| `--dry-run` | 同上 | 同上 | 有 | 只预览，不写文件 |
+
 ### status
 
 - 文本模式先打印版本检查块（CLI 当前 / 最新、registry 与提示频率），再打印技能真源版本清单、内容闸门开关与当前选择集，最后逐目标报告
@@ -99,7 +113,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
   - `sources`：来源名 / 版本 / 是否临时 / 生效频率 / 频率来源
   - 两面报告另含 `skillsOutdated`（内置技能落后清单）
 
-### remove
+### uninstall
 
 - **全局面**先清选择 / 来源配置、再清产物、最后重写状态：只清理本包登记产物（链接摘除、副本一致才删），其余交人工确认
 - 清理后目标目录若已空则**一并回收**（`--dry-run` 只预览、不动现场；目录非空或不可读时不回收）；清理干净后删除状态文件
@@ -111,12 +125,25 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - 项目面按「作用域」节清理归属账记载的条目
 - `--format json` 输出机器可读卸载报告到 stdout（含各目标 `dirReclaimed` 回收标记与 `dryRun` / `scope` 标记）
 
+### gate
+
+- 无参数查看开关与接管规则（`skillsInstall.gate` 归一后的 include / exclude）
+- `skills gate on|off` 只写开关配置，之后运行 `toolkit skills install` 生成入口壳或还原全文
+- `--format json` 输出 `{ enabled, rules }`；非法取值报错退出 1，配置不变
+
+### mount
+
+- 在父目录（缺省当前目录）下扫一层仓库（`.git` / `package.json` / `.tasks`），交互多选并确认后逐仓安装；`--dry-run` 只预览
+- 会向所选项目写入技能文件，确认信息写明项目数
+- 原 `toolkit scope mount` 保留为别名并提示迁移（下一版本移除）；非 TTY 环境直接提示无法交互（退出码 `2`）
+
 ### sources
 
 - 列出已登记永久来源与状态中的临时来源（来源名 / 根目录 / 版本 / 生效提示频率 / 技能清单，临时来源标注「临时」）
   - 技能清单里状态有登记但当前来源已无的名字标注「（已失效）」；`--format json` 的 `skills` 数组保持原样，不加标记
 - `sources notify <name> --frequency <always|daily|weekly|off>`：写单个来源的提示频率
-  - 默认写全局层；`--scope project` 写项目层并向上找 git 根，非 git 仓库报错
+  - 默认写全局层；`--scope project` 或等价的 `--layer project` 写项目层并向上找 git 根，非 git 仓库报错
+  - 此处 `--scope` 指**配置层**，与安装面的 `--scope`（project / global / all）不同；两者冲突时报错
 - `sources refresh [name]`：刷新来源缓存与版本，只更新元数据、不自动安装；`--dry-run` 只列出将刷新的来源
 - `sources remove <name>`：注销登记（产物与状态保留）；加 `--prune` 一并清理产物、状态与提示配置
 - `--format json` 输出机器可读清单与刷新报告
@@ -156,8 +183,8 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 2. `--all`：安装全部技能；`--no-optional`：只装 `core` 技能
 3. TTY 交互：未传上述参数且未传 `--yes` 时，以方向键多选列出技能
    - `skills` 模式下 `core` 已选中且不可取消；`package` 模式下全部默认不选、`core` 可取消
-   - `Enter` 确认、`Ctrl+C` 取消（取消时不写任何文件，退出码 130）
-4. 已保存选择：非 TTY 或传入 `--yes` 时按保存的选择回显（交互取消会直接以退出码 130 结束，不再回落）
+   - `Enter` 确认、`Ctrl+C` 取消（取消时不写任何文件，退出码 130）；技能选择页按 ESC 等同取消，目标页与确认页按 ESC 逐级返回
+4. 已保存选择：非 TTY 或传入 `--yes` 时按保存的选择回显（非交互不进入任何提示）
    - 全局层读 `~/.toolkitrc.json` 的 `skillsInstall.selection`；项目层读 `.toolkitrc.json` 的 `projectSkills.selection`
    - 保存名单里的曾用名（来源声明的 `previousNames`）会迁移为现用名后再回显
    - 某个来源的整份名单都已不存在（来源整体改名 / 重构）时，按默认口径重算：内置源取 `core`、外部来源取全部，并向 stderr 告警一次

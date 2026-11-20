@@ -133,13 +133,13 @@ GitHub 拉不下来？国内网络走 [Gitee 镜像渠道](./faq#国内网络优
 
 ```bash
 toolkit scope status        # 先看当前目录是否生效、命中的规则与来源
-toolkit scope               # 交互菜单：设范围、管目录、内容闸门、批量挂载
+toolkit scope               # 交互菜单：设范围、管目录、切换配置层
 toolkit scope add ~/work    # 只在这个目录（含子目录）生效（切到 allowlist 模式）
-toolkit scope mount ~/work  # 在父目录下的项目里做项目面安装（技能物理落在仓库内）
+toolkit skills mount ~/work # 在父目录下的项目里做项目面安装（技能物理落在仓库内）
 ```
 
 - 判定顺序：排除规则 → 排除标记 → 启用标记 → git 远端 → 白名单；不配置即全域生效
-- 需要「技能壳还在、正文只在激活项目加载」时，用向导开启内容闸门；要绝对干净则用 `scope mount`
+- 需要「技能壳还在、正文只在激活项目加载」时，用 `toolkit skills gate on` 开启内容闸门；要绝对干净则用 `skills mount`
 - 命令契约见[作用域](./cli/scope)，配置字段见[作用域配置](./config/activation)
 
 ## 配置全局规则

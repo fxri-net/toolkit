@@ -121,9 +121,9 @@ export function fail(message: string): void {
   process.exitCode = 1
 }
 
-// 取值校验：未传视为通过；非法值统一报错
-export function assertChoice(value: string | undefined, allowed: readonly string[], label: string): boolean {
+// 取值校验：未传视为通过；非法值统一报错（suffix 用于补充「未执行安装」等收尾语）
+export function assertChoice(value: string | undefined, allowed: readonly string[], label: string, suffix = ""): boolean {
   if (value === undefined || allowed.includes(value)) return true
-  fail(`${label} 取值须为 ${allowed.join(" / ")}`)
+  fail(`${label} 取值须为 ${allowed.join(" / ")}${suffix}`)
   return false
 }

@@ -415,6 +415,46 @@ describe("顶层命令与外部域", () => {
     expect(r.err.join("\n")).toContain("互斥")
   })
 
+  it("skills install --all 非交互未加 --yes 时报错", async () => {
+    const r = await runCli(["skills", "install", "--scope", "global", "--all"])
+    expect(r.code).toBe(1)
+    expect(r.err.join("\n")).toContain("--yes")
+  })
+
+  it("skills install --mode 非法取值统一报「未执行安装」", async () => {
+    const r = await runCli(["skills", "install", "--scope", "global", "--mode", "bogus", "--yes"])
+    expect(r.code).toBe(1)
+    expect(r.err.join("\n")).toContain("未执行安装")
+  })
+
+  it("skills bump --all 非交互需显式 --yes", async () => {
+    const r = await runCli(["skills", "bump", "--all"])
+    expect(r.code).toBe(1)
+    expect(r.err.join("\n")).toContain("--yes")
+  })
+
+  it("skills gate 查询与非法取值", async () => {
+    const query = await runCli(["skills", "gate", "--format", "json"])
+    expect(query.code).toBe(0)
+    expect(query.log.join("\n")).toContain('"enabled"')
+
+    const bad = await runCli(["skills", "gate", "bogus"])
+    expect(bad.code).toBe(1)
+    expect(bad.err.join("\n")).toContain("on / off")
+  })
+
+  it("skills mount 非交互提示无法交互", async () => {
+    const r = await runCli(["skills", "mount", "--dry-run"])
+    expect(r.code).toBe(2)
+    expect(r.err.join("\n")).toContain("不支持交互")
+  })
+
+  it("sources notify 的 --layer 与 --scope 冲突时报错", async () => {
+    const r = await runCli(["skills", "sources", "notify", "play", "--frequency", "daily", "--scope", "global", "--layer", "project"])
+    expect(r.code).toBe(1)
+    expect(r.err.join("\n")).toContain("冲突")
+  })
+
   it("skills status 旧名残留汇总给出可复制的清理命令", async () => {
     const canonical = join(homeDir, ".agents", "skills")
     const stateFile = join(homeDir, ".agents", ".toolkit-skills.json")

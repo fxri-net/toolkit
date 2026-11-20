@@ -251,9 +251,10 @@ export function registerScopeCommands(program: Command): void {
 
   scopeCmd
     .command("mount [dir]")
-    .description("在指定父目录下的项目里安装技能（会向所选项目写文件）")
+    .description("已迁移：请改用 toolkit skills mount（本命令保留为别名，下一版本移除）")
     .option("--dry-run", "只预览，不写入")
     .action(async (dir: string | undefined, options: { dryRun?: boolean }) => {
+      console.warn("⚠️ scope mount 已迁至 skills 域：请改用 toolkit skills mount（本命令保留为别名，下一版本移除）")
       await runInteractive(() => runScopeMount(dir, Boolean(options.dryRun)))
     })
 }

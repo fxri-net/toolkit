@@ -3,7 +3,9 @@ import { join } from "node:path"
 import type { Command } from "commander"
 import { getHomeDir } from "../config"
 import { assertJsonFormat } from "../json-output"
-import { exitWithCancel, isInteractive } from "../prompts"
+import { exitWithCancel, isInteractive, runInteractive } from "../prompts"
+import { assertChoice } from "../cli-ui"
+import { runScopeMount } from "../scope/wizard"
 import { collectSkillVersionUpdates, type SkillVersionReport } from "../skills/version-status"
 import { versionGt } from "../version"
 import {
@@ -188,10 +190,8 @@ async function resolveSkillSelection(
   }
   if (!plan.needsPrompt) return { names: expand(plan.names), mode, saveSelection: true }
   const picked = await promptSkillSelection(skills, saved, mode)
-  if (picked === null) {
-    console.error(line.hint("已取消技能选择，未写入任何文件"))
-    exitWithCancel()
-  }
+  // ESC 等同回退：install 首步取消，由调用方按取消口径结束
+  if (picked === null) return null
   return { names: expand(picked), mode, saveSelection: true }
 }
 
@@ -226,10 +226,8 @@ async function chooseGlobalTargets(options: { agent?: string; allAgents?: boolea
   // 只有一个可用目标时无需选择
   if (selectable.length <= 1) return selectable.map((choice) => choice.value)
   const picked = await promptTargetSelection(choices, "选择要写入技能的目标（空格切换，回车确认）")
-  if (picked === null) {
-    console.error(line.hint("已取消目标选择，未写入任何文件"))
-    exitWithCancel()
-  }
+  // ESC 返回上一步：由 install 循环回技能选择
+  if (picked === null) return null
   const known = new Set(all.filter((target) => target.name).map((target) => target.name))
   return picked.filter((value) => known.has(value))
 }
@@ -243,10 +241,8 @@ async function chooseProjectTargets(options: { dir: string[]; yes?: boolean }): 
   // 只有一个可用目录时无需选择
   if (selectable.length <= 1) return selectable.map((choice) => choice.value)
   const picked = await promptTargetSelection(choices, "选择要写入的项目技能目录（空格切换，回车确认）")
-  if (picked === null) {
-    console.error(line.hint("已取消目录选择，未写入任何文件"))
-    exitWithCancel()
-  }
+  // ESC 返回上一步：由 install 循环回技能选择
+  if (picked === null) return null
   return picked.filter((value) => targets.shellDirs.includes(value))
 }
 
@@ -741,7 +737,7 @@ export function registerSkillsCommands(program: Command): void {
     .description("安装技能（默认按现场判定作用域：仓库内写项目面副本 + 薄壳，否则写全局目录；包内 skills/ 与 --from 外部来源统一处理）")
     .option("--scope <scope>", "作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）")
     .option("--skills <names>", "只安装指定技能（逗号分隔；core 技能恒装）")
-    .option("--all", "安装包内全部技能（含可选技能）")
+    .option("--all", "安装包内全部技能（含可选技能；非交互执行须加 --yes）")
     .option("--no-optional", "只安装 core 技能（不含可选技能）")
     .option("--from <path|url>", "外部技能来源目录或 Git 地址（可重复；默认临时，只写本次）", collectDir, [])
     .option("--save [name]", "把 --from 来源登记为永久来源（可选来源名，缺省按目录 / 清单派生）")
@@ -760,6 +756,18 @@ export function registerSkillsCommands(program: Command): void {
     .option("--embed", "回退内容闸门：把入口壳改回全文（仅全局面）")
     .option("--no-skills", "本次不安装任何技能，不改模式与已保存选择")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
+    .addHelpText(
+      "after",
+      [
+        "",
+        "非交互语义：",
+        "  --yes            跳过选择与确认，采用已保存选择（首次只装 core 与全部可用目标）",
+        "  --use-saved      采用已保存选择，不询问技能与目标，仍保留最终确认",
+        "  --no-save-agents 目标选择只本次生效，不写回配置",
+        "  非 TTY 且未给 --yes / --use-saved：按已保存选择安装，不进入交互",
+        "  交互流程：技能 → 目标 → 确认；ESC 逐级返回，Ctrl+C 退出码 130",
+      ].join("\n"),
+    )
     .action(async (options: { scope?: string; skills?: string; all?: boolean; optional?: boolean; from: string[]; save?: string | boolean; agent?: string; allAgents?: boolean; saveAgents?: boolean; yes?: boolean; useSaved?: boolean; copy?: boolean; dir: string[]; dryRun?: boolean; force?: boolean; prune?: boolean; mode?: string; gate?: boolean; embed?: boolean; format?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return
@@ -768,26 +776,22 @@ export function registerSkillsCommands(program: Command): void {
         const dryRun = Boolean(options.dryRun)
         // --no-skills 用 argv 判定：commander 的 --no- 前缀默认值会与 --skills 的字符串属性冲突
         const noSkills = process.argv.includes("--no-skills")
-        if (options.mode !== undefined && options.mode !== "skills" && options.mode !== "package") {
-          console.error("⚠️ --mode 取值须为 skills 或 package，未执行安装")
+        // 互斥声明集中一处：命中即「原因 + 未执行安装」，避免各分支手写文案漂移
+        const conflicts: Array<[boolean, string]> = [
+          [options.mode !== undefined && noSkills, "--mode 与 --no-skills 不能同时使用"],
+          [
+            noSkills && (typeof options.skills === "string" || options.all || options.optional === false),
+            "--no-skills 与 --skills / --all / --no-optional 不能同时使用",
+          ],
+          [Boolean(options.gate) && Boolean(options.embed), "--gate 与 --embed 不能同时使用"],
+        ]
+        const conflict = conflicts.find(([hit]) => hit)
+        if (conflict) {
+          console.error(`⚠️ ${conflict[1]}，未执行安装`)
           process.exitCode = 1
           return
         }
-        if (options.mode !== undefined && noSkills) {
-          console.error("⚠️ --mode 与 --no-skills 不能同时使用，未执行安装")
-          process.exitCode = 1
-          return
-        }
-        if (noSkills && (typeof options.skills === "string" || options.all || options.optional === false)) {
-          console.error("⚠️ --no-skills 与 --skills / --all / --no-optional 不能同时使用，未执行安装")
-          process.exitCode = 1
-          return
-        }
-        if (options.gate && options.embed) {
-          console.error("⚠️ --gate 与 --embed 不能同时使用，未执行安装")
-          process.exitCode = 1
-          return
-        }
+        if (!assertChoice(options.mode, ["skills", "package"], "--mode", "，未执行安装")) return
         const runProject = scope.choice !== "global"
         const runGlobal = scope.choice !== "project"
         if ((options.gate || options.embed) && !runGlobal) console.warn("⚠️ --gate / --embed 仅作用于全局面，项目面产物保持不变")
@@ -815,13 +819,67 @@ export function registerSkillsCommands(program: Command): void {
           process.exitCode = 1
           return
         }
+        // 批量安装属高风险写：非交互须显式 --yes，--dry-run 只预览
+        if (options.all && !dryRun && !options.yes && !isInteractive()) {
+          console.error("⚠️ 非交互环境批量安装需显式加 --yes，未执行安装")
+          process.exitCode = 1
+          return
+        }
         // scope=all 时两面共用一次技能选择：以全局面已保存选择为基准，避免连弹两次交互
-        const selectionResult = await resolveSkillSelection(
-          { ...options, skills: noSkills ? undefined : options.skills, noSkills, yes: selectionNonInteractive },
-          scope.choice === "project" ? "project" : "global",
-          items,
-        )
-        if (!selectionResult) return
+        const selectSkills = async () =>
+          resolveSkillSelection(
+            { ...options, skills: noSkills ? undefined : options.skills, noSkills, yes: selectionNonInteractive },
+            scope.choice === "project" ? "project" : "global",
+            items,
+          )
+        let selectionResult = await selectSkills()
+        if (!selectionResult) {
+          console.error(line.hint("已取消技能选择，未写入任何文件"))
+          exitWithCancel()
+        }
+        // 三步交互：技能 → 目标 → 确认；目标页 ESC 回技能选择，确认页 ESC 回目标选择，「否」按成功退出
+        let globalTargets: string[] | undefined
+        let projectTargets: string[] | undefined
+        for (;;) {
+          globalTargets = undefined
+          projectTargets = undefined
+          let back = false
+          if (runGlobal) {
+            const chosen = await chooseGlobalTargets({ agent: options.agent, allAgents: options.allAgents, yes: selectionNonInteractive, dir: options.dir })
+            if (chosen === null) back = true
+            else globalTargets = chosen
+          }
+          if (!back && runProject) {
+            if (options.agent !== undefined || options.allAgents) console.warn("⚠️ --agent / --all-agents 仅作用于全局面，项目面按项目目录选择执行")
+            const chosen = await chooseProjectTargets({ dir: options.dir, yes: selectionNonInteractive })
+            if (chosen === null) back = true
+            else projectTargets = chosen
+          }
+          if (back) {
+            const reselected = await selectSkills()
+            if (!reselected) {
+              console.error(line.hint("已取消技能选择，未写入任何文件"))
+              exitWithCancel()
+            }
+            selectionResult = reselected
+            continue
+          }
+          // 非交互或 JSON 输出不弹确认，避免污染 stdout
+          if (nonInteractive || !isInteractive()) break
+          console.log("")
+          console.log("即将安装：")
+          console.log(`  技能：${selectionResult.names.join("、") || "无"}`)
+          if (externalSources.length > 0) console.log(`  外部来源：${externalSources.map((source) => source.path).join("、")}`)
+          if (runGlobal) console.log(`  全局目标：${globalTargetSummary(globalTargets)}`)
+          if (runProject) console.log(`  项目目录：${projectTargets ? projectTargets.join("、") : "按已保存选择 / 全部已存在候选目录"}`)
+          const ok = await promptConfirm("确认执行安装？")
+          if (ok === null) continue
+          if (!ok) {
+            console.log(line.hint("已取消安装，未写入任何文件"))
+            return
+          }
+          break
+        }
         const selection = selectionResult.names
         // 模式切换在技能选择解析后、安装前持久化；--dry-run 不写
         if (options.mode !== undefined && !dryRun) {
@@ -837,40 +895,6 @@ export function registerSkillsCommands(program: Command): void {
           const gated = selection.filter((name) => isSkillGated(name, undefined, gateSetting.rules))
           if (gated.length > 0) console.warn(`⚠️ 内容闸门下 ${gated.join("、")} 以入口壳写入，--copy 对其不生效`)
         }
-
-        let globalTargets: string[] | undefined
-        let projectTargets: string[] | undefined
-        if (runGlobal) {
-          const chosen = await chooseGlobalTargets({ agent: options.agent, allAgents: options.allAgents, yes: selectionNonInteractive, dir: options.dir })
-          if (chosen === null) return
-          globalTargets = chosen
-        }
-        if (runProject) {
-          if (options.agent !== undefined || options.allAgents) console.warn("⚠️ --agent / --all-agents 仅作用于全局面，项目面按项目目录选择执行")
-          const chosen = await chooseProjectTargets({ dir: options.dir, yes: selectionNonInteractive })
-          if (chosen === null) return
-          projectTargets = chosen
-        }
-
-        // 汇总确认：交互模式下确认前不写任何文件
-        if (!nonInteractive && isInteractive()) {
-          console.log("")
-          console.log("即将安装：")
-          console.log(`  技能：${selection.join("、") || "无"}`)
-          if (externalSources.length > 0) console.log(`  外部来源：${externalSources.map((source) => source.path).join("、")}`)
-          if (runGlobal) console.log(`  全局目标：${globalTargetSummary(globalTargets)}`)
-          if (runProject) console.log(`  项目目录：${projectTargets ? projectTargets.join("、") : "按已保存选择 / 全部已存在候选目录"}`)
-          const ok = await promptConfirm("确认执行安装？")
-          if (ok === null) {
-            console.error(line.hint("已取消安装，未写入任何文件"))
-            exitWithCancel()
-          }
-          if (!ok) {
-            console.log(line.hint("已取消安装，未写入任何文件"))
-            return
-          }
-        }
-
         if (runProject && options.copy) console.warn("⚠️ 项目面不支持 --copy（真源恒为副本、各候选目录恒为薄壳），已忽略该项目面取值")
         const saveTargets = options.saveAgents === false ? false : undefined
         const project = runProject
@@ -1144,45 +1168,42 @@ export function registerSkillsCommands(program: Command): void {
     .option("--all", "批量递增 skills/ 下全部技能")
     .option("--set <version>", "直接设定版本（与递增类型互斥）")
     .option("--dry-run", "只打印变更，不写盘")
-    .option("--yes", "批量递增 minor / major 时跳过确认")
+    .option("--yes", "批量写入时跳过确认（非交互环境必须显式给出）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action(async (name: string | undefined, type: string | undefined, options: { all?: boolean; set?: string; dryRun?: boolean; yes?: boolean; format?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return
         if (options.all && name) {
-          console.error("⚠️ --all 与显式技能名不能同时使用")
+          console.error("⚠️ --all 与显式技能名不能同时使用，未写入任何文件")
           process.exitCode = 1
           return
         }
         if (!options.all && !name) {
-          console.error("⚠️ 请指定技能名，或使用 --all 批量递增")
+          console.error("⚠️ 请指定技能名，或使用 --all 批量递增，未写入任何文件")
           process.exitCode = 1
           return
         }
         const kind = type ?? "patch"
-        if (!["patch", "minor", "major"].includes(kind)) {
-          console.error(`⚠️ 非法递增类型「${kind}」，仅支持 patch / minor / major`)
-          process.exitCode = 1
-          return
-        }
+        if (!assertChoice(kind, ["patch", "minor", "major"], "递增类型", "，未写入任何文件")) return
         if (options.set && type) {
-          console.error("⚠️ --set 与递增类型不能同时使用")
+          console.error("⚠️ --set 与递增类型不能同时使用，未写入任何文件")
           process.exitCode = 1
           return
         }
         if (options.set && !isValidVersion(options.set)) {
-          console.error(`⚠️ 非法版本号「${options.set}」，须为 x.y.z`)
+          console.error(`⚠️ 非法版本号「${options.set}」，须为 x.y.z，未写入任何文件`)
           process.exitCode = 1
           return
         }
-        // 批量抬 minor / major 影响面大：交互态先确认，非交互须显式 --yes
-        if (options.all && !options.set && kind !== "patch" && !options.dryRun && options.yes !== true) {
+        // 批量写按同一风险阈值：确认后再写，非交互须显式 --yes，--dry-run 只打印
+        if (options.all && !options.dryRun && options.yes !== true) {
+          const action = options.set ? `把全部技能的版本设为 ${options.set}` : `把全部技能按 ${kind} 递增`
           if (!isInteractive()) {
-            console.error(`⚠️ 批量按 ${kind} 递增需显式 --yes（当前为非交互环境）`)
+            console.error(`⚠️ 非交互环境批量${options.set ? "设定版本" : "递增"}需显式 --yes，未写入任何文件`)
             process.exitCode = 1
             return
           }
-          const confirmed = await promptConfirm(`将把全部技能按 ${kind} 递增，确认继续？`)
+          const confirmed = await promptConfirm(`将${action}，确认继续？`)
           if (confirmed === null) {
             console.error(line.hint("已取消，未写入任何文件"))
             exitWithCancel()
@@ -1291,29 +1312,27 @@ export function registerSkillsCommands(program: Command): void {
     .description("设置单个第三方来源的更新提示频率（只写 updateCheck.sources.<name>.notify）")
     .argument("<name>", "来源名")
     .requiredOption("--frequency <frequency>", "更新提示频率：always / daily / weekly / off")
-    .option("--scope <scope>", "写入层：global（默认）/ project")
+    .option("--scope <layer>", "写入层：global（默认）/ project；此处指配置层，与安装面的 --scope 语义不同")
+    .option("--layer <layer>", "写入层别名（与 --scope 等价，先按配置层术语表达）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
-    .action((name: string, options: { frequency: string; scope?: string; format?: string }) => {
+    .action((name: string, options: { frequency: string; scope?: string; layer?: string; format?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return
-        const scope = options.scope ?? "global"
-        if (scope !== "global" && scope !== "project") {
-          console.error(`⚠️ 非法作用域「${scope}」，仅支持 global / project`)
+        if (options.scope !== undefined && options.layer !== undefined && options.scope !== options.layer) {
+          console.error("⚠️ --scope 与 --layer 取值冲突，未修改配置")
           process.exitCode = 1
           return
         }
+        const scope = options.layer ?? options.scope ?? "global"
+        if (!assertChoice(scope, ["global", "project"], "--scope / --layer", "，未修改配置")) return
         const frequency = options.frequency
-        if (!["always", "daily", "weekly", "off"].includes(frequency)) {
-          console.error(`⚠️ 非法频率「${frequency}」，仅支持 always / daily / weekly / off`)
-          process.exitCode = 1
-          return
-        }
+        if (!assertChoice(frequency, ["always", "daily", "weekly", "off"], "--frequency", "，未修改配置")) return
         if (!readSkillsInstallConfig().sources?.[name]) {
           console.error(`⚠️ 未找到已登记来源：${name}（临时来源请先用 --save 登记）`)
           process.exitCode = 1
           return
         }
-        const file = writeUpdateCheckSourceNotify(name, frequency as "always" | "daily" | "weekly" | "off", scope)
+        const file = writeUpdateCheckSourceNotify(name, frequency as "always" | "daily" | "weekly" | "off", scope as "global" | "project")
         if (options.format === "json") printJson({ name, frequency, scope, file })
         else console.log(line.ok(`已设置来源 ${name} 的更新提示频率为 ${frequency}（${scope}）：${file}`))
       } catch (e) {
@@ -1461,6 +1480,48 @@ export function registerSkillsCommands(program: Command): void {
         console.error(`⚠️ 注销来源失败：${(e as Error).message}`)
         process.exitCode = 1
       }
+    })
+
+  // 内容闸门：查询 / 切换只写配置；入口壳由 install 生成或还原
+  skillsCmd
+    .command("gate [value]")
+    .description("查看或切换内容闸门（on / off；切换后运行 toolkit skills install 生成或还原入口壳）")
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
+    .action((value: string | undefined, options: { format?: string }) => {
+      try {
+        if (!assertJsonFormat(options.format)) return
+        if (value !== undefined && value !== "on" && value !== "off") {
+          console.error("⚠️ gate 取值须为 on / off，未修改配置")
+          process.exitCode = 1
+          return
+        }
+        if (value !== undefined) writeSkillsInstallConfig({ gate: value === "on" })
+        const setting = resolveGateSetting(readSkillsInstallConfig().gate)
+        if (options.format === "json") {
+          printJson({ enabled: setting.enabled, rules: setting.rules })
+          return
+        }
+        console.log(`内容闸门：${setting.enabled ? `已开启（${gateRuleSummary(setting.rules)}）` : "未开启（全文安装）"}`)
+        console.log(
+          line.hint(
+            value === undefined
+              ? "切换开关：toolkit skills gate on|off；生成入口壳：toolkit skills install"
+              : "运行 toolkit skills install 生成入口壳；关闭后运行同一命令还原全文",
+          ),
+        )
+      } catch (e) {
+        console.error(`⚠️ 读取内容闸门失败：${(e as Error).message}`)
+        process.exitCode = 1
+      }
+    })
+
+  // 批量挂载：承接原 scope mount；只扫一层、交互多选并确认后逐仓安装
+  skillsCmd
+    .command("mount [dir]")
+    .description("在父目录下的项目里批量安装技能（交互选择项目并确认，会向所选项目写文件）")
+    .option("--dry-run", "只预览，不写入")
+    .action(async (dir: string | undefined, options: { dryRun?: boolean } = {}) => {
+      await runInteractive(() => runScopeMount(dir, Boolean(options.dryRun)))
     })
 
   // 路径：输出包根（内含 skills/），便于委托上游安装器覆盖内置表未收录的 agent

@@ -1641,7 +1641,7 @@ Usage: toolkit skills install [options]
 Options:
   --scope <scope>    作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）
   --skills <names>   只安装指定技能（逗号分隔；core 技能恒装）
-  --all              安装包内全部技能（含可选技能）
+  --all              安装包内全部技能（含可选技能；非交互执行须加 --yes）
   --no-optional      只安装 core 技能（不含可选技能）
   --from <path|url>  外部技能来源目录或 Git 地址（可重复；默认临时，只写本次） (default: [])
   --save [name]      把 --from 来源登记为永久来源（可选来源名，缺省按目录 / 清单派生）
@@ -1663,6 +1663,14 @@ Options:
   --no-skills        本次不安装任何技能，不改模式与已保存选择
   --format <format>  输出格式（json，输出到 stdout）
   -h, --help         显示帮助
+
+
+非交互语义：
+  --yes            跳过选择与确认，采用已保存选择（首次只装 core 与全部可用目标）
+  --use-saved      采用已保存选择，不询问技能与目标，仍保留最终确认
+  --no-save-agents 目标选择只本次生效，不写回配置
+  非 TTY 且未给 --yes / --use-saved：按已保存选择安装，不进入交互
+  交互流程：技能 → 目标 → 确认；ESC 逐级返回，Ctrl+C 退出码 130
 
 --- stderr ---
 "
@@ -1686,6 +1694,9 @@ Commands:
   uninstall [options]           卸载由本包安装的技能产物（默认按现场判定作用域；只清理归属账记载的条目，不碰用户自装技能）
   bump [options] [name] [type]  递增技能版本（两处版本声明同源改写；--all 批量、--set 直接设定）
   sources [options] [command]   查看 / 刷新 / 注销外部技能来源，并管理来源提示频率
+  gate [options] [value]        查看或切换内容闸门（on / off；切换后运行 toolkit skills install
+                                生成或还原入口壳）
+  mount [options] [dir]         在父目录下的项目里批量安装技能（交互选择项目并确认，会向所选项目写文件）
   path [options]                输出包根路径（内含 skills/，可委托上游安装器安装到表外 agent）
 
 --- stderr ---
