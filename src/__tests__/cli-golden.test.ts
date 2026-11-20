@@ -246,6 +246,8 @@ beforeAll(() => {
   putFile(workspace, ".tasks/active/202611/20261110-唐启云-基线示例进行中任务.md", ACTIVE_TASK)
   putFile(workspace, ".tasks/active/202611/20261111-唐启云-基线示例已完成任务.md", DONE_TASK)
   putFile(workspace, ".tasks/archive/202610/20261030.md", ARCHIVE_FILE)
+  // 干净任务区：tasks check 全部通过时的单行结论与「未发现问题」只出现一次
+  putFile(join(sandbox, "clean-tasks"), ".tasks/active/202611/20261110-唐启云-基线示例进行中任务.md", ACTIVE_TASK)
   putFile(workspace, ".changeset/golden-change.md", '---\n"@fxri/toolkit": patch\n---\n\n- 优化：基线夹具示例条目\n')
   // CHANGELOG 夹具：让 changelog doc --check 走「不一致」比对分支，避免 ENOENT 文案在 Windows / POSIX 写法不同
   putFile(workspace, "CHANGELOG.md", "# 方弦工具集\n\n## 1.0.0\n\n> 2026-11-12 发布\n\n### ✨ 新增功能\n\n- 示例条目\n")
@@ -321,6 +323,7 @@ describe("各域行为与错误路径", () => {
     ["tasks 状态过滤部分非法", ["tasks", "--status", "bogus,已完成"]],
     ["tasks 未知选项", ["tasks", "--bogus"]],
     ["tasks check", ["tasks", "check"]],
+    ["tasks check 全部通过", ["tasks", "check", "--dir", join(sandbox, "clean-tasks")]],
     ["tasks normalize", ["tasks", "normalize"]],
     ["tasks stats", ["tasks", "stats"]],
     ["tasks 导出缺参数", ["tasks", "export"]],

@@ -70,9 +70,10 @@ function changesetPrefixIssues(): CheckIssue[] {
 }
 
 // 打印校验结果（check / normalize --check 共用）；带行号的问题输出 file:line 便于编辑器跳转
-function printIssues(issues: Array<{ file: string; line?: number; message: string }>) {
+// emptyMessage=false 时由调用方统一输出结论，避免 error / warn 分段各打一次「未发现问题」
+function printIssues(issues: Array<{ file: string; line?: number; message: string }>, options: { emptyMessage?: boolean } = {}) {
   if (issues.length === 0) {
-    console.log(line.ok("未发现问题"))
+    if (options.emptyMessage !== false) console.log(line.ok("未发现问题"))
     return
   }
   for (const i of issues) {
@@ -225,13 +226,14 @@ export function registerTasksCommands(program: Command): void {
       const errorCount = issues.filter((i) => i.level === "error").length
       console.log("任务校验：")
       console.log(`【error】${errorCount} 项`)
-      printIssues(issues.filter((i) => i.level === "error"))
+      printIssues(issues.filter((i) => i.level === "error"), { emptyMessage: false })
       if (ctx.warn) {
         console.log(`【warn】${issues.length - errorCount} 项`)
-        printIssues(issues.filter((i) => i.level === "warn"))
+        printIssues(issues.filter((i) => i.level === "warn"), { emptyMessage: false })
       } else {
         console.log(line.hint("（软告警已关闭，warn 不展示）"))
       }
+      if (issues.length === 0) console.log(line.ok("未发现问题"))
       if (errorCount > 0) process.exitCode = 1
     } catch (e) {
       console.error(`⚠️ 操作失败：${(e as Error).message}`)

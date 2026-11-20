@@ -2,6 +2,7 @@
 
 import { createRequire } from "node:module"
 import { MIN_NODE, nodeVersionAtLeast } from "./node-version"
+import { installConsoleStyle, line, setStyleEnabled } from "./term-style"
 
 const require = createRequire(import.meta.url)
 
@@ -33,10 +34,13 @@ function guardTarget(argv: string[]): string | null {
 // 两者拆成独立入口，保证 guard 的启动成本不含完整命令集的解析开销
 async function main(): Promise<void> {
   ensureUtf8()
+  // 样式出口先于任何提示安装：版本过低等早期提示也要按语义着色；guard 正文走 stdout.write，不受影响
+  if (process.argv.includes("--no-color")) setStyleEnabled(false)
+  installConsoleStyle()
   // 运行时下限：低于门槛时交互组件与部分内置导出不可用，两条路径都先给可执行提示
   if (!nodeVersionAtLeast(MIN_NODE)) {
     console.error(`⚠️ 当前 Node ${process.versions.node} 低于运行要求（>= ${MIN_NODE.major}.${MIN_NODE.minor}.0），已停止执行。`)
-    console.error("   升级 Node 后重试；版本要求见文档站「快速开始 · 环境要求」")
+    console.error(line.hint("   升级 Node 后重试；版本要求见文档站「快速开始 · 环境要求」"))
     process.exitCode = 1
     return
   }

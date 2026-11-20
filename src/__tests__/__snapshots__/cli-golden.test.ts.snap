@@ -728,9 +728,19 @@ exports[`各域行为与错误路径 > tasks check 1`] = `
 --- stdout ---
 任务校验：
 【error】0 项
-✔ 未发现问题
 【warn】1 项
   20261111-唐启云-基线示例已完成任务.md: 文件名日期 20261111 与 created 20261109 不一致
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > tasks check 全部通过 1`] = `
+"退出码：0
+--- stdout ---
+任务校验：
+【error】0 项
+【warn】0 项
+✔ 未发现问题
 --- stderr ---
 "
 `;
