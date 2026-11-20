@@ -13,13 +13,15 @@ const require = createRequire(import.meta.url)
 
 const flags = new Set(process.argv.slice(2))
 const skipDocs = flags.has("--skip-docs")
+// --tests-only：跨平台 job 专用裁剪——只装依赖并跑单测；静态检查、构建、文档与 CLI 收尾由 ubuntu 全量承担
+const testsOnly = flags.has("--tests-only")
 // --local 强制本地口径：IDE / 终端可能注入 CI=true，导致本地迭代也走全量（文档必建、eslint 冷缓存、强制安装）。
 // 提交前最终验收仍应跑不带 --local 的全量，避免把本地裁剪带进 CI。
 const forceLocal = flags.has("--local")
 // --full 强制全量：忽略本地缓存与改动面判断，等价于 CI 口径；与 --local 同时出现时以 --full 为准
 const full = flags.has("--full")
 // 覆盖率是门禁最重单项，本地口径默认跳过；提交前不带 --local 的全量仍跑覆盖率（--full 优先）
-const skipCoverage = flags.has("--skip-coverage") || (forceLocal && !full)
+const skipCoverage = flags.has("--skip-coverage") || testsOnly || (forceLocal && !full)
 // CI 环境一律全量：本地按改动面裁剪只应让步于开发效率，不能让 CI 漏检死链与冷缓存问题
 const ciValue = process.env.CI ?? ""
 const isCI = !forceLocal && ciValue !== "" && ciValue !== "0" && ciValue.toLowerCase() !== "false"
@@ -71,21 +73,44 @@ function changedFiles() {
 const DOC_TOUCH_PREFIXES = ["docs/"]
 const DOC_TOUCH_FILES = new Set(["README.md"])
 
-/**
- * 判断本次是否需要构建文档站（死链检查）。
- * @return {boolean} true 表示需要执行 docs:build
- */
-function needDocsBuild() {
-  if (isCI || full) return true
-  const names = changedFiles()
-  // 拿不到改动面时保守执行，宁可多跑一次也不漏检
-  if (names === null) return true
+// 判定一组改动文件是否触及文档站构建面（本地改动面与 CI 基线比对共用同一口径）
+function docsTouched(names) {
   for (const name of names) {
     if (DOC_TOUCH_FILES.has(name)) return true
     if (DOC_TOUCH_PREFIXES.some((prefix) => name.startsWith(prefix))) return true
     if (name.startsWith("skills/")) return true
   }
   return false
+}
+
+/**
+ * 读取 base..HEAD 的改动文件（CI 由工作流传 base；首推 / 强推可能取不到有效基线）。
+ * @param {string} base 基线提交
+ * @return {string[]|null} 改动文件列表；git 不可用或基线无效时返回 null
+ */
+function diffNames(base) {
+  const res = spawnSync("git", ["diff", "--name-only", base, "HEAD"], { cwd: root, encoding: "utf8" })
+  if (res.status !== 0) return null
+  return res.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+}
+
+/**
+ * 判断本次是否需要构建文档站（死链检查）。
+ * 判断口径只在本脚本内维护：CI 传 VERIFY_DIFF_BASE，本地按工作区改动面，其余情况保守全跑。
+ * @return {boolean} true 表示需要执行 docs:build
+ */
+function needDocsBuild() {
+  if (full) return true
+  const base = (process.env.VERIFY_DIFF_BASE ?? "").trim()
+  if (base) {
+    const names = diffNames(base)
+    // 取不到改动面（首推 / 强推 / 基线失效）时保守执行，宁可多跑一次也不漏检
+    return names === null ? true : docsTouched(names)
+  }
+  if (isCI) return true
+  const names = changedFiles()
+  if (names === null) return true
+  return docsTouched(names)
 }
 
 /**
@@ -309,6 +334,20 @@ if (installNeeded) {
   }
 } else {
   console.log("\n⊘ 安装依赖（lockfile 未变化，跳过；--full 强制全量）")
+}
+
+// 跨平台 job 的裁剪口径：只跑安装与单测，其余步骤已由 ubuntu 全量承担
+if (testsOnly) {
+  console.log("\n⊘ 仅单测口径（--tests-only）：跳过静态检查、构建、文档与收尾 CLI 步骤")
+  const testsFailures = await runPhase("单元测试（单测口径）", heavySteps)
+  const testsSeconds = ((Date.now() - startedAt) / 1000).toFixed(1)
+  if (testsFailures.length > 0) {
+    console.error(`\n✖ 门禁未通过：${testsFailures.length} 步失败（用时 ${testsSeconds}s）`)
+    for (const label of testsFailures) console.error(`  - ${label}`)
+    process.exit(1)
+  }
+  console.log(`\n✔ 门禁全部通过（仅单测口径，用时 ${testsSeconds}s）`)
+  process.exit(0)
 }
 
 const phaseStarted = Date.now()

@@ -9,7 +9,10 @@ include:
     file: /dynamic-image.yml
 
 # 全部作业只在默认分支执行，工具链作业随之收敛，避免分支推送反复触发镜像构建
+# 连续推送时取消过期流水线：旧提交的检查结果已无意义，只保留最新一次
 workflow:
+  auto_cancel:
+    on_new_commit: interruptible
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
     - when: never
@@ -24,11 +27,17 @@ test:
     name: $CI_IMAGE
     pull_policy: if-not-present
   stage: test
+  interruptible: true
   needs:
     - toolchain:spec
     - toolchain:ensure
   script:
     - pnpm verify
+  # 文档产物由 pages 复用，避免同一流水线构建两次文档站
+  artifacts:
+    paths:
+      - docs/.vitepress/dist
+    expire_in: 1 day
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
 
@@ -37,12 +46,13 @@ pages:
     name: $CI_IMAGE
     pull_policy: if-not-present
   stage: deploy
+  interruptible: true
+  # 复用 test 的文档产物：产物缺失时明确失败，不静默产出空站点
   needs:
-    - toolchain:spec
-    - toolchain:ensure
+    - job: test
+      artifacts: true
   script:
-    - pnpm install --frozen-lockfile
-    - VITEPRESS_BASE=/toolkit/ pnpm docs:build
+    - test -d docs/.vitepress/dist
     - rm -rf public && mv docs/.vitepress/dist public
   artifacts:
     paths:

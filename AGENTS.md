@@ -47,7 +47,8 @@
 
 - 跑 `pnpm verify`——**单一步骤清单真源**，步骤定义在 `scripts/verify.mjs`，
   本地与四处 CI（GitHub `check` / `windows` / `macos`、GitLab `test`）调用同一份；
-  **禁止在本文件或 CI 配置里另写步骤枚举**，那是清单漂移的根因。跨平台裁剪用 `pnpm verify --skip-coverage --skip-docs`（windows、macos job 即此路径）；
+  **禁止在本文件或 CI 配置里另写步骤枚举**，那是清单漂移的根因。跨平台裁剪用 `pnpm verify --tests-only`（windows、macos job 即此路径：
+  只跑安装与单测，静态检查、构建、文档与 CLI 收尾在 ubuntu 全量执行），其余裁剪仍可用 `--skip-coverage` / `--skip-docs`；
   本地迭代用 `--local`（忽略 IDE / 终端注入的 `CI` 变量，恢复改动面裁剪与缓存，并默认跳过覆盖率；仍可用 `--skip-coverage` 显式指定），
   需强制全量时用 `--full`（与 `--local` 同时出现时以 `--full` 为准，覆盖率照跑）。
   任一步失败即不得交付，注意 `pnpm lint` 是 eslint 不做类型检查、`pnpm build` 亦不拦截类型错误，单跑二者不能替代本门禁；

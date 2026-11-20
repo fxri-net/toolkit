@@ -7,6 +7,11 @@ on:
   # 手动触发：Actions 平台抖动丢事件或需重跑时的手动入口
   workflow_dispatch:
 
+# 连续推送只验证最新一次：过期运行自动取消，避免多轮提交排队重复消耗
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # 验收步骤清单的唯一真源是 scripts/verify.mjs：各 job 都只调用它，不在 CI 里另写一份步骤，避免清单漂移
   check:
@@ -24,9 +29,27 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       # 覆盖率仅在 ubuntu 采集：v8 provider 的统计结果存在跨平台差异，双平台跑只会引入抖动，且覆盖率是增幅门槛而非回归指标，单平台足够
+      # 文档站构建按本次改动面裁剪：base 取 push 的 before / PR 的 base，首推与强推取不到时脚本内保守全跑
       - name: 门禁校验（全量）
+        env:
+          VERIFY_DIFF_BASE: ${{ github.event.before || github.event.pull_request.base.sha }}
         run: pnpm verify
-      # 运行下限冒烟需要「已发布形态」的包：主作业打包后传给 node18 作业，避免在旧版 Node 上安装 dev 工具链
+
+  # 打包独立成 job：node18 冒烟不再等完整门禁跑完，可与 check 并行
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+      # 运行下限冒烟需要「已发布形态」的包：打包后传给 node18 作业，避免在旧版 Node 上安装 dev 工具链
       - name: 打包运行时产物
         run: pnpm pack --pack-destination .
       - uses: actions/upload-artifact@v4
@@ -38,7 +61,7 @@ jobs:
   # 运行下限回归：在声明的 Node 18.17 上安装包产物并跑关键命令，防止依赖升级悄悄抬高门槛
   node18:
     runs-on: ubuntu-latest
-    needs: check
+    needs: pack
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -54,7 +77,8 @@ jobs:
       - name: Node 18 冒烟
         run: node scripts/smoke-node18.mjs
 
-  # Windows 回归：类型 / 静态检查 / 单测 / 构建与主平台并行，避免跨平台路径与换行问题漏网（O1/O5）
+  # Windows 回归：类型 / 静态检查 / 构建与主平台并行，避免跨平台路径与换行问题漏网（O1/O5）
+  # 只跑安装与单测：静态检查、构建、文档与 CLI 收尾已在 ubuntu 全量执行，重复跑不增加平台信号
   windows:
     runs-on: windows-latest
     steps:
@@ -66,8 +90,8 @@ jobs:
         with:
           node-version-file: .node-version
           cache: pnpm
-      - name: 门禁校验（Windows 裁剪）
-        run: pnpm verify --skip-coverage --skip-docs
+      - name: 门禁校验（Windows 单测）
+        run: pnpm verify --tests-only
 
   # macOS 回归：macOS 默认大小写不敏感文件系统（口径同 Windows、与 ubuntu 不同），路径归一 / 大小写折叠类逻辑须在此兜底
   macos:
@@ -81,5 +105,5 @@ jobs:
         with:
           node-version-file: .node-version
           cache: pnpm
-      - name: 门禁校验（macOS 裁剪）
-        run: pnpm verify --skip-coverage --skip-docs
+      - name: 门禁校验（macOS 单测）
+        run: pnpm verify --tests-only
