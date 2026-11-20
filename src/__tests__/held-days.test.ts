@@ -7,21 +7,23 @@ import { validateTasks } from "../tasks/validate"
 import { queryTasks } from "../tasks/query"
 import { printTaskBoard } from "../tasks/list"
 import { toCSV, toJSON } from "../tasks/export"
-import { todayDash } from "../date"
+import { todayCompact, todayDash } from "../date"
 import type { TaskSummary } from "../tasks/types"
 
 afterEach(() => vi.restoreAllMocks())
 
-// 造单任务档：body 为正文（不含 frontmatter），status / completed 可覆盖
-function makeTask(body: string, opts: { status?: string; completed?: string; name?: string } = {}): string {
+// 造单任务档：body 为正文（不含 frontmatter），status / completed / updated 可覆盖
+// updated 缺省取当天：搁置天数以「今天」为基准，写死日期会让用例随运行日期漂移
+function makeTask(body: string, opts: { status?: string; completed?: string; updated?: string; name?: string } = {}): string {
   const dir = mkdtempSync(join(tmpdir(), "tk-held-"))
   mkdirSync(join(dir, "active", "202611"), { recursive: true })
   const status = opts.status ?? "搁置"
   const completed = opts.completed ?? ""
+  const updated = opts.updated ?? todayCompact()
   const name = opts.name ?? "20261120-唐启云-搁置样例.md"
   writeFileSync(
     join(dir, "active", "202611", name),
-    `---\nowner: 唐启云\nstatus: ${status}\ncreated: 20261120\nupdated: 20261120\ncompleted: '${completed}'\ndepends_on: []\nscope: x\n---\n\n# 搁置样例\n\n${body}`,
+    `---\nowner: 唐启云\nstatus: ${status}\ncreated: 20261120\nupdated: ${updated}\ncompleted: '${completed}'\ndepends_on: []\nscope: x\n---\n\n# 搁置样例\n\n${body}`,
     "utf8",
   )
   return dir
