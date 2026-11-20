@@ -213,7 +213,7 @@ const installNeeded = needInstall()
 const docsNeeded = needDocsBuild()
 const buildSkip = buildSkipReason()
 const docsSkip = skipDocs ? "--skip-docs" : docsNeeded ? "" : "未触及 docs/、README.md、skills/"
-// 文档类型检查只随改动面跳过：--skip-docs 属跨平台裁剪（Windows / macOS job），类型检查仍保留
+// 文档类型检查只随改动面跳过：--skip-docs 只裁文档构建与产物校验，不裁类型检查（跨平台 job 走 --tests-only 时整段不进入）
 const docsTypeSkip = docsNeeded ? "" : "未触及 docs/、README.md、skills/"
 
 // 阶段一：互不依赖、可并行的前置检查；类型 / 规范一致性 / 静态检查都不读 dist、不写工作区
