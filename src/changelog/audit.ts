@@ -167,10 +167,10 @@ export function auditChangesets(dir = ".changeset"): AuditCandidate[] {
       byToken.set(token, list)
     }
   }
-  const tokenGroups = [...byToken.entries()].sort((a, b) => b[0].length - a[0].length || a[0].localeCompare(b[0]))
+  const tokenGroups = [...byToken.entries()].sort((a, b) => b[0].length - a[0].length || a[0].localeCompare(b[0], "en"))
   for (const [token, list] of tokenGroups) {
     if (hasMultipleNetTypes(list)) addCandidate(`自然语言相似：${token}`, list)
   }
 
-  return candidates.sort((a, b) => a.object.localeCompare(b.object))
+  return candidates.sort((a, b) => a.object.localeCompare(b.object, "en"))
 }

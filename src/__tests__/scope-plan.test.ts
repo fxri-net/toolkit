@@ -27,6 +27,14 @@ describe("scanRepositories", () => {
     const repos = scanRepositories(root)
     expect(repos.map((repo) => repo.name)).toEqual(["repo-a", "repo-b", "repo-c"])
   })
+
+  it("排序按显式 en 口径，不随系统 locale 漂移", () => {
+    mkdirSync(join(root, "beta", ".git"), { recursive: true })
+    mkdirSync(join(root, "Alpha", ".git"), { recursive: true })
+    mkdirSync(join(root, "中文仓库", ".git"), { recursive: true })
+    expect(scanRepositories(root).map((repo) => repo.name)).toEqual(["Alpha", "beta", "中文仓库"])
+    expect(scanRepositoryTree(root).repos.map((repo) => repo.name)).toEqual(["Alpha", "beta", "中文仓库"])
+  })
 })
 
 // 递归扫描夹具：多层仓库、依赖目录、隐藏目录、嵌套仓库与非 git 项目

@@ -76,7 +76,7 @@ export function scanRepositories(parent: string, limit = 500): RepositoryEntry[]
       repos.push({ name: entry.name, path: dir })
     }
   }
-  return repos.sort((left, right) => left.name.localeCompare(right.name))
+  return repos.sort((left, right) => left.name.localeCompare(right.name, "en"))
 }
 
 // 递归发现仓库：命中 .git 即收录并剪枝，依赖与产物目录永不进入；深度只作安全上限
@@ -129,7 +129,7 @@ export function scanRepositoryTree(parent: string, options: ScanOptions = {}): S
       skipped.push({ path: dir, reason: `无法读取：${(error as Error).message}` })
       return
     }
-    for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
+    for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name, "en"))) {
       if (limitHit()) return
       const name = entry.name
       if (entry.isSymbolicLink()) {
@@ -154,7 +154,7 @@ export function scanRepositoryTree(parent: string, options: ScanOptions = {}): S
   }
 
   walk(parent, 0)
-  repos.sort((left, right) => left.name.localeCompare(right.name) || left.path.localeCompare(right.path))
+  repos.sort((left, right) => left.name.localeCompare(right.name, "en") || left.path.localeCompare(right.path, "en"))
   return { repos, skipped, truncated, nestedPruned }
 }
 
