@@ -6,34 +6,38 @@ import { composeRules, listRules, loadRuleset, type Ruleset } from "../rules"
 import { clearRulesSelection, readRulesSelection, writeRulesSelection } from "../rules/cache"
 import { copyToClipboard } from "../rules/clipboard"
 import { buildPresetChoices, CUSTOM_PRESET, normalizePickedModules } from "../rules/select"
-import { exitOnPromptCancel, isInteractive, loadPrompts } from "../prompts"
+import { exitOnPromptCancel, exitWithCancel, isInteractive } from "../prompts"
+import { askCheckbox, askSelect, fail, reportWrite } from "../cli-ui"
+import { assertJsonFormat } from "../json-output"
 import { line, style } from "../term-style"
 import { writeFileAtomic } from "../write-atomic"
 
-// 交互式选择：返回模块 id 顺序；用户取消向调用方冒泡，由命令层以 130 收口
+// 交互式选择：自定义步骤 ESC 回到预设，预设步骤 ESC 取消整个命令；取消不写缓存
 async function selectInteractively(ruleset: Ruleset, cached: string[] | null): Promise<string[]> {
-  const { select, checkbox } = await loadPrompts()
   const fallback = cached ?? ruleset.presets.recommended ?? []
-  const choice = await select<string>({
-    message: "选择规则组合",
-    default: cached ? CUSTOM_PRESET : "recommended",
-    choices: buildPresetChoices(ruleset.presets),
-  })
-  if (choice !== CUSTOM_PRESET) return ruleset.presets[choice] ?? []
-  const picked = await checkbox({
-    message: "选择要包含的规则模块（空格切换，回车确认）",
-    choices: ruleset.modules.map((mod) => ({
-      name: `${mod.id}｜${mod.title}`,
-      value: mod.id,
-      checked: fallback.includes(mod.id),
-    })),
-    pageSize: 10,
-    required: false,
-  })
-  return normalizePickedModules(
-    ruleset.modules.map((mod) => mod.id),
-    picked,
-  )
+  for (;;) {
+    const choice = await askSelect({
+      message: "选择规则组合",
+      default: cached ? CUSTOM_PRESET : "recommended",
+      choices: buildPresetChoices(ruleset.presets),
+    })
+    if (choice === null) exitWithCancel()
+    if (choice !== CUSTOM_PRESET) return ruleset.presets[choice] ?? []
+    const picked = await askCheckbox({
+      message: "选择要包含的规则模块（空格切换，回车确认）",
+      choices: ruleset.modules.map((mod) => ({
+        name: `${mod.id}｜${mod.title}`,
+        value: mod.id,
+        checked: fallback.includes(mod.id),
+      })),
+      pageSize: 10,
+    })
+    if (picked === null) continue
+    return normalizePickedModules(
+      ruleset.modules.map((mod) => mod.id),
+      picked,
+    )
+  }
 }
 
 // 注册 rules 命令：装配点只负责按序调用
@@ -50,7 +54,7 @@ export function registerRulesCommands(program: Command): void {
     .option("--format <format>", "输出格式（json）")
     .action((options: { format?: string }) => {
       try {
-        if (options.format && options.format !== "json") console.error("⚠️ --format 仅支持 json，已回落文本输出")
+        if (!assertJsonFormat(options.format)) return
         const listed = listRules()
         const selection = readRulesSelection(listed.modules.map((mod) => mod.id))
         if (options.format === "json") {
@@ -79,11 +83,12 @@ export function registerRulesCommands(program: Command): void {
     .option("--out <file>", "写入文件（stdout 为空）")
     .option("--copy", "写入系统剪贴板（stdout 为空）")
     .option("--no-cache", "不读取也不写入组合缓存")
-    .action(async (options: { preset?: string; module?: string[]; anchor?: boolean; out?: string; copy?: boolean; cache?: boolean }) => {
+    .option("--dry-run", "只预览组合与缓存写入，不写文件 / 剪贴板 / 缓存")
+    .action(async (options: { preset?: string; module?: string[]; anchor?: boolean; out?: string; copy?: boolean; cache?: boolean; dryRun?: boolean }) => {
       try {
+        const dryRun = Boolean(options.dryRun)
         if (options.copy && options.out) {
-          console.error("⚠️ --copy 与 --out 不能同时使用")
-          process.exitCode = 1
+          fail("--copy 与 --out 不能同时使用")
           return
         }
         const rawModules = options.module ?? []
@@ -92,13 +97,11 @@ export function registerRulesCommands(program: Command): void {
           .map((item) => item.trim())
           .filter(Boolean)
         if (rawModules.length > 0 && modules.length === 0) {
-          console.error("⚠️ --module 不能为空")
-          process.exitCode = 1
+          fail("--module 不能为空")
           return
         }
         if (options.preset && modules.length > 0) {
-          console.error("⚠️ --preset 与 --module 不能同时使用")
-          process.exitCode = 1
+          fail("--preset 与 --module 不能同时使用")
           return
         }
         const ruleset = loadRuleset()
@@ -113,8 +116,7 @@ export function registerRulesCommands(program: Command): void {
         } else if (options.preset) {
           const preset = ruleset.presets[options.preset]
           if (!preset) {
-            console.error(`⚠️ 未知预设「${options.preset}」，可选：${Object.keys(ruleset.presets).join(" / ")}`)
-            process.exitCode = 1
+            fail(`未知预设「${options.preset}」，可选：${Object.keys(ruleset.presets).join(" / ")}`)
             return
           }
           ids = preset
@@ -132,30 +134,39 @@ export function registerRulesCommands(program: Command): void {
           // 导出 / 复制属一次性动作，不改变「下次裸跑 compose」的默认组合
           if (options.out || options.copy) {
             console.error(line.hint("已跳过组合缓存写入（--out / --copy 不改变默认组合）"))
+          } else if (dryRun) {
+            console.error(line.hint(`将记住本次组合（${ids.join(" → ")}）；--dry-run 未写入缓存`))
           } else {
             writeRulesSelection(ids)
             console.error(`${line.ok(`已记住本次组合（${ids.join(" → ")}）`)}，${style.hint("下次 rules compose 会作为默认勾选")}`)
           }
         }
         if (options.copy) {
+          if (dryRun) {
+            console.error(line.hint(`[预演] 将复制到剪贴板（${text.length} 字符）`))
+            return
+          }
           const result = copyToClipboard(text)
           if (!result.ok) {
-            console.error(`⚠️ 写入剪贴板失败：${result.error}`)
-            process.exitCode = 1
+            fail(`写入剪贴板失败：${result.error}`)
             return
           }
           console.error(`✔ ${style.ok(`已复制到剪贴板（${result.label}）`)}`)
           return
         }
         if (options.out) {
+          if (dryRun) {
+            console.error(line.hint(`[预演] 将写入：${style.accent(options.out)}`))
+            return
+          }
           mkdirSync(dirname(resolve(options.out)), { recursive: true })
           writeFileAtomic(options.out, `${text}\n`)
-          console.error(`✔ ${style.ok("已写入")}：${style.accent(options.out)}`)
+          reportWrite({ file: options.out, added: ids })
           return
         }
         console.log(text)
         // 交互模式：输出后尽量直接送剪贴板，少一步手动复制；失败只提示，不影响退出码
-        if (interactive) {
+        if (interactive && !dryRun) {
           const copied = copyToClipboard(text)
           console.error(
             copied.ok

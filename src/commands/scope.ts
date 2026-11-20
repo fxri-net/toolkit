@@ -8,6 +8,7 @@ import { requireInteractive, runInteractive } from "../prompts"
 import { resolveComparablePath } from "../scope/paths"
 import { runScopeAdd, runScopeMount, runScopeRemove, runScopeWizard } from "../scope/wizard"
 import { line } from "../term-style"
+import { assertJsonFormat } from "../json-output"
 
 // 注册 scope 命令：默认行为不变（无配置时全域生效）
 export function registerScopeCommands(program: Command): void {
@@ -24,7 +25,7 @@ export function registerScopeCommands(program: Command): void {
     .option("--skill <name>", "按指定技能判定（应用技能级规则）")
     .action((options: { format?: string; skill?: string }) => {
       try {
-        if (options.format && options.format !== "json") console.error("⚠️ --format 仅支持 json，已回落文本输出")
+        if (!assertJsonFormat(options.format)) return
         const report = resolveScope(undefined, options.skill)
         for (const warning of report.warnings) console.error(`⚠️ ${warning}`)
         if (report.migrationHint) console.error(`⚠️ ${report.migrationHint}`)
@@ -60,7 +61,7 @@ export function registerScopeCommands(program: Command): void {
     .option("--format <format>", "输出格式（json）")
     .action((options: { format?: string }) => {
       try {
-        if (options.format && options.format !== "json") console.error("⚠️ --format 仅支持 json，已回落文本输出")
+        if (!assertJsonFormat(options.format)) return
         const report = resolveScope()
         for (const warning of report.warnings) console.error(`⚠️ ${warning}`)
         const activation = report.activation

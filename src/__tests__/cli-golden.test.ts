@@ -2,7 +2,7 @@
 // ⚠️ cli.ts 顶层即执行主流程，无法静态导入：每个用例重置模块注册表后动态 import 并 await cliReady
 // 归一化只允许「沙箱 / home / 仓库根路径」「当天日期」「路径分隔符」三类易变值，其余逐字比对
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
-import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join, relative } from "node:path"
 
 // 沙箱路径用 vi.hoisted 构造（mock 工厂早于模块顶层求值执行）
@@ -340,6 +340,8 @@ describe("各域行为与错误路径", () => {
     ["rules compose 单模块", ["rules", "compose", "--module", "common", "--no-cache"]],
     ["rules compose 未知预设", ["rules", "compose", "--preset", "bogus", "--no-cache"]],
     ["rules reset", ["rules", "reset"]],
+    ["rules list 非法格式", ["rules", "list", "--format", "xml"]],
+    ["scope status 非法格式", ["scope", "status", "--format", "xml"]],
     ["skills status", ["skills", "status", "--scope", "global"]],
     ["skills path", ["skills", "path"]],
     ["docs theme 校验", ["docs", "theme", "check"]],
@@ -385,6 +387,12 @@ describe("各域行为与错误路径", () => {
 })
 
 describe("写盘产物", () => {
+  it("rules compose --dry-run 只预览，不写缓存", async () => {
+    const run = await runCli(["rules", "compose", "--module", "core", "--dry-run"])
+    expect(render(run)).toMatchSnapshot()
+    expect(existsSync(join(homeDir, ".toolkit/cache/rules-selection.json"))).toBe(false)
+  })
+
   it("init 生成任务区骨架与入口壳", async () => {
     rmSync(initDir, { recursive: true, force: true })
     mkdirSync(initDir, { recursive: true })

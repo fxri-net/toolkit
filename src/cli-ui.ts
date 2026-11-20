@@ -1,0 +1,128 @@
+// 交互基座：菜单、返回、确认与结果块的唯一入口，各域只接线不重写提示
+// 约定：有上级步骤时 ESC 返回上一级，顶层 ESC / Ctrl+C 取消整个命令（130）
+import { BACK_CHOICE, EXIT_CHOICE, askWithBack, loadPrompts } from "./prompts"
+import { line, style } from "./term-style"
+
+// 菜单项：disabled 为 true 或原因字符串时置灰
+export interface MenuChoice<T extends string> {
+  name: string
+  value: T
+  disabled?: boolean | string
+}
+
+// 多选项：checked 控制默认勾选
+export interface MultiChoice<T extends string> extends MenuChoice<T> {
+  checked?: boolean
+}
+
+// 菜单：back=true 时末位为「← 返回」、ESC 返回 "back"；否则末位为「退出」、ESC 返回 "exit"
+export async function runMenu<T extends string>(options: {
+  message: string
+  choices: Array<MenuChoice<T>>
+  back?: boolean
+  pageSize?: number
+}): Promise<T | "back" | "exit"> {
+  const { select } = await loadPrompts()
+  const footer = options.back ? BACK_CHOICE : EXIT_CHOICE
+  const answer = await askWithBack(() =>
+    select<T | "back" | "exit">({
+      message: options.message,
+      choices: [...options.choices, footer],
+      pageSize: options.pageSize,
+    }),
+  )
+  if ("back" in answer) return options.back ? "back" : "exit"
+  return answer.value
+}
+
+// 单选：ESC 返回 null，由调用方决定回到上一步还是取消
+export async function askSelect<T extends string>(options: {
+  message: string
+  choices: Array<MenuChoice<T>>
+  default?: T
+  pageSize?: number
+}): Promise<T | null> {
+  const { select } = await loadPrompts()
+  const answer = await askWithBack(() =>
+    select<T>({
+      message: options.message,
+      choices: options.choices,
+      default: options.default,
+      pageSize: options.pageSize,
+    }),
+  )
+  return "back" in answer ? null : answer.value
+}
+
+// 多选：ESC 返回 null，其余返回选中值（允许空选）
+export async function askCheckbox<T extends string>(options: {
+  message: string
+  choices: Array<MultiChoice<T>>
+  pageSize?: number
+}): Promise<T[] | null> {
+  const { checkbox } = await loadPrompts()
+  const answer = await askWithBack(() =>
+    checkbox<T>({
+      message: options.message,
+      choices: options.choices,
+      pageSize: options.pageSize,
+      required: false,
+    }),
+  )
+  return "back" in answer ? null : answer.value
+}
+
+// 文本输入：ESC 返回 null
+export async function askInput(options: { message: string; default?: string }): Promise<string | null> {
+  const { input } = await loadPrompts()
+  const answer = await askWithBack(() => input({ message: options.message, default: options.default }))
+  return "back" in answer ? null : answer.value
+}
+
+// 是否确认：ESC 返回 null
+export async function askConfirm(options: { message: string; default?: boolean }): Promise<boolean | null> {
+  const { confirm } = await loadPrompts()
+  const answer = await askWithBack(() => confirm({ message: options.message, default: options.default }))
+  return "back" in answer ? null : answer.value
+}
+
+// 写前确认：先打印预览；--dry-run 只预览，--yes 跳过确认
+export async function confirmWrite(options: {
+  title: string
+  lines: string[]
+  default?: boolean
+  yes?: boolean
+  dryRun?: boolean
+}): Promise<boolean> {
+  console.log("")
+  console.log(options.title)
+  for (const item of options.lines) console.log(`  ${item}`)
+  if (options.dryRun) {
+    console.log(line.hint("[预演] 未写入任何文件"))
+    return false
+  }
+  if (options.yes) return true
+  const ok = await askConfirm({ message: "继续写入？", default: options.default ?? true })
+  return ok === true
+}
+
+// 写后结果块：统一「写入文件 + 变更条目 + 当前模式」；诊断走 stderr，stdout 留给数据
+export function reportWrite(options: { file: string; added?: string[]; removed?: string[]; mode?: string }): void {
+  console.error(line.ok(`已写入 ${style.accent(options.file)}`))
+  if (options.added && options.added.length > 0) console.error(`  新增：${options.added.join("、")}`)
+  if (options.removed && options.removed.length > 0) console.error(`  移除：${options.removed.join("、")}`)
+  if (options.mode) console.error(`  当前：${options.mode}`)
+}
+
+// 统一失败出口：诊断走 stderr，置退出码 1，调用方直接 return
+export function fail(message: string): void {
+  console.error(`⚠️ ${message}`)
+  process.exitCode = 1
+}
+
+// 取值校验：未传视为通过；非法值统一报错
+export function assertChoice(value: string | undefined, allowed: readonly string[], label: string): boolean {
+  if (value === undefined || allowed.includes(value)) return true
+  fail(`${label} 取值须为 ${allowed.join(" / ")}`)
+  return false
+}

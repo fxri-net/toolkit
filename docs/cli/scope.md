@@ -31,6 +31,7 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 ## 交互与批量挂载
 
 - 无参 `toolkit scope` 在 TTY 下进入交互菜单；非 TTY 输出 `⚠️` 提示并以退出码 `2` 结束（提示里给出 `status` / `list` / `add` / `remove` 等非交互入口）
+- `scope status` / `list` 的 `--format` 仅接受 `json`，非法值在 stderr 报错并以 `1` 退出，不再回落文本
 - 选择页统一提供「← 返回」（末位）与 ESC 返回上一级：只回到上一层菜单，不写任何文件；
   任一提示按 Ctrl+C 会直接结束整个命令（退出码 `130`），不继续弹后续提示；主动选「退出」按成功计 `0`
 - ESC 有约 500ms 判定延迟（readline 需先排除方向键序列），属正常现象
