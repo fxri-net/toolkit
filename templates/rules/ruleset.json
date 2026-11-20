@@ -16,13 +16,19 @@
     {
       "id": "workflow",
       "title": "工作流与方案落盘",
-      "summary": "方案先行、只读判定、授权边界、任务建档与会话记忆",
+      "summary": "方案先行、只读判定、授权边界与技能指针",
       "file": "workflow.md"
+    },
+    {
+      "id": "personal",
+      "title": "个人偏好",
+      "summary": "可裁剪的个人偏好：覆写工作流默认行为",
+      "file": "personal.md"
     },
     {
       "id": "env",
       "title": "环境与版本",
-      "summary": "安装、升级、升级提示与就绪校验",
+      "summary": "安装命令与「不自行全局安装」红线",
       "file": "env.md"
     },
     {
@@ -41,11 +47,12 @@
   "presets": {
     "minimal": ["core"],
     "recommended": ["core", "output", "workflow"],
-    "complete": ["core", "output", "workflow", "env"],
-    "full": ["core", "output", "workflow", "env", "commit", "usage"]
+    "complete": ["core", "output", "workflow", "personal", "env"],
+    "full": ["core", "output", "workflow", "personal", "env", "commit", "usage"]
   },
   "pages": [
     { "page": "ai", "modules": ["core", "output", "workflow", "env"] },
+    { "page": "personal", "modules": ["personal"] },
     { "page": "commit", "modules": ["commit"] },
     { "page": "usage", "modules": ["usage"] }
   ]

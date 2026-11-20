@@ -22,22 +22,25 @@ afterEach(() => {
 })
 
 describe("规则清单与模块", () => {
-  it("清单包含 6 个模块，id 唯一且首行锚点合法", () => {
+  it("清单包含 7 个模块，id 唯一且首行锚点合法", () => {
     const ruleset = loadRuleset()
     const modules = loadRuleModules()
-    expect(ruleset.modules.map((mod) => mod.id)).toEqual(["core", "output", "workflow", "env", "commit", "usage"])
-    expect(modules).toHaveLength(6)
+    expect(ruleset.modules.map((mod) => mod.id)).toEqual(["core", "output", "workflow", "personal", "env", "commit", "usage"])
+    expect(modules).toHaveLength(7)
     for (const mod of modules) {
       expect(mod.anchor, `${mod.id} 锚点格式`).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/)
       expect(mod.body.length).toBeGreaterThan(0)
     }
   })
 
-  it("推荐预设不含 env，完整预设等于 ai 页组合", () => {
+  it("推荐预设不含 env，完整预设等于 ai 页模块加个人偏好", () => {
     const ruleset = loadRuleset()
     expect(ruleset.presets.recommended).toEqual(["core", "output", "workflow"])
+    // 期望值由 ai 页模块序列派生：个人偏好紧跟在 workflow 之后
     const aiPage = ruleset.pages.find((page) => page.page === "ai")!
-    expect(composeRules(ruleset.presets.complete!)).toBe(composeRules(aiPage.modules))
+    const expected = [...aiPage.modules]
+    expected.splice(expected.indexOf("workflow") + 1, 0, "personal")
+    expect(ruleset.presets.complete).toEqual(expected)
   })
 
   it("组合顺序按传入 id，锚点取最大值", () => {

@@ -7,7 +7,7 @@ import { RULESET, RULE_MODULES } from "./rules.generated"
 const STORAGE_KEY = "fxri-toolkit:rules:v1"
 const presets = RULESET.presets
 const presetNames = Object.keys(presets)
-const presetLabels: Record<string, string> = { minimal: "极简", recommended: "推荐", complete: "AI 全篇", full: "全量" }
+const presetLabels: Record<string, string> = { minimal: "极简", recommended: "推荐", complete: "自用全篇", full: "全量" }
 
 // 模块正文与元数据：首行锚点单独解析，正文交给共享组合函数，避免前端重写拼接逻辑
 const modules: Array<RuleModule & { title: string; summary: string; presets: string[] }> = RULESET.modules.map((meta) => {

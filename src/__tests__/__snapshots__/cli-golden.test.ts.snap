@@ -336,7 +336,7 @@ exports[`各域行为与错误路径 > rules compose 单模块 1`] = `
 --- stdout ---
 
 --- stderr ---
-⚠️ 未知规则模块「common」，可选：core / output / workflow / env / commit / usage"
+⚠️ 未知规则模块「common」，可选：core / output / workflow / personal / env / commit / usage"
 `;
 
 exports[`各域行为与错误路径 > rules compose 未知预设 1`] = `
@@ -350,7 +350,7 @@ exports[`各域行为与错误路径 > rules compose 未知预设 1`] = `
 exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 "退出码：0
 --- stdout ---
-> 规则更新时间 2026-11-20 11:47
+> 规则更新时间 2026-11-20 11:52
 
 你是一个严谨的编程助手，专注于产出可维护、风格一致的代码
 
@@ -382,7 +382,7 @@ exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 - 「继续」按状态解释：未开工=继续评估；开工被打断=恢复执行（回显范围 → 复核现场 → 再动手）。
 - 不可逆动作（发布、推送、打远端标签、全局安装）逐次授权；**当前指令已含授权则直接执行**，不重复询问。
 - 质量门：项目聚合验收命令必须通过，本地与 CI 共用同一份清单。
-- 动作不算、改动才算：提交 / 发版 / 推送本身不构成任务；归档 + 规范沉淀即流程终点，提交随收尾执行。
+- 动作不算、改动才算：提交 / 发版 / 推送本身不构成任务；归档 + 规范沉淀即流程终点，提交默认需你确认，个人偏好模块可覆写。
 - 技能上报（若启用统计）：调用 Skill 后立即上报，细节见《技能使用情况规则》。
 - 任务管理细节（状态、粒度、建档判据、时间取证、收尾流程）以已加载的 fxri-* 技能为准。
 --- stderr ---
@@ -395,11 +395,12 @@ exports[`各域行为与错误路径 > rules list 1`] = `
 规则模块：
     core     2026-11-19 09:30  角色定位与代码规范（minimal / recommended / complete / full）
     output   2026-11-08 02:21  输出要求（recommended / complete / full）
-    workflow 2026-11-20 11:47  工作流与方案落盘（recommended / complete / full）
+    workflow 2026-11-20 11:52  工作流与方案落盘（recommended / complete / full）
+    personal 2026-11-20 11:52  个人偏好（complete / full）
     env      2026-11-20 11:47  环境与版本（complete / full）
     commit   2026-11-13 10:13  提交信息规则（full）
     usage    2026-11-20 11:47  技能使用情况（full）
-预设：minimal=core；recommended=core+output+workflow；complete=core+output+workflow+env；full=core+output+workflow+env+commit+usage
+预设：minimal=core；recommended=core+output+workflow；complete=core+output+workflow+personal+env；full=core+output+workflow+personal+env+commit+usage
 当前缓存：无（默认 recommended）
 --- stderr ---
 "
@@ -422,12 +423,14 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
       "core",
       "output",
       "workflow",
+      "personal",
       "env"
     ],
     "full": [
       "core",
       "output",
       "workflow",
+      "personal",
       "env",
       "commit",
       "usage"
@@ -441,6 +444,12 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
         "output",
         "workflow",
         "env"
+      ]
+    },
+    {
+      "page": "personal",
+      "modules": [
+        "personal"
       ]
     },
     {
@@ -485,9 +494,9 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
     {
       "id": "workflow",
       "title": "工作流与方案落盘",
-      "summary": "方案先行、只读判定、授权边界、任务建档与会话记忆",
+      "summary": "方案先行、只读判定、授权边界与技能指针",
       "file": "workflow.md",
-      "anchor": "2026-11-20 11:47",
+      "anchor": "2026-11-20 11:52",
       "presets": [
         "recommended",
         "complete",
@@ -495,9 +504,20 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
       ]
     },
     {
+      "id": "personal",
+      "title": "个人偏好",
+      "summary": "可裁剪的个人偏好：覆写工作流默认行为",
+      "file": "personal.md",
+      "anchor": "2026-11-20 11:52",
+      "presets": [
+        "complete",
+        "full"
+      ]
+    },
+    {
       "id": "env",
       "title": "环境与版本",
-      "summary": "安装、升级、升级提示与就绪校验",
+      "summary": "安装命令与「不自行全局安装」红线",
       "file": "env.md",
       "anchor": "2026-11-20 11:47",
       "presets": [

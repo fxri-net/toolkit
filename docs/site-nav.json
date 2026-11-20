@@ -21,6 +21,7 @@
       "items": [
         { "text": "规则组合", "link": "/rules/" },
         { "text": "AI 全局规则", "link": "/rules/ai" },
+        { "text": "个人偏好规则", "link": "/rules/personal" },
         { "text": "提交信息规则", "link": "/rules/commit" },
         { "text": "技能使用情况规则", "link": "/rules/usage" }
       ]
@@ -101,6 +102,7 @@
       "items": [
         { "text": "规则组合", "link": "/rules/" },
         { "text": "AI 全局规则", "link": "/rules/ai" },
+        { "text": "个人偏好规则", "link": "/rules/personal" },
         { "text": "提交信息规则", "link": "/rules/commit" },
         { "text": "技能使用情况规则", "link": "/rules/usage" }
       ]

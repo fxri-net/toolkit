@@ -26,16 +26,16 @@ function checkedStates(wrapper: ReturnType<typeof mount>): boolean[] {
 describe("RuleComposer 交互", () => {
   it("默认选中推荐集（core / output / workflow）", () => {
     const wrapper = mount(RuleComposer)
-    expect(checkedStates(wrapper)).toEqual([true, true, true, false, false, false])
-    expect(wrapper.text()).toContain("AI 全篇")
+    expect(checkedStates(wrapper)).toEqual([true, true, true, false, false, false, false])
+    expect(wrapper.text()).toContain("自用全篇")
   })
 
-  it("点击 AI 全篇预设后切换为完整组合", async () => {
+  it("点击自用全篇预设后切换为完整组合", async () => {
     const wrapper = mount(RuleComposer)
-    const button = wrapper.findAll(".rc-presets button").find((item) => item.text() === "AI 全篇")
+    const button = wrapper.findAll(".rc-presets button").find((item) => item.text() === "自用全篇")
     expect(button).toBeTruthy()
     await button!.trigger("click")
-    expect(checkedStates(wrapper)).toEqual([true, true, true, true, false, false])
+    expect(checkedStates(wrapper)).toEqual([true, true, true, true, true, false, false])
     expect(wrapper.find(".rc-preview pre").text()).toContain("## 环境与版本")
   })
 
@@ -43,16 +43,16 @@ describe("RuleComposer 交互", () => {
     const wrapper = mount(RuleComposer)
     const presetButton = (label: string) => wrapper.findAll(".rc-presets button").find((item) => item.text() === label)!
     await presetButton("全量").trigger("click")
-    expect(checkedStates(wrapper)).toEqual([true, true, true, true, true, true])
+    expect(checkedStates(wrapper)).toEqual([true, true, true, true, true, true, true])
     await presetButton("极简").trigger("click")
-    expect(checkedStates(wrapper)).toEqual([true, false, false, false, false, false])
+    expect(checkedStates(wrapper)).toEqual([true, false, false, false, false, false, false])
     expect(wrapper.findAll(".rc-order li")).toHaveLength(1)
   })
 
   it("手动调整后显示自定义状态，点预设后消失", async () => {
     const wrapper = mount(RuleComposer)
     expect(wrapper.find(".rc-preset-state").exists()).toBe(false)
-    await wrapper.findAll('input[type="checkbox"]')[3]!.setValue(true)
+    await wrapper.findAll('input[type="checkbox"]')[4]!.setValue(true)
     expect(wrapper.find(".rc-preset-state").text()).toContain("当前：自定义")
     const button = wrapper.findAll(".rc-presets button").find((item) => item.text() === "推荐")!
     await button.trigger("click")
@@ -63,7 +63,7 @@ describe("RuleComposer 交互", () => {
     const wrapper = mount(RuleComposer)
     const clear = () => wrapper.findAll(".rc-toolbar button").find((item) => item.text() === "全部取消")!
     await clear().trigger("click")
-    expect(checkedStates(wrapper)).toEqual([false, false, false, false, false, false])
+    expect(checkedStates(wrapper)).toEqual([false, false, false, false, false, false, false])
     expect(wrapper.find(".rc-empty").exists()).toBe(true)
     expect(wrapper.find(".rc-primary").attributes("disabled")).toBeDefined()
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull()

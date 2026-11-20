@@ -8,8 +8,9 @@ title: rules（全局规则）
 
 ## 用途与场景
 
-- 全局规则会整段进入 Agent 上下文，可按需组合 `core` / `output` / `workflow` / `env` / `commit` / `usage` 六个模块。
-- 预设：`minimal`（仅 core）、`recommended`（core + output + workflow，默认）、`complete`（AI 全篇：推荐 + env，等于文档站 AI 全局规则整篇）、`full`（全部）。
+- 全局规则会整段进入 Agent 上下文，可按需组合 `core` / `output` / `workflow` / `personal` / `env` / `commit` / `usage` 七个模块。
+- 预设：`minimal`（仅 core）、`recommended`（core + output + workflow，默认）、
+  `complete`（自用全篇：推荐 + 个人偏好 + env，等于文档站 AI 全局规则整篇加个人偏好规则）、`full`（全部）。
 - 组合更新时间取所选模块的**最新锚点**；选择与顺序可缓存在 `~/.toolkit/cache/rules-selection.json`。
 
 ## 常用命令
@@ -40,7 +41,7 @@ toolkit rules reset
 - `--out` / `--copy` 时 stdout 为空，确认与错误提示走 stderr；剪贴板写入失败以非 0 退出。
 - 组合只输出文本，不自动改写任何 Agent 的全局规则文件。
 - `usage` 模块与 `toolkit usage rule` 同源；后者等价于 `rules compose --module usage`。
-- 模块正文是唯一真源（`templates/rules/`）；文档站三篇规则页与 `--preset complete` 的组合结果由测试锁定逐字一致。
+- 模块正文是唯一真源（`templates/rules/`）；文档站各规则页与 `--preset complete` 的组合结果由测试锁定逐字一致。
 
 ## 相关页面
 

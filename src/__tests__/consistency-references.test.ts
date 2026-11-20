@@ -125,3 +125,39 @@ describe("规范一致性：站点导航锚点", () => {
     expect(result.stderr).toContain("/faq#安装与配境")
   })
 })
+
+// 规则块只放业务文本：读者向措辞出现即报 error，锚点行不参与扫描
+const ruleBase = { "skills/fxri-demo/references/task-spec.md": "# 任务规范\n" }
+const moduleDoc = (body: string) => ["> 规则更新时间 2026-11-20 11:52", "", "## 演示", "", body, ""].join("\n")
+const pageDoc = (body: string) =>
+  ["# 演示", "", "````markdown", "> 规则更新时间 2026-11-20 11:52", "", "## 演示", "", body, "````", ""].join("\n")
+
+describe("规范一致性：规则块读者向措辞", () => {
+  it("业务文本通过", () => {
+    const root = createFixture({ ...ruleBase, "templates/rules/demo.md": moduleDoc("- 提交默认需确认，细节以技能为准。") })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(0)
+  })
+
+  it("模块正文出现「本模块」时报 error 并指出文件", () => {
+    const root = createFixture({ ...ruleBase, "templates/rules/demo.md": moduleDoc("> 本模块暂无对应技能。") })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("templates/rules/demo.md")
+    expect(result.stderr).toContain("本模块")
+  })
+
+  it("规则页围栏块出现「文档站」时报 error", () => {
+    const root = createFixture({ ...ruleBase, "docs/rules/demo.md": pageDoc("细节见文档站。") })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("docs/rules/demo.md")
+    expect(result.stderr).toContain("文档站")
+  })
+
+  it("「文本文件」属正常业务词，不误报「本文」", () => {
+    const root = createFixture({ ...ruleBase, "templates/rules/demo.md": moduleDoc("脚本与文本文件按读取方定字节形态。") })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(0)
+  })
+})
