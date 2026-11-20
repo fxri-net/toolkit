@@ -6,6 +6,14 @@ outline: [2, 2]
 
 > 完整变更历史以根 `CHANGELOG.md` 为准，本页由 `toolkit changelog doc` 自动同步，请勿手改。
 
+## 1.17.3
+
+> 2026-11-21 发布
+
+### 🐛 问题修复
+
+- `toolkit rules compose` 复制的内容在中文 Windows 上粘贴后乱码——文本改为经 UTF-8 临时文件交给 PowerShell 读取，并移除走 ANSI 通道的 `clip` 兜底
+
 ## 1.17.2
 
 > 2026-11-21 发布
