@@ -1347,7 +1347,7 @@ Options:
 Commands:
   archive [options]        归档已完成任务
   check [options]          校验任务区：规则与变更集写法，存在 error 时退出码 1
-  normalize [options]      归档块归一化：默认只读检查，--fix 修复
+  normalize [options]      任务区归一化：默认只读检查，--fix 修复（含去 BOM）
   stats [options]          任务统计：周期 / 滞留 / 吞吐
   export [options] <path>  导出任务到文件（.csv / .xlsx / .json）
   import [options] <file>  从文件导入任务（.csv / .xlsx / .json）
@@ -1533,7 +1533,7 @@ Options:
 Commands:
   archive [options]        归档已完成任务
   check [options]          校验任务区：规则与变更集写法，存在 error 时退出码 1
-  normalize [options]      归档块归一化：默认只读检查，--fix 修复
+  normalize [options]      任务区归一化：默认只读检查，--fix 修复（含去 BOM）
   stats [options]          任务统计：周期 / 滞留 / 吞吐
   export [options] <path>  导出任务到文件（.csv / .xlsx / .json）
   import [options] <file>  从文件导入任务（.csv / .xlsx / .json）

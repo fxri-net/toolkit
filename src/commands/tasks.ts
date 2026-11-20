@@ -269,7 +269,8 @@ export function registerTasksCommands(program: Command): void {
       }
       if (options.fix) {
         const result = fixArchive(ctx.dir)
-        console.log(`已修复 ${result.fixed} 处`)
+        const bom = result.bomFixed ? `，去除 BOM ${result.bomFixed} 个文件` : ""
+        console.log(`已修复 ${result.fixed} 处${bom}`)
         if (result.issues.length > 0) {
           console.log("以下问题需人工确认：")
           printIssues(result.issues)
@@ -362,8 +363,8 @@ export function registerTasksCommands(program: Command): void {
       runTasksCheck(options)
     })
 
-  addTasksCommonOptions(tasksCmd.command("normalize").description("归档块归一化：默认只读检查，--fix 修复"))
-    .option("--fix", "修复归档块问题")
+  addTasksCommonOptions(tasksCmd.command("normalize").description("任务区归一化：默认只读检查，--fix 修复（含去 BOM）"))
+    .option("--fix", "修复归档块问题与文件 BOM")
     .option("--check", "只读检查（默认行为，与 --fix 互斥）")
     .action((options: TasksCommonOptions & { fix?: boolean; check?: boolean }) => {
       runTasksNormalize(options)

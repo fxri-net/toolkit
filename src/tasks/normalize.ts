@@ -23,6 +23,8 @@ export interface NormalizeIssue {
 export interface NormalizeResult {
   issues: NormalizeIssue[]
   fixed: number
+  // 去除 UTF-8 BOM 的文件数（与 fixed 分开计数，避免把「文件卫生」混进归档块修复数）
+  bomFixed?: number
 }
 
 // 元数据四字段
@@ -270,7 +272,24 @@ function migrateArchiveBlock(tasksDir: string, block: ArchiveBlockInfo, targetDa
   console.log(`  块「${block.title}」迁移 → ${targetDate}.md`)
 }
 
-// 修复可自动修复的问题（补元数据 + 漂移迁移 + 降序重排），返回修复数
+// 去除任务档 UTF-8 BOM：只对首字节为 BOM 的文件写回，不触碰换行与其余内容；无 BOM 不写盘（避免 mtime 漂移）
+function stripBomFiles(files: string[]): number {
+  let count = 0
+  for (const file of files) {
+    let raw: string
+    try {
+      raw = readFileSync(file, "utf8")
+    } catch {
+      continue
+    }
+    if (!raw.startsWith("\uFEFF")) continue
+    writeFileAtomic(file, raw.slice(1))
+    count++
+  }
+  return count
+}
+
+// 修复可自动修复的问题（补元数据 + 漂移迁移 + 降序重排 + 去 BOM），返回修复数
 export function fixArchive(tasksDir = ".tasks"): NormalizeResult {
   const archiveDir = join(tasksDir, "archive")
   const files = listTaskFiles(archiveDir)
@@ -282,10 +301,13 @@ export function fixArchive(tasksDir = ".tasks"): NormalizeResult {
   lockFd = acquireArchiveLock(tasksDir)
   if (lockFd === null) {
     console.warn("⚠️ 检测到归档锁，可能有并发写操作正在进行，本次已跳过修复")
-    return { issues, fixed }
+    return { issues, fixed, bomFixed: 0 }
   }
 
   try {
+    // 文件卫生：active 与 archive 下带 BOM 的任务档一并剥离，补上 check 只报不修的缺口
+    const bomFixed = stripBomFiles([...files, ...listTaskFiles(join(tasksDir, "active"))])
+
     for (const file0 of files) {
       try {
         fixed += fixArchiveFile(tasksDir, archiveDir, file0, issues)
@@ -295,7 +317,7 @@ export function fixArchive(tasksDir = ".tasks"): NormalizeResult {
       }
     }
 
-    return { issues, fixed }
+    return { issues, fixed, bomFixed }
   } finally {
     // 释放排他锁
     if (lockFd !== null) {
