@@ -30,7 +30,7 @@ toolkit scope remove ~/work/legacy --from exclude       # 从黑名单移除
 toolkit scope default                 # 查看当前默认值
 toolkit scope default off             # 切换为「仅名单内生效」
 toolkit scope reset                   # 清除限制（全部生效）
-toolkit skills mount ~/work --dry-run  # 批量项目面安装：先预览（原 scope mount）
+toolkit skills mount ~/work --dry-run  # 批量项目面安装：先预览（由 scope mount 迁入）
 toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域输出技能正文（未激活退出码 3）
 ```
 
