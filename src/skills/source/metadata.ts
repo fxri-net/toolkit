@@ -26,6 +26,14 @@ export function readSkillPreviousNames(dir: string): string[] {
   return readFrontmatterList(dir, "previousNames")
 }
 
+// 读取内容闸门退出声明：metadata.gate 为 true / false 时返回布尔值，缺省或非法返回 undefined（随全局规则）
+export function readSkillGate(dir: string): boolean | undefined {
+  const value = readFrontmatterIndented(dir, "gate")
+  if (value === "true") return true
+  if (value === "false") return false
+  return undefined
+}
+
 // 读取 frontmatter metadata 下的缩进行内数组键：兼容 [a, b] 与单值，去引号与空项
 function readFrontmatterList(dir: string, key: string): string[] {
   try {
@@ -114,6 +122,7 @@ export function listPackageSkills(): PackageSkill[] {
       tier: readSkillTier(dir),
       requires: readSkillRequires(dir),
       previousNames: readSkillPreviousNames(dir),
+      gate: readSkillGate(dir),
     })
   }
   return out
