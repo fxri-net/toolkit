@@ -6,6 +6,35 @@ outline: [2, 2]
 
 > 完整变更历史以根 `CHANGELOG.md` 为准，本页由 `toolkit changelog doc` 自动同步，请勿手改。
 
+## 1.17.1
+
+> 2026-11-21 发布
+
+### ✨ 新增功能
+
+- `toolkit scope` 交互页提供「← 返回」项与 ESC 返回（回到上层菜单），不再只能用 Ctrl+C 退层
+
+### 🔧 功能调整
+
+- 环境变量统一为 `FX_TOOLKIT_` 前缀（`FX_TOOLKIT_REDACT` / `FX_TOOLKIT_CHECK_WARN` / `FX_TOOLKIT_NO_UPDATE_CHECK` / `FX_TOOLKIT_DEBUG_UPDATE_CHECK` / `FX_TOOLKIT_USAGE_DIR` / `FX_TOOLKIT_USAGE_AGENT` / `FX_TOOLKIT_USAGE_NO_WORKER` / `FX_TOOLKIT_USAGE_SESSION`），避免同组多产品变量撞名
+- 旧名 `FX_*` 与 `TOOLKIT_USAGE_*` 不再读取；升级后请改用新名（本项目未保留兼容层）
+- 命中旧名时在 stderr 提示一次改用新名，取值仍按新名或默认值处理，不复活兼容读取
+- 需要交互但当前环境不支持时统一输出 `⚠️` 提示并以退出码 `2` 结束（`toolkit scope` 此前打印帮助并返回 0）
+
+### ⚡ 优化改进
+
+- 交互能力统一到 `src/prompts.ts` 一层——TTY 判定、非交互退出码、列表分页、「返回 / 退出」词汇与取消收口共用同一份实现
+- `skills` 技能多选分页由 12 行对齐到统一的 15 行；`rules compose` 由 10 行对齐为 15 行
+
+### 🐛 问题修复
+
+- `toolkit scope` 等交互在中途按 Ctrl+C 后卡住、需要多次按键才能退出；取消统一以退出码 130 结束，不再在残留的 readline 状态上重开提示
+- 交互取消的退出码口径不一致（0 / 1 / 130 并存），`usage` / `rules` / `skills` / `scope` 统一为 130
+- `toolkit skills bump` 批量递增确认取消时退出码为 0，改为 130
+- 取消判定的正则兜底过宽，普通错误信息含 cancel 时曾被误判为用户取消
+- 移除 `fxri-plan-to-task` / `fxri-plan-review` / `fxri-session-recap` 正文中的入口壳指示，闸门形态只由安装产物承载
+- 作用域文档中「本页命令只读」「只写全局」「仅交互写入」「包内正文」等过期表述
+
 ## 1.17.0
 
 > 2026-11-21 发布
