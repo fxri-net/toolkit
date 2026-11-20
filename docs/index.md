@@ -65,7 +65,7 @@ pnpm add -g @fxri/toolkit
 ```
 
 ```sh [npm]
-npm i -g @fxri/toolkit
+npm add -g @fxri/toolkit
 ```
 
 ```sh [yarn]

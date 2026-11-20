@@ -28,7 +28,7 @@ AI 参与开发后，方案与决策散落在对话记录里，会话一关什�
 ## 🚀 30 秒上手
 
 ```bash
-# 1. 全局安装 CLI（npm 用户 npm i -g @fxri/toolkit）
+# 1. 全局安装 CLI（npm 用户 npm add -g @fxri/toolkit）
 pnpm add -g @fxri/toolkit
 
 # 2. 安装 AI 技能包（装到各 agent 的全局技能目录）
@@ -93,7 +93,7 @@ toolkit scope
 安装步骤见上文「30 秒上手」（全局装 CLI 后 `toolkit skills install`）；下面是分面与开关细节。
 
 ```bash
-pnpm add -g @fxri/toolkit && toolkit skills install   # 装了 CLI 一键分发（npm 用户：npm i -g @fxri/toolkit）
+pnpm add -g @fxri/toolkit && toolkit skills install   # 装了 CLI 一键分发（npm 用户：npm add -g @fxri/toolkit）
 toolkit skills install --scope project                # 项目面分发：真源与入口薄壳随仓库入库、队友 clone 即用
 pnpm dlx skills add fxri-net/toolkit                  # 也可用上游安装器（npm 用户：npx skills add fxri-net/toolkit）
 ```

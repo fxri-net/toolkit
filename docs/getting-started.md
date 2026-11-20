@@ -56,7 +56,7 @@
 
 ```bash
 pnpm add -g @fxri/toolkit       # pnpm（bin 落在 pnpm home，不受 nvm 切版本影响）
-npm i -g @fxri/toolkit          # npm（bin 硬链在 Node 目录，切版本需重装）
+npm add -g @fxri/toolkit        # npm（bin 硬链在 Node 目录，切版本需重装）
 yarn global add @fxri/toolkit   # yarn 1.x；2+ 无全局安装，改用 yarn dlx
 bun add -g @fxri/toolkit        # bun
 ```

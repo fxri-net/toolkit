@@ -26,7 +26,7 @@ Cursor、Codex、Gemini CLI 等兼容 agent 按需加载。
 安装了 CLI 后，技能取自包内 `skills/`，随包同源分发（与 CLI 同一发布批次；技能内容版本独立编号，看的是各 SKILL.md 自己的版本），**不需要第二条供应链、不需要访问 GitHub**：
 
 ```bash
-pnpm add -g @fxri/toolkit   # 1. 装 CLI（npm 用户 npm i -g @fxri/toolkit）
+pnpm add -g @fxri/toolkit   # 1. 装 CLI（npm 用户 npm add -g @fxri/toolkit）
 toolkit skills install      # 2. 把包内技能装到各 agent 的全局技能目录
                             #    先按 tier 选技能：core 必装、optional 可选（TTY 下方向键多选；--mode package 时 core 也可取消）
                             #    再选目标：canonical + 已检测 agent（--agent / --all-agents / --no-save-agents）

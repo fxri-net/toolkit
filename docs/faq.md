@@ -49,7 +49,7 @@
 ### 用 nvm 切了 Node 版本，全局装的 toolkit 不见了？
 
 全局包绑定在安装时的 Node 版本上，切版本后各版本的 `node_modules` 相互独立。这是 nvm 类工具的机制，不是本工具的问题。
-处置三种：新版本下重新安装（`pnpm add -g @fxri/toolkit` 或 `npm i -g @fxri/toolkit`）；
+处置三种：新版本下重新安装（`pnpm add -g @fxri/toolkit` 或 `npm add -g @fxri/toolkit`）；
 改用 pnpm 全局安装（pnpm 全局目录独立于 Node 版本）；团队项目改用项目 devDependency 方式，不受切版本影响（见[快速开始 · 安装](./getting-started#安装)）。
 
 ### Node 18 能用吗？
@@ -65,7 +65,7 @@ CLI 只使用该基线已稳定的 API，高版本才有的内置不会进入运
 
 - **只卡 GitHub（npm registry 可达，最常见）**：CLI 照常用 `pnpm add -g @fxri/toolkit` 装；skills 随包分发、不走 GitHub，直接一键分发：
   ```bash
-  toolkit skills install   # npm 用户先 npm i -g @fxri/toolkit
+  toolkit skills install   # npm 用户先 npm add -g @fxri/toolkit
   ```
   若仍想用上游安装器，也可把已装 CLI 包目录当本地源：
 

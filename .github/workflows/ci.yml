@@ -75,7 +75,7 @@ jobs:
         with:
           name: toolkit-tgz
       - name: 安装包产物（全局）
-        run: npm i -g ./fxri-toolkit-*.tgz
+        run: npm add -g ./fxri-toolkit-*.tgz
       - name: Node 18 冒烟
         run: node scripts/smoke-node18.mjs
 
