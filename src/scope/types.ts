@@ -10,19 +10,22 @@ export interface ActivationConfig {
   gitRemotes: string[]
 }
 
-// 判定上下文：由调用方提供真实路径、git 根与已存在的 marker 名，便于纯函数单测
+// 判定上下文：由调用方提供真实路径、项目根与已存在的 marker 名，便于纯函数单测
 export interface ScopeContext {
   cwd: string
+  // 判定基准：项目根（git 根优先，其次最近的 .tasks 根，都没有则回落 cwd）
+  baseDir: string
   gitRoot: string | null
   gitRemote: string | null
   markers: Set<string>
   caseInsensitive: boolean
 }
 
-// 判定结果：status 的 JSON 契约字段固定为 active / mode / sourceFile / matchedRule / reason
+// 判定结果：status 的 JSON 契约字段固定为 active / mode / baseDir / sourceFile / matchedRule / reason
 export interface ScopeDecision {
   active: boolean
   mode: ActivationMode
+  baseDir: string
   sourceFile: string | null
   matchedRule: string | null
   reason: string

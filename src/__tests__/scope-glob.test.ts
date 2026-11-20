@@ -2,6 +2,7 @@
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { matchGlob } from "../scope/glob"
+import { compilePattern, matchPathPattern, matchPattern } from "../scope/pattern"
 import { expandHome, normalizeRemote, resolveComparablePath } from "../scope/paths"
 
 describe("matchGlob", () => {
@@ -42,5 +43,49 @@ describe("normalizeRemote", () => {
 describe("resolveComparablePath", () => {
   it("相对路径按基准解析为绝对路径", () => {
     expect(resolveComparablePath("work", "/home/u").endsWith("work")).toBe(true)
+  })
+})
+
+describe("compilePattern", () => {
+  it("默认按 glob 编译，re: 前缀切换为正则", () => {
+    const glob = compilePattern("/home/u/work/**")
+    expect(glob.ok && glob.pattern.kind).toBe("glob")
+    const regex = compilePattern("re:^/home/u/work/(a|b)$")
+    expect(regex.ok && regex.pattern.kind).toBe("regex")
+    expect(regex.ok && regex.pattern.test("/home/u/work/a")).toBe(true)
+    expect(regex.ok && regex.pattern.test("/home/u/work/c")).toBe(false)
+  })
+
+  it("非法正则、嵌套量词与超量量词被拒绝并给出原因", () => {
+    const invalid = compilePattern("re:(")
+    expect(invalid.ok).toBe(false)
+    expect(invalid.ok ? "" : invalid.reason).toContain("正则无效")
+    const nested = compilePattern("re:(a+)+")
+    expect(nested.ok ? "" : nested.reason).toContain("嵌套量词")
+    const many = compilePattern(`re:${"a?".repeat(21)}`)
+    expect(many.ok ? "" : many.reason).toContain("量词超过")
+    const long = compilePattern("a".repeat(201))
+    expect(long.ok ? "" : long.reason).toContain("字符上限")
+  })
+
+  it("扁平标识按语法层匹配，不做路径归一", () => {
+    expect(matchPattern("fxri-plan-to-task", "fxri-*")).toBe(true)
+    expect(matchPattern("fxri-plan-to-task", "re:^fxri-plan-")).toBe(true)
+    expect(matchPattern("other-skill", "fxri-*")).toBe(false)
+  })
+})
+
+describe("matchPathPattern", () => {
+  it("~ 按注入的 home 展开，相对路径按 baseDir 解析", () => {
+    expect(matchPathPattern("/home/u/work/a", "~/work/**", { baseDir: "/tmp", home: "/home/u" })).toBe(true)
+    expect(matchPathPattern("/home/u/other", "~/work/**", { baseDir: "/tmp", home: "/home/u" })).toBe(false)
+    expect(matchPathPattern("/home/u/work/repo", "repo", { baseDir: "/home/u/work" })).toBe(true)
+  })
+
+  it("正则按归一后的路径匹配，大小写与既有 glob 口径一致", () => {
+    // Windows 的归一绝对路径带盘符，正则用可选的盘符前缀兼容两平台
+    const pattern = "re:^([a-z]:)?/home/u/work/repo$"
+    expect(matchPathPattern("/Home/U/Work/Repo", pattern, { baseDir: "/home/u" })).toBe(true)
+    expect(matchPathPattern("/home/u/work/repo", "re:^([a-z]:)?/home/u/other", { baseDir: "/home/u" })).toBe(false)
   })
 })

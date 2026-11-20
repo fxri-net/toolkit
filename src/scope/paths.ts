@@ -30,6 +30,20 @@ export function findGitRoot(start = process.cwd()): string | null {
   }
 }
 
+// 判定基准：项目根优先——git 根优先，其次向上最近的含 .tasks 的目录，都没有则回落起点
+export function findProjectRoot(start = process.cwd()): string {
+  const gitRoot = findGitRoot(start)
+  if (gitRoot) return gitRoot
+  let current = resolve(start)
+  const origin = current
+  for (;;) {
+    if (existsSync(join(current, ".tasks"))) return current
+    const parent = dirname(current)
+    if (parent === current) return origin
+    current = parent
+  }
+}
+
 // 归一 git 远端：去掉协议与用户、把 scp 形式的 `host:path` 改为 `host/path`、去掉尾部 .git
 // 让 https / ssh / scp 三种写法都能用同一组 glob 匹配
 export function normalizeRemote(url: string): string {

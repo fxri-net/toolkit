@@ -64,4 +64,22 @@ describe("resolveScope", () => {
     expect(report.decision.mode).toBe("all")
     expect(report.warnings.join("\n")).toContain("mode 非法")
   })
+
+  it("判定基准取项目根：子目录按项目根命中并给出迁移提示", () => {
+    const subdir = join(project, "src")
+    mkdirSync(subdir, { recursive: true })
+    mkdirSync(join(project, ".tasks"), { recursive: true })
+    writeGlobal({ activation: { mode: "allowlist", include: [project.replace(/\\/g, "/")] } })
+    const report = resolveScope(subdir)
+    expect(report.decision.active).toBe(true)
+    expect(report.decision.baseDir.endsWith("repo")).toBe(true)
+    expect(report.migrationHint ?? "").toContain("判定基准已改为项目根")
+  })
+
+  it("非法路径规则告警并剔除，不参与判定", () => {
+    writeGlobal({ activation: { mode: "allowlist", include: ["re:("] } })
+    const report = resolveScope(project)
+    expect(report.warnings.join("\n")).toContain("已忽略")
+    expect(report.decision.active).toBe(false)
+  })
 })

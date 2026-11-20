@@ -30,6 +30,7 @@ export function registerScopeCommands(program: Command): void {
         if (options.format && options.format !== "json") console.error("⚠️ --format 仅支持 json，已回落文本输出")
         const report = resolveScope()
         for (const warning of report.warnings) console.error(`⚠️ ${warning}`)
+        if (report.migrationHint) console.error(`⚠️ ${report.migrationHint}`)
         if (options.format === "json") {
           const { decision } = report
           console.log(
@@ -37,6 +38,7 @@ export function registerScopeCommands(program: Command): void {
               {
                 active: decision.active,
                 mode: decision.mode,
+                baseDir: decision.baseDir,
                 sourceFile: decision.sourceFile,
                 matchedRule: decision.matchedRule,
                 reason: decision.reason,
@@ -70,6 +72,7 @@ export function registerScopeCommands(program: Command): void {
               {
                 configured: Boolean(activation),
                 sourceFile: report.decision.sourceFile,
+                baseDir: report.decision.baseDir,
                 mode: report.decision.mode,
                 include: activation?.include ?? [],
                 exclude: activation?.exclude ?? [],

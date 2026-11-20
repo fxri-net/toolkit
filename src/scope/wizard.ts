@@ -42,6 +42,7 @@ function requireTty(action: string, hint: string): void {
 export function printScopeStatus(): void {
   const report = resolveScope()
   for (const warning of report.warnings) console.error(`⚠️ ${warning}`)
+  if (report.migrationHint) console.error(`⚠️ ${report.migrationHint}`)
   for (const line of formatStatus(report)) console.log(line)
 }
 

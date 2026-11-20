@@ -4,7 +4,8 @@ import { join, resolve } from "node:path"
 import { inspectConfigLayers } from "../config"
 import { canonicalPath } from "../git-ignore"
 import { decideScope } from "./decide"
-import { findGitRoot, readGitRemote } from "./paths"
+import { compilePattern } from "./pattern"
+import { findGitRoot, findProjectRoot, readGitRemote } from "./paths"
 import type { ActivationConfig, ActivationMode, LoadedActivation, ScopeContext, ScopeDecision } from "./types"
 
 const MODES = new Set<ActivationMode>(["all", "allowlist", "denylist"])
@@ -16,6 +17,8 @@ export interface ScopeReport {
   context: ScopeContext
   layer: string | null
   warnings: string[]
+  // 判定基准变化提示：旧口径（cwd）与新口径（项目根）结论不同时给出
+  migrationHint: string | null
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -32,6 +35,15 @@ function stringArray(value: unknown, key: string, file: string, warnings: string
   const items = value.filter((item): item is string => typeof item === "string" && item.trim() !== "")
   if (items.length !== value.length) warnings.push(`${file} 的 activation.${key} 有非字符串或空项，已剔除`)
   return items
+}
+
+// 路径规则数组：非字符串项剔除；非法或过于复杂的模式告警并剔除（降级不静默）
+function patternArray(value: unknown, key: string, file: string, warnings: string[]): string[] {
+  return stringArray(value, key, file, warnings).filter((pattern) => {
+    const compiled = compilePattern(pattern)
+    if (!compiled.ok) warnings.push(`${file} 的 activation.${key} 规则「${pattern}」已忽略：${compiled.reason}`)
+    return compiled.ok
+  })
 }
 
 // 解析 activation 段：段值非对象按未写处理；mode 非法回落 all
@@ -54,8 +66,8 @@ function parseActivation(raw: unknown, file: string, warnings: string[]): Activa
   }
   return {
     mode,
-    include: stringArray(raw.include, "include", file, warnings),
-    exclude: stringArray(raw.exclude, "exclude", file, warnings),
+    include: patternArray(raw.include, "include", file, warnings),
+    exclude: patternArray(raw.exclude, "exclude", file, warnings),
     markers: {
       include: stringArray(markers.include, "markers.include", file, warnings),
       exclude: stringArray(markers.exclude, "markers.exclude", file, warnings),
@@ -83,8 +95,11 @@ export function loadActivation(startDir = process.cwd()): LoadedActivation {
 export function resolveScope(startDir = process.cwd()): ScopeReport {
   const { activation, sourceFile, layer, warnings } = loadActivation(startDir)
   const cwd = canonicalPath(resolve(startDir))
+  // 判定基准取项目根：子目录内按整个项目匹配，精确路径即可覆盖其下所有层级
+  const baseDir = canonicalPath(findProjectRoot(startDir))
   const context: ScopeContext = {
     cwd,
+    baseDir,
     gitRoot: null,
     gitRemote: null,
     markers: new Set<string>(),
@@ -99,5 +114,21 @@ export function resolveScope(startDir = process.cwd()): ScopeReport {
     }
     if (activation.gitRemotes.length > 0 && context.gitRoot) context.gitRemote = readGitRemote(context.gitRoot)
   }
-  return { decision: decideScope(activation, context, sourceFile), activation, context, layer, warnings }
+  const decision = decideScope(activation, context, sourceFile)
+  return { decision, activation, context, layer, warnings, migrationHint: migrationHint(activation, context, decision, sourceFile) }
+}
+
+// 判定基准迁移提示：仅路径规则参与对比；markers / gitRemotes 不依赖基准，避免假告警
+function migrationHint(
+  activation: ActivationConfig | null,
+  context: ScopeContext,
+  decision: ScopeDecision,
+  sourceFile: string | null,
+): string | null {
+  if (!activation) return null
+  if (context.baseDir === context.cwd) return null
+  if (activation.include.length === 0 && activation.exclude.length === 0) return null
+  const legacy = decideScope(activation, { ...context, baseDir: context.cwd }, sourceFile)
+  if (legacy.active === decision.active) return null
+  return `判定基准已改为项目根：本目录按旧口径${legacy.active ? "生效" : "不生效"}，按项目根${decision.active ? "生效" : "不生效"}；请核对 activation 规则`
 }

@@ -7,6 +7,7 @@ import type { ActivationConfig, ScopeContext } from "../scope/types"
 function context(overrides: Partial<ScopeContext> = {}): ScopeContext {
   return {
     cwd: "/home/u/work/repo",
+    baseDir: "/home/u/work/repo",
     gitRoot: "/home/u/work/repo",
     gitRemote: null,
     markers: new Set<string>(),
@@ -63,5 +64,22 @@ describe("decideScope", () => {
     expect(decideScope(withRemote, context({ gitRemote: "git@github.com:acme/repo.git" })).active).toBe(true)
     expect(decideScope(withRemote, context({ gitRemote: "https://github.com/acme/repo.git" })).active).toBe(true)
     expect(decideScope(withRemote, context({ gitRemote: "https://github.com/other/repo.git" })).active).toBe(false)
+  })
+
+  it("精确路径按项目根命中，子目录继承结论", () => {
+    const inSubdir = context({ cwd: "/home/u/work/repo/src", baseDir: "/home/u/work/repo" })
+    const decision = decideScope(activation({ include: ["/home/u/work/repo"] }), inSubdir)
+    expect(decision.active).toBe(true)
+    expect(decision.baseDir).toBe("/home/u/work/repo")
+    expect(decision.matchedRule).toContain("include:")
+  })
+
+  it("相对路径与 re: 正则按项目根匹配", () => {
+    const inSubdir = context({ cwd: "/home/u/work/repo/src", baseDir: "/home/u/work/repo" })
+    // 相对规则按判定基准解析："." 解析为基准目录自身
+    expect(decideScope(activation({ include: ["."] }), { ...inSubdir, baseDir: "/home/u/work" }).active).toBe(true)
+    // Windows 归一后的绝对路径带盘符，正则用可选盘符前缀兼容两平台
+    expect(decideScope(activation({ include: ["re:^([a-z]:)?/home/u/work/repo"] }), inSubdir).active).toBe(true)
+    expect(decideScope(activation({ include: ["re:^([a-z]:)?/home/u/other"] }), inSubdir).active).toBe(false)
   })
 })

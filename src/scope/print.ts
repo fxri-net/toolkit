@@ -20,6 +20,7 @@ export function formatStatus(report: ScopeReport): string[] {
   return [
     "作用域状态：",
     `  当前目录：${report.context.cwd}`,
+    `  判定基准：${displayPath(decision.baseDir)}${decision.baseDir === report.context.cwd ? "" : "（项目根）"}`,
     `  结果：${decision.active ? "生效" : "未生效"}`,
     `  模式：${decision.mode}`,
     `  命中规则：${decision.matchedRule ?? "未命中"}`,
@@ -34,6 +35,7 @@ export function formatList(report: ScopeReport): string[] {
   return [
     "作用域规则：",
     `  来源：${displayPath(report.decision.sourceFile)}${report.layer ? `（${report.layer}）` : ""}`,
+    `  判定基准：${displayPath(report.decision.baseDir)}`,
     `  模式：${report.decision.mode}`,
     `  白名单：${displayList(activation?.include ?? [])}`,
     `  黑名单：${displayList(activation?.exclude ?? [])}`,

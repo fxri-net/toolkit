@@ -47,11 +47,15 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 
 ## 判定顺序
 
-1. `exclude` 路径规则命中 → 不生效（优先级最高）
+1. `exclude` 路径规则命中 → 不生效（优先级最高；规则按判定基准匹配）
 2. `markers.exclude` 标记存在 → 不生效
 3. `markers.include` 已配置但一个都不存在 → 不生效
 4. `gitRemotes` 已配置但远端未命中 → 不生效
 5. `mode = allowlist`：未命中 `include` → 不生效；`mode = denylist` / `all`：生效
+
+判定基准为项目根：优先 git 根，其次最近的 `.tasks` 根，都没有则回落当前目录；子目录内按项目根匹配。
+`scope status --format json` 输出 `active` / `mode` / `baseDir` / `sourceFile` / `matchedRule` / `reason`；
+基准变化导致新旧结论不同时，状态输出会在 stderr 给出提示。
 
 ## 边界
 
