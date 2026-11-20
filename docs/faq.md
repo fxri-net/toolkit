@@ -16,11 +16,13 @@
 不是都得装。**skills 独立可用，工具是可选加速**：只装 skills 时 AI 照着技能里的规范纯手工跑通建档、校验、归档全流程（零依赖，纯 Markdown）；
 只装工具时人可以用 CLI，但 AI 侧没有规范指引；两者都装时 AI 自动校验、自动归档，体验最完整（推荐）。
 一句话：skills 教 AI 怎么做，CLI 帮人（和 AI）做得快。
+安装顺序见[快速开始 · 安装](./getting-started#安装)：全局装 CLI → `toolkit skills install` → `toolkit rules compose`。
 
 ### 个人用，全局装还是每个项目里装？
 
-个人多项目使用推荐**双全局**，一次配置所有项目直接可用：工具用 `pnpm add -g @fxri/toolkit` 全局装、skills 用 `toolkit skills install` 全局分发。
-命令与三种安装方式见[快速开始 · 安装](./getting-started#安装)。升级一条命令：`pnpm add -g @fxri/toolkit`。
+个人多项目默认**双全局**，一次配置所有项目直接可用：全局装 CLI + `toolkit skills install`，
+再按需 `toolkit rules compose` 组合自己的全局规则（三步命令见[快速开始 · 安装](./getting-started#安装)）。
+升级一条命令：`pnpm add -g @fxri/toolkit`。
 软链模式下技能随包自动更新；副本形式需重跑 `toolkit skills install`；skills 升级后开新会话，见「升级后要注意什么」。
 
 诚实代价：全局装的版本**不随项目锁定**，团队里会出现「各装各的」版本漂移。

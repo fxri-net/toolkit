@@ -28,18 +28,28 @@ AI 参与开发后，方案与决策散落在对话记录里，会话一关什�
 ## 🚀 30 秒上手
 
 ```bash
-# 1. 项目内安装（推荐，团队共享版本）
-pnpm add -D @fxri/toolkit
+# 1. 全局安装 CLI（npm 用户 npm i -g @fxri/toolkit）
+pnpm add -g @fxri/toolkit
 
-# 2. 初始化任务区（生成 .tasks/ 骨架、conventions/ 规范载体与技能入口壳；含本地依赖时写入 prepare 刷新钩子）
-pnpm exec toolkit init
+# 2. 安装 AI 技能包（装到各 agent 的全局技能目录）
+toolkit skills install
 
-# 3. 查看任务总览
-pnpm exec toolkit tasks
+# 3. 组合并复制自己的全局规则，再粘贴到所用 Agent 的全局规则入口
+toolkit rules compose --preset recommended --copy   # 剪贴板不可用时去掉 --copy，手动复制输出
 ```
 
-之后：方案确认后登记为 `.tasks/` 任务文件 → `pnpm exec toolkit tasks check` 校验 →
-完成后 `pnpm exec toolkit tasks archive` 归档并做规范沉淀。
+进入项目后初始化任务区并查看总览：
+
+```bash
+toolkit init      # 生成 .tasks/ 骨架、规范载体与技能入口壳
+toolkit tasks     # 查看任务总览
+```
+
+> 团队项目改用 devDependency 锁定版本：`pnpm add -D @fxri/toolkit` + `toolkit skills install --scope project`；
+> 项目内执行命令用 `pnpm exec toolkit`。
+
+之后：方案确认后登记为 `.tasks/` 任务文件 → `toolkit tasks check` 校验 →
+完成后 `toolkit tasks archive` 归档并做规范沉淀。
 多任务 / 多仓方案先出纯展示计划表，确认后说「开始」即一次建完全部任务档并校验，再按序逐个交付提交。
 完整步骤见 [快速开始](./docs/getting-started.md)。
 
@@ -81,6 +91,8 @@ pnpm exec toolkit tasks
 
 ## 🧩 AI 技能包（skills）
 
+安装步骤见上文「30 秒上手」（全局装 CLI 后 `toolkit skills install`）；下面是分面与开关细节。
+
 ```bash
 pnpm add -g @fxri/toolkit && toolkit skills install   # 装了 CLI 一键分发（npm 用户：npm i -g @fxri/toolkit）
 toolkit skills install --scope project                # 项目面分发：真源与入口薄壳随仓库入库、队友 clone 即用
@@ -113,9 +125,9 @@ skills 与工具的关系、只在公司项目激活等说明见 [常见问题](
 ## 📦 安装
 
 ```bash
-pnpm add -D @fxri/toolkit        # 项目 devDependency（团队项目推荐，版本随仓库锁定）
-pnpm add -g @fxri/toolkit          # 全局（个人多项目推荐；pnpm 不受 nvm 切版本影响）
-pnpm dlx @fxri/toolkit tasks     # 不安装临时执行
+pnpm add -g @fxri/toolkit          # 全局（个人多项目默认；pnpm 不受 nvm 切版本影响）
+pnpm add -D @fxri/toolkit          # 项目 devDependency（团队项目推荐，版本随仓库锁定）
+pnpm dlx @fxri/toolkit tasks       # 不安装临时执行
 ```
 
 npm / yarn / bun 用户与各方式对比见 [快速开始 · 安装](./docs/getting-started.md#安装)。

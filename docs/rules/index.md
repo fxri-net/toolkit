@@ -49,6 +49,18 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 | [提交信息规则](./commit) | 统一 git 提交信息格式与语义 | 复制「规则全文」代码块；与 Conventional Commits / commitlint 互斥 |
 | [技能使用情况规则](./usage) | 启用 toolkit 技能使用统计后，约束 AI 不重复补记、不外传数据 | 可选；复制「规则全文」代码块，或执行 `toolkit usage rule` |
 
+## 怎么落地
+
+命令行 `toolkit rules compose --preset recommended --copy` 或文档站组合器复制后，粘贴到所用 Agent 的全局规则入口：
+
+| Agent | 全局规则入口 |
+| --- | --- |
+| Trae | 设置中的「规则 / Rules」入口，新建用户级规则后粘贴 |
+| Claude Code | 用户目录下的 `CLAUDE.md`（亦可用 `AGENTS.md`） |
+| Cursor | Settings → Rules → User Rules |
+
+入口名称与位置随工具版本变化，以各工具官方文档为准；本工具只生成文本，不自动写入任何 Agent 的配置文件。
+
 ## 相关页面
 
 - 规则：[AI 全局规则](./ai) · [提交信息规则](./commit) · [技能使用情况规则](./usage)

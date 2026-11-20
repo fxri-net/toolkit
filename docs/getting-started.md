@@ -49,9 +49,28 @@
 
 > 环境要求：Node.js >= 18.17.0（Node 18 已 EOL，仅保证可运行）。
 
-三种方式按场景选一：**团队项目推荐方式一**（版本随仓库锁定，成员与 CI 自动一致）；**个人多项目推荐「双全局」**——工具用方式二全局装 + skills 全局装（见下文 skills 安装），所有项目开箱即用，升级各一条命令：
+三种方式按场景选一：**个人多项目默认方式一「双全局」**——工具全局装 + skills 全局装（见下文 skills 安装），
+所有项目开箱即用、升级各一条命令；**团队项目推荐方式二 devDependency**（版本随仓库锁定，成员与 CI 自动一致）。
 
-### 方式一：项目 devDependency（推荐）
+### 方式一：全局安装（个人多项目默认）
+
+```bash
+pnpm add -g @fxri/toolkit       # pnpm（bin 落在 pnpm home，不受 nvm 切版本影响）
+npm i -g @fxri/toolkit          # npm（bin 硬链在 Node 目录，切版本需重装）
+yarn global add @fxri/toolkit   # yarn 1.x；2+ 无全局安装，改用 yarn dlx
+bun add -g @fxri/toolkit        # bun
+```
+
+升级用同一条安装命令即可。各管理器的全局安装语法并不同一（yarn 1.x 是 `global add`、2+ 没有全局安装），上表按管理器列出可直接复制的形式。
+
+配合全局技能分发（`toolkit skills install`）与全局规则组合（`toolkit rules compose`），一次配置所有项目直接可用。
+
+适合个人在多个项目间快速使用。
+
+⚠️ 使用 nvm/fnm 等切换 Node 版本的工具时，npm 的全局包**绑定在安装时的 Node 版本上**，切版本后会「消失」。
+重新执行安装命令即可（pnpm 全局目录独立于 Node 版本，或用方式三规避）。
+
+### 方式二：项目 devDependency（团队推荐）
 
 ```bash
 pnpm add -D @fxri/toolkit
@@ -60,24 +79,9 @@ pnpm add -D @fxri/toolkit
 - 任务记录、校验、归档随仓库走，团队成员与 AI 会话内 `pnpm exec toolkit`（npm 用户 `npx toolkit`）即可用
 - 版本随项目锁定，升级由项目统一决定
 
-### 方式二：全局安装
-
-```bash
-pnpm add -g @fxri/toolkit       # pnpm（bin 落在 pnpm home，不受 nvm 切版本影响）
-npm add -g @fxri/toolkit        # npm（= npm i -g；bin 硬链在 Node 目录，切版本需重装）
-yarn global add @fxri/toolkit   # yarn 1.x；2+ 无全局安装，改用 yarn dlx
-bun add -g @fxri/toolkit        # bun
-```
-
-升级用同一条安装命令即可。各管理器的全局安装语法并不同一（yarn 1.x 是 `global add`、2+ 没有全局安装），上表按管理器列出可直接复制的形式。
-
 没有全局安装的包管理器（yarn 2+ 等）：把 CLI 装成项目 devDependency（`yarn add -D @fxri/toolkit`），
-再跑 `toolkit skills install --scope project`——技能真源落 `<仓库根>/.agents/skills/`，随仓库入库、队友 clone 即用；
+再跑 `yarn toolkit skills install --scope project`——技能真源落 `<仓库根>/.agents/skills/`，随仓库入库、队友 clone 即用；
 临时执行可用 `yarn dlx @fxri/toolkit <命令>`。技能落点与包管理器的「全局」概念无关，换管理器不影响技能位置。
-
-适合个人在多个项目间快速使用。
-
-⚠️ 使用 nvm/fnm 等切换 Node 版本的工具时，npm 的全局包**绑定在安装时的 Node 版本上**，切版本后会「消失」。重新执行安装命令即可（pnpm 全局目录独立于 Node 版本，或用方式三规避）。
 
 ### 方式三：不安装、临时执行
 
@@ -91,13 +95,13 @@ bunx @fxri/toolkit tasks      # bun
 
 ### 安装方式对比
 
-| | 方式一 devDep | 方式二 全局 | 方式三 临时执行 |
+| | 方式一 全局 | 方式二 devDep | 方式三 临时执行 |
 | --- | --- | --- | --- |
-| 团队共享版本 | ✅ 锁定 | ❌ 各装各的 | ❌ 总是最新 |
+| 团队共享版本 | ❌ 各装各的 | ✅ 锁定 | ❌ 总是最新 |
 | 离线可用 | ✅ | ✅ | ❌ |
-| nvm 切版本影响 | 无 | npm ⚠️ 需重装；pnpm ✅ 不受影响 | 无 |
+| nvm 切版本影响 | npm ⚠️ 需重装；pnpm ✅ 不受影响 | 无 | 无 |
 | 推荐包管理器 | pnpm | pnpm | pnpm dlx |
-| 适合场景 | 团队/长期项目 | 个人多项目 | 快速试用 |
+| 适合场景 | 个人多项目 | 团队/长期项目 | 快速试用 |
 
 ### 关于 AI 技能包（skills）
 
@@ -107,38 +111,46 @@ bunx @fxri/toolkit tasks      # bun
 - 只装 skills：AI 仍能跑通全流程（手工执行规范步骤）
 - 只装 CLI：人可以用，但 AI 侧没有规范指引
 
-安装 skills（两种方式，选一）：
+安装 skills（一条命令，随 CLI 同批分发）：
 
 ```bash
-# 方式一：装了 CLI 一键分发（推荐，技能随包分发，与 CLI 同一发布批次）
-pnpm add -g @fxri/toolkit && toolkit skills install   # npm 用户：npm i -g @fxri/toolkit
-# 项目面分发（团队推荐，技能随仓库入库、队友 clone 即用）
-toolkit skills install --scope project   # --scope 缺省时按 CLI 安装位置自动判定
-
-# 方式二：上游安装器（技能走 GitHub 拉取，与 CLI 是两条供应链，易出现版本漂移）
-pnpm dlx skills add fxri-net/toolkit --global   # npm 用户：npx skills add fxri-net/toolkit --global
+toolkit skills install                    # 全局分发（推荐；技能随包分发，与 CLI 同一发布批次）
+toolkit skills install --scope project    # 项目面分发（团队推荐，技能随仓库入库、队友 clone 即用）
 ```
 
-`toolkit skills install` 的默认行为与常用开关：
+- **默认**：软链真源，链接创建失败自动降级副本；`--yes` 跳过交互
+- **分面与开关**：`status` 查现场、`uninstall` 卸载；`--mode package` 纯包管理器模式、`--no-skills` 仅本次零装
+- **外部来源**：`--from <path|url>` 临时纳入，`--save` 登记为永久来源
 
-- **默认**：软链真源，链接创建失败自动降级副本
-- **交互两步**：先按 `core` / `optional` 选技能、再选目标；`--yes` 跳过交互
-- **项目面**：`--scope project` 换项目面，真源落 `<仓库根>/.agents/skills/`、其余已存在候选目录落入口薄壳，随 git 入库后队友 clone 即用
-- **模式与本次开关**：`--mode package` 切纯包管理器模式、`--no-skills` 仅本次零装
-- **另两面**：`toolkit skills status` 查现场，`toolkit skills uninstall` 卸载
-
-完整选项、外部来源与现场体检见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)，命令契约见 [skills 命令](./cli/skills)。
+也可用上游安装器（技能走 GitHub 拉取，与 CLI 两条供应链，易版本漂移）：`pnpm dlx skills add fxri-net/toolkit --global`。
+完整选项与现场体检见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)，命令契约见 [skills 命令](./cli/skills)。
 
 GitHub 拉不下来？国内网络走 [Gitee 镜像渠道](./faq#国内网络优先走哪条渠道)，内网 / 离线安装见 [FAQ · 内网或离线环境怎么装](./faq#内网或离线环境怎么装)。
+
+## 配置全局规则
+
+全局规则会整段进入 Agent 上下文，按需组合、只留当前需要的模块：
+
+```bash
+toolkit rules list                                    # 查看模块、预设与当前选择
+toolkit rules compose --preset recommended --copy     # 组合并直接复制到剪贴板
+toolkit rules compose --module core --module workflow # 自定义组合（顺序即输出顺序）
+```
+
+- 预设：`minimal` / `recommended` / `complete`（自用全篇）/ `full`
+- `--copy` 失败（无剪贴板）时去掉它，手动复制 stdout 输出
+- 组合只输出文本，**需粘贴到所用 Agent 的全局规则入口**（如 Trae 的规则设置、Claude Code 的 `CLAUDE.md`、
+  Cursor 的全局 Rules）；入口随工具版本变化，以各工具官方文档为准
+- 也可在文档站[规则组合器](./rules/)里勾选模块后一键复制
 
 ## 30 秒上手
 
 ```bash
 # 1. 初始化任务区（生成 .tasks/ 骨架、conventions/ 规范载体与技能入口壳，补齐 .gitignore 片段）
-pnpm exec toolkit init
+toolkit init
 
 # 2. 查看任务总览（当前为空）
-pnpm exec toolkit tasks
+toolkit tasks
 
 # 3. 方案确认后，登记为任务文件（.tasks/active/202609/ 下）
 #    文件名：{YYYYMMDD}-{用户名}-{任务简述}.md
@@ -147,13 +159,15 @@ pnpm exec toolkit tasks
 #    多任务 / 多仓方案：先出纯展示计划表，说「开始」后一次建完全部任务档并校验，再按序交付
 
 # 4. 校验
-pnpm exec toolkit tasks check
+toolkit tasks check
 
 # 5. 任务完成后：frontmatter 标记 status: 已完成 + completed 时间，然后归档
-pnpm exec toolkit tasks archive
+toolkit tasks archive
 
 # 6.（可选，AI 协作时）归档后做任务级规范沉淀 → 能力终点
 ```
+
+> 项目内安装（devDependency）时把 `toolkit` 换成 `pnpm exec toolkit`（npm 用户 `npx toolkit`）。
 
 ⚠️ `toolkit init` 为 1.7.0 新增；旧版本请手工建 `.tasks/active/{YYYYMM}/` 目录结构。
 

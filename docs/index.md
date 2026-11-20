@@ -53,32 +53,36 @@ features:
 
 ## 30 秒上手
 
-按你的包管理器选一条安装，随后查看当前任务：
+官方推荐路径：全局装 CLI → 装技能 → 组合自己的全局规则。按你的包管理器选一条安装：
 
 ::: code-group
 
 ```sh [pnpm]
-pnpm add -D @fxri/toolkit
+pnpm add -g @fxri/toolkit
 ```
 
 ```sh [npm]
-npm install -D @fxri/toolkit
+npm i -g @fxri/toolkit
 ```
 
 ```sh [yarn]
-yarn add -D @fxri/toolkit
+yarn global add @fxri/toolkit
 ```
 
 ```sh [bun]
-bun add -D @fxri/toolkit
+bun add -g @fxri/toolkit
 ```
 
 :::
 
 ```sh
-# 查看当前任务
-pnpm exec toolkit tasks
+toolkit skills install                              # 装技能到各 agent 全局技能目录
+toolkit rules compose --preset recommended --copy   # 组合全局规则；粘贴到所用 Agent 的规则入口
+toolkit init                                        # 进入项目后初始化任务区
 ```
+
+剪贴板不可用时去掉 `--copy` 手动复制输出。团队项目改用 `pnpm add -D @fxri/toolkit` +
+`toolkit skills install --scope project` 锁定版本，项目内执行命令用 `pnpm exec toolkit`。
 
 详细步骤见[快速开始](./getting-started)。
 
