@@ -63,6 +63,25 @@ toolkit changelog add / status / publish # 其余 changeset 子命令透传
 - 其余子命令（`add`/`status`/`publish`/…）原样透传给 changesets
 - 透传子命令以 changesets 2.27 为准；运行时下限 Node.js >= 18.17.0（Node 18 已 EOL，仅保证可运行）
 
+## 发版流程
+
+在项目根用 `pnpm exec toolkit` 执行（全局安装时直接 `toolkit`）：
+
+```bash
+pnpm exec toolkit changelog add                # 创建变更集（等价 changeset）
+pnpm exec toolkit changelog version            # 发版 + 自动语义分组归类与组标题格式化（默认中文）
+pnpm exec toolkit changelog format --lang ja   # 指定语言仅格式化
+pnpm exec toolkit changelog format --history   # 连带追溯改写历史版本块
+pnpm exec toolkit changelog doc                # 生成/更新文档站更新日志镜像
+```
+
+`version` 成功后自动同步镜像页（`--no-sync-doc` 关闭）；镜像页由根 `CHANGELOG.md` 剥离 H1 后拼固定页头生成，
+路径等可用 `changelog doc` 的 `--from` / `--to` / `--title` / `--outline` 或 `changelogDoc` 配置段覆盖。
+
+⚠️ `changelog` 的选项写在各自子命令之后（`format --history`、`version --lang en`）。
+⚠️ 跨语言边界：语言在**首次归组时确定**，换语言重跑不会重新归组既有块；确需改语言只能用 `replacements` 写死「源标题 → 目标标题」映射。
+分组语义与归类信号见上文「行为细节」。
+
 ## 相关页面
 
 - 参考：[完整攻略 · 多语言 CHANGELOG](../guide#多语言-changelog) · [配置参考 · changelog](../config/changelog)

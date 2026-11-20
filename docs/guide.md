@@ -248,21 +248,11 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 
 ```bash
 pnpm exec toolkit changelog add                # 创建变更集（等价 changeset）
-pnpm exec toolkit changelog version            # 发版 + 自动语义分组归类与组标题格式化（默认中文）
-pnpm exec toolkit changelog format --lang ja   # 指定语言仅格式化
+pnpm exec toolkit changelog version            # 发版 + 语义分组 + 自动同步镜像页
 pnpm exec toolkit changelog format --history   # 连带追溯改写历史版本块
-pnpm exec toolkit changelog doc                # 生成/更新文档站更新日志镜像
 ```
 
-`changelog version` 成功后自动同步镜像页（`--no-sync-doc` 关闭）；镜像页由根 `CHANGELOG.md` 剥离 H1 后拼固定页头生成，
-路径等可用 `changelog doc` 的 `--from` / `--to` / `--title` / `--outline` 或 `changelogDoc` 配置段覆盖。
-
-**分组语义**：`version` 消费变更集后按条目自带的 `类型：` 前缀归类——**前缀是唯一归类信号**，无 `###` 分组的版本块同样按前缀生成规范分组并剥离前缀，
-已分组块内与所属组不符的条目按前缀纠正；无前缀条目按源组标题兜底、无源组时归入其他变更。默认只处理最新一块（`--history` 处理全部）。
-语言未声明 `groups` 时不改分组、只剥离可识别前缀；变更集条目缺前缀时软告警。前缀只作归类信号，归类后不再保留。
-
-⚠️ `changelog` 的选项写在各自子命令之后（`format --history`、`version --lang en`）。
-⚠️ 跨语言边界：语言在**首次归组时确定**，换语言重跑不会重新归组既有块；确需改语言只能用 `replacements` 写死「源标题 → 目标标题」映射。
+发版流程、分组语义与跨语言边界见 [changelog 命令 · 发版流程](./cli/changelog#发版流程)。
 
 ## 文档站部署
 
