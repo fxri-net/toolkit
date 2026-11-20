@@ -4,6 +4,7 @@ import { relative } from "node:path"
 import { normalizePathForCompare } from "../git-ignore"
 import { BACK_CHOICE, LIST_PAGE_SIZE, askWithBack, loadPrompts, requireInteractive } from "../prompts"
 import { BUILTIN_SOURCE, installProjectSkills, installSkills, listPackageSkills, readSkillsInstallConfig, writeSkillsInstallConfig } from "../skills"
+import { line, style } from "../term-style"
 import { globalConfigPath, layerConfigTarget, readLayerConfig, writeLayerConfig, type ConfigLayer, type LayerConfigTarget } from "./config-file"
 import { formatStatus } from "./print"
 import { resolveScope } from "./load"
@@ -130,7 +131,7 @@ async function pickFromScan(
     const hiddenCount = skipped.filter((item) => item.reason === "隐藏目录").length
     const depCount = skipped.filter((item) => item.reason === "依赖 / 产物目录").length
     const nestedCount = results.reduce((sum, result) => sum + result.nestedPruned, 0)
-    console.log(`已跳过：隐藏目录 ${hiddenCount} 个、依赖 / 产物目录 ${depCount} 个、未展开仓库 ${nestedCount} 个`)
+    console.log(line.hint(`已跳过：隐藏目录 ${hiddenCount} 个、依赖 / 产物目录 ${depCount} 个、未展开仓库 ${nestedCount} 个`))
     // 只有确实跳过了隐藏目录时才打断；未展开仓库属默认剪枝的常态，只展示计数，避免每次扫描都弹选择
     if (!prompted && hiddenCount > 0) {
       prompted = true
@@ -264,7 +265,7 @@ async function applyDestinations(
   )
   if ("back" in confirmedAsk || !confirmedAsk.value) return
   writeLayerConfig(layer, { ...config, activation: { ...activation, mode, include: nextInclude, exclude: nextExclude } })
-  console.log(`已写入 ${target.file}；运行 toolkit scope status 查看当前目录判定`)
+  console.log(`${line.ok(`已写入 ${target.file}`)}；${style.hint("运行 toolkit scope status 查看当前目录判定")}`)
 }
 
 // 清除限制：写 mode all 并清空两列表，作为唯一的「全部生效」入口
@@ -280,7 +281,7 @@ async function clearRestriction(
   )
   if ("back" in confirmedAsk || !confirmedAsk.value) return
   writeLayerConfig(layer, { ...config, activation: { ...activation, mode: "all", include: [], exclude: [] } })
-  console.log(`已写入 ${target.file}：全部项目生效`)
+  console.log(line.ok(`已写入 ${target.file}：全部项目生效`))
 }
 
 // 项目层 / 本地层：只决定「本项目是否生效」，不扫描其他项目
@@ -311,7 +312,7 @@ async function configureProjectScope(
   )
   if ("back" in confirmedAsk || !confirmedAsk.value) return
   writeLayerConfig(layer, { ...config, activation: { ...activation, mode: "allowlist", include, exclude } })
-  console.log(`已写入 ${target.file}；运行 toolkit scope status 查看当前目录判定`)
+  console.log(`${line.ok(`已写入 ${target.file}`)}；${style.hint("运行 toolkit scope status 查看当前目录判定")}`)
 }
 
 // 设置生效范围：选归属 → 扫描 / 手动选目录 → 选去向 → 预览写入
@@ -349,7 +350,7 @@ export async function runScopeSetScope(): Promise<void> {
   if (raw === null) return
   const dirs = appendUnique([], raw.map((dir) => resolveComparablePath(dir)))
   if (dirs.length === 0) {
-    console.log("未选择目录，已取消")
+    console.log(line.hint("未选择目录，已取消"))
     return
   }
   await applyDestinations(layer, target, config, activation, dirs, select, confirm)
@@ -379,7 +380,7 @@ export async function runScopeAdd(dirs?: string[], layer?: ConfigLayer): Promise
     ...config,
     activation: { ...activation, mode: "allowlist", include: appendUnique(include, paths), exclude: exclude.filter((item) => !keys.has(pathKey(item))) },
   })
-  console.log(`已加入白名单：${paths.join("、")}（模式已切换为 allowlist，写入 ${target.file}）`)
+  console.log(`${line.ok(`已加入白名单：${paths.join("、")}`)}；${style.hint(`模式已切换为 allowlist，写入 ${target.file}`)}`)
 }
 
 // 移除目录：按层管理名单，支持一步互转与悬空条目提示
@@ -421,7 +422,7 @@ export async function runScopeRemove(dirs?: string[], layer?: ConfigLayer): Prom
     targets = picked.value
   }
   if (targets.length === 0) {
-    console.log("未选择任何目录")
+    console.log(line.hint("未选择任何目录"))
     return
   }
   const keys = new Set(targets.map(pathKey))
@@ -446,7 +447,7 @@ export async function runScopeRemove(dirs?: string[], layer?: ConfigLayer): Prom
   if (action === "to-exclude") nextExclude = appendUnique(nextExclude, targets)
   if (action === "to-include") nextInclude = appendUnique(nextInclude, targets)
   writeLayerConfig(targetLayer, { ...config, activation: { ...activation, include: nextInclude, exclude: nextExclude } })
-  console.log(`已更新 ${target.file}（${targets.length} 条）`)
+  console.log(line.ok(`已更新 ${target.file}（${targets.length} 条）`))
 }
 
 // 条目状态：路径是否存在、是否被同层其它规则覆盖
@@ -490,7 +491,7 @@ export async function runScopeMount(parent?: string, dryRun = false): Promise<vo
   // 挂载沿用一层扫描，避免把技能写进深层项目
   const repos = scanRepositories(root)
   if (repos.length === 0) {
-    console.log("未发现仓库（按 .git / package.json / .tasks 识别）")
+    console.log(line.hint("未发现仓库（按 .git / package.json / .tasks 识别）"))
     return
   }
   const pickedAsk = await askWithBack(() =>
@@ -504,7 +505,7 @@ export async function runScopeMount(parent?: string, dryRun = false): Promise<vo
   if ("back" in pickedAsk) return
   const picked = pickedAsk.value
   if (picked.length === 0) {
-    console.log("未选择项目，已取消")
+    console.log(line.hint("未选择项目，已取消"))
     return
   }
   if (!dryRun) {
@@ -556,7 +557,7 @@ export async function runScopeGate(): Promise<void> {
   if (!applyAsk.value) {
     // 拒绝刷新时只切开关，产物留给用户之后显式安装
     writeSkillsInstallConfig({ gate })
-    console.log(`已${gate ? "开启" : "关闭"}内容闸门（写入 skillsInstall.gate）；产物未刷新，需要时运行 toolkit skills install`)
+    console.log(`${line.ok(`已${gate ? "开启" : "关闭"}内容闸门（写入 skillsInstall.gate）`)}；${style.hint("产物未刷新，需要时运行 toolkit skills install")}`)
     return
   }
   // 与 skills install 的默认口径一致：已保存选择优先，未保存过时只装 core
@@ -566,7 +567,7 @@ export async function runScopeGate(): Promise<void> {
   const report = installSkills({ skills, gate })
   const gates = report.targets.reduce((count, target) => count + target.gates.length, 0)
   const failures = report.targets.reduce((count, target) => count + target.failed.length, 0)
-  if (failures > 0) console.warn(`入口壳 ${gates} 个，另有 ${failures} 个失败；开关未保存`)
+  if (failures > 0) console.warn(line.error(`入口壳 ${gates} 个，另有 ${failures} 个失败；开关未保存`))
   else console.log(`✓ 已刷新：入口壳 ${gates} 个，开关已保存`)
 }
 

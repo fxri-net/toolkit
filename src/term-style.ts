@@ -42,9 +42,11 @@ function paint(code: string, text: string): string {
 // 行首语义符号对应的颜色：统一输出出口据此兜底，命令层不必逐条判断
 const LINE_STYLES: ReadonlyArray<readonly [string, string]> = [
   ["✔", SGR.green],
+  ["✓", SGR.green],
   ["⚠️", SGR.yellow],
   ["✖", SGR.red],
   ["·", SGR.dim],
+  ["ℹ️", SGR.dim],
 ]
 
 // 按行首语义符号着色：保留缩进与符号，只给其后文本上色
@@ -53,6 +55,12 @@ export function decorate(text: string): string {
   if (!isStyleEnabled() || text.includes("\u001b")) return text
   const newline = text.indexOf("\n")
   const first = newline === -1 ? text : text.slice(0, newline)
+  // 预演行只给标记上色：报告类行与说明行统一识别，不必逐处接线
+  const previewAt = first.indexOf("[预演]")
+  if (previewAt !== -1 && first.slice(0, previewAt).trim() === "") {
+    const colored = `${first.slice(0, previewAt)}${paint(SGR.cyan, "[预演]")}${first.slice(previewAt + "[预演]".length)}`
+    return newline === -1 ? colored : `${colored}${text.slice(newline)}`
+  }
   for (const [symbol, code] of LINE_STYLES) {
     const at = first.indexOf(symbol)
     // 只认行首缩进后的符号：正文中间出现的符号不参与
@@ -76,6 +84,17 @@ export function installConsoleStyle(): void {
     console[method] = ((...args: unknown[]) =>
       original.apply(console, args.map((arg) => (typeof arg === "string" ? decorate(arg) : arg)))) as typeof console[typeof method]
   }
+}
+
+// 行级模板：符号固定、只给其后的文本上色；关闭颜色时符号保留、文本原样
+// 存量带 ⚠️ 的告警由 decorate 兜底，这里只承载需要补符号或拆分文案的提示
+export const line = {
+  // 成功：✔ + 绿色
+  ok: (text: string): string => `✔ ${paint(SGR.green, text)}`,
+  // 失败：✖ + 红色
+  error: (text: string): string => `✖ ${paint(SGR.red, text)}`,
+  // 取消 / 中性收尾：整体暗色，不加成功符号
+  hint: (text: string): string => paint(SGR.dim, text),
 }
 
 // 语义色唯一入口：成功 / 告警 / 失败 / 次要说明 / 行内强调

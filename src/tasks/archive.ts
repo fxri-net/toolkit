@@ -11,6 +11,7 @@ import type { ArchiveBlock, ArchiveResult, ArchiveOptions } from "./types"
 import { normalizeCompleted, isRecognizableCompleted, parseArchiveBlocks, renderBlock, renderArchiveFile } from "./archive-block"
 import type { ArchiveBlockInfo } from "./archive-block"
 import { acquireArchiveLock, releaseArchiveLock } from "./lock"
+import { line } from "../term-style"
 
 // 删除空目录，并从父目录往上递归清理，直到 stopDir 或遇到非空目录（archive/normalize 共用，供错月迁移后清空目录）
 export function removeEmptyDirs(dir: string, stopDir: string) {
@@ -42,7 +43,7 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
   const warnings: string[] = []
   const files = listTaskFiles(activeDir)
   if (files.length === 0) {
-    console.log("当前无活跃任务，无需归档")
+    console.log(line.hint("当前无活跃任务，无需归档"))
     return { archived: 0, skipped: [], warnings }
   }
 
@@ -59,9 +60,11 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
     if (!isRecognizableCompleted(raw)) {
       skipped.push(basename(file, ".md"))
       console.log(
-        raw
-          ? `跳过 ${basename(file, ".md")}：completed「${raw}」无法识别为日期或日期+时分`
-          : `跳过 ${basename(file, ".md")}：缺少 completed 完成时间`,
+        line.hint(
+          raw
+            ? `跳过 ${basename(file, ".md")}：completed「${raw}」无法识别为日期或日期+时分`
+            : `跳过 ${basename(file, ".md")}：缺少 completed 完成时间`,
+        ),
       )
       continue
     }
@@ -89,7 +92,7 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
   }
 
   if (doneTasks.length === 0) {
-    console.log("本次无可归档任务")
+    console.log(line.hint("本次无可归档任务"))
     return { archived: 0, skipped, warnings }
   }
 
@@ -218,7 +221,7 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
         // 清理空目录（active/年月/ 及其上层 active/）
         const first = newTasks[0]
         if (first) removeEmptyDirs(dirname(first.file), tasksDir)
-        console.log(`已归档 ${newTasks.length} 个任务 → ${date}.md`)
+        console.log(line.ok(`已归档 ${newTasks.length} 个任务 → ${date}.md`))
         // 计数口径为「任务数」（一个日期文件可含多个任务块）
         archivedOk += newTasks.length
       } catch (e) {
@@ -230,11 +233,12 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
     for (const w of warnings) console.warn(`⚠️ ${w}`)
 
     if (failures.length > 0) {
-      console.error(`归档失败 ${failures.length} 个日期文件（active 未删除，可重试）：`)
+      console.error(line.error(`归档失败 ${failures.length} 个日期文件（active 未删除，可重试）：`))
       for (const f of failures) console.error(`  - ${f}`)
     }
     if (dryRun) console.log(`[预演] 共 ${doneTasks.length} 个任务可归档（未落盘）`)
-    else console.log(`共归档 ${archivedOk} 个任务${failures.length > 0 ? `，失败 ${failures.length} 个` : ""}`)
+    else if (failures.length > 0) console.log(line.error(`共归档 ${archivedOk} 个任务，失败 ${failures.length} 个`))
+    else console.log(line.ok(`共归档 ${archivedOk} 个任务`))
     return { archived: dryRun ? doneTasks.length : archivedOk, skipped, warnings }
   } finally {
     // 释放归档锁

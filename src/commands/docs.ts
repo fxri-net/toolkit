@@ -8,6 +8,7 @@ import { migrateSiteNav } from "../docs/migrate"
 import { overriddenRules, resolveDocsCheckConfig } from "../docs/config"
 import type { DocsProblem } from "../docs/types"
 import { assertJsonFormat, toJsonText } from "../json-output"
+import { line, style } from "../term-style"
 
 // 注册 docs 命令：装配点只负责按序调用
 export function registerDocsCommands(program: Command): void {
@@ -31,7 +32,7 @@ export function registerDocsCommands(program: Command): void {
       try {
         const result = checkDocsTheme(themeDir)
         if (result.ok) {
-          console.log(`主题一致：${themeDir}`)
+          console.log(line.ok(`主题一致：${style.accent(themeDir)}`))
           return
         }
         console.error(`⚠️ 主题与模板不一致（${result.problems.length} 项）`)
@@ -52,8 +53,8 @@ export function registerDocsCommands(program: Command): void {
       const themeDir = resolve(options.dir ?? THEME_DIR)
       try {
         const result = writeDocsTheme(themeDir, { force: options.force })
-        for (const file of result.written) console.log(`写入：${file}`)
-        for (const file of result.kept) console.log(`保留品牌段：${file}`)
+        for (const file of result.written) console.log(line.ok(`写入：${style.accent(file)}`))
+        for (const file of result.kept) console.log(line.hint(`保留品牌段：${file}`))
       } catch (e) {
         console.error(`⚠️ ${(e as Error).message}`)
         process.exitCode = 1
@@ -75,7 +76,7 @@ export function registerDocsCommands(program: Command): void {
   function printRuleOverrides(rules: Record<string, "off" | "error" | "warn">): void {
     const ids = overriddenRules(rules)
     if (ids.length === 0) return
-    console.log(`规则覆盖（来自 .toolkitrc）：${ids.map((id) => `${id}=${rules[id]}`).join("、")}`)
+    console.log(line.hint(`规则覆盖（来自 .toolkitrc）：${ids.map((id) => `${id}=${rules[id]}`).join("、")}`))
   }
 
   const navCmd = docsCmd.command("nav").description("文档站导航：按 site-nav.json 校验顶栏、侧栏、命名与页面体量")
@@ -96,8 +97,8 @@ export function registerDocsCommands(program: Command): void {
           configFile: options.config ? resolve(options.config) : undefined,
           force: options.force,
         })
-        console.log(`已生成 ${result.file}：顶栏 ${result.navCount} 项、侧栏 ${result.sidebarCount} 组`)
-        console.log("下一步：站点配置改为 from '../site-nav.json' 引用展开，再运行 toolkit docs nav check")
+        console.log(line.ok(`已生成 ${style.accent(result.file)}：顶栏 ${result.navCount} 项、侧栏 ${result.sidebarCount} 组`))
+        console.log(line.hint("下一步：站点配置改为 from '../site-nav.json' 引用展开，再运行 toolkit docs nav check"))
       } catch (e) {
         console.error(`⚠️ ${(e as Error).message}`)
         process.exitCode = 1
@@ -119,7 +120,7 @@ export function registerDocsCommands(program: Command): void {
       } else if (result.ok) {
         // 多语言站标明语言包数量，避免把首个语言包的顶栏数当成全站
         const scope = result.localeCount > 1 ? `${result.localeCount} 个语言包、` : ""
-        console.log(`导航校验通过：${scope}顶栏 ${result.navCount} 项、侧栏 ${result.sidebarCount} 组`)
+        console.log(line.ok(`导航校验通过：${scope}顶栏 ${result.navCount} 项、侧栏 ${result.sidebarCount} 组`))
       } else {
         console.error(`⚠️ 导航校验失败（${result.problems.filter((problem) => problem.level === "error").length} 项）`)
       }
@@ -150,10 +151,10 @@ export function registerDocsCommands(program: Command): void {
           toJsonText({ command: "docs dist check", ruleVersion: DIST_RULES_VERSION, ok: result.ok, skipped: result.skipped, problems: result.problems }),
         )
       } else if (result.skipped) {
-        console.log(`跳过文档站产物校验：未找到 ${config.dist.dir}（需先执行文档站构建）`)
+        console.log(line.hint(`跳过文档站产物校验：未找到 ${config.dist.dir}（需先执行文档站构建）`))
       } else if (result.ok) {
         // 未跑搜索索引断言时如实说明，不宣称未校验的项通过
-        console.log(result.searchChecked ? "文档站产物校验通过：sitemap 不含 404、搜索索引不含 404 页" : "文档站产物校验通过：sitemap 不含 404（未校验搜索索引）")
+        console.log(line.ok(result.searchChecked ? "文档站产物校验通过：sitemap 不含 404、搜索索引不含 404 页" : "文档站产物校验通过：sitemap 不含 404（未校验搜索索引）"))
       } else {
         console.error(`⚠️ 文档站产物校验失败（${result.problems.filter((problem) => problem.level === "error").length} 项）`)
       }

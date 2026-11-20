@@ -6,6 +6,7 @@ import { loadUsageConfig, resolveUsageDir, usageConfigPath, updateUsageConfig } 
 import { purgeEvents, readAllEvents, usagePaths } from "./store"
 import { summarize } from "./stats"
 import { runUploadSetup } from "./upload"
+import { line, style } from "../term-style"
 import { LIST_PAGE_SIZE, ask, exitWithCancel, isPromptCancel, loadPrompts, requireInteractive } from "../prompts"
 import type { UsageChannel, UsageConfig, UsageRotation, UsageSkillMode } from "./types"
 
@@ -58,7 +59,7 @@ function runNonInteractiveInit(options: InitWizardOptions): void {
   const preset = options.preset
   // --preset off 与 --channel 同时出现时 off 优先：保持关闭、不改任何配置
   if (preset === "off") {
-    console.log("保持关闭，未修改任何文件")
+    console.log(line.hint("保持关闭，未修改任何文件"))
     return
   }
   if (preset !== "recommended" && preset !== "third-party") {
@@ -86,8 +87,8 @@ function runNonInteractiveInit(options: InitWizardOptions): void {
   // 规则通道只写采集配置：不装 Hook，也不依赖本机是否检测到 Agent
   if (channel === "rule") {
     updateUsageConfig({ ...base, agents: {} })
-    console.log(`已启用技能使用情况（${preset}，通道 rule），数据目录：${dir}`)
-    console.log("规则通道不依赖 Hook：把 toolkit usage rule 的输出复制进 Agent 全局规则")
+    console.log(line.ok(`已启用技能使用情况（${preset}，通道 rule），数据目录：${dir}`))
+    console.log(line.hint("规则通道不依赖 Hook：把 toolkit usage rule 的输出复制进 Agent 全局规则"))
     return
   }
   const { adapters, invalid, unavailable } = resolveAdapters(splitAgentNames(options.agent))
@@ -104,7 +105,7 @@ function runNonInteractiveInit(options: InitWizardOptions): void {
   }
   updateUsageConfig({ ...base, agents: Object.fromEntries(adapters.map((adapter) => [adapter.id, true])) })
   installHooks(adapters)
-  console.log(`已启用技能使用情况（${preset}，通道 hook），数据目录：${dir}`)
+  console.log(line.ok(`已启用技能使用情况（${preset}，通道 hook），数据目录：${dir}`))
 }
 
 // 打印配置摘要：向导预览与菜单共用
@@ -196,7 +197,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
   const { select, checkbox, confirm, input } = await loadPrompts()
   try {
     const detected = detectedAdapters()
-    if (detected.length === 0) console.log("未检测到可接入的 Agent：本向导将只能使用规则通道（toolkit usage rule）")
+    if (detected.length === 0) console.log(line.hint("未检测到可接入的 Agent：本向导将只能使用规则通道（toolkit usage rule）"))
     const existingConfig = loadUsageConfig()
     const defaults = resolveInitDefaults(existingConfig)
     // 默认预设：已配置时沿用当前配置，首次默认「一方与第三方」，显式 init 即启用
@@ -215,7 +216,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
       choices: presetChoices,
     })
     if (preset === "off") {
-      console.log("保持关闭，未修改任何文件。需要时执行 toolkit usage enable")
+      console.log(line.hint("保持关闭，未修改任何文件。需要时执行 toolkit usage enable"))
       return
     }
     if (preset === "keep") {
@@ -231,12 +232,12 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
           defaults.retentionDays,
           "rule",
         )
-        console.log("当前为规则通道，无需重装 Hook；如需调整配置请选「自定义」")
+        console.log(line.hint("当前为规则通道，无需重装 Hook；如需调整配置请选「自定义」"))
         return
       }
       const selected = detected.filter((adapter) => defaults.agents.includes(adapter.id))
       if (selected.length === 0) {
-        console.log("当前配置没有可接入且已启用的 Agent，请改用「自定义」重新选择")
+        console.log(line.hint("当前配置没有可接入且已启用的 Agent，请改用「自定义」重新选择"))
         return
       }
       printConfigSummary(
@@ -252,11 +253,11 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
       if (!existingConfig.enabled) console.log("  ⚠️ 当前总开关关闭：Hook 会重装，但不会写入事件")
       const applyKeep = await confirm({ message: "按当前配置重装 Hook？", default: true })
       if (!applyKeep) {
-        console.log("已取消，未修改任何文件")
+        console.log(line.hint("已取消，未修改任何文件"))
         return
       }
       installHooks(selected)
-      console.log("已按当前配置重装 Hook")
+      console.log(line.ok("已按当前配置重装 Hook"))
       return
     }
 
@@ -285,7 +286,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
         : ["channel", "firstParty", "thirdParty", "mode", "include", "trigger", "args", "outcome", "dir", "rotation", "retention", "confirm"]
     // 首步按 ESC = 放弃整个向导，按取消口径退出
     const abortWizard = (): never => {
-      console.error("已取消，未修改任何文件")
+      console.error(line.hint("已取消，未修改任何文件"))
       exitWithCancel()
     }
     let index = 0
@@ -311,7 +312,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
           return
         }
         state.channel = answer.value
-        if (state.channel === "rule") console.log("规则通道：不安装 Hook；完成后把 toolkit usage rule 的输出复制进全局规则")
+        if (state.channel === "rule") console.log(line.hint("规则通道：不安装 Hook；完成后把 toolkit usage rule 的输出复制进全局规则"))
         index += 1
         continue
       }
@@ -336,7 +337,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
         }
         state.agents = detected.filter((adapter) => answer.value.includes(adapter.id))
         if (state.agents.length === 0) {
-          console.log("未选择 Agent，未修改任何文件")
+          console.log(line.hint("未选择 Agent，未修改任何文件"))
           return
         }
         index += 1
@@ -514,7 +515,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
         continue
       }
       if (!apply.value) {
-        console.log("已取消，未修改任何文件")
+        console.log(line.hint("已取消，未修改任何文件"))
         return
       }
       index += 1
@@ -536,12 +537,12 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
     if (state.channel === "hook") installHooks(state.agents)
     if (preset === "advanced") await runUploadSetup()
     console.log("")
-    console.log("已启用技能使用情况。下一步：")
+    console.log(`${line.ok("已启用技能使用情况")}。${style.hint("下一步：")}`)
     if (state.channel === "rule") console.log("  toolkit usage rule   # 把输出复制进全局规则")
     console.log("  toolkit usage info")
     console.log("  toolkit usage stats")
   } catch (error) {
-    if (isPromptCancel(error)) console.error("已取消，未修改任何文件")
+    if (isPromptCancel(error)) console.error(line.hint("已取消，未修改任何文件"))
     throw error
   }
 }
@@ -563,7 +564,7 @@ export async function runUsageUninstall(options: UninstallOptions = {}): Promise
       const { confirm } = await loadPrompts()
       const disable = await confirm({ message: "停用技能使用情况总开关？", default: true })
       if (!disable) {
-        console.log("已取消，未修改任何文件")
+        console.log(line.hint("已取消，未修改任何文件"))
         return
       }
       removeHooks = await confirm({ message: "卸载已安装的 Hook？", default: true })
@@ -596,11 +597,11 @@ export async function runUsageUninstall(options: UninstallOptions = {}): Promise
       const config = loadUsageConfig()
       const paths = usagePaths(resolveUsageDir(undefined, config))
       const removed = purgeEvents(paths, { all: true })
-      console.log(`已删除 ${removed} 条本地事件`)
+      console.log(line.ok(`已删除 ${removed} 条本地事件`))
     }
-    console.log("技能使用情况已停用；如需彻底删除数据，重跑时加 --purge")
+    console.log(`${line.ok("技能使用情况已停用")}；${style.hint("如需彻底删除数据，重跑时加 --purge")}`)
   } catch (error) {
-    if (isPromptCancel(error)) console.error("已取消，未修改任何文件")
+    if (isPromptCancel(error)) console.error(line.hint("已取消，未修改任何文件"))
     throw error
   }
 }
@@ -643,14 +644,14 @@ export async function runUsageMenu(): Promise<void> {
       const enabled = await confirm({ message: `当前${current.enabled ? "已开启" : "已关闭"}，是否${current.enabled ? "关闭" : "开启"}？`, default: true })
       if (enabled) {
         updateUsageConfig({ enabled: !current.enabled })
-        console.log(current.enabled ? "已关闭" : "已开启")
+        console.log(line.ok(current.enabled ? "已关闭" : "已开启"))
       }
       continue
     }
     if (action === "hooks") {
       const detected = detectedAdapters()
       if (detected.length === 0) {
-        console.log("未检测到可接入的 Agent")
+        console.log(line.hint("未检测到可接入的 Agent"))
         continue
       }
       for (const adapter of detected) {
@@ -661,7 +662,7 @@ export async function runUsageMenu(): Promise<void> {
       if (install) {
         installHooks(detected)
         updateUsageConfig({ agents: Object.fromEntries(detected.map((adapter) => [adapter.id, true])) })
-        console.log("Hook 已安装；采集总开关仍需 toolkit usage enable")
+        console.log(`${line.ok("Hook 已安装")}；${style.hint("采集总开关仍需 toolkit usage enable")}`)
       }
       continue
     }

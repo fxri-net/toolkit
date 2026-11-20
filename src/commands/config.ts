@@ -6,6 +6,7 @@ import { configStatus, foldHome, type ConfigStatusReport } from "../config-statu
 import type { LocalConfigIgnoreState } from "../git-ignore"
 import { assertJsonFormat } from "../json-output"
 import { printJson } from "./shared"
+import { line } from "../term-style"
 
 // 注册 config 命令：装配点只负责按序调用
 export function registerConfigCommands(program: Command): void {
@@ -49,7 +50,7 @@ export function registerConfigCommands(program: Command): void {
     }
     console.log("")
     if (report.items.length === 0) {
-      console.log("无待处理项")
+      console.log(line.ok("无待处理项"))
       return
     }
     for (const item of report.items) console.log(`${item.level === "warn" ? "⚠️" : "·"} [${item.scope}] ${item.message}`)

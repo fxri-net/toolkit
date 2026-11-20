@@ -7,7 +7,7 @@ import { clearRulesSelection, readRulesSelection, writeRulesSelection } from "..
 import { copyToClipboard } from "../rules/clipboard"
 import { buildPresetChoices, CUSTOM_PRESET, normalizePickedModules } from "../rules/select"
 import { exitOnPromptCancel, isInteractive, loadPrompts } from "../prompts"
-import { style } from "../term-style"
+import { line, style } from "../term-style"
 import { writeFileAtomic } from "../write-atomic"
 
 // 交互式选择：返回模块 id 顺序；用户取消向调用方冒泡，由命令层以 130 收口
@@ -131,10 +131,10 @@ export function registerRulesCommands(program: Command): void {
         if (explicit && options.cache !== false) {
           // 导出 / 复制属一次性动作，不改变「下次裸跑 compose」的默认组合
           if (options.out || options.copy) {
-            console.error("已跳过组合缓存写入（--out / --copy 不改变默认组合）")
+            console.error(line.hint("已跳过组合缓存写入（--out / --copy 不改变默认组合）"))
           } else {
             writeRulesSelection(ids)
-            console.error(`已记住本次组合（${ids.join(" → ")}），下次 rules compose 会作为默认勾选`)
+            console.error(`${line.ok(`已记住本次组合（${ids.join(" → ")}）`)}，${style.hint("下次 rules compose 会作为默认勾选")}`)
           }
         }
         if (options.copy) {
@@ -174,7 +174,7 @@ export function registerRulesCommands(program: Command): void {
     .command("reset")
     .description("清除规则组合缓存")
     .action(() => {
-      console.log(clearRulesSelection() ? "已清除规则组合缓存" : "无规则组合缓存可清除")
+      console.log(clearRulesSelection() ? line.ok("已清除规则组合缓存") : line.hint("无规则组合缓存可清除"))
     })
 
 }

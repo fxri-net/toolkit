@@ -12,6 +12,7 @@ import { resolveRedactEnabled } from "../privacy/redact"
 import { resolveEnabled } from "../switch"
 import { listTaskFiles } from "../tasks/scan"
 import { getCheckWarnings, resolveLanguages } from "./shared"
+import { line, style } from "../term-style"
 
 const require = createRequire(import.meta.url)
 // 解析 @changesets/cli 的 bin 绝对路径（pnpm 下 bin 不提升到使用方，需显式定位）
@@ -140,11 +141,15 @@ export function registerChangelogCommands(program: Command): void {
           process.exitCode = 1
           return
         }
-        console.log(`CHANGELOG 镜像一致：${docOptions.target}`)
+        console.log(line.ok(`CHANGELOG 镜像一致：${style.accent(docOptions.target)}`))
         return
       }
       const result = syncDoc(docOptions)
-      console.log(result.changed ? `CHANGELOG 镜像已更新：${docOptions.target}` : `CHANGELOG 镜像无变化：${docOptions.target}`)
+      console.log(
+        result.changed
+          ? line.ok(`CHANGELOG 镜像已更新：${style.accent(docOptions.target)}`)
+          : line.hint(`CHANGELOG 镜像无变化：${docOptions.target}`),
+      )
     } catch (e) {
       console.error(`⚠️ ${(e as Error).message}`)
       process.exitCode = 1

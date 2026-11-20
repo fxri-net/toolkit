@@ -1,6 +1,7 @@
 // 使用情况 CLI（context）：上下文、格式与解析助手，自 commands.ts 原样搬移
 import { existsSync, readFileSync } from "node:fs"
 import { toJsonText } from "../../json-output"
+import { line } from "../../term-style"
 import { redactText, resolveRedactEnabled } from "../../privacy/redact"
 import { uploadStatus } from "../upload"
 import { resolveSkillMeta } from "../event"
@@ -101,7 +102,7 @@ export function printSkillSummary(events: SkillUsageEvent[], limit = 20): void {
   const summary = summarize(events)
   console.log(`技能使用统计：共 ${summary.total} 条`)
   if (summary.bySkill.length === 0) {
-    console.log("暂无记录")
+    console.log(line.hint("暂无记录"))
     return
   }
   for (const item of summary.bySkill.slice(0, limit)) {
@@ -114,7 +115,7 @@ export function printTriggers(events: SkillUsageEvent[], skill: string | undefin
   const summary = summarize(events)
   const rows = skill ? summary.triggers.filter((item) => item.skills.includes(skill)) : summary.triggers
   if (rows.length === 0) {
-    console.log("暂无触发词记录（触发词采集默认关闭，可用 capture --trigger on 开启）")
+    console.log(line.hint("暂无触发词记录（触发词采集默认关闭，可用 capture --trigger on 开启）"))
     return
   }
   const redact = resolveRedactEnabled(undefined)

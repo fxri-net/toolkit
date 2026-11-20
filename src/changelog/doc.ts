@@ -6,6 +6,7 @@ import { getConfigSection } from "../config"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
 import { DEFAULT_LANG } from "./languages"
+import { line, style } from "../term-style"
 
 // 镜像页默认页头文案：与既有项目页面保持一致，迁移时只变化来源说明中的命令名
 const DEFAULT_TITLE = "更新日志"
@@ -96,7 +97,7 @@ export function syncDocAfterVersion(lang: string = DEFAULT_LANG): void {
   }
   try {
     const result = syncDoc(options)
-    if (result.changed) console.log(`CHANGELOG 镜像已更新：${options.target}`)
+    if (result.changed) console.log(line.ok(`CHANGELOG 镜像已更新：${style.accent(options.target)}`))
   } catch (e) {
     console.warn(`⚠️ CHANGELOG 镜像同步失败：${(e as Error).message}`)
   }

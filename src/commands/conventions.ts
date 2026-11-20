@@ -7,6 +7,7 @@ import { resolveTasksDir } from "../config"
 import { foldHomeInText } from "../config-status"
 import { assertJsonFormat } from "../json-output"
 import { printJson } from "./shared"
+import { line, style } from "../term-style"
 
 // 注册 conventions 命令：装配点只负责按序调用
 export function registerConventionsCommands(program: Command): void {
@@ -16,7 +17,7 @@ export function registerConventionsCommands(program: Command): void {
     console.log(`${tag}任务区：${report.tasksDir}`)
     console.log(`${tag}载体：${report.dir}（形态 ${report.form}）`)
     if (report.status === "already-v3") {
-      console.log(`${tag}已是 v3 形态，无需升级`)
+      console.log(dryRun ? `[预演] 已是 v3 形态，无需升级` : line.ok("已是 v3 形态，无需升级"))
       return
     }
     console.log("")
@@ -40,9 +41,9 @@ export function registerConventionsCommands(program: Command): void {
     console.log("")
     if (dryRun) console.log("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行")
     else {
-      console.log("已写入；升级前原件可由本次迁移提交的父提交复现")
+      console.log(`${line.ok("已写入")}；${style.hint("升级前原件可由本次迁移提交的父提交复现")}`)
       // 升级只做结构迁移，索引表单元格沿用原写法，故补一步归一提示
-      console.log("建议随后执行 toolkit conventions format，把索引表单元格归一到规范写法")
+      console.log(line.hint("建议随后执行 toolkit conventions format，把索引表单元格归一到规范写法"))
     }
   }
 
@@ -62,7 +63,7 @@ export function registerConventionsCommands(program: Command): void {
     )
     console.log("")
     if (report.items.length === 0) {
-      console.log("无待处理项")
+      console.log(line.ok("无待处理项"))
       return
     }
     for (const item of report.items) console.log(`${item.level === "warn" ? "⚠️" : "·"} [${item.scope}] ${foldHomeInText(item.message)}`)
@@ -73,7 +74,7 @@ export function registerConventionsCommands(program: Command): void {
     const tag = dryRun ? "[预演] " : ""
     console.log(`${tag}任务区：${report.tasksDir}（扫描 ${report.files} 个 .md）`)
     if (report.status === "already-compact") {
-      console.log(`${tag}表格已全部为紧凑形态，无需归一`)
+      console.log(dryRun ? `[预演] 表格已全部为紧凑形态，无需归一` : line.ok("表格已全部为紧凑形态，无需归一"))
     } else {
       console.log("")
       console.log(`${tag}归一改动：${report.changedFiles} 个文件 / ${report.changedLines} 行`)
@@ -83,7 +84,7 @@ export function registerConventionsCommands(program: Command): void {
       }
       console.log("")
       if (dryRun) console.log("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行")
-      else console.log("已写入；紧凑形态即规范形态，重复执行不改动")
+      else console.log(`${line.ok("已写入")}；${style.hint("紧凑形态即规范形态，重复执行不改动")}`)
     }
     // 语义列缺冒号、裸文件名目标不在载体内等项不做机械改写，只在此列出
     if (report.warnings.length > 0) {

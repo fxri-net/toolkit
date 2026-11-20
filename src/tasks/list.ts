@@ -5,6 +5,7 @@ import { listTaskFiles, dateFromFileName } from "./scan"
 import { redactText } from "../privacy/redact"
 import { STATUS_ORDER, queryTasks, displayDate } from "./query"
 import type { Task, TaskRow, TaskView, TaskFilter, TaskSummary } from "./types"
+import { line } from "../term-style"
 
 // 读取 active 目录下的任务列表
 export function listTasks(tasksDir = ".tasks"): Task[] {
@@ -49,10 +50,10 @@ export function renderTaskBoard(rows: TaskRow[], summary: TaskSummary, view: Tas
   console.log(`任务总览（${viewName}）：\n`)
   if (rows.length === 0) {
     const hasFilter = Object.values(filter).some((v) => (Array.isArray(v) ? v.length > 0 : Boolean(v)))
-    if (hasFilter) console.log("无匹配任务")
-    else if (view === "archived") console.log("当前无已归档任务")
-    else if (view === "all") console.log("当前无任务")
-    else console.log("当前无待完成任务")
+    if (hasFilter) console.log(line.hint("无匹配任务"))
+    else if (view === "archived") console.log(line.hint("当前无已归档任务"))
+    else if (view === "all") console.log(line.hint("当前无任务"))
+    else console.log(line.hint("当前无待完成任务"))
     return
   }
   const grouped: Record<string, TaskRow[]> = {}
@@ -99,5 +100,5 @@ export function renderSummaryLines(summary: TaskSummary, includeTotal = true): s
 
 // 打印汇总统计（终端末尾）
 function printBoardSummary(summary: TaskSummary): void {
-  for (const line of renderSummaryLines(summary)) console.log(line)
+  for (const text of renderSummaryLines(summary)) console.log(text)
 }

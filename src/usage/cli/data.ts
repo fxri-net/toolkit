@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import type { Command } from "commander"
 import { assertJsonFormat } from "../../json-output"
+import { line } from "../../term-style"
 import { AGENT_ADAPTERS } from "../adapters"
 import { processHookEvent } from "../ingest"
 import { parseTranscript } from "../transcript"
@@ -61,7 +62,7 @@ export function registerUsageDataCommands(usage: Command): void {
         }
         if (by === "session") {
           if (summary.sessions.length === 0) {
-            console.log("暂无记录")
+            console.log(line.hint("暂无记录"))
             return
           }
           for (const item of summary.sessions.slice(0, limit)) {
@@ -75,7 +76,7 @@ export function registerUsageDataCommands(usage: Command): void {
         }
         printSkillSummary(events, limit)
         if (unused) console.log(`零使用技能：${unused.length > 0 ? unused.join("、") : "无"}`)
-        if (!config.enabled) console.log("提示：技能使用情况当前处于关闭状态")
+        if (!config.enabled) console.log(line.hint("提示：技能使用情况当前处于关闭状态"))
       })
 
     // 导出：CSV / JSON / JSONL
@@ -105,7 +106,7 @@ export function registerUsageDataCommands(usage: Command): void {
         const out = resolve(options.out)
         mkdirSync(dirname(out), { recursive: true })
         writeFileSync(out, content, "utf8")
-        console.log(`已导出 ${events.length} 条 → ${out}`)
+        console.log(line.ok(`已导出 ${events.length} 条 → ${out}`))
       })
 
     // 导入：JSON / JSONL / transcript；transcript 从 Claude 或通用会话记录提取 tool_use
@@ -149,7 +150,7 @@ export function registerUsageDataCommands(usage: Command): void {
             if (result.status === "written") written += 1
             else if (result.status !== "cached") skipped += 1
           }
-          console.log(`${options.dryRun ? "预演" : "导入"}：${written} 条，跳过 ${skipped} 条`)
+          console.log(options.dryRun ? line.hint(`预演：${written} 条，跳过 ${skipped} 条`) : line.ok(`导入：${written} 条，跳过 ${skipped} 条`))
           return
         }
         const events = parseImportFile(resolve(options.file), format)
@@ -165,7 +166,7 @@ export function registerUsageDataCommands(usage: Command): void {
           if (result.written) written += 1
           else duplicate += 1
         }
-        console.log(`${options.dryRun ? "预演" : "导入"}：${written} 条，重复 ${duplicate} 条`)
+        console.log(options.dryRun ? line.hint(`预演：${written} 条，重复 ${duplicate} 条`) : line.ok(`导入：${written} 条，重复 ${duplicate} 条`))
       })
 
     // 内部命令：消费队列并补齐明细，供后台 worker 与惰性兜底调用
@@ -260,7 +261,7 @@ export function registerUsageDataCommands(usage: Command): void {
           return
         }
         const result = appendEvent(paths, event, config)
-        console.log(result.written ? `已补录 ${event.skill}` : "重复事件，未写入")
+        console.log(result.written ? line.ok(`已补录 ${event.skill}`) : line.hint("重复事件，未写入"))
       })
 
     // 去重：压缩历史重复行并重建索引
@@ -271,7 +272,7 @@ export function registerUsageDataCommands(usage: Command): void {
       .action((options: { dir?: string }) => {
         const { paths } = createContext(options.dir)
         const removed = dedupeStore(paths)
-        console.log(`去重完成：删除 ${removed} 条重复记录`)
+        console.log(line.ok(`去重完成：删除 ${removed} 条重复记录`))
       })
 
     // 清理：按保留期或全部删除
@@ -298,7 +299,7 @@ export function registerUsageDataCommands(usage: Command): void {
           return
         }
         const removed = purgeEvents(paths, options.all ? { all: true } : { olderThanDays: days })
-        console.log(options.all ? `已删除全部 ${removed} 条记录` : `已删除 ${removed} 条早于 ${options.olderThan} 的记录`)
+        console.log(options.all ? line.ok(`已删除全部 ${removed} 条记录`) : line.ok(`已删除 ${removed} 条早于 ${options.olderThan} 的记录`))
       })
 
     // 诊断：目录、索引、重复与配置边界
@@ -364,7 +365,7 @@ export function registerUsageDataCommands(usage: Command): void {
         }
         console.log(`数据目录：${dir}`)
         console.log(`事件：${events.length} 条 / 去重后 ${unique.size} 条 / 索引 ${index.eventIds.length} 条`)
-        if (items.length === 0) console.log("未发现问题")
+        if (items.length === 0) console.log(line.ok("未发现问题"))
         else for (const item of items) console.log(`${item.level === "warn" ? "⚠️" : "ℹ️"} ${item.message}`)
       })
 
@@ -393,6 +394,6 @@ export function registerUsageDataCommands(usage: Command): void {
       .action((options: { dir?: string }) => {
         const { paths } = createContext(options.dir)
         const count = rebuildIndex(paths)
-        console.log(`索引已重建：${count} 条事件`)
+        console.log(line.ok(`索引已重建：${count} 条事件`))
       })
 }

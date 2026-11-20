@@ -81,6 +81,7 @@ import {
   type RegistryInfo,
   type SkillAlert,
 } from "../update-check"
+import { line, style } from "../term-style"
 import { collectDir, printJson, splitMulti } from "./shared"
 
 // 版本号与包内技能版本同源：走 packageVersion() 解析包根，避免依赖产物相对路径
@@ -157,7 +158,7 @@ async function resolveSkillSelection(
       face === "global"
         ? resolveSavedSelection(view, readSkillsInstallConfig().selection)
         : resolveSavedProjectSelection(view, readProjectSkillsConfig().selection)
-    for (const line of expiredSelectionWarnings(resolved)) console.warn(line)
+    for (const warning of expiredSelectionWarnings(resolved)) console.warn(warning)
     saved = resolved.saved
   }
   // 显式传了 --skills 但取值为空（如 --skills ""）按全部非法处理，不静默当作未传
@@ -188,7 +189,7 @@ async function resolveSkillSelection(
   if (!plan.needsPrompt) return { names: expand(plan.names), mode, saveSelection: true }
   const picked = await promptSkillSelection(skills, saved, mode)
   if (picked === null) {
-    console.error("已取消技能选择，未写入任何文件")
+    console.error(line.hint("已取消技能选择，未写入任何文件"))
     exitWithCancel()
   }
   return { names: expand(picked), mode, saveSelection: true }
@@ -226,7 +227,7 @@ async function chooseGlobalTargets(options: { agent?: string; allAgents?: boolea
   if (selectable.length <= 1) return selectable.map((choice) => choice.value)
   const picked = await promptTargetSelection(choices, "选择要写入技能的目标（空格切换，回车确认）")
   if (picked === null) {
-    console.error("已取消目标选择，未写入任何文件")
+    console.error(line.hint("已取消目标选择，未写入任何文件"))
     exitWithCancel()
   }
   const known = new Set(all.filter((target) => target.name).map((target) => target.name))
@@ -243,7 +244,7 @@ async function chooseProjectTargets(options: { dir: string[]; yes?: boolean }): 
   if (selectable.length <= 1) return selectable.map((choice) => choice.value)
   const picked = await promptTargetSelection(choices, "选择要写入的项目技能目录（空格切换，回车确认）")
   if (picked === null) {
-    console.error("已取消目录选择，未写入任何文件")
+    console.error(line.hint("已取消目录选择，未写入任何文件"))
     exitWithCancel()
   }
   return picked.filter((value) => targets.shellDirs.includes(value))
@@ -299,7 +300,7 @@ function printInstallReport(report: InstallReport, dryRun: boolean): void {
   }
   if (report.skippedTargets.length > 0) {
     console.log(
-      `本机未检测到的 agent ${report.skippedTargets.length} 个已跳过（不凭空创建目录）；如需装到未识别的 agent：toolkit skills install --dir <其全局技能目录>`,
+      line.hint(`本机未检测到的 agent ${report.skippedTargets.length} 个已跳过（不凭空创建目录）；如需装到未识别的 agent：toolkit skills install --dir <其全局技能目录>`),
     )
   }
   console.log(`${tag}状态文件：${report.stateFile}`)
@@ -363,7 +364,7 @@ function printStatusReport(report: SkillsStatusReport): void {
   }
   if (report.pendingAgents.length > 0) {
     console.log("")
-    console.log(`未安装的 agent ${report.pendingAgents.length} 个未纳入分发（需要时用 toolkit skills install --dir <路径> 指定）`)
+    console.log(line.hint(`未安装的 agent ${report.pendingAgents.length} 个未纳入分发（需要时用 toolkit skills install --dir <路径> 指定）`))
   }
   // 共读 agent 与主目标同路径，写入目标列表里看不到；单列说明，避免用户误判为不支持
   if (report.canonicalReaders.length > 0) {
@@ -391,25 +392,29 @@ function printStatusReport(report: SkillsStatusReport): void {
   console.log("")
   console.log(
     problems > 0
-      ? `共 ${problems} 处需处理：缺失 / 悬空 / 指向其他版本 / 副本漂移 / 入口壳过期用 toolkit skills install 补齐，同名冲突用 toolkit skills install --force 覆盖`
-      : "所有已纳入的目标均正常",
+      ? line.error(`共 ${problems} 处需处理：缺失 / 悬空 / 指向其他版本 / 副本漂移 / 入口壳过期用 toolkit skills install 补齐，同名冲突用 toolkit skills install --force 覆盖`)
+      : line.ok("所有已纳入的目标均正常"),
   )
   if (staleNameCount > 0) {
-    console.log(`其中 ${staleNameCount} 项为来源已无此名的旧名残留：install 无法补齐，执行 toolkit skills uninstall --scope global --skills ${[...staleNames].join(",")} 清理`)
+    console.log(
+      line.hint(
+        `其中 ${staleNameCount} 项为来源已无此名的旧名残留：install 无法补齐，执行 toolkit skills uninstall --scope global --skills ${[...staleNames].join(",")} 清理`,
+      ),
+    )
   }
   if (unselectedCount > 0) {
-    console.log(`未选择但已安装 ${unselectedCount} 项：保留不影响使用，需要清理时运行 toolkit skills install --prune`)
+    console.log(line.hint(`未选择但已安装 ${unselectedCount} 项：保留不影响使用，需要清理时运行 toolkit skills install --prune`))
   }
   // 软链落点是写入穿透形态：改落点文件等于改真源，需在报告末尾点明纪律，避免用户误在落点上编辑
   const linkCount = report.targets.reduce((n, t) => n + t.items.filter((i) => i.state === "link").length, 0)
-  if (linkCount > 0) console.log(`软链落点 ${linkCount} 项：写入将穿透至技能真源目录，改内容请改真源`)
+  if (linkCount > 0) console.log(line.hint(`软链落点 ${linkCount} 项：写入将穿透至技能真源目录，改内容请改真源`))
 }
 
 // 打印卸载报告：按目标区分已移除 / 已不存在 / 需人工确认三类，并说明状态文件处置
 function printRemoveReport(report: SkillsRemoveReport, dryRun: boolean): void {
   const tag = dryRun ? "[预演] " : ""
   if (!report.stateExists) {
-    console.log("未找到本包的状态文件，没有由本包安装的产物需要清理（其他方式安装的技能不受影响）")
+    console.log(line.hint("未找到本包的状态文件，没有由本包安装的产物需要清理（其他方式安装的技能不受影响）"))
     return
   }
   console.log(`${tag}状态文件：${report.stateFile}`)
@@ -424,8 +429,8 @@ function printRemoveReport(report: SkillsRemoveReport, dryRun: boolean): void {
   }
   console.log("")
   if (dryRun) console.log("[预演] 未执行删除；无遗留条目时将同时删除状态文件")
-  else if (report.stateRemoved) console.log("状态文件已删除，本包产物清理完毕")
-  else console.log("状态文件已保留（存在需人工确认或未移除的条目）")
+  else if (report.stateRemoved) console.log(line.ok("状态文件已删除，本包产物清理完毕"))
+  else console.log(line.hint("状态文件已保留（存在需人工确认或未移除的条目）"))
 }
 
 // 疑似残留名字（去重）：全量卸载与裸命令预演共用
@@ -591,11 +596,11 @@ function printProjectStatusReport(report: ProjectStatusReport): void {
   console.log("")
   console.log(
     problems > 0
-      ? `项目面共 ${problems} 处需处理：漂移 / 缺失用 toolkit skills install --scope project 补齐，同名冲突加 --force`
-      : "项目面所有已纳入的目录均正常",
+      ? line.error(`项目面共 ${problems} 处需处理：漂移 / 缺失用 toolkit skills install --scope project 补齐，同名冲突加 --force`)
+      : line.ok("项目面所有已纳入的目录均正常"),
   )
   if (unselectedCount > 0) {
-    console.log(`项目面未选择但已安装 ${unselectedCount} 项：保留不影响使用，需要清理时运行 toolkit skills install --scope project --prune`)
+    console.log(line.hint(`项目面未选择但已安装 ${unselectedCount} 项：保留不影响使用，需要清理时运行 toolkit skills install --scope project --prune`))
   }
 }
 
@@ -603,7 +608,7 @@ function printProjectStatusReport(report: ProjectStatusReport): void {
 function printProjectRemoveReport(report: ProjectRemoveReport, dryRun: boolean): void {
   const tag = dryRun ? "[预演] " : ""
   if (!report.stateExists) {
-    console.log("项目面：未找到归属账，没有由本包安装的项目内技能产物需要清理")
+    console.log(line.hint("项目面：未找到归属账，没有由本包安装的项目内技能产物需要清理"))
     return
   }
   console.log(`${tag}项目面 · 状态文件：${report.stateFile}`)
@@ -620,8 +625,8 @@ function printProjectRemoveReport(report: ProjectRemoveReport, dryRun: boolean):
   }
   console.log("")
   if (dryRun) console.log("[预演] 未执行删除；无遗留条目时将同时删除项目面归属账")
-  else if (report.stateRemoved) console.log("项目面归属账已删除，本包产物清理完毕")
-  else console.log("项目面归属账已保留（存在需人工确认或未移除的条目）")
+  else if (report.stateRemoved) console.log(line.ok("项目面归属账已删除，本包产物清理完毕"))
+  else console.log(line.hint("项目面归属账已保留（存在需人工确认或未移除的条目）"))
 }
 
 // 打印安装报告（按作用域分派到对应面；两面都跑时各自成段）
@@ -857,11 +862,11 @@ export function registerSkillsCommands(program: Command): void {
           if (runProject) console.log(`  项目目录：${projectTargets ? projectTargets.join("、") : "按已保存选择 / 全部已存在候选目录"}`)
           const ok = await promptConfirm("确认执行安装？")
           if (ok === null) {
-            console.error("已取消安装，未写入任何文件")
+            console.error(line.hint("已取消安装，未写入任何文件"))
             exitWithCancel()
           }
           if (!ok) {
-            console.log("已取消安装，未写入任何文件")
+            console.log(line.hint("已取消安装，未写入任何文件"))
             return
           }
         }
@@ -899,7 +904,7 @@ export function registerSkillsCommands(program: Command): void {
             })
           : null
         if (selection.length === 0) {
-          console.log(selectionResult.mode === "package" ? "纯包管理器模式：本次未安装任何技能" : "未选择任何技能")
+          console.log(line.hint(selectionResult.mode === "package" ? "纯包管理器模式：本次未安装任何技能" : "未选择任何技能"))
         }
         // 写入顺序：产物 → 状态 → 配置；--save 在安装成功后才登记，登记失败不回滚产物
         if (!dryRun && options.save !== undefined && externalSources.length === 1) {
@@ -1060,16 +1065,16 @@ export function registerSkillsCommands(program: Command): void {
             }
             const candidates = collectUninstallCandidates(runGlobal, runProject)
             if (candidates.length === 0) {
-              console.log("没有可卸载的技能")
+              console.log(line.hint("没有可卸载的技能"))
               return
             }
             const picked = await promptUninstallSelection(candidates)
             if (picked === null) {
-              console.error("已取消，未执行任何清理")
+              console.error(line.hint("已取消，未执行任何清理"))
               exitWithCancel()
             }
             if (picked.length === 0) {
-              console.log("未选择任何技能，未执行卸载")
+              console.log(line.hint("未选择任何技能，未执行卸载"))
               return
             }
             globalNames = []
@@ -1093,11 +1098,11 @@ export function registerSkillsCommands(program: Command): void {
                 const staleText = staleNames.length > 0 ? `，并清理疑似残留 ${staleNames.length} 项` : ""
                 const answer = await promptConfirm(`将卸载已登记的 ${registeredSkillCount(runGlobal, runProject)} 项${staleText}，是否继续？`, false)
                 if (answer === null) {
-                  console.error("已取消，未执行任何清理")
+                  console.error(line.hint("已取消，未执行任何清理"))
                   exitWithCancel()
                 }
                 if (!answer) {
-                  console.log("已取消，未执行任何清理")
+                  console.log(line.hint("已取消，未执行任何清理"))
                   return
                 }
               }
@@ -1179,11 +1184,11 @@ export function registerSkillsCommands(program: Command): void {
           }
           const confirmed = await promptConfirm(`将把全部技能按 ${kind} 递增，确认继续？`)
           if (confirmed === null) {
-            console.error("已取消，未写入任何文件")
+            console.error(line.hint("已取消，未写入任何文件"))
             exitWithCancel()
           }
           if (!confirmed) {
-            console.log("已取消，未写入任何文件")
+            console.log(line.hint("已取消，未写入任何文件"))
             return
           }
         }
@@ -1252,7 +1257,7 @@ export function registerSkillsCommands(program: Command): void {
           return
         }
         if (rows.length === 0) {
-          console.log("未登记外部来源")
+          console.log(line.hint("未登记外部来源"))
           return
         }
         // 来源当前技能集：只读本地根 / 缓存，不触发远程刷新；解析失败时不标注（无从判断）
@@ -1310,7 +1315,7 @@ export function registerSkillsCommands(program: Command): void {
         }
         const file = writeUpdateCheckSourceNotify(name, frequency as "always" | "daily" | "weekly" | "off", scope)
         if (options.format === "json") printJson({ name, frequency, scope, file })
-        else console.log(`已设置来源 ${name} 的更新提示频率为 ${frequency}（${scope}）：${file}`)
+        else console.log(line.ok(`已设置来源 ${name} 的更新提示频率为 ${frequency}（${scope}）：${file}`))
       } catch (e) {
         console.error(`⚠️ 写入来源提示配置失败：${(e as Error).message}`)
         process.exitCode = 1
@@ -1429,7 +1434,7 @@ export function registerSkillsCommands(program: Command): void {
           if (options.format === "json") printJson({ dryRun, source: name, report, cleanedConfigFiles: cleaned })
           else {
             printRemoveReport(report, dryRun)
-            if (cleaned.length > 0) console.log(`已清理来源提示配置：${cleaned.join("、")}`)
+            if (cleaned.length > 0) console.log(line.ok(`已清理来源提示配置：${cleaned.join("、")}`))
           }
           return
         }
@@ -1451,7 +1456,7 @@ export function registerSkillsCommands(program: Command): void {
           sources: Object.keys(nextSources).length > 0 ? nextSources : undefined,
           selection: Object.keys(nextSelection).length > 0 ? nextSelection : undefined,
         })
-        console.log(`已注销来源登记：${name}（产物与状态保留，如需清理加 --prune）`)
+        console.log(`${line.ok(`已注销来源登记：${name}`)}；${style.hint("产物与状态保留，如需清理加 --prune")}`)
       } catch (e) {
         console.error(`⚠️ 注销来源失败：${(e as Error).message}`)
         process.exitCode = 1

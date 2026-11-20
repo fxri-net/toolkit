@@ -9,6 +9,7 @@ import { getConfigSection, getHomeDir } from "./config"
 import { resolveCacheEntry } from "./cache"
 import { readTextFile } from "./read-text"
 import { writeFileAtomic } from "./write-atomic"
+import { line } from "./term-style"
 
 // 成功检查有效期：24 小时内不重复请求 registry
 const CHECK_TTL = 24 * 60 * 60 * 1000
@@ -363,7 +364,7 @@ export function readHintTiming(): { checkedAt: number | null; nextHintAt: number
 
 // 统一提示文案：一句话，不输出 JSON
 export function formatUpdateHint(latest: string, current: string): string {
-  return `提示：toolkit ${latest} 可用（当前 ${current}），运行 pnpm add -g @fxri/toolkit 升级后请开新会话。`
+  return line.hint(`提示：toolkit ${latest} 可用（当前 ${current}），运行 pnpm add -g @fxri/toolkit 升级后请开新会话。`)
 }
 
 // 派生后台 worker：detached + stdio ignore + unref，父进程照常退出、子进程独立完成刷新
@@ -446,7 +447,7 @@ function formatCombinedHint(current: string, cliLatest: string | null, alerts: S
   const actions: string[] = []
   if (cliLatest) actions.push("运行 pnpm add -g @fxri/toolkit 升级后请开新会话")
   if (alerts.length > 0) actions.push("运行 toolkit skills install 更新后请开新会话")
-  return `提示：${facts.join("；")}，${actions.join("；")}。`
+  return line.hint(`提示：${facts.join("；")}，${actions.join("；")}。`)
 }
 
 // 诊断输出：打印本轮判定依据，只在开关开启时走 stderr，不改变提示结果

@@ -4,6 +4,7 @@ import { writeFileAtomic } from "../write-atomic"
 import { collectChangelogs, type CollectOptions } from "./collect"
 import { redactText } from "../privacy/redact"
 import { todayDash } from "../date"
+import { line, style } from "../term-style"
 import {
   LEGACY_TITLE_SLOTS,
   SLOT_PREFIXES,
@@ -143,9 +144,9 @@ export function formatChangelogs(
     if (formatChangelog(file, today, lang, redact, history)) changed.push(file)
   }
   if (changed.length === 0) {
-    console.log("无 CHANGELOG 需要更新")
+    console.log(line.hint("无 CHANGELOG 需要更新"))
   } else {
-    for (const file of changed) console.log(`changelog 已更新：${file}`)
+    for (const file of changed) console.log(line.ok(`changelog 已更新：${style.accent(file)}`))
   }
   return changed
 }

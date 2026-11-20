@@ -1,5 +1,5 @@
 import { warnLegacyEnvOnce } from "./legacy-env"
-import { installConsoleStyle, setStyleEnabled } from "./term-style"
+import { installConsoleStyle, line, setStyleEnabled, style } from "./term-style"
 
 // 常规 CLI：命令注册、解析与统一收口；由入口按需加载，避免 guard 快速路径承担完整命令集的启动成本
 export async function runCli(version: string): Promise<void> {
@@ -120,7 +120,9 @@ export async function runCli(version: string): Promise<void> {
   // 链接自愈先于命令执行：升级后旧链接悬空时本次命令即复位（开关 skills.autoLink，CI 环境自动跳过）
   const repaired = autoLinkSkills()
   // 提示走 stderr：stdout 为机器可读输出（--format json）的专用通道，不得混入诊断信息
-  if (repaired > 0) console.error(`已自动修复 ${repaired} 个技能链接（如不需要可配置 .toolkitrc.json 的 skills.autoLink: false 关闭）`)
+  if (repaired > 0) {
+    console.error(`${line.ok(`已自动修复 ${repaired} 个技能链接`)}（${style.hint("如不需要可配置 .toolkitrc.json 的 skills.autoLink: false 关闭")}）`)
+  }
   try {
     await program.parseAsync(argv)
   } catch (err) {

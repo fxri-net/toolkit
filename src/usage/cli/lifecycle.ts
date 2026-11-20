@@ -1,6 +1,7 @@
 // 使用情况 CLI（lifecycle）：自 commands.ts 按子命令组拆分，文案与顺序逐字未改
 import type { Command } from "commander"
 import { assertJsonFormat } from "../../json-output"
+import { line } from "../../term-style"
 import { runInteractive } from "../../prompts"
 import { AGENT_ADAPTERS, isAdapterAvailable, resolveAdapters } from "../adapters"
 import { ingestFromStdin, readHookActivity, readLastHookError } from "../ingest"
@@ -75,7 +76,7 @@ export function registerUsageLifecycleCommands(usage: Command): void {
         if (loadUsageConfig().channel === "rule") {
           console.warn("⚠️ 当前采集通道为 rule（全局规则上报）：Hook 已安装但不会写入，需先执行 toolkit usage channel hook")
         }
-        console.log("Hook 安装不等于开启采集；用 toolkit usage enable 打开总开关")
+        console.log(line.hint("Hook 安装不等于开启采集；用 toolkit usage enable 打开总开关"))
       })
 
     hooks
@@ -93,7 +94,7 @@ export function registerUsageLifecycleCommands(usage: Command): void {
         }
         if (unavailable.length > 0) console.warn(`⚠️ 忽略本机未检测到的 Agent：${unavailable.join("、")}（不凭空创建配置）`)
         if (adapters.length === 0) {
-          console.log("未检测到可接入的 Agent")
+          console.log(line.hint("未检测到可接入的 Agent"))
           return
         }
         const { config, paths } = createContext(options.dir)

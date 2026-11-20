@@ -1,6 +1,7 @@
 // 使用情况 CLI（upload）：自 commands.ts 按子命令组拆分，文案与顺序逐字未改
 import type { Command } from "commander"
 import { assertJsonFormat } from "../../json-output"
+import { line } from "../../term-style"
 import { runInteractive } from "../../prompts"
 import { runUploadSetup, uploadOnce, uploadStatus } from "../upload"
 import { printJson } from "./context"
@@ -30,14 +31,14 @@ export function registerUsageUploadCommands(usage: Command): void {
         else {
           console.log(`上传：${report.enabled ? "已开启" : "已关闭"}`)
           console.log(`协议：${report.protocol}｜端点：${report.endpoint || "未配置"}`)
-          console.log(`已发送：${report.sent} 条｜待上传：${report.pending} 条`)
+          console.log(line.ok(`已发送：${report.sent} 条｜待上传：${report.pending} 条`))
         }
       })
     upload
       .action(() => {
         const report = uploadStatus()
         console.log(`上传：${report.enabled ? "已开启" : "已关闭"}；待上传 ${report.pending} 条`)
-        console.log("使用 upload send --dry-run 预览，upload send 发送，upload setup 配置")
+        console.log(line.hint("使用 upload send --dry-run 预览，upload send 发送，upload setup 配置"))
       })
     upload
       .command("send")
@@ -57,11 +58,11 @@ export function registerUsageUploadCommands(usage: Command): void {
         try {
           const result = await uploadOnce({ dryRun: Boolean(options.dryRun), limit })
           if (result.dryRun) {
-            console.log(`预演：待上传 ${result.pending} 条 → ${result.endpoint}`)
+            console.log(line.hint(`预演：待上传 ${result.pending} 条 → ${result.endpoint}`))
             const preview = result.preview as { events?: unknown[] }
             if (Array.isArray(preview.events) && preview.events[0]) console.log(JSON.stringify(preview.events[0], null, 2))
           } else {
-            console.log(`已上传 ${result.sent} 条，剩余 ${result.pending} 条`)
+            console.log(line.ok(`已上传 ${result.sent} 条，剩余 ${result.pending} 条`))
           }
         } catch (error) {
           console.error(`⚠️ ${(error as Error).message}`)

@@ -1,6 +1,6 @@
 // 终端样式基建：启用判定矩阵、五种语义色转义、关闭时原样返回、显式开关优先于环境
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { decorate, isStyleEnabled, setStyleEnabled, style } from "../term-style"
+import { decorate, isStyleEnabled, line, setStyleEnabled, style } from "../term-style"
 
 // 仿 TTY：分别控制 stdout / stderr，还原时删掉自建属性
 function setTty(stdout: boolean, stderr: boolean): void {
@@ -141,9 +141,15 @@ describe("输出出口装饰", () => {
 
   it("按行首语义符号着色，符号本身不参与着色", () => {
     expect(decorate("✔ 完成")).toBe("✔ \u001b[32m完成\u001b[0m")
+    expect(decorate("✓ 完成")).toBe("✓ \u001b[32m完成\u001b[0m")
     expect(decorate("⚠️ 注意")).toBe("⚠️ \u001b[33m注意\u001b[0m")
     expect(decorate("✖ 失败")).toBe("✖ \u001b[31m失败\u001b[0m")
     expect(decorate("· 说明")).toBe("· \u001b[2m说明\u001b[0m")
+  })
+
+  it("预演行只给标记上色", () => {
+    expect(decorate("[预演] 未写入任何文件")).toBe("\u001b[36m[预演]\u001b[0m 未写入任何文件")
+    expect(decorate("  [预演] 将归档 1 个任务")).toBe("  \u001b[36m[预演]\u001b[0m 将归档 1 个任务")
   })
 
   it("保留行首缩进", () => {
@@ -167,5 +173,20 @@ describe("输出出口装饰", () => {
   it("关闭颜色时原样返回", () => {
     setStyleEnabled(false)
     expect(decorate("⚠️ 注意")).toBe("⚠️ 注意")
+    expect(decorate("[预演] 未写入任何文件")).toBe("[预演] 未写入任何文件")
+  })
+})
+
+describe("行级模板", () => {
+  it("启用时补符号并只给符号后的文本上色", () => {
+    setStyleEnabled(true)
+    expect(line.ok("已导出 3 个任务")).toBe("✔ \u001b[32m已导出 3 个任务\u001b[0m")
+    expect(line.hint("建议随后执行 format")).toBe("\u001b[2m建议随后执行 format\u001b[0m")
+  })
+
+  it("关闭时符号保留、文本原样", () => {
+    setStyleEnabled(false)
+    expect(line.ok("已导出 3 个任务")).toBe("✔ 已导出 3 个任务")
+    expect(line.hint("建议随后执行 format")).toBe("建议随后执行 format")
   })
 })

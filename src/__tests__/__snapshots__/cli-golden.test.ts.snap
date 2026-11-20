@@ -115,7 +115,7 @@ exports[`各域行为与错误路径 > changelog 版本 1`] = `
 "退出码：0
 --- stdout ---
 无 CHANGELOG 需要更新
-CHANGELOG 镜像已更新：docs/changelog.md
+✔ CHANGELOG 镜像已更新：docs/changelog.md
 --- stderr ---
 ⚠️ 存在未归档的 active 任务，建议先归档再发版"
 `;
@@ -142,7 +142,7 @@ exports[`各域行为与错误路径 > config status 1`] = `
 
 其余已配置段：无
 
-无待处理项
+✔ 无待处理项
 --- stderr ---
 "
 `;
@@ -231,7 +231,7 @@ exports[`各域行为与错误路径 > conventions format 1`] = `
 "退出码：0
 --- stdout ---
 任务区：.tasks（扫描 3 个 .md）
-表格已全部为紧凑形态，无需归一
+✔ 表格已全部为紧凑形态，无需归一
 --- stderr ---
 "
 `;
@@ -298,8 +298,8 @@ exports[`各域行为与错误路径 > conventions upgrade 预演 1`] = `
 exports[`各域行为与错误路径 > docs theme 写入 1`] = `
 "退出码：0
 --- stdout ---
-写入：<SANDBOX>/workspace/docs/.vitepress/theme/index.ts
-写入：<SANDBOX>/workspace/docs/.vitepress/theme/custom.css
+✔ 写入：<SANDBOX>/workspace/docs/.vitepress/theme/index.ts
+✔ 写入：<SANDBOX>/workspace/docs/.vitepress/theme/custom.css
 --- stderr ---
 "
 `;
@@ -614,7 +614,7 @@ canonical（多家 agent 共读）：<SANDBOX>/home/.agents/skills（目录未�
 
 未安装的 agent 65 个未纳入分发（需要时用 toolkit skills install --dir <路径> 指定）
 
-共 3 处需处理：缺失 / 悬空 / 指向其他版本 / 副本漂移 / 入口壳过期用 toolkit skills install 补齐，同名冲突用 toolkit skills install --force 覆盖
+✖ 共 3 处需处理：缺失 / 悬空 / 指向其他版本 / 副本漂移 / 入口壳过期用 toolkit skills install 补齐，同名冲突用 toolkit skills install --force 覆盖
 --- stderr ---
 "
 `;
@@ -680,7 +680,7 @@ registry：registry.npmjs.org（来源：默认）
   toolkit skills install --scope project --dir .roo/skills
   toolkit skills install --scope project --dir .windsurf/skills
 
-项目面共 3 处需处理：漂移 / 缺失用 toolkit skills install --scope project 补齐，同名冲突加 --force
+✖ 项目面共 3 处需处理：漂移 / 缺失用 toolkit skills install --scope project 补齐，同名冲突加 --force
 --- stderr ---
 "
 `;
@@ -728,7 +728,7 @@ exports[`各域行为与错误路径 > tasks check 1`] = `
 --- stdout ---
 任务校验：
 【error】0 项
-未发现问题
+✔ 未发现问题
 【warn】1 项
   20261111-唐启云-基线示例已完成任务.md: 文件名日期 20261111 与 created 20261109 不一致
 --- stderr ---
@@ -739,7 +739,7 @@ exports[`各域行为与错误路径 > tasks normalize 1`] = `
 "退出码：0
 --- stdout ---
 归档归一化检查：发现 0 处问题
-未发现问题
+✔ 未发现问题
 --- stderr ---
 "
 `;
@@ -747,7 +747,7 @@ exports[`各域行为与错误路径 > tasks normalize 1`] = `
 exports[`各域行为与错误路径 > tasks normalize 修复 1`] = `
 "退出码：0
 --- stdout ---
-已修复 0 处
+✔ 已修复 0 处
 --- stderr ---
 "
 `;
@@ -1027,7 +1027,7 @@ exports[`各域行为与错误路径 > usage stats 1`] = `
 exports[`各域行为与错误路径 > usage 关闭 1`] = `
 "退出码：0
 --- stdout ---
-技能使用情况已关闭
+✔ 技能使用情况已关闭
 --- stderr ---
 "
 `;
@@ -1035,7 +1035,7 @@ exports[`各域行为与错误路径 > usage 关闭 1`] = `
 exports[`各域行为与错误路径 > usage 去重 1`] = `
 "退出码：0
 --- stdout ---
-去重完成：删除 0 条重复记录
+✔ 去重完成：删除 0 条重复记录
 --- stderr ---
 "
 `;
@@ -1080,7 +1080,7 @@ exports[`各域行为与错误路径 > usage 导出空数据 1`] = `
 exports[`各域行为与错误路径 > usage 开启 1`] = `
 "退出码：0
 --- stdout ---
-技能使用情况已开启；用 usage channel / origins / scope 配置通道与采集范围
+✔ 技能使用情况已开启；用 usage channel / origins / scope 配置通道与采集范围
 --- stderr ---
 "
 `;
@@ -1137,7 +1137,7 @@ exports[`各域行为与错误路径 > usage 通道 1`] = `
 exports[`各域行为与错误路径 > usage 重建索引 1`] = `
 "退出码：0
 --- stdout ---
-索引已重建：0 条事件
+✔ 索引已重建：0 条事件
 --- stderr ---
 "
 `;

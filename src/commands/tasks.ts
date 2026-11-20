@@ -17,6 +17,7 @@ import { resolveTasksDir, getConfigSection } from "../config"
 import { resolveRedactEnabled } from "../privacy/redact"
 import { assertJsonFormat } from "../json-output"
 import { getCheckWarnings, printJson, resolveLanguages, splitMulti } from "./shared"
+import { line, style } from "../term-style"
 
 // tasks 域公共选项：目录、脱敏、软告警与严格模式
 interface TasksCommonOptions {
@@ -71,7 +72,7 @@ function changesetPrefixIssues(): CheckIssue[] {
 // 打印校验结果（check / normalize --check 共用）；带行号的问题输出 file:line 便于编辑器跳转
 function printIssues(issues: Array<{ file: string; line?: number; message: string }>) {
   if (issues.length === 0) {
-    console.log("未发现问题")
+    console.log(line.ok("未发现问题"))
     return
   }
   for (const i of issues) {
@@ -188,7 +189,7 @@ export function registerTasksCommands(program: Command): void {
       // 默认视图提示：带过滤但落在待完成视图无结果时，提示归档需要显式 --view（避免误以为过滤不生效）
       const hasFilter = Boolean(options.owner || options.scope || options.status || options.date || options.since || options.until)
       if (!options.view && hasFilter && rows.length === 0) {
-        console.log("（提示：过滤默认作用于待完成视图，查看归档请加 --view archived 或 --view all）")
+        console.log(line.hint("（提示：过滤默认作用于待完成视图，查看归档请加 --view archived 或 --view all）"))
       }
     } catch (e) {
       console.error(`⚠️ 操作失败：${(e as Error).message}`)
@@ -205,7 +206,7 @@ export function registerTasksCommands(program: Command): void {
       const result = archiveTasks(ctx.dir, ctx.redact, { dryRun, warn: ctx.warn, task: options.task })
       // 软告警：归档了任务但无待发布变更集（仅真实归档时提示，预演不提示）
       if (ctx.warn && !dryRun && result.archived > 0 && !hasPendingChangeset()) {
-        console.warn("⚠️ 本次归档了任务，但 .changeset 无待发布变更集，如需发版请先创建变更集")
+        console.warn(`⚠️ ${style.warn("本次归档了任务，但 .changeset 无待发布变更集，")}${style.hint("如需发版请先创建变更集")}`)
       }
     } catch (e) {
       console.error(`⚠️ 操作失败：${(e as Error).message}`)
@@ -229,7 +230,7 @@ export function registerTasksCommands(program: Command): void {
         console.log(`【warn】${issues.length - errorCount} 项`)
         printIssues(issues.filter((i) => i.level === "warn"))
       } else {
-        console.log("（软告警已关闭，warn 不展示）")
+        console.log(line.hint("（软告警已关闭，warn 不展示）"))
       }
       if (errorCount > 0) process.exitCode = 1
     } catch (e) {
@@ -270,9 +271,9 @@ export function registerTasksCommands(program: Command): void {
       if (options.fix) {
         const result = fixArchive(ctx.dir)
         const bom = result.bomFixed ? `，去除 BOM ${result.bomFixed} 个文件` : ""
-        console.log(`已修复 ${result.fixed} 处${bom}`)
+        console.log(line.ok(`已修复 ${result.fixed} 处${bom}`))
         if (result.issues.length > 0) {
-          console.log("以下问题需人工确认：")
+          console.log(line.hint("以下问题需人工确认："))
           printIssues(result.issues)
         }
         return
@@ -297,7 +298,7 @@ export function registerTasksCommands(program: Command): void {
     try {
       const { rows, summary } = queryTasks(ctx.dir, view, filter)
       await exportTasks(path, rows, summary, ctx.redact)
-      console.log(`已导出 ${rows.length} 个任务 → ${path}`)
+      console.log(line.ok(`已导出 ${rows.length} 个任务 → ${style.accent(path)}`))
     } catch (e) {
       console.error(`⚠️ 操作失败：${(e as Error).message}`)
       process.exitCode = 1

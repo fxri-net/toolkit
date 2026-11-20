@@ -12,6 +12,7 @@ import { toYmd, toYmdCompact, todayCompact } from "../date"
 import type { ImportOptions, ImportResult } from "./types"
 import { writeFileAtomic } from "../write-atomic"
 import { acquireArchiveLock, releaseArchiveLock } from "./lock"
+import { line } from "../term-style"
 import { displayRel } from "./paths"
 import { taskBrief } from "./name"
 
@@ -353,7 +354,7 @@ export async function importTasks(file: string, tasksDir = ".tasks", options: Im
     throw new Error(`不支持的导入格式「${ext || ""}」，仅支持 .csv / .xlsx / .json`)
   }
   if (records.length === 0) {
-    console.log("未识别到可导入的任务行（检查表头是否包含「任务名/标题」等列名）")
+    console.log(line.hint("未识别到可导入的任务行（检查表头是否包含「任务名/标题」等列名）"))
     return { created: 0, skipped: 0, warnings, dryRun }
   }
 
@@ -396,10 +397,12 @@ export async function importTasks(file: string, tasksDir = ".tasks", options: Im
         const group = archiveGroups.get(built.date)
         if (group) group.push(built.block)
         else archiveGroups.set(built.date, [built.block])
-        console.log(`${dryRun ? "[预演] 将写入归档" : "已写入归档"} → ${displayRel(tasksDir, archiveFilePath(tasksDir, built.date))}`)
+        const rel = displayRel(tasksDir, archiveFilePath(tasksDir, built.date))
+        console.log(dryRun ? `[预演] 将写入归档 → ${rel}` : line.ok(`已写入归档 → ${rel}`))
       } else {
         const targetFile = writeActiveTask(tasksDir, t, dryRun, warnings)
-        console.log(`${dryRun ? "[预演] 将创建" : "已创建"} → ${displayRel(tasksDir, targetFile)}`)
+        const rel = displayRel(tasksDir, targetFile)
+        console.log(dryRun ? `[预演] 将创建 → ${rel}` : line.ok(`已创建 → ${rel}`))
       }
       created++
     }
@@ -423,7 +426,7 @@ export async function importTasks(file: string, tasksDir = ".tasks", options: Im
     }
   }
   for (const w of warnings) console.warn(`⚠️ ${w}`)
-  const kind = dryRun ? "预演可导入" : "已导入"
-  console.log(`${kind} ${created} 个任务，跳过 ${skipped} 行`)
+  if (dryRun) console.log(`预演可导入 ${created} 个任务，跳过 ${skipped} 行`)
+  else console.log(line.ok(`已导入 ${created} 个任务，跳过 ${skipped} 行`))
   return { created, skipped, warnings, dryRun }
 }

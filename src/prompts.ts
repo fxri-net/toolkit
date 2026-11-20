@@ -3,6 +3,7 @@
 
 // 运行时下限真源移到轻量模块，交互组件与 cli 快速路径共用同一份判定
 import { MIN_NODE } from "./node-version"
+import { line } from "./term-style"
 
 // 再导出保持既有引用面不变（测试与命令层仍从本模块取）
 export { MIN_NODE, nodeVersionAtLeast } from "./node-version"
@@ -51,7 +52,7 @@ export function requireInteractive(options: { action: string; hint: string; fall
 
 // 取消提示：诊断统一走 stderr，stdout 只放数据
 export function reportCancelled(message = "已取消，未修改任何文件"): void {
-  console.error(message)
+  console.error(line.hint(message))
 }
 
 export function isPromptCancel(error: unknown): boolean {

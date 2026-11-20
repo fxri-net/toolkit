@@ -7,6 +7,7 @@ import { formatList, formatStatus } from "../scope/print"
 import { requireInteractive, runInteractive } from "../prompts"
 import { resolveComparablePath } from "../scope/paths"
 import { runScopeAdd, runScopeMount, runScopeRemove, runScopeWizard } from "../scope/wizard"
+import { line } from "../term-style"
 
 // 注册 scope 命令：默认行为不变（无配置时全域生效）
 export function registerScopeCommands(program: Command): void {
@@ -46,7 +47,7 @@ export function registerScopeCommands(program: Command): void {
           )
           return
         }
-        for (const line of formatStatus(report)) console.log(line)
+        for (const text of formatStatus(report)) console.log(text)
       } catch (error) {
         console.error(`⚠️ ${(error as Error).message}`)
         process.exitCode = 1
@@ -90,9 +91,9 @@ export function registerScopeCommands(program: Command): void {
           )
           return
         }
-        for (const line of formatList(report)) console.log(line)
+        for (const text of formatList(report)) console.log(text)
         const missing = items.filter((item) => !item.exists)
-        if (missing.length > 0) console.log(`  条目异常：${missing.map((item) => item.path).join("、")}（路径不存在）`)
+        if (missing.length > 0) console.log(line.hint(`  条目异常：${missing.map((item) => item.path).join("、")}（路径不存在）`))
       } catch (error) {
         console.error(`⚠️ ${(error as Error).message}`)
         process.exitCode = 1

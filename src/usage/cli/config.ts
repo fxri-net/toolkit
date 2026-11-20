@@ -2,6 +2,7 @@
 import { resolve } from "node:path"
 import type { Command } from "commander"
 import { assertJsonFormat } from "../../json-output"
+import { line, style } from "../../term-style"
 import { loadUsageConfig, resolveUsageDir, updateUsageConfig } from "../config"
 import { createContext, printConfig, printJson, splitNames } from "./context"
 
@@ -13,7 +14,7 @@ export function registerUsageConfigCommands(usage: Command): void {
       .description("开启技能使用情况总开关（仍需配置通道、来源与技能范围）")
       .action(() => {
         updateUsageConfig({ enabled: true })
-        console.log("技能使用情况已开启；用 usage channel / origins / scope 配置通道与采集范围")
+        console.log(`${line.ok("技能使用情况已开启")}；${style.hint("用 usage channel / origins / scope 配置通道与采集范围")}`)
       })
 
     usage
@@ -21,7 +22,7 @@ export function registerUsageConfigCommands(usage: Command): void {
       .description("关闭技能使用情况总开关（已记录数据保留）")
       .action(() => {
         updateUsageConfig({ enabled: false })
-        console.log("技能使用情况已关闭")
+        console.log(line.ok("技能使用情况已关闭"))
       })
 
     // 采集通道：rule 与 hook 二选一，两侧写入各自守门
@@ -46,13 +47,13 @@ export function registerUsageConfigCommands(usage: Command): void {
           return
         }
         updateUsageConfig({ channel: mode })
-        console.log(`采集通道已切换为 ${mode}`)
+        console.log(line.ok(`采集通道已切换为 ${mode}`))
         if (mode === "rule") {
-          console.log("规则通道不依赖 Hook：把 toolkit usage rule 的输出复制进 Agent 全局规则")
-          console.log("已安装的 Hook 需自行清理：toolkit usage hooks remove")
+          console.log(line.hint("规则通道不依赖 Hook：把 toolkit usage rule 的输出复制进 Agent 全局规则"))
+          console.log(line.hint("已安装的 Hook 需自行清理：toolkit usage hooks remove"))
         } else {
-          console.log("Hook 通道需安装 Hook 并配置 Agent：toolkit usage hooks install")
-          console.log("已复制的规则段需自行删除，避免同一调用被记两次")
+          console.log(line.hint("Hook 通道需安装 Hook 并配置 Agent：toolkit usage hooks install"))
+          console.log(line.hint("已复制的规则段需自行删除，避免同一调用被记两次"))
         }
       })
 

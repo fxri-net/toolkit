@@ -2,6 +2,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, isAbsolute, join } from "node:path"
 import { writeFileAtomic } from "../write-atomic"
+import { line, style } from "../term-style"
 import { isPromptCancel, loadPrompts, requireInteractive } from "../prompts"
 import { loadUsageConfig, resolveUsageDir, updateUsageConfig } from "./config"
 import { readAllEvents, usagePaths, type UsagePaths } from "./store"
@@ -240,7 +241,7 @@ function runNonInteractiveUploadSetup(options: UploadSetupOptions): void {
     return
   }
   updateUsageConfig({ upload: { enabled: true, protocol, endpoint, headers } })
-  console.log("上传已启用；先执行 toolkit usage upload --dry-run 预览载荷")
+  console.log(`${line.ok("上传已启用")}；${style.hint("先执行 toolkit usage upload --dry-run 预览载荷")}`)
 }
 
 // 上传配置向导：协议 → 端点 → 请求头 → 确认启用
@@ -276,13 +277,13 @@ export async function runUploadSetup(options: UploadSetupOptions = {}): Promise<
     }
     const enabled = await confirm({ message: "确认启用上传？", default: config.upload.enabled })
     if (!enabled) {
-      console.log("已取消，未修改任何配置")
+      console.log(line.hint("已取消，未修改任何配置"))
       return
     }
     updateUsageConfig({ upload: { enabled: true, protocol, endpoint, headers } })
-    console.log("上传已启用；先执行 toolkit usage upload --dry-run 预览载荷")
+    console.log(`${line.ok("上传已启用")}；${style.hint("先执行 toolkit usage upload --dry-run 预览载荷")}`)
   } catch (error) {
-    if (isPromptCancel(error)) console.error("已取消，未修改任何配置")
+    if (isPromptCancel(error)) console.error(line.hint("已取消，未修改任何配置"))
     throw error
   }
 }
