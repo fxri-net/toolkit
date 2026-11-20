@@ -24,6 +24,7 @@
 5. **全局规则薄引用**：可变流程细节只进 skills（SKILL.md / references），`docs/rules/ai.md` 的「规则全文」保持薄壳——
    只承载稳定纪律、模块自有细节（无技能承载时）与用户可裁剪偏好（住 `personal` 模块），不复述可变流程细节；
    凡在规则全文复述了可变流程细节的改动即视为违背本规则，须收敛回 skill；个性化偏好不得以「非稳定纪律」为由删除，删除须显式确认。
+   `personal` 只收能被其它模块默认值覆写的取舍，且覆写须成对——偏好模块写取值、被覆写模块写默认值；通用纪律、能力与真源指向不得放入。
    原因：全局规则是用户手动复制的快照，细节复述会让能力升级后用户侧规则失同步；
    收敛进 skills 后技能随包同源分发（与 CLI 同一发布批次），升级只需 `pnpm add -g @fxri/toolkit`（软链自动跟随，副本形式再跑一次 `toolkit skills install`）。
 6. **规则层更新锚点**：`SPEC.md`、`templates/rules/*.md`（七个模块）、`docs/rules/ai.md`、`docs/rules/personal.md`、`docs/rules/commit.md`、

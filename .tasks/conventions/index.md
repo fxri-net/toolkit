@@ -18,7 +18,7 @@
 | ID | 规则 | 当前语义 | 归属 | 单一事实源 |
 | --- | --- | --- | --- | --- |
 | C-2 | 能力终点与授权 | 做任务收尾时：归档 + 沉淀即终点，提交默认需确认（`personal` 模块可覆写为自动提交），发版与推送须明确授权；写方向须命中开工词 + 范围明确 + 方案已定稿才动手，只读请求按意图判 | common | [ai.md](../../docs/rules/ai.md) 稳定纪律、[personal.md](../../templates/rules/personal.md) |
-| C-6 | 细节只进 skills | 写规则时：可变流程只进 skills，规则层不复述，防用户快照失同步；个性化偏好归 `personal` 模块，不得按「非稳定纪律」删除 | common | [AGENTS.md](../../AGENTS.md) 质量门 5 |
+| C-6 | 细节只进 skills | 写规则时：可变流程只进 skills，规则层不复述，防用户快照失同步；个性化偏好归 `personal` 模块，不得按「非稳定纪律」删除；偏好只收覆写项，通用纪律与真源指向不得入内 | common | [AGENTS.md](../../AGENTS.md) 质量门 5 |
 | C-7 | 触达核对前置 | 改能力或措辞前：先 grep 全仓定位触达点并另列仓库外平台侧（仓库简介 / social preview / npm 页），影响范围逐篇核对 | common | [AGENTS.md](../../AGENTS.md) 质量门 2 |
 | C-8 | 文档三层职责 | 写文档或规则时：手册＝用户视图、skills＝细节真源、`ai.md` 与各规则页＝薄壳（纪律 + 模块自有细节 + `personal` 偏好） | common | [ai.md](../../docs/rules/ai.md)、[AGENTS.md](../../AGENTS.md) 质量门 5 |
 | C-12 | 输出分流 | 对外输出：stdout 只放数据，诊断走 stderr | common | [cli.md](../../docs/cli.md)、[update.md](../../docs/config/update.md)、[skills.md](../../docs/config/skills.md) |
