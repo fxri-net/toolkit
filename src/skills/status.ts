@@ -33,6 +33,7 @@ import {
 import { projectStateFile, readProjectState, readSkillsState, skillsStateFile } from "./state"
 import { resolveSavedProjectSelection, resolveSavedSelection, type SelectionSkill } from "./selection"
 import { readProjectSkillsConfig, readSkillsInstallConfig } from "./config"
+import { resolveGateSetting } from "./gate"
 import { readTextFile } from "../read-text"
 import {
   SKILL_ENTRY,
@@ -263,6 +264,7 @@ function statusItems(
 export function skillsStatus(): SkillsStatusReport {
   const state = readSkillsState()
   const config = readSkillsInstallConfig()
+  const gateSetting = resolveGateSetting(config.gate)
   const { refs, sources } = collectStatusSources(state)
   const allNames = [...refs.keys()].sort()
   const mode = config.mode ?? "skills"
@@ -349,7 +351,8 @@ export function skillsStatus(): SkillsStatusReport {
     skills: allNames,
     skillVersionsFromState: [...refs.entries()].filter(([, ref]) => ref.fromState).map(([name]) => name),
     mode,
-    gate: config.gate === true,
+    gate: gateSetting.enabled,
+    gateRules: gateSetting.rules,
     selection,
     targetSelection: savedTargets ?? [],
     sources,

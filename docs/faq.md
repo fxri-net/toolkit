@@ -161,7 +161,8 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 
 ### 想让技能正文只在激活项目加载，怎么做？
 
-默认全局技能是全文安装，`description` 命中即整篇进入上下文。用 `toolkit skills install --gate` 开启内容闸门后，首批接入的三个 core 技能改为入口壳：
+默认全局技能是全文安装，`description` 命中即整篇进入上下文。用 `toolkit skills install --gate` 开启内容闸门后，
+默认把全部技能改为入口壳（可用 `skillsInstall.gate` 的 `include` / `exclude` 裁剪，或技能声明 `metadata.gate: false` 退出）：
 只保留 `name` / `description` 与一句「先运行 `toolkit scope guard <技能名>`」，正文由 guard 按当前目录判定——激活时输出正文，未激活以退出码 3 结束（stdout 为空）。
 需要全文时随时 `toolkit skills install --embed` 回退；开关与命令契约见 [scope 命令 · 内容闸门](./cli/scope#内容闸门-guard)。
 

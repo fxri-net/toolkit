@@ -8,7 +8,8 @@ import { assertUniqueSkillNames, buildSkillGateShell, classifyExisting, dirsEqua
 import { acquireSkillsLock, skillsLockFile } from "../lock"
 import { readSkillsState, skillsStateFile, writeSkillsState } from "../state"
 import { readSkillsInstallConfig, writeSkillsInstallConfig } from "../config"
-import { GATE_SKILLS, SKILL_ENTRY, STATE_FORMAT, STATE_SCHEMA_VERSION, type InstallReport, type RemoveResult, type SkillStateEntry, type SkillStateSource, type SkillStateTarget, type SkillItem, type SkillsRemoveReport, type TargetInstallResult } from "../types"
+import { isSkillGated, resolveGateSetting } from "../gate"
+import { SKILL_ENTRY, STATE_FORMAT, STATE_SCHEMA_VERSION, type InstallReport, type RemoveResult, type SkillStateEntry, type SkillStateSource, type SkillStateTarget, type SkillItem, type SkillsRemoveReport, type TargetInstallResult } from "../types"
 import { collectSources, filterSkillItems, orphanArtifactRemovable, pruneEntries, sourceSkillMap, type InstallOptions, type RemoveSkillsOptions } from "./common"
 
 
@@ -53,8 +54,10 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
     for (const source of sources) nextBySource.set(source.name, [])
     const handled = new Set<string>()
     const results: TargetInstallResult[] = []
-    // 内容闸门：--gate / --embed 显式取值优先，缺省读全局配置
-    const gateEnabled = options.gate ?? readSkillsInstallConfig().gate === true
+    // 内容闸门：--gate / --embed 显式取值优先，缺省读全局配置；规则由配置对象提供
+    const previousGate = readSkillsInstallConfig().gate
+    const gateSetting = resolveGateSetting(options.gate === undefined ? previousGate : options.gate)
+    const gateEnabled = gateSetting.enabled
 
     for (const target of targets) {
       const dirKey = pathKey(target.dir)
@@ -83,8 +86,8 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
         const recordedEntry = prevBySourceDir.get(item.source)?.get(dirKey)?.entries.find((entry) => entry.name === item.name)
         const recordedCopyHere = recordedEntry?.mode === "copy"
         const recordedGateHere = recordedEntry?.mode === "gate"
-        // 内容闸门只作用于首批接入技能，按技能身份判定；其余技能不受开关影响，保持全文
-        if (gateEnabled && GATE_SKILLS.has(item.name)) {
+        // 内容闸门按规则判定，技能可用 metadata.gate: false 单点退出；其余技能不受开关影响，保持全文
+        if (gateEnabled && isSkillGated(item.name, item.gate, gateSetting.rules)) {
           const expected = buildSkillGateShell(item.name, readSkillDescription(item.dir))
           const gateFile = join(dest, SKILL_ENTRY)
           const current = kind === "dir" && existsSync(gateFile) ? readTextFile(gateFile) : null
@@ -290,6 +293,12 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
       }
     }
 
+    // 首次开启提示：从「未开启」切到规则时告知接管数量与回退方式（非 TTY 同样适用）
+    const gateCount = results.reduce((count, result) => count + result.gates.length, 0)
+    if (options.gate === true && !resolveGateSetting(previousGate).enabled && !options.dryRun && gateCount > 0) {
+      console.warn(`⚠️ 内容闸门首次开启：本次接管 ${gateCount} 个技能；需要全文时运行 toolkit skills install --embed`)
+    }
+
     // 内容闸门开关随安装结果落盘：显式传入才写，预演与存在失败条目不写，避免开关与产物脱节
     if (options.gate !== undefined && !options.dryRun) {
       const failures = results.reduce((count, result) => count + result.failed.length, 0)
@@ -297,7 +306,9 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
         console.warn(`⚠️ 内容闸门开关未保存：本次有 ${failures} 个技能安装失败，修复后重跑 toolkit skills install`)
       } else {
         try {
-          writeSkillsInstallConfig({ gate: options.gate })
+          // 显式 --gate 不清掉已配置的接管规则
+          const nextGate = options.gate === true && typeof previousGate === "object" ? previousGate : options.gate
+          writeSkillsInstallConfig({ gate: nextGate })
         } catch (e) {
           console.warn(`⚠️ 内容闸门开关保存失败：${(e as Error).message}`)
         }

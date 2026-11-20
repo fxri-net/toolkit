@@ -53,7 +53,9 @@ import {
   bumpSkillVersions,
   isValidVersion,
   BUILTIN_SOURCE,
-  GATE_SKILLS,
+  gateRuleSummary,
+  isSkillGated,
+  resolveGateSetting,
   packageVersion,
   type InstallReport,
   type ProjectDirResult,
@@ -321,6 +323,7 @@ function printStatusReport(report: SkillsStatusReport): void {
       ? `已开启（${gateArtifacts} 个入口壳，正文由 toolkit scope guard 下发）`
       : "已开启（尚未生成入口壳产物，运行 toolkit skills install 生效）"
   console.log(`内容闸门：${gateText}`)
+  if (report.gate) console.log(`闸门规则：${gateRuleSummary(report.gateRules)}`)
   console.log(`选择集（${report.selection.length}）：${report.selection.join("、") || "无"}`)
   // 来源内存在但未选择的技能：改名 / 新增后不再静默不可见；零选择时不刷全量清单
   const unselectedSkills = report.selection.length > 0 ? findUnselectedSkills(report) : []
@@ -752,7 +755,7 @@ export function registerSkillsCommands(program: Command): void {
     .option("--force", "覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）")
     .option("--prune", "清理未选择且内容与本包真源一致的旧产物（只清本包登记条目）")
     .option("--mode <mode>", "技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）")
-    .option("--gate", "开启内容闸门：首批接入技能改写为入口壳，正文由 toolkit scope guard 按作用域下发（仅全局面）")
+    .option("--gate", "开启内容闸门：按 skillsInstall.gate 规则接管技能为入口壳，正文由 toolkit scope guard 按作用域下发（仅全局面）")
     .option("--embed", "回退内容闸门：把入口壳改回全文（仅全局面）")
     .option("--no-skills", "本次不安装任何技能，不改模式与已保存选择")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
@@ -827,10 +830,10 @@ export function registerSkillsCommands(program: Command): void {
         }
         // 内容闸门开关由安装结果决定落盘时机（成功后才写），此处只计算本次取值
         const gateOption = options.gate ? true : options.embed ? false : undefined
-        // 降级不静默：闸门生效时接入技能以入口壳写入，--copy 对其无法采纳
-        const effectiveGate = gateOption ?? readSkillsInstallConfig().gate === true
-        if (options.copy && runGlobal && effectiveGate) {
-          const gated = selection.filter((name) => GATE_SKILLS.has(name))
+        const gateSetting = resolveGateSetting(gateOption === undefined ? readSkillsInstallConfig().gate : gateOption)
+        // 降级不静默：闸门生效时被接管的技能以入口壳写入，--copy 对其无法采纳
+        if (options.copy && runGlobal && gateSetting.enabled) {
+          const gated = selection.filter((name) => isSkillGated(name, undefined, gateSetting.rules))
           if (gated.length > 0) console.warn(`⚠️ 内容闸门下 ${gated.join("、")} 以入口壳写入，--copy 对其不生效`)
         }
 

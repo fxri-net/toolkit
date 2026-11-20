@@ -1,9 +1,10 @@
 // 内容闸门 guard：按当前目录作用域决定是否下发技能正文
 // stdout 只放正文（未激活时为空），原因与诊断一律走 stderr；只读，不写缓存
 import { existsSync } from "node:fs"
-import { join } from "node:path"
+import { basename, join } from "node:path"
 import { readTextFile } from "../read-text"
 import { skillsSourceDir } from "../skills/source/package"
+import { readSkillsState } from "../skills/state"
 import { SKILL_ENTRY } from "../skills/types"
 import { resolveScope, type ScopeReport } from "./load"
 
@@ -25,13 +26,31 @@ export interface GuardResult {
   report: ScopeReport
 }
 
-// 技能名校验并取包内真源目录：非法名与包内不存在的名字分别报错
+// 外部来源技能目录：按状态文件登记的来源根解析；内置源没有时才会走到这里
+function externalSkillDir(name: string): string | null {
+  const state = readSkillsState()
+  if (!state) return null
+  for (const source of Object.values(state.sources)) {
+    if (source.kind === "builtin" || !source.root) continue
+    const candidates = [join(source.root, name), join(source.root, "skills", name)]
+    for (const dir of candidates) {
+      if (existsSync(join(dir, SKILL_ENTRY))) return dir
+    }
+    // 来源根本身就是单个技能目录
+    if (basename(source.root) === name && existsSync(join(source.root, SKILL_ENTRY))) return source.root
+  }
+  return null
+}
+
+// 技能名校验并取真源目录：先查内置包，再查已登记的外部来源
 // 按名字直取目录，不扫描全部技能，保证 guard 的启动成本只与单个技能相关
 export function packageSkillDir(name: string): string {
   if (!SKILL_NAME_RE.test(name)) throw new Error(`技能名非法：${name}（只允许单段名字，不含路径分隔符）`)
-  const dir = join(skillsSourceDir(), name)
-  if (!existsSync(join(dir, SKILL_ENTRY))) throw new Error(`包内不存在技能：${name}`)
-  return dir
+  const builtin = join(skillsSourceDir(), name)
+  if (existsSync(join(builtin, SKILL_ENTRY))) return builtin
+  const external = externalSkillDir(name)
+  if (external) return external
+  throw new Error(`未找到技能：${name}（内置源与已登记来源均不存在）`)
 }
 
 // 解析 guard 结果：激活时读取正文，未激活时给出原因（不做任何写操作）

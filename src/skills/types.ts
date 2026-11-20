@@ -23,8 +23,6 @@ export const STATE_FORMAT = "fxri.toolkit.skills-state"
 export const STATE_SCHEMA_VERSION = 1
 // 内置技能来源名：本任务只支持包内源，外部来源由后续能力扩展
 export const BUILTIN_SOURCE = "toolkit"
-// 内容闸门首批接入技能：开启闸门时这批技能改写为入口壳，其余技能保持全文（按技能身份判定，不区分来源）
-export const GATE_SKILLS: ReadonlySet<string> = new Set(["fxri-plan-to-task", "fxri-session-recap", "fxri-plan-review"])
 // 项目侧真源目录（仓库根相对、posix 分隔）：完整副本只此一份，其余候选目录放薄壳指向它
 export const PROJECT_SOURCE_DIR = FALLBACK_SKILL_DIR
 // 项目态归属账目录与文件名（仓库根相对、posix 分隔）
@@ -39,6 +37,12 @@ export type ArtifactMode = "link" | "copy"
 export type StateMode = ArtifactMode | "shell" | "gate"
 // 技能分层：core 必装、不可取消；optional 可选，缺省按 optional 处理
 export type SkillTier = "core" | "optional"
+
+// 内容闸门接管规则：include / exclude 为技能名模式（glob 或 re:），排除优先
+export interface GateRules {
+  include: string[]
+  exclude: string[]
+}
 
 // 内置 agent 全局技能目录快照（来源：上游 vercel-labs/skills 的 agent 表，77 条可安装项；另补本地核实的 DeepSeek Harness）
 // dir 相对用户 home；dirEnv 指定改写 dir 首段的环境变量（如 CLAUDE_CONFIG_DIR）；detect 为额外存在性判据（相对 home 或绝对路径）
@@ -158,6 +162,8 @@ export interface PackageSkill {
   requires: string[]
   // 曾用名：SKILL.md frontmatter metadata.previousNames 或清单条目 previousNames，供改名后迁移选择集与状态
   previousNames: string[]
+  // 内容闸门退出声明：metadata.gate 为 false 时不接管；缺省随全局规则
+  gate?: boolean
 }
 
 // 统一技能条目：内置源与外部来源共用同一视图，安装 / 选择 / 状态按此遍历
@@ -254,6 +260,8 @@ export interface SkillsStatusReport {
   mode: SkillsMode
   // 内容闸门是否开启
   gate: boolean
+  // 内容闸门接管规则（开关关闭时仍给出默认值，便于展示）
+  gateRules: GateRules
   // 本次生效的技能选择集（未保存过选择时按模式默认处理）
   selection: string[]
   // 本次生效的目标选择集（canonical / agent name；空数组表示沿用全部可用目标）

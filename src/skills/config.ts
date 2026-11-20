@@ -4,9 +4,10 @@
 import { copyFileSync, existsSync, mkdirSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
 import { getHomeDir, inspectConfigLayers, resetToolkitConfigCache } from "../config"
+import { compilePattern } from "../scope/pattern"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
-import { BUILTIN_SOURCE, type SkillsMode } from "./types"
+import { BUILTIN_SOURCE, type GateRules, type SkillsMode } from "./types"
 
 // 外部来源登记：本地来源记 root（绝对路径），远程来源记 url 与可选 ref
 export interface ExternalSourceConfig {
@@ -21,8 +22,8 @@ export interface SkillsInstallConfig {
   sources?: Record<string, ExternalSourceConfig>
   selection?: Record<string, string[]>
   mode?: SkillsMode
-  // 内容闸门：开启后首批接入技能改写为入口壳，正文由 toolkit scope guard 按作用域下发
-  gate?: boolean
+  // 内容闸门：true / false 或 { include, exclude } 规则；开启后按规则接管技能为入口壳
+  gate?: boolean | GateRules
 }
 
 // 项目段：targets 为项目相对目录数组；selection 为技能名数组（项目面只有内置源）
@@ -151,12 +152,41 @@ function parseMode(section: string, value: unknown, file: string | null): Skills
   return undefined
 }
 
-// 内容闸门开关解析：只接受布尔值；非法值告警后按未配置（关闭）处理
-function parseGate(value: unknown, file: string | null): boolean | undefined {
+// 内容闸门开关解析：接受布尔值或 { include, exclude } 对象；非法值告警后按未配置处理
+function parseGate(value: unknown, file: string | null): boolean | GateRules | undefined {
   if (value === undefined) return undefined
   if (typeof value === "boolean") return value
-  warnInvalid("skillsInstall", "gate", file, "须为布尔值")
+  if (isPlainObject(value)) {
+    return {
+      include: parseGatePatterns(value.include, "include", file) ?? ["*"],
+      exclude: parseGatePatterns(value.exclude, "exclude", file) ?? [],
+    }
+  }
+  warnInvalid("skillsInstall", "gate", file, "须为布尔值或 { include, exclude } 对象")
   return undefined
+}
+
+// 闸门规则数组：逐条编译校验，非法或过于复杂的规则告警剔除；字段缺省返回 undefined 由调用方取默认
+function parseGatePatterns(value: unknown, field: string, file: string | null): string[] | undefined {
+  if (value === undefined) return undefined
+  if (!Array.isArray(value)) {
+    warnInvalid("skillsInstall", `gate.${field}`, file, "须为字符串数组")
+    return undefined
+  }
+  const out: string[] = []
+  for (const item of value) {
+    if (typeof item !== "string" || item.trim() === "") {
+      warnInvalid("skillsInstall", `gate.${field}`, file, "含非字符串或空项，已剔除")
+      continue
+    }
+    const compiled = compilePattern(item.trim())
+    if (!compiled.ok) {
+      warnInvalid("skillsInstall", `gate.${field}`, file, `规则「${item.trim()}」${compiled.reason}，已剔除`)
+      continue
+    }
+    out.push(item.trim())
+  }
+  return out
 }
 
 // 取内置源的选择集：未保存过选择时返回 undefined，由调用方回落「全部技能」

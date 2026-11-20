@@ -5,7 +5,10 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { runGuard } from "../scope/guard"
-import { GATE_SKILLS, autoLinkSkills, installSkills, isSkillGateShell, readSkillsInstallConfig, readSkillsState, removeSkills, skillsSourceDir, skillsStateFile, skillsStatus } from "../skills"
+import { autoLinkSkills, installSkills, isSkillGateShell, isSkillGated, listPackageSkills, readSkillsInstallConfig, readSkillsState, removeSkills, skillsSourceDir, skillsStateFile, skillsStatus } from "../skills"
+
+// 默认全部技能都被接管（include: ["*"]）
+const ALL_SKILLS = listPackageSkills().map((skill) => skill.name)
 
 // 临时 home：产物只落在临时目录，不触碰真实用户全局技能目录
 let home = ""
@@ -40,6 +43,8 @@ beforeEach(() => {
   resetToolkitConfigCache()
   savedCI = process.env.CI
   delete process.env.CI
+  // 首次开启提示属于产品输出，测试里收敛掉避免刷屏
+  vi.spyOn(console, "warn").mockImplementation(() => {})
 })
 
 afterEach(() => {
@@ -52,11 +57,10 @@ afterEach(() => {
 })
 
 describe("内容闸门安装形态", () => {
-  it("开启后首批接入技能写入口壳，未接入技能保持软链", () => {
+  it("开启后默认全部技能写入口壳", () => {
     const report = installSkills({ gate: true })
     const primary = primaryTarget(report)
-    expect([...primary.gates].sort()).toEqual([...GATE_SKILLS].sort())
-    expect(primary.links).toContain("fxri-text-encoding")
+    expect([...primary.gates].sort()).toEqual([...ALL_SKILLS].sort())
     const gatedDir = join(primaryDir(), "fxri-plan-to-task")
     const content = readFileSync(join(gatedDir, "SKILL.md"), "utf8")
     expect(isSkillGateShell(content)).toBe(true)
@@ -68,11 +72,24 @@ describe("内容闸门安装形态", () => {
     expect(stateEntries(primaryDir(), "gate")).toContain("fxri-plan-to-task")
   })
 
+  it("include / exclude 规则裁剪接管范围", () => {
+    const report = installSkills({ gate: { include: ["fxri-*"], exclude: ["fxri-text-encoding"] } })
+    const primary = primaryTarget(report)
+    expect(primary.gates).toContain("fxri-plan-to-task")
+    expect(primary.gates).not.toContain("fxri-text-encoding")
+  })
+
+  it("技能声明 metadata.gate: false 时退出接管", () => {
+    expect(isSkillGated("fxri-plan-to-task", false, { include: ["*"], exclude: [] })).toBe(false)
+    expect(isSkillGated("fxri-plan-to-task", undefined, { include: ["fxri-*"], exclude: [] })).toBe(true)
+    expect(isSkillGated("fxri-plan-to-task", undefined, { include: ["*"], exclude: ["fxri-plan-*"] })).toBe(false)
+  })
+
   it("重复开启幂等：同一内容跳过，不重写产物", () => {
     installSkills({ gate: true })
     const again = installSkills({ gate: true })
-    expect(primaryTarget(again).skipped).toEqual(expect.arrayContaining([...GATE_SKILLS]))
-    expect(primaryTarget(again).gates).toEqual(expect.arrayContaining([...GATE_SKILLS]))
+    expect(primaryTarget(again).skipped).toEqual(expect.arrayContaining(ALL_SKILLS))
+    expect(primaryTarget(again).gates).toEqual(expect.arrayContaining(ALL_SKILLS))
   })
 
   it("--embed 回退全文、再次开启往返稳定", () => {
@@ -81,8 +98,8 @@ describe("内容闸门安装形态", () => {
     expect(primaryTarget(embedded).gates).toEqual([])
     expect(lstatSync(join(primaryDir(), "fxri-plan-to-task")).isSymbolicLink()).toBe(true)
     const regated = installSkills({ gate: true })
-    expect(primaryTarget(regated).gates).toEqual(expect.arrayContaining([...GATE_SKILLS]))
-    expect(stateEntries(primaryDir(), "gate")).toEqual(expect.arrayContaining([...GATE_SKILLS]))
+    expect(primaryTarget(regated).gates).toEqual(expect.arrayContaining(ALL_SKILLS))
+    expect(stateEntries(primaryDir(), "gate")).toEqual(expect.arrayContaining(ALL_SKILLS))
   })
 
   it("status 将入口壳单列为 gate 形态且不计入问题", () => {
@@ -115,7 +132,7 @@ describe("内容闸门安装形态", () => {
   it("卸载按归属清理入口壳目录", () => {
     installSkills({ gate: true })
     removeSkills()
-    for (const name of GATE_SKILLS) expect(existsSync(join(primaryDir(), name))).toBe(false)
+    for (const name of ALL_SKILLS) expect(existsSync(join(primaryDir(), name))).toBe(false)
     expect(existsSync(skillsStateFile())).toBe(false)
   })
 
