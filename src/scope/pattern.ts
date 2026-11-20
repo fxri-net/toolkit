@@ -69,8 +69,8 @@ export interface PathPatternOptions {
 }
 
 // 路径层匹配：目标取真实形态；glob 规则先展开 ~ 与相对路径，正则按归一后的路径匹配
+// 大小写口径全平台一致：glob 与正则都按不区分大小写处理（目标已折小写，正则恒定带 i）
 export function matchPathPattern(path: string, pattern: string, options: PathPatternOptions): boolean {
-  const caseInsensitive = options.caseInsensitive ?? true
   const home = options.home ?? homedir()
   const expanded = expandHome(pattern, home)
   const isRegex = expanded.startsWith(REGEX_PREFIX)
@@ -78,7 +78,7 @@ export function matchPathPattern(path: string, pattern: string, options: PathPat
   const source = isRegex
     ? expanded
     : normalizePathForCompare(canonicalPath(isAbsolute(expanded) ? expanded : resolve(options.baseDir, expanded)))
-  const compiled = compilePattern(source, caseInsensitive)
+  const compiled = compilePattern(source, true)
   if (!compiled.ok) return false
   const target = normalizePathForCompare(canonicalPath(isAbsolute(path) ? path : resolve(options.baseDir, path)))
   return compiled.pattern.test(target)

@@ -83,9 +83,9 @@ describe("matchPathPattern", () => {
   })
 
   it("正则按归一后的路径匹配，大小写与既有 glob 口径一致", () => {
-    // Windows 的归一绝对路径带盘符，正则用可选的盘符前缀兼容两平台
-    const pattern = "re:^([a-z]:)?/home/u/work/repo$"
-    expect(matchPathPattern("/Home/U/Work/Repo", pattern, { baseDir: "/home/u" })).toBe(true)
+    // 全平台统一不区分大小写：大写正则在小写路径上同样命中
+    expect(matchPathPattern("/home/u/work/repo", "re:^([a-z]:)?/HOME/U/WORK/REPO$", { baseDir: "/home/u" })).toBe(true)
+    expect(matchPathPattern("/Home/U/Work/Repo", "re:^([a-z]:)?/home/u/work/repo$", { baseDir: "/home/u" })).toBe(true)
     expect(matchPathPattern("/home/u/work/repo", "re:^([a-z]:)?/home/u/other", { baseDir: "/home/u" })).toBe(false)
   })
 })
