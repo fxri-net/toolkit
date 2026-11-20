@@ -170,6 +170,15 @@ describe("Hook 命令的平台形态", () => {
     )
   })
 
+  it("路径含中文时按平台规则原样保留", () => {
+    expect(buildHookCommand("trae", "D:/工作/cli.js", "C:/工具/node.exe", "win32")).toBe(
+      `powershell -NoProfile -Command "& 'C:/工具/node.exe' 'D:/工作/cli.js' usage ingest --agent trae"`,
+    )
+    expect(buildHookCommand("trae", "/home/用户/cli.js", "/opt/node", "linux")).toBe(
+      `'/opt/node' '/home/用户/cli.js' usage ingest --agent trae`,
+    )
+  })
+
   it("判定已安装命令是否为当前平台形态", () => {
     const win = buildHookCommand("trae", "/opt/cli.js", "/opt/node", "win32")
     const posix = buildHookCommand("trae", "/opt/cli.js", "/opt/node", "linux")

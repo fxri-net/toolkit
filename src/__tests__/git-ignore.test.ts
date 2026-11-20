@@ -2,7 +2,7 @@
 // 真 git 用例走 execSync("git init")；归因分支（exit 128 的 stderr 细分）用 spawnSync 桩构造，避免依赖 git 的具体报错文案
 import { describe, it, expect, afterAll, vi } from "vitest"
 import { execSync } from "node:child_process"
-import { mkdtempSync, writeFileSync, rmSync, realpathSync } from "node:fs"
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync, realpathSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
@@ -103,6 +103,15 @@ describe("checkIgnore 单文件忽略判定", { timeout: 15000 }, () => {
   it("非仓库归 not-a-repo", () => {
     const dir = makeDir("tk-gi-ign3-")
     expect(checkIgnore(join(dir, "foo.txt"))).toEqual({ state: "not-a-repo" })
+  })
+
+  it("中文路径经 stdin 传入 git 仍正确判定", () => {
+    const repo = makeRepo("tk-gi-cjk-")
+    writeFileSync(join(repo, ".gitignore"), "临时目录/\n", "utf8")
+    mkdirSync(join(repo, "临时目录"), { recursive: true })
+    writeFileSync(join(repo, "临时目录", "文件.txt"), "x", "utf8")
+    expect(checkIgnore(join(repo, "临时目录", "文件.txt"))).toEqual({ state: "ignored" })
+    expect(checkIgnore(join(repo, "普通文件.txt"))).toEqual({ state: "not-ignored" })
   })
 })
 
