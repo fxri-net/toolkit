@@ -350,7 +350,7 @@ exports[`各域行为与错误路径 > rules compose 未知预设 1`] = `
 exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 "退出码：0
 --- stdout ---
-> 规则更新时间 2026-11-19 09:30
+> 规则更新时间 2026-11-20 11:47
 
 你是一个严谨的编程助手，专注于产出可维护、风格一致的代码
 
@@ -373,8 +373,6 @@ exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 
 ## 工作流
 
-> 本模块只放稳定纪律。新增一条前先问「脱离已加载技能是否仍成立」——不成立就是可变细节，只进 skill。
-
 - 方案先行：动手前先给方案（目标 / 步骤 / 影响 / 验证与回滚）；**方案确认不等于执行授权**。
 - 开工判据：命中开工词（开始、开工、动手、执行、落地、按计划做、照这个做）且范围明确、方案已定稿才动手；
   「可以 / 定稿 / 落档 / 继续评估」都不等于开工；说得像开工但没命中时先反问一句。
@@ -386,7 +384,7 @@ exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 - 质量门：项目聚合验收命令必须通过，本地与 CI 共用同一份清单。
 - 动作不算、改动才算：提交 / 发版 / 推送本身不构成任务；归档 + 规范沉淀即流程终点，提交随收尾执行。
 - 技能上报（若启用统计）：调用 Skill 后立即上报，细节见《技能使用情况规则》。
-- 任务管理细节（状态、粒度、建档判据、时间取证、收尾流程）一律见已加载的 fxri-* 技能，本规则不复述。
+- 任务管理细节（状态、粒度、建档判据、时间取证、收尾流程）以已加载的 fxri-* 技能为准。
 --- stderr ---
 "
 `;
@@ -397,10 +395,10 @@ exports[`各域行为与错误路径 > rules list 1`] = `
 规则模块：
     core     2026-11-19 09:30  角色定位与代码规范（minimal / recommended / complete / full）
     output   2026-11-08 02:21  输出要求（recommended / complete / full）
-    workflow 2026-11-19 09:30  工作流与方案落盘（recommended / complete / full）
-    env      2026-11-19 09:30  环境与版本（complete / full）
+    workflow 2026-11-20 11:47  工作流与方案落盘（recommended / complete / full）
+    env      2026-11-20 11:47  环境与版本（complete / full）
     commit   2026-11-13 10:13  提交信息规则（full）
-    usage    2026-11-19 09:30  技能使用情况（full）
+    usage    2026-11-20 11:47  技能使用情况（full）
 预设：minimal=core；recommended=core+output+workflow；complete=core+output+workflow+env；full=core+output+workflow+env+commit+usage
 当前缓存：无（默认 recommended）
 --- stderr ---
@@ -489,7 +487,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
       "title": "工作流与方案落盘",
       "summary": "方案先行、只读判定、授权边界、任务建档与会话记忆",
       "file": "workflow.md",
-      "anchor": "2026-11-19 09:30",
+      "anchor": "2026-11-20 11:47",
       "presets": [
         "recommended",
         "complete",
@@ -501,7 +499,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
       "title": "环境与版本",
       "summary": "安装、升级、升级提示与就绪校验",
       "file": "env.md",
-      "anchor": "2026-11-19 09:30",
+      "anchor": "2026-11-20 11:47",
       "presets": [
         "complete",
         "full"
@@ -522,7 +520,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
       "title": "技能使用情况",
       "summary": "Skill 调用后的本机使用上报与回复前自检",
       "file": "usage.md",
-      "anchor": "2026-11-19 09:30",
+      "anchor": "2026-11-20 11:47",
       "presets": [
         "full"
       ]
@@ -976,11 +974,9 @@ Hook：未安装
 exports[`各域行为与错误路径 > usage rule 1`] = `
 "退出码：0
 --- stdout ---
-> 规则更新时间 2026-11-19 09:30
+> 规则更新时间 2026-11-20 11:47
 
 ## 技能使用情况（必做）
-
-> 本模块暂无对应技能，上报流程细节直接由本模块承载。
 
 - 每次调用 Skill 工具（加载并遵循某个技能）后，立即执行 \`toolkit usage record --skill <技能名>\`；同一技能调用几次就重复传几次，未调用 Skill 工具则不执行。
 - 同一轮连续调用多个技能时，可在本轮最后一次调用后合并为一条命令；不得拖到下一轮或会话结束。

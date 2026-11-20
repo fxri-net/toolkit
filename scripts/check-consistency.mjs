@@ -296,6 +296,42 @@ for (const [file, budget] of Object.entries(RULE_BUDGETS)) {
   }
 }
 
+// 规则块内只放业务文本：解释性说明（模块归属、升级入口、读者定位）留在规则页围栏外，页面可见但不进上下文
+// 扫描模块正文与规则页围栏块，均跳过首行的更新时间锚点——锚点随快照复制走，属业务参照物
+// 「本文」需排除「文本文件 / 文档」等正常业务词，故用前瞻断言而非纯子串
+const READER_PATTERNS = [
+  { label: "本模块", re: /本模块/ },
+  { label: "本页", re: /本页/ },
+  { label: "本文", re: /本文(?![件档章])/ },
+  { label: "文档站", re: /文档站/ },
+  { label: "重新复制", re: /重新复制/ },
+  { label: "目标读者", re: /目标读者/ },
+  { label: "可裁剪", re: /可裁剪/ },
+  { label: "按需增删", re: /按需增删/ },
+]
+const ruleTexts = []
+const rulesDir = join(root, "templates", "rules")
+if (existsSync(rulesDir)) {
+  for (const name of readdirSync(rulesDir)) {
+    if (name.endsWith(".md")) ruleTexts.push({ rel: `templates/rules/${name}`, text: read(`templates/rules/${name}`) })
+  }
+}
+const docsRulesDir = join(root, "docs", "rules")
+if (existsSync(docsRulesDir)) {
+  for (const name of readdirSync(docsRulesDir)) {
+    if (!name.endsWith(".md")) continue
+    const rel = `docs/rules/${name}`
+    const fenced = /^````markdown\n([\s\S]*?)^````/m.exec(read(rel))
+    if (fenced) ruleTexts.push({ rel, text: fenced[1] })
+  }
+}
+for (const { rel, text } of ruleTexts) {
+  const body = text.split("\n").slice(1).join("\n")
+  for (const { label, re } of READER_PATTERNS) {
+    if (re.test(body)) errors.push(`${rel} 的可复制正文出现读者向措辞「${label}」：移到规则页围栏外并保持页面可见`)
+  }
+}
+
 // 输出：error 阻断，warn 只提示
 if (warns.length > 0) {
   console.log("规范一致性检查：")
