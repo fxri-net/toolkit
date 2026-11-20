@@ -8,6 +8,9 @@ import { join } from "node:path"
 
 export interface ClipboardResult {
   ok: boolean
+  // 成功执行的可执行文件名：供用户提示使用，避免暴露完整命令
+  label?: string
+  // 完整命令串：仅用于诊断与错误信息
   command?: string
   error?: string
 }
@@ -46,7 +49,7 @@ export function copyToClipboard(
         env: { ...process.env, [CLIP_FILE_ENV]: file },
         windowsHide: true,
       })
-      if (!result.error && result.status === 0) return { ok: true, command: [command, ...args].join(" ") }
+      if (!result.error && result.status === 0) return { ok: true, label: command, command: [command, ...args].join(" ") }
       return { ok: false, error: `${command}：${result.error?.message ?? `退出码 ${String(result.status)}`}` }
     } finally {
       rmSync(dir, { recursive: true, force: true })
@@ -57,7 +60,7 @@ export function copyToClipboard(
     const [command, ...args] = candidate
     if (!command) continue
     const result = spawn(command, args, { input: text })
-    if (!result.error && result.status === 0) return { ok: true, command: [command, ...args].join(" ") }
+    if (!result.error && result.status === 0) return { ok: true, label: command, command: [command, ...args].join(" ") }
     errors.push(`${command}：${result.error?.message ?? `退出码 ${String(result.status)}`}`)
   }
   return { ok: false, error: errors.join("；") }

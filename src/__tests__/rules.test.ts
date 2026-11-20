@@ -129,6 +129,7 @@ describe("剪贴板命令", () => {
     }) as unknown as typeof import("node:child_process").spawnSync
     const result = copyToClipboard("规则更新时间：2026-11-21 中文", "win32", fake)
     expect(result.ok).toBe(true)
+    expect(result.label).toBe("powershell")
     expect(result.command).toContain("powershell")
     expect(capturedText).toBe("规则更新时间：2026-11-21 中文")
     expect(existsSync(capturedPath)).toBe(false)
@@ -137,6 +138,7 @@ describe("剪贴板命令", () => {
   it("首个成功命令即返回；全部失败返回错误", () => {
     const success = copyToClipboard("text", "linux", (() => ({ status: 0 })) as unknown as typeof import("node:child_process").spawnSync)
     expect(success.ok).toBe(true)
+    expect(success.label).toBe("wl-copy")
     expect(success.command).toContain("wl-copy")
     const failure = copyToClipboard(
       "text",

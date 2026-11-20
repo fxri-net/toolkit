@@ -143,7 +143,7 @@ export function registerRulesCommands(program: Command): void {
             process.exitCode = 1
             return
           }
-          console.error(`已复制到剪贴板（${result.command}）`)
+          console.error(`已复制到剪贴板（${result.label}）`)
           return
         }
         if (options.out) {
@@ -158,7 +158,7 @@ export function registerRulesCommands(program: Command): void {
           const copied = copyToClipboard(text)
           console.error(
             copied.ok
-              ? `已复制到剪贴板（${copied.command}），可直接粘贴到 Agent 的全局规则入口`
+              ? `已复制到剪贴板（${copied.label}），可直接粘贴到 Agent 的全局规则入口`
               : "未检测到可用剪贴板，已输出到 stdout，可手动复制",
           )
         }
