@@ -31,6 +31,8 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 - 设置范围只需选模式并勾选目录，不要求手写 glob；保存前会展示将写入的目录数
 - `scope add/remove` 只改 `~/.toolkitrc.json`（读 → 合并 → 原子写），不动项目文件
 - `scope mount` 会**向所选项目写入技能文件**，必须显式勾选并确认；`--dry-run` 只预览
+- `scope mount` 仍只扫一层（`.git` / `package.json` / `.tasks`），不会因作用域扫描改为递归而扩大写入范围；
+  作用域设置流程使用递归发现：命中 `.git` 即剪枝，依赖与产物目录不进入，默认跳过隐藏目录与嵌套仓库
 - 「内容闸门」项显示当前开关（读 `skillsInstall.gate`），切换后可按已保存选择（无则 core）立即刷新产物，拒绝刷新则提示运行 `toolkit skills install`
 - 非 TTY 环境：向导与 `mount` 会提示无法交互；`add` / `remove` 请直接带目录参数
 
