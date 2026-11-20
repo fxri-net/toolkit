@@ -41,6 +41,8 @@ export interface ScanResult {
   repos: RepositoryEntry[]
   skipped: Array<{ path: string; reason: string }>
   truncated: string | null
+  // 因 nested=false 被剪枝的仓库根数量：只计数，不展开内部嵌套
+  nestedPruned: number
 }
 
 export interface ScanOptions {
@@ -88,6 +90,7 @@ export function scanRepositoryTree(parent: string, options: ScanOptions = {}): S
   const seen = new Set<string>()
   let visited = 0
   let truncated: string | null = null
+  let nestedPruned = 0
 
   // 上限判定：命中即停止后续遍历，并记录首个原因
   const limitHit = (): boolean => {
@@ -114,7 +117,10 @@ export function scanRepositoryTree(parent: string, options: ScanOptions = {}): S
         repos.push({ name: basename(dir), path: real, kind })
       }
       // 仓库内部不再下探：node_modules / vendor 等依赖因此永远不会被当成项目
-      if (kind === "git" && !options.nested) return
+      if (kind === "git" && !options.nested) {
+        nestedPruned += 1
+        return
+      }
     }
     let entries
     try {
@@ -149,7 +155,7 @@ export function scanRepositoryTree(parent: string, options: ScanOptions = {}): S
 
   walk(parent, 0)
   repos.sort((left, right) => left.name.localeCompare(right.name) || left.path.localeCompare(right.path))
-  return { repos, skipped, truncated }
+  return { repos, skipped, truncated, nestedPruned }
 }
 
 // 合并 activation 段：只改 mode 与指定数组，保留 markers / gitRemotes 等用户已有字段

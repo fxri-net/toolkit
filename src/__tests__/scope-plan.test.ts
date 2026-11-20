@@ -53,6 +53,7 @@ describe("scanRepositoryTree", () => {
     expect(result.repos.map((repo) => repo.name)).toEqual(["b", "depth1", "monorepo", "npmproj"])
     expect(result.repos.find((repo) => repo.name === "npmproj")?.kind).toBe("npm")
     expect(result.truncated).toBeNull()
+    expect(result.nestedPruned).toBe(3)
     expect(result.skipped.some((item) => item.path.includes("vendor"))).toBe(true)
   })
 
@@ -65,6 +66,7 @@ describe("scanRepositoryTree", () => {
     const expanded = scanRepositoryTree(root, { hidden: true, nested: true })
     expect(expanded.repos.some((repo) => repo.name === ".hidden")).toBe(true)
     expect(expanded.repos.some((repo) => repo.name === "inner")).toBe(true)
+    expect(expanded.nestedPruned).toBe(0)
   })
 
   it("深度、目录数与耗时上限触发截断并给出原因", () => {

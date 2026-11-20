@@ -91,6 +91,26 @@ describe("scope 向导 · 设置生效范围", () => {
     expect((activation.include as string[]).some((item) => item.endsWith("repo"))).toBe(true)
   })
 
+  it("扫描结果页提示跳过项，并可切换包含隐藏目录", async () => {
+    mkdirSync(join(scanRoot, ".hidden-repo", ".git"), { recursive: true })
+    answers.select.push("global", "scan", "hidden", "include")
+    answers.input.push(scanRoot)
+    answers.checkbox.push([repo])
+    answers.confirm.push(true)
+    await runScopeSetScope()
+    const options = answers.checkboxOptions as { choices: Array<{ name: string; value: string }> }
+    expect(options.choices.some((choice) => choice.value.endsWith(".hidden-repo"))).toBe(true)
+  })
+
+  it("没有隐藏目录时不打断多选", async () => {
+    answers.select.push("global", "scan", "include")
+    answers.input.push(scanRoot)
+    answers.checkbox.push([repo])
+    answers.confirm.push(true)
+    await runScopeSetScope()
+    expect((globalConfig().activation?.include as string[]).length).toBeGreaterThan(0)
+  })
+
   it("已在黑名单的目录加入白名单时就地互转", async () => {
     writeFileSync(
       join(home, ".toolkitrc.json"),

@@ -101,6 +101,7 @@ async function pickFromScan(
   })
   if (parents.length === 0) return []
   let options: ScanOptions = {}
+  let prompted = false
   for (;;) {
     const results = parents.map((parent) => scanRepositoryTree(parent, options))
     const truncated = results.find((result) => result.truncated)?.truncated
@@ -129,6 +130,32 @@ async function pickFromScan(
       if (next === "hidden") options = { ...options, hidden: true }
       if (next === "nested") options = { ...options, nested: true }
       continue
+    }
+    // 结果页固定展示跳过统计：让用户知道还有目录未被纳入，而不是只在空结果时提示
+    const skipped = results.flatMap((result) => result.skipped)
+    const hiddenCount = skipped.filter((item) => item.reason === "隐藏目录").length
+    const depCount = skipped.filter((item) => item.reason === "依赖 / 产物目录").length
+    const nestedCount = results.reduce((sum, result) => sum + result.nestedPruned, 0)
+    console.log(`已跳过：隐藏目录 ${hiddenCount} 个、依赖 / 产物目录 ${depCount} 个、未展开仓库 ${nestedCount} 个`)
+    // 只有确实跳过了隐藏目录时才打断；未展开仓库属默认剪枝的常态，只展示计数，避免每次扫描都弹选择
+    if (!prompted && hiddenCount > 0) {
+      prompted = true
+      const scopeChoice = await select<string>({
+        message: "是否调整扫描范围",
+        choices: [
+          { name: "保持跳过（默认）", value: "keep" },
+          { name: "包含隐藏目录", value: "hidden" },
+          { name: "包含嵌套仓库", value: "nested" },
+        ],
+      })
+      if (scopeChoice === "hidden") {
+        options = { ...options, hidden: true }
+        continue
+      }
+      if (scopeChoice === "nested") {
+        options = { ...options, nested: true }
+        continue
+      }
     }
     if (repos.length > 30) {
       const keyword = (await input({ message: `发现 ${repos.length} 个项目，可输入关键字过滤（留空不过滤）`, default: "" })) ?? ""
