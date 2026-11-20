@@ -3,7 +3,7 @@ name: fxri-plan-review
 description: 复核已落档的开发计划与任务拆分是否合理，输出新增疏漏、建议与修订计划表。方案已落档或已拆分任务后，用户表达「继续评估 / 再评估一下 / 这些任务合理吗 / 是不是拆得太细或太粗 / 有没有漏掉 / 复核任务 / 重新评估开发计划」等复核意图时使用；被动语义触发为主，显式话术为辅。不用于初次方案讨论、单纯建档 / 归档、会话收尾、发版动作，也不用于评估技术方案性能、依赖版本等非任务集场景；方案尚未落档时只提示先建档。
 license: MIT
 metadata:
-  version: "1.0.13"
+  version: "1.0.14"
   tier: core
   author: fxri
   source: https://github.com/fxri-net/toolkit
@@ -11,7 +11,9 @@ metadata:
 
 # 任务方案复核
 
-> 本技能版本 1.0.13（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.0.14（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+
+> 内容闸门入口壳：先运行 `toolkit scope guard fxri-plan-review`，未激活即停。
 
 ## 何时使用
 

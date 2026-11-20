@@ -22,6 +22,7 @@ toolkit scope list                    # 规则、来源与优先级
 toolkit scope add ~/work              # 加入白名单（只写全局配置）
 toolkit scope remove ~/work/legacy    # 从规则中移除
 toolkit scope mount ~/work --dry-run  # 批量项目面安装：先预览
+toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域输出技能正文（未激活退出码 3）
 ```
 
 ## 交互与批量挂载
@@ -31,6 +32,16 @@ toolkit scope mount ~/work --dry-run  # 批量项目面安装：先预览
 - `scope add/remove` 只改 `~/.toolkitrc.json`（读 → 合并 → 原子写），不动项目文件
 - `scope mount` 会**向所选项目写入技能文件**，必须显式勾选并确认；`--dry-run` 只预览
 - 非 TTY 环境：向导与 `mount` 会提示无法交互；`add` / `remove` 请直接带目录参数
+
+## 内容闸门 guard
+
+- 前置：已用 `toolkit skills install --gate` 开启闸门，首批接入技能（`fxri-plan-to-task`、`fxri-session-recap`、`fxri-plan-review`）以入口壳分发
+- `toolkit scope guard <技能名>` 读取当前目录的作用域判定：**激活时**把包内真实 `SKILL.md` 正文写到 stdout；**未激活时** stdout 为空、原因写 stderr 并以**退出码 3**结束
+- 输出契约：stdout 只放正文（供 AI 直接消费），参考文件目录与诊断一律走 stderr；只读，不写缓存
+- 技能名须为包内现存的单段名字；未知名字或含路径分隔符时以退出码 `1` 报错
+- 仅在 argv 恰为 `scope guard <技能名>` 时走快速路径（不加载完整命令集）；带其它参数（含 `--help`）回落常规 CLI
+- 入口壳只降低正文被读取的概率，不是物理隔离；需要绝对干净用 `scope mount` 或 `skills install --scope project` 做项目面安装
+- `toolkit skills install --embed` 可随时回退为全文安装
 
 ## 判定顺序
 
@@ -43,7 +54,7 @@ toolkit scope mount ~/work --dry-run  # 批量项目面安装：先预览
 ## 边界
 
 - 默认 `mode = all`，不配置时与历史行为完全一致
-- 只影响技能与后续的内容闸门，不影响 `toolkit` 命令本身（命令是显式调用的）
+- 只影响技能与内容闸门（`scope guard`），不影响 `toolkit` 命令本身（命令是显式调用的）
 - 全局规则无法按目录排除（agent 限制）；项目专用规则需落在项目内
 - 工具不创建、不修改项目内配置或标记；项目层配置由用户自行写入时正常参与
 

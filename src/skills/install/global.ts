@@ -2,12 +2,13 @@
 import { existsSync, lstatSync, mkdirSync, rmSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { getHomeDir } from "../../config"
+import { readTextFile } from "../../read-text"
 import { writeFileAtomic } from "../../write-atomic"
-import { assertUniqueSkillNames, classifyExisting, dirsEqual, isEmptyDir, pathKey, pathPresent, removeArtifact, resolveSkillTargets, resolveTargetsByName, skillTargetLabel, skillsSourceDir, sourceSkillItems, targetId, writeArtifact, type SkillSource } from "../source"
+import { assertUniqueSkillNames, buildSkillGateShell, classifyExisting, dirsEqual, isEmptyDir, isSkillGateShell, pathKey, pathPresent, readSkillDescription, removeArtifact, resolveSkillTargets, resolveTargetsByName, skillTargetLabel, skillsSourceDir, sourceSkillItems, targetId, writeArtifact, writeGateArtifact, type SkillSource } from "../source"
 import { acquireSkillsLock, skillsLockFile } from "../lock"
 import { readSkillsState, skillsStateFile, writeSkillsState } from "../state"
 import { readSkillsInstallConfig, writeSkillsInstallConfig } from "../config"
-import { STATE_FORMAT, STATE_SCHEMA_VERSION, type InstallReport, type RemoveResult, type SkillStateEntry, type SkillStateSource, type SkillStateTarget, type SkillItem, type SkillsRemoveReport, type TargetInstallResult } from "../types"
+import { BUILTIN_SOURCE, GATE_SKILLS, SKILL_ENTRY, STATE_FORMAT, STATE_SCHEMA_VERSION, type InstallReport, type RemoveResult, type SkillStateEntry, type SkillStateSource, type SkillStateTarget, type SkillItem, type SkillsRemoveReport, type TargetInstallResult } from "../types"
 import { collectSources, filterSkillItems, orphanArtifactRemovable, pruneEntries, sourceSkillMap, type InstallOptions, type RemoveSkillsOptions } from "./common"
 
 
@@ -52,6 +53,8 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
     for (const source of sources) nextBySource.set(source.name, [])
     const handled = new Set<string>()
     const results: TargetInstallResult[] = []
+    // 内容闸门：--gate / --embed 显式取值优先，缺省读全局配置
+    const gateEnabled = options.gate ?? readSkillsInstallConfig().gate === true
 
     for (const target of targets) {
       const dirKey = pathKey(target.dir)
@@ -68,6 +71,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
         degraded: [],
         links: [],
         copies: [],
+        gates: [],
         pruned: [],
         migrated: [],
       }
@@ -75,8 +79,49 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
       for (const item of items) {
         const dest = join(target.dir, item.name)
         const kind = classifyExisting(dest, item.linkTarget)
-        // 既有登记：本目标该来源下此技能此前是否以副本形式写入——决定 --force 与裸 install 的落点形态
-        const recordedCopyHere = prevBySourceDir.get(item.source)?.get(dirKey)?.entries.some((entry) => entry.name === item.name && entry.mode === "copy") ?? false
+        // 既有登记：本目标该来源下此技能此前的落点形态——决定产物归属与裸 install 的形态
+        const recordedEntry = prevBySourceDir.get(item.source)?.get(dirKey)?.entries.find((entry) => entry.name === item.name)
+        const recordedCopyHere = recordedEntry?.mode === "copy"
+        const recordedGateHere = recordedEntry?.mode === "gate"
+        // 内容闸门只作用于内置源首批接入技能；其余技能不受开关影响，保持全文
+        if (gateEnabled && item.source === BUILTIN_SOURCE && GATE_SKILLS.has(item.name)) {
+          const expected = buildSkillGateShell(item.name, readSkillDescription(item.dir))
+          const gateFile = join(dest, SKILL_ENTRY)
+          const current = kind === "dir" && existsSync(gateFile) ? readTextFile(gateFile) : null
+          const ownGate = current !== null && isSkillGateShell(current)
+          if (ownGate && current === expected) {
+            result.skipped.push(item.name)
+            result.gates.push(item.name)
+            entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: "gate" }])
+            continue
+          }
+          // 实体目录既非本包闸门壳也未登记为本包产物：视为用户自装技能，未加 --force 不覆盖
+          if (kind === "dir" && !ownGate && !recordedCopyHere && !recordedGateHere && !options.force) {
+            result.conflicts.push(item.name)
+            continue
+          }
+          if (kind === "file" && !options.force) {
+            result.conflicts.push(item.name)
+            continue
+          }
+          if (options.dryRun) {
+            if (kind === "absent") result.created.push(item.name)
+            else result.updated.push(item.name)
+            result.gates.push(item.name)
+            continue
+          }
+          try {
+            if (kind !== "absent") removeArtifact(dest)
+            writeGateArtifact(dest, expected)
+            if (kind === "absent") result.created.push(item.name)
+            else result.updated.push(item.name)
+            result.gates.push(item.name)
+            entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: "gate" }])
+          } catch (e) {
+            result.failed.push({ name: item.name, reason: (e as Error).message })
+          }
+          continue
+        }
         if (kind === "link-ok") {
           result.skipped.push(item.name)
           result.links.push(item.name)
@@ -84,12 +129,12 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
           continue
         }
         if (kind === "dir" && !options.force) {
-          // 实体目录：若状态文件记载为本包副本则比对内容，否则视为用户自装技能不覆盖
-          if (!recordedCopyHere) {
+          // 实体目录：只有本包登记的副本 / 闸门壳才比对内容，其余视为用户自装技能不覆盖
+          if (!recordedCopyHere && !recordedGateHere) {
             result.conflicts.push(item.name)
             continue
           }
-          if (dirsEqual(item.dir, dest)) {
+          if (recordedCopyHere && dirsEqual(item.dir, dest)) {
             result.skipped.push(item.name)
             result.copies.push(item.name)
             entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: "copy" }])
@@ -201,6 +246,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
               degraded: [],
               links: [],
               copies: [],
+              gates: [],
               pruned,
               migrated: [],
             })
@@ -429,7 +475,10 @@ export function removeSkills(options: RemoveSkillsOptions = {}): SkillsRemoveRep
             changed = true
             continue
           }
-          if (kind === "wrong" || kind === "file" || (kind === "dir" && !dirsEqual(skill.dir, dest))) {
+          // 闸门入口壳与本包其它产物同属登记范围：目录内容与真源不同，按标记确认归属
+          const gateFile = join(dest, SKILL_ENTRY)
+          const gateDir = kind === "dir" && entry.mode === "gate" && existsSync(gateFile) && isSkillGateShell(readTextFile(gateFile))
+          if (kind === "wrong" || kind === "file" || (kind === "dir" && !dirsEqual(skill.dir, dest) && !gateDir)) {
             result.skippedForeign.push(entry.name)
             kept.push(entry)
             continue

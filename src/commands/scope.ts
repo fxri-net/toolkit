@@ -1,6 +1,7 @@
 // scope 命令：状态与规则清单只读；向导、目录增删与批量挂载在 TTY 下交互
 import type { Command } from "commander"
 import { resolveScope } from "../scope"
+import { runGuard } from "../scope/guard"
 import { formatList, formatStatus } from "../scope/print"
 import { runScopeAdd, runScopeMount, runScopeRemove, runScopeWizard } from "../scope/wizard"
 
@@ -86,6 +87,14 @@ export function registerScopeCommands(program: Command): void {
         console.error(`⚠️ ${(error as Error).message}`)
         process.exitCode = 1
       }
+    })
+
+  // 内容闸门：stdout 只放正文，未激活时退出码 3
+  scopeCmd
+    .command("guard <skill>")
+    .description("按当前目录作用域输出技能正文（未激活时退出码 3，stdout 为空）")
+    .action((skill: string) => {
+      process.exitCode = runGuard(skill)
     })
 
   scopeCmd

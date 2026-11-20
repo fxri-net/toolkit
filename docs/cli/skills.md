@@ -22,6 +22,7 @@ toolkit skills install --no-save-agents # 目标选择只对本次生效，不�
 toolkit skills install --prune      # 清理未选择且内容与本包真源一致的旧产物
 toolkit skills install --mode package # 纯包管理器模式：core 也可不装，允许零选
 toolkit skills install --no-skills  # 仅本次零装，不改模式与已保存选择
+toolkit skills install --gate       # 内容闸门：首批 core 技能改用入口壳，--embed 回退
 toolkit skills install --copy       # 强制副本形式（仅全局面生效；项目面真源恒为副本、薄壳非副本，忽略并告警）
 toolkit skills install --dry-run    # 预演：只预览将执行的动作，不写文件
 toolkit skills install --force      # 覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
@@ -69,11 +70,11 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
   - 新名写入状态后旧名不再残留
 - 项目面按「作用域」节的副本 + 薄壳口径写入
 - `--format json` 输出机器可读安装报告到 stdout（含 `dryRun` / `scope` 标记与 `selection` / `targetSelection`）
-  - 各目标另含 `migrated`（旧名 → 现用名）：改名迁移已清理的旧产物记录
+  - 各目标另含 `gates`（入口壳）与 `migrated`（旧名 → 现用名）：改名迁移已清理的旧产物记录
 
 ### status
 
-- 文本模式先打印版本检查块（CLI 当前 / 最新、registry 与提示频率），再打印技能真源版本清单与当前选择集，最后逐目标报告
+- 文本模式先打印版本检查块（CLI 当前 / 最新、registry 与提示频率），再打印技能真源版本清单、内容闸门开关与当前选择集，最后逐目标报告
 - 选择集之后单列「来源内未选择」的技能（不在选择集、也不计入问题），避免改名 / 新增后静默不可见；零选择时不打印
 - **逐目标状态**：软链正常 / 软链悬空 / 软链指向其他版本 / 副本已同步 / 副本已漂移（本包登记副本与真源不一致）/ 缺失（仅指已选择但缺失）/ 同名冲突（同名非本包产物）/ 未选择但已安装（单列提示，不计入问题）
 - 来源中已无此名的悬空条目（改名后未声明曾用名）：`install` 无法补齐，汇总时给出含实际名字的 `uninstall` 命令
@@ -203,8 +204,8 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - 临时来源（`--from` 不带 `--save`）**只写副本**、只登记状态，不写选择集与来源配置
 - 永久来源默认**软链到技能真源目录**（远程来源指向本地缓存），链接失败降级副本；`--copy` 可强制副本
 - `--save` 只能与单个 `--from` 搭配；永久来源失效时安装告警跳过，可用 `toolkit skills sources remove <name>` 注销
-- `status` 按来源列出 `sources`（名称 / 根目录或远程地址与 ref / 版本 / 临时标记）；`status` 与 `remove` 均按来源精确处理
-- 远程来源的项目面状态只记地址与 ref，不写本机缓存路径；`skills sources` 查看来源清单，`skills sources remove <name> --prune` 注销并清理产物
+- `status` 按来源列出 `sources`；`status` 与 `remove` 均按来源精确处理
+- 远程来源的项目面状态只记地址与 ref，不写本机缓存路径
 - 安装 / 卸载期间持有操作锁，避免多进程同时改写；`--dry-run` 不取锁
   - 全局 `~/.agents/.toolkit-skills.lock`、项目 `<仓库根>/.toolkit/skills.lock`
   - 锁记录 pid / host / startedAt，5 分钟过期可接管

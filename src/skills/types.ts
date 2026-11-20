@@ -23,6 +23,8 @@ export const STATE_FORMAT = "fxri.toolkit.skills-state"
 export const STATE_SCHEMA_VERSION = 1
 // 内置技能来源名：本任务只支持包内源，外部来源由后续能力扩展
 export const BUILTIN_SOURCE = "toolkit"
+// 内容闸门首批接入技能：仅内置源的这批技能改写为入口壳，未接入技能保持全文
+export const GATE_SKILLS = new Set(["fxri-plan-to-task", "fxri-session-recap", "fxri-plan-review"])
 // 项目侧真源目录（仓库根相对、posix 分隔）：完整副本只此一份，其余候选目录放薄壳指向它
 export const PROJECT_SOURCE_DIR = FALLBACK_SKILL_DIR
 // 项目态归属账目录与文件名（仓库根相对、posix 分隔）
@@ -31,10 +33,10 @@ export const PROJECT_STATE_FILE = "state.json"
 
 // 目标类型：primary 主目标 / agent 快照表内 agent 目录 / custom 用户 --dir 指定
 export type TargetKind = "primary" | "agent" | "custom"
-// 产物类型：link 软链（指向真源）/ copy 副本 / shell 项目面入口薄壳
+// 产物类型：link 软链（指向真源）/ copy 副本 / shell 项目面入口薄壳 / gate 内容闸门入口壳
 export type ArtifactMode = "link" | "copy"
-// 状态文件里的产物模式：项目面薄壳单列 shell
-export type StateMode = ArtifactMode | "shell"
+// 状态文件里的产物模式：项目面薄壳单列 shell，内容闸门入口壳单列 gate
+export type StateMode = ArtifactMode | "shell" | "gate"
 // 技能分层：core 必装、不可取消；optional 可选，缺省按 optional 处理
 export type SkillTier = "core" | "optional"
 
@@ -199,6 +201,7 @@ export type SkillItemState =
   | "wrong"
   | "copy"
   | "copy-drift"
+  | "gate"
   | "missing"
   | "conflict"
   | "not-selected"
@@ -248,6 +251,8 @@ export interface SkillsStatusReport {
   skills: string[]
   // 当前生效的安装模式
   mode: SkillsMode
+  // 内容闸门是否开启
+  gate: boolean
   // 本次生效的技能选择集（未保存过选择时按模式默认处理）
   selection: string[]
   // 本次生效的目标选择集（canonical / agent name；空数组表示沿用全部可用目标）
@@ -284,6 +289,8 @@ export interface TargetInstallResult {
   // 本次运行后该目标下本包产物的最终形态，用于写入状态文件
   links: string[]
   copies: string[]
+  // 内容闸门入口壳（只含 SKILL.md）
+  gates: string[]
   // --prune 清理掉的未选择产物
   pruned: string[]
   // 曾用名迁移：旧名 → 新名（改名后旧产物已按归属清理）

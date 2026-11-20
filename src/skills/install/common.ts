@@ -3,7 +3,7 @@ import { existsSync, lstatSync, mkdirSync, readlinkSync } from "node:fs"
 import { dirname, isAbsolute, join, resolve } from "node:path"
 import { writeFileAtomic } from "../../write-atomic"
 import { readTextFile } from "../../read-text"
-import { assertUniqueSkillNames, classifyExisting, copyArtifact, currentSkillShellVersion, dirsEqual, expandSkillRequires, isInside, isToolkitArtifactLink, pathKey, readSkillShellVersion, removeArtifact, resolveBuiltinSource, resolveLocalSource, resolveSource, sourceSkillItems, stripTailSep, type SkillSource } from "../source"
+import { assertUniqueSkillNames, classifyExisting, copyArtifact, currentSkillShellVersion, dirsEqual, expandSkillRequires, isInside, isSkillGateShell, isToolkitArtifactLink, pathKey, readSkillShellVersion, removeArtifact, resolveBuiltinSource, resolveLocalSource, resolveSource, sourceSkillItems, stripTailSep, type SkillSource } from "../source"
 import { readSkillsInstallConfig } from "../config"
 import { BUILTIN_SOURCE, SKILL_ENTRY, type ProjectDirResult, type SkillStateSource, type SkillStateTarget, type SkillItem, type SkillsMode } from "../types"
 
@@ -27,6 +27,8 @@ export interface InstallOptions {
   saveSelection?: boolean
   // 本次生效的安装模式；省略时读配置，默认 skills
   mode?: SkillsMode
+  // 内容闸门：true 写入口壳、false 回退全文；省略时读全局配置
+  gate?: boolean
 }
 
 // 外部来源入参：path 为来源根，name 可与目录派生名不同（--save 名）
@@ -129,7 +131,10 @@ export function pruneEntries(
       continue
     }
     const kind = classifyExisting(dest, skill.linkTarget, undefined, skill.dir)
-    const consistent = kind === "link-ok" || (kind === "dir" && existsSync(skill.dir) && dirsEqual(skill.dir, dest))
+    // 闸门入口壳内容与真源不同，按标记确认归属后才算可清理
+    const gateFile = join(dest, SKILL_ENTRY)
+    const gateConsistent = entry.mode === "gate" && kind === "dir" && existsSync(gateFile) && isSkillGateShell(readTextFile(gateFile))
+    const consistent = kind === "link-ok" || (kind === "dir" && existsSync(skill.dir) && dirsEqual(skill.dir, dest)) || gateConsistent
     if (!consistent) continue
     try {
       removeArtifact(dest)

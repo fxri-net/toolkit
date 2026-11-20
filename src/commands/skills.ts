@@ -115,6 +115,7 @@ const SKILL_STATE_LABEL: Record<SkillItemState, string> = {
   wrong: "软链指向其他版本",
   copy: "副本已同步",
   "copy-drift": "副本已漂移（与真源不一致）",
+  gate: "入口壳（正文由 toolkit scope guard 按作用域下发）",
   missing: "缺失",
   conflict: "同名冲突（非本包产物）",
   "not-selected": "未选择",
@@ -286,6 +287,7 @@ function printInstallReport(report: InstallReport, dryRun: boolean): void {
     const modes: string[] = []
     if (t.links.length > 0) modes.push(`软链 ${t.links.length} 个`)
     if (t.copies.length > 0) modes.push(`副本 ${t.copies.length} 个`)
+    if (t.gates.length > 0) modes.push(`入口壳 ${t.gates.length} 个`)
     if (modes.length > 0) console.log(`  产物形态：${modes.join(" / ")}`)
   }
   console.log("")
@@ -309,6 +311,7 @@ function printInstallReport(report: InstallReport, dryRun: boolean): void {
 function printStatusReport(report: SkillsStatusReport): void {
   console.log(`技能源：${report.source}`)
   console.log(`技能版本：${skillVersionLine(report)}`)
+  console.log(`内容闸门：${report.gate ? "已开启（首批接入技能为入口壳，正文由 toolkit scope guard 下发）" : "未开启（全文安装）"}`)
   console.log(`选择集（${report.selection.length}）：${report.selection.join("、") || "无"}`)
   // 来源内存在但未选择的技能：改名 / 新增后不再静默不可见；零选择时不刷全量清单
   const unselectedSkills = report.selection.length > 0 ? findUnselectedSkills(report) : []
@@ -740,9 +743,11 @@ export function registerSkillsCommands(program: Command): void {
     .option("--force", "覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）")
     .option("--prune", "清理未选择且内容与本包真源一致的旧产物（只清本包登记条目）")
     .option("--mode <mode>", "技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）")
+    .option("--gate", "开启内容闸门：首批接入技能改写为入口壳，正文由 toolkit scope guard 按作用域下发（仅全局面）")
+    .option("--embed", "回退内容闸门：把入口壳改回全文（仅全局面）")
     .option("--no-skills", "本次不安装任何技能，不改模式与已保存选择")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
-    .action(async (options: { scope?: string; skills?: string; all?: boolean; optional?: boolean; from: string[]; save?: string | boolean; agent?: string; allAgents?: boolean; saveAgents?: boolean; yes?: boolean; useSaved?: boolean; copy?: boolean; dir: string[]; dryRun?: boolean; force?: boolean; prune?: boolean; mode?: string; format?: string }) => {
+    .action(async (options: { scope?: string; skills?: string; all?: boolean; optional?: boolean; from: string[]; save?: string | boolean; agent?: string; allAgents?: boolean; saveAgents?: boolean; yes?: boolean; useSaved?: boolean; copy?: boolean; dir: string[]; dryRun?: boolean; force?: boolean; prune?: boolean; mode?: string; gate?: boolean; embed?: boolean; format?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return
         const scope = resolveScopeChoice(options.scope)
@@ -765,8 +770,14 @@ export function registerSkillsCommands(program: Command): void {
           process.exitCode = 1
           return
         }
+        if (options.gate && options.embed) {
+          console.error("⚠️ --gate 与 --embed 不能同时使用，未执行安装")
+          process.exitCode = 1
+          return
+        }
         const runProject = scope.choice !== "global"
         const runGlobal = scope.choice !== "project"
+        if ((options.gate || options.embed) && !runGlobal) console.warn("⚠️ --gate / --embed 仅作用于全局面，项目面产物保持不变")
         // JSON 消费方通常非 TTY；即使 TTY 也不弹窗，避免提示污染 stdout 的机器可读输出
         const nonInteractive = Boolean(options.yes) || options.format === "json"
         // 选择阶段的非交互：--yes 或 --use-saved 都跳过选择提示；--use-saved 仍保留最终确认
@@ -804,6 +815,15 @@ export function registerSkillsCommands(program: Command): void {
           const mode = options.mode as SkillsMode
           if (scope.choice === "global" || scope.choice === "all") writeSkillsInstallConfig({ mode })
           if (scope.choice === "project" || scope.choice === "all") writeProjectSkillsConfig({ mode })
+        }
+        // 内容闸门开关同样在安装前持久化，便于下次裸 install 沿用；--dry-run 不写
+        const gateOption = options.gate ? true : options.embed ? false : undefined
+        if (gateOption !== undefined && runGlobal && !dryRun) {
+          try {
+            writeSkillsInstallConfig({ gate: gateOption })
+          } catch (e) {
+            console.warn(`⚠️ 内容闸门开关保存失败：${(e as Error).message}`)
+          }
         }
 
         let globalTargets: string[] | undefined
@@ -869,6 +889,7 @@ export function registerSkillsCommands(program: Command): void {
               externalSources,
               saveSelection: selectionResult.saveSelection,
               mode: selectionResult.mode,
+              gate: gateOption,
             })
           : null
         if (selection.length === 0) {

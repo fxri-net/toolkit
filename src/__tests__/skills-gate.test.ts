@@ -1,0 +1,154 @@
+// 内容闸门：入口壳产物、幂等切换、状态展示、卸载归属与 guard 的激活 / 未激活契约
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
+import { existsSync, lstatSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
+import { runGuard } from "../scope/guard"
+import { GATE_SKILLS, autoLinkSkills, installSkills, isSkillGateShell, readSkillsState, removeSkills, skillsSourceDir, skillsStateFile, skillsStatus } from "../skills"
+
+// 临时 home：产物只落在临时目录，不触碰真实用户全局技能目录
+let home = ""
+// 用例前的 CI 环境值：autoLink 在 CI 下跳过，需临时清空避免宿主环境影响断言
+let savedCI: string | undefined
+
+// 主目标目录 ~/.agents/skills
+function primaryDir(): string {
+  return join(home, ".agents", "skills")
+}
+
+// 取安装报告里主目标的结果
+function primaryTarget(report: ReturnType<typeof installSkills>) {
+  const found = report.targets.find((t) => t.kind === "primary")
+  if (!found) throw new Error("安装报告缺少主目标")
+  return found
+}
+
+// 取状态文件里某目标目录的条目名，可按产物形态过滤
+function stateEntries(dir: string, mode?: "link" | "copy" | "gate"): string[] {
+  const state = readSkillsState()
+  for (const source of Object.values(state?.sources ?? {})) {
+    const target = source.targets.find((entry) => entry.dir === dir)
+    if (target) return target.entries.filter((entry) => !mode || entry.mode === mode).map((entry) => entry.name)
+  }
+  return []
+}
+
+beforeEach(() => {
+  home = mkdtempSync(join(tmpdir(), "tk-gate-"))
+  setHomeDirForTest(home)
+  resetToolkitConfigCache()
+  savedCI = process.env.CI
+  delete process.env.CI
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
+  if (savedCI === undefined) delete process.env.CI
+  else process.env.CI = savedCI
+  setHomeDirForTest(undefined)
+  resetToolkitConfigCache()
+  rmSync(home, { recursive: true, force: true })
+})
+
+describe("内容闸门安装形态", () => {
+  it("开启后首批接入技能写入口壳，未接入技能保持软链", () => {
+    const report = installSkills({ gate: true })
+    const primary = primaryTarget(report)
+    expect([...primary.gates].sort()).toEqual([...GATE_SKILLS].sort())
+    expect(primary.links).toContain("fxri-text-encoding")
+    const gatedDir = join(primaryDir(), "fxri-plan-to-task")
+    const content = readFileSync(join(gatedDir, "SKILL.md"), "utf8")
+    expect(isSkillGateShell(content)).toBe(true)
+    expect(content).toContain("toolkit scope guard fxri-plan-to-task")
+    // 入口壳只含 SKILL.md，不携带 references，避免未激活目录读到正文流程
+    expect(existsSync(join(gatedDir, "references"))).toBe(false)
+    expect(stateEntries(primaryDir(), "gate")).toContain("fxri-plan-to-task")
+  })
+
+  it("重复开启幂等：同一内容跳过，不重写产物", () => {
+    installSkills({ gate: true })
+    const again = installSkills({ gate: true })
+    expect(primaryTarget(again).skipped).toEqual(expect.arrayContaining([...GATE_SKILLS]))
+    expect(primaryTarget(again).gates).toEqual(expect.arrayContaining([...GATE_SKILLS]))
+  })
+
+  it("--embed 回退全文、再次开启往返稳定", () => {
+    installSkills({ gate: true })
+    const embedded = installSkills({ gate: false })
+    expect(primaryTarget(embedded).gates).toEqual([])
+    expect(lstatSync(join(primaryDir(), "fxri-plan-to-task")).isSymbolicLink()).toBe(true)
+    const regated = installSkills({ gate: true })
+    expect(primaryTarget(regated).gates).toEqual(expect.arrayContaining([...GATE_SKILLS]))
+    expect(stateEntries(primaryDir(), "gate")).toEqual(expect.arrayContaining([...GATE_SKILLS]))
+  })
+
+  it("status 将入口壳单列为 gate 形态且不计入问题", () => {
+    installSkills({ gate: true })
+    const primary = skillsStatus().targets.find((t) => t.dir === primaryDir())
+    const item = primary?.items.find((i) => i.name === "fxri-plan-to-task")
+    expect(item?.state).toBe("gate")
+  })
+
+  it("卸载按归属清理入口壳目录", () => {
+    installSkills({ gate: true })
+    removeSkills()
+    for (const name of GATE_SKILLS) expect(existsSync(join(primaryDir(), name))).toBe(false)
+    expect(existsSync(skillsStateFile())).toBe(false)
+  })
+
+  it("闸门开启时 autoLink 不改写入口壳", () => {
+    installSkills({ gate: true })
+    const before = readFileSync(join(primaryDir(), "fxri-plan-to-task", "SKILL.md"), "utf8")
+    // 自愈只处理 mode=link 的登记条目，入口壳不在其范围
+    expect(readSkillsState()?.sources.toolkit?.targets.some((t) => t.entries.some((e) => e.mode === "gate"))).toBe(true)
+    expect(autoLinkSkills()).toBe(0)
+    expect(readFileSync(join(primaryDir(), "fxri-plan-to-task", "SKILL.md"), "utf8")).toBe(before)
+  })
+})
+
+describe("guard 契约", () => {
+  // 捕获 stdout / stderr 输出，避免污染测试报告
+  function capture() {
+    const out: string[] = []
+    const err: string[] = []
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk: unknown) => {
+      out.push(String(chunk))
+      return true
+    })
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk: unknown) => {
+      err.push(String(chunk))
+      return true
+    })
+    // console.error 走 stderr 流，同样收进缓冲
+    vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+      err.push(args.map(String).join(" "))
+    })
+    return { out: () => out.join(""), err: () => err.join("\n") }
+  }
+
+  it("未配置作用域时输出包内正文，参考目录走 stderr", () => {
+    const io = capture()
+    const code = runGuard("fxri-plan-to-task")
+    expect(code).toBe(0)
+    expect(io.out()).toBe(readFileSync(join(skillsSourceDir(), "fxri-plan-to-task", "SKILL.md"), "utf8"))
+    expect(io.err()).toContain("参考文件目录")
+  })
+
+  it("未激活时退出码 3 且 stdout 为空", () => {
+    writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ activation: { mode: "allowlist", include: ["Z:/definitely-not-here/**"] } }))
+    resetToolkitConfigCache()
+    const io = capture()
+    const code = runGuard("fxri-plan-to-task")
+    expect(code).toBe(3)
+    expect(io.out()).toBe("")
+    expect(io.err()).toContain("未在当前目录激活")
+  })
+
+  it("未知技能与路径穿越均拒绝，退出码 1", () => {
+    const io = capture()
+    expect(runGuard("no-such-skill")).toBe(1)
+    expect(runGuard("../package")).toBe(1)
+    expect(io.err()).toContain("技能名非法")
+  })
+})

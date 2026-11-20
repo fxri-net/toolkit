@@ -21,6 +21,8 @@ export interface SkillsInstallConfig {
   sources?: Record<string, ExternalSourceConfig>
   selection?: Record<string, string[]>
   mode?: SkillsMode
+  // 内容闸门：开启后首批接入技能改写为入口壳，正文由 toolkit scope guard 按作用域下发
+  gate?: boolean
 }
 
 // 项目段：targets 为项目相对目录数组；selection 为技能名数组（项目面只有内置源）
@@ -123,6 +125,7 @@ export function readSkillsInstallConfig(startDir = process.cwd()): SkillsInstall
     sources: parseSources(section.sources, layers.global.file),
     selection: parseSourceSelection(section.selection, layers.global.file),
     mode: parseMode("skillsInstall", section.mode, layers.global.file),
+    gate: parseGate(section.gate, layers.global.file),
   }
 }
 
@@ -145,6 +148,14 @@ function parseMode(section: string, value: unknown, file: string | null): Skills
   if (value === undefined) return undefined
   if (value === "skills" || value === "package") return value
   warnInvalid(section, "mode", file, "须为 skills 或 package")
+  return undefined
+}
+
+// 内容闸门开关解析：只接受布尔值；非法值告警后按未配置（关闭）处理
+function parseGate(value: unknown, file: string | null): boolean | undefined {
+  if (value === undefined) return undefined
+  if (typeof value === "boolean") return value
+  warnInvalid("skillsInstall", "gate", file, "须为布尔值")
   return undefined
 }
 

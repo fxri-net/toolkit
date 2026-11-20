@@ -9,6 +9,7 @@ import {
   dirsEqual,
   findSkillVersionMismatches,
   isEmptyDir,
+  isSkillGateShell,
   isToolkitArtifactLink,
   legacySkillDirLabel,
   listDirEntries,
@@ -237,8 +238,11 @@ function statusItems(
     else if (kind === "wrong") state = "wrong"
     else if (kind === "file") state = "conflict"
     else if (kind === "dir") {
-      // 实体目录按来源分流：状态登记为本包副本才叫漂移，未登记的同名目录属用户/上游产物
-      if (ref && existsSync(ref.dir) && dirsEqual(ref.dir, dest)) state = isSelected ? "copy" : "installed-unselected"
+      // 实体目录按来源分流：状态登记为本包副本 / 闸门壳才叫漂移，未登记的同名目录属用户/上游产物
+      const gateFile = join(dest, SKILL_ENTRY)
+      const gateOk = existsSync(gateFile) && isSkillGateShell(readTextFile(gateFile))
+      if (entries.get(name)?.mode === "gate") state = gateOk ? "gate" : "copy-drift"
+      else if (ref && existsSync(ref.dir) && dirsEqual(ref.dir, dest)) state = isSelected ? "copy" : "installed-unselected"
       else state = entries.get(name)?.mode === "copy" ? "copy-drift" : "conflict"
     } else state = isSelected ? "missing" : "not-selected"
     if (state !== "not-selected") items.push({ name, state, version: ref?.version ?? "", source: ref?.source ?? "" })
@@ -336,6 +340,7 @@ export function skillsStatus(): SkillsStatusReport {
     skills: allNames,
     skillVersionsFromState: [...refs.entries()].filter(([, ref]) => ref.fromState).map(([name]) => name),
     mode,
+    gate: config.gate === true,
     selection,
     targetSelection: savedTargets ?? [],
     sources,

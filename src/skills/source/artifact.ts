@@ -1,7 +1,8 @@
 // 技能真源与现场（artifact）：自 source.ts 按职责拆分，逻辑逐字未改
 import { cpSync, existsSync, lstatSync, mkdirSync, readlinkSync, rmSync, symlinkSync } from "node:fs"
-import { dirname, isAbsolute, resolve } from "node:path"
-import { type ArtifactMode } from "../types"
+import { dirname, isAbsolute, join, resolve } from "node:path"
+import { writeFileAtomic } from "../../write-atomic"
+import { SKILL_ENTRY, type ArtifactMode } from "../types"
 import { pathKey, sameDirContent, stripTailSep } from "./paths"
 
 
@@ -106,6 +107,36 @@ export function buildSkillShell(name: string, sourceRel: string, description: st
 // 薄壳内容版本：供安装时判断标记是否超前（不降级覆盖）
 export function currentSkillShellVersion(): number {
   return SKILL_SHELL_VERSION
+}
+
+// 内容闸门入口壳标记：与项目面薄壳标记分开，status / 自愈据此区分两种产物
+const SKILL_GATE_MARKER = "toolkit-skill-gate"
+
+// 读取内容闸门入口壳标记：非闸门壳返回 false
+export function isSkillGateShell(content: string): boolean {
+  return content.includes(`<!-- ${SKILL_GATE_MARKER} -->`)
+}
+
+// 内容闸门入口壳：frontmatter 保留 name / description 保证可被发现，正文只指向 guard 命令
+// 不携带技能版本：版本一律从包内真源读取，避免升级后误报「已装版本缺失」
+export function buildSkillGateShell(name: string, description: string): string {
+  return [
+    "---",
+    `name: ${name}`,
+    `description: ${description || `技能 ${name} 的入口壳。`}`,
+    "---",
+    "",
+    `<!-- ${SKILL_GATE_MARKER} -->`,
+    "<!-- 由 toolkit 生成的内容闸门入口壳；需要全文时运行 toolkit skills install --embed -->",
+    `本技能已开启内容闸门：先运行 \`toolkit scope guard ${name}\` 获取正文；未激活即停止，不要凭猜测执行流程。`,
+    "",
+  ].join("\n")
+}
+
+// 写入内容闸门入口壳：目录只含 SKILL.md，不带 references / assets，避免正文流程在未激活目录可读
+export function writeGateArtifact(dir: string, content: string): void {
+  mkdirSync(dir, { recursive: true })
+  writeFileAtomic(join(dir, SKILL_ENTRY), content)
 }
 
 // 目录条目列表：供自愈与状态判定复用
