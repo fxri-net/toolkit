@@ -59,11 +59,11 @@ function changesetPrefixIssues(): CheckIssue[] {
       line: entry.line,
       message: `变更集条目缺类型前缀（本文件 ${entry.count} 条），建议按「类型：描述」撰写`,
     })),
-    ...findUnbulletedChangesetEntries(".changeset", langs).map((entry) => ({
+    ...findUnbulletedChangesetEntries(".changeset").map((entry) => ({
       level: "warn" as const,
       file: entry.file,
       line: entry.line,
-      message: `变更集条目未加「- 」列表标记（本文件 ${entry.count} 行），changesets 会并入单一条目，请逐条写成「- 类型：描述」`,
+      message: `变更集含未加「- 」列表标记的正文行（本文件 ${entry.count} 行），changesets 会并入上一条目；说明性内容请并入条目，逐条写成「- 类型：描述」`,
     })),
   ]
 }

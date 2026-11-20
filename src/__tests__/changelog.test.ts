@@ -790,23 +790,25 @@ describe("findUntypedChangesetEntries", () => {
 describe("findUnbulletedChangesetEntries", () => {
   it("目录不存在返回空数组（未使用 changesets 的项目零打扰）", () => {
     const missing = join(tmpdir(), `tk-cs-bare-missing-${process.pid}-${Date.now()}`)
-    expect(findUnbulletedChangesetEntries(missing, Object.values(languages))).toEqual([])
+    expect(findUnbulletedChangesetEntries(missing)).toEqual([])
   })
 
   it("跳 frontmatter 后检出多条裸行，file/line/count 与原文对齐", () => {
     withChangesets(
       { "brave-yaks-roam.md": '---\n"@fxri/toolkit": patch\n---\n\n新增：裸行甲\n修改：裸行乙\n修复：裸行丙\n' },
       (dir) => {
-        const found = findUnbulletedChangesetEntries(dir, Object.values(languages))
+        const found = findUnbulletedChangesetEntries(dir)
         expect(found).toHaveLength(1)
         expect(found[0]).toEqual({ file: `${dir}/brave-yaks-roam.md`, line: 5, count: 3 })
       },
     )
   })
 
-  it("阈值 2 起报：单条裸行不触发（多为正文说明而非条目）", () => {
-    withChangesets({ "calm-llamas-sing.md": '---\n"@fxri/toolkit": patch\n---\n\n新增：仅此一条裸行\n' }, (dir) => {
-      expect(findUnbulletedChangesetEntries(dir, Object.values(languages))).toEqual([])
+  it("阈值 1：单行说明段落即检出（1.16.20 升级提示的成因）", () => {
+    withChangesets({ "calm-llamas-sing.md": '---\n"@fxri/toolkit": patch\n---\n\n升级提示：先归一存量档\n' }, (dir) => {
+      const found = findUnbulletedChangesetEntries(dir)
+      expect(found).toHaveLength(1)
+      expect(found[0]).toEqual({ file: `${dir}/calm-llamas-sing.md`, line: 5, count: 1 })
     })
   })
 
@@ -814,7 +816,7 @@ describe("findUnbulletedChangesetEntries", () => {
     withChangesets(
       { "tidy-otters-listen.md": '---\n"@fxri/toolkit": minor\n---\n\n- 新增：条目甲\n- 修改：条目乙\n' },
       (dir) => {
-        expect(findUnbulletedChangesetEntries(dir, Object.values(languages))).toEqual([])
+        expect(findUnbulletedChangesetEntries(dir)).toEqual([])
       },
     )
   })
@@ -823,28 +825,40 @@ describe("findUnbulletedChangesetEntries", () => {
     withChangesets(
       { "quiet-pandas-shine.md": '---\n"@fxri/toolkit": minor\n---\n\n- 新增：顶层条目\n  新增：缩进续行（不参与识别）\n' },
       (dir) => {
-        expect(findUnbulletedChangesetEntries(dir, Object.values(languages))).toEqual([])
+        expect(findUnbulletedChangesetEntries(dir)).toEqual([])
       },
     )
   })
 
-  it("无类型前缀的普通正文裸行不计（仅统计已识别前缀开头的行）", () => {
+  it("无类型前缀的说明段落同样检出（不再受前缀门槛限制）", () => {
     withChangesets(
       { "lucky-lynx-wander.md": '---\n"@fxri/toolkit": patch\n---\n\n这是一段说明性正文\n补充说明第二行\n' },
       (dir) => {
-        expect(findUnbulletedChangesetEntries(dir, Object.values(languages))).toEqual([])
+        const found = findUnbulletedChangesetEntries(dir)
+        expect(found).toHaveLength(1)
+        expect(found[0]!.count).toBe(2)
+        expect(found[0]!.line).toBe(5)
       },
     )
   })
 
-  it("自定义语言的自有前缀经并集识别，裸行按该语言前缀检出", () => {
+  it("代码围栏、标题与引用行不误报", () => {
+    withChangesets(
+      {
+        "bold-otter-write.md":
+          '---\n"@fxri/toolkit": patch\n---\n\n- 新增：正常条目\n\n```md\n裸行示例\n```\n\n## 小标题\n\n> 引用行\n',
+      },
+      (dir) => {
+        expect(findUnbulletedChangesetEntries(dir)).toEqual([])
+      },
+    )
+  })
+
+  it("判定与语言无关：自定义前缀与默认语言都按正文行检出", () => {
     withChangesets({ "custom-bare.md": '---\n"pkg": patch\n---\n\n特性：自定义裸行甲\n特性：自定义裸行乙\n' }, (dir) => {
-      // 该语言声明了「特性：」自有前缀，两条裸行命中并集识别
-      const found = findUnbulletedChangesetEntries(dir, [customPrefixLang])
+      const found = findUnbulletedChangesetEntries(dir)
       expect(found).toHaveLength(1)
       expect(found[0]!.count).toBe(2)
-      // 未纳入该语言的调用方不识别该前缀，裸行不算「已识别前缀开头的行」故不检出
-      expect(findUnbulletedChangesetEntries(dir, [plainJa])).toEqual([])
     })
   })
 })

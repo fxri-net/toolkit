@@ -219,13 +219,12 @@ export function findUntypedChangesetEntries(dir: string, langs: ChangelogLanguag
   return found
 }
 
-// 扫描 .changeset 下待发布变更集里「未加 - 列表标记」的裸行条目（tasks check 早期检测用）：
-// 裸行会让 changesets 把整段正文并入单一条目——首行作条目、其余行缩进 2 空格作续行，
-// 只有首行参与前缀识别与归类，后续行既不归组也不剥前缀，最终挤在单组里（本仓 v1.12.0 块的成因）。
-// 判据：跳过 frontmatter 后，列 0 起首（无缩进）、非空、非「- 」列表项、且以已识别类型前缀开头的行；
-// 阈值 2 起报——单裸行多为正文说明而非条目，避免正常用例假阳性；前缀识别口径同 findUntypedChangesetEntries
-export function findUnbulletedChangesetEntries(dir: string, langs: ChangelogLanguage[]): UntypedChangesetEntry[] {
-  const extra = extraPrefixes(langs.flatMap((lang) => lang.groups ?? []))
+// 扫描 .changeset 下待发布变更集里「未加 - 列表标记」的正文行（tasks check 早期检测用）：
+// 变更集正文只允许「- 类型：描述」条目——列 0 起首的正文行会被 changesets 并入上一条目作缩进续行，
+// 使本该独立的说明（如升级提示）粘在最后一条条目下、既不归组也不剥前缀（本仓 1.16.20 的成因）。
+// 判据：跳过 frontmatter 与代码围栏后，列 0 起首、非空、非「- 」列表项、非标题 / 引用 / HTML 注释的行；
+// 阈值 1 行即报（单行段落同样会被并入上一条目）；缩进续行随父条目迁属，不参与识别
+export function findUnbulletedChangesetEntries(dir: string): UntypedChangesetEntry[] {
   const found: UntypedChangesetEntry[] = []
   let names: string[]
   try {
@@ -244,18 +243,26 @@ export function findUnbulletedChangesetEntries(dir: string, langs: ChangelogLang
       while (end < lines.length && (lines[end] ?? "").trim() !== "---") end++
       start = end + 1
     }
+    let fence: string | null = null
     let line = 0
     let count = 0
     for (let i = start; i < lines.length; i++) {
       const text = lines[i] ?? ""
-      // 跳过空行、已有列表标记的行、以及带缩进的行（缩进续行随父条目迁属，本就不参与识别）
+      // 代码围栏内的示例文本不参与识别，避免变更集里贴示例被误报
+      const fenceHit = /^\s*(```+|~~~+)/.exec(text)
+      if (fenceHit) {
+        const marker = (fenceHit[1] ?? "").startsWith("`") ? "`" : "~"
+        fence = fence === null ? marker : fence === marker ? null : fence
+        continue
+      }
+      if (fence !== null) continue
+      // 跳过空行、已有列表标记的行、带缩进的行（缩进续行随父条目迁属），以及标题 / 引用 / HTML 注释
       if (text === "" || text.startsWith("- ") || text !== text.trimStart()) continue
-      // 仅统计以已识别类型前缀开头的裸行，普通正文（如说明性段落）不计
-      if (matchPrefixText(text, extra) === null) continue
+      if (/^#{1,6}\s/.test(text) || text.startsWith(">") || text.startsWith("<!--")) continue
       if (line === 0) line = i + 1
       count++
     }
-    if (count >= 2) found.push({ file, line, count })
+    if (count >= 1) found.push({ file, line, count })
   }
   return found
 }
