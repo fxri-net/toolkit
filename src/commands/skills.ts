@@ -117,6 +117,7 @@ const SKILL_STATE_LABEL: Record<SkillItemState, string> = {
   copy: "副本已同步",
   "copy-drift": "副本已漂移（与真源不一致）",
   gate: "入口壳（正文由 toolkit scope guard 按作用域下发）",
+  "gate-drift": "入口壳已过期（与当前版本不一致，运行 toolkit skills install 刷新）",
   missing: "缺失",
   conflict: "同名冲突（非本包产物）",
   "not-selected": "未选择",
@@ -124,7 +125,7 @@ const SKILL_STATE_LABEL: Record<SkillItemState, string> = {
 }
 
 // 需要处理的异常状态：status 汇总提示与 install 修复范围
-const SKILL_PROBLEM_STATES: SkillItemState[] = ["dangling", "wrong", "copy-drift", "missing", "conflict"]
+const SKILL_PROBLEM_STATES: SkillItemState[] = ["dangling", "wrong", "copy-drift", "gate-drift", "missing", "conflict"]
 
 // 技能选择面：全局面取全局层配置，项目面取项目层配置
 type SkillSelectionFace = "global" | "project"
@@ -391,7 +392,7 @@ function printStatusReport(report: SkillsStatusReport): void {
   console.log("")
   console.log(
     problems > 0
-      ? `共 ${problems} 处需处理：缺失 / 悬空 / 指向其他版本 / 副本漂移用 toolkit skills install 补齐，同名冲突用 toolkit skills install --force 覆盖`
+      ? `共 ${problems} 处需处理：缺失 / 悬空 / 指向其他版本 / 副本漂移 / 入口壳过期用 toolkit skills install 补齐，同名冲突用 toolkit skills install --force 覆盖`
       : "所有已纳入的目标均正常",
   )
   if (staleNameCount > 0) {

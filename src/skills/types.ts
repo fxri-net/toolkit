@@ -202,6 +202,7 @@ export type SkillItemState =
   | "copy"
   | "copy-drift"
   | "gate"
+  | "gate-drift"
   | "missing"
   | "conflict"
   | "not-selected"

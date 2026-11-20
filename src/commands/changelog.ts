@@ -64,7 +64,7 @@ export function registerChangelogCommands(program: Command): void {
   // 自处理子命令公共选项
   function addChangelogCommonOptions(command: Command): Command {
     return command
-      .option("--lang <lang>", "语言 zh/en", DEFAULT_LANG)
+      .option("--lang <lang>", "语言（内置 zh/en，可配置扩展）", DEFAULT_LANG)
       .option("--redact", "开启隐私脱敏")
       .option("--no-redact", "关闭隐私脱敏")
       .option("--warn", "开启软告警")

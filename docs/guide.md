@@ -256,14 +256,7 @@ pnpm exec toolkit changelog format --history   # 连带追溯改写历史版本�
 
 ## 文档站部署
 
-文档站（VitePress）固定部署在 GitHub Pages，push main 自动构建发布：
-
-| 平台 | 站点 | 方式 |
-| --- | --- | --- |
-| GitHub Pages | https://fxri-net.github.io/toolkit/ | `deploy-docs.yml` workflow，push main 自动构建部署（`VITEPRESS_BASE=/toolkit/`） |
-
-构建统一为 `pnpm docs:build`，站点根路径由 `VITEPRESS_BASE` 适配；
-默认「在 GitHub 上编辑此页」与 sitemap / og 回链 GitHub 主仓库，值经 `SITE_URL` / `REPO_URL` 环境变量注入，不写进仓库源码。
+固定 GitHub Pages 自动构建（push main 触发）；构建命令、根路径与回链变量见 [docs theme · 站点部署](./cli/docs-theme#站点部署)。
 
 ## 升级与版本兼容
 

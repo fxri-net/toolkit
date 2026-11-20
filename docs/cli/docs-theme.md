@@ -29,6 +29,17 @@ toolkit docs theme check --dir <path>    # 指定主题目录（缺省 docs/.vit
 
 ⚠️ 主题文件是跨仓库复制分发，`docs theme check` 是唯一能发现漂移的入口；建议接入各仓库的聚合验收命令，未安装全局 toolkit 时自行跳过。
 
+## 站点部署
+
+文档站（VitePress）固定部署在 GitHub Pages，push main 自动构建发布：
+
+| 平台 | 站点 | 方式 |
+| --- | --- | --- |
+| GitHub Pages | https://fxri-net.github.io/toolkit/ | `deploy-docs.yml` workflow，push main 自动构建部署（`VITEPRESS_BASE=/toolkit/`） |
+
+构建统一为 `pnpm docs:build`，站点根路径由 `VITEPRESS_BASE` 适配；
+默认「在 GitHub 上编辑此页」与 sitemap / og 回链 GitHub 主仓库，值经 `SITE_URL` / `REPO_URL` 环境变量注入，不写进仓库源码。
+
 ## 相关页面
 
 - 参考：[完整攻略 · 文档站部署](../guide#文档站部署) · [API 参考](../api)

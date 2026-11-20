@@ -24,10 +24,10 @@ function withChangelog(content: string, run: (file: string, dir: string) => void
 }
 
 // 未声明 groups 的自定义语言：验证退化路径（仅标题替换 + 日期补齐）
-const plainJa: ChangelogLanguage = {
+const plainEn: ChangelogLanguage = {
   replacements: {},
-  deps: "- 依存関係を更新",
-  released: "リリース",
+  deps: "- Updated dependencies",
+  released: "Published",
 }
 
 describe("formatChangelog", () => {
@@ -483,7 +483,7 @@ describe("formatChangelog", () => {
 
   it("自定义语言未声明 groups 时只剥离可识别前缀、不改分组结构", () => {
     withChangelog("# pkg\n\n## 1.0.0\n\n### 自定分组\n\n- 修复：条目甲\n- 无前缀条目乙\n", (file) => {
-      formatChangelog(file, "2026-09-03", plainJa)
+      formatChangelog(file, "2026-09-03", plainEn)
       const out = readFileSync(file, "utf8")
       expect(out).toContain("### 自定分组")
       expect(out).toContain("- 条目甲")
@@ -522,30 +522,30 @@ describe("formatChangelog", () => {
   })
 
   it("自定义语言可选 prefixes 追加识别本语言自有前缀", () => {
-    const makeJa = (prefixes?: string[]): ChangelogLanguage => ({
+    const makeEn = (prefixes?: string[]): ChangelogLanguage => ({
       groups: [
-        { slot: "added", title: "### ✨ 新規", prefixes },
-        { slot: "other", title: "### 📦 その他" },
+        { slot: "added", title: "### ✨ Added", prefixes },
+        { slot: "other", title: "### 📦 Other" },
       ],
       replacements: {},
-      deps: "- 依存関係を更新",
-      released: "リリース",
+      deps: "- Updated dependencies",
+      released: "Published",
     })
-    const content = "# pkg\n\n## 1.1.0\n\n### Patch Changes\n\n- 新規：甲機能\n"
-    // 未声明 prefixes：只认全局前缀表，「新規：」不被识别 → Patch 块无前缀兜底落 other，且前缀不剥离
+    const content = "# pkg\n\n## 1.1.0\n\n### Patch Changes\n\n- New: feature A\n"
+    // 未声明 prefixes：只认全局前缀表，「New:」不被识别 → Patch 块无前缀兜底落 other，且前缀不剥离
     withChangelog(content, (file) => {
-      formatChangelog(file, "2026-09-03", makeJa())
+      formatChangelog(file, "2026-09-03", makeEn())
       const out = readFileSync(file, "utf8")
-      expect(out).toContain("### 📦 その他")
-      expect(out).toContain("- 新規：甲機能")
+      expect(out).toContain("### 📦 Other")
+      expect(out).toContain("- New: feature A")
     })
     // 声明 prefixes：本语言自有前缀参与识别 → 归入 added 并剥离前缀
     withChangelog(content, (file) => {
-      formatChangelog(file, "2026-09-03", makeJa(["新規："]))
+      formatChangelog(file, "2026-09-03", makeEn(["New:"]))
       const out = readFileSync(file, "utf8")
-      expect(out).toContain("### ✨ 新規")
-      expect(out).not.toContain("### 📦 その他")
-      expect(out).toContain("- 甲機能")
+      expect(out).toContain("### ✨ Added")
+      expect(out).not.toContain("### 📦 Other")
+      expect(out).toContain("- feature A")
     })
   })
 
@@ -563,14 +563,14 @@ describe("formatChangelog", () => {
     })
   })
 
-  it("自定义语言日期行幂等：released 非「发布/released」时也不重复追加", () => {
+  it("自定义语言日期行幂等：released 后缀非内置值时也不重复追加", () => {
     withChangelog("# pkg\n\n## 1.0.0\n\n### 🐛 补丁修复\n\n- 条目\n", (file) => {
-      expect(formatChangelog(file, "2026-09-03", plainJa)).toBe(true)
+      expect(formatChangelog(file, "2026-09-03", plainEn)).toBe(true)
       const once = readFileSync(file, "utf8")
-      expect(once.match(/リリース/g)).toHaveLength(1)
-      expect(once).toContain("## 1.0.0\n\n> 2026-09-03 リリース")
+      expect(once.match(/Published/g)).toHaveLength(1)
+      expect(once).toContain("## 1.0.0\n\n> 2026-09-03 Published")
       // 第二次运行：既有日期行被识别，零改动、不追加第二行
-      expect(formatChangelog(file, "2026-09-04", plainJa)).toBe(false)
+      expect(formatChangelog(file, "2026-09-04", plainEn)).toBe(false)
       expect(readFileSync(file, "utf8")).toBe(once)
     })
   })
@@ -690,7 +690,7 @@ describe("countUntypedEntries", () => {
     withChangelog("# pkg\n\n## 1.1.0\n\n### Patch Changes\n\n- 特性：自定义前缀条目\n", (_file, dir) => {
       expect(countUntypedEntries(dir, [customPrefixLang])).toBe(0)
       // 未纳入该语言的调用方仍按全局表识别，自定义前缀缺省即为缺前缀
-      expect(countUntypedEntries(dir, [plainJa])).toBe(1)
+      expect(countUntypedEntries(dir, [plainEn])).toBe(1)
     })
   })
 })
@@ -782,7 +782,7 @@ describe("findUntypedChangesetEntries", () => {
     withChangesets({ "custom-lang.md": '---\n"pkg": patch\n---\n\n- 特性：自定义前缀条目\n' }, (dir) => {
       expect(findUntypedChangesetEntries(dir, [customPrefixLang])).toEqual([])
       // 未纳入该语言的调用方仍按全局表识别，自定义前缀缺省即为缺前缀
-      expect(findUntypedChangesetEntries(dir, [plainJa])).toHaveLength(1)
+      expect(findUntypedChangesetEntries(dir, [plainEn])).toHaveLength(1)
     })
   })
 })

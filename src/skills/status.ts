@@ -3,6 +3,7 @@
 import { existsSync, lstatSync, readdirSync, readlinkSync } from "node:fs"
 import { dirname, isAbsolute, join } from "node:path"
 import {
+  buildSkillGateShell,
   buildSkillShell,
   classifyExisting,
   currentSkillShellVersion,
@@ -240,9 +241,17 @@ function statusItems(
     else if (kind === "dir") {
       // 实体目录按来源分流：状态登记为本包副本 / 闸门壳才叫漂移，未登记的同名目录属用户/上游产物
       const gateFile = join(dest, SKILL_ENTRY)
-      const gateOk = existsSync(gateFile) && isSkillGateShell(readTextFile(gateFile))
-      if (entries.get(name)?.mode === "gate") state = gateOk ? "gate" : "copy-drift"
-      else if (ref && existsSync(ref.dir) && dirsEqual(ref.dir, dest)) state = isSelected ? "copy" : "installed-unselected"
+      let gateContent: string | null = null
+      try {
+        if (existsSync(gateFile)) gateContent = readTextFile(gateFile)
+      } catch {
+        gateContent = null
+      }
+      if (entries.get(name)?.mode === "gate") {
+        // 壳文本与当前期望不一致（CLI 升级、描述变更或手改）即视为过期，由 install 按内容比对刷新
+        const expected = ref ? buildSkillGateShell(name, readSkillDescription(ref.dir)) : null
+        state = gateContent !== null && isSkillGateShell(gateContent) && (expected === null || gateContent === expected) ? "gate" : "gate-drift"
+      } else if (ref && existsSync(ref.dir) && dirsEqual(ref.dir, dest)) state = isSelected ? "copy" : "installed-unselected"
       else state = entries.get(name)?.mode === "copy" ? "copy-drift" : "conflict"
     } else state = isSelected ? "missing" : "not-selected"
     if (state !== "not-selected") items.push({ name, state, version: ref?.version ?? "", source: ref?.source ?? "" })

@@ -92,6 +92,17 @@ describe("内容闸门安装形态", () => {
     expect(item?.state).toBe("gate")
   })
 
+  it("入口壳内容过期时 status 报 gate-drift，重跑 install 恢复", () => {
+    installSkills({ gate: true })
+    const file = join(primaryDir(), "fxri-plan-to-task", "SKILL.md")
+    writeFileSync(file, `${readFileSync(file, "utf8")}<!-- 过期 -->\n`, "utf8")
+    const stateOf = (name: string) =>
+      skillsStatus().targets.find((target) => target.dir === primaryDir())?.items.find((item) => item.name === name)?.state
+    expect(stateOf("fxri-plan-to-task")).toBe("gate-drift")
+    installSkills({ gate: true })
+    expect(stateOf("fxri-plan-to-task")).toBe("gate")
+  })
+
   it("卸载按归属清理入口壳目录", () => {
     installSkills({ gate: true })
     removeSkills()

@@ -90,7 +90,7 @@ export function formatChangelog(
   // 已有日期行保留（缺空行时补齐），缺失时才补今日日期
   const lines = content.split("\n")
   const result: string[] = []
-  // 日期行识别与写入共用同一后缀集合：当前语言值（自定义语言如日文「リリース」）+ 内置语言值
+  // 日期行识别与写入共用同一后缀集合：当前语言值（自定义语言如「Published」）+ 内置语言值
   // （内置 zh / en 互跑时既有日期行仍被识别）
   const suffixes = [lang.released, ...BUILTIN_RELEASED].map(escapeRegExp)
   const dateLine = new RegExp(`^> \\d{4}-\\d{2}-\\d{2} (?:${suffixes.join("|")})$`)

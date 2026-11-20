@@ -81,17 +81,17 @@ JSON 结构：`{ schemaVersion: 1, summary, items }`；
 formatChangelogs(".", localDate(), languages[DEFAULT_LANG])
 // 追溯改写历史版本块（把旧口径组标题与条目一次性重排为当前口径）
 formatChangelogs(".", localDate(), languages[DEFAULT_LANG], true, true)
-// 自定义语言直接挂到 languages 对象（groups 可选，缺省时不改分组、只剥离可识别前缀）
-languages.ja = {
+// 自定义或覆盖语言：直接挂到 languages 对象（同名 key 覆盖内置；groups 可选，缺省时不改分组、只剥离可识别前缀）
+languages.en = {
   groups: [
-    { slot: "breaking", title: "### 🚨 重大変更" },
-    { slot: "added", title: "### ✨ 新規機能", prefixes: ["新規："] },
-    { slot: "fixed", title: "### 🐛 不具合修正" },
-    { slot: "other", title: "### 📦 その他" },
+    { slot: "breaking", title: "### 🚨 Breaking Changes" },
+    { slot: "added", title: "### ✨ New Features", prefixes: ["New:"] },
+    { slot: "fixed", title: "### 🐛 Bug Fixes" },
+    { slot: "other", title: "### 📦 Other" },
   ],
-  replacements: { "### Major Changes": "### 🚨 重大変更" },
-  deps: "- 依存関係を更新",
-  released: "リリース",
+  replacements: { "### Major Changes": "### 🚨 Breaking Changes" },
+  deps: "- Updated dependencies",
+  released: "released",
 }
 ```
 

@@ -18,16 +18,16 @@ title: changelog 与 changelogDoc（语言与镜像）
 {
   "changelog": {
     "languages": {
-      "ja": {
+      "en": {
         "groups": [
-          { "slot": "breaking", "title": "### 🚨 重大変更" },
-          { "slot": "added", "title": "### ✨ 新規機能" },
-          { "slot": "fixed", "title": "### 🐛 不具合修正" },
-          { "slot": "other", "title": "### 📦 その他" }
+          { "slot": "breaking", "title": "### 🚨 Breaking Changes" },
+          { "slot": "added", "title": "### ✨ New Features" },
+          { "slot": "fixed", "title": "### 🐛 Bug Fixes" },
+          { "slot": "other", "title": "### 📦 Other" }
         ],
-        "replacements": { "### Major Changes": "### 🚨 重大変更" },
-        "deps": "- 依存関係を更新",
-        "released": "リリース"
+        "replacements": { "### Major Changes": "### 🚨 Breaking Changes" },
+        "deps": "- Updated dependencies",
+        "released": "released"
       }
     }
   }
