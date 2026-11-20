@@ -4,11 +4,115 @@ import type { Command } from "commander"
 import { resolveScope } from "../scope"
 import { runGuard } from "../scope/guard"
 import { formatList, formatStatus } from "../scope/print"
-import { requireInteractive, runInteractive } from "../prompts"
+import { isInteractive, requireInteractive, runInteractive } from "../prompts"
 import { resolveComparablePath } from "../scope/paths"
-import { runScopeAdd, runScopeMount, runScopeRemove, runScopeWizard } from "../scope/wizard"
+import { runScopeMount, runScopeWizard } from "../scope/wizard"
 import { line } from "../term-style"
 import { assertJsonFormat } from "../json-output"
+import { assertChoice, confirmWrite, fail, reportWrite } from "../cli-ui"
+import {
+  applyPlan,
+  describePlan,
+  modeLabel,
+  planAdd,
+  planDefault,
+  planRemove,
+  planReset,
+  readScopeState,
+  type ScopeEditPlan,
+  type ScopeList,
+  type RemoveFrom,
+} from "../scope/edit"
+
+// 配置层取值
+const LAYERS = ["global", "project", "local"] as const
+
+// 解析 --layer：缺省全局，非法值统一报错
+function resolveLayer(value?: string): (typeof LAYERS)[number] | null {
+  const layer = (value ?? "global") as (typeof LAYERS)[number]
+  return assertChoice(layer, LAYERS, "--layer") ? layer : null
+}
+
+// 统一写盘流程：预览 → 确认 → 落盘 → 结果块；--dry-run 只预览，--yes 与管道输入跳过确认
+async function applyScopePlan(title: string, plan: ScopeEditPlan, options: { dryRun?: boolean; yes?: boolean }): Promise<void> {
+  if (!plan.changed) {
+    for (const text of describePlan(plan)) console.log(line.hint(text))
+    return
+  }
+  const confirmed = await confirmWrite({
+    title,
+    lines: describePlan(plan),
+    yes: Boolean(options.yes) || !isInteractive(),
+    dryRun: Boolean(options.dryRun),
+  })
+  if (options.dryRun) return
+  if (!confirmed) {
+    console.error(line.hint("已取消，未写入任何文件"))
+    return
+  }
+  applyPlan(plan)
+  reportWrite({ file: plan.target.file, notes: plan.changes, mode: modeLabel(plan.nextMode) })
+}
+
+// 加入白 / 黑名单
+async function runListEdit(kind: ScopeList, dirs: string[], options: { layer?: string; dryRun?: boolean; yes?: boolean }): Promise<void> {
+  const layer = resolveLayer(options.layer)
+  if (!layer) return
+  if (dirs.length === 0) {
+    fail("请指定目录；交互设置请运行 toolkit scope")
+    return
+  }
+  await applyScopePlan(kind === "include" ? "作用域：加入白名单" : "作用域：加入黑名单", planAdd(readScopeState(layer), kind, dirs), options)
+}
+
+// 移除 / 互转
+async function runRemove(dirs: string[], options: { layer?: string; dryRun?: boolean; yes?: boolean; from?: string; to?: string }): Promise<void> {
+  const layer = resolveLayer(options.layer)
+  if (!layer) return
+  if (dirs.length === 0) {
+    fail("请指定目录；交互管理请运行 toolkit scope")
+    return
+  }
+  const from = (options.from ?? "both") as RemoveFrom
+  if (!assertChoice(from, ["include", "exclude", "both"], "--from")) return
+  const to = options.to as ScopeList | undefined
+  if (to !== undefined) {
+    if (!assertChoice(to, ["include", "exclude"], "--to")) return
+    if (from === "both") {
+      fail("--from both 不能与 --to 同时使用")
+      return
+    }
+    if (from === to) {
+      fail("--to 须与 --from 不同")
+      return
+    }
+  }
+  await applyScopePlan("作用域：移除 / 互转", planRemove(readScopeState(layer), dirs, { from, to }), options)
+}
+
+// 查看或切换默认值
+async function runDefault(value: string | undefined, options: { layer?: string; dryRun?: boolean; yes?: boolean }): Promise<void> {
+  const layer = resolveLayer(options.layer)
+  if (!layer) return
+  const state = readScopeState(layer)
+  if (value === undefined) {
+    console.log(`默认：${modeLabel(state.mode)}（白名单 ${state.include.length} / 黑名单 ${state.exclude.length}）`)
+    console.log(`配置：${state.target.file}`)
+    return
+  }
+  if (value !== "on" && value !== "off") {
+    fail("取值须为 on / off")
+    return
+  }
+  await applyScopePlan(value === "on" ? "作用域：默认全部生效" : "作用域：默认仅名单内生效", planDefault(state, value === "on"), options)
+}
+
+// 清除限制
+async function runReset(options: { layer?: string; dryRun?: boolean; yes?: boolean }): Promise<void> {
+  const layer = resolveLayer(options.layer)
+  if (!layer) return
+  await applyScopePlan("作用域：清除限制", planReset(readScopeState(layer)), options)
+}
 
 // 注册 scope 命令：默认行为不变（无配置时全域生效）
 export function registerScopeCommands(program: Command): void {
@@ -111,18 +215,56 @@ export function registerScopeCommands(program: Command): void {
 
   scopeCmd
     .command("add [dirs...]")
-    .description("把目录加入白名单（无参进入扫描流程；带参可指定配置层）")
-    .option("--layer <layer>", "配置层：global / project / local（缺省 global）")
-    .action(async (dirs: string[] = [], options: { layer?: string } = {}) => {
-      await runInteractive(() => runScopeAdd(dirs, options.layer as "global" | "project" | "local" | undefined))
+    .description("把目录加入白名单（需显式指定目录；交互设置请运行 toolkit scope）")
+    .option("--layer <layer>", "配置层：global（默认）/ project / local")
+    .option("--dry-run", "只预览，不写配置")
+    .option("--yes", "跳过确认")
+    .action(async (dirs: string[] = [], options: { layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {
+      await runInteractive(() => runListEdit("include", dirs, options))
+    })
+
+  scopeCmd
+    .command("exclude [dirs...]")
+    .description("把目录加入黑名单（默认值保持不变；需显式指定目录）")
+    .option("--layer <layer>", "配置层：global（默认）/ project / local")
+    .option("--dry-run", "只预览，不写配置")
+    .option("--yes", "跳过确认")
+    .action(async (dirs: string[] = [], options: { layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {
+      await runInteractive(() => runListEdit("exclude", dirs, options))
     })
 
   scopeCmd
     .command("remove [dirs...]")
-    .description("从白名单 / 黑名单移除或互转目录（可指定配置层）")
-    .option("--layer <layer>", "配置层：global / project / local（缺省 global）")
-    .action(async (dirs: string[] = [], options: { layer?: string } = {}) => {
-      await runInteractive(() => runScopeRemove(dirs, options.layer as "global" | "project" | "local" | undefined))
+    .description("移除条目，可指定来源侧与转入侧")
+    .option("--layer <layer>", "配置层：global（默认）/ project / local")
+    .option("--from <list>", "从哪侧移除：include / exclude / both（默认 both）")
+    .option("--to <list>", "移除后转入另一侧：include / exclude")
+    .option("--dry-run", "只预览，不写配置")
+    .option("--yes", "跳过确认")
+    .action(
+      async (dirs: string[] = [], options: { layer?: string; from?: string; to?: string; dryRun?: boolean; yes?: boolean } = {}) => {
+        await runInteractive(() => runRemove(dirs, options))
+      },
+    )
+
+  scopeCmd
+    .command("default [value]")
+    .description("查看或切换默认值：on（全部生效）/ off（仅名单内生效）")
+    .option("--layer <layer>", "配置层：global（默认）/ project / local")
+    .option("--dry-run", "只预览，不写配置")
+    .option("--yes", "跳过确认")
+    .action(async (value: string | undefined, options: { layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {
+      await runInteractive(() => runDefault(value, options))
+    })
+
+  scopeCmd
+    .command("reset")
+    .description("清除限制（全部生效并清空两名单）")
+    .option("--layer <layer>", "配置层：global（默认）/ project / local")
+    .option("--dry-run", "只预览，不写配置")
+    .option("--yes", "跳过确认")
+    .action(async (options: { layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {
+      await runInteractive(() => runReset(options))
     })
 
   scopeCmd

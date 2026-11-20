@@ -107,10 +107,11 @@ export async function confirmWrite(options: {
 }
 
 // 写后结果块：统一「写入文件 + 变更条目 + 当前模式」；诊断走 stderr，stdout 留给数据
-export function reportWrite(options: { file: string; added?: string[]; removed?: string[]; mode?: string }): void {
+export function reportWrite(options: { file: string; added?: string[]; removed?: string[]; notes?: string[]; mode?: string }): void {
   console.error(line.ok(`已写入 ${style.accent(options.file)}`))
   if (options.added && options.added.length > 0) console.error(`  新增：${options.added.join("、")}`)
   if (options.removed && options.removed.length > 0) console.error(`  移除：${options.removed.join("、")}`)
+  for (const note of options.notes ?? []) console.error(`  ${note}`)
   if (options.mode) console.error(`  当前：${options.mode}`)
 }
 

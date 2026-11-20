@@ -590,6 +590,65 @@ exports[`各域行为与错误路径 > rules reset 1`] = `
 "
 `;
 
+exports[`各域行为与错误路径 > scope add 缺参数 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ 请指定目录；交互设置请运行 toolkit scope"
+`;
+
+exports[`各域行为与错误路径 > scope default 查看 1`] = `
+"退出码：0
+--- stdout ---
+默认：全部生效（白名单 0 / 黑名单 0）
+配置：<SANDBOX>/home/.toolkitrc.json
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > scope exclude 预演 1`] = `
+"退出码：0
+--- stdout ---
+
+作用域：加入黑名单
+  写入：<SANDBOX>/home/.toolkitrc.json
+  默认：全部生效
+  新增：[黑] <SANDBOX>/workspace/work
+[预演] 未写入任何文件
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > scope remove 互转预演 1`] = `
+"退出码：0
+--- stdout ---
+
+作用域：移除 / 互转
+  写入：<SANDBOX>/home/.toolkitrc.json
+  默认：全部生效
+  转入：[黑] <SANDBOX>/workspace/work
+[预演] 未写入任何文件
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > scope remove 非法 from 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ --from 取值须为 include / exclude / both"
+`;
+
+exports[`各域行为与错误路径 > scope reset 预演 1`] = `
+"退出码：0
+--- stdout ---
+没有变化，无需写入
+--- stderr ---
+"
+`;
+
 exports[`各域行为与错误路径 > scope status 非法格式 1`] = `
 "退出码：1
 --- stdout ---

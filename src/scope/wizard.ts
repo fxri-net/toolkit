@@ -1,7 +1,6 @@
 // 作用域向导：状态查看、扫描选目录、规则归属（全局 / 项目 / 本地）、目录增删与批量挂载
 import { existsSync } from "node:fs"
 import { relative } from "node:path"
-import { normalizePathForCompare } from "../git-ignore"
 import { BACK_CHOICE, LIST_PAGE_SIZE, askWithBack, loadPrompts, requireInteractive } from "../prompts"
 import { BUILTIN_SOURCE, installProjectSkills, installSkills, listPackageSkills, readSkillsInstallConfig, writeSkillsInstallConfig } from "../skills"
 import { line, style } from "../term-style"
@@ -12,35 +11,7 @@ import { scanRepositories, scanRepositoryTree, type ScanOptions } from "./plan"
 import { matchPathPattern } from "./pattern"
 import { resolveComparablePath } from "./paths"
 import type { ActivationMode } from "./types"
-
-// 读取配置里的 activation 字段（仅用于编辑，不参与判定）
-function currentActivation(config: Record<string, unknown>): Record<string, unknown> {
-  const value = config.activation
-  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
-}
-
-// 字符串数组字段
-function stringList(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []
-}
-
-// 去空、按真实路径去重并保持顺序
-function appendUnique(list: string[], additions: string[]): string[] {
-  const seen = new Set(list.map(pathKey))
-  const result = [...list]
-  for (const item of additions) {
-    const key = pathKey(item)
-    if (seen.has(key)) continue
-    seen.add(key)
-    result.push(item)
-  }
-  return result
-}
-
-// 路径比较键：绝对路径 + 统一分隔符与大小写，不解析符号链接
-function pathKey(input: string): string {
-  return normalizePathForCompare(resolveComparablePath(input))
-}
+import { appendUnique, currentActivation, pathKey, stringList } from "./edit"
 
 // 查看当前判定
 export function printScopeStatus(): void {

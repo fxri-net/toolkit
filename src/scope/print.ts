@@ -2,6 +2,7 @@
 import { getHomeDir } from "../config"
 import { normalizePathForCompare, toPosix } from "../git-ignore"
 import type { ScopeReport } from "./load"
+import type { ActivationMode } from "./types"
 
 // 展示用路径：折叠 home 前缀，便于人读
 // 前缀判断按大小写口径归一（Windows / macOS 默认不区分大小写），输出保留用户原始写法
@@ -21,6 +22,17 @@ function displayList(items: string[]): string {
   return items.length > 0 ? items.join("、") : "未配置"
 }
 
+// 模式人读：denylist 兼容读为 all，旧配置照实标注
+function displayMode(mode: ActivationMode): string {
+  return mode === "denylist" ? "all（兼容读取 denylist）" : mode
+}
+
+// 默认全部生效时，白名单不参与判定：有内容时明确标注
+function displayInclude(items: string[], mode: ActivationMode): string {
+  const text = displayList(items)
+  return mode !== "allowlist" && items.length > 0 ? `${text}（当前默认全部生效，未参与判定）` : text
+}
+
 // status 文本行
 export function formatStatus(report: ScopeReport): string[] {
   const { decision } = report
@@ -29,7 +41,7 @@ export function formatStatus(report: ScopeReport): string[] {
     `  当前目录：${displayPath(report.context.cwd)}`,
     `  判定基准：${displayPath(decision.baseDir)}${decision.baseDir === report.context.cwd ? "" : "（项目根）"}`,
     `  结果：${decision.active ? "生效" : "未生效"}`,
-    `  模式：${decision.mode}`,
+    `  模式：${displayMode(decision.mode)}`,
     `  命中规则：${decision.matchedRule ?? "未命中"}`,
     `  来源：${displayPath(decision.sourceFile)}`,
     `  原因：${decision.reason}`,
@@ -43,8 +55,8 @@ export function formatList(report: ScopeReport): string[] {
     "作用域规则：",
     `  来源：${displayPath(report.decision.sourceFile)}${report.layer ? `（${report.layer}）` : ""}`,
     `  判定基准：${displayPath(report.decision.baseDir)}`,
-    `  模式：${report.decision.mode}`,
-    `  白名单：${displayList(activation?.include ?? [])}`,
+    `  模式：${displayMode(report.decision.mode)}`,
+    `  白名单：${displayInclude(activation?.include ?? [], report.decision.mode)}`,
     `  黑名单：${displayList(activation?.exclude ?? [])}`,
     `  启用标记：${displayList(activation?.markers.include ?? [])}`,
     `  排除标记：${displayList(activation?.markers.exclude ?? [])}`,

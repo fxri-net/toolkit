@@ -10,7 +10,7 @@ title: 作用域（activation）
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `mode` | `all` / `allowlist` / `denylist` | 默认 `all`；白名单模式需命中 `include`，黑名单模式默认生效 |
+| `mode` | `all` / `allowlist` / `denylist` | 默认 `all`；白名单模式需命中 `include`；`denylist` 为等价兼容别名，新写入不再产生 |
 | `include` | 字符串数组 | 白名单规则（glob 或 `re:` 正则）；`allowlist` 必填，空数组视为不生效 |
 | `exclude` | 字符串数组 | 排除规则（glob 或 `re:` 正则）；优先级最高，命中即不生效 |
 | `markers.include` | 字符串数组 | 启用标记文件名；配置后需在 cwd 或 git 根存在其一 |
@@ -44,6 +44,7 @@ title: 作用域（activation）
 - 路径、技能名与 `gitRemotes` 一律**不区分大小写**；Windows 上以 `/` 开头的规则不写盘符也能命中
 - 旧版按真实路径写入的规则（如 macOS 的 `/private/...`）不再自动命中，`scope status` 会提示改用 `pwd` 看到的路径
 - 结尾 `/**` 同时命中目录自身与其下任意层级
+- `mode: all` 时 `include` 不参与判定；`denylist` 与 `all` 判定完全一致，`scope status` / `list` 显示为 `all（兼容读取 denylist）`
 - 非法正则、超过 200 字符或含嵌套量词（如 `(a+)+`）的规则会被忽略并告警，不参与判定
 
 ## 判定基准

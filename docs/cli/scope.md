@@ -20,10 +20,14 @@ toolkit scope status                  # 当前目录的判定与原因
 toolkit scope status --skill fxri-plan-review # 按技能级规则判定单个技能
 toolkit scope status --format json    # 给 AI / 脚本消费
 toolkit scope list                    # 规则、来源与优先级
-toolkit scope add ~/work              # 加入白名单（缺省写全局，可用 --layer 指定层）
+toolkit scope add ~/work              # 加入白名单，默认切到「仅名单内生效」
+toolkit scope exclude ~/work/legacy   # 加入黑名单，默认值不变
 toolkit scope add ~/work --layer project # 写入当前项目层（随仓库共享）
-toolkit scope remove ~/work/legacy    # 从规则中移除
-toolkit scope remove --layer project  # 交互管理指定层的名单，可白黑互转
+toolkit scope remove ~/work --from include --to exclude # 白名单转黑名单
+toolkit scope remove ~/work/legacy --from exclude       # 从黑名单移除
+toolkit scope default                 # 查看当前默认值
+toolkit scope default off             # 切换为「仅名单内生效」
+toolkit scope reset                   # 清除限制（全部生效）
 toolkit scope mount ~/work --dry-run  # 批量项目面安装：先预览
 toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域输出技能正文（未激活退出码 3）
 ```
@@ -41,11 +45,13 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
   同一路径已在另一侧时提供就地互转，写入前展示模式与两列表预览
 - 扫描支持多父目录（逗号或换行分隔）与关键字过滤；结果页显示跳过统计（隐藏目录 / 依赖目录 / 未展开仓库），
   有隐藏目录时可切换「包含隐藏目录」或「包含嵌套仓库」后重新扫描；0 结果时可选择下探更深、包含隐藏目录或嵌套仓库
-- `scope add <dir>...` 无参进入同一流程；带参时为非交互追加白名单，支持 `--layer global|project|local`（缺省全局），
-  遇到黑名单同路径自动互转并告警
-- `scope add/remove` 只改配置文件（读 → 合并 → 原子写）；交互时选择层，带参形式缺省全局，可用 `--layer` 指定
-- `scope remove` 交互按层列出 `[白]` / `[黑]` 条目与状态（路径不存在、已被同层规则覆盖），可移出或一步白黑互转；
-  非交互用 `--layer global|project|local` 指定层，缺省全局
+- `add` / `exclude` / `remove` 均需显式目录：无参只提示改用 `toolkit scope` 交互菜单，不再隐式进入完整向导
+- `add` 加入白名单并把默认值切到「仅名单内生效」；`exclude` 只加黑名单、默认值不变；同路径在另一侧时写前预览「移入 / 转入」
+- `remove --from include|exclude|both`（默认 `both`）指定来源侧，`--to include|exclude` 一步转入另一侧；带参与交互同口径
+- `default on|off` 查看或切换默认值；`reset` 清除限制（全部生效并清空两列表，保留标记 / git 远端 / 技能级规则）
+- 写前统一展示预览：TTY 下确认后落盘，`--yes` 跳过确认，`--dry-run` 只预览；非 TTY 带显式参数直接执行
+- 结果块统一输出写入文件、变更条目与当前默认值；无变化时只提示「没有变化，无需写入」
+- 相对路径按目标层项目根解析（全局层按当前目录）；`--layer global|project|local` 缺省全局
 - `scope list` 同时输出条目存在性：文本模式列出「条目异常」，`--format json` 的 `items` 含 `path` / `list` / `exists`；
   相对路径条目按所属配置层的项目根解析
 - `scope mount` 会**向所选项目写入技能文件**，必须显式勾选并确认；`--dry-run` 只预览
@@ -81,7 +87,9 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 
 ## 边界
 
-- 默认 `mode = all`，不配置时与历史行为完全一致
+- 默认 `mode = all`，不配置时与历史行为完全一致；`denylist` 是等价的兼容别名，`status` / `list` 显示为 `all（兼容读取 denylist）`，
+  任何写命令都会把旧值归一为 `all`
+- `mode = all` 时 `include` 不参与判定，`list` 会在白名单后标注「当前默认全部生效，未参与判定」
 - 只影响技能与内容闸门（`scope guard`），不影响 `toolkit` 命令本身（命令是显式调用的）
 - 全局规则无法按目录排除（agent 限制）；项目专用规则需落在项目内
 - 工具不创建、不修改项目内配置或标记；项目层配置由用户自行写入时正常参与
