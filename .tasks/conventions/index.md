@@ -34,7 +34,7 @@
 | C-28 | 规则落门禁 | 新增可检出要求时：同批补检测入口，且置于不可逆动作之前 | common | [common.md](./common.md) |
 | C-29 | 门禁环境无关 | 新增或改门禁步骤时：固定时区等环境变量，合成数据 UTC、真实任务数据东八区 | common | [common.md](./common.md) |
 | C-30 | 配置分层 | 读写配置时：三层（全局→项目→本地）分层覆盖，`config status` 只列来源不打印值 | common | [config.md](../../docs/config.md)、[cli.md](../../docs/cli.md) |
-| C-32 | 路径形态归一 | 比对路径或判归属时：先取磁盘真实形态再比，纯字符串归一不算 | platform | [platform.md](./platform.md) |
+| C-32 | 路径归一适用范围 | 判断磁盘同一性时：取真实形态再比；用户规则匹配时：只用字符串归一，不解析符号链接 | platform | [platform.md](./platform.md) |
 | C-33 | 类型检查覆盖测试 | 配置类型检查时：测试文件须纳入，走放开排除项的 `tsconfig.typecheck.json` | common | [AGENTS.md](../../AGENTS.md) 验收方式 |
 | C-38 | 任务区不写外仓名 | 写任务区文本时：指称外部仓库用通用措辞，不写实名 | hygiene | [hygiene.md](./hygiene.md) |
 | C-40 | 文档信息架构 | 写文档页面时：按任务组织、正文 ≤150 行 / 12k 字符、精简不失真、四段模板 | docs | [docs.md](./docs.md) |
