@@ -49,6 +49,8 @@ jobs:
           cache: pnpm
       - name: 安装依赖
         run: pnpm install --frozen-lockfile
+      - name: 构建运行时产物
+        run: pnpm build
       # 运行下限冒烟需要「已发布形态」的包：打包后传给 node18 作业，避免在旧版 Node 上安装 dev 工具链
       - name: 打包运行时产物
         run: pnpm pack --pack-destination .
