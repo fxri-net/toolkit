@@ -141,6 +141,14 @@ exports[`各域行为与错误路径 > changelog 版本 1`] = `
 ⚠️ 存在未归档的 active 任务，建议先归档再发版"
 `;
 
+exports[`各域行为与错误路径 > changelog 裸命令 1`] = `
+"退出码：0
+--- stdout ---
+
+--- stderr ---
+"
+`;
+
 exports[`各域行为与错误路径 > config status 1`] = `
 "退出码：0
 --- stdout ---
@@ -248,6 +256,24 @@ exports[`各域行为与错误路径 > config status 非法格式 1`] = `
 ⚠️ 不支持的输出格式「xml」，仅支持 json"
 `;
 
+exports[`各域行为与错误路径 > config 裸命令 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit config [options] [command]
+
+配置分层：只读查看三层配置文件（全局层 / 项目层 / 本地层）的生效情况与来源
+
+Options:
+  -h, --help        显示帮助
+
+Commands:
+  status [options]  配置分层只读体检：三层命中 / 来源层 / 环境变量层（只读、退出码恒 0；无 --dir，可用 --cwd
+                    指定查找起点）
+
+--- stderr ---
+"
+`;
+
 exports[`各域行为与错误路径 > conventions format 1`] = `
 "退出码：0
 --- stdout ---
@@ -316,6 +342,28 @@ exports[`各域行为与错误路径 > conventions upgrade 预演 1`] = `
 ⚠️ 升级失败：未找到 .tasks/conventions/index.md，先执行 toolkit init"
 `;
 
+exports[`各域行为与错误路径 > conventions 裸命令 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit conventions [options] [command]
+
+项目协作规范载体：结构升级（v1 / v2 → v3）、表格与索引单元格形态归一、只读体检（形态 / 索引 / 入口层）
+
+Options:
+  -h, --help         显示帮助
+
+Commands:
+  upgrade [options]  把 v1 / v2 规范载体升级为 v3（v2：删「状态」「确立来源任务」两列、退休条目迁入 retired.md
+                     并删分册小节；v1 链式升级；幂等，先判后写）
+  format [options]   归一表格与索引表单元格形态（紧凑形态 + 单一事实源链接化、归属裸值、规则去引号；当前语义只报不改；幂等、跳过
+                     fenced code block，先报后写）
+  status [options]   规范载体只读体检：形态 / 索引 / 入口层三块（只报不改，体检不阻断、退出码恒 0；仅 --format
+                     传非法值时按参数错误报错退出）
+
+--- stderr ---
+"
+`;
+
 exports[`各域行为与错误路径 > docs theme 写入 1`] = `
 "退出码：0
 --- stdout ---
@@ -350,6 +398,25 @@ exports[`各域行为与错误路径 > docs 导航校验 1`] = `
 --- stderr ---
 ⚠️ 导航校验失败（1 项）
   ✖ [nav/file-missing] 未找到 docs/site-nav.json：把 config.mts 的 nav / sidebar 数组原样搬入该文件，配置改为 import 后引用（本命令只读数据，不解析源码）（docs/site-nav.json）"
+`;
+
+exports[`各域行为与错误路径 > docs 裸命令 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit docs [options] [command]
+
+文档站工具：主题、导航与产物的校验与写入
+
+Options:
+  -h, --help                 显示帮助
+
+Commands:
+  theme [options] [command]  统一文档站主题：校验或写入（公共规则随包分发，品牌段由各站自留）
+  nav [options] [command]    文档站导航：按 site-nav.json 校验顶栏、侧栏、命名与页面体量
+  dist [options] [command]   文档站产物：校验 404 不进站点地图与站内搜索索引（需先构建）
+
+--- stderr ---
+"
 `;
 
 exports[`各域行为与错误路径 > rules compose 单模块 1`] = `
@@ -590,6 +657,25 @@ exports[`各域行为与错误路径 > rules reset 1`] = `
 "
 `;
 
+exports[`各域行为与错误路径 > rules 裸命令 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit rules [options] [command]
+
+全局规则：列出模块、组合输出与缓存管理
+
+Options:
+  -h, --help         显示帮助
+
+Commands:
+  list [options]     列出规则模块、预设与当前缓存选择
+  compose [options]  组合规则模块并输出（TTY 无参时交互选择；非 TTY 按缓存 > recommended）
+  reset [options]    清除规则组合缓存
+
+--- stderr ---
+"
+`;
+
 exports[`各域行为与错误路径 > scope add 缺参数 1`] = `
 "退出码：1
 --- stdout ---
@@ -753,6 +839,33 @@ exports[`各域行为与错误路径 > skills 来源列表 1`] = `
 "退出码：0
 --- stdout ---
 未登记外部来源
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > skills 裸命令 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit skills [options] [command]
+
+AI 技能包分发：安装 / 状态 / 卸载 / 来源 / 路径（包内 skills/ 与 --from 外部来源统一管理）
+
+Options:
+  -h, --help                    显示帮助
+
+Commands:
+  install [options]             安装技能（默认按现场判定作用域：仓库内写项目面副本 + 薄壳，否则写全局目录；包内
+                                skills/ 与 --from 外部来源统一处理）
+  status [options]              查看技能现场状态与真源版本（默认按现场判定作用域；含悬空 / 指向其他版本 / 漂移 / 缺失
+                                / 同名冲突）
+  uninstall [options]           卸载由本包安装的技能产物（默认按现场判定作用域；只清理归属账记载的条目，不碰用户自装技能）
+  bump [options] [name] [type]  递增技能版本（两处版本声明同源改写；--all 批量、--set 直接设定）
+  sources [options] [command]   查看 / 刷新 / 注销外部技能来源，并管理来源提示频率
+  gate [options] [value]        查看或切换内容闸门（on / off；切换后运行 toolkit skills install
+                                生成或还原入口壳）
+  mount [options] [dir]         在父目录下的项目里批量安装技能（交互选择项目并确认，会向所选项目写文件）
+  path [options]                输出包根路径（内含 skills/，可委托上游安装器安装到表外 agent）
+
 --- stderr ---
 "
 `;
@@ -1757,7 +1870,7 @@ Options:
   --skill <name>     按技能过滤
   --unused           列出零使用技能（仅 --by skill 有效）
   --dir <path>       本次使用的数据目录
-  --format <format>  输出格式（json）
+  --format <format>  输出格式（json，输出到 stdout）
   -h, --help         显示帮助
 
 --- stderr ---

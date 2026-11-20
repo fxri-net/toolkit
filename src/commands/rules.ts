@@ -51,7 +51,7 @@ export function registerRulesCommands(program: Command): void {
   rulesCmd
     .command("list")
     .description("列出规则模块、预设与当前缓存选择")
-    .option("--format <format>", "输出格式（json）")
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action((options: { format?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return

@@ -333,6 +333,27 @@ for (const { rel, text } of ruleTexts) {
   }
 }
 
+// CLI 入口矩阵、术语表与退出码总览：docs/cli.md 是新增命令的默认口径，缺块即视为文档与实现开始漂移
+// 假现场（只含技能表的最小仓库）没有 docs/cli.md：跳过，不把缺失当违规
+if (existsSync(join(root, "docs", "cli.md"))) {
+  const cliDoc = read("docs/cli.md")
+  const entrySection = /## 裸命令入口\n([\s\S]*?)\n## /.exec(cliDoc)?.[1] ?? ""
+  if (!entrySection) errors.push("docs/cli.md 缺少「裸命令入口」小节：入口行为须与实现逐域核对")
+  for (const domain of ["tasks", "skills", "rules", "config", "conventions", "docs", "scope", "usage"]) {
+    if (entrySection && !entrySection.includes(`\`toolkit ${domain}\``)) {
+      errors.push(`docs/cli.md 的裸命令入口缺少 \`toolkit ${domain}\``)
+    }
+  }
+  const termsSection = /## 术语表\n([\s\S]*?)\n## /.exec(cliDoc)?.[1] ?? ""
+  if (!termsSection) errors.push("docs/cli.md 缺少「术语表」小节：层 / 面 / 名单 / 预演等术语须有单一出处")
+  for (const term of ["层", "面", "名单", "预演", "确认", "来源", "目标", "范围"]) {
+    if (termsSection && !termsSection.includes(`| ${term} |`)) errors.push(`docs/cli.md 术语表缺少「${term}」`)
+  }
+  for (const code of ["`0`", "`1`", "`2`", "`3`", "`130`"]) {
+    if (!cliDoc.includes(`| ${code} |`)) errors.push(`docs/cli.md 退出码表缺少 ${code}`)
+  }
+}
+
 // 输出：error 阻断，warn 只提示
 if (warns.length > 0) {
   console.log("规范一致性检查：")

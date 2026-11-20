@@ -109,7 +109,7 @@ export function registerDocsCommands(program: Command): void {
     .command("check")
     .description("校验 docs/site-nav.json 的结构与导航规则（数据单一真源，不解析站点配置）")
     .option("--dir <path>", `文档目录（默认 ${DOCS_DIR}）`)
-    .option("--format <format>", "输出格式（json）")
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action((options: { dir?: string; format?: string }) => {
       if (!assertJsonFormat(options.format)) return
       // 目录优先级：CLI --dir > 配置 docs.nav.dir > 默认 docs
@@ -140,7 +140,7 @@ export function registerDocsCommands(program: Command): void {
     .command("check")
     .description("校验构建产物：404 页不进 sitemap 与站内搜索索引（产物缺失时跳过）")
     .option("--dir <path>", `文档目录（默认 ${DOCS_DIR}）`)
-    .option("--format <format>", "输出格式（json）")
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action((options: { dir?: string; format?: string }) => {
       if (!assertJsonFormat(options.format)) return
       // 目录优先级：CLI --dir > 配置 docs.nav.dir 所在文档目录 > 默认 docs

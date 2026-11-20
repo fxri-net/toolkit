@@ -36,6 +36,36 @@
 | 文档站主题漂移 | `toolkit docs theme check` |
 | 文档站导航或产物不合规 | `toolkit docs nav check` / `toolkit docs dist check` |
 
+## 裸命令入口
+
+| 域 | 裸命令（TTY） | 非 TTY | 显式向导入口 | 机器可读 |
+| --- | --- | --- | --- | --- |
+| `toolkit tasks` | 打印任务总览（默认视图） | 同左，退出 0 | 无 | `--format json` / `export` |
+| `toolkit skills` | 打印本域帮助 | 同左，退出 0 | 无（`gate` / `mount` 等子命令参数化） | 各子命令 `--format json` |
+| `toolkit rules` | 打印本域帮助 | 同左，退出 0 | 无 | `list` / `compose --format json` |
+| `toolkit config` | 打印本域帮助 | 同左，退出 0 | 无 | `status --format json` |
+| `toolkit conventions` | 打印本域帮助 | 同左，退出 0 | 无 | `status` / `format` / `upgrade --format json` |
+| `toolkit docs` | 打印本域帮助 | 同左，退出 0 | 无 | `nav` / `dist --format json` |
+| `toolkit scope` | 状态优先向导 | 输出状态摘要与子命令提示，退出 0 | `scope wizard`（需要交互但无终端时退出 2） | `status` / `list --format json` |
+| `toolkit usage` | 交互向导 | 输出 `info` 摘要与子命令提示，退出 0 | `usage wizard`（需要交互但无终端时退出 2） | `info` / `stats` / `doctor` 等 `--format json` |
+| `toolkit changelog` | 透传 changesets 默认行为 | 同左 | 无 | `doc` / `audit` 等子命令 |
+
+规则：查询型域给默认视图，配置 / 分发型域给帮助，向导型域给摘要 + `wizard` 入口提示；
+裸命令在非 TTY 一律退出 `0`，显式 `wizard` 子命令需要交互时退出 `2`。
+
+## 术语表
+
+| 术语 | 含义 | 出现位置 |
+| --- | --- | --- |
+| 层 | 配置文件层级：global 全局 / project 项目 / local 本地 | `--layer`（scope 写命令；`sources notify` 的 `--layer` 是它的别名） |
+| 面 | 技能安装面：全局面 global / 项目面 project | `skills install --scope`、`skills status` / `uninstall` |
+| 名单 | 作用域白名单（include）与黑名单（exclude） | `scope` 菜单与写命令、`scope list` |
+| 预演 | `--dry-run`：只打印将执行的动作，不写文件 / 剪贴板 / 缓存 | 全部写命令 |
+| 确认 | 写前展示预览并交互确认；`--yes` 跳过确认 | `scope` / `usage` / `skills` 写命令 |
+| 来源 | 技能来源：内置 `toolkit` 源与 `--from` 外部来源 | `skills`、`skills sources` |
+| 目标 | 技能安装目标：agent 全局目录 / 项目薄壳目录 | `skills install`、`skills status` |
+| 范围 | 按上下文区分：作用域命中范围（scope）或技能统计范围（usage） | `scope` / `usage scope` |
+
 ## 全局约定
 
 **调用方式**：下文示例统一用 `toolkit <command>` 直调（已全局安装）或 `pnpm exec toolkit <command>`（项目 devDependency，npm 用户 `npx toolkit`）。
@@ -88,7 +118,7 @@
 
 ## 交互约定
 
-交互提示统一走同一套基座（当前由 `rules` 域先行接入，其余域随对应版本对齐）：
+交互提示统一走同一套基座（`rules` / `scope` / `usage` / `skills` 已接入，其余域按同一口径演进）：
 
 - 有上级步骤时按 ESC 返回上一级；顶层按 ESC 或 Ctrl+C 取消整个命令（退出码 `130`）。
 - 写操作先展示预览再确认；`--yes` 跳过确认，`--dry-run` 只预览、不写文件 / 剪贴板 / 缓存。
@@ -98,9 +128,10 @@
 
 | 退出码 | 含义 |
 | --- | --- |
-| `0` | 成功（含 check 通过、归档跳过等正常路径） |
+| `0` | 成功（含 check 通过、归档跳过、裸命令输出摘要等正常路径） |
 | `1` | 操作失败或校验存在 error 级问题（check 有 error、参数冲突、非法子命令、文件/目录异常等） |
-| `2` | 需要交互但当前环境不支持（stderr 给出非交互替代） |
+| `2` | 需要交互但当前环境不支持（`scope wizard` / `usage wizard` 及 `init` / `uninstall` / `upload setup` / Hook 写命令等；stderr 给出非交互替代） |
+| `3` | `scope guard <技能名>` 判定当前目录未激活（stdout 为空，原因写 stderr） |
 | `130` | 用户在交互提示中按 Ctrl+C 中断（不写任何文件） |
 
 软告警（warn 级）不影响退出码。解析错误的提示格式与 `changelog` 透传差异见[退出码与解析错误](./cli/exit-codes)。

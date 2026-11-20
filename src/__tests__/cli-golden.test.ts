@@ -319,6 +319,12 @@ describe("各域行为与错误路径", () => {
   const cases: Array<[string, string[]]> = [
     ["tasks 总览", ["tasks"]],
     ["tasks 总览 JSON", ["tasks", "--format", "json"]],
+    ["skills 裸命令", ["skills"]],
+    ["rules 裸命令", ["rules"]],
+    ["config 裸命令", ["config"]],
+    ["conventions 裸命令", ["conventions"]],
+    ["docs 裸命令", ["docs"]],
+    ["changelog 裸命令", ["changelog"]],
     ["tasks 状态过滤全部非法", ["tasks", "--status", "bogus"]],
     ["tasks 状态过滤部分非法", ["tasks", "--status", "bogus,已完成"]],
     ["tasks 未知选项", ["tasks", "--bogus"]],

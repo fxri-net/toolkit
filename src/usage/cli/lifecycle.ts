@@ -92,7 +92,7 @@ export function registerUsageLifecycleCommands(usage: Command): void {
       .command("info")
       .description("查看技能使用情况：开关、数据目录与事件计数")
       .option("--dir <path>", "本次使用的数据目录")
-      .option("--format <format>", "输出格式（json）")
+      .option("--format <format>", "输出格式（json，输出到 stdout）")
       .action((options: { dir?: string; format?: string }) => {
         if (!assertJsonFormat(options.format)) return
         if (options.format !== "json") {

@@ -75,7 +75,7 @@ export function registerUsageDataCommands(usage: Command): void {
       .option("--skill <name>", "按技能过滤")
       .option("--unused", "列出零使用技能（仅 --by skill 有效）")
       .option("--dir <path>", "本次使用的数据目录")
-      .option("--format <format>", "输出格式（json）")
+      .option("--format <format>", "输出格式（json，输出到 stdout）")
       .action((options: { by?: string; limit?: string; since?: string; agent?: string; source?: string; skill?: string; unused?: boolean; dir?: string; format?: string }) => {
         if (!assertJsonFormat(options.format)) return
         const by = options.by ?? "skill"
@@ -318,7 +318,7 @@ export function registerUsageDataCommands(usage: Command): void {
       .command("doctor")
       .description("诊断技能使用情况目录、索引与重复事件")
       .option("--dir <path>", "本次使用的数据目录")
-      .option("--format <format>", "输出格式（json）")
+      .option("--format <format>", "输出格式（json，输出到 stdout）")
       .action((options: { dir?: string; format?: string }) => {
         if (!assertJsonFormat(options.format)) return
         const { config, dir, paths } = createContext(options.dir)

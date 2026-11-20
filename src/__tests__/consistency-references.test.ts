@@ -126,6 +126,68 @@ describe("规范一致性：站点导航锚点", () => {
   })
 })
 
+// CLI 入口矩阵、术语表与退出码：缺小节或缺行即报 error；假现场没有 docs/cli.md 时跳过
+function cliDoc(options: { domains?: string[]; terms?: string[]; codes?: string[] } = {}): string {
+  const domains = options.domains ?? ["tasks", "skills", "rules", "config", "conventions", "docs", "scope", "usage"]
+  const terms = options.terms ?? ["层", "面", "名单", "预演", "确认", "来源", "目标", "范围"]
+  const codes = options.codes ?? ["`0`", "`1`", "`2`", "`3`", "`130`"]
+  return [
+    "# CLI 参考",
+    "",
+    "## 裸命令入口",
+    "",
+    "| 域 | 说明 |",
+    "| --- | --- |",
+    ...domains.map((domain) => `| \`toolkit ${domain}\` | 示例 |`),
+    "",
+    "## 术语表",
+    "",
+    "| 术语 | 含义 |",
+    "| --- | --- |",
+    ...terms.map((term) => `| ${term} | 示例 |`),
+    "",
+    "## 退出码",
+    "",
+    "| 退出码 | 含义 |",
+    "| --- | --- |",
+    ...codes.map((code) => `| ${code} | 示例 |`),
+    "",
+    "## 相关页面",
+    "",
+  ].join("\n")
+}
+
+describe("规范一致性：CLI 入口矩阵与术语表", () => {
+  const base = { "skills/fxri-demo/references/task-spec.md": "# 任务规范\n" }
+
+  it("入口矩阵、术语表与退出码齐全时通过", () => {
+    const root = createFixture({ ...base, "docs/cli.md": cliDoc() })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(0)
+  })
+
+  it("入口矩阵缺域时报 error 并指出域名", () => {
+    const root = createFixture({ ...base, "docs/cli.md": cliDoc({ domains: ["tasks", "skills"] }) })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("裸命令入口缺少 `toolkit rules`")
+  })
+
+  it("术语表缺术语时报 error", () => {
+    const root = createFixture({ ...base, "docs/cli.md": cliDoc({ terms: ["层", "面"] }) })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("术语表缺少「预演」")
+  })
+
+  it("退出码表缺 3 时报 error", () => {
+    const root = createFixture({ ...base, "docs/cli.md": cliDoc({ codes: ["`0`", "`1`", "`2`", "`130`"] }) })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("退出码表缺少 `3`")
+  })
+})
+
 // 规则块只放业务文本：读者向措辞出现即报 error，锚点行不参与扫描
 const ruleBase = { "skills/fxri-demo/references/task-spec.md": "# 任务规范\n" }
 const moduleDoc = (body: string) => ["> 规则更新时间 2026-11-20 11:52", "", "## 演示", "", body, ""].join("\n")

@@ -23,7 +23,7 @@ export function registerUsageUploadCommands(usage: Command): void {
     upload
       .command("status")
       .description("查看上传开关、端点与待上传数量")
-      .option("--format <format>", "输出格式（json）")
+      .option("--format <format>", "输出格式（json，输出到 stdout）")
       .action((options: { format?: string }) => {
         if (!assertJsonFormat(options.format)) return
         const report = uploadStatus()

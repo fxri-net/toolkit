@@ -12,7 +12,7 @@ export function registerUsageConfigCommands(usage: Command): void {
     usage
       .command("enable")
       .description("开启技能使用情况总开关（仍需配置通道、来源与技能范围）")
-      .option("--format <format>", "输出格式（json）")
+      .option("--format <format>", "输出格式（json，输出到 stdout）")
       .action((options: { format?: string }) => {
         if (!assertJsonFormat(options.format)) return
         updateUsageConfig({ enabled: true })
@@ -23,7 +23,7 @@ export function registerUsageConfigCommands(usage: Command): void {
     usage
       .command("disable")
       .description("关闭技能使用情况总开关（已记录数据保留）")
-      .option("--format <format>", "输出格式（json）")
+      .option("--format <format>", "输出格式（json，输出到 stdout）")
       .action((options: { format?: string }) => {
         if (!assertJsonFormat(options.format)) return
         updateUsageConfig({ enabled: false })
@@ -34,7 +34,7 @@ export function registerUsageConfigCommands(usage: Command): void {
     usage
       .command("channel [mode]")
       .description("查看或切换采集通道：rule（全局规则上报）/ hook（Agent Hook）")
-      .option("--format <format>", "输出格式（json）")
+      .option("--format <format>", "输出格式（json，输出到 stdout）")
       .action((mode: string | undefined, options: { format?: string }) => {
         if (!assertJsonFormat(options.format)) return
         const config = loadUsageConfig()
@@ -72,7 +72,7 @@ export function registerUsageConfigCommands(usage: Command): void {
       .option("--no-third-party", "关闭第三方技能")
       .option("--unmanaged", "开启未托管技能")
       .option("--no-unmanaged", "关闭未托管技能")
-      .option("--format <format>", "输出格式（json）")
+      .option("--format <format>", "输出格式（json，输出到 stdout）")
       .action((options: { firstParty?: boolean; thirdParty?: boolean; unmanaged?: boolean; format?: string }) => {
         if (!assertJsonFormat(options.format)) return
         const patch: Record<string, unknown> = {}
@@ -90,7 +90,7 @@ export function registerUsageConfigCommands(usage: Command): void {
       .option("--mode <mode>", "统计模式：none / all / include / exclude")
       .option("--add <names>", "加入 include / exclude 名单（逗号分隔）")
       .option("--remove <names>", "从 include / exclude 名单移除（逗号分隔）")
-      .option("--format <format>", "输出格式（json）")
+      .option("--format <format>", "输出格式（json，输出到 stdout）")
       .action((options: { mode?: string; add?: string; remove?: string; format?: string }) => {
         if (!assertJsonFormat(options.format)) return
         const config = loadUsageConfig()
@@ -120,7 +120,7 @@ export function registerUsageConfigCommands(usage: Command): void {
       .option("--no-args", "不采集技能参数")
       .option("--outcome", "采集执行结果")
       .option("--no-outcome", "不采集执行结果")
-      .option("--format <format>", "输出格式（json）")
+      .option("--format <format>", "输出格式（json，输出到 stdout）")
       .action((options: { trigger?: boolean; args?: boolean; outcome?: boolean; format?: string }) => {
         if (!assertJsonFormat(options.format)) return
         const patch: Record<string, unknown> = {}
@@ -135,11 +135,11 @@ export function registerUsageConfigCommands(usage: Command): void {
     usage
       .command("storage")
       .description("查看或设置本地存储（目录 / 轮转 / 保留期 / 单文件上限）")
-      .option("--dir <path>", "数据目录")
+      .option("--dir <path>", "数据目录（默认 ~/.toolkit/usage）")
       .option("--rotation <mode>", "轮转：monthly / size / none")
       .option("--retention <days>", "保留天数")
       .option("--max-size <bytes>", "单文件大小上限（字节）")
-      .option("--format <format>", "输出格式（json）")
+      .option("--format <format>", "输出格式（json，输出到 stdout）")
       .action((options: { dir?: string; rotation?: string; retention?: string; maxSize?: string; format?: string }) => {
         if (!assertJsonFormat(options.format)) return
         const patch: Record<string, unknown> = {}

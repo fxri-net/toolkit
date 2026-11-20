@@ -107,7 +107,7 @@ export function registerScopeCommands(program: Command): void {
   scopeCmd
     .command("status")
     .description("查看当前目录的作用域判定与原因")
-    .option("--format <format>", "输出格式（json）")
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
     .option("--skill <name>", "按指定技能判定（应用技能级规则）")
     .action((options: { format?: string; skill?: string }) => {
       try {
@@ -144,7 +144,7 @@ export function registerScopeCommands(program: Command): void {
   scopeCmd
     .command("list")
     .description("列出作用域规则、来源与优先级")
-    .option("--format <format>", "输出格式（json）")
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action((options: { format?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return
@@ -200,7 +200,7 @@ export function registerScopeCommands(program: Command): void {
     .description("把目录加入白名单（需显式指定目录；交互设置请运行 toolkit scope）")
     .option("--layer <layer>", "配置层：global（默认）/ project / local")
     .option("--dry-run", "只预览，不写配置")
-    .option("--yes", "跳过确认")
+    .option("--yes", "跳过写前确认（预览照常打印）")
     .action(async (dirs: string[] = [], options: { layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {
       await runInteractive(() => runListEdit("include", dirs, options))
     })
@@ -210,7 +210,7 @@ export function registerScopeCommands(program: Command): void {
     .description("把目录加入黑名单（默认值保持不变；需显式指定目录）")
     .option("--layer <layer>", "配置层：global（默认）/ project / local")
     .option("--dry-run", "只预览，不写配置")
-    .option("--yes", "跳过确认")
+    .option("--yes", "跳过写前确认（预览照常打印）")
     .action(async (dirs: string[] = [], options: { layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {
       await runInteractive(() => runListEdit("exclude", dirs, options))
     })
@@ -222,7 +222,7 @@ export function registerScopeCommands(program: Command): void {
     .option("--from <list>", "从哪侧移除：include / exclude / both（默认 both）")
     .option("--to <list>", "移除后转入另一侧：include / exclude")
     .option("--dry-run", "只预览，不写配置")
-    .option("--yes", "跳过确认")
+    .option("--yes", "跳过写前确认（预览照常打印）")
     .action(
       async (dirs: string[] = [], options: { layer?: string; from?: string; to?: string; dryRun?: boolean; yes?: boolean } = {}) => {
         await runInteractive(() => runRemove(dirs, options))
@@ -234,7 +234,7 @@ export function registerScopeCommands(program: Command): void {
     .description("查看或切换默认值：on（全部生效）/ off（仅名单内生效）")
     .option("--layer <layer>", "配置层：global（默认）/ project / local")
     .option("--dry-run", "只预览，不写配置")
-    .option("--yes", "跳过确认")
+    .option("--yes", "跳过写前确认（预览照常打印）")
     .action(async (value: string | undefined, options: { layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {
       await runInteractive(() => runDefault(value, options))
     })
@@ -244,7 +244,7 @@ export function registerScopeCommands(program: Command): void {
     .description("清除限制（全部生效并清空两名单）")
     .option("--layer <layer>", "配置层：global（默认）/ project / local")
     .option("--dry-run", "只预览，不写配置")
-    .option("--yes", "跳过确认")
+    .option("--yes", "跳过写前确认（预览照常打印）")
     .action(async (options: { layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {
       await runInteractive(() => runReset(options))
     })
