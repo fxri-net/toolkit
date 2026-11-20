@@ -1,11 +1,11 @@
 // 规则模块化单测：清单校验、组合顺序、锚点取值、缓存与剪贴板
 import { describe, expect, it, beforeEach, afterEach } from "vitest"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { tmpdir } from "node:os"
 import { setHomeDirForTest } from "../config"
 import { composeRules, listRules, loadRuleModules, loadRuleset } from "../rules"
-import { clipboardCommands, copyToClipboard } from "../rules/clipboard"
+import { CLIP_FILE_ENV, clipboardCommands, copyToClipboard } from "../rules/clipboard"
 import { clearRulesSelection, readRulesSelection, rulesSelectionPath, writeRulesSelection } from "../rules/cache"
 import { usageGlobalRule } from "../usage/rule"
 
@@ -113,8 +113,25 @@ describe("usage 规则", () => {
 describe("剪贴板命令", () => {
   it("平台候选命令顺序固定", () => {
     expect(clipboardCommands("win32")[0]?.[0]).toBe("powershell")
+    // clip 走 ANSI 通道会乱码，不再作为兜底
+    expect(clipboardCommands("win32")).toHaveLength(1)
     expect(clipboardCommands("darwin")).toEqual([["pbcopy"]])
     expect(clipboardCommands("linux")).toEqual([["wl-copy"], ["xclip", "-selection", "clipboard"]])
+  })
+
+  it("Windows 经 UTF-8 临时文件传给 PowerShell，调用后清理", () => {
+    let capturedText = ""
+    let capturedPath = ""
+    const fake = ((_command: string, _args: string[], options: { env?: NodeJS.ProcessEnv }) => {
+      capturedPath = options.env?.[CLIP_FILE_ENV] ?? ""
+      capturedText = readFileSync(capturedPath, "utf8")
+      return { status: 0 }
+    }) as unknown as typeof import("node:child_process").spawnSync
+    const result = copyToClipboard("规则更新时间：2026-11-21 中文", "win32", fake)
+    expect(result.ok).toBe(true)
+    expect(result.command).toContain("powershell")
+    expect(capturedText).toBe("规则更新时间：2026-11-21 中文")
+    expect(existsSync(capturedPath)).toBe(false)
   })
 
   it("首个成功命令即返回；全部失败返回错误", () => {
