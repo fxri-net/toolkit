@@ -166,7 +166,9 @@ function legacyPathHint(activation: ActivationConfig | null, context: ScopeConte
   if (!activation) return null
   const realBase = canonicalPath(context.baseDir)
   if (realBase === context.baseDir) return null
-  const rules = [...activation.include, ...activation.exclude]
+  // 目录级与技能级规则都参与诊断：任一规则按真实形态书写且当前基准不命中，即给出提示
+  const skillRules = Object.values(activation.skills ?? {}).flatMap((rule) => [...(rule.include ?? []), ...(rule.exclude ?? [])])
+  const rules = [...activation.include, ...activation.exclude, ...skillRules]
   const hit = rules.find(
     (rule) =>
       !matchPathPattern(context.baseDir, rule, { baseDir: context.baseDir }) &&

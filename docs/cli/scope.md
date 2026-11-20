@@ -74,7 +74,8 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 
 判定基准为项目根：优先 git 根，其次最近的 `.tasks` 根，都没有则回落当前目录；子目录内按项目根匹配。
 `scope status --format json` 输出 `active` / `mode` / `baseDir` / `skill` / `sourceFile` / `matchedRule` / `reason`；
-基准变化导致新旧结论不同时，状态输出会在 stderr 给出提示。
+基准变化导致新旧结论不同时，状态输出会在 stderr 给出提示；规则若按真实路径（如 macOS `/private/...`）
+写入而不再命中，同样提示改用 `pwd` 看到的路径。
 `scope status --skill <name>` 应用 `activation.skills` 的技能级规则，`matchedRule` 以 `skill:<键>:` 前缀标明来源。
 
 ## 边界

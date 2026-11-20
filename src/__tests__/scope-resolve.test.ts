@@ -110,6 +110,18 @@ describe("resolveScope", () => {
     const matched = resolveScope(link)
     expect(matched.decision.active).toBe(true)
     expect(matched.migrationHint).toBeNull()
+
+    // 只有技能级规则按真实路径书写时同样给出提示
+    writeGlobal({
+      activation: {
+        mode: "allowlist",
+        include: [link.replace(/\\/g, "/")],
+        skills: { "fxri-plan-review": { exclude: [real.replace(/\\/g, "/")] } },
+      },
+    })
+    resetToolkitConfigCache()
+    const skillHint = resolveScope(link, "fxri-plan-review")
+    expect(skillHint.migrationHint ?? "").toContain("真实路径")
   })
 
   it("非法路径规则告警并剔除，不参与判定", () => {

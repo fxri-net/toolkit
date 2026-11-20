@@ -19,7 +19,7 @@ export function formatStatus(report: ScopeReport): string[] {
   const { decision } = report
   return [
     "作用域状态：",
-    `  当前目录：${report.context.cwd}`,
+    `  当前目录：${displayPath(report.context.cwd)}`,
     `  判定基准：${displayPath(decision.baseDir)}${decision.baseDir === report.context.cwd ? "" : "（项目根）"}`,
     `  结果：${decision.active ? "生效" : "未生效"}`,
     `  模式：${decision.mode}`,
