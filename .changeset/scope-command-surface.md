@@ -1,5 +1,5 @@
 ---
-"@fxri/toolkit": minor
+"@fxri/toolkit": patch
 ---
 
 - 新增：新增 `scope exclude` / `scope default` / `scope reset` 与 `scope remove --from/--to`，补齐黑名单与默认值的非交互入口

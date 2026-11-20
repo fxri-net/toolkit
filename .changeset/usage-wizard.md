@@ -1,5 +1,5 @@
 ---
-"@fxri/toolkit": minor
+"@fxri/toolkit": patch
 ---
 
 - 新增：新增 `usage wizard` 交互菜单，状态、统计、开关、Hook、上传与导出清理直接复用对应子命令实现

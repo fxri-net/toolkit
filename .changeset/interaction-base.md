@@ -1,5 +1,5 @@
 ---
-"@fxri/toolkit": minor
+"@fxri/toolkit": patch
 ---
 
 - 新增：新增统一交互基座（菜单 / 返回 / 确认 / 结果块），`rules compose` 接入 ESC 返回与 `--dry-run`

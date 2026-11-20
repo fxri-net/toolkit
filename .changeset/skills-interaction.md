@@ -1,5 +1,5 @@
 ---
-"@fxri/toolkit": minor
+"@fxri/toolkit": patch
 ---
 
 - 新增：新增 `skills gate [on|off]` 查看 / 切换内容闸门，`skills mount [dir]` 承接批量挂载；`scope mount` 保留为提示迁移的别名
