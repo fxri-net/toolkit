@@ -12,6 +12,7 @@ const answers = vi.hoisted(() => ({
   confirm: [] as boolean[],
   checkbox: [] as unknown[],
   input: [] as string[],
+  checkboxOptions: null as unknown,
 }))
 
 vi.mock("../prompts", async (importOriginal) => {
@@ -22,7 +23,10 @@ vi.mock("../prompts", async (importOriginal) => {
       ({
         select: async () => answers.select.shift(),
         confirm: async () => answers.confirm.shift() ?? true,
-        checkbox: async () => answers.checkbox.shift() ?? [],
+        checkbox: async (options: unknown) => {
+          answers.checkboxOptions = options
+          return answers.checkbox.shift() ?? []
+        },
         input: async () => answers.input.shift() ?? "",
       }) as unknown as Awaited<ReturnType<typeof actual.loadPrompts>>,
   }
@@ -174,5 +178,22 @@ describe("scope remove 名单管理", () => {
       activation?: { include?: string[] }
     }
     expect(projectConfig.activation?.include?.length).toBe(0)
+  })
+
+  it("相对路径条目按配置层项目根解析存在性", async () => {
+    process.chdir(repo)
+    mkdirSync(join(repo, "sub"), { recursive: true })
+    writeFileSync(
+      join(repo, ".toolkitrc.json"),
+      JSON.stringify({ activation: { mode: "allowlist", include: ["sub", "missing"], exclude: [] } }),
+    )
+    answers.select.push("project")
+    answers.checkbox.push([])
+    await runScopeRemove()
+    const options = answers.checkboxOptions as { choices: Array<{ name: string }> }
+    const sub = options.choices.find((choice) => choice.name.includes(" sub"))
+    const missing = options.choices.find((choice) => choice.name.includes("missing"))
+    expect(sub?.name).not.toContain("路径不存在")
+    expect(missing?.name).toContain("路径不存在")
   })
 })

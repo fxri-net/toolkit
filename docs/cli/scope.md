@@ -39,7 +39,8 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 - `scope add/remove` 只改配置文件（读 → 合并 → 原子写），具体层由交互选择；带参形式写全局层
 - `scope remove` 交互按层列出 `[白]` / `[黑]` 条目与状态（路径不存在、已被同层规则覆盖），可移出或一步白黑互转；
   非交互用 `--layer global|project|local` 指定层，缺省全局
-- `scope list` 同时输出条目存在性：文本模式列出「条目异常」，`--format json` 的 `items` 含 `path` / `list` / `exists`
+- `scope list` 同时输出条目存在性：文本模式列出「条目异常」，`--format json` 的 `items` 含 `path` / `list` / `exists`；
+  相对路径条目按所属配置层的项目根解析
 - `scope mount` 会**向所选项目写入技能文件**，必须显式勾选并确认；`--dry-run` 只预览
 - `scope mount` 仍只扫一层（`.git` / `package.json` / `.tasks`），不会因作用域扫描改为递归而扩大写入范围；
   作用域设置流程使用递归发现：命中 `.git` 即剪枝，依赖与产物目录不进入，默认跳过隐藏目录与嵌套仓库

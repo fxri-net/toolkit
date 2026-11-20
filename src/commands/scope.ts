@@ -73,8 +73,8 @@ export function registerScopeCommands(program: Command): void {
         const include = activation?.include ?? []
         const exclude = activation?.exclude ?? []
         const items = [
-          ...include.map((path) => ({ path, list: "include", exists: existsSync(resolveComparablePath(path)) })),
-          ...exclude.map((path) => ({ path, list: "exclude", exists: existsSync(resolveComparablePath(path)) })),
+          ...include.map((path) => ({ path, list: "include", exists: existsSync(resolveComparablePath(path, report.decision.baseDir)) })),
+          ...exclude.map((path) => ({ path, list: "exclude", exists: existsSync(resolveComparablePath(path, report.decision.baseDir)) })),
         ]
         if (options.format === "json") {
           console.log(

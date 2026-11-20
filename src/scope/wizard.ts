@@ -358,8 +358,8 @@ export async function runScopeRemove(dirs?: string[], layer?: ConfigLayer): Prom
       targets = dirs.map((dir) => resolveComparablePath(dir))
     } else {
       const statuses = [
-        ...entryStatuses(include, "include", [...include, ...exclude]),
-        ...entryStatuses(exclude, "exclude", [...include, ...exclude]),
+        ...entryStatuses(include, "include", [...include, ...exclude], target.root ?? process.cwd()),
+        ...entryStatuses(exclude, "exclude", [...include, ...exclude], target.root ?? process.cwd()),
       ]
       targets = await checkbox({
         message: `选择条目（写入 ${target.file}）`,
@@ -400,15 +400,21 @@ export async function runScopeRemove(dirs?: string[], layer?: ConfigLayer): Prom
 }
 
 // 条目状态：路径是否存在、是否被同层其它规则覆盖
-function entryStatuses(entries: string[], list: "include" | "exclude", all: string[]): Array<{ path: string; list: "include" | "exclude"; exists: boolean; coveredBy: string | null }> {
+// baseDir 取配置层对应的项目根：相对路径条目按它解析，避免以 cwd 为基准误判
+function entryStatuses(
+  entries: string[],
+  list: "include" | "exclude",
+  all: string[],
+  baseDir: string,
+): Array<{ path: string; list: "include" | "exclude"; exists: boolean; coveredBy: string | null }> {
   return entries.map((item) => ({
     path: item,
     list,
-    exists: existsSync(resolveComparablePath(item)),
+    exists: existsSync(resolveComparablePath(item, baseDir)),
     // 同层另一条规则命中该路径时提示被覆盖，避免用户误以为单条规则独立生效
     coveredBy:
       all
-        .filter((other) => other !== item && matchPathPattern(item, other, { baseDir: process.cwd() }))
+        .filter((other) => other !== item && matchPathPattern(item, other, { baseDir }))
         .sort((left, right) => left.length - right.length)[0] ?? null,
   }))
 }
