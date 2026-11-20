@@ -6,6 +6,63 @@ outline: [2, 2]
 
 > 完整变更历史以根 `CHANGELOG.md` 为准，本页由 `toolkit changelog doc` 自动同步，请勿手改。
 
+## 1.17.0
+
+> 2026-11-21 发布
+
+### ✨ 新增功能
+
+- `toolkit rules compose` 无参且处于 TTY 时交互式选择预设或自定义模块，组合后尝试复制到剪贴板
+- `toolkit scope` 设置生效范围支持规则归属（全局 / 当前项目 / 当前项目本机）与父目录递归扫描多选
+- 扫描支持多父目录、关键字过滤，0 结果时可就地开启下探 / 隐藏目录 / 嵌套仓库
+- `scope add --layer global|project|local`，非交互可写项目层 / 本机层（缺省全局）
+- `scope remove` 支持按配置层管理名单，交互列出白 / 黑条目及路径失效、被同层规则覆盖状态
+- 移除时可一步完成白名单转黑名单 / 黑名单转白名单；非交互支持多个目录与 `--layer`
+- `scope list` 输出条目存在性，文本列出「条目异常」，JSON 增加 `items` 字段
+- `toolkit scope status` / `toolkit scope list`，按项目 / 目录解析 `activation` 配置并给出判定与来源
+- `activation` 配置段（模式、白/黑名单、marker、git 远端），默认 `all` 保持全域生效
+- `activation.skills` 技能级作用域，按技能名（glob / `re:`）覆盖 `mode` / `include` / `exclude`，未命中回落目录级
+- `scope status --skill <name>` 按技能级规则判定，`matchedRule` 以 `skill:<键>:` 前缀标明来源；`scope list` 同步输出技能级规则
+- `toolkit scope` 无参交互菜单，可查看状态、设置生效范围、管理目录与批量挂载
+- `scope mount <父目录>` 批量项目面安装，扫描一层、多选仓库、显式确认，支持 `--dry-run`
+- `toolkit skills install --gate` 开启内容闸门，按 `skillsInstall.gate` 规则（默认全量，可用 `{ include, exclude }` 裁剪）把技能改写为入口壳，正文由 `toolkit scope guard <技能名>` 按作用域下发；技能可用 `metadata.gate: false` 退出
+- `toolkit scope guard <技能名>` 激活时输出正文、参考目录走 stderr；未激活退出码 `3` 且 stdout 为空；技能名非法或不存在退出码 `1`；支持按状态文件登记的外部来源解析
+- `toolkit skills install --embed` 回退全文；`skills status` 显示闸门开关、接管规则与入口壳形态；开关写入 `skillsInstall.gate`，首次开启提示接管数量
+- 快速开始补「配置全局规则」小节与规则落地入口，FAQ / 操作手册 / 指南同步口径
+
+### 🔧 功能调整
+
+- 运行时下限下调至 Node 18.17.0，全部命令（含交互式选择与 `changelog` 透传子命令）在该版本可用
+- `engines.node` 由 `>=20.19.0` 放宽为 `>=18.17.0`；低于门槛时输出中文提示并以非 0 退出，不再透出英文模块错误
+- 选中目录可加入白 / 黑名单或移出，冲突目录就地互转，写入前展示模式与两列表预览
+- `scope add` 无参进入交互，支持多个目录；非交互遇黑名单同路径自动互转并告警
+- 作用域路径规则支持 `re:` 正则与 `~` / 相对路径解析，此前文档声称支持但实际不生效
+- 作用域判定基准由当前目录改为项目根（git 根优先，其次 `.tasks` 根），子目录按项目根匹配
+- `scope status` / `scope list` 输出判定基准 `baseDir`，新旧口径结论不同时在 stderr 提示
+- README 与文档站首页的「30 秒上手」改为官方推荐路径（全局装 CLI → `toolkit skills install` → `toolkit rules compose`），任务区初始化改由 AI 执行
+- 安装方式改为全局默认、项目 devDependency 作为团队方案；快速开始命令统一为 `toolkit`，项目内安装另注 `pnpm exec toolkit`
+
+### ⚡ 优化改进
+
+- 交互组件改为统一惰性加载，失败时给出升级与非交互参数两条出路
+- 新增 Node 18 运行下限冒烟作业，防止依赖升级悄悄抬高门槛
+- 扫描结果页显示跳过统计，有隐藏目录时可切换包含隐藏目录 / 嵌套仓库后重新扫描
+- 判定按真实路径比较，未配置 git / marker 时不启动子进程
+- README 与文档首页补充作用域入口（30 秒上手、能力矩阵、首页卡片与痛点表）
+- 快速开始新增「只想在部分项目生效」小节，给出 status / add / mount 三条最短命令
+- 文档侧栏把「作用域」前移到 CLI 参考靠前位置，指南分组新增「项目级激活」
+- `toolkit --help` 页脚增加作用域常用入口提示
+- CLI 入口拆分为 guard 快速路径与常规命令分包，guard 启动不再加载完整命令集
+- `fxri-plan-review` 增加多轮复核的收敛纪律，禁止需求扩散、凭空新增范围与重复结论
+
+### 🐛 问题修复
+
+- 名单条目存在性与覆盖提示按配置层项目根解析相对路径，不再以当前目录为基准
+- 路径正则大小写口径全平台统一不区分（此前正则按平台分支，Windows 与 Linux 结论可能不同）
+- 闸门按技能身份判定；`--gate` 下 `--copy` 明确告警；`skills status` 按实际产物显示闸门状态并识别过期入口壳（`gate-drift`）
+- `--gate` / `--embed` 开关改为安装成功后落盘，`--dry-run` 与存在失败条目不写，避免开关与实际产物脱节
+- `metadata.gate` 非法取值告警一次并按未声明处理，不再静默忽略
+
 ## 1.16.21
 
 > 2026-11-20 发布
