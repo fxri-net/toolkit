@@ -129,6 +129,19 @@ DeepSeek Harness 的项目级技能目录与项目面真源同路径（`<仓库�
 
 `.cursor/skills/`、`.trae-cn/skills/` 是这两家 agent 的**全局**目录，不在项目级候选内。
 
+## 全局面分发细节
+
+- 产物形态默认**软链**（Windows 用 `junction`，免管理员、免开发者模式）
+  - 软链锚在 pnpm 稳定入口（`<node_modules>/@fxri/toolkit`，升级时由 pnpm 重写），不随版本段失效
+  - 链接创建失败**自动降级副本**并在报告里标注 ⚠️，不静默跳过
+- 卸载链接时**只摘链、不碰真源**
+- 软链落点是**写入穿透**形态：在落点目录里编辑文件等于编辑技能真源，且该真源随包升级整体换新
+  - `status` 在存在软链落点时于报告末尾提示「写入将穿透至技能真源目录，改内容请改真源」
+- `skills.autoLink` / `autoLinkReplaceForeign` 控制软链自愈（默认开；不含首次安装与副本升级，`CI` 自动跳过），边界见「skillsInstall：全局技能安装偏好」一节
+- 状态文件为**用户级**（`~/.agents/.toolkit-skills.json`），与上游安装器的 `skills-lock.json` 相互独立
+  - 结构为 `format`（`fxri.toolkit.skills-state`）+ `schemaVersion`（`1`）+ `sources`（来源 → 目标 → 逐技能条目）
+  - 升级前的旧结构在首次读取时一次性导入并备份为 `.bak`
+
 ## 相关页面
 
 - 参考：[配置参考总览](../config) · [skills 命令](../cli/skills) · [完整攻略 · AI 技能包](../guide#ai-技能包-skills)

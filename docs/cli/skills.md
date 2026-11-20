@@ -7,30 +7,30 @@ title: skills（技能分发）
 > 把包内技能分发到各 agent，并管理来源、目标与版本。
 
 ```bash
-toolkit skills install              # 安装包内技能（缺省按现场判定作用域：仓库内写项目面，否则写全局目录）
-toolkit skills install --scope project # 仅项目面：仓库内唯一真源副本 + 各候选目录薄壳
-toolkit skills install --scope global  # 仅全局面：软链 / 副本到各 agent 全局技能目录
+toolkit skills install              # 安装包内技能（缺省按现场判定作用域）
+toolkit skills install --scope project # 仅项目面：真源副本 + 候选目录薄壳
+toolkit skills install --scope global  # 仅全局面：软链 / 副本到 agent 目录
 toolkit skills install --scope all     # 项目面 + 全局面都执行
-toolkit skills install --skills fxri-plan-to-task,fxri-text-encoding # 只装指定技能（skills 模式下 core 恒装，逗号分隔）
+toolkit skills install --skills fxri-plan-to-task,fxri-text-encoding # 只装指定技能（core 恒装）
 toolkit skills install --all        # 安装全部技能（含可选技能）
 toolkit skills install --no-optional # 只装 core 技能
-toolkit skills install --yes        # 非交互执行：跳过选择与确认，采用已保存选择（首次按模式默认：skills 装 core、package 零装）
-toolkit skills install --use-saved # 技能与目标采用已保存选择，不进入选择交互（仍保留最终确认）
-toolkit skills install --agent claude-code,canonical # 只写指定 agent（逗号分隔；canonical 为主目标）
+toolkit skills install --yes        # 非交互：跳过选择与确认，采用已保存选择
+toolkit skills install --use-saved # 跳过选择交互，仍保留最终确认
+toolkit skills install --agent claude-code,canonical # 只写指定 agent（canonical 为主目标）
 toolkit skills install --all-agents # 写入全部已检测的 agent
 toolkit skills install --no-save-agents # 目标选择只对本次生效，不写回配置
-toolkit skills install --prune      # 清理未选择且内容与本包真源一致的旧产物
+toolkit skills install --prune      # 清理未选择且与真源一致的旧产物
 toolkit skills install --mode package # 纯包管理器模式：core 也可不装，允许零选
 toolkit skills install --no-skills  # 仅本次零装，不改模式与已保存选择
-toolkit skills install --gate       # 内容闸门：按 skillsInstall.gate 规则接管技能为入口壳，--embed 回退
+toolkit skills install --gate       # 内容闸门：按 skillsInstall.gate 接管入口壳，--embed 回退
 toolkit skills gate [on|off]        # 查看或切换内容闸门；切换后运行 skills install 生成 / 还原入口壳
 toolkit skills mount --dry-run      # 批量挂载：预览将写入的项目（由 scope mount 迁入，原命令已移除）
-toolkit skills install --copy       # 强制副本形式（仅全局面生效；项目面真源恒为副本、薄壳非副本；`--gate` 下被接管技能改用入口壳并告警）
+toolkit skills install --copy       # 强制副本（仅全局面；`--gate` 接管技能仍写入口壳并告警）
 toolkit skills install --dry-run    # 预演：只预览将执行的动作，不写文件
-toolkit skills install --force      # 覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
-toolkit skills install --dir <path> # 额外目标目录（可多次指定；全局面兜底内置表未收录的 agent，项目面须落在仓库内）
-toolkit skills install --from <path|url> # 临时外部来源（本地目录或 Git 地址；副本写入，只写本次，不登记配置；可重复）
-toolkit skills install --from https://github.com/fxri-net/playbook#vX.Y.Z --save play # 远程永久来源（标签以来源仓 Releases 为准）
+toolkit skills install --force      # 覆盖同名非本包产物（默认跳过；不改已登记副本形态）
+toolkit skills install --dir <path> # 额外目标目录（可多次；全局面兜底未收录 agent，项目面须在仓库内）
+toolkit skills install --from <path|url> # 临时外部来源（目录或 Git 地址；只写本次，可重复）
+toolkit skills install --from https://github.com/fxri-net/playbook#vX.Y.Z --save play # 远程永久来源
 toolkit skills uninstall --source play # 只清理指定外部来源的登记与产物
 toolkit skills sources               # 列出外部来源、版本与生效的更新提示频率（内置源不在列表内）
 toolkit skills sources notify play --frequency daily # 设置单个来源的提示频率（--scope global|project）
@@ -238,18 +238,7 @@ monorepo 子目录执行亦能命中项目面；**本包源仓库自身视为 `g
 
 各 agent 目录的 `~` 基准可被 home 类环境变量改写，清单见[配置参考 · skills](../config/skills#分发目标与环境变量)。
 
-**全局面行为细节**：
-
-- 产物形态默认**软链**（Windows 用 `junction`，免管理员、免开发者模式）
-  - 软链锚在 pnpm 稳定入口（`<node_modules>/@fxri/toolkit`，升级时由 pnpm 重写），不随版本段失效
-  - 链接创建失败**自动降级副本**并在报告里标注 ⚠️，不静默跳过
-- 卸载链接时**只摘链、不碰真源**
-- 软链落点是**写入穿透**形态：在落点目录里编辑文件等于编辑技能真源，且该真源随包升级整体换新
-  - `status` 在存在软链落点时于报告末尾提示「写入将穿透至技能真源目录，改内容请改真源」
-- `skills.autoLink` / `autoLinkReplaceForeign` 控制软链自愈（默认开；不含首次安装与副本升级，`CI` 自动跳过），边界见[配置参考](../config/skills)
-- 状态文件为**用户级**（`~/.agents/.toolkit-skills.json`），与上游安装器的 `skills-lock.json` 相互独立
-  - 结构为 `format`（`fxri.toolkit.skills-state`）+ `schemaVersion`（`1`）+ `sources`（来源 → 目标 → 逐技能条目）
-  - 升级前的旧结构在首次读取时一次性导入并备份为 `.bak`
+**全局面行为细节**：软链 / 副本形态、pnpm 锚点、写入穿透与状态文件结构见[配置参考 · 全局面分发细节](../config/skills#全局面分发细节)。
 
 ## 相关页面
 
