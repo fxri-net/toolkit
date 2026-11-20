@@ -261,6 +261,7 @@ pnpm exec toolkit changelog format --history   # 连带追溯改写历史版本�
 ## 升级与版本兼容
 
 - 环境要求 Node.js >= 18.17.0（Node 18 已 EOL，仅保证可运行）；低于该版本时 CLI 会输出中文提示并以非 0 退出
+- 运行时基线：CLI 只使用 Node 18.17 已稳定的 API，新增 API 须先在最低版本验证
 - 升级：`pnpm add -g @fxri/toolkit`——默认软链模式下技能随 CLI 自动更新；副本形式需重跑 `toolkit skills install`；
   项目面由 `prepare` 钩子自动刷新；**升级后开新会话**使 AI 侧技能与 CLI 版本对齐
 - 1.7.0 起 CLI 内置升级检查提示；1.15.0 起收敛为统一提示：命令成功时按 `updateCheck.notify`（默认 `always`）在结尾给出一句话，
