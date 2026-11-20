@@ -1379,6 +1379,7 @@ Commands:
   tasks [options] [command]        任务管理
   changelog [options] [command]    多语言 CHANGELOG（封装 changesets）
   rules [options] [command]        全局规则：列出模块、组合输出与缓存管理
+  scope [options] [command]        作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效）
   usage [options] [command]        技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
   help [command]                   显示帮助
 
@@ -1629,6 +1630,7 @@ Commands:
   tasks [options] [command]        任务管理
   changelog [options] [command]    多语言 CHANGELOG（封装 changesets）
   rules [options] [command]        全局规则：列出模块、组合输出与缓存管理
+  scope [options] [command]        作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效）
   usage [options] [command]        技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
   help [command]                   显示帮助
 
@@ -1662,6 +1664,7 @@ Commands:
   tasks [options] [command]        任务管理
   changelog [options] [command]    多语言 CHANGELOG（封装 changesets）
   rules [options] [command]        全局规则：列出模块、组合输出与缓存管理
+  scope [options] [command]        作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效）
   usage [options] [command]        技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
   help [command]                   显示帮助
 

@@ -19,6 +19,7 @@ import { registerConventionsCommands } from "./commands/conventions"
 import { registerConfigCommands } from "./commands/config"
 import { registerDocsCommands } from "./commands/docs"
 import { registerRulesCommands } from "./commands/rules"
+import { registerScopeCommands } from "./commands/scope"
 
 const require = createRequire(import.meta.url)
 
@@ -96,6 +97,7 @@ registerTasksCommands(program)
 registerChangelogCommands(program)
 
 registerRulesCommands(program)
+registerScopeCommands(program)
 
 // 使用情况域：技能使用统计（默认关闭，本地存储）
 registerUsageCommands(program)

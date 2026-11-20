@@ -65,6 +65,7 @@
             { "text": "技能分发", "link": "/cli/skills" },
             { "text": "技能使用情况", "link": "/cli/usage" },
             { "text": "全局规则", "link": "/cli/rules" },
+            { "text": "作用域", "link": "/cli/scope" },
             { "text": "配置体检", "link": "/cli/config" },
             { "text": "文档站主题", "link": "/cli/docs-theme" },
             { "text": "文档站校验", "link": "/cli/docs-check" },
@@ -82,7 +83,8 @@
             { "text": "语言与镜像", "link": "/config/changelog" },
             { "text": "升级检查", "link": "/config/update" },
             { "text": "技能分发", "link": "/config/skills" },
-            { "text": "缓存目录", "link": "/config/cache" }
+            { "text": "缓存目录", "link": "/config/cache" },
+            { "text": "作用域", "link": "/config/activation" }
           ]
         }
       ]

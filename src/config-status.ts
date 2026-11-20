@@ -77,6 +77,7 @@ export const CONFIG_KNOWN_SECTIONS: readonly string[] = [
   "projectSkills",
   "usage",
   "docs",
+  "activation",
 ]
 const KNOWN_SECTIONS = new Set(CONFIG_KNOWN_SECTIONS)
 

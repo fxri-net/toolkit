@@ -101,7 +101,8 @@
   "skillsInstall": { "mode": "skills" },
   "projectSkills": { "mode": "skills" },
   "usage":         { "enabled": false, "sources": {}, "skills": {}, "capture": {}, "storage": {}, "upload": {} },
-  "docs":          { "nav": {}, "dist": {}, "rules": {} }
+  "docs":          { "nav": {}, "dist": {}, "rules": {} },
+  "activation":    { "mode": "all", "include": [], "exclude": [], "markers": { "include": [], "exclude": [] }, "gitRemotes": [] }
 }
 ```
 
@@ -120,6 +121,7 @@
 | [skills 相关（技能分发）](./config/skills) | 软链自愈、全局与项目面安装偏好 |
 | [usage（技能使用情况）](./usage/configuration) | 总开关、来源、技能范围、字段、存储与上传；仅全局层 |
 | [docs（文档站校验）](./cli/docs-check#配置) | 导航阈值、产物目录、sitemap 策略、搜索实现与规则开关 |
+| [activation（作用域）](./config/activation) | 按项目 / 目录决定技能与规则是否生效；默认全域生效 |
 
 ## 相关页面
 
