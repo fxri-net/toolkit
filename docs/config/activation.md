@@ -33,7 +33,7 @@ title: 作用域（activation）
 ```
 
 放在 `~/.toolkitrc.json`（全局层）即对整个目录树生效；团队或个人也可在项目里自建 `.toolkitrc.json` / `.toolkitrc.local.json`，
-按就近覆盖参与判定。工具只在 `toolkit scope` 交互中写入所选层，其他场景不主动创建或修改这些文件。
+按就近覆盖参与判定。工具只在 `toolkit scope` 的写入命令（`add` / `remove` / 交互向导）中改动这些文件，其他场景不主动创建或修改。
 
 ## 路径写法
 

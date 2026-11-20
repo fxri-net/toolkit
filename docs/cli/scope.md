@@ -4,7 +4,7 @@ title: scope（作用域）
 
 # scope（作用域）
 
-> 按项目 / 目录决定技能与规则是否生效。默认全域生效；只有写了 `activation` 配置才出现局部生效。本页命令只读，不写配置。
+> 按项目 / 目录决定技能与规则是否生效。默认全域生效；只有写了 `activation` 配置才出现局部生效。`status` / `list` 只读；`add` / `remove` / `mount` 按命令写配置或项目文件。
 
 ## 用途与场景
 
@@ -20,7 +20,7 @@ toolkit scope status                  # 当前目录的判定与原因
 toolkit scope status --skill fxri-plan-review # 按技能级规则判定单个技能
 toolkit scope status --format json    # 给 AI / 脚本消费
 toolkit scope list                    # 规则、来源与优先级
-toolkit scope add ~/work              # 加入白名单（只写全局配置）
+toolkit scope add ~/work              # 加入白名单（缺省写全局，可用 --layer 指定层）
 toolkit scope add ~/work --layer project # 写入当前项目层（随仓库共享）
 toolkit scope remove ~/work/legacy    # 从规则中移除
 toolkit scope remove --layer project  # 交互管理指定层的名单，可白黑互转
@@ -54,7 +54,7 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 
 - 前置：已用 `toolkit skills install --gate` 或 `toolkit scope` 向导开启闸门；
   接管范围默认全部技能，可用 `skillsInstall.gate.include` / `exclude` 裁剪，技能也可用 `metadata.gate: false` 退出
-- `toolkit scope guard <技能名>` 读取当前目录的作用域判定：**激活时**把包内真实 `SKILL.md` 正文写到 stdout；**未激活时** stdout 为空、原因写 stderr 并以**退出码 3**结束
+- `toolkit scope guard <技能名>` 读取当前目录的作用域判定：**激活时**把真源 `SKILL.md` 正文写到 stdout；**未激活时** stdout 为空、原因写 stderr 并以**退出码 3**结束
 - 输出契约：stdout 只放正文（供 AI 直接消费），参考文件目录与诊断一律走 stderr；只读，不写缓存
 - 技能名须为内置包或已登记来源中存在的单段名字；未知名字或含路径分隔符时以退出码 `1` 报错
 - 仅在 argv 恰为 `scope guard <技能名>` 时走快速路径（不加载完整命令集）；带其它参数（含 `--help`）回落常规 CLI
