@@ -1,11 +1,11 @@
 // 内容闸门：入口壳产物、幂等切换、状态展示、卸载归属与 guard 的激活 / 未激活契约
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
-import { existsSync, lstatSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { runGuard } from "../scope/guard"
-import { autoLinkSkills, installSkills, isSkillGateShell, isSkillGated, listPackageSkills, readSkillsInstallConfig, readSkillsState, removeSkills, skillsSourceDir, skillsStateFile, skillsStatus } from "../skills"
+import { autoLinkSkills, installSkills, isSkillGateShell, isSkillGated, listPackageSkills, readSkillsInstallConfig, readSkillsState, removeSkills, resetSkillGateWarnings, resetSkillsRootCache, setPackageRootForTest, skillsSourceDir, skillsStateFile, skillsStatus } from "../skills"
 
 // 默认全部技能都被接管（include: ["*"]）
 const ALL_SKILLS = listPackageSkills().map((skill) => skill.name)
@@ -53,6 +53,8 @@ afterEach(() => {
   else process.env.CI = savedCI
   setHomeDirForTest(undefined)
   resetToolkitConfigCache()
+  resetSkillsRootCache()
+  resetSkillGateWarnings()
   rmSync(home, { recursive: true, force: true })
 })
 
@@ -83,6 +85,25 @@ describe("内容闸门安装形态", () => {
     expect(isSkillGated("fxri-plan-to-task", false, { include: ["*"], exclude: [] })).toBe(false)
     expect(isSkillGated("fxri-plan-to-task", undefined, { include: ["fxri-*"], exclude: [] })).toBe(true)
     expect(isSkillGated("fxri-plan-to-task", undefined, { include: ["*"], exclude: ["fxri-plan-*"] })).toBe(false)
+  })
+
+  it("metadata.gate 非法值告警一次并按未声明处理", () => {
+    const root = mkdtempSync(join(tmpdir(), "tk-gate-root-"))
+    mkdirSync(join(root, "skills", "bad-gate"), { recursive: true })
+    writeFileSync(
+      join(root, "skills", "bad-gate", "SKILL.md"),
+      ["---", "name: bad-gate", "metadata:", "  version: 1.0.0", "  gate: no", "---", "", "# 演示", ""].join("\n"),
+    )
+    setPackageRootForTest(root)
+    resetSkillGateWarnings()
+    const warn = vi.mocked(console.warn)
+    warn.mockClear()
+    expect(listPackageSkills()[0]?.gate).toBeUndefined()
+    const hits = () => warn.mock.calls.filter((call) => String(call[0]).includes("metadata.gate 非法")).length
+    expect(hits()).toBe(1)
+    listPackageSkills()
+    expect(hits()).toBe(1)
+    rmSync(root, { recursive: true, force: true })
   })
 
   it("重复开启幂等：同一内容跳过，不重写产物", () => {

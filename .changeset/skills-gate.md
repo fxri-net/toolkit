@@ -12,3 +12,4 @@
 - 修改：闸门接管范围改为配置驱动——`skillsInstall.gate` 支持 `{ include, exclude }` 规则（默认全量），不再使用代码内技能清单
 - 新增：技能可用 `metadata.gate: false` 退出接管；`skills status` 展示接管规则，首次开启提示接管数量与 `--embed` 回退
 - 新增：`toolkit scope guard` 支持按状态文件登记的外部来源解析技能正文
+- 修复：`metadata.gate` 非法取值告警一次并按未声明处理，不再静默忽略

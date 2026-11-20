@@ -26,11 +26,24 @@ export function readSkillPreviousNames(dir: string): string[] {
   return readFrontmatterList(dir, "previousNames")
 }
 
-// 读取内容闸门退出声明：metadata.gate 为 true / false 时返回布尔值，缺省或非法返回 undefined（随全局规则）
+// 非法 gate 告警去重：同一技能同一进程内只提示一次，避免 status / install 反复刷屏
+const warnedGate = new Set<string>()
+
+// 重置 gate 告警去重集合（测试用：技能现场变化后重新提示）
+export function resetSkillGateWarnings(): void {
+  warnedGate.clear()
+}
+
+// 读取内容闸门退出声明：metadata.gate 为 true / false 时返回布尔值；
+// 缺省或空值按未声明处理，其它取值告警一次后同样按未声明处理
 export function readSkillGate(dir: string): boolean | undefined {
   const value = readFrontmatterIndented(dir, "gate")
   if (value === "true") return true
   if (value === "false") return false
+  if (value !== "" && !warnedGate.has(dir)) {
+    warnedGate.add(dir)
+    console.warn(`⚠️ 技能 ${basename(dir)} 的 metadata.gate 非法（${value}），已按未声明处理`)
+  }
   return undefined
 }
 
