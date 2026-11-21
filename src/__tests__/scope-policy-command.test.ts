@@ -181,6 +181,23 @@ describe("planPolicyRemove / planPolicyReset", () => {
     expect(policies).toHaveLength(1)
     expect(policies[0]!.id).toBe("path")
   })
+
+  it("按路径清除支持命中策略中的 glob", () => {
+    writeGlobal({
+      policies: [
+        { id: "glob", when: { paths: ["/work/**"] }, effect: "allow" },
+        { id: "other", when: { paths: ["/other/**"] }, effect: "allow" },
+      ],
+    })
+    const plan = planPolicyReset(readPolicyState("global", project), {
+      paths: ["/work/team"],
+      confirmed: true,
+    })
+    const policies = plan.nextConfig.policies as Array<Record<string, unknown>>
+    expect(policies).toHaveLength(1)
+    expect(policies[0]!.id).toBe("other")
+    expect(plan.changes.join("\n")).toContain("按路径清除")
+  })
 })
 
 describe("档案与快捷视图", () => {

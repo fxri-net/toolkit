@@ -1,13 +1,14 @@
 // 作用域策略写命令的纯计划层：读取层配置 → 生成变更与 nextConfig，落盘由命令层执行
 import { randomUUID } from "node:crypto"
 import { confirmWrite, reportWrite } from "../cli-ui"
+import { getHomeDir } from "../config"
 import { isInteractive } from "../prompts"
 import { listPackageSkills } from "../skills/source"
 import { line } from "../term-style"
 import { layerConfigTarget, readLayerConfig, writeLayerConfig, type LayerConfigTarget } from "./config-file"
-import { pathKey } from "./edit"
 import { resolveScope } from "./load"
-import { compilePattern } from "./pattern"
+import { compilePattern, matchPathPattern } from "./pattern"
+import { findProjectRoot, resolveComparablePath } from "./paths"
 import { isInvalidPolicyId } from "./policy"
 import type { ActivationMode, PolicyLayer, PolicySkills, ScopeCondition, ScopePolicy } from "./types"
 
@@ -343,14 +344,17 @@ export function planPolicyRemove(state: PolicyState, input: PolicyRemoveInput, e
   return planForPolicies(state, nextRaw, [`移除策略：${labelOf(removed)}`])
 }
 
-// 路径条件是否命中给定路径集合：paths / subpaths 任一精确相等即算
-function matchesPaths(raw: unknown, keys: Set<string>): boolean {
+// 路径条件是否命中给定路径：policy 规则按项目根解析，concrete 路径按 glob / 精确匹配
+function matchesPaths(raw: unknown, resetPaths: string[], baseDir: string): boolean {
   if (!isRecord(raw) || !isRecord(raw.when)) return false
-  const when = raw.when
+  const home = getHomeDir()
   for (const field of ["paths", "subpaths"]) {
-    const list = when[field]
+    const list = raw.when[field]
     if (!Array.isArray(list)) continue
-    if (list.some((item) => typeof item === "string" && keys.has(pathKey(item)))) return true
+    for (const item of list) {
+      if (typeof item !== "string") continue
+      if (resetPaths.some((path) => matchPathPattern(path, item, { baseDir, home }))) return true
+    }
   }
   return false
 }
@@ -360,19 +364,23 @@ export function planPolicyReset(state: PolicyState, input: PolicyResetInput): Po
   const hasTarget = Boolean(input.all || input.ids?.length || input.paths?.length)
   if (!hasTarget) throw new Error("请指定 --id / --paths，或显式 --all；未写入配置")
   if (input.all && !input.confirmed) throw new Error("--all 会清除该层全部策略，需加 --yes 确认；未写入配置")
-  const keys = new Set((input.paths ?? []).map((path) => pathKey(path)))
+  const resetPaths = (input.paths ?? []).map((path) => resolveComparablePath(path, state.startDir, getHomeDir()))
+  const baseDir = findProjectRoot(state.startDir)
   const removed: string[] = []
   const nextRaw = state.raw.filter((raw) => {
     const hit =
       input.all ||
       (isRecord(raw) && Boolean(raw.id && input.ids?.includes(String(raw.id)))) ||
-      (keys.size > 0 && matchesPaths(raw, keys))
+      (resetPaths.length > 0 && matchesPaths(raw, resetPaths, baseDir))
     if (!hit) return true
     removed.push(labelOf(raw))
     return false
   })
   if (removed.length === 0) throw new Error("没有匹配的策略；未写入配置")
   const changes = [`移除 ${removed.length} 条策略：${removed.join("、")}`]
+  if (input.paths?.length && !input.all && !input.ids?.length) {
+    changes.push(`按路径清除：${input.paths.join("、")}`)
+  }
   if (state.config.activation !== undefined) {
     changes.push("旧 activation 字段未清除，请用 toolkit scope reset 处理")
   }

@@ -54,7 +54,8 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
   `--id` 不含空白 / 控制字符且不能以 `legacy:` 开头，缺省自动生成且不可变
   `--profile` 只能引用目标层及更低层已定义的档案
 - `scope policy remove`：优先 `--id`；`--name` 仅在该层唯一且无跨层同名时可用
-- `scope policy reset`：按 `--id` / `--paths` 批量清除；整层清空需 `--all` + `--yes`，只清 `policies`，不清旧 `activation`
+- `scope policy reset`：按 `--id` / `--paths`（精确或 glob 命中）批量清除；整层清空需 `--all` + `--yes`，
+  只清 `policies`，不清旧 `activation`
 - `scope skills` 是技能维度快捷视图：`allow` 只允许列出的技能，`deny` 排除列出的技能，`profile` 管理档案，`reset` 清空该层技能策略
   `profile` 移除时提示仍被哪些策略引用与同名回退
   `profile` 的精确技能名按包内清单校验；只含 deny 的档案不能用于 allowlist / deny 展开
