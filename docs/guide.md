@@ -194,6 +194,9 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 
 版本号取自各 SKILL.md 的 frontmatter `metadata.version`，层级取自 `metadata.tier`（`core` 必装、`optional` 可选）。
 
+**编写技能**：规范真源在 toolkit；加载 `fxri-skill-authoring` 按统一骨架编写，门禁与版本递增分别用
+`toolkit skills lint` / `toolkit skills bump`，产品仓不维护规范副本。
+
 **安装**：装了 CLI 后一键分发（推荐，技能随包分发、与 CLI 同一发布批次）用 `toolkit skills install`；
 也可用上游安装器 `pnpm dlx skills add fxri-net/toolkit --global` 从 GitHub 拉取。命令、作用域与全部选项见 [skills 命令](./cli/skills)。
 开启 `skills install --gate` 后默认全部技能只发入口壳（可用 `include` / `exclude` 规则裁剪），`--embed` 回退。

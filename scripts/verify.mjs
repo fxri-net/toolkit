@@ -209,6 +209,12 @@ function runCaptured(step) {
 }
 
 const cliEnv = { FX_TOOLKIT_NO_UPDATE_CHECK: "1" }
+// 技能规范校验基线：优先最近标签，浅克隆 / 无标签时回落 HEAD（lint 自行说明跳过原因）
+const skillBase = (() => {
+  const tagged = spawnSync("git", ["describe", "--tags", "--abbrev=0"], { cwd: root, encoding: "utf8" })
+  const ref = tagged.status === 0 ? tagged.stdout.trim() : ""
+  return ref || "HEAD"
+})()
 const installNeeded = needInstall()
 const docsNeeded = needDocsBuild()
 const buildSkip = buildSkipReason()
@@ -265,6 +271,8 @@ const tailSteps = [
   { label: "CLI 冒烟 --help", args: ["dist/cli.js", "--help"], env: cliEnv },
   { label: "CLI 冒烟 tasks --help", args: ["dist/cli.js", "tasks", "--help"], env: cliEnv },
   { label: "CLI 冒烟 changelog --help", args: ["dist/cli.js", "changelog", "--help"], env: cliEnv },
+  // 技能规范：本仓技能必须通过 lint；--base 下内容变更未递增即失败，默认档只告警篇幅
+  { label: "技能规范校验（skills lint）", args: ["dist/cli.js", "skills", "lint", "skills", "--base", skillBase], env: cliEnv },
   { label: "任务区体检（tasks check）", args: ["dist/cli.js", "tasks", "check"], env: { TZ: "Asia/Shanghai", ...cliEnv } },
   { label: "归档块归一核验（tasks normalize）", args: ["dist/cli.js", "tasks", "normalize"], env: { TZ: "Asia/Shanghai", ...cliEnv } },
 ]
