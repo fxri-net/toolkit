@@ -1,10 +1,10 @@
 ---
-title: 技能来源（skills source）
+title: 技能来源（skill source）
 ---
 
-# 技能来源（skills source）
+# 技能来源（skill source）
 
-> `--source <name|path>` 的外部来源格式、曾用名、永久登记与安装锁；安装命令、选择与现场体检见 [skills 命令](./skills)。
+> `--source <name|path>` 的外部来源格式、曾用名、永久登记与安装锁；安装命令、选择与现场体检见 [技能分发](./skill)。
 
 ## 纳入与缓存
 
@@ -43,7 +43,7 @@ title: 技能来源（skills source）
 - 同一来源内技能名重复、跨来源同名均直接报错，不静默覆盖
 - 临时来源（`--source` 不带 `--save`）**只写副本**、只登记状态，不写选择集与来源配置
 - 永久来源默认**软链到技能真源目录**（远程来源指向本地缓存），链接失败降级副本；`--copy` 可强制副本
-- `--save` 只能与单个 `--source` 搭配；永久来源失效时安装告警跳过，可用 `toolkit skills source remove <name>` 注销
+- `--save` 只能与单个 `--source` 搭配；永久来源失效时安装告警跳过，可用 `toolkit skill source remove <name>` 注销
 - `status` 按来源列出 `sources`；`status` 与 `remove` 均按来源精确处理
 - 远程来源的项目面状态只记地址与 ref，不写本机缓存路径
 - 安装 / 卸载期间持有操作锁，避免多进程同时改写；`--dry-run` 不取锁
@@ -52,4 +52,4 @@ title: 技能来源（skills source）
 
 ## 相关页面
 
-- 参考：[技能分发](./skills) · [配置参考 · skillInstall](../config/skills) · [完整攻略 · AI 技能包](../guide#ai-技能包-skills)
+- 参考：[技能分发](./skill) · [配置参考 · skillInstall](../config/skill) · [完整攻略 · AI 技能包](../guide#ai-技能包-skills)

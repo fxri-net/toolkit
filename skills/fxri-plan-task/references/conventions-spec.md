@@ -26,7 +26,7 @@
 - `retired.md` 是退休台账：条目作废即从索引迁出至此并冻结语义；与 `index.md` 分离，使废弃正文不再落入任何常规读面
 - 分册**按需创建**，判据是「该归属下有无需独立承载的条文」，不设条数阈值——溯源索引式项目可能始终只有 `index.md`
 - 目录与任务目录同在 `.tasks/` 根层，纯 Markdown 随 git 走；默认 `.tasks` 目录名可随任务区自定而变，内部结构不变
-- 非任务文件：`toolkit tasks` 各子命令不读其内容，`check` 不因内容告警；仅在**载体形态异常**时给软告警（旧单文件残留、缺 `index.md`、标记与结构不一致）；
+- 非任务文件：`toolkit task` 各子命令不读其内容，`check` 不因内容告警；仅在**载体形态异常**时给软告警（旧单文件残留、缺 `index.md`、标记与结构不一致）；
    **入口层现场异常**（壳标记与当前 toolkit 不一致、壳被 gitignore 覆盖）另见下段入口壳
 
 ### 1.1 三分区与不变量
@@ -59,11 +59,11 @@
 - **版本分流**：已存在的壳按标记版本判定——标记不旧于当前版本保持不变，落后或无标记就地更新为当前版本
 - **标记版本**：壳标记独立于载体版本演进，当前为 `v2`；机制引入即从 `v2` 起，从未有过 `v1` 壳（区别于载体「无标记即 v1」）
 - **标记位置**：壳首部为 frontmatter，故 `<!-- toolkit-conventions-entry: v2 -->` 退居其后、须全文件扫描（载体标记只看首行）
-- **告警**：壳标记与当前 toolkit 不一致、或被 `.gitignore` 覆盖时，`toolkit conventions status` 与 `toolkit tasks check` 软告警
+- **告警**：壳标记与当前 toolkit 不一致、或被 `.gitignore` 覆盖时，`toolkit convention status` 与 `toolkit task check` 软告警
 - **告警合并**：标记不一致可重跑 `toolkit init` 就地更新；同类告警在多落点并存时**合并为一条**并内联全部落点路径，不按壳逐条重复
 - **体检范围**：只扫下表 19 个内置候选目录（`findEntryShells`）；用户手工把壳拷到未收录目录（如 `.bob/skills`）不参与体检
 - **与技能薄壳的关系**：同一批候选目录还承载项目面技能薄壳，即在真源 `<仓库根>/.agents/skills/` 之外的其他已存在候选目录生成 `fxri-*` 薄壳
-- 两类壳不同名并存、互不覆盖；入口壳由 `toolkit init` 生成，技能薄壳由 `toolkit skills install --scope project` 分发
+- 两类壳不同名并存、互不覆盖；入口壳由 `toolkit init` 生成，技能薄壳由 `toolkit skill install --scope project` 分发
 
 **内置候选目录**（19 个）：
 
@@ -80,8 +80,8 @@
 规范触发面共三层，**任一层可用即可触达**：① 全局技能 `fxri-plan-task`（随包分发到各 agent 全局技能目录，
 其工作流第 1 步即要求读 `conventions/index.md`）——**不依赖项目内任何文件、恒在兜底**；② 上述项目级入口壳（用户不主动发问也能被 agent 读到）；
 ③ `AGENTS.md` 指针块（仅在文件已存在时幂等追加，不存在不新建，跳过时提示仍有第 1 层可触达）。三层同时缺席的唯一情形：
-装包后未跑 `toolkit skills install`（或 agent 不加载全局技能），
-且项目既无 `AGENTS.md` 又未跑 `toolkit init`——`init` 检测到尚未安装全局技能时会在「下一步」中补一行 `toolkit skills install` 指引（已安装则不重复提示），
+装包后未跑 `toolkit skill install`（或 agent 不加载全局技能），
+且项目既无 `AGENTS.md` 又未跑 `toolkit init`——`init` 检测到尚未安装全局技能时会在「下一步」中补一行 `toolkit skill install` 指引（已安装则不重复提示），
 把这一情形收敛为「用户忽略了 `init` 的提示」。
 
 ## 2. index.md 结构
@@ -124,7 +124,7 @@
 ```
 
 - **列集合固定为五列**：`ID | 规则 | 当前语义 | 归属 | 单一事实源`，列名与次序均不得增减或调换——列集合即读接口，漂移会破坏机械读写；
-   `toolkit tasks check` / `toolkit conventions status` 检出列集合偏离（列名 / 次序 / 列数不符）并软告警（只报不改，须人工确认后按本规范归一）
+   `toolkit task check` / `toolkit convention status` 检出列集合偏离（列名 / 次序 / 列数不符）并软告警（只报不改，须人工确认后按本规范归一）
 - **ID**：`C-<n>`（`C` 表 conventions），**去补零、不带端前缀、只追加不重排不回收**；插入或重排不漂移，废弃条目不回收其 ID（容量不是问题，去补零取的是可读性）
 - **引用**：载体内部引用一律行内代码包裹（如 `` `C-17` ``），便于机械匹配；v1 遗留的裸「第 N 条」在升级时改写（见 `conventions-migration.md` §10.2）
 - **归属**：取值必须对应一个实际承接处——`common`、端清单中的端名、或载体目录下存在的分类标签分册名，否则为悬空指针（需修正）
@@ -133,7 +133,7 @@
 
 #### 单元格书写形态
 
-逐列固定写法。偏离可被机械检出：`toolkit conventions format` 归一可确定项，无法机械判定的只出清单（只报不改）：
+逐列固定写法。偏离可被机械检出：`toolkit convention format` 归一可确定项，无法机械判定的只出清单（只报不改）：
 
 | 列 | 形态 |
 | --- | --- |
@@ -145,7 +145,7 @@
 
 - 自动改链接前须校验目标存在：目标不可解析时保持行内代码并告警，不写出死链
 - 归属为单个主题分册（如 `docs` / `testing`）时，源列必须链接到该分册；归属 `common` / `index` 不设此项，其源列可指向载体外文件
-- 规则列首尾引号、归属列反引号或链接、可解析路径未链接都由 `toolkit conventions format` 机械归一
+- 规则列首尾引号、归属列反引号或链接、可解析路径未链接都由 `toolkit convention format` 机械归一
 - 当前语义的措辞重写不能机械化，缺全角冒号时只出清单，交由人工按「何时适用 + 一句话要求」改写
 
 ### 2.3 用法说明
@@ -185,12 +185,12 @@
 ```
 
 - **首列记为行内代码包裹的裸 ID `C-<n>`，不写规则名**（规范名以 `index.md` 索引表为准；规则改名等沿革信息作前置括注记入「修订内容」列，如「（原名「X」）」）。此为硬性要求：
-   `toolkit tasks check` 与 `toolkit conventions status` 检出非 ID 首列并软告警（只报不改——历史行只追加不改旧行的元规则下，补齐须人工确认）
+   `toolkit task check` 与 `toolkit convention status` 检出非 ID 首列并软告警（只报不改——历史行只追加不改旧行的元规则下，补齐须人工确认）
 - **「修订内容」列只记该条自身语义**：新立条目直接写其语义；语义变更写「旧语义」→「新语义」（箭头两侧文本加全角引号）。两条禁令——不得写自指套话（如「（本次起入表）」「新立条目：」，表内每行本就是入表记录、
    自指零信息量）；不得复述 `index.md` 索引列信息（如「；条文全文落 `common.md`」与索引「单一事实源」列重复，违反 §1.1 不变量 I4）。规范名沿革作前置括注（如「（原名「增量判别」）」）。
    **措辞归一例外**：措辞层归一（表格形态归一见 §9，规范词归一见 `conventions-templates.md` T5）属非语义变更，可原地改写旧行、不入 `history.md` 留痕行。
-   `toolkit tasks check` / `toolkit conventions status` 检出禁用语料并软告警（只报不改，改写须人工确认）
-- **表头固定**：须恰为 `ID | 修订内容 | 修订来源任务` 三列，逐格一致（含列名与次序）；`toolkit tasks check` / `toolkit conventions status` 检出表头偏离并软告警
+   `toolkit task check` / `toolkit convention status` 检出禁用语料并软告警（只报不改，改写须人工确认）
+- **表头固定**：须恰为 `ID | 修订内容 | 修订来源任务` 三列，逐格一致（含列名与次序）；`toolkit task check` / `toolkit convention status` 检出表头偏离并软告警
 - **表语义边界写死**：载体结构升级（如 v1 / v2 → v3）、入口壳生成 / 删除、条目退休都不入表——表只记**规范语义**变更
 
 ### 3.3 retired.md 结构
@@ -208,7 +208,7 @@
 ```
 
 - **表头固定**：须恰为 `ID | 规则 | 退休时语义（冻结） | 归属 | 后继 | 退休来源任务 | 条文去向` 七列，逐格一致（含列名与次序）；
-   `toolkit tasks check` / `toolkit conventions status` 检出表头偏离并软告警
+   `toolkit task check` / `toolkit convention status` 检出表头偏离并软告警
 - **退休时语义（冻结）**：退休当时的语义原文，不再随修订变动（区别于 Z1 的活语义）
 - **后继**：替代它的新条目 ID；无则填 `—`
 - **退休来源任务**：执行这次退休的任务

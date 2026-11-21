@@ -21,7 +21,7 @@ hero:
 features:
   - icon: ✅
     title: 方案落盘即约束
-    details: 方案确认完就丢、AI 会话一关什么都不剩？任务文件落在仓库 .tasks/，toolkit tasks check 校验、tasks archive 归档，决策不再随会话消失。
+    details: 方案确认完就丢、AI 会话一关什么都不剩？任务文件落在仓库 .tasks/，toolkit task check 校验、task archive 归档，决策不再随会话消失。
   - icon: 📐
     title: 规范载体可校验
     details: 任务里提炼的规范收进 .tasks/conventions/：v3 三分区、稳定 ID 索引、结构升级与表格 / 索引单元格归一，规范可检索也可体检。
@@ -39,7 +39,7 @@ features:
     details: 按模块组合、排序与复制 AI 全局规则（角色、输出、工作流、提交、使用统计等），预设与缓存随包分发，升级后重新组合即同步。
   - icon: 🧩
     title: AI 技能包
-    details: 不装本工具，也能让 AI 按同一套规范干活——零依赖 Agent Skills，各 agent 全局技能目录通用；装了 CLI 可 `toolkit skills install` 一键分发，与 CLI 同一发布批次。
+    details: 不装本工具，也能让 AI 按同一套规范干活——零依赖 Agent Skills，各 agent 全局技能目录通用；装了 CLI 可 `toolkit skill install` 一键分发，与 CLI 同一发布批次。
   - icon: 🎯
     title: 作用域按目录生效
     details: 默认全域生效；只想在公司项目生效、个人项目不被插入时，用 toolkit scope 设白名单 / 黑名单、标记、git 远端或技能矩阵策略，必要时 skills mount 做项目面安装。
@@ -79,13 +79,13 @@ bun add -g @fxri/toolkit
 :::
 
 ```sh
-toolkit skills install      # 装技能到各 agent 全局技能目录
-toolkit rules compose       # 交互式选择模块，选完粘贴到所用 Agent 的规则入口
+toolkit skill install      # 装技能到各 agent 全局技能目录
+toolkit rule compose       # 交互式选择模块，选完粘贴到所用 Agent 的规则入口
 toolkit scope               # （可选）按目录 / 技能维度限定生效范围，默认全域
 ```
 
 任务区初始化交给 AI：进入项目后说「初始化任务区」即可。团队项目改用 `pnpm add -D @fxri/toolkit` +
-`toolkit skills install --scope project` 锁定版本，项目内执行命令用 `pnpm exec toolkit`。
+`toolkit skill install --scope project` 锁定版本，项目内执行命令用 `pnpm exec toolkit`。
 
 详细步骤见[快速开始](./getting-started)。
 
@@ -93,12 +93,12 @@ toolkit scope               # （可选）按目录 / 技能维度限定生效�
 
 | 痛点 | 本工具的做法 |
 | --- | --- |
-| 方案确认完就丢，AI 会话一关什么都不剩 | 方案落盘为标准任务文件，`toolkit tasks check` 校验、`toolkit tasks archive` 归档、规范沉淀进 conventions 载体，能力终点到沉淀为止 |
+| 方案确认完就丢，AI 会话一关什么都不剩 | 方案落盘为标准任务文件，`toolkit task check` 校验、`toolkit task archive` 归档、规范沉淀进 conventions 载体，能力终点到沉淀为止 |
 | 多人（含多个 AI）同时维护任务，互相覆盖 | 任务唯一键 + 「先查后写」约定 + 归档排他锁 |
 | 任务散落各处，总览、过滤、统计靠人肉 | 一条命令扫 `.tasks/` 全目录，按状态/负责人/范围/日期过滤，可导出 CSV / XLSX / JSON |
 | 发版 CHANGELOG 分组标题是英文，且分组维度与变更类型对不上 | 封装 changesets，条目按变更类型语义分组并内置中文格式化，任意语言可配置扩展 |
-| 全局规则散在各人手里，升级后每份快照都不同步 | `toolkit rules` 按模块组合与复制，规则正文随包分发，升级后重新组合即同步 |
-| 全局技能与规则在所有项目都被触发，个人项目也被插入 | 默认全域生效；`toolkit scope` 按白名单 / 黑名单 / 标记 / git 远端或技能矩阵策略限定生效目录，必要时 `skills mount` 做项目面安装 |
+| 全局规则散在各人手里，升级后每份快照都不同步 | `toolkit rule` 按模块组合与复制，规则正文随包分发，升级后重新组合即同步 |
+| 全局技能与规则在所有项目都被触发，个人项目也被插入 | 默认全域生效；`toolkit scope` 按白名单 / 黑名单 / 标记 / git 远端或技能矩阵策略限定生效目录，必要时 `skill mount` 做项目面安装 |
 | 多个仓库的文档站样式与导航各写一套，漂移无人发现 | `toolkit docs theme check` / `nav check` / `dist check` 按随包规则统一校验 |
 
 ## 文档索引
@@ -129,7 +129,7 @@ toolkit scope               # （可选）按目录 / 技能维度限定生效�
 
 - [任务文件规范 SPEC.md](https://github.com/fxri-net/toolkit/blob/main/SPEC.md)：任务文件格式的单一事实源
 - [AI 技能包 skills/](https://github.com/fxri-net/toolkit/tree/main/skills)：零依赖 Agent Skills，
-   可用 `toolkit skills install` 分发到各 agent 全局技能目录
+   可用 `toolkit skill install` 分发到各 agent 全局技能目录
 
 ## 相关页面
 

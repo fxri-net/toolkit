@@ -21,8 +21,8 @@ title: 升级检查（updateCheck）
 - 通道关闭不是总闸：`channels.externalSkills: off` 时，显式写了 `sources.<name>.notify` 的来源仍按来源值提示
 - 要全部静默用 `enabled: false`
 - 临时来源不写独立配置，继承 `channels.externalSkills`
-- 配置里写了未注册来源名时，`skills status` 归入「未知来源配置」提示，不阻断命令
-- 单个来源的频率用 `toolkit skills source notify <name> --frequency <always|daily|weekly|off> [--scope global|project]` 写入
+- 配置里写了未注册来源名时，`skill status` 归入「未知来源配置」提示，不阻断命令
+- 单个来源的频率用 `toolkit skill source notify <name> --frequency <always|daily|weekly|off> [--scope global|project]` 写入
 
 registry 解析顺序（前者优先）：
 
@@ -39,7 +39,7 @@ registry 解析顺序（前者优先）：
 提示只在**命令成功**（退出码 0）时输出。以下情形不输出文本提示：
 
 - `--help` / `help` 子命令 / 裸 `toolkit`
-- `skills status --path` / `skills status` / `tasks export` / `docs` 全域（输出会被门禁直接消费）
+- `skill status --path` / `skill status` / `task export` / `docs` 全域（输出会被门禁直接消费）
 - `changelog` 的非 bump / changelog / mirror 子命令
 - `--format json`
 
@@ -53,13 +53,13 @@ registry 解析顺序（前者优先）：
 - 任一侧无法解析为版本时不提示
 - 外部来源比较的是**技能自身**的 `metadata.version`（读自来源缓存目录），不用来源仓库的包版本——两者独立编号
 - 已装版本按落点形态取证：`link` 读目标目录下 `SKILL.md` 的实际版本（升级后自动跟随，不看状态登记）
-- `link` 的目标不存在（链接悬空）时不计入已装，交由 `skills status` 报悬空
-- `copy` / `shell` 是独立产物，以 `skills install` 写入的状态登记为准
+- `link` 的目标不存在（链接悬空）时不计入已装，交由 `skill status` 报悬空
+- `copy` / `shell` 是独立产物，以 `skill install` 写入的状态登记为准
 
-**已尝试修复即收敛**：执行过 `skills install` 后，本次仍未解决的条目按「技能 + 最新版本」记入缓存（`~/.toolkit/cache/update-check.json` 的 `dismissed`）。
+**已尝试修复即收敛**：执行过 `skill install` 后，本次仍未解决的条目按「技能 + 最新版本」记入缓存（`~/.toolkit/cache/update-check.json` 的 `dismissed`）。
 
 - 同一版本不再提示；来源版本变化自动恢复，CLI 版本升级后旧记录整体失效
-- `skills status` 展示上次检查时间与下次可提示时间（`always` 为「随时」、`off` 为「已关闭」）
+- `skill status` 展示上次检查时间与下次可提示时间（`always` 为「随时」、`off` 为「已关闭」）
 - JSON 侧对应 `versionStatus.checkedAt` / `versionStatus.nextHintAt`
 
 **诊断开关** `FX_TOOLKIT_DEBUG_UPDATE_CHECK=1`：在 stderr 输出每轮判定依据，不改变提示结果，也不污染 stdout。

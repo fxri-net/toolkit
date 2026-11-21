@@ -4,7 +4,7 @@ title: 技能分发偏好（skills）
 
 # 技能分发偏好（skills）
 
-> 软链自愈、全局与项目面安装偏好；分发命令与现场体检见 [技能分发](../cli/skills)。
+> 软链自愈、全局与项目面安装偏好；分发命令与现场体检见 [技能分发](../cli/skill)。
 
 ⚠️ **段名已统一为单数**：旧段名 `skillsInstall` / `skillsDelivery` / `projectSkills` 仍可读取（stderr 提示一次），
 `toolkit init` 会把项目层 / 本地层配置文件就地重写为新段名（备份 `.bak`），2.1.0 移除兼容。
@@ -14,14 +14,14 @@ title: 技能分发偏好（skills）
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
 | `autoLink` | boolean | `true` | 链接自愈开关：每次执行 `toolkit` 命令时，对状态文件 `~/.agents/.toolkit-skills.json` 记载的**软链**做补链与修链（悬空、指向其他版本即内容与真源不一致的链接重建；内容一致的异地软链不视为错误、不重指） |
-| `autoLinkReplaceForeign` | boolean | `true` | 自愈遇到同名**实体目录 / 普通文件**时是否先清理再重建为软链：`true` 清理重建，`false` 一律不动（状态记录保留，需处置时用 `toolkit skills install --force`）；只影响自愈，不影响显式 `install` |
+| `autoLinkReplaceForeign` | boolean | `true` | 自愈遇到同名**实体目录 / 普通文件**时是否先清理再重建为软链：`true` 清理重建，`false` 一律不动（状态记录保留，需处置时用 `toolkit skill install --force`）；只影响自愈，不影响显式 `install` |
 
 **作用边界**（护栏）：
 
 - **仅作用于全局面软链**：`autoLink` / `autoLinkReplaceForeign` 只做全局技能目录的软链自愈；项目面（仓库内唯一真源副本 + 各候选目录薄壳）不受这两个开关影响，
-   其刷新由 `toolkit init` 写入的 `package.json` `prepare` 钩子（`toolkit skills install --scope project --refresh`）承担，
+   其刷新由 `toolkit init` 写入的 `package.json` `prepare` 钩子（`toolkit skill install --scope project --refresh`）承担，
    产物归属账另存 `<仓库根>/.toolkit/state.json`（非配置文件、随 git 分发）
-- **只补链与修链**：不含首次安装（未安装过、无状态文件时不动作），不含副本刷新（副本形式的技能不自动升级，需重跑 `toolkit skills install`）
+- **只补链与修链**：不含首次安装（未安装过、无状态文件时不动作），不含副本刷新（副本形式的技能不自动升级，需重跑 `toolkit skill install`）
 - **只对状态文件记载的链接生效**：现场被替换成实体目录 / 普通文件时，默认清理后重建为软链；`autoLinkReplaceForeign: false` 改为一律不动——该开关**只豁免实体产物**，
    悬空与指向其他版本（内容与真源不一致）的链接仍照常修复
 - **`CI` 环境自动跳过**：`CI` 为非空且不等于 `0` / `false` / `off` / `no` 时不执行，避免污染流水线；与升级提示共用同一判定
@@ -38,16 +38,16 @@ title: 技能分发偏好（skills）
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
-| `selection` | object | 无 | 来源 → 技能名数组；内置源键为 `toolkit`。`toolkit skills install` 成功后写回，重装 / `status` 按此回显选择集；未保存过时按 `mode` 默认（`skills` 装 `core`、`package` 零装）。名单里的曾用名按来源声明的 `previousNames` 迁移；某来源整份名单都失效时按默认口径重算（内置取 `core`、外部取全部）并告警，本次零装不写空数组 |
+| `selection` | object | 无 | 来源 → 技能名数组；内置源键为 `toolkit`。`toolkit skill install` 成功后写回，重装 / `status` 按此回显选择集；未保存过时按 `mode` 默认（`skills` 装 `core`、`package` 零装）。名单里的曾用名按来源声明的 `previousNames` 迁移；某来源整份名单都失效时按默认口径重算（内置取 `core`、外部取全部）并告警，本次零装不写空数组 |
 | `targets` | string[] | 无 | 长期目标选择：`canonical`（主目标）与各 agent 的 `name`（如 `claude-code`、`cursor`）。安装 / 交互选择后写回；未保存过时首次写全部可用目标；`--no-save-agents` 不写回；`--dir` 自定义目录不进入本字段 |
-| `sources` | object | 无 | 永久外部来源登记：本地来源写 `{ "root": "<绝对路径>" }`，远程来源写 `{ "url": "<Git 地址>", "ref": "<可选 ref>" }`。由 `toolkit skills install --source <name|path> --save [name]` 写入；启动时自动解析并纳入安装 / 状态，远程来源使用用户级缓存 `~/.toolkit/cache/skill-sources/`，来源失效时告警跳过 |
-| `mode` | string | `skills` | 安装模式：`skills`（core 必装）/ `package`（纯包管理器，全部可选、允许零选）；由 `toolkit skills install --mode` 写入，非法值告警后按 `skills` 处理 |
-| `gate` | boolean \| object | `false` | **旧键**（建议迁移到 `skillDelivery`，2.1.0 起移除兼容）：`true` 开启并按默认规则全量接管；也可写 `{ "include": ["fxri-*"], "exclude": ["fxri-text-encoding"] }`（技能名 glob 或 `re:`，排除优先）裁剪范围。技能可用 `SKILL.md` 的 `metadata.gate: false` 单点退出，非法取值会告警并按未声明处理。读取时映射为等价的 `skillDelivery` 配置；旧版本或库调用写入本键，`toolkit skills install --gate` / `--embed` 现改写 `skillDelivery.default`。只影响全局面 |
+| `sources` | object | 无 | 永久外部来源登记：本地来源写 `{ "root": "<绝对路径>" }`，远程来源写 `{ "url": "<Git 地址>", "ref": "<可选 ref>" }`。由 `toolkit skill install --source <name|path> --save [name]` 写入；启动时自动解析并纳入安装 / 状态，远程来源使用用户级缓存 `~/.toolkit/cache/skill-sources/`，来源失效时告警跳过 |
+| `mode` | string | `skills` | 安装模式：`skills`（core 必装）/ `package`（纯包管理器，全部可选、允许零选）；由 `toolkit skill install --mode` 写入，非法值告警后按 `skills` 处理 |
+| `gate` | boolean \| object | `false` | **旧键**（建议迁移到 `skillDelivery`，2.1.0 起移除兼容）：`true` 开启并按默认规则全量接管；也可写 `{ "include": ["fxri-*"], "exclude": ["fxri-code-encoding"] }`（技能名 glob 或 `re:`，排除优先）裁剪范围。技能可用 `SKILL.md` 的 `metadata.gate: false` 单点退出，非法取值会告警并按未声明处理。读取时映射为等价的 `skillDelivery` 配置；旧版本或库调用写入本键，`toolkit skill install --gate` / `--embed` 现改写 `skillDelivery.default`。只影响全局面 |
 
 ```json
 {
   "skillInstall": {
-    "selection": { "toolkit": ["fxri-plan-to-task", "fxri-session-recap", "fxri-plan-review", "fxri-text-encoding"] },
+    "selection": { "toolkit": ["fxri-plan-task", "fxri-plan-recap", "fxri-plan-review", "fxri-code-encoding"] },
     "targets": ["canonical", "claude-code"],
     "sources": {
       "play": { "root": "D:/skills/playbook" },
@@ -85,7 +85,7 @@ title: 技能分发偏好（skills）
 - 允许名单收窄（`skills.mode: allowlist` 且名单不是 `*`）且技能不在其中 → `gated`
 - 无条件拒绝（无任何条件）→ `off`；无条件 `allow: ["*"]` 不产生限制
 - 多个策略命中时 `source` 列出全部策略 id，`reason` 取最具体一条；显式 `skillDelivery.rules` 仍可覆盖推导
-- `toolkit skills status --explain <技能>` 逐级打印命中 / 未命中与被压规则
+- `toolkit skill status --explain <技能>` 逐级打印命中 / 未命中与被压规则
 
 **技能包默认**：`SKILL.md` frontmatter 可声明 `metadata.delivery: full | gated`，位于策略推导之后、全局默认之前；
 第三方技能可自带默认，用户 `rules` 仍可覆盖；非法取值告警后按未声明处理（不认 `off`，不安装只能由用户策略决定）。
@@ -103,7 +103,7 @@ title: 技能分发偏好（skills）
 
 `toolkit config set skillDelivery.default gated|full|off` 只写本段 `default`，不覆盖 `rules`；
 读取用 `toolkit config get skillDelivery.default`。
-`toolkit skills install --gate` / `--embed` 是本次安装的显式取值，成功后写 `default`。
+`toolkit skill install --gate` / `--embed` 是本次安装的显式取值，成功后写 `default`。
 
 ```json
 {
@@ -111,27 +111,27 @@ title: 技能分发偏好（skills）
     "default": "full",
     "rules": [
       { "match": ["fxri-plan-*", "fxri-session-*"], "delivery": "gated" },
-      { "match": ["fxri-docs-writing"], "delivery": "off" }
+      { "match": ["fxri-writing-docs"], "delivery": "off" }
     ]
   }
 }
 ```
 
-`off` 的技能不参与 `skills status` 的缺失统计；既有产物在 `status` 单列为残留，
-`toolkit skills install --prune` 才按归属清理，`toolkit skills plan` 中显示为「清理」。
+`off` 的技能不参与 `skill status` 的缺失统计；既有产物在 `status` 单列为残留，
+`toolkit skill install --prune` 才按归属清理，`toolkit skill plan` 中显示为「清理」。
 
 ## projectSkill：项目面技能安装偏好
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
-| `selection` | string[] | 无 | 项目面选择集（技能名数组），由 `toolkit skills install --scope project` 成功后写回；未保存过时按 `mode` 默认（`skills` 装 `core`、`package` 零装）。曾用名按来源声明的 `previousNames` 迁移，外部来源技能默认选中；整份名单失效时按默认口径重算 |
+| `selection` | string[] | 无 | 项目面选择集（技能名数组），由 `toolkit skill install --scope project` 成功后写回；未保存过时按 `mode` 默认（`skills` 装 `core`、`package` 零装）。曾用名按来源声明的 `previousNames` 迁移，外部来源技能默认选中；整份名单失效时按默认口径重算 |
 | `targets` | string[] | 无 | 长期薄壳目录选择：仓库根相对的候选目录（如 `.trae/skills`）。安装 / 交互选择后写回；未保存过时首次写全部已存在候选目录；`prepare` 等非交互场景按此刷新，不新增未选择目录 |
-| `mode` | string | `skills` | 项目面安装模式：`skills` / `package`；由 `toolkit skills install --scope project --mode` 写入，零选择时不生成技能薄壳与 `.toolkit/state.json` |
+| `mode` | string | `skills` | 项目面安装模式：`skills` / `package`；由 `toolkit skill install --scope project --mode` 写入，零选择时不生成技能薄壳与 `.toolkit/state.json` |
 
 ```json
 {
   "projectSkill": {
-    "selection": ["fxri-plan-to-task", "fxri-session-recap", "fxri-plan-review"],
+    "selection": ["fxri-plan-task", "fxri-plan-recap", "fxri-plan-review"],
     "targets": [".trae/skills", ".claude/skills"]
   }
 }
@@ -175,7 +175,7 @@ Codex / Pi 的全局目录就是主目标（`~/.agents/skills/`），`CODEX_HOME
 它们读取的就是主目标本身，写入一次即全部覆盖；`status` 单列「经 canonical 共读的 agent」。
 DeepSeek Harness 的项目级技能目录与项目面真源同路径（`<仓库根>/.agents/skills/`），无需向 `~/.dsh/skills/` 额外写入。
 
-⚠️ **`--dir` 自定义目录**：只在当次安装时写入并登记，技能增删后不同步；变化后需带相同 `--dir` 重跑 `toolkit skills install`。
+⚠️ **`--dir` 自定义目录**：只在当次安装时写入并登记，技能增删后不同步；变化后需带相同 `--dir` 重跑 `toolkit skill install`。
 
 **项目面候选目录**（19 个，仅在目录已存在时落壳）：
 
@@ -193,7 +193,7 @@ DeepSeek Harness 的项目级技能目录与项目面真源同路径（`<仓库�
 
 ## 作用域与安装面
 
-`install` / `status` / `remove` 三子命令均支持 `--scope <project|global|all>`，缺省按**现场自动判定**：
+`install` / `status` / `uninstall` 三子命令均支持 `--scope <project|global|all>`，缺省按**现场自动判定**：
 
 - **project（项目面）**：仅在**仓库内**生效。真源固定为仓库根下 `.agents/skills/`（完整副本一份，随 git 入库），
   其余**已存在**的候选目录各放每个技能一个薄壳；候选目录清单与落点细节见[分发落点](#分发落点)。
@@ -215,9 +215,9 @@ monorepo 子目录执行亦能命中项目面；**本包源仓库自身视为 `g
 来源改名的旧副本命中曾用名时，漂移项后标注「已改名为 X，确认后手工删除旧副本」；项目面副本无从校验旧真源，不自动删除。
 「来源内未选择」汇总与折叠、补齐口径同全局面：漂移与缺失用 `install --scope project` 补齐，同名冲突加 `--force`，未选择产物清理加 `--prune`。
 
-⚠️ **clone 即用**：项目面真源副本与归属账随 git 入库，队友 clone 后无需重跑 `skills install` 即开箱可用。
+⚠️ **clone 即用**：项目面真源副本与归属账随 git 入库，队友 clone 后无需重跑 `skill install` 即开箱可用。
 `toolkit init` 在本地依赖含 `@fxri/toolkit` 时，向 `package.json` 补 `prepare` 钩子
-（`toolkit skills install --scope project --refresh`），依赖升级后自动刷新项目面（详见 [项目初始化](../cli/init)）。
+（`toolkit skill install --scope project --refresh`），依赖升级后自动刷新项目面（详见 [项目初始化](../cli/init)）。
 
 全局面软链 / 副本形态、pnpm 锚点、写入穿透与状态文件结构见下文[全局面分发细节](#全局面分发细节)。
 
@@ -236,4 +236,4 @@ monorepo 子目录执行亦能命中项目面；**本包源仓库自身视为 `g
 
 ## 相关页面
 
-- 参考：[配置参考总览](../config) · [技能分发](../cli/skills) · [完整攻略 · AI 技能包](../guide#ai-技能包-skills)
+- 参考：[配置参考总览](../config) · [技能分发](../cli/skill) · [完整攻略 · AI 技能包](../guide#ai-技能包-skills)

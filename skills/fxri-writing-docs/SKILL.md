@@ -3,7 +3,7 @@ name: fxri-writing-docs
 description: 文档站写作规范：分类骨架（开始 / 指南 / 参考 / 原理 / 升级 / 开发 / 帮助）、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏首末项与项数、旧 URL 不重定向、404 与索引排除、导航结构用工具命令校验。适用于新建或调整 VitePress 文档站的导航、分类、页面标题与站内引用，含非中文站点的通用口径；不含页面正文写作、配图与视觉设计、部署流水线。
 license: MIT
 metadata:
-  version: "0.1.1"
+  version: "0.1.2"
   tier: optional
   previousNames: ["fxri-docs-writing"]
   type: profile
@@ -15,7 +15,7 @@ metadata:
 
 # 文档站写作规范
 
-> 本技能版本 0.1.1（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 0.1.2（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 

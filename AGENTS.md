@@ -5,7 +5,7 @@
 ## 能力变更三方真实一致（强制质量门）
 
 任何影响对外行为的变更——新增/修改/删除 CLI 命令、参数、输出与告警口径、skills 内容、文档中对其的结构性描述——
-在任务归档前必须完成三方复核，与 `toolkit tasks check` 同为不可绕过的质量门：
+在任务归档前必须完成三方复核，与 `toolkit task check` 同为不可绕过的质量门：
 
 1. **能力自身**：代码实际行为、单元测试、CLI help 文案三者一致。
 2. **文档**：`docs/` 下全部 `.md` 与根 `README.md` 逐篇过触达面（不在此枚举，避免新增页面后清单漂移；
@@ -15,7 +15,7 @@
    不延迟到归档时才复核。涉及术语或措辞变更时，先 grep 全仓库定位旧措辞触达点再列清单；
    仓库外平台侧（仓库简介、social preview、npm 页）不在 grep 范围，须另列清单人工同步。
 3. **skills**：`skills/` 下 SKILL.md 与 references 同步新能力/新流程；每个 SKILL.md 的版本写两处且须一致——
-   frontmatter `metadata.version`（机器读取位，`toolkit skills status` / `skills install` 打印的真源版本）与
+   frontmatter `metadata.version`（机器读取位，`toolkit skill status` / `skill install` 打印的真源版本）与
    正文首部 `> 本技能版本 x.y.z（随 @fxri/toolkit 同批分发）`（进上下文的自证位）；内容变更时同步递增，
    递增口径见 `skills/fxri-release-changelog/references/changelog-format.md` 的「版本口径」。
 4. **变更集**：凡影响对外行为的变更，任务归档前必须在 `.changeset/` 建变更集（标注 patch/minor/major 并写用户可感知的变更描述，
@@ -26,7 +26,7 @@
    凡在规则全文复述了可变流程细节的改动即视为违背本规则，须收敛回 skill；个性化偏好不得以「非稳定纪律」为由删除，删除须显式确认。
    `personal` 只收能被其它模块默认值覆写的取舍，且覆写须成对——偏好模块写取值、被覆写模块写默认值；通用纪律、能力与真源指向不得放入。
    原因：全局规则是用户手动复制的快照，细节复述会让能力升级后用户侧规则失同步；
-   收敛进 skills 后技能随包同源分发（与 CLI 同一发布批次），升级只需 `pnpm add -g @fxri/toolkit`（软链自动跟随，副本形式再跑一次 `toolkit skills install`）。
+   收敛进 skills 后技能随包同源分发（与 CLI 同一发布批次），升级只需 `pnpm add -g @fxri/toolkit`（软链自动跟随，副本形式再跑一次 `toolkit skill install`）。
 6. **规则层更新锚点**：`SPEC.md`、`templates/rules/*.md`（七个模块）、`docs/rules/ai.md`、`docs/rules/personal.md`、`docs/rules/commit.md`、
    `docs/rules/usage.md` 各有一行更新锚点；
    `SPEC.md` 为 `> 规范更新时间 YYYY-MM-DD HH:mm`，模块文件与各规则页为 `> 规则更新时间 YYYY-MM-DD HH:mm`（24 小时制、本机时区、精确到分、不带秒）。
@@ -55,7 +55,7 @@
   且类型检查须覆盖测试文件——基础 `tsconfig.json` 的 `exclude` 排除 `**/__tests__` 等测试路径，
   类型检查单独走放开该排除项的 `tsconfig.typecheck.json`，不得让测试文件落在盲区；
 - **验收与提交须串联失败即止**：`pnpm verify` 与 `git commit` 之间用 `&&` 串联或分步执行，禁止用 `;` 串联——门禁失败后仍提交会让问题越过质量门，修复须另起提交并留痕；
-- `toolkit tasks check` 的 error 与 warn 均应为 0（除非任务规格另有豁免）——已在 `pnpm verify` 内执行，此处强调阈值；
+- `toolkit task check` 的 error 与 warn 均应为 0（除非任务规格另有豁免）——已在 `pnpm verify` 内执行，此处强调阈值；
 - grep 确认文档与 skills 措辞落地；
 - 验证有上限：同一改动在提交前跑一次 `pnpm verify` 即可，失败则修复后重跑全量、通过后不再重复；已确认通过的检查不因再次被询问而重跑，不为自我确认额外加跑；
 - 测试不得复刻被测实现的逻辑：派生、镜像类逻辑的测试期望须直接调用真实实现，不得在测试内重写同一份转换逻辑——同错复刻会让实现缺陷照样漏过。
@@ -69,11 +69,11 @@
   「可以 / 定稿 / 落档 / 继续评估」都不等于开工；明显像开工但未命中这些词（开整 / 上手 / 走起）时先反问一句，不静默也不自行开工；
   明确指向单个文件或单条命令的微操作属对象级授权，可直接执行；
 - 动手前先做**建档评估**：涉及仓库文件改动的任务，动手前查 active/archive 判同主题——
-  active 有同主题更新原文件、archive 有同主题且本次不产生仓库文件改动则不重复建档直接执行、均无则先建档再动手（判别细节以 fxri-plan-to-task 最新版为准）；
-- 任务管理全流程走 toolkit skills（先 `toolkit init` 建任务区，再建档、执行、归档、沉淀）；
+  active 有同主题更新原文件、archive 有同主题且本次不产生仓库文件改动则不重复建档直接执行、均无则先建档再动手（判别细节以 fxri-plan-task 最新版为准）；
+- 任务管理全流程走 toolkit skill（先 `toolkit init` 建任务区，再建档、执行、归档、沉淀）；
 - 任务收尾按「改完文件 → 归档 → `pnpm verify` → 提交」执行，**验收须晚于归档**：
   归档会改写 `.tasks/`（写归档文件、删 active 源文件、清理空月份目录）而自身不做阻断式校验，早于归档跑验收就覆盖不到终态，归档产物等于无人校验；
-- 任务时间字段按**四级时间源**取证，口径以 `skills/fxri-plan-to-task/references/task-spec.md` 最新版为准
+- 任务时间字段按**四级时间源**取证，口径以 `skills/fxri-plan-task/references/task-spec.md` 最新版为准
   （当场打点 / 聊天记录时间戳 / git 提交时间 / 系统当前时间兜底并标注「收尾补记」）；禁止估算或时区换算，不留与 skill 重复的复制表述，避免版本漂移；
 - 代码注释只保留描述最终代码逻辑的必要注释，不留过程性解释（如「先这样、后来改成那样」的演进记录）；
 - **路径书写**：仓库内引用一律用**以仓库根为基准的相对路径**（含行号时形如 `src/cli.ts L103`），不写指向本机的绝对 `file:///` 链接。
@@ -92,11 +92,11 @@
 
 发版按以下顺序分步执行，每步产物检查无误后再进行下一步：
 
-1. **消费变更集**：先跑 `node dist/cli.js changelog audit` 列出同对象净变更候选，有候选按净变更规则人工合并（只提示、不自动改写，不挂进 `pnpm verify`）；
-   再执行 `node dist/cli.js changelog bump`——按 bump 类型合并 `.changeset/` 全部变更集，
+1. **消费变更集**：先跑 `node dist/cli.js release audit` 列出同对象净变更候选，有候选按净变更规则人工合并（只提示、不自动改写，不挂进 `pnpm verify`）；
+   再执行 `node dist/cli.js release bump`——按 bump 类型合并 `.changeset/` 全部变更集，
    生成 CHANGELOG 新版本块（中文分组标题 + 发布日期）并升级 package.json 版本号；
-   生成后人工检查润色条目，再执行 `node dist/cli.js changelog changelog --history` 归一历史块（人工润色易在条目之间留空行；默认模式不动历史块，必须带 `--history`），
-   最后 `pnpm sync:changelog-doc`（内置 `changelog mirror`，`changelog bump` 成功时会自动同步）
+   生成后人工检查润色条目，再执行 `node dist/cli.js release changelog --history` 归一历史块（人工润色易在条目之间留空行；默认模式不动历史块，必须带 `--history`），
+   最后 `pnpm sync:changelog-doc`（内置 `release mirror`，`release bump` 成功时会自动同步）
    把新版本块镜像进 docs/changelog.md 更新日志页，与版本/CHANGELOG 改动同批提交；
 2. **门禁校验**：`pnpm verify`——含构建（版本号从 package.json 读取进产物）等全部步骤；**任一步失败即中止发版**，不得进入提交、打标签、发布。
    ⚠️ 门禁必须挡在 publish 之前——publish 不可逆（包发出即被使用者安装），而 push 失败重推即可，故关卡设在 publish 前而非推送前；

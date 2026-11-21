@@ -1,66 +1,66 @@
 ---
-title: 技能分发（skills）
+title: 技能分发（skill）
 ---
 
-# 技能分发（skills）
+# 技能分发（skill）
 
 > 把包内技能分发到各 agent，并管理来源、目标与版本。
 
 ```bash
-toolkit skills install              # 安装包内技能（缺省按现场判定作用域）
-toolkit skills install --scope project # 仅项目面：真源副本 + 候选目录薄壳
-toolkit skills install --scope global  # 仅全局面：软链 / 副本到 agent 目录
-toolkit skills install --scope all     # 项目面 + 全局面都执行
-toolkit skills install --skills fxri-plan-to-task,fxri-text-encoding # 只装指定技能（core 恒装）
-toolkit skills install --all        # 安装全部技能（含可选技能）
-toolkit skills install --no-optional # 只装 core 技能
-toolkit skills install --yes        # 非交互：跳过选择与确认，采用已保存选择
-toolkit skills install --use-saved # 跳过选择交互，仍保留最终确认
-toolkit skills install --agent claude-code,canonical # 只写指定 agent（canonical 为主目标）
-toolkit skills install --all-agents # 写入全部已检测的 agent
-toolkit skills install --no-save-agents # 目标选择只对本次生效，不写回配置
-toolkit skills install --prune      # 清理未选择且与真源一致的旧产物
-toolkit skills install --check      # 只报告待收敛项：有漂移时退出码 1（CI 门禁）
-toolkit skills install --scope project --refresh # 只刷新已存在的项目面产物（prepare 钩子口径）
-toolkit skills install --mode package # 纯包管理器模式：core 也可不装，允许零选
-toolkit skills install --no-skills  # 仅本次零装，不改模式与已保存选择
-toolkit skills install --gate       # 内容闸门：本次全部技能写入口壳，--embed 回退
+toolkit skill install              # 安装包内技能（缺省按现场判定作用域）
+toolkit skill install --scope project # 仅项目面：真源副本 + 候选目录薄壳
+toolkit skill install --scope global  # 仅全局面：软链 / 副本到 agent 目录
+toolkit skill install --scope all     # 项目面 + 全局面都执行
+toolkit skill install --skills fxri-plan-task,fxri-code-encoding # 只装指定技能（core 恒装）
+toolkit skill install --all        # 安装全部技能（含可选技能）
+toolkit skill install --no-optional # 只装 core 技能
+toolkit skill install --yes        # 非交互：跳过选择与确认，采用已保存选择
+toolkit skill install --use-saved # 跳过选择交互，仍保留最终确认
+toolkit skill install --agent claude-code,canonical # 只写指定 agent（canonical 为主目标）
+toolkit skill install --all-agents # 写入全部已检测的 agent
+toolkit skill install --no-save-agents # 目标选择只对本次生效，不写回配置
+toolkit skill install --prune      # 清理未选择且与真源一致的旧产物
+toolkit skill install --check      # 只报告待收敛项：有漂移时退出码 1（CI 门禁）
+toolkit skill install --scope project --refresh # 只刷新已存在的项目面产物（prepare 钩子口径）
+toolkit skill install --mode package # 纯包管理器模式：core 也可不装，允许零选
+toolkit skill install --no-skills  # 仅本次零装，不改模式与已保存选择
+toolkit skill install --gate       # 内容闸门：本次全部技能写入口壳，--embed 回退
 toolkit config get skillDelivery.default   # 查看默认分发形态
 toolkit config set skillDelivery.default gated   # 切换为入口壳（full 回退全文，不覆盖 rules）
-toolkit skills plan                 # 分发计划：目标 / 当前形态 / 动作与判定来源（install --dry-run 的别名）
-toolkit skills mount --dry-run      # 批量挂载：预览将写入的项目（由 scope mount 迁入，原命令已移除）
-toolkit skills install --copy       # 强制副本（仅全局面；入口壳形态的技能仍写壳并告警）
-toolkit skills install --dry-run    # 预演：输出分发计划，不写文件（skills plan 的别名）
-toolkit skills install --force      # 覆盖同名非本包产物（默认跳过；不改已登记副本形态）
-toolkit skills install --dir <path> # 额外目标目录（可多次；全局面兜底未收录 agent，项目面须在仓库内）
-toolkit skills install --source <name|path> # 外部来源（已登记名 / 目录 / Git 地址；只写本次，可重复）
-toolkit skills install --source https://github.com/fxri-net/playbook#vX.Y.Z --save play # 远程永久来源
-toolkit skills uninstall --source play # 只清理指定外部来源的登记与产物
-toolkit skills source                # 列出外部来源、版本与生效的更新提示频率（内置源不在列表内）
-toolkit skills source notify play --frequency daily # 设置单个来源的提示频率（--scope global|project）
-toolkit skills source refresh        # 刷新全部外部来源缓存与版本（--dry-run 列出将刷新来源与当前版本，不联网）
-toolkit skills source remove play --prune # 注销来源登记并清理其产物、状态与提示配置
-toolkit skills bump fxri-plan-to-task patch # 递增技能版本（frontmatter 与正文首部两处同源改写）
-toolkit skills bump --all --dry-run      # 预演批量递增全部技能，只打印 from → to
-toolkit skills bump --all minor --yes    # 批量递增（非交互须 --yes）
-toolkit skills bump fxri-plan-review --set 2.0.0 # 直接设定版本（与递增类型互斥）
-toolkit skills bump --dir skills --all patch # 外部仓：对指定技能目录批量递增
-toolkit skills lint                     # 校验本包 skills/（150 行 / 8000 字符告警，200 行 / 12000 字符报错）
-toolkit skills lint skills/ --base HEAD # 技能内容相对基准有变更时，版本必须已递增
-toolkit skills status               # 查看技能现场状态与包内技能真源版本（缺省按现场判定作用域）
-toolkit skills status --scope all   # 项目面与全局面都体检
-toolkit skills status --format json # JSON 输出：scope、global / project 各自的现场报告
-toolkit skills status --explain fxri-plan-to-task # 解释该技能的分发形态推导过程
-toolkit skills uninstall               # 卸载本包安装的技能产物（缺省按现场判定作用域；目标目录清空后一并回收）
-toolkit skills uninstall --skills fxri-text-encoding # 只卸载指定技能的选择与产物（逗号分隔）
-toolkit skills uninstall --scope all   # 项目面与全局面都卸载
-toolkit skills uninstall --dry-run     # 卸载预演（只预览将移除的条目）
-toolkit skills uninstall --format json # JSON 输出：dryRun、scope 与 global / project 各自的卸载报告
-toolkit skills status --path        # 输出包根路径（内含 skills/）
-toolkit skills status --path --format json   # JSON 输出：包根、技能源目录、技能清单
+toolkit skill plan                 # 分发计划：目标 / 当前形态 / 动作与判定来源（install --dry-run 的别名）
+toolkit skill mount --dry-run      # 批量挂载：预览将写入的项目（由 scope mount 迁入，原命令已移除）
+toolkit skill install --copy       # 强制副本（仅全局面；入口壳形态的技能仍写壳并告警）
+toolkit skill install --dry-run    # 预演：输出分发计划，不写文件（`skill plan` 的别名）
+toolkit skill install --force      # 覆盖同名非本包产物（默认跳过；不改已登记副本形态）
+toolkit skill install --dir <path> # 额外目标目录（可多次；全局面兜底未收录 agent，项目面须在仓库内）
+toolkit skill install --source <name|path> # 外部来源（已登记名 / 目录 / Git 地址；只写本次，可重复）
+toolkit skill install --source https://github.com/fxri-net/playbook#vX.Y.Z --save play # 远程永久来源
+toolkit skill uninstall --source play # 只清理指定外部来源的登记与产物
+toolkit skill source                # 列出外部来源、版本与生效的更新提示频率（内置源不在列表内）
+toolkit skill source notify play --frequency daily # 设置单个来源的提示频率（--scope global|project）
+toolkit skill source refresh        # 刷新全部外部来源缓存与版本（--dry-run 列出将刷新来源与当前版本，不联网）
+toolkit skill source remove play --prune # 注销来源登记并清理其产物、状态与提示配置
+toolkit skill bump fxri-plan-task patch # 递增技能版本（frontmatter 与正文首部两处同源改写）
+toolkit skill bump --all --dry-run      # 预演批量递增全部技能，只打印 from → to
+toolkit skill bump --all minor --yes    # 批量递增（非交互须 --yes）
+toolkit skill bump fxri-plan-review --set 2.0.0 # 直接设定版本（与递增类型互斥）
+toolkit skill bump --dir skills --all patch # 外部仓：对指定技能目录批量递增
+toolkit skill lint                     # 校验本包 skills/（150 行 / 8000 字符告警，200 行 / 12000 字符报错）
+toolkit skill lint skills/ --base HEAD # 技能内容相对基准有变更时，版本必须已递增
+toolkit skill status               # 查看技能现场状态与包内技能真源版本（缺省按现场判定作用域）
+toolkit skill status --scope all   # 项目面与全局面都体检
+toolkit skill status --format json # JSON 输出：scope、global / project 各自的现场报告
+toolkit skill status --explain fxri-plan-task # 解释该技能的分发形态推导过程
+toolkit skill uninstall               # 卸载本包安装的技能产物（缺省按现场判定作用域；目标目录清空后一并回收）
+toolkit skill uninstall --skills fxri-code-encoding # 只卸载指定技能的选择与产物（逗号分隔）
+toolkit skill uninstall --scope all   # 项目面与全局面都卸载
+toolkit skill uninstall --dry-run     # 卸载预演（只预览将移除的条目）
+toolkit skill uninstall --format json # JSON 输出：dryRun、scope 与 global / project 各自的卸载报告
+toolkit skill status --path        # 输出包根路径（内含 skills/）
+toolkit skill status --path --format json   # JSON 输出：包根、技能源目录、技能清单
 ```
 
-裸 `toolkit skills` 打印本域帮助（列出全部子命令）。
+裸 `toolkit skill` 打印本域帮助（列出全部子命令）。
 
 ## 子命令
 
@@ -77,10 +77,10 @@ toolkit skills status --path --format json   # JSON 输出：包根、技能源�
 - **曾用名迁移**：来源声明 `previousNames` 时，旧名产物按归属清理（链接或同内容副本）并回显「已改名迁移：旧名 → 新名」
   - 仅在新名本次已新建 / 更新 / 跳过时清理；新名冲突或失败时保留旧名，沿用既有冲突 / 失败报告
   - 新名写入状态后旧名不再残留
-- **分发形态**：按 [`skillDelivery`](../config/skills#skilldelivery-技能分发形态) 推导，`gated` 只写入口壳、`off` 不写产物（残留由 `--prune` 清理）
+- **分发形态**：按 [`skillDelivery`](../config/skill#skilldelivery-技能分发形态) 推导，`gated` 只写入口壳、`off` 不写产物（残留由 `--prune` 清理）
   - `--gate` / `--embed` 为本次显式取值，成功后写 `skillDelivery.default`；项目面同样生效
-- 项目面按[作用域与安装面](../config/skills#作用域与安装面)的副本 + 薄壳口径写入；`gated` 技能的候选目录落入口壳，真源副本保留供 guard 读取正文
-- `--dry-run` 是 `skills plan` 的别名：只输出分发计划，不写文件
+- 项目面按[作用域与安装面](../config/skill#作用域与安装面)的副本 + 薄壳口径写入；`gated` 技能的候选目录落入口壳，真源副本保留供 guard 读取正文
+- `--dry-run` 是 `skill plan` 的别名：只输出分发计划，不写文件
 - `--check` 只报告待收敛项，有漂移时退出码 1；不进入交互
 - `--refresh` 只收敛已存在的项目面产物，不新增技能、不改选择集；不进入交互，非 TTY / CI 只打印漂移
 - `--format json` 输出机器可读安装报告到 stdout（含 `dryRun` / `scope` 标记与 `selection` / `targetSelection`）
@@ -114,14 +114,14 @@ toolkit skills status --path --format json   # JSON 输出：包根、技能源�
 - **目标纳入口径**：主目标恒报告；内置表内的 agent 与自定义目标仅在已有本包记录或目录非空时展开（卸载后的空壳目录不占版面）
   - 状态文件登记但本次未解析到的目标（如 `--dir` 安装后不再传参、agent 目录已被移除）也补报，不静默丢弃
 - **历史落点**：Codex / Pi 的升级前落点（`~/.codex/skills`、`~/.pi/agent/skills`）在状态文件有登记且目录仍在时，标注为「历史落点」并在报告末尾单列「历史落点残留」
-  - 只提示不自动删除，指引用 `remove` 清理
+  - 只提示不自动删除，指引用 `uninstall --skills` 清理
 - **疑似残留**：未在任何来源或状态登记、但指向技能源缓存（`~/.toolkit/cache/skill-sources/`）或本包技能目录的链接，单列「疑似残留（仅提示）」
   - 只报告不删除；给出含实际名字的 `uninstall` 命令
 - **矩阵联动**：仅项目面评估，全局面不评估并说明；矩阵限制的技能已按策略推导自动进入入口壳
 - **推导解释**：`status --explain <技能>` 逐级打印各层命中与被压规则，文本与 JSON 同源
 - **待收敛**：汇总可由 `install` 修复的偏差（含来源不可解析条目）；JSON 带 `pending` 数组
 - **canonical 共读**：本机已安装且经 canonical 共读的 agent（按探测路径判定）另单列一行说明其读取主目标、无需单独写入
-- 项目面按[作用域与安装面](../config/skills#作用域与安装面)节体检
+- 项目面按[作用域与安装面](../config/skill#作用域与安装面)节体检
 - `--format json` 输出机器可读报告到 stdout（含 `scope`、`versionStatus`、`linkage`、`selection` 与 `targetSelection`）
   - 两面报告含 `skillVersions`；全局面另含 `canonicalReaders` 与 `legacyTargets`
   - `gate` / `gateRules` 为旧键兼容字段，新消费方用 `delivery` 与 `pending`
@@ -141,7 +141,7 @@ toolkit skills status --path --format json   # JSON 输出：包根、技能源�
 - `--source` 只清指定外部来源的登记与产物
 - 状态里未登记但显式点名的名字（如改名后的旧名）：只摘除「本工具形态」的同名链接（指向技能源缓存、本包技能目录或已登记来源根），其余仍交人工确认
   - 该类名字若完全未命中可清理产物，stderr 告警「未找到可清理的产物」并说明未执行删除，退出码不变
-- 项目面按[作用域与安装面](../config/skills#作用域与安装面)清理归属账记载的条目
+- 项目面按[作用域与安装面](../config/skill#作用域与安装面)清理归属账记载的条目
 - `--format json` 输出机器可读卸载报告到 stdout（含各目标 `dirReclaimed` 回收标记与 `dryRun` / `scope` 标记）
 
 ### plan
@@ -152,13 +152,13 @@ toolkit skills status --path --format json   # JSON 输出：包根、技能源�
 
 ### 分发形态（config）
 
-- `config get|set skillDelivery.default` 读写默认形态（原 `skills gate on|off`：on = `gated`、off = `full`），不覆盖 `rules`
+- `config get|set skillDelivery.default` 读写默认形态（取值为 `full` / `gated` / `off`），不覆盖 `rules`
 
 ### mount
 
 - 在父目录（缺省当前目录）下扫一层仓库（`.git` / `package.json` / `.tasks`），交互多选并确认后逐仓安装；`--dry-run` 只预览
 - 会向所选项目写入技能文件，确认信息写明项目数
-- 由 `toolkit scope mount` 迁入（该命令已移除），统一从 skills 域使用
+- 由 `toolkit scope mount` 迁入（该命令已移除），统一从 skill 域使用
 - 非 TTY 环境提示无法交互（退出码 `2`），批量项目安装请在终端运行
 
 ### source
@@ -174,15 +174,15 @@ toolkit skills status --path --format json   # JSON 输出：包根、技能源�
 
 ### lint
 
-只读校验，可对技能目录运行；规则、预算、`--base` 递增与退出码见[技能校验](./skills-lint)。
+只读校验，可对技能目录运行；规则、预算、`--base` 递增与退出码见[技能校验](./skill-lint)。
 
 ### bump
 
-递增版本声明；`--dir` 多根、`--from` 处理不一致。详见[技能版本递增](./skills-bump)。
+递增版本声明；`--dir` 多根、`--from` 处理不一致。详见[技能版本递增](./skill-bump)。
 
 ### status --path
 
-`toolkit skills status --path` 输出包根（内含 `skills/`）与 JSON 清单，便于委托上游安装器。
+`toolkit skill status --path` 输出包根（内含 `skills/`）与 JSON 清单，便于委托上游安装器。
 
 `--format json` 统一信封 `{ schemaVersion, command, ok, data, issues }`，下表字段位于 `data`，
 检查问题同时映射到顶层 `issues`。
@@ -203,8 +203,8 @@ toolkit skills status --path --format json   # JSON 输出：包根、技能源�
 
 当前层级分布：
 
-- `core`：`fxri-plan-to-task`、`fxri-session-recap`、`fxri-plan-review`
-- `optional`：`fxri-release-changelog`、`fxri-text-encoding`、`fxri-skill-authoring`、`fxri-docs-writing`
+- `core`：`fxri-plan-task`、`fxri-plan-recap`、`fxri-plan-review`
+- `optional`：`fxri-release-changelog`、`fxri-code-encoding`、`fxri-writing-skill`、`fxri-writing-docs`
 
 模式优先级：`--mode package|skills` 先切换并持久化，再按新模式重建基线（`package` 为空、`skills` 为 `core`），不沿用旧模式的保存选择。
 
@@ -233,27 +233,27 @@ toolkit skills status --path --format json   # JSON 输出：包根、技能源�
 ## 目标选择
 
 技能选择之后是目标选择：全局面选 agent 目录，项目面选已存在的候选薄壳目录。
-优先级、交互流程、长期选择写回与取消目标口径见[配置参考 · 安装目标选择](../config/skills#安装目标选择)。
+优先级、交互流程、长期选择写回与取消目标口径见[配置参考 · 安装目标选择](../config/skill#安装目标选择)。
 
 ## 外部来源
 
 `--source <name|path>` 把已登记来源名、本地目录或 Git 远程地址纳入同一套 tier / 选择 / 状态 / prune 管理；
-来源格式、曾用名、永久登记与安装锁见[技能来源](./skills-sources)。
+来源格式、曾用名、永久登记与安装锁见[技能来源](./skill-sources)。
 
 ## 作用域
 
-`install` / `status` / `remove` 三子命令均支持 `--scope <project|global|all>`，缺省按现场自动判定；
-安装面判定、项目面归属账与逐技能状态见[配置参考 · 作用域与安装面](../config/skills#作用域与安装面)。
+`install` / `status` / `uninstall` 三子命令均支持 `--scope <project|global|all>`，缺省按现场自动判定；
+安装面判定、项目面归属账与逐技能状态见[配置参考 · 作用域与安装面](../config/skill#作用域与安装面)。
 
 ## 策略与内容闸门
 
 - 策略（`scope policy` / `scope skills`）直接决定技能分发形态：带条件限制 → 入口壳，无条件拒绝 → 不安装，无需手动开闸门
-- 矩阵限制的技能由 `install` 自动生成入口壳，`skills plan` 可预览；显式 `skillDelivery.rules` 仍可覆盖推导
+- 矩阵限制的技能由 `install` 自动生成入口壳，`skill plan` 可预览；显式 `skillDelivery.rules` 仍可覆盖推导
 - 显式规则把被拒技能钉成全文时，提示「策略对该技能无效：已显式设为全文安装」；旧键 `skillInstall.gate` / `metadata.gate` 仍读时兼容
-- 已安装但当前目录矩阵未允许的技能单列提示，不自动删除；确认不需要时用 `skills uninstall` 清理
+- 已安装但当前目录矩阵未允许的技能单列提示，不自动删除；确认不需要时用 `skill uninstall` 清理
 - 项目面安装（`install --scope project`）提供更硬的边界；策略与闸门只影响正文读取，不改变安装产物
 - 策略字段、优先级与子目录口径见[作用域配置（activation / policies）](../config/activation)
 
 ## 相关页面
 
-- 参考：[完整攻略 · AI 技能包](../guide#ai-技能包-skills) · [技能来源](./skills-sources) · [配置参考 · 技能分发偏好](../config/skills)
+- 参考：[完整攻略 · AI 技能包](../guide#ai-技能包-skills) · [技能来源](./skill-sources) · [配置参考 · 技能分发偏好](../config/skill)

@@ -80,12 +80,12 @@
 
 1. `toolkit init` 幂等向 `.gitignore` 追加忽略行（已被既有规则覆盖则跳过；存量项目升级后需**重跑 `toolkit init`** 补写，幂等可安全重跑）。
     不想改团队 `.gitignore` 者，可自行把该行写进 `.git/info/exclude`（本地排除、不进版本控制，同样被 `git check-ignore` 识别）
-2. `toolkit tasks check` 检测到该文件存在但未被忽略时**软告警**（warn 级，不阻断）；
+2. `toolkit task check` 检测到该文件存在但未被忽略时**软告警**（warn 级，不阻断）；
     已跟踪态提示 `git rm --cached`（`git check-ignore` 对已跟踪文件恒返回「未忽略」，须先移除跟踪）；非 git 仓库、或文件位于**当前仓库工作树之外**时判定不适用、不告警
 3. `toolkit config status` 只读展示三层生效情况与来源，其「本地配置文件未纳入忽略」提示**不受任何配置开关影响**（除 `--format` 非法外恒输出）
 
-⚠️ **自指关系**：`tasks check` 的上述软告警受 `check.warnings` 支配，而该开关可被本地层（那个未入库的文件本身）设成 `false` → 告警被同一个文件静音、团队无从察觉。
-故不以 `tasks check` 为唯一自查通道，改由 `config status` 的对应提示兜底（它不受开关影响）。命令用法见 [CLI 参考 · 配置体检](./cli/config)。
+⚠️ **自指关系**：`task check` 的上述软告警受 `check.warnings` 支配，而该开关可被本地层（那个未入库的文件本身）设成 `false` → 告警被同一个文件静音、团队无从察觉。
+故不以 `task check` 为唯一自查通道，改由 `config status` 的对应提示兜底（它不受开关影响）。命令用法见 [CLI 参考 · 配置体检](./cli/config)。
 
 ## 字段总览
 
@@ -128,7 +128,7 @@
 | [校验与任务区（check / task）](./config/check-tasks) | 软告警开关、勾选框与词标记扫描、任务目录与导入列映射 |
 | [语言与镜像（changelog / changelogDoc）](./config/changelog) | 语言表与文档站更新页镜像 |
 | [升级检查（updateCheck）](./config/update) | 提示频率、通道、registry、缓存与诊断 |
-| [技能分发偏好（skills）](./config/skills) | 软链自愈、分发形态（全文 / 入口壳 / 不安装）与全局、项目面安装偏好 |
+| [技能分发偏好（skills）](./config/skill) | 软链自愈、分发形态（全文 / 入口壳 / 不安装）与全局、项目面安装偏好 |
 | [使用情况配置](./usage/configuration) | 总开关、来源、技能范围、字段、存储与上传；仅全局层 |
 | [文档站校验（docs nav / docs dist）](./cli/docs-check#配置) | 导航阈值、产物目录、sitemap 策略、搜索实现与规则开关 |
 | [作用域配置（activation / policies）](./config/activation) | 按项目 / 目录决定技能与规则是否生效；默认全域生效 |

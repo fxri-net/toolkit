@@ -10,7 +10,7 @@ title: 退出码与解析错误
 | --- | --- |
 | `0` | 成功（含 check 通过、归档跳过等正常路径） |
 | `1` | 操作失败或校验存在 error 级问题（check 有 error、参数冲突、非法子命令、文件/目录异常等） |
-| `2` | 需要交互但当前环境不支持（显式 `wizard` 与写确认类命令；stderr 给出非交互替代）；或 `skills lint` 的用法错误（非法数值、空 `--base` 等） |
+| `2` | 需要交互但当前环境不支持（显式 `wizard` 与写确认类命令；stderr 给出非交互替代）；或 `skill lint` 的用法错误（非法数值、空 `--base` 等） |
 | `3` | `toolkit scope guard <技能名>` 判定当前目录未激活（stdout 为空，原因写 stderr） |
 | `130` | 用户在交互提示中按 Ctrl+C 中断（不写任何文件、不打印堆栈） |
 
@@ -20,7 +20,7 @@ title: 退出码与解析错误
 `--format json` 的业务失败仍在 stderr 报错并保留上表退出码，不在 stdout 输出半截 JSON；报告类成功输出的统一信封
 `{ schemaVersion, command, ok, data, issues }` 中，`ok` 反映报告结论（check 类按是否存在 error，只告警时仍为 `true`）。
 
-交互中断固定为 `130`，与 shell 对 SIGINT 的惯例一致：`scope` / `usage` / `skills` / `rules` 等命令在提示中按 Ctrl+C 都以此结束，不再回落为 `0` 或 `1`。
+交互中断固定为 `130`，与 shell 对 SIGINT 的惯例一致：`scope` / `usage` / `skill` / `rule` 等命令在提示中按 Ctrl+C 都以此结束，不再回落为 `0` 或 `1`。
 `scope` 交互里的「← 返回」与 ESC 属于正常导航（回到上层菜单），不产生中断退出码；主动选择「退出」按成功计 `0`。
 需要交互但没有可用终端的命令（`toolkit scope wizard`、`toolkit usage setup wizard`、`toolkit usage setup init` /
 `toolkit usage setup uninstall` / `toolkit usage config upload setup` / `toolkit usage setup hooks install` /
@@ -28,7 +28,7 @@ title: 退出码与解析错误
 裸 `toolkit scope` / `toolkit usage` 不在此列：非 TTY 下输出摘要并成功退出。
 
 未知命令、未知选项、参数个数不符等解析错误统一输出 `⚠️` 开头的中文提示，并附一行 `运行 toolkit --help 查看可用命令` 指引（退出码 `1`），不再混出 commander 的英文原文。
-`changelog` 透传给 changesets 的英文输出不在其列——那属第三方 CLI 自身的报错通道。
+`release` 透传给 changesets 的英文输出不在其列——那属第三方 CLI 自身的报错通道。
 
 ## 相关页面
 

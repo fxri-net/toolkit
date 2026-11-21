@@ -1,17 +1,17 @@
 ---
-title: 技能校验（skills lint）
+title: 技能校验（skill lint）
 ---
 
-# 技能校验（skills lint）
+# 技能校验（skill lint）
 
 > 可对任意技能目录运行的只读规范校验；规范真源在 toolkit，产品仓只调用命令、不复制规则。
 
 ```bash
-toolkit skills lint                     # 校验本包 skills/（缺省档：150 行 / 8000 字符告警，200 行 / 12000 字符报错）
-toolkit skills lint skills/ --base HEAD # 技能内容相对基准有变更时，版本必须已递增
-toolkit skills lint --dir ../other/skills --strict # 外部仓技能目录：告警按失败处理
-toolkit skills lint skills/ --format json # JSON 输出：统一信封，data 含 files、issues（带 level）与 summary
-toolkit skills lint skills/ --ignore 'fxri-temp-*' # 跳过误报技能（按目录名或相对路径）
+toolkit skill lint                     # 校验本包 skills/（缺省档：150 行 / 8000 字符告警，200 行 / 12000 字符报错）
+toolkit skill lint skills/ --base HEAD # 技能内容相对基准有变更时，版本必须已递增
+toolkit skill lint --dir ../other/skills --strict # 外部仓技能目录：告警按失败处理
+toolkit skill lint skills/ --format json # JSON 输出：统一信封，data 含 files、issues（带 level）与 summary
+toolkit skill lint skills/ --ignore 'fxri-temp-*' # 跳过误报技能（按目录名或相对路径）
 ```
 
 缺省检查本包 `skills/`，位置参数与 `--dir` 可同时给出以支持多根；目录本身就是技能或目录下逐个技能均可。
@@ -50,12 +50,12 @@ stdout 只放校验数据（文本或 JSON），诊断信息写 stderr。JSON �
 工具仓在 `verify` 中调用（不新增仓内脚本）：
 
 ```bash
-toolkit skills lint skills/ --base <ref>
-toolkit skills bump --dir skills --all patch
+toolkit skill lint skills/ --base <ref>
+toolkit skill bump --dir skills --all patch
 ```
 
 第一条守住规范与版本递增；第二条在发布前统一递增技能版本（版本独立于产品包版本）。
 
 ## 相关页面
 
-- 参考：[技能分发](./skills) · [技能来源](./skills-sources) · [退出码](./exit-codes)
+- 参考：[技能分发](./skill) · [技能来源](./skill-sources) · [退出码](./exit-codes)

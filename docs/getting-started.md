@@ -27,7 +27,7 @@
 
 ⚠️ 两条诚实边界：
 
-- 这是**轻量文件型任务管理**，没有甘特图、看板、消息通知、打卡型工时统计（任务完成周期与吞吐可用 `toolkit tasks stats` 统计）。Jira 级的复杂项目管理不适用。
+- 这是**轻量文件型任务管理**，没有甘特图、看板、消息通知、打卡型工时统计（任务完成周期与吞吐可用 `toolkit task stats` 统计）。Jira 级的复杂项目管理不适用。
 - 任务区生长在 git 仓库里，工作产物不进 git 的协作场景（客服工单、招聘流程等）用不上。
 
 ## 几个术语，先说人话
@@ -63,7 +63,7 @@ bun add -g @fxri/toolkit        # bun
 
 升级用同一条安装命令即可。各管理器的全局安装语法并不同一（yarn 1.x 是 `global add`、2+ 没有全局安装），上表按管理器列出可直接复制的形式。
 
-配合全局技能分发（`toolkit skills install`）与全局规则组合（`toolkit rules compose`），一次配置所有项目直接可用。
+配合全局技能分发（`toolkit skill install`）与全局规则组合（`toolkit rule compose`），一次配置所有项目直接可用。
 
 适合个人在多个项目间快速使用。
 
@@ -80,15 +80,15 @@ pnpm add -D @fxri/toolkit
 - 版本随项目锁定，升级由项目统一决定
 
 没有全局安装的包管理器（yarn 2+ 等）：把 CLI 装成项目 devDependency（`yarn add -D @fxri/toolkit`），
-再跑 `yarn toolkit skills install --scope project`——技能真源落 `<仓库根>/.agents/skills/`，随仓库入库、队友 clone 即用；
+再跑 `yarn toolkit skill install --scope project`——技能真源落 `<仓库根>/.agents/skills/`，随仓库入库、队友 clone 即用；
 临时执行可用 `yarn dlx @fxri/toolkit <命令>`。技能落点与包管理器的「全局」概念无关，换管理器不影响技能位置。
 
 ### 方式三：不安装、临时执行
 
 ```bash
-pnpm dlx @fxri/toolkit tasks  # pnpm
-npx @fxri/toolkit tasks       # npm / yarn
-bunx @fxri/toolkit tasks      # bun
+pnpm dlx @fxri/toolkit task  # pnpm
+npx @fxri/toolkit task       # npm / yarn
+bunx @fxri/toolkit task      # bun
 ```
 
 零安装先体验。⚠️ 首次执行有下载耗时，且每次都解析最新版本，不适合高频使用。
@@ -114,8 +114,8 @@ bunx @fxri/toolkit tasks      # bun
 安装 skills（一条命令，随 CLI 同批分发）：
 
 ```bash
-toolkit skills install                    # 全局分发（推荐；技能随包分发，与 CLI 同一发布批次）
-toolkit skills install --scope project    # 项目面分发（团队推荐，技能随仓库入库、队友 clone 即用）
+toolkit skill install                    # 全局分发（推荐；技能随包分发，与 CLI 同一发布批次）
+toolkit skill install --scope project    # 项目面分发（团队推荐，技能随仓库入库、队友 clone 即用）
 ```
 
 - **默认**：软链真源，链接创建失败自动降级副本；`--yes` 跳过交互
@@ -123,7 +123,7 @@ toolkit skills install --scope project    # 项目面分发（团队推荐，技
 - **外部来源**：`--source <name|path>` 临时纳入（已登记来源名、目录或 Git 地址），`--save` 登记为永久来源
 
 也可用上游安装器（技能走 GitHub 拉取，与 CLI 两条供应链，易版本漂移）：`pnpm dlx skills add fxri-net/toolkit --global`。
-完整选项与现场体检见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)，命令契约见 [技能分发](./cli/skills)。
+完整选项与现场体检见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)，命令契约见 [技能分发](./cli/skill)。
 
 GitHub 拉不下来？国内网络走 [Gitee 镜像渠道](./faq#国内网络优先走哪条渠道)，内网 / 离线安装见 [FAQ · 内网或离线环境怎么装](./faq#内网或离线环境怎么装)。
 
@@ -136,13 +136,13 @@ toolkit scope status        # 先看当前目录是否生效、命中的规则�
 toolkit scope               # 交互菜单：设范围、管目录、切换配置层
 toolkit scope list add ~/work    # 只在这个目录（含子目录）生效（切到 allowlist 模式）
 toolkit scope policy add --paths ~/work --mode allowlist --allow fxri-plan-review  # 按策略规则收口
-toolkit scope skills deny fxri-text-encoding --paths ~/work                        # 排除指定技能
-toolkit skills mount ~/work # 在父目录下的项目里做项目面安装（技能物理落在仓库内）
+toolkit scope skills deny fxri-code-encoding --paths ~/work                        # 排除指定技能
+toolkit skill mount ~/work # 在父目录下的项目里做项目面安装（技能物理落在仓库内）
 ```
 
 - 旧 `activation` 字段的判定顺序：排除规则 → 排除标记 → 启用标记 → git 远端 → 白名单；不配置即全域生效
 - 策略规则（条件 + 技能维度）按层 → 具体度 → `deny` > `allow` → 后写覆盖取唯一命中；旧字段编译为同层策略后一并比较
-- 需要「技能壳还在、正文只在激活项目加载」时，用 `skillDelivery` 规则或 `skills install --gate`；矩阵限制的技能会自动如此。要绝对干净则用 `skills mount`
+- 需要「技能壳还在、正文只在激活项目加载」时，用 `skillDelivery` 规则或 `skill install --gate`；矩阵限制的技能会自动如此。要绝对干净则用 `skill mount`
 - 命令契约见[作用域](./cli/scope)，配置字段见[作用域配置](./config/activation)
 
 ## 配置全局规则
@@ -150,11 +150,11 @@ toolkit skills mount ~/work # 在父目录下的项目里做项目面安装（�
 全局规则会整段进入 Agent 上下文，按需组合、只留当前需要的模块：
 
 ```bash
-toolkit rules compose   # 交互式选择预设或自定义模块，选完自动尝试复制到剪贴板
+toolkit rule compose   # 交互式选择预设或自定义模块，选完自动尝试复制到剪贴板
 ```
 
 - 预设：`minimal` / `recommended` / `complete`（自用全篇）/ `full`；也可选「自定义」逐项勾选
-- 非交互环境（脚本 / CI）用 `--preset` 或 `--module`；`toolkit rules list` 查看模块与当前选择
+- 非交互环境（脚本 / CI）用 `--preset` 或 `--module`；`toolkit rule list` 查看模块与当前选择
 - 组合只输出文本，**需粘贴到所用 Agent 的全局规则入口**（如 Trae 的规则设置、Claude Code 的 `CLAUDE.md`、
   Cursor 的全局 Rules）；入口随工具版本变化，以各工具官方文档为准
 - 也可在文档站[规则组合器](./rules/)里勾选模块后一键复制
@@ -168,7 +168,7 @@ toolkit rules compose   # 交互式选择预设或自定义模块，选完自动
 toolkit init
 
 # 2. 查看任务总览（当前为空）
-toolkit tasks
+toolkit task
 
 # 3. 方案确认后，登记为任务文件（.tasks/active/202609/ 下）
 #    文件名：{YYYYMMDD}-{用户名}-{任务简述}.md
@@ -177,10 +177,10 @@ toolkit tasks
 #    多任务 / 多仓方案：先出纯展示计划表，说「开始」后一次建完全部任务档并校验，再按序交付
 
 # 4. 校验
-toolkit tasks check
+toolkit task check
 
 # 5. 任务完成后：frontmatter 标记 status: 已完成 + completed 时间，然后归档
-toolkit tasks archive
+toolkit task archive
 
 # 6.（可选，AI 协作时）归档后做任务级规范沉淀 → 能力终点
 ```

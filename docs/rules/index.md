@@ -34,7 +34,7 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 | `usage` | 技能使用情况 | 全量 |
 
 - 组合更新时间取所选模块的**最新锚点**；`recommended` 默认不含 `env`，`complete`（自用全篇）等于 [AI 全局规则](./ai) 整篇加[个人偏好规则](./personal)。
-- 点预设会直接切换为该预设的选择与顺序（与 CLI `rules compose --preset` 一致），手动勾选或排序后视为自定义组合并显示「当前：自定义」。
+- 点预设会直接切换为该预设的选择与顺序（与 CLI `rule compose --preset` 一致），手动勾选或排序后视为自定义组合并显示「当前：自定义」。
 - 「全部取消」清空选择且不写入记忆，刷新回落 `recommended`；空态下该按钮禁用。
 - `env` 是环境前置说明，正文以 `## 环境与版本` 开头；建议与 `workflow` 一起使用。
 - 清空全部模块不会持久化，刷新回落 `recommended`。
@@ -47,11 +47,11 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 | --- | --- | --- |
 | [AI 全局规则](./ai) | 通用 AI 协作纪律：代码规范、输出要求、方案落盘与验证 | 复制「规则全文」代码块，或组合 `complete` 预设 |
 | [提交信息规则](./commit) | 统一 git 提交信息格式与语义 | 复制「规则全文」代码块；与 Conventional Commits / commitlint 互斥 |
-| [技能使用情况规则](./usage) | 启用 toolkit 技能使用统计后，约束 AI 不重复补记、不外传数据 | 可选；复制「规则全文」代码块，或执行 `toolkit rules compose --module usage` |
+| [技能使用情况规则](./usage) | 启用 toolkit 技能使用统计后，约束 AI 不重复补记、不外传数据 | 可选；复制「规则全文」代码块，或执行 `toolkit rule compose --module usage` |
 
 ## 怎么落地
 
-命令行 `toolkit rules compose` 交互式选择（或文档站组合器复制）后，粘贴到所用 Agent 的全局规则入口：
+命令行 `toolkit rule compose` 交互式选择（或文档站组合器复制）后，粘贴到所用 Agent 的全局规则入口：
 
 | Agent | 全局规则入口 |
 | --- | --- |
@@ -64,4 +64,4 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 ## 相关页面
 
 - 规则：[AI 全局规则](./ai) · [提交信息规则](./commit) · [技能使用情况规则](./usage)
-- 参考：[CLI · 全局规则](../cli/rules) · [缓存目录](../config/cache)
+- 参考：[CLI · 全局规则](../cli/rule) · [缓存目录](../config/cache)

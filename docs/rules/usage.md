@@ -31,11 +31,11 @@ title: 推荐技能使用情况规则
 
 > 快照自查：首行「规则更新时间」与本页当前值不一致，即说明你的规则快照落后，重新复制本页即可。
 
-同一份文本可由 `toolkit rules compose --module usage` 输出，文档与命令同源，避免两处漂移。
+同一份文本可由 `toolkit rule compose --module usage` 输出，文档与命令同源，避免两处漂移。
 
 ## 模块来源
 
-本文对应 `usage` 模块，可由 `toolkit rules compose --module usage` 输出，也可在[规则组合器](./)中与其他模块自由组合。
+本文对应 `usage` 模块，可由 `toolkit rule compose --module usage` 输出，也可在[规则组合器](./)中与其他模块自由组合。
 
 ## 注意
 
@@ -50,7 +50,7 @@ title: 推荐技能使用情况规则
 - 只统计 toolkit 管理的技能（包内一方与 toolkit 登记来源），并必须命中本机 `usage` 配置（总开关、来源、技能范围）；未命中的技能静默忽略。
 - 规则通道与 Hook 通道由 `usage.channel` 二选一：选 `rule` 时 Hook 不写入，选 `hook` 时规则上报不写入，避免同一调用被记两次。
 - 是否启用仍由用户决定；不要因为规则存在就默认开启采集。
-- 已复制过旧版规则（含 `telemetry` 命令或「Hook 自动记录」表述）的，请重新执行 `toolkit rules compose --module usage` 覆盖。
+- 已复制过旧版规则（含 `telemetry` 命令或「Hook 自动记录」表述）的，请重新执行 `toolkit rule compose --module usage` 覆盖。
 
 ## 相关页面
 

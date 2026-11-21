@@ -3,7 +3,7 @@ name: fxri-writing-skill
 description: 编写或修改 AI 技能（SKILL.md 与 references）时加载：按统一骨架组织入口、判断何时拆 references、写清触发与不做，并复用 toolkit 的机械校验与版本递增。新建技能、调整技能结构、评审技能文案或把其他仓库的规范迁入技能时适用。不用于任务建档、发版流程或普通项目文档写作。
 license: MIT
 metadata:
-  version: "1.0.1"
+  version: "1.0.2"
   tier: optional
   previousNames: ["fxri-skill-authoring"]
   type: practice
@@ -15,7 +15,7 @@ metadata:
 
 # 技能编写规范
 
-> 本技能版本 1.0.1（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.0.2（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -38,10 +38,10 @@ metadata:
 4. **拆分 references**：入口接近体量上限、或某类读者只需其中一段时再拆；拆出的文件必须在入口或同技能文档内被引用，
    引用用相对路径，不指向技能目录之外。不为「以后可能用到」提前拆档。
 5. **把可机械检出的规则交给工具**：命名族与元数据、字段、两处版本一致、篇幅、references 可达性、敏感信息与版本递增，
-   统一由 `toolkit skills lint` 判定；技能正文只写判断口径，不复制阈值、正则或字段清单的判定实现。
-6. **版本独立递增**：技能内容变更时用 `toolkit skills bump` 同时改写两处版本声明；技能版本不跟随产品包版本，
+   统一由 `toolkit skill lint` 判定；技能正文只写判断口径，不复制阈值、正则或字段清单的判定实现。
+6. **版本独立递增**：技能内容变更时用 `toolkit skill bump` 同时改写两处版本声明；技能版本不跟随产品包版本，
    内容没变就不递增。两处版本不一致时先跑 lint 定位，再用 `--from` 显式选择源头。
-7. **收尾**：先跑 `toolkit skills lint skills/`，再同步技能表与文档索引，最后补 patch 变更集；
+7. **收尾**：先跑 `toolkit skill lint skills/`，再同步技能表与文档索引，最后补 patch 变更集；
    技能表里的版本与层级必须与真源一致。
 
 ## 不做
@@ -49,10 +49,10 @@ metadata:
 - 不把 lint 已覆盖的阈值、正则、字段判定再抄一遍到技能正文，避免两处漂移。
 - 不写密钥、令牌、机器绝对路径或本机用户名；示例一律用占位符。
 - 不复制其他仓库的规范条文；需要跨仓共享时，把规范放进 toolkit 技能，其他仓只加载或调用命令。
-- 不在产品仓维护技能规范的副本；产品仓门禁只调用 `toolkit skills lint` / `toolkit skills bump`。
+- 不在产品仓维护技能规范的副本；产品仓门禁只调用 `toolkit skill lint` / `toolkit skill bump`。
 - 不为了凑篇幅拆 references，也不把长流程硬塞进入口。
 
 ## 参考
 
 - 逐项自查清单：`references/checklist.md`
-- 机械校验：`toolkit skills lint`；版本递增：`toolkit skills bump`
+- 机械校验：`toolkit skill lint`；版本递增：`toolkit skill bump`

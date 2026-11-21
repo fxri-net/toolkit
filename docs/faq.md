@@ -16,14 +16,14 @@
 不是都得装。**skills 独立可用，工具是可选加速**：只装 skills 时 AI 照着技能里的规范纯手工跑通建档、校验、归档全流程（零依赖，纯 Markdown）；
 只装工具时人可以用 CLI，但 AI 侧没有规范指引；两者都装时 AI 自动校验、自动归档，体验最完整（推荐）。
 一句话：skills 教 AI 怎么做，CLI 帮人（和 AI）做得快。
-安装顺序见[快速开始 · 安装](./getting-started#安装)：全局装 CLI → `toolkit skills install` → `toolkit rules compose`。
+安装顺序见[快速开始 · 安装](./getting-started#安装)：全局装 CLI → `toolkit skill install` → `toolkit rule compose`。
 
 ### 个人用，全局装还是每个项目里装？
 
-个人多项目默认**双全局**，一次配置所有项目直接可用：全局装 CLI + `toolkit skills install`，
-再按需 `toolkit rules compose` 组合自己的全局规则（三步命令见[快速开始 · 安装](./getting-started#安装)）。
+个人多项目默认**双全局**，一次配置所有项目直接可用：全局装 CLI + `toolkit skill install`，
+再按需 `toolkit rule compose` 组合自己的全局规则（三步命令见[快速开始 · 安装](./getting-started#安装)）。
 升级一条命令：`pnpm add -g @fxri/toolkit`。
-软链模式下技能随包自动更新；副本形式需重跑 `toolkit skills install`；skills 升级后开新会话，见「升级后要注意什么」。
+软链模式下技能随包自动更新；副本形式需重跑 `toolkit skill install`；skills 升级后开新会话，见「升级后要注意什么」。
 
 诚实代价：全局装的版本**不随项目锁定**，团队里会出现「各装各的」版本漂移。
 所以团队项目推荐工具走项目 devDependency、技能装进项目（`--scope project`），也可用上游安装器项目级安装并把 `skills-lock.json` 提交进仓库锁版本。
@@ -31,17 +31,17 @@
 
 ### 我只想当技能包管理器，不想装自带技能？
 
-用 `toolkit skills install --mode package` 切换到纯包管理器模式：`core` 也不再强制，可以一个都不选。
+用 `toolkit skill install --mode package` 切换到纯包管理器模式：`core` 也不再强制，可以一个都不选。
 之后按 `--source <name|path> --skills <names>` 只装外部来源技能。
 只想本次零装、不改长期模式时用 `--no-skills`，它与 `--skills` / `--all` / `--no-optional` / `--mode` 互斥。
 
 ### 项目内装的技能放在哪、队友 clone 后要重装吗？
 
-项目面分发（`toolkit skills install --scope project`；`--scope` 缺省时项目内装的 CLI 会自动走此面）只保留**一份唯一真源**：`<仓库根>/.agents/skills/`。
+项目面分发（`toolkit skill install --scope project`；`--scope` 缺省时项目内装的 CLI 会自动走此面）只保留**一份唯一真源**：`<仓库根>/.agents/skills/`。
 其余**已存在**的候选目录各放**每个技能一个** `SKILL.md` 薄壳，description 从真源派生、正文指明真源路径与版本标记，不重复承载内容。
-某个候选目录不存在就不凭空创建，候选目录清单见 [配置参考 · 作用域与安装面](./config/skills#作用域与安装面)。真源、薄壳与归属账（`<仓库根>/.toolkit/state.json`）都要**入库**。
+某个候选目录不存在就不凭空创建，候选目录清单见 [配置参考 · 作用域与安装面](./config/skill#作用域与安装面)。真源、薄壳与归属账（`<仓库根>/.toolkit/state.json`）都要**入库**。
 队友 clone 后**不必逐台手动重装**：`prepare` 刷新钩子在 `pnpm install` 时自动刷新已有产物（仅当本地依赖含 `@fxri/toolkit`），也可手动重跑 install。
-现场用 `toolkit skills status --scope project` 查，清理用 `toolkit skills uninstall --scope project --all`（只摘本包登记的产物）。
+现场用 `toolkit skill status --scope project` 查，清理用 `toolkit skill uninstall --scope project --all`（只摘本包登记的产物）。
 
 ⚠️ 发布型包要把这些产物加入 `files` 白名单或 `.npmignore`，否则 `npm` 无 `.npmignore` 时可能被打进包。
 `toolkit init` 会提示但不代改，完整说明见[完整攻略 · Git 纳管范围](./guide#git-纳管范围)。
@@ -54,7 +54,7 @@
 
 ### Node 18 能用吗？
 
-能。运行时下限为 Node.js >= 18.17.0，全部命令（含交互式选择与 `changelog` 透传子命令）在该版本上可用。
+能。运行时下限为 Node.js >= 18.17.0，全部命令（含交互式选择与 `release` 透传子命令）在该版本上可用。
 Node 18 已于 2025-04 EOL，只保证可运行、不再有安全补丁，条件允许时建议升级到 Node 20.19+。
 低于 18.17.0 时 CLI 会输出中文提示并以非 0 退出，不静默降级。
 CLI 只使用该基线已稳定的 API，高版本才有的内置不会进入运行路径。
@@ -65,14 +65,14 @@ CLI 只使用该基线已稳定的 API，高版本才有的内置不会进入运
 
 - **只卡 GitHub（npm registry 可达，最常见）**：CLI 照常用 `pnpm add -g @fxri/toolkit` 装；skills 随包分发、不走 GitHub，直接一键分发：
   ```bash
-  toolkit skills install   # npm 用户先 npm add -g @fxri/toolkit
+  toolkit skill install   # npm 用户先 npm add -g @fxri/toolkit
   ```
   若仍想用上游安装器，也可把已装 CLI 包目录当本地源：
 
   - pnpm：`pnpm dlx skills add "$(pnpm root -g)/@fxri/toolkit" --global`
   - npm：`npx skills add "$(npm root -g)/@fxri/toolkit" --global`
 - **registry 也不可达（完全离线）**：换一台能联网的机器执行 `pnpm pack @fxri/toolkit`（npm 用户 `npm pack`）。
-  把打出的 tgz 拷进内网后 `pnpm add -g <tgz 路径>` 离线装 CLI，再 `toolkit skills install`——技能随包分发，全程不碰 GitHub。
+  把打出的 tgz 拷进内网后 `pnpm add -g <tgz 路径>` 离线装 CLI，再 `toolkit skill install`——技能随包分发，全程不碰 GitHub。
 - **GitHub 有代理或镜像**：`pnpm dlx skills add fxri-net/toolkit --global` 直连即可，与正常安装无异。
 
 ### 国内网络优先走哪条渠道？
@@ -80,7 +80,7 @@ CLI 只使用该基线已稳定的 API，高版本才有的内置不会进入运
 [Gitee 镜像](https://gitee.com/fxri/toolkit) 与 GitHub 同源同步，国内访问最省心：
 
 - **源码浏览 / 克隆**：`https://gitee.com/fxri/toolkit`
-- **skills 安装**：装了 CLI（走 npm registry）后直接 `toolkit skills install`，技能随包分发、不碰 GitHub。
+- **skills 安装**：装了 CLI（走 npm registry）后直接 `toolkit skill install`，技能随包分发、不碰 GitHub。
 - **上游安装器**：只认 GitHub 源与本地路径。GitHub 不稳时先 clone 镜像、再对本地目录安装：
   ```bash
   git clone https://gitee.com/fxri/toolkit fxri-toolkit
@@ -95,7 +95,7 @@ CLI 只使用该基线已稳定的 API，高版本才有的内置不会进入运
 内置命令因此把它判为「同名非本包产物」并报成「同名冲突」。一条命令接管：
 
 ```bash
-toolkit skills install --force   # 把各目标下的同名旧副本重建为软链（无权限建链时降级为副本）
+toolkit skill install --force   # 把各目标下的同名旧副本重建为软链（无权限建链时降级为副本）
 ```
 
 `--force` 只解除「同名非本包产物」的跳过判定，按默认形态重建这些未登记的目录；本包自己以 `--copy` 装出、且已在状态文件登记的副本不受影响。
@@ -105,8 +105,8 @@ toolkit skills install --force   # 把各目标下的同名旧副本重建为软
 
 ### 卸载工具时 skills 怎么办？
 
-**先清技能、再卸工具**：`toolkit skills uninstall --all` → `pnpm remove -g @fxri/toolkit`。
-⚠️ 顺序别反：`skills uninstall` 要靠 CLI 与包内真源定位产物，CLI 卸了就没工具可用（重装一次再清即可）。
+**先清技能、再卸工具**：`toolkit skill uninstall --all` → `pnpm remove -g @fxri/toolkit`。
+⚠️ 顺序别反：`skill uninstall` 要靠 CLI 与包内真源定位产物，CLI 卸了就没工具可用（重装一次再清即可）。
 软链会随 CLI 卸载悬空，`remove` 会一并摘除，漏摘时手工删 `~/.agents/skills/` 与各 agent 全局技能目录下的 `fxri-*` 链接。
 项目面产物用 `remove --scope project` 单独清（实体副本不随 CLI 卸载悬空）。完整步骤见[操作手册 · 升级与卸载](./handbook#七、升级与卸载)。
 
@@ -156,21 +156,21 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 
 全局装 skills 后，可以先用 `toolkit scope` 设置生效范围（只在我选的目录 / 除了我选的目录），再在公司项目根的 AGENTS.md / 项目 rules 中显式引用 fxri 技能并提交；个人项目不放引用文件即可。
 需要按技能维度收口时，用 `toolkit scope skills allow/deny` 或 `toolkit scope policy add` 写策略规则（条件 + 技能维度）。
-介于两者之间可用**内容闸门**（`toolkit skills install --gate`）：技能壳仍全局可见，正文按作用域由 `toolkit scope guard` 下发。
-需要绝对隔离（技能物理不在场）时用 `toolkit skills mount <父目录>` 批量做项目面安装。
+介于两者之间可用**内容闸门**（`toolkit skill install --gate`）：技能壳仍全局可见，正文按作用域由 `toolkit scope guard` 下发。
+需要绝对隔离（技能物理不在场）时用 `toolkit skill mount <父目录>` 批量做项目面安装。
 兼容 agent 仍可能按 `description` 匹配自动触发，若需要稳定启用（而非碰运气触发），个人项目同样建议显式声明。
 模板见[完整攻略 · 项目级激活模板](./guide#项目级激活模板)，判定与范围配置见[作用域配置](./config/activation)。
 
 ### 想让技能正文只在激活项目加载，怎么做？
 
 默认全局技能是全文安装，`description` 命中即整篇进入上下文。矩阵策略限制的技能会自动改为入口壳；
-也可用 `skillDelivery` 规则或 `toolkit skills install --gate` 显式指定：
+也可用 `skillDelivery` 规则或 `toolkit skill install --gate` 显式指定：
 技能只保留 `name` / `description` 与一句「先运行 `toolkit scope guard <技能名>`」，正文由 guard 按当前目录判定——
 激活时输出正文，未激活以退出码 3 结束（stdout 为空）。
 `--embed` 可把本次安装回退全文；旧键 `skillInstall.gate` 与技能声明 `metadata.gate: false` 仍读时兼容。
-契约见 [技能分发](./cli/skills#策略与内容闸门) 与 [作用域 · 内容闸门](./cli/scope#内容闸门-guard)。
+契约见 [技能分发](./cli/skill#策略与内容闸门) 与 [作用域 · 内容闸门](./cli/scope#内容闸门-guard)。
 
-⚠️ 入口壳只降低正文被读取的概率，不是物理隔离；需要绝对干净用 `toolkit skills mount` 或 `toolkit skills install --scope project`。
+⚠️ 入口壳只降低正文被读取的概率，不是物理隔离；需要绝对干净用 `toolkit skill mount` 或 `toolkit skill install --scope project`。
 
 ## 任务与流程
 
@@ -192,7 +192,7 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 ### 为什么 AI 建的档 check 不过？
 
 常见原因三种：文件放错层级（必须在 `active/{YYYYMM}/` 下，漏掉月份目录会软告警且不被读取）、`created` 与文件名日期前缀不一致、终结态缺 `completed`。
-跑 `pnpm exec toolkit tasks check`，按输出逐条修即可。建档交给 AI 时说「按 fxri-plan-to-task 技能建档」可从源头避免。
+跑 `pnpm exec toolkit task check`，按输出逐条修即可。建档交给 AI 时说「按 fxri-plan-task 技能建档」可从源头避免。
 
 ### 归档提示「本次无可归档任务」？
 
@@ -207,7 +207,7 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 ### 除了开发，产品经理、项目经理这类非开发角色能用吗？
 
 能用。任务管理部分对所有角色开放。产品经理把需求清单整理成 Excel/CSV（列名用「任务名/负责人/截止日期」等常见叫法即可），
-让 AI 执行导入（`toolkit tasks import 需求.xlsx`）转成规范任务文件，内置中文列名映射、非标准列可用配置自定义。
+让 AI 执行导入（`toolkit task import 需求.xlsx`）转成规范任务文件，内置中文列名映射、非标准列可用配置自定义。
 项目经理按负责人/状态过滤总览、导出 XLSX 汇报；测试、运维同样适用。发版部分面向有发版需求的软件项目。角色速查表与边界说明见[快速开始 · 谁适合用](./getting-started#谁适合用)。
 
 ### 任务做完必须马上归档吗？能不能攒一批？
@@ -218,8 +218,8 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 ### 多人同一天归档，`pull` 时归档文件冲突了怎么办？
 
 归档文件按完成日期聚合成单一文件（`archive/{YYYYMM}/{YYYYMMDD}.md`）。多人同天归档、各自先提交后拉取时，git 会在同一文件上留下冲突标记。
-**不用手工逐块合并**：跑 `toolkit tasks normalize --fix` 即可。工具取冲突两侧的任务块并集、按标题去重、按完成时间降序重排，
-丢弃 diff3 的 `|||||||` base 段与全部标记行，得到无标记的规范归档文件（`normalize` 只读检查与 `tasks check` 也会先把这类文件报出来）。
+**不用手工逐块合并**：跑 `toolkit task normalize --fix` 即可。工具取冲突两侧的任务块并集、按标题去重、按完成时间降序重排，
+丢弃 diff3 的 `|||||||` base 段与全部标记行，得到无标记的规范归档文件（`normalize` 只读检查与 `task check` 也会先把这类文件报出来）。
 若由 AI 代为推送与拉取，可让其冲突后直接执行该命令收敛。
 
 ### 项目里已有历史的 `.tasks/conventions.md`，怎么升级到新形态？
@@ -231,14 +231,14 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 
 目录形态另有**结构版本**：最新为 **v3** 三分区（常驻 `index.md`、按需分册、归档面 `history.md` / `retired.md`，索引表首列为稳定 ID `C-<n>`）；
 v2 有标记与稳定 ID 但无归档面，v1 连标记都没有。
-升级说一句「把规范载体升到 v3」，或跑 `toolkit conventions upgrade`：`--dry-run` 预演、幂等、异常形态拒绝写盘，v1 / v2 链式升级。
+升级说一句「把规范载体升到 v3」，或跑 `toolkit convention upgrade`：`--dry-run` 预演、幂等、异常形态拒绝写盘，v1 / v2 链式升级。
 各版本差异见[完整攻略 · 存量规范载体迁移](./guide#存量规范载体迁移)。
 
 ### 载体表格里为什么有大量空格？怎么去掉？
 
 那是宿主格式化器（prettier）对 GFM 表格做**列对齐填充**的结果，预览不显示、纯文本阅读时干扰。
 两种处置：`toolkit init` 在检测到 prettier 时幂等托管 `.prettierignore` 把任务区排除；
-已存在的填充用 `toolkit conventions format` 归一回紧凑形态（幂等、跳过 fenced code block）。详见[完整攻略 · 表格形态](./guide#conventions-规范沉淀地)。
+已存在的填充用 `toolkit convention format` 归一回紧凑形态（幂等、跳过 fenced code block）。详见[完整攻略 · 表格形态](./guide#conventions-规范沉淀地)。
 
 ### `toolkit init` 生成的「规范入口壳」是什么？必须留着吗？
 
@@ -255,7 +255,7 @@ v2 有标记与稳定 ID 但无归档面，v1 连标记都没有。
 ### 升级后要注意什么？
 
 技能**默认自动跟随** CLI 升级（软链锚在 pnpm 稳定入口）。
-用了 `--copy` 或建链失败降级为副本的需重跑 `toolkit skills install`，项目面由 `prepare` 钩子自动刷新；三种情形都要**开新会话**才读到新技能。
+用了 `--copy` 或建链失败降级为副本的需重跑 `toolkit skill install`，项目面由 `prepare` 钩子自动刷新；三种情形都要**开新会话**才读到新技能。
 升级命令与三步检查见[操作手册 · 升级](./handbook#升级)，Node 版本兼容见[完整攻略 · 升级与版本兼容](./guide#升级与版本兼容)。
 
 ### 任务做完必须提交、发版、推送吗？
@@ -266,7 +266,7 @@ v2 有标记与稳定 ID 但无归档面，v1 连标记都没有。
 
 ### 提交信息有格式要求吗？
 
-本工具不强制 commit 格式；需要统一时可用 `toolkit rules` 的 commit 模块取模板（[提交信息规则](./rules/commit)），采纳与否仍由团队规则决定。
+本工具不强制 commit 格式；需要统一时可用 `toolkit rule` 的 commit 模块取模板（[提交信息规则](./rules/commit)），采纳与否仍由团队规则决定。
 
 ### fork 本仓库怎么部署文档站？
 

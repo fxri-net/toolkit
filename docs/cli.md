@@ -10,12 +10,12 @@
 | --- | --- | --- | --- |
 | `toolkit status` | 整体状态：只读聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项 | — | [整体状态](./cli/status) |
 | `toolkit init` | 初始化任务区：目录骨架、规范载体、技能入口壳、忽略片段 | — | [项目初始化](./cli/init) |
-| `toolkit task` | 任务管理：总览、建档、更新、归档、校验、归一、统计、导入导出 | `add` / `update` / `archive` / `check` / `normalize` / `stats` / `export` / `import` | [任务管理](./cli/tasks) |
-| `toolkit convention` | 规范载体：结构升级、表格与索引单元格归一、只读体检 | `upgrade` / `status` / `format` | [规范载体](./cli/conventions) |
-| `toolkit release` | 多语言 CHANGELOG 与发版（封装 changesets，默认 `status`） | `status` / `bump` / `changelog` / `mirror` / `publish` / `audit` / `changeset` | [发版与更新日志](./cli/changelog) |
-| `toolkit skill` | AI 技能分发：安装、分发计划、状态、卸载、来源与版本 | `install` / `plan` / `status` / `uninstall` / `source` / `bump` / `lint` | [技能分发](./cli/skills) |
+| `toolkit task` | 任务管理：总览、建档、更新、归档、校验、归一、统计、导入导出 | `add` / `update` / `archive` / `check` / `normalize` / `stats` / `export` / `import` | [任务管理](./cli/task) |
+| `toolkit convention` | 规范载体：结构升级、表格与索引单元格归一、只读体检 | `upgrade` / `status` / `format` | [规范载体](./cli/convention) |
+| `toolkit release` | 多语言 CHANGELOG 与发版（封装 changesets，默认 `status`） | `status` / `bump` / `changelog` / `mirror` / `publish` / `audit` / `changeset` | [发版与更新日志](./cli/release) |
+| `toolkit skill` | AI 技能分发：安装、分发计划、状态、卸载、来源与版本 | `install` / `plan` / `status` / `uninstall` / `source` / `bump` / `lint` | [技能分发](./cli/skill) |
 | `toolkit usage` | 技能使用情况：开关、统计、导出与诊断（默认关闭） | `show` / `data` / `config` / `setup` / `record` | [技能使用情况](./cli/usage) |
-| `toolkit rule` | 全局规则：列出模块、组合输出、锚点校验与缓存管理 | `list` / `compose` / `reset` / `check` | [全局规则](./cli/rules) |
+| `toolkit rule` | 全局规则：列出模块、组合输出、锚点校验与缓存管理 | `list` / `compose` / `reset` / `check` | [全局规则](./cli/rule) |
 | `toolkit scope` | 作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效） | `status` / `list` / `policy` / `skills` / `wizard` / `guard`（`list` 组含 add / exclude / remove / default / reset，详见 scope 页） | [作用域](./cli/scope) |
 | `toolkit config` | 配置唯一写入口（键清单 + 分层写入）与只读体检 | `list` / `get` / `set` / `unset` / `status` | [配置体检](./cli/config) |
 | `toolkit docs` | 文档站全量校验（默认）、主题写入与分项校验 | `check` / `theme` / `nav` / `dist` | [文档站主题](./cli/docs-theme) · [文档站校验](./cli/docs-check) |
@@ -30,7 +30,7 @@
 | 日常任务 | `toolkit task` 看板 → `toolkit task check` 校验 → `toolkit task archive` 归档 |
 | 新会话恢复 | `toolkit status`（或 `toolkit task --view all` + `toolkit convention status`） |
 | 发版 | `toolkit release bump` → `pnpm verify` → 打标签发布 |
-| 技能升级 / 换装 | `toolkit skill status` → `toolkit skill install`（外部来源见 `skills source`） |
+| 技能升级 / 换装 | `toolkit skill status` → `toolkit skill install`（外部来源见 `skill source`） |
 | 看分发形态会怎么落 | `toolkit skill plan`（只读预览；`install --dry-run` 同义） |
 | 看技能用了多少次 | `toolkit usage show stats`（`--by session` / `--by trigger` / `--limit`） |
 | 复制全局规则 | `toolkit rule compose`（按需 `--preset` / `--module`，`--copy` 直接进剪贴板） |
@@ -62,14 +62,14 @@
 | 术语 | 含义 | 出现位置 |
 | --- | --- | --- |
 | 层 | 配置文件层级：global 全局 / project 项目 / local 本地 | `--layer`（scope 写命令；`source notify` 的 `--layer` 是它的别名） |
-| 面 | 技能安装面：全局面 global / 项目面 project | `skills install --scope`、`skills status` / `uninstall` |
+| 面 | 技能安装面：全局面 global / 项目面 project | `skill install --scope`、`skill status` / `uninstall` |
 | 名单 | 作用域白名单（include）与黑名单（exclude） | `scope` 菜单与写命令、`scope list` |
 | 策略 | 作用域规则条目：条件 + 技能维度 + allow / deny；按层与具体度取唯一命中 | `scope policy`、`scope status --skills` |
 | 档案 | 可复用的技能名单，供策略 `skills.profiles` 引用 | `scope skills profile`、`skillProfiles` 配置段 |
 | 预演 | `--dry-run`：只打印将执行的动作，不写文件 / 剪贴板 / 缓存 | 全部写命令 |
-| 确认 | 写前展示预览并交互确认；`--yes` 跳过确认 | `scope` / `usage` / `skills` 写命令 |
-| 来源 | 技能来源：内置 `toolkit` 源与 `--source` 外部来源 | `skills`、`skills source` |
-| 目标 | 技能安装目标：agent 全局目录 / 项目薄壳目录 | `skills install`、`skills status` |
+| 确认 | 写前展示预览并交互确认；`--yes` 跳过确认 | `scope` / `usage` / `skill` 写命令 |
+| 来源 | 技能来源：内置 `toolkit` 源与 `--source` 外部来源 | `skill`、`skill source` |
+| 目标 | 技能安装目标：agent 全局目录 / 项目薄壳目录 | `skill install`、`skill status` |
 | 范围 | 按上下文区分：作用域命中范围（scope）或技能统计范围（usage） | `scope` / `usage config scope` |
 
 ## 全局约定
@@ -87,13 +87,13 @@
 | `--no-color` | 关闭终端颜色输出（优先于 `NO_COLOR` / `FORCE_COLOR`，可写在任意位置） |
 | `--cwd <path>` | 在指定目录执行命令（等价先切换工作目录；非法路径按 `1` 退出，不回落当前目录） |
 
-`--redact` / `--warn` 为**域级开关**：仅 `tasks` 与 `changelog` 两个域支持。
+`--redact` / `--warn` 为**域级开关**：仅 `task` 与 `release` 两个域支持。
 
-`init` / `skills` / `conventions` / `config` / `docs` / `usage` / `rules` 域不提供，清单见各域的选项表。
+`init` / `skill` / `convention` / `config` / `docs` / `usage` / `rule` 域不提供，清单见各域的选项表。
 
-**批量参数**：目标集合是命令主语时省略参数即全部（如 `skills source refresh`）。
+**批量参数**：目标集合是命令主语时省略参数即全部（如 `skill source refresh`）。
 
-否则须显式 `--all`（如 `usage data purge --all`、`skills install --all`、`skills bump --all`）。
+否则须显式 `--all`（如 `usage data purge --all`、`skill install --all`、`skill bump --all`）。
 
 开关为**双向三档**，优先级从高到低：CLI 参数 > 环境变量 > 配置文件 > 默认开启。
 
@@ -108,7 +108,7 @@
 
 **升级提示收口**：命令成功（退出码 0）时，按 `updateCheck.notify`（默认 `always`）在输出结尾给出一句话提示；TTY 下走 stderr，非 TTY 走 stdout。
 
-已尝试修复（执行过 `skills install`）的同一版本不再重复提示。哪些子命令不输出、版本比较口径、关闭方式见[配置参考 · 升级检查](./config/update)。
+已尝试修复（执行过 `skill install`）的同一版本不再重复提示。哪些子命令不输出、版本比较口径、关闭方式见[配置参考 · 升级检查](./config/update)。
 
 ## 输出约定
 
@@ -130,7 +130,7 @@
 
 ## 交互约定
 
-交互提示统一走同一套基座（`rules` / `scope` / `usage` / `skills` 已接入，其余域按同一口径演进）：
+交互提示统一走同一套基座（`rule` / `scope` / `usage` / `skill` 已接入，其余域按同一口径演进）：
 
 - 有上级步骤时按 ESC 返回上一级；顶层按 ESC 或 Ctrl+C 取消整个命令（退出码 `130`）。
 - 写操作先展示预览再确认；`--yes` 跳过确认，`--dry-run` 只预览、不写文件 / 剪贴板 / 缓存。
@@ -146,13 +146,13 @@
 | `3` | `scope guard <技能名>` 判定当前目录未激活（stdout 为空，原因写 stderr） |
 | `130` | 用户在交互提示中按 Ctrl+C 中断（不写任何文件） |
 
-软告警（warn 级）不影响退出码。解析错误的提示格式与 `changelog` 透传差异见[退出码与解析错误](./cli/exit-codes)。
+软告警（warn 级）不影响退出码。解析错误的提示格式与 `release` 透传差异见[退出码与解析错误](./cli/exit-codes)。
 
 **诊断类命令语义**：
 
 - `status` / `usage show` 只汇总现状，退出码恒 0；`toolkit status --check` 例外——存在 error 级问题时退出 1
 - `usage data doctor` 输出问题与修复建议，退出码恒 0
-- `check`（`tasks check`、`docs theme check`、`docs nav check`、`docs dist check`）发现问题时退出 1，可直接作为门禁步骤
+- `check`（`task check`、`docs theme check`、`docs nav check`、`docs dist check`）发现问题时退出 1，可直接作为门禁步骤
 
 ## 相关页面
 

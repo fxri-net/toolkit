@@ -19,7 +19,7 @@
 AI 参与开发后，方案与决策散落在对话记录里，会话一关什么都不剩；任务记录零散，谁在做、做到哪，无从查起；
 发版 CHANGELOG 还要人肉维护多语言。本工具把这条链路沉淀为**仓库内可检索、可校验、可归档的文件**——人离开会话，记忆留在仓库里。
 
-除任务主线外，CLI 还提供规范载体（conventions）、技能分发（skills）、作用域（scope）、规则组合（rules）、文档站校验（docs）与使用统计（usage）。
+除任务主线外，CLI 还提供规范载体（convention）、技能分发（skill）、作用域（scope）、规则组合（rule）、文档站校验（docs）与使用统计（usage）。
 
 - **零依赖 AI 技能包（skills）**：方案落盘、会话收尾、发版 CHANGELOG 等工作流沉淀为 Agent Skills，不绑定任何 AI 工具；skills 可以独立工作，
   CLI 是可选加速——推荐都装，体验最完整（[什么关系？](./docs/faq.md#工具和-skills-都得装吗)）
@@ -32,10 +32,10 @@ AI 参与开发后，方案与决策散落在对话记录里，会话一关什�
 pnpm add -g @fxri/toolkit
 
 # 2. 安装 AI 技能包（装到各 agent 的全局技能目录）
-toolkit skills install
+toolkit skill install
 
 # 3. 交互式组合自己的全局规则，选完直接粘贴到所用 Agent 的全局规则入口
-toolkit rules compose
+toolkit rule compose
 
 # 4.（可选）限定技能与规则的生效范围；不配置即全域生效
 toolkit scope
@@ -43,11 +43,11 @@ toolkit scope
 
 进入项目后，对 AI 说「初始化任务区」即可（AI 执行 `toolkit init` 并完成建档与校验）。
 
-> 团队项目改用 devDependency 锁定版本：`pnpm add -D @fxri/toolkit` + `toolkit skills install --scope project`；
+> 团队项目改用 devDependency 锁定版本：`pnpm add -D @fxri/toolkit` + `toolkit skill install --scope project`；
 > 项目内执行命令用 `pnpm exec toolkit`。
 
-之后：方案确认后由 AI 登记为 `.tasks/` 任务文件 → `toolkit tasks check` 校验 →
-完成后 `toolkit tasks archive` 归档并做规范沉淀。
+之后：方案确认后由 AI 登记为 `.tasks/` 任务文件 → `toolkit task check` 校验 →
+完成后 `toolkit task archive` 归档并做规范沉淀。
 多任务 / 多仓方案先出纯展示计划表，确认后说「开始」即一次建完全部任务档并校验，再按序逐个交付提交。
 完整步骤见 [快速开始](./docs/getting-started.md)。
 
@@ -55,13 +55,13 @@ toolkit scope
 
 | 能力 | 适用场景 | 文档 |
 | --- | --- | --- |
-| 任务管理（tasks） | 方案落盘、总览过滤、校验归档、导入导出 CSV / XLSX / JSON | [CLI 参考](./docs/cli.md) · [任务文件规范](./docs/guide.md#任务文件规范) |
+| 任务管理（task） | 方案落盘、总览过滤、校验归档、导入导出 CSV / XLSX / JSON | [CLI 参考](./docs/cli.md) · [任务文件规范](./docs/guide.md#任务文件规范) |
 | 整体状态（status） | 一条命令汇总任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项；`--check` 存在 error 时退出 1，可作自查门禁 | [CLI 参考](./docs/cli/status.md) |
-| 多语言 CHANGELOG（changelog） | 封装 changesets 发版、分组标题本地化 | [CLI 参考](./docs/cli/changelog.md) |
-| 协作规范载体（conventions） | 把任务里提炼的规范收进 `.tasks/conventions/`，成为可检索、可校验的项目规范源；支持结构升级、表格与索引单元格形态归一、只读体检 | [CLI 参考](./docs/cli.md) · [完整攻略](./docs/guide.md#conventions-规范沉淀地) |
-| AI 技能包（skills） | 不装本工具也能让 AI 按同一套规范干活；装了可一键分发技能（`--scope project` 随仓库入库、队友 clone 即用） | [完整攻略](./docs/guide.md#ai-技能包-skills) · [常见问题](./docs/faq.md#工具和-skills-都得装吗) |
+| 多语言 CHANGELOG（release） | 封装 changesets 发版、分组标题本地化 | [CLI 参考](./docs/cli/release.md) |
+| 协作规范载体（convention） | 把任务里提炼的规范收进 `.tasks/conventions/`，成为可检索、可校验的项目规范源；支持结构升级、表格与索引单元格形态归一、只读体检 | [CLI 参考](./docs/cli.md) · [完整攻略](./docs/guide.md#conventions-规范沉淀地) |
+| AI 技能包（skill） | 不装本工具也能让 AI 按同一套规范干活；装了可一键分发技能（`--scope project` 随仓库入库、队友 clone 即用） | [完整攻略](./docs/guide.md#ai-技能包-skills) · [常见问题](./docs/faq.md#工具和-skills-都得装吗) |
 | 作用域（scope） | 按项目 / 目录决定技能与规则是否生效：策略规则、白名单 / 黑名单、标记与 git 远端；默认全域；技能矩阵与内容闸门联动 | [CLI 参考](./docs/cli/scope.md) · [配置参考](./docs/config/activation.md) |
-| 全局规则（rules） | 按模块组合、排序与复制 AI 全局规则（含提交信息、技能使用情况等模块），预设与缓存随包分发 | [CLI 参考](./docs/cli/rules.md) |
+| 全局规则（rule） | 按模块组合、排序与复制 AI 全局规则（含提交信息、技能使用情况等模块），预设与缓存随包分发 | [CLI 参考](./docs/cli/rule.md) |
 | 技能使用统计（usage） | 统计技能调用次数、触发词与结果；默认关闭、不联网、数据只留本机 | [CLI 参考](./docs/cli/usage.md) · [使用统计](./docs/usage/index.md) |
 | 文档站工具（docs） | 校验主题一致性、导航结构与构建产物，规则随包分发、跨仓样式漂移可发现 | [CLI 参考](./docs/cli/docs-theme.md) · [docs 校验](./docs/cli/docs-check.md) |
 | 隐私脱敏 | 落盘前自动掩码邮箱、手机号、密钥等 | [配置参考](./docs/config.md) |
@@ -91,17 +91,17 @@ toolkit scope
 
 ## 🧩 AI 技能包（skills）
 
-安装步骤见上文「30 秒上手」（全局装 CLI 后 `toolkit skills install`）；下面是分面与开关细节。
+安装步骤见上文「30 秒上手」（全局装 CLI 后 `toolkit skill install`）；下面是分面与开关细节。
 
 ```bash
-pnpm add -g @fxri/toolkit && toolkit skills install   # 装了 CLI 一键分发（npm 用户：npm add -g @fxri/toolkit）
-toolkit skills install --scope project                # 项目面分发：真源与入口薄壳随仓库入库、队友 clone 即用
+pnpm add -g @fxri/toolkit && toolkit skill install   # 装了 CLI 一键分发（npm 用户：npm add -g @fxri/toolkit）
+toolkit skill install --scope project                # 项目面分发：真源与入口薄壳随仓库入库、队友 clone 即用
 pnpm dlx skills add fxri-net/toolkit                  # 也可用上游安装器（npm 用户：npx skills add fxri-net/toolkit）
 ```
 
 技能随包分发（真源为包内 `skills/`），与 CLI 同一发布批次（技能内容版本独立编号）。
 
-- **默认形态**：`toolkit skills install` 默认软链，链接创建失败自动降级副本；`toolkit skills status` 查现场，`toolkit skills uninstall` 卸载
+- **默认形态**：`toolkit skill install` 默认软链，链接创建失败自动降级副本；`toolkit skill status` 查现场，`toolkit skill uninstall` 卸载
 - **交互两步**：先按 `metadata.tier` 选技能，再选目标（`canonical` 主目标 + 已检测 agent；项目面为候选薄壳目录）
   - `core`：`fxri-plan-task`、`fxri-plan-recap`、`fxri-plan-review`，`skills` 模式必装、`package` 模式可选
   - `optional`：`fxri-release-changelog`、`fxri-code-encoding`、`fxri-writing-skill`、`fxri-writing-docs`
@@ -111,7 +111,7 @@ pnpm dlx skills add fxri-net/toolkit                  # 也可用上游安装器
   选择集分别写入 `~/.toolkitrc.json` 的 `skillInstall` 与项目层 `.toolkitrc.json` 的 `projectSkill`；
   旧段名 `skillsInstall` / `projectSkills` 仍可读，`toolkit init` 会自动重写
 - **外部来源**：`--source <name|path>` 临时纳入（已登记来源名、目录或 Git 地址；副本、只写本次），
-  加 `--save [name]` 登记为永久来源（默认软链）；`toolkit skills source` 查看 / 注销来源
+  加 `--save [name]` 登记为永久来源（默认软链）；`toolkit skill source` 查看 / 注销来源
 - **作用域**：`--scope project` 换项目面——真源落 `<仓库根>/.agents/skills/`、其余候选目录落入口薄壳，
   随 git 入库后队友 clone 靠 `toolkit init` 写入的 `prepare` 钩子自动刷新已有产物（不新增技能）
 
@@ -130,7 +130,7 @@ skills 与工具的关系、只在公司项目激活等说明见 [常见问题](
 ```bash
 pnpm add -g @fxri/toolkit          # 全局（个人多项目默认；pnpm 不受 nvm 切版本影响）
 pnpm add -D @fxri/toolkit          # 项目 devDependency（团队项目推荐，版本随仓库锁定）
-pnpm dlx @fxri/toolkit tasks       # 不安装临时执行
+pnpm dlx @fxri/toolkit task       # 不安装临时执行
 ```
 
 npm / yarn / bun 用户与各方式对比见 [快速开始 · 安装](./docs/getting-started.md#安装)。

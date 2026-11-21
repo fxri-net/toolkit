@@ -3,7 +3,7 @@ name: fxri-plan-recap
 description: 会话收尾的工作记忆沉淀 + 新会话开场恢复 + 历史任务时间修正：收尾时把整场会话的全部任务完整建档归档，按四级时间源还原真实完成时间，沉淀规范进 conventions 载体；新会话开场按三层恢复（全量索引 + active 精读 + 近窗归档）重建现场并核对规范；也可批量修正历史归档时间。用户表达会话收尾意图（今天先到这、收个尾、归档本次会话、把结论记下来）、接续意图（恢复上下文、继续上次、上次做到哪）或修正历史任务时间时使用。不用于会话中途的常规方案建档（那是 fxri-plan-task 的职责）、与工作交接无关的代码技术总结。
 license: MIT
 metadata:
-  version: "1.7.6"
+  version: "1.7.7"
   tier: core
   previousNames: ["fxri-session-recap"]
   type: practice
@@ -15,7 +15,7 @@ metadata:
 
 # 会话归档、上下文恢复与历史修正
 
-> 本技能版本 1.7.6（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.7.7（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -39,7 +39,7 @@ metadata:
 | 批量修正历史时间 | 本文件 R1 + `references/mode-3-time-fix.md` | 模式一 / 二 |
 | 读写 conventions 载体 | 本文件 R3 + `../fxri-plan-task/references/conventions-spec.md`、`conventions-maintenance.md` | 其余 |
 
-兄弟技能路径不存在时，改读 `toolkit skills status` 打印的「技能源」目录下同名文件。
+兄弟技能路径不存在时，改读 `toolkit skill status` 打印的「技能源」目录下同名文件。
 
 ## 核心规则
 
@@ -100,7 +100,7 @@ metadata:
    - 无对应任务但有独立成果 → 按规范建档，`created` 取任务真实创建日
    - 未尽事项 → 拆独立任务；用户表达「这个先不做 / 以后再说」时落 `搁置`，并按 task-spec §2.3 在正文首个二级标题处写
      `## 搁置` 四行（搁置原因 / 重启条件 / 进度锚点 / 搁置日期），否则落 `待办`；不留游离待办；收尾动作不单独成档，缺归档须补档（见 R2）
-4. **归档**：按 task-spec「手工归档步骤」执行（合并归档块 → 降序重排 → 写回 → 删源文件 → 清理空月份目录），或 `toolkit tasks archive` 自动化
+4. **归档**：按 task-spec「手工归档步骤」执行（合并归档块 → 降序重排 → 写回 → 删源文件 → 清理空月份目录），或 `toolkit task archive` 自动化
 5. **技能使用补报（收尾兜底）**：回看本会话全部 Skill 工具调用，按技能名汇总次数；
     对会话中未上报过的技能执行一次 `toolkit usage record --skill A --skill A --skill B`（按次数重复传参），只传技能名、不传参数；`record` 入队即返回，
     不阻塞收尾；`toolkit` 不可用时在回报中说明，不静默跳过
@@ -121,7 +121,7 @@ metadata:
 
 > 目标：旧规则沉淀的归档时间与真实发生时刻不符时批量修正；识别靠证据，CLI 只做结构迁移、不推断时间。
 
-- 关键护栏：每条改动须附 R1 级别证据并交用户逐条确认，不自行推断；改值后用 `toolkit tasks normalize --fix` 迁移，再以只读模式核验 0 漂移
+- 关键护栏：每条改动须附 R1 级别证据并交用户逐条确认，不自行推断；改值后用 `toolkit task normalize --fix` 迁移，再以只读模式核验 0 漂移
 - 完整步骤见 `references/mode-3-time-fix.md`
 
 ## 失败模式
@@ -142,10 +142,10 @@ metadata:
 
 ⚠️ 先项目内后全局探测：`pnpm exec toolkit --help`（npm 项目等价 `npx toolkit`）→ `toolkit --help`；都不可用即按各步手工继续，**不安装、不阻塞**。探测成功后用对应前缀执行：
 
-- `toolkit tasks`：模式二全量索引（替代人工翻目录）；`toolkit tasks stats`：周期统计
-- `toolkit tasks archive`：模式一归档自动化（排他锁防并发；`--dry-run` 预演）
-- `toolkit tasks normalize`：模式三迁移核验（`--fix` 迁移 / 只读检查）
-- `toolkit tasks check`：落盘后校验
-- `toolkit conventions status|upgrade|format`：载体体检 / v1、v2 升级 / 表格与索引单元格归一
-- `toolkit skills install` / `skills status`：分发技能与查看现场（技能随包同源分发，与 CLI 同一发布批次；技能版本独立编号）
+- `toolkit task`：模式二全量索引（替代人工翻目录）；`toolkit task stats`：周期统计
+- `toolkit task archive`：模式一归档自动化（排他锁防并发；`--dry-run` 预演）
+- `toolkit task normalize`：模式三迁移核验（`--fix` 迁移 / 只读检查）
+- `toolkit task check`：落盘后校验
+- `toolkit convention status|upgrade|format`：载体体检 / v1、v2 升级 / 表格与索引单元格归一
+- `toolkit skill install` / `skill status`：分发技能与查看现场（技能随包同源分发，与 CLI 同一发布批次；技能版本独立编号）
 - 任务目录非默认 `.tasks` 时加 `--dir <path>`

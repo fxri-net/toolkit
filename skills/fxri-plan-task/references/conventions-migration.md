@@ -5,7 +5,7 @@
 
 ## 10.1 旧单文件 → 目录形态（v0 → v1）
 
-触发：`toolkit tasks check` 报旧 `conventions.md` 存在；或用户直接要求迁移。
+触发：`toolkit task check` 报旧 `conventions.md` 存在；或用户直接要求迁移。
 
 **三段式**（可中断，中途停下不丢内容）：
 
@@ -21,10 +21,10 @@
 
 ## 10.2 v1 → v2 结构升级
 
-触发：`toolkit conventions status` 报「需升级」；`toolkit tasks check` 报形态告警（标为 v2 缺 `history.md` 或索引表首列非 `ID`；
+触发：`toolkit convention status` 报「需升级」；`toolkit task check` 报形态告警（标为 v2 缺 `history.md` 或索引表首列非 `ID`；
 有 `history.md` 但首列仍是 `#`）；或用户直接要求升级。
 
-优先用 `toolkit conventions upgrade`（纯机械，可 `--dry-run` 预演），动作序：
+优先用 `toolkit convention upgrade`（纯机械，可 `--dry-run` 预演），动作序：
 
 1. **发 ID**：按现有条序 `1..n` 发 `C-1..C-n`，索引表首列由 `#` 改 `ID`
 2. **切 `history.md`**：原 `index.md`「演进记录」节整表平移为独立 `history.md`（表头首格归一为 `ID`），`index.md` 撤该节；标题归一 `# 项目协作规范索引`，
@@ -39,15 +39,15 @@
 - **先判后写**：遇形态异常（标记与结构不一致）拒绝执行并给非 0 退出码，**不写任何文件**，提示人工确认
 - `upgrade` 幂等：已是 v2（或更高）时原样返回，不做二次改写
 - **手工迁 v2 与工具升级的落点不同**：手工迁移按本节在首行写版本段为 `v2` 的形态标记、停在 v2；
-   用 `toolkit conventions upgrade` 升级则不落 v2——工具从 v1 输入链式直达 v3（`v1 → v2 → v3`，见 §10.3），仅手工路径停在 v2
+   用 `toolkit convention upgrade` 升级则不落 v2——工具从 v1 输入链式直达 v3（`v1 → v2 → v3`，见 §10.3），仅手工路径停在 v2
 - 手动迁移时按同一动作序执行
 
 ## 10.3 v2 → v3 结构升级
 
-触发：`toolkit conventions status` 报「需升级」；`toolkit tasks check` 报形态告警（标为 v3 缺 `history.md` 或索引表首列非 `ID`；
+触发：`toolkit convention status` 报「需升级」；`toolkit task check` 报形态告警（标为 v3 缺 `history.md` 或索引表首列非 `ID`；
 有 `history.md` 但首列仍是 `#`）；或用户直接要求升级。
 
-优先用 `toolkit conventions upgrade`（纯机械，可 `--dry-run` 预演；v1 输入将链式升级 v1 → v2 → v3），动作序：
+优先用 `toolkit convention upgrade`（纯机械，可 `--dry-run` 预演；v1 输入将链式升级 v1 → v2 → v3），动作序：
 
 1. **索引表删两列**：删「状态」「确立来源任务」两列
 2. **`history.md` 表头归一**：v2 存量 `history.md` 沿用「规则 ID / 名称」旧表头，首格归一为稳定 ID `ID`（与索引表首列同归一）
@@ -58,7 +58,7 @@
 6. **用法说明 / 写入纪律复核**：`index.md` 表外的自由文本（用法说明、写入纪律）若仍残留 v2 措辞（如「填『确立来源任务』」「把『状态』改为『已废弃』」），
     输出人工复核报告——升级只机械归一索引表列结构，不改写描述该表的自由文本
 7. **标记升 v3**：`index.md` 首行改为 `<!-- toolkit-conventions: v3 -->`
-8. **升级后归一单元格**：执行 `toolkit conventions format`，按 `conventions-spec.md` §2.2 把索引表单元格归一（分册名转相对链接、归属裸值、
+8. **升级后归一单元格**：执行 `toolkit convention format`，按 `conventions-spec.md` §2.2 把索引表单元格归一（分册名转相对链接、归属裸值、
    规则去首尾引号）；当前语义缺全角冒号只出清单，须人工改写
 
 补充要求：

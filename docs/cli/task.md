@@ -1,31 +1,31 @@
 ---
-title: 任务管理（tasks）
+title: 任务管理（task）
 ---
 
-# 任务管理（tasks）
+# 任务管理（task）
 
 > 任务区的日常操作：看板、归档、校验、归一、统计与导入导出。
 
 ## 常用命令
 
 ```bash
-toolkit tasks                     # 待完成总览（默认）
-toolkit tasks --view archived     # 仅已归档
-toolkit tasks --view all          # 待完成 + 已归档（状态分组，来源可辨）
-toolkit tasks archive             # 归档已完成任务
-toolkit tasks archive --task 20261112-唐启云-示例任务 # 只归档指定任务（唯一键）
-toolkit tasks archive --dry-run   # 归档预演（只预览，不落盘）
-toolkit tasks check               # 校验 active 与变更集写法
-toolkit tasks normalize           # 检查归档块（默认只读）
-toolkit tasks normalize --fix     # 修复归档问题
-toolkit tasks stats               # 周期统计：完成周期 / 滞留 / 吞吐
-toolkit tasks stats --format json # 统计结果 JSON 输出
-toolkit tasks export 报表.xlsx    # 导出任务（按扩展名识别 csv / xlsx / json）
-toolkit tasks import 需求清单.csv --dry-run # 导入预演
+toolkit task                     # 待完成总览（默认）
+toolkit task --view archived     # 仅已归档
+toolkit task --view all          # 待完成 + 已归档（状态分组，来源可辨）
+toolkit task archive             # 归档已完成任务
+toolkit task archive --task 20261112-唐启云-示例任务 # 只归档指定任务（唯一键）
+toolkit task archive --dry-run   # 归档预演（只预览，不落盘）
+toolkit task check               # 校验 active 与变更集写法
+toolkit task normalize           # 检查归档块（默认只读）
+toolkit task normalize --fix     # 修复归档问题
+toolkit task stats               # 周期统计：完成周期 / 滞留 / 吞吐
+toolkit task stats --format json # 统计结果 JSON 输出
+toolkit task export 报表.xlsx    # 导出任务（按扩展名识别 csv / xlsx / json）
+toolkit task import 需求清单.csv --dry-run # 导入预演
 toolkit task add --title "命令分组" --scope cli --yes # 新建任务档（TTY 无参进入交互；非 TTY 须 --yes）
 toolkit task update 命令分组 --status 进行中 --yes # 改状态 / 字段；终态须同时给 --completed
-toolkit tasks --dir <path>        # 指定任务目录（CLI 参数 > 配置 task.dir > 默认 .tasks）
-toolkit tasks check --strict      # 任务目录不存在时报错退出（默认容错为空结果）
+toolkit task --dir <path>        # 指定任务目录（CLI 参数 > 配置 task.dir > 默认 .tasks）
+toolkit task check --strict      # 任务目录不存在时报错退出（默认容错为空结果）
 ```
 
 ## 任务域选项
@@ -41,7 +41,7 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 
 | 子命令 | 一句话 |
 | --- | --- |
-| `list` | 待完成看板（等价于裸 `tasks`；隐式子命令，帮助中不展示） |
+| `list` | 待完成看板（等价于裸 `task`；隐式子命令，帮助中不展示） |
 | `add` | 按模板新建任务档；TTY 无参进入交互，非 TTY 须 `--title` 与 `--yes` |
 | `update <key>` | 改状态 / 负责人 / 范围 / 依赖；终态须提供 `--completed`，非终态自动清空 |
 | `archive` | 把终结态任务按完成日期聚合归档；`--task` 只归档指定任务，`--dry-run` 预演 |
@@ -84,12 +84,12 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 载体各文件表头与分隔行列数不等；`history.md` 数据行首列非稳定 ID；
 「修订内容」列含禁用语料；
    分册内残留「确立来源」子项；索引表单元格形态偏离（单一事实源写成裸文件名或反引号分册名、归属含反引号或链接、当前语义缺全角冒号）——
-   前两类可由 `toolkit conventions format` 机械归一；任务区 md 表格列对齐填充同样由该命令归一
+   前两类可由 `toolkit convention format` 机械归一；任务区 md 表格列对齐填充同样由该命令归一
 - **技能入口壳**：壳标记版本与当前 toolkit 不一致、或被 gitignore 覆盖不会随 git 分发；多落点并存时各合并为一条并内联落点路径
 - **变更集写法**：扫 `.changeset` 下待发布变更集，缺类型前缀的顶层条目、未加「- 」列表标记的正文行各转一条并内联条数 / 行数
    （正文行会被 changesets 并入相邻条目作续行，说明性内容请并入条目写成 `- 修改：…`）；正文行**阈值 1 行即报**（单行段落同样会并入上一条目），
    跳过标题 / 引用 / 代码围栏 / HTML 注释；前缀识别取全局表与各配置语言自有前缀的并集，缩进续行随父条目迁属不参与
-- **归档块**：复用 `tasks normalize` 的同一检查实现（见下）
+- **归档块**：复用 `task normalize` 的同一检查实现（见下）
 - **文件卫生**：UTF-8 BOM、行尾多余空白、CRLF / LF 混用，统一软告警不阻断
 
 ### normalize
@@ -107,7 +107,7 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 - 完成周期与分布（仅「已完成」，已归档任务创建日期从块标题恢复，缺失者跳过并计数）
 - 活跃任务滞留时长（不含搁置：搁置是有意不投入，计入会把平均滞留长期拉高；搁置项在输出末单列「另有搁置 N 个」）
 - 按完成月吞吐汇总
-- 汇总块与 `toolkit tasks` 看板一致：按状态 / 负责人 / 范围 / 批次（范围多值拆段、空值与 `-` 归「未标注」；批次解析正文行 `> 批次：第 N 批（共 M 批）`，无该行归「未分批」）
+- 汇总块与 `toolkit task` 看板一致：按状态 / 负责人 / 范围 / 批次（范围多值拆段、空值与 `-` 归「未标注」；批次解析正文行 `> 批次：第 N 批（共 M 批）`，无该行归「未分批」）
 - `--format json` 输出统一信封（`schemaVersion` / `command` / `ok` / `data` / `issues`），统计字段位于 `data`；
   过滤选项与视图查询一致（`--view` 默认 `all`，含归档）；JSON 的 `byOwner` / `byScope` 仍是完成样本吞吐口径，统一分布见 `summary` 字段，
   `view` 记录本次统计视图（`all` / `active` / `archived`）
@@ -133,10 +133,10 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 `--view active` 包含搁置项（它们仍在 `.tasks/active/`）。只看真正在推进的任务：
 
 ```bash
-toolkit tasks --view active --status 待办,进行中,阻塞
+toolkit task --view active --status 待办,进行中,阻塞
 ```
 
-只盘点搁置项：`toolkit tasks --status 搁置`。搁置行附「搁置 N 天」——天数按正文「搁置日期」计算，缺该行回落 `updated` 并标「近似」；
+只盘点搁置项：`toolkit task --status 搁置`。搁置行附「搁置 N 天」——天数按正文「搁置日期」计算，缺该行回落 `updated` 并标「近似」；
 超 90 天标 `⚠️`、超 1 年提示「建议终结」。`--format json` 的 `data.items[]` 行对象含 `heldDays`（无搁置日期为空）与 `heldDaysApprox`。
 
 ## 导出与导入
@@ -146,14 +146,14 @@ toolkit tasks --view active --status 待办,进行中,阻塞
 | `export <path>` | 按扩展名驱动：`.csv`（UTF-8 BOM 超集列）/ `.xlsx`（三 sheet）/ `.json`（`{ schemaVersion: 1, summary, items }`）；目录不存在自动创建；支持 `--view` 与过滤参数 |
 | `import <file>` | 从 `.csv`/`.xlsx`/`.json` 导入；`--target active`（默认，生成任务文件）/ `--target archive`（直接写归档块）；`--dry-run` 预演；`--owner`/`--scope` 作为导入行缺失字段的默认值 |
 
-`--format json` 只用于 `tasks` 总览与 `tasks stats` 的 stdout（报告类走统一信封，数据在 `data`）；
+`--format json` 只用于 `task` 总览与 `task stats` 的 stdout（报告类走统一信封，数据在 `data`）；
 导出文件是数据流例外，格式由 `export <path>` 的扩展名决定，`.json` 仍为 `{ schemaVersion: 1, summary, items }`。
 
 导出产物含派生列「搁置天数」（JSON items 为 `heldDays` / `heldDaysApprox`，非搁置行为空；归档 sheet 不含）：由正文「搁置日期」计算，
 导入端不识别该列、按未知列忽略，不写入任何任务字段。
 
 导入细节：兼容本工具三种导出产物（JSON 另兼容裸数组格式）；XLSX 自动跳过名为「汇总」的 sheet、支持表头不在首行；表头自动识别中英文别名（不区分大小写），
-`.toolkitrc.json` 的 `tasks.importColumns` 自定义映射优先级最高；
+`.toolkitrc.json` 的 `task.importColumns` 自定义映射优先级最高；
 文件名冲突自动追加序号不覆盖；带完成时间的行状态非终结态时自动置「已完成」并告警；
 范围列含顿号/逗号/括号时提示按单值写入、多值请用半角加号（只提示不自动转换）。
 `--target archive` 时，已放弃记录若来源未提供正文或正文缺 `> 放弃原因：`，合并为一条软告警（受 `--no-warn` 控制，不阻断导入）。

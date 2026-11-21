@@ -14,8 +14,8 @@ toolkit usage show stats --since 30d --limit 10   # 统计视图
 toolkit usage setup init        # 初始化向导，回车即按默认启用（一方 + 第三方技能）
 toolkit usage setup wizard      # 交互菜单：状态、统计、开关、Hook、上传、导出与清理
 toolkit usage config channel rule    # 采集通道：rule（全局规则上报）/ hook（Agent Hook）
-toolkit rules compose --module usage   # 输出可复制进全局规则的文案（等价于原 usage rule）
-toolkit usage record --skill fxri-plan-to-task --skill fxri-plan-review   # 规则通道批量上报（静默）
+toolkit rule compose --module usage   # 输出可复制进全局规则的文案（等价于原 usage rule）
+toolkit usage record --skill fxri-plan-task --skill fxri-plan-review   # 规则通道批量上报（静默）
 toolkit config set usage.enabled true    # 打开总开关（关闭用 false）
 toolkit usage config origins --first-party --third-party
 toolkit usage config scope --mode all
@@ -81,7 +81,7 @@ toolkit usage data doctor
 | `log` | 手工补录一次使用 | `--skill`、`--session`、`--agent`、`--prompt`、`--args`、`--outcome` |
 | `flush` | 内部命令：消费上报队列并写入事件（后台 worker 与惰性兜底调用，通常无需手动执行） | `--dir`、`--limit` |
 
-> `usage rule` 已移除：输出全局规则文案请用 `toolkit rules compose --module usage`（与旧命令输出逐字一致）。
+> `usage rule` 已移除：输出全局规则文案请用 `toolkit rule compose --module usage`（与旧命令输出逐字一致）。
 > 总开关改由 `toolkit config set usage.enabled true|false` 写入；旧的 `usage enable` / `usage disable` 命中时提示迁移。
 
 ## 时间参数
@@ -113,7 +113,7 @@ toolkit usage data doctor
   `usage show stats` 可能有数秒到一条命令的延迟，`usage show` 的「队列」行显示积压条数。反查失败只丢明细字段，技能名与次数照常落盘。
 - **明细缺失的三个原因**：该 Agent 会话记录不可读（Trae 不落可读文件）、会话格式尚未适配（dsh 为 v4 事件流）、或记录已过期 / 被清理。
    补救见 [Agent 接入 · 拿不到明细时的补救](../usage/agents#拿不到明细时的补救)：`usage log` 手工补录、改用 Hook 通道。
-- 原 `usage rule` 的「当前配置不会统计任何技能」空转提示随命令移除；改用 `toolkit rules compose --module usage` 时不再做该检查。
+- 原 `usage rule` 的「当前配置不会统计任何技能」空转提示随命令移除；改用 `toolkit rule compose --module usage` 时不再做该检查。
 - `usage show stats --by trigger` 每条输出「次数｜最近调用时间｜触发词｜技能」，便于看某技能的调用明细。
 - Hook 安装与采集开启是两步：先 `usage setup hooks install`，再 `toolkit config set usage.enabled true`。
   支持 Agent 与配置路径见 [Agent 接入](../usage/agents)。

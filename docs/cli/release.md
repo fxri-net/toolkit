@@ -1,35 +1,35 @@
 ---
-title: 发版与更新日志（changelog）
+title: 发版与更新日志（release）
 ---
 
-# 发版与更新日志（changelog）
+# 发版与更新日志（release）
 
 > 基于 changesets 的发版与多语言更新日志维护。
 
 ```bash
-toolkit changelog status                # 默认：待发布变更集概览（只读，不消费）
-toolkit changelog bump                  # 消费变更集 + 格式化 + 同步镜像（默认中文）
-toolkit changelog bump --lang en        # 指定语言
-toolkit changelog bump --history        # 连带追溯改写历史版本块
-toolkit changelog changelog             # 仅格式化已有 CHANGELOG
-toolkit changelog changelog --history   # 连带追溯改写历史版本块
-toolkit changelog audit                 # 列出同对象净变更候选（只提示不改写）
-toolkit changelog mirror                # 生成/更新文档站更新日志镜像
-toolkit changelog mirror --check        # 逐页比对（主页 + 归档页），不写文件
-toolkit changelog mirror --dry-run      # 只列出将写入与清理的文件
-toolkit changelog publish               # 发布已升版产物（透传给 changesets）
-toolkit changelog changeset add         # 创建变更集（透传给 changesets）
-toolkit changelog changeset list        # 待发布变更集只读简表
-toolkit changelog changeset status      # 待发布变更集状态（透传给 changesets）
+toolkit release status                # 默认：待发布变更集概览（只读，不消费）
+toolkit release bump                  # 消费变更集 + 格式化 + 同步镜像（默认中文）
+toolkit release bump --lang en        # 指定语言
+toolkit release bump --history        # 连带追溯改写历史版本块
+toolkit release changelog             # 仅格式化已有 CHANGELOG
+toolkit release changelog --history   # 连带追溯改写历史版本块
+toolkit release audit                 # 列出同对象净变更候选（只提示不改写）
+toolkit release mirror                # 生成/更新文档站更新日志镜像
+toolkit release mirror --check        # 逐页比对（主页 + 归档页），不写文件
+toolkit release mirror --dry-run      # 只列出将写入与清理的文件
+toolkit release publish               # 发布已升版产物（透传给 changesets）
+toolkit release changeset add         # 创建变更集（透传给 changesets）
+toolkit release changeset list        # 待发布变更集只读简表
+toolkit release changeset status      # 待发布变更集状态（透传给 changesets）
 ```
 
 `status` 为默认命令，只读概览；`bump` / `changelog` / `mirror` / `audit` 为本包自处理子命令，
-选项写在各自子命令之后（`changelog --history`、`bump --lang en`）。
+选项写在各自子命令之后（`release changelog --history`、`release bump --lang en`）。
 
 `changeset add` / `changeset status` 的参数原样透传给 changesets；`changeset list` 为只读简表，与 `status` 概览同源。
 `status` / `changeset list` 的 `--format json` 走统一信封（`data` 内含 `total` / `changesets`）；`changeset add` / `status` 属透传数据流，
 保持 changesets 自身的输出格式，不套信封。
-`changelog status` 现为只读概览，不再是 changesets 透传；旧写法 `changelog version` / `format` / `doc` / `add` 仍可用，
+`release status` 现为只读概览，不再是 changesets 透传；旧写法 `changelog version` / `format` / `doc` / `add` 仍可用，
 命中时 stderr 给出弃用提示，后续版本移除。
 
 | 选项 | 适用子命令 | 说明 |
@@ -85,17 +85,17 @@ toolkit changelog changeset status      # 待发布变更集状态（透传给 c
 在项目根用 `pnpm exec toolkit` 执行（全局安装时直接 `toolkit`）：
 
 ```bash
-pnpm exec toolkit changelog changeset add          # 创建变更集（等价 changeset）
-pnpm exec toolkit changelog bump                   # 发版 + 自动语义分组归类与组标题格式化（默认中文）
-pnpm exec toolkit changelog changelog --lang en    # 指定语言仅格式化（内置 zh / en）
-pnpm exec toolkit changelog changelog --history    # 连带追溯改写历史版本块
-pnpm exec toolkit changelog mirror                 # 生成/更新文档站更新日志镜像
-pnpm exec toolkit changelog mirror --dry-run       # 预演：只列出将写入与清理的文件
+pnpm exec toolkit release changeset add          # 创建变更集（等价 changeset）
+pnpm exec toolkit release bump                   # 发版 + 自动语义分组归类与组标题格式化（默认中文）
+pnpm exec toolkit release changelog --lang en    # 指定语言仅格式化（内置 zh / en）
+pnpm exec toolkit release changelog --history    # 连带追溯改写历史版本块
+pnpm exec toolkit release mirror                 # 生成/更新文档站更新日志镜像
+pnpm exec toolkit release mirror --dry-run       # 预演：只列出将写入与清理的文件
 ```
 
 `bump` 成功后自动同步镜像页（`--no-sync-doc` 关闭）；镜像页由根 `CHANGELOG.md` 剥离 H1 后拼固定页头生成，
 按主版本分页默认开启（`changelogDoc.split`），单一主版本时输出与整篇镜像逐字一致。
-路径等可用 `changelog mirror` 的 `--from` / `--to` / `--title` / `--outline` 或 `changelogDoc` 配置段覆盖。
+路径等可用 `release mirror` 的 `--from` / `--to` / `--title` / `--outline` 或 `changelogDoc` 配置段覆盖。
 
 ⚠️ 跨语言边界：语言在**首次归组时确定**，换语言重跑不会重新归组既有块；确需改语言只能用 `replacements` 写死「源标题 → 目标标题」映射。
 分组语义与归类信号见上文「行为细节」。

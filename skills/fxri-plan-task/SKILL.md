@@ -3,7 +3,7 @@ name: fxri-plan-task
 description: 将已确认的实施方案分解为可独立交付的任务并给出计划表，再落盘为标准任务文件并跟踪至归档：建档评估（查 active/archive 判同主题）、按模板建档、状态机更新（含搁置）、四级时间源取证、自查、任务级规范沉淀与归档。方案确认后表达「开始落地/登记记录」的意图，或即将改仓库文件时使用——含任务分解、建档、任务登记、落盘、归档、任务校验、规范载体迁移与升级（conventions 单文件升目录、v1 / v2 升 v3）等说法及口语近义表达（如记一下、建个任务跟踪、先落档）均触发。执行授权另按开工词判定：方案可以 / 定稿 / 落档 / 继续评估都不等于开工，见「开工闸门」。不用于方案未确认的对话、会话收尾整场沉淀（fxri-plan-recap 模式一）、与任务记录无关的普通 TODO、issue 管理或日常提交信息撰写。
 license: MIT
 metadata:
-  version: "1.12.16"
+  version: "1.12.17"
   tier: core
   previousNames: ["fxri-plan-to-task"]
   type: practice
@@ -15,7 +15,7 @@ metadata:
 
 # 方案落盘：任务建档与归档
 
-> 本技能版本 1.12.16（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.12.17（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -80,7 +80,7 @@ metadata:
 - 无 `.tasks/` 时先执行 `toolkit init`（幂等，已存在不覆盖）
 - **逐仓逐任务建档**：每个将产生仓库文件改动的仓库各自独立建档，全部建完再改第一处文件；
    只读仓库不建档；依据为展示表（无表按方案步骤）；只确认部分任务时按子集建档，其余不建不执行并说明
-- **开工授权到达即完成前置**：方案已定稿时收到开工授权 → 先建完全部任务档 → `tasks check`（error 0 且 warn 0）→ 才改第一处文件；
+- **开工授权到达即完成前置**：方案已定稿时收到开工授权 → 先建完全部任务档 → `task check`（error 0 且 warn 0）→ 才改第一处文件；
    一条授权覆盖表内全部任务，不覆盖不可逆动作；先落档后开工的只补缺档、不重复建档
 - **每档自包含**：写全背景 / 方案步骤 / 影响范围 / 验证方式，并标「计划位置 / 前置 / 后继」（写任务唯一键，不写 active 路径）；禁止指向对话的指代（引用任务档 / 归档路径合法）；
    执行到任一任务只读该档即可恢复，任务增删须回写受影响档；`.tasks/` 自身读写不单独构成建档理由
@@ -125,7 +125,7 @@ metadata:
 
 ### 5. 归档
 
-按 `task-spec.md` 的手工归档步骤执行，可 `toolkit tasks archive` 自动化。
+按 `task-spec.md` 的手工归档步骤执行，可 `toolkit task archive` 自动化。
 
 ⚠️ 项目若有触达比对脚本，须在**归档前**跑完——归档删除 active 源文件后比对只能空转；命令以项目自检脚本为准，无则跳过。
 
@@ -147,6 +147,6 @@ metadata:
 
 ⚠️ 探测顺序：`pnpm exec toolkit --help`（npm 项目用 `npx toolkit`）→ `toolkit --help`；都不可用即未安装，按各步手工继续，**不安装、不阻塞**。命令按前缀执行：
 
-- `toolkit tasks` / `check` / `archive`：总览、自动校验、自动归档（替代第 1 / 4 / 5 步；`--dry-run` 预演）
-- `toolkit tasks normalize` / `conventions status` / `upgrade` / `format`：归档核验修复、载体体检与升级、表格归一（幂等，`--dry-run` 预演）
+- `toolkit task` / `check` / `archive`：总览、自动校验、自动归档（替代第 1 / 4 / 5 步；`--dry-run` 预演）
+- `toolkit task normalize` / `convention status` / `upgrade` / `format`：归档核验修复、载体体检与升级、表格归一（幂等，`--dry-run` 预演）
 - 任务目录非默认 `.tasks` 时加 `--dir <path>`

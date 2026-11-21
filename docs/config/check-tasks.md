@@ -10,11 +10,11 @@ title: 校验与任务区（check / task）
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
-| `warnings` | boolean | `true` | 软告警总开关（`tasks check` 的 warn 输出、归档/发版提醒、changelog 无类型前缀条目告警）；被 `--warn/--no-warn` 与 `FX_TOOLKIT_CHECK_WARN` 覆盖 |
-| `includeCheckbox` | boolean | `true` | `tasks check` 是否把正文未勾选的 `- [ ]` 扫为未闭合待办 |
-| `pendingMarkers` | boolean | `true` | `tasks check` 是否扫描词标记（待办/待实施/…）；只认正文行首子项形态，跳过标题、代码块与引用块 |
+| `warnings` | boolean | `true` | 软告警总开关（`task check` 的 warn 输出、归档/发版提醒、changelog 无类型前缀条目告警）；被 `--warn/--no-warn` 与 `FX_TOOLKIT_CHECK_WARN` 覆盖 |
+| `includeCheckbox` | boolean | `true` | `task check` 是否把正文未勾选的 `- [ ]` 扫为未闭合待办 |
+| `pendingMarkers` | boolean | `true` | `task check` 是否扫描词标记（待办/待实施/…）；只认正文行首子项形态，跳过标题、代码块与引用块 |
 
-`tasks check` 另校验 `scope` 取值是否在 `.tasks/conventions/index.md` 的端清单内（`common` 恒合法），载体缺失或端清单为空表时跳过；只校验 active 任务，不回溯归档。
+`task check` 另校验 `scope` 取值是否在 `.tasks/conventions/index.md` 的端清单内（`common` 恒合法），载体缺失或端清单为空表时跳过；只校验 active 任务，不回溯归档。
 
 ## task：任务目录与导入列映射
 
@@ -34,4 +34,4 @@ title: 校验与任务区（check / task）
 
 ## 相关页面
 
-- 参考：[配置参考总览](../config) · [任务管理](../cli/tasks) · [配置体检](../cli/config)
+- 参考：[配置参考总览](../config) · [任务管理](../cli/task) · [配置体检](../cli/config)

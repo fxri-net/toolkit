@@ -1,6 +1,6 @@
 # 技能自查清单
 
-> 由 `../SKILL.md` 按需加载。可机械检出的项目以 `toolkit skills lint` 的输出为准，本清单只用于写作与评审时逐项确认。
+> 由 `../SKILL.md` 按需加载。可机械检出的项目以 `toolkit skill lint` 的输出为准，本清单只用于写作与评审时逐项确认。
 
 ## 一、触发面
 
@@ -23,8 +23,8 @@
 - [ ] 命名族元数据齐全：`metadata.type`（`profile` / `practice` / `template`）、`metadata.scope`、`metadata.triggers`。
 - [ ] `metadata.tier` 使用既有取值，不新造层级。
 - [ ] 正文首部存在「本技能版本」，且与 `metadata.version` 一致。
-- [ ] 内容变更后用 `toolkit skills bump` 递增，两处同时更新；内容未变不递增。
-- [ ] 两处版本不一致时先跑 `toolkit skills lint`，需要指定源头时用 `--from frontmatter|body`。
+- [ ] 内容变更后用 `toolkit skill bump` 递增，两处同时更新；内容未变不递增。
+- [ ] 两处版本不一致时先跑 `toolkit skill lint`，需要指定源头时用 `--from frontmatter|body`。
 
 ## 四、安全与边界
 
@@ -35,6 +35,6 @@
 
 ## 五、收尾
 
-- [ ] `toolkit skills lint skills/` 无错误；告警逐项确认是否需要处理。
+- [ ] `toolkit skill lint skills/` 无错误；告警逐项确认是否需要处理。
 - [ ] 技能表与文档索引已同步版本、层级与用途。
 - [ ] 新技能或对外行为变化已补 patch 变更集。

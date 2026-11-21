@@ -21,13 +21,13 @@
 | C-6 | 细节只进 skills | 写规则时：可变流程只进 skills，规则层不复述，防用户快照失同步；个性化偏好归 `personal` 模块，不得按「非稳定纪律」删除；偏好只收覆写项，通用纪律与真源指向不得入内 | common | [AGENTS.md](../../AGENTS.md) 质量门 5 |
 | C-7 | 触达核对前置 | 改能力或措辞前：先 grep 全仓定位触达点并另列仓库外平台侧（仓库简介 / social preview / npm 页），影响范围逐篇核对 | common | [AGENTS.md](../../AGENTS.md) 质量门 2 |
 | C-8 | 文档三层职责 | 写文档或规则时：手册＝用户视图、skills＝细节真源、`ai.md` 与各规则页＝薄壳（纪律 + 模块自有细节 + `personal` 偏好） | common | [ai.md](../../docs/rules/ai.md)、[AGENTS.md](../../AGENTS.md) 质量门 5 |
-| C-12 | 输出分流 | 对外输出：stdout 只放数据，诊断走 stderr | common | [cli.md](../../docs/cli.md)、[update.md](../../docs/config/update.md)、[skills.md](../../docs/config/skills.md) |
+| C-12 | 输出分流 | 对外输出：stdout 只放数据，诊断走 stderr | common | [cli.md](../../docs/cli.md)、[update.md](../../docs/config/update.md)、[skill.md](../../docs/config/skill.md) |
 | C-13 | 验收含类型与静态检查 | 定验收时：类型检查与静态检查属 `pnpm verify` 步骤，不得用 lint / build 替代 | common | [AGENTS.md](../../AGENTS.md) 验收方式 |
 | C-14 | 路径书写 | 写仓库引用时：用仓库根相对路径；本机绝对路径仅 active 暂留、归档归一 | common | [AGENTS.md](../../AGENTS.md) 协作流程约束 |
 | C-15 | 规则层更新锚点 | 改规则层：同步锚点、同批同时间、发版不抬 | common | [SPEC.md](../../SPEC.md)、`templates/rules/*.md`、`docs/rules/*.md`、[AGENTS.md](../../AGENTS.md) 门 6 |
 | C-16 | 提交规则单一真源 | 改提交信息规则时：真源为 `templates/rules/commit.md`，两处投影逐字同步 | common | [commit.md](../../templates/rules/commit.md) 及两处投影 |
 | C-17 | 测试不复刻实现 | 写派生 / 镜像逻辑测试时：期望直接调用真实实现，不在测试内重写 | common | [AGENTS.md](../../AGENTS.md) 验收方式 |
-| C-22 | 门禁单源与时点 | 改验收或发版：只认 `verify.mjs`，关卡发布前，归档→验收→提交 | common | [AGENTS.md](../../AGENTS.md)、`scripts/verify.mjs`、[task-spec.md](../../skills/fxri-plan-to-task/references/task-spec.md) §6 |
+| C-22 | 门禁单源与时点 | 改验收或发版：只认 `verify.mjs`，关卡发布前，归档→验收→提交 | common | [AGENTS.md](../../AGENTS.md)、`scripts/verify.mjs`、[task-spec.md](../../skills/fxri-plan-task/references/task-spec.md) §6 |
 | C-23 | 测试现场形态 | 写模拟现场的测试时：每种真实现场形态都要有用例，不得只造一种（路径写法含真实路径与链接别名） | testing | [testing.md](./testing.md) |
 | C-25 | 版本括注 | 写文档时：版本括注只标单一能力点首次引入且紧邻对象，演进史交 CHANGELOG | docs | [docs.md](./docs.md) |
 | C-26 | 降级不静默 | 处理用户显式传值时：无法采纳须 stderr 告警并说明回落，否则非 0 退出 | common | [AGENTS.md](../../AGENTS.md) 协作流程约束 |
@@ -50,5 +50,5 @@
 
 - **载体形态**：以溯源索引式为主，个别无外部来源的条文落分册（见「单一事实源」列）。
 - **本项目**：单端 `toolkit`；条文按主题分册承载（见索引归属列），`common` 只放跨面原则。
-- **读写与维护**：读取与写入判定见 `skills/fxri-plan-to-task/references/conventions-spec.md`；退休条目看 `retired.md`，常规不读。
+- **读写与维护**：读取与写入判定见 `skills/fxri-plan-task/references/conventions-spec.md`；退休条目看 `retired.md`，常规不读。
 - **技能已承载的条目不入索引**：规则全文已在随包 `skills/` 内的，直接按对应 SKILL.md 执行。

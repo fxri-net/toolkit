@@ -31,7 +31,7 @@ toolkit scope policy remove --id policy-xxx # 按稳定 id 移除
 toolkit scope policy reset --paths ~/work --dry-run # 按路径批量清除（预演）
 toolkit scope skills list            # 技能档案与技能维度策略
 toolkit scope skills allow fxri-plan-review --paths ~/work # 只允许列出的技能
-toolkit scope skills deny fxri-text-encoding --paths ~/work # 排除列出的技能
+toolkit scope skills deny fxri-code-encoding --paths ~/work # 排除列出的技能
 toolkit scope skills profile front --allow "fxri-*" # 写入技能档案
 toolkit scope list add ~/work              # 加入白名单，默认切到「仅名单内生效」
 toolkit scope list exclude ~/work/legacy   # 加入黑名单，默认值不变
@@ -41,8 +41,8 @@ toolkit scope list remove ~/work/legacy --from exclude       # 从黑名单移�
 toolkit scope list default                 # 查看当前默认值
 toolkit scope list default off             # 切换为「仅名单内生效」
 toolkit scope list reset                   # 清除限制（全部生效）
-toolkit skills mount ~/work --dry-run  # 批量项目面安装：先预览（由 scope mount 迁入）
-toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域输出技能正文（未激活退出码 3）
+toolkit skill mount ~/work --dry-run  # 批量项目面安装：先预览（由 scope mount 迁入）
+toolkit scope guard fxri-plan-task # 内容闸门：按当前目录作用域输出技能正文（未激活退出码 3）
 ```
 
 名单的查看与增删改统一收进 `scope list` 组：裸 `scope list` 查看名单，
@@ -84,8 +84,8 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 - 技能矩阵页：选择范围（当前项目 / 手动项目与子路径 / 扫描）、模式（只允许 / 全部允许但排除）、技能或档案，
   可选标记 / 远端条件；预览后写入，空现场提示先安装技能或创建档案，不写空规则
 - 内容闸门与批量挂载已移出本域：默认分发形态用 `toolkit config set skillDelivery.default gated|full` 切换，
-  原 `skills gate on|off` 的 `on` = `gated`（入口壳）、`off` = `full`（全文），查看用 `toolkit config get skillDelivery.default`；
-  `toolkit skills install --gate` / `--embed` 生成或还原入口壳；批量挂载用 `toolkit skills mount`
+  `on` 对应 `gated`（入口壳）、`off` 对应 `full`（全文），查看用 `toolkit config get skillDelivery.default`；
+  `toolkit skill install --gate` / `--embed` 生成或还原入口壳；批量挂载用 `toolkit skill mount`
 - 选择页统一提供「← 返回」（末位）与 ESC 返回上一级；顶层「退出」按成功计 `0`，Ctrl+C 结束整个命令（退出码 `130`）
 - ESC 有约 500ms 判定延迟（readline 需先排除方向键序列），属正常现象
 - `scope list add` / `list exclude` / `list remove` 均需显式目录：无参只提示改用 `toolkit scope wizard`，不再隐式进入完整向导
@@ -97,21 +97,21 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 - 相对路径按目标层项目根解析（全局层按当前目录）；`--layer global|project|local` 缺省全局
 - `scope list` 同时输出条目存在性：文本模式列出「条目异常」，`--format json` 的 `data.items` 含 `path` / `list` / `exists`；
   相对路径条目按所属配置层的项目根解析
-- 批量项目面安装已迁至 `toolkit skills mount`（原 `scope mount` 已移除）；写入边界与 `--dry-run` 见 [skills 命令 · mount](./skills#mount)
+- 批量项目面安装已迁至 `toolkit skill mount`（原 `scope mount` 已移除）；写入边界与 `--dry-run` 见 [技能分发 · mount](./skill#mount)
 - 非 TTY 环境：`wizard` 会提示无法交互（退出码 `2`）；写命令请直接带参数
 
 ## 内容闸门 guard
 
-- 前置：技能已被判定为入口壳形态（矩阵限制或 `skillDelivery` 规则），由 `toolkit skills install` 生成入口壳；
+- 前置：技能已被判定为入口壳形态（矩阵限制或 `skillDelivery` 规则），由 `toolkit skill install` 生成入口壳；
   旧键 `skillInstall.gate` / `metadata.gate: false` 仍读时兼容，新配置用 `skillDelivery`
 - `toolkit scope guard <技能名>` 读取当前目录的作用域判定：**激活时**把真源 `SKILL.md` 正文写到 stdout；**未激活时** stdout 为空、原因写 stderr 并以**退出码 3**结束
 - 输出契约：stdout 只放正文（供 AI 直接消费），参考文件目录与诊断一律走 stderr；只读，不写缓存
 - 技能名须为内置包或已登记来源中存在的单段名字；未知名字或含路径分隔符时以退出码 `1` 报错
 - 仅在 argv 恰为 `scope guard <技能名>` 时走快速路径（不加载完整命令集）；带其它参数（含 `--help`）回落常规 CLI
-- 入口壳只降低正文被读取的概率，不是物理隔离；需要绝对干净用 `skills mount` 或 `skills install --scope project` 做项目面安装
-- `toolkit skills install --embed` 可随时回退为全文安装
+- 入口壳只降低正文被读取的概率，不是物理隔离；需要绝对干净用 `skill mount` 或 `skill install --scope project` 做项目面安装
+- `toolkit skill install --embed` 可随时回退为全文安装
 - 联动提示：矩阵限制的技能已按策略推导自动进入入口壳；仅当显式规则把被拒技能设为全文时，
-  `scope status` / `scope skills list` / `skills status`（项目面）提示「策略对该技能无效：已显式设为全文安装」
+  `scope status` / `scope skills list` / `skill status`（项目面）提示「策略对该技能无效：已显式设为全文安装」
 
 ## 判定顺序
 
@@ -136,11 +136,11 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 - `mode = all` 时 `include` 不参与判定，`list` 会在白名单后标注「当前默认全部生效，未参与判定」
 - 只影响技能与内容闸门（`scope guard`），不影响 `toolkit` 命令本身（命令是显式调用的）
 - `scope policy reset --all` 只清 `policies`；旧 `activation` 需 `scope list reset`，两者不要混用
-- 矩阵未允许的已安装技能只提示、不自动删除，用 `toolkit skills uninstall` 清理
+- 矩阵未允许的已安装技能只提示、不自动删除，用 `toolkit skill uninstall` 清理
 - 全局规则无法按目录排除（agent 限制）；项目专用规则需落在项目内
 - 工具不创建、不修改项目内配置或标记；项目层配置由用户自行写入时正常参与
 
 ## 相关页面
 
 - 配置：[作用域配置（activation / policies）](../config/activation) · [配置参考](../config)
-- 参考：[CLI 参考](../cli) · [技能分发](./skills)
+- 参考：[CLI 参考](../cli) · [技能分发](./skill)

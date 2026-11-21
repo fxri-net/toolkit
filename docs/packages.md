@@ -4,7 +4,7 @@
 
 ## 推荐包是什么
 
-推荐包把一组技能按场景预先组合，给出一条可复制的安装命令。它不改变技能本身的来源、版本与分发方式，安装、选择、状态与卸载仍由 `toolkit skills` 统一管理。
+推荐包把一组技能按场景预先组合，给出一条可复制的安装命令。它不改变技能本身的来源、版本与分发方式，安装、选择、状态与卸载仍由 `toolkit skill` 统一管理。
 
 远程安装命令需要支持外部来源的 `@fxri/toolkit`（1.14.1+）；更低版本只能安装本仓内置技能。
 
@@ -17,7 +17,7 @@
 - **安装**：
 
 ```bash
-toolkit skills install --skills fxri-plan-to-task,fxri-session-recap,fxri-plan-review,fxri-release-changelog,fxri-text-encoding
+toolkit skill install --skills fxri-plan-task,fxri-plan-recap,fxri-plan-review,fxri-release-changelog,fxri-code-encoding
 ```
 
 ### 通用开发规范（playbook）
@@ -27,7 +27,7 @@ toolkit skills install --skills fxri-plan-to-task,fxri-session-recap,fxri-plan-r
 - **安装**：
 
 ```bash
-toolkit skills install --source https://github.com/fxri-net/playbook
+toolkit skill install --source https://github.com/fxri-net/playbook
 ```
 
 - **技能清单**：本页不固定列出。可用技能、依赖关系与版本一律以来源仓的 `skills.json` 与其文档站的档案页为准；不传 `--skills` 时进入交互选择，按提示挑选即可。
@@ -42,7 +42,7 @@ toolkit skills install --source https://github.com/fxri-net/playbook
 不套用推荐包时，用 `--skills` 自行拼装即可；也可以先用 `--mode package` 切到纯包管理器模式，再只选外部来源技能：
 
 ```bash
-toolkit skills install --mode package --source https://github.com/fxri-net/playbook --skills <技能名>
+toolkit skill install --mode package --source https://github.com/fxri-net/playbook --skills <技能名>
 ```
 
 ## 安全提示
@@ -51,4 +51,4 @@ toolkit skills install --mode package --source https://github.com/fxri-net/playb
 
 ## 相关页面
 
-- 参考：[安装方式](./getting-started#安装) · [AI 技能包](./guide#ai-技能包-skills) · [CLI 参考 · 技能分发](./cli/skills)
+- 参考：[安装方式](./getting-started#安装) · [AI 技能包](./guide#ai-技能包-skills) · [CLI 参考 · 技能分发](./cli/skill)

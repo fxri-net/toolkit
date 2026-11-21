@@ -11,8 +11,8 @@
 | 步骤 | 该做什么 |
 | --- | --- |
 | 1 装 CLI | 个人多项目 `pnpm add -g @fxri/toolkit`（默认，配合全局技能与全局规则）；团队项目 `pnpm add -D @fxri/toolkit`（版本随仓库锁定） |
-| 2 装 skills | `toolkit skills install`；项目面用 `--scope project`（技能随仓库入库、队友 clone 即用） |
-| 3 配全局规则（推荐） | `toolkit rules compose` 交互式选择后粘贴到所用 Agent 的全局规则入口；也可从 [AI 全局规则](./rules/ai) 复制模板，提交习惯另取[提交信息规则](./rules/commit) |
+| 2 装 skills | `toolkit skill install`；项目面用 `--scope project`（技能随仓库入库、队友 clone 即用） |
+| 3 配全局规则（推荐） | `toolkit rule compose` 交互式选择后粘贴到所用 Agent 的全局规则入口；也可从 [AI 全局规则](./rules/ai) 复制模板，提交习惯另取[提交信息规则](./rules/commit) |
 | 4 建任务区 | 对 AI 说「初始化任务区」（AI 执行 `toolkit init` 并完成建档；也可自己运行 `toolkit init`） |
 
 初始化做了什么、30 秒最短路径见[快速开始 · 30 秒上手](./getting-started#_30-秒上手)。
@@ -29,7 +29,7 @@
 
 | 你该说 | 会发生什么 |
 | --- | --- |
-| 「把刚才确认的方案落盘为任务」 | AI 按 fxri-plan-to-task 在 `.tasks/active/` 建档（先查后写防重复） |
+| 「把刚才确认的方案落盘为任务」 | AI 按 fxri-plan-task 在 `.tasks/active/` 建档（先查后写防重复） |
 | （方案定稿后）「开始 / 开工 / 按计划做」 | AI 识别为开工授权：先一次建完全部任务档并校验，再动手 |
 | （方案定稿后）「记一下 / 先落档 / 方案可以」 | 仅建档或停在定稿态，不视为开工；之后说「开工」只补缺档、不重复建档 |
 | 开工后被打断，再说「继续」 | 恢复执行：先回显恢复哪项，再复核现场（改动、任务档锚点），然后接着做 |
@@ -38,7 +38,7 @@
 | 任务做完 | AI 置终结态 → 归档 → 任务级规范沉淀 → 回报清单请你确认 |
 | 「现在有哪些没做完的任务」 | AI 跑总览给你 |
 
-想自己手操命令时，归档、校验、归一、统计、导入导出等命令见 [任务管理](./cli/tasks)；手工建档模板与 frontmatter 字段见[完整攻略 · 任务文件规范](./guide#任务文件规范)。
+想自己手操命令时，归档、校验、归一、统计、导入导出等命令见 [任务管理](./cli/task)；手工建档模板与 frontmatter 字段见[完整攻略 · 任务文件规范](./guide#任务文件规范)。
 只写 AI 该怎么做：不需要懂命令，以上动作 AI 都会按 skill 自动执行，你只需在动手类任务前让 AI 先出方案、确认后再执行。
 
 ## 三、会话边界
@@ -49,7 +49,7 @@
 | --- | --- | --- |
 | 会话收尾 | 「今天先到这 / 收个尾 / 把结论记下来」 | AI 全量回放本会话 → **任务清单先给你核对无遗漏** → 逐条落盘归档 → 规范沉淀进 conventions 载体 → 回报 |
 | 新会话开始 | 「恢复上下文 / 上次做到哪了」 | AI 读 active 全部 + 近窗归档（≥1 年空洞旧档仅入索引），输出全部任务索引 + 进行中/阻塞 + 搁置项（一行计数，超 90 天的另给数量，点名才展开）+ 规范现场 + 建议下一步 |
-| 有任务暂时不做 | 「这个先放着 / 以后再说」 | AI 置 `搁置` 并在正文首个二级标题处写 `## 搁置` 四行（搁置原因 / 重启条件 / 进度锚点 / 搁置日期）；它不进计划表、不占「建议的下一步」，盘点用 `toolkit tasks --status 搁置`（每行附「搁置 N 天」，超 90 天标 ⚠️） |
+| 有任务暂时不做 | 「这个先放着 / 以后再说」 | AI 置 `搁置` 并在正文首个二级标题处写 `## 搁置` 四行（搁置原因 / 重启条件 / 进度锚点 / 搁置日期）；它不进计划表、不占「建议的下一步」，盘点用 `toolkit task --status 搁置`（每行附「搁置 N 天」，超 90 天标 ⚠️） |
 | 历史时间不准 | 「修正历史任务时间」 | AI 对照 git log/聊天记录取证 → 清单给你逐条确认 → 修正 → `normalize --fix` 迁移核验 |
 
 ⚠️ **跨仓库会话**：一次会话涉及多个仓库时，各仓的改动在各自仓库里建档归档（任务档是仓库自述，只记本仓的改动与动机），不把另一仓的工作痕迹合并进本仓记录。
@@ -64,15 +64,15 @@
 | 场景 | 你该说 | 会发生什么 |
 | --- | --- | --- |
 | 形态迁移（单文件 → 目录） | 「把项目里的 conventions.md 迁到新形态」 | AI 走三段式：建 `conventions/` 并把旧文件**整体**搬为 `index.md`（原文不丢）→ 逐条给出「`common` / 某端」归属建议 → 你逐条确认后拆成索引行 + 分册 |
-| 结构升级（v1 / v2 → v3） | 「把规范载体升到 v3」 | 载体升到 v3（三分区：常驻索引 / 按需分册 / 归档留痕；首行形态标记、索引表首列为稳定 ID `C-<n>`、索引表删「状态」「确立来源任务」两列、`history.md` 表头首格同为稳定 ID `ID`）：优先 `pnpm exec toolkit conventions upgrade`（`--dry-run` 预演、幂等、先判后写，异常形态拒绝写盘），亦可按链路手工执行 |
+| 结构升级（v1 / v2 → v3） | 「把规范载体升到 v3」 | 载体升到 v3（三分区：常驻索引 / 按需分册 / 归档留痕；首行形态标记、索引表首列为稳定 ID `C-<n>`、索引表删「状态」「确立来源任务」两列、`history.md` 表头首格同为稳定 ID `ID`）：优先 `pnpm exec toolkit convention upgrade`（`--dry-run` 预演、幂等、先判后写，异常形态拒绝写盘），亦可按链路手工执行 |
 | 只修订内容（不换形态） | 「第 3 条规范改成 …」 | 语义变更：AI 在 `history.md` 追加留痕（只追加、不改旧行）→ 更新 `index.md` 该行「当前语义」；规则**作废**走「迁出 + 三层清理」——索引行从 `index.md` **删除**并迁入 `retired.md`（冻结退休时语义、记后继与条文去向），同时**物理删除**分册内该条小节、同步删改外部单一事实源 |
 
-- **入口**：`toolkit tasks check` 报旧单文件存在 / 缺 `index.md` / 形态异常时按提示处理；`toolkit conventions status` 查载体现场；
+- **入口**：`toolkit task check` 报旧单文件存在 / 缺 `index.md` / 形态异常时按提示处理；`toolkit convention status` 查载体现场；
    新项目 `toolkit init` 已预生成骨架
 - **端名与读法**：端名与任务 `scope` 逐字一致（`web+server` → `web.md` + `server.md`），端清单以 `index.md` 顶部声明为唯一权威；迁移期间新旧兼容读，
-   两者并存以目录形态为准；表格被格式化器填充出空隙时用 `toolkit conventions format` 归一
+   两者并存以目录形态为准；表格被格式化器填充出空隙时用 `toolkit convention format` 归一
 
-三分区、读写分层与表格形态的机制见[完整攻略 · conventions/](./guide#conventions-规范沉淀地)，命令契约见 [规范载体](./cli/conventions)。
+三分区、读写分层与表格形态的机制见[完整攻略 · conventions/](./guide#conventions-规范沉淀地)，命令契约见 [规范载体](./cli/convention)。
 
 ## 五、数据进出（报表 / 迁移）
 
@@ -80,11 +80,11 @@
 
 ```bash
 # 导出：按扩展名自动识别格式（.csv 带 BOM，Excel 直开；.xlsx 三 sheet；.json 结构化）
-pnpm exec toolkit tasks export 归档报表.xlsx --view archived
+pnpm exec toolkit task export 归档报表.xlsx --view archived
 
 # 导入：先预演核对，再正式导入
-pnpm exec toolkit tasks import 需求清单.csv --dry-run
-pnpm exec toolkit tasks import 需求清单.csv --target active
+pnpm exec toolkit task import 需求清单.csv --dry-run
+pnpm exec toolkit task import 需求清单.csv --target active
 ```
 
 - 表头写常见叫法即可（「任务名/负责人/状态/截止日期」），中英文别名自动识别
@@ -96,15 +96,15 @@ pnpm exec toolkit tasks import 需求清单.csv --target active
 **目标**：变更集 → CHANGELOG → 发布，多语言分组标题不手翻。
 
 ```bash
-pnpm exec toolkit changelog changeset add   # 创建变更集（等价 changeset，选 patch/minor/major）
-pnpm exec toolkit changelog audit # 可选：列出同对象净变更候选，先人工合并
-pnpm exec toolkit changelog bump            # 消费变更集：升版本号 + 中文 CHANGELOG + 发布日期
-pnpm exec toolkit changelog mirror          # 同步文档站更新日志镜像（bump 后也会自动同步）
+pnpm exec toolkit release changeset add   # 创建变更集（等价 changeset，选 patch/minor/major）
+pnpm exec toolkit release audit # 可选：列出同对象净变更候选，先人工合并
+pnpm exec toolkit release bump            # 消费变更集：升版本号 + 中文 CHANGELOG + 发布日期
+pnpm exec toolkit release mirror          # 同步文档站更新日志镜像（bump 后也会自动同步）
 # 提交 → 打 vX.Y.Z 标签 → 发布（按项目渠道，如 npm publish）
 ```
 
 ⚠️ 发版不是必经步骤：默认由你的规则约定是否执行，当次指令已含授权则直接执行；未归档的 active 任务存在时会提醒先归档。
-完整链路见[完整攻略 · 多语言 CHANGELOG](./guide#多语言-changelog)，参数见 [发版与更新日志](./cli/changelog)。
+完整链路见[完整攻略 · 多语言 CHANGELOG](./guide#多语言-changelog)，参数见 [发版与更新日志](./cli/release)。
 
 ## 七、升级与卸载
 
@@ -115,20 +115,20 @@ pnpm exec toolkit changelog mirror          # 同步文档站更新日志镜像�
 ```bash
 pnpm add -g @fxri/toolkit   # 全局安装（推荐）
 pnpm up @fxri/toolkit       # 项目内（版本随仓库锁定）
-toolkit skills status       # 查 CLI 版本提示与技能现场
+toolkit skill status       # 查 CLI 版本提示与技能现场
 ```
 
 升级三步检查：
 
 1. **CLI** 更新
-2. **skills** 同步：软链形式随 CLI 自动更新；副本形式（`--copy` 或建链失败降级）需重跑 `toolkit skills install`；项目面由 `prepare` 钩子自动刷新
+2. **skills** 同步：软链形式随 CLI 自动更新；副本形式（`--copy` 或建链失败降级）需重跑 `toolkit skill install`；项目面由 `prepare` 钩子自动刷新
 3. **开新会话**：旧会话加载的仍是旧版技能
 
-⚠️ 软链落点是**写入穿透**形态：编辑落点文件等于编辑真源，要改技能内容请改真源（`toolkit skills status` 报告末尾也会提示）。
+⚠️ 软链落点是**写入穿透**形态：编辑落点文件等于编辑真源，要改技能内容请改真源（`toolkit skill status` 报告末尾也会提示）。
 
 ⚠️ **历史落点残留**：Codex / Pi 的全局落点已改为 canonical（`~/.agents/skills/`），升级前分发到 `~/.codex/skills/`、
 `~/.pi/agent/skills/` 的产物不再随本包更新；若状态文件仍有登记且目录仍在，`status` 会单列提示，
-用 `toolkit skills uninstall --all` 清理后再 `toolkit skills install` 恢复（只提示、不自动删除）。
+用 `toolkit skill uninstall --all` 清理后再 `toolkit skill install` 恢复（只提示、不自动删除）。
 
 规则细节已收敛进 skills，装完无需手动同步全局规则全文。CLI 检测到新版本会提示；关闭提示：`FX_TOOLKIT_NO_UPDATE_CHECK=1` 或配置 `updateCheck.enabled: false`。
 版本兼容（Node 版本要求）见[完整攻略 · 升级与版本兼容](./guide#升级与版本兼容)。
@@ -136,13 +136,13 @@ toolkit skills status       # 查 CLI 版本提示与技能现场
 ### 卸载
 
 ```bash
-toolkit skills uninstall --all      # 1. 先摘技能产物（只清本包装的，不碰你自己装的技能）
+toolkit skill uninstall --all      # 1. 先摘技能产物（只清本包装的，不碰你自己装的技能）
 pnpm remove -g @fxri/toolkit     # 2. 再卸 CLI
 ```
 
-⚠️ **顺序别反**：`skills uninstall --all` 依赖本工具（CLI + 包内真源）才能定位产物；先卸了 CLI，清技能就没工具可用——重装一次再执行即可。
+⚠️ **顺序别反**：`skill uninstall --all` 依赖本工具（CLI + 包内真源）才能定位产物；先卸了 CLI，清技能就没工具可用——重装一次再执行即可。
 
-⚠️ **软链会悬空**：软链形式的技能指向包内目录，CLI 一卸就成悬空链接（agent 读到空目录）。`toolkit skills uninstall --all` 会把悬空链接一并摘除；若已漏摘，
+⚠️ **软链会悬空**：软链形式的技能指向包内目录，CLI 一卸就成悬空链接（agent 读到空目录）。`toolkit skill uninstall --all` 会把悬空链接一并摘除；若已漏摘，
 手工删除 `~/.agents/skills/` 与各 agent 全局技能目录下的 `fxri-*` 链接。
 
 ## 八、隐私与安全

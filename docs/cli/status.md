@@ -17,8 +17,8 @@ toolkit status --format json   # 统一信封输出到 stdout（诊断仍走 std
 
 | 区块 | 取数来源 | 说明 |
 | --- | --- | --- |
-| 任务区 | `tasks check` 同一实现 | 待办任务数与 error / warn 列表（带文件与行号） |
-| 技能现场 | `skills status` 同一实现 | 已选择技能数、安装目标数、待收敛项、版本双写位不一致 |
+| 任务区 | `task check` 同一实现 | 待办任务数与 error / warn 列表（带文件与行号） |
+| 技能现场 | `skill status` 同一实现 | 已选择技能数、安装目标数、待收敛项、版本双写位不一致 |
 | 配置层 | `config status` 同一实现 | 命中层数与待处理项；**不打印任何配置值** |
 | 文档站 | `docs nav check` / `docs dist check` 同一实现 | 未检测到文档站时跳过；产物未构建只标注「跳过」、不算问题 |
 | 版本与弃用 | 包版本 + 命令注册表 | 已登记迁移目标的命令；`data.runtimeHits` 当前恒为空数组，旧命令命中记录由后续版本接线 |
@@ -43,7 +43,7 @@ toolkit status --format json   # 统一信封输出到 stdout（诊断仍走 std
 
 | 参数 | 说明 |
 | --- | --- |
-| `--check` | 存在 error 级问题时退出 `1`；warn / info 不影响退出码（与 `tasks check` 同口径） |
+| `--check` | 存在 error 级问题时退出 `1`；warn / info 不影响退出码（与 `task check` 同口径） |
 | `--format <format>` | 仅支持 `json`；非法值报错并退出 `1`，不做聚合 |
 
 ## 退出码
@@ -69,5 +69,5 @@ toolkit status --format json   # 统一信封输出到 stdout（诊断仍走 std
 
 ## 相关页面
 
-- 参考：[CLI 参考](../cli) · [任务管理](./tasks) · [配置体检](./config)
-- 相关：[技能分发](./skills) · [文档站校验](./docs-check) · [退出码](./exit-codes)
+- 参考：[CLI 参考](../cli) · [任务管理](./task) · [配置体检](./config)
+- 相关：[技能分发](./skill) · [文档站校验](./docs-check) · [退出码](./exit-codes)

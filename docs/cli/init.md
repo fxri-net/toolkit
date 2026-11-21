@@ -15,7 +15,7 @@ toolkit init --no-hooks               # 不写入 package.json 的 prepare 刷�
 在当前目录初始化任务区，逐项如实报告实际动作（新建 / 更新 / 保持 / 追加 / 跳过）：
 
 - 创建 `<任务目录>/active/{YYYYMM}/` 与 `<任务目录>/archive/` 目录骨架
-  - 默认目录 `.tasks`；优先级与 `tasks` 同口径：CLI 参数 > 配置 `task.dir` > 默认 `.tasks`
+  - 默认目录 `.tasks`；优先级与 `task` 同口径：CLI 参数 > 配置 `task.dir` > 默认 `.tasks`
 - 创建规范载体骨架 `<任务目录>/conventions/index.md`（v3 三节：端清单 / 索引 / 用法说明）与 `history.md`（语义演进记录）
   - `index.md` 已存在时保持不动；v1 / v2 形态另给升级提示
   - 存在待迁移的旧单文件 `<任务目录>/conventions.md` 时不建空骨架
@@ -38,11 +38,11 @@ toolkit init --no-hooks               # 不写入 package.json 的 prepare 刷�
   - prettier 迹象的判据（任一）：已存在 `.prettierignore`、存在 prettier 配置文件、`package.json` 声明 prettier 依赖或含 `prettier` 键
   - 已有等价排除行（如 `/.tasks`）保持不动（报告为「保持」）；未见 prettier 迹象时跳过，并提示「项目启用 prettier 后重跑 `toolkit init` 会自动补上该排除行」
   - prettier 的 `--ignore-path` 默认同时读 `.gitignore` 与 `.prettierignore`，故新建此文件不影响既有忽略语义
-- 向 `package.json` 幂等补一行 `prepare` 钩子（值为 `toolkit skills install --scope project --refresh`）
+- 向 `package.json` 幂等补一行 `prepare` 钩子（值为 `toolkit skill install --scope project --refresh`）
   - 钩子只刷新已存在的项目面产物，不新增技能；非 TTY / CI 只打印漂移
   - 仅当本地依赖含 `@fxri/toolkit` 时写入：`dependencies` / `devDependencies` / `peerDependencies` / `optionalDependencies` 任一
   - 写入采用最小文本插入，保留原有排版
-  - 已有等价钩子（裸 `toolkit skills install --refresh` 亦可）保持不变
+  - 已有等价钩子（裸 `toolkit skill install --refresh` 亦可）保持不变
   - 旧版钩子（`--scope project` / 裸 `install`）原地升级为 `--refresh`；非等价 `prepare` 跳过并提示不覆盖
   - 未声明本地依赖、`package.json` 缺失或解析失败均跳过并说明；本包源仓库跳过；`--no-hooks` 关闭写入
 - ⚠️ 发布型包误打包检查**独立于钩子**：`package.json` 未标 `private` 且无 `files` 白名单时，报告附提示
@@ -50,7 +50,7 @@ toolkit init --no-hooks               # 不写入 package.json 的 prepare 刷�
   - 原因：`npm` 无 `.npmignore` 时退回 `.gitignore` 决定打包面，而项目面技能产物与内置任务区都不在忽略列表、会被打进包
   - 涉及产物：技能真源 `.agents/skills/`、各候选目录下的入口薄壳、归属账 `.toolkit/`，以及内置任务区 `.tasks/`（任务区外置时不计入）
   - 处置：发布型包请把它们加入 `files` 白名单或 `.npmignore`；`init` 只提示、不代改
-- 输出后续步骤与文档站链接；检测到尚未安装全局技能时，后续步骤中补一行 `toolkit skills install` 指引（规范触达第一层，不依赖项目内文件；已安装则不重复提示）
+- 输出后续步骤与文档站链接；检测到尚未安装全局技能时，后续步骤中补一行 `toolkit skill install` 指引（规范触达第一层，不依赖项目内文件；已安装则不重复提示）
 
 ⚠️ 入口壳写入项目级技能目录（`.agents/skills/`、`.trae/skills/` 等）属**侵入性行为**。`init` 在报告中逐项列出实际写入的路径与动作（存在几个候选目录就各写一份）。
 
@@ -58,10 +58,10 @@ toolkit init --no-hooks               # 不写入 package.json 的 prepare 刷�
 
 ⚠️ 重复执行安全：业务文件已存在一律保持不覆盖、不报错（逐项报告为「保持」）；唯一例外是**入口壳按标记版本分流**——标记不旧于当前版本时保持不变，标记落后或无标记时就地更新为当前版本（报告为「更新」）。
 
-⚠️ 任务区放项目外（独立文档仓库）：配置 `"task": { "dir": "../my-tasks-repo" }` 后，`init` 与全部 `tasks` 子命令都作用于该目录，一次配置永久生效。
+⚠️ 任务区放项目外（独立文档仓库）：配置 `"task": { "dir": "../my-tasks-repo" }` 后，`init` 与全部 `task` 子命令都作用于该目录，一次配置永久生效。
 
 `.gitignore` 片段仍写入当前项目。
 
 ## 相关页面
 
-- 参考：[快速开始 · 30 秒上手](../getting-started#_30-秒上手) · [技能分发](./skills)
+- 参考：[快速开始 · 30 秒上手](../getting-started#_30-秒上手) · [技能分发](./skill)

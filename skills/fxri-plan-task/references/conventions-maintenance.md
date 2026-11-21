@@ -24,8 +24,8 @@
 - 多个归属命中时各读一次，同一分册不重复读
 - 旧载体只有 `common.md` 时，归属写作 `common`、命中即读 `common.md`，行为不失效
 - 判定依据只有索引一行，因此「当前语义」须写明适用面，而不是完整条文
-- 「当前语义」超 120 字符时，`toolkit conventions status` 软告警提示改写为路由写法（何时适用 + 一句话要求）；
-  存量载体的归一清单见 `docs/cli/conventions.md`
+- 「当前语义」超 120 字符时，`toolkit convention status` 软告警提示改写为路由写法（何时适用 + 一句话要求）；
+  存量载体的归一清单见 `docs/cli/convention.md`
 
 ## 6. 写入判定（沉淀归属）
 
@@ -69,19 +69,19 @@
 - **判据**：内容行——任一行去缩进后若 `行 !== "| " + 各单元格以 " | " 相连 + " |"` 即为填充态；分隔行——横线被补长（超出规范形 `---`）亦属填充态，
    归一目标即 `---`（保留对齐标记 `:---` / `---:` / `:---:`）。同一判据既用于归一写入、也用于体检检出（本包 CLI 内实现）
 - **列数自洽**：任一张表的表头行与紧随其后的分隔行列数须相等——列数脱节是表结构损坏（多列提示漏删分隔格、少列提示漏补），渲染与解析都会错位；
-   `toolkit tasks check` / `toolkit conventions status` 对载体各文件（`index.md`、分册、`history.md`、`retired.md`）检出并软告警，
+   `toolkit task check` / `toolkit convention status` 对载体各文件（`index.md`、分册、`history.md`、`retired.md`）检出并软告警，
    跳过 fenced code block（块内表为示例、不参与检测）
 - **写入纪律**：手工建档、沉淀、归档时写表一律用紧凑形态，**不为对齐空格手工补齐**；工具自身写入的表格（`init` 骨架、`upgrade` 改写、`archive` 归档块）本就紧凑
 - **豁免托管**：`toolkit init` 检测到宿主疑似用 prettier 时幂等托管 `.prettierignore`、把任务区**整目录**排除，从源头不再被填充（本包源仓库自身、
    任务区在仓库外或即仓库根、无 prettier 迹象三种情形跳过；末者报告提示「项目启用 prettier 后重跑 `toolkit init` 会自动补上」）
-- **存量归一**：`toolkit conventions format` 把已存在的填充收敛回紧凑形态——只动单元格间距、分隔行横线长度与列对齐填充、**不改语义**，
+- **存量归一**：`toolkit convention format` 把已存在的填充收敛回紧凑形态——只动单元格间距、分隔行横线长度与列对齐填充、**不改语义**，
    跳过 fenced code block（代码块内原样保留），保留对齐标记（`:---` / `---:`）与行尾符，**幂等**（已紧凑时原样返回并报 `already-compact`），
    `--dry-run` 只预览行号不写盘；范围为任务区全部 md（载体各文件 + `active/` + `archive/`）。
    另把 `conventions/index.md` 的索引表单元格归一到 §2.2 的「单元格书写形态」：单一事实源中可解析到具体 `.md` 的路径
    （含载体外文件，裸写或反引号包裹）转相对链接，通配与不可解析项保持行内代码，归属去反引号与链接、规则去首尾引号；
    目标不可解析时原样保留并告警（不写死链），**当前语义不改写**、缺全角冒号只出清单。
    **归一不入 `history.md`**——属形态变更、非规范语义变更
-- **检出告警**：`toolkit conventions status` 与 `toolkit tasks check` 对填充态与索引表单元格形态偏离软告警（前者聚合为一条、后者逐文件一条），
+- **检出告警**：`toolkit convention status` 与 `toolkit task check` 对填充态与索引表单元格形态偏离软告警（前者聚合为一条、后者逐文件一条），
    含「归属为单个主题分册时源列须指向该分册」的一致性核对；只报形态、不阻断（`status` 退出码恒 0、`check` 计 warn）
 
 ## 10. 存量迁移
@@ -100,29 +100,29 @@ v1 / v2 / v3 都按目录形态正常读取，形态判据见 `conventions-migra
 - [ ] `conventions/` 存在时必有 `index.md`（缺则为形态异常）
 - [ ] 索引表首列为 `ID`，取值为 `C-<n>`：去补零、无重复、退休条目不复用其 ID
 - [ ] v3 形态必有 `history.md`，表头为 `ID | 修订内容 | 修订来源任务`，首列均为行内代码包裹的裸 ID `` `C-<n>` ``，
-   且不改旧行（表头首格非 `ID` 时 `toolkit tasks check` / `toolkit conventions status` 检出并软告警）
+   且不改旧行（表头首格非 `ID` 时 `toolkit task check` / `toolkit convention status` 检出并软告警）
 - [ ] `history.md`「修订内容」列无禁用语料：自指套话（「（本次起入表）」「新立条目：」）、重复索引列的条文去向（「条文全文落 X」）；
-   `toolkit tasks check` / `toolkit conventions status` 检出并软告警（见 §3.2）
+   `toolkit task check` / `toolkit convention status` 检出并软告警（见 §3.2）
 - [ ] `index.md` 索引表列集合恰为五列 `ID | 规则 | 当前语义 | 归属 | 单一事实源`，
-   列名与次序均无增删调换（`toolkit tasks check` / `toolkit conventions status` 检出并软告警）
-- [ ] 索引表不含「状态」「确立来源任务」两列（属 v2 遗留，升级时删除；`toolkit tasks check` / `toolkit conventions status` 检出并软告警）
-- [ ] 索引「当前语义」为路由写法（何时适用 + 一句话要求），超 120 字符时 `toolkit conventions status` 软告警提示改写
+   列名与次序均无增删调换（`toolkit task check` / `toolkit convention status` 检出并软告警）
+- [ ] 索引表不含「状态」「确立来源任务」两列（属 v2 遗留，升级时删除；`toolkit task check` / `toolkit convention status` 检出并软告警）
+- [ ] 索引「当前语义」为路由写法（何时适用 + 一句话要求），超 120 字符时 `toolkit convention status` 软告警提示改写
 - [ ] 索引表无已退休条目（退休条目已迁入 `retired.md`，其分册小节已删）
 - [ ] `retired.md` 若存在，表头为 `ID | 规则 | 退休时语义（冻结） | 归属 | 后继 | 退休来源任务 | 条文去向`
 - [ ] 载体各文件（`index.md`、分册、`history.md`、
-   `retired.md`）每张表的表头行与紧随分隔行列数一致（`toolkit tasks check` / `toolkit conventions status` 检出并软告警，
+   `retired.md`）每张表的表头行与紧随分隔行列数一致（`toolkit task check` / `toolkit convention status` 检出并软告警，
    跳过 fenced code block）
 - [ ] 载体内部引用均为 `` `C-<n>` ``，无残留裸「第 N 条」
 - [ ] 端清单非空且不含保留字 `index` / `common`
 - [ ] 索引表「归属」列取值为 `common`、端清单端名或已存在的分类标签分册名（无悬空指针）
 - [ ] 分册文件与端清单 + `common` + 分类标签对应，无孤立文件
 - [ ] 旧单文件 `conventions.md` 已迁移（不存在，或已提示待清理）
-- [ ] 有入口壳时其标记与当前 toolkit 一致（落后或无标记可重跑 `toolkit init` 就地更新）、且未被 `.gitignore` 覆盖（否则 `check` / `conventions status` 告警）
-- [ ] 载体与任务区表格为紧凑形态（无列对齐填充、无按列宽补长的分隔行横线；`toolkit conventions format` 可归一，`check` / `conventions status` 会检出）
+- [ ] 有入口壳时其标记与当前 toolkit 一致（落后或无标记可重跑 `toolkit init` 就地更新）、且未被 `.gitignore` 覆盖（否则 `check` / `convention status` 告警）
+- [ ] 载体与任务区表格为紧凑形态（无列对齐填充、无按列宽补长的分隔行横线；`toolkit convention format` 可归一，`check` / `convention status` 会检出）
 - [ ] 索引表单元格符合 `conventions-spec.md` §2.2 书写形态（单一事实源为链接或行内代码、归属裸值、当前语义含全角冒号；可解析路径未链接与归属 / 源列不一致均可检出）
 - [ ] 规范写入均经用户确认，来源可溯：活跃条目记于写入任务文件正文，退休条目记入 `retired.md` 的「退休来源任务」列
 - [ ] 分册内无「确立来源」行（来源由 `index.md` 索引列与 `history.md` / `retired.md` 承载；
-   `toolkit tasks check` / `toolkit conventions status` 检出并软告警，见 `conventions-templates.md`）
+   `toolkit task check` / `toolkit convention status` 检出并软告警，见 `conventions-templates.md`）
 
 ## 13. 载体文风与模板
 
@@ -138,6 +138,6 @@ const naked = scanChangesetLines(...)
 ```
 
 - 标注位置：源码注释、聚合验收脚本内的步骤、单元测试断言等任何可被检索的位置；
-- `toolkit conventions status` 反向统计：`checkCoverage.covered` / `uncovered` / `unknownIds`，一句话结论追加「其中 N 条无检测入口」；
+- `toolkit convention status` 反向统计：`checkCoverage.covered` / `uncovered` / `unknownIds`，一句话结论追加「其中 N 条无检测入口」；
 - 只作可见度统计，不阻断；语义类规范（文风、用词）允许长期无检测入口；
 - 引用索引中不存在的 ID（拼写错误、条目已退休）以 info 提示，由人工核对。

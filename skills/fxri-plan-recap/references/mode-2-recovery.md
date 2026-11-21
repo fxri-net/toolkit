@@ -4,7 +4,7 @@
 
 > 目标：新会话快速重建现场。恢复范围覆盖全部任务（含已归档），但按层级控制上下文成本。
 
-1. **L0 全量索引**：`toolkit tasks --view all`（无 CLI 时读目录）——active 全部 + archived 全部历史一行一条 + `toolkit tasks stats`
+1. **L0 全量索引**：`toolkit task --view all`（无 CLI 时读目录）——active 全部 + archived 全部历史一行一条 + `toolkit task stats`
     周期统计；一眼看清全貌，不漏任何历史任务
 2. **L1 工作层精读**：逐文件读 `.tasks/active/` 全部任务（决策、进展、阻塞）。⚠️ **搁置处理**：`status: 搁置` 的任务只读摘要
    （frontmatter + 正文 `## 搁置` 四行：搁置原因 / 重启条件 / 进度锚点 / 搁置日期），不读全文、不列入「建议的下一步」；`updated` 距今超 90 天提示复核、超 1 年建议终结
@@ -15,12 +15,12 @@
 4. **按需拉取**：更早历史（含空洞隔断的旧归档）不主动展开，在 L0 索引可见；用户点名、或 AI 判断相关时用 `--owner`/`--date` 过滤检索；用户明确说「全部恢复」才全量列出
 5. **规范核对与提炼**：读 conventions 载体（存在时）纳入现场——常驻只读 `index.md`（`history.md` / `retired.md` 与各分册按需读），
     再按任务 `scope` 命中加载 `common.md` 与端分册；
-    载体为 v1 / v2 或 `check` / `toolkit conventions status` 报形态告警时提示用户可升级（升级链路见
+    载体为 v1 / v2 或 `check` / `toolkit convention status` 报形态告警时提示用户可升级（升级链路见
     `../../fxri-plan-task/references/conventions-migration.md`；
-    该兄弟路径不存在时改读包内真源——`toolkit skills status` 打印的「技能源」目录下同名文件）；对照近期任务按主文件「规范提炼子流程」提议增改——⚠️ 恢复主体只读，
+    该兄弟路径不存在时改读包内真源——`toolkit skill status` 打印的「技能源」目录下同名文件）；对照近期任务按主文件「规范提炼子流程」提议增改——⚠️ 恢复主体只读，
     写载体是用户确认后的独立动作
 6. **输出**：全部任务索引摘要 → 进行中/阻塞任务（含搁置标注）→ **搁置项一行计数**
-   （`搁置 N 项，其中 M 项超 90 天`，M 为 0 只给前半句；天数取 `toolkit tasks --status 搁置` 的 `heldDays`，
+   （`搁置 N 项，其中 M 项超 90 天`，M 为 0 只给前半句；天数取 `toolkit task --status 搁置` 的 `heldDays`，
    CLI 不可用时按正文「搁置日期」同口径读取）→ 最近完成（连续活跃期内，不含空洞旧档）→ 未完事项
    → **多任务执行顺序**（会话留有展示型计划表则按表；无表时按各 active 任务正文的「批次 / 计划位置 / 前置」行重建）
    → 规范现场 → **建议的下一步**（搁置项不进此项）

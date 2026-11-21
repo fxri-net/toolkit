@@ -42,7 +42,7 @@ const composed = computed(() => {
 })
 const latest = computed(() => selectedModules.value.map((mod) => mod.anchor).sort().pop() ?? "")
 const envHint = computed(() => selected.value.includes("env") && !selected.value.includes("workflow"))
-const cliCommand = computed(() => `toolkit rules compose ${selected.value.map((id) => `--module ${id}`).join(" ")}`)
+const cliCommand = computed(() => `toolkit rule compose ${selected.value.map((id) => `--module ${id}`).join(" ")}`)
 const charCount = computed(() => composed.value.length)
 
 // 记住选择（仅模块有序列表）；存储不可用时只在本次会话内保留

@@ -3,7 +3,7 @@
 > 本文件为 `conventions-spec.md` 的配套规范，承载载体的文风与模板层（T1–T6）。新建载体、归一存量载体文风，或按机械判定处置文风偏离时加载；结构层见 `conventions-spec.md` §1–§3。
 
 多个仓库的载体在结构上早已一致，分歧集中在头注、用法说明骨架、引用写法、条文格式、规范词与标点这些原先未规定的层面；以下 T1–T6 为**唯一形态**，新载体照此起步、存量载体照此归一，
-偏离由 `toolkit conventions status` / `toolkit tasks check` 按可机械判定者软告警（只报不改，交人工确认）。
+偏离由 `toolkit convention status` / `toolkit task check` 按可机械判定者软告警（只报不改，交人工确认）。
 
 ## T1 index 头注固定两行
 
@@ -65,7 +65,7 @@
 - 子项以 `- **{名}**：` 起头（全角冒号），内容用规范词（见 T5）
 - **分册内不得写「确立来源」子项**：来源已由 `index.md` 索引行（活跃条目）与 `history.md` / `retired.md`（留痕与退休）承载，
    分册内重复即违反 `conventions-spec.md` §1.1 不变量 I4；
-   `toolkit conventions status` / `toolkit tasks check` 对残留行软告警（跳过 fenced code block）
+   `toolkit convention status` / `toolkit task check` 对残留行软告警（跳过 fenced code block）
 
 ## T5 规范词分级
 
@@ -85,6 +85,6 @@
 
 ## T6 标点与代码
 
-- 标识符、文件路径、文件名、命令、配置项、规则 ID 一律用**行内代码**包裹（如 `C-17`、`index.md`、`toolkit conventions status`、`scope`）
+- 标识符、文件路径、文件名、命令、配置项、规则 ID 一律用**行内代码**包裹（如 `C-17`、`index.md`、`toolkit convention status`、`scope`）
 - 引述、术语与举例名的引号按项目主语言惯例取用（本仓中文口径：全角直角引号「」），不用书名号替代引号
 - 中英文混排的空格处理随仓库既有排版习惯，不作硬性要求
