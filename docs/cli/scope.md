@@ -105,7 +105,7 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 - 仅在 argv 恰为 `scope guard <技能名>` 时走快速路径（不加载完整命令集）；带其它参数（含 `--help`）回落常规 CLI
 - 入口壳只降低正文被读取的概率，不是物理隔离；需要绝对干净用 `skills mount` 或 `skills install --scope project` 做项目面安装
 - `toolkit skills install --embed` 可随时回退为全文安装
-- 联动提示：矩阵已配置但闸门未开启时，`scope status` / `scope skills list` / `skills status` 提示正文仍全量加载；
+- 联动提示：矩阵已配置但闸门未开启时，`scope status` / `scope skills list` / `skills status`（项目面）提示正文仍全量加载；
   策略限制的技能未被闸门接管时提示「策略无效：技能仍全文加载」
 
 ## 判定顺序

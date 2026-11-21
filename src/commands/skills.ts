@@ -6,7 +6,7 @@ import { assertJsonFormat } from "../json-output"
 import { exitWithCancel, isInteractive, runInteractive } from "../prompts"
 import { assertChoice } from "../cli-ui"
 import { runScopeMount } from "../scope/wizard"
-import { analyzeSkillLinkage, formatLinkageHints } from "../scope/linkage"
+import { analyzeSkillLinkage, formatLinkageHints, type SkillLinkageReport } from "../scope/linkage"
 import { collectSkillVersionUpdates, type SkillVersionReport } from "../skills/version-status"
 import { versionGt } from "../version"
 import {
@@ -388,12 +388,6 @@ function printStatusReport(report: SkillsStatusReport): void {
     console.log(`   确认不再需要时执行：toolkit skills uninstall --scope global --skills ${staleNames}`)
     console.log("   实跑前可加 --dry-run 预演")
   }
-  // 技能矩阵联动：闸门未接管、策略失效与已安装但矩阵未允许的技能；只提示，不自动删除
-  const linkageHints = formatLinkageHints(analyzeSkillLinkage())
-  if (linkageHints.length > 0) {
-    console.log("")
-    for (const hint of linkageHints) console.log(line.hint(`  ${hint}`))
-  }
   console.log("")
   console.log(
     problems > 0
@@ -700,12 +694,13 @@ function printVersionStatus(info: {
   }
 }
 
-// 打印状态报告（按作用域分派到对应面）
+// 打印状态报告（按作用域分派到对应面）；矩阵联动按项目面评估，全局面说明未评估
 function printStatusReports(
   scope: { choice: ScopeChoice; explicit: boolean },
   glob: SkillsStatusReport | null,
   project: ProjectStatusReport | null,
   versionInfo: Parameters<typeof printVersionStatus>[0],
+  linkage: SkillLinkageReport | null,
 ): void {
   printVersionStatus(versionInfo)
   console.log("")
@@ -718,6 +713,17 @@ function printStatusReports(
     console.log("")
     printStatusReport(glob)
   }
+  if (!linkage) {
+    console.log("")
+    console.log(line.hint("全局面未评估技能矩阵联动；查看项目面请用 toolkit skills status --scope project"))
+    return
+  }
+  // 矩阵联动：闸门未接管、策略失效与已安装但矩阵未允许的技能；只提示，不自动删除
+  const hints = formatLinkageHints(linkage)
+  if (hints.length === 0) return
+  console.log("")
+  console.log("技能矩阵联动：")
+  for (const hint of hints) console.log(line.hint(`  ${hint}`))
 }
 
 // 打印卸载报告（按作用域分派到对应面）
@@ -1042,10 +1048,12 @@ export function registerSkillsCommands(program: Command): void {
           checkedAt: timing.checkedAt === null ? null : new Date(timing.checkedAt).toISOString(),
           nextHintAt: timing.nextHintAt === null ? null : timing.nextHintAt === 0 ? "now" : new Date(timing.nextHintAt).toISOString(),
         }
+        // 矩阵联动只在项目面评估：全局面没有项目目录，JSON 与文本同口径输出 null / 说明
+        const linkage = scope.choice === "global" ? null : analyzeSkillLinkage()
         if (options.format === "json") {
           const withUpdates = <T extends object>(report: T | null) =>
             report ? { ...report, skillsOutdated: updates.builtin.map((item) => item.name) } : null
-          printJson({ scope: scope.choice, versionStatus, global: withUpdates(global), project: withUpdates(project) })
+          printJson({ scope: scope.choice, versionStatus, linkage, global: withUpdates(global), project: withUpdates(project) })
         } else {
           printStatusReports(scope, global, project, {
             cliVersion: version,
@@ -1060,7 +1068,7 @@ export function registerSkillsCommands(program: Command): void {
             updates,
             sources: sourceRows,
             timing,
-          })
+          }, linkage)
         }
       } catch (e) {
         console.error(`⚠️ 读取状态失败：${(e as Error).message}`)

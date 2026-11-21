@@ -104,9 +104,10 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
   - 只提示不自动删除，指引用 `remove` 清理
 - **疑似残留**：未在任何来源或状态登记、但指向技能源缓存（`~/.toolkit/cache/skill-sources/`）或本包技能目录的链接，单列「疑似残留（仅提示）」
   - 只报告不删除；给出含实际名字的 `uninstall` 命令
+- **矩阵联动**：仅项目面评估，全局面不评估并说明
 - **canonical 共读**：本机已安装且经 canonical 共读的 agent（按探测路径判定）另单列一行说明其读取主目标、无需单独写入
 - 项目面按「作用域」节体检
-- `--format json` 输出机器可读报告到 stdout（含 `scope`、`versionStatus`、`selection` 与 `targetSelection`）
+- `--format json` 输出机器可读报告到 stdout（含 `scope`、`versionStatus`、`linkage`、`selection` 与 `targetSelection`）
   - 两面报告含 `skillVersions`；全局面另含 `canonicalReaders` 与 `legacyTargets`
   - 真源不可读时版本用状态登记值兜底，同名技能列入 `skillVersionsFromState`，人读视图标注「（登记值）」，不冒充当期真源版本
   - 折叠不丢信息（替代人读版），无末尾汇总行
@@ -170,6 +171,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 | `install` / `status` / `uninstall` | `scope`（本次实际作用域）、`dryRun`（区分预演与实跑）；报告主体按 `global` / `project` 分面承载，未执行的面为 `null` |
 | `install` / `status` | `mode`（当前安装模式）、`selection`（技能选择集）、`targetSelection`（目标选择集） |
 | `status` | 两面报告另含 `skillVersions`（各技能真源版本，用于与会话上下文中已加载的技能内容对照）与 `skillVersionsFromState`（版本取自状态登记的技能名） |
+| `status` | `linkage` 为矩阵联动结论，全局面为 `null`，与文本提示同口径 |
 
 ## 技能选择
 
@@ -236,11 +238,9 @@ monorepo 子目录执行亦能命中项目面；**本包源仓库自身视为 `g
 ⚠️ **项目面归属账**：产物登记在 `<仓库根>/.toolkit/state.json`，含真源副本、各薄壳目录与逐技能条目（名称 / 版本 / 形态），路径均仓库根相对、随 git 分发。
 `remove` 只清账内条目，不碰账外同名产物；卸载时真源副本内容与包内真源一致才删、薄壳带本包标记才删，其余交人工确认。
 
-⚠️ **项目面逐技能状态**（`status` 口径）：取值 `已就绪` / `已漂移`（内容与真源或期望不一致）/ `同名冲突`（非本包产物）/
-`缺失`（仅指已选择但缺失）/ `未选择但已安装`（单列提示，不计入问题）。
+⚠️ **项目面逐技能状态**（`status` 口径）：取值与全局面同一套，未选择但已安装单列提示、不计入问题。
 来源改名的旧副本命中曾用名时，漂移项后标注「已改名为 X，确认后手工删除旧副本」；项目面副本无从校验旧真源，不自动删除。
-选择集非空时另打印一行「来源内未选择」汇总（不在选择集、也不计入问题），与全局面同口径。
-健康目录折叠为一行，仅异常项逐条展开；漂移与缺失用 `install --scope project` 补齐，同名冲突加 `--force` 覆盖，未选择产物需要清理时加 `--prune`。
+「来源内未选择」汇总与折叠、补齐口径同全局面：漂移与缺失用 `install --scope project` 补齐，同名冲突加 `--force`，未选择产物清理加 `--prune`。
 
 ⚠️ **clone 即用**：项目面真源副本与归属账随 git 入库，队友 clone 后无需重跑 `skills install` 即开箱可用。
 `toolkit init` 在本地依赖含 `@fxri/toolkit` 时，向 `package.json` 补 `prepare` 钩子（`toolkit skills install --scope project`），

@@ -501,6 +501,56 @@ describe("顶层命令与外部域", () => {
     }
   })
 
+  // 矩阵联动只在项目面评估：独立项目目录写入矩阵策略后 chdir 运行，避免读到仓库自身配置
+  describe("skills status 矩阵联动口径", () => {
+    const matrixProject = join(sandbox, "matrix-project")
+
+    function writeMatrixProject(): void {
+      mkdirSync(join(matrixProject, ".tasks"), { recursive: true })
+      writeFileSync(
+        join(matrixProject, ".toolkitrc.json"),
+        JSON.stringify({ policies: [{ id: "matrix", effect: "allow", skills: { mode: "allowlist", allow: ["fxri-plan-review"] } }] }),
+        "utf8",
+      )
+    }
+
+    async function inMatrixProject(run: () => Promise<void>): Promise<void> {
+      const cwd = process.cwd()
+      process.chdir(matrixProject)
+      try {
+        await run()
+      } finally {
+        process.chdir(cwd)
+      }
+    }
+
+    it("项目面输出联动提示，全局面跳过并说明未评估", async () => {
+      writeMatrixProject()
+      await inMatrixProject(async () => {
+        const project = await runCli(["skills", "status", "--scope", "project"])
+        expect(project.code).toBe(0)
+        expect(project.log.join("\n")).toContain("技能矩阵联动")
+        expect(project.log.join("\n")).toContain("矩阵已配置，但正文仍全量加载")
+        const global = await runCli(["skills", "status", "--scope", "global"])
+        expect(global.code).toBe(0)
+        expect(global.log.join("\n")).toContain("全局面未评估技能矩阵联动")
+        expect(global.log.join("\n")).not.toContain("矩阵已配置，但正文仍全量加载")
+      })
+    })
+
+    it("JSON 的 linkage 与 scope 对应：项目面为对象，全局面为 null", async () => {
+      writeMatrixProject()
+      await inMatrixProject(async () => {
+        const project = await runCli(["skills", "status", "--scope", "project", "--format", "json"])
+        const projectPayload = JSON.parse(project.log.join("\n")) as { linkage: { matrixConfigured: boolean } | null }
+        expect(projectPayload.linkage?.matrixConfigured).toBe(true)
+        const global = await runCli(["skills", "status", "--scope", "global", "--format", "json"])
+        const globalPayload = JSON.parse(global.log.join("\n")) as { linkage: unknown }
+        expect(globalPayload.linkage).toBeNull()
+      })
+    })
+  })
+
   it("conventions status：只读体检退出码 0", async () => {
     const r = await runCli(["conventions", "status", "--dir", missingTasksDir])
     expect(r.code).toBe(0)
