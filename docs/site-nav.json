@@ -67,6 +67,7 @@
             { "text": "发版与更新日志", "link": "/cli/changelog" },
             { "text": "技能分发", "link": "/cli/skills" },
             { "text": "技能校验", "link": "/cli/skills-lint" },
+            { "text": "技能版本", "link": "/cli/skills-bump" },
             { "text": "技能来源", "link": "/cli/skills-sources" },
             { "text": "技能使用情况", "link": "/cli/usage" },
             { "text": "全局规则", "link": "/cli/rules" },

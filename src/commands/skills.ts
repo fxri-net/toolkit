@@ -1254,15 +1254,26 @@ export function registerSkillsCommands(program: Command): void {
   // 技能版本递增：只改 skills/<name>/SKILL.md 的 frontmatter 与正文首部两处版本声明
   skillsCmd
     .command("bump")
-    .description("递增技能版本（两处版本声明同源改写；--all 批量、--set 直接设定）")
+    .description("递增技能版本（两处版本声明同源改写；--all 批量、--set 直接设定、--dir 支持外部目录）")
     .argument("[name]", "技能名；与 --all 二选一")
     .argument("[type]", "patch / minor / major（缺省 patch）")
-    .option("--all", "批量递增 skills/ 下全部技能")
+    .option("--all", "批量递增技能目录下的全部技能")
+    .option("--dir <path>", "技能目录（可重复；缺省为本包 skills/）", collectDir, [])
     .option("--set <version>", "直接设定版本（与递增类型互斥）")
+    .option("--from <source>", "两处版本不一致时的取值源头：frontmatter / body（缺省报错）")
     .option("--dry-run", "只打印变更，不写盘")
     .option("--yes", "批量写入时跳过确认（非交互环境必须显式给出）")
+    .option("--json", "输出格式（等价于 --format json）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
-    .action(async (name: string | undefined, type: string | undefined, options: { all?: boolean; set?: string; dryRun?: boolean; yes?: boolean; format?: string }) => {
+    .addHelpText(
+      "after",
+      [
+        "",
+        "外部仓用法：toolkit skills bump --dir skills --all patch",
+        "两处版本不一致时默认报错；用 --from frontmatter|body 显式选择源头后再递增",
+      ].join("\n"),
+    )
+    .action(async (name: string | undefined, type: string | undefined, options: { all?: boolean; dir?: string[]; set?: string; from?: string; dryRun?: boolean; yes?: boolean; json?: boolean; format?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return
         if (options.all && name) {
@@ -1287,6 +1298,7 @@ export function registerSkillsCommands(program: Command): void {
           process.exitCode = 1
           return
         }
+        if (!assertChoice(options.from, ["frontmatter", "body"], "--from", "，未写入任何文件")) return
         // 批量写按同一风险阈值：确认后再写，非交互须显式 --yes，--dry-run 只打印
         if (options.all && !options.dryRun && options.yes !== true) {
           const action = options.set ? `把全部技能的版本设为 ${options.set}` : `把全部技能按 ${kind} 递增`
@@ -1306,14 +1318,15 @@ export function registerSkillsCommands(program: Command): void {
           }
         }
         const results = bumpSkillVersions({
-          skillsDir: join(process.cwd(), "skills"),
+          skillsDirs: options.dir && options.dir.length > 0 ? options.dir : [join(process.cwd(), "skills")],
           names: name ? [name] : undefined,
           all: options.all,
           type: kind as "patch" | "minor" | "major",
           set: options.set,
+          from: options.from as "frontmatter" | "body" | undefined,
           dryRun: options.dryRun,
         })
-        if (options.format === "json") printJson({ dryRun: Boolean(options.dryRun), skills: results })
+        if (options.json || options.format === "json") printJson({ dryRun: Boolean(options.dryRun), skills: results })
         else for (const item of results) console.log(`${options.dryRun ? "[预演] " : ""}${item.name}：${item.from} → ${item.to}（${item.file}）`)
       } catch (e) {
         console.error(`⚠️ 递增失败：${(e as Error).message}`)

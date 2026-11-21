@@ -6,10 +6,10 @@ import { basename, dirname, join, relative, resolve, sep } from "node:path"
 import { readTextFile } from "../read-text"
 import { matchGlob } from "../scope/glob"
 import { versionGt } from "../version"
-import { parseSkillVersion, readFrontmatterVersionFromContent } from "./bump"
-import { readSkillBodyVersion, readSkillFrontmatterValue, readSkillName, readSkillVersion } from "./source/metadata"
+import { readSkillFrontmatterValueFromContent } from "./source/metadata"
 import { skillsSourceDir } from "./source/package"
 import { isInside, realPath, toRepoRel } from "./source/paths"
+import { STRICT_SKILL_VERSION, parseSkillVersion, readBodyVersionFromContent, readFrontmatterVersionFromContent } from "./versioning"
 
 // 技能标识文件与 references 目录
 const SKILL_ENTRY = "SKILL.md"
@@ -18,7 +18,7 @@ const REFERENCES_DIR = "references"
 const DEFAULT_PREFIX = "fxri-"
 const DIR_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 // 版本号严格三段式：技能版本独立于产品包版本，不接受预发布后缀
-const STRICT_VERSION_PATTERN = /^\d+\.\d+\.\d+$/
+const STRICT_VERSION_PATTERN = STRICT_SKILL_VERSION
 // 入口篇幅默认档：150 行 / 8000 字符只告警，200 行 / 12000 字符报错
 const DEFAULT_WARN_LINES = 150
 const DEFAULT_MAX_LINES = 200
@@ -45,6 +45,10 @@ export interface SkillLintOptions {
   ignore?: string[]
   // 目录名前缀
   prefix?: string
+  // 只校验指定技能名（供 bump 写回后的定向校验）
+  skills?: string[]
+  // 内存内容覆盖：绝对路径 → 文本；供 bump 在落盘前校验待写内容
+  contents?: Map<string, string>
 }
 
 export interface SkillLintIssue {
@@ -113,6 +117,14 @@ function displayPath(file: string): string {
 // 文本归一：统一换行，BOM 已由 readTextFile 去除；行尾差异不参与内容比较
 function normalizeText(text: string): string {
   return text.replace(/\r\n/g, "\n")
+}
+
+// 内容读取：优先取内存覆盖（bump 预演与写回前校验），否则读磁盘
+type ContentOverrides = Map<string, string>
+
+function contentOf(file: string, overrides: ContentOverrides): string {
+  const key = file.replace(/\\/g, "/").toLowerCase()
+  return overrides.get(key) ?? readTextFile(file)
 }
 
 // 行数：不把文件末尾换行形成的空行计入
@@ -273,11 +285,11 @@ function referenceCandidates(ref: string, fileDir: string, target: SkillTarget):
 }
 
 // references 检查：只校验落在 references/ 路径面的引用；可达性按技能根与检查根兜底，越出检查根即报错
-function checkReferences(target: SkillTarget, files: SkillFile[], issues: SkillLintIssue[]): void {
+function checkReferences(target: SkillTarget, files: SkillFile[], issues: SkillLintIssue[], overrides: ContentOverrides): void {
   const unresolved = new Map<string, string>()
   for (const file of files) {
     if (!file.rel.endsWith(".md")) continue
-    const text = readTextFile(file.abs)
+    const text = contentOf(file.abs, overrides)
     for (const ref of markdownReferences(text)) {
       // 检查面只覆盖 references 路径：仓库级文档（SPEC.md / AGENTS.md）不属技能引用
       if (!ref.replace(/\\/g, "/").includes(`${REFERENCES_DIR}/`)) continue
@@ -297,11 +309,11 @@ function checkReferences(target: SkillTarget, files: SkillFile[], issues: SkillL
 }
 
 // 未被入口或同技能文档引用的 references 文件：只告警，避免拆档后留下死文件
-function checkUnusedReferences(target: SkillTarget, files: SkillFile[], issues: SkillLintIssue[]): void {
+function checkUnusedReferences(target: SkillTarget, files: SkillFile[], issues: SkillLintIssue[], overrides: ContentOverrides): void {
   const referenced = new Set<string>()
   for (const file of files) {
     if (!file.rel.endsWith(".md")) continue
-    for (const ref of markdownReferences(readTextFile(file.abs))) referenced.add(basename(ref))
+    for (const ref of markdownReferences(contentOf(file.abs, overrides))) referenced.add(basename(ref))
   }
   for (const file of files) {
     if (!file.rel.startsWith(`${REFERENCES_DIR}/`)) continue
@@ -311,11 +323,11 @@ function checkUnusedReferences(target: SkillTarget, files: SkillFile[], issues: 
 }
 
 // 敏感信息扫描：入口与 references 内容同时生效，命中即错误
-function checkSensitive(target: SkillTarget, files: SkillFile[], issues: SkillLintIssue[]): void {
+function checkSensitive(target: SkillTarget, files: SkillFile[], issues: SkillLintIssue[], overrides: ContentOverrides): void {
   for (const file of files) {
     const inFace = file.rel === SKILL_ENTRY || file.rel.startsWith(`${REFERENCES_DIR}/`)
     if (!inFace || !file.rel.endsWith(".md")) continue
-    const text = normalizeText(readTextFile(file.abs))
+    const text = normalizeText(contentOf(file.abs, overrides))
     for (const pattern of SENSITIVE_PATTERNS) {
       const matched = pattern.re.exec(text)
       if (!matched) continue
@@ -326,8 +338,8 @@ function checkSensitive(target: SkillTarget, files: SkillFile[], issues: SkillLi
 }
 
 // 入口篇幅：字符硬上限与行数两档阈值；超硬上限报错，超告警线只告警
-function checkBudget(entry: string, issues: SkillLintIssue[], options: { warnLines: number; maxLines: number; budget: number; warnChars: number }): void {
-  const text = normalizeText(readTextFile(entry))
+function checkBudget(entry: string, issues: SkillLintIssue[], options: { warnLines: number; maxLines: number; budget: number; warnChars: number }, overrides: ContentOverrides): void {
+  const text = normalizeText(contentOf(entry, overrides))
   const chars = text.length
   const lines = countLines(text)
   const hard = chars > options.budget || lines > options.maxLines
@@ -375,7 +387,7 @@ function resolveBaseRepo(target: SkillTarget, base: string, cache: Map<string, B
 }
 
 // 版本递增校验：技能内容相对基准有变更时，当前版本必须高于基准版本
-function checkVersionBump(target: SkillTarget, files: SkillFile[], base: string, repo: BaseRepoInfo, issues: SkillLintIssue[]): void {
+function checkVersionBump(target: SkillTarget, files: SkillFile[], base: string, repo: BaseRepoInfo, issues: SkillLintIssue[], overrides: ContentOverrides): void {
   const repoRoot = repo.root
   if (!repoRoot) return
   const rel = toRepoRel(repoRoot, target.dir)
@@ -410,7 +422,7 @@ function checkVersionBump(target: SkillTarget, files: SkillFile[], base: string,
     pushIssue(issues, join(target.dir, SKILL_ENTRY), "error", "base-version-missing", `相对基准 ${base} 有内容变更，但基准版本缺失或非法，无法校验递增`)
     return
   }
-  const version = readSkillVersion(target.dir)
+  const version = readFrontmatterVersionFromContent(contentOf(join(target.dir, SKILL_ENTRY), overrides))
   if (!STRICT_VERSION_PATTERN.test(version)) return
   if (!versionGt(version, baseVersion)) {
     pushIssue(
@@ -432,10 +444,10 @@ interface LintRules {
   prefix: string
 }
 
-function lintSkill(target: SkillTarget, options: LintRules, issues: SkillLintIssue[]): SkillFile[] {
+function lintSkill(target: SkillTarget, options: LintRules, issues: SkillLintIssue[], overrides: ContentOverrides): SkillFile[] {
   const entry = join(target.dir, SKILL_ENTRY)
   const files = walkSkillFiles(target, issues)
-  const content = normalizeText(readTextFile(entry))
+  const content = normalizeText(contentOf(entry, overrides))
   // 目录命名：小写 kebab 且带约定前缀
   if (!DIR_NAME_PATTERN.test(target.name) || !target.name.startsWith(options.prefix)) {
     pushIssue(issues, entry, "error", "dir-name", `技能目录名须为小写 kebab 且以 ${options.prefix || "（空前缀）"} 开头：${target.name}`)
@@ -445,24 +457,24 @@ function lintSkill(target: SkillTarget, options: LintRules, issues: SkillLintIss
     pushIssue(issues, entry, "error", "frontmatter-missing", "缺少 frontmatter 块")
   }
   for (const field of REQUIRED_FIELDS) {
-    if (!readSkillFrontmatterValue(target.dir, field)) pushIssue(issues, entry, "error", "field-missing", `frontmatter 缺少必填字段：${field}`)
+    if (!readSkillFrontmatterValueFromContent(content, field)) pushIssue(issues, entry, "error", "field-missing", `frontmatter 缺少必填字段：${field}`)
   }
-  const name = readSkillName(target.dir)
+  const name = readSkillFrontmatterValueFromContent(content, "name")
   if (name && name !== target.name) pushIssue(issues, entry, "error", "name-mismatch", `frontmatter name 与目录名不一致：${name} ≠ ${target.name}`)
-  const tier = readSkillFrontmatterValue(target.dir, "tier")
+  const tier = readSkillFrontmatterValueFromContent(content, "tier")
   if (tier && !TIERS.includes(tier)) pushIssue(issues, entry, "error", "tier-invalid", `metadata.tier 仅支持 ${TIERS.join(" / ")}：${tier}`)
   // 版本：严格三段式 + 正文双写一致
-  const version = readSkillVersion(target.dir)
+  const version = readFrontmatterVersionFromContent(content)
   if (version && !STRICT_VERSION_PATTERN.test(version)) pushIssue(issues, entry, "error", "version-format", `metadata.version 须为严格 x.y.z：${version}`)
-  const bodyVersion = readSkillBodyVersion(target.dir)
+  const bodyVersion = readBodyVersionFromContent(content)
   if (!bodyVersion) pushIssue(issues, entry, "error", "body-version-missing", "正文缺少「本技能版本」声明")
   else if (version && bodyVersion !== version) {
     pushIssue(issues, entry, "error", "version-mismatch", `版本双写位不一致：frontmatter ${version} / 正文 ${bodyVersion}`)
   }
-  checkBudget(entry, issues, options)
-  checkReferences(target, files, issues)
-  checkUnusedReferences(target, files, issues)
-  checkSensitive(target, files, issues)
+  checkBudget(entry, issues, options, overrides)
+  checkReferences(target, files, issues, overrides)
+  checkUnusedReferences(target, files, issues, overrides)
+  checkSensitive(target, files, issues, overrides)
   return files
 }
 
@@ -476,6 +488,8 @@ export function lintSkills(options: SkillLintOptions = {}): SkillLintReport {
   const warnChars = Math.floor(maxChars * WARN_CHARS_RATIO)
   const dirs = options.dirs && options.dirs.length > 0 ? options.dirs : [skillsSourceDir()]
   const { targets, ignored } = collectTargets(dirs, options.ignore ?? [], issues)
+  // 内存覆盖键归一：Windows 路径分隔符与大小写差异不影响命中
+  const overrides: ContentOverrides = new Map([...(options.contents ?? [])].map(([file, content]) => [file.replace(/\\/g, "/").toLowerCase(), content]))
 
   // 同名技能会互相覆盖安装产物，跨检查根同样拒绝
   const byName = new Map<string, SkillTarget>()
@@ -488,20 +502,24 @@ export function lintSkills(options: SkillLintOptions = {}): SkillLintReport {
     pushIssue(issues, join(target.dir, SKILL_ENTRY), "error", "duplicate-name", `技能名重复：${target.name}（另见 ${displayPath(join(seen.dir, SKILL_ENTRY))}）`)
   }
 
+  // 定向校验：bump 只关心本次递增的技能
+  const wanted = options.skills && options.skills.length > 0 ? new Set(options.skills) : null
+  const selected = wanted ? targets.filter((target) => wanted.has(target.name)) : targets
+
   const base = options.base ?? null
   const repoCache = new Map<string, BaseRepoInfo>()
   let baseSkipped: string | null = null
   const files: string[] = []
-  for (const target of targets) {
+  for (const target of selected) {
     files.push(displayPath(join(target.dir, SKILL_ENTRY)))
-    const skillFiles = lintSkill(target, { warnLines, maxLines, budget: maxChars, warnChars, prefix }, issues)
+    const skillFiles = lintSkill(target, { warnLines, maxLines, budget: maxChars, warnChars, prefix }, issues, overrides)
     if (!base) continue
     const repo = resolveBaseRepo(target, base, repoCache)
     if (repo.skip) {
       if (!baseSkipped) baseSkipped = repo.skip
       continue
     }
-    checkVersionBump(target, skillFiles, base, repo, issues)
+    checkVersionBump(target, skillFiles, base, repo, issues, overrides)
   }
 
   const sorted = issues.sort((a, b) => a.file.localeCompare(b.file) || (a.line ?? 0) - (b.line ?? 0) || a.code.localeCompare(b.code))
@@ -510,7 +528,7 @@ export function lintSkills(options: SkillLintOptions = {}): SkillLintReport {
     files: files.sort(),
     issues: sorted,
     summary: {
-      skills: targets.length,
+      skills: selected.length,
       errors,
       warnings: sorted.length - errors,
       ignored,

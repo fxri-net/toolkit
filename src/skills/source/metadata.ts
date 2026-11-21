@@ -3,6 +3,7 @@ import { existsSync, lstatSync, readdirSync } from "node:fs"
 import { basename, join, resolve } from "node:path"
 import { readTextFile } from "../../read-text"
 import { SKILL_ENTRY, type PackageSkill, type SkillTier, type SkillVersionMismatch } from "../types"
+import { readBodyVersionFromContent } from "../versioning"
 import { skillsSourceDir } from "./package"
 import { isInside, realPath } from "./paths"
 
@@ -88,25 +89,25 @@ export function readSkillBodyVersion(dir: string): string {
   }
 }
 
-// 从文本内容读取正文版本声明：供技能文件与 git 基准内容共用同一解析口径
-export function readBodyVersionFromContent(content: string): string {
-  const matched = content.match(/^>[ \t]*本技能版本[ \t]*([^ \t（(]+)/m)
-  return matched ? (matched[1] ?? "").trim() : ""
-}
-
 // 读取 frontmatter 键值：先按顶层键解析（name / description / license），再回落到 metadata 缩进键
 // 校验需要区分「未声明」与「声明为空」，故统一走本入口，不另写第二套解析
 export function readSkillFrontmatterValue(dir: string, key: string): string {
   try {
-    const content = readTextFile(join(dir, SKILL_ENTRY))
-    const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
-    if (!frontmatter) return ""
-    const matched = (frontmatter[1] ?? "").match(new RegExp(`^${key}:[ \\t]*"?([^"\\r\\n]+?)"?[ \\t]*$`, "m"))
-    if (matched) return (matched[1] ?? "").trim()
-    return readFrontmatterIndented(dir, key)
+    return readSkillFrontmatterValueFromContent(readTextFile(join(dir, SKILL_ENTRY)), key)
   } catch {
     return ""
   }
+}
+
+// 从文本内容读取 frontmatter 键值：bump 的内存校验与磁盘校验共用同一解析
+export function readSkillFrontmatterValueFromContent(content: string, key: string): string {
+  const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+  if (!frontmatter) return ""
+  const block = frontmatter[1] ?? ""
+  const top = block.match(new RegExp(`^${key}:[ \\t]*"?([^"\\r\\n]+?)"?[ \\t]*$`, "m"))
+  if (top) return (top[1] ?? "").trim()
+  const indented = block.match(new RegExp(`^[ \\t]+${key}:[ \\t]*"?([^"\\r\\n]+?)"?[ \\t]*$`, "m"))
+  return indented?.[1]?.trim() ?? ""
 }
 
 // 读取技能描述：SKILL.md frontmatter 的 description 单行值；缺失返回空串（薄壳触发面由此派生，与真源一致）

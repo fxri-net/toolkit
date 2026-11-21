@@ -38,11 +38,11 @@ toolkit skills sources refresh       # 刷新全部外部来源缓存与版本�
 toolkit skills sources remove play --prune # 注销来源登记并清理其产物、状态与提示配置
 toolkit skills bump fxri-plan-to-task patch # 递增技能版本（frontmatter 与正文首部两处同源改写）
 toolkit skills bump --all --dry-run      # 预演批量递增全部技能，只打印 from → to
-toolkit skills bump --all minor --yes    # 批量递增（非交互环境须显式 --yes；patch 与 --set 同样适用）
+toolkit skills bump --all minor --yes    # 批量递增（非交互须 --yes）
 toolkit skills bump fxri-plan-review --set 2.0.0 # 直接设定版本（与递增类型互斥）
+toolkit skills bump --dir skills --all patch # 外部仓：对指定技能目录批量递增
 toolkit skills lint                     # 校验本包 skills/（150 行 / 8000 字符告警，200 行 / 12000 字符报错）
 toolkit skills lint skills/ --base HEAD # 技能内容相对基准有变更时，版本必须已递增
-toolkit skills install --format json # JSON 输出：dryRun、scope 与 global / project 各自的安装报告
 toolkit skills status               # 查看技能现场状态与包内技能真源版本（缺省按现场判定作用域）
 toolkit skills status --scope all   # 项目面与全局面都体检
 toolkit skills status --format json # JSON 输出：scope、global / project 各自的现场报告
@@ -154,6 +154,10 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 ### lint
 
 只读校验，可对任意技能目录运行；规则、预算档位、`--base` 递增与退出码见[技能校验](./skills-lint)。
+
+### bump
+
+递增两处版本声明；`--dir` 多根、`--from` 处理不一致。详见[技能版本递增](./skills-bump)。
 
 ### path
 

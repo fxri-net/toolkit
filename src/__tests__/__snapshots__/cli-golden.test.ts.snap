@@ -1019,7 +1019,8 @@ Commands:
   uninstall [options]           卸载由本包安装的技能产物（默认按现场判定作用域；只清理归属账记载的条目，不碰用户自装技能）
   lint [options] [dirs...]      校验技能规范（命名 / frontmatter / 版本双写 / 篇幅 / references
                                 / 敏感信息 / 版本递增）
-  bump [options] [name] [type]  递增技能版本（两处版本声明同源改写；--all 批量、--set 直接设定）
+  bump [options] [name] [type]  递增技能版本（两处版本声明同源改写；--all 批量、--set 直接设定、--dir
+                                支持外部目录）
   sources [options] [command]   查看 / 刷新 / 注销外部技能来源，并管理来源提示频率
   gate [options] [value]        查看或切换内容闸门（on / off；切换后运行 toolkit skills install
                                 生成或还原入口壳）
@@ -1967,7 +1968,8 @@ Commands:
   uninstall [options]           卸载由本包安装的技能产物（默认按现场判定作用域；只清理归属账记载的条目，不碰用户自装技能）
   lint [options] [dirs...]      校验技能规范（命名 / frontmatter / 版本双写 / 篇幅 / references
                                 / 敏感信息 / 版本递增）
-  bump [options] [name] [type]  递增技能版本（两处版本声明同源改写；--all 批量、--set 直接设定）
+  bump [options] [name] [type]  递增技能版本（两处版本声明同源改写；--all 批量、--set 直接设定、--dir
+                                支持外部目录）
   sources [options] [command]   查看 / 刷新 / 注销外部技能来源，并管理来源提示频率
   gate [options] [value]        查看或切换内容闸门（on / off；切换后运行 toolkit skills install
                                 生成或还原入口壳）
