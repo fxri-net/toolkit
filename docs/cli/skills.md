@@ -153,11 +153,11 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 ### lint
 
-只读校验，可对任意技能目录运行；规则、预算档位、`--base` 递增与退出码见[技能校验](./skills-lint)。
+只读校验，可对技能目录运行；规则、预算、`--base` 递增与退出码见[技能校验](./skills-lint)。
 
 ### bump
 
-递增两处版本声明；`--dir` 多根、`--from` 处理不一致。详见[技能版本递增](./skills-bump)。
+递增版本声明；`--dir` 多根、`--from` 处理不一致。详见[技能版本递增](./skills-bump)。
 
 ### path
 
@@ -181,7 +181,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 当前层级分布：
 
 - `core`：`fxri-plan-to-task`、`fxri-session-recap`、`fxri-plan-review`
-- `optional`：`fxri-release-changelog`、`fxri-text-encoding`
+- `optional`：`fxri-release-changelog`、`fxri-text-encoding`、`fxri-skill-authoring`
 
 模式优先级：`--mode package|skills` 先切换并持久化，再按新模式重建基线（`package` 为空、`skills` 为 `core`），不沿用旧模式的保存选择。
 
