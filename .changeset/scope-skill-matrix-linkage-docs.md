@@ -1,5 +1,5 @@
 ---
-"@fxri/toolkit": minor
+"@fxri/toolkit": patch
 ---
 
 - 新增：技能矩阵能力整体对外可用，`scope policy` / `scope skills` 与向导可按技能维度限制正文下发
