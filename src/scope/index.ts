@@ -4,5 +4,19 @@ export { globToRegExp, matchGlob } from "./glob"
 export { compilePattern, matchPathPattern, matchPattern, REGEX_PREFIX, type CompiledPattern, type PatternKind } from "./pattern"
 export { expandHome, findGitRoot, findProjectRoot, normalizeRemote, readGitRemote, resolveComparablePath } from "./paths"
 export { decideScope } from "./decide"
+export {
+  compilePolicies,
+  decidePolicy,
+  isLegacyPolicyId,
+  legacyToPolicies,
+  readPolicyStats,
+  resetPolicyStats,
+  type CompileOptions,
+  type CompiledPolicy,
+  type CompiledPolicySet,
+  type PolicyDecision,
+  type ScopePolicyInput,
+  type SkillProfileDefinition,
+} from "./policy"
 export { loadActivation, resolveScope, type ScopeReport } from "./load"
 export { packageSkillDir, resolveGuard, runGuard, type GuardResult } from "./guard"

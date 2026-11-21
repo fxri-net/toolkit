@@ -1,6 +1,41 @@
 // 作用域配置与判定结果：配置段的类型定义与 status/list 的契约字段
 export type ActivationMode = "all" | "allowlist" | "denylist"
 
+// 策略来源层：离项目越近优先级越高（local > project > global）
+export type PolicyLayer = "global" | "project" | "local"
+
+// 策略匹配条件：同一字段内 OR，跨字段 AND；空数组等同未写
+export interface ScopeCondition {
+  // 按项目根匹配
+  paths?: string[]
+  // 按项目根相对当前 cwd 匹配；在项目根执行时 allow 规则按失败关闭处理
+  subpaths?: string[]
+  markers?: string[]
+  gitRemotes?: string[]
+}
+
+// 策略的技能维度：match 限定适用技能（省略即全部技能），mode / profiles / allow / deny 决定该技能是否放行
+export interface PolicySkills {
+  match?: string[]
+  mode?: ActivationMode
+  profiles?: string[]
+  allow?: string[]
+  deny?: string[]
+}
+
+// 统一策略条目：目录、标记、远端与技能维度合为一体，由判定内核按层与具体度取唯一命中
+export interface ScopePolicy {
+  // 稳定机器标识：CLI 生成、跨层唯一、不可变
+  id: string
+  // 可读标签：允许重复，只用于展示
+  name?: string
+  when?: ScopeCondition
+  skills?: PolicySkills
+  effect?: "allow" | "deny"
+  // 来源层：由加载层填充，手写配置无需填写
+  layer?: PolicyLayer
+}
+
 // 技能级作用域规则：只覆盖 mode / include / exclude，其余条件沿用目录级配置
 export interface SkillActivationConfig {
   mode?: ActivationMode
