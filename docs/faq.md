@@ -39,7 +39,7 @@
 
 项目面分发（`toolkit skills install --scope project`；`--scope` 缺省时项目内装的 CLI 会自动走此面）只保留**一份唯一真源**：`<仓库根>/.agents/skills/`。
 其余**已存在**的候选目录各放**每个技能一个** `SKILL.md` 薄壳，description 从真源派生、正文指明真源路径与版本标记，不重复承载内容。
-某个候选目录不存在就不凭空创建，候选目录清单见 [skills 命令 · 作用域](./cli/skills#作用域)。真源、薄壳与归属账（`<仓库根>/.toolkit/state.json`）都要**入库**。
+某个候选目录不存在就不凭空创建，候选目录清单见 [配置参考 · 作用域与安装面](./config/skills#作用域与安装面)。真源、薄壳与归属账（`<仓库根>/.toolkit/state.json`）都要**入库**。
 队友 clone 后**不必逐台手动重装**：`prepare` 刷新钩子在 `pnpm install` 时自动补齐/刷新（仅当本地依赖含 `@fxri/toolkit`），也可手动重跑 install。
 现场用 `toolkit skills status --scope project` 查，清理用 `toolkit skills uninstall --scope project --all`（只摘本包登记的产物）。
 
