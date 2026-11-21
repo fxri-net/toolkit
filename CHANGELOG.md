@@ -1,5 +1,58 @@
 # 方弦工具集
 
+## 1.17.6
+
+> 2026-11-21 发布
+
+### ✨ 新增功能
+
+- `toolkit scope policy` 命令面，统一新增 / 列出 / 移除 / 清除路径、标记、远端与技能维度策略
+- 策略支持 `--id` 跨层唯一标识（拒绝空白 / 控制字符与 `legacy:` 前缀）与 `--at` 判定起点，帮助写明层优先级与覆盖语义
+- `toolkit scope skills` 快捷视图与 `toolkit scope status --skills`（覆盖已安装外部技能），按技能维度查看允许 / 拒绝结论
+- `scope list` 展示策略摘要，`scope status` 区分策略来源与旧字段模式
+- 技能矩阵能力整体对外可用，`scope policy` / `scope skills` 与向导可按技能维度限制正文下发
+- `scope status` / `scope skills list` / `skills status`（项目面）提示矩阵与内容闸门联动、策略失效与已安装但未允许的技能；
+  `skills status --format json` 增 `linkage` 字段
+- `toolkit scope` 向导增加技能矩阵页，可按当前项目 / 手动项目与子路径 / 扫描项目选择范围
+- 矩阵支持「只允许列出的技能」与「全部允许但排除」两种模式，可勾选档案与单个技能
+- `fxri-skill-authoring` 技能，统一技能编写骨架、references 拆分与安全边界
+- `references/checklist.md` 逐项自查清单，机械规则指向 `skills lint` 与 `skills bump`
+- `skills bump` 支持 `--dir` 多根目录，外部工具仓可直接复用版本递增
+- `skills lint` 校验技能命名、frontmatter、版本双写、篇幅、references 与敏感信息，支持 `--base` 版本递增比对、
+  多根目录、`--strict` 与 JSON 输出（退出码 0 / 1 / 2 区分无问题、校验失败与用法错误）
+- 本仓 `verify` 增加 `skills lint` 步骤（默认档 + `--base` 最近标签），技能内容变更未递增即失败
+
+### 🔧 功能调整
+
+- `skills bump` 两处版本不一致时默认报错，可用 `--from frontmatter|body` 显式选择源头
+
+### ⚡ 优化改进
+
+- 策略 / 档案写命令预览展示完整规则与档案名单，未提供的名单被清空时给出告警
+- 移除档案时提示仍被哪些策略引用，以及更高层是否仍有同名档案
+- 矩阵复用策略校验与写盘，空现场提示先安装技能或创建档案，不写空规则
+- `skills bump` 写回前按待写内容运行一次 `skills lint`，校验未通过时不写任何文件
+
+### 🐛 问题修复
+
+- `scope policy add --effect deny` 拒绝写入会被内核忽略的技能名单，指引改用 `scope skills deny`
+- 策略只能引用其所在层及更低层定义的档案，避免全局策略引用项目档案后在其它项目失效
+- `scope skills profile` 省略档案名时按 `--layer` 过滤列表，不再静默忽略显式层
+- 档案名单按包内技能清单校验精确技能名，allowlist 引用空 allow 档案与 deny-only 档案展开时给出定向提示
+- `scope policy reset --paths` 支持用具体路径匹配策略中的 glob 条件
+
+### 📝 文档更新
+
+- 入门与 FAQ 的作用域说明补充策略规则（条件 + 技能维度）与技能矩阵入口
+- 修正安装面说明迁至配置参考后仍指向旧锚点的三处引用
+- 入门页判定顺序标注为旧字段口径，并补策略规则的完整优先级
+- skills 命令页的安装面与项目面归属账迁至配置参考的「作用域与安装面」，命令页只留指引
+- README 作用域条目同步策略 / 技能矩阵，移除已迁出的批量挂载描述
+- 作用域页补策略规则、档案、优先级与合并、子目录、软限制边界五节与示例
+- scope / skills / CLI 总览同步 `scope policy`、`scope skills`、`status --skills` 与「策略 / 档案」术语
+- 技能章节指向 `fxri-skill-authoring`，说明规范真源在 toolkit、产品仓只调用 lint / bump
+- 技能表与文档索引同步新增技能
+
 ## 1.17.5
 
 > 2026-11-21 发布
