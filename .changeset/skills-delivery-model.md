@@ -6,3 +6,5 @@
 - 修改：`toolkit skills gate on|off` 改为只写 `skillsDelivery.default`，不再覆盖已配规则；`install --dry-run` 输出分发计划
 - 优化：`skillsInstall.gate` 与 `metadata.gate` 作为旧键读时兼容并提示迁移，2.0.0 起移除
 - 修复：`install --gate` / `--embed` 改写 `skillsDelivery.default`，不再写入旧键后又被忽略
+- 清理：移除 `gate` 的无效 `--all` 占位（与 `gate on` 完全等价）
+- 修复：`--refresh` 忽略写选项时向 stderr 告警；`status` JSON 的 `gate` 字段标注为旧键兼容

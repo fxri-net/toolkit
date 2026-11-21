@@ -117,12 +117,13 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - **疑似残留**：未在任何来源或状态登记、但指向技能源缓存（`~/.toolkit/cache/skill-sources/`）或本包技能目录的链接，单列「疑似残留（仅提示）」
   - 只报告不删除；给出含实际名字的 `uninstall` 命令
 - **矩阵联动**：仅项目面评估，全局面不评估并说明；矩阵限制的技能已按策略推导自动进入入口壳
-- **推导解释**：`status --explain <技能>` 逐级打印命令行 / 技能声明 / 显式规则 / 策略推导 / 包默认 / 全局默认的命中情况与被压规则；文本与 JSON 同源
+- **推导解释**：`status --explain <技能>` 逐级打印各层命中与被压规则，文本与 JSON 同源
 - **待收敛**：汇总可由 `install` 修复的偏差（含来源不可解析条目）；JSON 带 `pending` 数组
 - **canonical 共读**：本机已安装且经 canonical 共读的 agent（按探测路径判定）另单列一行说明其读取主目标、无需单独写入
 - 项目面按[作用域与安装面](../config/skills#作用域与安装面)节体检
 - `--format json` 输出机器可读报告到 stdout（含 `scope`、`versionStatus`、`linkage`、`selection` 与 `targetSelection`）
   - 两面报告含 `skillVersions`；全局面另含 `canonicalReaders` 与 `legacyTargets`
+  - `gate` / `gateRules` 为旧键兼容字段，新消费方用 `delivery` 与 `pending`
   - 真源不可读时版本用状态登记值兜底，同名技能列入 `skillVersionsFromState`，人读视图标注「（登记值）」，不冒充当期真源版本
   - 折叠不丢信息（替代人读版），无末尾汇总行
   - ⚠️ 文本层补充视图不进 JSON：疑似残留、来源内未选择汇总、项目面旧名改名指引仅出现在人读输出
@@ -152,7 +153,6 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 - 无参数查看默认分发形态（`skillsDelivery.default`）与规则条数
 - `skills gate on|off` 只写 `skillsDelivery.default`（on → `gated`、off → `full`），**不覆盖 `rules`**
-- `--all` 与 `gate on` 等价；旧口径「全体接管」需保证没有更具体的 `rules`
 - `--format json` 输出 `{ default, rules }`；非法取值报错退出 1
 
 ### mount

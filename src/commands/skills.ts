@@ -357,6 +357,16 @@ function printPlanReport(report: SkillsPlanReport): void {
   )
 }
 
+// --refresh 只刷新已存在产物：其余写选项无法采纳时明确告警，不静默忽略
+function warnRefreshIgnored(options: { prune?: boolean; force?: boolean; mode?: string; dir: string[] }): void {
+  const ignored: string[] = []
+  if (options.prune) ignored.push("--prune")
+  if (options.force) ignored.push("--force")
+  if (options.mode !== undefined) ignored.push("--mode")
+  if (options.dir.length > 0) ignored.push("--dir")
+  if (ignored.length > 0) console.warn(`⚠️ --refresh 只刷新已存在产物，已忽略：${ignored.join("、")}`)
+}
+
 // 解释单个技能的分发形态：逐级列出命中 / 未命中与被压规则，回答「为什么是壳 / 为什么不是」
 function printDeliveryExplanation(name: string): void {
   const explanation = explainSkillDelivery(name)
@@ -1021,6 +1031,7 @@ export function registerSkillsCommands(program: Command): void {
         // --check / 非交互 --refresh：只报告待收敛项，不写文件；prepare 钩子在 CI / 非 TTY 下走这里
         const refreshReportOnly = Boolean(options.refresh) && (!isInteractive() || Boolean(process.env.CI))
         if (options.check || refreshReportOnly) {
+          if (options.refresh) warnRefreshIgnored(options)
           const plans: SkillsPlanReport[] = []
           if (runGlobal) plans.push(planSkills({ skills: selection, targets: globalTargets, dirs: options.dir, externalSources, gate: gateOption }))
           if (runProject) plans.push(planProjectSkills({ cwd: process.cwd(), skills: selection, targetDirs: projectTargets, refreshOnly: Boolean(options.refresh) }))
@@ -1038,6 +1049,7 @@ export function registerSkillsCommands(program: Command): void {
         }
         // TTY 下的 --refresh：只收敛已存在的项目面产物，不新增技能、不改选择集
         if (options.refresh) {
+          warnRefreshIgnored(options)
           if (runGlobal) console.warn("⚠️ --refresh 仅作用于项目面，已忽略全局面")
           const refreshed = installProjectSkills({
             dirs: options.dir,
@@ -1834,9 +1846,8 @@ export function registerSkillsCommands(program: Command): void {
   skillsCmd
     .command("gate [value]")
     .description("查看或切换内容闸门默认形态（on = 默认入口壳 / off = 默认全文；不覆盖 skillsDelivery.rules）")
-    .option("--all", "显式全量口径：与 gate on 等价，仅写默认形态")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
-    .action((value: string | undefined, options: { all?: boolean; format?: string }) => {
+    .action((value: string | undefined, options: { format?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return
         if (value !== undefined && value !== "on" && value !== "off") {

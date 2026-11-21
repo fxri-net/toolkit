@@ -442,6 +442,10 @@ describe("顶层命令与外部域", () => {
     const bad = await runCli(["skills", "gate", "bogus"])
     expect(bad.code).toBe(1)
     expect(bad.err.join("\n")).toContain("on / off")
+
+    // 无效占位 --all 已移除：按未知参数失败
+    const removed = await runCli(["skills", "gate", "on", "--all"])
+    expect(removed.code).toBe(1)
   })
 
   it("skills mount 非交互提示无法交互", async () => {

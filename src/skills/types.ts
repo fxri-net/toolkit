@@ -274,7 +274,7 @@ export interface SkillsStatusReport {
   mode: SkillsMode
   // 内容闸门是否开启（旧键口径，保留供兼容消费）
   gate: boolean
-  // 内容闸门接管规则（开关关闭时仍给出默认值，便于展示）
+  // 旧键接管规则（兼容字段；开关关闭时仍给出默认值，新消费方用 delivery）
   gateRules: GateRules
   // 本次选择集按分发形态推导的计数：全文 / 入口壳 / 不安装
   delivery: Record<"full" | "gated" | "off", number>

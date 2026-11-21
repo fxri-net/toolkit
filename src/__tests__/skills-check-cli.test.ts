@@ -31,23 +31,26 @@ function restoreTty(): void {
 }
 
 // 跑一次 CLI：重置模块注册表 → 注入 home 与 argv → 动态导入 cli 并 await 主流程 → 收集退出码
-async function runCli(args: string[]): Promise<{ code: number; log: string[] }> {
+async function runCli(args: string[]): Promise<{ code: number; log: string[]; warn: string[] }> {
   vi.resetModules()
   const config = await import("../config")
   config.setHomeDirForTest(home)
   config.resetToolkitConfigCache()
   const log: string[] = []
+  const warn: string[] = []
   vi.spyOn(console, "log").mockImplementation((...a: unknown[]) => {
     log.push(a.join(" "))
   })
-  vi.spyOn(console, "warn").mockImplementation(() => {})
+  vi.spyOn(console, "warn").mockImplementation((...a: unknown[]) => {
+    warn.push(a.join(" "))
+  })
   vi.spyOn(console, "error").mockImplementation(() => {})
   vi.spyOn(process.stdout, "write").mockImplementation((() => true) as unknown as typeof process.stdout.write)
   process.argv = ["node", "toolkit", ...args]
   process.exitCode = 0
   const cli = await import("../cli")
   await cli.cliReady
-  return { code: Number(process.exitCode ?? 0), log }
+  return { code: Number(process.exitCode ?? 0), log, warn }
 }
 
 beforeAll(() => {
@@ -140,5 +143,14 @@ describe("install --check", () => {
     const status = await runCli(["skills", "status", "--scope", "global", "--format", "json"])
     const payload = JSON.parse(status.log.join("\n")) as { global: { pending: Array<{ name: string }> } }
     expect(payload.global.pending.some((item) => item.name === "ghost-skill")).toBe(true)
+  })
+
+  it("--refresh 忽略写选项时向 stderr 告警", async () => {
+    const refresh = await runCli(["skills", "install", "--scope", "project", "--refresh", "--prune", "--force"])
+    expect(refresh.code).toBe(0)
+    const warnings = refresh.warn.join("\n")
+    expect(warnings).toContain("已忽略")
+    expect(warnings).toContain("--prune")
+    expect(warnings).toContain("--force")
   })
 })
