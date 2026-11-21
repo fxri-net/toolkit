@@ -95,6 +95,7 @@ title: 作用域（activation）
 `skillProfiles` 与 `activation` 同级：键为档案名，值为 `{ allow?, deny? }` 技能名 / glob。
 策略通过 `skills.profiles` 引用档案；同名档案按最近层**整份覆盖**，不做名单合并。
 策略只能引用其所在层及更低层定义的档案（全局策略只能引用全局档案）；手写配置越层引用时加载告警但保留。
+档案 `allow` / `deny` 中的精确技能名按包内清单校验；只含 `deny` 的档案不能用于 allowlist 或 `scope skills deny --profile` 展开。
 `scope skills profile` 可查看 / 写入 / 移除档案。
 
 ## 优先级与合并

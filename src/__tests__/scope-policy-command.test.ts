@@ -100,6 +100,7 @@ describe("planPolicyAdd", () => {
     const state = readPolicyState("global", project)
     expect(() => planPolicyAdd(state, { effect: "allow", skills: { profiles: ["missing"] } })).toThrow("未找到档案")
     expect(() => planPolicyAdd(state, { effect: "allow", skills: { allow: ["ghost-skill"] } })).toThrow("未找到技能")
+    expect(() => planProfileUpsert(state, { name: "front", allow: ["ghost-skill"] })).toThrow("未找到技能")
     expect(() => planPolicyAdd(state, { effect: "allow", when: { paths: ["re:("] } })).toThrow("非法")
   })
 
@@ -195,10 +196,24 @@ describe("档案与快捷视图", () => {
   })
 
   it("档案写入未提供的名单会告警并展示清空结果", () => {
-    writeGlobal({ skillProfiles: { front: { allow: ["fxri-a"], deny: ["fxri-b"] } } })
-    const plan = planProfileUpsert(readPolicyState("global", project), { name: "front", allow: ["fxri-c"] })
+    writeGlobal({ skillProfiles: { front: { allow: ["fxri-plan-review"], deny: ["fxri-text-encoding"] } } })
+    const plan = planProfileUpsert(readPolicyState("global", project), {
+      name: "front",
+      allow: ["fxri-plan-to-task"],
+    })
     expect(plan.warnings.join("\n")).toContain("将清空原 deny")
     expect(plan.details.join("\n")).toContain("deny：无")
+  })
+
+  it("allowlist 引用无 allow 项档案与 deny 展开给出定向提示", () => {
+    writeGlobal({ skillProfiles: { denyOnly: { deny: ["fxri-plan-review"] } } })
+    const state = readPolicyState("global", project)
+    const plan = planPolicyAdd(state, {
+      effect: "allow",
+      skills: { mode: "allowlist", profiles: ["denyOnly"] },
+    })
+    expect(plan.warnings.join("\n")).toContain("没有 allow 项")
+    expect(() => profileAllowPatterns(project, ["denyOnly"], "global")).toThrow("没有允许项")
   })
 
   it("移除档案时提示引用与同名回退", () => {

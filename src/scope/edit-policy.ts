@@ -115,6 +115,15 @@ function isExactSkillName(value: string): boolean {
   return !value.startsWith("re:") && !value.includes("*") && !value.includes("?")
 }
 
+// 精确技能名校验：档案与策略共用同一份包内清单
+function validateSkillNames(patterns: string[]): void {
+  const exact = patterns.filter(isExactSkillName)
+  if (exact.length === 0) return
+  const known = new Set(listPackageSkills().map((skill) => skill.name))
+  const missing = exact.filter((name) => !known.has(name))
+  if (missing.length > 0) throw new Error(`未找到技能「${missing.join("、")}」；未写入配置`)
+}
+
 // 档案定义层：三层原始 skillProfiles 的键，用于判断策略能否稳定引用
 function profileLayerMap(startDir: string): Map<string, PolicyLayer[]> {
   const map = new Map<string, PolicyLayer[]>()
@@ -160,12 +169,7 @@ function validateSkills(skills: PolicySkills | undefined, startDir: string, laye
   for (const pattern of patterns) assertPattern(pattern, "技能名单")
   const profiles = skills.profiles ?? []
   validateProfileVisibility(profiles, startDir, layer)
-  const exact = patterns.filter(isExactSkillName)
-  if (exact.length > 0) {
-    const known = new Set(listPackageSkills().map((skill) => skill.name))
-    const missing = exact.filter((name) => !known.has(name))
-    if (missing.length > 0) throw new Error(`未找到技能「${missing.join("、")}」；未写入配置`)
-  }
+  validateSkillNames(patterns)
 }
 
 // 跨层 id 唯一：返回已占用该 id 的层，供报错定位
@@ -275,6 +279,11 @@ export function planPolicyAdd(state: PolicyState, input: PolicyAddInput): Policy
     const hasAllow = Boolean(policy.skills.allow?.length || policy.skills.profiles?.length)
     if (hasAllow && policy.skills.mode !== "allowlist") warnings.push("allow / profile 仅在 --mode allowlist 下生效")
     if (policy.skills.mode === "allowlist" && !hasAllow) warnings.push("allowlist 未配置 allow / profile，该范围将不允许任何技能")
+    if (policy.skills.mode === "allowlist" && policy.skills.profiles?.length) {
+      const profiles = new Map(resolveScope(state.startDir).profiles.map((profile) => [profile.name, profile]))
+      const empty = policy.skills.profiles.filter((name) => (profiles.get(name)?.allow.length ?? 0) === 0)
+      if (empty.length > 0) warnings.push(`档案 ${empty.join("、")} 没有 allow 项，allowlist 下将不允许任何技能`)
+    }
   }
   return planForPolicies(
     state,
@@ -374,6 +383,7 @@ export function planProfileUpsert(state: PolicyState, input: ProfileUpsertInput)
     throw new Error("请至少提供 --allow 或 --deny；未写入配置")
   }
   for (const pattern of [...(input.allow ?? []), ...(input.deny ?? [])]) assertPattern(pattern, "档案名单")
+  validateSkillNames([...(input.allow ?? []), ...(input.deny ?? [])])
   const existing = isRecord(state.profiles[name]) ? state.profiles[name] : {}
   const existingAllow = Array.isArray(existing.allow) ? existing.allow : []
   const existingDeny = Array.isArray(existing.deny) ? existing.deny : []
@@ -440,6 +450,8 @@ export function profileAllowPatterns(startDir: string, names: string[], layer: P
   const profiles = new Map(resolveScope(startDir).profiles.map((profile) => [profile.name, profile]))
   const missing = names.filter((name) => !profiles.has(name))
   if (missing.length > 0) throw new Error(`未找到档案「${missing.join("、")}」；未写入配置`)
+  const empty = names.filter((name) => (profiles.get(name)?.allow.length ?? 0) === 0)
+  if (empty.length > 0) throw new Error(`档案「${empty.join("、")}」没有允许项，无法展开为排除技能；未写入配置`)
   return names.flatMap((name) => profiles.get(name)?.allow ?? [])
 }
 
