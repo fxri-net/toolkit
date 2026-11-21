@@ -18,5 +18,5 @@ export {
   type ScopePolicyInput,
   type SkillProfileDefinition,
 } from "./policy"
-export { loadActivation, resolveScope, type ScopeReport } from "./load"
+export { loadActivation, resolveScope, resetScopeCache, type ScopeReport } from "./load"
 export { packageSkillDir, resolveGuard, runGuard, type GuardResult } from "./guard"

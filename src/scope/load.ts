@@ -1,14 +1,49 @@
-// 作用域配置加载：沿用现有三层配置（就近覆盖），解析 activation 段并组装判定现场
-import { existsSync } from "node:fs"
+// 作用域配置加载：三层策略合并、旧 activation 编译、档案解析与一次性编译缓存
+import { createHash } from "node:crypto"
+import { existsSync, statSync } from "node:fs"
 import { join } from "node:path"
-import { inspectConfigLayers } from "../config"
+import { getHomeDir, inspectConfigLayers, type ConfigLayerName, type ConfigLayers } from "../config"
 import { canonicalPath } from "../git-ignore"
 import { decideScope } from "./decide"
 import { compilePattern, matchPathPattern } from "./pattern"
+import {
+  compilePolicies,
+  decidePolicy,
+  legacyToPolicies,
+  type CompiledPolicySet,
+  type ScopePolicyInput,
+  type SkillProfileDefinition,
+} from "./policy"
 import { findGitRoot, findProjectRoot, readGitRemote, resolveComparablePath } from "./paths"
-import type { ActivationConfig, ActivationMode, LoadedActivation, ScopeContext, ScopeDecision, SkillActivationConfig } from "./types"
+import type {
+  ActivationConfig,
+  ActivationMode,
+  LoadedActivation,
+  PolicyLayer,
+  PolicySkills,
+  ScopeCondition,
+  ScopeContext,
+  ScopeDecision,
+  ScopePolicy,
+  ScopeProfile,
+  SkillActivationConfig,
+} from "./types"
 
 const MODES = new Set<ActivationMode>(["all", "allowlist", "denylist"])
+
+// 配置层顺序：全局 → 项目 → 本地；策略按该顺序拼接，层优先级由判定内核比较
+const LAYER_ORDER: ReadonlyArray<{ record: "global" | "project" | "local"; policy: PolicyLayer }> = [
+  { record: "global", policy: "global" },
+  { record: "project", policy: "project" },
+  { record: "local", policy: "local" },
+]
+
+// 配置层中文名 → 策略层标识
+const POLICY_LAYER_BY_CONFIG: Record<ConfigLayerName, PolicyLayer> = {
+  全局层: "global",
+  项目层: "project",
+  本地层: "local",
+}
 
 // 判定结果 + 现场：命令层只消费这里，便于统一打印与 JSON 输出
 export interface ScopeReport {
@@ -19,6 +54,10 @@ export interface ScopeReport {
   warnings: string[]
   // 判定基准变化提示：旧口径（cwd）与新口径（项目根）结论不同时给出
   migrationHint: string | null
+  // 合并后的策略（含旧字段编译产物，layer 已填充）
+  policies: ScopePolicy[]
+  // 合并后的技能档案（同名按最近层整份覆盖）
+  profiles: ScopeProfile[]
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -116,7 +155,11 @@ function parseSkillRules(
 
 // 按就近覆盖取 activation：本地层 → 项目层 → 全局层；非法段继续向下一层查找
 export function loadActivation(startDir = process.cwd()): LoadedActivation {
-  const layers = inspectConfigLayers(startDir)
+  return loadActivationFromLayers(inspectConfigLayers(startDir))
+}
+
+// 已解析三层配置后取最近一份 activation：避免 resolveScope 重复读盘
+function loadActivationFromLayers(layers: ConfigLayers): LoadedActivation {
   const warnings: string[] = []
   for (const record of [layers.local, layers.project, layers.global]) {
     if (!record.hit || !record.config) continue
@@ -124,19 +167,383 @@ export function loadActivation(startDir = process.cwd()): LoadedActivation {
     if (raw === undefined) continue
     const file = record.file ?? record.layer
     const activation = parseActivation(raw, file, warnings)
-    if (activation) return { activation, sourceFile: record.file, layer: record.layer, warnings }
+    if (activation) {
+      return {
+        activation,
+        sourceFile: record.file,
+        layer: record.layer,
+        policyLayer: POLICY_LAYER_BY_CONFIG[record.layer],
+        warnings,
+      }
+    }
   }
-  return { activation: null, sourceFile: null, layer: null, warnings }
+  return { activation: null, sourceFile: null, layer: null, policyLayer: null, warnings }
 }
 
-// 组装判定现场并给出结论：未配置 gitRemotes / markers 时不启动 git、不查标记
-// 传入技能名时命中技能级规则则覆盖 mode / include / exclude，其余条件沿用目录级
-export function resolveScope(startDir = process.cwd(), skillName?: string): ScopeReport {
-  const { activation, sourceFile, layer, warnings } = loadActivation(startDir)
-  // 展示与文件系统判断保留原始大小写与分隔符；大小写折叠只发生在规则匹配函数内部
-  const cwd = resolveComparablePath(startDir)
-  // 判定基准取项目根：子目录内按整个项目匹配，精确路径即可覆盖其下所有层级
-  const baseDir = resolveComparablePath(findProjectRoot(startDir))
+// 名单解析结果：ok 为 false 表示字段形态错误或含非法模式，整条策略作废
+interface ListResult {
+  items: string[]
+  ok: boolean
+}
+
+// 字符串数组：非数组告警并标记结构错误，非字符串 / 空项剔除并告警
+function readStringList(
+  value: unknown,
+  label: string,
+  file: string,
+  warnings: string[],
+): ListResult {
+  if (value === undefined) return { items: [], ok: true }
+  if (!Array.isArray(value)) {
+    warnings.push(`${file} 的 ${label} 须为字符串数组，已忽略`)
+    return { items: [], ok: false }
+  }
+  const items = value.filter((item): item is string => typeof item === "string" && item.trim() !== "")
+  if (items.length !== value.length) warnings.push(`${file} 的 ${label} 有非字符串或空项，已剔除`)
+  return { items, ok: true }
+}
+
+// 模式数组：沿用 compilePattern 校验，非法模式使整条策略作废（避免残缺条件退化成无条件规则）
+function readPatternList(
+  value: unknown,
+  label: string,
+  file: string,
+  warnings: string[],
+): ListResult {
+  const listed = readStringList(value, label, file, warnings)
+  if (!listed.ok) return listed
+  let ok = true
+  const items = listed.items.filter((pattern) => {
+    const compiled = compilePattern(pattern)
+    if (!compiled.ok) {
+      warnings.push(`${file} 的 ${label} 模式「${pattern}」已忽略：${compiled.reason}`)
+      ok = false
+    }
+    return compiled.ok
+  })
+  return { items, ok }
+}
+
+// 解析 when：同字段内 OR、跨字段 AND；空字段按未写处理，结构错误返回 null 由调用方作废整条策略
+function parseWhen(
+  value: unknown,
+  label: string,
+  file: string,
+  warnings: string[],
+): ScopeCondition | null | undefined {
+  if (value === undefined) return undefined
+  if (!isRecord(value)) {
+    warnings.push(`${file} 的 ${label}.when 须为对象，已忽略`)
+    return null
+  }
+  const paths = readPatternList(value.paths, `${label}.when.paths`, file, warnings)
+  const subpaths = readPatternList(value.subpaths, `${label}.when.subpaths`, file, warnings)
+  const markers = readStringList(value.markers, `${label}.when.markers`, file, warnings)
+  const gitRemotes = readPatternList(value.gitRemotes, `${label}.when.gitRemotes`, file, warnings)
+  if (!paths.ok || !subpaths.ok || !markers.ok || !gitRemotes.ok) return null
+  const when: ScopeCondition = {}
+  if (paths.items.length) when.paths = paths.items
+  if (subpaths.items.length) when.subpaths = subpaths.items
+  if (markers.items.length) when.markers = markers.items
+  if (gitRemotes.items.length) when.gitRemotes = gitRemotes.items
+  return Object.keys(when).length > 0 ? when : undefined
+}
+
+// 解析技能维度：match 限定适用技能，mode / profiles / allow / deny 决定放行
+function parseSkills(
+  value: unknown,
+  label: string,
+  file: string,
+  warnings: string[],
+): PolicySkills | null | undefined {
+  if (value === undefined) return undefined
+  if (!isRecord(value)) {
+    warnings.push(`${file} 的 ${label}.skills 须为对象，已忽略`)
+    return null
+  }
+  const match = readPatternList(value.match, `${label}.skills.match`, file, warnings)
+  const profiles = readStringList(value.profiles, `${label}.skills.profiles`, file, warnings)
+  const allow = readPatternList(value.allow, `${label}.skills.allow`, file, warnings)
+  const deny = readPatternList(value.deny, `${label}.skills.deny`, file, warnings)
+  if (!match.ok || !profiles.ok || !allow.ok || !deny.ok) return null
+  const skills: PolicySkills = {}
+  if (value.mode !== undefined) {
+    if (typeof value.mode === "string" && MODES.has(value.mode as ActivationMode)) {
+      skills.mode = value.mode as ActivationMode
+    } else {
+      warnings.push(`${file} 的 ${label}.skills.mode 非法（${String(value.mode)}），已忽略该规则`)
+      return null
+    }
+  }
+  if (match.items.length) skills.match = match.items
+  if (profiles.items.length) skills.profiles = profiles.items
+  if (allow.items.length) skills.allow = allow.items
+  if (deny.items.length) skills.deny = deny.items
+  return Object.keys(skills).length > 0 ? skills : undefined
+}
+
+// 缺 id 时按层 + 内容派生稳定标识：内容一改 id 即变，提示用户显式写 id
+function derivePolicyId(policy: ScopePolicyInput, layer: PolicyLayer): string {
+  const material = JSON.stringify({
+    layer,
+    when: policy.when ?? {},
+    skills: policy.skills ?? {},
+    effect: policy.effect ?? "allow",
+  })
+  const hash = createHash("sha1").update(material).digest("hex").slice(0, 10)
+  return `auto:${layer}:${hash}`
+}
+
+// 单条策略：逐字段校验，effect 非法即整条作废；其余非法项剔除后继续
+function parsePolicyItem(
+  raw: unknown,
+  layer: PolicyLayer,
+  file: string,
+  index: number,
+  warnings: string[],
+): ScopePolicyInput | null {
+  if (!isRecord(raw)) {
+    warnings.push(`${file} 的 policies[${index}] 须为对象，已忽略`)
+    return null
+  }
+  let id = ""
+  if (raw.id !== undefined) {
+    if (typeof raw.id === "string" && raw.id.trim()) id = raw.id.trim()
+    else warnings.push(`${file} 的 policies[${index}].id 须为非空字符串，已忽略该项`)
+  }
+  const label = id || `policies[${index}]`
+  if (raw.layer !== undefined) {
+    warnings.push(`${file} 的 ${label}.layer 由配置文件所在层决定，已忽略`)
+  }
+  let name: string | undefined
+  if (raw.name !== undefined) {
+    if (typeof raw.name === "string" && raw.name.trim()) name = raw.name.trim()
+    else warnings.push(`${file} 的 ${label}.name 须为非空字符串，已忽略`)
+  }
+  let effect: "allow" | "deny" = "allow"
+  if (raw.effect !== undefined) {
+    if (raw.effect === "allow" || raw.effect === "deny") effect = raw.effect
+    else {
+      warnings.push(`${file} 的 ${label}.effect 非法（${String(raw.effect)}），已忽略该规则`)
+      return null
+    }
+  }
+  const when = parseWhen(raw.when, label, file, warnings)
+  const skills = parseSkills(raw.skills, label, file, warnings)
+  if (when === null || skills === null) {
+    warnings.push(`${file} 的 ${label} 含非法条件，已忽略该规则`)
+    return null
+  }
+  const policy: ScopePolicyInput = { id, name, when, skills, effect, layer }
+  if (!id) {
+    policy.id = derivePolicyId(policy, layer)
+    warnings.push(
+      `${file} 的 ${label} 缺少 id，已按内容派生 ${policy.id}；建议显式写 id（内容变更后 id 会变）`,
+    )
+  }
+  if (!when) warnings.push(`${file} 的策略 ${policy.id} 未设置 when 条件（兜底规则），请确认影响范围`)
+  return policy
+}
+
+// 解析单层 policies 数组：非数组整段忽略，逐条校验后保留合法项
+function parsePolicies(
+  value: unknown,
+  layer: PolicyLayer,
+  file: string,
+  warnings: string[],
+): ScopePolicyInput[] {
+  if (value === undefined) return []
+  if (!Array.isArray(value)) {
+    warnings.push(`${file} 的 policies 须为数组，已忽略`)
+    return []
+  }
+  const out: ScopePolicyInput[] = []
+  value.forEach((raw, index) => {
+    const policy = parsePolicyItem(raw, layer, file, index, warnings)
+    if (policy) out.push(policy)
+  })
+  return out
+}
+
+// 解析单层技能档案：键为档案名，allow / deny 沿用模式校验
+function parseProfiles(
+  value: unknown,
+  layer: PolicyLayer,
+  file: string,
+  warnings: string[],
+): ScopeProfile[] {
+  if (value === undefined) return []
+  if (!isRecord(value)) {
+    warnings.push(`${file} 的 skillProfiles 须为对象，已忽略`)
+    return []
+  }
+  const out: ScopeProfile[] = []
+  for (const [name, raw] of Object.entries(value)) {
+    if (!name.trim()) {
+      warnings.push(`${file} 的 skillProfiles 存在空档案名，已忽略`)
+      continue
+    }
+    if (!isRecord(raw)) {
+      warnings.push(`${file} 的档案 ${name} 须为对象，已忽略`)
+      continue
+    }
+    const allow = readPatternList(raw.allow, `skillProfiles.${name}.allow`, file, warnings)
+    const deny = readPatternList(raw.deny, `skillProfiles.${name}.deny`, file, warnings)
+    if (!allow.ok || !deny.ok) {
+      warnings.push(`${file} 的档案 ${name} 含非法模式，已忽略`)
+      continue
+    }
+    if (raw.allow === undefined && raw.deny === undefined) {
+      warnings.push(`${file} 的档案 ${name} 未配置 allow / deny，视为空档案`)
+    }
+    out.push({ name, allow: allow.items, deny: deny.items, layer })
+  }
+  return out
+}
+
+// 同名档案按最近层整份覆盖：删除后重插，生效项排到列表尾部
+function mergeProfiles(candidates: ScopeProfile[]): ScopeProfile[] {
+  const map = new Map<string, ScopeProfile>()
+  for (const profile of candidates) {
+    map.delete(profile.name)
+    map.set(profile.name, profile)
+  }
+  return [...map.values()]
+}
+
+// 策略 id 跨层唯一：重复保留后者（更高层 / 同层后写），并告警
+function mergePolicies(candidates: ScopePolicyInput[], warnings: string[]): ScopePolicyInput[] {
+  const map = new Map<string, ScopePolicyInput>()
+  for (const policy of candidates) {
+    const existing = map.get(policy.id)
+    if (existing) {
+      warnings.push(`策略 id 重复：${policy.id}（${existing.layer} 与 ${policy.layer}），保留后者`)
+      map.delete(policy.id)
+    }
+    map.set(policy.id, policy)
+  }
+  return [...map.values()]
+}
+
+// 引用校验：未知档案告警并剔除引用，避免 allowlist 规则静默放行
+function validateProfileRefs(
+  policies: ScopePolicyInput[],
+  profiles: ScopeProfile[],
+  warnings: string[],
+): void {
+  const names = new Set(profiles.map((profile) => profile.name))
+  for (const policy of policies) {
+    const refs = policy.skills?.profiles
+    if (!refs) continue
+    const kept = refs.filter((name) => {
+      if (names.has(name)) return true
+      warnings.push(`策略 ${policy.id} 引用的档案「${name}」不存在，已忽略该引用`)
+      return false
+    })
+    if (kept.length !== refs.length) policy.skills = { ...policy.skills, profiles: kept }
+  }
+}
+
+// 档案 → 内核定义：只传名称与两份名单
+function toProfileDefinitions(profiles: ScopeProfile[]): Record<string, SkillProfileDefinition> {
+  const out: Record<string, SkillProfileDefinition> = {}
+  for (const profile of profiles) out[profile.name] = { allow: profile.allow, deny: profile.deny }
+  return out
+}
+
+interface ScopeSnapshot {
+  activation: ActivationConfig | null
+  sourceFile: string | null
+  layer: string | null
+  policies: ScopePolicyInput[]
+  profiles: ScopeProfile[]
+  warnings: string[]
+  compiled: CompiledPolicySet
+}
+
+// 进程内快照：配置内容签名变化即重建，避免逐次命令重复编译正则
+const SNAPSHOT_LIMIT = 8
+const snapshots = new Map<string, ScopeSnapshot>()
+
+// 显式失效：库形态长驻进程与测试在改配置后可主动清空
+export function resetScopeCache(): void {
+  snapshots.clear()
+}
+
+function snapshotFor(key: string, build: () => ScopeSnapshot): ScopeSnapshot {
+  const hit = snapshots.get(key)
+  if (hit) return hit
+  const snapshot = build()
+  if (snapshots.size >= SNAPSHOT_LIMIT) {
+    const oldest = snapshots.keys().next().value
+    if (oldest !== undefined) snapshots.delete(oldest)
+  }
+  snapshots.set(key, snapshot)
+  return snapshot
+}
+
+// 配置文件指纹：路径 + 修改时间 + 大小，配置改动或增删层都能被识别，且不必逐次序列化整份配置
+function layerSignature(layers: ConfigLayers): string {
+  return [layers.global, layers.project, layers.local]
+    .map((record) => {
+      if (!record.file) return ""
+      try {
+        const info = statSync(record.file)
+        return `${record.file}\u0000${info.mtimeMs}\u0000${info.size}`
+      } catch {
+        return `${record.file}\u0000missing`
+      }
+    })
+    .join("\u0001")
+}
+
+// 组装快照：最近一份旧 activation 编译为同层基线，新 policies / skillProfiles 逐层合并
+function buildSnapshot(layers: ConfigLayers, baseDir: string): ScopeSnapshot {
+  const legacy = loadActivationFromLayers(layers)
+  const warnings = [...legacy.warnings]
+  const legacyPolicies =
+    legacy.activation && legacy.policyLayer ? legacyToPolicies(legacy.activation, legacy.policyLayer) : []
+  const newPolicies: ScopePolicyInput[] = []
+  const profileCandidates: ScopeProfile[] = []
+  for (const { record, policy: layer } of LAYER_ORDER) {
+    const layerRecord = layers[record]
+    if (!layerRecord.config) continue
+    const file = layerRecord.file ?? layerRecord.layer
+    newPolicies.push(...parsePolicies(layerRecord.config.policies, layer, file, warnings))
+    profileCandidates.push(...parseProfiles(layerRecord.config.skillProfiles, layer, file, warnings))
+  }
+  const profiles = mergeProfiles(profileCandidates)
+  const policies = mergePolicies([...legacyPolicies, ...newPolicies], warnings)
+  validateProfileRefs(policies, profiles, warnings)
+  const compiled = compilePolicies(policies, baseDir, {
+    home: getHomeDir(),
+    profiles: toProfileDefinitions(profiles),
+  })
+  return {
+    activation: legacy.activation,
+    sourceFile: legacy.sourceFile,
+    layer: legacy.layer,
+    policies,
+    profiles,
+    warnings,
+    compiled,
+  }
+}
+
+// 判定现场：只为策略实际引用的 marker / gitRemotes 读取现场，未引用时不启动 git
+function buildContext(
+  policies: ScopePolicyInput[],
+  cwd: string,
+  baseDir: string,
+  startDir: string,
+  skillName: string | undefined,
+): ScopeContext {
+  const markerNames = new Set<string>()
+  let needsRemote = false
+  for (const policy of policies) {
+    for (const marker of policy.when?.markers ?? []) markerNames.add(marker)
+    if ((policy.when?.gitRemotes ?? []).length > 0) needsRemote = true
+  }
   const context: ScopeContext = {
     cwd,
     baseDir,
@@ -145,18 +552,63 @@ export function resolveScope(startDir = process.cwd(), skillName?: string): Scop
     gitRemote: null,
     markers: new Set<string>(),
   }
-  if (activation) {
-    const markerNames = [...activation.markers.include, ...activation.markers.exclude]
-    if (markerNames.length > 0 || activation.gitRemotes.length > 0) context.gitRoot = findGitRoot(startDir)
-    for (const name of markerNames) {
-      if (existsSync(join(cwd, name))) context.markers.add(name)
-      else if (context.gitRoot && existsSync(join(context.gitRoot, name))) context.markers.add(name)
-    }
-    if (activation.gitRemotes.length > 0 && context.gitRoot) context.gitRemote = readGitRemote(context.gitRoot)
+  if (markerNames.size > 0 || needsRemote) context.gitRoot = findGitRoot(startDir)
+  for (const name of markerNames) {
+    if (existsSync(join(cwd, name))) context.markers.add(name)
+    else if (context.gitRoot && existsSync(join(context.gitRoot, name))) context.markers.add(name)
   }
-  const decision = decideScope(activation, context, sourceFile)
-  const hint = migrationHint(activation, context, decision, sourceFile) ?? legacyPathHint(activation, context)
-  return { decision, activation, context, layer, warnings, migrationHint: hint }
+  if (needsRemote && context.gitRoot) context.gitRemote = readGitRemote(context.gitRoot)
+  return context
+}
+
+// 对外策略：去掉内核专用的 legacyTier，避免进入 JSON 契约
+function toPublicPolicy(policy: ScopePolicyInput): ScopePolicy {
+  return {
+    id: policy.id,
+    name: policy.name,
+    when: policy.when,
+    skills: policy.skills,
+    effect: policy.effect,
+    layer: policy.layer,
+  }
+}
+
+// 组装判定现场并给出结论：策略为空时默认全域生效
+export function resolveScope(startDir = process.cwd(), skillName?: string): ScopeReport {
+  const cwd = resolveComparablePath(startDir)
+  // 判定基准取项目根：子目录内按整个项目匹配，精确路径即可覆盖其下所有层级
+  const baseDir = resolveComparablePath(findProjectRoot(startDir))
+  const layers = inspectConfigLayers(startDir)
+  const key = `${cwd}\u0000${baseDir}\u0000${getHomeDir()}\u0000${layerSignature(layers)}`
+  const snapshot = snapshotFor(key, () => buildSnapshot(layers, baseDir))
+  const context = buildContext(snapshot.policies, cwd, baseDir, startDir, skillName)
+  const policyDecision = decidePolicy(snapshot.compiled, context)
+  // 完全未配置时沿用旧文案，避免 status 输出与既有快照漂移
+  const reason =
+    !snapshot.activation && snapshot.policies.length === 0
+      ? "未配置作用域（默认全域生效）"
+      : policyDecision.reason
+  const decision: ScopeDecision = {
+    active: policyDecision.active,
+    mode: snapshot.activation?.mode ?? "all",
+    baseDir,
+    sourceFile: snapshot.sourceFile,
+    matchedRule: policyDecision.matchedRule,
+    reason,
+  }
+  const hint =
+    migrationHint(snapshot.activation, context, decision, snapshot.sourceFile) ??
+    legacyPathHint(snapshot.activation, context)
+  return {
+    decision,
+    activation: snapshot.activation,
+    context,
+    layer: snapshot.layer,
+    warnings: [...snapshot.warnings],
+    migrationHint: hint,
+    policies: snapshot.policies.map(toPublicPolicy),
+    profiles: snapshot.profiles.map((profile) => ({ ...profile })),
+  }
 }
 
 // 真实路径迁移提示：符号链接前缀不再自动解析，旧规则按真实形态写入时提示改用 pwd 看到的路径

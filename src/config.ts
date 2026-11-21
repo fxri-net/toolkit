@@ -311,12 +311,16 @@ function validateDisplayKeys(filePath: string, config: Record<string, unknown>, 
   }
 }
 
-// 段级校验：配置段须为普通对象，非对象（含 null / 数组 / 标量）一律告警并按未写处理，从配置中剔除该段
+// 数组型配置段：作用域策略需要按规则数组书写，其余段仍须为对象
+const ARRAY_SECTIONS = new Set(["policies"])
+
+// 段级校验：配置段须为普通对象（白名单内的数组段除外），非对象一律告警并按未写处理，从配置中剔除该段
 // 前移到读取路径使三层（全局 / 项目 / 本地）降级口径统一——否则全局 / 项目层的段级问题只在运行时惰性告警，
 // 走 inspectConfigLayers 的 config status 取不到，同一现场两种口径
 function validateSections(filePath: string, config: Record<string, unknown>, fallbacks: ConfigFallback[]): void {
   for (const [name, value] of Object.entries(config)) {
     if (isPlainObject(value)) continue
+    if (ARRAY_SECTIONS.has(name) && Array.isArray(value)) continue
     fallbacks.push({ file: filePath, key: name, detail: `配置段须为对象（实际：${describeType(value)}）` })
     delete config[name]
   }

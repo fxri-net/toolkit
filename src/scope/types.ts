@@ -76,10 +76,20 @@ export interface ScopeDecision {
   reason: string
 }
 
+// 合并后的技能档案：同名档案按最近层整份覆盖，layer 保留生效来源
+export interface ScopeProfile {
+  name: string
+  allow: string[]
+  deny: string[]
+  layer: PolicyLayer
+}
+
 // 加载结果：来源文件与告警用于人读输出，判定只消费 activation
 export interface LoadedActivation {
   activation: ActivationConfig | null
   sourceFile: string | null
   layer: string | null
+  // 旧字段产物所属的策略层：与 layer 的中文名一一对应
+  policyLayer: PolicyLayer | null
   warnings: string[]
 }

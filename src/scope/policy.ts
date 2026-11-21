@@ -478,6 +478,7 @@ export function legacyToPolicies(activation: ActivationConfig, layer: PolicyLaye
   activation.exclude.forEach((path, index) => {
     out.push({
       id: legacyId(layer, "exclude", index),
+      name: "旧字段排除",
       when: { paths: [path] },
       effect: "deny",
       layer,
@@ -487,6 +488,7 @@ export function legacyToPolicies(activation: ActivationConfig, layer: PolicyLaye
   activation.markers.exclude.forEach((marker, index) => {
     out.push({
       id: legacyId(layer, "marker-exclude", index),
+      name: "旧字段排除标记",
       when: { markers: [marker] },
       effect: "deny",
       layer,
@@ -499,6 +501,7 @@ export function legacyToPolicies(activation: ActivationConfig, layer: PolicyLaye
     activation.include.forEach((path, index) => {
       out.push({
         id: legacyId(layer, "include", index),
+        name: "旧字段白名单",
         when: { ...shared, paths: [path] },
         effect: "allow",
         layer,
@@ -507,6 +510,7 @@ export function legacyToPolicies(activation: ActivationConfig, layer: PolicyLaye
     })
     out.push({
       id: legacyId(layer, "fallback", 0),
+      name: "旧字段兜底拒绝",
       when: {},
       effect: "deny",
       layer,
@@ -516,6 +520,7 @@ export function legacyToPolicies(activation: ActivationConfig, layer: PolicyLaye
     // 标记 / 远端为正条件：满足时允许，缺条件时由兜底拒绝覆盖
     out.push({
       id: legacyId(layer, "open", 0),
+      name: "旧字段启用条件",
       when: { ...shared },
       effect: "allow",
       layer,
@@ -523,6 +528,7 @@ export function legacyToPolicies(activation: ActivationConfig, layer: PolicyLaye
     })
     out.push({
       id: legacyId(layer, "fallback", 0),
+      name: "旧字段兜底拒绝",
       when: {},
       effect: "deny",
       layer,
@@ -536,9 +542,12 @@ export function legacyToPolicies(activation: ActivationConfig, layer: PolicyLaye
     const include = rule.include ?? activation.include
     const exclude = rule.exclude ?? activation.exclude
     const target: PolicySkills = { match: [key] }
+    // 旧实现的原因文案带「技能级规则」，name 保留该措辞供 status / guard 解释
+    const label = `技能级规则 ${key}`
     exclude.forEach((path, index) => {
       out.push({
         id: legacyId(layer, "skill-exclude", `${key}:${index}`),
+        name: label,
         when: { paths: [path] },
         skills: target,
         effect: "deny",
@@ -550,6 +559,7 @@ export function legacyToPolicies(activation: ActivationConfig, layer: PolicyLaye
       include.forEach((path, index) => {
         out.push({
           id: legacyId(layer, "skill-include", `${key}:${index}`),
+          name: label,
           when: { ...shared, paths: [path] },
           skills: target,
           effect: "allow",
@@ -559,6 +569,7 @@ export function legacyToPolicies(activation: ActivationConfig, layer: PolicyLaye
       })
       out.push({
         id: legacyId(layer, "skill-fallback", key),
+        name: label,
         when: {},
         skills: target,
         effect: "deny",
@@ -570,6 +581,7 @@ export function legacyToPolicies(activation: ActivationConfig, layer: PolicyLaye
     if (hasShared) {
       out.push({
         id: legacyId(layer, "skill-open", key),
+        name: label,
         when: { ...shared },
         skills: target,
         effect: "allow",
@@ -578,6 +590,7 @@ export function legacyToPolicies(activation: ActivationConfig, layer: PolicyLaye
       })
       out.push({
         id: legacyId(layer, "skill-fallback", key),
+        name: label,
         when: {},
         skills: target,
         effect: "deny",
@@ -589,6 +602,7 @@ export function legacyToPolicies(activation: ActivationConfig, layer: PolicyLaye
     // 无条件 denylist：整体覆盖目录级结论，只保留技能自身的排除项
     out.push({
       id: legacyId(layer, "skill-open", key),
+      name: label,
       when: {},
       skills: target,
       effect: "allow",
