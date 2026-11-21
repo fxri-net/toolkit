@@ -178,6 +178,17 @@ function validateProfileVisibility(names: string[], startDir: string, layer: Pol
   }
 }
 
+// deny 规则内核只按 skills.match 选技能，名单类字段不会被读取：缺 match 时拒绝写入，避免留下无效字段
+function assertDenySkillScope(effect: "allow" | "deny", skills: PolicySkills | undefined): void {
+  if (effect !== "deny" || !skills) return
+  const hasLists = Boolean(skills.mode || skills.profiles?.length || skills.allow?.length || skills.deny?.length)
+  if (hasLists && !skills.match?.length) {
+    throw new Error(
+      "deny 不接受技能名单（--mode / --profile / --allow / --deny）；只拒绝某个技能请用 toolkit scope skills deny；未写入配置",
+    )
+  }
+}
+
 // 技能维度校验：模式、档案可见性与精确技能名
 function validateSkills(skills: PolicySkills | undefined, startDir: string, layer: PolicyLayer): void {
   if (!skills) return
@@ -278,6 +289,7 @@ function policyDetails(policy: ScopePolicy): string[] {
 // 新增策略：id 缺省自动生成且不可变；deny 未限定技能时标记需 --yes
 export function planPolicyAdd(state: PolicyState, input: PolicyAddInput): PolicyEditPlan {
   validateWhen(input.when)
+  assertDenySkillScope(input.effect, input.skills)
   validateSkills(input.skills, state.startDir, state.layer)
   const id = input.id?.trim() || `policy-${randomUUID()}`
   assertPolicyId(id)

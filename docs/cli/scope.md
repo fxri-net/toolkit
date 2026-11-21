@@ -51,6 +51,7 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
   旧 `activation` 编译出的规则标注 `legacy` 只读
 - `scope policy add`：条件 `--paths` / `--subpaths` / `--markers` / `--git-remotes`；
   技能维度 `--mode` / `--profile` / `--allow` / `--deny`；`--effect` 缺省 `allow`
+  `--effect deny` 不接受这些技能名单，只按 `scope skills deny` 生成的技能选择器生效
   `--id` 不含空白 / 控制字符且不能以 `legacy:` 开头，缺省自动生成且不可变
   `--profile` 只能引用目标层及更低层已定义的档案
 - `scope policy remove`：优先 `--id`；`--name` 仅在该层唯一且无跨层同名时可用
@@ -62,7 +63,7 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
   `profile` 省略档案名时按 `--layer` 过滤列表，未传为合并视图
 - 优先级：层（local > project > global）→ 具体度 → `deny` > `allow` → 后写覆盖；只取最高优先的一条，不合并
 - 非技能维度（纯路径 / 标记 / 远端）同样用 `scope policy` 表达；`--mode` / `--allow` 仅在 `allowlist` 下参与放行
-- `deny` 未限定技能会拒绝该范围全部技能，写入需 `--yes`；只拒绝某个技能请用 `scope skills deny`
+- `deny` 只按技能选择器限定范围，携带名单会被拒绝；未限定技能会拒绝该范围全部技能，写入需 `--yes`
 
 ## 交互与写命令
 

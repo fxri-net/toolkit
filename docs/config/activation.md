@@ -74,7 +74,8 @@ title: 作用域（activation）
 | `effect` | `allow`（默认）或 `deny`；`deny` 命中即拒绝整个范围 |
 
 - `effect: allow` 时按 `skills.mode`：`allowlist` 需命中 `profiles` / `allow` 且不在 `deny`；`denylist` 与 `all` 仅 `deny` 排除
-- `effect: deny` 不读取技能名单；只拒绝某个技能时用 `scope skills deny` 生成带 `skills.match` 的规则
+- `effect: deny` 不读取技能名单，写入带名单且无 `skills.match` 的 deny 规则会被拒绝；
+  只拒绝某个技能时用 `scope skills deny` 生成带 `skills.match` 的规则
 - `when` 为空或全空数组即兜底规则，加载时会告警
 
 ```json

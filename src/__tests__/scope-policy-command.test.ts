@@ -97,6 +97,16 @@ describe("planPolicyAdd", () => {
     expect(planPolicyAdd(state, { effect: "deny", skills: { match: ["fxri-plan-review"] } }).requiresYes).toBe(false)
   })
 
+  it("deny 携带技能名单但无 match 时拒绝写入，带 match 或纯路径仍可用", () => {
+    const state = readPolicyState("global", project)
+    expect(() => planPolicyAdd(state, { effect: "deny", skills: { allow: ["fxri-plan-review"] } })).toThrow(
+      "deny 不接受技能名单",
+    )
+    expect(() => planPolicyAdd(state, { effect: "deny", skills: { mode: "allowlist" } })).toThrow("scope skills deny")
+    expect(planPolicyAdd(state, { effect: "deny", when: { paths: ["/x"] } }).changed).toBe(true)
+    expect(planPolicyAdd(state, { effect: "deny", skills: { match: ["fxri-*"] } }).changed).toBe(true)
+  })
+
   it("未知档案 / 未知技能 / 非法模式均拒绝写入", () => {
     const state = readPolicyState("global", project)
     expect(() => planPolicyAdd(state, { effect: "allow", skills: { profiles: ["missing"] } })).toThrow("未找到档案")

@@ -649,7 +649,7 @@ export function registerScopeCommands(program: Command): void {
   policyCmd
     .command("add")
     .description("新增策略；条件同字段 OR、跨字段 AND；未指定 --effect 默认 allow")
-    .option("--effect <effect>", "allow（默认）/ deny")
+    .option("--effect <effect>", "allow（默认）/ deny（只接受技能选择器，不接受技能名单）")
     .option("--paths <paths...>", "按项目根匹配的路径 / glob")
     .option("--subpaths <subpaths...>", "按项目根相对当前目录匹配；在项目根执行时 allow 失败关闭")
     .option("--markers <markers...>", "目录或 git 根下须存在的标记文件")
