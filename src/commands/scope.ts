@@ -9,6 +9,7 @@ import { resolveComparablePath } from "../scope/paths"
 import { runScopeWizard } from "../scope/wizard"
 import { line } from "../term-style"
 import { assertJsonFormat, toJsonText } from "../json-output"
+import { registerHelpCommand } from "../help"
 import { assertChoice, fail } from "../cli-ui"
 import { modeLabel, planAdd, planDefault, planRemove, planReset, readScopeState, type ScopeList, type RemoveFrom } from "../scope/edit"
 import { applyScopePlan } from "../scope/apply"
@@ -637,8 +638,7 @@ export function registerScopeCommands(program: Command): void {
   const policyCmd = scopeCmd
     .command("policy")
     .description("策略规则：按层（local > project > global）→ 具体度 → deny → 后写取唯一命中，不合并多条")
-  policyCmd.helpCommand("help [command]", "显示帮助")
-
+  registerHelpCommand(policyCmd)
   policyCmd
     .command("list")
     .description("列出策略、来源层与当前目录命中结果")
@@ -696,7 +696,7 @@ export function registerScopeCommands(program: Command): void {
   const skillsCmd = scopeCmd
     .command("skills")
     .description("技能维度快捷视图：allow 只允许列出的技能 / deny 排除列出的技能")
-  skillsCmd.helpCommand("help [command]", "显示帮助")
+  registerHelpCommand(skillsCmd)
 
   skillsCmd
     .command("list")

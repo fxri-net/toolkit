@@ -82,6 +82,13 @@ describe("项目面分发形态", () => {
     expect(shell).toBe(buildSkillShell(skill.name, ".agents/skills", readSkillDescription(skill.dir)))
   })
 
+  it("安装完成后计划为零动作", () => {
+    installPair()
+    const plan = planProjectSkills({ cwd: project, skills: ["fxri-plan-to-task", "fxri-text-encoding"] })
+    expect(plan.pending).toBe(0)
+    expect(plan.targets.flatMap((target) => target.items).every((item) => item.action === "keep")).toBe(true)
+  })
+
   it("项目层规则指定 gated 时只写入口壳，真源副本保留", () => {
     writeProjectConfig({ skillsDelivery: { rules: [{ match: ["fxri-plan-to-task"], delivery: "gated" }] } })
     const report = installPair()

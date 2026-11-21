@@ -42,6 +42,7 @@ toolkit changelog add / status / publish # 其余 changeset 子命令透传
   - 同一对象出现至少两种净变更类型时列出候选，不修改任何文件
 - `doc`：从根 `CHANGELOG.md` 生成文档站镜像页，剥离源 H1、拼固定页头并校验至少一个版本块
   - 默认 `CHANGELOG.md` → `docs/changelog.md`
+  - `--lang` 非默认语言（如 `en`）时默认路径追加语言后缀（`CHANGELOG.en.md` → `docs/changelog.en.md`），见[语言与镜像](../config/changelog)
   - `version` 成功后自动执行一次（`--no-sync-doc` 关闭），失败只告警不阻断发版
 - `version`：先透传 changesets 消费变更集，再对 CHANGELOG 做语义分组归类——**条目前缀是唯一归类信号**。
   - 改写范围只覆盖本仓自身的包：跳过依赖安装目录（`vendor`、`node_modules`、`.venv` 等，含 composer `config.vendor-dir` 自定义目录）

@@ -17,3 +17,36 @@ export function setupHelp(cmd: Command): void {
   })
   for (const sub of cmd.commands) setupHelp(sub)
 }
+
+// 命令路径：从根到当前命令逐级拼接，供错误提示指出在哪个域下查帮助
+function commandPath(cmd: Command): string {
+  const names: string[] = []
+  let cur: Command | null = cmd
+  while (cur) {
+    names.unshift(cur.name())
+    cur = cur.parent
+  }
+  return names.join(" ")
+}
+
+// 自定义 help 子命令：内建 helpCommand 关闭了 -h / --help，`toolkit help --help` 会把 --help 当作命令名报错退出
+// 本实现保留帮助选项（`help --help` 输出该命令自身帮助），无参输出父级帮助，指名输出目标命令帮助
+export function registerHelpCommand(parent: Command): Command {
+  const helpCmd = parent.command("help [command]").description(HELP_DESCRIPTION).usage("[command]")
+  // 自身帮助文案同样中文化：它在 setupHelp 之后创建，不会继承父级的帮助配置
+  setupHelp(helpCmd)
+  helpCmd.action((name?: string) => {
+    if (!name) {
+      parent.outputHelp()
+      return
+    }
+    const target = parent.commands.find((cmd) => cmd.name() === name || cmd.aliases().includes(name))
+    if (!target) {
+      console.error(`⚠️ 未知命令「${name}」，运行 ${commandPath(parent)} --help 查看可用命令`)
+      process.exitCode = 1
+      return
+    }
+    target.outputHelp()
+  })
+  return helpCmd
+}

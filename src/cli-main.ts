@@ -11,7 +11,7 @@ export async function runCli(version: string): Promise<void> {
     { autoLinkSkills },
     { emitVersionHint, runUpdateCheckWorker, UPDATE_CHECK_WORKER_ARG },
     { collectSkillVersionUpdates },
-    { setupHelp },
+    { setupHelp, registerHelpCommand },
     { formatCommanderError },
     { DESCRIPTION },
     { registerInitCommands },
@@ -113,9 +113,8 @@ export async function runCli(version: string): Promise<void> {
   registerUsageCommands(program)
 
   // 帮助口径统一：命令声明完毕后递归换中文帮助文案并对齐父级清单
-  // ⚠️ 顺序：须先 setupHelp 再 helpCommand——help 子命令自带 helpOption(false)，反过来会把它的 Usage 撑成 [options] [command]
   setupHelp(program)
-  program.helpCommand("help [command]", "显示帮助")
+  registerHelpCommand(program)
 
   // 链接自愈先于命令执行：升级后旧链接悬空时本次命令即复位（开关 skills.autoLink，CI 环境自动跳过）
   const repaired = autoLinkSkills()

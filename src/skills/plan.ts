@@ -140,7 +140,7 @@ export function planSkills(options: PlanOptions = {}): SkillsPlanReport {
   const savedNames = new Set(Object.values(savedSelection ?? {}).flat())
   const unresolved = [...recordedVersions.entries()].filter(
     ([name]) =>
-      !items.some((item) => item.name === name) &&
+      !allItems.some((item) => item.name === name) &&
       (options.skills?.includes(name) || savedSelection === undefined || savedNames.has(name)),
   )
   const unresolvedDecisions = new Map(
@@ -270,7 +270,7 @@ export function planProjectSkills(options: ProjectPlanOptions = {}): SkillsPlanR
   const savedSelection = readProjectSkillsConfig(root).selection
   const unresolved = [...recorded.entries()].filter(
     ([name]) =>
-      !items.some((item) => item.name === name) &&
+      !allItems.some((item) => item.name === name) &&
       (options.skills?.includes(name) || savedSelection === undefined || savedSelection.includes(name)),
   )
   const unresolvedDecisions = new Map(
@@ -302,7 +302,7 @@ export function planProjectSkills(options: ProjectPlanOptions = {}): SkillsPlanR
     for (const item of items) {
       const decision = decisions.get(item.name)!
       const isSource = entry.dir === PROJECT_SOURCE_DIR
-      const current = projectCurrent(isSource ? root : join(root, entry.dir), item, decision.mode, isSource)
+      const current = projectCurrent(isSource ? join(root, PROJECT_SOURCE_DIR) : join(root, entry.dir), item, decision.mode, isSource)
       const action = projectAction(decision.mode, current, isSource)
       if (action !== "keep") pending += 1
       rows.push({
@@ -319,7 +319,7 @@ export function planProjectSkills(options: ProjectPlanOptions = {}): SkillsPlanR
     for (const [name, version] of unresolved) {
       const decision = unresolvedDecisions.get(name)!
       const isSource = entry.dir === PROJECT_SOURCE_DIR
-      const dest = isSource ? join(root, name) : join(root, entry.dir, name)
+      const dest = isSource ? join(root, PROJECT_SOURCE_DIR, name) : join(root, entry.dir, name)
       const exists = existsSync(dest)
       const current: CurrentForm = exists ? "drift" : "none"
       const action: DeliveryAction =
