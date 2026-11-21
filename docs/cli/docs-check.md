@@ -1,8 +1,8 @@
 ---
-title: docs nav / docs dist（文档站校验）
+title: 文档站校验（docs nav / docs dist）
 ---
 
-# docs nav / docs dist（文档站校验）
+# 文档站校验（docs nav / docs dist）
 
 > 按同一份数据契约校验导航结构与构建产物；规则随包分发，各站点不再各自维护校验脚本。
 
@@ -48,7 +48,7 @@ export default defineConfig({
 | `nav/first-item` | error | 首项不是「快速开始」 |
 | `nav/last-item` | error | 末项不是「帮助」 |
 | `nav/help-children` | error | 「帮助」不是下拉，或缺少「常见问题」「更新日志」 |
-| `nav/group-name-length` | error | 顶栏一级项或侧栏分组名超过 4 个汉字 |
+| `nav/group-name-length` | error | 顶栏一级项或侧栏分组名超过 4 个显示单位（CJK 按字、空格分词语言按词） |
 | `nav/not-found-page` | error | 缺少 `docs/404.md`，或其 frontmatter 缺 `search: false` |
 | `nav/config-not-wired` | error | 站点配置未引用 `site-nav.json`，数据不会生效 |
 | `nav/page-size` | warn | 单页超过 300 行（`changelog.md` 除外）；只统计本仓自身页面，依赖与产物目录下的 md 不计入 |
@@ -78,7 +78,7 @@ toolkit docs nav init --config <path> # 指定站点配置文件
   "docs": {
     "nav": {
       "maxItems": 5,
-      "maxGroupHan": 4,
+      "maxGroupUnits": 4,
       "firstItem": "快速开始",
       "lastItem": "帮助",
       "helpChildren": ["常见问题", "更新日志"],
@@ -95,7 +95,7 @@ toolkit docs nav init --config <path> # 指定站点配置文件
 | --- | --- | --- |
 | `docs.nav.dir` | `docs` | 文档目录，`--dir` 优先 |
 | `docs.nav.maxItems` | `5` | 顶栏一级项上限 |
-| `docs.nav.maxGroupHan` | `4` | 分组名汉字上限 |
+| `docs.nav.maxGroupUnits` | `4` | 分组名显示单位上限（CJK 按字、空格分词语言按词）；旧键 `maxGroupHan` 继续读取，两者同时存在时以本键为准 |
 | `docs.nav.firstItem` / `lastItem` | 快速开始 / 帮助 | 顶栏首末项文案 |
 | `docs.nav.helpChildren` | 常见问题、更新日志 | 末项下拉的必备项 |
 | `docs.nav.maxPageLines` | `300` | 单页体量告警阈值 |

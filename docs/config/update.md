@@ -1,8 +1,8 @@
 ---
-title: updateCheck（升级检查）
+title: 升级检查（updateCheck）
 ---
 
-# updateCheck：升级检查提示
+# 升级检查（updateCheck）
 
 > 提示频率、通道、registry 与缓存；关闭方式与诊断开关。
 

@@ -20,7 +20,8 @@ export interface DocsLocaleExpect {
 export interface DocsNavConfig {
   dir: string
   maxItems: number
-  maxGroupHan: number
+  // 分组名长度上限，按显示单位计（CJK 按字、空格分词语言按词）
+  maxGroupUnits: number
   firstItem: string
   lastItem: string
   helpChildren: string[]
@@ -47,7 +48,7 @@ export interface DocsCheckConfig {
 export const DEFAULT_DOCS_NAV: Readonly<DocsNavConfig> = {
   dir: "docs",
   maxItems: 5,
-  maxGroupHan: 4,
+  maxGroupUnits: 4,
   firstItem: "快速开始",
   lastItem: "帮助",
   helpChildren: ["常见问题", "更新日志"],
@@ -101,12 +102,18 @@ function resolveLocales(value: unknown): Record<string, DocsLocaleExpect> {
   return out
 }
 
+// 分组名上限：新键 maxGroupUnits 优先；旧键 maxGroupHan 保留读取，两者等价于显示单位数
+function resolveGroupUnits(section: Record<string, unknown>): number {
+  const legacy = positiveInt(section.maxGroupHan, DEFAULT_DOCS_NAV.maxGroupUnits)
+  return positiveInt(section.maxGroupUnits, legacy)
+}
+
 // 解析导航配置：逐字段取配置值，缺省落默认
 function resolveNav(section: Record<string, unknown>): DocsNavConfig {
   return {
     dir: text(section.dir, DEFAULT_DOCS_NAV.dir),
     maxItems: positiveInt(section.maxItems, DEFAULT_DOCS_NAV.maxItems),
-    maxGroupHan: positiveInt(section.maxGroupHan, DEFAULT_DOCS_NAV.maxGroupHan),
+    maxGroupUnits: resolveGroupUnits(section),
     firstItem: text(section.firstItem, DEFAULT_DOCS_NAV.firstItem),
     lastItem: text(section.lastItem, DEFAULT_DOCS_NAV.lastItem),
     helpChildren: textList(section.helpChildren, DEFAULT_DOCS_NAV.helpChildren),

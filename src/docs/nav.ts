@@ -14,7 +14,8 @@ import type { DocsProblem, ProblemLevel } from "./types"
 // 1.3.0：支持对象形态侧栏与 locales 多语言结构
 // 1.4.0：新增配置接线断言（数据文件未被站点配置引用时报错）
 // 1.4.1：侧栏分组允许 collapsed（VitePress 官方字段）
-export const NAV_RULES_VERSION = "1.4.1"
+// 1.5.0：分组名长度改按显示单位计（CJK 按字、空格分词语言按词），配置键改为 maxGroupUnits
+export const NAV_RULES_VERSION = "1.5.0"
 
 // 校验结果：navCount / sidebarCount 供人类输出汇总，localeCount 标明语言包数量
 export interface NavCheckResult {
@@ -162,9 +163,17 @@ function validate(value: unknown, rawSchema: JsonSchema, root: JsonSchema, path:
   }
 }
 
-// 汉字计数：英文专有名词不含汉字，自然不计入
-function hanCount(text: string): number {
-  return [...text].filter((ch) => /[\u4e00-\u9fa5]/.test(ch)).length
+// CJK 字符：中日韩文字按字计，西文按词计
+const CJK_CHAR = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uac00-\ud7af]/
+// 显示单位计数：CJK 每字 1 单位；以空格分词的语言每个词 1 单位；标点不计
+function displayUnits(text: string): number {
+  let units = 0
+  for (const token of text.trim().split(/\s+/).filter(Boolean)) {
+    const cjk = [...token].filter((ch) => CJK_CHAR.test(ch)).length
+    const hasWord = /[\p{L}\p{N}]/u.test(token.replace(/[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uac00-\ud7af]/g, ""))
+    units += cjk + (hasWord ? 1 : 0)
+  }
+  return units
 }
 
 // 报告路径：优先仓库根相对形态，越出当前目录时退回绝对路径（统一正斜杠）
@@ -312,7 +321,8 @@ export function checkDocsNav(
     }
 
     for (const name of [...collectNavGroupNames(nav), ...sidebarGroups(locale.sidebar).map((group) => group.text)]) {
-      if (hanCount(name) > config.maxGroupHan) add("nav/group-name-length", `${tag}分组名「${name}」超过 ${config.maxGroupHan} 个汉字`)
+      const units = displayUnits(name)
+      if (units > config.maxGroupUnits) add("nav/group-name-length", `${tag}分组名「${name}」为 ${units} 个显示单位，超过 ${config.maxGroupUnits} 个`)
     }
   }
 

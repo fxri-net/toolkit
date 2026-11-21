@@ -123,7 +123,7 @@ toolkit skills install --scope project    # 项目面分发（团队推荐，技
 - **外部来源**：`--from <path|url>` 临时纳入，`--save` 登记为永久来源
 
 也可用上游安装器（技能走 GitHub 拉取，与 CLI 两条供应链，易版本漂移）：`pnpm dlx skills add fxri-net/toolkit --global`。
-完整选项与现场体检见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)，命令契约见 [skills 命令](./cli/skills)。
+完整选项与现场体检见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)，命令契约见 [技能分发](./cli/skills)。
 
 GitHub 拉不下来？国内网络走 [Gitee 镜像渠道](./faq#国内网络优先走哪条渠道)，内网 / 离线安装见 [FAQ · 内网或离线环境怎么装](./faq#内网或离线环境怎么装)。
 
@@ -190,7 +190,7 @@ toolkit tasks archive
 ⚠️ `toolkit init` 为 1.7.0 新增；旧版本请手工建 `.tasks/active/{YYYYMM}/` 目录结构。
 
 > 不想把 `.tasks/` 放项目里？配置 `"tasks": { "dir": "../my-tasks-repo" }` 指向独立仓库（或每次用 `--dir` 传参）。
-> 详见[配置参考 · tasks](./config/check-tasks)。
+> 详见[配置参考 · 校验与任务区](./config/check-tasks)。
 
 ## AI 用户（让 AI 替你操作）
 

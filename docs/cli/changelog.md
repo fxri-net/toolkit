@@ -1,8 +1,8 @@
 ---
-title: changelog（发版与更新日志）
+title: 发版与更新日志（changelog）
 ---
 
-# changelog（发版与更新日志）
+# 发版与更新日志（changelog）
 
 > 基于 changesets 的发版与多语言更新日志维护。
 
@@ -83,4 +83,4 @@ pnpm exec toolkit changelog doc                # 生成/更新文档站更新日
 
 ## 相关页面
 
-- 参考：[完整攻略 · 多语言 CHANGELOG](../guide#多语言-changelog) · [配置参考 · changelog](../config/changelog)
+- 参考：[完整攻略 · 多语言 CHANGELOG](../guide#多语言-changelog) · [配置参考 · 语言与镜像](../config/changelog)

@@ -1,8 +1,8 @@
 ---
-title: skills lint（技能校验）
+title: 技能校验（skills lint）
 ---
 
-# skills lint（技能校验）
+# 技能校验（skills lint）
 
 > 可对任意技能目录运行的只读规范校验；规范真源在 toolkit，产品仓只调用命令、不复制规则。
 

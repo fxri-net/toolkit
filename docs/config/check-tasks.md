@@ -1,8 +1,8 @@
 ---
-title: check 与 tasks（校验与任务区）
+title: 校验与任务区（check / tasks）
 ---
 
-# check 与 tasks：校验与任务区
+# 校验与任务区（check / tasks）
 
 > 软告警开关、勾选框与词标记扫描，以及任务目录与导入列映射。
 
@@ -34,4 +34,4 @@ title: check 与 tasks（校验与任务区）
 
 ## 相关页面
 
-- 参考：[配置参考总览](../config) · [tasks 命令](../cli/tasks) · [配置体检](../cli/config)
+- 参考：[配置参考总览](../config) · [任务管理](../cli/tasks) · [配置体检](../cli/config)

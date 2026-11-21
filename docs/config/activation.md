@@ -136,5 +136,5 @@ title: 作用域配置（activation / policies）
 
 ## 相关页面
 
-- 命令：[scope（作用域）](../cli/scope) · [skills（技能分发）](../cli/skills)
+- 命令：[作用域](../cli/scope) · [技能分发](../cli/skills)
 - 参考：[配置参考](../config) · [常见问题](../faq)

@@ -1,8 +1,8 @@
 ---
-title: changelog 与 changelogDoc（语言与镜像）
+title: 语言与镜像（changelog / changelogDoc）
 ---
 
-# changelog 与 changelogDoc：语言与镜像
+# 语言与镜像（changelog / changelogDoc）
 
 > 多语言 CHANGELOG 的语言表，以及文档站更新页镜像的路径与页头。
 
@@ -56,4 +56,4 @@ title: changelog 与 changelogDoc（语言与镜像）
 
 ## 相关页面
 
-- 参考：[配置参考总览](../config) · [完整攻略 · 多语言 CHANGELOG](../guide#多语言-changelog) · [changelog 命令](../cli/changelog)
+- 参考：[配置参考总览](../config) · [完整攻略 · 多语言 CHANGELOG](../guide#多语言-changelog) · [发版与更新日志](../cli/changelog)

@@ -101,12 +101,25 @@ describe("checkDocsNav", () => {
     expect(ids()).toContain("nav/help-children")
   })
 
-  it("分组名超过 4 个汉字时报错，英文专有名词不计入", () => {
+  // 显示单位：CJK 按字、空格分词语言按词，混合名两者相加；阈值 4 个单位
+  it("分组名按显示单位计：中文、英文与混合名各自判定边界", () => {
     writeSite({ ...MINIMAL, sidebar: [{ text: "快速开始指南", items: [{ text: "首页", link: "/" }] }] })
+    expect(ids()).toContain("nav/group-name-length")
+
+    writeSite({ ...MINIMAL, sidebar: [{ text: "开始指南", items: [{ text: "首页", link: "/" }] }] })
+    expect(ids()).not.toContain("nav/group-name-length")
+
+    writeSite({ ...MINIMAL, sidebar: [{ text: "Getting Started", items: [{ text: "Home", link: "/" }] }] })
+    expect(ids()).not.toContain("nav/group-name-length")
+
+    writeSite({ ...MINIMAL, sidebar: [{ text: "Getting Started Guide And More", items: [{ text: "Home", link: "/" }] }] })
     expect(ids()).toContain("nav/group-name-length")
 
     writeSite({ ...MINIMAL, sidebar: [{ text: "CLI 与 API", items: [{ text: "首页", link: "/" }] }] })
     expect(ids()).not.toContain("nav/group-name-length")
+
+    writeSite({ ...MINIMAL, sidebar: [{ text: "API 参考与内核", items: [{ text: "首页", link: "/" }] }] })
+    expect(ids()).toContain("nav/group-name-length")
   })
 
   it("结构不符 schema 时报出字段路径，并跳过后续规则", () => {

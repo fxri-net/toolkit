@@ -354,6 +354,85 @@ if (existsSync(join(root, "docs", "cli.md"))) {
   }
 }
 
+// 页面命名：声明了 frontmatter title 的页面须与首个 H1 逐字一致；配置分页索引文案须等于目标页标题
+// 只比对原文，不模拟 VitePress 的标题推导（未声明 title 的页面以 H1 为准，不强制补 frontmatter）
+function docPages(dir) {
+  const files = []
+  const skip = new Set(["node_modules", "cache", "public", ".vitepress"])
+  for (const entry of readdirSync(join(root, dir), { withFileTypes: true })) {
+    if (skip.has(entry.name)) continue
+    const rel = `${dir}/${entry.name}`
+    if (entry.isDirectory()) files.push(...docPages(rel))
+    else if (entry.name.endsWith(".md")) files.push(rel)
+  }
+  return files
+}
+
+// 首个一级标题：跳过 frontmatter 与 fenced 代码块，剥掉行内 HTML 锚点
+function firstH1(file) {
+  const lines = read(file).split("\n")
+  // frontmatter 里允许以 # 开头的注释行（如首页说明），不参与标题识别
+  let start = 0
+  if (lines[0] === "---") {
+    const end = lines.indexOf("---", 1)
+    if (end > 0) start = end + 1
+  }
+  let fenced = false
+  for (const line of lines.slice(start)) {
+    if (/^\s*(```|~~~)/.test(line)) {
+      fenced = !fenced
+      continue
+    }
+    if (fenced) continue
+    const matched = /^#\s+(.+?)\s*#*$/.exec(line)
+    if (matched) return matched[1].replace(/<[^>]+>/g, "").trim()
+  }
+  return ""
+}
+
+// 页面顶层 frontmatter 文本值：与技能 metadata 的缩进键不同，页面用顶层键
+function pageFrontmatterValue(text, key) {
+  const frontmatter = /^---\n([\s\S]*?)\n---/.exec(text)
+  if (!frontmatter) return ""
+  const matched = new RegExp(`^${key}:[ \\t]*"?([^"\\n]+?)"?[ \\t]*$`, "m").exec(frontmatter[1])
+  return matched?.[1]?.trim() ?? ""
+}
+
+// 页面标题：已声明 title 取 frontmatter，否则取首个 H1
+function pageTitle(file) {
+  return pageFrontmatterValue(read(file), "title") || firstH1(file)
+}
+
+if (existsSync(join(root, "docs"))) {
+  for (const file of docPages("docs")) {
+    const text = read(file)
+    const declared = pageFrontmatterValue(text, "title")
+    if (!declared) continue
+    // 首页用 layout: home，没有正文 H1，title 由 frontmatter 单独承载
+    if (pageFrontmatterValue(text, "layout") === "home") continue
+    const h1 = firstH1(file)
+    if (!h1) errors.push(`${file} 声明了 frontmatter title 但缺少一级标题`)
+    else if (declared !== h1) errors.push(`${file} 的 title「${declared}」与一级标题「${h1}」不一致`)
+  }
+
+  // 配置分页索引属目录表：链接文案承载完整标题，与行内引用（用显示名）区分
+  if (existsSync(join(root, "docs", "config.md"))) {
+    const section = /## 配置分页\n([\s\S]*?)\n## /.exec(read("docs/config.md"))?.[1] ?? ""
+    if (!section) errors.push("docs/config.md 缺少「配置分页」小节")
+    for (const matched of section.matchAll(/\[([^\]]+)\]\(([^)\s]+)\)/g)) {
+      const label = matched[1]
+      const href = matched[2]
+      const page = resolveDocPage(href.split("#")[0].replace(/^\./, ""))
+      if (!page) {
+        errors.push(`docs/config.md 的索引 ${href} 指向不存在的页面`)
+        continue
+      }
+      const title = pageTitle(page)
+      if (label !== title) errors.push(`docs/config.md 的索引文案「${label}」≠ 目标页标题「${title}」（${page}）`)
+    }
+  }
+}
+
 // 输出：error 阻断，warn 只提示
 if (warns.length > 0) {
   console.log("规范一致性检查：")

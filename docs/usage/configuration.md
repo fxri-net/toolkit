@@ -89,4 +89,4 @@ title: 使用情况配置
 
 ## 相关页面
 
-- [技能使用情况概览](./index) · [CLI 参考 · usage](../cli/usage) · [配置参考](../config)
+- [技能使用情况概览](./index) · [CLI 参考 · 技能使用情况](../cli/usage) · [配置参考](../config)

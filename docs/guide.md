@@ -28,7 +28,7 @@
 ## 任务文件规范
 
 > 完整规范以仓库根 [SPEC.md](https://github.com/fxri-net/toolkit/blob/main/SPEC.md) 为单一事实源，
-> 命令与校验细则见 [tasks 命令](./cli/tasks)；此处只列日常速查。
+> 命令与校验细则见 [任务管理](./cli/tasks)；此处只列日常速查。
 
 ### 目录结构
 
@@ -44,7 +44,7 @@
     └── <端名>.md / <分类标签>.md   # 端分册 / 按 scope 标签命中加载的分册（按需创建）
 ```
 
-`conventions/` 不是任务文件：tasks 子命令不读其内容、check 不因**条文内容**告警，只对载体形态、入口壳与表格填充态软告警（细则见 [conventions 命令](./cli/conventions)）。
+`conventions/` 不是任务文件：tasks 子命令不读其内容、check 不因**条文内容**告警，只对载体形态、入口壳与表格填充态软告警（细则见 [规范载体](./cli/conventions)）。
 
 任务文件名三段各对真源负责：日期↔`created`、用户名↔`owner`、简述↔正文 `# 标题`（简述由标题派生，不翻译 / 不音译 / 不缩写，语种随标题）；不一致时 `tasks check` 软告警。
 
@@ -185,12 +185,13 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 
 | 技能 | 版本 | 用途 | 层级 |
 | --- | --- | --- | --- |
-| `fxri-plan-to-task` | 1.12.13 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
-| `fxri-release-changelog` | 1.3.7 | changesets 发版与多语言 CHANGELOG 维护 | optional |
+| `fxri-plan-to-task` | 1.12.14 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
+| `fxri-release-changelog` | 1.3.8 | changesets 发版与多语言 CHANGELOG 维护 | optional |
 | `fxri-session-recap` | 1.7.5 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | `fxri-plan-review` | 1.0.15 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
 | `fxri-text-encoding` | 1.2.10 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
 | `fxri-skill-authoring` | 1.0.0 | 技能编写规范：统一骨架、references 拆分、安全边界，把可机械检出的规则交给 lint、版本递增交给 bump | optional |
+| `fxri-docs-writing` | 0.1.0 | 文档站写作规范：分类骨架、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏与 404 兜底、导航用工具命令校验 | optional |
 
 版本号取自各 SKILL.md 的 frontmatter `metadata.version`，层级取自 `metadata.tier`（`core` 必装、`optional` 可选）。
 
@@ -198,7 +199,7 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 `toolkit skills lint` / `toolkit skills bump`，产品仓不维护规范副本。
 
 **安装**：装了 CLI 后一键分发（推荐，技能随包分发、与 CLI 同一发布批次）用 `toolkit skills install`；
-也可用上游安装器 `pnpm dlx skills add fxri-net/toolkit --global` 从 GitHub 拉取。命令、作用域与全部选项见 [skills 命令](./cli/skills)。
+也可用上游安装器 `pnpm dlx skills add fxri-net/toolkit --global` 从 GitHub 拉取。命令、作用域与全部选项见 [技能分发](./cli/skills)。
 开启 `skills install --gate` 后默认全部技能只发入口壳（可用 `include` / `exclude` 规则裁剪），`--embed` 回退。
 
 **全局面分发目标三层**：主目标 `~/.agents/skills/`（多家 agent 共读，清单与判定口径见 [配置参考 · 作用域与安装面](./config/skills#作用域与安装面)）
@@ -209,7 +210,7 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 
 **项目面分发（`--scope project`）**：真源落 `<仓库根>/.agents/skills/`（完整副本），其余已存在候选目录各放每个技能一份**入口薄壳**指向真源，避免多目录重复；
 归属账写 `<仓库根>/.toolkit/state.json`，`prepare` 钩子在 `pnpm install` 时自动刷新，队友 clone 即用。
-候选目录清单、逐技能现场状态与卸载口径见 [skills 命令](./cli/skills)。
+候选目录清单、逐技能现场状态与卸载口径见 [技能分发](./cli/skills)。
 
 **与 CLI 的关系**：skills 是规范与流程（独立可用），CLI 是自动校验 / 归档 / 发版的加速器；技能末尾的「可选加速」节列出了对应命令，装了就用、没装技能流程照跑。
 安装与共存、命名规范、发布核对清单见 [skills/README.md](https://github.com/fxri-net/toolkit/blob/main/skills/README.md)；
@@ -234,7 +235,7 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 
 **路径三 · 策略 / 技能矩阵**：全局技能照装，用 `toolkit scope policy add` 或 `toolkit scope skills allow|deny`
 按目录与技能维度收口，或 `toolkit skills gate on` 开启内容闸门、只在命中目录下发正文；
-个人项目不命中即不加载，规则见[作用域](./config/activation)。
+个人项目不命中即不加载，规则见[作用域配置](./config/activation)。
 
 **个人项目**：不放上述文件即可（兼容 agent 仍可能按 `description` 自动触发）；若希望**稳定**启用，仍建议在项目 rules 中显式声明。
 团队项目推荐把上游安装器的 `skills-lock.json` 一并提交，用内置 `toolkit skills install` 时则随包同批分发、无需额外锁文件。
@@ -247,12 +248,12 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 `Slack密钥`、`Slack应用令牌`、`手机号`、`身份证`、`IPv4`。密钥类规则带长度门槛，避免误伤正常文本。
 
 开关为双向三档（CLI `--redact/--no-redact` > 环境变量 `FX_TOOLKIT_REDACT` > 配置 `redact.enabled` > 默认开启）。
-自定义规则与本地层「整段替换非追加」的合并语义见[配置参考 · redact](./config/redact)。
+自定义规则与本地层「整段替换非追加」的合并语义见[配置参考 · 隐私脱敏](./config/redact)。
 
 ## 多语言 CHANGELOG
 
 封装 changesets，内置 `zh` / `en`，任意语言可配置扩展（差异只在语言表，结构为 `groups` / `replacements` / `deps` / `released` 四段，
-见[配置参考 · changelog](./config/changelog)）。
+见[配置参考 · 语言与镜像](./config/changelog)）。
 
 ```bash
 pnpm exec toolkit changelog add                # 创建变更集（等价 changeset）
@@ -260,11 +261,11 @@ pnpm exec toolkit changelog version            # 发版 + 语义分组 + 自动�
 pnpm exec toolkit changelog format --history   # 连带追溯改写历史版本块
 ```
 
-发版流程、分组语义与跨语言边界见 [changelog 命令 · 发版流程](./cli/changelog#发版流程)。
+发版流程、分组语义与跨语言边界见 [发版与更新日志 · 发版流程](./cli/changelog#发版流程)。
 
 ## 文档站部署
 
-固定 GitHub Pages 自动构建（push main 触发）；构建命令、根路径与回链变量见 [docs theme · 站点部署](./cli/docs-theme#站点部署)。
+固定 GitHub Pages 自动构建（push main 触发）；构建命令、根路径与回链变量见 [文档站主题 · 站点部署](./cli/docs-theme#站点部署)。
 
 ## 升级与版本兼容
 
@@ -273,7 +274,7 @@ pnpm exec toolkit changelog format --history   # 连带追溯改写历史版本�
 - 升级：`pnpm add -g @fxri/toolkit`——默认软链模式下技能随 CLI 自动更新；副本形式需重跑 `toolkit skills install`；
   项目面由 `prepare` 钩子自动刷新；**升级后开新会话**使 AI 侧技能与 CLI 版本对齐
 - CLI 内置升级检查提示：命令成功时按 `updateCheck.notify`（默认 `always`）在结尾给出一句话，
-  TTY 走 stderr、非 TTY 走 stdout，帮助 / 版本 / JSON / 透传子命令不输出（见[配置参考 · updateCheck](./config/update)）
+  TTY 走 stderr、非 TTY 走 stdout，帮助 / 版本 / JSON / 透传子命令不输出（见[配置参考 · 升级检查](./config/update)）
 - 不希望发起请求时设 `FX_TOOLKIT_NO_UPDATE_CHECK=1` 或配置 `updateCheck.enabled: false`
 
 ## 相关页面

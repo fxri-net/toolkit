@@ -1,8 +1,8 @@
 ---
-title: conventions（规范载体）
+title: 规范载体（conventions）
 ---
 
-# conventions（规范载体）
+# 规范载体（conventions）
 
 > 规范载体的结构升级、表格与索引单元格归一、只读体检。
 

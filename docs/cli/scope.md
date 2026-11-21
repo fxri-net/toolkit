@@ -1,8 +1,8 @@
 ---
-title: scope（作用域）
+title: 作用域（scope）
 ---
 
-# scope（作用域）
+# 作用域（scope）
 
 > 按项目 / 目录决定技能与规则是否生效。默认全域生效，只有写了作用域配置才出现局部生效。
 > `status` / `list` / `policy list` / `skills list` 只读；`policy` / `skills` 写命令复用同一套预览与确认，
@@ -135,5 +135,5 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 
 ## 相关页面
 
-- 配置：[作用域（activation）](../config/activation) · [配置参考](../config)
+- 配置：[作用域配置（activation / policies）](../config/activation) · [配置参考](../config)
 - 参考：[CLI 参考](../cli) · [技能分发](./skills)

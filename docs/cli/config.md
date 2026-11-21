@@ -1,8 +1,8 @@
 ---
-title: config（配置体检）
+title: 配置体检（config）
 ---
 
-# config（配置体检）
+# 配置体检（config）
 
 > 只读查看三层配置文件的生效情况与来源，不打印配置值。
 

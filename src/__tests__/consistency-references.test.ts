@@ -194,6 +194,66 @@ const moduleDoc = (body: string) => ["> 规则更新时间 2026-11-20 11:52", ""
 const pageDoc = (body: string) =>
   ["# 演示", "", "````markdown", "> 规则更新时间 2026-11-20 11:52", "", "## 演示", "", body, "````", ""].join("\n")
 
+// 页面命名：声明 title 的页面须与首个 H1 一致；配置分页索引用目标页完整标题
+const namingBase = { "skills/fxri-demo/references/task-spec.md": "# 任务规范\n" }
+const titledPage = (title: string, h1: string) => ["---", `title: ${title}`, "---", "", `# ${h1}`, ""].join("\n")
+const configIndex = (label: string) =>
+  [
+    "# 配置参考",
+    "",
+    "## 配置分页",
+    "",
+    "| 分组 | 内容 |",
+    "| --- | --- |",
+    `| [${label}](./config/redact) | 示例 |`,
+    "",
+    "## 相关页面",
+    "",
+  ].join("\n")
+
+describe("规范一致性：页面命名", () => {
+  it("title 与 H1 一致、索引文案为目标页标题时通过", () => {
+    const root = createFixture({
+      ...namingBase,
+      "docs/config/redact.md": titledPage("隐私脱敏（redact）", "隐私脱敏（redact）"),
+      "docs/config.md": configIndex("隐私脱敏（redact）"),
+    })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(0)
+  })
+
+  it("title 与 H1 不一致时报 error 并指出文件", () => {
+    const root = createFixture({
+      ...namingBase,
+      "docs/config/redact.md": titledPage("隐私脱敏（redact）", "redact：隐私脱敏"),
+    })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("docs/config/redact.md")
+    expect(result.stderr).toContain("一级标题")
+  })
+
+  it("H1 前的 HTML 锚点不影响比对", () => {
+    const body = ["---", "title: 作用域配置（activation / policies）", "---", "", '<a id="作用域activation"></a>', "", "# 作用域配置（activation / policies）", ""].join(
+      "\n",
+    )
+    const root = createFixture({ ...namingBase, "docs/config/activation.md": body })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(0)
+  })
+
+  it("索引文案与目标页标题不一致时报 error", () => {
+    const root = createFixture({
+      ...namingBase,
+      "docs/config/redact.md": titledPage("隐私脱敏（redact）", "隐私脱敏（redact）"),
+      "docs/config.md": configIndex("redact（隐私脱敏）"),
+    })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("索引文案「redact（隐私脱敏）」")
+  })
+})
+
 describe("规范一致性：规则块读者向措辞", () => {
   it("业务文本通过", () => {
     const root = createFixture({ ...ruleBase, "templates/rules/demo.md": moduleDoc("- 提交默认需确认，细节以技能为准。") })

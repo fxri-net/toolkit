@@ -1,8 +1,8 @@
 ---
-title: docs theme（文档站主题）
+title: 文档站主题（docs theme）
 ---
 
-# docs theme（文档站主题）
+# 文档站主题（docs theme）
 
 > 校验与写入文档站主题模板，发现跨仓样式漂移。
 

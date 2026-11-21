@@ -1,10 +1,10 @@
 ---
-title: skills 相关（技能分发）
+title: 技能分发偏好（skills）
 ---
 
-# skills 相关：技能分发与安装偏好
+# 技能分发偏好（skills）
 
-> 软链自愈、全局与项目面安装偏好；分发命令与现场体检见 [skills 命令](../cli/skills)。
+> 软链自愈、全局与项目面安装偏好；分发命令与现场体检见 [技能分发](../cli/skills)。
 
 ## skills：技能分发
 
@@ -155,7 +155,7 @@ monorepo 子目录执行亦能命中项目面；**本包源仓库自身视为 `g
 
 ⚠️ **clone 即用**：项目面真源副本与归属账随 git 入库，队友 clone 后无需重跑 `skills install` 即开箱可用。
 `toolkit init` 在本地依赖含 `@fxri/toolkit` 时，向 `package.json` 补 `prepare` 钩子（`toolkit skills install --scope project`），
-依赖升级后自动刷新项目面（详见 [init](../cli/init)）。
+依赖升级后自动刷新项目面（详见 [项目初始化](../cli/init)）。
 
 全局面软链 / 副本形态、pnpm 锚点、写入穿透与状态文件结构见下文[全局面分发细节](#全局面分发细节)。
 
@@ -174,4 +174,4 @@ monorepo 子目录执行亦能命中项目面；**本包源仓库自身视为 `g
 
 ## 相关页面
 
-- 参考：[配置参考总览](../config) · [skills 命令](../cli/skills) · [完整攻略 · AI 技能包](../guide#ai-技能包-skills)
+- 参考：[配置参考总览](../config) · [技能分发](../cli/skills) · [完整攻略 · AI 技能包](../guide#ai-技能包-skills)

@@ -3,7 +3,7 @@ name: fxri-release-changelog
 description: 基于 changesets 的发版与多语言 CHANGELOG 维护流程：创建变更集、消费发版、把分组标题与条目转为项目语言风格、清理变更集、打标签发布；无 changesets 的项目提供同格式手工模式。用户表达发版或记录变更意图时使用——含创建变更集、changeset、发版、version、CHANGELOG 格式化等说法及口语近义表达（发一版、出个版本、记一下这次改动、生成更新日志）。⚠️ 注意区分：用户说「提交个版本 / 先提交一版 / commit」通常指 git 提交当前改动（走任务收尾后提交），**不是发版**。不用于日常 commit message 撰写、git 提交操作或与发版无关的文档修改。
 license: MIT
 metadata:
-  version: "1.3.7"
+  version: "1.3.8"
   tier: optional
   author: fxri
   source: https://github.com/fxri-net/toolkit
@@ -11,7 +11,7 @@ metadata:
 
 # 发版与 CHANGELOG
 
-> 本技能版本 1.3.7（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.3.8（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -108,7 +108,7 @@ metadata:
 失败再 `toolkit --help`（全局安装）；两者都不可用即工具未安装，按各步手工继续，**不安装、不阻塞**。探测成功后用对应前缀执行下列命令：
 
 - `toolkit changelog add`：创建变更集（等价 changeset）
-- `toolkit changelog version`：发版并自动做中文分组标题格式化
+- `toolkit changelog version`：发版并按项目语言格式化分组标题
 - `toolkit changelog audit`：扫描待发布变更集，列出同对象「新增 + 修改 / 修复 / 优化」候选（只提示，不自动改写）
 - `toolkit changelog format`：仅格式化既有 CHANGELOG
 - `toolkit changelog format --history`：连带追溯改写历史版本块（用户主动要求修正历史块时才加，默认不动）

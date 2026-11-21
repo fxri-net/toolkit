@@ -1,8 +1,8 @@
 ---
-title: skills（技能分发）
+title: 技能分发（skills）
 ---
 
-# skills（技能分发）
+# 技能分发（skills）
 
 > 把包内技能分发到各 agent，并管理来源、目标与版本。
 
@@ -183,7 +183,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 当前层级分布：
 
 - `core`：`fxri-plan-to-task`、`fxri-session-recap`、`fxri-plan-review`
-- `optional`：`fxri-release-changelog`、`fxri-text-encoding`、`fxri-skill-authoring`
+- `optional`：`fxri-release-changelog`、`fxri-text-encoding`、`fxri-skill-authoring`、`fxri-docs-writing`
 
 模式优先级：`--mode package|skills` 先切换并持久化，再按新模式重建基线（`package` 为空、`skills` 为 `core`），不沿用旧模式的保存选择。
 
@@ -231,8 +231,8 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - 闸门规则排除该技能或技能声明 `metadata.gate: false` 时，策略不会生效，提示「策略无效：技能仍全文加载」
 - 已安装但当前目录矩阵未允许的技能单列提示，不自动删除；确认不需要时用 `skills uninstall` 清理
 - 项目面安装（`install --scope project`）提供更硬的边界；策略与闸门只影响正文读取，不改变安装产物
-- 策略字段、优先级与子目录口径见[作用域（activation）](../config/activation)
+- 策略字段、优先级与子目录口径见[作用域配置（activation / policies）](../config/activation)
 
 ## 相关页面
 
-- 参考：[完整攻略 · AI 技能包](../guide#ai-技能包-skills) · [技能来源](./skills-sources) · [配置参考 · skills](../config/skills)
+- 参考：[完整攻略 · AI 技能包](../guide#ai-技能包-skills) · [技能来源](./skills-sources) · [配置参考 · 技能分发偏好](../config/skills)

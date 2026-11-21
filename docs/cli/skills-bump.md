@@ -1,8 +1,8 @@
 ---
-title: skills bump（技能版本递增）
+title: 技能版本递增（skills bump）
 ---
 
-# skills bump（技能版本递增）
+# 技能版本递增（skills bump）
 
 > 同源改写 `SKILL.md` 的两处版本声明；技能版本独立于产品包版本，内部规则变更即递增。
 

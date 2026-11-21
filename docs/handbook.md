@@ -38,7 +38,7 @@
 | 任务做完 | AI 置终结态 → 归档 → 任务级规范沉淀 → 回报清单请你确认 |
 | 「现在有哪些没做完的任务」 | AI 跑总览给你 |
 
-想自己手操命令时，归档、校验、归一、统计、导入导出等命令见 [tasks 命令](./cli/tasks)；手工建档模板与 frontmatter 字段见[完整攻略 · 任务文件规范](./guide#任务文件规范)。
+想自己手操命令时，归档、校验、归一、统计、导入导出等命令见 [任务管理](./cli/tasks)；手工建档模板与 frontmatter 字段见[完整攻略 · 任务文件规范](./guide#任务文件规范)。
 只写 AI 该怎么做：不需要懂命令，以上动作 AI 都会按 skill 自动执行，你只需在动手类任务前让 AI 先出方案、确认后再执行。
 
 ## 三、会话边界
@@ -72,7 +72,7 @@
 - **端名与读法**：端名与任务 `scope` 逐字一致（`web+server` → `web.md` + `server.md`），端清单以 `index.md` 顶部声明为唯一权威；迁移期间新旧兼容读，
    两者并存以目录形态为准；表格被格式化器填充出空隙时用 `toolkit conventions format` 归一
 
-三分区、读写分层与表格形态的机制见[完整攻略 · conventions/](./guide#conventions-规范沉淀地)，命令契约见 [conventions 命令](./cli/conventions)。
+三分区、读写分层与表格形态的机制见[完整攻略 · conventions/](./guide#conventions-规范沉淀地)，命令契约见 [规范载体](./cli/conventions)。
 
 ## 五、数据进出（报表 / 迁移）
 
@@ -104,7 +104,7 @@ pnpm exec toolkit changelog doc        # 同步文档站更新日志镜像（ver
 ```
 
 ⚠️ 发版不是必经步骤：默认由你的规则约定是否执行，当次指令已含授权则直接执行；未归档的 active 任务存在时会提醒先归档。
-完整链路见[完整攻略 · 多语言 CHANGELOG](./guide#多语言-changelog)，参数见 [changelog 命令](./cli/changelog)。
+完整链路见[完整攻略 · 多语言 CHANGELOG](./guide#多语言-changelog)，参数见 [发版与更新日志](./cli/changelog)。
 
 ## 七、升级与卸载
 
@@ -148,7 +148,7 @@ pnpm remove -g @fxri/toolkit     # 2. 再卸 CLI
 ## 八、隐私与安全
 
 - 默认脱敏开启：终端展示、导出文件、归档落盘都会掩码敏感信息；`.tasks/active/` 源文件保持原样（设计如此）
-- 不想某类信息被掩码、或要加自定义规则：`.toolkitrc.json` 的 `redact` 段（见[配置参考 · redact](./config/redact)）
+- 不想某类信息被掩码、或要加自定义规则：`.toolkitrc.json` 的 `redact` 段（见[配置参考 · 隐私脱敏](./config/redact)）
 
 ## 相关页面
 

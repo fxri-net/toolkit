@@ -103,7 +103,7 @@ pnpm dlx skills add fxri-net/toolkit                  # 也可用上游安装器
 - **默认形态**：`toolkit skills install` 默认软链，链接创建失败自动降级副本；`toolkit skills status` 查现场，`toolkit skills uninstall` 卸载
 - **交互两步**：先按 `metadata.tier` 选技能，再选目标（`canonical` 主目标 + 已检测 agent；项目面为候选薄壳目录）
   - `core`：`fxri-plan-to-task`、`fxri-session-recap`、`fxri-plan-review`，`skills` 模式必装、`package` 模式可选
-  - `optional`：`fxri-release-changelog`、`fxri-text-encoding`
+  - `optional`：`fxri-release-changelog`、`fxri-text-encoding`、`fxri-skill-authoring`、`fxri-docs-writing`
 - **跳过交互**：`--skills` / `--all` / `--no-optional` / `--agent` / `--all-agents` / `--yes`
   首次按模式默认（`skills` 装 `core`、`package` 零装）与全部可用目标，`--no-save-agents` 只影响本次
 - **模式**：`--mode package` 切纯包管理器模式（core 也可不装、允许零选），`--no-skills` 仅本次零装
@@ -118,6 +118,7 @@ pnpm dlx skills add fxri-net/toolkit                  # 也可用上游安装器
 - [fxri-plan-review](./skills/fxri-plan-review/SKILL.md)：复核已落档任务拆分，输出新增疏漏、建议与修订计划表，按后续是否落档标记
 - [fxri-text-encoding](./skills/fxri-text-encoding/SKILL.md)：文本字节形态基线（文件、管道、命令行、API 请求体，含临时脚本与一次性命令），
   非 ASCII 文本丢失 / 乱码与首行报错的定位与修复
+- [fxri-docs-writing](./skills/fxri-docs-writing/SKILL.md)：文档站写作规范（分类骨架、页面标题「显示名（标识）」、索引与引用口径、导航短别名、顶栏与 404）
 
 skills 与工具的关系、只在公司项目激活等说明见 [常见问题](./docs/faq.md) 与 [完整攻略](./docs/guide.md#ai-技能包-skills)。
 

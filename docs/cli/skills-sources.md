@@ -1,8 +1,8 @@
 ---
-title: 技能来源（外部来源与格式）
+title: 技能来源（skills sources）
 ---
 
-# 技能来源（外部来源与格式）
+# 技能来源（skills sources）
 
 > `--from <path|url>` 的外部来源格式、曾用名、永久登记与安装锁；安装命令、选择与现场体检见 [skills 命令](./skills)。
 
@@ -51,4 +51,4 @@ title: 技能来源（外部来源与格式）
 
 ## 相关页面
 
-- 参考：[skills 命令](./skills) · [配置参考 · skillsInstall](../config/skills) · [完整攻略 · AI 技能包](../guide#ai-技能包-skills)
+- 参考：[技能分发](./skills) · [配置参考 · skillsInstall](../config/skills) · [完整攻略 · AI 技能包](../guide#ai-技能包-skills)

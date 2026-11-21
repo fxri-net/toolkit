@@ -1140,7 +1140,8 @@ describe("悬空链接判定与自动清理", () => {
   })
 
   it("指向别处且内容仍一致的健康链接不受影响（路径不同不等于内容不同）", () => {
-    const name = listPackageSkills()[0]!.name
+    // 取默认选中的 core 技能：optional 技能未选择时状态会归为「已装未选」，与链接健康与否无关
+    const name = listPackageSkills().find((skill) => skill.tier === "core")!.name
     // 整目录复制真源到异地再链接过去：内容逐字一致即视为正常，避免体检假警
     const mirror = join(home, "mirror", name)
     cpSync(join(skillsSourceDir(), name), mirror, { recursive: true })

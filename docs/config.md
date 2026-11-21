@@ -85,7 +85,7 @@
 3. `toolkit config status` 只读展示三层生效情况与来源，其「本地配置文件未纳入忽略」提示**不受任何配置开关影响**（除 `--format` 非法外恒输出）
 
 ⚠️ **自指关系**：`tasks check` 的上述软告警受 `check.warnings` 支配，而该开关可被本地层（那个未入库的文件本身）设成 `false` → 告警被同一个文件静音、团队无从察觉。
-故不以 `tasks check` 为唯一自查通道，改由 `config status` 的对应提示兜底（它不受开关影响）。命令用法见 [CLI 参考 · config](./cli/config)。
+故不以 `tasks check` 为唯一自查通道，改由 `config status` 的对应提示兜底（它不受开关影响）。命令用法见 [CLI 参考 · 配置体检](./cli/config)。
 
 ## 字段总览
 
@@ -116,13 +116,13 @@
 
 | 分组 | 内容 |
 | --- | --- |
-| [redact（隐私脱敏）](./config/redact) | 内置规则清单、按名禁用与自定义规则 |
-| [check 与 tasks（校验与任务区）](./config/check-tasks) | 软告警开关、勾选框与词标记扫描、任务目录与导入列映射 |
-| [changelog 与 changelogDoc（语言与镜像）](./config/changelog) | 语言表与文档站更新页镜像 |
-| [updateCheck（升级检查）](./config/update) | 提示频率、通道、registry、缓存与诊断 |
-| [skills 相关（技能分发）](./config/skills) | 软链自愈、全局与项目面安装偏好 |
-| [usage（技能使用情况）](./usage/configuration) | 总开关、来源、技能范围、字段、存储与上传；仅全局层 |
-| [docs（文档站校验）](./cli/docs-check#配置) | 导航阈值、产物目录、sitemap 策略、搜索实现与规则开关 |
+| [隐私脱敏（redact）](./config/redact) | 内置规则清单、按名禁用与自定义规则 |
+| [校验与任务区（check / tasks）](./config/check-tasks) | 软告警开关、勾选框与词标记扫描、任务目录与导入列映射 |
+| [语言与镜像（changelog / changelogDoc）](./config/changelog) | 语言表与文档站更新页镜像 |
+| [升级检查（updateCheck）](./config/update) | 提示频率、通道、registry、缓存与诊断 |
+| [技能分发偏好（skills）](./config/skills) | 软链自愈、全局与项目面安装偏好 |
+| [使用情况配置](./usage/configuration) | 总开关、来源、技能范围、字段、存储与上传；仅全局层 |
+| [文档站校验（docs nav / docs dist）](./cli/docs-check#配置) | 导航阈值、产物目录、sitemap 策略、搜索实现与规则开关 |
 | [作用域配置（activation / policies）](./config/activation) | 按项目 / 目录决定技能与规则是否生效；默认全域生效 |
 
 ## 相关页面

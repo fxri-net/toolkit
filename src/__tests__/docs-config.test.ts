@@ -88,6 +88,15 @@ describe("resolveDocsCheckConfig", () => {
     expect(config.rules).toEqual({ "nav/page-size": "off", "nav/max-items": "warn" })
   })
 
+  it("分组名上限支持新键 maxGroupUnits，旧键 maxGroupHan 继续生效且新键优先", () => {
+    writeConfig({ docs: { nav: { maxGroupHan: 3 } } })
+    expect(resolveDocsCheckConfig().nav.maxGroupUnits).toBe(3)
+    writeConfig({ docs: { nav: { maxGroupHan: 3, maxGroupUnits: 6 } } })
+    expect(resolveDocsCheckConfig().nav.maxGroupUnits).toBe(6)
+    writeConfig({ docs: { nav: {} } })
+    expect(resolveDocsCheckConfig().nav.maxGroupUnits).toBe(DEFAULT_DOCS_NAV.maxGroupUnits)
+  })
+
   it("类型非法与非法枚举回落默认，不产生半截配置", () => {
     writeConfig({
       docs: {

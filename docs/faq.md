@@ -159,14 +159,14 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 介于两者之间可用**内容闸门**（`toolkit skills install --gate`）：技能壳仍全局可见，正文按作用域由 `toolkit scope guard` 下发。
 需要绝对隔离（技能物理不在场）时用 `toolkit skills mount <父目录>` 批量做项目面安装。
 兼容 agent 仍可能按 `description` 匹配自动触发，若需要稳定启用（而非碰运气触发），个人项目同样建议显式声明。
-模板见[完整攻略 · 项目级激活模板](./guide#项目级激活模板)，判定与范围配置见[作用域](./config/activation)。
+模板见[完整攻略 · 项目级激活模板](./guide#项目级激活模板)，判定与范围配置见[作用域配置](./config/activation)。
 
 ### 想让技能正文只在激活项目加载，怎么做？
 
 默认全局技能是全文安装，`description` 命中即整篇进入上下文。用 `toolkit skills install --gate` 开启内容闸门后，
 默认把全部技能改为入口壳（可用 `skillsInstall.gate` 的 `include` / `exclude` 裁剪，或技能声明 `metadata.gate: false` 退出）：
 只保留 `name` / `description` 与一句「先运行 `toolkit scope guard <技能名>`」，正文由 guard 按当前目录判定——激活时输出正文，未激活以退出码 3 结束（stdout 为空）。
-需要全文时随时 `toolkit skills install --embed` 回退；开关与命令契约见 [scope 命令 · 内容闸门](./cli/scope#内容闸门-guard)。
+需要全文时随时 `toolkit skills install --embed` 回退；开关与命令契约见 [作用域 · 内容闸门](./cli/scope#内容闸门-guard)。
 
 ⚠️ 入口壳只降低正文被读取的概率，不是物理隔离；需要绝对干净用 `toolkit skills mount` 或 `toolkit skills install --scope project`。
 
@@ -200,7 +200,7 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 
 脱敏只作用于**终端展示、导出文件与归档落盘**。`.tasks/active/` 源文件按原样保存（设计如此，不改动原始正文）。
 若某类信息未被掩码，可能未命中内置规则：**团队规则**加到 `.toolkitrc.json`；**个人规则**加到 `.toolkitrc.local.json`
-（仅本人可见、默认不入库），见[配置参考 · redact](./config/redact)。
+（仅本人可见、默认不入库），见[配置参考 · 隐私脱敏](./config/redact)。
 
 ### 除了开发，产品经理、项目经理这类非开发角色能用吗？
 
