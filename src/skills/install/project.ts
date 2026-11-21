@@ -2,12 +2,14 @@
 import { existsSync, rmSync } from "node:fs"
 import { join, resolve } from "node:path"
 import { readTextFile } from "../../read-text"
-import { assertUniqueSkillNames, buildSkillShell, isEmptyDir, isInside, listPackageSkills, isPathPresent, readSkillDescription, readSkillShellVersion, removeArtifact, resolveProjectTargets, sourceSkillItems, toRepoRel } from "../source"
+import { assertUniqueSkillNames, buildSkillGateShell, buildSkillShell, isEmptyDir, isInside, isSkillGateShell, listPackageSkills, isPathPresent, readSkillDescription, readSkillShellVersion, removeArtifact, resolveProjectTargets, sourceSkillItems, toRepoRel } from "../source"
 import { acquireSkillsLock, projectSkillsLockFile } from "../lock"
 import { projectStateFile, readProjectState, removeProjectStateFile, writeProjectState } from "../state"
-import { readProjectSkillsConfig, writeProjectSkillsConfig } from "../config"
-import { BUILTIN_SOURCE, SKILL_ENTRY, type ProjectDirResult, type ProjectInstallReport, type ProjectRemoveReport, type ProjectRemoveResult, type SkillStateEntry, type SkillStateSource, type SkillStateTarget, type SkillsMode } from "../types"
-import { applyShell, applySourceCopy, collectSources, isConsistentShell, isConsistentSourceCopy, filterSkillItems, pruneEntries, recordAction, type ExternalSourceOption } from "./common"
+import { readProjectSkillsConfig, readSkillsDeliveryConfig, writeProjectSkillsConfig } from "../config"
+import { gateRulesToDeliveryRules, resolveDelivery, type DeliveryDecision, type DeliveryMode } from "../delivery"
+import { derivePolicyDelivery, loadPolicyDeliveryContext } from "../policy-delivery"
+import { BUILTIN_SOURCE, SKILL_ENTRY, type GateRules, type ProjectDirResult, type ProjectInstallReport, type ProjectRemoveReport, type ProjectRemoveResult, type SkillStateEntry, type SkillStateSource, type SkillStateTarget, type SkillsMode } from "../types"
+import { applyGateShell, applyShell, applySourceCopy, collectSources, isConsistentShell, isConsistentSourceCopy, filterSkillItems, pruneEntries, recordAction, type ExternalSourceOption } from "./common"
 
 
 export interface ProjectInstallOptions {
@@ -28,6 +30,8 @@ export interface ProjectInstallOptions {
   saveSelection?: boolean
   // 本次生效的安装模式；省略时读配置，默认 skills
   mode?: SkillsMode
+  // 内容闸门：--gate / --embed 显式取值，缺省读项目面 skillsDelivery 配置
+  gate?: boolean | GateRules
 }
 
 // 逐技能结果归档：按动作分派到对应清单
@@ -38,10 +42,30 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
   const allItems = sources.flatMap(sourceSkillItems)
   assertUniqueSkillNames(allItems)
   const items = filterSkillItems(allItems, options.skills)
-  const selected = new Set(items.map((item) => item.name))
   const byName = new Map(allItems.map((item) => [item.name, { dir: item.dir, linkTarget: item.linkTarget }]))
   const targets = resolveProjectTargets(cwd)
   const root = targets.root
+  // 分发形态：命令行显式取值 > 项目面 skillsDelivery 配置 > 旧键兼容；与全局面共用同一解析器
+  const gateOption = options.gate
+  const deliveryConfig = gateOption === undefined ? readSkillsDeliveryConfig("project", root) : { rules: [] }
+  const cliRules = gateOption !== undefined && typeof gateOption === "object" ? gateRulesToDeliveryRules(gateOption) : []
+  const override: DeliveryMode | undefined = gateOption === true ? "gated" : gateOption === false ? "full" : undefined
+  const policyContext = loadPolicyDeliveryContext(root)
+  const decisions = new Map<string, DeliveryDecision>(
+    items.map((item) => [
+      item.name,
+      resolveDelivery({
+        name: item.name,
+        config: deliveryConfig,
+        rules: cliRules,
+        override,
+        gate: item.gate,
+        policy: derivePolicyDelivery(item.name, policyContext),
+      }),
+    ]),
+  )
+  // off 不写产物，也不参与缺失统计；已登记残留只在 --prune 时清理
+  const selected = new Set(items.filter((item) => decisions.get(item.name)!.mode !== "off").map((item) => item.name))
   const previous = readProjectState(root)
   const prevTarget = (sourceName: string, kind: "source" | "shell", dir: string): SkillStateTarget | undefined =>
     previous?.sources?.[sourceName]?.targets.find((target) => target.kind === kind && target.dir === dir)
@@ -86,10 +110,12 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
 
   const release = options.dryRun ? null : acquireSkillsLock(projectSkillsLockFile(root))
   try {
-    const source: ProjectDirResult = { dir: targets.sourceDir, created: [], updated: [], skipped: [], conflicts: [], failed: [], pruned: [] }
+    const source: ProjectDirResult = { dir: targets.sourceDir, created: [], updated: [], skipped: [], conflicts: [], failed: [], gates: [], pruned: [] }
     const sourceAbs = join(root, targets.sourceDir)
     const sourceEntriesBySource = new Map<string, SkillStateEntry[]>()
     for (const item of items) {
+      // off：不写真源副本；既有副本按未选择处理，--prune 时清理
+      if (decisions.get(item.name)!.mode === "off") continue
       const recorded = prevTarget(item.source, "source", targets.sourceDir)?.entries.some((entry) => entry.name === item.name) ?? false
       try {
         const action = applySourceCopy(item.dir, join(sourceAbs, item.name), recorded, Boolean(options.force), Boolean(options.dryRun))
@@ -120,11 +146,24 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
     }
 
     for (const dir of shellDirs) {
-      const result: ProjectDirResult = { dir, created: [], updated: [], skipped: [], conflicts: [], failed: [], pruned: [] }
+      const result: ProjectDirResult = { dir, created: [], updated: [], skipped: [], conflicts: [], failed: [], gates: [], pruned: [] }
       const entriesBySource = new Map<string, SkillStateEntry[]>()
       for (const item of items) {
-        const expected = buildSkillShell(item.name, targets.sourceDir, readSkillDescription(item.dir))
+        const decision = decisions.get(item.name)!
+        if (decision.mode === "off") continue
         try {
+          if (decision.mode === "gated") {
+            // 入口壳只含 name / description 与 guard 指令，正文由 guard 从项目真源副本读取
+            const expected = buildSkillGateShell(item.name, readSkillDescription(item.dir))
+            const action = applyGateShell(join(root, dir, item.name, SKILL_ENTRY), expected, Boolean(options.force), Boolean(options.dryRun))
+            recordAction(result, action, item.name)
+            if (action !== "conflict") result.gates.push(item.name)
+            if (action !== "conflict" && !options.dryRun) {
+              entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: "gate" }])
+            }
+            continue
+          }
+          const expected = buildSkillShell(item.name, targets.sourceDir, readSkillDescription(item.dir))
           const action = applyShell(join(root, dir, item.name, SKILL_ENTRY), expected, Boolean(options.force), Boolean(options.dryRun))
           recordAction(result, action, item.name)
           if (action !== "conflict" && !options.dryRun) {
@@ -146,7 +185,8 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
           } catch {
             continue
           }
-          if (readSkillShellVersion(content) === null) continue
+          // 旧名可能是项目薄壳或内容闸门入口壳，两种标记都算本包产物
+          if (readSkillShellVersion(content) === null && !isSkillGateShell(content)) continue
           if (options.dryRun) {
             result.pruned.push(old)
             continue
@@ -166,7 +206,7 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
             const file = join(root, dir, entry.name, SKILL_ENTRY)
             if (!existsSync(file)) continue
             const content = readTextFile(file)
-            if (readSkillShellVersion(content) !== null) {
+            if (readSkillShellVersion(content) !== null || isSkillGateShell(content)) {
               removeArtifact(join(root, dir, entry.name))
               result.pruned.push(entry.name)
             }
@@ -193,7 +233,7 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
         if (shellDirSet.has(prev.dir)) continue
         let entries = prev.entries
         if (pruneDeselectedDirs) {
-          const result: ProjectDirResult = { dir: prev.dir, created: [], updated: [], skipped: [], conflicts: [], failed: [], pruned: [] }
+          const result: ProjectDirResult = { dir: prev.dir, created: [], updated: [], skipped: [], conflicts: [], failed: [], gates: [], pruned: [] }
           const kept: SkillStateEntry[] = []
           for (const entry of entries) {
             const skillDir = join(root, prev.dir, entry.name)
@@ -206,7 +246,7 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
               kept.push(entry)
               continue
             }
-            if (readSkillShellVersion(content) === null) {
+            if (readSkillShellVersion(content) === null && !isSkillGateShell(content)) {
               kept.push(entry)
               continue
             }

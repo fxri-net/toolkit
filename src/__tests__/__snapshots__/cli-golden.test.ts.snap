@@ -1954,8 +1954,8 @@ Options:
   --force            覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
   --prune            清理未选择且内容与本包真源一致的旧产物（只清本包登记条目）
   --mode <mode>      技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）
-  --gate             开启内容闸门：本次全部技能写入口壳，正文由 toolkit scope guard 按作用域下发（仅全局面）
-  --embed            回退内容闸门：把入口壳改回全文（仅全局面）
+  --gate             开启内容闸门：本次全部技能写入口壳，正文由 toolkit scope guard 按作用域下发
+  --embed            回退内容闸门：把入口壳改回全文
   --no-skills        本次不安装任何技能，不改模式与已保存选择
   --format <format>  输出格式（json，输出到 stdout）
   -h, --help         显示帮助

@@ -580,6 +580,7 @@ const PROJECT_STATE_LABEL: Record<ProjectItemState, string> = {
   missing: "缺失",
   "not-selected": "未选择",
   "installed-unselected": "未选择但已安装",
+  residue: "分发形态为 off，存在残留（运行 toolkit skills install --scope project --prune 清理）",
 }
 
 // 项目面需处理的异常状态：status 汇总提示与 install 修复范围
@@ -593,6 +594,7 @@ function printProjectDir(result: ProjectDirResult, indent = "  "): void {
   if (result.updated.length > 0) console.log(`${pad}重建/更新：${result.updated.join("、")}`)
   if (result.skipped.length > 0) console.log(`${pad}跳过（已就绪）：${result.skipped.join("、")}`)
   if (result.conflicts.length > 0) console.log(`${pad}跳过（同名非本包产物，如需覆盖加 --force）：${result.conflicts.join("、")}`)
+  if (result.gates.length > 0) console.log(`${pad}入口壳：${result.gates.join("、")}`)
   if (result.pruned.length > 0) console.log(`${pad}清理（未选择）：${result.pruned.join("、")}`)
   for (const f of result.failed) console.log(`${pad}⚠️ 失败：${f.name}（${f.reason}）`)
 }
@@ -628,6 +630,11 @@ function printProjectStatusReport(report: ProjectStatusReport): void {
   console.log(`项目面 · 项目根：${report.root}`)
   console.log(`项目面 · 技能真源：${report.sourceDir}`)
   console.log(`项目面 · 技能版本：${skillVersionLine(report)}`)
+  if (report.delivery.gated > 0 || report.delivery.off > 0) {
+    console.log(
+      `项目面 · 分发形态（本次选择）：全文 ${report.delivery.full} / 入口壳 ${report.delivery.gated} / 不安装 ${report.delivery.off}`,
+    )
+  }
   console.log(`项目面 · 选择集（${report.selection.length}）：${report.selection.join("、") || "无"}`)
   // 与全局面同口径：来源内存在但未选择的技能给出汇总，零选择时不刷清单
   const unselectedProjectSkills = report.selection.length > 0 ? findUnselectedSkills(report) : []
@@ -643,15 +650,18 @@ function printProjectStatusReport(report: ProjectStatusReport): void {
   const renamed = findProjectRenamedArtifacts(report)
   let problems = 0
   let unselectedCount = 0
+  let residueCount = 0
   for (const d of report.dirs) {
     const bad = d.items.filter((item) => PROJECT_PROBLEM_STATES.includes(item.state))
     const unselected = d.items.filter((item) => item.state === "installed-unselected")
+    const residues = d.items.filter((item) => item.state === "residue")
     problems += bad.length
     unselectedCount += unselected.length
+    residueCount += residues.length
     const head = `${d.kind === "source" ? "真源副本" : "薄壳"}：${d.dir}${d.selected ? "" : "（未选择）"}`
     console.log("")
     // 健康目录折叠为一行，避免目标多时把真正的问题淹没在噪音里（完整信息另见 --format json）
-    if (bad.length === 0 && unselected.length === 0) {
+    if (bad.length === 0 && unselected.length === 0 && residues.length === 0) {
       console.log(`${head}　${d.items.length} 项正常`)
       continue
     }
@@ -662,7 +672,8 @@ function printProjectStatusReport(report: ProjectStatusReport): void {
       console.log(`  ${item.name}：${PROJECT_STATE_LABEL[item.state]}${hint}`)
     }
     for (const item of unselected) console.log(`  ${item.name}：未选择但已安装（保留不影响使用，需要清理时加 --prune 重跑 install）`)
-    const ok = d.items.length - bad.length - unselected.length
+    for (const item of residues) console.log(`  ${item.name}：${PROJECT_STATE_LABEL[item.state]}`)
+    const ok = d.items.length - bad.length - unselected.length - residues.length
     if (ok > 0) console.log(`  其余 ${ok} 项正常`)
   }
   if (report.missingDirs.length > 0) {
@@ -678,6 +689,9 @@ function printProjectStatusReport(report: ProjectStatusReport): void {
   )
   if (unselectedCount > 0) {
     console.log(line.hint(`项目面未选择但已安装 ${unselectedCount} 项：保留不影响使用，需要清理时运行 toolkit skills install --scope project --prune`))
+  }
+  if (residueCount > 0) {
+    console.log(line.hint(`项目面分发形态为 off 的残留 ${residueCount} 项：运行 toolkit skills install --scope project --prune 清理`))
   }
 }
 
@@ -865,8 +879,8 @@ export function registerSkillsCommands(program: Command): void {
     .option("--force", "覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）")
     .option("--prune", "清理未选择且内容与本包真源一致的旧产物（只清本包登记条目）")
     .option("--mode <mode>", "技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）")
-    .option("--gate", "开启内容闸门：本次全部技能写入口壳，正文由 toolkit scope guard 按作用域下发（仅全局面）")
-    .option("--embed", "回退内容闸门：把入口壳改回全文（仅全局面）")
+    .option("--gate", "开启内容闸门：本次全部技能写入口壳，正文由 toolkit scope guard 按作用域下发")
+    .option("--embed", "回退内容闸门：把入口壳改回全文")
     .option("--no-skills", "本次不安装任何技能，不改模式与已保存选择")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .addHelpText(
@@ -907,7 +921,10 @@ export function registerSkillsCommands(program: Command): void {
         if (!assertChoice(options.mode, ["skills", "package"], "--mode", "，未执行安装")) return
         const runProject = scope.choice !== "global"
         const runGlobal = scope.choice !== "project"
-        if ((options.gate || options.embed) && !runGlobal) console.warn("⚠️ --gate / --embed 仅作用于全局面，项目面产物保持不变")
+        // 兼容提示：项目面此前忽略 --gate / --embed，现已实际生效；随 2.0.0 移除
+        if ((options.gate || options.embed) && runProject) {
+          console.warn("⚠️ 项目面 --gate / --embed 现已生效（2.0.0 起移除该提示）")
+        }
         // JSON 消费方通常非 TTY；即使 TTY 也不弹窗，避免提示污染 stdout 的机器可读输出
         const nonInteractive = Boolean(options.yes) || options.format === "json"
         // 选择阶段的非交互：--yes 或 --use-saved 都跳过选择提示；--use-saved 仍保留最终确认
@@ -1013,6 +1030,7 @@ export function registerSkillsCommands(program: Command): void {
                 externalSources,
                 saveSelection: selectionResult.saveSelection,
                 mode: selectionResult.mode,
+                gate: gateOption,
               })
             : null
           if (options.format === "json") printJson({ dryRun, scope: scope.choice, plan, project: preview })
@@ -1058,6 +1076,7 @@ export function registerSkillsCommands(program: Command): void {
               externalSources,
               saveSelection: selectionResult.saveSelection,
               mode: selectionResult.mode,
+              gate: gateOption,
             })
           : null
         const global = runGlobal
@@ -1738,10 +1757,10 @@ export function registerSkillsCommands(program: Command): void {
         const scope = resolveScopeChoice(options.scope)
         if (!scope) return
         if (scope.choice === "project") {
-          console.warn("⚠️ 项目面分发形态尚未接入，本次未生成计划")
+          console.warn("⚠️ 项目面分发计划尚未接入（安装与状态已支持），本次未生成计划")
           return
         }
-        if (scope.choice === "all") console.warn("⚠️ 项目面分发形态尚未接入，本次只预览全局面")
+        if (scope.choice === "all") console.warn("⚠️ 项目面分发计划尚未接入，本次只预览全局面")
         let items: SkillItem[]
         try {
           items = collectSkillItems({ dryRun: true })

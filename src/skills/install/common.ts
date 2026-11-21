@@ -215,6 +215,24 @@ export function applyShell(file: string, expected: string, force: boolean, dryRu
   return action
 }
 
+// 内容闸门入口壳写入：缺则建；内容全等跳过；带本包闸门标记则就地重写；无标记视为他人产物（非 --force 不改）
+export function applyGateShell(file: string, expected: string, force: boolean, dryRun: boolean): "created" | "updated" | "skipped" | "conflict" {
+  const exists = existsSync(file)
+  const actual = exists ? readTextFile(file) : ""
+  const action: "created" | "updated" | "skipped" | "conflict" = !exists
+    ? "created"
+    : actual === expected
+      ? "skipped"
+      : isSkillGateShell(actual) || force
+        ? "updated"
+        : "conflict"
+  if (!dryRun && (action === "created" || action === "updated")) {
+    mkdirSync(dirname(file), { recursive: true })
+    writeFileAtomic(file, expected)
+  }
+  return action
+}
+
 // 项目侧安装：真源副本（仓库内唯一一份，入库）+ 各候选目录薄壳（指向真源）
 // 真源只此一份，其余目录放薄壳引用，避免多份副本互相漂移
 
@@ -222,10 +240,11 @@ export function isConsistentSourceCopy(dest: string, sourceDir: string | undefin
   return Boolean(sourceDir) && isSameDir(sourceDir as string, dest)
 }
 
-// 薄壳一致性：带本包标记即可安全删除（内容已由真源派生，不逐字比对）
+// 薄壳一致性：带本包标记即可安全删除（项目薄壳与内容闸门入口壳都算，内容已由真源派生，不逐字比对）
 export function isConsistentShell(skillDir: string): boolean {
   try {
-    return readSkillShellVersion(readTextFile(join(skillDir, SKILL_ENTRY))) !== null
+    const content = readTextFile(join(skillDir, SKILL_ENTRY))
+    return readSkillShellVersion(content) !== null || isSkillGateShell(content)
   } catch {
     return false
   }

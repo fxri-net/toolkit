@@ -200,7 +200,7 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 
 **安装**：装了 CLI 后一键分发（推荐，技能随包分发、与 CLI 同一发布批次）用 `toolkit skills install`；
 也可用上游安装器 `pnpm dlx skills add fxri-net/toolkit --global` 从 GitHub 拉取。命令、作用域与全部选项见 [技能分发](./cli/skills)。
-开启 `skills install --gate` 后默认全部技能只发入口壳（可用 `include` / `exclude` 规则裁剪），`--embed` 回退。
+矩阵策略限制的技能会自动只发入口壳；也可用 `skillsDelivery` 规则或 `skills install --gate` 显式指定，`--embed` 回退全文。
 
 **全局面分发目标三层**：主目标 `~/.agents/skills/`（多家 agent 共读，清单与判定口径见 [配置参考 · 作用域与安装面](./config/skills#作用域与安装面)）
 → 内置表内「已安装」的各 agent 全局目录 → `--dir` 兜底；未安装的 agent 只报告、不凭空造目录。
@@ -209,6 +209,7 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 默认**软链**（Windows 用 junction）。⚠️ 软链落点是**写入穿透**形态：改落点文件即改真源，要改技能内容请改真源。
 
 **项目面分发（`--scope project`）**：真源落 `<仓库根>/.agents/skills/`（完整副本），其余已存在候选目录各放每个技能一份**入口薄壳**指向真源，避免多目录重复；
+按 `skillsDelivery` 判定为 `gated` 的技能在候选目录落**入口壳**（正文由 `toolkit scope guard` 读项目真源副本），`off` 不落产物。
 归属账写 `<仓库根>/.toolkit/state.json`，`prepare` 钩子在 `pnpm install` 时自动刷新，队友 clone 即用。
 候选目录清单、逐技能现场状态与卸载口径见 [技能分发](./cli/skills)。
 
@@ -234,7 +235,7 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 ```
 
 **路径三 · 策略 / 技能矩阵**：全局技能照装，用 `toolkit scope policy add` 或 `toolkit scope skills allow|deny`
-按目录与技能维度收口，或 `toolkit skills gate on` 开启内容闸门、只在命中目录下发正文；
+按目录与技能维度收口；被矩阵限制的技能自动按入口壳分发，只在命中目录下发正文，
 个人项目不命中即不加载，规则见[作用域配置](./config/activation)。
 
 **个人项目**：不放上述文件即可（兼容 agent 仍可能按 `description` 自动触发）；若希望**稳定**启用，仍建议在项目 rules 中显式声明。

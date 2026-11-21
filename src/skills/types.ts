@@ -408,6 +408,8 @@ export interface ProjectDirResult {
   skipped: string[]
   conflicts: string[]
   failed: Array<{ name: string; reason: string }>
+  // 本次写入的入口壳（gated 形态），供报告区分薄壳与内容闸门壳
+  gates: string[]
   // --prune 清理掉的未选择产物
   pruned: string[]
 }
@@ -429,7 +431,8 @@ export interface ProjectInstallReport {
 }
 
 // 项目侧逐项状态：installed-unselected 表示未选择但已有本包产物，单列提示、不计入 problems
-export type ProjectItemState = "ready" | "drift" | "conflict" | "missing" | "not-selected" | "installed-unselected"
+// residue 表示目标形态为 off，现场仍有本包残留（不参与缺失统计，用 install --prune 清理）
+export type ProjectItemState = "ready" | "drift" | "conflict" | "missing" | "not-selected" | "installed-unselected" | "residue"
 
 export interface ProjectSkillItem {
   name: string
@@ -454,6 +457,8 @@ export interface ProjectStatusReport {
   sourceDir: string
   skills: string[]
   mode: SkillsMode
+  // 本次选择集按分发形态推导的计数：全文 / 入口壳 / 不安装
+  delivery: Record<"full" | "gated" | "off", number>
   selection: string[]
   // 本次生效的项目薄壳目录选择集（仓库根相对；未保存过选择时为空数组，表示沿用全部已存在候选目录）
   targetSelection: string[]

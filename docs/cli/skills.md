@@ -75,8 +75,8 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
   - 仅在新名本次已新建 / 更新 / 跳过时清理；新名冲突或失败时保留旧名，沿用既有冲突 / 失败报告
   - 新名写入状态后旧名不再残留
 - **分发形态**：按 [`skillsDelivery`](../config/skills#skillsdelivery-技能分发形态) 推导，`gated` 只写入口壳、`off` 不写产物（残留由 `--prune` 清理）
-  - `--gate` / `--embed` 为本次显式取值，不受已保存配置影响
-- 项目面按[作用域与安装面](../config/skills#作用域与安装面)的副本 + 薄壳口径写入
+  - `--gate` / `--embed` 为本次显式取值，不受已保存配置影响；项目面同样生效（首次生效的兼容提示随 2.0.0 移除）
+- 项目面按[作用域与安装面](../config/skills#作用域与安装面)的副本 + 薄壳口径写入；`gated` 技能的候选目录落入口壳，真源副本保留供 guard 读取正文
 - `--dry-run` 是 `skills plan` 的别名：只输出分发计划，不写文件
 - `--format json` 输出机器可读安装报告到 stdout（含 `dryRun` / `scope` 标记与 `selection` / `targetSelection`）
   - 预演时键为 `plan`（分发计划）与 `project`（项目面安装预览）

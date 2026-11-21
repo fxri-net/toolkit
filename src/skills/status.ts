@@ -33,7 +33,7 @@ import {
 import { projectStateFile, readProjectState, readSkillsState, skillsStateFile } from "./state"
 import { resolveSavedProjectSelection, resolveSavedSelection, type SelectionSkill } from "./selection"
 import { readProjectSkillsConfig, readSkillsDeliveryConfig, readSkillsInstallConfig } from "./config"
-import { resolveDelivery, type DeliveryDecision } from "./delivery"
+import { resolveDelivery, type DeliveryDecision, type DeliveryMode } from "./delivery"
 import { derivePolicyDelivery, loadPolicyDeliveryContext } from "./policy-delivery"
 import { resolveGateSetting } from "./gate"
 import { readTextFile } from "../read-text"
@@ -394,17 +394,22 @@ export function skillsStatus(): SkillsStatusReport {
 
 // ===== 项目侧体检 =====
 
-// 单薄壳状态判定：缺 → missing；无标记 → conflict（他人同名产物）；标记超前 → ready（不降级）；否则与期望逐字比对
-function shellItemState(file: string, skill: { name: string; dir: string }, sourceDir: string): ProjectItemState {
-  if (!existsSync(file)) return "missing"
+// 单薄壳状态判定：按目标形态比对期望内容；缺失 → missing，off → not-selected
+// 无本包标记 → conflict（他人同名产物）；标记超前 → ready（不降级）；形态不符同样记为 drift
+function shellItemState(file: string, skill: { name: string; dir: string }, sourceDir: string, target: DeliveryMode): ProjectItemState {
+  if (!existsSync(file)) return target === "off" ? "not-selected" : "missing"
   let actual: string
   try {
     actual = readTextFile(file)
   } catch {
     return "conflict"
   }
+  if (target === "gated") {
+    if (!isSkillGateShell(actual)) return "drift"
+    return actual === buildSkillGateShell(skill.name, readSkillDescription(skill.dir)) ? "ready" : "drift"
+  }
   const version = readSkillShellVersion(actual)
-  if (version === null) return "conflict"
+  if (version === null) return isSkillGateShell(actual) ? "drift" : "conflict"
   if (version > currentSkillShellVersion()) return "ready"
   return actual === buildSkillShell(skill.name, sourceDir, readSkillDescription(skill.dir)) ? "ready" : "drift"
 }
@@ -429,6 +434,13 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
       ? []
       : allNames.filter((name) => refs.get(name)!.tier === "core")
   const baseSelected = new Set(selection)
+  // 分发形态：项目面读全局 + 项目 + 本地层，与安装共用同一解析器
+  const deliveryConfig = readSkillsDeliveryConfig("project", root)
+  const policyContext = loadPolicyDeliveryContext(root)
+  const decisionOf = (name: string): DeliveryDecision =>
+    resolveDelivery({ name, config: deliveryConfig, gate: refs.get(name)?.gate, policy: derivePolicyDelivery(name, policyContext) })
+  const delivery: Record<"full" | "gated" | "off", number> = { full: 0, gated: 0, off: 0 }
+  for (const name of selection) delivery[decisionOf(name).mode] += 1
   const savedTargets = config.targets && config.targets.length > 0 ? config.targets : undefined
   const targetSelected = (dir: string): boolean => !savedTargets || savedTargets.includes(dir)
   const stateTargets = Object.values(state?.sources ?? {}).flatMap((source) => source.targets)
@@ -455,8 +467,12 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
   for (const name of sourceNames) {
     const ref = refs.get(name)
     const dest = join(root, targets.sourceDir, name)
+    const targetMode = decisionOf(name).mode
     let stateName: ProjectItemState
-    if (!existsSync(dest)) stateName = sourceSelected.has(name) ? "missing" : "not-selected"
+    if (targetMode === "off") {
+      // off 不要求真源副本：缺失不算问题，已有副本单列残留
+      stateName = existsSync(dest) ? "residue" : "not-selected"
+    } else if (!existsSync(dest)) stateName = sourceSelected.has(name) ? "missing" : "not-selected"
     else if (ref && isSameDir(ref.dir, dest)) stateName = sourceSelected.has(name) ? "ready" : "installed-unselected"
     else stateName = sourceRecorded.has(name) ? "drift" : "conflict"
     if (stateName !== "not-selected") sourceItems.push({ name, state: stateName, version: ref?.version ?? "", source: ref?.source ?? "" })
@@ -475,9 +491,12 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
       if (!ref) stateName = "conflict"
       else {
         const file = join(root, dir, name, SKILL_ENTRY)
-        stateName = shellItemState(file, { name, dir: ref.dir }, targets.sourceDir)
+        const targetMode = decisionOf(name).mode
+        stateName = shellItemState(file, { name, dir: ref.dir }, targets.sourceDir, targetMode)
         // 无标记但本包曾登记：视为被外部改动（漂移）而非陌生同名产物
         if (stateName === "conflict" && recordedNames.has(name)) stateName = "drift"
+        // off 不要求薄壳：已有本包产物单列残留，交由 install --prune 清理
+        if (targetMode === "off" && (stateName === "ready" || stateName === "drift")) stateName = "residue"
         if (!dirSelected) {
           if (stateName === "missing") stateName = "not-selected"
           else if (stateName === "ready" || stateName === "drift") stateName = "installed-unselected"
@@ -507,6 +526,7 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
     skills: allNames,
     skillVersionsFromState: [...refs.entries()].filter(([, ref]) => ref.fromState).map(([name]) => name),
     mode,
+    delivery,
     selection,
     targetSelection: savedTargets ?? [],
     sources,

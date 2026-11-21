@@ -5,8 +5,9 @@ import { basename, join } from "node:path"
 import { readTextFile } from "../read-text"
 import { skillsSourceDir } from "../skills/source/package"
 import { readSkillsState } from "../skills/state"
-import { SKILL_ENTRY } from "../skills/types"
+import { PROJECT_SOURCE_DIR, SKILL_ENTRY } from "../skills/types"
 import { resolveScope, type ScopeReport } from "./load"
+import { findProjectRoot } from "./paths"
 
 // 技能名约束：单段名字，禁止路径分隔符与点段，避免借技能名穿越到包外
 const SKILL_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
@@ -53,9 +54,16 @@ export function packageSkillDir(name: string): string {
   throw new Error(`未找到技能：${name}（内置源与已登记来源均不存在）`)
 }
 
+// 项目真源副本：仓库内 .agents/skills/<name> 存在时优先读取，保证项目面入口壳与正文同源
+function projectSkillDir(name: string, startDir: string): string | null {
+  const dir = join(findProjectRoot(startDir), PROJECT_SOURCE_DIR, name)
+  return existsSync(join(dir, SKILL_ENTRY)) ? dir : null
+}
+
 // 解析 guard 结果：激活时读取正文，未激活时给出原因（不做任何写操作）
 export function resolveGuard(name: string, startDir = process.cwd()): GuardResult {
-  const skillDir = packageSkillDir(name)
+  // 项目面优先取仓库内真源副本；仓库内无该技能时回落包内 / 外部来源
+  const skillDir = projectSkillDir(name, startDir) ?? packageSkillDir(name)
   const report = resolveScope(startDir, name)
   if (!report.decision.active) {
     return { name, active: false, content: "", skillDir, referencesDir: "", reason: report.decision.reason, report }
