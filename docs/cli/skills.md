@@ -240,6 +240,15 @@ monorepo 子目录执行亦能命中项目面；**本包源仓库自身视为 `g
 
 **全局面行为细节**：软链 / 副本形态、pnpm 锚点、写入穿透与状态文件结构见[配置参考 · 全局面分发细节](../config/skills#全局面分发细节)。
 
+## 策略与内容闸门
+
+- 内容闸门只决定正文由 `scope guard` 下发还是全文安装；策略（`scope policy` / `scope skills`）决定哪些技能 / 目录被允许
+- 矩阵已配置但 `skillsInstall.gate` 未开启时，`skills status` / `scope status` / `scope skills list` 提示「矩阵已配置，但正文仍全量加载」
+- 闸门规则排除该技能或技能声明 `metadata.gate: false` 时，策略不会生效，提示「策略无效：技能仍全文加载」
+- 已安装但当前目录矩阵未允许的技能单列提示，不自动删除；确认不需要时用 `skills uninstall` 清理
+- 项目面安装（`install --scope project`）提供更硬的边界；策略与闸门只影响正文读取，不改变安装产物
+- 策略字段、优先级与子目录口径见[作用域（activation）](../config/activation)
+
 ## 相关页面
 
 - 参考：[完整攻略 · AI 技能包](../guide#ai-技能包-skills) · [技能来源](./skills-sources) · [配置参考 · skills](../config/skills)

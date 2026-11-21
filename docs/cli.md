@@ -15,7 +15,7 @@
 | `toolkit skills` | AI 技能分发：安装、状态、卸载、来源与版本 | `install` / `status` / `uninstall` / `sources` / `bump` | [skills](./cli/skills) |
 | `toolkit usage` | 技能使用情况：开关、统计、导出与诊断（默认关闭） | `info` / `stats` / `export` / `doctor` | [usage](./cli/usage) |
 | `toolkit rules` | 全局规则：列出模块、组合输出与缓存管理 | `list` / `compose` / `reset` | [rules](./cli/rules) |
-| `toolkit scope` | 作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效） | `status` / `list` | [scope](./cli/scope) |
+| `toolkit scope` | 作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效） | `status` / `policy` / `skills` / `list` | [scope](./cli/scope) |
 | `toolkit config` | 配置分层只读体检 | `status` | [config](./cli/config) |
 | `toolkit docs` | 文档站主题校验与写入、导航与产物校验 | `theme` / `nav` / `dist` | [docs theme](./cli/docs-theme) · [docs 校验](./cli/docs-check) |
 | `toolkit help` | 显示帮助 | — | — |
@@ -60,6 +60,8 @@
 | 层 | 配置文件层级：global 全局 / project 项目 / local 本地 | `--layer`（scope 写命令；`sources notify` 的 `--layer` 是它的别名） |
 | 面 | 技能安装面：全局面 global / 项目面 project | `skills install --scope`、`skills status` / `uninstall` |
 | 名单 | 作用域白名单（include）与黑名单（exclude） | `scope` 菜单与写命令、`scope list` |
+| 策略 | 作用域规则条目：条件 + 技能维度 + allow / deny；按层与具体度取唯一命中 | `scope policy`、`scope status --skills` |
+| 档案 | 可复用的技能名单，供策略 `skills.profiles` 引用 | `scope skills profile`、`skillProfiles` 配置段 |
 | 预演 | `--dry-run`：只打印将执行的动作，不写文件 / 剪贴板 / 缓存 | 全部写命令 |
 | 确认 | 写前展示预览并交互确认；`--yes` 跳过确认 | `scope` / `usage` / `skills` 写命令 |
 | 来源 | 技能来源：内置 `toolkit` 源与 `--from` 外部来源 | `skills`、`skills sources` |

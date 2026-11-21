@@ -14,6 +14,7 @@ import { modeLabel, planAdd, planDefault, planRemove, planReset, readScopeState,
 import { applyScopePlan } from "../scope/apply"
 import { listPackageSkills } from "../skills/source"
 import { isLegacyPolicyId } from "../scope/policy"
+import { analyzeSkillLinkage, formatLinkageHints } from "../scope/linkage"
 import {
   POLICY_LAYERS,
   applyPolicyPlanWithPrompt,
@@ -243,12 +244,14 @@ function runSkillsList(options: { at?: string; format?: string }): void {
   const report = resolveScope(options.at)
   for (const warning of report.warnings) console.error(`⚠️ ${warning}`)
   const policies = report.policies.filter((policy) => policy.skills && Object.keys(policy.skills).length > 0)
+  const linkage = analyzeSkillLinkage(options.at)
   if (options.format === "json") {
     console.log(
       toJsonText({
         at: report.context.cwd,
         baseDir: report.decision.baseDir,
         profiles: report.profiles,
+        linkage,
         policies: policies.map((policy) => ({
           ...policy,
           legacy: isLegacyPolicyId(policy.id),
@@ -280,6 +283,7 @@ function runSkillsList(options: { at?: string; format?: string }): void {
       if (skills) console.log(`    技能：${skills}`)
     }
   }
+  for (const hint of formatLinkageHints(linkage)) console.log(line.hint(hint))
 }
 
 interface SkillPolicyOptions {
@@ -510,11 +514,13 @@ export function registerScopeCommands(program: Command): void {
             matchedRule: report.decision.matchedRule,
             reason: report.decision.reason,
           }))
+          const linkage = analyzeSkillLinkage(options.at)
           if (options.format === "json") {
             console.log(
               toJsonText({
                 at: base.context.cwd,
                 baseDir: base.decision.baseDir,
+                linkage,
                 skills: items,
               }),
             )
@@ -529,6 +535,7 @@ export function registerScopeCommands(program: Command): void {
           for (const item of items) {
             console.log(`  ${item.active ? "✔" : "✘"} ${item.name}：${item.active ? "生效" : "未生效"}（${item.reason}）`)
           }
+          for (const hint of formatLinkageHints(linkage)) console.log(line.hint(hint))
           return
         }
         const report = resolveScope(options.at, options.skill)
@@ -551,9 +558,11 @@ export function registerScopeCommands(program: Command): void {
               2,
             ),
           )
+          for (const hint of formatLinkageHints(analyzeSkillLinkage(options.at))) console.error(`⚠️ ${hint}`)
           return
         }
         for (const text of formatStatus(report)) console.log(text)
+        for (const hint of formatLinkageHints(analyzeSkillLinkage(options.at))) console.log(line.hint(hint))
       } catch (error) {
         console.error(`⚠️ ${(error as Error).message}`)
         process.exitCode = 1

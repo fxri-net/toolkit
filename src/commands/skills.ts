@@ -6,6 +6,7 @@ import { assertJsonFormat } from "../json-output"
 import { exitWithCancel, isInteractive, runInteractive } from "../prompts"
 import { assertChoice } from "../cli-ui"
 import { runScopeMount } from "../scope/wizard"
+import { analyzeSkillLinkage, formatLinkageHints } from "../scope/linkage"
 import { collectSkillVersionUpdates, type SkillVersionReport } from "../skills/version-status"
 import { versionGt } from "../version"
 import {
@@ -384,6 +385,12 @@ function printStatusReport(report: SkillsStatusReport): void {
     const staleNames = [...new Set(staleArtifacts.map((item) => item.name))].join(",")
     console.log(`   确认不再需要时执行：toolkit skills uninstall --scope global --skills ${staleNames}`)
     console.log("   实跑前可加 --dry-run 预演")
+  }
+  // 技能矩阵联动：闸门未接管、策略失效与已安装但矩阵未允许的技能；只提示，不自动删除
+  const linkageHints = formatLinkageHints(analyzeSkillLinkage())
+  if (linkageHints.length > 0) {
+    console.log("")
+    for (const hint of linkageHints) console.log(line.hint(`  ${hint}`))
   }
   console.log("")
   console.log(

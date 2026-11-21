@@ -5,6 +5,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { runGuard } from "../scope/guard"
+import { resetScopeCache } from "../scope/load"
 import { autoLinkSkills, installSkills, isSkillGateShell, isSkillGated, listPackageSkills, readSkillsInstallConfig, readSkillsState, removeSkills, resetSkillGateWarnings, resetSkillsRootCache, setPackageRootForTest, skillsSourceDir, skillsStateFile, skillsStatus } from "../skills"
 
 // 默认全部技能都被接管（include: ["*"]）
@@ -41,6 +42,7 @@ beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), "tk-gate-"))
   setHomeDirForTest(home)
   resetToolkitConfigCache()
+  resetScopeCache()
   savedCI = process.env.CI
   delete process.env.CI
   // 首次开启提示属于产品输出，测试里收敛掉避免刷屏
@@ -53,6 +55,7 @@ afterEach(() => {
   else process.env.CI = savedCI
   setHomeDirForTest(undefined)
   resetToolkitConfigCache()
+  resetScopeCache()
   resetSkillsRootCache()
   resetSkillGateWarnings()
   rmSync(home, { recursive: true, force: true })
@@ -216,6 +219,22 @@ describe("guard 契约", () => {
     expect(code).toBe(3)
     expect(io.out()).toBe("")
     expect(io.err()).toContain("未在当前目录激活")
+  })
+
+  it("未激活原因带策略 id 与可读名称", () => {
+    writeFileSync(
+      join(home, ".toolkitrc.json"),
+      JSON.stringify({
+        policies: [{ id: "deny-work", name: "公司策略", when: { paths: [process.cwd()] }, effect: "deny" }],
+      }),
+    )
+    resetToolkitConfigCache()
+    resetScopeCache()
+    const io = capture()
+    expect(runGuard("fxri-plan-to-task")).toBe(3)
+    expect(io.out()).toBe("")
+    expect(io.err()).toContain("policy:deny-work")
+    expect(io.err()).toContain("公司策略")
   })
 
   it("未知技能与路径穿越均拒绝，退出码 1", () => {

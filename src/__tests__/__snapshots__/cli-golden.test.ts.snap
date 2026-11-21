@@ -737,6 +737,22 @@ exports[`各域行为与错误路径 > scope policy list 1`] = `
 "
 `;
 
+exports[`各域行为与错误路径 > scope policy list JSON 1`] = `
+"退出码：0
+--- stdout ---
+{
+  "schemaVersion": 1,
+  "at": "<SANDBOX>/workspace",
+  "baseDir": "<SANDBOX>/workspace",
+  "active": true,
+  "matchedRule": null,
+  "reason": "未配置作用域（默认全域生效）",
+  "policies": []
+}
+--- stderr ---
+"
+`;
+
 exports[`各域行为与错误路径 > scope policy remove 缺参数 1`] = `
 "退出码：1
 --- stdout ---
@@ -796,6 +812,56 @@ exports[`各域行为与错误路径 > scope status 技能清单 1`] = `
 "
 `;
 
+exports[`各域行为与错误路径 > scope status 技能清单 JSON 1`] = `
+"退出码：0
+--- stdout ---
+{
+  "schemaVersion": 1,
+  "at": "<SANDBOX>/workspace",
+  "baseDir": "<SANDBOX>/workspace",
+  "linkage": {
+    "matrixConfigured": false,
+    "gateEnabled": false,
+    "ineffective": [],
+    "dead": []
+  },
+  "skills": [
+    {
+      "name": "fxri-plan-review",
+      "active": true,
+      "matchedRule": null,
+      "reason": "未配置作用域（默认全域生效）"
+    },
+    {
+      "name": "fxri-plan-to-task",
+      "active": true,
+      "matchedRule": null,
+      "reason": "未配置作用域（默认全域生效）"
+    },
+    {
+      "name": "fxri-release-changelog",
+      "active": true,
+      "matchedRule": null,
+      "reason": "未配置作用域（默认全域生效）"
+    },
+    {
+      "name": "fxri-session-recap",
+      "active": true,
+      "matchedRule": null,
+      "reason": "未配置作用域（默认全域生效）"
+    },
+    {
+      "name": "fxri-text-encoding",
+      "active": true,
+      "matchedRule": null,
+      "reason": "未配置作用域（默认全域生效）"
+    }
+  ]
+}
+--- stderr ---
+"
+`;
+
 exports[`各域行为与错误路径 > scope status 非法格式 1`] = `
 "退出码：1
 --- stdout ---
@@ -819,6 +885,26 @@ exports[`各域行为与错误路径 > scope 技能清单 1`] = `
   未配置
 技能策略：
   未配置
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > scope 技能清单 JSON 1`] = `
+"退出码：0
+--- stdout ---
+{
+  "schemaVersion": 1,
+  "at": "<SANDBOX>/workspace",
+  "baseDir": "<SANDBOX>/workspace",
+  "profiles": [],
+  "linkage": {
+    "matrixConfigured": false,
+    "gateEnabled": false,
+    "ineffective": [],
+    "dead": []
+  },
+  "policies": []
+}
 --- stderr ---
 "
 `;
