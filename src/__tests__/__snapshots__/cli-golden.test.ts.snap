@@ -2264,6 +2264,7 @@ Options:
   -h, --help                       显示帮助
 
 Commands:
+  status [options]                 整体状态：聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项（只读）
   init [options]                   初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐
                                    .gitignore 片段与 prepare 刷新钩子）
   skills [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源 / 路径（包内 skills/ 与
@@ -2541,6 +2542,7 @@ Options:
   -h, --help                       显示帮助
 
 Commands:
+  status [options]                 整体状态：聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项（只读）
   init [options]                   初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐
                                    .gitignore 片段与 prepare 刷新钩子）
   skills [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源 / 路径（包内 skills/ 与
@@ -2580,6 +2582,7 @@ Options:
   -h, --help                       显示帮助
 
 Commands:
+  status [options]                 整体状态：聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项（只读）
   init [options]                   初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐
                                    .gitignore 片段与 prepare 刷新钩子）
   skills [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源 / 路径（包内 skills/ 与

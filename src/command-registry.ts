@@ -17,7 +17,7 @@ export interface CommandEntry {
 // 顶层对象与动作：按 v2 目标命令树登记，阶段字段标注每个任务落地时点
 export const COMMAND_REGISTRY: readonly CommandEntry[] = [
   { path: "init", description: "初始化任务区、规范载体与技能入口层", stage: "current" },
-  { path: "status", description: "聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项", stage: "planned" },
+  { path: "status", description: "聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项", stage: "current" },
 
   { path: "config", description: "配置唯一写入口与三层只读体检", stage: "current" },
   { path: "config list", params: "[--layer <layer>]", description: "列出可写配置键与来源层", stage: "current" },
@@ -106,4 +106,16 @@ export function removedCommandHint(argv: string[]): string | null {
     if (item.path.every((segment, index) => words[index] === segment)) return item.hint
   }
   return null
+}
+
+// 运行时弃用命中：旧命令被调用时由 argv 重写处记录来源、目标与时间
+export interface DeprecationHit {
+  from: string
+  to: string
+  at: string
+}
+
+// 读取并清空本机弃用命中记录：记录机制尚未接线，本版本恒为空数组，status 汇总处先接好读取口
+export function takeDeprecationHits(): DeprecationHit[] {
+  return []
 }

@@ -60,6 +60,7 @@
           "link": "/cli",
           "collapsed": false,
           "items": [
+            { "text": "整体状态", "link": "/cli/status" },
             { "text": "任务区", "link": "/cli/tasks" },
             { "text": "初始化", "link": "/cli/init" },
             { "text": "作用域", "link": "/cli/scope" },

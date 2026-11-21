@@ -8,6 +8,7 @@
 
 | 命令 | 用途 | 常用子命令 | 分页 |
 | --- | --- | --- | --- |
+| `toolkit status` | 整体状态：只读聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项 | — | [整体状态](./cli/status) |
 | `toolkit init` | 初始化任务区：目录骨架、规范载体、技能入口壳、忽略片段 | — | [项目初始化](./cli/init) |
 | `toolkit tasks` | 任务管理：总览、归档、校验、归一、统计、导入导出 | `archive` / `check` / `normalize` / `stats` / `export` / `import` | [任务管理](./cli/tasks) |
 | `toolkit conventions` | 规范载体：结构升级、表格与索引单元格归一、只读体检 | `upgrade` / `status` / `format` | [规范载体](./cli/conventions) |
@@ -25,8 +26,9 @@
 | 你在做什么 | 用什么 |
 | --- | --- |
 | 新项目接入 | `toolkit init` → `toolkit skills install` → `toolkit config status` |
+| 整体自查 | `toolkit status` 一次看全貌（`--check` 有 error 时退出 1；`--format json` 供脚本） |
 | 日常任务 | `toolkit tasks` 看板 → `toolkit tasks check` 校验 → `toolkit tasks archive` 归档 |
-| 新会话恢复 | `toolkit tasks --view all` + `toolkit conventions status` |
+| 新会话恢复 | `toolkit status`（或 `toolkit tasks --view all` + `toolkit conventions status`） |
 | 发版 | `toolkit changelog version` → `pnpm verify` → 打标签发布 |
 | 技能升级 / 换装 | `toolkit skills status` → `toolkit skills install`（外部来源见 `skills sources`） |
 | 看分发形态会怎么落 | `toolkit skills plan`（只读预览；`install --dry-run` 同义） |
@@ -142,7 +144,7 @@
 
 **诊断类命令语义**：
 
-- `status` / `info` 只汇总现状，退出码恒 0
+- `status` / `info` 只汇总现状，退出码恒 0；`toolkit status --check` 例外——存在 error 级问题时退出 1
 - `doctor` 输出问题与修复建议，退出码恒 0
 - `check`（`tasks check`、`docs theme check`、`docs nav check`、`docs dist check`）发现问题时退出 1，可直接作为门禁步骤
 
