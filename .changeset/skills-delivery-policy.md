@@ -6,3 +6,4 @@
 - 新增：`toolkit skills status --explain <技能>` 逐级解释分发形态推导过程与被压规则
 - 优化：联动提示区分「策略对该技能无效：已显式设为全文安装」与矩阵已生效场景
 - 修复：`status --explain` 的文本与 JSON 输出同源，均包含技能包默认层级
+- 修复：外部来源技能的 `metadata.gate` / `metadata.delivery` 也参与解释

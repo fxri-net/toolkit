@@ -40,7 +40,7 @@
 项目面分发（`toolkit skills install --scope project`；`--scope` 缺省时项目内装的 CLI 会自动走此面）只保留**一份唯一真源**：`<仓库根>/.agents/skills/`。
 其余**已存在**的候选目录各放**每个技能一个** `SKILL.md` 薄壳，description 从真源派生、正文指明真源路径与版本标记，不重复承载内容。
 某个候选目录不存在就不凭空创建，候选目录清单见 [配置参考 · 作用域与安装面](./config/skills#作用域与安装面)。真源、薄壳与归属账（`<仓库根>/.toolkit/state.json`）都要**入库**。
-队友 clone 后**不必逐台手动重装**：`prepare` 刷新钩子在 `pnpm install` 时自动补齐/刷新（仅当本地依赖含 `@fxri/toolkit`），也可手动重跑 install。
+队友 clone 后**不必逐台手动重装**：`prepare` 刷新钩子在 `pnpm install` 时自动刷新已有产物（仅当本地依赖含 `@fxri/toolkit`），也可手动重跑 install。
 现场用 `toolkit skills status --scope project` 查，清理用 `toolkit skills uninstall --scope project --all`（只摘本包登记的产物）。
 
 ⚠️ 发布型包要把这些产物加入 `files` 白名单或 `.npmignore`，否则 `npm` 无 `.npmignore` 时可能被打进包。
@@ -163,10 +163,12 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 
 ### 想让技能正文只在激活项目加载，怎么做？
 
-默认全局技能是全文安装，`description` 命中即整篇进入上下文。用 `toolkit skills install --gate` 开启内容闸门后，
-默认把全部技能改为入口壳（可用 `skillsInstall.gate` 的 `include` / `exclude` 裁剪，或技能声明 `metadata.gate: false` 退出）：
-只保留 `name` / `description` 与一句「先运行 `toolkit scope guard <技能名>`」，正文由 guard 按当前目录判定——激活时输出正文，未激活以退出码 3 结束（stdout 为空）。
-需要全文时随时 `toolkit skills install --embed` 回退；开关与命令契约见 [作用域 · 内容闸门](./cli/scope#内容闸门-guard)。
+默认全局技能是全文安装，`description` 命中即整篇进入上下文。矩阵策略限制的技能会自动改为入口壳；
+也可用 `skillsDelivery` 规则或 `toolkit skills install --gate` 显式指定：
+技能只保留 `name` / `description` 与一句「先运行 `toolkit scope guard <技能名>`」，正文由 guard 按当前目录判定——
+激活时输出正文，未激活以退出码 3 结束（stdout 为空）。
+`--embed` 可把本次安装回退全文；旧键 `skillsInstall.gate` 与技能声明 `metadata.gate: false` 仍读时兼容。
+契约见 [技能分发](./cli/skills#策略与内容闸门) 与 [作用域 · 内容闸门](./cli/scope#内容闸门-guard)。
 
 ⚠️ 入口壳只降低正文被读取的概率，不是物理隔离；需要绝对干净用 `toolkit skills mount` 或 `toolkit skills install --scope project`。
 

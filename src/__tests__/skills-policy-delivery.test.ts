@@ -95,6 +95,12 @@ describe("策略推导", () => {
     expect(decision?.reason).toContain("policy:exact")
   })
 
+  it("技能声明退出高于命令行显式取值", () => {
+    const decision = resolveDelivery({ name: "fxri-plan-to-task", override: "gated", gate: false })
+    expect(decision.mode).toBe("full")
+    expect(decision.source).toContain("metadata.gate=false")
+  })
+
   it("显式规则优先于策略推导", () => {
     const decision = resolveDelivery({
       name: "fxri-plan-to-task",
@@ -119,8 +125,8 @@ describe("推导解释", () => {
     })
     expect(explanation.decision.mode).toBe("full")
     expect(explanation.levels.map((level) => level.level)).toEqual([
-      "命令行显式取值",
       "技能声明 metadata.gate",
+      "命令行显式取值",
       "显式规则",
     ])
     expect(explanation.overridden.length).toBe(1)

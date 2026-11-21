@@ -188,6 +188,31 @@ describe("技能包默认形态", () => {
   })
 })
 
+describe("外部来源的声明参与解释", () => {
+  it("状态登记的外部技能：metadata.gate:false 在解释中生效", () => {
+    const sourceRoot = mkdtempSync(join(tmpdir(), "tk-delivery-ext-"))
+    mkdirSync(join(sourceRoot, "skills", "ext-opt-out"), { recursive: true })
+    writeFileSync(
+      join(sourceRoot, "skills", "ext-opt-out", "SKILL.md"),
+      ["---", "name: ext-opt-out", "metadata:", "  version: 1.0.0", "  gate: false", "---", "", "# 演示", ""].join("\n"),
+    )
+    mkdirSync(join(home, ".agents"), { recursive: true })
+    writeFileSync(
+      join(home, ".agents", ".toolkit-skills.json"),
+      JSON.stringify({
+        format: "fxri.toolkit.skills-state",
+        schemaVersion: 1,
+        updatedAt: new Date().toISOString(),
+        sources: { ext: { kind: "local", version: "", temporary: false, root: sourceRoot, targets: [] } },
+      }),
+    )
+    const explanation = explainSkillDelivery("ext-opt-out")
+    expect(explanation.decision.mode).toBe("full")
+    expect(explanation.decision.source).toContain("metadata.gate=false")
+    rmSync(sourceRoot, { recursive: true, force: true })
+  })
+})
+
 describe("分发形态配置读取", () => {
   it("全局面读全局层 + 本地层，忽略项目层并告警", () => {
     writeHomeConfig({ skillsDelivery: { default: "gated" } })

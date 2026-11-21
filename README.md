@@ -110,7 +110,7 @@ pnpm dlx skills add fxri-net/toolkit                  # 也可用上游安装器
   选择集分别写入 `~/.toolkitrc.json` 的 `skillsInstall` 与项目层 `.toolkitrc.json` 的 `projectSkills`
 - **外部来源**：`--from <path|url>` 临时纳入（副本、只写本次），加 `--save [name]` 登记为永久来源（默认软链）；`toolkit skills sources` 查看 / 注销来源
 - **作用域**：`--scope project` 换项目面——真源落 `<仓库根>/.agents/skills/`、其余候选目录落入口薄壳，
-  随 git 入库后队友 clone 靠 `toolkit init` 写入的 `prepare` 钩子自动补齐
+  随 git 入库后队友 clone 靠 `toolkit init` 写入的 `prepare` 钩子自动刷新已有产物（不新增技能）
 
 - [fxri-plan-to-task](./skills/fxri-plan-to-task/SKILL.md)：方案确认后落盘为任务文件（任务分解与纯展示计划表、一次建完全部任务档、check、归档 + 任务级规范沉淀为强制终点）
 - [fxri-release-changelog](./skills/fxri-release-changelog/SKILL.md)：发版时创建变更集、格式化多语言 CHANGELOG

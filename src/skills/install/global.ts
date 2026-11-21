@@ -10,7 +10,6 @@ import { readSkillsState, skillsStateFile, writeSkillsState } from "../state"
 import { readSkillsDeliveryConfig, readSkillsInstallConfig, writeSkillsDeliveryDefault, writeSkillsInstallConfig } from "../config"
 import { gateRulesToDeliveryRules, resolveDelivery, type DeliveryDecision, type DeliveryMode } from "../delivery"
 import { derivePolicyDelivery, loadPolicyDeliveryContext } from "../policy-delivery"
-import { resolveGateSetting } from "../gate"
 import { SKILL_ENTRY, STATE_FORMAT, STATE_SCHEMA_VERSION, type InstallReport, type RemoveResult, type SkillStateEntry, type SkillStateSource, type SkillStateTarget, type SkillItem, type SkillsRemoveReport, type TargetInstallResult } from "../types"
 import { collectSources, filterSkillItems, canRemoveOrphanArtifact, pruneEntries, sourceSkillMap, type InstallOptions, type RemoveSkillsOptions } from "./common"
 
@@ -93,8 +92,8 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
         throw new Error(`技能「${name}」判定为入口壳但来源不可解析（已登记来源缺失或技能已移除），已中止；修复来源或显式改为 full 后重试`)
       }
     }
-    // 旧闸门键：显式 --gate / --embed 取值优先，缺省读全局配置；仅供首开提示与持久化
-    const previousGate = readSkillsInstallConfig().gate
+    // 首开提示基线：以新段默认形态为准，旧键已映射进新段
+    const previousDefault = readSkillsDeliveryConfig("global").default
 
     for (const target of targets) {
       const dirKey = pathKey(target.dir)
@@ -335,7 +334,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
 
     // 首次开启提示：从「未开启」切到规则时告知接管数量与回退方式（非 TTY 同样适用）
     const gateCount = results.reduce((count, result) => count + result.gates.length, 0)
-    if (options.gate === true && !resolveGateSetting(previousGate).enabled && !options.dryRun && gateCount > 0) {
+    if (options.gate === true && previousDefault !== "gated" && !options.dryRun && gateCount > 0) {
       console.warn(`⚠️ 内容闸门首次开启：本次接管 ${gateCount} 个技能；需要全文时运行 toolkit skills install --embed`)
     }
 

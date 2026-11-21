@@ -887,14 +887,14 @@ export function registerSkillsCommands(program: Command): void {
     .option("--use-saved", "技能与目标采用已保存选择，不进入选择交互（仍保留最终确认）")
     .option("--copy", "强制以副本形式写入（仅全局面生效；项目面真源恒为副本、其余目录恒为薄壳）")
     .option("--dir <path>", "额外目标目录（可多次指定，兜底内置表未收录的 agent；不参与后续自动同步，技能变化后需带相同 --dir 重跑）", collectDir, [])
-    .option("--dry-run", "预演（只预览将要执行的动作，不写文件）")
+    .option("--dry-run", "输出分发计划（skills plan 的别名），不写文件")
     .option("--check", "只报告待收敛项：有漂移时退出码 1（不写文件，供 CI 使用）")
     .option("--refresh", "只收敛已存在的项目面产物，不新增技能；非 TTY / CI 下只打印漂移（prepare 钩子）")
     .option("--force", "覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）")
-    .option("--prune", "清理未选择且内容与本包真源一致的旧产物（只清本包登记条目）")
+    .option("--prune", "清理未选择或 off 形态残留、且内容与本包真源一致的旧产物（只清本包登记条目）")
     .option("--mode <mode>", "技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）")
-    .option("--gate", "开启内容闸门：本次全部技能写入口壳，正文由 toolkit scope guard 按作用域下发")
-    .option("--embed", "回退内容闸门：把入口壳改回全文")
+    .option("--gate", "开启内容闸门：本次把技能写入口壳（声明退出的除外），成功后写 skillsDelivery.default")
+    .option("--embed", "回退内容闸门：把入口壳改回全文，成功后写 skillsDelivery.default")
     .option("--no-skills", "本次不安装任何技能，不改模式与已保存选择")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .addHelpText(
@@ -1185,7 +1185,7 @@ export function registerSkillsCommands(program: Command): void {
   // 状态：报告悬空 / 指向其他版本 / 副本漂移 / 同名冲突 / 缺失，供人工决定是否重跑 install
   skillsCmd
     .command("status")
-    .description("查看技能现场状态与真源版本（默认按现场判定作用域；含悬空 / 指向其他版本 / 漂移 / 缺失 / 同名冲突）")
+    .description("查看技能现场状态与真源版本（默认按现场判定作用域；含分发形态、待收敛、悬空 / 漂移 / 缺失 / 同名冲突）")
     .option("--scope <scope>", "作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）")
     .option("--explain <skill>", "解释指定技能的分发形态推导过程（只读，不受 --scope 影响）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
@@ -1783,7 +1783,7 @@ export function registerSkillsCommands(program: Command): void {
   skillsCmd
     .command("plan")
     .description("预览技能分发计划（目标形态 / 当前形态 / 动作与判定来源；install --dry-run 的别名）")
-    .option("--scope <scope>", "作用域（global 全局面；项目面分发形态在后续版本接入）")
+    .option("--scope <scope>", "作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）")
     .option("--skills <names>", "只预览指定技能（逗号分隔）")
     .option("--all", "预览全部技能（含可选技能）")
     .option("--no-optional", "只预览 core 技能")

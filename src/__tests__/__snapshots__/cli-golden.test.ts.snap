@@ -1036,7 +1036,7 @@ Options:
 Commands:
   install [options]             安装技能（默认按现场判定作用域：仓库内写项目面副本 + 薄壳，否则写全局目录；包内
                                 skills/ 与 --from 外部来源统一处理）
-  status [options]              查看技能现场状态与真源版本（默认按现场判定作用域；含悬空 / 指向其他版本 / 漂移 / 缺失
+  status [options]              查看技能现场状态与真源版本（默认按现场判定作用域；含分发形态、待收敛、悬空 / 漂移 / 缺失
                                 / 同名冲突）
   uninstall [options]           卸载由本包安装的技能产物（默认按现场判定作用域；只清理归属账记载的条目，不碰用户自装技能）
   lint [options] [dirs...]      校验技能规范（命名 / frontmatter / 版本双写 / 篇幅 / references
@@ -1936,14 +1936,14 @@ Options:
   --copy             强制以副本形式写入（仅全局面生效；项目面真源恒为副本、其余目录恒为薄壳）
   --dir <path>       额外目标目录（可多次指定，兜底内置表未收录的 agent；不参与后续自动同步，技能变化后需带相同 --dir 重跑）
                      (default: [])
-  --dry-run          预演（只预览将要执行的动作，不写文件）
+  --dry-run          输出分发计划（skills plan 的别名），不写文件
   --check            只报告待收敛项：有漂移时退出码 1（不写文件，供 CI 使用）
   --refresh          只收敛已存在的项目面产物，不新增技能；非 TTY / CI 下只打印漂移（prepare 钩子）
   --force            覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
-  --prune            清理未选择且内容与本包真源一致的旧产物（只清本包登记条目）
+  --prune            清理未选择或 off 形态残留、且内容与本包真源一致的旧产物（只清本包登记条目）
   --mode <mode>      技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）
-  --gate             开启内容闸门：本次全部技能写入口壳，正文由 toolkit scope guard 按作用域下发
-  --embed            回退内容闸门：把入口壳改回全文
+  --gate             开启内容闸门：本次把技能写入口壳（声明退出的除外），成功后写 skillsDelivery.default
+  --embed            回退内容闸门：把入口壳改回全文，成功后写 skillsDelivery.default
   --no-skills        本次不安装任何技能，不改模式与已保存选择
   --format <format>  输出格式（json，输出到 stdout）
   -h, --help         显示帮助
@@ -1973,7 +1973,7 @@ Options:
 Commands:
   install [options]             安装技能（默认按现场判定作用域：仓库内写项目面副本 + 薄壳，否则写全局目录；包内
                                 skills/ 与 --from 外部来源统一处理）
-  status [options]              查看技能现场状态与真源版本（默认按现场判定作用域；含悬空 / 指向其他版本 / 漂移 / 缺失
+  status [options]              查看技能现场状态与真源版本（默认按现场判定作用域；含分发形态、待收敛、悬空 / 漂移 / 缺失
                                 / 同名冲突）
   uninstall [options]           卸载由本包安装的技能产物（默认按现场判定作用域；只清理归属账记载的条目，不碰用户自装技能）
   lint [options] [dirs...]      校验技能规范（命名 / frontmatter / 版本双写 / 篇幅 / references

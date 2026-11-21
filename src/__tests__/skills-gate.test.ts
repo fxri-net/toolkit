@@ -116,6 +116,15 @@ describe("内容闸门安装形态", () => {
     expect(primaryTarget(again).gates).toEqual(expect.arrayContaining(ALL_SKILLS))
   })
 
+  it("首次开启提示只出现一次，重复 --gate 不再误报", () => {
+    const warn = vi.mocked(console.warn)
+    const hits = () => warn.mock.calls.filter((call) => String(call[0]).includes("首次开启")).length
+    installSkills({ gate: true })
+    expect(hits()).toBe(1)
+    installSkills({ gate: true })
+    expect(hits()).toBe(1)
+  })
+
   it("--embed 回退全文、再次开启往返稳定", () => {
     installSkills({ gate: true })
     const embedded = installSkills({ gate: false })

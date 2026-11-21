@@ -1,5 +1,5 @@
 // 技能分发形态：三态互斥，由单一解析器按优先级推导，供安装 / 计划 / 状态共用
-// 优先级（高 → 低）：命令行显式取值 → 技能声明退出 → 显式规则 → 策略推导 → 技能包默认 → 全局默认
+// 优先级（高 → 低）：技能声明退出 → 命令行显式取值 → 显式规则 → 策略推导 → 技能包默认 → 全局默认
 // 本模块只做判定，不读配置、不写产物；配置读取在 ./config，落盘在 ./install
 import { matchPattern } from "../scope/pattern"
 import type { GateRules } from "./types"
@@ -135,14 +135,7 @@ export function explainDelivery(input: ResolveDeliveryInput): DeliveryExplanatio
     overridden,
   })
 
-  // 命令行显式取值：用户当次指定高于任何配置
-  if (input.override !== undefined) {
-    levels.push({ level: "命令行显式取值", hit: true, detail: `指定为${deliveryModeLabel(input.override)}` })
-    return done(input.override, "命令行显式指定", `命令行把分发形态指定为${deliveryModeLabel(input.override)}`)
-  }
-  levels.push({ level: "命令行显式取值", hit: false, detail: "未指定" })
-
-  // 技能声明退出接管：保留旧语义，先于规则判定，避免规则把退出技能重新接管
+  // 技能声明退出接管：最高优先级，保留「单点退出」承诺，命令行也不覆盖
   if (input.gate === false) {
     const key = `metadata.gate\u0000${input.name}`
     if (!warned.has(key)) {
@@ -153,6 +146,13 @@ export function explainDelivery(input: ResolveDeliveryInput): DeliveryExplanatio
     return done("full", "技能声明 metadata.gate=false", "技能包声明退出内容接管，按全文安装")
   }
   levels.push({ level: "技能声明 metadata.gate", hit: false, detail: "未声明退出（缺省或 true）" })
+
+  // 命令行显式取值：高于配置规则，但低于技能自身的退出声明
+  if (input.override !== undefined) {
+    levels.push({ level: "命令行显式取值", hit: true, detail: `指定为${deliveryModeLabel(input.override)}` })
+    return done(input.override, "命令行显式指定", `命令行把分发形态指定为${deliveryModeLabel(input.override)}`)
+  }
+  levels.push({ level: "命令行显式取值", hit: false, detail: "未指定" })
 
   const candidates: Array<{ rule: DeliveryRule; rank: number; index: number; count: number; literal: number; cli: boolean }> = []
   for (const [index, rule] of (input.config?.rules ?? []).entries()) {

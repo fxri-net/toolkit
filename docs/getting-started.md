@@ -142,7 +142,7 @@ toolkit skills mount ~/work # 在父目录下的项目里做项目面安装（�
 
 - 旧 `activation` 字段的判定顺序：排除规则 → 排除标记 → 启用标记 → git 远端 → 白名单；不配置即全域生效
 - 策略规则（条件 + 技能维度）按层 → 具体度 → `deny` > `allow` → 后写覆盖取唯一命中；旧字段编译为同层策略后一并比较
-- 需要「技能壳还在、正文只在激活项目加载」时，用 `toolkit skills gate on` 开启内容闸门；要绝对干净则用 `skills mount`
+- 需要「技能壳还在、正文只在激活项目加载」时，用 `skillsDelivery` 规则或 `skills install --gate`；矩阵限制的技能会自动如此。要绝对干净则用 `skills mount`
 - 命令契约见[作用域](./cli/scope)，配置字段见[作用域配置](./config/activation)
 
 ## 配置全局规则

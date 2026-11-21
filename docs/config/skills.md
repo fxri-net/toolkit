@@ -73,8 +73,8 @@ title: 技能分发偏好（skills）
 | `default` | string | `full` | 未命中规则时的默认形态：`full` / `gated` / `off`；非法值告警后按未配置处理 |
 | `rules` | array | `[]` | 显式规则：`{ "match": ["fxri-*"], "delivery": "gated" }`，`match` 任一模式命中即生效（技能名 glob 或 `re:`）。同一技能命中多条时按具体度取胜（命中模式数 → 字面量长度 → 书写顺序），具体度相同取最后一条并向 **stderr** 提示被压规则；非法模式与非法枚举告警后剔除 |
 
-推导优先级（高 → 低）：命令行显式取值 → 技能声明 `metadata.gate: false`（旧键，按全文）→ `skillsDelivery.rules` →
-策略推导（矩阵）→ `skillsDelivery.default` → 默认全文。
+推导优先级（高 → 低）：技能声明 `metadata.gate: false`（旧键，按全文，命令行也不覆盖）→ 命令行显式取值 →
+`skillsDelivery.rules` → 策略推导（矩阵）→ `skillsDelivery.default` → 默认全文。
 
 **策略推导**：矩阵对技能的声明直接决定形态，不需要再手动开闸门——
 
@@ -98,7 +98,8 @@ title: 技能分发偏好（skills）
 - `SKILL.md` 的 `metadata.gate: false` → 该技能按全文安装
 - 新旧并存时以 `skillsDelivery` 为准，旧键被忽略并在 **stderr** 告警
 
-`toolkit skills gate on|off` 只写本段 `default`，不覆盖 `rules`；`toolkit skills install --gate` / `--embed` 仍是本次安装的显式取值。
+`toolkit skills gate on|off` 只写本段 `default`，不覆盖 `rules`。
+`toolkit skills install --gate` / `--embed` 是本次安装的显式取值，成功后写 `default`。
 
 ```json
 {
