@@ -24,11 +24,13 @@ toolkit init --no-hooks               # 不写入 package.json 的 prepare 刷�
   - 一个候选目录都不存在时回落 `.agents/skills/`，不为未安装的 agent 凭空建目录
   - 壳已存在时按标记版本分流：标记不旧于当前版本保持不变，落后或无标记就地更新为当前版本（报告为「更新」）
   - 另在**已存在的** `AGENTS.md` 内幂等追加规范入口指针块；`AGENTS.md` 不存在时不新建，仅在报告中提示规范仍可经全局技能触达
-- 向 `.gitignore` 追加忽略片段（含 `.archive.lock` 与 `.toolkitrc.local.json`）
+- 向 `.gitignore` 追加忽略片段（含 `.archive.lock`、`.toolkitrc.local.json`
+  与两份配置备份 `.toolkitrc.json.bak` / `.toolkitrc.local.json.bak`）
   - 片段头另附一行出口指引注释：不想改团队 `.gitignore` 者，可把忽略行写进 `.git/info/exclude`
   - **逐行幂等**：「是否已覆盖」用 `git check-ignore` **真实判定**，已有该行则跳过；手删单行后重跑只补该行
   - 判定涵盖本仓库与上层 `.gitignore`、`.git/info/exclude` 等全部来源，能识破 `*.lock`、`*.local.json` 等手写通配写法
-  - 非 git 仓库或 git 不可用时退回等价写法白名单：精确行 `/.toolkitrc.local.json` 的带 / 不带前导 `/` 两种写法，及通配 `*.local.json`、`.toolkitrc.*`
+  - 非 git 仓库或 git 不可用时退回等价写法白名单：精确行 `/.toolkitrc.local.json` 的带 / 不带前导 `/` 两种写法，
+    及通配 `*.local.json`、`.toolkitrc.*`；两份 `.bak` 只认精确行或 `.toolkitrc.*` 通配
   - 白名单外一律追加，宁冗余不误跳
 - 向 `.prettierignore` 幂等追加任务区排除行（`<任务目录>/`），让格式化器不碰任务区
   - 原因：任务区表格进入 prettier 范围会被填充出列对齐空白，Markdown 预览不显示、源码可读性变差、token 成本上升

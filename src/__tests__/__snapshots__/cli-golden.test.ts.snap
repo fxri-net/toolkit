@@ -7,7 +7,7 @@ exports[`写盘产物 > init 生成任务区骨架与入口壳 1`] = `
   新建 .tasks/active/202611/、.tasks/archive/（已创建）
   新建 .tasks/conventions/index.md（已创建（端清单 / 索引 / 用法说明三节））
   新建 .tasks/conventions/history.md（已创建（规范演进记录））
-  新建 .gitignore（已创建并写入 # @fxri/toolkit 忽略片段（覆盖 .archive.lock / .toolkitrc.local.json））
+  新建 .gitignore（已创建并写入 # @fxri/toolkit 忽略片段（覆盖 .archive.lock / .toolkitrc.local.json / .toolkitrc.json.bak / .toolkitrc.local.json.bak））
   跳过 .prettierignore（未见 prettier 使用迹象，跳过任务区排除行写入）
     提示：项目启用 prettier 后重跑 toolkit init 会自动补上该排除行
   新建 .agents/skills/toolkit-conventions/SKILL.md（已创建（只作入口，不承载条文））
@@ -41,6 +41,8 @@ description: 本项目协作规范入口。当需要查阅或遵循本项目沉�
 # 不想改团队 .gitignore 者，可把这些忽略行写进 .git/info/exclude（本地排除、不进版本控制）
 .archive.lock
 .toolkitrc.local.json
+.toolkitrc.json.bak
+.toolkitrc.local.json.bak
 
 
 ### .tasks/conventions/history.md
@@ -166,9 +168,25 @@ exports[`各域行为与错误路径 > config get explain 1`] = `
 说明：任务区目录（相对路径基于运行目录解析）
 生效值：.tasks（来源：项目层）
 覆盖链：
-  本地层：未配置
+  本地层：未写
   项目层：.tasks
-  全局层：未配置
+  全局层：未写
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > config get 敏感键 JSON 1`] = `
+"退出码：0
+--- stdout ---
+{
+  "schemaVersion": 1,
+  "key": "usage.upload.endpoint",
+  "type": "string",
+  "summary": "上传地址",
+  "source": null,
+  "layers": {},
+  "env": null
+}
 --- stderr ---
 "
 `;
@@ -185,46 +203,46 @@ exports[`各域行为与错误路径 > config list 1`] = `
 "退出码：0
 --- stdout ---
   task.dir：.tasks（项目层）
-  redact.enabled：未配置（默认值）
-  redact.disable：未配置（默认值）
-  check.warnings：未配置（默认值）
-  updateCheck.enabled：未配置（默认值）
-  skills.autoLink：未配置（默认值）
-  skills.autoLinkReplaceForeign：未配置（默认值）
-  skillInstall.mode：未配置（默认值）
-  skillInstall.targets：未配置（默认值）
-  skillDelivery.default：未配置（默认值）
-  projectSkill.mode：未配置（默认值）
-  projectSkill.targets：未配置（默认值）
-  activation.mode：未配置（默认值）
-  docs.nav.dir：未配置（默认值）
-  docs.nav.maxItems：未配置（默认值）
-  docs.nav.maxGroupUnits：未配置（默认值）
-  docs.nav.firstItem：未配置（默认值）
-  docs.nav.lastItem：未配置（默认值）
-  docs.nav.maxPageLines：未配置（默认值）
-  docs.dist.dir：未配置（默认值）
-  docs.dist.sitemap：未配置（默认值）
-  docs.dist.searchProvider：未配置（默认值）
-  usage.enabled：未配置（默认值）
-  usage.channel：未配置（默认值）
-  usage.sources.firstParty：未配置（默认值）
-  usage.sources.thirdParty：未配置（默认值）
-  usage.sources.unmanaged：未配置（默认值）
-  usage.skills.mode：未配置（默认值）
-  usage.skills.include：未配置（默认值）
-  usage.skills.exclude：未配置（默认值）
-  usage.capture.triggerPrompt：未配置（默认值）
-  usage.capture.skillArgs：未配置（默认值）
-  usage.capture.outcome：未配置（默认值）
-  usage.storage.dir：未配置（默认值）
-  usage.storage.rotation：未配置（默认值）
-  usage.storage.retentionDays：未配置（默认值）
-  usage.storage.maxFileBytes：未配置（默认值）
-  usage.upload.enabled：未配置（默认值）
-  usage.upload.protocol：未配置（默认值）
-  usage.upload.endpoint：未配置（默认值）
-  usage.upload.batchSize：未配置（默认值）
+  redact.enabled：未配置（默认 true）
+  redact.disable：未配置（默认 []）
+  check.warnings：未配置（默认 true）
+  updateCheck.enabled：未配置（默认 true）
+  skills.autoLink：未配置（默认 true）
+  skills.autoLinkReplaceForeign：未配置（默认 true）
+  skillInstall.mode：未配置（默认 skills）
+  skillInstall.targets：未配置
+  skillDelivery.default：未配置（默认 full）
+  projectSkill.mode：未配置（默认 skills）
+  projectSkill.targets：未配置
+  activation.mode：未配置（默认 all）
+  docs.nav.dir：未配置（默认 docs）
+  docs.nav.maxItems：未配置（默认 5）
+  docs.nav.maxGroupUnits：未配置（默认 4）
+  docs.nav.firstItem：未配置（默认 快速开始）
+  docs.nav.lastItem：未配置（默认 帮助）
+  docs.nav.maxPageLines：未配置（默认 300）
+  docs.dist.dir：未配置（默认 .vitepress/dist）
+  docs.dist.sitemap：未配置（默认 error）
+  docs.dist.searchProvider：未配置（默认 local）
+  usage.enabled：未配置（默认 false）
+  usage.channel：未配置（默认 hook）
+  usage.sources.firstParty：未配置（默认 false）
+  usage.sources.thirdParty：未配置（默认 false）
+  usage.sources.unmanaged：未配置（默认 false）
+  usage.skills.mode：未配置（默认 none）
+  usage.skills.include：未配置（默认 []）
+  usage.skills.exclude：未配置（默认 []）
+  usage.capture.triggerPrompt：未配置（默认 false）
+  usage.capture.skillArgs：未配置（默认 false）
+  usage.capture.outcome：未配置（默认 false）
+  usage.storage.dir：未配置（默认 ~/.toolkit/usage）
+  usage.storage.rotation：未配置（默认 monthly）
+  usage.storage.retentionDays：未配置（默认 180）
+  usage.storage.maxFileBytes：未配置（默认 8388608）
+  usage.upload.enabled：未配置（默认 false）
+  usage.upload.protocol：未配置（默认 webhook）
+  usage.upload.endpoint：未配置
+  usage.upload.batchSize：未配置（默认 100）
 共 41 个可写键；写入用 toolkit config set <key> <value>
 --- stderr ---
 "
@@ -490,6 +508,42 @@ exports[`各域行为与错误路径 > config list JSON 1`] = `
 "
 `;
 
+exports[`各域行为与错误路径 > config list 按层过滤 1`] = `
+"退出码：0
+--- stdout ---
+  task.dir：.tasks
+  redact.enabled：未写
+  redact.disable：未写
+  check.warnings：未写
+  updateCheck.enabled：未写
+  skills.autoLink：未写
+  skills.autoLinkReplaceForeign：未写
+  skillDelivery.default：未写
+  projectSkill.mode：未写
+  projectSkill.targets：未写
+  activation.mode：未写
+  docs.nav.dir：未写
+  docs.nav.maxItems：未写
+  docs.nav.maxGroupUnits：未写
+  docs.nav.firstItem：未写
+  docs.nav.lastItem：未写
+  docs.nav.maxPageLines：未写
+  docs.dist.dir：未写
+  docs.dist.sitemap：未写
+  docs.dist.searchProvider：未写
+共 20 个项目层可写键；写入用 toolkit config set <key> <value>
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > config list 未知起点 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ --cwd 指向的路径不存在或非目录：no-such-dir"
+`;
+
 exports[`各域行为与错误路径 > config set 不可写层 1`] = `
 "退出码：1
 --- stdout ---
@@ -648,7 +702,7 @@ Options:
   -h, --help                   显示帮助
 
 Commands:
-  list [options]               列出全部可写配置键：生效值与来源层（--layer 只看该层写入情况）
+  list [options]               列出可写配置键：生效值与来源层（--layer 只看该层可写键）
   get [options] <key>          读取单个配置键（--explain 展示类型、可写层与三层覆盖链）
   set [options] <key> <value>  写入单个配置键（默认落该键的默认层；非交互环境须加 --yes）
   unset [options] <key>        删除单个配置键（默认删该键的默认层；非交互环境须加 --yes）
@@ -2038,7 +2092,7 @@ Options:
   -h, --help                   显示帮助
 
 Commands:
-  list [options]               列出全部可写配置键：生效值与来源层（--layer 只看该层写入情况）
+  list [options]               列出可写配置键：生效值与来源层（--layer 只看该层可写键）
   get [options] <key>          读取单个配置键（--explain 展示类型、可写层与三层覆盖链）
   set [options] <key> <value>  写入单个配置键（默认落该键的默认层；非交互环境须加 --yes）
   unset [options] <key>        删除单个配置键（默认删该键的默认层；非交互环境须加 --yes）

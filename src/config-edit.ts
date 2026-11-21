@@ -9,6 +9,7 @@ import {
   getHomeDir,
   inspectConfigLayers,
   resetToolkitConfigCache,
+  type ConfigLayers,
 } from "./config"
 import { readTextFile } from "./read-text"
 import { findProjectRoot } from "./scope/paths"
@@ -55,8 +56,12 @@ function writtenAt(config: Record<string, unknown> | null, path: string[]): unkn
 
 // 取单键现场：生效值来自三层合并结果，来源层按「本地层 → 项目层 → 全局层」就近归属
 export function readConfigKey(key: string, cwd = process.cwd()): ConfigKeyState {
+  return readConfigKeyFromLayers(key, inspectConfigLayers(cwd))
+}
+
+// 取单键现场（已加载三层时使用）：批量读取只加载一次配置，避免逐键重复读盘
+export function readConfigKeyFromLayers(key: string, layers: ConfigLayers): ConfigKeyState {
   const path = key.split(".")
-  const layers = inspectConfigLayers(cwd)
   const local = writtenAt(layers.local.config, path)
   const project = writtenAt(layers.project.config, path)
   const global = writtenAt(layers.global.config, path)
@@ -75,6 +80,24 @@ export function readConfigKey(key: string, cwd = process.cwd()): ConfigKeyState 
     layers: { global, project, local },
     env: env !== undefined && (process.env[env] ?? "") !== "" ? env : undefined,
   }
+}
+
+// 批量取键现场：loader 可注入以便测试断言只加载一次
+export function readConfigKeys(
+  keys: string[],
+  cwd = process.cwd(),
+  loader: (startDir: string) => ConfigLayers = inspectConfigLayers,
+): Record<string, ConfigKeyState> {
+  const layers = loader(cwd)
+  const out: Record<string, ConfigKeyState> = {}
+  for (const key of keys) out[key] = readConfigKeyFromLayers(key, layers)
+  return out
+}
+
+// 判断项目根是否具备仓库标志（.git 或 .tasks）：供写入项目层 / 本地层前提示
+export function configLayerInRepo(cwd = process.cwd()): boolean {
+  const root = findProjectRoot(cwd)
+  return existsSync(join(root, ".git")) || existsSync(join(root, ".tasks"))
 }
 
 // 定位某层的配置文件：已命中的就近文件优先，否则落到该层默认位置

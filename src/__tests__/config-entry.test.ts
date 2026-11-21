@@ -5,7 +5,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { inspectConfigLayers, resetToolkitConfigCache, rewriteLegacySections, setHomeDirForTest } from "../config"
 import { configKeyNames, getConfigKey, isConfigLayer, parseConfigValue, suggestConfigKeys } from "../config-keys"
-import { configFileForLayer, readConfigKey, unsetConfigKey, writeConfigKey } from "../config-edit"
+import { configFileForLayer, configLayerInRepo, readConfigKey, readConfigKeys, unsetConfigKey, writeConfigKey } from "../config-edit"
 import { COMMAND_REGISTRY, commandMigrationRows, removedCommandHint } from "../command-registry"
 
 // 临时 home 与项目目录：三层配置都只落在临时路径
@@ -51,10 +51,21 @@ describe("配置键元数据", () => {
     expect(parseConfigValue(getConfigKey("check.warnings")!, "false").value).toBe(false)
     expect(parseConfigValue(getConfigKey("usage.storage.retentionDays")!, "30").value).toBe(30)
     expect(parseConfigValue(getConfigKey("usage.storage.retentionDays")!, "0").error).toContain("不小于")
+    expect(parseConfigValue(getConfigKey("usage.storage.retentionDays")!, "0x10").error).toContain("整数")
+    expect(parseConfigValue(getConfigKey("usage.storage.retentionDays")!, "1e3").error).toContain("整数")
+    expect(parseConfigValue(getConfigKey("usage.storage.retentionDays")!, "1.5").error).toContain("整数")
     expect(parseConfigValue(getConfigKey("skillDelivery.default")!, "gated").value).toBe("gated")
     expect(parseConfigValue(getConfigKey("skillDelivery.default")!, "half").error).toContain("full / gated / off")
     expect(parseConfigValue(getConfigKey("redact.disable")!, "手机号，邮箱").value).toEqual(["手机号", "邮箱"])
     expect(parseConfigValue(getConfigKey("redact.disable")!, "").value).toEqual([])
+  })
+
+  it("默认值元数据与展示口径一致", () => {
+    expect(getConfigKey("task.dir")?.default).toBe(".tasks")
+    expect(getConfigKey("check.warnings")?.default).toBe(true)
+    expect(getConfigKey("usage.storage.maxFileBytes")?.default).toBe(8 * 1024 * 1024)
+    // 没有简单默认值的键不登记 default，展示回落「未配置」
+    expect(getConfigKey("skillInstall.targets")?.default).toBeUndefined()
   })
 
   it("未知键给最接近的候选", () => {
@@ -115,6 +126,41 @@ describe("三层写入往返", () => {
   })
 })
 
+describe("查找起点与批量读取", () => {
+  it("传入目录参数时读写落在该目录", () => {
+    const other = mkdtempSync(join(tmpdir(), "tk-cfg-other-"))
+    try {
+      mkdirSync(join(other, ".git"), { recursive: true })
+      writeConfigKey("project", "task.dir", "other-tasks", other)
+      expect(readConfigKey("task.dir", other).value).toBe("other-tasks")
+      expect(configFileForLayer("project", other)).toBe(join(other, ".toolkitrc.json"))
+    } finally {
+      rmSync(other, { recursive: true, force: true })
+    }
+  })
+
+  it("批量读取只加载一次三层配置", () => {
+    let calls = 0
+    const loader = (dir: string) => {
+      calls += 1
+      return inspectConfigLayers(dir)
+    }
+    const states = readConfigKeys(["task.dir", "check.warnings"], project, loader)
+    expect(calls).toBe(1)
+    expect(Object.keys(states)).toEqual(["task.dir", "check.warnings"])
+  })
+
+  it("仓库判定：有 .git 或 .tasks 为真，都没有为假", () => {
+    expect(configLayerInRepo(project)).toBe(true)
+    const plain = mkdtempSync(join(tmpdir(), "tk-cfg-plain-"))
+    try {
+      expect(configLayerInRepo(plain)).toBe(false)
+    } finally {
+      rmSync(plain, { recursive: true, force: true })
+    }
+  })
+})
+
 describe("旧段名迁移", () => {
   it("读取时按新段名生效并提示，init 重写把文件改成新段名", () => {
     const file = join(project, ".toolkitrc.json")
@@ -124,7 +170,7 @@ describe("旧段名迁移", () => {
     expect((layers.merged?.skillInstall as Record<string, unknown>).mode).toBe("package")
     expect(layers.merged?.tasks).toBeUndefined()
 
-    expect(rewriteLegacySections(file).sort()).toEqual(["skillsInstall", "tasks"])
+    expect(rewriteLegacySections(file).renamed.sort()).toEqual(["skillsInstall", "tasks"])
     const raw = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>
     expect(raw.tasks).toBeUndefined()
     expect(raw.skillsInstall).toBeUndefined()
@@ -143,6 +189,15 @@ describe("旧段名迁移", () => {
     const merged = inspectConfigLayers(project).merged
     expect((merged?.task as Record<string, unknown>).dir).toBe("new-tasks")
     expect(merged?.tasks).toBeUndefined()
+  })
+
+  it("JSON 非法时标记 invalid，不改写文件", () => {
+    const file = join(project, ".toolkitrc.json")
+    writeFileSync(file, "{ 非法", "utf8")
+    const result = rewriteLegacySections(file)
+    expect(result.renamed).toEqual([])
+    expect(result.invalid).toBe(true)
+    expect(readFileSync(file, "utf8")).toBe("{ 非法")
   })
 })
 

@@ -52,6 +52,10 @@ const GITIGNORE_ROWS: ReadonlyArray<{ row: string; patterns: RegExp[] }> = [
     row: ".toolkitrc.local.json",
     patterns: [/^\/?\.toolkitrc\.local\.json$/, /^\*\.local\.json$/, /^\.toolkitrc\.\*$/],
   },
+  // 配置重写前的备份：init 改写团队配置与本地配置时各留一份 .bak，默认不入库
+  // `.toolkitrc.*` 通配同时覆盖两种备份写法，尊重用户手写的等价忽略行
+  { row: ".toolkitrc.json.bak", patterns: [/^\/?\.toolkitrc\.json\.bak$/, /^\.toolkitrc\.\*$/] },
+  { row: ".toolkitrc.local.json.bak", patterns: [/^\/?\.toolkitrc\.local\.json\.bak$/, /^\.toolkitrc\.\*$/] },
 ]
 
 // prepare 钩子脚本：只收敛项目面已存在的产物（不新增技能），幂等；挂在本地依赖 @fxri/toolkit 时才有意义
@@ -314,9 +318,10 @@ function migrateConfigSections(cwd: string): InitProduct[] {
   if (files.length === 0) return []
   return files.map((file) => {
     const target = posix(relative(cwd, file))
-    const renamed = rewriteLegacySections(file)
-    return renamed.length > 0
-      ? { target, action: "updated" as const, detail: `已重写旧段名 ${renamed.join("、")}（原文件备份为 .bak）` }
+    const result = rewriteLegacySections(file)
+    if (result.invalid) return { target, action: "skipped" as const, detail: "配置文件 JSON 解析失败，未改写" }
+    return result.renamed.length > 0
+      ? { target, action: "updated" as const, detail: `已重写旧段名 ${result.renamed.join("、")}（原文件备份为 .bak）` }
       : { target, action: "kept" as const, detail: "配置段名已是当前写法，保持不变" }
   })
 }

@@ -22,8 +22,10 @@ export interface ConfigKeySpec {
   values?: readonly string[]
   // 正整数下限（type 为 number 时生效）
   min?: number
-  // 敏感值：文本输出打码，JSON 输出保留原值
+  // 敏感值：文本与 JSON 默认打码，--reveal 显式输出原文
   sensitive?: boolean
+  // 默认值：仅用于 list / get 展示，读取真源仍在各域实现
+  default?: boolean | number | string | string[]
 }
 
 // 三层全开：未做层级约束的键默认允许任意层写入
@@ -34,7 +36,7 @@ const GLOBAL_ONLY: readonly ConfigKeyLayer[] = ["global"]
 const PROJECT_ONLY: readonly ConfigKeyLayer[] = ["project"]
 
 // 键表：段名与顶层对象一致（单数），字段路径与各域读取实现逐字对应
-export const CONFIG_KEYS: readonly ConfigKeySpec[] = [
+const CONFIG_KEY_DEFINITIONS: readonly ConfigKeySpec[] = [
   // 任务区
   { key: "task.dir", type: "string", summary: "任务区目录（相对路径基于运行目录解析）", defaultLayer: "project", writableLayers: ALL_LAYERS },
   // 脱敏
@@ -145,6 +147,54 @@ export const CONFIG_KEYS: readonly ConfigKeySpec[] = [
   { key: "usage.upload.batchSize", type: "number", min: 1, summary: "单批上传条数", defaultLayer: "global", writableLayers: GLOBAL_ONLY },
 ]
 
+// 默认值：与各域读取实现的缺省口径一致，只用于展示；未登记的键按「无默认值」处理
+const CONFIG_KEY_DEFAULTS: Readonly<Record<string, ConfigKeySpec["default"]>> = {
+  "task.dir": ".tasks",
+  "redact.enabled": true,
+  "redact.disable": [],
+  "check.warnings": true,
+  "updateCheck.enabled": true,
+  "skills.autoLink": true,
+  "skills.autoLinkReplaceForeign": true,
+  "skillInstall.mode": "skills",
+  "skillDelivery.default": "full",
+  "projectSkill.mode": "skills",
+  "activation.mode": "all",
+  "docs.nav.dir": "docs",
+  "docs.nav.maxItems": 5,
+  "docs.nav.maxGroupUnits": 4,
+  "docs.nav.firstItem": "快速开始",
+  "docs.nav.lastItem": "帮助",
+  "docs.nav.maxPageLines": 300,
+  "docs.dist.dir": ".vitepress/dist",
+  "docs.dist.sitemap": "error",
+  "docs.dist.searchProvider": "local",
+  "usage.enabled": false,
+  "usage.channel": "hook",
+  "usage.sources.firstParty": false,
+  "usage.sources.thirdParty": false,
+  "usage.sources.unmanaged": false,
+  "usage.skills.mode": "none",
+  "usage.skills.include": [],
+  "usage.skills.exclude": [],
+  "usage.capture.triggerPrompt": false,
+  "usage.capture.skillArgs": false,
+  "usage.capture.outcome": false,
+  "usage.storage.dir": "~/.toolkit/usage",
+  "usage.storage.rotation": "monthly",
+  "usage.storage.retentionDays": 180,
+  "usage.storage.maxFileBytes": 8 * 1024 * 1024,
+  "usage.upload.enabled": false,
+  "usage.upload.protocol": "webhook",
+  "usage.upload.batchSize": 100,
+}
+
+// 对外键表：定义 + 默认值合并后的只读清单
+export const CONFIG_KEYS: readonly ConfigKeySpec[] = CONFIG_KEY_DEFINITIONS.map((spec) => ({
+  ...spec,
+  default: CONFIG_KEY_DEFAULTS[spec.key],
+}))
+
 // 键索引：按完整路径取元数据
 const KEY_INDEX = new Map(CONFIG_KEYS.map((spec) => [spec.key, spec]))
 
@@ -215,6 +265,8 @@ export function parseConfigValue(spec: ConfigKeySpec, raw: string): { value?: un
       return { error: `须为${configKeyTypeLabel(spec)}` }
     }
     case "number": {
+      // 只认十进制整数：Number() 会把 0x10、1e3 当成合法值，与「正整数」文案不符
+      if (!/^-?\d+$/.test(text)) return { error: `须为${configKeyTypeLabel(spec)}` }
       const value = Number(text)
       if (!Number.isInteger(value)) return { error: `须为${configKeyTypeLabel(spec)}` }
       if (spec.min !== undefined && value < spec.min) return { error: `须为${configKeyTypeLabel(spec)}` }

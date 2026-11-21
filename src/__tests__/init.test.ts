@@ -289,6 +289,10 @@ describe("initWorkspace 全局技能安装态", () => {
 })
 
 describe("initWorkspace .gitignore 处理", () => {
+  // 忽略行精确计数：区分 `.toolkitrc.local.json` 与 `.toolkitrc.local.json.bak`
+  const countExact = (content: string, line: string) =>
+    content.split(/\r?\n/).map((item) => item.trim()).filter((item) => item === line).length
+
   it("已有 .gitignore 且结尾无换行：追加片段并保留原内容", () => {
     const { cwd, gitignore } = track(runInDir("tk-init-append-"))
     writeFileSync(join(cwd, ".gitignore"), "node_modules", "utf8")
@@ -316,8 +320,10 @@ describe("initWorkspace .gitignore 处理", () => {
     writeFileSync(join(cwd, ".gitignore"), "node_modules\n*.local.json\n", "utf8")
     initWorkspace(".tasks", cwd)
     const content = gitignore()
-    // *.local.json 等价于 .toolkitrc.local.json，只补排他锁
-    expect(content).not.toContain(".toolkitrc.local.json")
+    // *.local.json 等价于 .toolkitrc.local.json；两份 .bak 不在通配范围内，按行补上
+    expect(countExact(content, ".toolkitrc.local.json")).toBe(0)
+    expect(countExact(content, ".toolkitrc.json.bak")).toBe(1)
+    expect(countExact(content, ".toolkitrc.local.json.bak")).toBe(1)
     expect(content).toContain(".archive.lock")
   })
 
@@ -362,7 +368,8 @@ describe("initWorkspace .gitignore 处理", () => {
     initWorkspace(".tasks", cwd)
     const content = gitignore()
     expect(content.match(/\.archive\.lock/g)).toHaveLength(1)
-    expect(content.match(/\.toolkitrc\.local\.json/g)).toHaveLength(1)
+    expect(countExact(content, ".toolkitrc.local.json")).toBe(1)
+    expect(countExact(content, ".toolkitrc.local.json.bak")).toBe(1)
   })
 
   it("用户以前导斜杠写法 /（.toolkitrc.local.json）时视为已覆盖，只补排他锁", () => {
@@ -372,7 +379,8 @@ describe("initWorkspace .gitignore 处理", () => {
     const content = gitignore()
     expect(content).toContain(".archive.lock")
     // 本地配置行只保留用户那一行，不重复追加
-    expect(content.match(/\.toolkitrc\.local\.json/g)).toHaveLength(1)
+    expect(countExact(content, "/.toolkitrc.local.json")).toBe(1)
+    expect(countExact(content, ".toolkitrc.local.json")).toBe(0)
   })
 
   it("用户以 .toolkitrc.* 通配写法时视为已覆盖，不再追加本地配置行", () => {
@@ -395,10 +403,10 @@ describe("initWorkspace .gitignore 处理", () => {
 
   it("片段头缺出口指引时重跑就地补上，且不重复追加忽略行", () => {
     const { cwd, gitignore } = track(runInDir("tk-init-hint-add-"))
-    // 旧式片段：有认领注释与两行忽略项，但缺出口指引
+    // 旧式片段：有认领注释与全部忽略行，但缺出口指引
     writeFileSync(
       join(cwd, ".gitignore"),
-      "node_modules\n# @fxri/toolkit 忽略片段（运行时文件与个人本地配置，不入库）\n.archive.lock\n.toolkitrc.local.json\n",
+      "node_modules\n# @fxri/toolkit 忽略片段（运行时文件与个人本地配置，不入库）\n.archive.lock\n.toolkitrc.local.json\n.toolkitrc.json.bak\n.toolkitrc.local.json.bak\n",
       "utf8",
     )
     const report = initWorkspace(".tasks", cwd)
@@ -406,7 +414,9 @@ describe("initWorkspace .gitignore 处理", () => {
     expect(content).toContain(".git/info/exclude")
     expect(content.match(/# @fxri\/toolkit/g)).toHaveLength(1)
     expect(content.match(/\.archive\.lock/g)).toHaveLength(1)
-    expect(content.match(/\.toolkitrc\.local\.json/g)).toHaveLength(1)
+    expect(countExact(content, ".toolkitrc.local.json")).toBe(1)
+    expect(countExact(content, ".toolkitrc.json.bak")).toBe(1)
+    expect(countExact(content, ".toolkitrc.local.json.bak")).toBe(1)
     expect(report.products.find((p) => p.target === ".gitignore")?.action).toBe("updated")
   })
 
@@ -414,11 +424,11 @@ describe("initWorkspace .gitignore 处理", () => {
   it("git 仓库中通配写法已真实覆盖时整文件保持不动", { timeout: 15000 }, () => {
     const { cwd, gitignore } = track(runInDir("tk-init-repo-covered-"))
     execSync("git init -q", { cwd, stdio: "ignore" })
-    // *.lock 命中 .archive.lock、*.local.json 命中 .toolkitrc.local.json，均由 git 真实判定
-    writeFileSync(join(cwd, ".gitignore"), "node_modules\n*.lock\n*.local.json\n", "utf8")
+    // *.lock 命中 .archive.lock，`.toolkitrc.*` 命中本地配置与两份备份，均由 git 真实判定
+    writeFileSync(join(cwd, ".gitignore"), "node_modules\n*.lock\n.toolkitrc.*\n", "utf8")
     const report = initWorkspace(".tasks", cwd)
     const content = gitignore()
-    expect(content).toBe("node_modules\n*.lock\n*.local.json\n")
+    expect(content).toBe("node_modules\n*.lock\n.toolkitrc.*\n")
     expect(content).not.toContain(".archive.lock")
     expect(content).not.toContain("# @fxri/toolkit")
     expect(report.products.find((p) => p.target === ".gitignore")?.action).toBe("kept")
@@ -432,8 +442,9 @@ describe("initWorkspace .gitignore 处理", () => {
     initWorkspace(".tasks", cwd)
     const content = gitignore()
     expect(content).not.toContain(".archive.lock")
-    expect(content).toContain(".toolkitrc.local.json")
-    expect(content.match(/\.toolkitrc\.local\.json/g)).toHaveLength(1)
+    expect(countExact(content, ".toolkitrc.local.json")).toBe(1)
+    expect(countExact(content, ".toolkitrc.json.bak")).toBe(1)
+    expect(countExact(content, ".toolkitrc.local.json.bak")).toBe(1)
   })
 })
 
