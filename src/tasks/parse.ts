@@ -5,17 +5,47 @@ import { stripBom } from "../read-text"
 // stripFrontmatter 需连收尾换行一并吞掉，正则形态不同，故单独自持
 export const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/
 
+// 块状数组行：缩进 + 短横线 + 值（`  - 任务甲`），YAML 常见写法
+const BLOCK_ITEM_RE = /^\s+-\s*(.*)$/
+
+// 收集块状数组：从 start 起连续读取 `- value` 行，返回 JSON 数组字符串与下一行下标；无匹配返回 null
+function collectBlockArray(lines: string[], start: number): { value: string; next: number } | null {
+  const items: string[] = []
+  let i = start
+  while (i < lines.length) {
+    const next = lines[i] ?? ""
+    const match = next.match(BLOCK_ITEM_RE)
+    if (!match) break
+    const item = (match[1] ?? "").trim().replace(/^['"]|['"]$/g, "")
+    if (item) items.push(item)
+    i++
+  }
+  if (i === start) return null
+  return { value: JSON.stringify(items), next: i }
+}
+
 // 解析文件顶部 frontmatter 的全部键值（未知自定义字段原样保留，键序与文件一致）；无 frontmatter 返回空对象
 export function parseFrontmatterRaw(content: string): Record<string, string> {
   // 先剥 BOM：否则 frontmatter 正则会被前导字节序误判为「缺少 frontmatter」
   const match = stripBom(content).match(FRONTMATTER_RE)
   if (!match) return {}
   const fm: Record<string, string> = {}
-  for (const line of (match[1] ?? "").split(/\r?\n/)) {
+  const lines = (match[1] ?? "").split(/\r?\n/)
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? ""
     const idx = line.indexOf(":")
     if (idx === -1) continue
     const key = line.slice(0, idx).trim()
     let value = line.slice(idx + 1).trim()
+    // 块状数组：键值为空且后续行为 `- value` 时收集为 JSON 数组，交 parseDepends 统一解析
+    if (key && value === "") {
+      const block = collectBlockArray(lines, i + 1)
+      if (block) {
+        fm[key] = block.value
+        i = block.next - 1
+        continue
+      }
+    }
     // 去掉包裹的引号（兼容 completed: '2026-09-02 23:32' 这类写法）
     if ((value.startsWith("'") && value.endsWith("'")) || (value.startsWith('"') && value.endsWith('"'))) {
       value = value.slice(1, -1)
