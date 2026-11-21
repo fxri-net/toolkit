@@ -31,6 +31,7 @@
       "text": "帮助",
       "items": [
         { "text": "常见问题", "link": "/faq" },
+        { "text": "v2 升级说明", "link": "/upgrade-v2" },
         { "text": "更新日志", "link": "/changelog" }
       ]
     }
@@ -129,7 +130,8 @@
             { "text": "发版与升级", "link": "/faq#发版与升级" }
           ]
         },
-        { "text": "更新日志", "link": "/changelog" }
+        { "text": "更新日志", "link": "/changelog" },
+        { "text": "v2 升级说明", "link": "/upgrade-v2" }
       ]
     }
   ]

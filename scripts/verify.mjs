@@ -229,6 +229,8 @@ const parallelSteps = [
   { label: "文档类型检查", tool: "vue-tsc", args: ["--noEmit", "-p", "docs/tsconfig.json"], skip: docsTypeSkip },
   // 文档规则数据由 templates/rules 生成，检查生成物未漂移
   { label: "文档规则产物同步", args: ["scripts/generate-docs-rules.mjs", "--check"] },
+  // 升级页命令对照表由命令注册表生成，检查生成段未漂移
+  { label: "升级页命令对照同步", args: ["scripts/generate-upgrade-table.mjs", "--check"] },
   // 仓库自检：技能版本四点一致、技能表用途列不残留旧术语、active 任务触达路径存在
   { label: "规范一致性（技能版本 / 用途列 / 触达）", args: ["scripts/check-consistency.mjs"] },
   // 仓库自检：正文段落单行行宽与分号数（规范 C-43），存量按基线棘轮、只在超出时失败

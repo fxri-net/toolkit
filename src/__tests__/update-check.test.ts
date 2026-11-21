@@ -287,6 +287,13 @@ describe("emitVersionHint 提示渠道与例外", () => {
     expect(formatUpdateHint("9.9.9", "1.0.0").split("\n")).toHaveLength(1)
   })
 
+  it("v1 升 2.x 只引导读升级页，不直接给安装命令", () => {
+    const hint = formatUpdateHint("2.0.0", "1.17.8")
+    expect(hint).toContain("upgrade-v2")
+    expect(hint).toContain("破坏性变更")
+    expect(hint).not.toContain("pnpm add -g")
+  })
+
   it("不可提示的命令不触发技能取证（惰性）", () => {
     writeOkCache("9.9.9")
     const provider = vi.fn(() => [])

@@ -364,6 +364,14 @@ export function readHintTiming(): { checkedAt: number | null; nextHintAt: number
 
 // 统一提示文案：一句话，不输出 JSON
 export function formatUpdateHint(latest: string, current: string): string {
+  // v1 用户升到 2.x 属破坏性升级：先引导读升级页，不直接给出安装命令
+  const currentMajor = Number(current.split(".")[0])
+  const latestMajor = Number(latest.split(".")[0])
+  if (currentMajor === 1 && latestMajor >= 2) {
+    return line.hint(
+      `提示：toolkit ${latest} 含破坏性变更（当前 ${current}），先读升级说明 https://fxri-net.github.io/toolkit/upgrade-v2 再升级。`,
+    )
+  }
   return line.hint(`提示：toolkit ${latest} 可用（当前 ${current}），运行 pnpm add -g @fxri/toolkit 升级后请开新会话。`)
 }
 
