@@ -27,8 +27,8 @@ export interface BumpResult {
 const SKILL_ENTRY = "SKILL.md"
 const VERSION_PATTERN = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/
 
-// 版本号三段解析：返回 [major, minor, patch]；不合法返回 null
-function parseVersion(version: string): [number, number, number] | null {
+// 版本号三段解析：返回 [major, minor, patch]；不合法返回 null（供 lint 与递增共用同一口径）
+export function parseSkillVersion(version: string): [number, number, number] | null {
   const matched = /^(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z.-]+)?$/.exec(version.trim())
   if (!matched) return null
   return [Number(matched[1]), Number(matched[2]), Number(matched[3])]
@@ -36,7 +36,7 @@ function parseVersion(version: string): [number, number, number] | null {
 
 // 按 bump 类型计算下一版本；预发布后缀在递增时丢弃
 export function bumpVersion(version: string, type: BumpType): string | null {
-  const parsed = parseVersion(version)
+  const parsed = parseSkillVersion(version)
   if (!parsed) return null
   const [major, minor, patch] = parsed
   if (type === "major") return `${major + 1}.0.0`
@@ -49,8 +49,8 @@ export function isValidVersion(version: string): boolean {
   return VERSION_PATTERN.test(version.trim())
 }
 
-// 读取 frontmatter metadata.version：缩进键，缺失返回空串
-function readFrontmatterVersion(content: string): string {
+// 读取 frontmatter version：缩进键，缺失返回空串；供递增与 lint 的基准比对共用
+export function readFrontmatterVersionFromContent(content: string): string {
   const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(content)
   if (!frontmatter) return ""
   const matched = /^[ \t]+version:[ \t]*"?([^"\r\n]+?)"?[ \t]*$/m.exec(frontmatter[1] ?? "")
@@ -102,7 +102,7 @@ export function bumpSkillVersions(options: BumpOptions): BumpResult[] {
   for (const name of targets) {
     const file = join(skillsDir, name, SKILL_ENTRY)
     const content = readTextFile(file)
-    const from = readFrontmatterVersion(content)
+    const from = readFrontmatterVersionFromContent(content)
     if (!from) throw new Error(`技能 ${name} 的 frontmatter 未声明 metadata.version，无法递增`)
     const to = options.set ? options.set.trim() : bumpVersion(from, options.type ?? "patch")
     if (!to) throw new Error(`技能 ${name} 的当前版本不合法：${from}`)

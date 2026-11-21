@@ -54,6 +54,7 @@ import {
   writeSkillsInstallConfig,
   bumpSkillVersions,
   isValidVersion,
+  lintSkills,
   BUILTIN_SOURCE,
   gateRuleSummary,
   isSkillGated,
@@ -70,6 +71,7 @@ import {
   type SkillsMode,
   type SkillsRemoveReport,
   type SkillsStatusReport,
+  type SkillLintReport,
   type UninstallChoice,
 } from "../skills"
 import {
@@ -731,6 +733,26 @@ function printRemoveReports(scope: { choice: ScopeChoice; explicit: boolean }, g
   }
 }
 
+// 打印技能校验报告：stdout 只放数据，诊断由调用方写 stderr
+function printLintReport(report: SkillLintReport): void {
+  if (report.issues.length === 0) {
+    const ignored = report.summary.ignored > 0 ? `，跳过 ${report.summary.ignored} 个被忽略的技能` : ""
+    console.log(`✔ ${report.summary.skills} 个技能通过校验${ignored}`)
+    return
+  }
+  for (const issue of report.issues) {
+    const location = issue.line === undefined ? issue.file : `${issue.file}:${issue.line}`
+    console.log(`${issue.level === "error" ? "✖" : "⚠️"} ${location} [${issue.code}] ${issue.message}`)
+  }
+  console.log(`\n${report.summary.errors} 个错误、${report.summary.warnings} 个告警（共 ${report.summary.skills} 个技能）`)
+}
+
+// 正整数参数解析：未给出返回 undefined，非法返回 null（调用方按用法错误退出 2）
+function parsePositiveInt(value: string | undefined): number | undefined | null {
+  if (value === undefined) return undefined
+  return /^[1-9]\d*$/.test(value) ? Number(value) : null
+}
+
 // 注册 skills 命令：装配点只负责按序调用
 export function registerSkillsCommands(program: Command): void {
   // skills 域：把包内 skills/ 分发到各 agent 的全局技能目录（真源唯一，默认软链以便升级自动跟随）
@@ -1162,6 +1184,69 @@ export function registerSkillsCommands(program: Command): void {
         else printRemoveReports(scope, global, project, dryRun)
       } catch (e) {
         console.error(`⚠️ 卸载失败：${(e as Error).message}`)
+        process.exitCode = 1
+      }
+    })
+
+  // 技能规范校验：只读命令，可对任意技能目录运行，供各工具仓在 verify 中复用
+  skillsCmd
+    .command("lint")
+    .description("校验技能规范（命名 / frontmatter / 版本双写 / 篇幅 / references / 敏感信息 / 版本递增）")
+    .argument("[dirs...]", "技能目录（可多个；缺省为本包 skills/）")
+    .option("--dir <path>", "技能目录（可重复，与位置参数并用）", collectDir, [])
+    .option("--base <ref>", "版本递增基准（git ref）；不传则不校验递增")
+    .option("--budget <chars>", "入口字符硬上限（默认 12000；告警线为 2/3）")
+    .option("--max-lines <n>", "入口行数硬上限（默认 200）")
+    .option("--warn-lines <n>", "入口行数告警线（默认 150）")
+    .option("--ignore <glob>", "跳过匹配的技能目录（可重复）", collectDir, [])
+    .option("--prefix <name>", "技能目录名前缀（默认 fxri-）")
+    .option("--strict", "告警按失败处理")
+    .option("--json", "输出格式（等价于 --format json）")
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
+    .addHelpText(
+      "after",
+      [
+        "",
+        "退出码：0 无问题、1 存在错误（或 --strict 下的告警）、2 用法错误",
+        "版本递增：仅当传入 --base 且技能内容相对基准有变更时要求版本更高；git 不可用会在 stderr 说明跳过原因",
+      ].join("\n"),
+    )
+    .action((dirs: string[], options: { dir?: string[]; base?: string; budget?: string; maxLines?: string; warnLines?: string; ignore?: string[]; prefix?: string; strict?: boolean; json?: boolean; format?: string }) => {
+      try {
+        if (!assertJsonFormat(options.format)) return
+        const budget = parsePositiveInt(options.budget)
+        const maxLines = parsePositiveInt(options.maxLines)
+        const warnLines = parsePositiveInt(options.warnLines)
+        if (budget === null || maxLines === null || warnLines === null) {
+          console.error("⚠️ --budget / --max-lines / --warn-lines 须为正整数")
+          process.exitCode = 2
+          return
+        }
+        if (warnLines !== undefined && maxLines !== undefined && warnLines > maxLines) {
+          console.error("⚠️ --warn-lines 不能大于 --max-lines")
+          process.exitCode = 2
+          return
+        }
+        if (options.base !== undefined && options.base.trim() === "") {
+          console.error("⚠️ --base 不能为空；不校验递增时请不要传入")
+          process.exitCode = 2
+          return
+        }
+        const report = lintSkills({
+          dirs: [...dirs, ...(options.dir ?? [])],
+          base: options.base?.trim() || undefined,
+          budget,
+          maxLines,
+          warnLines,
+          ignore: options.ignore ?? [],
+          prefix: options.prefix,
+        })
+        if (report.summary.baseSkipped) console.error(`⚠️ 跳过版本递增校验：${report.summary.baseSkipped}`)
+        if (options.json || options.format === "json") printJson(report)
+        else printLintReport(report)
+        if (report.summary.errors > 0 || (options.strict && report.summary.warnings > 0)) process.exitCode = 1
+      } catch (e) {
+        console.error(`⚠️ 校验失败：${(e as Error).message}`)
         process.exitCode = 1
       }
     })

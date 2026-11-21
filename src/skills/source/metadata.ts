@@ -82,9 +82,28 @@ function readFrontmatterIndented(dir: string, key: string): string {
 // 读取技能正文版本：正文首部 `> 本技能版本 x.y.z（…）` 声明值；文件缺失或未声明返回空串，不抛错
 export function readSkillBodyVersion(dir: string): string {
   try {
+    return readBodyVersionFromContent(readTextFile(join(dir, SKILL_ENTRY)))
+  } catch {
+    return ""
+  }
+}
+
+// 从文本内容读取正文版本声明：供技能文件与 git 基准内容共用同一解析口径
+export function readBodyVersionFromContent(content: string): string {
+  const matched = content.match(/^>[ \t]*本技能版本[ \t]*([^ \t（(]+)/m)
+  return matched ? (matched[1] ?? "").trim() : ""
+}
+
+// 读取 frontmatter 键值：先按顶层键解析（name / description / license），再回落到 metadata 缩进键
+// 校验需要区分「未声明」与「声明为空」，故统一走本入口，不另写第二套解析
+export function readSkillFrontmatterValue(dir: string, key: string): string {
+  try {
     const content = readTextFile(join(dir, SKILL_ENTRY))
-    const matched = content.match(/^>[ \t]*本技能版本[ \t]*([^ \t（(]+)/m)
-    return matched ? (matched[1] ?? "").trim() : ""
+    const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+    if (!frontmatter) return ""
+    const matched = (frontmatter[1] ?? "").match(new RegExp(`^${key}:[ \\t]*"?([^"\\r\\n]+?)"?[ \\t]*$`, "m"))
+    if (matched) return (matched[1] ?? "").trim()
+    return readFrontmatterIndented(dir, key)
   } catch {
     return ""
   }
