@@ -232,6 +232,10 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 - 方案确认后必须落盘为 .tasks 任务文件；定稿后收到开工授权即一次建完全部任务档并校验，再按表顺序逐个任务交付提交；多任务 / 多仓方案先出纯展示计划表
 ```
 
+**路径三 · 策略 / 技能矩阵**：全局技能照装，用 `toolkit scope policy add` 或 `toolkit scope skills allow|deny`
+按目录与技能维度收口，或 `toolkit skills gate on` 开启内容闸门、只在命中目录下发正文；
+个人项目不命中即不加载，规则见[作用域](./config/activation)。
+
 **个人项目**：不放上述文件即可（兼容 agent 仍可能按 `description` 自动触发）；若希望**稳定**启用，仍建议在项目 rules 中显式声明。
 团队项目推荐把上游安装器的 `skills-lock.json` 一并提交，用内置 `toolkit skills install` 时则随包同批分发、无需额外锁文件。
 
