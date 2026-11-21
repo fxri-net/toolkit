@@ -59,7 +59,7 @@ toolkit scope
 | 多语言 CHANGELOG（changelog） | 封装 changesets 发版、分组标题本地化 | [CLI 参考](./docs/cli/changelog.md) |
 | 协作规范载体（conventions） | 把任务里提炼的规范收进 `.tasks/conventions/`，成为可检索、可校验的项目规范源；支持结构升级、表格与索引单元格形态归一、只读体检 | [CLI 参考](./docs/cli.md) · [完整攻略](./docs/guide.md#conventions-规范沉淀地) |
 | AI 技能包（skills） | 不装本工具也能让 AI 按同一套规范干活；装了可一键分发技能（`--scope project` 随仓库入库、队友 clone 即用） | [完整攻略](./docs/guide.md#ai-技能包-skills) · [常见问题](./docs/faq.md#工具和-skills-都得装吗) |
-| 作用域（scope） | 按项目 / 目录决定技能与规则是否生效：白名单、黑名单、标记与 git 远端；默认全域；可批量做项目面安装 | [CLI 参考](./docs/cli/scope.md) · [配置参考](./docs/config/activation.md) |
+| 作用域（scope） | 按项目 / 目录决定技能与规则是否生效：策略规则、白名单 / 黑名单、标记与 git 远端；默认全域；技能矩阵与内容闸门联动 | [CLI 参考](./docs/cli/scope.md) · [配置参考](./docs/config/activation.md) |
 | 全局规则（rules） | 按模块组合、排序与复制 AI 全局规则（含提交信息、技能使用情况等模块），预设与缓存随包分发 | [CLI 参考](./docs/cli/rules.md) |
 | 技能使用统计（usage） | 统计技能调用次数、触发词与结果；默认关闭、不联网、数据只留本机 | [CLI 参考](./docs/cli/usage.md) · [使用统计](./docs/usage/index.md) |
 | 文档站工具（docs） | 校验主题一致性、导航结构与构建产物，规则随包分发、跨仓样式漂移可发现 | [CLI 参考](./docs/cli/docs-theme.md) · [docs 校验](./docs/cli/docs-check.md) |
