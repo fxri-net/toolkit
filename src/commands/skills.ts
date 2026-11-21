@@ -941,7 +941,8 @@ export function registerSkillsCommands(program: Command): void {
           console.warn("⚠️ 项目面 --gate / --embed 现已生效（2.0.0 起移除该提示）")
         }
         // JSON 消费方通常非 TTY；即使 TTY 也不弹窗，避免提示污染 stdout 的机器可读输出
-        const nonInteractive = Boolean(options.yes) || options.format === "json"
+        const nonInteractive =
+          Boolean(options.yes) || Boolean(options.check) || Boolean(options.refresh) || options.format === "json"
         // 选择阶段的非交互：--yes 或 --use-saved 都跳过选择提示；--use-saved 仍保留最终确认
         const selectionNonInteractive = nonInteractive || Boolean(options.useSaved)
 

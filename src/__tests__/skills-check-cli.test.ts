@@ -11,6 +11,25 @@ const sandbox = vi.hoisted(() => {
 const home = join(sandbox, "home")
 const originalArgv = process.argv
 
+// 交互模块一旦被调用即失败：--check / --refresh 必须全程非交互
+vi.mock("@inquirer/prompts", () => ({
+  confirm: vi.fn(async () => {
+    throw new Error("不应触发交互")
+  }),
+  checkbox: vi.fn(async () => {
+    throw new Error("不应触发交互")
+  }),
+}))
+
+// 模拟 TTY：交互判据只看 stdin / stdout 的 isTTY
+function setTty(value: boolean): void {
+  for (const stream of [process.stdin, process.stdout]) Object.defineProperty(stream, "isTTY", { value, configurable: true })
+}
+
+function restoreTty(): void {
+  for (const stream of [process.stdin, process.stdout]) Reflect.deleteProperty(stream, "isTTY")
+}
+
 // 跑一次 CLI：重置模块注册表 → 注入 home 与 argv → 动态导入 cli 并 await 主流程 → 收集退出码
 async function runCli(args: string[]): Promise<{ code: number; log: string[] }> {
   vi.resetModules()
@@ -49,6 +68,7 @@ afterEach(() => {
   delete process.env.FX_TOOLKIT_NO_UPDATE_CHECK
   process.argv = originalArgv
   process.exitCode = 0
+  restoreTty()
   vi.restoreAllMocks()
 })
 
@@ -64,5 +84,18 @@ describe("install --check", () => {
     const clean = await runCli(["skills", "install", "--check", "--scope", "global", "--yes"])
     expect(clean.code).toBe(0)
     expect(clean.log.join("\n")).toContain("无待收敛项")
+  })
+
+  it("TTY 下 --check / --refresh 不进入选择与确认交互", async () => {
+    // 清掉上一用例安装的产物与选择集，制造「有漂移」现场
+    rmSync(join(home, ".agents"), { recursive: true, force: true })
+    rmSync(join(home, ".toolkitrc.json"), { force: true })
+    setTty(true)
+    const check = await runCli(["skills", "install", "--check", "--scope", "global"])
+    expect(check.code).toBe(1)
+    expect(check.log.join("\n")).toContain("待收敛")
+
+    const refresh = await runCli(["skills", "install", "--scope", "project", "--refresh"])
+    expect(refresh.code).toBe(0)
   })
 })

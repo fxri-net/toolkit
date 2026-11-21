@@ -80,8 +80,8 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
   - `--gate` / `--embed` 为本次显式取值，不受已保存配置影响；项目面同样生效（首次生效的兼容提示随 2.0.0 移除）
 - 项目面按[作用域与安装面](../config/skills#作用域与安装面)的副本 + 薄壳口径写入；`gated` 技能的候选目录落入口壳，真源副本保留供 guard 读取正文
 - `--dry-run` 是 `skills plan` 的别名：只输出分发计划，不写文件
-- `--check` 只报告待收敛项，有漂移时退出码 1，供 CI 消费
-- `--refresh` 只收敛已存在的项目面产物，不新增技能、不改选择集；非 TTY / CI 只打印漂移（`prepare` 钩子口径）
+- `--check` 只报告待收敛项，有漂移时退出码 1；不进入交互
+- `--refresh` 只收敛已存在的项目面产物，不新增技能、不改选择集；不进入交互，非 TTY / CI 只打印漂移
 - `--format json` 输出机器可读安装报告到 stdout（含 `dryRun` / `scope` 标记与 `selection` / `targetSelection`）
   - 预演键为 `plan` / `project`；`--check` / `--refresh` 为 `plans` 数组
   - 各目标另含 `gates`（入口壳）与 `migrated`（旧名 → 现用名）：改名迁移已清理的旧产物记录
