@@ -1,10 +1,13 @@
 ---
-title: 作用域（activation）
+title: 作用域配置（activation / policies）
 ---
 
-# 作用域（activation）
+<a id="作用域activation"></a>
 
-> 控制技能与规则在哪些项目 / 目录生效。**不配置时全域生效**，与历史行为一致。
+# 作用域配置（activation / policies）
+
+> 控制技能与规则在哪些项目 / 目录生效。现行配置以 `policies`（策略规则）与 `skillProfiles`（技能档案）为主，
+> 旧 `activation` 字段仍兼容读取，加载时编译为同层策略；**不配置时全域生效**。
 
 ## 字段
 
