@@ -258,7 +258,7 @@ function readLayer(layer: ConfigLayerName, filePath: string | null, fallbacks: C
   if (!filePath || !existsSync(filePath)) return { layer, file: null, hit: false, sections: [], config: null }
   const config = readConfigFile(filePath, fallbacks)
   if (!config) return { layer, file: filePath, hit: false, sections: [], config: null }
-  normalizeLegacySections(filePath, config)
+  normalizeLegacySections(layer, filePath, config)
   validateSections(filePath, config, fallbacks)
   validateDisplayKeys(filePath, config, fallbacks)
   return { layer, file: filePath, hit: true, sections: Object.keys(config), config }
@@ -266,7 +266,8 @@ function readLayer(layer: ConfigLayerName, filePath: string | null, fallbacks: C
 
 // 旧段名迁移：新段名不存在时整段搬到新名下继续生效；两者并存时保留新段名并提示旧段被忽略
 // 只改内存中的解析结果，不改文件——重写文件由 init 显式执行，避免只读命令产生写入
-function normalizeLegacySections(filePath: string, config: Record<string, unknown>): void {
+// 全局层不归 init 处置，提示改为手动改名指引，避免给出无法兑现的「运行 init 重写」
+function normalizeLegacySections(layer: ConfigLayerName, filePath: string, config: Record<string, unknown>): void {
   for (const [legacy, canonical] of Object.entries(CONFIG_LEGACY_SECTIONS)) {
     if (!(legacy in config)) continue
     const duplicated = canonical in config
@@ -275,11 +276,15 @@ function normalizeLegacySections(filePath: string, config: Record<string, unknow
     const key = `${filePath}\u0000${legacy}`
     if (warnedLegacySections.has(key)) continue
     warnedLegacySections.add(key)
-    console.warn(
-      duplicated
-        ? `⚠️ 配置段「${legacy}」已更名为「${canonical}」（${filePath}）：同名新段已存在，旧段内容已忽略`
-        : `⚠️ 配置段「${legacy}」已更名为「${canonical}」（${filePath}）：本次按新段名读取，运行 toolkit init 可自动重写`,
-    )
+    if (duplicated) {
+      console.warn(`⚠️ 配置段「${legacy}」已更名为「${canonical}」（${filePath}）：同名新段已存在，旧段内容已忽略`)
+      continue
+    }
+    const hint =
+      layer === "全局层"
+        ? "全局层不归 toolkit init 处置，请手动把该段改名为新段名（2.1.0 起不再兼容）"
+        : "本次按新段名读取，运行 toolkit init 可自动重写"
+    console.warn(`⚠️ 配置段「${legacy}」已更名为「${canonical}」（${filePath}）：${hint}`)
   }
 }
 

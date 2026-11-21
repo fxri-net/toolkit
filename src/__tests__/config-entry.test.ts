@@ -1,5 +1,5 @@
 // 配置单一入口：键元数据、三层写入往返、旧段名迁移与命令注册表不变量
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -143,6 +143,57 @@ describe("旧段名迁移", () => {
     const merged = inspectConfigLayers(project).merged
     expect((merged?.task as Record<string, unknown>).dir).toBe("new-tasks")
     expect(merged?.tasks).toBeUndefined()
+  })
+})
+
+describe("旧段名迁移提示", () => {
+  it("全局层提示手动改名，不给 init 指引", () => {
+    writeFileSync(join(home, ".toolkitrc.json"), `${JSON.stringify({ skillsInstall: { mode: "package" } })}\n`, "utf8")
+    resetToolkitConfigCache()
+    const warns: string[] = []
+    const spy = vi.spyOn(console, "warn").mockImplementation((...args: unknown[]) => {
+      warns.push(args.map(String).join(" "))
+    })
+    try {
+      inspectConfigLayers(project)
+    } finally {
+      spy.mockRestore()
+    }
+    const text = warns.join("\n")
+    expect(text).toContain("skillsInstall")
+    expect(text).toContain("请手动把该段改名")
+    expect(text).not.toContain("运行 toolkit init")
+  })
+
+  it("项目层提示运行 init 重写", () => {
+    writeFileSync(join(project, ".toolkitrc.json"), `${JSON.stringify({ tasks: { dir: "legacy" } })}\n`, "utf8")
+    resetToolkitConfigCache()
+    const warns: string[] = []
+    const spy = vi.spyOn(console, "warn").mockImplementation((...args: unknown[]) => {
+      warns.push(args.map(String).join(" "))
+    })
+    try {
+      inspectConfigLayers(project)
+    } finally {
+      spy.mockRestore()
+    }
+    expect(warns.join("\n")).toContain("运行 toolkit init 可自动重写")
+  })
+
+  it("同一文件同一旧段名只提示一次", () => {
+    writeFileSync(join(project, ".toolkitrc.json"), `${JSON.stringify({ tasks: { dir: "legacy" } })}\n`, "utf8")
+    resetToolkitConfigCache()
+    const warns: string[] = []
+    const spy = vi.spyOn(console, "warn").mockImplementation((...args: unknown[]) => {
+      warns.push(args.map(String).join(" "))
+    })
+    try {
+      inspectConfigLayers(project)
+      inspectConfigLayers(project)
+    } finally {
+      spy.mockRestore()
+    }
+    expect(warns.filter((text) => text.includes("已更名为"))).toHaveLength(1)
   })
 })
 
