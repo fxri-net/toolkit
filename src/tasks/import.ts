@@ -324,7 +324,7 @@ function writeArchiveGroup(tasksDir: string, date: string, incoming: ArchiveBloc
   const monthDir = join(tasksDir, "archive", date.slice(0, 6))
   const file = join(monthDir, `${date}.md`)
   mkdirSync(monthDir, { recursive: true })
-  let header = `# ${date} 归档\n\n> 本文件由 \`toolkit tasks import --target archive\` 自动生成。\n`
+  let header = `# ${date} 归档\n\n> 本文件由 \`toolkit task import --target archive\` 自动生成。\n`
   let blocks: ArchiveBlockInfo[] = []
   if (existsSync(file)) {
     const parsed = parseArchiveBlocks(readTextFile(file))

@@ -4,7 +4,7 @@ outline: [2, 2]
 
 # 更新日志
 
-> 完整变更历史以根 `CHANGELOG.md` 为准，本页由 `toolkit changelog mirror` 自动同步，请勿手改。
+> 完整变更历史以根 `CHANGELOG.md` 为准，本页由 `toolkit release mirror` 自动同步，请勿手改。
 
 ## 1.17.8
 

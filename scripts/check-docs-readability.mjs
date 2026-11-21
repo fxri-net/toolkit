@@ -15,7 +15,7 @@ export const BASELINE_PATH = ["scripts", "docs-readability-baseline.json"]
 // 检查面：门面与根规则 + 文档站页面 + 技能正文
 const TARGET_FILES = ["README.md", "AGENTS.md", "SPEC.md"]
 const TARGET_DIRS = ["docs", "skills"]
-// 自动生成页豁免（C-40）：toolkit changelog doc 产出，内容不由人书写
+// 自动生成页豁免（C-40）：toolkit release mirror 产出，内容不由人书写
 const EXCLUDED = new Set(["docs/changelog.md"])
 
 /** 递归收集 Markdown 页面，返回仓库根相对路径（正斜杠） */

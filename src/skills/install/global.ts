@@ -335,14 +335,14 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
     // 首次开启提示：从「未开启」切到规则时告知接管数量与回退方式（非 TTY 同样适用）
     const gateCount = results.reduce((count, result) => count + result.gates.length, 0)
     if (options.gate === true && previousDefault !== "gated" && !options.dryRun && gateCount > 0) {
-      console.warn(`⚠️ 内容闸门首次开启：本次接管 ${gateCount} 个技能；需要全文时运行 toolkit skills install --embed`)
+      console.warn(`⚠️ 内容闸门首次开启：本次接管 ${gateCount} 个技能；需要全文时运行 toolkit skill install --embed`)
     }
 
     // 内容闸门开关随安装结果落盘：显式传入才写，预演与存在失败条目不写，避免开关与产物脱节
     if (options.gate !== undefined && !options.dryRun) {
       const failures = results.reduce((count, result) => count + result.failed.length, 0)
       if (failures > 0) {
-        console.warn(`⚠️ 内容闸门开关未保存：本次有 ${failures} 个技能安装失败，修复后重跑 toolkit skills install`)
+        console.warn(`⚠️ 内容闸门开关未保存：本次有 ${failures} 个技能安装失败，修复后重跑 toolkit skill install`)
       } else {
         try {
           // 布尔开关写入新段默认形态；对象形态（库调用）仍走旧键，保留排除优先语义

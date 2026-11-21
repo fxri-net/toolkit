@@ -121,7 +121,7 @@ describe("语义色", () => {
     expect(style.warn("注意")).toBe("\u001b[33m注意\u001b[0m")
     expect(style.error("失败")).toBe("\u001b[31m失败\u001b[0m")
     expect(style.hint("说明")).toBe("\u001b[2m说明\u001b[0m")
-    expect(style.accent("toolkit tasks")).toBe("\u001b[36mtoolkit tasks\u001b[0m")
+    expect(style.accent("toolkit task")).toBe("\u001b[36mtoolkit task\u001b[0m")
   })
 
   it("关闭时原样返回文本", () => {
@@ -130,7 +130,7 @@ describe("语义色", () => {
     expect(style.warn("注意")).toBe("注意")
     expect(style.error("失败")).toBe("失败")
     expect(style.hint("说明")).toBe("说明")
-    expect(style.accent("toolkit tasks")).toBe("toolkit tasks")
+    expect(style.accent("toolkit task")).toBe("toolkit task")
   })
 })
 

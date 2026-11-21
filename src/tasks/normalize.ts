@@ -137,7 +137,7 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
     if (content.startsWith("\uFEFF")) {
       issues.push({
         file: display,
-        message: "归档文件含 UTF-8 BOM，可用 `toolkit tasks normalize --fix` 去除",
+        message: "归档文件含 UTF-8 BOM，可用 `toolkit task normalize --fix` 去除",
         fixable: true,
       })
     }
@@ -264,7 +264,7 @@ function migrateArchiveBlock(tasksDir: string, block: ArchiveBlockInfo, targetDa
   const monthDir = join(tasksDir, "archive", targetDate.slice(0, 6))
   const targetFile = join(monthDir, `${targetDate}.md`)
   mkdirSync(monthDir, { recursive: true })
-  let header = `# ${targetDate} 归档\n\n> 本文件由 \`toolkit tasks archive\` 自动生成。`
+  let header = `# ${targetDate} 归档\n\n> 本文件由 \`toolkit task archive\` 自动生成。`
   const target: ArchiveBlockInfo[] = []
   if (existsSync(targetFile)) {
     const parsed = parseArchiveBlocks(readFileSync(targetFile, "utf8"))

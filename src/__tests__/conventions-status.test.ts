@@ -130,7 +130,7 @@ describe("载体形态体检", () => {
     const report = conventionsStatus(root, cwd)
     expect(report.form).toBe("v1")
     expect(report.items.filter((i) => i.scope === "形态" && i.message.includes("v1 形态"))).toHaveLength(1)
-    expect(report.items.filter((i) => i.message.includes("toolkit conventions upgrade"))).toHaveLength(1)
+    expect(report.items.filter((i) => i.message.includes("toolkit convention upgrade"))).toHaveLength(1)
     // v1 首列为序号，跳过 ID 形态检查
     expect(report.items.some((i) => i.message.includes("不合稳定 ID 形态"))).toBe(false)
   })
@@ -463,7 +463,7 @@ describe("表格形态体检", () => {
     expect(hits).toHaveLength(1)
     expect(hits[0]!.level).toBe("warn")
     expect(hits[0]!.scope).toBe("形态")
-    expect(hits[0]!.message).toContain("toolkit conventions format")
+    expect(hits[0]!.message).toContain("toolkit convention format")
     // 命中文件以任务区相对路径内联
     expect(hits[0]!.message).toContain("conventions/index.md（1 行）")
   })

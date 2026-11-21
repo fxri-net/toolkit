@@ -176,7 +176,7 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
       // 合并已有归档任务 + 本次新任务；文件已存在时保留其自定义 header（不覆盖导入/手写引言）
       // 块集合由 renderArchiveFile 统一去重（同标题以本次新任务为准）并按完成时间降序排列
       const raw = existsSync(archiveFile) ? readFileSync(archiveFile, "utf8") : ""
-      let header = `# ${date} 归档\n\n> 本文件由 \`toolkit tasks archive\` 自动生成。`
+      let header = `# ${date} 归档\n\n> 本文件由 \`toolkit task archive\` 自动生成。`
       const all: ArchiveBlockInfo[] = []
       if (raw) {
         const parsed = parseArchiveBlocks(raw)

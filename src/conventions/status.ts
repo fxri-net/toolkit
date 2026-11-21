@@ -77,7 +77,7 @@ function checkForm(state: CarrierState, items: ConventionsStatusItem[]): void {
     items.push({
       level: "warn",
       scope: "形态",
-      message: `载体为 v1 形态（无形态标记、无 ${HISTORY_FILE}）：可执行 toolkit conventions upgrade 升为 v3`,
+      message: `载体为 v1 形态（无形态标记、无 ${HISTORY_FILE}）：可执行 toolkit convention upgrade 升为 v3`,
     })
   } else if (state.form === "abnormal") {
     items.push({
@@ -228,7 +228,7 @@ function checkTableForm(tasksDir: string, items: ConventionsStatusItem[]): void 
   items.push({
     level: "warn",
     scope: "形态",
-    message: `表格存在列对齐填充（偏离紧凑形态）：执行 toolkit conventions format 归一；命中 ${hits.slice(0, TABLE_FORM_PREVIEW).join("、")}${more}`,
+    message: `表格存在列对齐填充（偏离紧凑形态）：执行 toolkit convention format 归一；命中 ${hits.slice(0, TABLE_FORM_PREVIEW).join("、")}${more}`,
   })
 }
 
@@ -306,7 +306,7 @@ export function conventionsStatus(tasksDir = ".tasks", cwd = process.cwd()): Con
   }
   if (!state.hasIndex) {
     const message = state.hasLegacy
-      ? `未找到 ${state.dir}/${INDEX_FILE}（仅存旧单文件 ${LEGACY_FILE}）：先按 conventions-spec 迁移为目录形态，再执行 toolkit conventions status`
+      ? `未找到 ${state.dir}/${INDEX_FILE}（仅存旧单文件 ${LEGACY_FILE}）：先按 conventions-spec 迁移为目录形态，再执行 toolkit convention status`
       : `未找到 ${join(tasksDir, CONVENTIONS_DIR)}/，先执行 toolkit init`
     return {
       initialized: false,

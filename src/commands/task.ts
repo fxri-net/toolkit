@@ -336,7 +336,7 @@ export function registerTasksCommands(program: Command): void {
     }
   }
 
-  const tasksCmd = program.command("tasks").description("任务管理")
+  const tasksCmd = program.command("task").description("任务管理")
 
   addTasksCommonOptions(tasksCmd)
   addTasksFilterOptions(tasksCmd)
@@ -346,7 +346,7 @@ export function registerTasksCommands(program: Command): void {
       await runTasksOverview(options)
     })
 
-  // list 为隐式子命令：`toolkit tasks list` 等价于裸 `tasks` 看板，补命令名与直觉不一致的入口
+  // list 为隐式子命令：`toolkit task list` 等价于裸 `tasks` 看板，补命令名与直觉不一致的入口
   const tasksListCmd = tasksCmd.command("list", { hidden: true })
   addTasksCommonOptions(tasksListCmd)
   addTasksFilterOptions(tasksListCmd)

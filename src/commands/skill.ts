@@ -130,9 +130,9 @@ const SKILL_STATE_LABEL: Record<SkillItemState, string> = {
   copy: "副本已同步",
   "copy-drift": "副本已漂移（与真源不一致）",
   gate: "入口壳（正文由 toolkit scope guard 按作用域下发）",
-  "gate-drift": "入口壳已过期（与当前版本不一致，运行 toolkit skills install 刷新）",
-  "form-drift": "产物形态与目标分发形态不一致（运行 toolkit skills install 收敛）",
-  residue: "分发形态为 off，存在残留（运行 toolkit skills install --prune 清理）",
+  "gate-drift": "入口壳已过期（与当前版本不一致，运行 toolkit skill install 刷新）",
+  "form-drift": "产物形态与目标分发形态不一致（运行 toolkit skill install 收敛）",
+  residue: "分发形态为 off，存在残留（运行 toolkit skill install --prune 清理）",
   missing: "缺失",
   conflict: "同名冲突（非本包产物）",
   "not-selected": "未选择",
@@ -307,7 +307,7 @@ function printInstallReport(report: InstallReport, dryRun: boolean): void {
   }
   if (report.skippedTargets.length > 0) {
     console.log(
-      line.hint(`本机未检测到的 agent ${report.skippedTargets.length} 个已跳过（不凭空创建目录）；如需装到未识别的 agent：toolkit skills install --dir <其全局技能目录>`),
+      line.hint(`本机未检测到的 agent ${report.skippedTargets.length} 个已跳过（不凭空创建目录）；如需装到未识别的 agent：toolkit skill install --dir <其全局技能目录>`),
     )
   }
   console.log(`${tag}状态文件：${report.stateFile}`)
@@ -345,13 +345,13 @@ function printPlanReport(report: SkillsPlanReport): void {
   console.log("")
   if (report.skippedTargets.length > 0) {
     console.log(
-      line.hint(`本机未检测到的 agent ${report.skippedTargets.length} 个已跳过（不凭空创建目录）；如需装到未识别的 agent：toolkit skills install --dir <其全局技能目录>`),
+      line.hint(`本机未检测到的 agent ${report.skippedTargets.length} 个已跳过（不凭空创建目录）；如需装到未识别的 agent：toolkit skill install --dir <其全局技能目录>`),
     )
   }
   console.log(`[预演] 状态文件：${report.stateFile}`)
   console.log(
     report.pending > 0
-      ? `[预演] 待收敛 ${report.pending} 项：执行 toolkit skills install 应用`
+      ? `[预演] 待收敛 ${report.pending} 项：执行 toolkit skill install 应用`
       : "[预演] 全部已就绪，无需写入",
   )
 }
@@ -389,7 +389,7 @@ function printStatusReport(report: SkillsStatusReport): void {
       ? "未开启（全文安装）"
       : gateArtifacts > 0
         ? `已开启（${gateArtifacts} 个入口壳，正文由 toolkit scope guard 下发）`
-        : "已开启（尚未生成入口壳产物，运行 toolkit skills install 生效）"
+        : "已开启（尚未生成入口壳产物，运行 toolkit skill install 生效）"
   console.log(`内容闸门：${gateText}`)
   if (report.delivery.gated > 0 || report.delivery.off > 0) {
     console.log(
@@ -407,7 +407,7 @@ function printStatusReport(report: SkillsStatusReport): void {
   for (const m of report.versionMismatches) {
     console.warn(`⚠️ 技能版本双写位不一致：${m.name}（frontmatter ${m.frontmatter} / 正文 ${m.body || "未声明"}）`)
   }
-  console.log(`状态文件：${report.stateFile}${report.stateExists ? "" : "（未记录，尚未执行过 toolkit skills install）"}`)
+  console.log(`状态文件：${report.stateFile}${report.stateExists ? "" : "（未记录，尚未执行过 toolkit skill install）"}`)
   let problems = 0
   let unselectedCount = 0
   let residueCount = 0
@@ -433,7 +433,7 @@ function printStatusReport(report: SkillsStatusReport): void {
     console.log(head)
     for (const item of bad) {
       // 真源已无此名（来源改名的旧名）：install 无法补齐，只能按名字显式卸载，避免把用户引到死路
-      const hint = item.source === "" ? `（来源中已无此技能，用 toolkit skills uninstall --skills ${item.name} 清理）` : ""
+      const hint = item.source === "" ? `（来源中已无此技能，用 toolkit skill uninstall --skills ${item.name} 清理）` : ""
       console.log(`  ${item.name}：${SKILL_STATE_LABEL[item.state]}${hint}`)
     }
     for (const item of unselected) console.log(`  ${item.name}：未选择但已安装（保留不影响使用，需要清理时加 --prune 重跑 install）`)
@@ -443,7 +443,7 @@ function printStatusReport(report: SkillsStatusReport): void {
   }
   if (report.pendingAgents.length > 0) {
     console.log("")
-    console.log(line.hint(`未安装的 agent ${report.pendingAgents.length} 个未纳入分发（需要时用 toolkit skills install --dir <路径> 指定）`))
+    console.log(line.hint(`未安装的 agent ${report.pendingAgents.length} 个未纳入分发（需要时用 toolkit skill install --dir <路径> 指定）`))
   }
   // 共读 agent 与主目标同路径，写入目标列表里看不到；单列说明，避免用户误判为不支持
   if (report.canonicalReaders.length > 0) {
@@ -456,7 +456,7 @@ function printStatusReport(report: SkillsStatusReport): void {
   if (report.legacyTargets.length > 0) {
     console.log("")
     console.warn(`⚠️ 历史落点残留 ${report.legacyTargets.length} 处：${report.legacyTargets.map((t) => `${t.label}（${t.dir}）`).join("、")}`)
-    console.log("   已不再随本包更新；不需要时先 toolkit skills uninstall 清理全部本包登记产物，再 toolkit skills install 重新安装")
+    console.log("   已不再随本包更新；不需要时先 toolkit skill uninstall 清理全部本包登记产物，再 toolkit skill install 重新安装")
   }
   // 未登记的疑似残留：来源改名后旧登记可能已丢失，按指向技能源缓存 / 本包目录的链接兜底呈现；只提示不删除
   const staleArtifacts = findStaleArtifacts(report)
@@ -465,30 +465,30 @@ function printStatusReport(report: SkillsStatusReport): void {
     console.warn(`⚠️ 疑似残留 ${staleArtifacts.length} 项（未登记，仅提示）：${staleArtifacts.map((item) => `${item.name}（${item.dir}）`).join("、")}`)
     // 指引直接给出含实际名字的完整命令，避免用户手填占位符
     const staleNames = [...new Set(staleArtifacts.map((item) => item.name))].join(",")
-    console.log(`   确认不再需要时执行：toolkit skills uninstall --scope global --skills ${staleNames}`)
+    console.log(`   确认不再需要时执行：toolkit skill uninstall --scope global --skills ${staleNames}`)
     console.log("   实跑前可加 --dry-run 预演")
   }
   console.log("")
   console.log(
     problems > 0
-      ? line.error(`共 ${problems} 处需处理：缺失 / 悬空 / 指向其他版本 / 副本漂移 / 入口壳过期用 toolkit skills install 补齐，同名冲突用 toolkit skills install --force 覆盖`)
+      ? line.error(`共 ${problems} 处需处理：缺失 / 悬空 / 指向其他版本 / 副本漂移 / 入口壳过期用 toolkit skill install 补齐，同名冲突用 toolkit skill install --force 覆盖`)
       : line.ok("所有已纳入的目标均正常"),
   )
   if (staleNameCount > 0) {
     console.log(
       line.hint(
-        `其中 ${staleNameCount} 项为来源已无此名的旧名残留：install 无法补齐，执行 toolkit skills uninstall --scope global --skills ${[...staleNames].join(",")} 清理`,
+        `其中 ${staleNameCount} 项为来源已无此名的旧名残留：install 无法补齐，执行 toolkit skill uninstall --scope global --skills ${[...staleNames].join(",")} 清理`,
       ),
     )
   }
   if (unselectedCount > 0) {
-    console.log(line.hint(`未选择但已安装 ${unselectedCount} 项：保留不影响使用，需要清理时运行 toolkit skills install --prune`))
+    console.log(line.hint(`未选择但已安装 ${unselectedCount} 项：保留不影响使用，需要清理时运行 toolkit skill install --prune`))
   }
   if (residueCount > 0) {
-    console.log(line.hint(`分发形态为 off 的残留 ${residueCount} 项：运行 toolkit skills install --prune 清理`))
+    console.log(line.hint(`分发形态为 off 的残留 ${residueCount} 项：运行 toolkit skill install --prune 清理`))
   }
   if (report.pending.length > 0) {
-    console.log(line.hint(`待收敛 ${report.pending.length} 项：运行 toolkit skills install 收敛（可先 toolkit skills plan 预览）`))
+    console.log(line.hint(`待收敛 ${report.pending.length} 项：运行 toolkit skill install 收敛（可先 toolkit skill plan 预览）`))
   }
   // 软链落点是写入穿透形态：改落点文件等于改真源，需在报告末尾点明纪律，避免用户误在落点上编辑
   const linkCount = report.targets.reduce((n, t) => n + t.items.filter((i) => i.state === "link").length, 0)
@@ -588,7 +588,7 @@ const PROJECT_STATE_LABEL: Record<ProjectItemState, string> = {
   missing: "缺失",
   "not-selected": "未选择",
   "installed-unselected": "未选择但已安装",
-  residue: "分发形态为 off，存在残留（运行 toolkit skills install --scope project --prune 清理）",
+  residue: "分发形态为 off，存在残留（运行 toolkit skill install --scope project --prune 清理）",
 }
 
 // 项目面需处理的异常状态：status 汇总提示与 install 修复范围
@@ -625,7 +625,7 @@ function printProjectInstallReport(report: ProjectInstallReport, dryRun: boolean
   if (report.missingDirs.length > 0) {
     console.log("")
     console.log(`  未命中的候选目录 ${report.missingDirs.length} 个（该 agent 目录尚不在库，需要时补齐后提交）：`)
-    for (const dir of report.missingDirs) console.log(`    toolkit skills install --scope project --dir ${dir}`)
+    for (const dir of report.missingDirs) console.log(`    toolkit skill install --scope project --dir ${dir}`)
   }
   // 库外 --dir 被剔除：降级不静默，如实告警（不静默丢弃用户显式传入的取值）
   for (const dir of report.ignoredDirs) console.warn(`⚠️ 项目面忽略 --dir「${dir}」：落在仓库之外，不写入`)
@@ -687,22 +687,22 @@ function printProjectStatusReport(report: ProjectStatusReport): void {
   if (report.missingDirs.length > 0) {
     console.log("")
     console.log(`项目面 · 未命中的候选目录 ${report.missingDirs.length} 个（需要时补齐后提交）：`)
-    for (const dir of report.missingDirs) console.log(`  toolkit skills install --scope project --dir ${dir}`)
+    for (const dir of report.missingDirs) console.log(`  toolkit skill install --scope project --dir ${dir}`)
   }
   console.log("")
   console.log(
     problems > 0
-      ? line.error(`项目面共 ${problems} 处需处理：漂移 / 缺失用 toolkit skills install --scope project 补齐，同名冲突加 --force`)
+      ? line.error(`项目面共 ${problems} 处需处理：漂移 / 缺失用 toolkit skill install --scope project 补齐，同名冲突加 --force`)
       : line.ok("项目面所有已纳入的目录均正常"),
   )
   if (unselectedCount > 0) {
-    console.log(line.hint(`项目面未选择但已安装 ${unselectedCount} 项：保留不影响使用，需要清理时运行 toolkit skills install --scope project --prune`))
+    console.log(line.hint(`项目面未选择但已安装 ${unselectedCount} 项：保留不影响使用，需要清理时运行 toolkit skill install --scope project --prune`))
   }
   if (residueCount > 0) {
-    console.log(line.hint(`项目面分发形态为 off 的残留 ${residueCount} 项：运行 toolkit skills install --scope project --prune 清理`))
+    console.log(line.hint(`项目面分发形态为 off 的残留 ${residueCount} 项：运行 toolkit skill install --scope project --prune 清理`))
   }
   if (report.pending.length > 0) {
-    console.log(line.hint(`项目面待收敛 ${report.pending.length} 项：运行 toolkit skills install --scope project 收敛`))
+    console.log(line.hint(`项目面待收敛 ${report.pending.length} 项：运行 toolkit skill install --scope project 收敛`))
   }
 }
 
@@ -818,7 +818,7 @@ function printStatusReports(
   }
   if (!linkage) {
     console.log("")
-    console.log(line.hint("全局面未评估技能矩阵联动；查看项目面请用 toolkit skills status --scope project"))
+    console.log(line.hint("全局面未评估技能矩阵联动；查看项目面请用 toolkit skill status --scope project"))
     return
   }
   // 矩阵联动：闸门未接管、策略失效与已安装但矩阵未允许的技能；只提示，不自动删除
@@ -866,7 +866,7 @@ function parsePositiveInt(value: string | undefined): number | undefined | null 
 export function registerSkillsCommands(program: Command): void {
   // skills 域：把包内 skills/ 分发到各 agent 的全局技能目录（真源唯一，默认软链以便升级自动跟随）
   const skillsCmd = program
-    .command("skills")
+    .command("skill")
     .description("AI 技能包分发：安装 / 状态 / 卸载 / 来源（包内 skills/ 与 --source 外部来源统一管理）")
 
   // 安装：默认软链真源，链接创建失败自动降级副本；只写入「已安装」的 agent 目录，不凭空造目录
@@ -1485,7 +1485,7 @@ export function registerSkillsCommands(program: Command): void {
       "after",
       [
         "",
-        "外部仓用法：toolkit skills bump --dir skills --all patch",
+        "外部仓用法：toolkit skill bump --dir skills --all patch",
         "两处版本不一致时默认报错；用 --from frontmatter|body 显式选择源头后再递增",
       ].join("\n"),
     )
@@ -1875,7 +1875,7 @@ export function registerSkillsCommands(program: Command): void {
       await runInteractive(() => runScopeMount(dir, Boolean(options.dryRun)))
     })
 
-  // 裸 `toolkit skills`：打印本域帮助，列出全部子命令
+  // 裸 `toolkit skill`：打印本域帮助，列出全部子命令
   skillsCmd.action(() => {
     skillsCmd.help()
   })

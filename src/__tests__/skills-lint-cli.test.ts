@@ -80,7 +80,7 @@ describe("skills lint", () => {
   it("合规技能退出 0，stdout 只有校验结论", async () => {
     const root = makeRoot()
     writeSkill(root, "fxri-alpha")
-    const result = await runCli(["skills", "lint", root])
+    const result = await runCli(["skill", "lint", root])
     expect(result.code).toBe(0)
     expect(result.log.join("\n")).toContain("1 个技能通过校验")
     expect(result.err).toEqual([])
@@ -89,7 +89,7 @@ describe("skills lint", () => {
   it("存在错误时退出 1 并定位到文件", async () => {
     const root = makeRoot()
     writeSkill(root, "fxri-alpha", { license: false })
-    const result = await runCli(["skills", "lint", root])
+    const result = await runCli(["skill", "lint", root])
     expect(result.code).toBe(1)
     expect(result.log.join("\n")).toContain("[field-missing]")
   })
@@ -97,14 +97,14 @@ describe("skills lint", () => {
   it("--strict 让告警按失败处理", async () => {
     const root = makeRoot()
     writeSkill(root, "fxri-alpha", { bodyLines: 160 })
-    expect((await runCli(["skills", "lint", root])).code).toBe(0)
-    expect((await runCli(["skills", "lint", root, "--strict"])).code).toBe(1)
+    expect((await runCli(["skill", "lint", root])).code).toBe(0)
+    expect((await runCli(["skill", "lint", root, "--strict"])).code).toBe(1)
   })
 
   it("--json 输出可解析且带 schemaVersion", async () => {
     const root = makeRoot()
     writeSkill(root, "fxri-alpha")
-    const result = await runCli(["skills", "lint", root, "--json"])
+    const result = await runCli(["skill", "lint", root, "--json"])
     const payload = JSON.parse(result.log.join("\n")) as { schemaVersion: number; files: string[]; issues: unknown[]; summary: { skills: number } }
     expect(payload.schemaVersion).toBe(1)
     expect(payload.files).toHaveLength(1)
@@ -115,7 +115,7 @@ describe("skills lint", () => {
   it("用法错误退出 2", async () => {
     const root = makeRoot()
     writeSkill(root, "fxri-alpha")
-    const result = await runCli(["skills", "lint", root, "--budget", "0"])
+    const result = await runCli(["skill", "lint", root, "--budget", "0"])
     expect(result.code).toBe(2)
     expect(result.err.join("\n")).toContain("正整数")
   })
@@ -123,7 +123,7 @@ describe("skills lint", () => {
   it("基准不可用时在 stderr 说明跳过原因", async () => {
     const root = makeRoot()
     writeSkill(root, "fxri-alpha")
-    const result = await runCli(["skills", "lint", root, "--base", "HEAD"])
+    const result = await runCli(["skill", "lint", root, "--base", "HEAD"])
     expect(result.code).toBe(0)
     expect(result.err.join("\n")).toContain("跳过版本递增校验")
   })

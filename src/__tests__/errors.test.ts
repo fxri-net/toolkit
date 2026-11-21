@@ -11,7 +11,7 @@ function parseError(argv: string[]): CommanderError {
   // 静默 commander 自行输出的帮助/错误正文，保持测试输出干净
   program.configureOutput({ writeErr: () => {}, writeOut: () => {} })
   program.name("toolkit")
-  program.command("skills").description("技能包分发").action(() => {})
+  program.command("skill").description("技能包分发").action(() => {})
   program.command("init").option("--dir <path>", "任务目录").action(() => {})
   try {
     program.parse(["node", "toolkit", ...argv])
@@ -28,14 +28,14 @@ describe("formatCommanderError", () => {
   })
 
   it("未知命令：相似命令提示一并转中文", () => {
-    expect(formatCommanderError(parseError(["skill"]))).toBe(
-      "⚠️ 未知命令「skill」。（是否想输入 skills？）\n运行 toolkit --help 查看可用命令",
+    expect(formatCommanderError(parseError(["skillz"]))).toBe(
+      "⚠️ 未知命令「skillz」。（是否想输入 skill？）\n运行 toolkit --help 查看可用命令",
     )
   })
 
   it("多余参数：转为中文并附帮助指引", () => {
-    expect(formatCommanderError(parseError(["skills", "bogus"]))).toBe(
-      "⚠️ 命令「skills」期望 0 个参数，实际收到 1 个。\n运行 toolkit --help 查看可用命令",
+    expect(formatCommanderError(parseError(["skill", "bogus"]))).toBe(
+      "⚠️ 命令「skill」期望 0 个参数，实际收到 1 个。\n运行 toolkit --help 查看可用命令",
     )
   })
 

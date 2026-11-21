@@ -80,7 +80,7 @@ function printStateHeader(state: ScopeState): void {
   console.log(`作用域 · ${LAYER_LABEL[state.layer]}`)
   console.log(`配置：${displayPath(state.target.file)}`)
   console.log(`默认：${modeLabel(state.mode)}　白名单 ${state.include.length}　黑名单 ${state.exclude.length}`)
-  console.log(line.hint("内容闸门用 toolkit config set skillDelivery.default gated|full 与 skills install --gate / --embed；批量挂载用 toolkit skills mount"))
+  console.log(line.hint("内容闸门用 toolkit config set skillDelivery.default gated|full 与 skills install --gate / --embed；批量挂载用 toolkit skill mount"))
 }
 
 // 规则清单 / 高级规则详情

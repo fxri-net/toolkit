@@ -43,7 +43,7 @@ async function selectInteractively(ruleset: Ruleset, cached: string[] | null): P
 // 注册 rules 命令：装配点只负责按序调用
 export function registerRulesCommands(program: Command): void {
   // 规则域：全局规则模块的自由组合、复制与缓存管理
-  const rulesCmd = program.command("rules").description("全局规则：列出模块、组合输出与缓存管理")
+  const rulesCmd = program.command("rule").description("全局规则：列出模块、组合输出与缓存管理")
   rulesCmd.action(() => {
     rulesCmd.help()
   })

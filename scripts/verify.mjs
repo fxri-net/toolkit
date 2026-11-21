@@ -265,16 +265,16 @@ const tailSteps = [
   // 导航校验读 docs/site-nav.json，规则随包分发（不依赖文档构建产物）
   { label: "文档站导航规范（结构 / 命名 / 顶栏 / 侧栏）", args: ["dist/cli.js", "docs", "nav", "check"], env: cliEnv },
   // 镜像校验依赖 dist/cli.js，须置于构建之后；仅本仓自举产物，不依赖全局工具
-  { label: "CHANGELOG 镜像一致（changelog mirror --check）", args: ["dist/cli.js", "changelog", "mirror", "--check"], env: cliEnv },
+  { label: "CHANGELOG 镜像一致（release mirror --check）", args: ["dist/cli.js", "release", "mirror", "--check"], env: cliEnv },
   // 产物断言依赖上一步 dist 与文档构建，跳过文档构建时一并跳过
   { label: "文档站产物（404 排除站点地图与搜索索引）", args: ["dist/cli.js", "docs", "dist", "check"], skip: docsSkip, env: cliEnv },
   { label: "CLI 冒烟 --help", args: ["dist/cli.js", "--help"], env: cliEnv },
-  { label: "CLI 冒烟 tasks --help", args: ["dist/cli.js", "tasks", "--help"], env: cliEnv },
-  { label: "CLI 冒烟 changelog --help", args: ["dist/cli.js", "changelog", "--help"], env: cliEnv },
+  { label: "CLI 冒烟 task --help", args: ["dist/cli.js", "task", "--help"], env: cliEnv },
+  { label: "CLI 冒烟 release --help", args: ["dist/cli.js", "release", "--help"], env: cliEnv },
   // 技能规范：本仓技能必须通过 lint；--base 下内容变更未递增即失败，默认档只告警篇幅
-  { label: "技能规范校验（skills lint）", args: ["dist/cli.js", "skills", "lint", "skills", "--base", skillBase], env: cliEnv },
-  { label: "任务区体检（tasks check）", args: ["dist/cli.js", "tasks", "check"], env: { TZ: "Asia/Shanghai", ...cliEnv } },
-  { label: "归档块归一核验（tasks normalize）", args: ["dist/cli.js", "tasks", "normalize"], env: { TZ: "Asia/Shanghai", ...cliEnv } },
+  { label: "技能规范校验（skill lint）", args: ["dist/cli.js", "skill", "lint", "skills", "--base", skillBase], env: cliEnv },
+  { label: "任务区体检（task check）", args: ["dist/cli.js", "task", "check"], env: { TZ: "Asia/Shanghai", ...cliEnv } },
+  { label: "归档块归一核验（task normalize）", args: ["dist/cli.js", "task", "normalize"], env: { TZ: "Asia/Shanghai", ...cliEnv } },
 ]
 
 /**

@@ -91,7 +91,7 @@ export function formatLinkageHints(linkage: SkillLinkageReport): string[] {
     hints.push(`策略对该技能无效：${linkage.ineffective.join("、")} 已显式设为全文安装（skillDelivery.rules 覆盖了矩阵推导）`)
   }
   if (linkage.dead.length > 0) {
-    hints.push(`已安装但矩阵未允许：${linkage.dead.join("、")}（不会自动删除，可用 toolkit skills uninstall 清理）`)
+    hints.push(`已安装但矩阵未允许：${linkage.dead.join("、")}（不会自动删除，可用 toolkit skill uninstall 清理）`)
   }
   return hints
 }

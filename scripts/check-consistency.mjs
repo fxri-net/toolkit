@@ -339,7 +339,7 @@ if (existsSync(join(root, "docs", "cli.md"))) {
   const cliDoc = read("docs/cli.md")
   const entrySection = /## 裸命令入口\n([\s\S]*?)\n## /.exec(cliDoc)?.[1] ?? ""
   if (!entrySection) errors.push("docs/cli.md 缺少「裸命令入口」小节：入口行为须与实现逐域核对")
-  for (const domain of ["tasks", "skills", "rules", "config", "conventions", "docs", "scope", "usage"]) {
+  for (const domain of ["task", "skill", "rule", "config", "convention", "docs", "scope", "usage"]) {
     if (entrySection && !entrySection.includes(`\`toolkit ${domain}\``)) {
       errors.push(`docs/cli.md 的裸命令入口缺少 \`toolkit ${domain}\``)
     }

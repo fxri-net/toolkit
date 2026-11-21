@@ -64,7 +64,7 @@ export function validateConventions(tasksDir: string, cwd: string): CheckIssue[]
       file: `conventions/${INDEX_FILE}`,
       message:
         state.markerVersion === CARRIER_VERSION
-          ? `规范载体标为 v${CARRIER_VERSION} 但缺 ${HISTORY_FILE} 或索引表首列非 ${ID_HEADER}，请补齐或执行 toolkit conventions upgrade`
+          ? `规范载体标为 v${CARRIER_VERSION} 但缺 ${HISTORY_FILE} 或索引表首列非 ${ID_HEADER}，请补齐或执行 toolkit convention upgrade`
           : `规范载体存在 ${HISTORY_FILE} 但索引表首列仍非 ${ID_HEADER}（形态异常），请人工确认`,
     })
   }
@@ -109,7 +109,7 @@ export function validateTableForm(tasksDir: string): CheckIssue[] {
       level: "warn",
       file: displayRel(tasksDir, file),
       line: lines[0],
-      message: `表格存在列对齐填充（偏离紧凑形态）${lines.length} 行（第 ${shown}${lines.length > TABLE_FORM_PREVIEW ? " …" : ""} 行）：执行 toolkit conventions format 归一`,
+      message: `表格存在列对齐填充（偏离紧凑形态）${lines.length} 行（第 ${shown}${lines.length > TABLE_FORM_PREVIEW ? " …" : ""} 行）：执行 toolkit convention format 归一`,
     })
   }
   return issues

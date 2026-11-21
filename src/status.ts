@@ -106,7 +106,7 @@ function skillsDomain(): DomainResult {
     issues.push({
       level: "warn",
       scope: "技能现场",
-      message: `待收敛 ${report.pending.length} 项：${names}（运行 toolkit skills install 可修复）`,
+      message: `待收敛 ${report.pending.length} 项：${names}（运行 toolkit skill install 可修复）`,
     })
   }
   for (const mismatch of report.versionMismatches) {

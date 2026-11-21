@@ -114,7 +114,7 @@ describe("initWorkspace 规范载体骨架", () => {
     expect(readFileSync(join(dir, "index.md"), "utf8")).toBe(v1)
     const kept = report.products.find((p) => p.target.endsWith("conventions/index.md"))
     expect(kept?.action).toBe("kept")
-    expect(kept?.hint).toContain("toolkit conventions upgrade")
+    expect(kept?.hint).toContain("toolkit convention upgrade")
   })
 })
 
@@ -533,7 +533,7 @@ describe("initWorkspace .prettierignore 托管", () => {
 })
 
 describe("initWorkspace prepare 刷新钩子", () => {
-  const PREPARE = "toolkit skills install --scope project --refresh"
+  const PREPARE = "toolkit skill install --scope project --refresh"
   const pkgPath = (cwd: string): string => join(cwd, "package.json")
   const writePkg = (cwd: string, pkg: unknown): void => writeFileSync(pkgPath(cwd), `${JSON.stringify(pkg, null, 2)}\n`, "utf8")
   const pkgProduct = (report: ReturnType<typeof initWorkspace>) => report.products.find((p) => p.target === "package.json")
@@ -561,7 +561,7 @@ describe("initWorkspace prepare 刷新钩子", () => {
 
   it("已有等价 prepare 钩子：保持不动", () => {
     const { cwd } = track(runInDir("tk-init-prep-kept-"))
-    writePkg(cwd, { name: "demo", scripts: { prepare: "toolkit skills install --refresh" }, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+    writePkg(cwd, { name: "demo", scripts: { prepare: "toolkit skill install --refresh" }, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
     const before = readFileSync(pkgPath(cwd), "utf8")
 
     const report = initWorkspace(".tasks", cwd)

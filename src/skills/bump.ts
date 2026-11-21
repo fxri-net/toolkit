@@ -102,10 +102,10 @@ export function bumpSkillVersions(options: BumpOptions): BumpResult[] {
     const frontmatter = readFrontmatterVersionFromContent(entry.content)
     const body = readBodyVersionFromContent(entry.content)
     if (!frontmatter) throw new Error(`技能 ${name} 的 frontmatter 未声明 metadata.version，无法递增`)
-    if (!body) throw new Error(`技能 ${name} 的正文缺少「本技能版本」声明，请先补齐两处版本声明或运行 toolkit skills lint`)
+    if (!body) throw new Error(`技能 ${name} 的正文缺少「本技能版本」声明，请先补齐两处版本声明或运行 toolkit skill lint`)
     if (frontmatter !== body && options.from === undefined) {
       throw new Error(
-        `技能 ${name} 的两处版本不一致（frontmatter ${frontmatter} / 正文 ${body}）；请先运行 toolkit skills lint，或用 --from frontmatter|body 指定源头`,
+        `技能 ${name} 的两处版本不一致（frontmatter ${frontmatter} / 正文 ${body}）；请先运行 toolkit skill lint，或用 --from frontmatter|body 指定源头`,
       )
     }
     const source = options.from === "body" ? body : frontmatter

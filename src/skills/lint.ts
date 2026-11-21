@@ -430,7 +430,7 @@ function checkVersionBump(target: SkillTarget, files: SkillFile[], base: string,
       join(target.dir, SKILL_ENTRY),
       "error",
       "version-not-bumped",
-      `相对基准 ${base} 有内容变更，版本须高于 ${baseVersion}（当前 ${version}）；用 toolkit skills bump ${target.name} patch 递增`,
+      `相对基准 ${base} 有内容变更，版本须高于 ${baseVersion}（当前 ${version}）；用 toolkit skill bump ${target.name} patch 递增`,
     )
   }
 }

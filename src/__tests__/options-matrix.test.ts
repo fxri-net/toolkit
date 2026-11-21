@@ -116,14 +116,14 @@ afterEach(() => {
 
 describe("tasks 域 --status 取值采纳", () => {
   it("全部合法：采纳过滤，退出码 0 且无告警", async () => {
-    const r = await runCli(["tasks", "--dir", missingTasksDir, "--status", "已完成,进行中"])
+    const r = await runCli(["task", "--dir", missingTasksDir, "--status", "已完成,进行中"])
     expect(r.code).toBe(0)
     expect(r.err).toHaveLength(0)
     expect(r.warn.join("\n")).not.toContain("非法")
   })
 
   it("全部非法：报错退出且不产出结果", async () => {
-    const r = await runCli(["tasks", "--dir", missingTasksDir, "--status", "bogus"])
+    const r = await runCli(["task", "--dir", missingTasksDir, "--status", "bogus"])
     expect(r.code).toBe(1)
     expect(r.err.join("\n")).toContain("全部取值非法")
     // 结果通道保持干净：报错后不再渲染总览
@@ -131,20 +131,20 @@ describe("tasks 域 --status 取值采纳", () => {
   })
 
   it("部分非法：告警剔除非法值后继续", async () => {
-    const r = await runCli(["tasks", "--dir", missingTasksDir, "--status", "bogus,已完成"])
+    const r = await runCli(["task", "--dir", missingTasksDir, "--status", "bogus,已完成"])
     expect(r.code).toBe(0)
     expect(r.warn.join("\n")).toContain("忽略非法状态值")
     expect(r.warn.join("\n")).toContain("bogus")
   })
 
   it("全部非法 + --format json：stdout 仍无结果输出", async () => {
-    const r = await runCli(["tasks", "--dir", missingTasksDir, "--status", "bogus", "--format", "json"])
+    const r = await runCli(["task", "--dir", missingTasksDir, "--status", "bogus", "--format", "json"])
     expect(r.code).toBe(1)
     expect(r.log).toHaveLength(0)
   })
 
   it("stats 子命令与总览同口径：全部非法同样报错退出", async () => {
-    const r = await runCli(["tasks", "stats", "--dir", missingTasksDir, "--status", "bogus"])
+    const r = await runCli(["task", "stats", "--dir", missingTasksDir, "--status", "bogus"])
     expect(r.code).toBe(1)
     expect(r.err.join("\n")).toContain("全部取值非法")
   })
@@ -152,55 +152,55 @@ describe("tasks 域 --status 取值采纳", () => {
 
 describe("tasks 域其余选项与互斥", () => {
   it("--view 非法：总览与 stats 均报错退出", async () => {
-    const overview = await runCli(["tasks", "--dir", missingTasksDir, "--view", "bogus"])
+    const overview = await runCli(["task", "--dir", missingTasksDir, "--view", "bogus"])
     expect(overview.code).toBe(1)
     expect(overview.err.join("\n")).toContain("非法视图")
-    const stats = await runCli(["tasks", "stats", "--dir", missingTasksDir, "--view", "bogus"])
+    const stats = await runCli(["task", "stats", "--dir", missingTasksDir, "--view", "bogus"])
     expect(stats.code).toBe(1)
     expect(stats.err.join("\n")).toContain("非法视图")
   })
 
   it("--date 与 --since 互斥：报错退出", async () => {
-    const r = await runCli(["tasks", "--dir", missingTasksDir, "--date", "2026-01-01", "--since", "2026-01-01"])
+    const r = await runCli(["task", "--dir", missingTasksDir, "--date", "2026-01-01", "--since", "2026-01-01"])
     expect(r.code).toBe(1)
     expect(r.err.join("\n")).toContain("不能与")
   })
 
   it("tasks export：写出文件并退出 0", async () => {
     const out = join(sandbox, "tasks-export.csv")
-    const r = await runCli(["tasks", "export", out, "--dir", missingTasksDir])
+    const r = await runCli(["task", "export", out, "--dir", missingTasksDir])
     expect(r.code).toBe(0)
     expect(existsSync(out)).toBe(true)
   })
 
   it("--format 非 json：报错退出", async () => {
-    const r = await runCli(["tasks", "--dir", missingTasksDir, "--format", "yaml"])
+    const r = await runCli(["task", "--dir", missingTasksDir, "--format", "yaml"])
     expect(r.code).toBe(1)
     expect(r.err.join("\n")).toContain("仅支持 json")
   })
 
   it("未知子命令：报错退出且不静默回落总览", async () => {
-    const r = await runCli(["tasks", "bogus", "--dir", missingTasksDir])
+    const r = await runCli(["task", "bogus", "--dir", missingTasksDir])
     expect(r.code).toBe(1)
     expect(r.log).toHaveLength(0)
   })
 
   it("--strict 目录不存在报错退出；默认容错为空结果", async () => {
-    const strict = await runCli(["tasks", "--dir", missingTasksDir, "--strict"])
+    const strict = await runCli(["task", "--dir", missingTasksDir, "--strict"])
     expect(strict.code).toBe(1)
     expect(strict.err.join("\n")).toContain("任务目录不存在")
-    const lenient = await runCli(["tasks", "--dir", missingTasksDir])
+    const lenient = await runCli(["task", "--dir", missingTasksDir])
     expect(lenient.code).toBe(0)
   })
 
   it("tasks import 非法目标：报错退出", async () => {
-    const r = await runCli(["tasks", "import", join(sandbox, "a.csv"), "--dir", missingTasksDir, "--target", "bogus"])
+    const r = await runCli(["task", "import", join(sandbox, "a.csv"), "--dir", missingTasksDir, "--target", "bogus"])
     expect(r.code).toBe(1)
     expect(r.err.join("\n")).toContain("非法导入目标")
   })
 
   it("tasks import 源文件不存在：报错退出", async () => {
-    const r = await runCli(["tasks", "import", join(sandbox, "nope.csv"), "--dir", missingTasksDir])
+    const r = await runCli(["task", "import", join(sandbox, "nope.csv"), "--dir", missingTasksDir])
     expect(r.code).toBe(1)
     expect(r.err.join("\n")).toContain("导入失败")
   })
@@ -232,13 +232,13 @@ describe("顶层命令与外部域", () => {
   })
 
   it("skills status --path：输出存在的包根目录", async () => {
-    const r = await runCli(["skills", "status", "--path"])
+    const r = await runCli(["skill", "status", "--path"])
     expect(r.code).toBe(0)
     expect(existsSync(r.log.join(""))).toBe(true)
   })
 
   it("skills status --path --format json：带 schemaVersion 与技能清单", async () => {
-    const r = await runCli(["skills", "status", "--path", "--format", "json"])
+    const r = await runCli(["skill", "status", "--path", "--format", "json"])
     expect(r.code).toBe(0)
     const payload = JSON.parse(r.log.join("\n")) as { schemaVersion: number; skills: string[] }
     expect(payload.schemaVersion).toBe(1)
@@ -246,18 +246,18 @@ describe("顶层命令与外部域", () => {
   })
 
   it("skills status：退出码 0", async () => {
-    const r = await runCli(["skills", "status"])
+    const r = await runCli(["skill", "status"])
     expect(r.code).toBe(0)
   })
 
   it("skills install --dry-run：退出码 0 且标注预演", async () => {
-    const r = await runCli(["skills", "install", "--dry-run"])
+    const r = await runCli(["skill", "install", "--dry-run"])
     expect(r.code).toBe(0)
     expect(r.log.join("\n")).toContain("[预演]")
   })
 
   it("skills uninstall --dry-run：退出码 0", async () => {
-    const r = await runCli(["skills", "uninstall", "--dry-run"])
+    const r = await runCli(["skill", "uninstall", "--dry-run"])
     expect(r.code).toBe(0)
     expect(r.log.length).toBeGreaterThan(0)
   })
@@ -292,7 +292,7 @@ describe("顶层命令与外部域", () => {
       "utf8",
     )
     try {
-      const r = await runCli(["skills", "uninstall", "--scope", "global", "--skills", "ghost-skill", "--dry-run"])
+      const r = await runCli(["skill", "uninstall", "--scope", "global", "--skills", "ghost-skill", "--dry-run"])
       expect(r.code).toBe(0)
       expect(r.warn.join("\n")).toContain("未找到可清理的产物")
       expect(r.warn.join("\n")).toContain("ghost-skill")
@@ -310,7 +310,7 @@ describe("顶层命令与外部域", () => {
     symlinkSync(cacheTarget, stale, process.platform === "win32" ? "junction" : "dir")
     rmSync(join(homeDir, ".toolkit", "cache", "skill-sources", "deadbeef"), { recursive: true, force: true })
     try {
-      const r = await runCli(["skills", "status"])
+      const r = await runCli(["skill", "status"])
       const text = r.log.join("\n")
       expect(r.warn.join("\n")).toContain("疑似残留")
       expect(text).toContain("--skills ghost-old")
@@ -367,7 +367,7 @@ describe("顶层命令与外部域", () => {
       const prompts = await import("@inquirer/prompts")
       const checkbox = prompts.checkbox as unknown as { mockResolvedValueOnce: (value: string[]) => void }
       checkbox.mockResolvedValueOnce(["s:ghost-old"])
-      const r = await runCli(["skills", "uninstall", "--scope", "global"])
+      const r = await runCli(["skill", "uninstall", "--scope", "global"])
       expect(r.code).toBe(0)
       expect(existsSync(stale)).toBe(false)
       // 未选中的已登记技能保留在状态里
@@ -381,7 +381,7 @@ describe("顶层命令与外部域", () => {
   })
 
   it("skills uninstall 无参非交互直接报错给用法", async () => {
-    const r = await runCli(["skills", "uninstall", "--scope", "global"])
+    const r = await runCli(["skill", "uninstall", "--scope", "global"])
     expect(r.code).toBe(1)
     expect(r.err.join("\n")).toContain("未指定要卸载的技能")
   })
@@ -389,7 +389,7 @@ describe("顶层命令与外部域", () => {
   it("skills uninstall --all 非交互未加 --yes 时报错", async () => {
     const stateFile = writeGlobalState(["fxri-plan-review"])
     try {
-      const r = await runCli(["skills", "uninstall", "--scope", "global", "--all"])
+      const r = await runCli(["skill", "uninstall", "--scope", "global", "--all"])
       expect(r.code).toBe(1)
       expect(r.err.join("\n")).toContain("--yes")
       expect(existsSync(stateFile)).toBe(true)
@@ -401,7 +401,7 @@ describe("顶层命令与外部域", () => {
   it("skills uninstall --all --yes 全量卸载并删除状态", async () => {
     const stateFile = writeGlobalState(["fxri-plan-review"])
     try {
-      const r = await runCli(["skills", "uninstall", "--scope", "global", "--all", "--yes"])
+      const r = await runCli(["skill", "uninstall", "--scope", "global", "--all", "--yes"])
       expect(r.code).toBe(0)
       expect(existsSync(stateFile)).toBe(false)
     } finally {
@@ -410,25 +410,25 @@ describe("顶层命令与外部域", () => {
   })
 
   it("skills uninstall 的 --skills 与 --all 互斥", async () => {
-    const r = await runCli(["skills", "uninstall", "--scope", "global", "--skills", "fxri-plan-review", "--all"])
+    const r = await runCli(["skill", "uninstall", "--scope", "global", "--skills", "fxri-plan-review", "--all"])
     expect(r.code).toBe(1)
     expect(r.err.join("\n")).toContain("互斥")
   })
 
   it("skills install --all 非交互未加 --yes 时报错", async () => {
-    const r = await runCli(["skills", "install", "--scope", "global", "--all"])
+    const r = await runCli(["skill", "install", "--scope", "global", "--all"])
     expect(r.code).toBe(1)
     expect(r.err.join("\n")).toContain("--yes")
   })
 
   it("skills install --mode 非法取值统一报「未执行安装」", async () => {
-    const r = await runCli(["skills", "install", "--scope", "global", "--mode", "bogus", "--yes"])
+    const r = await runCli(["skill", "install", "--scope", "global", "--mode", "bogus", "--yes"])
     expect(r.code).toBe(1)
     expect(r.err.join("\n")).toContain("未执行安装")
   })
 
   it("skills bump --all 非交互需显式 --yes", async () => {
-    const r = await runCli(["skills", "bump", "--all"])
+    const r = await runCli(["skill", "bump", "--all"])
     expect(r.code).toBe(1)
     expect(r.err.join("\n")).toContain("--yes")
   })
@@ -453,13 +453,13 @@ describe("顶层命令与外部域", () => {
   })
 
   it("skills mount 非交互提示无法交互", async () => {
-    const r = await runCli(["skills", "mount", "--dry-run"])
+    const r = await runCli(["skill", "mount", "--dry-run"])
     expect(r.code).toBe(2)
     expect(r.err.join("\n")).toContain("不支持交互")
   })
 
   it("source notify 的 --layer 与 --scope 冲突时报错", async () => {
-    const r = await runCli(["skills", "source", "notify", "play", "--frequency", "daily", "--scope", "global", "--layer", "project"])
+    const r = await runCli(["skill", "source", "notify", "play", "--frequency", "daily", "--scope", "global", "--layer", "project"])
     expect(r.code).toBe(1)
     expect(r.err.join("\n")).toContain("冲突")
   })
@@ -500,7 +500,7 @@ describe("顶层命令与外部域", () => {
     symlinkSync(cacheTarget, stale, process.platform === "win32" ? "junction" : "dir")
     rmSync(join(homeDir, ".toolkit", "cache", "skill-sources", "deadbeef"), { recursive: true, force: true })
     try {
-      const r = await runCli(["skills", "status"])
+      const r = await runCli(["skill", "status"])
       const text = r.log.join("\n")
       expect(text).toContain("旧名残留")
       expect(text).toContain("--scope global --skills legacy-gone")
@@ -536,12 +536,12 @@ describe("顶层命令与外部域", () => {
     it("项目面输出联动提示，全局面跳过并说明未评估", async () => {
       writeMatrixProject()
       await inMatrixProject(async () => {
-        const project = await runCli(["skills", "status", "--scope", "project"])
+        const project = await runCli(["skill", "status", "--scope", "project"])
         expect(project.code).toBe(0)
         expect(project.log.join("\n")).toContain("技能矩阵联动")
         // 矩阵限制的技能已按策略推导进入入口壳，不再提示「正文仍全量加载」
         expect(project.log.join("\n")).not.toContain("矩阵已配置，但正文仍全量加载")
-        const global = await runCli(["skills", "status", "--scope", "global"])
+        const global = await runCli(["skill", "status", "--scope", "global"])
         expect(global.code).toBe(0)
         expect(global.log.join("\n")).toContain("全局面未评估技能矩阵联动")
         expect(global.log.join("\n")).not.toContain("矩阵已配置，但正文仍全量加载")
@@ -551,10 +551,10 @@ describe("顶层命令与外部域", () => {
     it("JSON 的 linkage 与 scope 对应：项目面为对象，全局面为 null", async () => {
       writeMatrixProject()
       await inMatrixProject(async () => {
-        const project = await runCli(["skills", "status", "--scope", "project", "--format", "json"])
+        const project = await runCli(["skill", "status", "--scope", "project", "--format", "json"])
         const projectPayload = JSON.parse(project.log.join("\n")) as { linkage: { matrixConfigured: boolean } | null }
         expect(projectPayload.linkage?.matrixConfigured).toBe(true)
-        const global = await runCli(["skills", "status", "--scope", "global", "--format", "json"])
+        const global = await runCli(["skill", "status", "--scope", "global", "--format", "json"])
         const globalPayload = JSON.parse(global.log.join("\n")) as { linkage: unknown }
         expect(globalPayload.linkage).toBeNull()
       })
@@ -562,26 +562,26 @@ describe("顶层命令与外部域", () => {
   })
 
   it("conventions status：只读体检退出码 0", async () => {
-    const r = await runCli(["conventions", "status", "--dir", missingTasksDir])
+    const r = await runCli(["convention", "status", "--dir", missingTasksDir])
     expect(r.code).toBe(0)
   })
 
   it("conventions check 等价于 status（别名）", async () => {
-    const status = await runCli(["conventions", "status", "--dir", missingTasksDir])
-    const check = await runCli(["conventions", "check", "--dir", missingTasksDir])
+    const status = await runCli(["convention", "status", "--dir", missingTasksDir])
+    const check = await runCli(["convention", "check", "--dir", missingTasksDir])
     expect(check.code).toBe(0)
     expect(check.log).toEqual(status.log)
   })
 
   it("tasks list 等价于裸 tasks 看板", async () => {
-    const board = await runCli(["tasks", "--dir", missingTasksDir])
-    const list = await runCli(["tasks", "list", "--dir", missingTasksDir])
+    const board = await runCli(["task", "--dir", missingTasksDir])
+    const list = await runCli(["task", "list", "--dir", missingTasksDir])
     expect(list.code).toBe(0)
     expect(list.log).toEqual(board.log)
   })
 
   it("conventions format --dir 不存在：报错并以非 0 退出码终止", async () => {
-    const r = await runCli(["conventions", "format", "--dir", missingTasksDir])
+    const r = await runCli(["convention", "format", "--dir", missingTasksDir])
     expect(r.code).toBe(1)
     expect(r.err.join("\n")).toContain("归一失败")
   })
@@ -594,18 +594,18 @@ describe("顶层命令与外部域", () => {
     writeFileSync(file, "| a   | b |\n", "utf8")
 
     // 预演：报告改动但文件保持填充态
-    const dry = await runCli(["conventions", "format", "--dir", dir, "--dry-run"])
+    const dry = await runCli(["convention", "format", "--dir", dir, "--dry-run"])
     expect(dry.code).toBe(0)
     expect(dry.log.join("\n")).toContain("[预演]")
     expect(readFileSync(file, "utf8")).toBe("| a   | b |\n")
 
     // 写盘：填充收敛为紧凑形态
-    const run = await runCli(["conventions", "format", "--dir", dir])
+    const run = await runCli(["convention", "format", "--dir", dir])
     expect(run.code).toBe(0)
     expect(readFileSync(file, "utf8")).toBe("| a | b |\n")
 
     // 复跑幂等：--format json 报告 already-compact
-    const again = await runCli(["conventions", "format", "--dir", dir, "--format", "json"])
+    const again = await runCli(["convention", "format", "--dir", dir, "--format", "json"])
     expect(again.code).toBe(0)
     const payload = JSON.parse(again.log.join("\n")) as { status: string; changedFiles: number }
     expect(payload.status).toBe("already-compact")
@@ -615,12 +615,12 @@ describe("顶层命令与外部域", () => {
   })
 
   it("tasks normalize --help：--fix / --check 互斥说明可见", async () => {
-    const group = await runCli(["tasks", "--help"])
+    const group = await runCli(["task", "--help"])
     expect(group.code).toBe(0)
     // commander 按宽度折行，去掉全部空白后比对以规避换行差异
     expect(group.out.join("").replace(/\s+/g, "")).toContain("normalize[options]")
 
-    const r = await runCli(["tasks", "normalize", "--help"])
+    const r = await runCli(["task", "normalize", "--help"])
     expect(r.code).toBe(0)
     const help = r.out.join("").replace(/\s+/g, "")
     expect(help).toContain("--fix")
@@ -628,27 +628,27 @@ describe("顶层命令与外部域", () => {
   })
 
   it("changelog mirror --lang 未知取值：告警回落默认语言，命令继续（F8）", async () => {
-    const r = await runCli(["changelog", "mirror", "--check", "--lang", "bogus"])
+    const r = await runCli(["release", "mirror", "--check", "--lang", "bogus"])
     expect(r.code).toBe(0)
     expect(r.warn.join("\n")).toContain("未知语言")
     expect(r.warn.join("\n")).toContain("bogus")
   })
 
-  it("init：建出任务区骨架，且未安装全局技能时提示 toolkit skills install（N9）", async () => {
+  it("init：建出任务区骨架，且未安装全局技能时提示 toolkit skill install（N9）", async () => {
     // cwd 指到沙箱：init 以 process.cwd() 为 .gitignore 写入落点，不隔离会把忽略片段写进本仓库根
     vi.spyOn(process, "cwd").mockReturnValue(sandbox)
     const r = await runCli(["init", "--dir", initTasksDir])
     expect(r.code).toBe(0)
     expect(existsSync(join(initTasksDir, "active"))).toBe(true)
     expect(existsSync(join(initTasksDir, "archive"))).toBe(true)
-    expect(r.log.join("\n")).toContain("toolkit skills install")
+    expect(r.log.join("\n")).toContain("toolkit skill install")
   })
 
   // ⚠️ 顺序约束：本例真实写入状态文件，须置于依赖「未安装」态的 init 用例之后
   it("skills install → status：健康目标折叠为「项正常」并点明「软链落点」（O7/F5）", async () => {
-    const install = await runCli(["skills", "install"])
+    const install = await runCli(["skill", "install"])
     expect(install.code).toBe(0)
-    const status = await runCli(["skills", "status"])
+    const status = await runCli(["skill", "status"])
     expect(status.code).toBe(0)
     const text = status.log.join("\n")
     expect(text).toContain("项正常")
@@ -664,12 +664,12 @@ describe("tasks check 装配位：变更集缺前缀并入软告警", () => {
       return { ...actual, findUntypedChangesetEntries: () => [{ file: ".changeset/probe.md", line: 1, count: 2 }] }
     })
     try {
-      const on = await runCli(["tasks", "check", "--dir", missingTasksDir])
+      const on = await runCli(["task", "check", "--dir", missingTasksDir])
       expect(on.log.join("\n")).toContain("【warn】1 项")
       expect(on.log.join("\n")).toContain(".changeset/probe.md:1: 变更集条目缺类型前缀（本文件 2 条）")
       expect(on.code).toBe(0)
 
-      const off = await runCli(["tasks", "check", "--dir", missingTasksDir, "--no-warn"])
+      const off = await runCli(["task", "check", "--dir", missingTasksDir, "--no-warn"])
       expect(off.log.join("\n")).not.toContain("缺类型前缀")
       expect(off.log.join("\n")).toContain("（软告警已关闭，warn 不展示）")
     } finally {
@@ -690,7 +690,7 @@ describe("升级检查提示收口（成功才提示，帮助 / 失败静默）"
   })
 
   it("成功命令提示；帮助、业务失败、解析失败均不提示", async () => {
-    const ok = await runCli(["tasks", "--dir", missingTasksDir])
+    const ok = await runCli(["task", "--dir", missingTasksDir])
     expect(ok.code).toBe(0)
     expect(ok.log.join("\n")).toContain("99.0.0")
 
@@ -698,11 +698,11 @@ describe("升级检查提示收口（成功才提示，帮助 / 失败静默）"
     expect(helper.code).toBe(0)
     expect(helper.err.join("\n")).not.toContain("99.0.0")
 
-    const bizFail = await runCli(["tasks", "--dir", missingTasksDir, "--status", "bogus"])
+    const bizFail = await runCli(["task", "--dir", missingTasksDir, "--status", "bogus"])
     expect(bizFail.code).toBe(1)
     expect(bizFail.err.join("\n")).not.toContain("99.0.0")
 
-    const parseFail = await runCli(["tasks", "--dir", missingTasksDir, "--view", "bogus"])
+    const parseFail = await runCli(["task", "--dir", missingTasksDir, "--view", "bogus"])
     expect(parseFail.code).toBe(1)
     expect(parseFail.err.join("\n")).not.toContain("99.0.0")
   })
@@ -796,10 +796,10 @@ describe("skills source 外部来源口径", () => {
       updatedAt: "",
       sources: { toolkit: sourceFixture("", ["fxri-plan-to-task"]), play: sourceFixture("1.2.3", ["ext-alpha"]) },
     })
-    const json = await runCli(["skills", "source", "--format", "json"])
+    const json = await runCli(["skill", "source", "--format", "json"])
     const payload = JSON.parse(json.log.join("\n")) as { sources: Array<{ name: string }> }
     expect(payload.sources.map((item) => item.name)).toEqual(["play"])
-    const text = await runCli(["skills", "source"])
+    const text = await runCli(["skill", "source"])
     expect(text.log.join("\n")).not.toContain("toolkit（")
   })
 
@@ -813,10 +813,10 @@ describe("skills source 外部来源口径", () => {
       updatedAt: "",
       sources: { play: sourceFixture("1.2.3", ["ext-alpha", "ext-gone"]) },
     })
-    const text = await runCli(["skills", "source"])
+    const text = await runCli(["skill", "source"])
     expect(text.log.join("\n")).toContain("ext-gone（已失效）")
     expect(text.log.join("\n")).toContain("ext-alpha")
-    const json = await runCli(["skills", "source", "--format", "json"])
+    const json = await runCli(["skill", "source", "--format", "json"])
     const payload = JSON.parse(json.log.join("\n")) as { sources: Array<{ skills: string[] }> }
     expect(payload.sources[0]!.skills).toEqual(["ext-alpha", "ext-gone"])
   })
@@ -829,10 +829,10 @@ describe("skills source 外部来源口径", () => {
       updatedAt: "",
       sources: { play: sourceFixture("1.2.3", ["ext-alpha"]) },
     })
-    const json = await runCli(["skills", "source", "refresh", "--dry-run", "--format", "json"])
+    const json = await runCli(["skill", "source", "refresh", "--dry-run", "--format", "json"])
     const payload = JSON.parse(json.log.join("\n")) as { sources: Array<{ status: string; version: string | null }> }
     expect(payload.sources[0]).toMatchObject({ status: "planned", version: "1.2.3" })
-    const text = await runCli(["skills", "source", "refresh", "--dry-run"])
+    const text = await runCli(["skill", "source", "refresh", "--dry-run"])
     expect(text.log.join("\n")).toContain("当前版本：1.2.3")
 
     writeFixture(stateFile, {
@@ -841,7 +841,7 @@ describe("skills source 外部来源口径", () => {
       updatedAt: "",
       sources: { play: sourceFixture("", ["ext-alpha"]) },
     })
-    const unknown = await runCli(["skills", "source", "refresh", "--dry-run", "--format", "json"])
+    const unknown = await runCli(["skill", "source", "refresh", "--dry-run", "--format", "json"])
     const unknownPayload = JSON.parse(unknown.log.join("\n")) as { sources: Array<{ version: string | null }> }
     expect(unknownPayload.sources[0]!.version).toBeNull()
   })
@@ -856,7 +856,7 @@ describe("skills source 外部来源口径", () => {
       updatedAt: "",
       sources: { play: sourceFixture("", ["ext-alpha"]) },
     })
-    const json = await runCli(["skills", "source", "refresh", "--format", "json"])
+    const json = await runCli(["skill", "source", "refresh", "--format", "json"])
     const payload = JSON.parse(json.log.join("\n")) as { sources: Array<{ status: string; version: string | null }> }
     expect(payload.sources[0]).toMatchObject({ status: "refreshed", version: null })
   })
@@ -890,7 +890,7 @@ describe("skills 选择集失效告警（CLI 口径）", () => {
     writeConfig({
       skillsInstall: { sources: { expired: { root: sourceRoot } }, selection: { expired: ["old-a", "old-b"] } },
     })
-    const install = await runCli(["skills", "install", "--yes"])
+    const install = await runCli(["skill", "install", "--yes"])
     expect(install.code).toBe(0)
     const warned = install.warn.join("\n")
     expect(warned).toContain("已失效")
@@ -898,7 +898,7 @@ describe("skills 选择集失效告警（CLI 口径）", () => {
     expect(warned).toContain("old-a")
     expect(warned).toContain("fresh")
 
-    const status = await runCli(["skills", "status"])
+    const status = await runCli(["skill", "status"])
     expect(status.code).toBe(0)
     expect(status.warn.join("\n")).not.toContain("已失效")
   })
@@ -932,13 +932,13 @@ describe("skills 安装预演标记", () => {
     symlinkSync(gone, join(target, "old-name"), process.platform === "win32" ? "junction" : "dir")
     rmSync(join(sandbox, "gone-src"), { recursive: true, force: true })
 
-    const preview = await runCli(["skills", "install", "--yes", "--dry-run", "--skills", "new-name"])
+    const preview = await runCli(["skill", "install", "--yes", "--dry-run", "--skills", "new-name"])
     expect(preview.code).toBe(0)
     expect(preview.log.join("\n")).toContain("[预演] 已改名迁移：old-name → new-name")
     // 悬空链接：existsSync 为假，用 lstat 判存在
     expect(lstatSync(join(target, "old-name")).isSymbolicLink()).toBe(true)
 
-    const real = await runCli(["skills", "install", "--yes", "--skills", "new-name"])
+    const real = await runCli(["skill", "install", "--yes", "--skills", "new-name"])
     expect(real.code).toBe(0)
     const out = real.log.join("\n")
     expect(out).toContain("已改名迁移：old-name → new-name")
@@ -951,15 +951,15 @@ describe("rules 命令参数边界", () => {
     const cache = join(homeDir, ".toolkit", "cache", "rules-selection.json")
     rmSync(cache, { force: true })
     const out = join(sandbox, "rules-nocache.md")
-    const exportRun = await runCli(["rules", "compose", "--preset", "minimal", "--out", out])
+    const exportRun = await runCli(["rule", "compose", "--preset", "minimal", "--out", out])
     expect(exportRun.code).toBe(0)
     expect(exportRun.err.join("\n")).toContain("已跳过组合缓存写入")
     expect(existsSync(cache)).toBe(false)
     // 裸 compose 仍按推荐集输出（含输出要求），证明导出未改默认组合
-    const bare = await runCli(["rules", "compose", "--no-anchor"])
+    const bare = await runCli(["rule", "compose", "--no-anchor"])
     expect(bare.log.join("\n")).toContain("## 输出要求")
     // 不带导出时仍写缓存
-    const remember = await runCli(["rules", "compose", "--preset", "minimal"])
+    const remember = await runCli(["rule", "compose", "--preset", "minimal"])
     expect(remember.err.join("\n")).toContain("已记住本次组合")
     expect(existsSync(cache)).toBe(true)
     rmSync(cache, { force: true })
@@ -967,21 +967,21 @@ describe("rules 命令参数边界", () => {
 
   it("--copy 与 --out 互斥，不生成文件", async () => {
     const out = join(sandbox, "rules-copy.md")
-    const result = await runCli(["rules", "compose", "--copy", "--out", out])
+    const result = await runCli(["rule", "compose", "--copy", "--out", out])
     expect(result.code).toBe(1)
     expect(result.err.join("\n")).toContain("--copy 与 --out")
     expect(existsSync(out)).toBe(false)
   })
 
   it("--module 为空时报错", async () => {
-    const result = await runCli(["rules", "compose", "--module", "", "--no-cache"])
+    const result = await runCli(["rule", "compose", "--module", "", "--no-cache"])
     expect(result.code).toBe(1)
     expect(result.err.join("\n") + result.warn.join("\n")).toContain("--module")
   })
 
   it("--out 自动创建父目录", async () => {
     const out = join(sandbox, "rules-out", "nested", "rules.md")
-    const result = await runCli(["rules", "compose", "--preset", "minimal", "--out", out, "--no-cache"])
+    const result = await runCli(["rule", "compose", "--preset", "minimal", "--out", out, "--no-cache"])
     expect(result.code).toBe(0)
     expect(existsSync(out)).toBe(true)
     expect(readFileSync(out, "utf8")).toContain("## 代码规范")

@@ -59,11 +59,16 @@ const GITIGNORE_ROWS: ReadonlyArray<{ row: string; patterns: RegExp[] }> = [
 ]
 
 // prepare 钩子脚本：只收敛项目面已存在的产物（不新增技能），幂等；挂在本地依赖 @fxri/toolkit 时才有意义
-const PREPARE_SCRIPT = "toolkit skills install --scope project --refresh"
+const PREPARE_SCRIPT = "toolkit skill install --scope project --refresh"
 // prepare 钩子的等价写法白名单：带 --refresh 的显式写法，与不带作用域的裸写法（在仓库内执行时自动判定为项目面）
-const PREPARE_EQUIVALENTS = [PREPARE_SCRIPT, "toolkit skills install --refresh"]
-// 旧版钩子写法：升级为 --refresh（只刷新已有产物），不再全量安装
-const LEGACY_PREPARE_SCRIPTS = ["toolkit skills install --scope project", "toolkit skills install"]
+const PREPARE_EQUIVALENTS = [PREPARE_SCRIPT, "toolkit skill install --refresh"]
+// 旧版钩子写法：升级为 --refresh（只刷新已有产物），不再全量安装；旧命令名同样纳入改写
+const LEGACY_PREPARE_SCRIPTS = [
+  "toolkit skills install --scope project --refresh",
+  "toolkit skills install --refresh",
+  "toolkit skills install --scope project",
+  "toolkit skills install",
+]
 
 // 规范载体索引骨架：三节结构与 skills/fxri-plan-to-task/references/conventions-spec.md 一致
 const CONVENTIONS_INDEX = `${CARRIER_MARKER}
@@ -155,7 +160,7 @@ function scaffoldConventions(cwd: string, root: string, display: string): InitPr
   const target = `${posix(display)}/${CONVENTIONS_DIR}/${INDEX_FILE}`
   if (existsSync(index)) {
     const product: InitProduct = { target, action: "kept", detail: "已存在，保持不变" }
-    if (readCarrier(root).form === "v1") product.hint = "当前为 v1 形态，可执行 toolkit conventions upgrade 升为 v3"
+    if (readCarrier(root).form === "v1") product.hint = "当前为 v1 形态，可执行 toolkit convention upgrade 升为 v3"
     return [product]
   }
   if (existsSync(join(root, LEGACY_FILE))) {

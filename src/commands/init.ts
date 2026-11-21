@@ -28,7 +28,7 @@ export function registerInitCommands(program: Command): void {
     console.log(line.hint("下一步："))
     // 规范触达第一层是全局技能（不依赖项目内任何文件）；未安装时补一行安装指引，已装不重复打扰
     if (!report.skillsInstalled) {
-      console.log(line.hint("  全局技能：未安装，执行 toolkit skills install 启用（规范触达第一层，不依赖项目内文件；toolkit skills status 可查现场）"))
+      console.log(line.hint("  全局技能：未安装，执行 toolkit skill install 启用（规范触达第一层，不依赖项目内文件；toolkit skill status 可查现场）"))
     }
     console.log(line.hint(`  快速开始：${INIT_LINKS.gettingStarted}`))
     console.log(line.hint(`  完整攻略：${INIT_LINKS.guide}`))

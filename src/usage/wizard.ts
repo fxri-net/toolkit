@@ -91,7 +91,7 @@ function runNonInteractiveInit(options: InitWizardOptions): void {
   if (channel === "rule") {
     updateUsageConfig({ ...base, agents: {} })
     console.log(line.ok(`已启用技能使用情况（${preset}，通道 rule），数据目录：${dir}`))
-    console.log(line.hint("规则通道不依赖 Hook：把 toolkit rules compose --module usage 的输出复制进 Agent 全局规则"))
+    console.log(line.hint("规则通道不依赖 Hook：把 toolkit rule compose --module usage 的输出复制进 Agent 全局规则"))
     return
   }
   const { adapters, invalid, unavailable } = resolveAdapters(splitAgentNames(options.agent))
@@ -200,7 +200,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
   const { select, checkbox, confirm, input } = await loadPrompts()
   try {
     const detected = detectedAdapters()
-    if (detected.length === 0) console.log(line.hint("未检测到可接入的 Agent：本向导将只能使用规则通道（toolkit rules compose --module usage）"))
+    if (detected.length === 0) console.log(line.hint("未检测到可接入的 Agent：本向导将只能使用规则通道（toolkit rule compose --module usage）"))
     const existingConfig = loadUsageConfig()
     const defaults = resolveInitDefaults(existingConfig)
     // 默认预设：已配置时沿用当前配置，首次默认「一方与第三方」，显式 init 即启用
@@ -315,7 +315,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
           return
         }
         state.channel = answer.value
-        if (state.channel === "rule") console.log(line.hint("规则通道：不安装 Hook；完成后把 toolkit rules compose --module usage 的输出复制进全局规则"))
+        if (state.channel === "rule") console.log(line.hint("规则通道：不安装 Hook；完成后把 toolkit rule compose --module usage 的输出复制进全局规则"))
         index += 1
         continue
       }
@@ -541,7 +541,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
     if (preset === "advanced") await runUploadSetup()
     console.log("")
     console.log(`${line.ok("已启用技能使用情况")}。${style.hint("下一步：")}`)
-    if (state.channel === "rule") console.log("  toolkit rules compose --module usage   # 把输出复制进全局规则")
+    if (state.channel === "rule") console.log("  toolkit rule compose --module usage   # 把输出复制进全局规则")
     console.log("  toolkit usage show")
     console.log("  toolkit usage show stats")
   } catch (error) {

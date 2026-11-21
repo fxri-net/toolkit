@@ -57,15 +57,25 @@ describe("rewriteDeprecatedArgv：旧路径 → 新路径", () => {
   })
 
   it("发版子命令改名与 changeset 分组", () => {
-    expect(rewriteDeprecatedArgv(["changelog", "version", "--history"]).argv).toEqual(["changelog", "bump", "--history"])
-    expect(rewriteDeprecatedArgv(["changelog", "format"]).argv).toEqual(["changelog", "changelog"])
-    expect(rewriteDeprecatedArgv(["changelog", "doc", "--check"]).argv).toEqual(["changelog", "mirror", "--check"])
-    expect(rewriteDeprecatedArgv(["changelog", "add"]).argv).toEqual(["changelog", "changeset", "add"])
+    expect(rewriteDeprecatedArgv(["changelog", "version", "--history"]).argv).toEqual(["release", "bump", "--history"])
+    expect(rewriteDeprecatedArgv(["changelog", "format"]).argv).toEqual(["release", "changelog"])
+    expect(rewriteDeprecatedArgv(["changelog", "doc", "--check"]).argv).toEqual(["release", "mirror", "--check"])
+    expect(rewriteDeprecatedArgv(["changelog", "add"]).argv).toEqual(["release", "changeset", "add"])
+  })
+
+  it("顶层旧名重写到单数对象，长路径优先匹配", () => {
+    expect(rewriteDeprecatedArgv(["tasks", "check"]).argv).toEqual(["task", "check"])
+    expect(rewriteDeprecatedArgv(["skills", "install", "--yes"]).argv).toEqual(["skill", "install", "--yes"])
+    expect(rewriteDeprecatedArgv(["rules", "compose"]).argv).toEqual(["rule", "compose"])
+    expect(rewriteDeprecatedArgv(["conventions", "status"]).argv).toEqual(["convention", "status"])
+    expect(rewriteDeprecatedArgv(["changelog", "mirror", "--check"]).argv).toEqual(["release", "mirror", "--check"])
+    // 长路径规则先于顶层规则：旧发版子命令不会被简化成 release version
+    expect(rewriteDeprecatedArgv(["changelog", "version"]).argv).toEqual(["release", "bump"])
   })
 
   it("skills 低频下沉：path 与 gate 的取值映射", () => {
-    expect(rewriteDeprecatedArgv(["skills", "path", "--format", "json"]).argv).toEqual(["skills", "status", "--path", "--format", "json"])
-    expect(rewriteDeprecatedArgv(["skills", "sources", "refresh"]).argv).toEqual(["skills", "source", "refresh"])
+    expect(rewriteDeprecatedArgv(["skills", "path", "--format", "json"]).argv).toEqual(["skill", "status", "--path", "--format", "json"])
+    expect(rewriteDeprecatedArgv(["skills", "sources", "refresh"]).argv).toEqual(["skill", "source", "refresh"])
 
     // 查询：不带取值时走 config get，--format 的取值不被误当位置参数
     expect(rewriteDeprecatedArgv(["skills", "gate", "--format", "json"]).argv).toEqual([
@@ -95,9 +105,11 @@ describe("rewriteDeprecatedArgv：旧路径 → 新路径", () => {
   })
 
   it("只匹配命令起始处：位置参数里的同名 token 不触发重写", () => {
-    const untouched = rewriteDeprecatedArgv(["tasks", "export", "usage"])
-    expect(untouched.argv).toEqual(["tasks", "export", "usage"])
+    const untouched = rewriteDeprecatedArgv(["task", "export", "usage"])
+    expect(untouched.argv).toEqual(["task", "export", "usage"])
     expect(untouched.hit).toBeNull()
+    // 旧顶层名只改写首 token，第三个 token 是文件名，保持原样
+    expect(rewriteDeprecatedArgv(["tasks", "export", "usage"]).argv).toEqual(["task", "export", "usage"])
     expect(rewriteDeprecatedArgv(["usage"]).hit).toBeNull()
     expect(rewriteDeprecatedArgv(["usage", "record"]).hit).toBeNull()
   })

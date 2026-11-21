@@ -274,8 +274,8 @@ describe("命令注册表", () => {
   })
 
   it("已移除命令给替代写法，未命中不误报", () => {
-    expect(removedCommandHint(["usage", "rule"])).toContain("rules compose --module usage")
-    expect(removedCommandHint(["usage", "rule", "--format", "json"])).toContain("rules compose")
+    expect(removedCommandHint(["usage", "rule"])).toContain("rule compose --module usage")
+    expect(removedCommandHint(["usage", "rule", "--format", "json"])).toContain("rule compose")
     expect(removedCommandHint(["usage", "stats"])).toBeNull()
     expect(removedCommandHint(["tasks"])).toBeNull()
   })

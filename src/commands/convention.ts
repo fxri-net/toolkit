@@ -43,7 +43,7 @@ export function registerConventionsCommands(program: Command): void {
     else {
       console.log(`${line.ok("已写入")}；${style.hint("升级前原件可由本次迁移提交的父提交复现")}`)
       // 升级只做结构迁移，索引表单元格沿用原写法，故补一步归一提示
-      console.log(line.hint("建议随后执行 toolkit conventions format，把索引表单元格归一到规范写法"))
+      console.log(line.hint("建议随后执行 toolkit convention format，把索引表单元格归一到规范写法"))
     }
   }
 
@@ -97,7 +97,7 @@ export function registerConventionsCommands(program: Command): void {
 
   // conventions 域：规范载体的结构升级、表格形态归一与只读体检（载体细则见 skills/fxri-plan-to-task/references/conventions-spec.md）
   const conventionsCmd = program
-    .command("conventions")
+    .command("convention")
     .description("项目协作规范载体：结构升级（v1 / v2 → v3）、表格与索引单元格形态归一、只读体检（形态 / 索引 / 入口层）")
 
   // 升级：纯机械结构升级，先判后写；形态异常或未初始化时拒绝执行并给非 0 退出码（异常态不写任何文件）
@@ -157,7 +157,7 @@ export function registerConventionsCommands(program: Command): void {
       }
     })
 
-  // 裸 `toolkit conventions`：打印本域帮助，列出 3 个子命令
+  // 裸 `toolkit convention`：打印本域帮助，列出 3 个子命令
   conventionsCmd.action(() => {
     conventionsCmd.help()
   })

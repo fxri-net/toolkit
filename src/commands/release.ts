@@ -173,7 +173,7 @@ export function registerChangelogCommands(program: Command): void {
     console.log(formatChangesetSummaries(rows))
   }
 
-  const changelogCmd = program.command("changelog").description("多语言更新日志与发版（默认 status；封装 changesets）")
+  const changelogCmd = program.command("release").description("多语言更新日志与发版（默认 status；封装 changesets）")
   changelogCmd.enablePositionalOptions(true)
 
   // 裸命令与 status 等价：只读概览，不消费变更集

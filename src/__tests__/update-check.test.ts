@@ -239,20 +239,20 @@ describe("emitVersionHint 提示渠道与例外", () => {
   it("非 TTY 走 stdout，TTY 走 stderr", () => {
     writeOkCache("9.9.9")
     let out = captureOutput()
-    emitVersionHint("1.0.0", { argv: ["tasks"], exitCode: 0 })
+    emitVersionHint("1.0.0", { argv: ["task"], exitCode: 0 })
     expect(out.log.join("\n")).toContain("9.9.9")
     expect(out.err).toHaveLength(0)
 
     Object.defineProperty(process.stdout, "isTTY", { value: true, configurable: true })
     out = captureOutput()
-    emitVersionHint("1.0.0", { argv: ["tasks"], exitCode: 0 })
+    emitVersionHint("1.0.0", { argv: ["task"], exitCode: 0 })
     expect(out.err.join("\n")).toContain("9.9.9")
     expect(out.log).toHaveLength(0)
   })
 
   it("--version / --check 只写 stderr；帮助、裸命令、skills status、changelog 透传、JSON 全部跳过", () => {
     writeOkCache("9.9.9")
-    for (const argv of [["--version"], ["changelog", "mirror", "--check"]]) {
+    for (const argv of [["--version"], ["release", "mirror", "--check"]]) {
       const out = captureOutput()
       emitVersionHint("1.0.0", { argv, exitCode: 0 })
       expect(out.err.join("\n")).toContain("9.9.9")
@@ -262,14 +262,14 @@ describe("emitVersionHint 提示渠道与例外", () => {
       [],
       ["--help"],
       ["help", "tasks"],
-      ["skills", "status"],
-      ["skills", "status", "--path"],
-      ["changelog", "changeset", "add"],
-      ["changelog", "audit"],
-      ["changelog", "status"],
-      ["tasks", "export", "out.csv"],
+      ["skill", "status"],
+      ["skill", "status", "--path"],
+      ["release", "changeset", "add"],
+      ["release", "audit"],
+      ["release", "status"],
+      ["task", "export", "out.csv"],
       ["docs", "theme", "check"],
-      ["tasks", "--format", "json"],
+      ["task", "--format", "json"],
     ]) {
       const out = captureOutput()
       emitVersionHint("1.0.0", { argv, exitCode: 0 })
@@ -281,7 +281,7 @@ describe("emitVersionHint 提示渠道与例外", () => {
   it("非 0 退出不提示；文案为单句", () => {
     writeOkCache("9.9.9")
     const out = captureOutput()
-    emitVersionHint("1.0.0", { argv: ["tasks", "check"], exitCode: 1 })
+    emitVersionHint("1.0.0", { argv: ["task", "check"], exitCode: 1 })
     expect(out.err).toHaveLength(0)
     expect(out.log).toHaveLength(0)
     expect(formatUpdateHint("9.9.9", "1.0.0").split("\n")).toHaveLength(1)
@@ -290,12 +290,12 @@ describe("emitVersionHint 提示渠道与例外", () => {
   it("不可提示的命令不触发技能取证（惰性）", () => {
     writeOkCache("9.9.9")
     const provider = vi.fn(() => [])
-    for (const argv of [[], ["--help"], ["help", "tasks"], ["skills", "status"], ["tasks", "--format", "json"]]) {
+    for (const argv of [[], ["--help"], ["help", "tasks"], ["skill", "status"], ["task", "--format", "json"]]) {
       captureOutput()
       emitVersionHint("1.0.0", { argv, exitCode: 0, skillAlerts: provider })
     }
     captureOutput()
-    emitVersionHint("1.0.0", { argv: ["tasks"], exitCode: 1, skillAlerts: provider })
+    emitVersionHint("1.0.0", { argv: ["task"], exitCode: 1, skillAlerts: provider })
     expect(provider).not.toHaveBeenCalled()
   })
 
@@ -303,7 +303,7 @@ describe("emitVersionHint 提示渠道与例外", () => {
     writeOkCache("1.0.0")
     const provider = vi.fn(() => [])
     captureOutput()
-    emitVersionHint("1.0.0", { argv: ["tasks"], exitCode: 0, skillAlerts: provider })
+    emitVersionHint("1.0.0", { argv: ["task"], exitCode: 0, skillAlerts: provider })
     expect(provider).toHaveBeenCalledTimes(1)
   })
 
@@ -311,23 +311,23 @@ describe("emitVersionHint 提示渠道与例外", () => {
     writeOkCache("1.0.0")
     const alert = { channel: "external" as const, source: "play", name: "fxri-x", current: "1.0.0", latest: "2.0.0" }
     let out = captureOutput()
-    emitVersionHint("1.0.0", { argv: ["tasks"], exitCode: 0, skillAlerts: [alert] })
+    emitVersionHint("1.0.0", { argv: ["task"], exitCode: 0, skillAlerts: [alert] })
     expect(out.log.join("\n")).toContain("fxri-x 1.0.0 → 2.0.0")
 
     dismissSkillAlerts([alert], "1.0.0")
     out = captureOutput()
-    emitVersionHint("1.0.0", { argv: ["tasks"], exitCode: 0, skillAlerts: [alert] })
+    emitVersionHint("1.0.0", { argv: ["task"], exitCode: 0, skillAlerts: [alert] })
     expect(out.log.join("\n")).not.toContain("fxri-x")
 
     // 来源版本变化：自动恢复提示
     out = captureOutput()
-    emitVersionHint("1.0.0", { argv: ["tasks"], exitCode: 0, skillAlerts: [{ ...alert, latest: "2.0.1" }] })
+    emitVersionHint("1.0.0", { argv: ["task"], exitCode: 0, skillAlerts: [{ ...alert, latest: "2.0.1" }] })
     expect(out.log.join("\n")).toContain("2.0.1")
 
     // CLI 版本变化：旧记录整体失效
     dismissSkillAlerts([alert], "1.0.0")
     out = captureOutput()
-    emitVersionHint("1.0.1", { argv: ["tasks"], exitCode: 0, skillAlerts: [alert] })
+    emitVersionHint("1.0.1", { argv: ["task"], exitCode: 0, skillAlerts: [alert] })
     expect(out.log.join("\n")).toContain("fxri-x")
   })
 
@@ -335,7 +335,7 @@ describe("emitVersionHint 提示渠道与例外", () => {
     writeOkCache("1.0.0")
     process.env.FX_TOOLKIT_DEBUG_UPDATE_CHECK = "1"
     const out = captureOutput()
-    emitVersionHint("1.0.0", { argv: ["skills", "status"], exitCode: 0, skillAlerts: [] })
+    emitVersionHint("1.0.0", { argv: ["skill", "status"], exitCode: 0, skillAlerts: [] })
     expect(out.err.join("\n")).toContain("[update-check] CLI 当前 1.0.0")
     expect(out.log).toHaveLength(0)
     delete process.env.FX_TOOLKIT_DEBUG_UPDATE_CHECK

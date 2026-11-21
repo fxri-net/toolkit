@@ -409,12 +409,12 @@ function shouldSkipHint(argv: string[]): boolean {
   if (argv.length === 0) return true
   if (argv.includes("-h") || argv.includes("--help")) return true
   if (argv[0] === "help") return true
-  if (argv[0] === "skills" && argv[1] === "status") return true
-  if (argv[0] === "tasks" && argv[1] === "export") return true
+  if (argv[0] === "skill" && argv[1] === "status") return true
+  if (argv[0] === "task" && argv[1] === "export") return true
   // 文档站命令的输出会被门禁直接消费，不追加升级提示
   if (argv[0] === "docs") return true
   // 发版域：只有会改文件的三个自处理子命令提示；其余子命令与 changeset 透传不提示
-  if (argv[0] === "changelog" && !["bump", "changelog", "mirror"].includes(argv[1] ?? "")) return true
+  if (argv[0] === "release" && !["bump", "changelog", "mirror"].includes(argv[1] ?? "")) return true
   return hasJsonFormat(argv)
 }
 
@@ -446,7 +446,7 @@ function formatCombinedHint(current: string, cliLatest: string | null, alerts: S
   }
   const actions: string[] = []
   if (cliLatest) actions.push("运行 pnpm add -g @fxri/toolkit 升级后请开新会话")
-  if (alerts.length > 0) actions.push("运行 toolkit skills install 更新后请开新会话")
+  if (alerts.length > 0) actions.push("运行 toolkit skill install 更新后请开新会话")
   return line.hint(`提示：${facts.join("；")}，${actions.join("；")}。`)
 }
 

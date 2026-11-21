@@ -176,13 +176,13 @@ function indexCellDefects(state: CarrierState): ShapeDefect[] {
   if (sourceSample) {
     report(
       sourceRows.map((row) => row.line),
-      `${INDEX_FILE}「${SOURCE_HEADER}」列写成了裸路径或行内代码（如 ${sourceSample}）：能落到具体文件的写相对链接，通配与不存在项才写行内代码；执行 toolkit conventions format 可机械归一`,
+      `${INDEX_FILE}「${SOURCE_HEADER}」列写成了裸路径或行内代码（如 ${sourceSample}）：能落到具体文件的写相对链接，通配与不存在项才写行内代码；执行 toolkit convention format 可机械归一`,
     )
   }
 
   const ownerRows = rows.filter((row) => hasWrappedOwner(row.owner))
   if (ownerRows.length > 0) {
-    report(ownerRows.map((row) => row.line), `${INDEX_FILE}「${OWNER_HEADER}」列含反引号或链接（如 ${ownerRows[0]!.owner}）：该列只填裸值；执行 toolkit conventions format 可机械归一`)
+    report(ownerRows.map((row) => row.line), `${INDEX_FILE}「${OWNER_HEADER}」列含反引号或链接（如 ${ownerRows[0]!.owner}）：该列只填裸值；执行 toolkit convention format 可机械归一`)
   }
 
   const semanticRows = rows.filter((row) => !hasRoutingColon(row.semantic))

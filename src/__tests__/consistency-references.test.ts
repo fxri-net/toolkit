@@ -128,7 +128,7 @@ describe("规范一致性：站点导航锚点", () => {
 
 // CLI 入口矩阵、术语表与退出码：缺小节或缺行即报 error；假现场没有 docs/cli.md 时跳过
 function cliDoc(options: { domains?: string[]; terms?: string[]; codes?: string[] } = {}): string {
-  const domains = options.domains ?? ["tasks", "skills", "rules", "config", "conventions", "docs", "scope", "usage"]
+  const domains = options.domains ?? ["task", "skill", "rule", "config", "convention", "docs", "scope", "usage"]
   const terms = options.terms ?? ["层", "面", "名单", "预演", "确认", "来源", "目标", "范围"]
   const codes = options.codes ?? ["`0`", "`1`", "`2`", "`3`", "`130`"]
   return [
@@ -167,10 +167,10 @@ describe("规范一致性：CLI 入口矩阵与术语表", () => {
   })
 
   it("入口矩阵缺域时报 error 并指出域名", () => {
-    const root = createFixture({ ...base, "docs/cli.md": cliDoc({ domains: ["tasks", "skills"] }) })
+    const root = createFixture({ ...base, "docs/cli.md": cliDoc({ domains: ["task", "skill"] }) })
     const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
     expect(result.status).toBe(1)
-    expect(result.stderr).toContain("裸命令入口缺少 `toolkit rules`")
+    expect(result.stderr).toContain("裸命令入口缺少 `toolkit rule`")
   })
 
   it("术语表缺术语时报 error", () => {

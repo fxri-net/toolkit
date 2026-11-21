@@ -552,7 +552,7 @@ describe("git 冲突标记归一（多写者同天归档）", () => {
   const conflicted = [
     "# 20260903 归档",
     "",
-    "> 本文件由 `toolkit tasks archive` 自动生成。",
+    "> 本文件由 `toolkit task archive` 自动生成。",
     "",
     "<<<<<<< HEAD",
     "## 20260903-唐启云-mine",
