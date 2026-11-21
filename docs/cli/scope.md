@@ -17,7 +17,7 @@ title: scope（作用域）
 ## 常用命令
 
 ```bash
-toolkit scope                         # 状态优先向导：看状态 / 加白黑名单 / 管条目 / 默认值 / 高级规则
+toolkit scope                         # 状态优先向导：看状态 / 加白黑名单 / 管条目 / 默认值 / 高级规则 / 技能矩阵
 toolkit scope wizard                  # 显式进入交互向导（非 TTY 退出码 2）
 toolkit scope status                  # 当前目录的判定与原因
 toolkit scope status --skill fxri-plan-review # 按技能级规则判定单个技能

@@ -501,7 +501,7 @@ export function registerScopeCommands(program: Command): void {
 
   scopeCmd
     .command("wizard")
-    .description("交互向导：状态、名单、默认值、高级规则")
+    .description("交互向导：状态、名单、默认值、高级规则、技能矩阵")
     .action(async () => {
       await runInteractive(() => runScopeWizard())
     })
