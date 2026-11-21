@@ -1,3 +1,5 @@
+import { existsSync, statSync } from "node:fs"
+import { resolve } from "node:path"
 import { warnLegacyEnvOnce } from "./legacy-env"
 import { installConsoleStyle, line, setStyleEnabled, style } from "./term-style"
 
@@ -61,6 +63,18 @@ export async function runCli(version: string): Promise<void> {
   // 同时须先于任何提示落定——解析期才生效会让首条提示忽略 --no-color
   const argv = process.argv.filter((arg) => arg !== "--no-color")
   if (argv.length !== process.argv.length) setStyleEnabled(false)
+  // 全局 --cwd：解析前提取并切换工作目录，所有命令共用同一入口；非法路径不回落
+  const cwdOption = takeCwdOption(argv)
+  if (cwdOption.cwd !== undefined) {
+    const target = resolve(cwdOption.cwd)
+    if (!existsSync(target) || !statSync(target).isDirectory()) {
+      console.error(`⚠️ --cwd 指向的路径不存在或非目录：${cwdOption.cwd}`)
+      process.exitCode = 1
+      return
+    }
+    process.chdir(target)
+  }
+  const cliArgv = cwdOption.argv
   // 统一输出出口：命令层不用逐条判断，带语义符号的提示自动着色
   installConsoleStyle()
 
@@ -68,7 +82,7 @@ export async function runCli(version: string): Promise<void> {
   warnLegacyEnvOnce()
 
   // 旧路径重写：命中后按新路径执行并在 stderr 提示，命中记录供 status 汇总
-  const rewrite = rewriteDeprecatedArgv(argv.slice(2))
+  const rewrite = rewriteDeprecatedArgv(cliArgv.slice(2))
   const cliArgs = rewrite.argv
   if (rewrite.hit) {
     console.error(`⚠️ ${rewrite.note}`)
@@ -94,6 +108,7 @@ export async function runCli(version: string): Promise<void> {
     .description(DESCRIPTION)
     .version(version, "-v, --version", "显示版本号")
     .option("--no-color", "关闭终端颜色输出")
+    .option("--cwd <path>", "在指定目录执行命令（等价先切换工作目录）")
     .enablePositionalOptions(true)
     // 交回解析错误的控制权（否则 commander 自行 process.exit，异常捕不到）
     // ⚠️ 须在声明任何子命令之前调用：_exitCallback 只在 .command() 建子命令时按引用复制，之后再设不回溯
@@ -146,7 +161,7 @@ export async function runCli(version: string): Promise<void> {
     console.error(`${line.ok(`已自动修复 ${repaired} 个技能链接`)}（${style.hint("如不需要可配置 .toolkitrc.json 的 skills.autoLink: false 关闭")}）`)
   }
   try {
-    await program.parseAsync([argv[0]!, argv[1]!, ...cliArgs])
+    await program.parseAsync([cliArgv[0]!, cliArgv[1]!, ...cliArgs])
   } catch (err) {
     // exitOverride 后 commander 把「解析失败」与「已输出帮助/版本」统一改为抛异常，均经此收口
     if (!(err instanceof CommanderError)) throw err
@@ -171,4 +186,24 @@ export async function runCli(version: string): Promise<void> {
       skillAlerts,
     })
   }
+}
+
+// 提取全局 --cwd：支持 `--cwd <path>` 与 `--cwd=<path>` 两种写法，其余参数原样保留
+function takeCwdOption(argv: string[]): { argv: string[]; cwd?: string } {
+  const rest: string[] = []
+  let cwd: string | undefined
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index]!
+    if (token === "--cwd") {
+      cwd = argv[index + 1]
+      index += 1
+      continue
+    }
+    if (token.startsWith("--cwd=")) {
+      cwd = token.slice("--cwd=".length)
+      continue
+    }
+    rest.push(token)
+  }
+  return { argv: rest, cwd }
 }

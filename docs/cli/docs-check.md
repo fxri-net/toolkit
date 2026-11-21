@@ -8,6 +8,8 @@ title: 文档站校验（docs nav / docs dist）
 
 ```bash
 toolkit docs nav check                  # 校验 docs/site-nav.json 的结构与导航规则
+toolkit docs                           # 默认全量校验：主题 + 导航 + 产物
+toolkit docs check                     # 与裸 docs 等价的显式写法
 toolkit docs nav check --format json    # 机器可读输出（含规则版本）
 toolkit docs nav check --dir <path>     # 指定文档目录（缺省 docs）
 toolkit docs nav init                   # 从站点配置抽取 nav / sidebar 生成 site-nav.json
@@ -16,6 +18,7 @@ toolkit docs dist check                 # 校验构建产物：404 不进 sitema
 toolkit docs dist check --format json   # 机器可读输出（含规则版本与跳过标记）
 ```
 
+裸 `toolkit docs` / `toolkit docs check` 执行主题 + 导航 + 产物全量校验。
 裸 `toolkit docs nav` / `toolkit docs dist` 打印各自子命令帮助（列出 `check`）。
 
 ## 数据单一真源

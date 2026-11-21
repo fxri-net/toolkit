@@ -1,5 +1,6 @@
 // docs 命令：文档站主题、导航与产物校验的注册入口与打印
-import { resolve } from "node:path"
+import { existsSync } from "node:fs"
+import { join, resolve } from "node:path"
 import type { Command } from "commander"
 import { checkDocsTheme, writeDocsTheme } from "../docs/theme"
 import { checkDocsDist, DIST_RULES_VERSION } from "../docs/dist"
@@ -13,7 +14,51 @@ import { line, style } from "../term-style"
 // 注册 docs 命令：装配点只负责按序调用
 export function registerDocsCommands(program: Command): void {
   // docs 域：文档站工具，提供主题、导航与构建产物的校验与写入
-  const docsCmd = program.command("docs").description("文档站工具：主题、导航与产物的校验与写入")
+  // 全量校验：主题 + 导航 + 产物；未检测到文档站时跳过并成功退出
+  function runDocsCheckAll(options: { dir?: string; format?: string }): void {
+    if (!assertJsonFormat(options.format)) return
+    const config = resolveDocsCheckConfig()
+    const docsDir = resolve(options.dir ?? config.nav.dir)
+    if (!existsSync(docsDir)) {
+      if (options.format === "json") console.log(toJsonText({ command: "docs check", ok: true, skipped: true, reason: `未找到文档目录 ${docsDir}` }))
+      else console.log(line.hint(`未检测到文档站，跳过：${docsDir}`))
+      return
+    }
+    let theme: { ok: boolean; problems: string[] }
+    try {
+      theme = checkDocsTheme(join(docsDir, ".vitepress", "theme"))
+    } catch (e) {
+      theme = { ok: false, problems: [(e as Error).message] }
+    }
+    const nav = checkDocsNav(docsDir, { config: config.nav, rules: config.rules })
+    const dist = checkDocsDist(docsDir, { config: config.dist, rules: config.rules })
+    const ok = theme.ok && nav.ok && dist.ok
+    if (options.format === "json") {
+      console.log(
+        toJsonText({
+          command: "docs check",
+          ok,
+          theme,
+          nav: { ok: nav.ok, ruleVersion: NAV_RULES_VERSION, problems: nav.problems },
+          dist: { ok: dist.ok, skipped: dist.skipped, ruleVersion: DIST_RULES_VERSION, problems: dist.problems },
+        }),
+      )
+    } else {
+      console.log(theme.ok ? line.ok("主题校验通过") : `⚠️ 主题校验失败（${theme.problems.length} 项）`)
+      for (const problem of theme.problems) console.error(`  ✖ ${problem}`)
+      if (nav.ok) console.log(line.ok(`导航校验通过：顶栏 ${nav.navCount} 项、侧栏 ${nav.sidebarCount} 组`))
+      else console.error(`⚠️ 导航校验失败（${nav.problems.filter((problem) => problem.level === "error").length} 项）`)
+      printDocsProblems(nav.problems)
+      if (dist.skipped) console.log(line.hint(`跳过产物校验：未找到 ${config.dist.dir}（需先执行文档站构建）`))
+      else if (dist.ok) console.log(line.ok("产物校验通过"))
+      else console.error(`⚠️ 产物校验失败（${dist.problems.filter((problem) => problem.level === "error").length} 项）`)
+      if (!dist.skipped) printDocsProblems(dist.problems)
+      printRuleOverrides(config.rules)
+    }
+    if (!ok) process.exitCode = 1
+  }
+
+  const docsCmd = program.command("docs").description("文档站工具：默认全量校验（theme / nav / dist），另可按项校验与写入")
 
   // 默认主题目录：VitePress 约定的 docs/.vitepress/theme
   const THEME_DIR = "docs/.vitepress/theme"
@@ -165,8 +210,19 @@ export function registerDocsCommands(program: Command): void {
       if (!result.ok) process.exitCode = 1
     })
 
-  // 裸 `toolkit docs`：打印本域帮助
-  docsCmd.action(() => {
-    docsCmd.help()
-  })
+  // 裸 `toolkit docs` 与 `docs check`：默认全量校验
+  docsCmd
+    .command("check")
+    .description("文档站全量校验：主题 + 导航 + 产物（默认动作）")
+    .option("--dir <path>", `文档目录（默认 ${DOCS_DIR}）`)
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
+    .action((options: { dir?: string; format?: string }) => {
+      runDocsCheckAll(options)
+    })
+  docsCmd
+    .option("--dir <path>", `文档目录（默认 ${DOCS_DIR}）`)
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
+    .action((options: { dir?: string; format?: string }) => {
+      runDocsCheckAll(options)
+    })
 }

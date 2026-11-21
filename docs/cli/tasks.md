@@ -22,6 +22,8 @@ toolkit tasks stats               # 周期统计：完成周期 / 滞留 / 吞�
 toolkit tasks stats --format json # 统计结果 JSON 输出
 toolkit tasks export 报表.xlsx    # 导出任务（按扩展名识别 csv / xlsx / json）
 toolkit tasks import 需求清单.csv --dry-run # 导入预演
+toolkit task add --title "命令分组" --scope cli --yes # 新建任务档（TTY 无参进入交互；非 TTY 须 --yes）
+toolkit task update 命令分组 --status 进行中 --yes # 改状态 / 字段；终态须同时给 --completed
 toolkit tasks --dir <path>        # 指定任务目录（CLI 参数 > 配置 task.dir > 默认 .tasks）
 toolkit tasks check --strict      # 任务目录不存在时报错退出（默认容错为空结果）
 ```
@@ -40,6 +42,8 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 | 子命令 | 一句话 |
 | --- | --- |
 | `list` | 待完成看板（等价于裸 `tasks`；隐式子命令，帮助中不展示） |
+| `add` | 按模板新建任务档；TTY 无参进入交互，非 TTY 须 `--title` 与 `--yes` |
+| `update <key>` | 改状态 / 负责人 / 范围 / 依赖；终态须提供 `--completed`，非终态自动清空 |
 | `archive` | 把终结态任务按完成日期聚合归档；`--task` 只归档指定任务，`--dry-run` 预演 |
 | `check` | 校验 active 任务、规范载体、入口壳、变更集与文件卫生（只报不改） |
 | `normalize` | 检查并修复归档块；`--fix` 修复，`--check` 显式声明只读 |

@@ -47,6 +47,8 @@ interface CliRun {
 }
 
 const originalArgv = process.argv
+// 仓库根：afterAll 清理沙箱前先回到此处，避免 Windows 因 cwd 仍指向沙箱而 EBUSY
+const originalCwd = process.cwd()
 
 // 交互确认只在 stdin / stdout 同时为 TTY 时触发：用例内按需临时标记，结束后删除自有属性
 function setTty(value: boolean): void {
@@ -83,8 +85,15 @@ async function runCli(args: string[]): Promise<CliRun> {
   }) as unknown as typeof process.stdout.write)
   process.argv = ["node", "toolkit", ...args]
   process.exitCode = 0
+  // 先记录工作目录再导入：cli 模块顶层即执行命令，全局 --cwd 会在此期间切换 cwd
+  const cwd = process.cwd()
   const cli = await import("../cli")
-  await cli.cliReady
+  try {
+    await cli.cliReady
+  } finally {
+    // 全局 --cwd 会切换进程工作目录：用例结束后复位，避免污染后续用例
+    process.chdir(cwd)
+  }
   return { code: Number(process.exitCode ?? 0), log, warn, err, out }
 }
 
@@ -95,6 +104,7 @@ beforeAll(() => {
 })
 
 afterAll(() => {
+  process.chdir(originalCwd)
   rmSync(sandbox, { recursive: true, force: true })
 })
 
@@ -712,6 +722,27 @@ describe("升级检查提示收口（成功才提示，帮助 / 失败静默）"
     expect(r.code).toBe(0)
     expect(r.out.join("")).not.toContain("99.0.0")
     expect(r.err.join("\n")).toContain("99.0.0")
+  })
+})
+
+describe("目标树补全与横切参数", () => {
+  it("docs 默认与 docs check 等价：仓库现场退出 0", async () => {
+    const bare = await runCli(["docs"])
+    const explicit = await runCli(["docs", "check"])
+    expect(bare.code).toBe(0)
+    expect(explicit.code).toBe(0)
+  })
+
+  it("全局 --cwd：以指定目录为查找起点", async () => {
+    const r = await runCli(["--cwd", cfgDir, "config", "status"])
+    expect(r.code).toBe(0)
+    expect(r.log.join("\n")).toContain("查找起点")
+  })
+
+  it("非法 --cwd 报错退出且不回落", async () => {
+    const r = await runCli(["--cwd", join(sandbox, "no-such-cwd"), "config", "status"])
+    expect(r.code).toBe(1)
+    expect(r.err.join("\n")).toContain("不存在或非目录")
   })
 })
 

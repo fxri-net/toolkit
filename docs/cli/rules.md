@@ -24,6 +24,7 @@ toolkit rules compose --module core --copy
 toolkit rules compose --preset complete --out AGENTS.md
 toolkit rules compose --module core --dry-run   # 只预览组合与缓存写入
 toolkit rules reset
+toolkit rule check                    # 校验模块与规则页的更新锚点是否同源（只报不改）
 ```
 
 无参且处于 TTY 时进入交互（预设 / 自定义两步）；非 TTY 或显式传 `--preset` / `--module` 时保持确定性输出，供脚本使用。
@@ -36,6 +37,7 @@ toolkit rules reset
 | `list` | 列出模块、锚点、预设归属与当前缓存 | `--format json` |
 | `compose` | 组合输出；无参数时按「缓存 > recommended」取值 | `--preset`、`--module`（可重复 / 逗号分隔）、`--no-anchor`、`--out`、`--copy`、`--no-cache`、`--dry-run` |
 | `reset` | 清除组合缓存 | — |
+| `check` | 校验 `templates/rules/*.md` 与 `docs/rules/*.md` 的更新锚点：格式合法且页面锚点等于所含模块最大值 | `--cwd`、`--format json` |
 
 ## 边界与注意
 

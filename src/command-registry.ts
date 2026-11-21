@@ -34,8 +34,8 @@ export const COMMAND_REGISTRY: readonly CommandEntry[] = [
 
   { path: "task", description: "任务管理（默认 list）", stage: "current" },
   { path: "task list", description: "任务看板（等价裸 task）", stage: "current", tier: "advanced" },
-  { path: "task add", description: "新建任务", stage: "planned" },
-  { path: "task update", description: "更新任务字段与状态", stage: "planned" },
+  { path: "task add", description: "新建任务", stage: "current" },
+  { path: "task update", description: "更新任务字段与状态", stage: "current" },
   { path: "task check", description: "任务区体检", stage: "current" },
   { path: "task archive", description: "归档已完成任务", stage: "current" },
   { path: "task normalize", description: "归档块归一核验", stage: "current" },
@@ -66,7 +66,7 @@ export const COMMAND_REGISTRY: readonly CommandEntry[] = [
   { path: "rule list", description: "列出规则模块", stage: "current" },
   { path: "rule compose", description: "组合规则全文", stage: "current" },
   { path: "rule reset", description: "重置规则快照", stage: "current" },
-  { path: "rule check", description: "校验规则锚点与同源", stage: "planned" },
+  { path: "rule check", description: "校验规则锚点与同源", stage: "current" },
   { path: "rules", description: "规则模块与组合器（旧名，重写到 rule）", stage: "current", deprecatesTo: "rule" },
 
   { path: "convention", description: "规范载体状态与升级", stage: "current" },
@@ -93,7 +93,7 @@ export const COMMAND_REGISTRY: readonly CommandEntry[] = [
   { path: "changelog add", description: "新增变更集（已归入 release changeset）", stage: "current", deprecatesTo: "release changeset add" },
 
   { path: "docs", description: "文档站校验", stage: "current" },
-  { path: "docs check", description: "文档站全量校验（theme / nav / dist）", stage: "planned" },
+  { path: "docs check", description: "文档站全量校验（theme / nav / dist）", stage: "current" },
 
   { path: "usage", description: "技能使用情况统计", stage: "current" },
   { path: "usage show", description: "查看开关、数据目录与事件计数（默认）", stage: "current" },

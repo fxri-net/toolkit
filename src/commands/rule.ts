@@ -1,6 +1,6 @@
 // rules 命令：全局规则模块的组合、复制与缓存管理的注册入口
-import { mkdirSync } from "node:fs"
-import { dirname, resolve } from "node:path"
+import { existsSync, mkdirSync, readFileSync } from "node:fs"
+import { dirname, join, resolve } from "node:path"
 import type { Command } from "commander"
 import { composeRules, listRules, loadRuleset, type Ruleset } from "../rules"
 import { clearRulesSelection, readRulesSelection, writeRulesSelection } from "../rules/cache"
@@ -8,7 +8,7 @@ import { copyToClipboard } from "../rules/clipboard"
 import { buildPresetChoices, CUSTOM_PRESET, normalizePickedModules } from "../rules/select"
 import { exitOnPromptCancel, exitWithCancel, isInteractive } from "../prompts"
 import { askCheckbox, askSelect, fail, reportWrite } from "../cli-ui"
-import { assertJsonFormat } from "../json-output"
+import { assertJsonFormat, toJsonText } from "../json-output"
 import { line, style } from "../term-style"
 import { writeFileAtomic } from "../write-atomic"
 
@@ -38,6 +38,76 @@ async function selectInteractively(ruleset: Ruleset, cached: string[] | null): P
       picked,
     )
   }
+}
+
+// 规则锚点格式：模块首行与规则页 fenced 块首行共用
+const ANCHOR_RE = /^> 规则更新时间 (\d{4}-\d{2}-\d{2} \d{2}:\d{2})$/
+
+// 锚点校验结果
+interface RuleCheckIssue {
+  level: "error"
+  file: string
+  message: string
+}
+
+// 读取文件首个非空行并校验锚点格式
+function readAnchor(file: string): { anchor: string | null; issue?: string } {
+  if (!existsSync(file)) return { anchor: null, issue: "文件不存在" }
+  const first = readFileSync(file, "utf8").replace(/^\uFEFF/, "").split(/\r?\n/).find((line) => line.trim() !== "")?.trim() ?? ""
+  const matched = ANCHOR_RE.exec(first)
+  return matched ? { anchor: matched[1]! } : { anchor: null, issue: "首行缺少合法锚点（> 规则更新时间 YYYY-MM-DD HH:mm）" }
+}
+
+// 读取规则页 fenced 块内的锚点：取文件内首个锚点行
+function readPageAnchor(file: string): { anchor: string | null; issue?: string } {
+  if (!existsSync(file)) return { anchor: null, issue: "文件不存在" }
+  const content = readFileSync(file, "utf8").replace(/^\uFEFF/, "")
+  for (const line of content.split(/\r?\n/)) {
+    const trimmed = line.trim()
+    if (trimmed.startsWith("> 规则更新时间")) {
+      const matched = ANCHOR_RE.exec(trimmed)
+      return matched ? { anchor: matched[1]! } : { anchor: null, issue: "锚点格式非法（须为 YYYY-MM-DD HH:mm）" }
+    }
+  }
+  return { anchor: null, issue: "缺少 > 规则更新时间 锚点行" }
+}
+
+// 校验规则模块与规则页锚点同源：页面锚点须等于所含模块的最大值
+export function checkRuleAnchors(cwd: string): {
+  ok: boolean
+  modules: Array<{ id: string; file: string; anchor: string | null }>
+  pages: Array<{ page: string; anchor: string | null; expected: string | null }>
+  issues: RuleCheckIssue[]
+} {
+  const templatesDir = join(cwd, "templates", "rules")
+  const rulesetFile = join(templatesDir, "ruleset.json")
+  const issues: RuleCheckIssue[] = []
+  if (!existsSync(rulesetFile)) {
+    return { ok: false, modules: [], pages: [], issues: [{ level: "error", file: "templates/rules/ruleset.json", message: "未找到规则集定义" }] }
+  }
+  const ruleset = JSON.parse(readFileSync(rulesetFile, "utf8")) as {
+    modules: Array<{ id: string; file: string }>
+    pages: Array<{ page: string; modules: string[] }>
+  }
+  const modules = ruleset.modules.map((mod) => {
+    const rel = `templates/rules/${mod.file}`
+    const read = readAnchor(join(templatesDir, mod.file))
+    if (read.issue) issues.push({ level: "error", file: rel, message: read.issue })
+    return { id: mod.id, file: rel, anchor: read.anchor }
+  })
+  const anchorById = new Map(modules.map((mod) => [mod.id, mod.anchor]))
+  const pages = ruleset.pages.map((page) => {
+    const rel = `docs/rules/${page.page}.md`
+    const read = readPageAnchor(join(cwd, "docs", "rules", `${page.page}.md`))
+    if (read.issue) issues.push({ level: "error", file: rel, message: read.issue })
+    const anchors = page.modules.map((id) => anchorById.get(id)).filter((value): value is string => Boolean(value))
+    const expected = anchors.length === page.modules.length ? [...anchors].sort().at(-1) ?? null : null
+    if (read.anchor && expected && read.anchor !== expected) {
+      issues.push({ level: "error", file: rel, message: `锚点 ${read.anchor} 与所含模块最大值 ${expected} 不一致` })
+    }
+    return { page: rel, anchor: read.anchor, expected }
+  })
+  return { ok: issues.length === 0, modules, pages, issues }
 }
 
 // 注册 rules 命令：装配点只负责按序调用
@@ -177,6 +247,30 @@ export function registerRulesCommands(program: Command): void {
       } catch (error) {
         if (exitOnPromptCancel(error)) return
         console.error(`⚠️ ${(error as Error).message}`)
+        process.exitCode = 1
+      }
+    })
+
+  rulesCmd
+    .command("check")
+    .description("校验规则模块与规则页的更新锚点是否同源（只报不改）")
+    .option("--cwd <path>", "仓库根目录（缺省当前工作目录）")
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
+    .action((options: { cwd?: string; format?: string }) => {
+      try {
+        if (!assertJsonFormat(options.format)) return
+        const report = checkRuleAnchors(resolve(options.cwd ?? process.cwd()))
+        if (options.format === "json") {
+          console.log(toJsonText({ command: "rule check", ...report }))
+        } else {
+          for (const mod of report.modules) console.log(`${mod.anchor ? "✔" : "✖"} ${mod.file}：${mod.anchor ?? "缺少锚点"}`)
+          for (const page of report.pages) console.log(`${page.anchor === page.expected ? "✔" : "✖"} ${page.page}：${page.anchor ?? "缺少锚点"}（期望 ${page.expected ?? "未知"}）`)
+          for (const issue of report.issues) console.error(`✖ ${issue.file}：${issue.message}`)
+          if (report.ok) console.log(line.ok("规则锚点一致"))
+        }
+        if (!report.ok) process.exitCode = 1
+      } catch (e) {
+        console.error(`⚠️ ${(e as Error).message}`)
         process.exitCode = 1
       }
     })

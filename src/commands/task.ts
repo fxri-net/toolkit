@@ -9,6 +9,8 @@ import { archiveTasks } from "../tasks/archive"
 import { computeStats, renderStats } from "../tasks/stats"
 import { validateTasks, type CheckIssue } from "../tasks/validate"
 import { checkArchive, fixArchive } from "../tasks/normalize"
+import { createTask, defaultOwner, updateTask } from "../tasks/edit"
+import { isInteractive, loadPrompts, runInteractive } from "../prompts"
 import type { TaskView, TaskFilter, ImportTarget } from "../tasks/types"
 import { ALL_STATUSES } from "../tasks/types"
 import { findUntypedChangesetEntries, findUnbulletedChangesetEntries } from "../changelog/format"
@@ -353,6 +355,92 @@ export function registerTasksCommands(program: Command): void {
   tasksListCmd.option("--format <format>", "输出格式（json，输出到 stdout）").action(async (options: TasksQueryOptions) => {
     await runTasksOverview(options)
   })
+
+  // 新建任务：TTY 无参进入交互，非 TTY 须显式标题与 --yes
+  tasksCmd
+    .command("add")
+    .description("新建任务档（TTY 无参会交互补齐；非 TTY 须 --title 与 --yes）")
+    .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 task.dir > 默认 .tasks）")
+    .option("--title <text>", "任务标题")
+    .option("--owner <name>", "负责人（默认 git user.name / 系统用户名）")
+    .option("--scope <scope>", "影响范围（单值，如 cli / docs / skills）")
+    .option("--depends-on <keys...>", "依赖的任务唯一键（可多个）")
+    .option("--plan <text>", "计划位置行文案")
+    .option("--dry-run", "只预览文件路径，不写盘")
+    .option("--yes", "非交互确认写入")
+    .action(async (options: { dir?: string; title?: string; owner?: string; scope?: string; dependsOn?: string[]; plan?: string; dryRun?: boolean; yes?: boolean }) => {
+      const dir = resolveTasksDir(options.dir)
+      let title = options.title?.trim()
+      let owner = options.owner?.trim()
+      let scope = options.scope?.trim()
+      if (isInteractive() && !title) {
+        await runInteractive(async () => {
+          const { input } = await loadPrompts()
+          title = (await input({ message: "任务标题" })).trim()
+          owner = (await input({ message: "负责人", default: owner ?? defaultOwner() })).trim()
+          scope = (await input({ message: "影响范围（单值）", default: scope ?? "cli" })).trim()
+        })
+      }
+      if (!title) {
+        console.error("⚠️ 非交互环境须用 --title 指定任务标题")
+        process.exitCode = 2
+        return
+      }
+      if (!options.dryRun && !options.yes) {
+        console.error("⚠️ 非交互环境写入任务档须显式加 --yes")
+        process.exitCode = 2
+        return
+      }
+      try {
+        const result = createTask({ dir, title, owner, scope: scope ?? "cli", dependsOn: options.dependsOn, plan: options.plan, dryRun: options.dryRun })
+        if (options.dryRun) console.log(line.hint(`[预演] 将创建任务档：${result.file}`))
+        else {
+          console.log(line.ok(`已创建任务档：${result.file}`))
+          console.log(line.hint("下一步：补齐背景 / 实施方案 / 影响范围 / 验证方式，再运行 toolkit task check"))
+        }
+      } catch (e) {
+        console.error(`⚠️ ${(e as Error).message}`)
+        process.exitCode = 1
+      }
+    })
+
+  // 更新任务：只改 frontmatter 字段，正文原样保留
+  tasksCmd
+    .command("update <key>")
+    .description("更新任务字段与状态（非交互写入须 --yes）")
+    .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 task.dir > 默认 .tasks）")
+    .option("--status <status>", "状态：待办 / 进行中 / 已完成 / 阻塞 / 已放弃 / 搁置")
+    .option("--owner <name>", "负责人")
+    .option("--scope <scope>", "影响范围（单值）")
+    .option("--depends-on <keys...>", "依赖的任务唯一键（可多个；传空清除）")
+    .option("--completed <time>", "完成时间 YYYY-MM-DD HH:mm（终态必填）")
+    .option("--dry-run", "只预览将改动的字段，不写盘")
+    .option("--yes", "非交互确认写入")
+    .action((key: string, options: { dir?: string; status?: string; owner?: string; scope?: string; dependsOn?: string[]; completed?: string; dryRun?: boolean; yes?: boolean }) => {
+      const dir = resolveTasksDir(options.dir)
+      if (!options.dryRun && !options.yes) {
+        console.error("⚠️ 非交互环境写入任务档须显式加 --yes")
+        process.exitCode = 2
+        return
+      }
+      try {
+        const result = updateTask({
+          dir,
+          key,
+          status: options.status,
+          owner: options.owner,
+          scope: options.scope,
+          dependsOn: options.dependsOn,
+          completed: options.completed,
+          dryRun: options.dryRun,
+        })
+        if (options.dryRun) console.log(line.hint(`[预演] 将更新：${result.file}${result.changes.length > 0 ? `（${result.changes.join("、")}）` : "（无变化）"}`))
+        else console.log(line.ok(`已更新任务：${result.file}${result.changes.length > 0 ? `（${result.changes.join("、")}）` : "（无变化）"}`))
+      } catch (e) {
+        console.error(`⚠️ ${(e as Error).message}`)
+        process.exitCode = 1
+      }
+    })
 
   addTasksCommonOptions(tasksCmd.command("archive").description("归档已完成任务"))
     .option("--dry-run", "预演（只预览，不落盘）")
