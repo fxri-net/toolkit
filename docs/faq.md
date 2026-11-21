@@ -155,6 +155,7 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 ### 只在公司项目激活，个人项目不被插入怎么做？
 
 全局装 skills 后，可以先用 `toolkit scope` 设置生效范围（只在我选的目录 / 除了我选的目录），再在公司项目根的 AGENTS.md / 项目 rules 中显式引用 fxri 技能并提交；个人项目不放引用文件即可。
+需要按技能维度收口时，用 `toolkit scope skills allow/deny` 或 `toolkit scope policy add` 写策略规则（条件 + 技能维度）。
 介于两者之间可用**内容闸门**（`toolkit skills install --gate`）：技能壳仍全局可见，正文按作用域由 `toolkit scope guard` 下发。
 需要绝对隔离（技能物理不在场）时用 `toolkit skills mount <父目录>` 批量做项目面安装。
 兼容 agent 仍可能按 `description` 匹配自动触发，若需要稳定启用（而非碰运气触发），个人项目同样建议显式声明。
