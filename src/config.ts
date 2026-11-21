@@ -288,17 +288,23 @@ function normalizeLegacySections(layer: ConfigLayerName, filePath: string, confi
   }
 }
 
-// 重写单个配置文件里的旧段名：返回被改名的段名；文件不存在或无需改写时返回空数组
+// 旧段名重写结果：renamed 为被改名的段名；invalid 表文件存在但解析失败 / 顶层非对象，调用方应报「未改写」而非「已是当前写法」
+export interface LegacyRewriteResult {
+  renamed: string[]
+  invalid: boolean
+}
+
+// 重写单个配置文件里的旧段名：文件不存在返回空结果；解析失败标记 invalid，供 init 给出准确报告
 // 供 init 兑现「旧段名自动迁移」，写前备份、原子写入、写后重置缓存
-export function rewriteLegacySections(file: string): string[] {
-  if (!existsSync(file)) return []
+export function rewriteLegacySections(file: string): LegacyRewriteResult {
+  if (!existsSync(file)) return { renamed: [], invalid: false }
   let parsed: unknown
   try {
     parsed = JSON.parse(readTextFile(file))
   } catch {
-    return []
+    return { renamed: [], invalid: true }
   }
-  if (!isPlainObject(parsed)) return []
+  if (!isPlainObject(parsed)) return { renamed: [], invalid: true }
   const renamed: string[] = []
   for (const [legacy, canonical] of Object.entries(CONFIG_LEGACY_SECTIONS)) {
     if (!(legacy in parsed)) continue
@@ -306,12 +312,12 @@ export function rewriteLegacySections(file: string): string[] {
     delete parsed[legacy]
     renamed.push(legacy)
   }
-  if (renamed.length === 0) return []
+  if (renamed.length === 0) return { renamed: [], invalid: false }
   const backup = `${file}.bak`
   writeFileAtomic(backup, readTextFile(file))
   writeFileAtomic(file, `${JSON.stringify(parsed, null, 2)}\n`)
   resetToolkitConfigCache()
-  return renamed
+  return { renamed, invalid: false }
 }
 
 // 项目配置文件定位：自 startDir 向上查找（止于 home），与本地层共用同一查找口径
