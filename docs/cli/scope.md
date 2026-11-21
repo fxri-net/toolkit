@@ -21,7 +21,7 @@ toolkit scope                         # 状态优先向导：看状态 / 加白�
 toolkit scope wizard                  # 显式进入交互向导（非 TTY 退出码 2）
 toolkit scope status                  # 当前目录的判定与原因
 toolkit scope status --skill fxri-plan-review # 按技能级规则判定单个技能
-toolkit scope status --skills          # 列出包内技能在该目录的生效结论
+toolkit scope status --skills          # 列出包内与已安装外部技能在该目录的生效结论
 toolkit scope status --skills --at ~/work/repo # 以指定目录为判定起点（不改进程 cwd）
 toolkit scope status --format json    # 给 AI / 脚本消费
 toolkit scope list                    # 规则、来源与优先级
@@ -117,6 +117,7 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 既有配置结论不变。判定基准为项目根：优先 git 根，其次最近 `.tasks` 根，都没有则回落当前目录。
 `scope status --format json` 输出 `active` / `mode` / `baseDir` / `skill` / `sourceFile` / `matchedRule` / `reason`。
 `matchedRule` 为 `policy:<id>`，有 `name` 时附 `（name）`；`scope status --skills --format json` 另含 `skills` 与 `linkage`。
+只有 `policies` 时，`scope status` 不显示旧字段模式，改为显示策略条数与策略来源；`scope list` 同样追加策略摘要。
 基准变化或规则按真实路径写入导致不命中时，status 会在 stderr 给出提示。
 
 ## 边界

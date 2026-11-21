@@ -10,6 +10,7 @@ import {
   compilePolicies,
   decidePolicy,
   isInvalidPolicyId,
+  isLegacyPolicyId,
   legacyToPolicies,
   type CompiledPolicySet,
   type ScopePolicyInput,
@@ -62,6 +63,10 @@ export interface ScopeReport {
   policies: ScopePolicy[]
   // 合并后的技能档案（同名按最近层整份覆盖）
   profiles: ScopeProfile[]
+  // 最近一层含 policies / skillProfiles 的配置文件
+  policySourceFile: string | null
+  // 非旧字段编译产物的策略条数
+  policyCount: number
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -485,6 +490,7 @@ interface ScopeSnapshot {
   profiles: ScopeProfile[]
   warnings: string[]
   compiled: CompiledPolicySet
+  policySourceFile: string | null
 }
 
 // 进程内快照：配置内容签名变化即重建，避免逐次命令重复编译正则
@@ -523,6 +529,15 @@ function layerSignature(layers: ConfigLayers): string {
     .join("\u0001")
 }
 
+// 最近一层含策略 / 档案的配置文件：status / list 展示策略来源
+function nearestPolicySourceFile(layers: ConfigLayers): string | null {
+  for (const record of [layers.local, layers.project, layers.global]) {
+    if (!record.hit || !record.config) continue
+    if (record.config.policies !== undefined || record.config.skillProfiles !== undefined) return record.file
+  }
+  return null
+}
+
 // 组装快照：最近一份旧 activation 编译为同层基线，新 policies / skillProfiles 逐层合并
 function buildSnapshot(layers: ConfigLayers, baseDir: string): ScopeSnapshot {
   const legacy = loadActivationFromLayers(layers)
@@ -557,6 +572,7 @@ function buildSnapshot(layers: ConfigLayers, baseDir: string): ScopeSnapshot {
     profiles,
     warnings,
     compiled,
+    policySourceFile: nearestPolicySourceFile(layers),
   }
 }
 
@@ -638,6 +654,8 @@ export function resolveScope(startDir = process.cwd(), skillName?: string): Scop
     migrationHint: hint,
     policies: snapshot.policies.map(toPublicPolicy),
     profiles: snapshot.profiles.map((profile) => ({ ...profile })),
+    policySourceFile: snapshot.policySourceFile,
+    policyCount: snapshot.policies.filter((policy) => !isLegacyPolicyId(policy.id)).length,
   }
 }
 

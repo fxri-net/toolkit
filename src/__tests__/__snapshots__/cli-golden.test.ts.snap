@@ -926,7 +926,6 @@ exports[`各域行为与错误路径 > scope 裸命令 1`] = `
   当前目录：<SANDBOX>/workspace
   判定基准：<SANDBOX>/workspace
   结果：生效
-  模式：all
   命中规则：未命中
   来源：默认（未配置）
   原因：未配置作用域（默认全域生效）

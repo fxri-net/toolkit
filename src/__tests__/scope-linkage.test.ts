@@ -4,7 +4,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
-import { analyzeSkillLinkage, formatLinkageHints } from "../scope/linkage"
+import { analyzeSkillLinkage, formatLinkageHints, listInstalledSkillNames } from "../scope/linkage"
 import { resetScopeCache } from "../scope/load"
 
 let home = ""
@@ -46,6 +46,12 @@ function matrixConfig(gate?: boolean | { include: string[]; exclude: string[] })
 }
 
 describe("analyzeSkillLinkage", () => {
+  it("已安装技能名包含包内技能并排序", () => {
+    const names = listInstalledSkillNames(project)
+    expect(names).toContain("fxri-plan-review")
+    expect(names).toEqual([...names].sort())
+  })
+
   it("未配置矩阵时不产生联动提示", () => {
     writeGlobal({ activation: { mode: "all", include: [], exclude: [] } })
     const report = analyzeSkillLinkage(project)

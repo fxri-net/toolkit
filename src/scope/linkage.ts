@@ -25,7 +25,7 @@ function matchedPolicyId(matchedRule: string | null): string | null {
 }
 
 // 已安装技能名：包内真源 + 全局 / 项目状态登记，去重后排序
-function installedNames(startDir: string): string[] {
+export function listInstalledSkillNames(startDir = process.cwd()): string[] {
   const names = new Set<string>(listPackageSkills().map((skill) => skill.name))
   const states = [readSkillsState(), readProjectState(findProjectRoot(startDir))]
   for (const state of states) {
@@ -51,7 +51,7 @@ export function analyzeSkillLinkage(startDir = process.cwd()): SkillLinkageRepor
   if (!matrixConfigured) {
     return { matrixConfigured, gateEnabled: setting.enabled, ineffective, dead }
   }
-  for (const name of installedNames(startDir)) {
+  for (const name of listInstalledSkillNames(startDir)) {
     const skillReport = resolveScope(startDir, name)
     if (skillReport.decision.active) continue
     const id = matchedPolicyId(skillReport.decision.matchedRule)

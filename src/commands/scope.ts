@@ -12,9 +12,8 @@ import { assertJsonFormat, toJsonText } from "../json-output"
 import { assertChoice, fail } from "../cli-ui"
 import { modeLabel, planAdd, planDefault, planRemove, planReset, readScopeState, type ScopeList, type RemoveFrom } from "../scope/edit"
 import { applyScopePlan } from "../scope/apply"
-import { listPackageSkills } from "../skills/source"
 import { isLegacyPolicyId } from "../scope/policy"
-import { analyzeSkillLinkage, formatLinkageHints } from "../scope/linkage"
+import { analyzeSkillLinkage, formatLinkageHints, listInstalledSkillNames } from "../scope/linkage"
 import {
   POLICY_LAYERS,
   applyPolicyPlanWithPrompt,
@@ -512,14 +511,14 @@ export function registerScopeCommands(program: Command): void {
     .description("查看当前目录的作用域判定与原因")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .option("--skill <name>", "按指定技能判定（应用技能级规则）")
-    .option("--skills", "列出包内技能在该目录的生效结论")
+    .option("--skills", "列出包内与已安装外部技能在该目录的生效结论")
     .option("--at <dir>", "以指定目录为判定与配置查找起点（不改变进程 cwd）")
     .action((options: { format?: string; skill?: string; skills?: boolean; at?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return
         if (options.skills) {
           const base = resolveScope(options.at)
-          const names = options.skill ? [options.skill] : listPackageSkills().map((skill) => skill.name)
+          const names = options.skill ? [options.skill] : listInstalledSkillNames(options.at)
           const reports = names.map((name) => resolveScope(options.at, name))
           const warnings = new Set([...base.warnings, ...reports.flatMap((report) => report.warnings)])
           for (const warning of warnings) console.error(`⚠️ ${warning}`)
@@ -568,6 +567,8 @@ export function registerScopeCommands(program: Command): void {
                 baseDir: decision.baseDir,
                 skill: options.skill ?? null,
                 sourceFile: decision.sourceFile,
+                policySourceFile: report.policySourceFile,
+                policyCount: report.policyCount,
                 matchedRule: decision.matchedRule,
                 reason: decision.reason,
               },
