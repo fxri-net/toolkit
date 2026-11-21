@@ -387,7 +387,7 @@ describe("各域行为与错误路径", () => {
     ["config set 非法取值", ["config", "set", "check.warnings", "maybe", "--yes"]],
     ["config unset 预演", ["config", "unset", "task.dir", "--dry-run"]],
     ["usage data 导出空数据", ["usage", "data", "export"]],
-    ["usage 补录预演", ["usage", "log", "--skill", "fxri-plan-to-task", "--session", "golden", "--dry-run"]],
+    ["usage 补录预演", ["usage", "log", "--skill", "fxri-plan-task", "--session", "golden", "--dry-run"]],
     ["usage data 去重", ["usage", "data", "dedupe"]],
     ["usage data 清理预演", ["usage", "data", "purge", "--dry-run"]],
     ["usage data 重建索引", ["usage", "data", "rebuild"]],

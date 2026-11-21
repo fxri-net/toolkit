@@ -46,7 +46,7 @@ function readDoc(file: string): string {
 
 describe("文档一致性：任务粒度与发版范围条款", () => {
   it("SPEC / task-spec / ai-rules / plan-to-task 四处均包含「不约束发版范围」", () => {
-    for (const file of ["SPEC.md", "skills/fxri-plan-to-task/references/task-spec.md", "docs/rules/ai.md", "skills/fxri-plan-to-task/SKILL.md"]) {
+    for (const file of ["SPEC.md", "skills/fxri-plan-task/references/task-spec.md", "docs/rules/ai.md", "skills/fxri-plan-task/SKILL.md"]) {
       expect(readDoc(file), `${file} 缺少任务粒度与发版范围边界`).toContain("不约束发版范围")
     }
   })
@@ -54,7 +54,7 @@ describe("文档一致性：任务粒度与发版范围条款", () => {
 
 describe("文档一致性：规划态与执行态分离", () => {
   it("规则层与建档技能都区分「方案确认」与「执行授权」", () => {
-    for (const file of ["docs/rules/ai.md", "skills/fxri-plan-to-task/SKILL.md"]) {
+    for (const file of ["docs/rules/ai.md", "skills/fxri-plan-task/SKILL.md"]) {
       const text = readDoc(file)
       expect(text, `${file} 缺少方案确认的表述`).toContain("方案确认")
       expect(text, `${file} 缺少执行授权的表述`).toContain("执行授权")
@@ -76,7 +76,7 @@ describe("文档一致性：规划态与执行态分离", () => {
   // 只读判据此前只在技能里有、规则层缺位，且技能按触发匹配加载，纯检查请求未必加载到闸门所在技能：
   // 三处都锁死，防止只改一处（或后续被改回「按词表触发」）
   it("规则层与建档 / 复核技能都写明「只读型请求默认只读」并按意图判定", () => {
-    for (const file of ["docs/rules/ai.md", "skills/fxri-plan-to-task/SKILL.md", "skills/fxri-plan-review/SKILL.md"]) {
+    for (const file of ["docs/rules/ai.md", "skills/fxri-plan-task/SKILL.md", "skills/fxri-plan-review/SKILL.md"]) {
       const text = readDoc(file)
       expect(text, `${file} 缺少只读型请求的判据`).toContain("只读")
       expect(text, `${file} 未写明按意图与最终动作判定`).toContain("意图")

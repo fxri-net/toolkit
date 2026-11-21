@@ -133,7 +133,7 @@ describe("install --check", () => {
     )
     writeFileSync(
       join(home, ".toolkitrc.json"),
-      JSON.stringify({ skillsInstall: { selection: { ext: ["ghost-skill"], toolkit: ["fxri-plan-to-task"] } } }),
+      JSON.stringify({ skillsInstall: { selection: { ext: ["ghost-skill"], toolkit: ["fxri-plan-task"] } } }),
     )
 
     const check = await runCli(["skills", "install", "--check", "--scope", "global"])

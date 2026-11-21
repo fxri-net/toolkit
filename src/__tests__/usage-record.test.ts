@@ -80,24 +80,24 @@ function queued(): number {
 
 describe("usage record：入队", () => {
   it("入队即返回、静默，技能按出现次数保留", async () => {
-    await run(["record", "--skill", "fxri-plan-to-task", "--skill", "fxri-plan-to-task", "--skill", "fxri-plan-review"])
+    await run(["record", "--skill", "fxri-plan-task", "--skill", "fxri-plan-task", "--skill", "fxri-plan-review"])
     expect(queued()).toBe(1)
     expect(events()).toHaveLength(0)
     expect(logs).toEqual([])
     expect(process.exitCode).toBe(0)
     const file = listQueueFiles(usagePaths(dataDir))[0] as string
     const entry = JSON.parse(readFileSync(file, "utf8"))
-    expect(entry.skills).toEqual(["fxri-plan-to-task", "fxri-plan-to-task", "fxri-plan-review"])
+    expect(entry.skills).toEqual(["fxri-plan-task", "fxri-plan-task", "fxri-plan-review"])
     expect(entry.agentHint).toBeTypeOf("string")
   })
 
   it("通道为 hook 或总开关关闭时不入队", async () => {
     writeUsageConfig({ channel: "hook" })
-    await run(["record", "--skill", "fxri-plan-to-task"])
+    await run(["record", "--skill", "fxri-plan-task"])
     expect(queued()).toBe(0)
 
     writeUsageConfig({ enabled: false })
-    await run(["record", "--skill", "fxri-plan-to-task"])
+    await run(["record", "--skill", "fxri-plan-task"])
     expect(queued()).toBe(0)
     expect(logs).toEqual([])
   })
@@ -106,7 +106,7 @@ describe("usage record：入队", () => {
     const broken = join(home, "not-a-dir")
     writeFileSync(broken, "x", "utf8")
     writeUsageConfig({ storage: { dir: broken, rotation: "monthly", retentionDays: 180 } })
-    await run(["record", "--skill", "fxri-plan-to-task"])
+    await run(["record", "--skill", "fxri-plan-task"])
     expect(errors.join("\n")).toContain("技能使用上报失败")
     expect(process.exitCode).toBe(0)
   })
@@ -121,21 +121,21 @@ describe("usage record：入队", () => {
 
 describe("usage flush：按次计数与基础事件", () => {
   it("同技能多次各记一条，toolUseId 不重复", async () => {
-    await run(["record", "--skill", "fxri-plan-to-task", "--skill", "fxri-plan-to-task", "--skill", "fxri-plan-review"])
+    await run(["record", "--skill", "fxri-plan-task", "--skill", "fxri-plan-task", "--skill", "fxri-plan-review"])
     flushQueue({ lookup: () => null })
     const written = events()
     expect(written).toHaveLength(3)
-    expect(written.filter((event) => event.skill === "fxri-plan-to-task")).toHaveLength(2)
+    expect(written.filter((event) => event.skill === "fxri-plan-task")).toHaveLength(2)
     expect(new Set(written.map((event) => event.toolUseId)).size).toBe(3)
     expect(queued()).toBe(0)
   })
 
   it("反查命中时补齐触发词、参数、结果与耗时", async () => {
-    await run(["record", "--skill", "fxri-plan-to-task"])
+    await run(["record", "--skill", "fxri-plan-task"])
     flushQueue({
       lookup: () => [
         {
-          skill: "fxri-plan-to-task",
+          skill: "fxri-plan-task",
           prompt: "把方案落档",
           args: '{"path":"x"}',
           outcome: "success",
@@ -151,7 +151,7 @@ describe("usage flush：按次计数与基础事件", () => {
   })
 
   it("反查抛错时仍写基础事件", async () => {
-    await run(["record", "--skill", "fxri-plan-to-task"])
+    await run(["record", "--skill", "fxri-plan-task"])
     flushQueue({
       lookup: () => {
         throw new Error("session broken")
@@ -164,12 +164,12 @@ describe("usage flush：按次计数与基础事件", () => {
   })
 
   it("同一技能多次按会话内最后 N 次匹配", async () => {
-    await run(["record", "--skill", "fxri-plan-to-task", "--skill", "fxri-plan-to-task"])
+    await run(["record", "--skill", "fxri-plan-task", "--skill", "fxri-plan-task"])
     flushQueue({
       lookup: () => [
-        { skill: "fxri-plan-to-task", prompt: "early" },
-        { skill: "fxri-plan-to-task", prompt: "late-1" },
-        { skill: "fxri-plan-to-task", prompt: "late-2" },
+        { skill: "fxri-plan-task", prompt: "early" },
+        { skill: "fxri-plan-task", prompt: "late-1" },
+        { skill: "fxri-plan-task", prompt: "late-2" },
       ],
     })
     const prompts = events().map((event) => event.triggerPrompt)
@@ -180,17 +180,17 @@ describe("usage flush：按次计数与基础事件", () => {
 describe("usage flush：配置过滤", () => {
   it("来源关闭 / include 未列 / exclude 命中 / 未托管 均不写入", async () => {
     writeUsageConfig({ sources: { firstParty: false, thirdParty: false, unmanaged: false } })
-    await run(["record", "--skill", "fxri-plan-to-task"])
+    await run(["record", "--skill", "fxri-plan-task"])
     flushQueue({ lookup: () => null })
     expect(events()).toHaveLength(0)
 
     writeUsageConfig({ skills: { mode: "include", include: ["fxri-plan-review"], exclude: [] } })
-    await run(["record", "--skill", "fxri-plan-to-task", "--skill", "some-unmanaged-skill"])
+    await run(["record", "--skill", "fxri-plan-task", "--skill", "some-unmanaged-skill"])
     flushQueue({ lookup: () => null })
     expect(events()).toHaveLength(0)
 
-    writeUsageConfig({ skills: { mode: "exclude", include: [], exclude: ["fxri-plan-to-task"] } })
-    await run(["record", "--skill", "fxri-plan-to-task", "--skill", "fxri-plan-review"])
+    writeUsageConfig({ skills: { mode: "exclude", include: [], exclude: ["fxri-plan-task"] } })
+    await run(["record", "--skill", "fxri-plan-task", "--skill", "fxri-plan-review"])
     flushQueue({ lookup: () => null })
     expect(events().map((event) => event.skill)).toEqual(["fxri-plan-review"])
   })
@@ -202,7 +202,7 @@ describe("usage flush：配置过滤", () => {
   })
 
   it("损坏的队列条目被丢弃，不阻塞后续批次", async () => {
-    await run(["record", "--skill", "fxri-plan-to-task"])
+    await run(["record", "--skill", "fxri-plan-task"])
     const dir = queueDir(usagePaths(dataDir))
     writeFileSync(join(dir, "000-broken.json"), "{not json", "utf8")
     flushQueue({ lookup: () => null })
@@ -213,7 +213,7 @@ describe("usage flush：配置过滤", () => {
 
 describe("usage flush 命令", () => {
   it("命令入口消费队列且不打印", async () => {
-    await run(["record", "--skill", "fxri-plan-to-task"])
+    await run(["record", "--skill", "fxri-plan-task"])
     logs = []
     await run(["flush"])
     expect(logs).toEqual([])
@@ -221,7 +221,7 @@ describe("usage flush 命令", () => {
   })
 
   it("惰性兜底：其它 usage 命令启动时先消费积压队列", async () => {
-    await run(["record", "--skill", "fxri-plan-to-task", "--skill", "fxri-plan-to-task"])
+    await run(["record", "--skill", "fxri-plan-task", "--skill", "fxri-plan-task"])
     await run(["show"])
     expect(events()).toHaveLength(2)
     expect(queued()).toBe(0)

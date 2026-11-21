@@ -10,7 +10,7 @@
 
 ## 二、结构
 
-- [ ] 目录为小写 kebab 且带团队前缀，`SKILL.md` 位于技能根。
+- [ ] 目录与 `name` 均为 `fxri-<族>-<主题>`，族已在 `namespaces.json` 登记，主题非空且不与族重名。
 - [ ] `name` 与目录名一致。
 - [ ] 入口按「何时使用 → 工作流 → 不做 → 参考」组织，读者从上到下即可执行。
 - [ ] 入口只放判断与最短步骤；长表格、平台差异、示例库已下沉到 references 目录。
@@ -20,6 +20,7 @@
 
 - [ ] 必填字段齐全：`name` / `description` / `license` / `metadata.version` / `metadata.tier` /
       `metadata.author` / `metadata.source`。
+- [ ] 命名族元数据齐全：`metadata.type`（`profile` / `practice` / `template`）、`metadata.scope`、`metadata.triggers`。
 - [ ] `metadata.tier` 使用既有取值，不新造层级。
 - [ ] 正文首部存在「本技能版本」，且与 `metadata.version` 一致。
 - [ ] 内容变更后用 `toolkit skills bump` 递增，两处同时更新；内容未变不递增。

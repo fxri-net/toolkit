@@ -118,7 +118,7 @@
 
 ## 会话沉淀、恢复与历史修正
 
-**核心边界**：AI 的新会话读不到其他会话的内部上下文，对话记录本身不可作为跨会话记忆。本工具的解法是把记忆**沉淀进仓库文件**（`.tasks/`），完整流程由 `fxri-session-recap` 技能承载。
+**核心边界**：AI 的新会话读不到其他会话的内部上下文，对话记录本身不可作为跨会话记忆。本工具的解法是把记忆**沉淀进仓库文件**（`.tasks/`），完整流程由 `fxri-plan-recap` 技能承载。
 
 ### 四级时间源
 
@@ -186,17 +186,21 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 
 | 技能 | 版本 | 用途 | 层级 |
 | --- | --- | --- | --- |
-| `fxri-plan-to-task` | 1.12.15 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
-| `fxri-release-changelog` | 1.3.9 | changesets 发版与多语言 CHANGELOG 维护 | optional |
-| `fxri-session-recap` | 1.7.5 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
-| `fxri-plan-review` | 1.0.15 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
-| `fxri-text-encoding` | 1.2.10 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
-| `fxri-skill-authoring` | 1.0.0 | 技能编写规范：统一骨架、references 拆分、安全边界，把可机械检出的规则交给 lint、版本递增交给 bump | optional |
-| `fxri-docs-writing` | 0.1.0 | 文档站写作规范：分类骨架、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏与 404 兜底、导航用工具命令校验 | optional |
+| `fxri-plan-task` | 1.12.16 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
+| `fxri-plan-review` | 1.0.16 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
+| `fxri-plan-recap` | 1.7.6 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
+| `fxri-release-changelog` | 1.3.10 | changesets 发版与多语言 CHANGELOG 维护 | optional |
+| `fxri-writing-skill` | 1.0.1 | 技能编写规范：统一骨架、references 拆分、安全边界，把可机械检出的规则交给 lint、版本递增交给 bump | optional |
+| `fxri-writing-docs` | 0.1.1 | 文档站写作规范：分类骨架、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏与 404 兜底、导航用工具命令校验 | optional |
+| `fxri-code-encoding` | 1.2.11 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
+
+表中按能力族（`plan` / `release` / `writing` / `code`）分组排列。
+族名与归属见 [skills/namespaces.json](https://github.com/fxri-net/toolkit/blob/main/skills/namespaces.json)。
+技能名统一为 `fxri-<族>-<主题>`。
 
 版本号取自各 SKILL.md 的 frontmatter `metadata.version`，层级取自 `metadata.tier`（`core` 必装、`optional` 可选）。
 
-**编写技能**：规范真源在 toolkit；加载 `fxri-skill-authoring` 按统一骨架编写，门禁与版本递增分别用
+**编写技能**：规范真源在 toolkit；加载 `fxri-writing-skill` 按统一骨架编写，门禁与版本递增分别用
 `toolkit skills lint` / `toolkit skills bump`，产品仓不维护规范副本。
 
 **安装**：装了 CLI 后一键分发（推荐，技能随包分发、与 CLI 同一发布批次）用 `toolkit skills install`；

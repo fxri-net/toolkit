@@ -95,7 +95,7 @@ export function registerConventionsCommands(program: Command): void {
     }
   }
 
-  // conventions 域：规范载体的结构升级、表格形态归一与只读体检（载体细则见 skills/fxri-plan-to-task/references/conventions-spec.md）
+  // conventions 域：规范载体的结构升级、表格形态归一与只读体检（载体细则见 skills/fxri-plan-task/references/conventions-spec.md）
   const conventionsCmd = program
     .command("convention")
     .description("项目协作规范载体：结构升级（v1 / v2 → v3）、表格与索引单元格形态归一、只读体检（形态 / 索引 / 入口层）")

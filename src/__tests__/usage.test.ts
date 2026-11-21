@@ -32,7 +32,7 @@ function makeEvent(overrides: Partial<SkillUsageEvent> = {}): SkillUsageEvent {
     occurredAt: overrides.occurredAt ?? "2026-11-06T10:00:00.000+08:00",
     agent: "trae",
     sessionId: "session-1",
-    skill: "fxri-plan-to-task",
+    skill: "fxri-plan-task",
     skillSource: "toolkit-first-party",
     managedBy: "toolkit",
     originAdapter: "test",
@@ -116,7 +116,7 @@ describe("使用情况配置", () => {
 
 describe("过滤链", () => {
   it("总开关、Agent、来源、技能范围逐层生效", () => {
-    const meta = resolveSkillMeta("fxri-plan-to-task")
+    const meta = resolveSkillMeta("fxri-plan-task")
     expect(shouldRecord(DEFAULT_USAGE_CONFIG, "trae", meta)).toBe(false)
     expect(shouldRecord(enabledConfig(), "cursor", meta)).toBe(false)
     expect(shouldRecord(enabledConfig({ sources: { firstParty: false, thirdParty: true, unmanaged: true } }), "trae", meta)).toBe(false)
@@ -129,16 +129,16 @@ describe("过滤链", () => {
 describe("事件构造", () => {
   it("事件 ID 对同一 toolUseId 稳定，缺少 toolUseId 时按 2 秒窗口去重", () => {
     const now = new Date("2026-11-06T10:00:00.000Z")
-    const first = computeEventId("trae", "s1", "call-1", "fxri-plan-to-task", now)
-    expect(computeEventId("trae", "s1", "call-1", "fxri-plan-to-task", now)).toBe(first)
-    expect(computeEventId("trae", "s1", "call-2", "fxri-plan-to-task", now)).not.toBe(first)
-    const fallback = computeEventId("trae", "s1", undefined, "fxri-plan-to-task", now)
-    expect(computeEventId("trae", "s1", undefined, "fxri-plan-to-task", new Date(now.getTime() + 1000))).toBe(fallback)
-    expect(computeEventId("trae", "s1", undefined, "fxri-plan-to-task", new Date(now.getTime() + 3000))).not.toBe(fallback)
+    const first = computeEventId("trae", "s1", "call-1", "fxri-plan-task", now)
+    expect(computeEventId("trae", "s1", "call-1", "fxri-plan-task", now)).toBe(first)
+    expect(computeEventId("trae", "s1", "call-2", "fxri-plan-task", now)).not.toBe(first)
+    const fallback = computeEventId("trae", "s1", undefined, "fxri-plan-task", now)
+    expect(computeEventId("trae", "s1", undefined, "fxri-plan-task", new Date(now.getTime() + 1000))).toBe(fallback)
+    expect(computeEventId("trae", "s1", undefined, "fxri-plan-task", new Date(now.getTime() + 3000))).not.toBe(fallback)
   })
 
   it("从 Skill 工具与 SKILL.md 路径识别技能名", () => {
-    expect(extractSkillName("Skill", { name: "fxri-plan-to-task" })).toBe("fxri-plan-to-task")
+    expect(extractSkillName("Skill", { name: "fxri-plan-task" })).toBe("fxri-plan-task")
     expect(extractSkillName("Read", { file_path: "/repo/skills/fxri-release-changelog/SKILL.md" })).toBe("fxri-release-changelog")
     expect(extractSkillName("Read", { file_path: "/repo/README.md" })).toBeNull()
   })
@@ -148,7 +148,7 @@ describe("事件构造", () => {
       agent: "trae",
       sessionId: "s1",
       toolUseId: "call-1",
-      skill: "fxri-plan-to-task",
+      skill: "fxri-plan-task",
       triggerPrompt: "全部任务落档",
       skillArgs: "归档任务 2",
       outcome: "success" as const,
@@ -182,7 +182,7 @@ describe("存储与统计", () => {
 
     const summary = summarize(readAllEvents(paths))
     expect(summary.total).toBe(2)
-    expect(summary.bySkill[0]?.skill).toBe("fxri-plan-to-task")
+    expect(summary.bySkill[0]?.skill).toBe("fxri-plan-task")
     expect(summary.sessions).toHaveLength(2)
     expect(eventsToCsv(readAllEvents(paths))).toContain("skillSource")
     expect(unusedSkills(readAllEvents(paths))).toContain("fxri-release-changelog")

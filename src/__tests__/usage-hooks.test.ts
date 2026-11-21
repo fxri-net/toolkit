@@ -253,16 +253,16 @@ describe("Hook 事件处理", () => {
       sessionId: "s1",
       toolUseId: "call-1",
       toolName: "Skill",
-      toolInput: { name: "fxri-plan-to-task" },
+      toolInput: { name: "fxri-plan-task" },
       toolResponse: { success: true, duration_ms: 1200 },
       originAdapter: "trae-hooks",
     }
-    expect(processHookEvent(postEvent, config, paths)).toMatchObject({ status: "written", skill: "fxri-plan-to-task" })
+    expect(processHookEvent(postEvent, config, paths)).toMatchObject({ status: "written", skill: "fxri-plan-task" })
     expect(processHookEvent(postEvent, config, paths).status).toBe("duplicate")
     const events = readAllEvents(paths)
     expect(events).toHaveLength(1)
     expect(events[0]).toMatchObject({
-      skill: "fxri-plan-to-task",
+      skill: "fxri-plan-task",
       triggerPrompt: "全部任务落档",
       outcome: "success",
       durationMs: 1200,

@@ -151,10 +151,10 @@ describe("包根与技能真源定位", () => {
 
   it("列出包内技能且按名称排序（只认含 SKILL.md 的目录）", () => {
     const names = listPackageSkills().map((s) => s.name)
-    expect(names).toContain("fxri-plan-to-task")
-    expect(names).toContain("fxri-session-recap")
+    expect(names).toContain("fxri-plan-task")
+    expect(names).toContain("fxri-plan-recap")
     expect(names).toContain("fxri-release-changelog")
-    expect(names).toContain("fxri-text-encoding")
+    expect(names).toContain("fxri-code-encoding")
     expect(names).toEqual([...names].sort())
     for (const skill of listPackageSkills()) {
       expect(existsSync(join(skill.dir, "SKILL.md"))).toBe(true)
@@ -771,14 +771,14 @@ describe("hasGlobalSkillsInstalled 安装态探测", () => {
   })
 
   it("任一目标的登记产物仍存在才算已安装", () => {
-    mkdirSync(join(primaryDir(), "fxri-plan-to-task"), { recursive: true })
-    writeState([{ dir: primaryDir(), links: ["fxri-plan-to-task"] }])
+    mkdirSync(join(primaryDir(), "fxri-plan-task"), { recursive: true })
+    writeState([{ dir: primaryDir(), links: ["fxri-plan-task"] }])
     expect(hasGlobalSkillsInstalled()).toBe(true)
-    writeState([{ dir: primaryDir(), copies: ["fxri-plan-to-task"] }])
+    writeState([{ dir: primaryDir(), copies: ["fxri-plan-task"] }])
     expect(hasGlobalSkillsInstalled()).toBe(true)
     // 登记在但产物被删：登记不等于现场，回到未安装
-    rmSync(join(primaryDir(), "fxri-plan-to-task"), { recursive: true, force: true })
-    writeState([{ dir: primaryDir(), links: ["fxri-plan-to-task"] }])
+    rmSync(join(primaryDir(), "fxri-plan-task"), { recursive: true, force: true })
+    writeState([{ dir: primaryDir(), links: ["fxri-plan-task"] }])
     expect(hasGlobalSkillsInstalled()).toBe(false)
   })
 })
@@ -918,8 +918,8 @@ describe("removeSkills 精确清理", () => {
 
   it("报告目标带显示名，与 install / status 同口径；表外目标回落为 null", () => {
     writeState([
-      { dir: primaryDir(), links: ["fxri-plan-to-task"] },
-      { dir: join(home, "custom-skills"), links: ["fxri-plan-to-task"] },
+      { dir: primaryDir(), links: ["fxri-plan-task"] },
+      { dir: join(home, "custom-skills"), links: ["fxri-plan-task"] },
     ])
     const report = removeSkills({ dryRun: true })
     expect(report.targets[0]!.label).toBe(resolveSkillTargets()[0]!.label)
@@ -1001,33 +1001,33 @@ describe("autoLinkSkills 链接自愈", () => {
 
   it("重建时顺带剔除已不在包内的技能记录", () => {
     mkdirSync(primaryDir(), { recursive: true })
-    writeState([{ dir: primaryDir(), links: ["fxri-not-exists", "fxri-plan-to-task"] }])
+    writeState([{ dir: primaryDir(), links: ["fxri-not-exists", "fxri-plan-task"] }])
     expect(autoLinkSkills()).toBe(1)
-    expect(readSkillsState()?.sources["toolkit"]?.targets[0]?.entries.map((entry) => entry.name)).toEqual(["fxri-plan-to-task"])
+    expect(readSkillsState()?.sources["toolkit"]?.targets[0]?.entries.map((entry) => entry.name)).toEqual(["fxri-plan-task"])
   })
 
   it("状态记录的目标目录已不存在时原样保留记录", () => {
     const ghostDir = join(home, "ghost-target")
-    writeState([{ dir: ghostDir, links: ["fxri-plan-to-task"] }])
+    writeState([{ dir: ghostDir, links: ["fxri-plan-task"] }])
     expect(autoLinkSkills()).toBe(0)
     expect(stateTarget(ghostDir)?.dir).toBe(ghostDir)
   })
 
   it("配置 skills.autoLink=false 时关闭自愈", () => {
     mkdirSync(primaryDir(), { recursive: true })
-    writeState([{ dir: primaryDir(), links: ["fxri-plan-to-task"] }])
+    writeState([{ dir: primaryDir(), links: ["fxri-plan-task"] }])
     writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ skills: { autoLink: false } }), "utf8")
     resetToolkitConfigCache()
     expect(autoLinkSkills()).toBe(0)
-    expect(existsSync(join(primaryDir(), "fxri-plan-to-task"))).toBe(false)
+    expect(existsSync(join(primaryDir(), "fxri-plan-task"))).toBe(false)
   })
 
   it("CI 环境下跳过自愈", () => {
     mkdirSync(primaryDir(), { recursive: true })
-    writeState([{ dir: primaryDir(), links: ["fxri-plan-to-task"] }])
+    writeState([{ dir: primaryDir(), links: ["fxri-plan-task"] }])
     process.env.CI = "1"
     expect(autoLinkSkills()).toBe(0)
-    expect(existsSync(join(primaryDir(), "fxri-plan-to-task"))).toBe(false)
+    expect(existsSync(join(primaryDir(), "fxri-plan-task"))).toBe(false)
   })
 
   it("自愈只返回计数，不向 stdout 写任何内容（提示由调用方走 stderr）", () => {
@@ -1036,7 +1036,7 @@ describe("autoLinkSkills 链接自愈", () => {
     const err = vi.spyOn(console, "error").mockImplementation((...a: unknown[]) => out.push(a.join(" ")))
     try {
       mkdirSync(primaryDir(), { recursive: true })
-      writeState([{ dir: primaryDir(), links: ["fxri-plan-to-task"] }])
+      writeState([{ dir: primaryDir(), links: ["fxri-plan-task"] }])
       expect(autoLinkSkills()).toBe(1)
       // 修链提示在 CLI 层输出，函数本身必须静默，避免混入 --format json 的 stdout
       expect(out).toHaveLength(0)

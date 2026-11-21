@@ -224,10 +224,10 @@ describe("档案与快捷视图", () => {
   })
 
   it("档案写入未提供的名单会告警并展示清空结果", () => {
-    writeGlobal({ skillProfiles: { front: { allow: ["fxri-plan-review"], deny: ["fxri-text-encoding"] } } })
+    writeGlobal({ skillProfiles: { front: { allow: ["fxri-plan-review"], deny: ["fxri-code-encoding"] } } })
     const plan = planProfileUpsert(readPolicyState("global", project), {
       name: "front",
-      allow: ["fxri-plan-to-task"],
+      allow: ["fxri-plan-task"],
     })
     expect(plan.warnings.join("\n")).toContain("将清空原 deny")
     expect(plan.details.join("\n")).toContain("deny：无")

@@ -42,7 +42,7 @@ function localConfigIssues(cwd: string): CheckIssue[] {
 // 规范载体形态检查（软告警，不读内容）：只读首行标记与文件存在性，形态判据走 format.ts 的单一实现
 // 三态：v1（有 index.md、无 history.md、无标记）为合法存量不告警；形态异常（标记 / history.md / 首列 ID 三者不一致）告警
 // 入口层：壳标记与当前 toolkit 不一致、壳被 gitignore 覆盖各合并为一条（多落点内联路径，不按壳重复）；无壳时不探测（避免无壳项目的进程开销）
-// 载体细则见 skills/fxri-plan-to-task/references/conventions-spec.md
+// 载体细则见 skills/fxri-plan-task/references/conventions-spec.md
 export function validateConventions(tasksDir: string, cwd: string): CheckIssue[] {
   const issues: CheckIssue[] = []
   const state = readCarrier(tasksDir)

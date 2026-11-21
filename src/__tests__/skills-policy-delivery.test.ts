@@ -50,7 +50,7 @@ describe("策略推导", () => {
   const emptyProfiles: never[] = []
 
   it("带条件的 deny 推导为入口壳，并给出策略 id", () => {
-    const decision = derivePolicyDelivery("fxri-plan-to-task", {
+    const decision = derivePolicyDelivery("fxri-plan-task", {
       policies: [{ id: "deny-work", effect: "deny", when: { paths: ["/work/**"] } }],
       profiles: emptyProfiles,
     })
@@ -59,7 +59,7 @@ describe("策略推导", () => {
   })
 
   it("无条件 deny 推导为不安装", () => {
-    const decision = derivePolicyDelivery("fxri-plan-to-task", {
+    const decision = derivePolicyDelivery("fxri-plan-task", {
       policies: [{ id: "deny-all", effect: "deny" }],
       profiles: emptyProfiles,
     })
@@ -67,7 +67,7 @@ describe("策略推导", () => {
   })
 
   it("收窄的允许名单不含该技能时推导为入口壳", () => {
-    const decision = derivePolicyDelivery("fxri-plan-to-task", {
+    const decision = derivePolicyDelivery("fxri-plan-task", {
       policies: [{ id: "allow-small", skills: { mode: "allowlist", allow: ["fxri-plan-review"] } }],
       profiles: emptyProfiles,
     })
@@ -76,7 +76,7 @@ describe("策略推导", () => {
   })
 
   it("允许名单为全量通配 * 时不产生限制", () => {
-    const decision = derivePolicyDelivery("fxri-plan-to-task", {
+    const decision = derivePolicyDelivery("fxri-plan-task", {
       policies: [{ id: "allow-all", skills: { mode: "allowlist", allow: ["*"] } }],
       profiles: emptyProfiles,
     })
@@ -84,10 +84,10 @@ describe("策略推导", () => {
   })
 
   it("多策略命中时 source 列出全部 id，reason 取最具体一条", () => {
-    const decision = derivePolicyDelivery("fxri-plan-to-task", {
+    const decision = derivePolicyDelivery("fxri-plan-task", {
       policies: [
         { id: "broad", skills: { match: ["fxri-*"], mode: "allowlist", allow: ["fxri-plan-review"] } },
-        { id: "exact", skills: { match: ["fxri-plan-to-task"], mode: "allowlist", allow: ["fxri-plan-review"] } },
+        { id: "exact", skills: { match: ["fxri-plan-task"], mode: "allowlist", allow: ["fxri-plan-review"] } },
       ],
       profiles: emptyProfiles,
     })
@@ -96,15 +96,15 @@ describe("策略推导", () => {
   })
 
   it("技能声明退出高于命令行显式取值", () => {
-    const decision = resolveDelivery({ name: "fxri-plan-to-task", override: "gated", gate: false })
+    const decision = resolveDelivery({ name: "fxri-plan-task", override: "gated", gate: false })
     expect(decision.mode).toBe("full")
     expect(decision.source).toContain("metadata.gate=false")
   })
 
   it("显式规则优先于策略推导", () => {
     const decision = resolveDelivery({
-      name: "fxri-plan-to-task",
-      config: { rules: [{ match: ["fxri-plan-to-task"], delivery: "full" }] },
+      name: "fxri-plan-task",
+      config: { rules: [{ match: ["fxri-plan-task"], delivery: "full" }] },
       policy: { mode: "gated", source: "policy:matrix", reason: "矩阵限制" },
     })
     expect(decision.mode).toBe("full")
@@ -115,7 +115,7 @@ describe("策略推导", () => {
 describe("推导解释", () => {
   it("逐级给出命中 / 未命中，并暴露被压规则", () => {
     const explanation = explainDelivery({
-      name: "fxri-plan-to-task",
+      name: "fxri-plan-task",
       config: {
         rules: [
           { match: ["fxri-*"], delivery: "gated" },
@@ -133,7 +133,7 @@ describe("推导解释", () => {
   })
 
   it("未命中任何级别时列出全局默认回落", () => {
-    const explanation = explainDelivery({ name: "fxri-plan-to-task" })
+    const explanation = explainDelivery({ name: "fxri-plan-task" })
     expect(explanation.decision.mode).toBe("full")
     expect(explanation.levels.at(-1)?.detail).toContain("回落全文安装")
   })
@@ -146,10 +146,10 @@ describe("安装按矩阵推导", () => {
       JSON.stringify({ policies: [{ id: "matrix", effect: "allow", skills: { mode: "allowlist", allow: ["fxri-plan-review"] } }] }),
     )
     resetToolkitConfigCache()
-    const report = installSkills({ skills: ["fxri-plan-review", "fxri-plan-to-task"] })
+    const report = installSkills({ skills: ["fxri-plan-review", "fxri-plan-task"] })
     const primary = report.targets.find((target) => target.kind === "primary")
     expect(primary?.links).toContain("fxri-plan-review")
-    expect(primary?.gates).toContain("fxri-plan-to-task")
-    expect(existsSync(join(primaryDir(), "fxri-plan-to-task", "SKILL.md"))).toBe(true)
+    expect(primary?.gates).toContain("fxri-plan-task")
+    expect(existsSync(join(primaryDir(), "fxri-plan-task", "SKILL.md"))).toBe(true)
   })
 })

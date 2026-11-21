@@ -16,7 +16,7 @@
 5. **规范核对与提炼**：读 conventions 载体（存在时）纳入现场——常驻只读 `index.md`（`history.md` / `retired.md` 与各分册按需读），
     再按任务 `scope` 命中加载 `common.md` 与端分册；
     载体为 v1 / v2 或 `check` / `toolkit conventions status` 报形态告警时提示用户可升级（升级链路见
-    `../../fxri-plan-to-task/references/conventions-migration.md`；
+    `../../fxri-plan-task/references/conventions-migration.md`；
     该兄弟路径不存在时改读包内真源——`toolkit skills status` 打印的「技能源」目录下同名文件）；对照近期任务按主文件「规范提炼子流程」提议增改——⚠️ 恢复主体只读，
     写载体是用户确认后的独立动作
 6. **输出**：全部任务索引摘要 → 进行中/阻塞任务（含搁置标注）→ **搁置项一行计数**

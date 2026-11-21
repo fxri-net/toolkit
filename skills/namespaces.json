@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "source": "https://github.com/fxri-net/playbook",
+  "families": {
+    "plan": { "semantics": "规划与复盘", "skills": ["fxri-plan-task", "fxri-plan-review", "fxri-plan-recap"] },
+    "release": { "semantics": "发版与更新日志", "skills": ["fxri-release-changelog"] },
+    "writing": { "semantics": "写作与规范表达", "skills": ["fxri-writing-skill", "fxri-writing-docs"] },
+    "code": { "semantics": "代码与工程规范", "skills": ["fxri-code-encoding"] }
+  }
+}

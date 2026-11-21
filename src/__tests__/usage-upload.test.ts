@@ -56,7 +56,7 @@ function seedEvent(): SkillUsageEvent {
     occurredAt: "2026-11-06T10:00:00.000+08:00",
     agent: "trae",
     sessionId: "s1",
-    skill: "fxri-plan-to-task",
+    skill: "fxri-plan-task",
     skillSource: "toolkit-first-party",
     managedBy: "toolkit",
     originAdapter: "test",

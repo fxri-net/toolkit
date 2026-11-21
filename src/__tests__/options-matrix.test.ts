@@ -355,7 +355,7 @@ describe("顶层命令与外部域", () => {
   }
 
   it("skills uninstall 无参多选只卸载所选（含疑似残留）", async () => {
-    const stateFile = writeGlobalState(["fxri-plan-review", "fxri-plan-to-task"])
+    const stateFile = writeGlobalState(["fxri-plan-review", "fxri-plan-task"])
     const canonical = join(homeDir, ".agents", "skills")
     const cacheTarget = join(homeDir, ".toolkit", "cache", "skill-sources", "deadbeef", "skills", "ghost-old")
     mkdirSync(cacheTarget, { recursive: true })
@@ -794,7 +794,7 @@ describe("skills source 外部来源口径", () => {
       format: "fxri.toolkit.skills-state",
       schemaVersion: 1,
       updatedAt: "",
-      sources: { toolkit: sourceFixture("", ["fxri-plan-to-task"]), play: sourceFixture("1.2.3", ["ext-alpha"]) },
+      sources: { toolkit: sourceFixture("", ["fxri-plan-task"]), play: sourceFixture("1.2.3", ["ext-alpha"]) },
     })
     const json = await runCli(["skill", "source", "--format", "json"])
     const payload = JSON.parse(json.log.join("\n")) as { sources: Array<{ name: string }> }

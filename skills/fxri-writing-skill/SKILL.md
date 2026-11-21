@@ -1,17 +1,21 @@
 ---
-name: fxri-skill-authoring
+name: fxri-writing-skill
 description: 编写或修改 AI 技能（SKILL.md 与 references）时加载：按统一骨架组织入口、判断何时拆 references、写清触发与不做，并复用 toolkit 的机械校验与版本递增。新建技能、调整技能结构、评审技能文案或把其他仓库的规范迁入技能时适用。不用于任务建档、发版流程或普通项目文档写作。
 license: MIT
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
   tier: optional
+  previousNames: ["fxri-skill-authoring"]
+  type: practice
+  scope: skills
+  triggers: [新建技能, 技能结构, references 拆分, 技能文案评审]
   author: fxri
   source: https://github.com/fxri-net/toolkit
 ---
 
 # 技能编写规范
 
-> 本技能版本 1.0.0（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.0.1（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skills status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -26,13 +30,14 @@ metadata:
 
 1. **先定判断，再写入口**：先写清「何时加载、先做什么、什么不做」，再决定需要哪些细节文件。
    入口只保留判断链与最短步骤；示例、长清单、平台差异等细节下沉到 references 目录。
-2. **命名与目录**：目录用小写 kebab 并带团队前缀；一个目录一个技能，入口文件固定为 `SKILL.md`。
-   技能名与目录名一致，避免安装后状态与产物对不上。
+2. **命名与目录**：技能名为 `fxri-<族>-<主题>`、目录与 name 一致；族先在 `namespaces.json` 登记，主题非空且不与族重名。
+   一个目录一个技能，入口文件固定为 `SKILL.md`，避免安装后状态与产物对不上。
 3. **frontmatter 与版本行**：补齐 `name` / `description` / `license` / `metadata.version` / `metadata.tier` /
-   `metadata.author` / `metadata.source`；正文首部写一行「本技能版本 x.y.z」，与 frontmatter 保持同值。
+   `metadata.author` / `metadata.source`，以及 `metadata.type`（`profile` / `practice` / `template`）、`metadata.scope` 与
+   `metadata.triggers`；正文首部写一行「本技能版本 x.y.z」，与 frontmatter 保持同值。
 4. **拆分 references**：入口接近体量上限、或某类读者只需其中一段时再拆；拆出的文件必须在入口或同技能文档内被引用，
    引用用相对路径，不指向技能目录之外。不为「以后可能用到」提前拆档。
-5. **把可机械检出的规则交给工具**：命名、字段、两处版本一致、篇幅、references 可达性、敏感信息与版本递增，
+5. **把可机械检出的规则交给工具**：命名族与元数据、字段、两处版本一致、篇幅、references 可达性、敏感信息与版本递增，
    统一由 `toolkit skills lint` 判定；技能正文只写判断口径，不复制阈值、正则或字段清单的判定实现。
 6. **版本独立递增**：技能内容变更时用 `toolkit skills bump` 同时改写两处版本声明；技能版本不跟随产品包版本，
    内容没变就不递增。两处版本不一致时先跑 lint 定位，再用 `--from` 显式选择源头。

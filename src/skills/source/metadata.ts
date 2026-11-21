@@ -70,20 +70,24 @@ export function readSkillDelivery(dir: string): "full" | "gated" | undefined {
 // 读取 frontmatter metadata 下的缩进行内数组键：兼容 [a, b] 与单值，去引号与空项
 function readFrontmatterList(dir: string, key: string): string[] {
   try {
-    const content = readTextFile(join(dir, SKILL_ENTRY))
-    const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
-    if (!frontmatter) return []
-    const matched = (frontmatter[1] ?? "").match(new RegExp(`^[ \\t]+${key}:[ \\t]*(.+)$`, "m"))
-    if (!matched) return []
-    const raw = (matched[1] ?? "").trim()
-    const inner = raw.startsWith("[") && raw.endsWith("]") ? raw.slice(1, -1) : raw
-    return inner
-      .split(",")
-      .map((item) => item.trim().replace(/^["']|["']$/g, ""))
-      .filter(Boolean)
+    return readSkillFrontmatterListFromContent(readTextFile(join(dir, SKILL_ENTRY)), key)
   } catch {
     return []
   }
+}
+
+// 从文本内容解析行内数组键：与 readFrontmatterList 同一口径，供内存校验复用
+export function readSkillFrontmatterListFromContent(content: string, key: string): string[] {
+  const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+  if (!frontmatter) return []
+  const matched = (frontmatter[1] ?? "").match(new RegExp(`^[ \\t]+${key}:[ \\t]*(.+)$`, "m"))
+  if (!matched) return []
+  const raw = (matched[1] ?? "").trim()
+  const inner = raw.startsWith("[") && raw.endsWith("]") ? raw.slice(1, -1) : raw
+  return inner
+    .split(",")
+    .map((item) => item.trim().replace(/^["']|["']$/g, ""))
+    .filter(Boolean)
 }
 
 // 读取 frontmatter metadata 下的单个缩进键值

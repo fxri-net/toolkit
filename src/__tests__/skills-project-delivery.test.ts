@@ -36,7 +36,7 @@ function writeProjectConfig(value: unknown): void {
 
 // 安装两个技能：一个按规则收口、一个保持全文
 function installPair(): ReturnType<typeof installProjectSkills> {
-  return installProjectSkills({ cwd: project, skills: ["fxri-plan-to-task", "fxri-text-encoding"] })
+  return installProjectSkills({ cwd: project, skills: ["fxri-plan-task", "fxri-code-encoding"] })
 }
 
 // 项目面某目录下某技能的状态
@@ -75,75 +75,75 @@ afterEach(() => {
 describe("项目面分发形态", () => {
   it("未配置 skillsDelivery 时保持全文：真源副本 + 项目薄壳", () => {
     const report = installPair()
-    expect(report.source.created).toEqual(expect.arrayContaining(["fxri-plan-to-task", "fxri-text-encoding"]))
-    const skill = { name: "fxri-plan-to-task", dir: join(project, ".agents/skills/fxri-plan-to-task") }
-    const shell = readFileSync(join(project, SHELL_DIR, "fxri-plan-to-task", "SKILL.md"), "utf8")
+    expect(report.source.created).toEqual(expect.arrayContaining(["fxri-plan-task", "fxri-code-encoding"]))
+    const skill = { name: "fxri-plan-task", dir: join(project, ".agents/skills/fxri-plan-task") }
+    const shell = readFileSync(join(project, SHELL_DIR, "fxri-plan-task", "SKILL.md"), "utf8")
     expect(isSkillGateShell(shell)).toBe(false)
     expect(shell).toBe(buildSkillShell(skill.name, ".agents/skills", readSkillDescription(skill.dir)))
   })
 
   it("安装完成后计划为零动作", () => {
     installPair()
-    const plan = planProjectSkills({ cwd: project, skills: ["fxri-plan-to-task", "fxri-text-encoding"] })
+    const plan = planProjectSkills({ cwd: project, skills: ["fxri-plan-task", "fxri-code-encoding"] })
     expect(plan.pending).toBe(0)
     expect(plan.targets.flatMap((target) => target.items).every((item) => item.action === "keep")).toBe(true)
   })
 
   it("项目层规则指定 gated 时只写入口壳，真源副本保留", () => {
-    writeProjectConfig({ skillsDelivery: { rules: [{ match: ["fxri-plan-to-task"], delivery: "gated" }] } })
+    writeProjectConfig({ skillsDelivery: { rules: [{ match: ["fxri-plan-task"], delivery: "gated" }] } })
     const report = installPair()
-    expect(report.shells[0]?.gates).toContain("fxri-plan-to-task")
-    const gate = readFileSync(join(project, SHELL_DIR, "fxri-plan-to-task", "SKILL.md"), "utf8")
+    expect(report.shells[0]?.gates).toContain("fxri-plan-task")
+    const gate = readFileSync(join(project, SHELL_DIR, "fxri-plan-task", "SKILL.md"), "utf8")
     expect(isSkillGateShell(gate)).toBe(true)
-    expect(gate).toContain("toolkit scope guard fxri-plan-to-task")
+    expect(gate).toContain("toolkit scope guard fxri-plan-task")
     // 真源副本仍写入，作为 guard 的正文来源
-    expect(existsSync(join(project, ".agents/skills/fxri-plan-to-task/SKILL.md"))).toBe(true)
+    expect(existsSync(join(project, ".agents/skills/fxri-plan-task/SKILL.md"))).toBe(true)
     // 未被规则覆盖的技能仍是项目薄壳
-    const other = readFileSync(join(project, SHELL_DIR, "fxri-text-encoding", "SKILL.md"), "utf8")
+    const other = readFileSync(join(project, SHELL_DIR, "fxri-code-encoding", "SKILL.md"), "utf8")
     expect(isSkillGateShell(other)).toBe(false)
   })
 
   it("入口壳就绪、被改动或真源缺失时状态可分辨", () => {
-    writeProjectConfig({ skillsDelivery: { rules: [{ match: ["fxri-plan-to-task"], delivery: "gated" }] } })
+    writeProjectConfig({ skillsDelivery: { rules: [{ match: ["fxri-plan-task"], delivery: "gated" }] } })
     installPair()
-    expect(stateIn(SHELL_DIR, "fxri-plan-to-task")).toBe("ready")
+    expect(stateIn(SHELL_DIR, "fxri-plan-task")).toBe("ready")
     // 保留本包标记但内容过期 → 漂移，重跑 install 恢复
-    const gateFile = join(project, SHELL_DIR, "fxri-plan-to-task", "SKILL.md")
+    const gateFile = join(project, SHELL_DIR, "fxri-plan-task", "SKILL.md")
     writeFileSync(gateFile, `${readFileSync(gateFile, "utf8")}<!-- 过期 -->\n`, "utf8")
-    expect(stateIn(SHELL_DIR, "fxri-plan-to-task")).toBe("drift")
+    expect(stateIn(SHELL_DIR, "fxri-plan-task")).toBe("drift")
     installPair()
-    expect(stateIn(SHELL_DIR, "fxri-plan-to-task")).toBe("ready")
+    expect(stateIn(SHELL_DIR, "fxri-plan-task")).toBe("ready")
     // 真源副本缺失 → 真源目录报缺失
-    rmSync(join(project, ".agents/skills/fxri-plan-to-task"), { recursive: true, force: true })
-    expect(stateIn(".agents/skills", "fxri-plan-to-task")).toBe("missing")
+    rmSync(join(project, ".agents/skills/fxri-plan-task"), { recursive: true, force: true })
+    expect(stateIn(".agents/skills", "fxri-plan-task")).toBe("missing")
   })
 
   it("off 不落产物，既有产物单列残留并由 --prune 清理", () => {
     installPair()
-    writeProjectConfig({ skillsDelivery: { rules: [{ match: ["fxri-plan-to-task"], delivery: "off" }] } })
-    expect(stateIn(SHELL_DIR, "fxri-plan-to-task")).toBe("residue")
-    installProjectSkills({ cwd: project, skills: ["fxri-plan-to-task"], prune: true })
-    expect(existsSync(join(project, SHELL_DIR, "fxri-plan-to-task"))).toBe(false)
-    expect(existsSync(join(project, ".agents/skills/fxri-plan-to-task"))).toBe(false)
-    expect(stateIn(SHELL_DIR, "fxri-plan-to-task")).toBeUndefined()
+    writeProjectConfig({ skillsDelivery: { rules: [{ match: ["fxri-plan-task"], delivery: "off" }] } })
+    expect(stateIn(SHELL_DIR, "fxri-plan-task")).toBe("residue")
+    installProjectSkills({ cwd: project, skills: ["fxri-plan-task"], prune: true })
+    expect(existsSync(join(project, SHELL_DIR, "fxri-plan-task"))).toBe(false)
+    expect(existsSync(join(project, ".agents/skills/fxri-plan-task"))).toBe(false)
+    expect(stateIn(SHELL_DIR, "fxri-plan-task")).toBeUndefined()
   })
 })
 
 describe("项目面 refresh 收敛", () => {
   it("只刷新已存在产物，不新增技能；连续两次第二次零动作", () => {
-    installProjectSkills({ cwd: project, skills: ["fxri-plan-to-task"] })
+    installProjectSkills({ cwd: project, skills: ["fxri-plan-task"] })
     const first = installProjectSkills({ cwd: project, refresh: true })
     const second = installProjectSkills({ cwd: project, refresh: true })
     // 不新增技能：只处理归属账已有的那一个
-    expect(second.skills).toEqual(["fxri-plan-to-task"])
+    expect(second.skills).toEqual(["fxri-plan-task"])
     expect(second.source.created).toEqual([])
     expect(second.source.updated).toEqual([])
     expect(second.shells.every((dir) => dir.created.length === 0 && dir.updated.length === 0)).toBe(true)
-    expect(first.source.skipped).toContain("fxri-plan-to-task")
+    expect(first.source.skipped).toContain("fxri-plan-task")
   })
 
   it("归属账登记但来源不可解析时 plan 与 status 都报待收敛", () => {
-    installProjectSkills({ cwd: project, skills: ["fxri-plan-to-task"] })
+    installProjectSkills({ cwd: project, skills: ["fxri-plan-task"] })
     const stateFile = join(project, ".toolkit", "state.json")
     const state = JSON.parse(readFileSync(stateFile, "utf8")) as {
       sources: Record<string, { targets: Array<{ kind: string; entries: Array<{ name: string; version: string; mode: string }> }> }>
@@ -166,9 +166,9 @@ describe("项目面 refresh 收敛", () => {
     } as never
     writeFileSync(stateFile, JSON.stringify(state), "utf8")
     // 选择集包含该名字，模拟「曾安装过的外部技能来源被删」
-    writeProjectConfig({ projectSkills: { selection: ["fxri-plan-to-task", "ghost-skill"] } })
+    writeProjectConfig({ projectSkills: { selection: ["fxri-plan-task", "ghost-skill"] } })
 
-    const plan = planProjectSkills({ cwd: project, skills: ["fxri-plan-to-task"] })
+    const plan = planProjectSkills({ cwd: project, skills: ["fxri-plan-task"] })
     expect(plan.pending).toBeGreaterThan(0)
     expect(plan.targets.flatMap((target) => target.items).some((item) => item.name === "ghost-skill" && item.source === "来源不可解析")).toBe(true)
     expect(projectSkillsStatus(project).pending.some((item) => item.name === "ghost-skill")).toBe(true)
@@ -177,21 +177,21 @@ describe("项目面 refresh 收敛", () => {
 
 describe("guard 读取项目真源", () => {
   it("仓库内真源副本优先，子目录运行结论一致", () => {
-    writeProjectConfig({ skillsDelivery: { rules: [{ match: ["fxri-plan-to-task"], delivery: "gated" }] } })
+    writeProjectConfig({ skillsDelivery: { rules: [{ match: ["fxri-plan-task"], delivery: "gated" }] } })
     installPair()
     const body = "# 项目内正文\n\n按项目层配置下发\n"
-    writeFileSync(join(project, ".agents/skills/fxri-plan-to-task/SKILL.md"), body, "utf8")
-    const fromRoot = resolveGuard("fxri-plan-to-task", project)
+    writeFileSync(join(project, ".agents/skills/fxri-plan-task/SKILL.md"), body, "utf8")
+    const fromRoot = resolveGuard("fxri-plan-task", project)
     expect(fromRoot.active).toBe(true)
     expect(fromRoot.content).toBe(body)
     const sub = join(project, "packages", "child")
     mkdirSync(sub, { recursive: true })
-    expect(resolveGuard("fxri-plan-to-task", sub).content).toBe(body)
+    expect(resolveGuard("fxri-plan-task", sub).content).toBe(body)
   })
 
   it("项目层作用域配置优先于全局层", () => {
     writeProjectConfig({
-      skillsDelivery: { rules: [{ match: ["fxri-plan-to-task"], delivery: "gated" }] },
+      skillsDelivery: { rules: [{ match: ["fxri-plan-task"], delivery: "gated" }] },
       policies: [{ id: "allow-project", effect: "allow" }],
     })
     installPair()
@@ -202,9 +202,9 @@ describe("guard 读取项目真源", () => {
     )
     resetToolkitConfigCache()
     resetScopeCache()
-    const result = resolveGuard("fxri-plan-to-task", project)
+    const result = resolveGuard("fxri-plan-task", project)
     expect(result.active).toBe(true)
-    expect(result.content).toContain("fxri-plan-to-task")
-    expect(result.content).not.toBe(buildSkillGateShell("fxri-plan-to-task", ""))
+    expect(result.content).toContain("fxri-plan-task")
+    expect(result.content).not.toBe(buildSkillGateShell("fxri-plan-task", ""))
   })
 })

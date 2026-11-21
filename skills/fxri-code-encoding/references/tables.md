@@ -1,6 +1,6 @@
 # 编码与字节形态明细表
 
-> 本文件是 `fxri-text-encoding` 的明细附表，由 `SKILL.md`「读取地图」按场景引用；触发判据与乱码三问以 `SKILL.md` 为准。
+> 本文件是 `fxri-code-encoding` 的明细附表，由 `SKILL.md`「读取地图」按场景引用；触发判据与乱码三问以 `SKILL.md` 为准。
 
 ## 读取方默认解码（无 BOM 时）
 

@@ -1407,7 +1407,7 @@ export function registerSkillsCommands(program: Command): void {
   // 技能规范校验：只读命令，可对任意技能目录运行，供各工具仓在 verify 中复用
   skillsCmd
     .command("lint")
-    .description("校验技能规范（命名 / frontmatter / 版本双写 / 篇幅 / references / 敏感信息 / 版本递增）")
+    .description("校验技能规范（命名族 / 元数据 / frontmatter / 版本双写 / 篇幅 / references / 敏感信息 / 版本递增）")
     .argument("[dirs...]", "技能目录（可多个；缺省为本包 skills/）")
     .option("--dir <path>", "技能目录（可重复，与位置参数并用）", collectDir, [])
     .option("--base <ref>", "版本递增基准（git ref）；不传则不校验递增")

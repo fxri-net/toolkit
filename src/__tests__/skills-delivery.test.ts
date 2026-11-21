@@ -73,7 +73,7 @@ afterEach(() => {
 describe("分发形态推导", () => {
   it("显式规则优先于默认，并给出来源与原因", () => {
     const decision = resolveDelivery({
-      name: "fxri-plan-to-task",
+      name: "fxri-plan-task",
       config: { default: "full", rules: [{ match: ["fxri-*"], delivery: "gated" }] },
     })
     expect(decision.mode).toBe("gated")
@@ -83,11 +83,11 @@ describe("分发形态推导", () => {
 
   it("具体度：更具体的规则压过通配规则", () => {
     const decision = resolveDelivery({
-      name: "fxri-plan-to-task",
+      name: "fxri-plan-task",
       config: {
         rules: [
           { match: ["*"], delivery: "gated" },
-          { match: ["fxri-plan-to-task"], delivery: "full" },
+          { match: ["fxri-plan-task"], delivery: "full" },
         ],
       },
     })
@@ -97,7 +97,7 @@ describe("分发形态推导", () => {
 
   it("具体度相同时取最后一条并告警被压规则", () => {
     const decision = resolveDelivery({
-      name: "fxri-plan-to-task",
+      name: "fxri-plan-task",
       config: {
         rules: [
           { match: ["fxri-*"], delivery: "gated" },
@@ -110,10 +110,10 @@ describe("分发形态推导", () => {
   })
 
   it("旧键 include / exclude 映射后保持排除优先", () => {
-    writeHomeConfig({ skillInstall: { gate: { include: ["fxri-*"], exclude: ["fxri-text-encoding"] } } })
+    writeHomeConfig({ skillInstall: { gate: { include: ["fxri-*"], exclude: ["fxri-code-encoding"] } } })
     const config = readSkillsDeliveryConfig("global", project)
-    const gated = resolveDelivery({ name: "fxri-plan-to-task", config })
-    const excluded = resolveDelivery({ name: "fxri-text-encoding", config })
+    const gated = resolveDelivery({ name: "fxri-plan-task", config })
+    const excluded = resolveDelivery({ name: "fxri-code-encoding", config })
     expect(gated.mode).toBe("gated")
     expect(gated.source).toContain("旧键 skillInstall.gate.include")
     expect(excluded.mode).toBe("full")
@@ -122,7 +122,7 @@ describe("分发形态推导", () => {
 
   it("技能声明 metadata.gate=false 单点退出，按全文安装", () => {
     const decision = resolveDelivery({
-      name: "fxri-plan-to-task",
+      name: "fxri-plan-task",
       config: { default: "gated", rules: [{ match: ["*"], delivery: "gated" }] },
       gate: false,
     })
@@ -131,7 +131,7 @@ describe("分发形态推导", () => {
   })
 
   it("零配置回落全文安装", () => {
-    const decision = resolveDelivery({ name: "fxri-plan-to-task" })
+    const decision = resolveDelivery({ name: "fxri-plan-task" })
     expect(decision.mode).toBe("full")
     expect(decision.source).toBe("默认")
   })
@@ -264,27 +264,27 @@ describe("分发形态配置读取", () => {
 
 describe("安装与状态的分发形态口径", () => {
   it("规则指定 gated 只写入口壳，其余保持全文", () => {
-    writeHomeConfig({ skillDelivery: { rules: [{ match: ["fxri-plan-to-task"], delivery: "gated" }] } })
-    const report = installSkills({ skills: ["fxri-plan-to-task", "fxri-text-encoding"] })
+    writeHomeConfig({ skillDelivery: { rules: [{ match: ["fxri-plan-task"], delivery: "gated" }] } })
+    const report = installSkills({ skills: ["fxri-plan-task", "fxri-code-encoding"] })
     const primary = report.targets.find((target) => target.kind === "primary")
-    expect(primary?.gates).toEqual(["fxri-plan-to-task"])
-    expect(primary?.links).toContain("fxri-text-encoding")
-    expect(primaryState("fxri-plan-to-task")).toBe("gate")
+    expect(primary?.gates).toEqual(["fxri-plan-task"])
+    expect(primary?.links).toContain("fxri-code-encoding")
+    expect(primaryState("fxri-plan-task")).toBe("gate")
   })
 
   it("规则指定 off 不写产物，status 不把缺失算作问题", () => {
-    writeHomeConfig({ skillDelivery: { rules: [{ match: ["fxri-plan-to-task"], delivery: "off" }] } })
-    installSkills({ skills: ["fxri-plan-to-task"] })
-    expect(existsSync(join(primaryDir(), "fxri-plan-to-task"))).toBe(false)
-    expect(primaryState("fxri-plan-to-task")).toBeUndefined()
+    writeHomeConfig({ skillDelivery: { rules: [{ match: ["fxri-plan-task"], delivery: "off" }] } })
+    installSkills({ skills: ["fxri-plan-task"] })
+    expect(existsSync(join(primaryDir(), "fxri-plan-task"))).toBe(false)
+    expect(primaryState("fxri-plan-task")).toBeUndefined()
   })
 
   it("off 的既有产物在 status 单列残留，--prune 后清理", () => {
-    installSkills({ skills: ["fxri-plan-to-task"] })
-    expect(existsSync(join(primaryDir(), "fxri-plan-to-task"))).toBe(true)
-    writeHomeConfig({ skillDelivery: { rules: [{ match: ["fxri-plan-to-task"], delivery: "off" }] } })
-    expect(primaryState("fxri-plan-to-task")).toBe("residue")
-    installSkills({ skills: ["fxri-plan-to-task"], prune: true })
-    expect(existsSync(join(primaryDir(), "fxri-plan-to-task"))).toBe(false)
+    installSkills({ skills: ["fxri-plan-task"] })
+    expect(existsSync(join(primaryDir(), "fxri-plan-task"))).toBe(true)
+    writeHomeConfig({ skillDelivery: { rules: [{ match: ["fxri-plan-task"], delivery: "off" }] } })
+    expect(primaryState("fxri-plan-task")).toBe("residue")
+    installSkills({ skills: ["fxri-plan-task"], prune: true })
+    expect(existsSync(join(primaryDir(), "fxri-plan-task"))).toBe(false)
   })
 })

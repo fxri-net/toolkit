@@ -12,7 +12,7 @@ exports[`写盘产物 > init 生成任务区骨架与入口壳 1`] = `
     提示：项目启用 prettier 后重跑 toolkit init 会自动补上该排除行
   新建 .agents/skills/toolkit-conventions/SKILL.md（已创建（只作入口，不承载条文））
   跳过 AGENTS.md（文件不存在；不新建，需要时手工添加或先建文件再重跑 toolkit init）
-    提示：无该指针块不影响规范可用：本项目规范仍可经全局技能 fxri-plan-to-task 触达（其工作流第一步即读 conventions/index.md）
+    提示：无该指针块不影响规范可用：本项目规范仍可经全局技能 fxri-plan-task 触达（其工作流第一步即读 conventions/index.md）
   跳过 package.json（本地依赖未声明 @fxri/toolkit，不写入 prepare 钩子）
     提示：技能副本随 git 分发即可 clone 即用；依赖装在本项目后需要时手工加 "prepare": "toolkit skill install --scope project --refresh" 以在安装依赖后自动刷新
 
@@ -1256,13 +1256,13 @@ exports[`各域行为与错误路径 > scope status 技能清单 1`] = `
 --- stdout ---
 技能作用域：
   目录：<SANDBOX>/workspace
-  ✔ fxri-docs-writing：生效（未配置作用域（默认全域生效））
+  ✔ fxri-code-encoding：生效（未配置作用域（默认全域生效））
+  ✔ fxri-plan-recap：生效（未配置作用域（默认全域生效））
   ✔ fxri-plan-review：生效（未配置作用域（默认全域生效））
-  ✔ fxri-plan-to-task：生效（未配置作用域（默认全域生效））
+  ✔ fxri-plan-task：生效（未配置作用域（默认全域生效））
   ✔ fxri-release-changelog：生效（未配置作用域（默认全域生效））
-  ✔ fxri-session-recap：生效（未配置作用域（默认全域生效））
-  ✔ fxri-skill-authoring：生效（未配置作用域（默认全域生效））
-  ✔ fxri-text-encoding：生效（未配置作用域（默认全域生效））
+  ✔ fxri-writing-docs：生效（未配置作用域（默认全域生效））
+  ✔ fxri-writing-skill：生效（未配置作用域（默认全域生效））
 --- stderr ---
 "
 `;
@@ -1282,7 +1282,13 @@ exports[`各域行为与错误路径 > scope status 技能清单 JSON 1`] = `
   },
   "skills": [
     {
-      "name": "fxri-docs-writing",
+      "name": "fxri-code-encoding",
+      "active": true,
+      "matchedRule": null,
+      "reason": "未配置作用域（默认全域生效）"
+    },
+    {
+      "name": "fxri-plan-recap",
       "active": true,
       "matchedRule": null,
       "reason": "未配置作用域（默认全域生效）"
@@ -1294,7 +1300,7 @@ exports[`各域行为与错误路径 > scope status 技能清单 JSON 1`] = `
       "reason": "未配置作用域（默认全域生效）"
     },
     {
-      "name": "fxri-plan-to-task",
+      "name": "fxri-plan-task",
       "active": true,
       "matchedRule": null,
       "reason": "未配置作用域（默认全域生效）"
@@ -1306,19 +1312,13 @@ exports[`各域行为与错误路径 > scope status 技能清单 JSON 1`] = `
       "reason": "未配置作用域（默认全域生效）"
     },
     {
-      "name": "fxri-session-recap",
+      "name": "fxri-writing-docs",
       "active": true,
       "matchedRule": null,
       "reason": "未配置作用域（默认全域生效）"
     },
     {
-      "name": "fxri-skill-authoring",
-      "active": true,
-      "matchedRule": null,
-      "reason": "未配置作用域（默认全域生效）"
-    },
-    {
-      "name": "fxri-text-encoding",
+      "name": "fxri-writing-skill",
       "active": true,
       "matchedRule": null,
       "reason": "未配置作用域（默认全域生效）"
@@ -1399,13 +1399,13 @@ exports[`各域行为与错误路径 > skills install 预演 1`] = `
 [预演] 技能分发计划：7 个技能 · 1 个目标
 
 canonical（多家 agent 共读）：<SANDBOX>/home/.agents/skills
-  换全文　fxri-docs-writing　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-code-encoding　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-plan-recap　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-plan-review　全文安装　← 默认（未配置分发形态，按默认全文安装）
-  换全文　fxri-plan-to-task　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-plan-task　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-release-changelog　全文安装　← 默认（未配置分发形态，按默认全文安装）
-  换全文　fxri-session-recap　全文安装　← 默认（未配置分发形态，按默认全文安装）
-  换全文　fxri-skill-authoring　全文安装　← 默认（未配置分发形态，按默认全文安装）
-  换全文　fxri-text-encoding　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-writing-docs　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-writing-skill　全文安装　← 默认（未配置分发形态，按默认全文安装）
 
 本机未检测到的 agent 65 个已跳过（不凭空创建目录）；如需装到未识别的 agent：toolkit skill install --dir <其全局技能目录>
 [预演] 状态文件：<SANDBOX>/home/.agents/.toolkit-skills.json
@@ -1433,17 +1433,17 @@ registry：registry.npmjs.org（来源：默认）
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
 技能源：<REPO>/skills
-技能版本：fxri-docs-writing@0.1.0、fxri-plan-review@1.0.15、fxri-plan-to-task@1.12.15、fxri-release-changelog@1.3.9、fxri-session-recap@1.7.5、fxri-skill-authoring@1.0.0、fxri-text-encoding@1.2.10
+技能版本：fxri-code-encoding@1.2.11、fxri-plan-recap@1.7.6、fxri-plan-review@1.0.16、fxri-plan-task@1.12.16、fxri-release-changelog@1.3.10、fxri-writing-docs@0.1.1、fxri-writing-skill@1.0.1
 内容闸门：未开启（全文安装）
-选择集（3）：fxri-plan-review、fxri-plan-to-task、fxri-session-recap
-来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-docs-writing、fxri-release-changelog、fxri-skill-authoring、fxri-text-encoding
+选择集（3）：fxri-plan-recap、fxri-plan-review、fxri-plan-task
+来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-code-encoding、fxri-release-changelog、fxri-writing-docs、fxri-writing-skill
 目标选择集：全部可用目标（未保存过目标选择）
 状态文件：<SANDBOX>/home/.agents/.toolkit-skills.json（未记录，尚未执行过 toolkit skill install）
 
 canonical（多家 agent 共读）：<SANDBOX>/home/.agents/skills（目录未创建）
+  fxri-plan-recap：缺失
   fxri-plan-review：缺失
-  fxri-plan-to-task：缺失
-  fxri-session-recap：缺失
+  fxri-plan-task：缺失
 
 未安装的 agent 65 个未纳入分发（需要时用 toolkit skill install --dir <路径> 指定）
 
@@ -1489,8 +1489,8 @@ Commands:
   status [options]              查看技能现场状态与真源版本（默认按现场判定作用域；含分发形态、待收敛、悬空 / 漂移 / 缺失
                                 / 同名冲突）
   uninstall [options]           卸载由本包安装的技能产物（默认按现场判定作用域；只清理归属账记载的条目，不碰用户自装技能）
-  lint [options] [dirs...]      校验技能规范（命名 / frontmatter / 版本双写 / 篇幅 / references
-                                / 敏感信息 / 版本递增）
+  lint [options] [dirs...]      校验技能规范（命名族 / 元数据 / frontmatter / 版本双写 / 篇幅 /
+                                references / 敏感信息 / 版本递增）
   bump [options] [name] [type]  递增技能版本（两处版本声明同源改写；--all 批量、--set 直接设定、--dir
                                 支持外部目录）
   source [options] [command]    查看 / 刷新 / 注销外部技能来源，并管理来源提示频率
@@ -1511,16 +1511,16 @@ registry：registry.npmjs.org（来源：默认）
 
 项目面 · 项目根：<SANDBOX>/workspace
 项目面 · 技能真源：.agents/skills
-项目面 · 技能版本：fxri-docs-writing@0.1.0、fxri-plan-review@1.0.15、fxri-plan-to-task@1.12.15、fxri-release-changelog@1.3.9、fxri-session-recap@1.7.5、fxri-skill-authoring@1.0.0、fxri-text-encoding@1.2.10
-项目面 · 选择集（3）：fxri-plan-review、fxri-plan-to-task、fxri-session-recap
-来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-docs-writing、fxri-release-changelog、fxri-skill-authoring、fxri-text-encoding
+项目面 · 技能版本：fxri-code-encoding@1.2.11、fxri-plan-recap@1.7.6、fxri-plan-review@1.0.16、fxri-plan-task@1.12.16、fxri-release-changelog@1.3.10、fxri-writing-docs@0.1.1、fxri-writing-skill@1.0.1
+项目面 · 选择集（3）：fxri-plan-recap、fxri-plan-review、fxri-plan-task
+来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-code-encoding、fxri-release-changelog、fxri-writing-docs、fxri-writing-skill
 项目面 · 目录选择集：全部已存在候选目录（未保存过目录选择）
 项目面 · 状态文件：.toolkit/state.json（未记录，尚未执行过 toolkit init / skills install）
 
 真源副本：.agents/skills
+  fxri-plan-recap：缺失
   fxri-plan-review：缺失
-  fxri-plan-to-task：缺失
-  fxri-session-recap：缺失
+  fxri-plan-task：缺失
 
 项目面 · 未命中的候选目录 18 个（需要时补齐后提交）：
   toolkit skill install --scope project --dir .trae/skills
@@ -1556,13 +1556,13 @@ exports[`各域行为与错误路径 > skills 项目面预演 1`] = `
 [预演] 技能分发计划：7 个技能 · 1 个目标
 
 真源副本：.agents/skills
-  换全文　fxri-docs-writing　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-code-encoding　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-plan-recap　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-plan-review　全文安装　← 默认（未配置分发形态，按默认全文安装）
-  换全文　fxri-plan-to-task　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-plan-task　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-release-changelog　全文安装　← 默认（未配置分发形态，按默认全文安装）
-  换全文　fxri-session-recap　全文安装　← 默认（未配置分发形态，按默认全文安装）
-  换全文　fxri-skill-authoring　全文安装　← 默认（未配置分发形态，按默认全文安装）
-  换全文　fxri-text-encoding　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-writing-docs　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-writing-skill　全文安装　← 默认（未配置分发形态，按默认全文安装）
 
 [预演] 状态文件：<SANDBOX>/workspace/.toolkit/state.json
 [预演] 待收敛 7 项：执行 toolkit skill install 应用
@@ -2396,8 +2396,8 @@ Commands:
   status [options]              查看技能现场状态与真源版本（默认按现场判定作用域；含分发形态、待收敛、悬空 / 漂移 / 缺失
                                 / 同名冲突）
   uninstall [options]           卸载由本包安装的技能产物（默认按现场判定作用域；只清理归属账记载的条目，不碰用户自装技能）
-  lint [options] [dirs...]      校验技能规范（命名 / frontmatter / 版本双写 / 篇幅 / references
-                                / 敏感信息 / 版本递增）
+  lint [options] [dirs...]      校验技能规范（命名族 / 元数据 / frontmatter / 版本双写 / 篇幅 /
+                                references / 敏感信息 / 版本递增）
   bump [options] [name] [type]  递增技能版本（两处版本声明同源改写；--all 批量、--set 直接设定、--dir
                                 支持外部目录）
   source [options] [command]    查看 / 刷新 / 注销外部技能来源，并管理来源提示频率

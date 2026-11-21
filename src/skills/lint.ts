@@ -6,7 +6,7 @@ import { basename, dirname, join, relative, resolve, sep } from "node:path"
 import { readTextFile } from "../read-text"
 import { matchGlob } from "../scope/glob"
 import { versionGt } from "../version"
-import { readSkillFrontmatterValueFromContent } from "./source/metadata"
+import { readSkillFrontmatterListFromContent, readSkillFrontmatterValueFromContent } from "./source/metadata"
 import { skillsSourceDir } from "./source/package"
 import { isInside, realPath, toRepoRel } from "./source/paths"
 import { STRICT_SKILL_VERSION, parseSkillVersion, readBodyVersionFromContent, readFrontmatterVersionFromContent } from "./versioning"
@@ -29,6 +29,10 @@ const WARN_CHARS_RATIO = 2 / 3
 const REQUIRED_FIELDS = ["name", "description", "license", "version", "tier", "author", "source"]
 // 技能分层枚举：与安装侧 SkillTier 同源
 const TIERS = ["core", "optional"]
+// 命名族表文件名：本包 skills/ 下存在该文件时启用命名门禁，外部目录不强制
+const NAMESPACES_FILE = "namespaces.json"
+// 元数据三件取值：形态枚举 / 作用域非空 / 触发词非空数组
+const SKILL_TYPES = ["profile", "practice", "template"]
 
 export interface SkillLintOptions {
   // 待检查目录：缺省为本包 skills/
@@ -90,6 +94,100 @@ interface SkillTarget {
 interface SkillFile {
   abs: string
   rel: string
+}
+
+// 命名族表：族名 → 表内登记的技能名集合
+interface NamespaceTable {
+  families: Map<string, Set<string>>
+}
+
+// 命名族表加载结果：表不可用时的原因由调用方按错误上报
+interface NamespaceLoad {
+  table?: NamespaceTable
+  error?: string
+}
+
+// 读取检查根下的族表：文件不存在即不启用命名门禁（外部技能目录不强制本包命名规则）
+function loadNamespaces(root: string): NamespaceLoad {
+  const file = join(root, NAMESPACES_FILE)
+  if (!existsSync(file)) return {}
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(readTextFile(file))
+  } catch (e) {
+    return { error: `无法解析 ${NAMESPACES_FILE}：${(e as Error).message}` }
+  }
+  const families = (parsed as { families?: unknown } | null)?.families
+  if (!families || typeof families !== "object" || Array.isArray(families)) return { error: `${NAMESPACES_FILE} 缺少 families 对象` }
+  const table: NamespaceTable = { families: new Map() }
+  for (const [family, value] of Object.entries(families as Record<string, unknown>)) {
+    const skills = (value as { skills?: unknown } | null)?.skills
+    if (!Array.isArray(skills)) return { error: `${NAMESPACES_FILE} 的族 ${family} 缺少 skills 数组` }
+    table.families.set(family, new Set(skills.filter((item): item is string => typeof item === "string")))
+  }
+  return { table }
+}
+
+// 按族表解析技能名：取最长匹配族，剩余部分即主题；无匹配返回空族
+function splitSkillName(name: string, table: NamespaceTable): { rest: string; family: string; topic: string } {
+  const rest = name.startsWith(DEFAULT_PREFIX) ? name.slice(DEFAULT_PREFIX.length) : ""
+  let family = ""
+  for (const key of table.families.keys()) {
+    if ((rest === key || rest.startsWith(`${key}-`)) && key.length > family.length) family = key
+  }
+  const topic = !family ? "" : rest === family ? "" : rest.slice(family.length + 1)
+  return { rest, family, topic }
+}
+
+// 命名门禁：名称为 fxri-<族>-<主题>、族在表内、主题非空且不与族重名，元数据三件齐全
+function checkNamespace(target: SkillTarget, content: string, table: NamespaceTable, issues: SkillLintIssue[]): void {
+  const entry = join(target.dir, SKILL_ENTRY)
+  const { rest, family, topic } = splitSkillName(target.name, table)
+  if (!rest) {
+    pushIssue(issues, entry, "error", "namespace-name", `技能名须为 ${DEFAULT_PREFIX}<族>-<主题>：${target.name}`)
+  } else if (!family) {
+    pushIssue(issues, entry, "error", "namespace-family", `技能名的族不在 ${NAMESPACES_FILE}：${target.name}（可用族：${[...table.families.keys()].join(" / ")}）`)
+  } else if (!topic || topic === family) {
+    pushIssue(issues, entry, "error", "namespace-topic", `技能名缺少主题段或主题与族重复：${target.name}`)
+  }
+  const type = readSkillFrontmatterValueFromContent(content, "type")
+  if (!SKILL_TYPES.includes(type)) pushIssue(issues, entry, "error", "metadata-type", `metadata.type 仅支持 ${SKILL_TYPES.join(" / ")}：${type || "未声明"}`)
+  const scope = readSkillFrontmatterValueFromContent(content, "scope")
+  if (!scope) pushIssue(issues, entry, "error", "metadata-scope", "metadata.scope 不能为空")
+  const triggers = readSkillFrontmatterListFromContent(content, "triggers")
+  if (triggers.length === 0) pushIssue(issues, entry, "error", "metadata-triggers", "metadata.triggers 须为非空字符串数组")
+}
+
+// 族表与技能归属双向一致：同一技能只属一族，族内技能数与表一致（被 --ignore 跳过的技能不参与比对）
+function checkNamespaceTable(root: string, targets: SkillTarget[], table: NamespaceTable, ignores: string[], issues: SkillLintIssue[]): void {
+  const file = join(root, NAMESPACES_FILE)
+  const ignored = (name: string) => ignores.some((pattern) => matchGlob(name, pattern))
+  const actual = new Map<string, string[]>()
+  for (const target of targets) {
+    const { family } = splitSkillName(target.name, table)
+    if (!family) continue
+    actual.set(family, [...(actual.get(family) ?? []), target.name])
+  }
+  // 同一技能出现在多个族即歧义，无法判定归属
+  const owners = new Map<string, string>()
+  for (const [family, declared] of table.families) {
+    for (const name of declared) {
+      if (ignored(name)) continue
+      const previous = owners.get(name)
+      if (previous && previous !== family) {
+        pushIssue(issues, file, "error", "namespace-duplicate", `技能 ${name} 同时归属族 ${previous} 与 ${family}`)
+        continue
+      }
+      owners.set(name, family)
+    }
+  }
+  for (const [family, declared] of table.families) {
+    const listed = [...new Set([...declared].filter((name) => !ignored(name)))].sort()
+    const found = [...(actual.get(family) ?? [])].sort()
+    if (listed.length !== found.length || listed.some((name, index) => name !== found[index])) {
+      pushIssue(issues, file, "error", "namespace-count", `族 ${family} 的技能表为 [${listed.join(", ")}]，实际为 [${found.join(", ")}]`)
+    }
+  }
 }
 
 // 机器相关绝对路径与常见令牌的最小模式集：只拦可证实暴露本机环境或凭据的写法
@@ -444,7 +542,7 @@ interface LintRules {
   prefix: string
 }
 
-function lintSkill(target: SkillTarget, options: LintRules, issues: SkillLintIssue[], overrides: ContentOverrides): SkillFile[] {
+function lintSkill(target: SkillTarget, options: LintRules, issues: SkillLintIssue[], overrides: ContentOverrides, namespace?: NamespaceTable): SkillFile[] {
   const entry = join(target.dir, SKILL_ENTRY)
   const files = walkSkillFiles(target, issues)
   const content = normalizeText(contentOf(entry, overrides))
@@ -452,6 +550,8 @@ function lintSkill(target: SkillTarget, options: LintRules, issues: SkillLintIss
   if (!DIR_NAME_PATTERN.test(target.name) || !target.name.startsWith(options.prefix)) {
     pushIssue(issues, entry, "error", "dir-name", `技能目录名须为小写 kebab 且以 ${options.prefix || "（空前缀）"} 开头：${target.name}`)
   }
+  // 命名族与元数据：仅检查根存在族表时启用（外部技能目录不强制）
+  if (namespace) checkNamespace(target, content, namespace, issues)
   // frontmatter：整块存在性与必填字段
   if (!/^---\r?\n[\s\S]*?\r?\n---/.test(content)) {
     pushIssue(issues, entry, "error", "frontmatter-missing", "缺少 frontmatter 块")
@@ -487,7 +587,8 @@ export function lintSkills(options: SkillLintOptions = {}): SkillLintReport {
   const maxChars = options.budget ?? DEFAULT_MAX_CHARS
   const warnChars = Math.floor(maxChars * WARN_CHARS_RATIO)
   const dirs = options.dirs && options.dirs.length > 0 ? options.dirs : [skillsSourceDir()]
-  const { targets, ignored } = collectTargets(dirs, options.ignore ?? [], issues)
+  const ignores = options.ignore ?? []
+  const { targets, ignored } = collectTargets(dirs, ignores, issues)
   // 内存覆盖键归一：Windows 路径分隔符与大小写差异不影响命中
   const overrides: ContentOverrides = new Map([...(options.contents ?? [])].map(([file, content]) => [file.replace(/\\/g, "/").toLowerCase(), content]))
 
@@ -506,13 +607,30 @@ export function lintSkills(options: SkillLintOptions = {}): SkillLintReport {
   const wanted = options.skills && options.skills.length > 0 ? new Set(options.skills) : null
   const selected = wanted ? targets.filter((target) => wanted.has(target.name)) : targets
 
+  // 命名族表按检查根加载：表非法上报一次，族内归属按全部技能核对（定向校验不缩窄归属面）
+  const namespaceCache = new Map<string, NamespaceLoad>()
+  const namespaceOf = (root: string): NamespaceTable | undefined => {
+    const cached = namespaceCache.get(root)
+    if (cached) return cached.table
+    const loaded = loadNamespaces(root)
+    namespaceCache.set(root, loaded)
+    if (loaded.error) pushIssue(issues, join(root, NAMESPACES_FILE), "error", "namespace-table", loaded.error)
+    return loaded.table
+  }
+  for (const root of new Set(targets.map((target) => target.root))) {
+    const table = namespaceOf(root)
+    if (!table) continue
+    checkNamespaceTable(root, targets.filter((target) => target.root === root), table, ignores, issues)
+  }
+
   const base = options.base ?? null
   const repoCache = new Map<string, BaseRepoInfo>()
   let baseSkipped: string | null = null
   const files: string[] = []
   for (const target of selected) {
     files.push(displayPath(join(target.dir, SKILL_ENTRY)))
-    const skillFiles = lintSkill(target, { warnLines, maxLines, budget: maxChars, warnChars, prefix }, issues, overrides)
+    const namespace = namespaceCache.get(target.root)?.table
+    const skillFiles = lintSkill(target, { warnLines, maxLines, budget: maxChars, warnChars, prefix }, issues, overrides, namespace)
     if (!base) continue
     const repo = resolveBaseRepo(target, base, repoCache)
     if (repo.skip) {

@@ -70,7 +70,7 @@ const LEGACY_PREPARE_SCRIPTS = [
   "toolkit skills install",
 ]
 
-// 规范载体索引骨架：三节结构与 skills/fxri-plan-to-task/references/conventions-spec.md 一致
+// 规范载体索引骨架：三节结构与 skills/fxri-plan-task/references/conventions-spec.md 一致
 const CONVENTIONS_INDEX = `${CARRIER_MARKER}
 ${INDEX_TITLE}
 
@@ -419,7 +419,7 @@ function upsertAgentsPointer(cwd: string): InitProduct[] {
         target: "AGENTS.md",
         action: "skipped",
         detail: "文件不存在；不新建，需要时手工添加或先建文件再重跑 toolkit init",
-        hint: "无该指针块不影响规范可用：本项目规范仍可经全局技能 fxri-plan-to-task 触达（其工作流第一步即读 conventions/index.md）",
+        hint: "无该指针块不影响规范可用：本项目规范仍可经全局技能 fxri-plan-task 触达（其工作流第一步即读 conventions/index.md）",
       },
     ]
   }

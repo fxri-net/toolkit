@@ -68,7 +68,7 @@ function event(overrides: Partial<SkillUsageEvent> = {}): SkillUsageEvent {
     occurredAt: "2026-11-06T10:00:00.000+08:00",
     agent: "trae",
     sessionId: "s1",
-    skill: "fxri-plan-to-task",
+    skill: "fxri-plan-task",
     skillSource: "toolkit-first-party",
     managedBy: "toolkit",
     originAdapter: "import",
@@ -96,7 +96,7 @@ describe("usage CLI", () => {
   })
 
   it("补录、统计、导出、导入与清理", async () => {
-    await run(["log", "--skill", "fxri-plan-to-task", "--session", "s1", "--prompt", "全部任务落档", "--outcome", "success"])
+    await run(["log", "--skill", "fxri-plan-task", "--session", "s1", "--prompt", "全部任务落档", "--outcome", "success"])
     expect(logs.join("\n") || errors.join("\n")).toContain("已补录")
 
     await run(["show", "stats", "--format", "json"])
@@ -106,7 +106,7 @@ describe("usage CLI", () => {
 
     const out = join(dataDir, "events.csv")
     await run(["data", "export", "--type", "csv", "--out", out])
-    expect(readFileSync(out, "utf8")).toContain("fxri-plan-to-task")
+    expect(readFileSync(out, "utf8")).toContain("fxri-plan-task")
 
     const input = join(dataDir, "import.jsonl")
     writeFileSync(input, `${JSON.stringify(event())}\n`, "utf8")

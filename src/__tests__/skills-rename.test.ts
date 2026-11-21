@@ -128,7 +128,7 @@ describe("曾用名声明解析", () => {
 
   it("跨来源曾用名撞上内置现用名时拒绝安装", () => {
     const root = join(work, "cross")
-    writeSkill(join(root, "skills", "alpha"), "alpha", "1.0.0", ["fxri-text-encoding"])
+    writeSkill(join(root, "skills", "alpha"), "alpha", "1.0.0", ["fxri-code-encoding"])
     expect(() =>
       installSkills({ targets: ["canonical"], externalSources: [{ path: root, name: "ext", temporary: true }], skills: ["alpha"] }),
     ).toThrow(/曾用名与现用名冲突/)
@@ -151,6 +151,16 @@ describe("已保存选择解析", () => {
     })
     expect(result.saved).toEqual(["new-name"])
     expect(result.migrated.toolkit).toEqual(["new-name"])
+    expect(result.expired).toEqual([])
+  })
+
+  it("本包改名映射按 previousNames 迁移到新名", () => {
+    const result = resolveSavedSelection(
+      [view("fxri-plan-task", "toolkit", "builtin", "core", ["fxri-plan-to-task"]), view("fxri-plan-recap", "toolkit", "builtin", "core", ["fxri-session-recap"])],
+      { toolkit: ["fxri-plan-to-task", "fxri-session-recap"] },
+    )
+    expect(result.saved).toEqual(["fxri-plan-task", "fxri-plan-recap"])
+    expect(result.migrated.toolkit).toEqual(["fxri-plan-task", "fxri-plan-recap"])
     expect(result.expired).toEqual([])
   })
 
@@ -367,10 +377,10 @@ describe("改名后的现场与状态", () => {
   it("项目面汇总列出未选择的来源技能", () => {
     const root = join(work, "proj-unselected")
     mkdirSync(root, { recursive: true })
-    installProjectSkills({ cwd: root, targetDirs: [], skills: ["fxri-text-encoding"] })
+    installProjectSkills({ cwd: root, targetDirs: [], skills: ["fxri-code-encoding"] })
     const report = projectSkillsStatus(root)
-    expect(report.selection).toEqual(["fxri-text-encoding"])
-    expect(findUnselectedSkills(report).find((item) => item.source === "toolkit")?.names).toContain("fxri-plan-to-task")
+    expect(report.selection).toEqual(["fxri-code-encoding"])
+    expect(findUnselectedSkills(report).find((item) => item.source === "toolkit")?.names).toContain("fxri-plan-task")
   })
 
   it("新名位置被占用导致冲突时，不清理旧名产物", () => {
@@ -398,11 +408,11 @@ describe("改名后的现场与状态", () => {
     writeManifest(root, ["skills/alpha"])
     installSkills({
       targets: ["canonical"],
-      skills: ["fxri-text-encoding"],
+      skills: ["fxri-code-encoding"],
       externalSources: [{ path: root, name: "ext", temporary: false }],
     })
     const selection = readSkillsInstallConfig().selection
     expect(selection?.ext).toBeUndefined()
-    expect(selection?.toolkit).toEqual(["fxri-text-encoding"])
+    expect(selection?.toolkit).toEqual(["fxri-code-encoding"])
   })
 })

@@ -87,16 +87,16 @@ afterAll(() => rmSync(sandbox, { recursive: true, force: true }))
 describe("collectSkillVersionUpdates", () => {
   it("内置技能落后于包内真源、外部来源落后于缓存技能的自身版本时分别上报", () => {
     writeSourceSkill("fxri-dev-profile-web", "2.0.0")
-    writeInstalledSkill("fxri-plan-to-task", "0.0.1")
+    writeInstalledSkill("fxri-plan-task", "0.0.1")
     writeInstalledSkill("fxri-dev-profile-web", "1.0.0")
     writeSkillsState(
       state({
-        toolkit: source([{ name: "fxri-plan-to-task", version: "0.0.1" }], { kind: "builtin", version: "1.0.0" }),
+        toolkit: source([{ name: "fxri-plan-task", version: "0.0.1" }], { kind: "builtin", version: "1.0.0" }),
         play: source([{ name: "fxri-dev-profile-web", version: "1.0.0" }], { version: "9.9.9", temporary: true }),
       }),
     )
     const report = collectSkillVersionUpdates()
-    expect(report.builtin.map((item) => item.name)).toContain("fxri-plan-to-task")
+    expect(report.builtin.map((item) => item.name)).toContain("fxri-plan-task")
     // 外部来源用缓存目录里的技能版本 2.0.0，而不是来源级版本 9.9.9
     expect(report.external.find((item) => item.name === "fxri-dev-profile-web")).toMatchObject({ installed: "1.0.0", latest: "2.0.0" })
     expect(report.sources.find((item) => item.name === "play")).toMatchObject({ version: "9.9.9", temporary: true })
@@ -187,14 +187,14 @@ describe("collectSkillVersionUpdates", () => {
   })
 
   it("项目态内置技能落后同样计入 builtin", () => {
-    writeInstalledSkill("fxri-session-recap", "0.0.1")
+    writeInstalledSkill("fxri-plan-recap", "0.0.1")
     mkdirSync(join(work, ".toolkit"), { recursive: true })
     writeFileSync(
       join(work, ".toolkit", "state.json"),
-      JSON.stringify(state({ toolkit: source([{ name: "fxri-session-recap", version: "0.0.1" }], { kind: "builtin", version: "1.0.0" }) })),
+      JSON.stringify(state({ toolkit: source([{ name: "fxri-plan-recap", version: "0.0.1" }], { kind: "builtin", version: "1.0.0" }) })),
       "utf8",
     )
     const report = collectSkillVersionUpdates()
-    expect(report.builtin.map((item) => item.name)).toContain("fxri-session-recap")
+    expect(report.builtin.map((item) => item.name)).toContain("fxri-plan-recap")
   })
 })

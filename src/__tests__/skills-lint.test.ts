@@ -14,6 +14,10 @@ interface SkillOptions {
   author?: string | null
   source?: string | null
   nameInFrontmatter?: string
+  // 命名族元数据：null 表示不写该行
+  type?: string | null
+  scope?: string | null
+  triggers?: string | null
   extraBody?: string
   referenceBody?: string
   extraReferences?: Record<string, string>
@@ -40,6 +44,9 @@ function writeSkill(root: string, name: string, options: SkillOptions = {}): str
   if (options.tier !== null) lines.push(`  tier: ${options.tier ?? "core"}`)
   if (options.author !== null) lines.push(`  author: ${options.author ?? "fxri"}`)
   if (options.source !== null) lines.push(`  source: ${options.source ?? "https://github.com/fxri-net/toolkit"}`)
+  if (options.type !== null) lines.push(`  type: ${options.type ?? "practice"}`)
+  if (options.scope !== null) lines.push(`  scope: ${options.scope ?? "general"}`)
+  if (options.triggers !== null) lines.push(`  triggers: ${options.triggers ?? "[建档, 归档]"}`)
   lines.push("---", "", `# ${name}`, "")
   if (bodyVersion !== null) lines.push(`> 本技能版本 ${bodyVersion}（测试）`, "")
   lines.push("## 参考", "", "- 指南：`references/guide.md`", "")
@@ -215,11 +222,68 @@ describe("目标解析", () => {
   })
 })
 
+describe("命名族与元数据（仅本包 skills/ 生效）", () => {
+  // 写族表：families 为族名 → 技能名数组
+  function writeNamespaces(root: string, families: Record<string, string[]>): void {
+    const table = Object.fromEntries(Object.entries(families).map(([family, skills]) => [family, { semantics: family, skills }]))
+    writeFileSync(join(root, "namespaces.json"), `${JSON.stringify({ formatVersion: 1, families: table }, null, 2)}\n`, "utf8")
+  }
+
+  it("族表齐全时合规放行", () => {
+    const root = makeRoot()
+    writeNamespaces(root, { plan: ["fxri-plan-alpha"] })
+    writeSkill(root, "fxri-plan-alpha")
+    expect(codes(lintSkills({ dirs: [root] }))).toEqual([])
+  })
+
+  it("族不在表内按错误处理", () => {
+    const root = makeRoot()
+    writeNamespaces(root, { plan: [] })
+    writeSkill(root, "fxri-code-alpha")
+    expect(codes(lintSkills({ dirs: [root] }))).toContain("namespace-family")
+  })
+
+  it("缺少主题段按错误处理", () => {
+    const root = makeRoot()
+    writeNamespaces(root, { plan: ["fxri-plan"] })
+    writeSkill(root, "fxri-plan")
+    expect(codes(lintSkills({ dirs: [root] }))).toContain("namespace-topic")
+  })
+
+  it("metadata 三件缺失各按错误处理", () => {
+    const root = makeRoot()
+    writeNamespaces(root, { plan: ["fxri-plan-alpha"] })
+    writeSkill(root, "fxri-plan-alpha", { type: null, scope: null, triggers: null })
+    const found = codes(lintSkills({ dirs: [root] }))
+    expect(found).toEqual(expect.arrayContaining(["metadata-type", "metadata-scope", "metadata-triggers"]))
+  })
+
+  it("族内技能数与表不一致按错误处理", () => {
+    const root = makeRoot()
+    writeNamespaces(root, { plan: ["fxri-plan-alpha", "fxri-plan-beta"] })
+    writeSkill(root, "fxri-plan-alpha")
+    expect(codes(lintSkills({ dirs: [root] }))).toContain("namespace-count")
+  })
+
+  it("同一技能归属两个族按错误处理", () => {
+    const root = makeRoot()
+    writeNamespaces(root, { plan: ["fxri-plan-alpha"], release: ["fxri-plan-alpha"] })
+    writeSkill(root, "fxri-plan-alpha")
+    expect(codes(lintSkills({ dirs: [root] }))).toContain("namespace-duplicate")
+  })
+
+  it("外部目录没有族表时不启用命名门禁", () => {
+    const root = makeRoot()
+    writeSkill(root, "fxri-alpha")
+    expect(codes(lintSkills({ dirs: [root] }))).toEqual([])
+  })
+})
+
 describe("版本递增（--base）", () => {
   it("内容变更未递增时报错，递增后通过", () => {
     const skills = makeRepo()
     const entry = join(skills, "fxri-alpha", "SKILL.md")
-    const original = `---\nname: fxri-alpha\ndescription: 测试技能\nlicense: MIT\nmetadata:\n  version: "1.0.0"\n  tier: core\n  author: fxri\n  source: https://github.com/fxri-net/toolkit\n---\n\n# fxri-alpha\n\n> 本技能版本 1.0.0（测试）\n\n## 参考\n\n- 指南：\`references/guide.md\`\n\n- 新增内容\n`
+    const original = `---\nname: fxri-alpha\ndescription: 测试技能\nlicense: MIT\nmetadata:\n  version: "1.0.0"\n  tier: core\n  author: fxri\n  source: https://github.com/fxri-net/toolkit\n  type: practice\n  scope: general\n  triggers: [建档, 归档]\n---\n\n# fxri-alpha\n\n> 本技能版本 1.0.0（测试）\n\n## 参考\n\n- 指南：\`references/guide.md\`\n\n- 新增内容\n`
     writeFileSync(entry, original, "utf8")
     expect(codes(lintSkills({ dirs: [skills], base: "HEAD" }))).toContain("version-not-bumped")
     writeFileSync(entry, original.replaceAll('"1.0.0"', '"1.0.1"').replace("本技能版本 1.0.0", "本技能版本 1.0.1"), "utf8")
@@ -229,7 +293,7 @@ describe("版本递增（--base）", () => {
   it("仅行尾变化不算内容变更", () => {
     const skills = makeRepo()
     const entry = join(skills, "fxri-alpha", "SKILL.md")
-    const lf = `---\nname: fxri-alpha\ndescription: 测试技能\nlicense: MIT\nmetadata:\n  version: "1.0.0"\n  tier: core\n  author: fxri\n  source: https://github.com/fxri-net/toolkit\n---\n\n# fxri-alpha\n\n> 本技能版本 1.0.0（测试）\n\n## 参考\n\n- 指南：\`references/guide.md\`\n`
+    const lf = `---\nname: fxri-alpha\ndescription: 测试技能\nlicense: MIT\nmetadata:\n  version: "1.0.0"\n  tier: core\n  author: fxri\n  source: https://github.com/fxri-net/toolkit\n  type: practice\n  scope: general\n  triggers: [建档, 归档]\n---\n\n# fxri-alpha\n\n> 本技能版本 1.0.0（测试）\n\n## 参考\n\n- 指南：\`references/guide.md\`\n`
     writeFileSync(entry, lf.replaceAll("\n", "\r\n"), "utf8")
     expect(codes(lintSkills({ dirs: [skills], base: "HEAD" }))).toEqual([])
   })

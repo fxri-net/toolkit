@@ -4,6 +4,6 @@
   "hookEventName": "PostToolUse",
   "toolUseId": "cursor-1",
   "toolName": "Skill",
-  "toolInput": { "name": "fxri-plan-to-task" },
+  "toolInput": { "name": "fxri-plan-task" },
   "toolResponse": { "success": true }
 }

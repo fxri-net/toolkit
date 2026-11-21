@@ -1,5 +1,5 @@
 // 规范载体（`.tasks/conventions/`）形态识别与结构解析：以结构判据为主、首行标记为辅
-// 载体结构规范见 skills/fxri-plan-to-task/references/conventions-spec.md；本模块只做识别与解析，不写盘
+// 载体结构规范见 skills/fxri-plan-task/references/conventions-spec.md；本模块只做识别与解析，不写盘
 import { existsSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 import { readTextFile } from "../read-text"

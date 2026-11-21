@@ -71,8 +71,8 @@ describe("compilePattern", () => {
   })
 
   it("扁平标识按语法层匹配，不做路径归一", () => {
-    expect(matchPattern("fxri-plan-to-task", "fxri-*")).toBe(true)
-    expect(matchPattern("fxri-plan-to-task", "re:^fxri-plan-")).toBe(true)
+    expect(matchPattern("fxri-plan-task", "fxri-*")).toBe(true)
+    expect(matchPattern("fxri-plan-task", "re:^fxri-plan-")).toBe(true)
     expect(matchPattern("other-skill", "fxri-*")).toBe(false)
   })
 })

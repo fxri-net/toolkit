@@ -234,7 +234,7 @@ describe("initWorkspace 技能入口层", () => {
     expect(existsSync(join(cwd, "AGENTS.md"))).toBe(false)
     const skipped = report.products.find((p) => p.target === "AGENTS.md")
     expect(skipped?.action).toBe("skipped")
-    expect(skipped?.hint).toContain("fxri-plan-to-task")
+    expect(skipped?.hint).toContain("fxri-plan-task")
   })
 
   it("源仓库（package.json name 为 @fxri/toolkit）不生成入口壳与指针块", () => {
@@ -277,9 +277,9 @@ describe("initWorkspace 全局技能安装态", () => {
   })
 
   it("登记产物仍在磁盘时 skillsInstalled 为真，CLI 不再重复提示", () => {
-    const installed = join(home, ".agents", "skills", "fxri-plan-to-task")
+    const installed = join(home, ".agents", "skills", "fxri-plan-task")
     mkdirSync(installed, { recursive: true })
-    writeState(["fxri-plan-to-task"])
+    writeState(["fxri-plan-task"])
     const { cwd } = track(runInDir("tk-init-hasskills-"))
     expect(initWorkspace(".tasks", cwd).skillsInstalled).toBe(true)
     // 登记不等于现场：产物被删后回到未安装

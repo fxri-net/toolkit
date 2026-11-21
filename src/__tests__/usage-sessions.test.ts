@@ -23,7 +23,7 @@ const CLAUDE_LINES = [
           type: "tool_use",
           id: "toolu_1",
           name: "Skill",
-          input: { name: "fxri-plan-to-task", args: { path: "x" } },
+          input: { name: "fxri-plan-task", args: { path: "x" } },
         },
       ],
     },
@@ -60,7 +60,7 @@ describe("会话 JSONL 解析", () => {
   it("提取技能名、触发词、参数、结果与耗时", () => {
     const calls = parseSessionJsonl(CLAUDE_LINES.map((line) => JSON.stringify(line)).join("\n"))
     expect(calls).toHaveLength(1)
-    expect(calls[0]?.skill).toBe("fxri-plan-to-task")
+    expect(calls[0]?.skill).toBe("fxri-plan-task")
     expect(calls[0]?.prompt).toBe("把这次方案落档")
     expect(calls[0]?.args).toContain('"path"')
     expect(calls[0]?.outcome).toBe("success")
@@ -80,7 +80,7 @@ describe("Claude 会话定位", () => {
     writeFileSync(join(dir, "sess-1.jsonl"), CLAUDE_LINES.map((line) => JSON.stringify(line)).join("\n"), "utf8")
     expect(findClaudeSessionFile("sess-1")).toBe(join(dir, "sess-1.jsonl"))
     const found = lookupClaudeSession("sess-1")
-    expect(found?.calls[0]?.skill).toBe("fxri-plan-to-task")
+    expect(found?.calls[0]?.skill).toBe("fxri-plan-task")
   })
 
   it("目录不存在或文件无调用时返回 null", () => {

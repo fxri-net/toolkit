@@ -178,12 +178,12 @@ describe("dsh 适配器", () => {
       session_id: "dsh-session-1",
       hook_event_name: "PostToolUse",
       tool_name: "skill",
-      tool_input: { name: "fxri-plan-to-task" },
+      tool_input: { name: "fxri-plan-task" },
       tool_response: "ok",
       cwd: "/repo",
     })
     expect(event).toMatchObject({ agent: "dsh", sessionId: "dsh-session-1", toolName: "skill", project: "/repo" })
-    expect(extractSkillName(event?.toolName, event?.toolInput)).toBe("fxri-plan-to-task")
+    expect(extractSkillName(event?.toolName, event?.toolInput)).toBe("fxri-plan-task")
   })
 })
 

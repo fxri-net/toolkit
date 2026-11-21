@@ -61,7 +61,7 @@ describe("策略文档示例与实现一致", () => {
     const policies = example.policies.map((policy, index) => ({ id: `demo-${index}`, layer: "global" as const, ...policy }))
     const set = compilePolicies(policies, baseDir, { home: "/home/u", profiles: example.skillProfiles })
     expect(decidePolicy(set, context).active).toBe(true)
-    expect(decidePolicy(set, { ...context, skill: "fxri-text-encoding" }).active).toBe(false)
+    expect(decidePolicy(set, { ...context, skill: "fxri-code-encoding" }).active).toBe(false)
   })
 
   it("文档包含策略、档案、优先级、子目录与软限制五个小节", () => {

@@ -77,7 +77,7 @@
 | `.openhands/skills/` | `.qwen/skills/` | `.roo/skills/` |
 | `.windsurf/skills/` |  |  |
 
-规范触发面共三层，**任一层可用即可触达**：① 全局技能 `fxri-plan-to-task`（随包分发到各 agent 全局技能目录，
+规范触发面共三层，**任一层可用即可触达**：① 全局技能 `fxri-plan-task`（随包分发到各 agent 全局技能目录，
 其工作流第 1 步即要求读 `conventions/index.md`）——**不依赖项目内任何文件、恒在兜底**；② 上述项目级入口壳（用户不主动发问也能被 agent 读到）；
 ③ `AGENTS.md` 指针块（仅在文件已存在时幂等追加，不存在不新建，跳过时提示仍有第 1 层可触达）。三层同时缺席的唯一情形：
 装包后未跑 `toolkit skills install`（或 agent 不加载全局技能），
