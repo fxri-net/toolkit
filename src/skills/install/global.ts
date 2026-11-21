@@ -9,6 +9,7 @@ import { acquireSkillsLock, skillsLockFile } from "../lock"
 import { readSkillsState, skillsStateFile, writeSkillsState } from "../state"
 import { readSkillsDeliveryConfig, readSkillsInstallConfig, writeSkillsInstallConfig } from "../config"
 import { gateRulesToDeliveryRules, resolveDelivery, type DeliveryDecision, type DeliveryMode } from "../delivery"
+import { derivePolicyDelivery, loadPolicyDeliveryContext } from "../policy-delivery"
 import { resolveGateSetting } from "../gate"
 import { SKILL_ENTRY, STATE_FORMAT, STATE_SCHEMA_VERSION, type InstallReport, type RemoveResult, type SkillStateEntry, type SkillStateSource, type SkillStateTarget, type SkillItem, type SkillsRemoveReport, type TargetInstallResult } from "../types"
 import { collectSources, filterSkillItems, canRemoveOrphanArtifact, pruneEntries, sourceSkillMap, type InstallOptions, type RemoveSkillsOptions } from "./common"
@@ -25,8 +26,20 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
   const deliveryConfig = gateOption === undefined ? readSkillsDeliveryConfig("global") : { rules: [] }
   const cliRules = gateOption !== undefined && typeof gateOption === "object" ? gateRulesToDeliveryRules(gateOption) : []
   const override: DeliveryMode | undefined = gateOption === true ? "gated" : gateOption === false ? "full" : undefined
+  // 策略集一次解析、逐技能复用：矩阵限制的技能自动进入入口壳或不安装
+  const policyContext = loadPolicyDeliveryContext()
   const decisions = new Map<string, DeliveryDecision>(
-    items.map((item) => [item.name, resolveDelivery({ name: item.name, config: deliveryConfig, rules: cliRules, override, gate: item.gate })]),
+    items.map((item) => [
+      item.name,
+      resolveDelivery({
+        name: item.name,
+        config: deliveryConfig,
+        rules: cliRules,
+        override,
+        gate: item.gate,
+        policy: derivePolicyDelivery(item.name, policyContext),
+      }),
+    ]),
   )
   // off 不写产物，也不参与缺失统计；其残留只在 --prune 时清理，故从修剪选择集里排除
   const selected = new Set(items.filter((item) => decisions.get(item.name)!.mode !== "off").map((item) => item.name))

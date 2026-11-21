@@ -34,6 +34,7 @@ import { projectStateFile, readProjectState, readSkillsState, skillsStateFile } 
 import { resolveSavedProjectSelection, resolveSavedSelection, type SelectionSkill } from "./selection"
 import { readProjectSkillsConfig, readSkillsDeliveryConfig, readSkillsInstallConfig } from "./config"
 import { resolveDelivery, type DeliveryDecision } from "./delivery"
+import { derivePolicyDelivery, loadPolicyDeliveryContext } from "./policy-delivery"
 import { resolveGateSetting } from "./gate"
 import { readTextFile } from "../read-text"
 import {
@@ -298,7 +299,9 @@ export function skillsStatus(): SkillsStatusReport {
   const baseSelected = new Set(selection)
   // 分发形态：与安装共用同一解析器；按本次选择集统计，供状态头部与收敛提示使用
   const deliveryConfig = readSkillsDeliveryConfig("global")
-  const decisionOf = (name: string): DeliveryDecision => resolveDelivery({ name, config: deliveryConfig, gate: refs.get(name)?.gate })
+  const policyContext = loadPolicyDeliveryContext()
+  const decisionOf = (name: string): DeliveryDecision =>
+    resolveDelivery({ name, config: deliveryConfig, gate: refs.get(name)?.gate, policy: derivePolicyDelivery(name, policyContext) })
   const delivery: Record<"full" | "gated" | "off", number> = { full: 0, gated: 0, off: 0 }
   for (const name of selection) delivery[decisionOf(name).mode] += 1
   const savedTargets = config.targets && config.targets.length > 0 ? config.targets : undefined

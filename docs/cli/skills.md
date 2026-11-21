@@ -47,6 +47,7 @@ toolkit skills lint skills/ --base HEAD # 技能内容相对基准有变更时�
 toolkit skills status               # 查看技能现场状态与包内技能真源版本（缺省按现场判定作用域）
 toolkit skills status --scope all   # 项目面与全局面都体检
 toolkit skills status --format json # JSON 输出：scope、global / project 各自的现场报告
+toolkit skills status --explain fxri-plan-to-task # 解释该技能的分发形态推导过程
 toolkit skills uninstall               # 卸载本包安装的技能产物（缺省按现场判定作用域；目标目录清空后一并回收）
 toolkit skills uninstall --skills fxri-text-encoding # 只卸载指定技能的选择与产物（逗号分隔）
 toolkit skills uninstall --scope all   # 项目面与全局面都卸载
@@ -111,7 +112,8 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
   - 只提示不自动删除，指引用 `remove` 清理
 - **疑似残留**：未在任何来源或状态登记、但指向技能源缓存（`~/.toolkit/cache/skill-sources/`）或本包技能目录的链接，单列「疑似残留（仅提示）」
   - 只报告不删除；给出含实际名字的 `uninstall` 命令
-- **矩阵联动**：仅项目面评估，全局面不评估并说明
+- **矩阵联动**：仅项目面评估，全局面不评估并说明；矩阵限制的技能已按策略推导自动进入入口壳
+- **推导解释**：`status --explain <技能>` 逐级打印命令行 / 技能声明 / 显式规则 / 策略推导 / 包默认 / 全局默认的命中情况与被压规则
 - **canonical 共读**：本机已安装且经 canonical 共读的 agent（按探测路径判定）另单列一行说明其读取主目标、无需单独写入
 - 项目面按[作用域与安装面](../config/skills#作用域与安装面)节体检
 - `--format json` 输出机器可读报告到 stdout（含 `scope`、`versionStatus`、`linkage`、`selection` 与 `targetSelection`）
@@ -240,9 +242,9 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 ## 策略与内容闸门
 
-- 内容闸门只决定正文由 `scope guard` 下发还是全文安装；策略（`scope policy` / `scope skills`）决定哪些技能 / 目录被允许
-- 矩阵已配置但 `skillsInstall.gate` 未开启时，`skills status` / `scope status` / `scope skills list` 提示「矩阵已配置，但正文仍全量加载」
-- 闸门规则排除该技能或技能声明 `metadata.gate: false` 时，策略不会生效，提示「策略无效：技能仍全文加载」
+- 策略（`scope policy` / `scope skills`）直接决定技能分发形态：带条件限制 → 入口壳，无条件拒绝 → 不安装，无需手动开闸门
+- 矩阵限制的技能由 `install` 自动生成入口壳，`skills plan` 可预览；显式 `skillsDelivery.rules` 仍可覆盖推导
+- 显式规则把被拒技能钉成全文时，提示「策略对该技能无效：已显式设为全文安装」；旧键 `skillsInstall.gate` / `metadata.gate` 仍读时兼容
 - 已安装但当前目录矩阵未允许的技能单列提示，不自动删除；确认不需要时用 `skills uninstall` 清理
 - 项目面安装（`install --scope project`）提供更硬的边界；策略与闸门只影响正文读取，不改变安装产物
 - 策略字段、优先级与子目录口径见[作用域配置（activation / policies）](../config/activation)

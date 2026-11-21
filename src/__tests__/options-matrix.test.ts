@@ -531,7 +531,8 @@ describe("顶层命令与外部域", () => {
         const project = await runCli(["skills", "status", "--scope", "project"])
         expect(project.code).toBe(0)
         expect(project.log.join("\n")).toContain("技能矩阵联动")
-        expect(project.log.join("\n")).toContain("矩阵已配置，但正文仍全量加载")
+        // 矩阵限制的技能已按策略推导进入入口壳，不再提示「正文仍全量加载」
+        expect(project.log.join("\n")).not.toContain("矩阵已配置，但正文仍全量加载")
         const global = await runCli(["skills", "status", "--scope", "global"])
         expect(global.code).toBe(0)
         expect(global.log.join("\n")).toContain("全局面未评估技能矩阵联动")

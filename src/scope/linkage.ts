@@ -1,6 +1,8 @@
 // 技能矩阵与内容闸门联动：矩阵已配置但闸门未接管、策略失效与死技能提示
-import { readSkillsInstallConfig } from "../skills/config"
-import { isSkillGated, resolveGateSetting } from "../skills/gate"
+import { readSkillsDeliveryConfig, readSkillsInstallConfig } from "../skills/config"
+import { resolveDelivery } from "../skills/delivery"
+import { derivePolicyDelivery } from "../skills/policy-delivery"
+import { resolveGateSetting } from "../skills/gate"
 import { listPackageSkills } from "../skills/source"
 import { readProjectState, readSkillsState } from "../skills/state"
 import { resolveScope } from "./load"
@@ -46,8 +48,11 @@ export function analyzeSkillLinkage(startDir = process.cwd()): SkillLinkageRepor
   )
   const setting = resolveGateSetting(readSkillsInstallConfig(startDir).gate)
   const packageSkills = new Map(listPackageSkills().map((skill) => [skill.name, skill]))
+  const deliveryConfig = readSkillsDeliveryConfig("global", startDir)
+  const policyContext = { policies: report.policies, profiles: report.profiles }
   const ineffective: string[] = []
   const dead: string[] = []
+  let gated = 0
   if (!matrixConfigured) {
     return { matrixConfigured, gateEnabled: setting.enabled, ineffective, dead }
   }
@@ -60,9 +65,21 @@ export function analyzeSkillLinkage(startDir = process.cwd()): SkillLinkageRepor
     if (!policy?.skills) continue
     dead.push(name)
     const skill = packageSkills.get(name)
-    if (!setting.enabled || !isSkillGated(name, skill?.gate, setting.rules)) ineffective.push(name)
+    // 策略推导已让被拒技能自动进入入口壳；只有显式规则把它钉成全文时才提示策略无效
+    const decision = resolveDelivery({
+      name,
+      config: deliveryConfig,
+      gate: skill?.gate,
+      policy: derivePolicyDelivery(name, policyContext),
+    })
+    if (decision.mode === "gated") gated += 1
+    // 显式规则（含旧键映射）把被拒技能钉成全文才算策略无效
+    if (decision.mode === "full" && (decision.source.startsWith("skillsDelivery.rules") || decision.source.startsWith("旧键 skillsInstall.gate"))) {
+      ineffective.push(name)
+    }
   }
-  return { matrixConfigured, gateEnabled: setting.enabled, ineffective, dead }
+  // 联动提示看推导结果：被拒技能全部进入入口壳即视为已生效，不再提示「正文仍全量加载」
+  return { matrixConfigured, gateEnabled: dead.length > 0 && gated === dead.length, ineffective, dead }
 }
 
 // 联动提示文案：命令层统一用 line.hint 着色
@@ -71,7 +88,7 @@ export function formatLinkageHints(linkage: SkillLinkageReport): string[] {
   const hints: string[] = []
   if (!linkage.gateEnabled) hints.push("矩阵已配置，但正文仍全量加载：运行 toolkit skills gate on 开启内容闸门")
   if (linkage.ineffective.length > 0) {
-    hints.push(`策略无效：${linkage.ineffective.join("、")} 仍全文加载（内容闸门未接管）`)
+    hints.push(`策略对该技能无效：${linkage.ineffective.join("、")} 已显式设为全文安装（skillsDelivery.rules 覆盖了矩阵推导）`)
   }
   if (linkage.dead.length > 0) {
     hints.push(`已安装但矩阵未允许：${linkage.dead.join("、")}（不会自动删除，可用 toolkit skills uninstall 清理）`)

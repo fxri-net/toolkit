@@ -73,7 +73,16 @@ title: 技能分发偏好（skills）
 | `default` | string | `full` | 未命中规则时的默认形态：`full` / `gated` / `off`；非法值告警后按未配置处理 |
 | `rules` | array | `[]` | 显式规则：`{ "match": ["fxri-*"], "delivery": "gated" }`，`match` 任一模式命中即生效（技能名 glob 或 `re:`）。同一技能命中多条时按具体度取胜（命中模式数 → 字面量长度 → 书写顺序），具体度相同取最后一条并向 **stderr** 提示被压规则；非法模式与非法枚举告警后剔除 |
 
-推导优先级（高 → 低）：命令行显式取值 → 技能声明 `metadata.gate: false`（旧键，按全文）→ `skillsDelivery.rules` → `skillsDelivery.default` → 默认全文。
+推导优先级（高 → 低）：命令行显式取值 → 技能声明 `metadata.gate: false`（旧键，按全文）→ `skillsDelivery.rules` →
+策略推导（矩阵）→ `skillsDelivery.default` → 默认全文。
+
+**策略推导**：矩阵对技能的声明直接决定形态，不需要再手动开闸门——
+
+- 带条件的拒绝（`effect: deny` 且带路径 / 标记 / 远端条件，或 `skills.deny` 命中）→ `gated`
+- 允许名单收窄（`skills.mode: allowlist` 且名单不是 `*`）且技能不在其中 → `gated`
+- 无条件拒绝（无任何条件）→ `off`；无条件 `allow: ["*"]` 不产生限制
+- 多个策略命中时 `source` 列出全部策略 id，`reason` 取最具体一条；显式 `skillsDelivery.rules` 仍可覆盖推导
+- `toolkit skills status --explain <技能>` 逐级打印命中 / 未命中与被压规则
 
 **按安装面读取**：全局面读全局层 + 本地层（项目层写法告警并按未配置处理）；项目面读全局层 + 项目层 + 本地层——
 项目层整段覆盖全局、本地层按字段覆盖。本版项目面仍只做全文副本与薄壳，入口壳待后续版本接入。

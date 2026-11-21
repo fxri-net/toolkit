@@ -78,6 +78,6 @@ describe("策略文档示例与实现一致", () => {
     expect(scopeDoc).toContain("policy:<id>")
     const skillsDoc = readFileSync("docs/cli/skills.md", "utf8")
     expect(skillsDoc).toContain("## 策略与内容闸门")
-    expect(skillsDoc).toContain("策略无效：技能仍全文加载")
+    expect(skillsDoc).toContain("策略对该技能无效：已显式设为全文安装")
   })
 })

@@ -5,6 +5,7 @@ import { join } from "node:path"
 import { readTextFile } from "../read-text"
 import { readSkillsDeliveryConfig, readSkillsInstallConfig } from "./config"
 import { gateRulesToDeliveryRules, resolveDelivery, type DeliveryDecision, type DeliveryMode } from "./delivery"
+import { derivePolicyDelivery, loadPolicyDeliveryContext } from "./policy-delivery"
 import { assertUniqueSkillNames, buildSkillGateShell, classifyExisting, isSameDir, isSkillGateShell, readSkillDescription, resolveSkillTargets, resolveTargetsByName, sourceSkillItems } from "./source"
 import { skillsStateFile } from "./state"
 import { SKILL_ENTRY, type GateRules, type TargetKind } from "./types"
@@ -110,8 +111,19 @@ export function planSkills(options: PlanOptions = {}): SkillsPlanReport {
   const deliveryConfig = gateOption === undefined ? readSkillsDeliveryConfig("global") : { rules: [] }
   const cliRules = gateOption !== undefined && typeof gateOption === "object" ? gateRulesToDeliveryRules(gateOption) : []
   const override: DeliveryMode | undefined = gateOption === true ? "gated" : gateOption === false ? "full" : undefined
+  const policyContext = loadPolicyDeliveryContext()
   const decisions = new Map<string, DeliveryDecision>(
-    items.map((item) => [item.name, resolveDelivery({ name: item.name, config: deliveryConfig, rules: cliRules, override, gate: item.gate })]),
+    items.map((item) => [
+      item.name,
+      resolveDelivery({
+        name: item.name,
+        config: deliveryConfig,
+        rules: cliRules,
+        override,
+        gate: item.gate,
+        policy: derivePolicyDelivery(item.name, policyContext),
+      }),
+    ]),
   )
 
   const targets: SkillPlanTarget[] = []

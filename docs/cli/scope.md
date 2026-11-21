@@ -97,16 +97,16 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 
 ## 内容闸门 guard
 
-- 前置：已用 `toolkit skills gate on` 或 `toolkit skills install --gate` 开启闸门；
-  接管范围默认全部技能，可用 `skillsInstall.gate.include` / `exclude` 裁剪，技能也可用 `metadata.gate: false` 退出
+- 前置：技能已被判定为入口壳形态（矩阵限制或 `skillsDelivery` 规则），由 `toolkit skills install` 生成入口壳；
+  旧键 `skillsInstall.gate` / `metadata.gate: false` 仍读时兼容，新配置用 `skillsDelivery`
 - `toolkit scope guard <技能名>` 读取当前目录的作用域判定：**激活时**把真源 `SKILL.md` 正文写到 stdout；**未激活时** stdout 为空、原因写 stderr 并以**退出码 3**结束
 - 输出契约：stdout 只放正文（供 AI 直接消费），参考文件目录与诊断一律走 stderr；只读，不写缓存
 - 技能名须为内置包或已登记来源中存在的单段名字；未知名字或含路径分隔符时以退出码 `1` 报错
 - 仅在 argv 恰为 `scope guard <技能名>` 时走快速路径（不加载完整命令集）；带其它参数（含 `--help`）回落常规 CLI
 - 入口壳只降低正文被读取的概率，不是物理隔离；需要绝对干净用 `skills mount` 或 `skills install --scope project` 做项目面安装
 - `toolkit skills install --embed` 可随时回退为全文安装
-- 联动提示：矩阵已配置但闸门未开启时，`scope status` / `scope skills list` / `skills status`（项目面）提示正文仍全量加载；
-  策略限制的技能未被闸门接管时提示「策略无效：技能仍全文加载」
+- 联动提示：矩阵限制的技能已按策略推导自动进入入口壳；仅当显式规则把被拒技能设为全文时，
+  `scope status` / `scope skills list` / `skills status`（项目面）提示「策略对该技能无效：已显式设为全文安装」
 
 ## 判定顺序
 

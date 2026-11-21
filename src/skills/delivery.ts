@@ -56,6 +56,20 @@ const ORIGIN_RANK: Record<DeliveryOrigin, number> = {
 // 命令行规则的整体优先级：高于一切配置来源
 const CLI_RULE_RANK = 4
 
+// 推导过程的一级：命中后定案，未命中进入下一级；供 status --explain 复述
+export interface DeliveryLevel {
+  level: string
+  hit: boolean
+  detail: string
+}
+
+// 完整推导过程：levels 按优先级排列，overridden 为同具体度被压过的规则
+export interface DeliveryExplanation {
+  decision: DeliveryDecision
+  levels: DeliveryLevel[]
+  overridden: string[]
+}
+
 // 告警去重集合：同一进程内同一条被压规则只提示一次
 const warned = new Set<string>()
 
@@ -111,16 +125,23 @@ function warnOverridden(name: string, winner: DeliveryRule, loser: DeliveryRule)
   )
 }
 
-// 推导目标形态：首个命中的优先级层级定案，并给出可复述的来源与原因
-export function resolveDelivery(input: ResolveDeliveryInput): DeliveryDecision {
+// 完整推导：逐级判定并在首个命中定案，同时保留每级命中情况与被压规则
+export function explainDelivery(input: ResolveDeliveryInput): DeliveryExplanation {
+  const levels: DeliveryLevel[] = []
+  const overridden: string[] = []
+  const done = (mode: DeliveryMode, source: string, reason: string): DeliveryExplanation => ({
+    decision: { mode, source, reason },
+    levels,
+    overridden,
+  })
+
   // 命令行显式取值：用户当次指定高于任何配置
   if (input.override !== undefined) {
-    return {
-      mode: input.override,
-      source: "命令行显式指定",
-      reason: `命令行把分发形态指定为${deliveryModeLabel(input.override)}`,
-    }
+    levels.push({ level: "命令行显式取值", hit: true, detail: `指定为${deliveryModeLabel(input.override)}` })
+    return done(input.override, "命令行显式指定", `命令行把分发形态指定为${deliveryModeLabel(input.override)}`)
   }
+  levels.push({ level: "命令行显式取值", hit: false, detail: "未指定" })
+
   // 技能声明退出接管：保留旧语义，先于规则判定，避免规则把退出技能重新接管
   if (input.gate === false) {
     const key = `metadata.gate\u0000${input.name}`
@@ -128,12 +149,10 @@ export function resolveDelivery(input: ResolveDeliveryInput): DeliveryDecision {
       warned.add(key)
       console.warn(`⚠️ 技能「${input.name}」使用旧声明 metadata.gate=false：已按全文安装，建议迁移到 skillsDelivery 规则（2.0.0 起移除兼容）`)
     }
-    return {
-      mode: "full",
-      source: "技能声明 metadata.gate=false",
-      reason: "技能包声明退出内容接管，按全文安装",
-    }
+    levels.push({ level: "技能声明 metadata.gate", hit: true, detail: "声明为 false，退出内容接管" })
+    return done("full", "技能声明 metadata.gate=false", "技能包声明退出内容接管，按全文安装")
   }
+  levels.push({ level: "技能声明 metadata.gate", hit: false, detail: "未声明退出（缺省或 true）" })
 
   const candidates: Array<{ rule: DeliveryRule; rank: number; index: number; count: number; literal: number; cli: boolean }> = []
   for (const [index, rule] of (input.config?.rules ?? []).entries()) {
@@ -153,35 +172,37 @@ export function resolveDelivery(input: ResolveDeliveryInput): DeliveryDecision {
     const rival = ranked[1]
     if (rival && rival.rank === winner.rank && rival.count === winner.count && rival.literal === winner.literal) {
       warnOverridden(input.name, winner.rule, rival.rule)
+      overridden.push(rival.rule.match.join("、"))
     }
     const match = winner.rule.match.join("、")
-    return {
-      mode: winner.rule.delivery,
-      source: ruleSource(winner.rule, winner.index, winner.cli),
-      reason: `命中规则「${match}」→ ${deliveryModeLabel(winner.rule.delivery)}`,
-    }
+    levels.push({ level: "显式规则", hit: true, detail: `命中「${match}」→ ${deliveryModeLabel(winner.rule.delivery)}` })
+    return done(winner.rule.delivery, ruleSource(winner.rule, winner.index, winner.cli), `命中规则「${match}」→ ${deliveryModeLabel(winner.rule.delivery)}`)
   }
+  levels.push({ level: "显式规则", hit: false, detail: "未命中任何 skillsDelivery.rules" })
 
-  // 策略推导：后续任务把矩阵结论作为同签名入参接入
-  if (input.policy) return input.policy
+  // 策略推导：矩阵声明限制该技能时按目录收口或不安装
+  if (input.policy) {
+    levels.push({ level: "策略推导", hit: true, detail: `${input.policy.source} → ${deliveryModeLabel(input.policy.mode)}` })
+    return done(input.policy.mode, input.policy.source, input.policy.reason)
+  }
+  levels.push({ level: "策略推导", hit: false, detail: "未有策略限制该技能" })
+
   // 技能包默认：后续任务接入 metadata.delivery
   if (input.packageDefault) {
-    return {
-      mode: input.packageDefault,
-      source: "技能包声明 metadata.delivery",
-      reason: `技能包默认形态为${deliveryModeLabel(input.packageDefault)}`,
-    }
+    levels.push({ level: "技能包默认", hit: true, detail: deliveryModeLabel(input.packageDefault) })
+    return done(input.packageDefault, "技能包声明 metadata.delivery", `技能包默认形态为${deliveryModeLabel(input.packageDefault)}`)
   }
+  levels.push({ level: "技能包默认", hit: false, detail: "未声明 metadata.delivery" })
+
   if (input.config?.default) {
-    return {
-      mode: input.config.default,
-      source: "skillsDelivery.default",
-      reason: `未命中规则，取配置默认${deliveryModeLabel(input.config.default)}`,
-    }
+    levels.push({ level: "全局默认", hit: true, detail: deliveryModeLabel(input.config.default) })
+    return done(input.config.default, "skillsDelivery.default", `未命中规则，取配置默认${deliveryModeLabel(input.config.default)}`)
   }
-  return {
-    mode: "full",
-    source: "默认",
-    reason: "未配置分发形态，按默认全文安装",
-  }
+  levels.push({ level: "全局默认", hit: false, detail: "未配置 skillsDelivery.default，回落全文安装" })
+  return done("full", "默认", "未配置分发形态，按默认全文安装")
+}
+
+// 推导目标形态：首个命中的优先级层级定案，并给出可复述的来源与原因
+export function resolveDelivery(input: ResolveDeliveryInput): DeliveryDecision {
+  return explainDelivery(input).decision
 }

@@ -122,12 +122,13 @@ title: 作用域配置（activation / policies）
 
 ## 软限制边界
 
-策略只决定技能**正文是否下发**，前提是内容闸门已开启：
+策略直接决定技能的分发形态，不需要再手动开启闸门：
 
-- `skillsInstall.gate` 未开启时正文仍全量加载，`scope status` / `scope skills list` 提示「矩阵已配置，但正文仍全量加载」
-- 闸门规则排除该技能或技能声明 `metadata.gate: false` 时策略不生效，提示「策略无效：技能仍全文加载」
+- 带条件的限制（路径 / 标记 / 远端拒绝，或允许名单收窄）→ 入口壳，正文由 `toolkit scope guard` 按目录判定
+- 无条件拒绝 → 不安装；无条件 `allow: ["*"]` 不产生限制
+- 显式 `skillsDelivery.rules` 把被拒技能钉成全文时，联动提示「策略对该技能无效：已显式设为全文安装」
 - 已安装但当前目录矩阵未允许的技能只提示、不自动删除，可用 `toolkit skills uninstall` 清理
-- 软限制不是物理隔离；需要更强边界时用 `toolkit skills install --scope project` 或 `--embed` 回退全文
+- 软限制不是物理隔离；需要更强边界时用 `toolkit skills install --scope project`，`skills install --embed` 回退全文
 
 ## 与规则的关系
 

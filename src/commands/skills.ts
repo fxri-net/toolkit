@@ -62,6 +62,9 @@ import {
   BUILTIN_SOURCE,
   gateRulesToDeliveryRules,
   resolveDelivery,
+  explainDelivery,
+  derivePolicyDelivery,
+  loadPolicyDeliveryContext,
   packageVersion,
   type InstallReport,
   type ProjectDirResult,
@@ -353,6 +356,20 @@ function printPlanReport(report: SkillsPlanReport): void {
       ? `[预演] 待收敛 ${report.pending} 项：执行 toolkit skills install 应用`
       : "[预演] 全部已就绪，无需写入",
   )
+}
+
+// 解释单个技能的分发形态：逐级列出命中 / 未命中与被压规则，回答「为什么是壳 / 为什么不是」
+function printDeliveryExplanation(name: string): void {
+  const config = readSkillsDeliveryConfig("global")
+  const context = loadPolicyDeliveryContext()
+  const gate = listPackageSkills().find((skill) => skill.name === name)?.gate
+  const explanation = explainDelivery({ name, config, gate, policy: derivePolicyDelivery(name, context) })
+  console.log(`技能 ${name} 分发形态：${deliveryModeLabel(explanation.decision.mode)}（${explanation.decision.source}）`)
+  for (const level of explanation.levels) {
+    console.log(`  ${level.hit ? "命中" : "未命中"}　${level.level}：${level.detail}`)
+  }
+  if (explanation.overridden.length > 0) console.log(`  被压规则：${explanation.overridden.join("、")}`)
+  console.log(`  原因：${explanation.decision.reason}`)
 }
 
 // 打印现场状态：先列技能真源版本基准，再逐目标报状态——健康目标折叠为一行，仅异常目标逐条展开，末尾汇总
@@ -1106,10 +1123,21 @@ export function registerSkillsCommands(program: Command): void {
     .command("status")
     .description("查看技能现场状态与真源版本（默认按现场判定作用域；含悬空 / 指向其他版本 / 漂移 / 缺失 / 同名冲突）")
     .option("--scope <scope>", "作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）")
+    .option("--explain <skill>", "解释指定技能的分发形态推导过程（只读，不受 --scope 影响）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
-    .action((options: { scope?: string; format?: string }) => {
+    .action((options: { scope?: string; explain?: string; format?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return
+        if (options.explain) {
+          if (options.format === "json") {
+            const config = readSkillsDeliveryConfig("global")
+            const gate = listPackageSkills().find((skill) => skill.name === options.explain)?.gate
+            printJson(explainDelivery({ name: options.explain, config, gate, policy: derivePolicyDelivery(options.explain, loadPolicyDeliveryContext()) }))
+          } else {
+            printDeliveryExplanation(options.explain)
+          }
+          return
+        }
         const scope = resolveScopeChoice(options.scope)
         if (!scope) return
         const runProject = scope.choice !== "global"

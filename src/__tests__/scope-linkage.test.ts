@@ -60,16 +60,16 @@ describe("analyzeSkillLinkage", () => {
     expect(formatLinkageHints(report)).toEqual([])
   })
 
-  it("闸门未开启时提示正文仍全量加载，并列出被矩阵拒绝的技能", () => {
+  it("矩阵限制的技能按策略推导进入入口壳，联动提示不再说正文全量加载", () => {
     writeGlobal(matrixConfig())
     const report = analyzeSkillLinkage(project)
     expect(report.matrixConfigured).toBe(true)
-    expect(report.gateEnabled).toBe(false)
+    expect(report.gateEnabled).toBe(true)
     expect(report.dead).toContain("fxri-text-encoding")
-    expect(report.ineffective).toContain("fxri-text-encoding")
+    expect(report.ineffective).toEqual([])
     const hints = formatLinkageHints(report).join("\n")
-    expect(hints).toContain("矩阵已配置，但正文仍全量加载")
-    expect(hints).toContain("策略无效：")
+    expect(hints).not.toContain("正文仍全量加载")
+    expect(hints).not.toContain("策略无效")
     expect(hints).toContain("已安装但矩阵未允许")
   })
 
@@ -82,10 +82,12 @@ describe("analyzeSkillLinkage", () => {
     expect(formatLinkageHints(report).join("\n")).not.toContain("策略无效")
   })
 
-  it("闸门规则排除目标技能时提示策略无效", () => {
+  it("旧键闸门排除目标技能时提示策略对该技能无效", () => {
     writeGlobal(matrixConfig({ include: ["*"], exclude: ["fxri-text-encoding"] }))
     const report = analyzeSkillLinkage(project)
     expect(report.ineffective).toEqual(["fxri-text-encoding"])
-    expect(formatLinkageHints(report).join("\n")).toContain("策略无效：fxri-text-encoding")
+    const hints = formatLinkageHints(report).join("\n")
+    expect(hints).toContain("策略对该技能无效：fxri-text-encoding")
+    expect(hints).toContain("已显式设为全文安装")
   })
 })
