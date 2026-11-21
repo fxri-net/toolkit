@@ -393,16 +393,44 @@ export function planProfileUpsert(state: PolicyState, input: ProfileUpsertInput)
   return finalizePlan(state, nextConfig, [`写入档案：${name}`], warnings, false, details)
 }
 
-// 档案删除：只删目标层的同名档案
+// 档案移除影响：三层策略引用与其它层同名定义
+function profileImpact(name: string, state: PolicyState): { references: string[]; otherLayers: PolicyLayer[] } {
+  const references: string[] = []
+  const otherLayers: PolicyLayer[] = []
+  for (const layer of POLICY_LAYERS) {
+    const config = readLayerConfig(layer, state.startDir)
+    const list = Array.isArray(config.policies) ? config.policies : []
+    for (const raw of list) {
+      if (!isRecord(raw) || !isRecord(raw.skills)) continue
+      const profiles = Array.isArray(raw.skills.profiles) ? raw.skills.profiles : []
+      if (profiles.includes(name)) references.push(labelOf(raw))
+    }
+    const profiles = isRecord(config.skillProfiles) ? config.skillProfiles : {}
+    if (layer !== state.layer && name in profiles) otherLayers.push(layer)
+  }
+  return { references, otherLayers }
+}
+
+// 档案删除：只删目标层的同名档案；移除前列出引用与回落层，避免 allowlist 静默变全拒绝
 export function planProfileRemove(state: PolicyState, name: string): PolicyEditPlan {
   const key = name.trim()
   if (!key || !(key in state.profiles)) throw new Error(`未找到档案「${name}」；未写入配置`)
+  const impact = profileImpact(key, state)
+  const warnings: string[] = []
+  if (impact.references.length > 0) {
+    warnings.push(
+      `档案「${key}」仍被 ${impact.references.length} 条策略引用：${impact.references.join("、")}；删除后引用会被忽略，allowlist 可能变为全拒绝`,
+    )
+  }
+  if (impact.otherLayers.length > 0) {
+    warnings.push(`同名档案仍在 ${impact.otherLayers.join(" / ")} 层定义，删除后回落到该层`)
+  }
   const nextProfiles = { ...state.profiles }
   delete nextProfiles[key]
   const nextConfig = { ...state.config }
   if (Object.keys(nextProfiles).length > 0) nextConfig.skillProfiles = nextProfiles
   else delete nextConfig.skillProfiles
-  return finalizePlan(state, nextConfig, [`移除档案：${key}`])
+  return finalizePlan(state, nextConfig, [`移除档案：${key}`], warnings)
 }
 
 // 档案允许项展开：scope skills deny --profile 使用；先校验目标层可见性

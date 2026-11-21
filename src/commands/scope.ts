@@ -723,7 +723,7 @@ export function registerScopeCommands(program: Command): void {
 
   skillsCmd
     .command("profile [name]")
-    .description("查看 / 写入 / 移除技能档案（省略档案名时列出）")
+    .description("查看 / 写入 / 移除技能档案；移除时提示引用与同名回退（省略档案名时列出）")
     .option("--allow <patterns...>", "档案允许技能名 / glob")
     .option("--deny <patterns...>", "档案排除技能名 / glob")
     .option("--remove", "移除档案（需 --yes）")

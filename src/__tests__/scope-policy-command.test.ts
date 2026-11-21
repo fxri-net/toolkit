@@ -201,6 +201,21 @@ describe("档案与快捷视图", () => {
     expect(plan.details.join("\n")).toContain("deny：无")
   })
 
+  it("移除档案时提示引用与同名回退", () => {
+    writeGlobal({
+      skillProfiles: { front: { allow: ["fxri-*"] } },
+      policies: [{ id: "use-front", name: "使用档案", skills: { mode: "allowlist", profiles: ["front"] } }],
+    })
+    writeProject({ skillProfiles: { front: { allow: ["fxri-a"] } } })
+    resetToolkitConfigCache()
+    const plan = planProfileRemove(readPolicyState("global", project), "front")
+    const warnings = plan.warnings.join("\n")
+    expect(warnings).toContain("仍被 1 条策略引用")
+    expect(warnings).toContain("use-front")
+    expect(warnings).toContain("回落到")
+    expect(plan.changed).toBe(true)
+  })
+
   it("档案允许项展开用于技能排除", () => {
     writeGlobal({ skillProfiles: { front: { allow: ["fxri-a", "fxri-b"] } } })
     expect(profileAllowPatterns(project, ["front"], "global")).toEqual(["fxri-a", "fxri-b"])
