@@ -422,8 +422,16 @@ export function registerConfigCommands(program: Command): void {
           return
         }
         const report = configStatus(cwd)
-        if (options.format === "json") printJson(report)
-        else printConfigStatus(report)
+        if (options.format === "json") {
+          printJson(
+            jsonEnvelope(
+              "config status",
+              true,
+              report,
+              report.items.map((item) => ({ level: item.level, scope: item.scope, message: item.message })),
+            ),
+          )
+        } else printConfigStatus(report)
       } catch (e) {
         // 体检失败不置退出码：与 conventions status 对齐，「只读体检不阻断」是本命令的设计意图
         console.error(`⚠️ 读取状态失败：${(e as Error).message}`)

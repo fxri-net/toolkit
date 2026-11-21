@@ -5,7 +5,7 @@ import { formatConventions, type FormatReport } from "../conventions/compact"
 import { conventionsStatus, resolveCarrierRoot, type ConventionsStatusReport } from "../conventions/status"
 import { resolveTasksDir } from "../config"
 import { foldHomeInText } from "../config-status"
-import { assertJsonFormat } from "../json-output"
+import { assertJsonFormat, jsonEnvelope } from "../json-output"
 import { printJson } from "./shared"
 import { line, style } from "../term-style"
 
@@ -111,7 +111,7 @@ export function registerConventionsCommands(program: Command): void {
       try {
         if (!assertJsonFormat(options.format)) return
         const report = upgradeConventions(resolveTasksDir(options.dir), { dryRun: options.dryRun })
-        if (options.format === "json") printJson({ dryRun: Boolean(options.dryRun), ...report })
+        if (options.format === "json") printJson(jsonEnvelope("convention upgrade", true, { dryRun: Boolean(options.dryRun), ...report }))
         else printUpgradeReport(report, Boolean(options.dryRun))
       } catch (e) {
         console.error(`⚠️ 升级失败：${(e as Error).message}`)
@@ -130,7 +130,7 @@ export function registerConventionsCommands(program: Command): void {
       try {
         if (!assertJsonFormat(options.format)) return
         const report = formatConventions(resolveTasksDir(options.dir), { dryRun: options.dryRun })
-        if (options.format === "json") printJson(report)
+        if (options.format === "json") printJson(jsonEnvelope("convention format", true, report))
         else printConventionsFormat(report, Boolean(options.dryRun))
       } catch (e) {
         console.error(`⚠️ 归一失败：${(e as Error).message}`)
@@ -150,8 +150,9 @@ export function registerConventionsCommands(program: Command): void {
         if (!assertJsonFormat(options.format)) return
         const tasksDir = resolveTasksDir(options.dir)
         const report = conventionsStatus(tasksDir, resolveCarrierRoot(tasksDir))
-        if (options.format === "json") printJson(report)
-        else printConventionsStatus(report)
+        if (options.format === "json") {
+          printJson(jsonEnvelope("convention status", true, report, report.items.map((item) => ({ level: item.level, scope: item.scope, message: item.message }))))
+        } else printConventionsStatus(report)
       } catch (e) {
         console.error(`⚠️ 读取状态失败：${(e as Error).message}`)
       }

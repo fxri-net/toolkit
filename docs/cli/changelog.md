@@ -26,6 +26,8 @@ toolkit changelog changeset status      # 待发布变更集状态（透传给 c
 选项写在各自子命令之后（`changelog --history`、`bump --lang en`）。
 
 `changeset add` / `changeset status` 的参数原样透传给 changesets；`changeset list` 为只读简表，与 `status` 概览同源。
+`status` / `changeset list` 的 `--format json` 走统一信封（`data` 内含 `total` / `changesets`）；`changeset add` / `status` 属透传数据流，
+保持 changesets 自身的输出格式，不套信封。
 `changelog status` 现为只读概览，不再是 changesets 透传；旧写法 `changelog version` / `format` / `doc` / `add` 仍可用，
 命中时 stderr 给出弃用提示，后续版本移除。
 

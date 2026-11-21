@@ -73,8 +73,9 @@ export function toCSV(rows: TaskRow[], redact = true): string {
   return `\uFEFF${header}${body ? `\r\n${body}` : ""}`
 }
 
-// 生成 JSON 文本：{ summary, items }，items 为英文 key 完整字段（可回读）；所有文本字段统一脱敏，避免漏网列
-export function toJSON(rows: TaskRow[], summary: TaskSummary, redact = true): string {
+// 导出 JSON 的载荷数据：{ summary, items }，items 为英文 key 完整字段（可回读）；所有文本字段统一脱敏，避免漏网列
+// 导出文件沿用该结构（数据流例外），任务总览的 --format json 则把它放进统一信封的 data
+export function toJSONData(rows: TaskRow[], summary: TaskSummary, redact = true): { summary: TaskSummary; items: Array<Record<string, unknown>> } {
   const items = rows.map((r) => ({
     view: r.view === "已归档" ? "archived" : "active",
     title: redactText(r.title, redact),
@@ -90,7 +91,12 @@ export function toJSON(rows: TaskRow[], summary: TaskSummary, redact = true): st
     heldDays: r.heldDays ?? null,
     heldDaysApprox: r.heldDaysApprox ?? false,
   }))
-  return JSON.stringify({ schemaVersion: 1, summary, items }, null, 2)
+  return { summary, items }
+}
+
+// 生成 JSON 文本：{ schemaVersion, summary, items }，导出文件格式保持不变
+export function toJSON(rows: TaskRow[], summary: TaskSummary, redact = true): string {
+  return JSON.stringify({ schemaVersion: 1, ...toJSONData(rows, summary, redact) }, null, 2)
 }
 
 // 生成 xlsx 工作簿 Buffer：固定三 sheet（待完成 / 已归档 / 汇总）

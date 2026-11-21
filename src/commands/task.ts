@@ -3,7 +3,7 @@ import { existsSync, readdirSync } from "node:fs"
 import type { Command } from "commander"
 import { renderTaskBoard } from "../tasks/list"
 import { queryTasks } from "../tasks/query"
-import { exportTasks, toJSON } from "../tasks/export"
+import { exportTasks, toJSONData } from "../tasks/export"
 import { importTasks } from "../tasks/import"
 import { archiveTasks } from "../tasks/archive"
 import { computeStats, renderStats } from "../tasks/stats"
@@ -17,7 +17,7 @@ import { findUntypedChangesetEntries, findUnbulletedChangesetEntries } from "../
 import { resolveEnabled } from "../switch"
 import { resolveTasksDir, getConfigSection } from "../config"
 import { resolveRedactEnabled } from "../privacy/redact"
-import { assertJsonFormat } from "../json-output"
+import { assertJsonFormat, jsonEnvelope } from "../json-output"
 import { getCheckWarnings, printJson, resolveLanguages, splitMulti } from "./shared"
 import { line, style } from "../term-style"
 
@@ -173,8 +173,8 @@ export function registerTasksCommands(program: Command): void {
     return filter
   }
 
-  // 总览：视图 + 过滤 + 终端表格 / JSON
-  async function runTasksOverview(options: TasksQueryOptions): Promise<void> {
+  // 总览：视图 + 过滤 + 终端表格 / JSON；command 由调用点给出，区分裸 task 与 task list
+  async function runTasksOverview(options: TasksQueryOptions, command: string): Promise<void> {
     const ctx = resolveTasksContext(options)
     if (!ctx) return
     if (!assertJsonFormat(options.format)) return
@@ -185,7 +185,7 @@ export function registerTasksCommands(program: Command): void {
     try {
       const { rows, summary } = queryTasks(ctx.dir, view, filter)
       if (options.format === "json") {
-        console.log(toJSON(rows, summary, ctx.redact))
+        printJson(jsonEnvelope(command, true, toJSONData(rows, summary, ctx.redact)))
         return
       }
       renderTaskBoard(rows, summary, view, filter, ctx.redact)
@@ -254,7 +254,7 @@ export function registerTasksCommands(program: Command): void {
     if (!filter) return
     try {
       const stats = computeStats(ctx.dir, filter, view)
-      if (options.format === "json") printJson(stats)
+      if (options.format === "json") printJson(jsonEnvelope("task stats", true, stats))
       else for (const line of renderStats(stats)) console.log(line)
     } catch (e) {
       console.error(`⚠️ 操作失败：${(e as Error).message}`)
@@ -345,7 +345,7 @@ export function registerTasksCommands(program: Command): void {
   tasksCmd
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action(async (options: TasksQueryOptions) => {
-      await runTasksOverview(options)
+      await runTasksOverview(options, "task")
     })
 
   // list 为隐式子命令：`toolkit task list` 等价于裸 `tasks` 看板，补命令名与直觉不一致的入口
@@ -353,7 +353,7 @@ export function registerTasksCommands(program: Command): void {
   addTasksCommonOptions(tasksListCmd)
   addTasksFilterOptions(tasksListCmd)
   tasksListCmd.option("--format <format>", "输出格式（json，输出到 stdout）").action(async (options: TasksQueryOptions) => {
-    await runTasksOverview(options)
+    await runTasksOverview(options, "task list")
   })
 
   // 新建任务：TTY 无参进入交互，非 TTY 须显式标题与 --yes

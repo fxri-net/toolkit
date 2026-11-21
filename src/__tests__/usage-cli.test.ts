@@ -80,9 +80,12 @@ function event(overrides: Partial<SkillUsageEvent> = {}): SkillUsageEvent {
 describe("usage CLI", () => {
   it("状态与开关命令回显并写全局配置", async () => {
     await run(["show", "--format", "json"])
-    expect(logs.join("\n")).toContain('"enabled": true')
-    expect(logs.join("\n")).toContain('"hooks"')
-    expect(logs.join("\n")).toContain('"upload"')
+    const payload = JSON.parse(logs.join("\n")) as { command: string; ok: boolean; data: { enabled: boolean; hooks: unknown; upload: unknown } }
+    expect(payload.command).toBe("usage show")
+    expect(payload.ok).toBe(true)
+    expect(payload.data.enabled).toBe(true)
+    expect(payload.data.hooks).toBeDefined()
+    expect(payload.data.upload).toBeDefined()
 
     await run(["config", "origins", "--no-first-party"])
     await run(["config", "scope", "--mode", "all"])
@@ -99,8 +102,11 @@ describe("usage CLI", () => {
     await run(["log", "--skill", "fxri-plan-task", "--session", "s1", "--prompt", "全部任务落档", "--outcome", "success"])
     expect(logs.join("\n") || errors.join("\n")).toContain("已补录")
 
+    logs = []
     await run(["show", "stats", "--format", "json"])
-    expect(logs.join("\n")).toContain('"total": 1')
+    const statsPayload = JSON.parse(logs.join("\n")) as { command: string; data: { total: number } }
+    expect(statsPayload.command).toBe("usage show stats")
+    expect(statsPayload.data.total).toBe(1)
     await run(["show", "stats", "--by", "session"])
     await run(["show", "stats", "--by", "trigger"])
 
@@ -132,12 +138,14 @@ describe("usage CLI", () => {
     await run(["data", "doctor", "--format", "json"])
     const text = logs.join("\n")
     const parsed = JSON.parse(text.slice(text.indexOf("{"))) as {
-      items: Array<{ code: string; level: string; message: string }>
+      command: string
+      data: { items: Array<{ code: string; level: string; message: string }> }
     }
-    expect(Array.isArray(parsed.items)).toBe(true)
-    expect(parsed.items.every((i) => i.code !== "" && (i.level === "warn" || i.level === "info"))).toBe(true)
-    expect(parsed.items.some((i) => i.message.includes("桥接条目"))).toBe(false)
-    expect(parsed.items.some((i) => i.code === "rule-channel-with-hooks")).toBe(false)
+    expect(parsed.command).toBe("usage data doctor")
+    expect(Array.isArray(parsed.data.items)).toBe(true)
+    expect(parsed.data.items.every((i) => i.code !== "" && (i.level === "warn" || i.level === "info"))).toBe(true)
+    expect(parsed.data.items.some((i) => i.message.includes("桥接条目"))).toBe(false)
+    expect(parsed.data.items.some((i) => i.code === "rule-channel-with-hooks")).toBe(false)
   })
 
   it("Hook 安装、状态与卸载", async () => {
@@ -182,27 +190,30 @@ describe("usage CLI", () => {
     process.exitCode = 0
   })
 
-  it("配置类命令的 --format json 只输出本段载荷", async () => {
+  it("配置类命令的 --format json 在信封 data 内只输出本段载荷", async () => {
     await run(["config", "channel", "--format", "json"])
-    expect(JSON.parse(logs.join("\n"))).toHaveProperty("channel")
+    const channel = JSON.parse(logs.join("\n")) as { command: string; data: { channel: string } }
+    expect(channel.command).toBe("usage config channel")
+    expect(channel.data).toHaveProperty("channel")
 
     logs = []
     await run(["config", "origins", "--format", "json"])
-    const sources = JSON.parse(logs.join("\n")) as { sources: { firstParty: boolean } }
-    expect(sources.sources.firstParty).toBe(true)
-    expect((sources as { enabled?: boolean }).enabled).toBeUndefined()
+    const sources = JSON.parse(logs.join("\n")) as { command: string; data: { sources: { firstParty: boolean }; enabled?: boolean } }
+    expect(sources.command).toBe("usage config origins")
+    expect(sources.data.sources.firstParty).toBe(true)
+    expect(sources.data.enabled).toBeUndefined()
 
     logs = []
     await run(["config", "scope", "--format", "json"])
-    expect(JSON.parse(logs.join("\n"))).toHaveProperty("skills")
+    expect((JSON.parse(logs.join("\n")) as { data: Record<string, unknown> }).data).toHaveProperty("skills")
 
     logs = []
     await run(["config", "capture", "--format", "json"])
-    expect(JSON.parse(logs.join("\n"))).toHaveProperty("capture")
+    expect((JSON.parse(logs.join("\n")) as { data: Record<string, unknown> }).data).toHaveProperty("capture")
 
     logs = []
     await run(["config", "storage", "--format", "json"])
-    expect(JSON.parse(logs.join("\n"))).toHaveProperty("storage")
+    expect((JSON.parse(logs.join("\n")) as { data: Record<string, unknown> }).data).toHaveProperty("storage")
   })
 
   it("非交互初始化、上传配置与卸载", async () => {
@@ -233,7 +244,9 @@ describe("usage CLI", () => {
 
   it("上传默认关闭，dry-run 直接报错", async () => {
     await run(["config", "upload", "status", "--format", "json"])
-    expect(logs.join("\n")).toContain('"enabled": false')
+    const upload = JSON.parse(logs.join("\n")) as { command: string; data: { enabled: boolean } }
+    expect(upload.command).toBe("usage config upload status")
+    expect(upload.data.enabled).toBe(false)
     await run(["config", "upload"])
     expect(logs.join("\n")).toContain("待上传")
     logs = []

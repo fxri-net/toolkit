@@ -121,6 +121,11 @@
 
 机器可读输出不着色：`--format json`、`--out` 写入文件、`scope guard` 技能正文等数据通道恒为纯文本。
 
+报告类 `--format json` 统一为信封 `{ schemaVersion, command, ok, data, issues }`：`command` 为实际命令路径，
+`ok` 为报告结论（check 类按是否存在 error，只有告警时仍为 `true`），`data` 承载域载荷，
+`issues` 汇总问题（`level` / `scope` / `message`）。数据流输出不套信封：`usage data export`、`task export <path>`
+与 `release changeset` 透传保持原格式；业务错误仍写 stderr 并保留原退出码，不在 stdout 输出半截 JSON。
+
 文本表格、报告数据行与规则正文同样不着色，便于复制与日志比对；交互菜单由组件库自行渲染，不在本约定内。
 
 ## 交互约定

@@ -93,7 +93,10 @@ describe("导出脱敏覆盖面（缺陷 9）", () => {
 
   it("JSON 全部文本列走脱敏（含依赖数组逐元素）", () => {
     const text = toJSON([row()], { total: 1, byStatus: {}, byOwner: {} }, true)
-    const item = JSON.parse(text).items[0] as Record<string, unknown>
+    const parsed = JSON.parse(text) as { schemaVersion: number; summary: unknown; items: Array<Record<string, unknown>> }
+    // 导出文件属数据流例外：保持原结构，不套统一信封
+    expect(Object.keys(parsed)).toEqual(["schemaVersion", "summary", "items"])
+    const item = parsed.items[0]!
     expect(item.title).toBe("对接138****5678")
     expect(item.owner).toBe("138****5678")
     expect(item.scope).toBe("svc138****5678")

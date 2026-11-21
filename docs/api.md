@@ -66,6 +66,9 @@ ESM 与 CJS 双形态入口（`import` / `require` 均可）；类型随函数�
 JSON 结构：`{ schemaVersion: 1, summary, items }`；
 `items` 为英文 key 完整字段（`view/title/status/owner/scope/created/updated/completed/depends[]/file`）。
 
+CLI 报告类 `--format json` 走统一信封 `{ schemaVersion, command, ok, data, issues }`；
+`toJSON` / `exportTasks` 属于导出数据流，仍为上述 `{ schemaVersion, summary, items }` 结构，不套信封。
+
 ## CHANGELOG
 
 | 函数 | 说明 |

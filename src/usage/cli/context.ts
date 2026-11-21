@@ -1,6 +1,6 @@
 // 使用情况 CLI（context）：上下文、格式与解析助手，自 commands.ts 原样搬移
 import { existsSync, readFileSync } from "node:fs"
-import { toJsonText } from "../../json-output"
+import { jsonEnvelope, toJsonText } from "../../json-output"
 import { line } from "../../term-style"
 import { redactText, resolveRedactEnabled } from "../../privacy/redact"
 import { uploadStatus } from "../upload"
@@ -122,11 +122,11 @@ export function buildSegmentReport(config: UsageConfig, segment: ConfigSegment):
   }
 }
 
-// 打印摘要段：json 只放载荷，文本按同一份数据渲染
-export function printSegment(config: UsageConfig, segment: ConfigSegment, format?: string): void {
+// 打印摘要段：json 走统一信封（command 由调用点给出），文本按同一份数据渲染
+export function printSegment(config: UsageConfig, segment: ConfigSegment, format: string | undefined, command: string): void {
   const report = buildSegmentReport(config, segment)
   if (format === "json") {
-    printJson(report.payload)
+    printJson(jsonEnvelope(command, true, report.payload))
     return
   }
   for (const text of report.lines) console.log(text)

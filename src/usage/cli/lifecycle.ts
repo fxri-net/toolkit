@@ -1,6 +1,6 @@
 // 使用情况 CLI（lifecycle）：show 组的信息视图，以及 setup 组的初始化 / 停用 / Hook / 向导
 import type { Command } from "commander"
-import { assertJsonFormat } from "../../json-output"
+import { assertJsonFormat, jsonEnvelope } from "../../json-output"
 import { runInteractive } from "../../prompts"
 import { AGENT_ADAPTERS } from "../adapters"
 import { ingestFromStdin, readLastHookError } from "../ingest"
@@ -58,7 +58,7 @@ export function registerUsageShowCommands(show: Command): void {
         upload: { enabled: upload.enabled, pending: upload.pending },
         lastHookError: lastHookError ?? null,
       }
-      printJson(report)
+      printJson(jsonEnvelope("usage show", true, report))
     })
 }
 

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { computeStats, renderStats } from "../tasks/stats"
-import { toJsonText } from "../json-output"
+import { jsonEnvelope, toJsonText } from "../json-output"
 
 // 临时目录收集，用例结束后统一清理
 const dirs: string[] = []
@@ -182,22 +182,26 @@ describe("computeStats", () => {
 })
 
 describe("stats JSON 输出", () => {
-  it("顶层前置 schemaVersion，统计字段保持原位与语义不变（--format json 契约）", () => {
+  it("统一信封包裹统计字段，字段保持原位与语义不变（--format json 契约）", () => {
     freezeToday("2026-09-05")
     const dir = makeDir()
     writeArchive(dir, "20260905", ["## 20260901-张三-任务甲\n\n> 负责人：张三　状态：已完成　范围：core　完成时间：2026-09-05 10:00\n\n正文\n"])
     writeTask(dir, "20260901-李四-滞留任务", { owner: "李四", status: "待办", created: "20260901", updated: "20260901", completed: "", depends_on: "[]", scope: "core" })
     const stats = computeStats(dir)
-    const parsed = JSON.parse(toJsonText(stats)) as Record<string, unknown>
+    const parsed = JSON.parse(toJsonText(jsonEnvelope("task stats", true, stats))) as Record<string, unknown>
     expect(parsed.schemaVersion).toBe(1)
-    expect(parsed.duration).toEqual(stats.duration)
-    expect(parsed.active).toEqual(stats.active)
-    expect(parsed.byMonth).toEqual(stats.byMonth)
-    expect(parsed.byOwner).toEqual(stats.byOwner)
-    expect(parsed.byScope).toEqual(stats.byScope)
-    expect(parsed.summary).toEqual(stats.summary)
-    expect(parsed.view).toBe("all")
-    expect(parsed.skipped).toBe(stats.skipped)
+    expect(parsed.command).toBe("task stats")
+    expect(parsed.ok).toBe(true)
+    expect(parsed.issues).toEqual([])
+    const data = parsed.data as Record<string, unknown>
+    expect(data.duration).toEqual(stats.duration)
+    expect(data.active).toEqual(stats.active)
+    expect(data.byMonth).toEqual(stats.byMonth)
+    expect(data.byOwner).toEqual(stats.byOwner)
+    expect(data.byScope).toEqual(stats.byScope)
+    expect(data.summary).toEqual(stats.summary)
+    expect(data.view).toBe("all")
+    expect(data.skipped).toBe(stats.skipped)
   })
 })
 

@@ -39,6 +39,9 @@ toolkit rule check                    # 校验模块与规则页的更新锚点�
 | `reset` | 清除组合缓存 | — |
 | `check` | 校验 `templates/rules/*.md` 与 `docs/rules/*.md` 的更新锚点：格式合法且页面锚点等于所含模块最大值 | `--cwd`、`--format json` |
 
+`list` / `check` 的 `--format json` 走统一信封 `{ schemaVersion, command, ok, data, issues }`：报告字段位于 `data`，
+`check` 的锚点问题同时映射到顶层 `issues`，存在 error 级问题时 `ok` 为 `false`。
+
 ## 边界与注意
 
 - `--module` 的出现顺序即输出顺序；`--preset` 按清单顺序；二者同时出现报错。

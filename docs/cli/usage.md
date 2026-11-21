@@ -93,8 +93,9 @@ toolkit usage data doctor
 - 裸 `toolkit usage` 在 TTY 下进入交互菜单；非 TTY 输出 `show` 摘要与子命令提示并以退出码 0 结束。
   需要显式交互入口时用 `toolkit usage setup wizard`（非 TTY 退出码 2）；菜单子页按 ESC 返回、顶层按 ESC 或选「退出」结束，Ctrl+C 退出码 130，取消不写任何文件。
 - `usage show` / `usage show stats`、`usage config` 的 `channel` / `origins` / `scope` / `capture` / `storage`、
-  `usage setup hooks status`、`usage data doctor` 等支持 `--format json`：文本与 JSON 由同一份摘要数据渲染，
-  文本模式只输出本段（`config origins` 不再打印整份配置），JSON 模式只含本段载荷（前置 `schemaVersion`）。
+  `usage config upload status`、`usage data doctor` 支持 `--format json`：文本与 JSON 由同一份摘要数据渲染，
+  文本模式只输出本段（`config origins` 不再打印整份配置），JSON 走统一信封 `{ schemaVersion, command, ok, data, issues }`，
+  `data` 内只含本段载荷。
 - `usage setup hooks install` / `usage setup hooks remove` / `usage setup uninstall` 写前统一打印预览并确认；
   非 TTY 须显式加 `--yes`，否则以退出码 2 提示用法。
   `usage setup uninstall --dry-run` 只打印预览，不写配置、不动 Hook、不删数据。
@@ -123,10 +124,11 @@ toolkit usage data doctor
    升级后重跑 `usage setup hooks install` 即可把存量旧形态刷成新形态，`usage setup hooks status` / `usage data doctor` 会提示形态过期。
 - `include` 空列表等同 `none`；`exclude` 只列出要排除的技能。
 - 触发词默认不采集；开启后截断 200 字并复用全局脱敏规则。
-- `usage data export` 输出的是已落盘事件；触发词是否出现取决于采集开关。
+- `usage data export` 输出的是已落盘事件，属数据流例外，不套统一信封；触发词是否出现取决于采集开关。
 - `usage data doctor` 只诊断不自动修复；索引不一致时用 `usage data rebuild`，重复事件用 `usage data dedupe`。跨适配器重复按 `(sessionId, toolUseId)` 计数。
-- `usage data doctor --format json` 的诊断项为 `items: { code, level, message }[]`：`code` 供脚本断言，
-   `level` 区分必须处理（`warn`）与提示（`info`）；文本模式分别以 ⚠️ / ℹ️ 前缀输出。
+- `usage data doctor --format json` 的诊断项位于 `data.items`，形如 `{ code, level, message }[]`：`code` 供脚本断言，
+   `level` 区分必须处理（`warn`）与提示（`info`）；同批问题同时映射到顶层 `issues[]`（`scope` 取 `code`）。
+  文本模式分别以 ⚠️ / ℹ️ 前缀输出。
 - `usage data import --type transcript` 从 Claude 或通用会话记录提取 `tool_use` 块；时间以导入时刻为准，不还原原始会话时间。
 
 ## 相关页面

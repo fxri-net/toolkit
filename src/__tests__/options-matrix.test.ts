@@ -247,12 +247,15 @@ describe("顶层命令与外部域", () => {
     expect(existsSync(r.log.join(""))).toBe(true)
   })
 
-  it("skills status --path --format json：带 schemaVersion 与技能清单", async () => {
+  it("skills status --path --format json：统一信封且 data 带技能清单", async () => {
     const r = await runCli(["skill", "status", "--path", "--format", "json"])
     expect(r.code).toBe(0)
-    const payload = JSON.parse(r.log.join("\n")) as { schemaVersion: number; skills: string[] }
+    const payload = JSON.parse(r.log.join("\n")) as { schemaVersion: number; command: string; ok: boolean; data: { skills: string[] }; issues: unknown[] }
     expect(payload.schemaVersion).toBe(1)
-    expect(Array.isArray(payload.skills)).toBe(true)
+    expect(payload.command).toBe("skill status")
+    expect(payload.ok).toBe(true)
+    expect(payload.issues).toEqual([])
+    expect(Array.isArray(payload.data.skills)).toBe(true)
   })
 
   it("skills status：退出码 0", async () => {
@@ -562,11 +565,11 @@ describe("顶层命令与外部域", () => {
       writeMatrixProject()
       await inMatrixProject(async () => {
         const project = await runCli(["skill", "status", "--scope", "project", "--format", "json"])
-        const projectPayload = JSON.parse(project.log.join("\n")) as { linkage: { matrixConfigured: boolean } | null }
-        expect(projectPayload.linkage?.matrixConfigured).toBe(true)
+        const projectPayload = JSON.parse(project.log.join("\n")) as { data: { linkage: { matrixConfigured: boolean } | null } }
+        expect(projectPayload.data.linkage?.matrixConfigured).toBe(true)
         const global = await runCli(["skill", "status", "--scope", "global", "--format", "json"])
-        const globalPayload = JSON.parse(global.log.join("\n")) as { linkage: unknown }
-        expect(globalPayload.linkage).toBeNull()
+        const globalPayload = JSON.parse(global.log.join("\n")) as { data: { linkage: unknown } }
+        expect(globalPayload.data.linkage).toBeNull()
       })
     })
   })
@@ -617,9 +620,9 @@ describe("顶层命令与外部域", () => {
     // 复跑幂等：--format json 报告 already-compact
     const again = await runCli(["convention", "format", "--dir", dir, "--format", "json"])
     expect(again.code).toBe(0)
-    const payload = JSON.parse(again.log.join("\n")) as { status: string; changedFiles: number }
-    expect(payload.status).toBe("already-compact")
-    expect(payload.changedFiles).toBe(0)
+    const payload = JSON.parse(again.log.join("\n")) as { data: { status: string; changedFiles: number } }
+    expect(payload.data.status).toBe("already-compact")
+    expect(payload.data.changedFiles).toBe(0)
 
     rmSync(dir, { recursive: true, force: true })
   })
@@ -753,15 +756,23 @@ describe("config 域只读体检", () => {
     expect(r.log.join("\n")).toContain("查找起点")
   })
 
-  it("config status --format json：可解析且带 schemaVersion 与公共字段", async () => {
+  it("config status --format json：统一信封，data 带公共字段", async () => {
     const r = await runCli(["config", "status", "--cwd", cfgDir, "--format", "json"])
     expect(r.code).toBe(0)
-    const payload = JSON.parse(r.log.join("\n")) as { schemaVersion: number; warnings: number; levels: unknown[] }
-    expect(payload.schemaVersion).toBe(1)
-    expect(typeof payload.warnings).toBe("number")
-    expect(Array.isArray(payload.levels)).toBe(true)
-    // 顶层字段集合锁定：schemaVersion + 八个报告字段
-    expect(Object.keys(JSON.parse(r.log.join("\n")))).toHaveLength(9)
+    const parsed = JSON.parse(r.log.join("\n")) as {
+      schemaVersion: number
+      command: string
+      ok: boolean
+      data: { warnings: number; levels: unknown[] }
+      issues: unknown[]
+    }
+    expect(parsed.schemaVersion).toBe(1)
+    expect(parsed.command).toBe("config status")
+    expect(parsed.ok).toBe(true)
+    expect(typeof parsed.data.warnings).toBe("number")
+    expect(Array.isArray(parsed.data.levels)).toBe(true)
+    // 顶层字段集合锁定：schemaVersion + 四个信封字段
+    expect(Object.keys(JSON.parse(r.log.join("\n")))).toHaveLength(5)
   })
 
   it("--cwd 指向不存在路径：报错退出且不回落 process.cwd()", async () => {
@@ -828,8 +839,8 @@ describe("skills source 外部来源口径", () => {
       sources: { toolkit: sourceFixture("", ["fxri-plan-task"]), play: sourceFixture("1.2.3", ["ext-alpha"]) },
     })
     const json = await runCli(["skill", "source", "--format", "json"])
-    const payload = JSON.parse(json.log.join("\n")) as { sources: Array<{ name: string }> }
-    expect(payload.sources.map((item) => item.name)).toEqual(["play"])
+    const payload = JSON.parse(json.log.join("\n")) as { data: { sources: Array<{ name: string }> } }
+    expect(payload.data.sources.map((item) => item.name)).toEqual(["play"])
     const text = await runCli(["skill", "source"])
     expect(text.log.join("\n")).not.toContain("toolkit（")
   })
@@ -848,8 +859,8 @@ describe("skills source 外部来源口径", () => {
     expect(text.log.join("\n")).toContain("ext-gone（已失效）")
     expect(text.log.join("\n")).toContain("ext-alpha")
     const json = await runCli(["skill", "source", "--format", "json"])
-    const payload = JSON.parse(json.log.join("\n")) as { sources: Array<{ skills: string[] }> }
-    expect(payload.sources[0]!.skills).toEqual(["ext-alpha", "ext-gone"])
+    const payload = JSON.parse(json.log.join("\n")) as { data: { sources: Array<{ skills: string[] }> } }
+    expect(payload.data.sources[0]!.skills).toEqual(["ext-alpha", "ext-gone"])
   })
 
   it("refresh --dry-run 显示当前版本，未知版本显示未知 / null", async () => {
@@ -861,8 +872,8 @@ describe("skills source 外部来源口径", () => {
       sources: { play: sourceFixture("1.2.3", ["ext-alpha"]) },
     })
     const json = await runCli(["skill", "source", "refresh", "--dry-run", "--format", "json"])
-    const payload = JSON.parse(json.log.join("\n")) as { sources: Array<{ status: string; version: string | null }> }
-    expect(payload.sources[0]).toMatchObject({ status: "planned", version: "1.2.3" })
+    const payload = JSON.parse(json.log.join("\n")) as { data: { sources: Array<{ status: string; version: string | null }> } }
+    expect(payload.data.sources[0]).toMatchObject({ status: "planned", version: "1.2.3" })
     const text = await runCli(["skill", "source", "refresh", "--dry-run"])
     expect(text.log.join("\n")).toContain("当前版本：1.2.3")
 
@@ -873,8 +884,8 @@ describe("skills source 外部来源口径", () => {
       sources: { play: sourceFixture("", ["ext-alpha"]) },
     })
     const unknown = await runCli(["skill", "source", "refresh", "--dry-run", "--format", "json"])
-    const unknownPayload = JSON.parse(unknown.log.join("\n")) as { sources: Array<{ version: string | null }> }
-    expect(unknownPayload.sources[0]!.version).toBeNull()
+    const unknownPayload = JSON.parse(unknown.log.join("\n")) as { data: { sources: Array<{ version: string | null }> } }
+    expect(unknownPayload.data.sources[0]!.version).toBeNull()
   })
 
   it("本地来源无版本时刷新结果为 refreshed + version: null", async () => {
@@ -888,8 +899,8 @@ describe("skills source 外部来源口径", () => {
       sources: { play: sourceFixture("", ["ext-alpha"]) },
     })
     const json = await runCli(["skill", "source", "refresh", "--format", "json"])
-    const payload = JSON.parse(json.log.join("\n")) as { sources: Array<{ status: string; version: string | null }> }
-    expect(payload.sources[0]).toMatchObject({ status: "refreshed", version: null })
+    const payload = JSON.parse(json.log.join("\n")) as { data: { sources: Array<{ status: string; version: string | null }> } }
+    expect(payload.data.sources[0]).toMatchObject({ status: "refreshed", version: null })
   })
 })
 

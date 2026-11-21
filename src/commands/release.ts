@@ -11,8 +11,8 @@ import { checkDoc, resolveDocOptions, syncDoc, syncDocAfterVersion } from "../ch
 import { resolveRedactEnabled } from "../privacy/redact"
 import { resolveEnabled } from "../switch"
 import { listTaskFiles } from "../tasks/scan"
-import { getCheckWarnings, resolveLanguages } from "./shared"
-import { assertJsonFormat, toJsonText } from "../json-output"
+import { getCheckWarnings, printJson, resolveLanguages } from "./shared"
+import { assertJsonFormat, jsonEnvelope } from "../json-output"
 import { line, style } from "../term-style"
 
 const require = createRequire(import.meta.url)
@@ -162,12 +162,12 @@ export function registerChangelogCommands(program: Command): void {
     console.log(formatAuditReport(auditChangesets(".changeset")))
   }
 
-  // 概览：只读待发布变更集（默认命令），文本与 JSON 同源
-  function runChangelogStatus(options: { format?: string }): void {
+  // 概览：只读待发布变更集（默认命令），文本与 JSON 同源；command 由调用点给出，区分 status 与 changeset list
+  function runChangelogStatus(options: { format?: string }, command: string): void {
     if (!assertJsonFormat(options.format)) return
     const rows = readChangesetSummaries(".changeset")
     if (options.format === "json") {
-      console.log(toJsonText({ total: rows.length, changesets: rows }))
+      printJson(jsonEnvelope(command, true, { total: rows.length, changesets: rows }))
       return
     }
     console.log(formatChangesetSummaries(rows))
@@ -182,10 +182,10 @@ export function registerChangelogCommands(program: Command): void {
     .description("待发布变更集概览（只读，不消费）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action((options: { format?: string }) => {
-      runChangelogStatus(options)
+      runChangelogStatus(options, "release status")
     })
   changelogCmd.action(() => {
-    runChangelogStatus({})
+    runChangelogStatus({}, "release")
   })
 
   addChangelogCommonOptions(changelogCmd.command("bump").description("消费变更集并生成新版本块，随后同步文档镜像"))
@@ -240,7 +240,7 @@ export function registerChangelogCommands(program: Command): void {
     .description("列出待发布变更集（只读简表）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action((options: { format?: string }) => {
-      runChangelogStatus(options)
+      runChangelogStatus(options, "release changeset list")
     })
 
   const CHANGESET_PASSTHROUGH: Array<[string, string, boolean]> = [

@@ -2,7 +2,7 @@
 import { join } from "node:path"
 import { Option, type Command } from "commander"
 import { getHomeDir } from "../config"
-import { assertJsonFormat } from "../json-output"
+import { assertJsonFormat, jsonEnvelope } from "../json-output"
 import { exitWithCancel, isInteractive, runInteractive } from "../prompts"
 import { assertChoice } from "../cli-ui"
 import { runScopeMount } from "../scope/wizard"
@@ -1051,7 +1051,7 @@ export function registerSkillsCommands(program: Command): void {
           if (runProject) plans.push(planProjectSkills({ cwd: process.cwd(), skills: selection, targetDirs: projectTargets, refreshOnly: Boolean(options.refresh) }))
           const pending = plans.reduce((count, plan) => count + plan.pending, 0)
           if (options.format === "json") {
-            printJson({ check: Boolean(options.check), refresh: Boolean(options.refresh), scope: scope.choice, plans })
+            printJson(jsonEnvelope("skill install", true, { check: Boolean(options.check), refresh: Boolean(options.refresh), scope: scope.choice, plans }))
           } else {
             console.log(scopeHeadline(scope))
             console.log("")
@@ -1076,7 +1076,7 @@ export function registerSkillsCommands(program: Command): void {
             gate: gateOption,
             refresh: true,
           })
-          if (options.format === "json") printJson({ refresh: true, scope: "project", project: refreshed })
+          if (options.format === "json") printJson(jsonEnvelope("skill install", true, { refresh: true, scope: "project", project: refreshed }))
           else {
             console.log(scopeHeadline({ choice: "project", explicit: scope.explicit }))
             console.log("")
@@ -1092,7 +1092,7 @@ export function registerSkillsCommands(program: Command): void {
           const preview = runProject
             ? planProjectSkills({ cwd: process.cwd(), skills: selection, targetDirs: projectTargets })
             : null
-          if (options.format === "json") printJson({ dryRun, scope: scope.choice, plan, project: preview })
+          if (options.format === "json") printJson(jsonEnvelope("skill install", true, { dryRun, scope: scope.choice, plan, project: preview }))
           else {
             console.log(scopeHeadline(scope))
             console.log("")
@@ -1188,7 +1188,7 @@ export function registerSkillsCommands(program: Command): void {
           ]
           dismissSkillAlerts(remainingAlerts, version)
         }
-        if (options.format === "json") printJson({ dryRun, scope: scope.choice, global, project })
+        if (options.format === "json") printJson(jsonEnvelope("skill install", true, { dryRun, scope: scope.choice, global, project }))
         else printInstallReports(scope, global, project, dryRun)
       } catch (e) {
         console.error(`⚠️ 安装失败：${(e as Error).message}`)
@@ -1210,14 +1210,14 @@ export function registerSkillsCommands(program: Command): void {
         // 包根定位：从 status 下沉而来，原样保留旧的文本 / JSON 两种输出
         if (options.path) {
           if (options.format === "json") {
-            printJson({ package: skillsPackageDir(), source: skillsSourceDir(), skills: listPackageSkills().map((s) => s.name) })
+            printJson(jsonEnvelope("skill status", true, { package: skillsPackageDir(), source: skillsSourceDir(), skills: listPackageSkills().map((s) => s.name) }))
           } else {
             console.log(skillsPackageDir())
           }
           return
         }
         if (options.explain) {
-          if (options.format === "json") printJson(explainSkillDelivery(options.explain))
+          if (options.format === "json") printJson(jsonEnvelope("skill status", true, explainSkillDelivery(options.explain)))
           else printDeliveryExplanation(options.explain)
           return
         }
@@ -1261,7 +1261,7 @@ export function registerSkillsCommands(program: Command): void {
         if (options.format === "json") {
           const withUpdates = <T extends object>(report: T | null) =>
             report ? { ...report, skillsOutdated: updates.builtin.map((item) => item.name) } : null
-          printJson({ scope: scope.choice, versionStatus, linkage, global: withUpdates(global), project: withUpdates(project) })
+          printJson(jsonEnvelope("skill status", true, { scope: scope.choice, versionStatus, linkage, global: withUpdates(global), project: withUpdates(project) }))
         } else {
           printStatusReports(scope, global, project, {
             cliVersion: version,
@@ -1396,7 +1396,7 @@ export function registerSkillsCommands(program: Command): void {
           const unmatched = [...new Set(names)].filter((name) => !mentioned.has(name))
           if (unmatched.length > 0) console.warn(`⚠️ 未找到可清理的产物：${unmatched.join("、")}（未登记或不符合本工具产物形态，未执行删除）`)
         }
-        if (options.format === "json") printJson({ dryRun, scope: scope.choice, global, project })
+        if (options.format === "json") printJson(jsonEnvelope("skill uninstall", true, { dryRun, scope: scope.choice, global, project }))
         else printRemoveReports(scope, global, project, dryRun)
       } catch (e) {
         console.error(`⚠️ 卸载失败：${(e as Error).message}`)
@@ -1458,9 +1458,18 @@ export function registerSkillsCommands(program: Command): void {
           prefix: options.prefix,
         })
         if (report.summary.baseSkipped) console.error(`⚠️ 跳过版本递增校验：${report.summary.baseSkipped}`)
-        if (options.json || options.format === "json") printJson(report)
-        else printLintReport(report)
-        if (report.summary.errors > 0 || (options.strict && report.summary.warnings > 0)) process.exitCode = 1
+        const failed = report.summary.errors > 0 || Boolean(options.strict && report.summary.warnings > 0)
+        if (options.json || options.format === "json") {
+          printJson(
+            jsonEnvelope(
+              "skill lint",
+              !failed,
+              report,
+              report.issues.map((issue) => ({ level: issue.level, scope: issue.code, message: issue.message })),
+            ),
+          )
+        } else printLintReport(report)
+        if (failed) process.exitCode = 1
       } catch (e) {
         console.error(`⚠️ 校验失败：${(e as Error).message}`)
         process.exitCode = 1
@@ -1542,7 +1551,7 @@ export function registerSkillsCommands(program: Command): void {
           from: options.from as "frontmatter" | "body" | undefined,
           dryRun: options.dryRun,
         })
-        if (options.json || options.format === "json") printJson({ dryRun: Boolean(options.dryRun), skills: results })
+        if (options.json || options.format === "json") printJson(jsonEnvelope("skill bump", true, { dryRun: Boolean(options.dryRun), skills: results }))
         else for (const item of results) console.log(`${options.dryRun ? "[预演] " : ""}${item.name}：${item.from} → ${item.to}（${item.file}）`)
       } catch (e) {
         console.error(`⚠️ 递增失败：${(e as Error).message}`)
@@ -1595,7 +1604,7 @@ export function registerSkillsCommands(program: Command): void {
           })
         }
         if (options.format === "json") {
-          printJson({ sources: rows })
+          printJson(jsonEnvelope("skill source", true, { sources: rows }))
           return
         }
         if (rows.length === 0) {
@@ -1654,7 +1663,7 @@ export function registerSkillsCommands(program: Command): void {
           return
         }
         const file = writeUpdateCheckSourceNotify(name, frequency as "always" | "daily" | "weekly" | "off", scope as "global" | "project")
-        if (options.format === "json") printJson({ name, frequency, scope, file })
+        if (options.format === "json") printJson(jsonEnvelope("skill source notify", true, { name, frequency, scope, file }))
         else console.log(line.ok(`已设置来源 ${name} 的更新提示频率为 ${frequency}（${scope}）：${file}`))
       } catch (e) {
         console.error(`⚠️ 写入来源提示配置失败：${(e as Error).message}`)
@@ -1706,7 +1715,7 @@ export function registerSkillsCommands(program: Command): void {
             version: versionByName.get(sourceName) || null,
             error: null,
           }))
-          if (options.format === "json") printJson({ dryRun: true, sources: rows })
+          if (options.format === "json") printJson(jsonEnvelope("skill source refresh", true, { dryRun: true, sources: rows }))
           else {
             for (const row of rows) {
               console.log(`[预演] ${row.name}（${row.kind}${row.temporary ? "，临时" : ""}）：将刷新　当前版本：${row.version ?? "未知"}`)
@@ -1743,7 +1752,7 @@ export function registerSkillsCommands(program: Command): void {
         } finally {
           release()
         }
-        if (options.format === "json") printJson({ dryRun: false, sources: rows })
+        if (options.format === "json") printJson(jsonEnvelope("skill source refresh", true, { dryRun: false, sources: rows }))
         else {
           for (const row of rows) {
             const tag = row.status === "refreshed" ? "已刷新" : row.status === "skipped" ? "已跳过" : "失败"
@@ -1771,7 +1780,7 @@ export function registerSkillsCommands(program: Command): void {
         if (options.prune) {
           const report = removeSkills({ dryRun, source: name })
           const cleaned = dryRun ? [] : removeUpdateCheckSource(name)
-          if (options.format === "json") printJson({ dryRun, source: name, report, cleanedConfigFiles: cleaned })
+          if (options.format === "json") printJson(jsonEnvelope("skill source remove", true, { dryRun, source: name, report, cleanedConfigFiles: cleaned }))
           else {
             printRemoveReport(report, dryRun)
             if (cleaned.length > 0) console.log(line.ok(`已清理来源提示配置：${cleaned.join("、")}`))
@@ -1853,7 +1862,7 @@ export function registerSkillsCommands(program: Command): void {
           if (!selection) return
           projectPlan = planProjectSkills({ cwd: process.cwd(), skills: selection.names })
         }
-        if (options.format === "json") printJson({ scope: scope.choice, global: globalPlan, project: projectPlan })
+        if (options.format === "json") printJson(jsonEnvelope("skill plan", true, { scope: scope.choice, global: globalPlan, project: projectPlan }))
         else {
           console.log(scopeHeadline(scope))
           console.log("")

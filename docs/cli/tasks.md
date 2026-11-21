@@ -108,9 +108,9 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 - 活跃任务滞留时长（不含搁置：搁置是有意不投入，计入会把平均滞留长期拉高；搁置项在输出末单列「另有搁置 N 个」）
 - 按完成月吞吐汇总
 - 汇总块与 `toolkit tasks` 看板一致：按状态 / 负责人 / 范围 / 批次（范围多值拆段、空值与 `-` 归「未标注」；批次解析正文行 `> 批次：第 N 批（共 M 批）`，无该行归「未分批」）
-- `--format json` 输出 JSON（顶层携带 `schemaVersion: 1` 锚点，与 `tasks export` 及各域 `--format json` 同口径），
-   过滤选项与视图查询一致（`--view` 默认 `all`，含归档）；JSON 的 `byOwner` / `byScope` 仍是完成样本吞吐口径，统一分布见 `summary` 字段，
-   `view` 记录本次统计视图（`all` / `active` / `archived`）
+- `--format json` 输出统一信封（`schemaVersion` / `command` / `ok` / `data` / `issues`），统计字段位于 `data`；
+  过滤选项与视图查询一致（`--view` 默认 `all`，含归档）；JSON 的 `byOwner` / `byScope` 仍是完成样本吞吐口径，统一分布见 `summary` 字段，
+  `view` 记录本次统计视图（`all` / `active` / `archived`）
 - ⚠️ JSON 的 `active.count` / `avgStay` / `maxStay` 均为**不含搁置**口径（字段名未变、含义变更，新增搁置状态后的口径调整）；
   搁置项数在 `active.held` 中单列，读旧脚本时请据此调整
 
@@ -137,7 +137,7 @@ toolkit tasks --view active --status 待办,进行中,阻塞
 ```
 
 只盘点搁置项：`toolkit tasks --status 搁置`。搁置行附「搁置 N 天」——天数按正文「搁置日期」计算，缺该行回落 `updated` 并标「近似」；
-超 90 天标 `⚠️`、超 1 年提示「建议终结」。`--format json` 的行对象含 `heldDays`（无搁置日期为空）与 `heldDaysApprox`。
+超 90 天标 `⚠️`、超 1 年提示「建议终结」。`--format json` 的 `data.items[]` 行对象含 `heldDays`（无搁置日期为空）与 `heldDaysApprox`。
 
 ## 导出与导入
 
@@ -146,7 +146,8 @@ toolkit tasks --view active --status 待办,进行中,阻塞
 | `export <path>` | 按扩展名驱动：`.csv`（UTF-8 BOM 超集列）/ `.xlsx`（三 sheet）/ `.json`（`{ schemaVersion: 1, summary, items }`）；目录不存在自动创建；支持 `--view` 与过滤参数 |
 | `import <file>` | 从 `.csv`/`.xlsx`/`.json` 导入；`--target active`（默认，生成任务文件）/ `--target archive`（直接写归档块）；`--dry-run` 预演；`--owner`/`--scope` 作为导入行缺失字段的默认值 |
 
-`--format json` 只用于 `tasks` 总览与 `tasks stats` 的 stdout；导出文件格式由 `export <path>` 的扩展名决定。
+`--format json` 只用于 `tasks` 总览与 `tasks stats` 的 stdout（报告类走统一信封，数据在 `data`）；
+导出文件是数据流例外，格式由 `export <path>` 的扩展名决定，`.json` 仍为 `{ schemaVersion: 1, summary, items }`。
 
 导出产物含派生列「搁置天数」（JSON items 为 `heldDays` / `heldDaysApprox`，非搁置行为空；归档 sheet 不含）：由正文「搁置日期」计算，
 导入端不识别该列、按未知列忽略，不写入任何任务字段。

@@ -1,6 +1,6 @@
 // 使用情况 CLI（upload）：自 commands.ts 按子命令组拆分，文案与顺序逐字未改
 import type { Command } from "commander"
-import { assertJsonFormat } from "../../json-output"
+import { assertJsonFormat, jsonEnvelope } from "../../json-output"
 import { line } from "../../term-style"
 import { runInteractive } from "../../prompts"
 import { runUploadSetup, uploadOnce, uploadStatus } from "../upload"
@@ -27,7 +27,7 @@ export function registerUsageUploadCommands(usage: Command): void {
       .action((options: { format?: string }) => {
         if (!assertJsonFormat(options.format)) return
         const report = uploadStatus()
-        if (options.format === "json") printJson(report)
+        if (options.format === "json") printJson(jsonEnvelope("usage config upload status", true, report))
         else {
           console.log(`上传：${report.enabled ? "已开启" : "已关闭"}`)
           console.log(`协议：${report.protocol}｜端点：${report.endpoint || "未配置"}`)

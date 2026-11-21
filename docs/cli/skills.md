@@ -184,13 +184,14 @@ toolkit skills status --path --format json   # JSON 输出：包根、技能源�
 
 `toolkit skills status --path` 输出包根（内含 `skills/`）与 JSON 清单，便于委托上游安装器安装到表外 agent；原 `skills path` 已下沉。
 
-各子命令的 `--format json` 输出统一携带 `schemaVersion: 1` 锚点（与 `tasks export` 同口径）。
+`--format json` 统一信封 `{ schemaVersion, command, ok, data, issues }`，下表字段位于 `data`，
+检查问题同时映射到顶层 `issues`。
 
 | 子命令 | 额外字段 |
 | --- | --- |
 | `install` / `status` / `uninstall` | `scope`（本次实际作用域）、`dryRun`（区分预演与实跑）；报告主体按 `global` / `project` 分面承载，未执行的面为 `null` |
 | `install` / `status` | `mode`（当前安装模式）、`selection`（技能选择集）、`targetSelection`（目标选择集） |
-| `status` | 两面报告另含 `skillVersions`（各技能真源版本，用于与会话上下文中已加载的技能内容对照）与 `skillVersionsFromState`（版本取自状态登记的技能名） |
+| `status` | 两面报告另含 `skillVersions`（各技能真源版本）与 `skillVersionsFromState` |
 | `status` | `linkage` 为矩阵联动结论，全局面为 `null`，与文本提示同口径 |
 
 ## 技能选择

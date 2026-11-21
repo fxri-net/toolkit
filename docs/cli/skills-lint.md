@@ -10,7 +10,7 @@ title: 技能校验（skills lint）
 toolkit skills lint                     # 校验本包 skills/（缺省档：150 行 / 8000 字符告警，200 行 / 12000 字符报错）
 toolkit skills lint skills/ --base HEAD # 技能内容相对基准有变更时，版本必须已递增
 toolkit skills lint --dir ../other/skills --strict # 外部仓技能目录：告警按失败处理
-toolkit skills lint skills/ --format json # JSON 输出：files、issues（带 level）与 summary
+toolkit skills lint skills/ --format json # JSON 输出：统一信封，data 含 files、issues（带 level）与 summary
 toolkit skills lint skills/ --ignore 'fxri-temp-*' # 跳过误报技能（按目录名或相对路径）
 ```
 
@@ -41,7 +41,8 @@ toolkit skills lint skills/ --ignore 'fxri-temp-*' # 跳过误报技能（按目
 | `1` | 存在错误；`--strict` 下告警同样按失败处理 |
 | `2` | 用法错误（非法数值、`--warn-lines` 大于 `--max-lines`、空 `--base` 等） |
 
-stdout 只放校验数据（文本或 JSON），诊断信息写 stderr。
+stdout 只放校验数据（文本或 JSON），诊断信息写 stderr。JSON 走统一信封 `{ schemaVersion, command, ok, data, issues }`：
+校验结果位于 `data`，问题项同时映射到顶层 `issues`；`--strict` 下告警按失败处理，此时 `ok` 为 `false`。
 非 git 仓库、浅克隆缺基准或基准不存在时，`--base` 的递增校验会被跳过并在 stderr 说明原因，不静默通过。
 
 ## 外部仓接入

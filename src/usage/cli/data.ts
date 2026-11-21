@@ -2,7 +2,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import type { Command } from "commander"
-import { assertJsonFormat } from "../../json-output"
+import { assertJsonFormat, jsonEnvelope } from "../../json-output"
 import { line } from "../../term-style"
 import { AGENT_ADAPTERS } from "../adapters"
 import { processHookEvent } from "../ingest"
@@ -100,7 +100,7 @@ export function registerUsageStatsCommands(show: Command): void {
         const summary = summarize(events)
         const unused = options.unused && by === "skill" ? unusedSkills(all) : undefined
         if (options.format === "json") {
-          printJson({ ...summary, unused, dataDir: dir, by })
+          printJson(jsonEnvelope("usage show stats", true, { ...summary, unused, dataDir: dir, by }))
           return
         }
         if (by === "session") {
@@ -373,7 +373,14 @@ export function registerUsageDataCommands(data: Command, usage: Command): void {
         }
         const report = { dataDir: dir, events: events.length, unique: unique.size, indexed: index.eventIds.length, crossAdapters, items }
         if (options.format === "json") {
-          printJson(report)
+          printJson(
+            jsonEnvelope(
+              "usage data doctor",
+              true,
+              report,
+              items.map((item) => ({ level: item.level, scope: item.code, message: item.message })),
+            ),
+          )
           return
         }
         console.log(`数据目录：${dir}`)

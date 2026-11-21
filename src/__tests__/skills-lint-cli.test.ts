@@ -101,15 +101,24 @@ describe("skills lint", () => {
     expect((await runCli(["skill", "lint", root, "--strict"])).code).toBe(1)
   })
 
-  it("--json 输出可解析且带 schemaVersion", async () => {
+  it("--json 输出统一信封且 data 带校验结果", async () => {
     const root = makeRoot()
     writeSkill(root, "fxri-alpha")
     const result = await runCli(["skill", "lint", root, "--json"])
-    const payload = JSON.parse(result.log.join("\n")) as { schemaVersion: number; files: string[]; issues: unknown[]; summary: { skills: number } }
+    const payload = JSON.parse(result.log.join("\n")) as {
+      schemaVersion: number
+      command: string
+      ok: boolean
+      data: { files: string[]; issues: unknown[]; summary: { skills: number } }
+      issues: unknown[]
+    }
     expect(payload.schemaVersion).toBe(1)
-    expect(payload.files).toHaveLength(1)
+    expect(payload.command).toBe("skill lint")
+    expect(payload.ok).toBe(true)
+    expect(payload.data.files).toHaveLength(1)
+    expect(payload.data.issues).toEqual([])
+    expect(payload.data.summary.skills).toBe(1)
     expect(payload.issues).toEqual([])
-    expect(payload.summary.skills).toBe(1)
   })
 
   it("用法错误退出 2", async () => {

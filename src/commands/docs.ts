@@ -8,8 +8,14 @@ import { checkDocsNav, NAV_RULES_VERSION } from "../docs/nav"
 import { migrateSiteNav } from "../docs/migrate"
 import { overriddenRules, resolveDocsCheckConfig } from "../docs/config"
 import type { DocsProblem } from "../docs/types"
-import { assertJsonFormat, toJsonText } from "../json-output"
+import { assertJsonFormat, jsonEnvelope, type JsonIssue } from "../json-output"
+import { printJson } from "./shared"
 import { line, style } from "../term-style"
+
+// 文档校验问题映射为统一信封的 issues：scope 取规则 id，原始 problems（含 file）保留在 data 内
+function toDocsIssues(problems: DocsProblem[]): JsonIssue[] {
+  return problems.map((problem) => ({ level: problem.level, scope: problem.id, message: problem.message }))
+}
 
 // 注册 docs 命令：装配点只负责按序调用
 export function registerDocsCommands(program: Command): void {
@@ -20,7 +26,7 @@ export function registerDocsCommands(program: Command): void {
     const config = resolveDocsCheckConfig()
     const docsDir = resolve(options.dir ?? config.nav.dir)
     if (!existsSync(docsDir)) {
-      if (options.format === "json") console.log(toJsonText({ command: "docs check", ok: true, skipped: true, reason: `未找到文档目录 ${docsDir}` }))
+      if (options.format === "json") printJson(jsonEnvelope("docs check", true, { skipped: true, reason: `未找到文档目录 ${docsDir}` }))
       else console.log(line.hint(`未检测到文档站，跳过：${docsDir}`))
       return
     }
@@ -34,14 +40,22 @@ export function registerDocsCommands(program: Command): void {
     const dist = checkDocsDist(docsDir, { config: config.dist, rules: config.rules })
     const ok = theme.ok && nav.ok && dist.ok
     if (options.format === "json") {
-      console.log(
-        toJsonText({
-          command: "docs check",
+      const issues: JsonIssue[] = [
+        ...theme.problems.map((message) => ({ level: "error" as const, scope: "theme", message })),
+        ...toDocsIssues(nav.problems),
+        ...toDocsIssues(dist.problems),
+      ]
+      printJson(
+        jsonEnvelope(
+          "docs check",
           ok,
-          theme,
-          nav: { ok: nav.ok, ruleVersion: NAV_RULES_VERSION, problems: nav.problems },
-          dist: { ok: dist.ok, skipped: dist.skipped, ruleVersion: DIST_RULES_VERSION, problems: dist.problems },
-        }),
+          {
+            theme,
+            nav: { ok: nav.ok, ruleVersion: NAV_RULES_VERSION, problems: nav.problems },
+            dist: { ok: dist.ok, skipped: dist.skipped, ruleVersion: DIST_RULES_VERSION, problems: dist.problems },
+          },
+          issues,
+        ),
       )
     } else {
       console.log(theme.ok ? line.ok("主题校验通过") : `⚠️ 主题校验失败（${theme.problems.length} 项）`)
@@ -161,7 +175,14 @@ export function registerDocsCommands(program: Command): void {
       const config = resolveDocsCheckConfig()
       const result = checkDocsNav(resolve(options.dir ?? config.nav.dir), { config: config.nav, rules: config.rules })
       if (options.format === "json") {
-        console.log(toJsonText({ command: "docs nav check", ruleVersion: NAV_RULES_VERSION, ok: result.ok, problems: result.problems }))
+        printJson(
+          jsonEnvelope(
+            "docs nav check",
+            result.ok,
+            { ruleVersion: NAV_RULES_VERSION, problems: result.problems },
+            toDocsIssues(result.problems),
+          ),
+        )
       } else if (result.ok) {
         // 多语言站标明语言包数量，避免把首个语言包的顶栏数当成全站
         const scope = result.localeCount > 1 ? `${result.localeCount} 个语言包、` : ""
@@ -192,8 +213,13 @@ export function registerDocsCommands(program: Command): void {
       const config = resolveDocsCheckConfig()
       const result = checkDocsDist(resolve(options.dir ?? config.nav.dir), { config: config.dist, rules: config.rules })
       if (options.format === "json") {
-        console.log(
-          toJsonText({ command: "docs dist check", ruleVersion: DIST_RULES_VERSION, ok: result.ok, skipped: result.skipped, problems: result.problems }),
+        printJson(
+          jsonEnvelope(
+            "docs dist check",
+            result.ok,
+            { ruleVersion: DIST_RULES_VERSION, skipped: result.skipped, problems: result.problems },
+            toDocsIssues(result.problems),
+          ),
         )
       } else if (result.skipped) {
         console.log(line.hint(`跳过文档站产物校验：未找到 ${config.dist.dir}（需先执行文档站构建）`))

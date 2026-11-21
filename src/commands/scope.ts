@@ -8,7 +8,7 @@ import { isInteractive, runInteractive } from "../prompts"
 import { resolveComparablePath } from "../scope/paths"
 import { runScopeWizard } from "../scope/wizard"
 import { line } from "../term-style"
-import { assertJsonFormat, toJsonText } from "../json-output"
+import { assertJsonFormat, jsonEnvelope, toJsonText } from "../json-output"
 import { registerHelpCommand } from "../help"
 import { assertChoice, fail } from "../cli-ui"
 import { modeLabel, planAdd, planDefault, planRemove, planReset, readScopeState, type ScopeList, type RemoveFrom } from "../scope/edit"
@@ -203,17 +203,19 @@ function runPolicyList(options: { at?: string; format?: string }): void {
   for (const warning of report.warnings) console.error(`⚠️ ${warning}`)
   if (options.format === "json") {
     console.log(
-      toJsonText({
-        at: report.context.cwd,
-        baseDir: report.decision.baseDir,
-        active: report.decision.active,
-        matchedRule: report.decision.matchedRule,
-        reason: report.decision.reason,
-        policies: report.policies.map((policy) => ({
-          ...policy,
-          legacy: isLegacyPolicyId(policy.id),
-        })),
-      }),
+      toJsonText(
+        jsonEnvelope("scope policy list", true, {
+          at: report.context.cwd,
+          baseDir: report.decision.baseDir,
+          active: report.decision.active,
+          matchedRule: report.decision.matchedRule,
+          reason: report.decision.reason,
+          policies: report.policies.map((policy) => ({
+            ...policy,
+            legacy: isLegacyPolicyId(policy.id),
+          })),
+        }),
+      ),
     )
     return
   }
@@ -248,16 +250,18 @@ function runSkillsList(options: { at?: string; format?: string }): void {
   const linkage = analyzeSkillLinkage(options.at)
   if (options.format === "json") {
     console.log(
-      toJsonText({
-        at: report.context.cwd,
-        baseDir: report.decision.baseDir,
-        profiles: report.profiles,
-        linkage,
-        policies: policies.map((policy) => ({
-          ...policy,
-          legacy: isLegacyPolicyId(policy.id),
-        })),
-      }),
+      toJsonText(
+        jsonEnvelope("scope skills list", true, {
+          at: report.context.cwd,
+          baseDir: report.decision.baseDir,
+          profiles: report.profiles,
+          linkage,
+          policies: policies.map((policy) => ({
+            ...policy,
+            legacy: isLegacyPolicyId(policy.id),
+          })),
+        }),
+      ),
     )
     return
   }
@@ -534,12 +538,14 @@ export function registerScopeCommands(program: Command): void {
           const linkage = analyzeSkillLinkage(options.at)
           if (options.format === "json") {
             console.log(
-              toJsonText({
-                at: base.context.cwd,
-                baseDir: base.decision.baseDir,
-                linkage,
-                skills: items,
-              }),
+              toJsonText(
+                jsonEnvelope("scope status", true, {
+                  at: base.context.cwd,
+                  baseDir: base.decision.baseDir,
+                  linkage,
+                  skills: items,
+                }),
+              ),
             )
             return
           }
@@ -561,8 +567,8 @@ export function registerScopeCommands(program: Command): void {
         if (options.format === "json") {
           const { decision } = report
           console.log(
-            JSON.stringify(
-              {
+            toJsonText(
+              jsonEnvelope("scope status", true, {
                 active: decision.active,
                 mode: decision.mode,
                 baseDir: decision.baseDir,
@@ -572,9 +578,7 @@ export function registerScopeCommands(program: Command): void {
                 policyCount: report.policyCount,
                 matchedRule: decision.matchedRule,
                 reason: decision.reason,
-              },
-              null,
-              2,
+              }),
             ),
           )
           for (const hint of formatLinkageHints(analyzeSkillLinkage(options.at))) console.error(`⚠️ ${hint}`)
@@ -607,8 +611,8 @@ export function registerScopeCommands(program: Command): void {
         ]
         if (options.format === "json") {
           console.log(
-            JSON.stringify(
-              {
+            toJsonText(
+              jsonEnvelope("scope list", true, {
                 configured: Boolean(activation),
                 sourceFile: report.decision.sourceFile,
                 baseDir: report.decision.baseDir,
@@ -619,9 +623,7 @@ export function registerScopeCommands(program: Command): void {
                 gitRemotes: activation?.gitRemotes ?? [],
                 skills: activation?.skills ?? {},
                 items,
-              },
-              null,
-              2,
+              }),
             ),
           )
           return

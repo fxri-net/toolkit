@@ -8,7 +8,8 @@ import { copyToClipboard } from "../rules/clipboard"
 import { buildPresetChoices, CUSTOM_PRESET, normalizePickedModules } from "../rules/select"
 import { exitOnPromptCancel, exitWithCancel, isInteractive } from "../prompts"
 import { askCheckbox, askSelect, fail, reportWrite } from "../cli-ui"
-import { assertJsonFormat, toJsonText } from "../json-output"
+import { assertJsonFormat, jsonEnvelope } from "../json-output"
+import { printJson } from "./shared"
 import { line, style } from "../term-style"
 import { writeFileAtomic } from "../write-atomic"
 
@@ -128,7 +129,7 @@ export function registerRulesCommands(program: Command): void {
         const listed = listRules()
         const selection = readRulesSelection(listed.modules.map((mod) => mod.id))
         if (options.format === "json") {
-          console.log(JSON.stringify({ ...listed, selection: selection?.modules ?? null }, null, 2))
+          printJson(jsonEnvelope("rule list", true, { ...listed, selection: selection?.modules ?? null }))
           return
         }
         console.log("规则模块：")
@@ -261,7 +262,14 @@ export function registerRulesCommands(program: Command): void {
         if (!assertJsonFormat(options.format)) return
         const report = checkRuleAnchors(resolve(options.cwd ?? process.cwd()))
         if (options.format === "json") {
-          console.log(toJsonText({ command: "rule check", ...report }))
+          printJson(
+            jsonEnvelope(
+              "rule check",
+              report.ok,
+              report,
+              report.issues.map((issue) => ({ level: issue.level, scope: issue.file, message: issue.message })),
+            ),
+          )
         } else {
           for (const mod of report.modules) console.log(`${mod.anchor ? "✔" : "✖"} ${mod.file}：${mod.anchor ?? "缺少锚点"}`)
           for (const page of report.pages) console.log(`${page.anchor === page.expected ? "✔" : "✖"} ${page.page}：${page.anchor ?? "缺少锚点"}（期望 ${page.expected ?? "未知"}）`)

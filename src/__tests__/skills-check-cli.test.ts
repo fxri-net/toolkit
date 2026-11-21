@@ -141,8 +141,8 @@ describe("install --check", () => {
     expect(check.log.join("\n")).toContain("ghost-skill")
 
     const status = await runCli(["skills", "status", "--scope", "global", "--format", "json"])
-    const payload = JSON.parse(status.log.join("\n")) as { global: { pending: Array<{ name: string }> } }
-    expect(payload.global.pending.some((item) => item.name === "ghost-skill")).toBe(true)
+    const payload = JSON.parse(status.log.join("\n")) as { data: { global: { pending: Array<{ name: string }> } } }
+    expect(payload.data.global.pending.some((item) => item.name === "ghost-skill")).toBe(true)
   })
 
   it("--refresh 忽略写选项时向 stderr 告警", async () => {

@@ -17,7 +17,7 @@ export function registerUsageConfigCommands(usage: Command): void {
         if (!assertJsonFormat(options.format)) return
         const config = loadUsageConfig()
         if (mode === undefined) {
-          printSegment(config, "channel", options.format)
+          printSegment(config, "channel", options.format, "usage config channel")
           return
         }
         if (mode !== "rule" && mode !== "hook") {
@@ -27,7 +27,7 @@ export function registerUsageConfigCommands(usage: Command): void {
         }
         updateUsageConfig({ channel: mode })
         if (options.format === "json") {
-          printSegment(loadUsageConfig(), "channel", options.format)
+          printSegment(loadUsageConfig(), "channel", options.format, "usage config channel")
           return
         }
         console.log(line.ok(`采集通道已切换为 ${mode}`))
@@ -58,7 +58,7 @@ export function registerUsageConfigCommands(usage: Command): void {
         if (options.thirdParty !== undefined) patch.thirdParty = options.thirdParty
         if (options.unmanaged !== undefined) patch.unmanaged = options.unmanaged
         if (Object.keys(patch).length > 0) updateUsageConfig({ sources: patch })
-        printSegment(loadUsageConfig(), "sources", options.format)
+        printSegment(loadUsageConfig(), "sources", options.format, "usage config origins")
       })
 
     // 技能范围：none / all / include / exclude
@@ -85,7 +85,7 @@ export function registerUsageConfigCommands(usage: Command): void {
         if (options.mode !== undefined || options.add !== undefined || options.remove !== undefined) {
           updateUsageConfig({ skills: mode === "exclude" ? { mode, exclude: list } : { mode, include: list } })
         }
-        printSegment(loadUsageConfig(), "skills", options.format)
+        printSegment(loadUsageConfig(), "skills", options.format, "usage config scope")
       })
 
     // 字段开关：触发词 / 参数 / 结果默认全部关闭
@@ -106,7 +106,7 @@ export function registerUsageConfigCommands(usage: Command): void {
         if (options.args !== undefined) patch.skillArgs = options.args
         if (options.outcome !== undefined) patch.outcome = options.outcome
         if (Object.keys(patch).length > 0) updateUsageConfig({ capture: patch })
-        printSegment(loadUsageConfig(), "capture", options.format)
+        printSegment(loadUsageConfig(), "capture", options.format, "usage config capture")
       })
 
     // 存储：目录 / 轮转 / 保留期 / 单文件上限
@@ -149,6 +149,6 @@ export function registerUsageConfigCommands(usage: Command): void {
           patch.maxFileBytes = bytes
         }
         if (Object.keys(patch).length > 0) updateUsageConfig({ storage: patch })
-        printSegment(loadUsageConfig(), "storage", options.format)
+        printSegment(loadUsageConfig(), "storage", options.format, "usage config storage")
       })
 }
