@@ -522,7 +522,7 @@ describe("initWorkspace .prettierignore 托管", () => {
 })
 
 describe("initWorkspace prepare 刷新钩子", () => {
-  const PREPARE = "toolkit skills install --scope project"
+  const PREPARE = "toolkit skills install --scope project --refresh"
   const pkgPath = (cwd: string): string => join(cwd, "package.json")
   const writePkg = (cwd: string, pkg: unknown): void => writeFileSync(pkgPath(cwd), `${JSON.stringify(pkg, null, 2)}\n`, "utf8")
   const pkgProduct = (report: ReturnType<typeof initWorkspace>) => report.products.find((p) => p.target === "package.json")
@@ -550,12 +550,22 @@ describe("initWorkspace prepare 刷新钩子", () => {
 
   it("已有等价 prepare 钩子：保持不动", () => {
     const { cwd } = track(runInDir("tk-init-prep-kept-"))
-    writePkg(cwd, { name: "demo", scripts: { prepare: "toolkit skills install" }, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+    writePkg(cwd, { name: "demo", scripts: { prepare: "toolkit skills install --refresh" }, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
     const before = readFileSync(pkgPath(cwd), "utf8")
 
     const report = initWorkspace(".tasks", cwd)
     expect(pkgProduct(report)?.action).toBe("kept")
     expect(readFileSync(pkgPath(cwd), "utf8")).toBe(before)
+  })
+
+  it("旧版 prepare 钩子：原地升级为只刷新已有产物", () => {
+    const { cwd } = track(runInDir("tk-init-prep-legacy-"))
+    writePkg(cwd, { name: "demo", scripts: { prepare: "toolkit skills install --scope project" }, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
+
+    const report = initWorkspace(".tasks", cwd)
+    expect(pkgProduct(report)?.action).toBe("updated")
+    const pkg = JSON.parse(readFileSync(pkgPath(cwd), "utf8")) as { scripts: Record<string, string> }
+    expect(pkg.scripts.prepare).toBe(PREPARE)
   })
 
   it("已有非等价 prepare 钩子：跳过并提示，不改写", () => {

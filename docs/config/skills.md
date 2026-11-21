@@ -16,7 +16,7 @@ title: 技能分发偏好（skills）
 **作用边界**（护栏）：
 
 - **仅作用于全局面软链**：`autoLink` / `autoLinkReplaceForeign` 只做全局技能目录的软链自愈；项目面（仓库内唯一真源副本 + 各候选目录薄壳）不受这两个开关影响，
-   其刷新由 `toolkit init` 写入的 `package.json` `prepare` 钩子（`toolkit skills install --scope project`）承担，
+   其刷新由 `toolkit init` 写入的 `package.json` `prepare` 钩子（`toolkit skills install --scope project --refresh`）承担，
    产物归属账另存 `<仓库根>/.toolkit/state.json`（非配置文件、随 git 分发）
 - **只补链与修链**：不含首次安装（未安装过、无状态文件时不动作），不含副本刷新（副本形式的技能不自动升级，需重跑 `toolkit skills install`）
 - **只对状态文件记载的链接生效**：现场被替换成实体目录 / 普通文件时，默认清理后重建为软链；`autoLinkReplaceForeign: false` 改为一律不动——该开关**只豁免实体产物**，
@@ -84,6 +84,9 @@ title: 技能分发偏好（skills）
 - 多个策略命中时 `source` 列出全部策略 id，`reason` 取最具体一条；显式 `skillsDelivery.rules` 仍可覆盖推导
 - `toolkit skills status --explain <技能>` 逐级打印命中 / 未命中与被压规则
 
+**技能包默认**：`SKILL.md` frontmatter 可声明 `metadata.delivery: full | gated`，位于策略推导之后、全局默认之前；
+第三方技能可自带默认，用户 `rules` 仍可覆盖；非法取值告警后按未声明处理（不认 `off`，不安装只能由用户策略决定）。
+
 **按安装面读取**：全局面读全局层 + 本地层（项目层写法告警并按未配置处理）；项目面读全局层 + 项目层 + 本地层——
 项目层整段覆盖全局、本地层按字段覆盖。项目面的 `gated` 同样落入口壳：真源副本仍在 `<仓库根>/.agents/skills/`，
 入口壳调用同一个 `toolkit scope guard`，判定读项目层配置，正文取项目真源副本。
@@ -141,7 +144,7 @@ title: 技能分发偏好（skills）
 - **长期选择**：交互或 `--agent` / `--all-agents` 的结果写回配置；`--no-save-agents` 只影响本次；`--dir` 始终一次性，不写回长期选择
 - **取消目标**：已安装产物默认保留，`status` 将这些目标标为「未选择」并把其产物单列「未选择但已安装」、不计入问题；
   加 `--prune` 重跑 `install` 才清理本包登记且内容一致的产物，第三方 / 本地改动过的产物永不自动删除
-- **项目面**：`prepare` 等非交互场景按已保存目录刷新，不新增未选择目录；保存的目录已不存在时告警跳过，补齐目录后重跑即可
+- **项目面**：`prepare` 钩子只刷新归属账已存在的本包产物，不新增技能；非 TTY 与 `CI` 下只打印漂移不写盘，避免 `pnpm install` 产生意外 diff。保存的目录已不存在时告警跳过，补齐目录后重跑即可
 
 ## 分发目标与环境变量
 
@@ -208,8 +211,8 @@ monorepo 子目录执行亦能命中项目面；**本包源仓库自身视为 `g
 「来源内未选择」汇总与折叠、补齐口径同全局面：漂移与缺失用 `install --scope project` 补齐，同名冲突加 `--force`，未选择产物清理加 `--prune`。
 
 ⚠️ **clone 即用**：项目面真源副本与归属账随 git 入库，队友 clone 后无需重跑 `skills install` 即开箱可用。
-`toolkit init` 在本地依赖含 `@fxri/toolkit` 时，向 `package.json` 补 `prepare` 钩子（`toolkit skills install --scope project`），
-依赖升级后自动刷新项目面（详见 [项目初始化](../cli/init)）。
+`toolkit init` 在本地依赖含 `@fxri/toolkit` 时，向 `package.json` 补 `prepare` 钩子
+（`toolkit skills install --scope project --refresh`），依赖升级后自动刷新项目面（详见 [项目初始化](../cli/init)）。
 
 全局面软链 / 副本形态、pnpm 锚点、写入穿透与状态文件结构见下文[全局面分发细节](#全局面分发细节)。
 

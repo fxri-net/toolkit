@@ -105,7 +105,8 @@
 | 导出产物（`tasks.csv` 等） | 按需 | 一般为临时分析产物，默认忽略 |
 
 `toolkit init` 会生成 `.tasks/` 骨架、项目级技能入口壳与 `.gitignore` 片段；
-项目本地依赖含 `@fxri/toolkit` 时还会写入 `prepare` 刷新钩子（`toolkit skills install --scope project`，`--no-hooks` 可关）。
+项目本地依赖含 `@fxri/toolkit` 时还会写入 `prepare` 刷新钩子
+（`toolkit skills install --scope project --refresh`，只刷新已有产物；`--no-hooks` 可关）。
 
 ⚠️ 发布型包注意：技能产物（`.agents/skills/`、各候选目录薄壳、`.toolkit/`）与内置任务区都不在 `.gitignore` 忽略列表，
 `npm` 无 `.npmignore` 时可能被打进包——请加入 `files` 白名单或 `.npmignore`（`init` 会提示、不代改）。

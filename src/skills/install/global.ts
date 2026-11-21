@@ -37,6 +37,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
         rules: cliRules,
         override,
         gate: item.gate,
+        packageDefault: item.delivery,
         policy: derivePolicyDelivery(item.name, policyContext),
       }),
     ]),
@@ -77,6 +78,21 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
     for (const source of sources) nextBySource.set(source.name, [])
     const handled = new Set<string>()
     const results: TargetInstallResult[] = []
+    // 外部来源技能判定为入口壳但来源不可解析：中止，不静默降级为全文（C-26）
+    const recordedNames = new Set(
+      Object.values(previous?.sources ?? {}).flatMap((source) => source.targets.flatMap((target) => target.entries.map((entry) => entry.name))),
+    )
+    for (const name of recordedNames) {
+      if (allItems.some((item) => item.name === name)) continue
+      const decision = resolveDelivery({
+        name,
+        config: deliveryConfig,
+        policy: derivePolicyDelivery(name, policyContext),
+      })
+      if (decision.mode === "gated") {
+        throw new Error(`技能「${name}」判定为入口壳但来源不可解析（已登记来源缺失或技能已移除），已中止；修复来源或显式改为 full 后重试`)
+      }
+    }
     // 旧闸门键：显式 --gate / --embed 取值优先，缺省读全局配置；仅供首开提示与持久化
     const previousGate = readSkillsInstallConfig().gate
 

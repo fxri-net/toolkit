@@ -6,9 +6,9 @@ import { readTextFile } from "../read-text"
 import { readSkillsDeliveryConfig, readSkillsInstallConfig } from "./config"
 import { gateRulesToDeliveryRules, resolveDelivery, type DeliveryDecision, type DeliveryMode } from "./delivery"
 import { derivePolicyDelivery, loadPolicyDeliveryContext } from "./policy-delivery"
-import { assertUniqueSkillNames, buildSkillGateShell, classifyExisting, isSameDir, isSkillGateShell, readSkillDescription, resolveSkillTargets, resolveTargetsByName, sourceSkillItems } from "./source"
-import { skillsStateFile } from "./state"
-import { SKILL_ENTRY, type GateRules, type TargetKind } from "./types"
+import { assertUniqueSkillNames, buildSkillGateShell, buildSkillShell, classifyExisting, isSameDir, isSkillGateShell, readSkillDescription, readSkillShellVersion, resolveProjectTargets, resolveSkillTargets, resolveTargetsByName, sourceSkillItems } from "./source"
+import { projectStateFile, readProjectState, skillsStateFile } from "./state"
+import { PROJECT_SOURCE_DIR, SKILL_ENTRY, type GateRules, type TargetKind } from "./types"
 import { collectSources, filterSkillItems, type ExternalSourceOption } from "./install/common"
 
 // 计划动作：保持 / 建壳 / 换全文 / 清理
@@ -30,14 +30,16 @@ export interface SkillPlanItem {
 export interface SkillPlanTarget {
   dir: string
   label: string
-  kind: TargetKind
+  kind: TargetKind | "source"
   items: SkillPlanItem[]
   // 曾用名迁移预览：旧名产物存在且可确认归属，实跑时由 install 清理
   migrations: Array<{ from: string; to: string }>
 }
 
 export interface SkillsPlanReport {
-  scope: "global"
+  scope: "global" | "project"
+  // 项目面计划的项目根；全局面为空
+  root?: string
   skills: string[]
   targetSelection: string[]
   targets: SkillPlanTarget[]
@@ -121,6 +123,7 @@ export function planSkills(options: PlanOptions = {}): SkillsPlanReport {
         rules: cliRules,
         override,
         gate: item.gate,
+        packageDefault: item.delivery,
         policy: derivePolicyDelivery(item.name, policyContext),
       }),
     ]),
@@ -166,6 +169,126 @@ export function planSkills(options: PlanOptions = {}): SkillsPlanReport {
     targets,
     skippedTargets,
     stateFile: skillsStateFile(),
+    pending,
+  }
+}
+
+export interface ProjectPlanOptions {
+  cwd?: string
+  skills?: string[]
+  targetDirs?: string[]
+  // 只预览归属账已登记的技能：prepare 钩子刷新时不新增技能
+  refreshOnly?: boolean
+}
+
+// 项目面现场形态：真源比对内容，薄壳按目标形态比对入口壳或项目薄壳
+function projectCurrent(absDir: string, item: { name: string; dir: string }, target: DeliveryMode, source: boolean): CurrentForm {
+  const dest = join(absDir, item.name)
+  if (source) {
+    if (!existsSync(dest)) return "none"
+    return isSameDir(item.dir, dest) ? "full" : "drift"
+  }
+  if (!existsSync(dest)) return "none"
+  if (target === "off") return "drift"
+  const file = join(dest, SKILL_ENTRY)
+  if (!existsSync(file)) return "drift"
+  const content = readTextFile(file)
+  if (target === "gated") {
+    if (!isSkillGateShell(content)) return "drift"
+    return content === buildSkillGateShell(item.name, readSkillDescription(item.dir)) ? "gated" : "drift"
+  }
+  const version = readSkillShellVersion(content)
+  if (version === null) return "drift"
+  return content === buildSkillShell(item.name, PROJECT_SOURCE_DIR, readSkillDescription(item.dir)) ? "full" : "drift"
+}
+
+// 项目面动作：真源副本恒为全文；薄壳目录按目标形态建壳或换全文；off 的残留标记清理
+function projectAction(target: DeliveryMode, current: CurrentForm, source: boolean): DeliveryAction {
+  if (target === "off") return current === "none" ? "keep" : "clean"
+  if (source) return current === "full" ? "keep" : "full"
+  if (target === "gated") return current === "gated" ? "keep" : "shell"
+  return current === "full" ? "keep" : "full"
+}
+
+// 项目面计划：真源副本 + 已存在候选目录，与全局面共用计划结构与渲染
+export function planProjectSkills(options: ProjectPlanOptions = {}): SkillsPlanReport {
+  const cwd = options.cwd ?? process.cwd()
+  const sources = collectSources({ dryRun: true })
+  const allItems = sources.flatMap(sourceSkillItems)
+  assertUniqueSkillNames(allItems)
+  const targets = resolveProjectTargets(cwd)
+  const root = targets.root
+  const previous = readProjectState(root)
+  const recorded = new Set(
+    Object.values(previous?.sources ?? {}).flatMap((source) => source.targets.flatMap((target) => target.entries.map((entry) => entry.name))),
+  )
+  const baseItems = filterSkillItems(allItems, options.skills)
+  // refreshOnly：只刷新归属账已存在的技能，不新增
+  const items = options.refreshOnly ? baseItems.filter((item) => recorded.has(item.name)) : baseItems
+  const deliveryConfig = readSkillsDeliveryConfig("project", root)
+  const policyContext = loadPolicyDeliveryContext(root)
+  const decisions = new Map<string, DeliveryDecision>(
+    items.map((item) => [
+      item.name,
+      resolveDelivery({
+        name: item.name,
+        config: deliveryConfig,
+        gate: item.gate,
+        packageDefault: item.delivery,
+        policy: derivePolicyDelivery(item.name, policyContext),
+      }),
+    ]),
+  )
+  const shellDirs = options.targetDirs && options.targetDirs.length > 0 ? options.targetDirs.filter((dir) => targets.shellDirs.includes(dir)) : targets.shellDirs
+  const dirs: Array<{ dir: string; label: string; kind: TargetKind | "source" }> = [
+    { dir: PROJECT_SOURCE_DIR, label: "真源副本", kind: "source" },
+    ...shellDirs.map((dir) => ({ dir, label: "薄壳", kind: "custom" as const })),
+  ]
+
+  let pending = 0
+  const planned: SkillPlanTarget[] = []
+  for (const entry of dirs) {
+    const rows: SkillPlanItem[] = []
+    const migrations: Array<{ from: string; to: string }> = []
+    for (const item of items) {
+      const decision = decisions.get(item.name)!
+      const isSource = entry.dir === PROJECT_SOURCE_DIR
+      const current = projectCurrent(isSource ? root : join(root, entry.dir), item, decision.mode, isSource)
+      const action = projectAction(decision.mode, current, isSource)
+      if (action !== "keep") pending += 1
+      rows.push({
+        name: item.name,
+        version: item.version,
+        target: decision.mode,
+        current,
+        action,
+        source: decision.source,
+        reason: decision.reason,
+      })
+    }
+    // 曾用名迁移：只对薄壳目录预览，旧名带本包标记才可自动清理
+    if (entry.dir !== PROJECT_SOURCE_DIR) {
+      for (const item of items) {
+        for (const old of item.previousNames) {
+          const file = join(root, entry.dir, old, SKILL_ENTRY)
+          if (!existsSync(file)) continue
+          const content = readTextFile(file)
+          if (readSkillShellVersion(content) === null && !isSkillGateShell(content)) continue
+          migrations.push({ from: old, to: item.name })
+        }
+      }
+    }
+    planned.push({ dir: entry.dir, label: entry.label, kind: entry.kind, items: rows, migrations })
+  }
+
+  return {
+    scope: "project",
+    root,
+    skills: items.map((item) => item.name),
+    targetSelection: shellDirs,
+    targets: planned,
+    skippedTargets: [],
+    stateFile: projectStateFile(root),
     pending,
   }
 }

@@ -25,6 +25,7 @@ import {
   listPackageSkills,
   planSkillSelection,
   planSkills,
+  planProjectSkills,
   deliveryModeLabel,
   readSkillsDeliveryConfig,
   writeSkillsDeliveryDefault,
@@ -362,8 +363,14 @@ function printPlanReport(report: SkillsPlanReport): void {
 function printDeliveryExplanation(name: string): void {
   const config = readSkillsDeliveryConfig("global")
   const context = loadPolicyDeliveryContext()
-  const gate = listPackageSkills().find((skill) => skill.name === name)?.gate
-  const explanation = explainDelivery({ name, config, gate, policy: derivePolicyDelivery(name, context) })
+  const skill = listPackageSkills().find((item) => item.name === name)
+  const explanation = explainDelivery({
+    name,
+    config,
+    gate: skill?.gate,
+    packageDefault: skill?.delivery,
+    policy: derivePolicyDelivery(name, context),
+  })
   console.log(`技能 ${name} 分发形态：${deliveryModeLabel(explanation.decision.mode)}（${explanation.decision.source}）`)
   for (const level of explanation.levels) {
     console.log(`  ${level.hit ? "命中" : "未命中"}　${level.level}：${level.detail}`)
@@ -481,6 +488,9 @@ function printStatusReport(report: SkillsStatusReport): void {
   }
   if (residueCount > 0) {
     console.log(line.hint(`分发形态为 off 的残留 ${residueCount} 项：运行 toolkit skills install --prune 清理`))
+  }
+  if (report.pending.length > 0) {
+    console.log(line.hint(`待收敛 ${report.pending.length} 项：运行 toolkit skills install 收敛（可先 toolkit skills plan 预览）`))
   }
   // 软链落点是写入穿透形态：改落点文件等于改真源，需在报告末尾点明纪律，避免用户误在落点上编辑
   const linkCount = report.targets.reduce((n, t) => n + t.items.filter((i) => i.state === "link").length, 0)
@@ -693,6 +703,9 @@ function printProjectStatusReport(report: ProjectStatusReport): void {
   if (residueCount > 0) {
     console.log(line.hint(`项目面分发形态为 off 的残留 ${residueCount} 项：运行 toolkit skills install --scope project --prune 清理`))
   }
+  if (report.pending.length > 0) {
+    console.log(line.hint(`项目面待收敛 ${report.pending.length} 项：运行 toolkit skills install --scope project 收敛`))
+  }
 }
 
 // 打印项目面卸载报告：按目录区分已移除 / 已不存在 / 需人工确认，并说明归属账处置
@@ -876,6 +889,8 @@ export function registerSkillsCommands(program: Command): void {
     .option("--copy", "强制以副本形式写入（仅全局面生效；项目面真源恒为副本、其余目录恒为薄壳）")
     .option("--dir <path>", "额外目标目录（可多次指定，兜底内置表未收录的 agent；不参与后续自动同步，技能变化后需带相同 --dir 重跑）", collectDir, [])
     .option("--dry-run", "预演（只预览将要执行的动作，不写文件）")
+    .option("--check", "只报告待收敛项：有漂移时退出码 1（不写文件，供 CI 使用）")
+    .option("--refresh", "只收敛已存在的项目面产物，不新增技能；非 TTY / CI 下只打印漂移（prepare 钩子）")
     .option("--force", "覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）")
     .option("--prune", "清理未选择且内容与本包真源一致的旧产物（只清本包登记条目）")
     .option("--mode <mode>", "技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）")
@@ -895,7 +910,7 @@ export function registerSkillsCommands(program: Command): void {
         "  交互流程：技能 → 目标 → 确认；ESC 逐级返回，Ctrl+C 退出码 130",
       ].join("\n"),
     )
-    .action(async (options: { scope?: string; skills?: string; all?: boolean; optional?: boolean; from: string[]; save?: string | boolean; agent?: string; allAgents?: boolean; saveAgents?: boolean; yes?: boolean; useSaved?: boolean; copy?: boolean; dir: string[]; dryRun?: boolean; force?: boolean; prune?: boolean; mode?: string; gate?: boolean; embed?: boolean; format?: string }) => {
+    .action(async (options: { scope?: string; skills?: string; all?: boolean; optional?: boolean; from: string[]; save?: string | boolean; agent?: string; allAgents?: boolean; saveAgents?: boolean; yes?: boolean; useSaved?: boolean; copy?: boolean; dir: string[]; dryRun?: boolean; check?: boolean; refresh?: boolean; force?: boolean; prune?: boolean; mode?: string; gate?: boolean; embed?: boolean; format?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return
         const scope = resolveScopeChoice(options.scope)
@@ -1013,32 +1028,60 @@ export function registerSkillsCommands(program: Command): void {
         const selection = selectionResult.names
         // 内容闸门开关由安装结果决定落盘时机（成功后才写），此处只计算本次取值
         const gateOption = options.gate ? true : options.embed ? false : undefined
+        // --check / 非交互 --refresh：只报告待收敛项，不写文件；prepare 钩子在 CI / 非 TTY 下走这里
+        const refreshReportOnly = Boolean(options.refresh) && (!isInteractive() || Boolean(process.env.CI))
+        if (options.check || refreshReportOnly) {
+          const plans: SkillsPlanReport[] = []
+          if (runGlobal) plans.push(planSkills({ skills: selection, targets: globalTargets, dirs: options.dir, externalSources, gate: gateOption }))
+          if (runProject) plans.push(planProjectSkills({ cwd: process.cwd(), skills: selection, targetDirs: projectTargets, refreshOnly: Boolean(options.refresh) }))
+          const pending = plans.reduce((count, plan) => count + plan.pending, 0)
+          if (options.format === "json") {
+            printJson({ check: Boolean(options.check), refresh: Boolean(options.refresh), scope: scope.choice, plans })
+          } else {
+            console.log(scopeHeadline(scope))
+            console.log("")
+            for (const plan of plans) printPlanReport(plan)
+            if (options.check) console.log(pending > 0 ? line.error(`待收敛 ${pending} 项（退出码 1）`) : line.ok("无待收敛项"))
+          }
+          if (options.check && pending > 0) process.exitCode = 1
+          return
+        }
+        // TTY 下的 --refresh：只收敛已存在的项目面产物，不新增技能、不改选择集
+        if (options.refresh) {
+          if (runGlobal) console.warn("⚠️ --refresh 仅作用于项目面，已忽略全局面")
+          const refreshed = installProjectSkills({
+            dirs: options.dir,
+            skills: selection,
+            targetDirs: projectTargets,
+            saveTargets: false,
+            saveSelection: false,
+            externalSources,
+            mode: selectionResult.mode,
+            gate: gateOption,
+            refresh: true,
+          })
+          if (options.format === "json") printJson({ refresh: true, scope: "project", project: refreshed })
+          else {
+            console.log(scopeHeadline({ choice: "project", explicit: scope.explicit }))
+            console.log("")
+            printProjectInstallReport(refreshed, false)
+          }
+          return
+        }
         // --dry-run 是 skills plan 的别名：只预览分发计划，不写任何文件
         if (dryRun) {
           const plan = runGlobal
             ? planSkills({ skills: selection, targets: globalTargets, dirs: options.dir, externalSources, gate: gateOption })
             : null
           const preview = runProject
-            ? installProjectSkills({
-                dirs: options.dir,
-                dryRun: true,
-                force: options.force,
-                skills: selection,
-                targetDirs: projectTargets,
-                saveTargets: options.saveAgents === false ? false : undefined,
-                prune: Boolean(options.prune),
-                externalSources,
-                saveSelection: selectionResult.saveSelection,
-                mode: selectionResult.mode,
-                gate: gateOption,
-              })
+            ? planProjectSkills({ cwd: process.cwd(), skills: selection, targetDirs: projectTargets })
             : null
           if (options.format === "json") printJson({ dryRun, scope: scope.choice, plan, project: preview })
           else {
             console.log(scopeHeadline(scope))
             console.log("")
             if (plan) printPlanReport(plan)
-            if (preview) printProjectInstallReport(preview, true)
+            if (preview) printPlanReport(preview)
           }
           return
         }
@@ -1756,11 +1799,6 @@ export function registerSkillsCommands(program: Command): void {
         if (!assertJsonFormat(options.format)) return
         const scope = resolveScopeChoice(options.scope)
         if (!scope) return
-        if (scope.choice === "project") {
-          console.warn("⚠️ 项目面分发计划尚未接入（安装与状态已支持），本次未生成计划")
-          return
-        }
-        if (scope.choice === "all") console.warn("⚠️ 项目面分发计划尚未接入，本次只预览全局面")
         let items: SkillItem[]
         try {
           items = collectSkillItems({ dryRun: true })
@@ -1770,19 +1808,36 @@ export function registerSkillsCommands(program: Command): void {
           return
         }
         // 只读预览：选择与目标都按非交互口径解析，不写入任何配置
-        const selection = await resolveSkillSelection(
-          { skills: options.skills, all: options.all, optional: options.optional, yes: true },
-          "global",
-          items,
-        )
-        if (!selection) return
-        const targets = await chooseGlobalTargets({ agent: options.agent, allAgents: options.allAgents, yes: true, dir: options.dir })
-        if (targets === null) return
-        const plan = planSkills({ skills: selection.names, targets, dirs: options.dir })
-        if (options.format === "json") printJson({ scope: "global", plan })
+        const runProject = scope.choice !== "global"
+        const runGlobal = scope.choice !== "project"
+        let globalPlan: SkillsPlanReport | null = null
+        let projectPlan: SkillsPlanReport | null = null
+        if (runGlobal) {
+          const selection = await resolveSkillSelection(
+            { skills: options.skills, all: options.all, optional: options.optional, yes: true },
+            "global",
+            items,
+          )
+          if (!selection) return
+          const targets = await chooseGlobalTargets({ agent: options.agent, allAgents: options.allAgents, yes: true, dir: options.dir })
+          if (targets === null) return
+          globalPlan = planSkills({ skills: selection.names, targets, dirs: options.dir })
+        }
+        if (runProject) {
+          const selection = await resolveSkillSelection(
+            { skills: options.skills, all: options.all, optional: options.optional, yes: true },
+            "project",
+            items,
+          )
+          if (!selection) return
+          projectPlan = planProjectSkills({ cwd: process.cwd(), skills: selection.names })
+        }
+        if (options.format === "json") printJson({ scope: scope.choice, global: globalPlan, project: projectPlan })
         else {
-          console.log(scopeHeadline({ choice: "global", explicit: scope.explicit }))
-          printPlanReport(plan)
+          console.log(scopeHeadline(scope))
+          console.log("")
+          if (globalPlan) printPlanReport(globalPlan)
+          if (projectPlan) printPlanReport(projectPlan)
         }
       } catch (e) {
         console.error(`⚠️ 生成分发计划失败：${(e as Error).message}`)

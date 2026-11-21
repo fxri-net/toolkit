@@ -48,6 +48,25 @@ export function readSkillGate(dir: string): boolean | undefined {
   return undefined
 }
 
+// 非法 delivery 告警去重：同一技能同一进程内只提示一次
+const warnedDelivery = new Set<string>()
+
+// 重置 delivery 告警去重集合（测试用）
+export function resetSkillDeliveryWarnings(): void {
+  warnedDelivery.clear()
+}
+
+// 读取技能包默认分发形态：metadata.delivery 只认 full / gated；缺省或非法按未声明处理
+export function readSkillDelivery(dir: string): "full" | "gated" | undefined {
+  const value = readFrontmatterIndented(dir, "delivery")
+  if (value === "full" || value === "gated") return value
+  if (value !== "" && !warnedDelivery.has(dir)) {
+    warnedDelivery.add(dir)
+    console.warn(`⚠️ 技能 ${basename(dir)} 的 metadata.delivery 非法（${value}），已按未声明处理`)
+  }
+  return undefined
+}
+
 // 读取 frontmatter metadata 下的缩进行内数组键：兼容 [a, b] 与单值，去引号与空项
 function readFrontmatterList(dir: string, key: string): string[] {
   try {
@@ -156,6 +175,7 @@ export function listPackageSkills(): PackageSkill[] {
       requires: readSkillRequires(dir),
       previousNames: readSkillPreviousNames(dir),
       gate: readSkillGate(dir),
+      delivery: readSkillDelivery(dir),
     })
   }
   return out
@@ -276,6 +296,8 @@ function packageSkill(dir: string, name?: string, previousNames?: string[]): Pac
     tier: readSkillTier(dir),
     requires: readSkillRequires(dir),
     previousNames: [...new Set((previousNames ?? readSkillPreviousNames(dir)).filter((item) => item !== resolved))],
+    gate: readSkillGate(dir),
+    delivery: readSkillDelivery(dir),
   }
 }
 

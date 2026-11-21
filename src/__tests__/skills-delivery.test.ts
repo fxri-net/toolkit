@@ -1,16 +1,19 @@
 // 分发形态模型：优先级推导、两个安装面的配置读取、旧键映射与 off 的安装 / 状态 / 清理口径
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import {
   installSkills,
+  listPackageSkills,
   readSkillsDeliveryConfig,
   resetDeliveryWarnings,
+  resetSkillDeliveryWarnings,
   resetSkillsConfigWarnings,
   resetSkillsRootCache,
   resolveDelivery,
+  setPackageRootForTest,
   skillsStatus,
 } from "../skills"
 
@@ -130,6 +133,53 @@ describe("分发形态推导", () => {
     const decision = resolveDelivery({ name: "fxri-plan-to-task" })
     expect(decision.mode).toBe("full")
     expect(decision.source).toBe("默认")
+  })
+})
+
+describe("技能包默认形态", () => {
+  it("metadata.delivery 声明生效，非法取值告警后忽略", () => {
+    const root = mkdtempSync(join(tmpdir(), "tk-delivery-pkg-"))
+    mkdirSync(join(root, "skills", "demo-gated"), { recursive: true })
+    writeFileSync(
+      join(root, "skills", "demo-gated", "SKILL.md"),
+      ["---", "name: demo-gated", "metadata:", "  version: 1.0.0", "  delivery: gated", "---", "", "# 演示", ""].join("\n"),
+    )
+    mkdirSync(join(root, "skills", "demo-bad"), { recursive: true })
+    writeFileSync(
+      join(root, "skills", "demo-bad", "SKILL.md"),
+      ["---", "name: demo-bad", "metadata:", "  version: 1.0.0", "  delivery: off", "---", "", "# 演示", ""].join("\n"),
+    )
+    setPackageRootForTest(root)
+    resetSkillDeliveryWarnings()
+    const skills = listPackageSkills()
+    expect(skills.find((skill) => skill.name === "demo-gated")?.delivery).toBe("gated")
+    expect(skills.find((skill) => skill.name === "demo-bad")?.delivery).toBeUndefined()
+    expect(vi.mocked(console.warn).mock.calls.some((call) => String(call[0]).includes("metadata.delivery 非法"))).toBe(true)
+    // 声明 gated 的技能按入口壳安装
+    installSkills({ skills: ["demo-gated"] })
+    expect(existsSync(join(primaryDir(), "demo-gated", "SKILL.md"))).toBe(true)
+    rmSync(root, { recursive: true, force: true })
+    resetSkillsRootCache()
+  })
+
+  it("packageDefault 低于显式规则与策略，高于全局默认", () => {
+    const byDefault = resolveDelivery({ name: "demo", packageDefault: "gated", config: { default: "full", rules: [] } })
+    expect(byDefault.mode).toBe("gated")
+    expect(byDefault.source).toContain("metadata.delivery")
+
+    const byRule = resolveDelivery({
+      name: "demo",
+      packageDefault: "gated",
+      config: { rules: [{ match: ["demo"], delivery: "full" }] },
+    })
+    expect(byRule.mode).toBe("full")
+
+    const byPolicy = resolveDelivery({
+      name: "demo",
+      packageDefault: "full",
+      policy: { mode: "gated", source: "policy:matrix", reason: "矩阵限制" },
+    })
+    expect(byPolicy.mode).toBe("gated")
   })
 })
 

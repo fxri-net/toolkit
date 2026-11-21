@@ -20,6 +20,8 @@ toolkit skills install --agent claude-code,canonical # 只写指定 agent（cano
 toolkit skills install --all-agents # 写入全部已检测的 agent
 toolkit skills install --no-save-agents # 目标选择只对本次生效，不写回配置
 toolkit skills install --prune      # 清理未选择且与真源一致的旧产物
+toolkit skills install --check      # 只报告待收敛项：有漂移时退出码 1（CI 门禁）
+toolkit skills install --scope project --refresh # 只刷新已存在的项目面产物（prepare 钩子口径）
 toolkit skills install --mode package # 纯包管理器模式：core 也可不装，允许零选
 toolkit skills install --no-skills  # 仅本次零装，不改模式与已保存选择
 toolkit skills install --gate       # 内容闸门：本次全部技能写入口壳，--embed 回退
@@ -78,8 +80,10 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
   - `--gate` / `--embed` 为本次显式取值，不受已保存配置影响；项目面同样生效（首次生效的兼容提示随 2.0.0 移除）
 - 项目面按[作用域与安装面](../config/skills#作用域与安装面)的副本 + 薄壳口径写入；`gated` 技能的候选目录落入口壳，真源副本保留供 guard 读取正文
 - `--dry-run` 是 `skills plan` 的别名：只输出分发计划，不写文件
+- `--check` 只报告待收敛项，有漂移时退出码 1，供 CI 消费
+- `--refresh` 只收敛已存在的项目面产物，不新增技能、不改选择集；非 TTY / CI 只打印漂移（`prepare` 钩子口径）
 - `--format json` 输出机器可读安装报告到 stdout（含 `dryRun` / `scope` 标记与 `selection` / `targetSelection`）
-  - 预演时键为 `plan`（分发计划）与 `project`（项目面安装预览）
+  - 预演键为 `plan` / `project`；`--check` / `--refresh` 为 `plans` 数组
   - 各目标另含 `gates`（入口壳）与 `migrated`（旧名 → 现用名）：改名迁移已清理的旧产物记录
 
 非交互语义（`--yes` / `--use-saved` / `--no-save-agents` 的组合结果）：
@@ -114,6 +118,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
   - 只报告不删除；给出含实际名字的 `uninstall` 命令
 - **矩阵联动**：仅项目面评估，全局面不评估并说明；矩阵限制的技能已按策略推导自动进入入口壳
 - **推导解释**：`status --explain <技能>` 逐级打印命令行 / 技能声明 / 显式规则 / 策略推导 / 包默认 / 全局默认的命中情况与被压规则
+- **待收敛**：汇总可由 `install` 修复的偏差条数并给最短命令；JSON 带 `pending` 数组
 - **canonical 共读**：本机已安装且经 canonical 共读的 agent（按探测路径判定）另单列一行说明其读取主目标、无需单独写入
 - 项目面按[作用域与安装面](../config/skills#作用域与安装面)节体检
 - `--format json` 输出机器可读报告到 stdout（含 `scope`、`versionStatus`、`linkage`、`selection` 与 `targetSelection`）
@@ -139,16 +144,16 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 ### plan
 
-- 逐技能列出目标形态 / 当前形态 / 动作（保持 / 建壳 / 换全文 / 清理）与判定来源、原因
-- 只读现场：选择与目标按非交互口径解析，不写配置；`--scope project` 暂提示项目面尚未接入（后续版本）
-- `install --dry-run` 是同一实现的别名；`--format json` 输出 `{ scope, plan }`
+- 逐技能列出目标 / 当前形态、动作（保持 / 建壳 / 换全文 / 清理）与判定来源、原因
+- 只读现场：选择与目标按非交互口径解析，不写配置；全局面与项目面均支持
+- `install --dry-run` 是同一实现的别名；JSON 输出 `{ scope, global, project }`
 
 ### gate
 
 - 无参数查看默认分发形态（`skillsDelivery.default`）与规则条数
-- `skills gate on|off` 只写 `skillsDelivery.default`（on → `gated`、off → `full`），**不覆盖 `skillsDelivery.rules`**
-- `--all` 是显式全量写法，与 `gate on` 等价；旧口径的「全体接管」需保证没有更具体的 `rules`
-- `--format json` 输出 `{ default, rules }`；非法取值报错退出 1，配置不变
+- `skills gate on|off` 只写 `skillsDelivery.default`（on → `gated`、off → `full`），**不覆盖 `rules`**
+- `--all` 与 `gate on` 等价；旧口径「全体接管」需保证没有更具体的 `rules`
+- `--format json` 输出 `{ default, rules }`；非法取值报错退出 1
 
 ### mount
 

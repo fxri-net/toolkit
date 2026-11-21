@@ -59,7 +59,7 @@ toolkit skills uninstall       # 卸载本包装的产物（只清自己装的�
 - **项目面（`--scope project`）**：`--scope` 缺省时按 CLI 安装位置自动判定（项目内装 CLI → 项目面）
   - 真源落 `<仓库根>/.agents/skills/`（完整副本），其余**已存在**的候选目录各放每个技能一份入口薄壳指向真源
   - 产物记录在 `<仓库根>/.toolkit/state.json`（与真源、薄壳一并入库）
-  - `toolkit init` 会写入 `prepare` 刷新钩子，`pnpm install` 时自动补齐/刷新，队友 clone 即用
+  - `toolkit init` 会写入 `prepare` 刷新钩子（只刷新归属账已存在的产物，不新增技能；非 TTY / CI 只打印漂移），队友 clone 即用
   - `--copy` 仅全局面生效，项目面恒为副本
   - 项目级候选目录（19 个，仅在目录已存在时落壳）：
 

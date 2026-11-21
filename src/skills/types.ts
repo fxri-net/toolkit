@@ -164,6 +164,8 @@ export interface PackageSkill {
   previousNames: string[]
   // 内容闸门退出声明：metadata.gate 为 false 时不接管；缺省随全局规则
   gate?: boolean
+  // 技能包默认分发形态：metadata.delivery，仅认 full / gated；缺省随策略与全局默认
+  delivery?: "full" | "gated"
 }
 
 // 统一技能条目：内置源与外部来源共用同一视图，安装 / 选择 / 状态按此遍历
@@ -198,6 +200,14 @@ export interface SkillTarget {
   // 是否可作为写入目标：主目标与 --dir 恒真；agent 目录要求其配置目录已存在，避免凭空造目录
   available: boolean
   dirExists: boolean
+}
+
+// 待收敛项：现场与目标形态不一致、可由 install 自动修复的条目
+export interface PendingConvergence {
+  name: string
+  dir: string
+  target: "full" | "gated" | "off"
+  action: "full" | "shell" | "clean"
 }
 
 // 单个技能的现场状态：not-selected 不进报告，installed-unselected 单列提示、不计入 problems
@@ -268,6 +278,8 @@ export interface SkillsStatusReport {
   gateRules: GateRules
   // 本次选择集按分发形态推导的计数：全文 / 入口壳 / 不安装
   delivery: Record<"full" | "gated" | "off", number>
+  // 待收敛项：可由 install 自动修复的现场偏差
+  pending: PendingConvergence[]
   // 本次生效的技能选择集（未保存过选择时按模式默认处理）
   selection: string[]
   // 本次生效的目标选择集（canonical / agent name；空数组表示沿用全部可用目标）
@@ -459,6 +471,8 @@ export interface ProjectStatusReport {
   mode: SkillsMode
   // 本次选择集按分发形态推导的计数：全文 / 入口壳 / 不安装
   delivery: Record<"full" | "gated" | "off", number>
+  // 待收敛项：可由 install --scope project 自动修复的现场偏差
+  pending: PendingConvergence[]
   selection: string[]
   // 本次生效的项目薄壳目录选择集（仓库根相对；未保存过选择时为空数组，表示沿用全部已存在候选目录）
   targetSelection: string[]

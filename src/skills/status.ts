@@ -40,6 +40,7 @@ import { readTextFile } from "../read-text"
 import {
   SKILL_ENTRY,
   type PackageSkill,
+  type PendingConvergence,
   type ProjectDirStatus,
   type ProjectItemState,
   type ProjectSkillItem,
@@ -66,6 +67,8 @@ interface SkillRef {
   previousNames: string[]
   // 技能包旧声明 metadata.gate：false 时退出内容接管，参与分发形态推导
   gate?: boolean
+  // 技能包默认分发形态：metadata.delivery
+  delivery?: "full" | "gated"
   // 版本取自状态登记（来源真源不可读）：展示层需标注，避免冒充当期真源版本
   fromState?: boolean
 }
@@ -105,6 +108,7 @@ function collectStatusSources(state: ReturnType<typeof readSkillsState>): { refs
         tier: item.tier,
         previousNames: item.previousNames,
         gate: item.gate,
+        delivery: item.delivery,
       })
     }
   }
@@ -122,6 +126,7 @@ function collectStatusSources(state: ReturnType<typeof readSkillsState>): { refs
       tier: item.tier,
       previousNames: item.previousNames,
       gate: item.gate,
+      delivery: item.delivery,
     })
   }
 
@@ -301,7 +306,13 @@ export function skillsStatus(): SkillsStatusReport {
   const deliveryConfig = readSkillsDeliveryConfig("global")
   const policyContext = loadPolicyDeliveryContext()
   const decisionOf = (name: string): DeliveryDecision =>
-    resolveDelivery({ name, config: deliveryConfig, gate: refs.get(name)?.gate, policy: derivePolicyDelivery(name, policyContext) })
+    resolveDelivery({
+      name,
+      config: deliveryConfig,
+      gate: refs.get(name)?.gate,
+      packageDefault: refs.get(name)?.delivery,
+      policy: derivePolicyDelivery(name, policyContext),
+    })
   const delivery: Record<"full" | "gated" | "off", number> = { full: 0, gated: 0, off: 0 }
   for (const name of selection) delivery[decisionOf(name).mode] += 1
   const savedTargets = config.targets && config.targets.length > 0 ? config.targets : undefined
@@ -369,6 +380,20 @@ export function skillsStatus(): SkillsStatusReport {
     })
   }
 
+  const pendingStates: SkillItemState[] = ["dangling", "wrong", "copy-drift", "gate-drift", "form-drift", "missing", "residue"]
+  const pending: PendingConvergence[] = out.flatMap((target) =>
+    target.items
+      .filter((item) => pendingStates.includes(item.state))
+      .map((item) => {
+        const mode = decisionOf(item.name).mode
+        return {
+          name: item.name,
+          dir: target.dir,
+          target: mode,
+          action: item.state === "residue" ? "clean" : mode === "gated" ? "shell" : "full",
+        }
+      }),
+  )
   const packageSkills = [...refs.entries()].map(([name, ref]) => ({ name, dir: ref.dir, version: ref.version, tier: ref.tier, requires: [], previousNames: ref.previousNames }))
   return {
     source: skillsSourceDir(),
@@ -378,6 +403,7 @@ export function skillsStatus(): SkillsStatusReport {
     gate: gateSetting.enabled,
     gateRules: gateSetting.rules,
     delivery,
+    pending,
     selection,
     targetSelection: savedTargets ?? [],
     sources,
@@ -438,7 +464,13 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
   const deliveryConfig = readSkillsDeliveryConfig("project", root)
   const policyContext = loadPolicyDeliveryContext(root)
   const decisionOf = (name: string): DeliveryDecision =>
-    resolveDelivery({ name, config: deliveryConfig, gate: refs.get(name)?.gate, policy: derivePolicyDelivery(name, policyContext) })
+    resolveDelivery({
+      name,
+      config: deliveryConfig,
+      gate: refs.get(name)?.gate,
+      packageDefault: refs.get(name)?.delivery,
+      policy: derivePolicyDelivery(name, policyContext),
+    })
   const delivery: Record<"full" | "gated" | "off", number> = { full: 0, gated: 0, off: 0 }
   for (const name of selection) delivery[decisionOf(name).mode] += 1
   const savedTargets = config.targets && config.targets.length > 0 ? config.targets : undefined
@@ -519,6 +551,20 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
     if (status.items.length > 0) dirs.push(status)
   }
 
+  const pendingStates: ProjectItemState[] = ["drift", "missing", "residue"]
+  const pending: PendingConvergence[] = dirs.flatMap((target) =>
+    target.items
+      .filter((item) => pendingStates.includes(item.state))
+      .map((item) => {
+        const mode = decisionOf(item.name).mode
+        return {
+          name: item.name,
+          dir: target.dir,
+          target: mode,
+          action: item.state === "residue" ? "clean" : target.kind === "source" || mode !== "gated" ? "full" : "shell",
+        }
+      }),
+  )
   const packageSkills = [...refs.entries()].map(([name, ref]) => ({ name, dir: ref.dir, version: ref.version, tier: ref.tier, requires: [], previousNames: ref.previousNames }))
   return {
     root,
@@ -527,6 +573,7 @@ export function projectSkillsStatus(cwd = process.cwd()): ProjectStatusReport {
     skillVersionsFromState: [...refs.entries()].filter(([, ref]) => ref.fromState).map(([name]) => name),
     mode,
     delivery,
+    pending,
     selection,
     targetSelection: savedTargets ?? [],
     sources,

@@ -32,6 +32,8 @@ export interface ProjectInstallOptions {
   mode?: SkillsMode
   // 内容闸门：--gate / --embed 显式取值，缺省读项目面 skillsDelivery 配置
   gate?: boolean | GateRules
+  // 只刷新归属账已存在的本包产物，不新增技能（prepare 钩子）
+  refresh?: boolean
 }
 
 // 逐技能结果归档：按动作分派到对应清单
@@ -41,10 +43,18 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
   const sources = collectSources({ externalSources: options.externalSources, dryRun: options.dryRun })
   const allItems = sources.flatMap(sourceSkillItems)
   assertUniqueSkillNames(allItems)
-  const items = filterSkillItems(allItems, options.skills)
+  let items = filterSkillItems(allItems, options.skills)
   const byName = new Map(allItems.map((item) => [item.name, { dir: item.dir, linkTarget: item.linkTarget }]))
   const targets = resolveProjectTargets(cwd)
   const root = targets.root
+  const previous = readProjectState(root)
+  // refresh：只收敛归属账已存在的技能，不新增产物
+  if (options.refresh) {
+    const recorded = new Set(
+      Object.values(previous?.sources ?? {}).flatMap((source) => source.targets.flatMap((target) => target.entries.map((entry) => entry.name))),
+    )
+    items = items.filter((item) => recorded.has(item.name))
+  }
   // 分发形态：命令行显式取值 > 项目面 skillsDelivery 配置 > 旧键兼容；与全局面共用同一解析器
   const gateOption = options.gate
   const deliveryConfig = gateOption === undefined ? readSkillsDeliveryConfig("project", root) : { rules: [] }
@@ -60,13 +70,24 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
         rules: cliRules,
         override,
         gate: item.gate,
+        packageDefault: item.delivery,
         policy: derivePolicyDelivery(item.name, policyContext),
       }),
     ]),
   )
   // off 不写产物，也不参与缺失统计；已登记残留只在 --prune 时清理
   const selected = new Set(items.filter((item) => decisions.get(item.name)!.mode !== "off").map((item) => item.name))
-  const previous = readProjectState(root)
+  // 外部来源技能判定为入口壳但来源不可解析：中止，不静默降级为全文（C-26）
+  const recordedAll = new Set(
+    Object.values(previous?.sources ?? {}).flatMap((source) => source.targets.flatMap((target) => target.entries.map((entry) => entry.name))),
+  )
+  for (const name of recordedAll) {
+    if (allItems.some((item) => item.name === name)) continue
+    const decision = resolveDelivery({ name, config: deliveryConfig, policy: derivePolicyDelivery(name, policyContext) })
+    if (decision.mode === "gated") {
+      throw new Error(`技能「${name}」判定为入口壳但来源不可解析（已登记来源缺失或技能已移除），已中止；修复来源或显式改为 full 后重试`)
+    }
+  }
   const prevTarget = (sourceName: string, kind: "source" | "shell", dir: string): SkillStateTarget | undefined =>
     previous?.sources?.[sourceName]?.targets.find((target) => target.kind === kind && target.dir === dir)
 

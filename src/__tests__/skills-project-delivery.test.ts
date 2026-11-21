@@ -121,6 +121,20 @@ describe("项目面分发形态", () => {
   })
 })
 
+describe("项目面 refresh 收敛", () => {
+  it("只刷新已存在产物，不新增技能；连续两次第二次零动作", () => {
+    installProjectSkills({ cwd: project, skills: ["fxri-plan-to-task"] })
+    const first = installProjectSkills({ cwd: project, refresh: true })
+    const second = installProjectSkills({ cwd: project, refresh: true })
+    // 不新增技能：只处理归属账已有的那一个
+    expect(second.skills).toEqual(["fxri-plan-to-task"])
+    expect(second.source.created).toEqual([])
+    expect(second.source.updated).toEqual([])
+    expect(second.shells.every((dir) => dir.created.length === 0 && dir.updated.length === 0)).toBe(true)
+    expect(first.source.skipped).toContain("fxri-plan-to-task")
+  })
+})
+
 describe("guard 读取项目真源", () => {
   it("仓库内真源副本优先，子目录运行结论一致", () => {
     writeProjectConfig({ skillsDelivery: { rules: [{ match: ["fxri-plan-to-task"], delivery: "gated" }] } })

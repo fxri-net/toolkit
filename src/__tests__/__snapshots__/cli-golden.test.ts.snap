@@ -14,7 +14,7 @@ exports[`写盘产物 > init 生成任务区骨架与入口壳 1`] = `
   跳过 AGENTS.md（文件不存在；不新建，需要时手工添加或先建文件再重跑 toolkit init）
     提示：无该指针块不影响规范可用：本项目规范仍可经全局技能 fxri-plan-to-task 触达（其工作流第一步即读 conventions/index.md）
   跳过 package.json（本地依赖未声明 @fxri/toolkit，不写入 prepare 钩子）
-    提示：技能副本随 git 分发即可 clone 即用；依赖装在本项目后需要时手工加 "prepare": "toolkit skills install --scope project" 以在安装依赖后自动刷新
+    提示：技能副本随 git 分发即可 clone 即用；依赖装在本项目后需要时手工加 "prepare": "toolkit skills install --scope project --refresh" 以在安装依赖后自动刷新
 
 下一步：
   全局技能：未安装，执行 toolkit skills install 启用（规范触达第一层，不依赖项目内文件；toolkit skills status 可查现场）
@@ -998,6 +998,7 @@ canonical（多家 agent 共读）：<SANDBOX>/home/.agents/skills（目录未�
 未安装的 agent 65 个未纳入分发（需要时用 toolkit skills install --dir <路径> 指定）
 
 ✖ 共 3 处需处理：缺失 / 悬空 / 指向其他版本 / 副本漂移 / 入口壳过期用 toolkit skills install 补齐，同名冲突用 toolkit skills install --force 覆盖
+待收敛 3 项：运行 toolkit skills install 收敛（可先 toolkit skills plan 预览）
 
 全局面未评估技能矩阵联动；查看项目面请用 toolkit skills status --scope project
 --- stderr ---
@@ -1098,6 +1099,7 @@ registry：registry.npmjs.org（来源：默认）
   toolkit skills install --scope project --dir .windsurf/skills
 
 ✖ 项目面共 3 处需处理：漂移 / 缺失用 toolkit skills install --scope project 补齐，同名冲突加 --force
+项目面待收敛 3 项：运行 toolkit skills install --scope project 收敛
 --- stderr ---
 "
 `;
@@ -1107,35 +1109,19 @@ exports[`各域行为与错误路径 > skills 项目面预演 1`] = `
 --- stdout ---
 作用域：项目面（仓库内唯一真源副本 + 各候选目录薄壳）（--scope 指定）
 
-[预演] 项目面 · 项目根：<SANDBOX>/workspace
-[预演] 项目面 · 本次选择（7）：fxri-docs-writing@0.1.0、fxri-plan-review@1.0.15、fxri-plan-to-task@1.12.14、fxri-release-changelog@1.3.8、fxri-session-recap@1.7.5、fxri-skill-authoring@1.0.0、fxri-text-encoding@1.2.10
-[预演] 项目面 · 本次目录（0）：无
+[预演] 技能分发计划：7 个技能 · 1 个目标
 
-  真源副本（仓库内唯一，随 git 入库）：
-  .agents/skills
-    新建：fxri-docs-writing、fxri-plan-review、fxri-plan-to-task、fxri-release-changelog、fxri-session-recap、fxri-skill-authoring、fxri-text-encoding
+真源副本：.agents/skills
+  换全文　fxri-docs-writing　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-plan-review　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-plan-to-task　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-release-changelog　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-session-recap　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-skill-authoring　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-text-encoding　全文安装　← 默认（未配置分发形态，按默认全文安装）
 
-  未命中的候选目录 18 个（该 agent 目录尚不在库，需要时补齐后提交）：
-    toolkit skills install --scope project --dir .trae/skills
-    toolkit skills install --scope project --dir .claude/skills
-    toolkit skills install --scope project --dir agent/skills
-    toolkit skills install --scope project --dir .augment/skills
-    toolkit skills install --scope project --dir .codebuddy/skills
-    toolkit skills install --scope project --dir .continue/skills
-    toolkit skills install --scope project --dir .crush/skills
-    toolkit skills install --scope project --dir .devin/skills
-    toolkit skills install --scope project --dir .goose/skills
-    toolkit skills install --scope project --dir .grok/skills
-    toolkit skills install --scope project --dir .hermes/skills
-    toolkit skills install --scope project --dir .iflow/skills
-    toolkit skills install --scope project --dir .junie/skills
-    toolkit skills install --scope project --dir .kiro/skills
-    toolkit skills install --scope project --dir .openhands/skills
-    toolkit skills install --scope project --dir .qwen/skills
-    toolkit skills install --scope project --dir .roo/skills
-    toolkit skills install --scope project --dir .windsurf/skills
-[预演] 项目面 · 状态文件：.toolkit/state.json
-[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行
+[预演] 状态文件：<SANDBOX>/workspace/.toolkit/state.json
+[预演] 待收敛 7 项：执行 toolkit skills install 应用
 --- stderr ---
 "
 `;
@@ -1951,6 +1937,8 @@ Options:
   --dir <path>       额外目标目录（可多次指定，兜底内置表未收录的 agent；不参与后续自动同步，技能变化后需带相同 --dir 重跑）
                      (default: [])
   --dry-run          预演（只预览将要执行的动作，不写文件）
+  --check            只报告待收敛项：有漂移时退出码 1（不写文件，供 CI 使用）
+  --refresh          只收敛已存在的项目面产物，不新增技能；非 TTY / CI 下只打印漂移（prepare 钩子）
   --force            覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
   --prune            清理未选择且内容与本包真源一致的旧产物（只清本包登记条目）
   --mode <mode>      技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）

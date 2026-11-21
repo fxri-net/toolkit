@@ -53,10 +53,12 @@ const GITIGNORE_ROWS: ReadonlyArray<{ row: string; patterns: RegExp[] }> = [
   },
 ]
 
-// prepare 钩子脚本：刷新项目侧技能（真源副本 + 各候选目录薄壳），幂等；挂在本地依赖 @fxri/toolkit 时才有意义
-const PREPARE_SCRIPT = "toolkit skills install --scope project"
-// prepare 钩子的等价写法白名单：带 --scope project 的显式写法，与不带作用域的裸写法（在仓库内执行时自动判定为项目面）
-const PREPARE_EQUIVALENTS = [PREPARE_SCRIPT, "toolkit skills install"]
+// prepare 钩子脚本：只收敛项目面已存在的产物（不新增技能），幂等；挂在本地依赖 @fxri/toolkit 时才有意义
+const PREPARE_SCRIPT = "toolkit skills install --scope project --refresh"
+// prepare 钩子的等价写法白名单：带 --refresh 的显式写法，与不带作用域的裸写法（在仓库内执行时自动判定为项目面）
+const PREPARE_EQUIVALENTS = [PREPARE_SCRIPT, "toolkit skills install --refresh"]
+// 旧版钩子写法：升级为 --refresh（只刷新已有产物），不再全量安装
+const LEGACY_PREPARE_SCRIPTS = ["toolkit skills install --scope project", "toolkit skills install"]
 
 // 规范载体索引骨架：三节结构与 skills/fxri-plan-to-task/references/conventions-spec.md 一致
 const CONVENTIONS_INDEX = `${CARRIER_MARKER}
@@ -492,9 +494,29 @@ function scaffoldPrepareHook(cwd: string): InitProduct[] {
   const scripts = pkg.scripts
   const existing = typeof scripts === "object" && scripts !== null ? (scripts as Record<string, unknown>).prepare : undefined
   if (typeof existing === "string") {
-    if (PREPARE_EQUIVALENTS.includes(existing.replace(/\s+/g, " ").trim())) {
+    const normalized = existing.replace(/\s+/g, " ").trim()
+    if (PREPARE_EQUIVALENTS.includes(normalized)) {
       const product: InitProduct = { target, action: "kept", detail: `已有等价的 prepare 钩子（${existing}），保持不变` }
       return [product]
+    }
+    if (LEGACY_PREPARE_SCRIPTS.includes(normalized)) {
+      // 旧版钩子会全量安装新增技能；原位替换为 --refresh，保留其余排版
+      const next = raw.replace(JSON.stringify(existing), JSON.stringify(PREPARE_SCRIPT))
+      try {
+        const check = JSON.parse(next) as { scripts?: Record<string, unknown> }
+        if (check.scripts?.prepare !== PREPARE_SCRIPT) throw new Error("替换结果校验未通过")
+        writeFileAtomic(file, next)
+        return [{ target, action: "updated", detail: `prepare 钩子升级为 ${PREPARE_SCRIPT}（只刷新已有产物，不新增技能）` }]
+      } catch {
+        return [
+          {
+            target,
+            action: "skipped",
+            detail: `已有旧版 prepare 钩子「${existing}」，自动升级失败，未改写`,
+            hint: `可手工改为 "${PREPARE_SCRIPT}"`,
+          },
+        ]
+      }
     }
     return [
       {

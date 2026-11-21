@@ -36,10 +36,12 @@ toolkit init --no-hooks               # 不写入 package.json 的 prepare 刷�
   - prettier 迹象的判据（任一）：已存在 `.prettierignore`、存在 prettier 配置文件、`package.json` 声明 prettier 依赖或含 `prettier` 键
   - 已有等价排除行（如 `/.tasks`）保持不动（报告为「保持」）；未见 prettier 迹象时跳过，并提示「项目启用 prettier 后重跑 `toolkit init` 会自动补上该排除行」
   - prettier 的 `--ignore-path` 默认同时读 `.gitignore` 与 `.prettierignore`，故新建此文件不影响既有忽略语义
-- 向 `package.json` 幂等补一行 `prepare` 钩子（值为 `toolkit skills install --scope project`），供依赖升级后自动刷新项目面技能
+- 向 `package.json` 幂等补一行 `prepare` 钩子（值为 `toolkit skills install --scope project --refresh`）
+  - 钩子只刷新已存在的项目面产物，不新增技能；非 TTY / CI 只打印漂移
   - 仅当本地依赖含 `@fxri/toolkit` 时写入：`dependencies` / `devDependencies` / `peerDependencies` / `optionalDependencies` 任一
   - 写入采用最小文本插入，保留原有排版
-  - 已有等价钩子（裸 `toolkit skills install` 亦可）保持不变；已有非等价 `prepare` 跳过并提示不覆盖
+  - 已有等价钩子（裸 `toolkit skills install --refresh` 亦可）保持不变
+  - 旧版钩子（`--scope project` / 裸 `install`）原地升级为 `--refresh`；非等价 `prepare` 跳过并提示不覆盖
   - 未声明本地依赖、`package.json` 缺失或解析失败均跳过并说明；本包源仓库跳过；`--no-hooks` 关闭写入
 - ⚠️ 发布型包误打包检查**独立于钩子**：`package.json` 未标 `private` 且无 `files` 白名单时，报告附提示
   - 与钩子是否写入无关：`--no-hooks`、未声明本地依赖、非等价 `prepare` 等情形同样提示
