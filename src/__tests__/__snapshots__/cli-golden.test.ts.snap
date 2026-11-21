@@ -116,7 +116,24 @@ exports[`各域行为与错误路径 > changelog audit 1`] = `
 "
 `;
 
-exports[`各域行为与错误路径 > changelog doc 校验 1`] = `
+exports[`各域行为与错误路径 > changelog bump 1`] = `
+"退出码：0
+--- stdout ---
+无 CHANGELOG 需要更新
+✔ CHANGELOG 镜像已更新：docs/changelog.md
+--- stderr ---
+⚠️ 存在未归档的 active 任务，建议先归档再发版"
+`;
+
+exports[`各域行为与错误路径 > changelog changelog 1`] = `
+"退出码：0
+--- stdout ---
+无 CHANGELOG 需要更新
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > changelog mirror 校验 1`] = `
 "退出码：1
 --- stdout ---
 
@@ -126,27 +143,11 @@ exports[`各域行为与错误路径 > changelog doc 校验 1`] = `
   实际：# 更新日志"
 `;
 
-exports[`各域行为与错误路径 > changelog 格式化 1`] = `
-"退出码：0
---- stdout ---
-无 CHANGELOG 需要更新
---- stderr ---
-"
-`;
-
-exports[`各域行为与错误路径 > changelog 版本 1`] = `
-"退出码：0
---- stdout ---
-无 CHANGELOG 需要更新
-✔ CHANGELOG 镜像已更新：docs/changelog.md
---- stderr ---
-⚠️ 存在未归档的 active 任务，建议先归档再发版"
-`;
-
 exports[`各域行为与错误路径 > changelog 裸命令 1`] = `
 "退出码：0
 --- stdout ---
-
+待发布变更集：1 个
+- golden-change.md：@fxri/toolkit patch；1 条
 --- stderr ---
 "
 `;
@@ -180,12 +181,17 @@ exports[`各域行为与错误路径 > config get 敏感键 JSON 1`] = `
 --- stdout ---
 {
   "schemaVersion": 1,
-  "key": "usage.upload.endpoint",
-  "type": "string",
-  "summary": "上传地址",
-  "source": null,
-  "layers": {},
-  "env": null
+  "command": "config get",
+  "ok": true,
+  "data": {
+    "key": "usage.upload.endpoint",
+    "type": "string",
+    "summary": "上传地址",
+    "source": null,
+    "layers": {},
+    "env": null
+  },
+  "issues": []
 }
 --- stderr ---
 "
@@ -253,256 +259,261 @@ exports[`各域行为与错误路径 > config list JSON 1`] = `
 --- stdout ---
 {
   "schemaVersion": 1,
-  "layer": null,
-  "keys": [
-    {
-      "key": "task.dir",
-      "type": "string",
-      "summary": "任务区目录（相对路径基于运行目录解析）",
-      "value": ".tasks",
-      "source": "project"
-    },
-    {
-      "key": "redact.enabled",
-      "type": "boolean",
-      "summary": "启用内置脱敏",
-      "source": null
-    },
-    {
-      "key": "redact.disable",
-      "type": "stringList",
-      "summary": "按名禁用内置脱敏规则（逗号分隔）",
-      "source": null
-    },
-    {
-      "key": "check.warnings",
-      "type": "boolean",
-      "summary": "tasks check 输出软告警",
-      "source": null
-    },
-    {
-      "key": "updateCheck.enabled",
-      "type": "boolean",
-      "summary": "检查新版本并提示",
-      "source": null
-    },
-    {
-      "key": "skills.autoLink",
-      "type": "boolean",
-      "summary": "命令启动时自愈悬空技能链接",
-      "source": null
-    },
-    {
-      "key": "skills.autoLinkReplaceForeign",
-      "type": "boolean",
-      "summary": "自愈时替换指向其它包的同名技能链接",
-      "source": null
-    },
-    {
-      "key": "skillInstall.mode",
-      "type": "enum",
-      "summary": "全局技能安装形态",
-      "source": null
-    },
-    {
-      "key": "skillInstall.targets",
-      "type": "stringList",
-      "summary": "全局技能安装目标目录（逗号分隔）",
-      "source": null
-    },
-    {
-      "key": "skillDelivery.default",
-      "type": "enum",
-      "summary": "技能分发默认形态（全文 / 入口壳 / 不安装）",
-      "source": null
-    },
-    {
-      "key": "projectSkill.mode",
-      "type": "enum",
-      "summary": "项目技能安装形态",
-      "source": null
-    },
-    {
-      "key": "projectSkill.targets",
-      "type": "stringList",
-      "summary": "项目技能安装目录（逗号分隔）",
-      "source": null
-    },
-    {
-      "key": "activation.mode",
-      "type": "enum",
-      "summary": "旧激活段默认模式（新项目建议改用 policies）",
-      "source": null
-    },
-    {
-      "key": "docs.nav.dir",
-      "type": "string",
-      "summary": "文档目录",
-      "source": null
-    },
-    {
-      "key": "docs.nav.maxItems",
-      "type": "number",
-      "summary": "导航条目数上限",
-      "source": null
-    },
-    {
-      "key": "docs.nav.maxGroupUnits",
-      "type": "number",
-      "summary": "导航分组名长度上限",
-      "source": null
-    },
-    {
-      "key": "docs.nav.firstItem",
-      "type": "string",
-      "summary": "导航首项名",
-      "source": null
-    },
-    {
-      "key": "docs.nav.lastItem",
-      "type": "string",
-      "summary": "导航末项名",
-      "source": null
-    },
-    {
-      "key": "docs.nav.maxPageLines",
-      "type": "number",
-      "summary": "单页行数上限",
-      "source": null
-    },
-    {
-      "key": "docs.dist.dir",
-      "type": "string",
-      "summary": "产物目录（相对文档目录）",
-      "source": null
-    },
-    {
-      "key": "docs.dist.sitemap",
-      "type": "enum",
-      "summary": "sitemap 缺失时的处置",
-      "source": null
-    },
-    {
-      "key": "docs.dist.searchProvider",
-      "type": "enum",
-      "summary": "搜索实现",
-      "source": null
-    },
-    {
-      "key": "usage.enabled",
-      "type": "boolean",
-      "summary": "技能使用情况总开关",
-      "source": null
-    },
-    {
-      "key": "usage.channel",
-      "type": "enum",
-      "summary": "采集通道",
-      "source": null
-    },
-    {
-      "key": "usage.sources.firstParty",
-      "type": "boolean",
-      "summary": "统计一方技能",
-      "source": null
-    },
-    {
-      "key": "usage.sources.thirdParty",
-      "type": "boolean",
-      "summary": "统计第三方技能",
-      "source": null
-    },
-    {
-      "key": "usage.sources.unmanaged",
-      "type": "boolean",
-      "summary": "统计未托管技能",
-      "source": null
-    },
-    {
-      "key": "usage.skills.mode",
-      "type": "enum",
-      "summary": "技能统计范围模式",
-      "source": null
-    },
-    {
-      "key": "usage.skills.include",
-      "type": "stringList",
-      "summary": "技能统计白名单（逗号分隔）",
-      "source": null
-    },
-    {
-      "key": "usage.skills.exclude",
-      "type": "stringList",
-      "summary": "技能统计黑名单（逗号分隔）",
-      "source": null
-    },
-    {
-      "key": "usage.capture.triggerPrompt",
-      "type": "boolean",
-      "summary": "采集触发词",
-      "source": null
-    },
-    {
-      "key": "usage.capture.skillArgs",
-      "type": "boolean",
-      "summary": "采集技能参数",
-      "source": null
-    },
-    {
-      "key": "usage.capture.outcome",
-      "type": "boolean",
-      "summary": "采集执行结果",
-      "source": null
-    },
-    {
-      "key": "usage.storage.dir",
-      "type": "string",
-      "summary": "事件数据目录",
-      "source": null
-    },
-    {
-      "key": "usage.storage.rotation",
-      "type": "enum",
-      "summary": "事件文件轮转方式",
-      "source": null
-    },
-    {
-      "key": "usage.storage.retentionDays",
-      "type": "number",
-      "summary": "事件保留天数",
-      "source": null
-    },
-    {
-      "key": "usage.storage.maxFileBytes",
-      "type": "number",
-      "summary": "单文件大小上限（字节）",
-      "source": null
-    },
-    {
-      "key": "usage.upload.enabled",
-      "type": "boolean",
-      "summary": "上传事件到远端",
-      "source": null
-    },
-    {
-      "key": "usage.upload.protocol",
-      "type": "enum",
-      "summary": "上传协议",
-      "source": null
-    },
-    {
-      "key": "usage.upload.endpoint",
-      "type": "string",
-      "summary": "上传地址",
-      "source": null
-    },
-    {
-      "key": "usage.upload.batchSize",
-      "type": "number",
-      "summary": "单批上传条数",
-      "source": null
-    }
-  ]
+  "command": "config list",
+  "ok": true,
+  "data": {
+    "layer": null,
+    "keys": [
+      {
+        "key": "task.dir",
+        "type": "string",
+        "summary": "任务区目录（相对路径基于运行目录解析）",
+        "value": ".tasks",
+        "source": "project"
+      },
+      {
+        "key": "redact.enabled",
+        "type": "boolean",
+        "summary": "启用内置脱敏",
+        "source": null
+      },
+      {
+        "key": "redact.disable",
+        "type": "stringList",
+        "summary": "按名禁用内置脱敏规则（逗号分隔）",
+        "source": null
+      },
+      {
+        "key": "check.warnings",
+        "type": "boolean",
+        "summary": "tasks check 输出软告警",
+        "source": null
+      },
+      {
+        "key": "updateCheck.enabled",
+        "type": "boolean",
+        "summary": "检查新版本并提示",
+        "source": null
+      },
+      {
+        "key": "skills.autoLink",
+        "type": "boolean",
+        "summary": "命令启动时自愈悬空技能链接",
+        "source": null
+      },
+      {
+        "key": "skills.autoLinkReplaceForeign",
+        "type": "boolean",
+        "summary": "自愈时替换指向其它包的同名技能链接",
+        "source": null
+      },
+      {
+        "key": "skillInstall.mode",
+        "type": "enum",
+        "summary": "全局技能安装形态",
+        "source": null
+      },
+      {
+        "key": "skillInstall.targets",
+        "type": "stringList",
+        "summary": "全局技能安装目标目录（逗号分隔）",
+        "source": null
+      },
+      {
+        "key": "skillDelivery.default",
+        "type": "enum",
+        "summary": "技能分发默认形态（全文 / 入口壳 / 不安装）",
+        "source": null
+      },
+      {
+        "key": "projectSkill.mode",
+        "type": "enum",
+        "summary": "项目技能安装形态",
+        "source": null
+      },
+      {
+        "key": "projectSkill.targets",
+        "type": "stringList",
+        "summary": "项目技能安装目录（逗号分隔）",
+        "source": null
+      },
+      {
+        "key": "activation.mode",
+        "type": "enum",
+        "summary": "旧激活段默认模式（新项目建议改用 policies）",
+        "source": null
+      },
+      {
+        "key": "docs.nav.dir",
+        "type": "string",
+        "summary": "文档目录",
+        "source": null
+      },
+      {
+        "key": "docs.nav.maxItems",
+        "type": "number",
+        "summary": "导航条目数上限",
+        "source": null
+      },
+      {
+        "key": "docs.nav.maxGroupUnits",
+        "type": "number",
+        "summary": "导航分组名长度上限",
+        "source": null
+      },
+      {
+        "key": "docs.nav.firstItem",
+        "type": "string",
+        "summary": "导航首项名",
+        "source": null
+      },
+      {
+        "key": "docs.nav.lastItem",
+        "type": "string",
+        "summary": "导航末项名",
+        "source": null
+      },
+      {
+        "key": "docs.nav.maxPageLines",
+        "type": "number",
+        "summary": "单页行数上限",
+        "source": null
+      },
+      {
+        "key": "docs.dist.dir",
+        "type": "string",
+        "summary": "产物目录（相对文档目录）",
+        "source": null
+      },
+      {
+        "key": "docs.dist.sitemap",
+        "type": "enum",
+        "summary": "sitemap 缺失时的处置",
+        "source": null
+      },
+      {
+        "key": "docs.dist.searchProvider",
+        "type": "enum",
+        "summary": "搜索实现",
+        "source": null
+      },
+      {
+        "key": "usage.enabled",
+        "type": "boolean",
+        "summary": "技能使用情况总开关",
+        "source": null
+      },
+      {
+        "key": "usage.channel",
+        "type": "enum",
+        "summary": "采集通道",
+        "source": null
+      },
+      {
+        "key": "usage.sources.firstParty",
+        "type": "boolean",
+        "summary": "统计一方技能",
+        "source": null
+      },
+      {
+        "key": "usage.sources.thirdParty",
+        "type": "boolean",
+        "summary": "统计第三方技能",
+        "source": null
+      },
+      {
+        "key": "usage.sources.unmanaged",
+        "type": "boolean",
+        "summary": "统计未托管技能",
+        "source": null
+      },
+      {
+        "key": "usage.skills.mode",
+        "type": "enum",
+        "summary": "技能统计范围模式",
+        "source": null
+      },
+      {
+        "key": "usage.skills.include",
+        "type": "stringList",
+        "summary": "技能统计白名单（逗号分隔）",
+        "source": null
+      },
+      {
+        "key": "usage.skills.exclude",
+        "type": "stringList",
+        "summary": "技能统计黑名单（逗号分隔）",
+        "source": null
+      },
+      {
+        "key": "usage.capture.triggerPrompt",
+        "type": "boolean",
+        "summary": "采集触发词",
+        "source": null
+      },
+      {
+        "key": "usage.capture.skillArgs",
+        "type": "boolean",
+        "summary": "采集技能参数",
+        "source": null
+      },
+      {
+        "key": "usage.capture.outcome",
+        "type": "boolean",
+        "summary": "采集执行结果",
+        "source": null
+      },
+      {
+        "key": "usage.storage.dir",
+        "type": "string",
+        "summary": "事件数据目录",
+        "source": null
+      },
+      {
+        "key": "usage.storage.rotation",
+        "type": "enum",
+        "summary": "事件文件轮转方式",
+        "source": null
+      },
+      {
+        "key": "usage.storage.retentionDays",
+        "type": "number",
+        "summary": "事件保留天数",
+        "source": null
+      },
+      {
+        "key": "usage.storage.maxFileBytes",
+        "type": "number",
+        "summary": "单文件大小上限（字节）",
+        "source": null
+      },
+      {
+        "key": "usage.upload.enabled",
+        "type": "boolean",
+        "summary": "上传事件到远端",
+        "source": null
+      },
+      {
+        "key": "usage.upload.protocol",
+        "type": "enum",
+        "summary": "上传协议",
+        "source": null
+      },
+      {
+        "key": "usage.upload.endpoint",
+        "type": "string",
+        "summary": "上传地址",
+        "source": null
+      },
+      {
+        "key": "usage.upload.batchSize",
+        "type": "number",
+        "summary": "单批上传条数",
+        "source": null
+      }
+    ]
+  },
+  "issues": []
 }
 --- stderr ---
 "
@@ -927,7 +938,7 @@ exports[`各域行为与错误路径 > rules list 1`] = `
     personal 2026-11-20 12:12  个人偏好（complete / full）
     env      2026-11-20 11:47  环境与版本（complete / full）
     commit   2026-11-13 10:13  提交信息规则（full）
-    usage    2026-11-20 11:47  技能使用情况（full）
+    usage    2026-11-21 21:52  技能使用情况（full）
 预设：minimal=core；recommended=core+output+workflow；complete=core+output+workflow+personal+env；full=core+output+workflow+personal+env+commit+usage
 当前缓存：无（默认 recommended）
 --- stderr ---
@@ -1068,7 +1079,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
       "title": "技能使用情况",
       "summary": "Skill 调用后的本机使用上报与回复前自检",
       "file": "usage.md",
-      "anchor": "2026-11-20 11:47",
+      "anchor": "2026-11-21 21:52",
       "presets": [
         "full"
       ]
@@ -1115,7 +1126,7 @@ Commands:
 "
 `;
 
-exports[`各域行为与错误路径 > scope add 缺参数 1`] = `
+exports[`各域行为与错误路径 > scope list add 缺参数 1`] = `
 "退出码：1
 --- stdout ---
 
@@ -1123,7 +1134,7 @@ exports[`各域行为与错误路径 > scope add 缺参数 1`] = `
 ⚠️ 请指定目录；交互设置请运行 toolkit scope wizard"
 `;
 
-exports[`各域行为与错误路径 > scope default 查看 1`] = `
+exports[`各域行为与错误路径 > scope list default 查看 1`] = `
 "退出码：0
 --- stdout ---
 默认：全部生效（白名单 0 / 黑名单 0）
@@ -1132,7 +1143,7 @@ exports[`各域行为与错误路径 > scope default 查看 1`] = `
 "
 `;
 
-exports[`各域行为与错误路径 > scope exclude 预演 1`] = `
+exports[`各域行为与错误路径 > scope list exclude 预演 1`] = `
 "退出码：0
 --- stdout ---
 
@@ -1141,6 +1152,35 @@ exports[`各域行为与错误路径 > scope exclude 预演 1`] = `
   默认：全部生效
   新增：[黑] <SANDBOX>/workspace/work
 [预演] 未写入任何文件
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > scope list remove 互转预演 1`] = `
+"退出码：0
+--- stdout ---
+
+作用域：移除 / 互转
+  写入：<SANDBOX>/home/.toolkitrc.json
+  默认：全部生效
+  转入：[黑] <SANDBOX>/workspace/work
+[预演] 未写入任何文件
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > scope list remove 非法 from 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ --from 取值须为 include / exclude / both"
+`;
+
+exports[`各域行为与错误路径 > scope list reset 预演 1`] = `
+"退出码：0
+--- stdout ---
+没有变化，无需写入
 --- stderr ---
 "
 `;
@@ -1209,35 +1249,6 @@ exports[`各域行为与错误路径 > scope policy reset 缺参数 1`] = `
 
 --- stderr ---
 ⚠️ 请指定 --id / --paths，或显式 --all；未写入配置"
-`;
-
-exports[`各域行为与错误路径 > scope remove 互转预演 1`] = `
-"退出码：0
---- stdout ---
-
-作用域：移除 / 互转
-  写入：<SANDBOX>/home/.toolkitrc.json
-  默认：全部生效
-  转入：[黑] <SANDBOX>/workspace/work
-[预演] 未写入任何文件
---- stderr ---
-"
-`;
-
-exports[`各域行为与错误路径 > scope remove 非法 from 1`] = `
-"退出码：1
---- stdout ---
-
---- stderr ---
-⚠️ --from 取值须为 include / exclude / both"
-`;
-
-exports[`各域行为与错误路径 > scope reset 预演 1`] = `
-"退出码：0
---- stdout ---
-没有变化，无需写入
---- stderr ---
-"
 `;
 
 exports[`各域行为与错误路径 > scope status 技能清单 1`] = `
@@ -1403,7 +1414,7 @@ canonical（多家 agent 共读）：<SANDBOX>/home/.agents/skills
 "
 `;
 
-exports[`各域行为与错误路径 > skills path 1`] = `
+exports[`各域行为与错误路径 > skills status --path 1`] = `
 "退出码：0
 --- stdout ---
 <REPO>
@@ -1422,7 +1433,7 @@ registry：registry.npmjs.org（来源：默认）
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
 技能源：<REPO>/skills
-技能版本：fxri-docs-writing@0.1.0、fxri-plan-review@1.0.15、fxri-plan-to-task@1.12.15、fxri-release-changelog@1.3.8、fxri-session-recap@1.7.5、fxri-skill-authoring@1.0.0、fxri-text-encoding@1.2.10
+技能版本：fxri-docs-writing@0.1.0、fxri-plan-review@1.0.15、fxri-plan-to-task@1.12.15、fxri-release-changelog@1.3.9、fxri-session-recap@1.7.5、fxri-skill-authoring@1.0.0、fxri-text-encoding@1.2.10
 内容闸门：未开启（全文安装）
 选择集（3）：fxri-plan-review、fxri-plan-to-task、fxri-session-recap
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-docs-writing、fxri-release-changelog、fxri-skill-authoring、fxri-text-encoding
@@ -1467,14 +1478,14 @@ exports[`各域行为与错误路径 > skills 裸命令 1`] = `
 --- stdout ---
 Usage: toolkit skills [options] [command]
 
-AI 技能包分发：安装 / 状态 / 卸载 / 来源 / 路径（包内 skills/ 与 --from 外部来源统一管理）
+AI 技能包分发：安装 / 状态 / 卸载 / 来源（包内 skills/ 与 --source 外部来源统一管理）
 
 Options:
   -h, --help                    显示帮助
 
 Commands:
   install [options]             安装技能（默认按现场判定作用域：仓库内写项目面副本 + 薄壳，否则写全局目录；包内
-                                skills/ 与 --from 外部来源统一处理）
+                                skills/ 与 --source 外部来源统一处理）
   status [options]              查看技能现场状态与真源版本（默认按现场判定作用域；含分发形态、待收敛、悬空 / 漂移 / 缺失
                                 / 同名冲突）
   uninstall [options]           卸载由本包安装的技能产物（默认按现场判定作用域；只清理归属账记载的条目，不碰用户自装技能）
@@ -1482,13 +1493,7 @@ Commands:
                                 / 敏感信息 / 版本递增）
   bump [options] [name] [type]  递增技能版本（两处版本声明同源改写；--all 批量、--set 直接设定、--dir
                                 支持外部目录）
-  sources [options] [command]   查看 / 刷新 / 注销外部技能来源，并管理来源提示频率
-  plan [options]                预览技能分发计划（目标形态 / 当前形态 / 动作与判定来源；install --dry-run
-                                的别名）
-  gate [options] [value]        查看或切换内容闸门默认形态（on = 默认入口壳 / off = 默认全文；不覆盖
-                                skillDelivery.rules）
-  mount [options] [dir]         在父目录下的项目里批量安装技能（交互选择项目并确认，会向所选项目写文件）
-  path [options]                输出包根路径（内含 skills/，可委托上游安装器安装到表外 agent）
+  source [options] [command]    查看 / 刷新 / 注销外部技能来源，并管理来源提示频率
 
 --- stderr ---
 "
@@ -1506,7 +1511,7 @@ registry：registry.npmjs.org（来源：默认）
 
 项目面 · 项目根：<SANDBOX>/workspace
 项目面 · 技能真源：.agents/skills
-项目面 · 技能版本：fxri-docs-writing@0.1.0、fxri-plan-review@1.0.15、fxri-plan-to-task@1.12.15、fxri-release-changelog@1.3.8、fxri-session-recap@1.7.5、fxri-skill-authoring@1.0.0、fxri-text-encoding@1.2.10
+项目面 · 技能版本：fxri-docs-writing@0.1.0、fxri-plan-review@1.0.15、fxri-plan-to-task@1.12.15、fxri-release-changelog@1.3.9、fxri-session-recap@1.7.5、fxri-skill-authoring@1.0.0、fxri-text-encoding@1.2.10
 项目面 · 选择集（3）：fxri-plan-review、fxri-plan-to-task、fxri-session-recap
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-docs-writing、fxri-release-changelog、fxri-skill-authoring、fxri-text-encoding
 项目面 · 目录选择集：全部已存在候选目录（未保存过目录选择）
@@ -1816,27 +1821,134 @@ exports[`各域行为与错误路径 > tasks 状态过滤部分非法 1`] = `
 ⚠️ 忽略非法状态值：bogus（合法：待办/进行中/已完成/阻塞/已放弃/搁置）"
 `;
 
-exports[`各域行为与错误路径 > usage doctor 1`] = `
+exports[`各域行为与错误路径 > usage config 字段 1`] = `
+"退出码：0
+--- stdout ---
+字段：触发词 关 / 参数 关 / 结果 关
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > usage config 存储 1`] = `
+"退出码：0
+--- stdout ---
+存储：monthly / 保留 180 天 / 单文件 8388608 字节
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > usage config 来源 1`] = `
+"退出码：0
+--- stdout ---
+来源：一方 关 / 第三方 关 / 未托管 关
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > usage config 来源 JSON 1`] = `
+"退出码：0
+--- stdout ---
+{
+  "schemaVersion": 1,
+  "sources": {
+    "firstParty": false,
+    "thirdParty": false,
+    "unmanaged": false
+  }
+}
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > usage config 范围 1`] = `
+"退出码：0
+--- stdout ---
+技能模式：none；名单：空
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > usage config 通道 1`] = `
+"退出码：0
+--- stdout ---
+采集通道：hook（Agent Hook）
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > usage data doctor 1`] = `
 "退出码：0
 --- stdout ---
 数据目录：<SANDBOX>/home/.toolkit/usage
 事件：0 条 / 去重后 0 条 / 索引 0 条
 ⚠️ 数据目录尚未创建：<SANDBOX>/home/.toolkit/usage
 ℹ️ 技能使用情况总开关处于关闭状态
-⚠️ 采集通道为 hook，但未安装任何 Hook：执行 toolkit usage hooks install，或切换为 rule（toolkit usage channel rule）
+⚠️ 采集通道为 hook，但未安装任何 Hook：执行 toolkit usage setup hooks install，或切换为 rule（toolkit usage config channel rule）
 --- stderr ---
 "
 `;
 
-exports[`各域行为与错误路径 > usage hooks 卸载非交互 1`] = `
+exports[`各域行为与错误路径 > usage data 去重 1`] = `
+"退出码：0
+--- stdout ---
+✔ 去重完成：删除 0 条重复记录
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > usage data 导出空数据 1`] = `
+"退出码：0
+--- stdout ---
+{
+  "schemaVersion": 1,
+  "events": []
+}
+
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > usage data 清理预演 1`] = `
+"退出码：0
+--- stdout ---
+[预演] 将删除 0 条记录
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > usage data 重建索引 1`] = `
+"退出码：0
+--- stdout ---
+✔ 索引已重建：0 条事件
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > usage rule 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ toolkit usage rule 已移除，请改用 toolkit rules compose --module usage（输出与旧命令逐字一致）"
+`;
+
+exports[`各域行为与错误路径 > usage setup hooks 卸载非交互 1`] = `
 "退出码：2
 --- stdout ---
 
 --- stderr ---
-⚠️ 当前环境不支持交互（usage hooks remove）：非交互请加 --yes，或执行 toolkit usage --help"
+⚠️ 当前环境不支持交互（usage setup hooks remove）：非交互请加 --yes，或执行 toolkit usage --help"
 `;
 
-exports[`各域行为与错误路径 > usage info 1`] = `
+exports[`各域行为与错误路径 > usage setup wizard 非交互 1`] = `
+"退出码：2
+--- stdout ---
+
+--- stderr ---
+⚠️ 当前环境不支持交互（usage setup wizard）：非交互请直接使用 toolkit usage 子命令，或在终端运行 toolkit usage setup wizard"
+`;
+
+exports[`各域行为与错误路径 > usage show 1`] = `
 "退出码：0
 --- stdout ---
 技能使用情况：已关闭
@@ -1857,15 +1969,7 @@ Hook：未安装
 "
 `;
 
-exports[`各域行为与错误路径 > usage rule 1`] = `
-"退出码：1
---- stdout ---
-
---- stderr ---
-⚠️ toolkit usage rule 已移除，请改用 toolkit rules compose --module usage（输出与旧命令逐字一致）"
-`;
-
-exports[`各域行为与错误路径 > usage stats 1`] = `
+exports[`各域行为与错误路径 > usage show stats 1`] = `
 "退出码：0
 --- stdout ---
 技能使用统计：共 0 条
@@ -1875,113 +1979,41 @@ exports[`各域行为与错误路径 > usage stats 1`] = `
 "
 `;
 
-exports[`各域行为与错误路径 > usage wizard 非交互 1`] = `
-"退出码：2
---- stdout ---
-
---- stderr ---
-⚠️ 当前环境不支持交互（usage 向导）：非交互请直接使用 toolkit usage 子命令，或在终端运行 toolkit usage wizard"
-`;
-
-exports[`各域行为与错误路径 > usage 关闭 1`] = `
+exports[`各域行为与错误路径 > usage 关闭（config set） 1`] = `
 "退出码：0
 --- stdout ---
-技能使用情况：已关闭
+✔ 已写入全局层：usage.enabled = false（原值：true）
+文件：~/.toolkitrc.json
 --- stderr ---
 "
 `;
 
-exports[`各域行为与错误路径 > usage 去重 1`] = `
-"退出码：0
---- stdout ---
-✔ 去重完成：删除 0 条重复记录
---- stderr ---
-"
-`;
-
-exports[`各域行为与错误路径 > usage 字段 1`] = `
-"退出码：0
---- stdout ---
-字段：触发词 关 / 参数 关 / 结果 关
---- stderr ---
-"
-`;
-
-exports[`各域行为与错误路径 > usage 存储 1`] = `
-"退出码：0
---- stdout ---
-存储：monthly / 保留 180 天 / 单文件 8388608 字节
---- stderr ---
-"
-`;
-
-exports[`各域行为与错误路径 > usage 导出空数据 1`] = `
+exports[`各域行为与错误路径 > usage 开启 JSON（config set） 1`] = `
 "退出码：0
 --- stdout ---
 {
   "schemaVersion": 1,
-  "events": []
-}
-
---- stderr ---
-"
-`;
-
-exports[`各域行为与错误路径 > usage 开启 1`] = `
-"退出码：0
---- stdout ---
-技能使用情况：已开启
-用 usage channel / origins / scope 配置通道与采集范围
---- stderr ---
-"
-`;
-
-exports[`各域行为与错误路径 > usage 开启 JSON 1`] = `
-"退出码：0
---- stdout ---
-{
-  "schemaVersion": 1,
-  "enabled": true
+  "command": "config set",
+  "ok": true,
+  "data": {
+    "key": "usage.enabled",
+    "layer": "global",
+    "value": true,
+    "valueText": "true",
+    "dryRun": false,
+    "file": "~/.toolkitrc.json"
+  },
+  "issues": []
 }
 --- stderr ---
 "
 `;
 
-exports[`各域行为与错误路径 > usage 来源 1`] = `
+exports[`各域行为与错误路径 > usage 开启（config set） 1`] = `
 "退出码：0
 --- stdout ---
-来源：一方 关 / 第三方 关 / 未托管 关
---- stderr ---
-"
-`;
-
-exports[`各域行为与错误路径 > usage 来源 JSON 1`] = `
-"退出码：0
---- stdout ---
-{
-  "schemaVersion": 1,
-  "sources": {
-    "firstParty": false,
-    "thirdParty": false,
-    "unmanaged": false
-  }
-}
---- stderr ---
-"
-`;
-
-exports[`各域行为与错误路径 > usage 清理预演 1`] = `
-"退出码：0
---- stdout ---
-[预演] 将删除 0 条记录
---- stderr ---
-"
-`;
-
-exports[`各域行为与错误路径 > usage 范围 1`] = `
-"退出码：0
---- stdout ---
-技能模式：none；名单：空
+✔ 已写入全局层：usage.enabled = true
+文件：~/.toolkitrc.json
 --- stderr ---
 "
 `;
@@ -1991,7 +2023,7 @@ exports[`各域行为与错误路径 > usage 补录预演 1`] = `
 --- stdout ---
 
 --- stderr ---
-⚠️ 技能使用情况未启用，未写入；先执行 toolkit usage enable"
+⚠️ 技能使用情况未启用，未写入；先执行 toolkit config set usage.enabled true"
 `;
 
 exports[`各域行为与错误路径 > usage 裸命令 1`] = `
@@ -2011,31 +2043,15 @@ Hook：未安装
 队列：0 条待处理
 事件：0 条（索引 0 条，文件 0 个）
 最近：暂无
-交互向导请运行 toolkit usage wizard；单项操作见 toolkit usage --help
+交互向导请运行 toolkit usage setup wizard；单项操作见 toolkit usage --help
 --- stderr ---
 "
 `;
 
-exports[`各域行为与错误路径 > usage 通道 1`] = `
+exports[`帮助与版本口径 > changelog bump 帮助 1`] = `
 "退出码：0
 --- stdout ---
-采集通道：hook（Agent Hook）
---- stderr ---
-"
-`;
-
-exports[`各域行为与错误路径 > usage 重建索引 1`] = `
-"退出码：0
---- stdout ---
-✔ 索引已重建：0 条事件
---- stderr ---
-"
-`;
-
-exports[`帮助与版本口径 > changelog version 帮助 1`] = `
-"退出码：0
---- stdout ---
-Usage: toolkit changelog version [options]
+Usage: toolkit changelog bump [options]
 
 消费变更集并生成新版本块，随后同步文档镜像
 
@@ -2060,22 +2076,19 @@ exports[`帮助与版本口径 > changelog 帮助 1`] = `
 --- stdout ---
 Usage: toolkit changelog [options] [command]
 
-多语言 CHANGELOG（封装 changesets）
+多语言更新日志与发版（默认 status；封装 changesets）
 
 Options:
-  -h, --help                   显示帮助
+  -h, --help                     显示帮助
 
 Commands:
-  version [options]            消费变更集并生成新版本块，随后同步文档镜像
-  format [options]             按语言与类型归类重排 CHANGELOG 条目
-  doc [options]                生成或校验文档站 CHANGELOG 镜像页
-  audit [options]              审计待发布变更集，列出需要合并的候选（只提示不改写）
-  add [options] [args...]      新增变更集（透传给 changesets）
-  status [options] [args...]   查看待发布变更集状态（透传给 changesets）
-  pre [options] [args...]      进入或退出预发布模式（透传给 changesets）
-  tag [options] [args...]      为已发布版本打标签（透传给 changesets）
-  init [options] [args...]     初始化 .changeset 配置（透传给 changesets）
-  publish [options] [args...]  发布变更集（透传给 changesets）
+  status [options]               待发布变更集概览（只读，不消费）
+  bump [options]                 消费变更集并生成新版本块，随后同步文档镜像
+  changelog [options]            按语言与类型归类重排 CHANGELOG 条目
+  mirror [options]               生成或校验文档站 CHANGELOG 镜像页
+  publish [options] [args...]    发布已升版产物（透传给 changesets publish）
+  audit [options]                审计待发布变更集，列出需要合并的候选（只提示不改写）
+  changeset [options] [command]  变更集：add / list / status（底层 changesets）
 
 --- stderr ---
 "
@@ -2267,15 +2280,15 @@ Commands:
   status [options]                 整体状态：聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项（只读）
   init [options]                   初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐
                                    .gitignore 片段与 prepare 刷新钩子）
-  skills [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源 / 路径（包内 skills/ 与
-                                   --from 外部来源统一管理）
+  skills [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源（包内 skills/ 与
+                                   --source 外部来源统一管理）
   conventions [options] [command]  项目协作规范载体：结构升级（v1 / v2 →
                                    v3）、表格与索引单元格形态归一、只读体检（形态 / 索引 / 入口层）
   config [options] [command]       配置：list / get / set / unset 唯一写入口，另有 status
                                    只读体检三层配置文件
   docs [options] [command]         文档站工具：主题、导航与产物的校验与写入
   tasks [options] [command]        任务管理
-  changelog [options] [command]    多语言 CHANGELOG（封装 changesets）
+  changelog [options] [command]    多语言更新日志与发版（默认 status；封装 changesets）
   rules [options] [command]        全局规则：列出模块、组合输出与缓存管理
   scope [options] [command]        作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效）
   usage [options] [command]        技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
@@ -2355,34 +2368,34 @@ exports[`帮助与版本口径 > skills install 帮助 1`] = `
 --- stdout ---
 Usage: toolkit skills install [options]
 
-安装技能（默认按现场判定作用域：仓库内写项目面副本 + 薄壳，否则写全局目录；包内 skills/ 与 --from 外部来源统一处理）
+安装技能（默认按现场判定作用域：仓库内写项目面副本 + 薄壳，否则写全局目录；包内 skills/ 与 --source 外部来源统一处理）
 
 Options:
-  --scope <scope>    作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）
-  --skills <names>   只安装指定技能（逗号分隔；core 技能恒装）
-  --all              安装包内全部技能（含可选技能；非交互执行须加 --yes）
-  --no-optional      只安装 core 技能（不含可选技能）
-  --from <path|url>  外部技能来源目录或 Git 地址（可重复；默认临时，只写本次） (default: [])
-  --save [name]      把 --from 来源登记为永久来源（可选来源名，缺省按目录 / 清单派生）
-  --agent <names>    只写入指定 agent（逗号分隔，含 canonical；本机未检测到的跳过）
-  --all-agents       写入全部已检测的 agent
-  --no-save-agents   目标选择只对本次生效，不写回配置
-  --yes              非交互执行：跳过选择与确认，采用已保存选择（首次只装 core 与全部可用目标）
-  --use-saved        技能与目标采用已保存选择，不进入选择交互（仍保留最终确认）
-  --copy             强制以副本形式写入（仅全局面生效；项目面真源恒为副本、其余目录恒为薄壳）
-  --dir <path>       额外目标目录（可多次指定，兜底内置表未收录的 agent；不参与后续自动同步，技能变化后需带相同 --dir 重跑）
-                     (default: [])
-  --dry-run          输出分发计划（skills plan 的别名），不写文件
-  --check            只报告待收敛项：有漂移时退出码 1（不写文件，供 CI 使用）
-  --refresh          只收敛已存在的项目面产物，不新增技能；非 TTY / CI 下只打印漂移（prepare 钩子）
-  --force            覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
-  --prune            清理未选择或 off 形态残留、且内容与本包真源一致的旧产物（只清本包登记条目）
-  --mode <mode>      技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）
-  --gate             开启内容闸门：本次把技能写入口壳（声明退出的除外），成功后写 skillDelivery.default
-  --embed            回退内容闸门：把入口壳改回全文，成功后写 skillDelivery.default
-  --no-skills        本次不安装任何技能，不改模式与已保存选择
-  --format <format>  输出格式（json，输出到 stdout）
-  -h, --help         显示帮助
+  --scope <scope>       作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）
+  --skills <names>      只安装指定技能（逗号分隔；core 技能恒装）
+  --all                 安装包内全部技能（含可选技能；非交互执行须加 --yes）
+  --no-optional         只安装 core 技能（不含可选技能）
+  --source <name|path>  外部技能来源：已登记来源名、目录或 Git 地址（可重复；默认临时，只写本次） (default: [])
+  --save [name]         把外部来源登记为永久来源（可选来源名，缺省按目录 / 清单派生）
+  --agent <names>       只写入指定 agent（逗号分隔，含 canonical；本机未检测到的跳过）
+  --all-agents          写入全部已检测的 agent
+  --no-save-agents      目标选择只对本次生效，不写回配置
+  --yes                 非交互执行：跳过选择与确认，采用已保存选择（首次只装 core 与全部可用目标）
+  --use-saved           技能与目标采用已保存选择，不进入选择交互（仍保留最终确认）
+  --copy                强制以副本形式写入（仅全局面生效；项目面真源恒为副本、其余目录恒为薄壳）
+  --dir <path>          额外目标目录（可多次指定，兜底内置表未收录的 agent；不参与后续自动同步，技能变化后需带相同 --dir
+                        重跑） (default: [])
+  --dry-run             输出分发计划（skills plan 的别名），不写文件
+  --check               只报告待收敛项：有漂移时退出码 1（不写文件，供 CI 使用）
+  --refresh             只收敛已存在的项目面产物，不新增技能；非 TTY / CI 下只打印漂移（prepare 钩子）
+  --force               覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
+  --prune               清理未选择或 off 形态残留、且内容与本包真源一致的旧产物（只清本包登记条目）
+  --mode <mode>         技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）
+  --gate                开启内容闸门：本次把技能写入口壳（声明退出的除外），成功后写 skillDelivery.default
+  --embed               回退内容闸门：把入口壳改回全文，成功后写 skillDelivery.default
+  --no-skills           本次不安装任何技能，不改模式与已保存选择
+  --format <format>     输出格式（json，输出到 stdout）
+  -h, --help            显示帮助
 
 
 非交互语义：
@@ -2401,14 +2414,14 @@ exports[`帮助与版本口径 > skills 帮助 1`] = `
 --- stdout ---
 Usage: toolkit skills [options] [command]
 
-AI 技能包分发：安装 / 状态 / 卸载 / 来源 / 路径（包内 skills/ 与 --from 外部来源统一管理）
+AI 技能包分发：安装 / 状态 / 卸载 / 来源（包内 skills/ 与 --source 外部来源统一管理）
 
 Options:
   -h, --help                    显示帮助
 
 Commands:
   install [options]             安装技能（默认按现场判定作用域：仓库内写项目面副本 + 薄壳，否则写全局目录；包内
-                                skills/ 与 --from 外部来源统一处理）
+                                skills/ 与 --source 外部来源统一处理）
   status [options]              查看技能现场状态与真源版本（默认按现场判定作用域；含分发形态、待收敛、悬空 / 漂移 / 缺失
                                 / 同名冲突）
   uninstall [options]           卸载由本包安装的技能产物（默认按现场判定作用域；只清理归属账记载的条目，不碰用户自装技能）
@@ -2416,13 +2429,7 @@ Commands:
                                 / 敏感信息 / 版本递增）
   bump [options] [name] [type]  递增技能版本（两处版本声明同源改写；--all 批量、--set 直接设定、--dir
                                 支持外部目录）
-  sources [options] [command]   查看 / 刷新 / 注销外部技能来源，并管理来源提示频率
-  plan [options]                预览技能分发计划（目标形态 / 当前形态 / 动作与判定来源；install --dry-run
-                                的别名）
-  gate [options] [value]        查看或切换内容闸门默认形态（on = 默认入口壳 / off = 默认全文；不覆盖
-                                skillDelivery.rules）
-  mount [options] [dir]         在父目录下的项目里批量安装技能（交互选择项目并确认，会向所选项目写文件）
-  path [options]                输出包根路径（内含 skills/，可委托上游安装器安装到表外 agent）
+  source [options] [command]    查看 / 刷新 / 注销外部技能来源，并管理来源提示频率
 
 --- stderr ---
 "
@@ -2465,10 +2472,10 @@ Commands:
 "
 `;
 
-exports[`帮助与版本口径 > usage stats 帮助 1`] = `
+exports[`帮助与版本口径 > usage show stats 帮助 1`] = `
 "退出码：0
 --- stdout ---
-Usage: toolkit usage stats [options]
+Usage: toolkit usage show stats [options]
 
 技能使用统计（默认按技能聚合）
 
@@ -2500,28 +2507,11 @@ Options:
   -h, --help                  显示帮助
 
 Commands:
-  wizard [options]            交互向导：状态、统计、开关、Hook、上传、导出与清理
-  init [options]              初始化技能使用情况：选择 Agent、来源、字段与存储（执行即启用，默认统计一方与第三方技能）
-  uninstall [options]         停用技能使用情况并卸载 Hook（默认保留本地事件）
-  hooks [options] [command]   管理 Agent Hook（安装 / 状态 / 卸载）
-  info [options]              查看技能使用情况：开关、数据目录与事件计数
-  enable [options]            开启技能使用情况总开关（仍需配置通道、来源与技能范围）
-  disable [options]           关闭技能使用情况总开关（已记录数据保留）
-  channel [options] [mode]    查看或切换采集通道：rule（全局规则上报）/ hook（Agent Hook）
-  origins [options]           查看或设置来源开关（first-party / third-party / unmanaged）
-  scope [options]             查看或设置技能统计范围（none / all / include / exclude）
-  capture [options]           查看或设置采集字段（trigger / args / outcome）
-  storage [options]           查看或设置本地存储（目录 / 轮转 / 保留期 / 单文件上限）
-  upload [options] [command]  可选上传（默认关闭；需显式配置端点）
-  stats [options]             技能使用统计（默认按技能聚合）
-  export [options]            导出事件（csv / json / jsonl）
-  import [options]            导入事件（json / jsonl / transcript）
+  show [options] [command]    查看技能使用情况：开关、数据目录与事件计数
+  data [options] [command]    事件数据：导出 / 导入 / 去重 / 清理 / 重建索引
+  config [options] [command]  采集配置：通道 / 来源 / 范围 / 字段 / 存储 / 上传
+  setup [options] [command]   生命周期：初始化 / 停用 / Hook 与交互向导
   record [options]            按全局规则上报一批技能调用（入队即返回，静默执行，失败不阻断任务）
-  log [options]               手工补录一次技能使用
-  dedupe [options]            压缩历史重复事件并重建索引
-  purge [options]             清理本地事件（按保留期或全部）
-  doctor [options]            诊断技能使用情况目录、索引与重复事件
-  rebuild [options]           从事件文件重建索引
 
 --- stderr ---
 "
@@ -2545,15 +2535,15 @@ Commands:
   status [options]                 整体状态：聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项（只读）
   init [options]                   初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐
                                    .gitignore 片段与 prepare 刷新钩子）
-  skills [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源 / 路径（包内 skills/ 与
-                                   --from 外部来源统一管理）
+  skills [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源（包内 skills/ 与
+                                   --source 外部来源统一管理）
   conventions [options] [command]  项目协作规范载体：结构升级（v1 / v2 →
                                    v3）、表格与索引单元格形态归一、只读体检（形态 / 索引 / 入口层）
   config [options] [command]       配置：list / get / set / unset 唯一写入口，另有 status
                                    只读体检三层配置文件
   docs [options] [command]         文档站工具：主题、导航与产物的校验与写入
   tasks [options] [command]        任务管理
-  changelog [options] [command]    多语言 CHANGELOG（封装 changesets）
+  changelog [options] [command]    多语言更新日志与发版（默认 status；封装 changesets）
   rules [options] [command]        全局规则：列出模块、组合输出与缓存管理
   scope [options] [command]        作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效）
   usage [options] [command]        技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
@@ -2585,15 +2575,15 @@ Commands:
   status [options]                 整体状态：聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项（只读）
   init [options]                   初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐
                                    .gitignore 片段与 prepare 刷新钩子）
-  skills [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源 / 路径（包内 skills/ 与
-                                   --from 外部来源统一管理）
+  skills [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源（包内 skills/ 与
+                                   --source 外部来源统一管理）
   conventions [options] [command]  项目协作规范载体：结构升级（v1 / v2 →
                                    v3）、表格与索引单元格形态归一、只读体检（形态 / 索引 / 入口层）
   config [options] [command]       配置：list / get / set / unset 唯一写入口，另有 status
                                    只读体检三层配置文件
   docs [options] [command]         文档站工具：主题、导航与产物的校验与写入
   tasks [options] [command]        任务管理
-  changelog [options] [command]    多语言 CHANGELOG（封装 changesets）
+  changelog [options] [command]    多语言更新日志与发版（默认 status；封装 changesets）
   rules [options] [command]        全局规则：列出模块、组合输出与缓存管理
   scope [options] [command]        作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效）
   usage [options] [command]        技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）

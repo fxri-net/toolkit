@@ -120,7 +120,7 @@ toolkit skills install --scope project    # 项目面分发（团队推荐，技
 
 - **默认**：软链真源，链接创建失败自动降级副本；`--yes` 跳过交互
 - **分面与开关**：`status` 查现场、`uninstall` 卸载；`--mode package` 纯包管理器模式、`--no-skills` 仅本次零装
-- **外部来源**：`--from <path|url>` 临时纳入，`--save` 登记为永久来源
+- **外部来源**：`--source <name|path>` 临时纳入（已登记来源名、目录或 Git 地址），`--save` 登记为永久来源
 
 也可用上游安装器（技能走 GitHub 拉取，与 CLI 两条供应链，易版本漂移）：`pnpm dlx skills add fxri-net/toolkit --global`。
 完整选项与现场体检见[完整攻略 · AI 技能包](./guide#ai-技能包-skills)，命令契约见 [技能分发](./cli/skills)。
@@ -134,7 +134,7 @@ GitHub 拉不下来？国内网络走 [Gitee 镜像渠道](./faq#国内网络优
 ```bash
 toolkit scope status        # 先看当前目录是否生效、命中的规则与来源
 toolkit scope               # 交互菜单：设范围、管目录、切换配置层
-toolkit scope add ~/work    # 只在这个目录（含子目录）生效（切到 allowlist 模式）
+toolkit scope list add ~/work    # 只在这个目录（含子目录）生效（切到 allowlist 模式）
 toolkit scope policy add --paths ~/work --mode allowlist --allow fxri-plan-review  # 按策略规则收口
 toolkit scope skills deny fxri-text-encoding --paths ~/work                        # 排除指定技能
 toolkit skills mount ~/work # 在父目录下的项目里做项目面安装（技能物理落在仓库内）

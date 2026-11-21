@@ -394,7 +394,7 @@ export function planPolicyReset(state: PolicyState, input: PolicyResetInput): Po
     changes.push(`按路径清除：${input.paths.join("、")}`)
   }
   if (state.config.activation !== undefined) {
-    changes.push("旧 activation 字段未清除，请用 toolkit scope reset 处理")
+    changes.push("旧 activation 字段未清除，请用 toolkit scope list reset 处理")
   }
   return planForPolicies(state, nextRaw, changes)
 }

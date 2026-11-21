@@ -404,17 +404,17 @@ export async function runUpdateCheckWorker(): Promise<void> {
   })
 }
 
-// 判断当前命令是否跳过文本提示：帮助 / 裸命令 / skills path / skills status / changelog 透传 / JSON 输出
+// 判断当前命令是否跳过文本提示：帮助 / 裸命令 / skills status / changelog 透传 / JSON 输出
 function shouldSkipHint(argv: string[]): boolean {
   if (argv.length === 0) return true
   if (argv.includes("-h") || argv.includes("--help")) return true
   if (argv[0] === "help") return true
-  if (argv[0] === "skills" && argv[1] === "path") return true
   if (argv[0] === "skills" && argv[1] === "status") return true
   if (argv[0] === "tasks" && argv[1] === "export") return true
   // 文档站命令的输出会被门禁直接消费，不追加升级提示
   if (argv[0] === "docs") return true
-  if (argv[0] === "changelog" && !["version", "format", "doc"].includes(argv[1] ?? "")) return true
+  // 发版域：只有会改文件的三个自处理子命令提示；其余子命令与 changeset 透传不提示
+  if (argv[0] === "changelog" && !["bump", "changelog", "mirror"].includes(argv[1] ?? "")) return true
   return hasJsonFormat(argv)
 }
 

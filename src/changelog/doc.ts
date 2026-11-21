@@ -11,7 +11,7 @@ import { line, style } from "../term-style"
 // 镜像页默认页头文案：与既有项目页面保持一致，迁移时只变化来源说明中的命令名
 const DEFAULT_TITLE = "更新日志"
 const DEFAULT_OUTLINE = "[2, 2]"
-const DEFAULT_NOTE = "> 完整变更历史以根 `CHANGELOG.md` 为准，本页由 `toolkit changelog doc` 自动同步，请勿手改。"
+const DEFAULT_NOTE = "> 完整变更历史以根 `CHANGELOG.md` 为准，本页由 `toolkit changelog mirror` 自动同步，请勿手改。"
 
 // 解析后的镜像参数：路径为相对 cwd 的书写形态，由调用方按进程工作目录使用
 export interface DocOptions {

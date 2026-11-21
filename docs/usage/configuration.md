@@ -57,7 +57,7 @@ title: 使用情况配置
 | `capture.outcome` | boolean | `false` | 采集执行结果与耗时 |
 | `storage.dir` | string | 空 | 数据目录；空串用默认 `~/.toolkit/usage` |
 | `storage.rotation` | string | `monthly` | `monthly` / `size` / `none` |
-| `storage.retentionDays` | number | `180` | `purge` 的默认保留期 |
+| `storage.retentionDays` | number | `180` | `usage data purge` 的默认保留期 |
 | `storage.maxFileBytes` | number | `8388608` | `size` 轮转的单文件上限 |
 | `upload.enabled` | boolean | `false` | 上传总开关；默认关闭 |
 | `upload.protocol` | string | `webhook` | `webhook` / `otlp-http` / `file` |
@@ -78,7 +78,7 @@ title: 使用情况配置
 
 - 通道只决定「哪条路径能写」：`rule` 时 Hook 不写入、`hook` 时规则上报不写入，避免同一调用被记两次。
 - 规则上报（`usage record`）只统计 toolkit 管理的技能，且 Agent 维度按 `rule` 放行、不受 `agents` 开关限制；`sources.unmanaged` 对规则路径不生效。
-- 两者切换用 `toolkit usage channel rule|hook`，不会自动清理另一侧配置。
+- 两者切换用 `toolkit usage config channel rule|hook`，不会自动清理另一侧配置。
 
 ## 上报与消费（规则通道）
 

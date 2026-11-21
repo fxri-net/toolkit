@@ -52,7 +52,7 @@ title: 语言与镜像（changelog / changelogDoc）
 | `frontmatter` | boolean | `true` | 是否写 frontmatter；`--no-frontmatter` 可本次关闭 |
 | `note` | string | 内置来源说明 | 页头来源说明文案 |
 
-`toolkit changelog doc` 与 `changelog version` 的自动同步共用本段；CLI 显式参数优先。非法值告警后按默认处理。
+`toolkit changelog mirror` 与 `changelog bump` 发版后的自动同步共用本段；CLI 显式参数优先。非法值告警后按默认处理。
 
 ## 相关页面
 

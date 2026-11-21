@@ -6,12 +6,13 @@ import type { Command } from "commander"
 import { DEFAULT_LANG, resolveLang, type ChangelogLanguage } from "../changelog/languages"
 import { countUntypedEntries, formatChangelogs, localDate } from "../changelog/format"
 import type { CollectOptions } from "../changelog/collect"
-import { auditChangesets, formatAuditReport } from "../changelog/audit"
+import { auditChangesets, formatAuditReport, formatChangesetSummaries, readChangesetSummaries } from "../changelog/audit"
 import { checkDoc, resolveDocOptions, syncDoc, syncDocAfterVersion } from "../changelog/doc"
 import { resolveRedactEnabled } from "../privacy/redact"
 import { resolveEnabled } from "../switch"
 import { listTaskFiles } from "../tasks/scan"
 import { getCheckWarnings, resolveLanguages } from "./shared"
+import { assertJsonFormat, toJsonText } from "../json-output"
 import { line, style } from "../term-style"
 
 const require = createRequire(import.meta.url)
@@ -93,7 +94,7 @@ export function registerChangelogCommands(program: Command): void {
   }
 
   // 版本：消费变更集 → 归类格式化 → 同步文档镜像
-  function runChangelogVersion(options: ChangelogOptions & { history?: boolean; syncDoc?: boolean; exclude?: string; include?: string }): void {
+  function runChangelogBump(options: ChangelogOptions & { history?: boolean; syncDoc?: boolean; exclude?: string; include?: string }): void {
     const ctx = resolveChangelogContext(options)
     const collect: CollectOptions = { exclude: splitDirs(options.exclude), include: splitDirs(options.include) }
     // 软告警：发版前存在未归档任务
@@ -110,7 +111,7 @@ export function registerChangelogCommands(program: Command): void {
   }
 
   // 格式化：按语言与类型归类重排，不消费变更集
-  function runChangelogFormat(options: ChangelogOptions & { history?: boolean; exclude?: string; include?: string }): void {
+  function runChangelogRewrite(options: ChangelogOptions & { history?: boolean; exclude?: string; include?: string }): void {
     const ctx = resolveChangelogContext(options)
     const collect: CollectOptions = { exclude: splitDirs(options.exclude), include: splitDirs(options.include) }
     if (ctx.warn) warnUntypedEntries(Object.values(ctx.merged), collect)
@@ -118,7 +119,7 @@ export function registerChangelogCommands(program: Command): void {
   }
 
   // 文档镜像：默认从根 CHANGELOG.md 生成，--check 只比对不写
-  function runChangelogDoc(
+  function runChangelogMirror(
     options: ChangelogOptions & { check?: boolean; from?: string; to?: string; title?: string; outline?: string; frontmatter?: boolean },
   ): void {
     const ctx = resolveChangelogContext(options)
@@ -161,27 +162,50 @@ export function registerChangelogCommands(program: Command): void {
     console.log(formatAuditReport(auditChangesets(".changeset")))
   }
 
-  const changelogCmd = program.command("changelog").description("多语言 CHANGELOG（封装 changesets）")
+  // 概览：只读待发布变更集（默认命令），文本与 JSON 同源
+  function runChangelogStatus(options: { format?: string }): void {
+    if (!assertJsonFormat(options.format)) return
+    const rows = readChangesetSummaries(".changeset")
+    if (options.format === "json") {
+      console.log(toJsonText({ total: rows.length, changesets: rows }))
+      return
+    }
+    console.log(formatChangesetSummaries(rows))
+  }
+
+  const changelogCmd = program.command("changelog").description("多语言更新日志与发版（默认 status；封装 changesets）")
   changelogCmd.enablePositionalOptions(true)
 
-  addChangelogCommonOptions(changelogCmd.command("version").description("消费变更集并生成新版本块，随后同步文档镜像"))
+  // 裸命令与 status 等价：只读概览，不消费变更集
+  changelogCmd
+    .command("status")
+    .description("待发布变更集概览（只读，不消费）")
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
+    .action((options: { format?: string }) => {
+      runChangelogStatus(options)
+    })
+  changelogCmd.action(() => {
+    runChangelogStatus({})
+  })
+
+  addChangelogCommonOptions(changelogCmd.command("bump").description("消费变更集并生成新版本块，随后同步文档镜像"))
     .option("--history", "追溯改写历史版本块（默认保留）")
     .option("--no-sync-doc", "不自动同步文档站镜像")
     .option("--exclude <dirs>", "额外跳过的目录，逗号分隔（默认已跳过依赖、产物与 gitignore 目录）")
     .option("--include <dirs>", "强制处理的目录，逗号分隔（覆盖默认跳过名单）")
     .action((options: ChangelogOptions & { history?: boolean; syncDoc?: boolean; exclude?: string; include?: string }) => {
-      runChangelogVersion(options)
+      runChangelogBump(options)
     })
 
-  addChangelogCommonOptions(changelogCmd.command("format").description("按语言与类型归类重排 CHANGELOG 条目"))
+  addChangelogCommonOptions(changelogCmd.command("changelog").description("按语言与类型归类重排 CHANGELOG 条目"))
     .option("--history", "追溯改写历史版本块（默认保留）")
     .option("--exclude <dirs>", "额外跳过的目录，逗号分隔（默认已跳过依赖、产物与 gitignore 目录）")
     .option("--include <dirs>", "强制处理的目录，逗号分隔（覆盖默认跳过名单）")
     .action((options: ChangelogOptions & { history?: boolean; exclude?: string; include?: string }) => {
-      runChangelogFormat(options)
+      runChangelogRewrite(options)
     })
 
-  addChangelogCommonOptions(changelogCmd.command("doc").description("生成或校验文档站 CHANGELOG 镜像页"))
+  addChangelogCommonOptions(changelogCmd.command("mirror").description("生成或校验文档站 CHANGELOG 镜像页"))
     .option("--check", "只比对镜像页与根 CHANGELOG，不写文件")
     .option("--from <path>", "根 CHANGELOG 路径")
     .option("--to <path>", "镜像页路径")
@@ -189,7 +213,18 @@ export function registerChangelogCommands(program: Command): void {
     .option("--outline <value>", "frontmatter outline")
     .option("--no-frontmatter", "不写 frontmatter")
     .action((options: ChangelogOptions & { check?: boolean; from?: string; to?: string; title?: string; outline?: string; frontmatter?: boolean }) => {
-      runChangelogDoc(options)
+      runChangelogMirror(options)
+    })
+
+  // 发布：显式命令即授权，参数原样透传 changesets
+  changelogCmd
+    .command("publish")
+    .description("发布已升版产物（透传给 changesets publish）")
+    .allowUnknownOption(true)
+    .allowExcessArguments(true)
+    .argument("[args...]", "透传给 changesets 的参数")
+    .action((args: string[]) => {
+      runChangeset(["publish", ...(args ?? [])])
     })
 
   addChangelogCommonOptions(changelogCmd.command("audit").description("审计待发布变更集，列出需要合并的候选（只提示不改写）"))
@@ -197,23 +232,27 @@ export function registerChangelogCommands(program: Command): void {
       runChangelogAudit()
     })
 
-  // 裸 changelog：仍透传给 changesets（无参数时按其默认行为）
-  changelogCmd.action(() => {
-    runChangeset([])
-  })
+  // 变更集组：add / status 透传给 changesets，list 为只读简表
+  const changesetCmd = changelogCmd.command("changeset").description("变更集：add / list / status（底层 changesets）")
 
-  // changesets 原生子命令：参数原样透传
-  const CHANGESET_PASSTHROUGH: Array<[string, string]> = [
-    ["add", "新增变更集（透传给 changesets）"],
-    ["status", "查看待发布变更集状态（透传给 changesets）"],
-    ["pre", "进入或退出预发布模式（透传给 changesets）"],
-    ["tag", "为已发布版本打标签（透传给 changesets）"],
-    ["init", "初始化 .changeset 配置（透传给 changesets）"],
-    ["publish", "发布变更集（透传给 changesets）"],
+  changesetCmd
+    .command("list")
+    .description("列出待发布变更集（只读简表）")
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
+    .action((options: { format?: string }) => {
+      runChangelogStatus(options)
+    })
+
+  const CHANGESET_PASSTHROUGH: Array<[string, string, boolean]> = [
+    ["add", "新增变更集（透传给 changesets）", false],
+    ["status", "查看待发布变更集状态（透传给 changesets）", false],
+    ["pre", "进入或退出预发布模式（透传给 changesets）", true],
+    ["tag", "为已发布版本打标签（透传给 changesets）", true],
+    ["init", "初始化 .changeset 配置（透传给 changesets）", true],
   ]
-  for (const [name, description] of CHANGESET_PASSTHROUGH) {
-    changelogCmd
-      .command(name)
+  for (const [name, description, hidden] of CHANGESET_PASSTHROUGH) {
+    changesetCmd
+      .command(name, hidden ? { hidden: true } : undefined)
       .description(description)
       .allowUnknownOption(true)
       .allowExcessArguments(true)

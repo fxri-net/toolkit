@@ -32,7 +32,7 @@
 ### 我只想当技能包管理器，不想装自带技能？
 
 用 `toolkit skills install --mode package` 切换到纯包管理器模式：`core` 也不再强制，可以一个都不选。
-之后按 `--from <path|url> --skills <names>` 只装外部来源技能。
+之后按 `--source <name|path> --skills <names>` 只装外部来源技能。
 只想本次零装、不改长期模式时用 `--no-skills`，它与 `--skills` / `--all` / `--no-optional` / `--mode` 互斥。
 
 ### 项目内装的技能放在哪、队友 clone 后要重装吗？
@@ -148,7 +148,7 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 这是规则通道的预期表现：规则只上报技能名与次数，触发词、参数、结果与耗时靠工具反查会话记录补齐。读不到记录时字段留空，计数不受影响。
 常见原因有三种：该 Agent 的会话正文不落可读文件（Trae）、会话格式尚未适配（dsh 为 v4 事件流）、或会话记录已过期被清理。
 补救两种：`toolkit usage log --skill <名称> --session <id> --prompt "…" --args "…" --outcome success` 手工补录；
-或改用 Hook 通道（`toolkit usage channel hook`）。两种方式只对之后的事件生效。完整说明见 [Agent 接入 · 拿不到明细时的补救](./usage/agents#拿不到明细时的补救)。
+或改用 Hook 通道（`toolkit usage config channel hook`）。两种方式只对之后的事件生效。完整说明见 [Agent 接入 · 拿不到明细时的补救](./usage/agents#拿不到明细时的补救)。
 
 ⚠️ 升级 Node 或安装 zstd 不会让 dsh 明细出现——它的会话格式尚未适配。
 

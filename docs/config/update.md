@@ -22,7 +22,7 @@ title: 升级检查（updateCheck）
 - 要全部静默用 `enabled: false`
 - 临时来源不写独立配置，继承 `channels.externalSkills`
 - 配置里写了未注册来源名时，`skills status` 归入「未知来源配置」提示，不阻断命令
-- 单个来源的频率用 `toolkit skills sources notify <name> --frequency <always|daily|weekly|off> [--scope global|project]` 写入
+- 单个来源的频率用 `toolkit skills source notify <name> --frequency <always|daily|weekly|off> [--scope global|project]` 写入
 
 registry 解析顺序（前者优先）：
 
@@ -39,8 +39,8 @@ registry 解析顺序（前者优先）：
 提示只在**命令成功**（退出码 0）时输出。以下情形不输出文本提示：
 
 - `--help` / `help` 子命令 / 裸 `toolkit`
-- `skills path` / `skills status` / `tasks export` / `docs` 全域（输出会被门禁直接消费）
-- `changelog` 的非 version / format / doc 子命令
+- `skills status --path` / `skills status` / `tasks export` / `docs` 全域（输出会被门禁直接消费）
+- `changelog` 的非 bump / changelog / mirror 子命令
 - `--format json`
 
 `--version` 与 `--check` 的提示只走 stderr；TTY 下提示走 stderr，非 TTY（AI / 脚本）走 stdout 结尾。

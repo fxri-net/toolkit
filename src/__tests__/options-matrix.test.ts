@@ -231,14 +231,14 @@ describe("顶层命令与外部域", () => {
     expect(r.err.join("\n")).toContain("未知命令")
   })
 
-  it("skills path：输出存在的包根目录", async () => {
-    const r = await runCli(["skills", "path"])
+  it("skills status --path：输出存在的包根目录", async () => {
+    const r = await runCli(["skills", "status", "--path"])
     expect(r.code).toBe(0)
     expect(existsSync(r.log.join(""))).toBe(true)
   })
 
-  it("skills path --format json：带 schemaVersion 与技能清单", async () => {
-    const r = await runCli(["skills", "path", "--format", "json"])
+  it("skills status --path --format json：带 schemaVersion 与技能清单", async () => {
+    const r = await runCli(["skills", "status", "--path", "--format", "json"])
     expect(r.code).toBe(0)
     const payload = JSON.parse(r.log.join("\n")) as { schemaVersion: number; skills: string[] }
     expect(payload.schemaVersion).toBe(1)
@@ -433,15 +433,19 @@ describe("顶层命令与外部域", () => {
     expect(r.err.join("\n")).toContain("--yes")
   })
 
-  it("skills gate 查询与非法取值", async () => {
+  it("skills gate 旧写法重写到 config：查询与非法取值", async () => {
     const query = await runCli(["skills", "gate", "--format", "json"])
     expect(query.code).toBe(0)
-    expect(query.log.join("\n")).toContain('"default": "full"')
-    expect(query.log.join("\n")).toContain('"rules"')
+    const payload = JSON.parse(query.log.join("\n")) as { command: string; ok: boolean; data: { key: string } }
+    expect(payload.command).toBe("config get")
+    expect(payload.ok).toBe(true)
+    expect(payload.data.key).toBe("skillDelivery.default")
+    // 旧命令提示只走 stderr，stdout 保持机器可读
+    expect(query.err.join("\n")).toContain("已弃用")
 
     const bad = await runCli(["skills", "gate", "bogus"])
     expect(bad.code).toBe(1)
-    expect(bad.err.join("\n")).toContain("on / off")
+    expect(bad.err.join("\n")).toContain("full / gated / off")
 
     // 无效占位 --all 已移除：按未知参数失败
     const removed = await runCli(["skills", "gate", "on", "--all"])
@@ -454,8 +458,8 @@ describe("顶层命令与外部域", () => {
     expect(r.err.join("\n")).toContain("不支持交互")
   })
 
-  it("sources notify 的 --layer 与 --scope 冲突时报错", async () => {
-    const r = await runCli(["skills", "sources", "notify", "play", "--frequency", "daily", "--scope", "global", "--layer", "project"])
+  it("source notify 的 --layer 与 --scope 冲突时报错", async () => {
+    const r = await runCli(["skills", "source", "notify", "play", "--frequency", "daily", "--scope", "global", "--layer", "project"])
     expect(r.code).toBe(1)
     expect(r.err.join("\n")).toContain("冲突")
   })
@@ -623,8 +627,8 @@ describe("顶层命令与外部域", () => {
     expect(help).toContain("只读检查（默认行为，与--fix互斥）")
   })
 
-  it("changelog doc --lang 未知取值：告警回落默认语言，命令继续（F8）", async () => {
-    const r = await runCli(["changelog", "doc", "--check", "--lang", "bogus"])
+  it("changelog mirror --lang 未知取值：告警回落默认语言，命令继续（F8）", async () => {
+    const r = await runCli(["changelog", "mirror", "--check", "--lang", "bogus"])
     expect(r.code).toBe(0)
     expect(r.warn.join("\n")).toContain("未知语言")
     expect(r.warn.join("\n")).toContain("bogus")
@@ -749,7 +753,7 @@ describe("config 域只读体检", () => {
   })
 })
 
-describe("skills sources 外部来源口径", () => {
+describe("skills source 外部来源口径", () => {
   const stateFile = join(homeDir, ".agents", ".toolkit-skills.json")
   const configFile = join(homeDir, ".toolkitrc.json")
   const localSource = join(sandbox, "local-source")
@@ -792,10 +796,10 @@ describe("skills sources 外部来源口径", () => {
       updatedAt: "",
       sources: { toolkit: sourceFixture("", ["fxri-plan-to-task"]), play: sourceFixture("1.2.3", ["ext-alpha"]) },
     })
-    const json = await runCli(["skills", "sources", "--format", "json"])
+    const json = await runCli(["skills", "source", "--format", "json"])
     const payload = JSON.parse(json.log.join("\n")) as { sources: Array<{ name: string }> }
     expect(payload.sources.map((item) => item.name)).toEqual(["play"])
-    const text = await runCli(["skills", "sources"])
+    const text = await runCli(["skills", "source"])
     expect(text.log.join("\n")).not.toContain("toolkit（")
   })
 
@@ -809,10 +813,10 @@ describe("skills sources 外部来源口径", () => {
       updatedAt: "",
       sources: { play: sourceFixture("1.2.3", ["ext-alpha", "ext-gone"]) },
     })
-    const text = await runCli(["skills", "sources"])
+    const text = await runCli(["skills", "source"])
     expect(text.log.join("\n")).toContain("ext-gone（已失效）")
     expect(text.log.join("\n")).toContain("ext-alpha")
-    const json = await runCli(["skills", "sources", "--format", "json"])
+    const json = await runCli(["skills", "source", "--format", "json"])
     const payload = JSON.parse(json.log.join("\n")) as { sources: Array<{ skills: string[] }> }
     expect(payload.sources[0]!.skills).toEqual(["ext-alpha", "ext-gone"])
   })
@@ -825,10 +829,10 @@ describe("skills sources 外部来源口径", () => {
       updatedAt: "",
       sources: { play: sourceFixture("1.2.3", ["ext-alpha"]) },
     })
-    const json = await runCli(["skills", "sources", "refresh", "--dry-run", "--format", "json"])
+    const json = await runCli(["skills", "source", "refresh", "--dry-run", "--format", "json"])
     const payload = JSON.parse(json.log.join("\n")) as { sources: Array<{ status: string; version: string | null }> }
     expect(payload.sources[0]).toMatchObject({ status: "planned", version: "1.2.3" })
-    const text = await runCli(["skills", "sources", "refresh", "--dry-run"])
+    const text = await runCli(["skills", "source", "refresh", "--dry-run"])
     expect(text.log.join("\n")).toContain("当前版本：1.2.3")
 
     writeFixture(stateFile, {
@@ -837,7 +841,7 @@ describe("skills sources 外部来源口径", () => {
       updatedAt: "",
       sources: { play: sourceFixture("", ["ext-alpha"]) },
     })
-    const unknown = await runCli(["skills", "sources", "refresh", "--dry-run", "--format", "json"])
+    const unknown = await runCli(["skills", "source", "refresh", "--dry-run", "--format", "json"])
     const unknownPayload = JSON.parse(unknown.log.join("\n")) as { sources: Array<{ version: string | null }> }
     expect(unknownPayload.sources[0]!.version).toBeNull()
   })
@@ -852,7 +856,7 @@ describe("skills sources 外部来源口径", () => {
       updatedAt: "",
       sources: { play: sourceFixture("", ["ext-alpha"]) },
     })
-    const json = await runCli(["skills", "sources", "refresh", "--format", "json"])
+    const json = await runCli(["skills", "source", "refresh", "--format", "json"])
     const payload = JSON.parse(json.log.join("\n")) as { sources: Array<{ status: string; version: string | null }> }
     expect(payload.sources[0]).toMatchObject({ status: "refreshed", version: null })
   })

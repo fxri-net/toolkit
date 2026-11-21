@@ -64,7 +64,7 @@ function isLocalHost(hostname: string): boolean {
 // 校验端点：非本地地址必须 HTTPS，除非显式 allowInsecure
 export function validateUploadEndpoint(config: UsageConfig): URL | null {
   const endpoint = config.upload.endpoint.trim()
-  if (!endpoint) throw new Error("未配置上传端点，先执行 toolkit usage upload setup")
+  if (!endpoint) throw new Error("未配置上传端点，先执行 toolkit usage config upload setup")
   if (config.upload.protocol === "file") {
     const path = isAbsolute(endpoint) ? endpoint : join(process.cwd(), endpoint)
     return new URL(`file://${path.replace(/\\/g, "/")}`)
@@ -130,7 +130,7 @@ async function postJson(endpoint: string, body: unknown, headers: Record<string,
 // 执行一次上传：dry-run 只返回预览，不发请求、不写账本
 export async function uploadOnce(options: { dryRun?: boolean; limit?: number } = {}): Promise<UploadResult> {
   const config = loadUsageConfig()
-  if (!config.upload.enabled) throw new Error("上传未启用，先执行 toolkit usage upload setup")
+  if (!config.upload.enabled) throw new Error("上传未启用，先执行 toolkit usage config upload setup")
   // 数据目录与其它命令同源解析
   const resolved = usagePaths(resolveUsageDir(undefined, config))
   validateUploadEndpoint(config)
@@ -242,7 +242,7 @@ function runNonInteractiveUploadSetup(options: UploadSetupOptions): void {
     return
   }
   updateUsageConfig({ upload: { enabled: true, protocol, endpoint, headers } })
-  console.log(`${line.ok("上传已启用")}；${style.hint("先执行 toolkit usage upload send --dry-run 预览载荷")}`)
+  console.log(`${line.ok("上传已启用")}；${style.hint("先执行 toolkit usage config upload send --dry-run 预览载荷")}`)
 }
 
 // 上传配置向导：协议 → 端点 → 请求头 → 预览确认启用
@@ -251,7 +251,7 @@ export async function runUploadSetup(options: UploadSetupOptions = {}): Promise<
     runNonInteractiveUploadSetup(options)
     return
   }
-  if (!requireInteractive({ action: "usage upload setup", hint: "请直接编辑 ~/.toolkitrc.json 的 usage.upload 段" })) return
+  if (!requireInteractive({ action: "usage config upload setup", hint: "请直接编辑 ~/.toolkitrc.json 的 usage.upload 段" })) return
   try {
     const config = loadUsageConfig()
     const protocol = await askSelect<UsageUploadProtocol>({
@@ -300,7 +300,7 @@ export async function runUploadSetup(options: UploadSetupOptions = {}): Promise<
       return
     }
     updateUsageConfig({ upload: { enabled: true, protocol, endpoint, headers } })
-    console.log(`${line.ok("上传已启用")}；${style.hint("先执行 toolkit usage upload send --dry-run 预览载荷")}`)
+    console.log(`${line.ok("上传已启用")}；${style.hint("先执行 toolkit usage config upload send --dry-run 预览载荷")}`)
   } catch (error) {
     if (isPromptCancel(error)) console.error(line.hint("已取消，未修改任何配置"))
     throw error

@@ -20,7 +20,7 @@
 后续动作（项目自主，非必经步骤，是否执行取决于全局 / 个人 / 项目规则约定）：
 
 ```
-提交代码（先归档与沉淀、后 git commit，同一提交） → changelog 建变更集 → changelog version → tag → publish
+提交代码（先归档与沉淀、后 git commit，同一提交） → changelog 建变更集 → changelog bump → tag → publish
 ```
 
 人可以直接执行命令；AI 侧装了技能包后，上述每一步都有对应的技能流程（见 [AI 技能包](#ai-技能包-skills)）。
@@ -187,7 +187,7 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 | 技能 | 版本 | 用途 | 层级 |
 | --- | --- | --- | --- |
 | `fxri-plan-to-task` | 1.12.15 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
-| `fxri-release-changelog` | 1.3.8 | changesets 发版与多语言 CHANGELOG 维护 | optional |
+| `fxri-release-changelog` | 1.3.9 | changesets 发版与多语言 CHANGELOG 维护 | optional |
 | `fxri-session-recap` | 1.7.5 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | `fxri-plan-review` | 1.0.15 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
 | `fxri-text-encoding` | 1.2.10 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
@@ -258,9 +258,9 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 见[配置参考 · 语言与镜像](./config/changelog)）。
 
 ```bash
-pnpm exec toolkit changelog add                # 创建变更集（等价 changeset）
-pnpm exec toolkit changelog version            # 发版 + 语义分组 + 自动同步镜像页
-pnpm exec toolkit changelog format --history   # 连带追溯改写历史版本块
+pnpm exec toolkit changelog changeset add        # 创建变更集（等价 changeset）
+pnpm exec toolkit changelog bump                 # 发版 + 语义分组 + 自动同步镜像页
+pnpm exec toolkit changelog changelog --history  # 连带追溯改写历史版本块
 ```
 
 发版流程、分组语义与跨语言边界见 [发版与更新日志 · 发版流程](./cli/changelog#发版流程)。

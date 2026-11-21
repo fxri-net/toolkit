@@ -40,7 +40,7 @@ title: 技能分发偏好（skills）
 | --- | --- | --- | --- |
 | `selection` | object | 无 | 来源 → 技能名数组；内置源键为 `toolkit`。`toolkit skills install` 成功后写回，重装 / `status` 按此回显选择集；未保存过时按 `mode` 默认（`skills` 装 `core`、`package` 零装）。名单里的曾用名按来源声明的 `previousNames` 迁移；某来源整份名单都失效时按默认口径重算（内置取 `core`、外部取全部）并告警，本次零装不写空数组 |
 | `targets` | string[] | 无 | 长期目标选择：`canonical`（主目标）与各 agent 的 `name`（如 `claude-code`、`cursor`）。安装 / 交互选择后写回；未保存过时首次写全部可用目标；`--no-save-agents` 不写回；`--dir` 自定义目录不进入本字段 |
-| `sources` | object | 无 | 永久外部来源登记：本地来源写 `{ "root": "<绝对路径>" }`，远程来源写 `{ "url": "<Git 地址>", "ref": "<可选 ref>" }`。由 `toolkit skills install --from <path|url> --save [name]` 写入；启动时自动解析并纳入安装 / 状态，远程来源使用用户级缓存 `~/.toolkit/cache/skill-sources/`，来源失效时告警跳过 |
+| `sources` | object | 无 | 永久外部来源登记：本地来源写 `{ "root": "<绝对路径>" }`，远程来源写 `{ "url": "<Git 地址>", "ref": "<可选 ref>" }`。由 `toolkit skills install --source <name|path> --save [name]` 写入；启动时自动解析并纳入安装 / 状态，远程来源使用用户级缓存 `~/.toolkit/cache/skill-sources/`，来源失效时告警跳过 |
 | `mode` | string | `skills` | 安装模式：`skills`（core 必装）/ `package`（纯包管理器，全部可选、允许零选）；由 `toolkit skills install --mode` 写入，非法值告警后按 `skills` 处理 |
 | `gate` | boolean \| object | `false` | **旧键**（建议迁移到 `skillDelivery`，2.1.0 起移除兼容）：`true` 开启并按默认规则全量接管；也可写 `{ "include": ["fxri-*"], "exclude": ["fxri-text-encoding"] }`（技能名 glob 或 `re:`，排除优先）裁剪范围。技能可用 `SKILL.md` 的 `metadata.gate: false` 单点退出，非法取值会告警并按未声明处理。读取时映射为等价的 `skillDelivery` 配置；旧版本或库调用写入本键，`toolkit skills install --gate` / `--embed` 现改写 `skillDelivery.default`。只影响全局面 |
 
@@ -101,7 +101,8 @@ title: 技能分发偏好（skills）
 - `SKILL.md` 的 `metadata.gate: false` → 该技能按全文安装
 - 新旧并存时以 `skillDelivery` 为准，旧键被忽略并在 **stderr** 告警
 
-`toolkit skills gate on|off` 只写本段 `default`，不覆盖 `rules`。
+`toolkit config set skillDelivery.default gated|full|off` 只写本段 `default`，不覆盖 `rules`；
+读取用 `toolkit config get skillDelivery.default`。
 `toolkit skills install --gate` / `--embed` 是本次安装的显式取值，成功后写 `default`。
 
 ```json

@@ -235,7 +235,7 @@ function runPolicyList(options: { at?: string; format?: string }): void {
     if (skills) console.log(`    技能：${skills}`)
   }
   if (report.policies.some((policy) => isLegacyPolicyId(policy.id))) {
-    console.log(line.hint("legacy 规则由旧 activation 编译，只读；请用 toolkit scope 的 add / exclude / default / reset 修改"))
+    console.log(line.hint("legacy 规则由旧 activation 编译，只读；请用 toolkit scope list 的 add / exclude / default / reset 修改"))
   }
 }
 
@@ -588,9 +588,10 @@ export function registerScopeCommands(program: Command): void {
       }
     })
 
-  scopeCmd
+  // 目录名单组：裸 list 查看现状，增删改作为同组子命令
+  const listCmd = scopeCmd
     .command("list")
-    .description("列出作用域规则、来源与优先级")
+    .description("目录名单：查看当前规则、来源与优先级（add / exclude / remove / default / reset 同组）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action((options: { format?: string }) => {
       try {
@@ -775,7 +776,7 @@ export function registerScopeCommands(program: Command): void {
       process.exitCode = runGuard(skill)
     })
 
-  scopeCmd
+  listCmd
     .command("add [dirs...]")
     .description("把目录加入白名单（需显式指定目录；交互设置请运行 toolkit scope）")
     .option("--layer <layer>", "配置层：global（默认）/ project / local")
@@ -785,7 +786,7 @@ export function registerScopeCommands(program: Command): void {
       await runInteractive(() => runListEdit("include", dirs, options))
     })
 
-  scopeCmd
+  listCmd
     .command("exclude [dirs...]")
     .description("把目录加入黑名单（默认值保持不变；需显式指定目录）")
     .option("--layer <layer>", "配置层：global（默认）/ project / local")
@@ -795,7 +796,7 @@ export function registerScopeCommands(program: Command): void {
       await runInteractive(() => runListEdit("exclude", dirs, options))
     })
 
-  scopeCmd
+  listCmd
     .command("remove [dirs...]")
     .description("移除条目，可指定来源侧与转入侧")
     .option("--layer <layer>", "配置层：global（默认）/ project / local")
@@ -809,7 +810,7 @@ export function registerScopeCommands(program: Command): void {
       },
     )
 
-  scopeCmd
+  listCmd
     .command("default [value]")
     .description("查看或切换默认值：on（全部生效）/ off（仅名单内生效）")
     .option("--layer <layer>", "配置层：global（默认）/ project / local")
@@ -819,7 +820,7 @@ export function registerScopeCommands(program: Command): void {
       await runInteractive(() => runDefault(value, options))
     })
 
-  scopeCmd
+  listCmd
     .command("reset")
     .description("清除限制（全部生效并清空两名单）")
     .option("--layer <layer>", "配置层：global（默认）/ project / local")

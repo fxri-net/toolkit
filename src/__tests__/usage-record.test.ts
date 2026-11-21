@@ -222,43 +222,43 @@ describe("usage flush 命令", () => {
 
   it("惰性兜底：其它 usage 命令启动时先消费积压队列", async () => {
     await run(["record", "--skill", "fxri-plan-to-task", "--skill", "fxri-plan-to-task"])
-    await run(["info"])
+    await run(["show"])
     expect(events()).toHaveLength(2)
     expect(queued()).toBe(0)
   })
 })
 
-describe("usage channel 与 init（沿用上一版语义）", () => {
+describe("usage config channel 与 setup init（沿用上一版语义）", () => {
   it("查看与切换通道，非法值报错退出", async () => {
-    await run(["channel"])
+    await run(["config", "channel"])
     expect(logs.join("\n")).toContain("rule（全局规则上报）")
 
     logs = []
-    await run(["channel", "hook"])
+    await run(["config", "channel", "hook"])
     expect(logs.join("\n")).toContain("采集通道已切换为 hook")
     const config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
     expect(config.usage.channel).toBe("hook")
 
     errors = []
-    await run(["channel", "bad"])
+    await run(["config", "channel", "bad"])
     expect(errors.join("\n")).toContain("rule / hook")
     expect(process.exitCode).toBe(1)
     process.exitCode = 0
   })
 
   it("init 默认 rule 不装 Hook；--preset off 优先；非法通道报错", async () => {
-    await run(["init", "--yes", "--preset", "recommended"])
+    await run(["setup", "init", "--yes", "--preset", "recommended"])
     let config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
     expect(config.usage.channel).toBe("rule")
     expect(config.usage.agents).toEqual({})
     expect(existsSync(join(home, ".trae-cn", "hooks.json"))).toBe(false)
 
-    await run(["init", "--yes", "--preset", "off", "--channel", "hook"])
+    await run(["setup", "init", "--yes", "--preset", "off", "--channel", "hook"])
     config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
     expect(config.usage.enabled).toBe(true)
 
     errors = []
-    await run(["init", "--yes", "--preset", "recommended", "--channel", "bad"])
+    await run(["setup", "init", "--yes", "--preset", "recommended", "--channel", "bad"])
     expect(errors.join("\n")).toContain("rule / hook")
     expect(process.exitCode).toBe(1)
     process.exitCode = 0
@@ -267,7 +267,7 @@ describe("usage channel 与 init（沿用上一版语义）", () => {
   it("init --yes 未给 preset 时报错且不写配置", async () => {
     const before = readFileSync(join(home, ".toolkitrc.json"), "utf8")
     errors = []
-    await run(["init", "--yes"])
+    await run(["setup", "init", "--yes"])
     expect(errors.join("\n")).toContain("--preset")
     expect(process.exitCode).toBe(1)
     process.exitCode = 0

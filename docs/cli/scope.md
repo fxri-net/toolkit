@@ -5,8 +5,8 @@ title: 作用域（scope）
 # 作用域（scope）
 
 > 按项目 / 目录决定技能与规则是否生效。默认全域生效，只有写了作用域配置才出现局部生效。
-> `status` / `list` / `policy list` / `skills list` 只读；`policy` / `skills` 写命令复用同一套预览与确认，
-> 预览会展示完整规则 / 档案内容。
+> `status` / 裸 `list` / `policy list` / `skills list` 只读；`list` 的 add / exclude / remove / default / reset
+> 与 `policy` / `skills` 写命令复用同一套预览与确认，预览会展示完整规则 / 档案内容。
 
 ## 用途与场景
 
@@ -33,17 +33,21 @@ toolkit scope skills list            # 技能档案与技能维度策略
 toolkit scope skills allow fxri-plan-review --paths ~/work # 只允许列出的技能
 toolkit scope skills deny fxri-text-encoding --paths ~/work # 排除列出的技能
 toolkit scope skills profile front --allow "fxri-*" # 写入技能档案
-toolkit scope add ~/work              # 加入白名单，默认切到「仅名单内生效」
-toolkit scope exclude ~/work/legacy   # 加入黑名单，默认值不变
-toolkit scope add ~/work --layer project # 写入当前项目层（随仓库共享）
-toolkit scope remove ~/work --from include --to exclude # 白名单转黑名单
-toolkit scope remove ~/work/legacy --from exclude       # 从黑名单移除
-toolkit scope default                 # 查看当前默认值
-toolkit scope default off             # 切换为「仅名单内生效」
-toolkit scope reset                   # 清除限制（全部生效）
+toolkit scope list add ~/work              # 加入白名单，默认切到「仅名单内生效」
+toolkit scope list exclude ~/work/legacy   # 加入黑名单，默认值不变
+toolkit scope list add ~/work --layer project # 写入当前项目层（随仓库共享）
+toolkit scope list remove ~/work --from include --to exclude # 白名单转黑名单
+toolkit scope list remove ~/work/legacy --from exclude       # 从黑名单移除
+toolkit scope list default                 # 查看当前默认值
+toolkit scope list default off             # 切换为「仅名单内生效」
+toolkit scope list reset                   # 清除限制（全部生效）
 toolkit skills mount ~/work --dry-run  # 批量项目面安装：先预览（由 scope mount 迁入）
 toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域输出技能正文（未激活退出码 3）
 ```
+
+名单的查看与增删改统一收进 `scope list` 组：裸 `scope list` 查看名单，
+`list add` / `list exclude` / `list remove` / `list default` / `list reset` 负责写入。
+旧写法 `scope add` / `scope exclude` / `scope remove` / `scope default` / `scope reset` 仍可用，但会提示已弃用并提示迁移到该子组。
 
 ## 策略命令
 
@@ -79,14 +83,15 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 - 高级规则（启用标记 / git 远端 / 技能级规则）只读展示并给出配置文件路径，复制后自行编辑，不自造低频编辑 UI
 - 技能矩阵页：选择范围（当前项目 / 手动项目与子路径 / 扫描）、模式（只允许 / 全部允许但排除）、技能或档案，
   可选标记 / 远端条件；预览后写入，空现场提示先安装技能或创建档案，不写空规则
-- 内容闸门与批量挂载已移出本域：闸门用 `toolkit skills gate on|off` 切换，
+- 内容闸门与批量挂载已移出本域：默认分发形态用 `toolkit config set skillDelivery.default gated|full` 切换，
+  原 `skills gate on|off` 的 `on` = `gated`（入口壳）、`off` = `full`（全文），查看用 `toolkit config get skillDelivery.default`；
   `toolkit skills install --gate` / `--embed` 生成或还原入口壳；批量挂载用 `toolkit skills mount`
 - 选择页统一提供「← 返回」（末位）与 ESC 返回上一级；顶层「退出」按成功计 `0`，Ctrl+C 结束整个命令（退出码 `130`）
 - ESC 有约 500ms 判定延迟（readline 需先排除方向键序列），属正常现象
-- `add` / `exclude` / `remove` 均需显式目录：无参只提示改用 `toolkit scope wizard`，不再隐式进入完整向导
-- `add` 加入白名单并把默认值切到「仅名单内生效」；`exclude` 只加黑名单、默认值不变；同路径在另一侧时写前预览「移入 / 转入」
-- `remove --from include|exclude|both`（默认 `both`）指定来源侧，`--to include|exclude` 一步转入另一侧；带参与交互同口径
-- `default on|off` 查看或切换默认值；`reset` 清除限制（全部生效并清空两列表，保留标记 / git 远端 / 技能级规则）
+- `scope list add` / `list exclude` / `list remove` 均需显式目录：无参只提示改用 `toolkit scope wizard`，不再隐式进入完整向导
+- `list add` 加入白名单并把默认值切到「仅名单内生效」；`list exclude` 只加黑名单、默认值不变；同路径在另一侧时写前预览「移入 / 转入」
+- `list remove --from include|exclude|both`（默认 `both`）指定来源侧，`--to include|exclude` 一步转入另一侧；带参与交互同口径
+- `list default on|off` 查看或切换默认值；`list reset` 清除限制（全部生效并清空两列表，保留标记 / git 远端 / 技能级规则）
 - 写前统一展示预览：TTY 下确认后落盘，`--yes` 跳过确认，`--dry-run` 只预览；非 TTY 带显式参数直接执行
 - 结果块统一输出写入文件、变更条目与当前默认值；无变化时只提示「没有变化，无需写入」
 - 相对路径按目标层项目根解析（全局层按当前目录）；`--layer global|project|local` 缺省全局
@@ -128,7 +133,7 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
   任何写命令都会把旧值归一为 `all`
 - `mode = all` 时 `include` 不参与判定，`list` 会在白名单后标注「当前默认全部生效，未参与判定」
 - 只影响技能与内容闸门（`scope guard`），不影响 `toolkit` 命令本身（命令是显式调用的）
-- `scope policy reset --all` 只清 `policies`；旧 `activation` 需 `scope reset`，两者不要混用
+- `scope policy reset --all` 只清 `policies`；旧 `activation` 需 `scope list reset`，两者不要混用
 - 矩阵未允许的已安装技能只提示、不自动删除，用 `toolkit skills uninstall` 清理
 - 全局规则无法按目录排除（agent 限制）；项目专用规则需落在项目内
 - 工具不创建、不修改项目内配置或标记；项目层配置由用户自行写入时正常参与

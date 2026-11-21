@@ -1,6 +1,6 @@
 // skills 命令：技能分发、状态、卸载与来源管理的注册入口与报告打印
 import { join } from "node:path"
-import type { Command } from "commander"
+import { Option, type Command } from "commander"
 import { getHomeDir } from "../config"
 import { assertJsonFormat } from "../json-output"
 import { exitWithCancel, isInteractive, runInteractive } from "../prompts"
@@ -28,7 +28,6 @@ import {
   planProjectSkills,
   deliveryModeLabel,
   readSkillsDeliveryConfig,
-  writeSkillsDeliveryDefault,
   projectSkillsStatus,
   promptConfirm,
   promptSkillSelection,
@@ -868,18 +867,19 @@ export function registerSkillsCommands(program: Command): void {
   // skills 域：把包内 skills/ 分发到各 agent 的全局技能目录（真源唯一，默认软链以便升级自动跟随）
   const skillsCmd = program
     .command("skills")
-    .description("AI 技能包分发：安装 / 状态 / 卸载 / 来源 / 路径（包内 skills/ 与 --from 外部来源统一管理）")
+    .description("AI 技能包分发：安装 / 状态 / 卸载 / 来源（包内 skills/ 与 --source 外部来源统一管理）")
 
   // 安装：默认软链真源，链接创建失败自动降级副本；只写入「已安装」的 agent 目录，不凭空造目录
   skillsCmd
     .command("install")
-    .description("安装技能（默认按现场判定作用域：仓库内写项目面副本 + 薄壳，否则写全局目录；包内 skills/ 与 --from 外部来源统一处理）")
+    .description("安装技能（默认按现场判定作用域：仓库内写项目面副本 + 薄壳，否则写全局目录；包内 skills/ 与 --source 外部来源统一处理）")
     .option("--scope <scope>", "作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）")
     .option("--skills <names>", "只安装指定技能（逗号分隔；core 技能恒装）")
     .option("--all", "安装包内全部技能（含可选技能；非交互执行须加 --yes）")
     .option("--no-optional", "只安装 core 技能（不含可选技能）")
-    .option("--from <path|url>", "外部技能来源目录或 Git 地址（可重复；默认临时，只写本次）", collectDir, [])
-    .option("--save [name]", "把 --from 来源登记为永久来源（可选来源名，缺省按目录 / 清单派生）")
+    .option("--source <name|path>", "外部技能来源：已登记来源名、目录或 Git 地址（可重复；默认临时，只写本次）", collectDir, [])
+    .addOption(new Option("--from <path|url>", "已弃用：改用 --source").argParser(collectDir).default([]).hideHelp())
+    .option("--save [name]", "把外部来源登记为永久来源（可选来源名，缺省按目录 / 清单派生）")
     .option("--agent <names>", "只写入指定 agent（逗号分隔，含 canonical；本机未检测到的跳过）")
     .option("--all-agents", "写入全部已检测的 agent")
     .option("--no-save-agents", "目标选择只对本次生效，不写回配置")
@@ -909,7 +909,7 @@ export function registerSkillsCommands(program: Command): void {
         "  交互流程：技能 → 目标 → 确认；ESC 逐级返回，Ctrl+C 退出码 130",
       ].join("\n"),
     )
-    .action(async (options: { scope?: string; skills?: string; all?: boolean; optional?: boolean; from: string[]; save?: string | boolean; agent?: string; allAgents?: boolean; saveAgents?: boolean; yes?: boolean; useSaved?: boolean; copy?: boolean; dir: string[]; dryRun?: boolean; check?: boolean; refresh?: boolean; force?: boolean; prune?: boolean; mode?: string; gate?: boolean; embed?: boolean; format?: string }) => {
+    .action(async (options: { scope?: string; skills?: string; all?: boolean; optional?: boolean; source: string[]; from: string[]; save?: string | boolean; agent?: string; allAgents?: boolean; saveAgents?: boolean; yes?: boolean; useSaved?: boolean; copy?: boolean; dir: string[]; dryRun?: boolean; check?: boolean; refresh?: boolean; force?: boolean; prune?: boolean; mode?: string; gate?: boolean; embed?: boolean; format?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return
         const scope = resolveScopeChoice(options.scope)
@@ -945,17 +945,31 @@ export function registerSkillsCommands(program: Command): void {
         // 选择阶段的非交互：--yes 或 --use-saved 都跳过选择提示；--use-saved 仍保留最终确认
         const selectionNonInteractive = nonInteractive || Boolean(options.useSaved)
 
-        const fromPaths = options.from ?? []
-        if (options.save !== undefined && fromPaths.length !== 1) {
-          console.error("⚠️ --save 只能与单个 --from 搭配使用，未执行安装")
+        // 来源收敛：--source 同时接受已登记来源名与目录 / Git 地址；--from 为兼容旧写法的隐藏选项
+        const deprecatedFrom = options.from ?? []
+        if (deprecatedFrom.length > 0) console.warn("⚠️ --from 已弃用，请改用 --source（本次仍按 --source 处理）")
+        const sourceSpecs = [...deprecatedFrom, ...(options.source ?? [])]
+        if (options.save !== undefined && sourceSpecs.length !== 1) {
+          console.error("⚠️ --save 只能与单个 --source 搭配使用，未执行安装")
           process.exitCode = 1
           return
         }
-        const externalSources = fromPaths.map((path, index) => ({
-          path,
-          name: index === 0 && typeof options.save === "string" ? options.save : undefined,
-          temporary: !(index === 0 && options.save !== undefined),
-        }))
+        const registeredSources = readSkillsInstallConfig().sources ?? {}
+        // 已登记来源名：取登记里的根 / URL 与来源名，按永久来源处理
+        const resolveSourceSpec = (spec: string): { path: string; name?: string; registered: boolean } => {
+          const entry = registeredSources[spec]
+          if (!entry) return { path: spec, registered: false }
+          const path = entry.url ? `${entry.url}${entry.ref ? `#${entry.ref}` : ""}` : entry.root ?? spec
+          return { path, name: spec, registered: true }
+        }
+        const externalSources = sourceSpecs.map((spec, index) => {
+          const resolved = resolveSourceSpec(spec)
+          return {
+            path: resolved.path,
+            name: resolved.name ?? (index === 0 && typeof options.save === "string" ? options.save : undefined),
+            temporary: resolved.registered ? false : !(index === 0 && options.save !== undefined),
+          }
+        })
         let items: SkillItem[]
         try {
           items = collectSkillItems({ externalSources, dryRun })
@@ -1188,10 +1202,20 @@ export function registerSkillsCommands(program: Command): void {
     .description("查看技能现场状态与真源版本（默认按现场判定作用域；含分发形态、待收敛、悬空 / 漂移 / 缺失 / 同名冲突）")
     .option("--scope <scope>", "作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）")
     .option("--explain <skill>", "解释指定技能的分发形态推导过程（只读，不受 --scope 影响）")
+    .option("--path", "只输出包根路径（内含 skills/，可委托上游安装器安装到表外 agent）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
-    .action((options: { scope?: string; explain?: string; format?: string }) => {
+    .action((options: { scope?: string; explain?: string; path?: boolean; format?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return
+        // 包根定位：从 status 下沉而来，原样保留旧的文本 / JSON 两种输出
+        if (options.path) {
+          if (options.format === "json") {
+            printJson({ package: skillsPackageDir(), source: skillsSourceDir(), skills: listPackageSkills().map((s) => s.name) })
+          } else {
+            console.log(skillsPackageDir())
+          }
+          return
+        }
         if (options.explain) {
           if (options.format === "json") printJson(explainSkillDelivery(options.explain))
           else printDeliveryExplanation(options.explain)
@@ -1528,7 +1552,7 @@ export function registerSkillsCommands(program: Command): void {
 
   // 外部来源：列出已登记 / 状态中的来源；remove 注销登记，--prune 一并清理产物
   const sourcesCmd = skillsCmd
-    .command("sources")
+    .command("source")
     .description("查看 / 刷新 / 注销外部技能来源，并管理来源提示频率")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action((options: { format?: string }) => {
@@ -1779,9 +1803,9 @@ export function registerSkillsCommands(program: Command): void {
       }
     })
 
-  // 分发计划：逐技能给出目标 / 当前形态与动作，install --dry-run 的别名
+  // 分发计划：逐技能给出目标 / 当前形态与动作，install --dry-run 的别名（低频，help 中隐藏）
   skillsCmd
-    .command("plan")
+    .command("plan", { hidden: true })
     .description("预览技能分发计划（目标形态 / 当前形态 / 动作与判定来源；install --dry-run 的别名）")
     .option("--scope <scope>", "作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）")
     .option("--skills <names>", "只预览指定技能（逗号分隔）")
@@ -1842,67 +1866,13 @@ export function registerSkillsCommands(program: Command): void {
       }
     })
 
-  // 内容闸门默认形态：on / off 写 skillDelivery.default，不覆盖已有 rules；入口壳由 install 生成或还原
+  // 批量挂载：承接原 scope mount；只扫一层、交互多选并确认后逐仓安装（低频，help 中隐藏）
   skillsCmd
-    .command("gate [value]")
-    .description("查看或切换内容闸门默认形态（on = 默认入口壳 / off = 默认全文；不覆盖 skillDelivery.rules）")
-    .option("--format <format>", "输出格式（json，输出到 stdout）")
-    .action((value: string | undefined, options: { format?: string }) => {
-      try {
-        if (!assertJsonFormat(options.format)) return
-        if (value !== undefined && value !== "on" && value !== "off") {
-          console.error("⚠️ gate 取值须为 on / off，未修改配置")
-          process.exitCode = 1
-          return
-        }
-        if (value !== undefined) writeSkillsDeliveryDefault(value === "on" ? "gated" : "full")
-        const config = readSkillsDeliveryConfig("global")
-        const enabled = config.default === "gated"
-        if (options.format === "json") {
-          printJson({ default: config.default ?? "full", rules: config.rules })
-          return
-        }
-        console.log(`内容闸门：${enabled ? "已开启（默认入口壳，正文由 toolkit scope guard 下发）" : "未开启（全文安装）"}`)
-        if (config.rules.length > 0) console.log(`分发规则：${config.rules.length} 条（优先级高于默认形态）`)
-        console.log(
-          line.hint(
-            value === undefined
-              ? "切换默认形态：toolkit skills gate on|off；生成入口壳：toolkit skills install"
-              : "运行 toolkit skills install 生成入口壳或还原全文",
-          ),
-        )
-      } catch (e) {
-        console.error(`⚠️ 读取内容闸门失败：${(e as Error).message}`)
-        process.exitCode = 1
-      }
-    })
-
-  // 批量挂载：承接原 scope mount；只扫一层、交互多选并确认后逐仓安装
-  skillsCmd
-    .command("mount [dir]")
+    .command("mount [dir]", { hidden: true })
     .description("在父目录下的项目里批量安装技能（交互选择项目并确认，会向所选项目写文件）")
     .option("--dry-run", "只预览，不写入")
     .action(async (dir: string | undefined, options: { dryRun?: boolean } = {}) => {
       await runInteractive(() => runScopeMount(dir, Boolean(options.dryRun)))
-    })
-
-  // 路径：输出包根（内含 skills/），便于委托上游安装器覆盖内置表未收录的 agent
-  skillsCmd
-    .command("path")
-    .description("输出包根路径（内含 skills/，可委托上游安装器安装到表外 agent）")
-    .option("--format <format>", "输出格式（json：包根、技能源目录、技能清单）")
-    .action((options: { format?: string }) => {
-      try {
-        if (!assertJsonFormat(options.format)) return
-        if (options.format === "json") {
-          printJson({ package: skillsPackageDir(), source: skillsSourceDir(), skills: listPackageSkills().map((s) => s.name) })
-        } else {
-          console.log(skillsPackageDir())
-        }
-      } catch (e) {
-        console.error(`⚠️ 定位包路径失败：${(e as Error).message}`)
-        process.exitCode = 1
-      }
     })
 
   // 裸 `toolkit skills`：打印本域帮助，列出全部子命令

@@ -25,20 +25,21 @@ toolkit skills install --scope project --refresh # 只刷新已存在的项目�
 toolkit skills install --mode package # 纯包管理器模式：core 也可不装，允许零选
 toolkit skills install --no-skills  # 仅本次零装，不改模式与已保存选择
 toolkit skills install --gate       # 内容闸门：本次全部技能写入口壳，--embed 回退
-toolkit skills gate [on|off]        # 查看或切换默认分发形态（skillDelivery.default，不覆盖 rules）
+toolkit config get skillDelivery.default   # 查看默认分发形态
+toolkit config set skillDelivery.default gated   # 切换为入口壳（full 回退全文，不覆盖 rules）
 toolkit skills plan                 # 分发计划：目标 / 当前形态 / 动作与判定来源（install --dry-run 的别名）
 toolkit skills mount --dry-run      # 批量挂载：预览将写入的项目（由 scope mount 迁入，原命令已移除）
 toolkit skills install --copy       # 强制副本（仅全局面；入口壳形态的技能仍写壳并告警）
 toolkit skills install --dry-run    # 预演：输出分发计划，不写文件（skills plan 的别名）
 toolkit skills install --force      # 覆盖同名非本包产物（默认跳过；不改已登记副本形态）
 toolkit skills install --dir <path> # 额外目标目录（可多次；全局面兜底未收录 agent，项目面须在仓库内）
-toolkit skills install --from <path|url> # 临时外部来源（目录或 Git 地址；只写本次，可重复）
-toolkit skills install --from https://github.com/fxri-net/playbook#vX.Y.Z --save play # 远程永久来源
+toolkit skills install --source <name|path> # 外部来源（已登记名 / 目录 / Git 地址；只写本次，可重复）
+toolkit skills install --source https://github.com/fxri-net/playbook#vX.Y.Z --save play # 远程永久来源
 toolkit skills uninstall --source play # 只清理指定外部来源的登记与产物
-toolkit skills sources               # 列出外部来源、版本与生效的更新提示频率（内置源不在列表内）
-toolkit skills sources notify play --frequency daily # 设置单个来源的提示频率（--scope global|project）
-toolkit skills sources refresh       # 刷新全部外部来源缓存与版本（--dry-run 列出将刷新来源与当前版本，不联网）
-toolkit skills sources remove play --prune # 注销来源登记并清理其产物、状态与提示配置
+toolkit skills source                # 列出外部来源、版本与生效的更新提示频率（内置源不在列表内）
+toolkit skills source notify play --frequency daily # 设置单个来源的提示频率（--scope global|project）
+toolkit skills source refresh        # 刷新全部外部来源缓存与版本（--dry-run 列出将刷新来源与当前版本，不联网）
+toolkit skills source remove play --prune # 注销来源登记并清理其产物、状态与提示配置
 toolkit skills bump fxri-plan-to-task patch # 递增技能版本（frontmatter 与正文首部两处同源改写）
 toolkit skills bump --all --dry-run      # 预演批量递增全部技能，只打印 from → to
 toolkit skills bump --all minor --yes    # 批量递增（非交互须 --yes）
@@ -55,8 +56,8 @@ toolkit skills uninstall --skills fxri-text-encoding # 只卸载指定技能的�
 toolkit skills uninstall --scope all   # 项目面与全局面都卸载
 toolkit skills uninstall --dry-run     # 卸载预演（只预览将移除的条目）
 toolkit skills uninstall --format json # JSON 输出：dryRun、scope 与 global / project 各自的卸载报告
-toolkit skills path                 # 输出包根路径（内含 skills/）
-toolkit skills path --format json   # JSON 输出：包根、技能源目录、技能清单
+toolkit skills status --path        # 输出包根路径（内含 skills/）
+toolkit skills status --path --format json   # JSON 输出：包根、技能源目录、技能清单
 ```
 
 裸 `toolkit skills` 打印本域帮助（列出全部子命令）。
@@ -65,7 +66,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 ### install
 
-以包内 `skills/` 与 `--from` 外部来源为真源分发，只安装**本次选择集**内的技能（规则见下）。
+以包内 `skills/` 与 `--source` 外部来源为真源分发，只安装**本次选择集**内的技能（规则见下）。
 
 - **全局面逐技能幂等**：指向正确跳过（含锚在 pnpm 稳定入口、内容一致的异地软链）；指向其他版本或悬空时重建；同名实体目录 / 普通文件默认跳过（`--force` 覆盖）
 - **落点形态沿用既有登记**：本包以副本形式登记过的技能，裸 `install` 与 `--force` 都保持副本（`--force` 只解除冲突判定，不把副本翻回软链）
@@ -149,11 +150,9 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - 只读现场：选择与目标按非交互口径解析，不写配置；全局面与项目面均支持
 - `install --dry-run` 是同一实现的别名；JSON 输出 `{ scope, global, project }`
 
-### gate
+### 分发形态（config）
 
-- 无参数查看默认分发形态（`skillDelivery.default`）与规则条数
-- `skills gate on|off` 只写 `skillDelivery.default`（on → `gated`、off → `full`），**不覆盖 `rules`**
-- `--format json` 输出 `{ default, rules }`；非法取值报错退出 1
+- `config get|set skillDelivery.default` 读写默认形态（原 `skills gate on|off`：on = `gated`、off = `full`），不覆盖 `rules`
 
 ### mount
 
@@ -162,15 +161,15 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - 由 `toolkit scope mount` 迁入（该命令已移除），统一从 skills 域使用
 - 非 TTY 环境提示无法交互（退出码 `2`），批量项目安装请在终端运行
 
-### sources
+### source
 
 - 列出已登记永久来源与状态中的临时来源（来源名 / 根目录 / 版本 / 生效提示频率 / 技能清单，临时来源标注「临时」）
   - 技能清单里状态有登记但当前来源已无的名字标注「（已失效）」；`--format json` 的 `skills` 数组保持原样，不加标记
-- `sources notify <name> --frequency <always|daily|weekly|off>`：写单个来源的提示频率
+- `source notify <name> --frequency <always|daily|weekly|off>`：写单个来源的提示频率
   - 默认写全局层；`--scope project` 或等价的 `--layer project` 写项目层并向上找 git 根，非 git 仓库报错
   - 此处 `--scope` 指**配置层**，与安装面的 `--scope`（project / global / all）不同；两者冲突时报错
-- `sources refresh [name]`：刷新来源缓存与版本，只更新元数据、不自动安装；`--dry-run` 只列出将刷新的来源
-- `sources remove <name>`：注销登记（产物与状态保留）；加 `--prune` 一并清理产物、状态与提示配置
+- `source refresh [name]`：刷新来源缓存与版本，只更新元数据、不自动安装；`--dry-run` 只列出将刷新的来源
+- `source remove <name>`：注销登记（产物与状态保留）；加 `--prune` 一并清理产物、状态与提示配置
 - `--format json` 输出机器可读清单与刷新报告
 
 ### lint
@@ -181,9 +180,9 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 递增版本声明；`--dir` 多根、`--from` 处理不一致。详见[技能版本递增](./skills-bump)。
 
-### path
+### status --path
 
-输出包根（内含 `skills/`），便于委托上游安装器安装到内置表未收录的 agent；`--format json` 输出包根、技能源目录与清单。
+`toolkit skills status --path` 输出包根（内含 `skills/`）与 JSON 清单，便于委托上游安装器安装到表外 agent；原 `skills path` 已下沉。
 
 各子命令的 `--format json` 输出统一携带 `schemaVersion: 1` 锚点（与 `tasks export` 同口径）。
 
@@ -237,7 +236,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 ## 外部来源
 
-`--from <path|url>` 把本地目录或 Git 远程地址纳入同一套 tier / 选择 / 状态 / prune 管理；
+`--source <name|path>` 把已登记来源名、本地目录或 Git 远程地址纳入同一套 tier / 选择 / 状态 / prune 管理；
 来源格式、曾用名、永久登记与安装锁见[技能来源](./skills-sources)。
 
 ## 作用域

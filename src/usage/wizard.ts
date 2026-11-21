@@ -196,7 +196,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
     runNonInteractiveInit(options)
     return
   }
-  if (!requireInteractive({ action: "usage init", hint: "非交互请用 --yes --preset，或执行 toolkit usage --help" })) return
+  if (!requireInteractive({ action: "usage setup init", hint: "非交互请用 --yes --preset，或执行 toolkit usage --help" })) return
   const { select, checkbox, confirm, input } = await loadPrompts()
   try {
     const detected = detectedAdapters()
@@ -219,7 +219,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
       choices: presetChoices,
     })
     if (preset === "off") {
-      console.log(line.hint("保持关闭，未修改任何文件。需要时执行 toolkit usage enable"))
+      console.log(line.hint("保持关闭，未修改任何文件。需要时执行 toolkit config set usage.enabled true"))
       return
     }
     if (preset === "keep") {
@@ -542,8 +542,8 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
     console.log("")
     console.log(`${line.ok("已启用技能使用情况")}。${style.hint("下一步：")}`)
     if (state.channel === "rule") console.log("  toolkit rules compose --module usage   # 把输出复制进全局规则")
-    console.log("  toolkit usage info")
-    console.log("  toolkit usage stats")
+    console.log("  toolkit usage show")
+    console.log("  toolkit usage show stats")
   } catch (error) {
     if (isPromptCancel(error)) console.error(line.hint("已取消，未修改任何文件"))
     throw error
@@ -552,7 +552,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
 
 // 卸载：停用采集、移除本包 Hook；默认保留数据，--purge 才删除事件
 export async function runUsageUninstall(options: UninstallOptions = {}): Promise<void> {
-  if (!options.yes && !options.dryRun && !requireInteractive({ action: "usage uninstall", hint: "非交互请加 --yes，或执行 toolkit usage --help" })) return
+  if (!options.yes && !options.dryRun && !requireInteractive({ action: "usage setup uninstall", hint: "非交互请加 --yes，或执行 toolkit usage --help" })) return
   // 卸载是清理场景：工具已卸载也要能移除它留下的配置
   const { adapters, invalid } = resolveAdapters(splitAgentNames(options.agent), { allowUnavailable: true })
   if (invalid.length > 0) {
@@ -636,13 +636,13 @@ export function printHooksStatus(options: { agent?: string; all?: boolean; dir?:
     console.log(`${adapter.displayName}：${status.installed ? "已安装" : "未安装"}｜${status.file}${detected ? "" : "（本机未检测到安装）"}`)
     if (status.command) console.log(`  命令：${status.command}`)
     if (status.legacyCommand) {
-      console.warn(`  ⚠️ 检测到旧版 Hook（telemetry 命令）已失效，请执行 toolkit usage hooks install --agent ${adapter.id}`)
+      console.warn(`  ⚠️ 检测到旧版 Hook（telemetry 命令）已失效，请执行 toolkit usage setup hooks install --agent ${adapter.id}`)
     }
     if (status.outdatedCommand) {
-      console.warn(`  ⚠️ Hook 命令的平台形态已过期（按旧版方式生成），在所在系统上无法执行，请执行 toolkit usage hooks install --agent ${adapter.id}`)
+      console.warn(`  ⚠️ Hook 命令的平台形态已过期（按旧版方式生成），在所在系统上无法执行，请执行 toolkit usage setup hooks install --agent ${adapter.id}`)
     }
     if (status.missingPaths) {
-      console.warn(`  ⚠️ Hook 命令中的路径已不存在，需重跑 toolkit usage hooks install --agent ${adapter.id}：${status.missingPaths.join("、")}`)
+      console.warn(`  ⚠️ Hook 命令中的路径已不存在，需重跑 toolkit usage setup hooks install --agent ${adapter.id}：${status.missingPaths.join("、")}`)
     }
     if (status.lastError) console.log(`  ⚠️ ${status.lastError}`)
     for (const warning of status.warnings ?? []) console.warn(`  ⚠️ ${warning}`)
@@ -651,17 +651,17 @@ export function printHooksStatus(options: { agent?: string; all?: boolean; dir?:
     else if (status.installed) console.log("  最近触发：暂无记录（Hook 已配置，但 Agent 尚未执行过）")
   }
   if (config.channel === "rule" && installed.length > 0) {
-    console.warn(`⚠️ 采集通道为 rule（全局规则上报），但仍有 Hook：${installed.join("、")}；建议执行 toolkit usage hooks remove 清理，避免重复采集`)
+    console.warn(`⚠️ 采集通道为 rule（全局规则上报），但仍有 Hook：${installed.join("、")}；建议执行 toolkit usage setup hooks remove 清理，避免重复采集`)
   }
   if (config.channel === "hook" && installed.length === 0) {
-    console.warn("⚠️ 采集通道为 hook，但未安装任何 Hook；执行 toolkit usage hooks install，或切换为 rule（toolkit usage channel rule）")
+    console.warn("⚠️ 采集通道为 hook，但未安装任何 Hook；执行 toolkit usage setup hooks install，或切换为 rule（toolkit usage config channel rule）")
   }
   if (lastError) console.log(`最近 Hook 错误：${lastError}`)
 }
 
 // Hook 安装：写前统一预览与确认，非交互须显式 --yes
 export async function installUsageHooks(options: { agent?: string; dryRun?: boolean; yes?: boolean } = {}): Promise<void> {
-  if (!options.yes && !options.dryRun && !requireInteractive({ action: "usage hooks install", hint: "非交互请加 --yes，或执行 toolkit usage --help" })) return
+  if (!options.yes && !options.dryRun && !requireInteractive({ action: "usage setup hooks install", hint: "非交互请加 --yes，或执行 toolkit usage --help" })) return
   const { adapters, invalid, unavailable } = resolveAdapters(splitAgentNames(options.agent))
   if (invalid.length > 0) {
     console.error(`⚠️ 未知 Agent：${invalid.join("、")}`)
@@ -688,14 +688,14 @@ export async function installUsageHooks(options: { agent?: string; dryRun?: bool
   installHooks(adapters)
   // 通道不自动切换：只提示冲突，由用户决定改用哪条通道
   if (loadUsageConfig().channel === "rule") {
-    console.warn("⚠️ 当前采集通道为 rule（全局规则上报）：Hook 已安装但不会写入，需先执行 toolkit usage channel hook")
+    console.warn("⚠️ 当前采集通道为 rule（全局规则上报）：Hook 已安装但不会写入，需先执行 toolkit usage config channel hook")
   }
-  console.log(line.hint("Hook 安装不等于开启采集；用 toolkit usage enable 打开总开关"))
+  console.log(line.hint("Hook 安装不等于开启采集；用 toolkit config set usage.enabled true 打开总开关"))
 }
 
 // Hook 卸载：只移除本包命令；写前预览，非交互须显式 --yes
 export async function removeUsageHooks(options: { agent?: string; yes?: boolean } = {}): Promise<void> {
-  if (!options.yes && !requireInteractive({ action: "usage hooks remove", hint: "非交互请加 --yes，或执行 toolkit usage --help" })) return
+  if (!options.yes && !requireInteractive({ action: "usage setup hooks remove", hint: "非交互请加 --yes，或执行 toolkit usage --help" })) return
   const { adapters, invalid } = resolveAdapters(splitAgentNames(options.agent), { allowUnavailable: true })
   if (invalid.length > 0) {
     console.error(`⚠️ 未知 Agent：${invalid.join("、")}`)
@@ -809,7 +809,7 @@ async function toggleFlow(): Promise<void> {
 
 // 无参菜单：每项调用对应子命令的实现；顶层退出、Ctrl+C 取消
 export async function runUsageWizard(): Promise<void> {
-  if (!requireInteractive({ action: "usage 向导", hint: "非交互请直接使用 toolkit usage 子命令，或在终端运行 toolkit usage wizard" })) return
+  if (!requireInteractive({ action: "usage setup wizard", hint: "非交互请直接使用 toolkit usage 子命令，或在终端运行 toolkit usage setup wizard" })) return
   for (;;) {
     const config = loadUsageConfig()
     const action = await runMenu<string>({

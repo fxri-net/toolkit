@@ -38,7 +38,7 @@ export function registerUsageUploadCommands(usage: Command): void {
       .action(() => {
         const report = uploadStatus()
         console.log(`上传：${report.enabled ? "已开启" : "已关闭"}；待上传 ${report.pending} 条`)
-        console.log(line.hint("使用 upload send --dry-run 预览，upload send 发送，upload setup 配置"))
+        console.log(line.hint("使用 toolkit usage config upload send --dry-run 预览，send 发送，setup 配置"))
       })
     upload
       .command("send")

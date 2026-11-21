@@ -54,7 +54,8 @@ afterEach(() => {
 
 // 执行 usage 子命令
 async function run(args: string[]): Promise<void> {
-  const program = new Command()
+  // 与真实 CLI 同口径：位置选项开启后，子命令后的选项归子命令，不被父级同名选项吞掉
+  const program = new Command().enablePositionalOptions()
   registerUsageCommands(program)
   await program.parseAsync(["node", "toolkit", "usage", ...args])
 }
@@ -78,15 +79,15 @@ function event(overrides: Partial<SkillUsageEvent> = {}): SkillUsageEvent {
 
 describe("usage CLI", () => {
   it("状态与开关命令回显并写全局配置", async () => {
-    await run(["info", "--format", "json"])
+    await run(["show", "--format", "json"])
     expect(logs.join("\n")).toContain('"enabled": true')
     expect(logs.join("\n")).toContain('"hooks"')
     expect(logs.join("\n")).toContain('"upload"')
 
-    await run(["origins", "--no-first-party"])
-    await run(["scope", "--mode", "all"])
-    await run(["capture", "--no-trigger"])
-    await run(["storage", "--retention", "30"])
+    await run(["config", "origins", "--no-first-party"])
+    await run(["config", "scope", "--mode", "all"])
+    await run(["config", "capture", "--no-trigger"])
+    await run(["config", "storage", "--retention", "30"])
     const config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
     expect(config.usage.sources.firstParty).toBe(false)
     expect(config.usage.skills.mode).toBe("all")
@@ -98,29 +99,29 @@ describe("usage CLI", () => {
     await run(["log", "--skill", "fxri-plan-to-task", "--session", "s1", "--prompt", "全部任务落档", "--outcome", "success"])
     expect(logs.join("\n") || errors.join("\n")).toContain("已补录")
 
-    await run(["stats", "--format", "json"])
+    await run(["show", "stats", "--format", "json"])
     expect(logs.join("\n")).toContain('"total": 1')
-    await run(["stats", "--by", "session"])
-    await run(["stats", "--by", "trigger"])
+    await run(["show", "stats", "--by", "session"])
+    await run(["show", "stats", "--by", "trigger"])
 
     const out = join(dataDir, "events.csv")
-    await run(["export", "--type", "csv", "--out", out])
+    await run(["data", "export", "--type", "csv", "--out", out])
     expect(readFileSync(out, "utf8")).toContain("fxri-plan-to-task")
 
     const input = join(dataDir, "import.jsonl")
     writeFileSync(input, `${JSON.stringify(event())}\n`, "utf8")
-    await run(["import", "--type", "jsonl", "--file", input])
+    await run(["data", "import", "--type", "jsonl", "--file", input])
     expect(readAllEvents(usagePaths(dataDir))).toHaveLength(2)
 
-    await run(["dedupe"])
-    await run(["doctor", "--format", "json"])
-    await run(["rebuild"])
+    await run(["data", "dedupe"])
+    await run(["data", "doctor", "--format", "json"])
+    await run(["data", "rebuild"])
 
-    await run(["purge", "--older-than", "30d", "--dry-run"])
+    await run(["data", "purge", "--older-than", "30d", "--dry-run"])
     expect(logs.join("\n")).toContain("[预演] 将删除")
     expect(readAllEvents(usagePaths(dataDir))).toHaveLength(2)
 
-    await run(["purge", "--all"])
+    await run(["data", "purge", "--all"])
     expect(readAllEvents(usagePaths(dataDir))).toHaveLength(0)
   })
 
@@ -128,7 +129,7 @@ describe("usage CLI", () => {
     const profile = join(home, ".dsh", "profiles", "desktop")
     mkdirSync(profile, { recursive: true })
     writeFileSync(join(profile, "cordis.patch.yml"), "[]\n", "utf8")
-    await run(["doctor", "--format", "json"])
+    await run(["data", "doctor", "--format", "json"])
     const text = logs.join("\n")
     const parsed = JSON.parse(text.slice(text.indexOf("{"))) as {
       items: Array<{ code: string; level: string; message: string }>
@@ -140,28 +141,28 @@ describe("usage CLI", () => {
   })
 
   it("Hook 安装、状态与卸载", async () => {
-    await run(["hooks", "install", "--agent", "trae", "--yes"])
+    await run(["setup", "hooks", "install", "--agent", "trae", "--yes"])
     expect(logs.join("\n")).toContain("已安装 Hook")
     const hookConfig = JSON.parse(readFileSync(join(home, ".trae-cn", "hooks.json"), "utf8"))
     expect(hookConfig.hooks.PostToolUse).toHaveLength(1)
 
     logs = []
-    await run(["hooks", "status", "--agent", "trae"])
+    await run(["setup", "hooks", "status", "--agent", "trae"])
     expect(logs.join("\n")).toContain("已安装")
     expect(logs.join("\n")).toContain("尚未执行")
 
-    await run(["hooks", "remove", "--agent", "trae", "--yes"])
+    await run(["setup", "hooks", "remove", "--agent", "trae", "--yes"])
     const after = JSON.parse(readFileSync(join(home, ".trae-cn", "hooks.json"), "utf8"))
     expect(after.hooks.PostToolUse).toBeUndefined()
   })
 
   it("Hook 写操作在非交互环境需显式 --yes", async () => {
-    await run(["hooks", "install", "--agent", "trae"])
+    await run(["setup", "hooks", "install", "--agent", "trae"])
     expect(errors.join("\n")).toContain("--yes")
     expect(process.exitCode).toBe(2)
     process.exitCode = 0
 
-    await run(["hooks", "remove", "--agent", "trae"])
+    await run(["setup", "hooks", "remove", "--agent", "trae"])
     expect(errors.join("\n")).toContain("--yes")
     expect(process.exitCode).toBe(2)
     process.exitCode = 0
@@ -170,46 +171,42 @@ describe("usage CLI", () => {
   it("裸 usage 输出摘要成功退出，wizard 在非交互环境报错退出", async () => {
     await run([])
     expect(logs.join("\n")).toContain("技能使用情况")
-    expect(logs.join("\n")).toContain("toolkit usage wizard")
+    expect(logs.join("\n")).toContain("toolkit usage setup wizard")
     expect(process.exitCode).toBe(0)
 
     logs = []
     errors = []
-    await run(["wizard"])
-    expect(errors.join("\n")).toContain("toolkit usage wizard")
+    await run(["setup", "wizard"])
+    expect(errors.join("\n")).toContain("toolkit usage setup wizard")
     expect(process.exitCode).toBe(2)
     process.exitCode = 0
   })
 
-  it("开关类命令的 --format json 只输出本段载荷", async () => {
-    await run(["enable", "--format", "json"])
-    expect(JSON.parse(logs.join("\n"))).toEqual({ schemaVersion: 1, enabled: true })
+  it("配置类命令的 --format json 只输出本段载荷", async () => {
+    await run(["config", "channel", "--format", "json"])
+    expect(JSON.parse(logs.join("\n"))).toHaveProperty("channel")
 
     logs = []
-    await run(["origins", "--format", "json"])
+    await run(["config", "origins", "--format", "json"])
     const sources = JSON.parse(logs.join("\n")) as { sources: { firstParty: boolean } }
     expect(sources.sources.firstParty).toBe(true)
     expect((sources as { enabled?: boolean }).enabled).toBeUndefined()
 
     logs = []
-    await run(["scope", "--format", "json"])
+    await run(["config", "scope", "--format", "json"])
     expect(JSON.parse(logs.join("\n"))).toHaveProperty("skills")
 
     logs = []
-    await run(["capture", "--format", "json"])
+    await run(["config", "capture", "--format", "json"])
     expect(JSON.parse(logs.join("\n"))).toHaveProperty("capture")
 
     logs = []
-    await run(["storage", "--format", "json"])
+    await run(["config", "storage", "--format", "json"])
     expect(JSON.parse(logs.join("\n"))).toHaveProperty("storage")
-
-    logs = []
-    await run(["disable", "--format", "json"])
-    expect(JSON.parse(logs.join("\n"))).toEqual({ schemaVersion: 1, enabled: false })
   })
 
   it("非交互初始化、上传配置与卸载", async () => {
-    await run(["init", "--yes", "--preset", "recommended", "--channel", "hook", "--agent", "trae"])
+    await run(["setup", "init", "--yes", "--preset", "recommended", "--channel", "hook", "--agent", "trae"])
     let config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
     expect(config.usage.enabled).toBe(true)
     expect(config.usage.agents.trae).toBe(true)
@@ -217,17 +214,17 @@ describe("usage CLI", () => {
     expect(readFileSync(join(home, ".trae-cn", "hooks.json"), "utf8")).toContain("usage ingest --agent trae")
 
     const endpoint = join(dataDir, "upload.jsonl")
-    await run(["upload", "setup", "--yes", "--protocol", "file", "--endpoint", endpoint])
+    await run(["config", "upload", "setup", "--yes", "--protocol", "file", "--endpoint", endpoint])
     config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
     expect(config.usage.upload.enabled).toBe(true)
     expect(config.usage.upload.protocol).toBe("file")
 
     recordHookActivity(usagePaths(dataDir), "trae", "written")
     logs = []
-    await run(["hooks", "status", "--agent", "trae", "--dir", dataDir])
+    await run(["setup", "hooks", "status", "--agent", "trae", "--dir", dataDir])
     expect(logs.join("\n")).toMatch(/最近触发：\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/)
 
-    await run(["uninstall", "--yes", "--agent", "trae"])
+    await run(["setup", "uninstall", "--yes", "--agent", "trae"])
     config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
     expect(config.usage.enabled).toBe(false)
     const hooks = JSON.parse(readFileSync(join(home, ".trae-cn", "hooks.json"), "utf8"))
@@ -235,32 +232,32 @@ describe("usage CLI", () => {
   })
 
   it("上传默认关闭，dry-run 直接报错", async () => {
-    await run(["upload", "status", "--format", "json"])
+    await run(["config", "upload", "status", "--format", "json"])
     expect(logs.join("\n")).toContain('"enabled": false')
-    await run(["upload"])
+    await run(["config", "upload"])
     expect(logs.join("\n")).toContain("待上传")
     logs = []
     errors = []
-    await run(["upload", "send", "--dry-run"])
+    await run(["config", "upload", "send", "--dry-run"])
     expect(errors.join("\n")).toContain("上传未启用")
     expect(process.exitCode).toBe(1)
     process.exitCode = 0
   })
 
   it("非法参数不静默回落", async () => {
-    await run(["purge", "--older-than", "30"])
+    await run(["data", "purge", "--older-than", "30"])
     expect(errors.join("\n")).toContain("30d / 24h / 60m")
     expect(process.exitCode).toBe(1)
     process.exitCode = 0
 
-    await run(["stats", "--since", "bad"])
+    await run(["show", "stats", "--since", "bad"])
     expect(errors.join("\n")).toContain("--since")
     expect(process.exitCode).toBe(1)
     process.exitCode = 0
   })
 
   it("卸载预演只打印动作，不改配置", async () => {
-    await run(["uninstall", "--yes", "--dry-run", "--agent", "trae"])
+    await run(["setup", "uninstall", "--yes", "--dry-run", "--agent", "trae"])
     expect(logs.join("\n")).toContain("[预演]")
     const config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
     expect(config.usage.enabled).toBe(true)

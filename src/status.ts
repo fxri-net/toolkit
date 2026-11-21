@@ -144,7 +144,7 @@ function docsDomain(cwd: string): DomainResult {
   return { summary: `${navText}；${distText}`, issues }
 }
 
-// 版本与弃用：包版本 + 注册表静态迁移项；运行时命中记录由后续版本接线，本版本恒为空
+// 版本与弃用：包版本 + 注册表静态迁移项 + 本机旧命令命中记录（读取即清空，避免重复计数）
 function versionDomain(version: string, deprecated: CommandMigrationRow[], hits: DeprecationHit[]): DomainResult {
   const hitNote = hits.length > 0 ? `；本机命中旧命令 ${hits.length} 次` : ""
   return {

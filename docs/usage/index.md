@@ -26,39 +26,40 @@ title: 技能使用情况概览
 | 存储位置 | `~/.toolkit/usage` |
 | 轮转与保留 | 按月轮转、保留 180 天 |
 
-未开启时，Hook 即使被调用也直接退出，不写文件。本表是配置缺省值；首次执行 `toolkit usage init` 会显式启用（默认范围见「快速开始」）。
+未开启时，Hook 即使被调用也直接退出，不写文件。本表是配置缺省值；首次执行 `toolkit usage setup init` 会显式启用（默认范围见「快速开始」）。
 
 ## 快速开始
 
 ```bash
-toolkit usage info            # 查看当前开关与数据目录
-toolkit usage enable          # 打开总开关
-toolkit usage origins --first-party
-toolkit usage scope --mode all
-toolkit usage stats           # 查看统计
+toolkit usage show                     # 查看当前开关与数据目录
+toolkit config set usage.enabled true  # 打开总开关（关闭用 false）
+toolkit usage config origins --first-party
+toolkit usage config scope --mode all
+toolkit usage show stats               # 查看统计
 ```
 
-首次使用建议直接跑 `toolkit usage init`：向导已默认启用，一路回车即按「一方 + 第三方技能、数据只留本机、规则通道、不采集明细字段」完成配置；需要收窄来源或打开触发词与参数时，再逐项调整。
+首次使用建议直接跑 `toolkit usage setup init`：向导已默认启用，一路回车即按「一方 + 第三方技能、数据只留本机、规则通道、不采集明细字段」完成配置；需要收窄来源或打开触发词与参数时，再逐项调整。
 
 ## 命令总览
 
 | 命令 | 用途 |
 | --- | --- |
-| `info` | 开关、通道、配置路径、数据目录、Hook 与上传汇总 |
-| `init` / `uninstall` | 初始化 / 停用并卸载 Hook（默认保留数据） |
-| `channel` | 采集通道：`rule`（全局规则上报）/ `hook`（Agent Hook） |
+| `show` | 开关、通道、配置路径、数据目录、Hook 与上传汇总（默认命令） |
+| `show stats` | 统计与查询（`--by skill\|session\|trigger`） |
+| `setup init` / `setup uninstall` | 初始化 / 停用并卸载 Hook（默认保留数据） |
+| `config channel` | 采集通道：`rule`（全局规则上报）/ `hook`（Agent Hook） |
 | `record` | 规则通道批量上报一批技能调用（入队即返回，按次计数，失败不阻断任务） |
-| `enable` / `disable` | 总开关 |
-| `origins` | 一方 / 第三方 / 未托管来源开关 |
-| `scope` | `none` / `all` / `include` / `exclude` 技能范围 |
-| `capture` | 触发词 / 参数 / 结果字段开关 |
-| `storage` | 数据目录、轮转、保留期、单文件上限 |
-| `stats` | 统计与查询（`--by skill\|session\|trigger`） |
-| `export` / `import` | 导出与导入事件 |
-| `dedupe` / `purge` / `rebuild` | 去重、清理与索引重建 |
-| `doctor` | 目录、索引与重复事件诊断 |
-| `upload setup` / `status` / `send`（`--dry-run`） | 可选上传：默认关闭，需显式配置端点 |
-| `rule` | 输出可复制的全局规则文案 |
+| `config set usage.enabled true\|false` | 打开 / 关闭总开关 |
+| `config origins` | 一方 / 第三方 / 未托管来源开关 |
+| `config scope` | `none` / `all` / `include` / `exclude` 技能范围 |
+| `config capture` | 触发词 / 参数 / 结果字段开关 |
+| `config storage` | 数据目录、轮转、保留期、单文件上限 |
+| `data export` / `data import` | 导出与导入事件 |
+| `data dedupe` / `data purge` / `data rebuild` | 去重、清理与索引重建 |
+| `data doctor` | 目录、索引与重复事件诊断 |
+| `config upload setup` / `status` / `send`（`--dry-run`） | 可选上传：默认关闭，需显式配置端点 |
+
+全局规则文案由 `toolkit rules compose --module usage` 输出（原 `usage rule` 已移除）。
 
 完整参数见 [CLI 参考 · 技能使用情况](../cli/usage)，配置字段见 [使用情况配置](./configuration)，数据边界见 [隐私与数据边界](./privacy)，
 事件结构见 [事件 Schema](./schema)。
@@ -66,6 +67,6 @@ toolkit usage stats           # 查看统计
 ## 边界与注意
 
 - 历史会话无法自动补录，统计从启用时刻开始。
-- 没有 Hook 的 Agent 用 `usage import` 或 `usage log` 补录。
+- 没有 Hook 的 Agent 用 `usage data import` 或 `usage log` 补录。
 - 上传默认关闭；开启后仍需显式配置端点与认证，详见 [隐私与数据边界](./privacy)。
 - 事件 schema 版本为 `1`，新增字段只增不改，详见 [事件 Schema](./schema)。

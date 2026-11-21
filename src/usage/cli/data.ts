@@ -60,9 +60,10 @@ export function purgeUsageEvents(options: { olderThan?: string; all?: boolean; d
 }
 
 
-export function registerUsageDataCommands(usage: Command): void {
+// 统计：show 组的第二级视图（usage show stats）
+export function registerUsageStatsCommands(show: Command): void {
     // 统计：按技能 / 会话 / 触发词三种视图聚合
-    usage
+    show
       .command("stats")
       .description("技能使用统计（默认按技能聚合）")
       .option("--by <view>", "聚合视图：skill / session / trigger（默认 skill）")
@@ -120,9 +121,12 @@ export function registerUsageDataCommands(usage: Command): void {
         if (unused) console.log(`零使用技能：${unused.length > 0 ? unused.join("、") : "无"}`)
         if (!config.enabled) console.log(line.hint("提示：技能使用情况当前处于关闭状态"))
       })
+}
 
+// 事件数据：导出 / 导入 / 去重 / 清理 / 重建 / 体检；上报与补录保留在 usage 顶层
+export function registerUsageDataCommands(data: Command, usage: Command): void {
     // 导出：CSV / JSON / JSONL
-    usage
+    data
       .command("export")
       .description("导出事件（csv / json / jsonl）")
       .option("--type <format>", "导出格式：csv / json / jsonl（默认 json）")
@@ -134,7 +138,7 @@ export function registerUsageDataCommands(usage: Command): void {
       })
 
     // 导入：JSON / JSONL / transcript；transcript 从 Claude 或通用会话记录提取 tool_use
-    usage
+    data
       .command("import")
       .description("导入事件（json / jsonl / transcript）")
       .option("--type <format>", "导入格式：json / jsonl / transcript（默认 jsonl）")
@@ -235,9 +239,9 @@ export function registerUsageDataCommands(usage: Command): void {
         process.exitCode = 0
       })
 
-    // 手工补录：没有 Hook 的 Agent 使用
+    // 手工补录：没有 Hook 的 Agent 使用（低频，help 中隐藏）
     usage
-      .command("log")
+      .command("log", { hidden: true })
       .description("手工补录一次技能使用")
       .requiredOption("--skill <name>", "技能名")
       .requiredOption("--session <id>", "会话 id")
@@ -251,7 +255,7 @@ export function registerUsageDataCommands(usage: Command): void {
       .action((options: { skill: string; session: string; agent?: string; toolUse?: string; prompt?: string; args?: string; outcome?: string; dir?: string; dryRun?: boolean }) => {
         const { config, paths } = createContext(options.dir)
         if (!config.enabled) {
-          console.error("⚠️ 技能使用情况未启用，未写入；先执行 toolkit usage enable")
+          console.error("⚠️ 技能使用情况未启用，未写入；先执行 toolkit config set usage.enabled true")
           process.exitCode = 1
           return
         }
@@ -289,7 +293,7 @@ export function registerUsageDataCommands(usage: Command): void {
       })
 
     // 去重：压缩历史重复行并重建索引
-    usage
+    data
       .command("dedupe")
       .description("压缩历史重复事件并重建索引")
       .option("--dir <path>", "本次使用的数据目录")
@@ -300,7 +304,7 @@ export function registerUsageDataCommands(usage: Command): void {
       })
 
     // 清理：按保留期或全部删除
-    usage
+    data
       .command("purge")
       .description("清理本地事件（按保留期或全部）")
       .option("--older-than <duration>", "删除早于指定时长的记录，如 30d / 24h / 60m（缺省用配置保留期）")
@@ -312,7 +316,7 @@ export function registerUsageDataCommands(usage: Command): void {
       })
 
     // 诊断：目录、索引、重复与配置边界
-    usage
+    data
       .command("doctor")
       .description("诊断技能使用情况目录、索引与重复事件")
       .option("--dir <path>", "本次使用的数据目录")
@@ -348,24 +352,24 @@ export function registerUsageDataCommands(usage: Command): void {
             const status = adapter.status()
             if (status.installed) installedHooks.push(adapter.id)
             if (status.legacyCommand) {
-              add("hook-legacy", "warn", `${adapter.displayName} 的 Hook 仍指向旧命令 telemetry，已失效，请重跑 toolkit usage hooks install --agent ${adapter.id}`)
+              add("hook-legacy", "warn", `${adapter.displayName} 的 Hook 仍指向旧命令 telemetry，已失效，请重跑 toolkit usage setup hooks install --agent ${adapter.id}`)
             }
             if (status.outdatedCommand) {
-              add("hook-outdated", "warn", `${adapter.displayName} 的 Hook 命令平台形态已过期，在所在系统上无法执行，请重跑 toolkit usage hooks install --agent ${adapter.id}`)
+              add("hook-outdated", "warn", `${adapter.displayName} 的 Hook 命令平台形态已过期，在所在系统上无法执行，请重跑 toolkit usage setup hooks install --agent ${adapter.id}`)
             }
             if (status.missingPaths) {
-              add("hook-path-missing", "warn", `${adapter.displayName} 的 Hook 命令路径已失效（${status.missingPaths.join("、")}），请重跑 toolkit usage hooks install --agent ${adapter.id}`)
+              add("hook-path-missing", "warn", `${adapter.displayName} 的 Hook 命令路径已失效（${status.missingPaths.join("、")}），请重跑 toolkit usage setup hooks install --agent ${adapter.id}`)
             }
             for (const warning of status.warnings ?? []) add("adapter-warning", "warn", `${adapter.displayName}：${warning}`)
           } catch {
-            // 配置读取失败由 usage hooks status 展示，doctor 不重复报错
+            // 配置读取失败由 usage setup hooks status 展示，doctor 不重复报错
           }
         }
         if (config.channel === "rule" && installedHooks.length > 0) {
-          add("rule-channel-with-hooks", "warn", `采集通道为 rule，但本机仍有 Hook（${installedHooks.join("、")}）：执行 toolkit usage hooks remove 清理，避免重复采集`)
+          add("rule-channel-with-hooks", "warn", `采集通道为 rule，但本机仍有 Hook（${installedHooks.join("、")}）：执行 toolkit usage setup hooks remove 清理，避免重复采集`)
         }
         if (config.channel === "hook" && installedHooks.length === 0) {
-          add("hook-channel-without-hooks", "warn", "采集通道为 hook，但未安装任何 Hook：执行 toolkit usage hooks install，或切换为 rule（toolkit usage channel rule）")
+          add("hook-channel-without-hooks", "warn", "采集通道为 hook，但未安装任何 Hook：执行 toolkit usage setup hooks install，或切换为 rule（toolkit usage config channel rule）")
         }
         const report = { dataDir: dir, events: events.length, unique: unique.size, indexed: index.eventIds.length, crossAdapters, items }
         if (options.format === "json") {
@@ -379,7 +383,7 @@ export function registerUsageDataCommands(usage: Command): void {
       })
 
     // 索引重建：doctor 提示后使用
-    usage
+    data
       .command("rebuild")
       .description("从事件文件重建索引")
       .option("--dir <path>", "本次使用的数据目录")

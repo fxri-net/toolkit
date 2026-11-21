@@ -24,7 +24,7 @@ export async function runCli(version: string): Promise<void> {
     { registerDocsCommands },
     { registerRulesCommands },
     { registerScopeCommands },
-    { removedCommandHint },
+    { removedCommandHint, rewriteDeprecatedArgv, recordDeprecationHits },
   ] = await Promise.all([
     import("commander"),
     import("./init"),
@@ -67,8 +67,16 @@ export async function runCli(version: string): Promise<void> {
   // 旧环境变量名一次性提示：仅诊断，不读取旧值（C-26 降级不静默）
   warnLegacyEnvOnce()
 
+  // 旧路径重写：命中后按新路径执行并在 stderr 提示，命中记录供 status 汇总
+  const rewrite = rewriteDeprecatedArgv(argv.slice(2))
+  const cliArgs = rewrite.argv
+  if (rewrite.hit) {
+    console.error(`⚠️ ${rewrite.note}`)
+    recordDeprecationHits([rewrite.hit])
+  }
+
   // 已移除命令：直接给替代写法，避免只回「未知命令」让人无从迁移
-  const removedHint = removedCommandHint(argv.slice(2))
+  const removedHint = removedCommandHint(cliArgs)
   if (removedHint) {
     console.error(`⚠️ ${removedHint}`)
     process.exitCode = 1
@@ -138,7 +146,7 @@ export async function runCli(version: string): Promise<void> {
     console.error(`${line.ok(`已自动修复 ${repaired} 个技能链接`)}（${style.hint("如不需要可配置 .toolkitrc.json 的 skills.autoLink: false 关闭")}）`)
   }
   try {
-    await program.parseAsync(argv)
+    await program.parseAsync([argv[0]!, argv[1]!, ...cliArgs])
   } catch (err) {
     // exitOverride 后 commander 把「解析失败」与「已输出帮助/版本」统一改为抛异常，均经此收口
     if (!(err instanceof CommanderError)) throw err
@@ -158,7 +166,7 @@ export async function runCli(version: string): Promise<void> {
       ]
     }
     emitVersionHint(version, {
-      argv: argv.slice(2),
+      argv: cliArgs,
       exitCode: typeof process.exitCode === "number" ? process.exitCode : 0,
       skillAlerts,
     })

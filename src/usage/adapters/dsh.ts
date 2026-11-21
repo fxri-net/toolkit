@@ -75,7 +75,7 @@ export const dshAdapter: AgentAdapter = {
         warnings.push(`profile ${profileName(profile)} 的 cordis.patch.yml 不是顶层数组，未写入桥接条目`)
         continue
       }
-      if (!profileHasToolkitBlock(profile)) warnings.push(`profile ${profileName(profile)} 未写入桥接条目，请重跑 toolkit usage hooks install --agent ${this.id}`)
+      if (!profileHasToolkitBlock(profile)) warnings.push(`profile ${profileName(profile)} 未写入桥接条目，请重跑 toolkit usage setup hooks install --agent ${this.id}`)
       else if (!profileHasBridgePlugin(profile)) warnings.push(pluginHint(profile))
     }
     return { ...status, warnings }

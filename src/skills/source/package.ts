@@ -57,7 +57,7 @@ export function skillsSourceDir(): string {
   return join(resolvePackageRoot(), "skills")
 }
 
-// 包根目录（供 skills path 输出，便于委托上游安装器：pnpm dlx skills add "$(toolkit skills path)" -g）
+// 包根目录（供 skills status --path 输出，便于委托上游安装器：pnpm dlx skills add "$(toolkit skills status --path)" -g）
 export function skillsPackageDir(): string {
   return resolvePackageRoot()
 }

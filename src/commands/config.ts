@@ -4,7 +4,7 @@ import { resolve } from "node:path"
 import type { Command } from "commander"
 import { configStatus, foldHome, type ConfigStatusReport } from "../config-status"
 import type { LocalConfigIgnoreState } from "../git-ignore"
-import { assertJsonFormat } from "../json-output"
+import { assertJsonFormat, jsonEnvelope } from "../json-output"
 import { readConfigKey, readConfigKeys, configFileForLayer, configLayerInRepo, unsetConfigKey, writeConfigKey } from "../config-edit"
 import {
   CONFIG_KEYS,
@@ -174,16 +174,18 @@ export function registerConfigCommands(program: Command): void {
         return { spec, key: spec.key, type: spec.type, summary: spec.summary, value, source }
       })
       if (options.format === "json") {
-        printJson({
-          layer: layer ?? null,
-          keys: rows.map((row) => ({
-            key: row.key,
-            type: row.type,
-            summary: row.summary,
-            value: jsonValue(row.spec, row.value, reveal),
-            source: row.source,
-          })),
-        })
+        printJson(
+          jsonEnvelope("config list", true, {
+            layer: layer ?? null,
+            keys: rows.map((row) => ({
+              key: row.key,
+              type: row.type,
+              summary: row.summary,
+              value: jsonValue(row.spec, row.value, reveal),
+              source: row.source,
+            })),
+          }),
+        )
         return
       }
       for (const row of rows) {
@@ -222,19 +224,21 @@ export function registerConfigCommands(program: Command): void {
       const reveal = Boolean(options.reveal)
       const state = readConfigKey(key, cwd)
       if (options.format === "json") {
-        printJson({
-          key,
-          type: spec.type,
-          summary: spec.summary,
-          value: jsonValue(spec, state.value, reveal),
-          source: state.source,
-          layers: {
-            global: jsonValue(spec, state.layers.global, reveal),
-            project: jsonValue(spec, state.layers.project, reveal),
-            local: jsonValue(spec, state.layers.local, reveal),
-          },
-          env: state.env ?? null,
-        })
+        printJson(
+          jsonEnvelope("config get", true, {
+            key,
+            type: spec.type,
+            summary: spec.summary,
+            value: jsonValue(spec, state.value, reveal),
+            source: state.source,
+            layers: {
+              global: jsonValue(spec, state.layers.global, reveal),
+              project: jsonValue(spec, state.layers.project, reveal),
+              local: jsonValue(spec, state.layers.local, reveal),
+            },
+            env: state.env ?? null,
+          }),
+        )
         return
       }
       if (!options.explain) {
@@ -294,7 +298,16 @@ export function registerConfigCommands(program: Command): void {
       if (!options.dryRun && needsYes(options)) return
       if (options.dryRun) {
         if (options.format === "json") {
-          printJson({ key, layer: target, value: jsonValue(spec, parsed.value, reveal), valueText: renderValue(spec, parsed.value, reveal), dryRun: true, file: null })
+          printJson(
+            jsonEnvelope("config set", true, {
+              key,
+              layer: target,
+              value: jsonValue(spec, parsed.value, reveal),
+              valueText: renderValue(spec, parsed.value, reveal),
+              dryRun: true,
+              file: null,
+            }),
+          )
         } else {
           console.log(line.hint(`将写入${CONFIG_LAYER_LABELS[target]}：${key} = ${renderValue(spec, parsed.value, reveal)}（--dry-run，未落盘）`))
         }
@@ -304,7 +317,16 @@ export function registerConfigCommands(program: Command): void {
       try {
         const result = writeConfigKey(target, key, parsed.value, cwd)
         if (options.format === "json") {
-          printJson({ key, layer: target, value: jsonValue(spec, parsed.value, reveal), valueText: renderValue(spec, parsed.value, reveal), dryRun: false, file: foldHome(result.file) })
+          printJson(
+            jsonEnvelope("config set", true, {
+              key,
+              layer: target,
+              value: jsonValue(spec, parsed.value, reveal),
+              valueText: renderValue(spec, parsed.value, reveal),
+              dryRun: false,
+              file: foldHome(result.file),
+            }),
+          )
           return
         }
         const replaced = result.previous === undefined ? "" : `（原值：${renderValue(spec, result.previous, reveal)}）`
@@ -347,7 +369,7 @@ export function registerConfigCommands(program: Command): void {
         return
       }
       if (options.dryRun) {
-        if (options.format === "json") printJson({ key, layer: target, dryRun: true, removed: null })
+        if (options.format === "json") printJson(jsonEnvelope("config unset", true, { key, layer: target, dryRun: true, removed: null }))
         else console.log(line.hint(`将从${CONFIG_LAYER_LABELS[target]}删除：${key}（--dry-run，未落盘）`))
         return
       }
@@ -358,15 +380,17 @@ export function registerConfigCommands(program: Command): void {
         // 删除后回落到的层：让用户看到删完实际生效值来自哪一层
         const effective = readConfigKey(key, cwd)
         if (options.format === "json") {
-          printJson({
-            key,
-            layer: target,
-            dryRun: false,
-            removed: result.removed,
-            previous: jsonValue(spec, result.previous, reveal),
-            file: foldHome(result.file),
-            effective: { value: jsonValue(spec, effective.value, reveal), source: effective.source },
-          })
+          printJson(
+            jsonEnvelope("config unset", true, {
+              key,
+              layer: target,
+              dryRun: false,
+              removed: result.removed,
+              previous: jsonValue(spec, result.previous, reveal),
+              file: foldHome(result.file),
+              effective: { value: jsonValue(spec, effective.value, reveal), source: effective.source },
+            }),
+          )
           return
         }
         if (!result.removed) {

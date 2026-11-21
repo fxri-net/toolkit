@@ -86,7 +86,7 @@ export function analyzeSkillLinkage(startDir = process.cwd()): SkillLinkageRepor
 export function formatLinkageHints(linkage: SkillLinkageReport): string[] {
   if (!linkage.matrixConfigured) return []
   const hints: string[] = []
-  if (!linkage.gateEnabled) hints.push("矩阵已配置，但正文仍全量加载：运行 toolkit skills gate on 开启内容闸门")
+  if (!linkage.gateEnabled) hints.push("矩阵已配置，但正文仍全量加载：运行 toolkit config set skillDelivery.default gated 开启内容闸门")
   if (linkage.ineffective.length > 0) {
     hints.push(`策略对该技能无效：${linkage.ineffective.join("、")} 已显式设为全文安装（skillDelivery.rules 覆盖了矩阵推导）`)
   }

@@ -29,7 +29,7 @@ title: 隐私与数据边界
 
 - `upload.enabled` 默认 `false`；未开启时使用情况模块不发起网络请求。
 - 非 localhost 端点必须 HTTPS；`allowInsecure` 默认 `false`。
-- `upload send --dry-run` 只预览批次与脱敏后载荷，不发请求、不写账本。
+- `toolkit usage config upload send --dry-run` 只预览批次与脱敏后载荷，不发请求、不写账本。
 - 上传账本按 `eventId` 幂等，重试不会重复计数。
 - 定时上传由用户自行配置系统计划任务，toolkit 不安装常驻进程。
 
@@ -38,8 +38,8 @@ title: 隐私与数据边界
 ## 清理与删除
 
 ```bash
-toolkit usage purge --older-than 30d
-toolkit usage purge --all
+toolkit usage data purge --older-than 30d
+toolkit usage data purge --all
 ```
 
-`purge` 只删事件文件并重建索引；上传账本与配置保留，避免误删后重复上传或丢失授权记录。
+`usage data purge` 只删事件文件并重建索引；上传账本与配置保留，避免误删后重复上传或丢失授权记录。

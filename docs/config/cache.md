@@ -12,7 +12,7 @@ title: 缓存目录
 | --- | --- | --- |
 | `~/.toolkit/cache/update-check.json` | 升级检查结果与提示节流记录 | 下次命令自动刷新 |
 | `~/.toolkit/cache/rules-selection.json` | 规则组合器在命令行记住的模块顺序 | 下次 `toolkit rules compose` 重新写入 |
-| `~/.toolkit/cache/skill-sources/<标识>/` | 远程技能来源的浅克隆缓存 | `toolkit skills sources refresh` 或下次安装 / 状态解析 |
+| `~/.toolkit/cache/skill-sources/<标识>/` | 远程技能来源的浅克隆缓存 | `toolkit skills source refresh` 或下次安装 / 状态解析 |
 
 ## 迁移与清理
 
@@ -25,7 +25,7 @@ title: 缓存目录
 | 内容 | 位置 | 原因 |
 | --- | --- | --- |
 | 技能状态账本 | `~/.agents/.toolkit-skills.json`、`<repo>/.toolkit/state.json` | 记录已安装技能与选择，不是派生数据 |
-| 使用情况事件 | `~/.toolkit/usage/` | 用户数据，清理需 `toolkit usage purge` |
+| 使用情况事件 | `~/.toolkit/usage/` | 用户数据，清理需 `toolkit usage data purge` |
 | 锁文件 | `~/.agents/.toolkit-skills.lock`、`<repo>/.toolkit/skills.lock` | 运行时互斥状态 |
 
 ## 相关页面

@@ -62,7 +62,7 @@ title: 作用域配置（activation / policies）
 
 `activation.skills` 保留兼容：加载时编译为同层技能策略，优先级高于同层目录规则；未命中时回落目录级。
 新配置建议直接用 `policies` + `skillProfiles`。旧字段在 `scope policy list` 中标注 `legacy` 只读，
-`scope policy reset --all` 不会清除它，需用 `scope reset`。
+`scope policy reset --all` 不会清除它，需用 `scope list reset`。
 
 ## 策略规则
 

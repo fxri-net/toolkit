@@ -250,9 +250,9 @@ describe("emitVersionHint 提示渠道与例外", () => {
     expect(out.log).toHaveLength(0)
   })
 
-  it("--version / --check 只写 stderr；帮助、裸命令、skills path / status、changelog 透传、JSON 全部跳过", () => {
+  it("--version / --check 只写 stderr；帮助、裸命令、skills status、changelog 透传、JSON 全部跳过", () => {
     writeOkCache("9.9.9")
-    for (const argv of [["--version"], ["changelog", "doc", "--check"]]) {
+    for (const argv of [["--version"], ["changelog", "mirror", "--check"]]) {
       const out = captureOutput()
       emitVersionHint("1.0.0", { argv, exitCode: 0 })
       expect(out.err.join("\n")).toContain("9.9.9")
@@ -262,10 +262,11 @@ describe("emitVersionHint 提示渠道与例外", () => {
       [],
       ["--help"],
       ["help", "tasks"],
-      ["skills", "path"],
       ["skills", "status"],
-      ["changelog", "add"],
+      ["skills", "status", "--path"],
+      ["changelog", "changeset", "add"],
       ["changelog", "audit"],
+      ["changelog", "status"],
       ["tasks", "export", "out.csv"],
       ["docs", "theme", "check"],
       ["tasks", "--format", "json"],

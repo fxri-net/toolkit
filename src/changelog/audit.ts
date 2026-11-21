@@ -30,6 +30,57 @@ export interface AuditCandidate {
   entries: AuditEntry[]
 }
 
+// 变更集文件概览：供 release status / changeset list 只读展示
+export interface ChangesetSummary {
+  file: string
+  // 包名 → bump 类型（major / minor / patch）
+  bumps: Record<string, string>
+  // 条目数（以「- 」开头的行）
+  entries: number
+}
+
+// 解析单个变更集：frontmatter 里的包与 bump，正文条目数
+function summarizeChangeset(file: string, content: string): ChangesetSummary {
+  const bumps: Record<string, string> = {}
+  let inFrontmatter = false
+  let entries = 0
+  for (const line of content.split(/\r?\n/)) {
+    if (line.trim() === "---") {
+      inFrontmatter = !inFrontmatter
+      continue
+    }
+    if (inFrontmatter) {
+      const matched = /^"?([^":]+)"?\s*:\s*(major|minor|patch)\s*$/.exec(line.trim())
+      if (matched) bumps[(matched[1] ?? "").trim()] = matched[2] ?? "patch"
+      continue
+    }
+    if (/^\s*-\s+\S/.test(line)) entries += 1
+  }
+  return { file, bumps, entries }
+}
+
+// 列出待发布变更集：跳过 README，按文件名排序
+export function readChangesetSummaries(dir = ".changeset"): ChangesetSummary[] {
+  if (!existsSync(dir)) return []
+  return readdirSync(dir)
+    .filter((name) => name.endsWith(".md") && name !== "README.md")
+    .sort()
+    .map((name) => summarizeChangeset(name, readTextFile(join(dir, name))))
+}
+
+// 渲染变更集概览：文本模式与 JSON 共用同一份数据
+export function formatChangesetSummaries(rows: ChangesetSummary[]): string {
+  if (rows.length === 0) return "未发现待发布变更集"
+  const lines = [`待发布变更集：${rows.length} 个`]
+  for (const row of rows) {
+    const bumps = Object.entries(row.bumps)
+      .map(([name, bump]) => `${name} ${bump}`)
+      .join("、")
+    lines.push(`- ${row.file}：${bumps || "未声明 bump"}；${row.entries} 条`)
+  }
+  return lines.join("\n")
+}
+
 // 渲染审计输出：CLI 与单测共用同一份格式，避免输出文案漂移
 export function formatAuditReport(candidates: AuditCandidate[]): string {
   if (candidates.length === 0) return "未发现需要合并的候选"
