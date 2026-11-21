@@ -119,6 +119,19 @@ describe("planSkillSelection 选择集解析", () => {
     expect(choices.find((choice) => choice.name === optional)?.selected).toBe(true)
     expect(choices.find((choice) => choice.tier === "optional" && choice.name !== optional)?.selected).toBe(false)
   })
+
+  it("交互选项顺序：core 全部先于 optional，组内保持名称升序（两种模式一致）", () => {
+    const skills = listPackageSkills()
+    const tierOf = new Map(skills.map((skill) => [skill.name, skill.tier]))
+    for (const mode of ["skills", "package"] as const) {
+      const names = buildSkillChoices(skills, [], mode).map((choice) => choice.name)
+      const cores = names.filter((name) => tierOf.get(name) === "core")
+      const optionals = names.filter((name) => tierOf.get(name) !== "core")
+      expect(names).toEqual([...cores, ...optionals])
+      expect(cores).toEqual([...cores].sort())
+      expect(optionals).toEqual([...optionals].sort())
+    }
+  })
 })
 
 describe("状态文件新结构与旧结构导入", () => {

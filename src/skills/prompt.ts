@@ -44,9 +44,11 @@ export function optionalSkillNames(skills: PackageSkill[]): string[] {
 }
 
 // 交互选项：skills 模式 core 恒选中；package 模式全部按已保存选择回显（未保存过时全不选）
+// 展示顺序稳定分区：core 在前、optional 在后，组内保持包内名称升序
 export function buildSkillChoices(skills: PackageSkill[], saved?: string[], mode: SkillsMode = "skills"): SkillChoice[] {
   const savedSet = new Set(saved ?? [])
-  return skills.map((skill) => ({
+  const ordered = [...skills.filter((skill) => skill.tier === "core"), ...skills.filter((skill) => skill.tier !== "core")]
+  return ordered.map((skill) => ({
     name: skill.name,
     tier: skill.tier,
     selected: mode === "skills" ? skill.tier === "core" || savedSet.has(skill.name) : savedSet.has(skill.name),

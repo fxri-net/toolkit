@@ -182,7 +182,7 @@ toolkit skills status --path --format json   # JSON 输出：包根、技能源�
 
 ### status --path
 
-`toolkit skills status --path` 输出包根（内含 `skills/`）与 JSON 清单，便于委托上游安装器安装到表外 agent；原 `skills path` 已下沉。
+`toolkit skills status --path` 输出包根（内含 `skills/`）与 JSON 清单，便于委托上游安装器。
 
 `--format json` 统一信封 `{ schemaVersion, command, ok, data, issues }`，下表字段位于 `data`，
 检查问题同时映射到顶层 `issues`。
@@ -215,7 +215,7 @@ toolkit skills status --path --format json   # JSON 输出：包根、技能源�
 1. `--skills <names>`：只装指定技能（逗号分隔）；`skills` 模式下 `core` 技能恒装
    - 包内不存在的名称告警后剔除，全部非法时报错退出（退出码 1）
 2. `--all`：安装全部技能；`--no-optional`：只装 `core` 技能
-3. TTY 交互：未传上述参数且未传 `--yes` 时，以方向键多选列出技能
+3. TTY 交互：未传上述参数且未传 `--yes` 时，以方向键多选列出技能（core 组在前，组内按名称升序）
    - `skills` 模式下 `core` 已选中且不可取消；`package` 模式下全部默认不选、`core` 可取消
    - `Enter` 确认、`Ctrl+C` 取消（取消时不写任何文件，退出码 130）；技能选择页按 ESC 等同取消，目标页与确认页按 ESC 逐级返回
 4. 已保存选择：非 TTY 或传入 `--yes` 时按保存的选择回显（非交互不进入任何提示）
