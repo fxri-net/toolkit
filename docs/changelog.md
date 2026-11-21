@@ -6,6 +6,52 @@ outline: [2, 2]
 
 > 完整变更历史以根 `CHANGELOG.md` 为准，本页由 `toolkit changelog doc` 自动同步，请勿手改。
 
+## 1.17.8
+
+> 2026-11-21 发布
+
+### ✨ 新增功能
+
+- `skillsDelivery` 配置段（`default` + `rules`）与 `toolkit skills plan`，技能分发形态改为单一真源推导——全文 / 入口壳 / 不安装三态，支持 `off` 不安装与残留清理
+- `SKILL.md` 支持 `metadata.delivery`（`full` / `gated`）作为技能包默认形态，用户规则仍可覆盖
+- 作用域策略直接推导分发形态——带条件限制 → 入口壳，无条件拒绝 → 不安装，不再依赖手动开启内容闸门
+- `skills status --explain <技能>` 逐级解释推导过程与被压规则，文本与 JSON 同源，外部来源技能同样参与
+- 项目面按 `skillsDelivery` 落入口壳，真源落 `<仓库根>/.agents/skills/`，`off` 不落产物并由 `--prune` 清理残留
+- `install --check` 只报告待收敛项并以退出码 1 结束；`status` 输出待收敛计数与 `pending` 数组，两者口径一致
+
+### 🔧 功能调整
+
+- `skills gate on|off` 改为只写 `skillsDelivery.default`，不再覆盖已配规则；`--gate` / `--embed` 同样改写新段，项目面实际生效
+- `metadata.gate: false` 提到最高优先级，命令行 `--gate` 不再覆盖技能的单点退出
+
+### ⚡ 优化改进
+
+- `fxri-plan-to-task` 入口由 171 行 / 7937 字符收敛到 149 行 / 约 6800 字符，失败模式表下沉 `references/task-spec.md` §8，闸门与流程语义不变
+- 项目面 `status` 识别入口壳形态与漂移，`scope guard` 优先读取仓库内真源副本
+- `prepare` 钩子改为 `--refresh`，只刷新已存在产物、不新增技能，非 TTY / CI 只打印漂移
+- `skillsInstall.gate` 与 `metadata.gate` 作为旧键读时兼容并提示迁移，2.0.0 起移除
+
+### 🐛 问题修复
+
+- 项目面分发计划把真源目录判成仓库根，安装完成后误报全部技能待收敛
+- 分发计划把未选择的已登记技能误报为「来源不可解析」
+- Node API 未导出文档承诺的 `resolveTasksDir` 与 `configStatus`
+- `toolkit help --help` 把 `--help` 当作命令名并以非 0 退出；根域与 `scope policy`、`scope skills` 同步修正
+- 判定为入口壳但来源不可解析的技能报错中止，不静默降级全文
+- `--check` / `--refresh` 在终端不再进入选择与确认交互；`--refresh` 忽略写选项时向 stderr 告警
+- `--gate` 首次开启提示以 `skillsDelivery.default` 为基线，重复执行不再误报
+- `depends_on` 的 YAML 块状数组写法被静默解析为空，现支持块状数组并与内联数组结果一致
+
+### 📝 文档更新
+
+- 明确多语言 CHANGELOG 镜像在 `--lang` 非默认语言时追加语言后缀
+- CLI help 与 README / FAQ / 快速开始对齐分发形态新模型
+- 任务文件规范补明 `depends_on` 的两种合法写法
+
+### 🧹 清理移除
+
+- 移除 `skills gate` 的无效 `--all` 占位（与 `gate on` 完全等价）
+
 ## 1.17.7
 
 > 2026-11-21 发布
