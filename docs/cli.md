@@ -15,7 +15,7 @@
 | `toolkit skills` | AI 技能分发：安装、状态、卸载、来源与版本 | `install` / `status` / `uninstall` / `sources` / `bump` / `lint` | [skills](./cli/skills) |
 | `toolkit usage` | 技能使用情况：开关、统计、导出与诊断（默认关闭） | `info` / `stats` / `export` / `doctor` | [usage](./cli/usage) |
 | `toolkit rules` | 全局规则：列出模块、组合输出与缓存管理 | `list` / `compose` / `reset` | [rules](./cli/rules) |
-| `toolkit scope` | 作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效） | `status` / `policy` / `skills` / `list` | [scope](./cli/scope) |
+| `toolkit scope` | 作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效） | `status` / `list` / `policy` / `skills` / `wizard` / `guard` / `add` / `exclude` / `remove` / `default` / `reset`（详见 scope 页） | [scope](./cli/scope) |
 | `toolkit config` | 配置分层只读体检 | `status` | [config](./cli/config) |
 | `toolkit docs` | 文档站主题校验与写入、导航与产物校验 | `theme` / `nav` / `dist` | [docs theme](./cli/docs-theme) · [docs 校验](./cli/docs-check) |
 | `toolkit help` | 显示帮助 | — | — |
