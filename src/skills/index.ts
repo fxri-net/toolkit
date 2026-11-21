@@ -3,6 +3,7 @@
 export * from "./types"
 export * from "./config"
 export * from "./delivery"
+export * from "./explain"
 export * from "./policy-delivery"
 export * from "./gate"
 export * from "./plan"

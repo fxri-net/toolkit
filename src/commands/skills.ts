@@ -63,9 +63,7 @@ import {
   BUILTIN_SOURCE,
   gateRulesToDeliveryRules,
   resolveDelivery,
-  explainDelivery,
-  derivePolicyDelivery,
-  loadPolicyDeliveryContext,
+  explainSkillDelivery,
   packageVersion,
   type InstallReport,
   type ProjectDirResult,
@@ -361,16 +359,7 @@ function printPlanReport(report: SkillsPlanReport): void {
 
 // 解释单个技能的分发形态：逐级列出命中 / 未命中与被压规则，回答「为什么是壳 / 为什么不是」
 function printDeliveryExplanation(name: string): void {
-  const config = readSkillsDeliveryConfig("global")
-  const context = loadPolicyDeliveryContext()
-  const skill = listPackageSkills().find((item) => item.name === name)
-  const explanation = explainDelivery({
-    name,
-    config,
-    gate: skill?.gate,
-    packageDefault: skill?.delivery,
-    policy: derivePolicyDelivery(name, context),
-  })
+  const explanation = explainSkillDelivery(name)
   console.log(`技能 ${name} 分发形态：${deliveryModeLabel(explanation.decision.mode)}（${explanation.decision.source}）`)
   for (const level of explanation.levels) {
     console.log(`  ${level.hit ? "命中" : "未命中"}　${level.level}：${level.detail}`)
@@ -1192,13 +1181,8 @@ export function registerSkillsCommands(program: Command): void {
       try {
         if (!assertJsonFormat(options.format)) return
         if (options.explain) {
-          if (options.format === "json") {
-            const config = readSkillsDeliveryConfig("global")
-            const gate = listPackageSkills().find((skill) => skill.name === options.explain)?.gate
-            printJson(explainDelivery({ name: options.explain, config, gate, policy: derivePolicyDelivery(options.explain, loadPolicyDeliveryContext()) }))
-          } else {
-            printDeliveryExplanation(options.explain)
-          }
+          if (options.format === "json") printJson(explainSkillDelivery(options.explain))
+          else printDeliveryExplanation(options.explain)
           return
         }
         const scope = resolveScopeChoice(options.scope)

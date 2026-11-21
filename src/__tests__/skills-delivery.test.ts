@@ -5,6 +5,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import {
+  explainSkillDelivery,
   installSkills,
   listPackageSkills,
   readSkillsDeliveryConfig,
@@ -155,6 +156,10 @@ describe("技能包默认形态", () => {
     expect(skills.find((skill) => skill.name === "demo-gated")?.delivery).toBe("gated")
     expect(skills.find((skill) => skill.name === "demo-bad")?.delivery).toBeUndefined()
     expect(vi.mocked(console.warn).mock.calls.some((call) => String(call[0]).includes("metadata.delivery 非法"))).toBe(true)
+    // 解释接口必须带上技能包默认层级（文本与 JSON 共用同一实现）
+    const explanation = explainSkillDelivery("demo-gated")
+    expect(explanation.decision.mode).toBe("gated")
+    expect(explanation.decision.source).toContain("metadata.delivery")
     // 声明 gated 的技能按入口壳安装
     installSkills({ skills: ["demo-gated"] })
     expect(existsSync(join(primaryDir(), "demo-gated", "SKILL.md"))).toBe(true)
