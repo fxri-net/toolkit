@@ -22,11 +22,12 @@ toolkit skills install --no-save-agents # 目标选择只对本次生效，不�
 toolkit skills install --prune      # 清理未选择且与真源一致的旧产物
 toolkit skills install --mode package # 纯包管理器模式：core 也可不装，允许零选
 toolkit skills install --no-skills  # 仅本次零装，不改模式与已保存选择
-toolkit skills install --gate       # 内容闸门：按 skillsInstall.gate 接管入口壳，--embed 回退
-toolkit skills gate [on|off]        # 查看或切换内容闸门；切换后运行 skills install 生成 / 还原入口壳
+toolkit skills install --gate       # 内容闸门：本次全部技能写入口壳，--embed 回退
+toolkit skills gate [on|off]        # 查看或切换默认分发形态（skillsDelivery.default，不覆盖 rules）
+toolkit skills plan                 # 分发计划：目标 / 当前形态 / 动作与判定来源（install --dry-run 的别名）
 toolkit skills mount --dry-run      # 批量挂载：预览将写入的项目（由 scope mount 迁入，原命令已移除）
-toolkit skills install --copy       # 强制副本（仅全局面；`--gate` 接管技能仍写入口壳并告警）
-toolkit skills install --dry-run    # 预演：只预览将执行的动作，不写文件
+toolkit skills install --copy       # 强制副本（仅全局面；入口壳形态的技能仍写壳并告警）
+toolkit skills install --dry-run    # 预演：输出分发计划，不写文件（skills plan 的别名）
 toolkit skills install --force      # 覆盖同名非本包产物（默认跳过；不改已登记副本形态）
 toolkit skills install --dir <path> # 额外目标目录（可多次；全局面兜底未收录 agent，项目面须在仓库内）
 toolkit skills install --from <path|url> # 临时外部来源（目录或 Git 地址；只写本次，可重复）
@@ -72,8 +73,12 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - **曾用名迁移**：来源声明 `previousNames` 时，旧名产物按归属清理（链接或同内容副本）并回显「已改名迁移：旧名 → 新名」
   - 仅在新名本次已新建 / 更新 / 跳过时清理；新名冲突或失败时保留旧名，沿用既有冲突 / 失败报告
   - 新名写入状态后旧名不再残留
+- **分发形态**：按 [`skillsDelivery`](../config/skills#skillsdelivery-技能分发形态) 推导，`gated` 只写入口壳、`off` 不写产物（残留由 `--prune` 清理）
+  - `--gate` / `--embed` 为本次显式取值，不受已保存配置影响
 - 项目面按[作用域与安装面](../config/skills#作用域与安装面)的副本 + 薄壳口径写入
+- `--dry-run` 是 `skills plan` 的别名：只输出分发计划，不写文件
 - `--format json` 输出机器可读安装报告到 stdout（含 `dryRun` / `scope` 标记与 `selection` / `targetSelection`）
+  - 预演时键为 `plan`（分发计划）与 `project`（项目面安装预览）
   - 各目标另含 `gates`（入口壳）与 `migrated`（旧名 → 现用名）：改名迁移已清理的旧产物记录
 
 非交互语义（`--yes` / `--use-saved` / `--no-save-agents` 的组合结果）：
@@ -93,7 +98,9 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - 文本模式先打印版本检查块（CLI 当前 / 最新、registry 与提示频率），再打印技能真源版本清单、内容闸门开关与当前选择集，最后逐目标报告
 - 选择集之后单列「来源内未选择」的技能（不在选择集、也不计入问题），避免改名 / 新增后静默不可见；零选择时不打印
 - **逐目标状态**：软链正常 / 软链悬空 / 软链指向其他版本 / 副本已同步 / 副本已漂移（本包登记副本与真源不一致）/
-  入口壳已过期（与当前版本不一致）/ 缺失（仅指已选择但缺失）/ 同名冲突（同名非本包产物）/ 未选择但已安装（单列提示，不计入问题）
+  入口壳已过期（与当前版本不一致）/ 形态不符（现场产物与目标分发形态不一致）/ 缺失（仅指已选择但缺失）/
+  同名冲突（同名非本包产物）/ 未选择但已安装（单列提示，不计入问题）/ 残留（目标形态为 `off`，用 `install --prune` 清理）
+- **分发形态**：按 `skillsDelivery` 推导；`off` 的技能不参与缺失统计，其既有产物单列残留
 - 来源中已无此名的悬空条目（改名后未声明曾用名）：`install` 无法补齐，汇总时给出含实际名字的 `uninstall` 命令
 - **健康目标折叠为一行**（`<目标>：<目录>　N 项正常`），仅含问题项或未选择产物的目标逐条展开
 - 末尾汇总需处理条目并按型给出指引：缺失 / 悬空 / 指向其他版本 / 副本漂移 / 入口壳过期用 `install` 补齐，
@@ -128,11 +135,18 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - 项目面按[作用域与安装面](../config/skills#作用域与安装面)清理归属账记载的条目
 - `--format json` 输出机器可读卸载报告到 stdout（含各目标 `dirReclaimed` 回收标记与 `dryRun` / `scope` 标记）
 
+### plan
+
+- 逐技能列出目标形态 / 当前形态 / 动作（保持 / 建壳 / 换全文 / 清理）与判定来源、原因
+- 只读现场：选择与目标按非交互口径解析，不写配置；`--scope project` 暂提示项目面尚未接入（后续版本）
+- `install --dry-run` 是同一实现的别名；`--format json` 输出 `{ scope, plan }`
+
 ### gate
 
-- 无参数查看开关与接管规则（`skillsInstall.gate` 归一后的 include / exclude）
-- `skills gate on|off` 只写开关配置，之后运行 `toolkit skills install` 生成入口壳或还原全文
-- `--format json` 输出 `{ enabled, rules }`；非法取值报错退出 1，配置不变
+- 无参数查看默认分发形态（`skillsDelivery.default`）与规则条数
+- `skills gate on|off` 只写 `skillsDelivery.default`（on → `gated`、off → `full`），**不覆盖 `skillsDelivery.rules`**
+- `--all` 是显式全量写法，与 `gate on` 等价；旧口径的「全体接管」需保证没有更具体的 `rules`
+- `--format json` 输出 `{ default, rules }`；非法取值报错退出 1，配置不变
 
 ### mount
 

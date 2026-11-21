@@ -209,6 +209,10 @@ export type SkillItemState =
   | "copy-drift"
   | "gate"
   | "gate-drift"
+  // 现场产物形态与目标分发形态不一致（如目标入口壳但现场是全文）
+  | "form-drift"
+  // 目标形态为 off，现场仍有本包残留（不参与缺失统计，用 install --prune 清理）
+  | "residue"
   | "missing"
   | "conflict"
   | "not-selected"
@@ -258,10 +262,12 @@ export interface SkillsStatusReport {
   skills: string[]
   // 当前生效的安装模式
   mode: SkillsMode
-  // 内容闸门是否开启
+  // 内容闸门是否开启（旧键口径，保留供兼容消费）
   gate: boolean
   // 内容闸门接管规则（开关关闭时仍给出默认值，便于展示）
   gateRules: GateRules
+  // 本次选择集按分发形态推导的计数：全文 / 入口壳 / 不安装
+  delivery: Record<"full" | "gated" | "off", number>
   // 本次生效的技能选择集（未保存过选择时按模式默认处理）
   selection: string[]
   // 本次生效的目标选择集（canonical / agent name；空数组表示沿用全部可用目标）

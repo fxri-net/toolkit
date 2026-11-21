@@ -436,7 +436,8 @@ describe("顶层命令与外部域", () => {
   it("skills gate 查询与非法取值", async () => {
     const query = await runCli(["skills", "gate", "--format", "json"])
     expect(query.code).toBe(0)
-    expect(query.log.join("\n")).toContain('"enabled"')
+    expect(query.log.join("\n")).toContain('"default": "full"')
+    expect(query.log.join("\n")).toContain('"rules"')
 
     const bad = await runCli(["skills", "gate", "bogus"])
     expect(bad.code).toBe(1)

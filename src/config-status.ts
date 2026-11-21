@@ -74,6 +74,7 @@ export const CONFIG_KNOWN_SECTIONS: readonly string[] = [
   "updateCheck",
   "skills",
   "skillsInstall",
+  "skillsDelivery",
   "projectSkills",
   "usage",
   "docs",

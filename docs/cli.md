@@ -12,7 +12,7 @@
 | `toolkit tasks` | 任务管理：总览、归档、校验、归一、统计、导入导出 | `archive` / `check` / `normalize` / `stats` / `export` / `import` | [任务管理](./cli/tasks) |
 | `toolkit conventions` | 规范载体：结构升级、表格与索引单元格归一、只读体检 | `upgrade` / `status` / `format` | [规范载体](./cli/conventions) |
 | `toolkit changelog` | 多语言 CHANGELOG（封装 changesets） | `version` / `format` / `doc` / `audit` | [发版与更新日志](./cli/changelog) |
-| `toolkit skills` | AI 技能分发：安装、状态、卸载、来源与版本 | `install` / `status` / `uninstall` / `sources` / `bump` / `lint` | [技能分发](./cli/skills) |
+| `toolkit skills` | AI 技能分发：安装、分发计划、状态、卸载、来源与版本 | `install` / `plan` / `status` / `uninstall` / `gate` / `sources` / `bump` / `lint` | [技能分发](./cli/skills) |
 | `toolkit usage` | 技能使用情况：开关、统计、导出与诊断（默认关闭） | `info` / `stats` / `export` / `doctor` | [技能使用情况](./cli/usage) |
 | `toolkit rules` | 全局规则：列出模块、组合输出与缓存管理 | `list` / `compose` / `reset` | [全局规则](./cli/rules) |
 | `toolkit scope` | 作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效） | `status` / `list` / `policy` / `skills` / `wizard` / `guard` / `add` / `exclude` / `remove` / `default` / `reset`（详见 scope 页） | [作用域](./cli/scope) |
@@ -29,6 +29,7 @@
 | 新会话恢复 | `toolkit tasks --view all` + `toolkit conventions status` |
 | 发版 | `toolkit changelog version` → `pnpm verify` → 打标签发布 |
 | 技能升级 / 换装 | `toolkit skills status` → `toolkit skills install`（外部来源见 `skills sources`） |
+| 看分发形态会怎么落 | `toolkit skills plan`（只读预览；`install --dry-run` 同义） |
 | 看技能用了多少次 | `toolkit usage stats`（`--by session` / `--by trigger` / `--limit`） |
 | 复制全局规则 | `toolkit rules compose`（按需 `--preset` / `--module`，`--copy` 直接进剪贴板） |
 | 规范沉淀 | `toolkit conventions status` → `toolkit conventions upgrade` / `format` |

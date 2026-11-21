@@ -7,7 +7,11 @@ import { getHomeDir, inspectConfigLayers, resetToolkitConfigCache } from "../con
 import { compilePattern } from "../scope/pattern"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
+import { gateRulesToDeliveryRules, type DeliveryMode, type DeliveryRule, type SkillsDeliveryConfig } from "./delivery"
 import { BUILTIN_SOURCE, type GateRules, type SkillsMode } from "./types"
+
+// 分发形态集合：解析与告警共用，避免两处枚举漂移
+const DELIVERY_MODES: readonly DeliveryMode[] = ["full", "gated", "off"]
 
 // 外部来源登记：本地来源记 root（绝对路径），远程来源记 url 与可选 ref
 export interface ExternalSourceConfig {
@@ -189,6 +193,146 @@ function parseGatePatterns(value: unknown, field: string, file: string | null): 
   return out
 }
 
+// 安装面：全局面读全局层 + 本地层，项目面另读项目层（段级覆盖全局、本地层字段级覆盖）
+export type SkillsDeliveryFace = "global" | "project"
+
+// 读取分发形态配置：按安装面合层后解析；旧键仅在无 skillsDelivery 段时映射，读时只提示不写盘
+export function readSkillsDeliveryConfig(face: SkillsDeliveryFace = "global", startDir = process.cwd()): SkillsDeliveryConfig {
+  const layers = inspectConfigLayers(startDir)
+  // 全局面不读项目层：项目层配置只对项目面生效，误写时告警并按未配置处理
+  if (face === "global" && layers.project.config?.skillsDelivery !== undefined && isPlainObject(layers.project.config.skillsDelivery)) {
+    warnOnce(
+      `${layers.project.file ?? ""}\u0000skillsDelivery\u0000global-face`,
+      `⚠️ 忽略配置段「skillsDelivery」${layers.project.file ? `（${layers.project.file}）` : ""}：全局面不读取项目层配置，该段仅对项目面生效`,
+    )
+  }
+  const globalSection = asDeliverySection(layers.global.config?.skillsDelivery)
+  const projectSection = face === "project" ? asDeliverySection(layers.project.config?.skillsDelivery) : undefined
+  const localSection = asDeliverySection(layers.local.config?.skillsDelivery)
+  // 段级覆盖：项目层整段覆盖全局；本地层再按字段覆盖（rules 为数组，本地层写出时整体替换）
+  const merged = mergeDeliverySections(projectSection ?? globalSection, localSection)
+  const legacy = readLegacyGate(layers.global.config?.skillsInstall)
+  if (merged) {
+    if (legacy) {
+      warnOnce(
+        "skillsDelivery\u0000legacy-ignored",
+        "⚠️ 忽略旧配置「skillsInstall.gate」：已由配置段「skillsDelivery」接管，旧键不再生效（2.0.0 起移除兼容）",
+      )
+    }
+    return parseDeliverySection(merged)
+  }
+  if (legacy) {
+    warnOnce(
+      "skillsDelivery\u0000legacy-migrated",
+      "⚠️ 检测到旧配置「skillsInstall.gate」：已按「skillsDelivery」等价值读取，建议迁移（2.0.0 起移除兼容）",
+    )
+    return legacy
+  }
+  return { rules: [] }
+}
+
+// 只接受普通对象作为配置段：数组与标量已由配置加载统一告警剔除
+function asDeliverySection(value: unknown): Record<string, unknown> | undefined {
+  return isPlainObject(value) ? value : undefined
+}
+
+// 段内字段级合并：本地层显式写出的字段覆盖基准段，null / undefined 视为未写
+function mergeDeliverySections(
+  base: Record<string, unknown> | undefined,
+  overlay: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!base && !overlay) return undefined
+  const merged: Record<string, unknown> = { ...(base ?? {}) }
+  for (const [field, value] of Object.entries(overlay ?? {})) {
+    if (value === undefined || value === null) continue
+    merged[field] = value
+  }
+  return merged
+}
+
+// 解析合并后的段：default 与 rules 各自校验，非法项告警后剔除，其余内容不影响
+function parseDeliverySection(section: Record<string, unknown>): SkillsDeliveryConfig {
+  return {
+    default: parseDeliveryMode("default", section.default),
+    rules: parseDeliveryRules(section.rules),
+  }
+}
+
+// 形态枚举解析：非法取值告警一次并按未配置处理
+function parseDeliveryMode(field: string, value: unknown): DeliveryMode | undefined {
+  if (value === undefined) return undefined
+  if (typeof value === "string" && DELIVERY_MODES.includes(value as DeliveryMode)) return value as DeliveryMode
+  warnInvalid("skillsDelivery", field, null, "须为 full / gated / off")
+  return undefined
+}
+
+// 规则数组解析：match 逐条编译校验，非法模式与非法枚举告警剔除；无有效 match 的规则整条丢弃
+function parseDeliveryRules(value: unknown): DeliveryRule[] {
+  if (value === undefined) return []
+  if (!Array.isArray(value)) {
+    warnInvalid("skillsDelivery", "rules", null, "须为规则数组")
+    return []
+  }
+  const out: DeliveryRule[] = []
+  value.forEach((item, index) => {
+    const field = `rules[${index}]`
+    if (!isPlainObject(item)) {
+      warnInvalid("skillsDelivery", field, null, "规则须为对象")
+      return
+    }
+    if (!Array.isArray(item.match)) {
+      warnInvalid("skillsDelivery", `${field}.match`, null, "须为字符串数组")
+      return
+    }
+    const patterns: string[] = []
+    for (const raw of item.match) {
+      if (typeof raw !== "string" || raw.trim() === "") {
+        warnInvalid("skillsDelivery", `${field}.match`, null, "含非字符串或空项，已剔除")
+        continue
+      }
+      const compiled = compilePattern(raw.trim())
+      if (!compiled.ok) {
+        warnInvalid("skillsDelivery", `${field}.match`, null, `规则「${raw.trim()}」${compiled.reason}，已剔除`)
+        continue
+      }
+      patterns.push(raw.trim())
+    }
+    if (patterns.length === 0) {
+      warnInvalid("skillsDelivery", `${field}.match`, null, "无有效规则，整条规则已剔除")
+      return
+    }
+    if (item.delivery === undefined) {
+      warnInvalid("skillsDelivery", `${field}.delivery`, null, "缺少 delivery")
+      return
+    }
+    const delivery = parseDeliveryMode(`${field}.delivery`, item.delivery)
+    if (delivery === undefined) return
+    out.push({ match: [...new Set(patterns)], delivery, origin: "config" })
+  })
+  return out
+}
+
+// 旧键映射：gate 布尔值转为全局默认；include / exclude 转为等价规则并保留排除优先
+function readLegacyGate(section: unknown): SkillsDeliveryConfig | undefined {
+  if (!isPlainObject(section)) return undefined
+  const value = section.gate
+  if (value === undefined) return undefined
+  if (typeof value === "boolean") return { default: value ? "gated" : "full", rules: [] }
+  if (isPlainObject(value)) {
+    const include = parseGatePatterns(value.include, "include", null) ?? ["*"]
+    const exclude = parseGatePatterns(value.exclude, "exclude", null) ?? []
+    return { rules: gateRulesToDeliveryRules({ include, exclude }) }
+  }
+  return undefined
+}
+
+// 告警去重：同一「文件 + 主题」只提示一次，供配置读取与状态命令复用
+function warnOnce(key: string, message: string): void {
+  if (warned.has(key)) return
+  warned.add(key)
+  console.warn(message)
+}
+
 // 取内置源的选择集：未保存过选择时返回 undefined，由调用方回落「全部技能」
 export function readSavedSelection(config: SkillsInstallConfig): string[] | undefined {
   return config.selection?.[BUILTIN_SOURCE]
@@ -222,6 +366,11 @@ function writeConfigSection(file: string, sectionName: string, patch: Record<str
 // 写全局技能安装偏好：只合并 skillsInstall 段；写入失败向上抛出，由调用方决定是否继续
 export function writeSkillsInstallConfig(patch: Partial<SkillsInstallConfig>): void {
   writeConfigSection(join(getHomeDir(), ".toolkitrc.json"), "skillsInstall", patch as Record<string, unknown>)
+}
+
+// 写全局分发形态默认值：只合并 skillsDelivery.default，已有 rules 原样保留（gate 命令降为语法糖）
+export function writeSkillsDeliveryDefault(value: DeliveryMode): void {
+  writeConfigSection(join(getHomeDir(), ".toolkitrc.json"), "skillsDelivery", { default: value })
 }
 
 // 写项目技能安装偏好：定位最近的项目层配置；不存在则在 cwd 下新建

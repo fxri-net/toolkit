@@ -32,7 +32,8 @@ import {
 } from "./source"
 import { projectStateFile, readProjectState, readSkillsState, skillsStateFile } from "./state"
 import { resolveSavedProjectSelection, resolveSavedSelection, type SelectionSkill } from "./selection"
-import { readProjectSkillsConfig, readSkillsInstallConfig } from "./config"
+import { readProjectSkillsConfig, readSkillsDeliveryConfig, readSkillsInstallConfig } from "./config"
+import { resolveDelivery, type DeliveryDecision } from "./delivery"
 import { resolveGateSetting } from "./gate"
 import { readTextFile } from "../read-text"
 import {
@@ -62,6 +63,8 @@ interface SkillRef {
   tier: SkillTier
   // 曾用名：改名后按别名迁移选择集与状态
   previousNames: string[]
+  // 技能包旧声明 metadata.gate：false 时退出内容接管，参与分发形态推导
+  gate?: boolean
   // 版本取自状态登记（来源真源不可读）：展示层需标注，避免冒充当期真源版本
   fromState?: boolean
 }
@@ -100,6 +103,7 @@ function collectStatusSources(state: ReturnType<typeof readSkillsState>): { refs
         linkTarget: kind === "builtin" ? join(root, "skills", item.name) : item.dir,
         tier: item.tier,
         previousNames: item.previousNames,
+        gate: item.gate,
       })
     }
   }
@@ -116,6 +120,7 @@ function collectStatusSources(state: ReturnType<typeof readSkillsState>): { refs
       linkTarget: item.linkTarget,
       tier: item.tier,
       previousNames: item.previousNames,
+      gate: item.gate,
     })
   }
 
@@ -219,6 +224,7 @@ function statusItems(
   names: string[],
   selected: Set<string>,
   refs: Map<string, SkillRef>,
+  decisionOf: (name: string) => DeliveryDecision,
   recorded?: SkillStateTarget,
   targetSelected = true,
 ): SkillStatusItem[] {
@@ -255,6 +261,16 @@ function statusItems(
       } else if (ref && existsSync(ref.dir) && isSameDir(ref.dir, dest)) state = isSelected ? "copy" : "installed-unselected"
       else state = entries.get(name)?.mode === "copy" ? "copy-drift" : "conflict"
     } else state = isSelected ? "missing" : "not-selected"
+    // 分发形态对齐：只暴露「实际 ≠ 目标」；off 不把无产物算缺失，残留单列待清理
+    const decision = decisionOf(name)
+    if (decision.mode === "off") {
+      if (state === "missing" || state === "not-selected") state = "not-selected"
+      else if (state !== "conflict" && state !== "wrong" && state !== "dangling") state = "residue"
+    } else if (decision.mode === "gated") {
+      if (state === "link" || state === "copy") state = "form-drift"
+    } else if (state === "gate" || state === "gate-drift") {
+      state = "form-drift"
+    }
     if (state !== "not-selected") items.push({ name, state, version: ref?.version ?? "", source: ref?.source ?? "" })
   }
   return items
@@ -280,6 +296,11 @@ export function skillsStatus(): SkillsStatusReport {
       ? []
       : allNames.filter((name) => refs.get(name)!.tier === "core")
   const baseSelected = new Set(selection)
+  // 分发形态：与安装共用同一解析器；按本次选择集统计，供状态头部与收敛提示使用
+  const deliveryConfig = readSkillsDeliveryConfig("global")
+  const decisionOf = (name: string): DeliveryDecision => resolveDelivery({ name, config: deliveryConfig, gate: refs.get(name)?.gate })
+  const delivery: Record<"full" | "gated" | "off", number> = { full: 0, gated: 0, off: 0 }
+  for (const name of selection) delivery[decisionOf(name).mode] += 1
   const savedTargets = config.targets && config.targets.length > 0 ? config.targets : undefined
   const targetSelectedByName = (name: string): boolean => !savedTargets || savedTargets.includes(name)
   const targets = resolveSkillTargets([])
@@ -309,7 +330,7 @@ export function skillsStatus(): SkillsStatusReport {
     resolved.add(pathKey(target.dir))
     const selected = selectedFor(recorded)
     const targetSelected = target.name ? targetSelectedByName(target.name) : true
-    const items = statusItems(target.dir, statusNames(selected, recorded, presentSkillNames(target.dir, knownNames)), selected, refs, recorded, targetSelected)
+    const items = statusItems(target.dir, statusNames(selected, recorded, presentSkillNames(target.dir, knownNames)), selected, refs, decisionOf, recorded, targetSelected)
     if (!targetSelected && items.length === 0) continue
     out.push({
       dir: target.dir,
@@ -331,7 +352,7 @@ export function skillsStatus(): SkillsStatusReport {
     const selected = selectedFor(target)
     const targetName = nameByDir.get(pathKey(target.dir)) ?? ""
     const targetSelected = targetName ? targetSelectedByName(targetName) : true
-    const items = statusItems(target.dir, statusNames(selected, target, presentSkillNames(target.dir, knownNames)), selected, refs, target, targetSelected)
+    const items = statusItems(target.dir, statusNames(selected, target, presentSkillNames(target.dir, knownNames)), selected, refs, decisionOf, target, targetSelected)
     if (!targetSelected && items.length === 0) continue
     out.push({
       dir: target.dir,
@@ -353,6 +374,7 @@ export function skillsStatus(): SkillsStatusReport {
     mode,
     gate: gateSetting.enabled,
     gateRules: gateSetting.rules,
+    delivery,
     selection,
     targetSelection: savedTargets ?? [],
     sources,

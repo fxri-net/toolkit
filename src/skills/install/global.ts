@@ -7,8 +7,9 @@ import { writeFileAtomic } from "../../write-atomic"
 import { assertUniqueSkillNames, buildSkillGateShell, classifyExisting, isSameDir, isEmptyDir, isSkillGateShell, pathKey, isPathPresent, readSkillDescription, removeArtifact, resolveSkillTargets, resolveTargetsByName, skillTargetLabel, skillsSourceDir, sourceSkillItems, targetId, writeArtifact, writeGateArtifact, type SkillSource } from "../source"
 import { acquireSkillsLock, skillsLockFile } from "../lock"
 import { readSkillsState, skillsStateFile, writeSkillsState } from "../state"
-import { readSkillsInstallConfig, writeSkillsInstallConfig } from "../config"
-import { isSkillGated, resolveGateSetting } from "../gate"
+import { readSkillsDeliveryConfig, readSkillsInstallConfig, writeSkillsInstallConfig } from "../config"
+import { gateRulesToDeliveryRules, resolveDelivery, type DeliveryDecision, type DeliveryMode } from "../delivery"
+import { resolveGateSetting } from "../gate"
 import { SKILL_ENTRY, STATE_FORMAT, STATE_SCHEMA_VERSION, type InstallReport, type RemoveResult, type SkillStateEntry, type SkillStateSource, type SkillStateTarget, type SkillItem, type SkillsRemoveReport, type TargetInstallResult } from "../types"
 import { collectSources, filterSkillItems, canRemoveOrphanArtifact, pruneEntries, sourceSkillMap, type InstallOptions, type RemoveSkillsOptions } from "./common"
 
@@ -18,8 +19,17 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
   const allItems = sources.flatMap(sourceSkillItems)
   assertUniqueSkillNames(allItems)
   const items = filterSkillItems(allItems, options.skills)
-  const selected = new Set(items.map((item) => item.name))
   const byName = new Map(allItems.map((item) => [item.name, { dir: item.dir, linkTarget: item.linkTarget }]))
+  // 分发形态：命令行显式取值 > skillsDelivery 配置 > 旧键兼容；命令行取值时配置规则不参与
+  const gateOption = options.gate
+  const deliveryConfig = gateOption === undefined ? readSkillsDeliveryConfig("global") : { rules: [] }
+  const cliRules = gateOption !== undefined && typeof gateOption === "object" ? gateRulesToDeliveryRules(gateOption) : []
+  const override: DeliveryMode | undefined = gateOption === true ? "gated" : gateOption === false ? "full" : undefined
+  const decisions = new Map<string, DeliveryDecision>(
+    items.map((item) => [item.name, resolveDelivery({ name: item.name, config: deliveryConfig, rules: cliRules, override, gate: item.gate })]),
+  )
+  // off 不写产物，也不参与缺失统计；其残留只在 --prune 时清理，故从修剪选择集里排除
+  const selected = new Set(items.filter((item) => decisions.get(item.name)!.mode !== "off").map((item) => item.name))
   // 目标选择：显式参数 > 已保存选择 > 全部可用目标；--dir 始终一次性追加，不参与长期选择
   const savedTargets = readSkillsInstallConfig().targets
   const requestedTargets = options.targets ?? (savedTargets && savedTargets.length > 0 ? savedTargets : undefined)
@@ -54,10 +64,8 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
     for (const source of sources) nextBySource.set(source.name, [])
     const handled = new Set<string>()
     const results: TargetInstallResult[] = []
-    // 内容闸门：--gate / --embed 显式取值优先，缺省读全局配置；规则由配置对象提供
+    // 旧闸门键：显式 --gate / --embed 取值优先，缺省读全局配置；仅供首开提示与持久化
     const previousGate = readSkillsInstallConfig().gate
-    const gateSetting = resolveGateSetting(options.gate === undefined ? previousGate : options.gate)
-    const gateEnabled = gateSetting.enabled
 
     for (const target of targets) {
       const dirKey = pathKey(target.dir)
@@ -80,14 +88,17 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
       }
       const entriesBySource = new Map<string, SkillStateEntry[]>()
       for (const item of items) {
+        const decision = decisions.get(item.name)!
+        // off：目标形态不安装产物；既有残留不在此处理，交由 --prune 按归属清理
+        if (decision.mode === "off") continue
         const dest = join(target.dir, item.name)
         const kind = classifyExisting(dest, item.linkTarget)
         // 既有登记：本目标该来源下此技能此前的落点形态——决定产物归属与裸 install 的形态
         const recordedEntry = prevBySourceDir.get(item.source)?.get(dirKey)?.entries.find((entry) => entry.name === item.name)
         const recordedCopyHere = recordedEntry?.mode === "copy"
         const recordedGateHere = recordedEntry?.mode === "gate"
-        // 内容闸门按规则判定，技能可用 metadata.gate: false 单点退出；其余技能不受开关影响，保持全文
-        if (gateEnabled && isSkillGated(item.name, item.gate, gateSetting.rules)) {
+        // 入口壳形态：只写薄壳，正文由 scope guard 按作用域下发
+        if (decision.mode === "gated") {
           const expected = buildSkillGateShell(item.name, readSkillDescription(item.dir))
           const gateFile = join(dest, SKILL_ENTRY)
           const current = kind === "dir" && existsSync(gateFile) ? readTextFile(gateFile) : null

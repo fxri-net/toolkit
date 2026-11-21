@@ -39,7 +39,7 @@ title: 技能分发偏好（skills）
 | `targets` | string[] | 无 | 长期目标选择：`canonical`（主目标）与各 agent 的 `name`（如 `claude-code`、`cursor`）。安装 / 交互选择后写回；未保存过时首次写全部可用目标；`--no-save-agents` 不写回；`--dir` 自定义目录不进入本字段 |
 | `sources` | object | 无 | 永久外部来源登记：本地来源写 `{ "root": "<绝对路径>" }`，远程来源写 `{ "url": "<Git 地址>", "ref": "<可选 ref>" }`。由 `toolkit skills install --from <path|url> --save [name]` 写入；启动时自动解析并纳入安装 / 状态，远程来源使用用户级缓存 `~/.toolkit/cache/skill-sources/`，来源失效时告警跳过 |
 | `mode` | string | `skills` | 安装模式：`skills`（core 必装）/ `package`（纯包管理器，全部可选、允许零选）；由 `toolkit skills install --mode` 写入，非法值告警后按 `skills` 处理 |
-| `gate` | boolean \| object | `false` | 内容闸门：`true` 开启并按默认规则全量接管；也可写 `{ "include": ["fxri-*"], "exclude": ["fxri-text-encoding"] }`（技能名 glob 或 `re:`，排除优先）裁剪范围。技能可用 `SKILL.md` 的 `metadata.gate: false` 单点退出，非法取值会告警并按未声明处理。开启后按规则把技能改写为入口壳，正文由 `toolkit scope guard` 按作用域下发；由 `toolkit skills gate on\|off`、`toolkit skills install --gate` / `--embed` 写入（安装成功后才落盘，`--dry-run` 与存在失败条目不写），之后裸 `install` 沿用。只影响全局面 |
+| `gate` | boolean \| object | `false` | **旧键**（建议迁移到 `skillsDelivery`，2.0.0 起移除兼容）：`true` 开启并按默认规则全量接管；也可写 `{ "include": ["fxri-*"], "exclude": ["fxri-text-encoding"] }`（技能名 glob 或 `re:`，排除优先）裁剪范围。技能可用 `SKILL.md` 的 `metadata.gate: false` 单点退出，非法取值会告警并按未声明处理。读取时映射为等价的 `skillsDelivery` 配置；由 `toolkit skills install --gate` / `--embed` 写入（安装成功后才落盘，`--dry-run` 与存在失败条目不写），之后裸 `install` 沿用。只影响全局面 |
 
 ```json
 {
@@ -57,6 +57,50 @@ title: 技能分发偏好（skills）
 ⚠️ **仅认全局层**：`skillsInstall` 只从全局层 `~/.toolkitrc.json` 读取；
 写在项目层 `.toolkitrc.json` 或本地层 `.toolkitrc.local.json` 时向 **stderr** 告警并忽略（不静默生效）。写入时只合并 `skillsInstall` 段、
 保留同文件其他配置段，写前备份 `.bak`、写后原子落盘并失效配置缓存。
+
+## skillsDelivery：技能分发形态
+
+每个技能只有一种分发形态，由本段单源推导，三态互斥且穷尽：
+
+| 形态 | 含义 | 落盘 |
+| --- | --- | --- |
+| `full` | 全文安装，到处可用（默认） | 软链 / 副本 |
+| `gated` | 只放入口壳，正文由 `toolkit scope guard` 按作用域下发 | 薄壳 |
+| `off` | 不安装；已装残留不自动删除，`install --prune` 才清理 | 无产物 |
+
+| 字段 | 类型 | 默认 | 说明 |
+| --- | --- | --- | --- |
+| `default` | string | `full` | 未命中规则时的默认形态：`full` / `gated` / `off`；非法值告警后按未配置处理 |
+| `rules` | array | `[]` | 显式规则：`{ "match": ["fxri-*"], "delivery": "gated" }`，`match` 任一模式命中即生效（技能名 glob 或 `re:`）。同一技能命中多条时按具体度取胜（命中模式数 → 字面量长度 → 书写顺序），具体度相同取最后一条并向 **stderr** 提示被压规则；非法模式与非法枚举告警后剔除 |
+
+推导优先级（高 → 低）：命令行显式取值 → 技能声明 `metadata.gate: false`（旧键，按全文）→ `skillsDelivery.rules` → `skillsDelivery.default` → 默认全文。
+
+**按安装面读取**：全局面读全局层 + 本地层（项目层写法告警并按未配置处理）；项目面读全局层 + 项目层 + 本地层——
+项目层整段覆盖全局、本地层按字段覆盖。本版项目面仍只做全文副本与薄壳，入口壳待后续版本接入。
+
+**旧键兼容**（读时映射、只提示不写盘，2.0.0 起移除）：
+
+- `skillsInstall.gate: true` → `default: "gated"`；`skillsInstall.gate: { include, exclude }` → 等价的 `rules`
+  （include → `gated`、exclude → `full`，排除优先）
+- `SKILL.md` 的 `metadata.gate: false` → 该技能按全文安装
+- 新旧并存时以 `skillsDelivery` 为准，旧键被忽略并在 **stderr** 告警
+
+`toolkit skills gate on|off` 只写本段 `default`，不覆盖 `rules`；`toolkit skills install --gate` / `--embed` 仍是本次安装的显式取值。
+
+```json
+{
+  "skillsDelivery": {
+    "default": "full",
+    "rules": [
+      { "match": ["fxri-plan-*", "fxri-session-*"], "delivery": "gated" },
+      { "match": ["fxri-docs-writing"], "delivery": "off" }
+    ]
+  }
+}
+```
+
+`off` 的技能不参与 `skills status` 的缺失统计；既有产物在 `status` 单列为残留，
+`toolkit skills install --prune` 才按归属清理，`toolkit skills plan` 中显示为「清理」。
 
 ## projectSkills：项目面技能安装偏好
 

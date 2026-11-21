@@ -24,6 +24,10 @@ import {
   installSkills,
   listPackageSkills,
   planSkillSelection,
+  planSkills,
+  deliveryModeLabel,
+  readSkillsDeliveryConfig,
+  writeSkillsDeliveryDefault,
   projectSkillsStatus,
   promptConfirm,
   promptSkillSelection,
@@ -56,19 +60,20 @@ import {
   isValidVersion,
   lintSkills,
   BUILTIN_SOURCE,
-  gateRuleSummary,
-  isSkillGated,
-  resolveGateSetting,
+  gateRulesToDeliveryRules,
+  resolveDelivery,
   packageVersion,
   type InstallReport,
   type ProjectDirResult,
   type ProjectInstallReport,
   type ProjectItemState,
   type ProjectRemoveReport,
+  type CurrentForm,
   type ProjectStatusReport,
   type SkillItem,
   type SkillItemState,
   type SkillsMode,
+  type SkillsPlanReport,
   type SkillsRemoveReport,
   type SkillsStatusReport,
   type SkillLintReport,
@@ -125,6 +130,8 @@ const SKILL_STATE_LABEL: Record<SkillItemState, string> = {
   "copy-drift": "副本已漂移（与真源不一致）",
   gate: "入口壳（正文由 toolkit scope guard 按作用域下发）",
   "gate-drift": "入口壳已过期（与当前版本不一致，运行 toolkit skills install 刷新）",
+  "form-drift": "产物形态与目标分发形态不一致（运行 toolkit skills install 收敛）",
+  residue: "分发形态为 off，存在残留（运行 toolkit skills install --prune 清理）",
   missing: "缺失",
   conflict: "同名冲突（非本包产物）",
   "not-selected": "未选择",
@@ -132,7 +139,7 @@ const SKILL_STATE_LABEL: Record<SkillItemState, string> = {
 }
 
 // 需要处理的异常状态：status 汇总提示与 install 修复范围
-const SKILL_PROBLEM_STATES: SkillItemState[] = ["dangling", "wrong", "copy-drift", "gate-drift", "missing", "conflict"]
+const SKILL_PROBLEM_STATES: SkillItemState[] = ["dangling", "wrong", "copy-drift", "gate-drift", "form-drift", "missing", "conflict"]
 
 // 技能选择面：全局面取全局层配置，项目面取项目层配置
 type SkillSelectionFace = "global" | "project"
@@ -306,20 +313,67 @@ function printInstallReport(report: InstallReport, dryRun: boolean): void {
   if (dryRun) console.log("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行")
 }
 
+// 计划动作文案：保持 / 建壳 / 换全文 / 清理
+const PLAN_ACTION_LABEL: Record<"keep" | "shell" | "full" | "clean", string> = {
+  keep: "保持",
+  shell: "建壳",
+  full: "换全文",
+  clean: "清理",
+}
+
+// 当前形态文案：无产物与漂移单列，其余复用形态文案
+function currentFormLabel(current: CurrentForm): string {
+  if (current === "none") return "无产物"
+  if (current === "drift") return "漂移"
+  return deliveryModeLabel(current)
+}
+
+// 打印分发计划：逐目标逐技能列出动作、目标形态与判定来源；skills plan 与 install --dry-run 共用
+function printPlanReport(report: SkillsPlanReport): void {
+  console.log(`[预演] 技能分发计划：${report.skills.length} 个技能 · ${report.targets.length} 个目标`)
+  for (const t of report.targets) {
+    console.log("")
+    console.log(`${t.label}：${t.dir}`)
+    for (const item of t.items) {
+      const target = deliveryModeLabel(item.target)
+      const form = item.current === "none" ? target : `${currentFormLabel(item.current)} → ${target}`
+      console.log(`  ${PLAN_ACTION_LABEL[item.action]}　${item.name}　${form}　← ${item.source}（${item.reason}）`)
+    }
+    for (const m of t.migrations) console.log(`  [预演] 已改名迁移：${m.from} → ${m.to}`)
+  }
+  console.log("")
+  if (report.skippedTargets.length > 0) {
+    console.log(
+      line.hint(`本机未检测到的 agent ${report.skippedTargets.length} 个已跳过（不凭空创建目录）；如需装到未识别的 agent：toolkit skills install --dir <其全局技能目录>`),
+    )
+  }
+  console.log(`[预演] 状态文件：${report.stateFile}`)
+  console.log(
+    report.pending > 0
+      ? `[预演] 待收敛 ${report.pending} 项：执行 toolkit skills install 应用`
+      : "[预演] 全部已就绪，无需写入",
+  )
+}
+
 // 打印现场状态：先列技能真源版本基准，再逐目标报状态——健康目标折叠为一行，仅异常目标逐条展开，末尾汇总
 // 多 agent 机器上目标数可达十余个，逐技能刷「软链正常」会把真正的问题淹没在噪音里
 function printStatusReport(report: SkillsStatusReport): void {
   console.log(`技能源：${report.source}`)
   console.log(`技能版本：${skillVersionLine(report)}`)
-  // 闸门状态按实际产物分流：开关已开但尚未生成入口壳时，不能让用户以为已是入口壳形态
+  // 闸门状态按实际产物分流：已判定入口壳但尚未生成产物时，不能让用户以为已是入口壳形态
   const gateArtifacts = report.targets.reduce((count, target) => count + target.items.filter((item) => item.state === "gate").length, 0)
-  const gateText = !report.gate
-    ? "未开启（全文安装）"
-    : gateArtifacts > 0
-      ? `已开启（${gateArtifacts} 个入口壳，正文由 toolkit scope guard 下发）`
-      : "已开启（尚未生成入口壳产物，运行 toolkit skills install 生效）"
+  const gateText =
+    report.delivery.gated === 0
+      ? "未开启（全文安装）"
+      : gateArtifacts > 0
+        ? `已开启（${gateArtifacts} 个入口壳，正文由 toolkit scope guard 下发）`
+        : "已开启（尚未生成入口壳产物，运行 toolkit skills install 生效）"
   console.log(`内容闸门：${gateText}`)
-  if (report.gate) console.log(`闸门规则：${gateRuleSummary(report.gateRules)}`)
+  if (report.delivery.gated > 0 || report.delivery.off > 0) {
+    console.log(
+      `分发形态（本次选择）：全文 ${report.delivery.full} / 入口壳 ${report.delivery.gated} / 不安装 ${report.delivery.off}`,
+    )
+  }
   console.log(`选择集（${report.selection.length}）：${report.selection.join("、") || "无"}`)
   // 来源内存在但未选择的技能：改名 / 新增后不再静默不可见；零选择时不刷全量清单
   const unselectedSkills = report.selection.length > 0 ? findUnselectedSkills(report) : []
@@ -334,6 +388,7 @@ function printStatusReport(report: SkillsStatusReport): void {
   console.log(`状态文件：${report.stateFile}${report.stateExists ? "" : "（未记录，尚未执行过 toolkit skills install）"}`)
   let problems = 0
   let unselectedCount = 0
+  let residueCount = 0
   // 来源已无此名的旧名残留：install 无法补齐，汇总时给出含实际名字的可复制命令
   let staleNameCount = 0
   const staleNames = new Set<string>()
@@ -341,13 +396,15 @@ function printStatusReport(report: SkillsStatusReport): void {
     const head = `${t.label}：${t.dir}${t.dirExists ? "" : "（目录未创建）"}${t.selected ? "" : "（未选择）"}`
     const bad = t.items.filter((item) => SKILL_PROBLEM_STATES.includes(item.state))
     const unselected = t.items.filter((item) => item.state === "installed-unselected")
+    const residues = t.items.filter((item) => item.state === "residue")
     problems += bad.length
     unselectedCount += unselected.length
+    residueCount += residues.length
     for (const item of bad) if (item.source === "") staleNames.add(item.name)
     staleNameCount += bad.filter((item) => item.source === "").length
     console.log("")
     // 健康目标折叠为一行：逐技能刷「软链正常」在目标多时纯属噪音（完整信息另见 --format json）
-    if (bad.length === 0 && unselected.length === 0) {
+    if (bad.length === 0 && unselected.length === 0 && residues.length === 0) {
       console.log(`${head}　${t.items.length} 项正常`)
       continue
     }
@@ -358,7 +415,8 @@ function printStatusReport(report: SkillsStatusReport): void {
       console.log(`  ${item.name}：${SKILL_STATE_LABEL[item.state]}${hint}`)
     }
     for (const item of unselected) console.log(`  ${item.name}：未选择但已安装（保留不影响使用，需要清理时加 --prune 重跑 install）`)
-    const ok = t.items.length - bad.length - unselected.length
+    for (const item of residues) console.log(`  ${item.name}：${SKILL_STATE_LABEL[item.state]}`)
+    const ok = t.items.length - bad.length - unselected.length - residues.length
     if (ok > 0) console.log(`  其余 ${ok} 项正常`)
   }
   if (report.pendingAgents.length > 0) {
@@ -403,6 +461,9 @@ function printStatusReport(report: SkillsStatusReport): void {
   }
   if (unselectedCount > 0) {
     console.log(line.hint(`未选择但已安装 ${unselectedCount} 项：保留不影响使用，需要清理时运行 toolkit skills install --prune`))
+  }
+  if (residueCount > 0) {
+    console.log(line.hint(`分发形态为 off 的残留 ${residueCount} 项：运行 toolkit skills install --prune 清理`))
   }
   // 软链落点是写入穿透形态：改落点文件等于改真源，需在报告末尾点明纪律，避免用户误在落点上编辑
   const linkCount = report.targets.reduce((n, t) => n + t.items.filter((i) => i.state === "link").length, 0)
@@ -787,7 +848,7 @@ export function registerSkillsCommands(program: Command): void {
     .option("--force", "覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）")
     .option("--prune", "清理未选择且内容与本包真源一致的旧产物（只清本包登记条目）")
     .option("--mode <mode>", "技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）")
-    .option("--gate", "开启内容闸门：按 skillsInstall.gate 规则接管技能为入口壳，正文由 toolkit scope guard 按作用域下发（仅全局面）")
+    .option("--gate", "开启内容闸门：本次全部技能写入口壳，正文由 toolkit scope guard 按作用域下发（仅全局面）")
     .option("--embed", "回退内容闸门：把入口壳改回全文（仅全局面）")
     .option("--no-skills", "本次不安装任何技能，不改模式与已保存选择")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
@@ -916,19 +977,55 @@ export function registerSkillsCommands(program: Command): void {
           break
         }
         const selection = selectionResult.names
-        // 模式切换在技能选择解析后、安装前持久化；--dry-run 不写
-        if (options.mode !== undefined && !dryRun) {
+        // 内容闸门开关由安装结果决定落盘时机（成功后才写），此处只计算本次取值
+        const gateOption = options.gate ? true : options.embed ? false : undefined
+        // --dry-run 是 skills plan 的别名：只预览分发计划，不写任何文件
+        if (dryRun) {
+          const plan = runGlobal
+            ? planSkills({ skills: selection, targets: globalTargets, dirs: options.dir, externalSources, gate: gateOption })
+            : null
+          const preview = runProject
+            ? installProjectSkills({
+                dirs: options.dir,
+                dryRun: true,
+                force: options.force,
+                skills: selection,
+                targetDirs: projectTargets,
+                saveTargets: options.saveAgents === false ? false : undefined,
+                prune: Boolean(options.prune),
+                externalSources,
+                saveSelection: selectionResult.saveSelection,
+                mode: selectionResult.mode,
+              })
+            : null
+          if (options.format === "json") printJson({ dryRun, scope: scope.choice, plan, project: preview })
+          else {
+            console.log(scopeHeadline(scope))
+            console.log("")
+            if (plan) printPlanReport(plan)
+            if (preview) printProjectInstallReport(preview, true)
+          }
+          return
+        }
+        // 模式切换在技能选择解析后、安装前持久化
+        if (options.mode !== undefined) {
           const mode = options.mode as SkillsMode
           if (scope.choice === "global" || scope.choice === "all") writeSkillsInstallConfig({ mode })
           if (scope.choice === "project" || scope.choice === "all") writeProjectSkillsConfig({ mode })
         }
-        // 内容闸门开关由安装结果决定落盘时机（成功后才写），此处只计算本次取值
-        const gateOption = options.gate ? true : options.embed ? false : undefined
-        const gateSetting = resolveGateSetting(gateOption === undefined ? readSkillsInstallConfig().gate : gateOption)
-        // 降级不静默：闸门生效时被接管的技能以入口壳写入，--copy 对其无法采纳
-        if (options.copy && runGlobal && gateSetting.enabled) {
-          const gated = selection.filter((name) => isSkillGated(name, undefined, gateSetting.rules))
-          if (gated.length > 0) console.warn(`⚠️ 内容闸门下 ${gated.join("、")} 以入口壳写入，--copy 对其不生效`)
+        // 降级不静默：判定为入口壳的技能以壳写入，--copy 对其无法采纳
+        if (options.copy && runGlobal) {
+          const deliveryConfig = gateOption === undefined ? readSkillsDeliveryConfig("global") : { rules: [] }
+          const gated = selection.filter(
+            (name) =>
+              resolveDelivery({
+                name,
+                config: deliveryConfig,
+                rules: gateOption !== undefined && typeof gateOption === "object" ? gateRulesToDeliveryRules(gateOption) : [],
+                override: gateOption === true ? "gated" : gateOption === false ? "full" : undefined,
+              }).mode === "gated",
+          )
+          if (gated.length > 0) console.warn(`⚠️ 分发形态为入口壳的 ${gated.join("、")} 只写入口壳，--copy 对其不生效`)
         }
         if (runProject && options.copy) console.warn("⚠️ 项目面不支持 --copy（真源恒为副本、各候选目录恒为薄壳），已忽略该项目面取值")
         const saveTargets = options.saveAgents === false ? false : undefined
@@ -1595,12 +1692,64 @@ export function registerSkillsCommands(program: Command): void {
       }
     })
 
-  // 内容闸门：查询 / 切换只写配置；入口壳由 install 生成或还原
+  // 分发计划：逐技能给出目标 / 当前形态与动作，install --dry-run 的别名
+  skillsCmd
+    .command("plan")
+    .description("预览技能分发计划（目标形态 / 当前形态 / 动作与判定来源；install --dry-run 的别名）")
+    .option("--scope <scope>", "作用域（global 全局面；项目面分发形态在后续版本接入）")
+    .option("--skills <names>", "只预览指定技能（逗号分隔）")
+    .option("--all", "预览全部技能（含可选技能）")
+    .option("--no-optional", "只预览 core 技能")
+    .option("--agent <names>", "只预览指定 agent（逗号分隔，含 canonical）")
+    .option("--all-agents", "预览全部已检测的 agent")
+    .option("--dir <path>", "额外目标目录（可多次指定）", collectDir, [])
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
+    .action(async (options: { scope?: string; skills?: string; all?: boolean; optional?: boolean; agent?: string; allAgents?: boolean; dir: string[]; format?: string }) => {
+      try {
+        if (!assertJsonFormat(options.format)) return
+        const scope = resolveScopeChoice(options.scope)
+        if (!scope) return
+        if (scope.choice === "project") {
+          console.warn("⚠️ 项目面分发形态尚未接入，本次未生成计划")
+          return
+        }
+        if (scope.choice === "all") console.warn("⚠️ 项目面分发形态尚未接入，本次只预览全局面")
+        let items: SkillItem[]
+        try {
+          items = collectSkillItems({ dryRun: true })
+        } catch (e) {
+          console.error(`⚠️ 技能来源解析失败：${(e as Error).message}`)
+          process.exitCode = 1
+          return
+        }
+        // 只读预览：选择与目标都按非交互口径解析，不写入任何配置
+        const selection = await resolveSkillSelection(
+          { skills: options.skills, all: options.all, optional: options.optional, yes: true },
+          "global",
+          items,
+        )
+        if (!selection) return
+        const targets = await chooseGlobalTargets({ agent: options.agent, allAgents: options.allAgents, yes: true, dir: options.dir })
+        if (targets === null) return
+        const plan = planSkills({ skills: selection.names, targets, dirs: options.dir })
+        if (options.format === "json") printJson({ scope: "global", plan })
+        else {
+          console.log(scopeHeadline({ choice: "global", explicit: scope.explicit }))
+          printPlanReport(plan)
+        }
+      } catch (e) {
+        console.error(`⚠️ 生成分发计划失败：${(e as Error).message}`)
+        process.exitCode = 1
+      }
+    })
+
+  // 内容闸门默认形态：on / off 写 skillsDelivery.default，不覆盖已有 rules；入口壳由 install 生成或还原
   skillsCmd
     .command("gate [value]")
-    .description("查看或切换内容闸门（on / off；切换后运行 toolkit skills install 生成或还原入口壳）")
+    .description("查看或切换内容闸门默认形态（on = 默认入口壳 / off = 默认全文；不覆盖 skillsDelivery.rules）")
+    .option("--all", "显式全量口径：与 gate on 等价，仅写默认形态")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
-    .action((value: string | undefined, options: { format?: string }) => {
+    .action((value: string | undefined, options: { all?: boolean; format?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return
         if (value !== undefined && value !== "on" && value !== "off") {
@@ -1608,18 +1757,20 @@ export function registerSkillsCommands(program: Command): void {
           process.exitCode = 1
           return
         }
-        if (value !== undefined) writeSkillsInstallConfig({ gate: value === "on" })
-        const setting = resolveGateSetting(readSkillsInstallConfig().gate)
+        if (value !== undefined) writeSkillsDeliveryDefault(value === "on" ? "gated" : "full")
+        const config = readSkillsDeliveryConfig("global")
+        const enabled = config.default === "gated"
         if (options.format === "json") {
-          printJson({ enabled: setting.enabled, rules: setting.rules })
+          printJson({ default: config.default ?? "full", rules: config.rules })
           return
         }
-        console.log(`内容闸门：${setting.enabled ? `已开启（${gateRuleSummary(setting.rules)}）` : "未开启（全文安装）"}`)
+        console.log(`内容闸门：${enabled ? "已开启（默认入口壳，正文由 toolkit scope guard 下发）" : "未开启（全文安装）"}`)
+        if (config.rules.length > 0) console.log(`分发规则：${config.rules.length} 条（优先级高于默认形态）`)
         console.log(
           line.hint(
             value === undefined
-              ? "切换开关：toolkit skills gate on|off；生成入口壳：toolkit skills install"
-              : "运行 toolkit skills install 生成入口壳；关闭后运行同一命令还原全文",
+              ? "切换默认形态：toolkit skills gate on|off；生成入口壳：toolkit skills install"
+              : "运行 toolkit skills install 生成入口壳或还原全文",
           ),
         )
       } catch (e) {
