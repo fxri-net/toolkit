@@ -4,7 +4,7 @@ import { relative } from "node:path"
 import { LIST_PAGE_SIZE, requireInteractive } from "../prompts"
 import { installProjectSkills, listPackageSkills } from "../skills"
 import { line } from "../term-style"
-import { askCheckbox, askConfirm, askInput, askSelect, runMenu } from "../cli-ui"
+import { askCheckbox, askConfirm, askInput, askSelect, reportWrite, runMenu } from "../cli-ui"
 import { applyScopePlan } from "./apply"
 import { layerConfigTarget, type ConfigLayer } from "./config-file"
 import {
@@ -19,11 +19,13 @@ import {
   stringList,
   type ScopeState,
 } from "./edit"
+import { applyPolicyPlan, describePolicyPlan, planPolicyAdd, readPolicyState } from "./edit-policy"
 import { resolveScope } from "./load"
 import { matchPathPattern } from "./pattern"
 import { resolveComparablePath } from "./paths"
 import { scanRepositories, scanRepositoryTree, type ScanOptions } from "./plan"
 import { displayPath, formatStatus } from "./print"
+import type { PolicySkills, ScopeCondition } from "./types"
 
 // 配置层人读名
 const LAYER_LABEL: Record<ConfigLayer, string> = {
@@ -353,6 +355,196 @@ export async function runScopeMount(parent?: string, dryRun = false): Promise<vo
   }
 }
 
+// 分隔输入：逗号 / 分号 / 换行统一拆分
+function splitList(value: string): string[] {
+  return value
+    .split(/[,，;\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+// 条件摘要：矩阵预览用
+function describeCondition(when: ScopeCondition): string {
+  const parts: string[] = []
+  if (when.paths?.length) parts.push(`路径 ${when.paths.join("、")}`)
+  if (when.subpaths?.length) parts.push(`子路径 ${when.subpaths.join("、")}`)
+  if (when.markers?.length) parts.push(`标记 ${when.markers.join("、")}`)
+  if (when.gitRemotes?.length) parts.push(`远端 ${when.gitRemotes.join("、")}`)
+  return parts.join("；") || "全部目录"
+}
+
+// 技能维度摘要：矩阵预览用
+function describeMatrixSkills(mode: "allowlist" | "denylist", profiles: string[], skills: string[]): string {
+  if (mode === "allowlist") {
+    return `只允许 ${[profiles.length ? `档案 ${profiles.join("、")}` : "", skills.join("、")].filter(Boolean).join("、")}`
+  }
+  return `排除 ${skills.join("、")}`
+}
+
+// 矩阵作用范围：当前项目 / 手动输入项目与子路径 / 扫描选择
+async function pickMatrixWhen(state: ScopeState): Promise<ScopeCondition | null> {
+  const source = await runMenu<string>({
+    message: "矩阵作用范围",
+    back: true,
+    choices: [
+      { name: "当前项目", value: "cwd" },
+      { name: "手动输入项目与子路径", value: "manual" },
+      { name: "扫描选择项目", value: "scan" },
+    ],
+  })
+  if (source === "back" || source === "exit") return null
+  if (source === "cwd") return { paths: [state.target.root ?? state.startDir] }
+  if (source === "manual") {
+    const project = await askInput({ message: "项目根目录（留空用当前目录）", default: "" })
+    if (project === null) return null
+    const subpath = await askInput({ message: "子路径（相对项目根，留空表示整个项目）", default: "" })
+    if (subpath === null) return null
+    const when: ScopeCondition = {
+      paths: [resolveComparablePath(project.trim() || state.startDir, state.startDir)],
+    }
+    if (subpath.trim()) when.subpaths = [subpath.trim()]
+    return when
+  }
+  const picked = await pickFromScan()
+  if (!picked || picked.length === 0) return null
+  return { paths: picked }
+}
+
+// 技能矩阵：在指定层内按技能维度生成一条策略，复用策略计划与写盘
+async function skillMatrixFlow(state: ScopeState): Promise<void> {
+  let current: ReturnType<typeof readPolicyState>
+  try {
+    current = readPolicyState(state.layer, state.startDir)
+  } catch (error) {
+    console.error(`⚠️ ${(error as Error).message}`)
+    return
+  }
+  console.log("")
+  console.log(`技能矩阵 · ${LAYER_LABEL[state.layer]}`)
+  console.log(`配置：${displayPath(state.target.file)}`)
+  console.log(`已有策略：${current.raw.length} 条　档案：${Object.keys(current.profiles).length} 个`)
+
+  let when: ScopeCondition | null = null
+  let mode: "allowlist" | "denylist" | null = null
+  let selection: { skills: string[]; profiles: string[] } | null = null
+  for (;;) {
+    if (!when) {
+      when = await pickMatrixWhen(state)
+      if (!when) return
+    }
+    if (!mode) {
+      const value = await runMenu<string>({
+        message: "矩阵模式",
+        back: true,
+        choices: [
+          { name: "只允许列出的技能", value: "allowlist" },
+          { name: "全部允许，只排除列出的技能", value: "denylist" },
+        ],
+      })
+      if (value === "back") {
+        when = null
+        continue
+      }
+      if (value === "exit") return
+      if (value !== "allowlist" && value !== "denylist") continue
+      mode = value
+    }
+    if (!selection) {
+      const profiles = resolveScope(state.startDir).profiles
+      const packageSkills = listPackageSkills().map((skill) => skill.name)
+      const choices: Array<{ name: string; value: string }> = []
+      if (mode === "allowlist") {
+        for (const profile of profiles) {
+          choices.push({
+            name: `[档案] ${profile.name}（允许 ${profile.allow.length} 项）`,
+            value: `profile::${profile.name}`,
+          })
+        }
+      }
+      for (const name of packageSkills) choices.push({ name: `[技能] ${name}`, value: `skill::${name}` })
+      if (choices.length === 0) {
+        console.log(
+          line.hint(
+            mode === "allowlist"
+              ? "没有可用技能或档案：请先安装技能，或用 toolkit scope skills profile 创建档案"
+              : "没有可用技能：请先安装技能",
+          ),
+        )
+        return
+      }
+      const picked = await askCheckbox({
+        message: "选择技能 / 档案（空格切换，回车确认）",
+        choices,
+        pageSize: LIST_PAGE_SIZE,
+      })
+      if (picked === null) {
+        mode = null
+        continue
+      }
+      if (picked.length === 0) {
+        console.log(line.hint("未选择技能，已取消"))
+        return
+      }
+      selection = {
+        skills: picked.filter((value) => value.startsWith("skill::")).map((value) => value.slice("skill::".length)),
+        profiles: picked
+          .filter((value) => value.startsWith("profile::"))
+          .map((value) => value.slice("profile::".length)),
+      }
+    }
+
+    const markers = await askInput({ message: "启用标记（逗号分隔，留空跳过）", default: "" })
+    if (markers === null) {
+      selection = null
+      continue
+    }
+    const remotes = await askInput({ message: "git 远端（逗号分隔，留空跳过）", default: "" })
+    if (remotes === null) {
+      selection = null
+      continue
+    }
+    const condition: ScopeCondition = { ...when }
+    if (markers.trim()) condition.markers = splitList(markers)
+    if (remotes.trim()) condition.gitRemotes = splitList(remotes)
+    const skillsConfig: PolicySkills =
+      mode === "allowlist"
+        ? {
+            mode: "allowlist",
+            ...(selection.skills.length > 0 ? { allow: selection.skills } : {}),
+            ...(selection.profiles.length > 0 ? { profiles: selection.profiles } : {}),
+          }
+        : { mode: "denylist", deny: selection.skills }
+
+    console.log(`范围：${describeCondition(condition)}`)
+    console.log(`技能：${describeMatrixSkills(mode, selection.profiles, selection.skills)}`)
+    let plan: ReturnType<typeof planPolicyAdd>
+    try {
+      plan = planPolicyAdd(readPolicyState(state.layer, state.startDir), {
+        name: "技能矩阵",
+        effect: "allow",
+        when: condition,
+        skills: skillsConfig,
+      })
+    } catch (error) {
+      console.error(`⚠️ ${(error as Error).message}`)
+      selection = null
+      continue
+    }
+    console.log("")
+    console.log("作用域：技能矩阵")
+    for (const text of describePolicyPlan(plan)) console.log(`  ${text}`)
+    const confirmed = await askConfirm({ message: "继续写入？", default: true })
+    if (confirmed === null) {
+      selection = null
+      continue
+    }
+    if (!confirmed) return
+    const file = applyPolicyPlan(plan)
+    reportWrite({ file, notes: plan.changes })
+    return
+  }
+}
+
 // 无参入口：状态优先菜单，循环直到退出
 export async function runScopeWizard(): Promise<void> {
   if (!requireInteractive({ action: "作用域向导", hint: "非交互请使用 toolkit scope status / list / add / exclude / remove / default / reset" })) return
@@ -377,6 +569,7 @@ export async function runScopeWizard(): Promise<void> {
       { name: `切换默认值（当前：${modeLabel(state.mode)}）…`, value: "default" },
       { name: "清除限制", value: "reset" },
       { name: "高级规则（标记 / git 远端 / 技能级）", value: "advanced" },
+      { name: "技能矩阵（按技能维度限制）…", value: "matrix" },
       { name: "切换配置层…", value: "layer" },
     )
     const action = await runMenu({ message: "要做什么", choices })
@@ -389,6 +582,7 @@ export async function runScopeWizard(): Promise<void> {
     else if (action === "default") await defaultFlow(state)
     else if (action === "reset") await resetFlow(state)
     else if (action === "advanced") printStateDetails(state, true)
+    else if (action === "matrix") await skillMatrixFlow(state)
     else if (action === "layer") {
       const next = await pickLayer(layer)
       if (next) layer = next

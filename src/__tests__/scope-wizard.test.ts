@@ -5,6 +5,7 @@ import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { setHomeDirForTest } from "../config"
 import { runScopeWizard } from "../scope/wizard"
+import * as skills from "../skills"
 
 // 提示应答队列：按调用顺序消费
 const answers = vi.hoisted(() => ({
@@ -33,6 +34,15 @@ let configFile = ""
 
 function seed(activation: Record<string, unknown>): void {
   writeFileSync(configFile, `${JSON.stringify({ activation }, null, 2)}\n`)
+}
+
+// 整份配置：技能矩阵需要 skillProfiles 等段
+function seedConfig(config: Record<string, unknown>): void {
+  writeFileSync(configFile, `${JSON.stringify(config, null, 2)}\n`)
+}
+
+function readConfig(): Record<string, unknown> {
+  return JSON.parse(readFileSync(configFile, "utf8")) as Record<string, unknown>
 }
 
 function readActivation(): Record<string, unknown> {
@@ -134,5 +144,97 @@ describe("条目管理与默认值", () => {
     expect(activation.mode).toBe("all")
     expect(activation.include).toEqual([])
     expect(activation.exclude).toEqual([])
+  })
+})
+
+describe("技能矩阵", () => {
+  // 读取矩阵写入的唯一策略
+  function matrixPolicy(): Record<string, unknown> {
+    const policies = readConfig().policies as Array<Record<string, unknown>> | undefined
+    expect(policies).toHaveLength(1)
+    return policies![0]!
+  }
+
+  it("只允许模式写入 allowlist 技能策略", async () => {
+    answers.select.push("global", "matrix", "cwd", "allowlist", "exit")
+    answers.checkbox.push(["skill::fxri-plan-review"])
+    answers.input.push("", "")
+    answers.confirm.push(true)
+    await runScopeWizard()
+    const policy = matrixPolicy()
+    expect(policy.name).toBe("技能矩阵")
+    expect(policy.effect).toBe("allow")
+    expect(policy.when).toEqual({ paths: [process.cwd()] })
+    expect(policy.skills).toEqual({ mode: "allowlist", allow: ["fxri-plan-review"] })
+  })
+
+  it("全部允许模式只收集排除项", async () => {
+    answers.select.push("global", "matrix", "cwd", "denylist", "exit")
+    answers.checkbox.push(["skill::fxri-text-encoding"])
+    answers.input.push("", "")
+    answers.confirm.push(true)
+    await runScopeWizard()
+    expect(matrixPolicy().skills).toEqual({ mode: "denylist", deny: ["fxri-text-encoding"] })
+  })
+
+  it("只允许模式可同时勾选档案与技能", async () => {
+    seedConfig({
+      activation: { mode: "all", include: [], exclude: [] },
+      skillProfiles: { front: { allow: ["fxri-*"] } },
+    })
+    answers.select.push("global", "matrix", "cwd", "allowlist", "exit")
+    answers.checkbox.push(["profile::front", "skill::fxri-plan-review"])
+    answers.input.push("", "")
+    answers.confirm.push(true)
+    await runScopeWizard()
+    expect(matrixPolicy().skills).toEqual({
+      mode: "allowlist",
+      profiles: ["front"],
+      allow: ["fxri-plan-review"],
+    })
+  })
+
+  it("高级条件写入标记与远端", async () => {
+    answers.select.push("global", "matrix", "cwd", "allowlist", "exit")
+    answers.checkbox.push(["skill::fxri-plan-review"])
+    answers.input.push("AGENTS.md", "github.com/acme/**")
+    answers.confirm.push(true)
+    await runScopeWizard()
+    expect(matrixPolicy().when).toEqual({
+      paths: [process.cwd()],
+      markers: ["AGENTS.md"],
+      gitRemotes: ["github.com/acme/**"],
+    })
+  })
+
+  it("空场景给出提示且不写空规则", async () => {
+    vi.spyOn(skills, "listPackageSkills").mockReturnValue([])
+    answers.select.push("global", "matrix", "cwd", "allowlist", "exit")
+    const log = vi.spyOn(console, "log")
+    await runScopeWizard()
+    expect(log.mock.calls.flat().join("\n")).toContain("没有可用技能或档案")
+    expect(readConfig().policies).toBeUndefined()
+  })
+
+  it("ESC 从范围选择返回主菜单，不写配置", async () => {
+    answers.select.push("global", "matrix", "back", "exit")
+    await runScopeWizard()
+    expect(readConfig().policies).toBeUndefined()
+  })
+
+  it("ESC 从模式选择返回上一层，可重新选择后继续写入", async () => {
+    answers.select.push("global", "matrix", "cwd", "back", "cwd", "allowlist", "exit")
+    answers.checkbox.push(["skill::fxri-plan-review"])
+    answers.input.push("", "")
+    answers.confirm.push(true)
+    await runScopeWizard()
+    expect(matrixPolicy().skills).toEqual({ mode: "allowlist", allow: ["fxri-plan-review"] })
+  })
+
+  it("未勾选技能时取消，不写配置", async () => {
+    answers.select.push("global", "matrix", "cwd", "allowlist", "exit")
+    answers.checkbox.push([])
+    await runScopeWizard()
+    expect(readConfig().policies).toBeUndefined()
   })
 })
