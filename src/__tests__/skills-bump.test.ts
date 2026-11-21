@@ -1,6 +1,6 @@
 // 技能版本递增：两处版本声明同源改写、多根目录、两处不一致的显式取舍、写回前 lint 校验
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { bumpSkillVersions } from "../skills/bump"
@@ -113,6 +113,16 @@ describe("bumpSkillVersions", () => {
     writeSkill(root, "fxri-alpha", { version: "1.0.0", bodyVersion: "0.9.0" })
     expect(() => bumpSkillVersions({ skillsDirs: [root], names: ["fxri-alpha"] })).toThrow("两处版本不一致")
     const [result] = bumpSkillVersions({ skillsDirs: [root], names: ["fxri-alpha"], from: "body" })
+    expect(result).toMatchObject({ from: "0.9.0", to: "0.9.1" })
+    expect(versions("fxri-alpha")).toEqual({ frontmatter: "0.9.1", body: "0.9.1" })
+  })
+
+  it("技能根为链接别名时，写回前校验按真实路径命中", () => {
+    writeSkill(root, "fxri-alpha", { version: "1.0.0", bodyVersion: "0.9.0" })
+    // CI runner 的临时目录常是别名（macOS /var → /private/var、Windows 短名 / 长名），真实路径与别名须同一口径
+    const alias = join(second, "alias-root")
+    symlinkSync(root, alias, process.platform === "win32" ? "junction" : "dir")
+    const [result] = bumpSkillVersions({ skillsDirs: [alias], names: ["fxri-alpha"], from: "body" })
     expect(result).toMatchObject({ from: "0.9.0", to: "0.9.1" })
     expect(versions("fxri-alpha")).toEqual({ frontmatter: "0.9.1", body: "0.9.1" })
   })

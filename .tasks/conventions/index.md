@@ -28,7 +28,7 @@
 | C-16 | 提交规则单一真源 | 改提交信息规则时：真源为 `templates/rules/commit.md`，两处投影逐字同步 | common | [commit.md](../../templates/rules/commit.md) 及两处投影 |
 | C-17 | 测试不复刻实现 | 写派生 / 镜像逻辑测试时：期望直接调用真实实现，不在测试内重写 | common | [AGENTS.md](../../AGENTS.md) 验收方式 |
 | C-22 | 门禁单源与时点 | 改验收或发版：只认 `verify.mjs`，关卡发布前，归档→验收→提交 | common | [AGENTS.md](../../AGENTS.md)、`scripts/verify.mjs`、[task-spec.md](../../skills/fxri-plan-to-task/references/task-spec.md) §6 |
-| C-23 | 测试现场形态 | 写模拟现场的测试时：每种真实现场形态都要有用例，不得只造一种 | testing | [testing.md](./testing.md) |
+| C-23 | 测试现场形态 | 写模拟现场的测试时：每种真实现场形态都要有用例，不得只造一种（路径写法含真实路径与链接别名） | testing | [testing.md](./testing.md) |
 | C-25 | 版本括注 | 写文档时：版本括注只标单一能力点首次引入且紧邻对象，演进史交 CHANGELOG | docs | [docs.md](./docs.md) |
 | C-26 | 降级不静默 | 处理用户显式传值时：无法采纳须 stderr 告警并说明回落，否则非 0 退出 | common | [AGENTS.md](../../AGENTS.md) 协作流程约束 |
 | C-28 | 规则落门禁 | 新增可检出要求时：同批补检测入口，且置于不可逆动作之前 | common | [common.md](./common.md) |

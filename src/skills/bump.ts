@@ -1,10 +1,11 @@
 // 技能版本递增：只改 SKILL.md 的 frontmatter metadata.version 与正文首部「本技能版本」两处
 // 支持多根目录；写回前用目标内容跑一遍 lint（内存校验，不落盘），任一失败即整体中止
 import { existsSync, readdirSync } from "node:fs"
-import { join, resolve } from "node:path"
+import { join } from "node:path"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
 import { lintSkills } from "./lint"
+import { realPath } from "./source/paths"
 import {
   bumpVersion,
   readBodyVersionFromContent,
@@ -83,7 +84,8 @@ function collectSkills(dirs: string[]): Map<string, SkillEntry> {
 
 // 递增技能版本：逐项校验、可选预演；任一失败即抛错，不写半截
 export function bumpSkillVersions(options: BumpOptions): BumpResult[] {
-  const dirs = [...new Set(options.skillsDirs.map((dir) => resolve(dir)))]
+  // 技能根按真实路径归一：与 lint 的 target.dir 同口径，避免链接别名（macOS /var、Windows 短名）导致覆盖键失配
+  const dirs = [...new Set(options.skillsDirs.map((dir) => realPath(dir)))]
   if (dirs.length === 0) throw new Error("未指定技能目录")
   const available = collectSkills(dirs)
   if (!options.all && (!options.names || options.names.length === 0)) throw new Error("请指定技能名，或使用 --all 批量递增")
