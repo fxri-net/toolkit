@@ -1,6 +1,6 @@
 // install --check：有漂移时退出码 1，收敛后退出码 0（供 CI 门禁消费）
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from "vitest"
-import { mkdirSync, rmSync } from "node:fs"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 
 // 沙箱路径：home 指向临时目录，产物不外溢
@@ -97,5 +97,48 @@ describe("install --check", () => {
 
     const refresh = await runCli(["skills", "install", "--scope", "project", "--refresh"])
     expect(refresh.code).toBe(0)
+  })
+
+  it("已登记但来源不可解析的条目计入待收敛，与 status 同口径", async () => {
+    rmSync(join(home, ".agents"), { recursive: true, force: true })
+    rmSync(join(home, ".toolkitrc.json"), { force: true })
+    mkdirSync(join(home, ".agents"), { recursive: true })
+    writeFileSync(
+      join(home, ".agents", ".toolkit-skills.json"),
+      JSON.stringify({
+        format: "fxri.toolkit.skills-state",
+        schemaVersion: 1,
+        updatedAt: new Date().toISOString(),
+        sources: {
+          ext: {
+            kind: "local",
+            version: "",
+            temporary: false,
+            root: "",
+            targets: [
+              {
+                id: "primary",
+                dir: join(home, ".agents", "skills"),
+                label: "canonical",
+                kind: "primary",
+                entries: [{ name: "ghost-skill", version: "1.0.0", mode: "link" }],
+              },
+            ],
+          },
+        },
+      }),
+    )
+    writeFileSync(
+      join(home, ".toolkitrc.json"),
+      JSON.stringify({ skillsInstall: { selection: { ext: ["ghost-skill"], toolkit: ["fxri-plan-to-task"] } } }),
+    )
+
+    const check = await runCli(["skills", "install", "--check", "--scope", "global"])
+    expect(check.code).toBe(1)
+    expect(check.log.join("\n")).toContain("ghost-skill")
+
+    const status = await runCli(["skills", "status", "--scope", "global", "--format", "json"])
+    const payload = JSON.parse(status.log.join("\n")) as { global: { pending: Array<{ name: string }> } }
+    expect(payload.global.pending.some((item) => item.name === "ghost-skill")).toBe(true)
   })
 })

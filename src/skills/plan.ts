@@ -3,11 +3,11 @@
 import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { readTextFile } from "../read-text"
-import { readSkillsDeliveryConfig, readSkillsInstallConfig } from "./config"
+import { readProjectSkillsConfig, readSkillsDeliveryConfig, readSkillsInstallConfig } from "./config"
 import { gateRulesToDeliveryRules, resolveDelivery, type DeliveryDecision, type DeliveryMode } from "./delivery"
 import { derivePolicyDelivery, loadPolicyDeliveryContext } from "./policy-delivery"
 import { assertUniqueSkillNames, buildSkillGateShell, buildSkillShell, classifyExisting, isSameDir, isSkillGateShell, readSkillDescription, readSkillShellVersion, resolveProjectTargets, resolveSkillTargets, resolveTargetsByName, sourceSkillItems } from "./source"
-import { projectStateFile, readProjectState, skillsStateFile } from "./state"
+import { projectStateFile, readProjectState, readSkillsState, skillsStateFile } from "./state"
 import { PROJECT_SOURCE_DIR, SKILL_ENTRY, type GateRules, type TargetKind } from "./types"
 import { collectSources, filterSkillItems, type ExternalSourceOption } from "./install/common"
 
@@ -129,6 +129,27 @@ export function planSkills(options: PlanOptions = {}): SkillsPlanReport {
     ]),
   )
 
+  // 归属账登记但当前来源不可解析的技能：与 status 的缺失口径一致，纳入计划待收敛
+  const state = readSkillsState()
+  const recordedVersions = new Map<string, string>()
+  for (const source of Object.values(state?.sources ?? {})) {
+    for (const target of source.targets) for (const entry of target.entries) recordedVersions.set(entry.name, entry.version)
+  }
+  // 与 status 的选择集口径对齐：已保存选择时只统计选择集内的名字；未保存过时把既有登记视为已选择
+  const savedSelection = readSkillsInstallConfig().selection
+  const savedNames = new Set(Object.values(savedSelection ?? {}).flat())
+  const unresolved = [...recordedVersions.entries()].filter(
+    ([name]) =>
+      !items.some((item) => item.name === name) &&
+      (options.skills?.includes(name) || savedSelection === undefined || savedNames.has(name)),
+  )
+  const unresolvedDecisions = new Map(
+    unresolved.map(([name]) => [
+      name,
+      resolveDelivery({ name, config: deliveryConfig, policy: derivePolicyDelivery(name, policyContext) }),
+    ]),
+  )
+
   const targets: SkillPlanTarget[] = []
   let pending = 0
   for (const target of resolved.targets) {
@@ -146,6 +167,23 @@ export function planSkills(options: PlanOptions = {}): SkillsPlanReport {
         action,
         source: decision.source,
         reason: decision.reason,
+      })
+    }
+    // 不可解析的已登记技能：缺失记 none、残留记 drift，动作按目标形态收敛
+    for (const [name, version] of unresolved) {
+      const decision = unresolvedDecisions.get(name)!
+      const exists = existsSync(join(target.dir, name))
+      const current: CurrentForm = exists ? "drift" : "none"
+      const action: DeliveryAction = decision.mode === "off" ? (exists ? "clean" : "keep") : decision.mode === "gated" ? "shell" : "full"
+      if (action !== "keep") pending += 1
+      rows.push({
+        name,
+        version,
+        target: decision.mode,
+        current,
+        action,
+        source: "来源不可解析",
+        reason: "归属账已登记但当前来源不可解析（来源缺失或技能已移除）",
       })
     }
     // 曾用名迁移：旧名仍存在且可确认归属时才预览，与 install 的清理判据一致
@@ -219,14 +257,25 @@ export function planProjectSkills(options: ProjectPlanOptions = {}): SkillsPlanR
   const targets = resolveProjectTargets(cwd)
   const root = targets.root
   const previous = readProjectState(root)
-  const recorded = new Set(
-    Object.values(previous?.sources ?? {}).flatMap((source) => source.targets.flatMap((target) => target.entries.map((entry) => entry.name))),
-  )
+  const recorded = new Map<string, string>()
+  for (const source of Object.values(previous?.sources ?? {})) {
+    for (const target of source.targets) for (const entry of target.entries) recorded.set(entry.name, entry.version)
+  }
   const baseItems = filterSkillItems(allItems, options.skills)
   // refreshOnly：只刷新归属账已存在的技能，不新增
   const items = options.refreshOnly ? baseItems.filter((item) => recorded.has(item.name)) : baseItems
   const deliveryConfig = readSkillsDeliveryConfig("project", root)
   const policyContext = loadPolicyDeliveryContext(root)
+  // 项目面与 status 同口径：已保存选择时只统计选择集内的名字，未保存时既有登记视为已选择
+  const savedSelection = readProjectSkillsConfig(root).selection
+  const unresolved = [...recorded.entries()].filter(
+    ([name]) =>
+      !items.some((item) => item.name === name) &&
+      (options.skills?.includes(name) || savedSelection === undefined || savedSelection.includes(name)),
+  )
+  const unresolvedDecisions = new Map(
+    unresolved.map(([name]) => [name, resolveDelivery({ name, config: deliveryConfig, policy: derivePolicyDelivery(name, policyContext) })]),
+  )
   const decisions = new Map<string, DeliveryDecision>(
     items.map((item) => [
       item.name,
@@ -264,6 +313,26 @@ export function planProjectSkills(options: ProjectPlanOptions = {}): SkillsPlanR
         action,
         source: decision.source,
         reason: decision.reason,
+      })
+    }
+    // 不可解析的已登记技能：与 status 的缺失 / 残留口径一致
+    for (const [name, version] of unresolved) {
+      const decision = unresolvedDecisions.get(name)!
+      const isSource = entry.dir === PROJECT_SOURCE_DIR
+      const dest = isSource ? join(root, name) : join(root, entry.dir, name)
+      const exists = existsSync(dest)
+      const current: CurrentForm = exists ? "drift" : "none"
+      const action: DeliveryAction =
+        decision.mode === "off" ? (exists ? "clean" : "keep") : isSource || decision.mode !== "gated" ? "full" : "shell"
+      if (action !== "keep") pending += 1
+      rows.push({
+        name,
+        version,
+        target: decision.mode,
+        current,
+        action,
+        source: "来源不可解析",
+        reason: "归属账已登记但当前来源不可解析（来源缺失或技能已移除）",
       })
     }
     // 曾用名迁移：只对薄壳目录预览，旧名带本包标记才可自动清理

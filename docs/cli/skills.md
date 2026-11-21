@@ -118,7 +118,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
   - 只报告不删除；给出含实际名字的 `uninstall` 命令
 - **矩阵联动**：仅项目面评估，全局面不评估并说明；矩阵限制的技能已按策略推导自动进入入口壳
 - **推导解释**：`status --explain <技能>` 逐级打印命令行 / 技能声明 / 显式规则 / 策略推导 / 包默认 / 全局默认的命中情况与被压规则；文本与 JSON 同源
-- **待收敛**：汇总可由 `install` 修复的偏差条数并给最短命令；JSON 带 `pending` 数组
+- **待收敛**：汇总可由 `install` 修复的偏差（含来源不可解析条目）；JSON 带 `pending` 数组
 - **canonical 共读**：本机已安装且经 canonical 共读的 agent（按探测路径判定）另单列一行说明其读取主目标、无需单独写入
 - 项目面按[作用域与安装面](../config/skills#作用域与安装面)节体检
 - `--format json` 输出机器可读报告到 stdout（含 `scope`、`versionStatus`、`linkage`、`selection` 与 `targetSelection`）

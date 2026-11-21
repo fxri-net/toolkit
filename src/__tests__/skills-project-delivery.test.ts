@@ -11,6 +11,7 @@ import {
   buildSkillShell,
   installProjectSkills,
   isSkillGateShell,
+  planProjectSkills,
   projectSkillsStatus,
   readSkillDescription,
   resetDeliveryWarnings,
@@ -132,6 +133,38 @@ describe("项目面 refresh 收敛", () => {
     expect(second.source.updated).toEqual([])
     expect(second.shells.every((dir) => dir.created.length === 0 && dir.updated.length === 0)).toBe(true)
     expect(first.source.skipped).toContain("fxri-plan-to-task")
+  })
+
+  it("归属账登记但来源不可解析时 plan 与 status 都报待收敛", () => {
+    installProjectSkills({ cwd: project, skills: ["fxri-plan-to-task"] })
+    const stateFile = join(project, ".toolkit", "state.json")
+    const state = JSON.parse(readFileSync(stateFile, "utf8")) as {
+      sources: Record<string, { targets: Array<{ kind: string; entries: Array<{ name: string; version: string; mode: string }> }> }>
+    }
+    // 外部来源的登记仍在、来源根已不可解析
+    state.sources.ext = {
+      kind: "local",
+      version: "",
+      temporary: false,
+      root: "",
+      targets: [
+        {
+          id: "source",
+          dir: ".agents/skills",
+          label: "真源副本",
+          kind: "source",
+          entries: [{ name: "ghost-skill", version: "1.0.0", mode: "copy" }],
+        },
+      ],
+    } as never
+    writeFileSync(stateFile, JSON.stringify(state), "utf8")
+    // 选择集包含该名字，模拟「曾安装过的外部技能来源被删」
+    writeProjectConfig({ projectSkills: { selection: ["fxri-plan-to-task", "ghost-skill"] } })
+
+    const plan = planProjectSkills({ cwd: project, skills: ["fxri-plan-to-task"] })
+    expect(plan.pending).toBeGreaterThan(0)
+    expect(plan.targets.flatMap((target) => target.items).some((item) => item.name === "ghost-skill" && item.source === "来源不可解析")).toBe(true)
+    expect(projectSkillsStatus(project).pending.some((item) => item.name === "ghost-skill")).toBe(true)
   })
 })
 
