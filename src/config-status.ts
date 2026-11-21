@@ -78,6 +78,8 @@ export const CONFIG_KNOWN_SECTIONS: readonly string[] = [
   "usage",
   "docs",
   "activation",
+  "policies",
+  "skillProfiles",
 ]
 const KNOWN_SECTIONS = new Set(CONFIG_KNOWN_SECTIONS)
 

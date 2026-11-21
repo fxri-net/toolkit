@@ -1,0 +1,367 @@
+// 作用域策略写命令的纯计划层：读取层配置 → 生成变更与 nextConfig，落盘由命令层执行
+import { randomUUID } from "node:crypto"
+import { confirmWrite, reportWrite } from "../cli-ui"
+import { isInteractive } from "../prompts"
+import { listPackageSkills } from "../skills/source"
+import { line } from "../term-style"
+import { layerConfigTarget, readLayerConfig, writeLayerConfig, type LayerConfigTarget } from "./config-file"
+import { pathKey } from "./edit"
+import { resolveScope } from "./load"
+import { compilePattern } from "./pattern"
+import type { ActivationMode, PolicyLayer, PolicySkills, ScopeCondition, ScopePolicy } from "./types"
+
+// 策略层顺序：与配置读取顺序一致
+export const POLICY_LAYERS: readonly PolicyLayer[] = ["global", "project", "local"]
+const MODES: readonly ActivationMode[] = ["all", "allowlist", "denylist"]
+
+export interface PolicyState {
+  layer: PolicyLayer
+  startDir: string
+  target: LayerConfigTarget
+  config: Record<string, unknown>
+  // 原始 policies 数组：保留未识别字段，写回时只增删目标项
+  raw: unknown[]
+  profiles: Record<string, unknown>
+}
+
+// 单次写命令的计划：nextConfig 为完整配置，命令层统一预览与落盘
+export interface PolicyEditPlan {
+  layer: PolicyLayer
+  startDir: string
+  target: LayerConfigTarget
+  nextConfig: Record<string, unknown>
+  changes: string[]
+  warnings: string[]
+  // 需要额外 --yes 确认（整域拒绝 / 整层清空）
+  requiresYes: boolean
+  changed: boolean
+}
+
+export interface PolicyAddInput {
+  id?: string
+  name?: string
+  effect: "allow" | "deny"
+  when?: ScopeCondition
+  skills?: PolicySkills
+}
+
+export interface PolicyRemoveInput {
+  id?: string
+  name?: string
+}
+
+export interface PolicyResetInput {
+  ids?: string[]
+  paths?: string[]
+  all?: boolean
+  // 命令层按 --yes / --dry-run 计算：true 才允许整层清空
+  confirmed: boolean
+}
+
+export interface ProfileUpsertInput {
+  name: string
+  allow?: string[]
+  deny?: string[]
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+}
+
+// 读取目标层原始配置：policies 与 skillProfiles 保持原始形态，供增删时保留未知字段
+export function readPolicyState(layer: PolicyLayer, startDir = process.cwd()): PolicyState {
+  const target = layerConfigTarget(layer, startDir)
+  if (!target.available) throw new Error(`${target.reason}；未写入配置`)
+  const config = readLayerConfig(layer, startDir)
+  const raw = Array.isArray(config.policies) ? config.policies : []
+  const profiles = isRecord(config.skillProfiles) ? config.skillProfiles : {}
+  return { layer, startDir, target, config, raw: [...raw], profiles: { ...profiles } }
+}
+
+// 策略可读标识：id + 可选名称
+function labelOf(raw: unknown): string {
+  if (!isRecord(raw)) return "未命名策略"
+  const id = typeof raw.id === "string" && raw.id.trim() ? raw.id : "(缺 id)"
+  const name = typeof raw.name === "string" && raw.name.trim() ? `（${raw.name}）` : ""
+  return `${id}${name}`
+}
+
+// 模式校验：非法即中止，错误文案统一以「未写入配置」收尾
+function assertPattern(pattern: string, label: string): void {
+  const compiled = compilePattern(pattern)
+  if (!compiled.ok) throw new Error(`${label} 模式「${pattern}」非法：${compiled.reason}；未写入配置`)
+}
+
+function validateWhen(when: ScopeCondition | undefined): void {
+  if (!when) return
+  for (const [key, label] of [
+    ["paths", "--paths"],
+    ["subpaths", "--subpaths"],
+    ["gitRemotes", "--git-remotes"],
+  ] as const) {
+    for (const pattern of when[key] ?? []) assertPattern(pattern, label)
+  }
+  for (const marker of when.markers ?? []) {
+    if (!marker.trim()) throw new Error("--markers 不能包含空项；未写入配置")
+  }
+}
+
+// 精确技能名（非 glob / 正则）才按包内清单校验；模式写法留给用户自行控制范围
+function isExactSkillName(value: string): boolean {
+  return !value.startsWith("re:") && !value.includes("*") && !value.includes("?")
+}
+
+// 技能维度校验：模式、档案引用与精确技能名
+function validateSkills(skills: PolicySkills | undefined, startDir: string): void {
+  if (!skills) return
+  if (skills.mode && !MODES.includes(skills.mode)) {
+    throw new Error(`技能模式须为 ${MODES.join(" / ")}；未写入配置`)
+  }
+  const patterns = [...(skills.match ?? []), ...(skills.allow ?? []), ...(skills.deny ?? [])]
+  for (const pattern of patterns) assertPattern(pattern, "技能名单")
+  const profiles = skills.profiles ?? []
+  if (profiles.length > 0) {
+    const known = new Set(resolveScope(startDir).profiles.map((profile) => profile.name))
+    const missing = profiles.filter((name) => !known.has(name))
+    if (missing.length > 0) throw new Error(`未找到档案「${missing.join("、")}」；未写入配置`)
+  }
+  const exact = patterns.filter(isExactSkillName)
+  if (exact.length > 0) {
+    const known = new Set(listPackageSkills().map((skill) => skill.name))
+    const missing = exact.filter((name) => !known.has(name))
+    if (missing.length > 0) throw new Error(`未找到技能「${missing.join("、")}」；未写入配置`)
+  }
+}
+
+// 跨层 id 唯一：返回已占用该 id 的层，供报错定位
+function findPolicyLayerById(startDir: string, id: string): PolicyLayer | null {
+  for (const layer of POLICY_LAYERS) {
+    const config = readLayerConfig(layer, startDir)
+    const list = Array.isArray(config.policies) ? config.policies : []
+    if (list.some((item) => isRecord(item) && item.id === id)) return layer
+  }
+  return null
+}
+
+// 其它层是否已有同名策略：--name 删除时用于要求显式 --layer
+function otherLayerHasName(startDir: string, layer: PolicyLayer, name: string): boolean {
+  for (const candidate of POLICY_LAYERS) {
+    if (candidate === layer) continue
+    const config = readLayerConfig(candidate, startDir)
+    const list = Array.isArray(config.policies) ? config.policies : []
+    if (list.some((item) => isRecord(item) && item.name === name)) return true
+  }
+  return false
+}
+
+function finalizePlan(
+  state: PolicyState,
+  nextConfig: Record<string, unknown>,
+  changes: string[],
+  warnings: string[] = [],
+  requiresYes = false,
+): PolicyEditPlan {
+  return {
+    layer: state.layer,
+    startDir: state.startDir,
+    target: state.target,
+    nextConfig,
+    changes,
+    warnings,
+    requiresYes,
+    changed: JSON.stringify(nextConfig) !== JSON.stringify(state.config),
+  }
+}
+
+// 只重写 policies 段，其余段原样保留
+function planForPolicies(
+  state: PolicyState,
+  nextRaw: unknown[],
+  changes: string[],
+  warnings: string[] = [],
+  requiresYes = false,
+): PolicyEditPlan {
+  const nextConfig = { ...state.config }
+  if (nextRaw.length > 0) nextConfig.policies = nextRaw
+  else delete nextConfig.policies
+  return finalizePlan(state, nextConfig, changes, warnings, requiresYes)
+}
+
+// 新增策略：id 缺省自动生成且不可变；deny 未限定技能时标记需 --yes
+export function planPolicyAdd(state: PolicyState, input: PolicyAddInput): PolicyEditPlan {
+  validateWhen(input.when)
+  validateSkills(input.skills, state.startDir)
+  const id = input.id?.trim() || `policy-${randomUUID()}`
+  const occupied = findPolicyLayerById(state.startDir, id)
+  if (occupied) throw new Error(`策略 id「${id}」已存在于 ${occupied} 层；未写入配置`)
+  const policy: ScopePolicy = { id, effect: input.effect }
+  if (input.name?.trim()) policy.name = input.name.trim()
+  if (input.when && Object.keys(input.when).length > 0) policy.when = input.when
+  if (input.skills && Object.keys(input.skills).length > 0) policy.skills = input.skills
+  const warnings: string[] = []
+  let requiresYes = false
+  if (!policy.when) warnings.push("未设置 when 条件（兜底规则），会影响该层全部目录")
+  if (policy.effect === "deny" && !policy.skills?.match?.length) {
+    warnings.push("deny 规则会拒绝该范围全部技能；限定技能请改用 toolkit scope skills deny")
+    requiresYes = true
+  }
+  if (policy.effect === "allow" && policy.skills) {
+    const hasAllow = Boolean(policy.skills.allow?.length || policy.skills.profiles?.length)
+    if (hasAllow && policy.skills.mode !== "allowlist") warnings.push("allow / profile 仅在 --mode allowlist 下生效")
+    if (policy.skills.mode === "allowlist" && !hasAllow) warnings.push("allowlist 未配置 allow / profile，该范围将不允许任何技能")
+  }
+  return planForPolicies(state, [...state.raw, policy], [`新增策略：${labelOf(policy)}`], warnings, requiresYes)
+}
+
+// 定位待移除项：--id 精确匹配；--name 仅在该层唯一且无跨层同名时可用
+function findRemoveIndex(state: PolicyState, input: PolicyRemoveInput, explicitLayer: boolean): number {
+  if (input.id) {
+    const index = state.raw.findIndex((item) => isRecord(item) && item.id === input.id)
+    if (index < 0) throw new Error(`未找到策略 id「${input.id}」；未写入配置`)
+    return index
+  }
+  const name = input.name?.trim()
+  if (!name) throw new Error("请指定 --id 或 --name；未写入配置")
+  const matches = state.raw
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => isRecord(item) && item.name === name)
+  if (matches.length === 0) throw new Error(`未找到策略名「${name}」；未写入配置`)
+  if (matches.length > 1) throw new Error(`该层有多个同名策略「${name}」，请改用 --id；未写入配置`)
+  if (!explicitLayer && otherLayerHasName(state.startDir, state.layer, name)) {
+    throw new Error(`策略名「${name}」在其它层也存在，请显式指定 --layer；未写入配置`)
+  }
+  const first = matches[0]
+  if (!first) throw new Error(`未找到策略名「${name}」；未写入配置`)
+  return first.index
+}
+
+// 移除策略
+export function planPolicyRemove(state: PolicyState, input: PolicyRemoveInput, explicitLayer: boolean): PolicyEditPlan {
+  const index = findRemoveIndex(state, input, explicitLayer)
+  const removed = state.raw[index]
+  const nextRaw = state.raw.filter((_, current) => current !== index)
+  return planForPolicies(state, nextRaw, [`移除策略：${labelOf(removed)}`])
+}
+
+// 路径条件是否命中给定路径集合：paths / subpaths 任一精确相等即算
+function matchesPaths(raw: unknown, keys: Set<string>): boolean {
+  if (!isRecord(raw) || !isRecord(raw.when)) return false
+  const when = raw.when
+  for (const field of ["paths", "subpaths"]) {
+    const list = when[field]
+    if (!Array.isArray(list)) continue
+    if (list.some((item) => typeof item === "string" && keys.has(pathKey(item)))) return true
+  }
+  return false
+}
+
+// 清除策略：按 --id / --paths 批量移除；整层清空须显式 --all 且已确认
+export function planPolicyReset(state: PolicyState, input: PolicyResetInput): PolicyEditPlan {
+  const hasTarget = Boolean(input.all || input.ids?.length || input.paths?.length)
+  if (!hasTarget) throw new Error("请指定 --id / --paths，或显式 --all；未写入配置")
+  if (input.all && !input.confirmed) throw new Error("--all 会清除该层全部策略，需加 --yes 确认；未写入配置")
+  const keys = new Set((input.paths ?? []).map((path) => pathKey(path)))
+  const removed: string[] = []
+  const nextRaw = state.raw.filter((raw) => {
+    const hit =
+      input.all ||
+      (isRecord(raw) && Boolean(raw.id && input.ids?.includes(String(raw.id)))) ||
+      (keys.size > 0 && matchesPaths(raw, keys))
+    if (!hit) return true
+    removed.push(labelOf(raw))
+    return false
+  })
+  if (removed.length === 0) throw new Error("没有匹配的策略；未写入配置")
+  const changes = [`移除 ${removed.length} 条策略：${removed.join("、")}`]
+  if (state.config.activation !== undefined) {
+    changes.push("旧 activation 字段未清除，请用 toolkit scope reset 处理")
+  }
+  return planForPolicies(state, nextRaw, changes)
+}
+
+// 技能维度批量清除：只删带 skills 的策略，纯路径 / 标记 / 远端策略保留
+export function planSkillReset(state: PolicyState, confirmed: boolean): PolicyEditPlan {
+  if (!confirmed) throw new Error("清除技能维度策略需加 --yes 确认；未写入配置")
+  const removed: string[] = []
+  const nextRaw = state.raw.filter((raw) => {
+    const hasSkills = isRecord(raw) && isRecord(raw.skills) && Object.keys(raw.skills).length > 0
+    if (!hasSkills) return true
+    removed.push(labelOf(raw))
+    return false
+  })
+  if (removed.length === 0) throw new Error("该层没有技能维度策略；未写入配置")
+  return planForPolicies(state, nextRaw, [`移除 ${removed.length} 条技能策略：${removed.join("、")}`])
+}
+
+// 档案写入：整份覆盖同名档案；至少提供 allow / deny 之一
+export function planProfileUpsert(state: PolicyState, input: ProfileUpsertInput): PolicyEditPlan {
+  const name = input.name.trim()
+  if (!name) throw new Error("档案名不能为空；未写入配置")
+  if (!input.allow?.length && !input.deny?.length) {
+    throw new Error("请至少提供 --allow 或 --deny；未写入配置")
+  }
+  for (const pattern of [...(input.allow ?? []), ...(input.deny ?? [])]) assertPattern(pattern, "档案名单")
+  const profile: Record<string, string[]> = {}
+  if (input.allow) profile.allow = input.allow
+  if (input.deny) profile.deny = input.deny
+  const nextProfiles = { ...state.profiles, [name]: profile }
+  const nextConfig = { ...state.config, skillProfiles: nextProfiles }
+  return finalizePlan(state, nextConfig, [`写入档案：${name}`])
+}
+
+// 档案删除：只删目标层的同名档案
+export function planProfileRemove(state: PolicyState, name: string): PolicyEditPlan {
+  const key = name.trim()
+  if (!key || !(key in state.profiles)) throw new Error(`未找到档案「${name}」；未写入配置`)
+  const nextProfiles = { ...state.profiles }
+  delete nextProfiles[key]
+  const nextConfig = { ...state.config }
+  if (Object.keys(nextProfiles).length > 0) nextConfig.skillProfiles = nextProfiles
+  else delete nextConfig.skillProfiles
+  return finalizePlan(state, nextConfig, [`移除档案：${key}`])
+}
+
+// 档案允许项展开：scope skills deny --profile 使用
+export function profileAllowPatterns(startDir: string, names: string[]): string[] {
+  if (names.length === 0) return []
+  const profiles = new Map(resolveScope(startDir).profiles.map((profile) => [profile.name, profile]))
+  const missing = names.filter((name) => !profiles.has(name))
+  if (missing.length > 0) throw new Error(`未找到档案「${missing.join("、")}」；未写入配置`)
+  return names.flatMap((name) => profiles.get(name)?.allow ?? [])
+}
+
+// 预览文本：写入文件 + 告警 + 变更
+export function describePolicyPlan(plan: PolicyEditPlan): string[] {
+  if (!plan.changed) return ["没有变化，无需写入"]
+  return [`写入：${plan.target.file}`, ...plan.warnings, ...plan.changes]
+}
+
+// 落盘：完整 nextConfig 原子写回
+export function applyPolicyPlan(plan: PolicyEditPlan): string {
+  return writeLayerConfig(plan.layer, plan.nextConfig, plan.startDir)
+}
+
+// 预览 → 确认 → 落盘 → 结果块：与 scope 其它写命令同一口径
+export async function applyPolicyPlanWithPrompt(
+  title: string,
+  plan: PolicyEditPlan,
+  options: { dryRun?: boolean; yes?: boolean } = {},
+): Promise<void> {
+  if (!plan.changed) {
+    for (const text of describePolicyPlan(plan)) console.log(line.hint(text))
+    return
+  }
+  const confirmed = await confirmWrite({
+    title,
+    lines: describePolicyPlan(plan),
+    yes: Boolean(options.yes) || !isInteractive(),
+    dryRun: Boolean(options.dryRun),
+  })
+  if (options.dryRun) return
+  if (!confirmed) {
+    console.error(line.hint("已取消，未写入任何文件"))
+    return
+  }
+  const file = applyPolicyPlan(plan)
+  reportWrite({ file, notes: plan.changes })
+}

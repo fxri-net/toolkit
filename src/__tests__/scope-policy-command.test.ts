@@ -1,0 +1,191 @@
+// 策略写命令计划层：新增 / 移除 / 清除 / 档案与技能快捷视图的校验与落盘结果
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
+import {
+  applyPolicyPlan,
+  planPolicyAdd,
+  planPolicyRemove,
+  planPolicyReset,
+  planProfileRemove,
+  planProfileUpsert,
+  planSkillReset,
+  profileAllowPatterns,
+  readPolicyState,
+} from "../scope/edit-policy"
+import { resetScopeCache } from "../scope/load"
+
+let home = ""
+let project = ""
+
+function writeGlobal(config: unknown): void {
+  writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify(config))
+}
+
+function writeProject(config: unknown): void {
+  writeFileSync(join(project, ".toolkitrc.json"), JSON.stringify(config))
+}
+
+function readGlobal(): Record<string, unknown> {
+  return JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8")) as Record<string, unknown>
+}
+
+beforeEach(() => {
+  home = mkdtempSync(join(tmpdir(), "scope-policy-command-"))
+  project = join(home, "repo")
+  mkdirSync(join(project, ".tasks"), { recursive: true })
+  setHomeDirForTest(home)
+  resetToolkitConfigCache()
+  resetScopeCache()
+})
+
+afterEach(() => {
+  setHomeDirForTest(undefined)
+  resetToolkitConfigCache()
+  resetScopeCache()
+  rmSync(home, { recursive: true, force: true })
+})
+
+describe("planPolicyAdd", () => {
+  it("生成不可变 id 并写入条件与技能维度", () => {
+    const plan = planPolicyAdd(readPolicyState("global", project), {
+      effect: "allow",
+      name: "demo",
+      when: { paths: ["/work/**"] },
+      skills: { mode: "allowlist", allow: ["fxri-plan-review"] },
+    })
+    expect(plan.changed).toBe(true)
+    applyPolicyPlan(plan)
+    const saved = readGlobal()
+    const policies = saved.policies as Array<Record<string, unknown>>
+    expect(policies).toHaveLength(1)
+    expect(policies[0]!.id).toMatch(/^policy-/)
+    expect(policies[0]!.name).toBe("demo")
+    expect(policies[0]!.layer).toBeUndefined()
+    expect(policies[0]!.when).toEqual({ paths: ["/work/**"] })
+    expect(policies[0]!.skills).toEqual({ mode: "allowlist", allow: ["fxri-plan-review"] })
+  })
+
+  it("id 重复时跨层报错", () => {
+    writeProject({ policies: [{ id: "team-only", effect: "deny" }] })
+    resetToolkitConfigCache()
+    expect(() => planPolicyAdd(readPolicyState("global", project), { id: "team-only", effect: "allow" })).toThrow(
+      "已存在于 project 层",
+    )
+    writeGlobal({ policies: [{ id: "dup", effect: "allow" }] })
+    resetToolkitConfigCache()
+    expect(() => planPolicyAdd(readPolicyState("global", project), { id: "dup", effect: "allow" })).toThrow(
+      "已存在于 global 层",
+    )
+  })
+
+  it("deny 未限定技能时要求 --yes，带技能选择器时不要求", () => {
+    const state = readPolicyState("global", project)
+    expect(planPolicyAdd(state, { effect: "deny", when: { paths: ["/x"] } }).requiresYes).toBe(true)
+    expect(planPolicyAdd(state, { effect: "deny", skills: { match: ["fxri-plan-review"] } }).requiresYes).toBe(false)
+  })
+
+  it("未知档案 / 未知技能 / 非法模式均拒绝写入", () => {
+    const state = readPolicyState("global", project)
+    expect(() => planPolicyAdd(state, { effect: "allow", skills: { profiles: ["missing"] } })).toThrow("未找到档案")
+    expect(() => planPolicyAdd(state, { effect: "allow", skills: { allow: ["ghost-skill"] } })).toThrow("未找到技能")
+    expect(() => planPolicyAdd(state, { effect: "allow", when: { paths: ["re:("] } })).toThrow("非法")
+  })
+
+  it("空条件与无效技能模式给出告警", () => {
+    const state = readPolicyState("global", project)
+    const plan = planPolicyAdd(state, { effect: "allow", skills: { allow: ["fxri-*"] } })
+    expect(plan.warnings.join("\n")).toContain("兜底规则")
+    expect(plan.warnings.join("\n")).toContain("仅在 --mode allowlist 下生效")
+    const empty = planPolicyAdd(state, { effect: "allow", skills: { mode: "allowlist" } })
+    expect(empty.warnings.join("\n")).toContain("不允许任何技能")
+  })
+})
+
+describe("planPolicyRemove / planPolicyReset", () => {
+  it("按 id 与唯一名称移除，同名歧义要求 --id", () => {
+    writeGlobal({
+      policies: [
+        { id: "a", name: "same", effect: "allow" },
+        { id: "b", name: "same", effect: "allow" },
+        { id: "c", name: "unique", effect: "allow" },
+      ],
+    })
+    const state = readPolicyState("global", project)
+    expect(() => planPolicyRemove(state, { name: "same" }, true)).toThrow("多个同名")
+    const byName = planPolicyRemove(state, { name: "unique" }, true)
+    expect(byName.changes[0]).toContain("unique")
+    const byId = planPolicyRemove(state, { id: "a" }, true)
+    expect(byId.nextConfig.policies).toHaveLength(2)
+  })
+
+  it("跨层同名且未显式 --layer 时拒绝按名称删除", () => {
+    writeGlobal({ policies: [{ id: "g", name: "team", effect: "allow" }] })
+    writeProject({ policies: [{ id: "p", name: "team", effect: "allow" }] })
+    resetToolkitConfigCache()
+    expect(() => planPolicyRemove(readPolicyState("global", project), { name: "team" }, false)).toThrow(
+      "请显式指定 --layer",
+    )
+    expect(planPolicyRemove(readPolicyState("global", project), { name: "team" }, true).changed).toBe(true)
+  })
+
+  it("按路径与 --all 清除，--all 未确认时拒绝，旧 activation 不受影响", () => {
+    writeGlobal({
+      activation: { mode: "all" },
+      policies: [
+        { id: "a", when: { paths: ["/x"] }, effect: "allow" },
+        { id: "b", when: { paths: ["/y"] }, effect: "allow" },
+      ],
+    })
+    const state = readPolicyState("global", project)
+    const byPath = planPolicyReset(state, { paths: ["/x"], confirmed: true })
+    expect(byPath.nextConfig.policies).toHaveLength(1)
+    expect(byPath.changes.join("\n")).toContain("activation")
+    expect(() => planPolicyReset(state, { all: true, confirmed: false })).toThrow("--yes")
+    const cleared = planPolicyReset(state, { all: true, confirmed: true })
+    expect(cleared.nextConfig.policies).toBeUndefined()
+    expect(cleared.nextConfig.activation).toEqual({ mode: "all" })
+    expect(() => planPolicyReset(state, { confirmed: true })).toThrow("请指定")
+  })
+
+  it("技能维度清除只删带 skills 的策略", () => {
+    writeGlobal({
+      policies: [
+        { id: "path", when: { paths: ["/x"] }, effect: "allow" },
+        { id: "skill", skills: { mode: "allowlist", allow: ["fxri-*"] }, effect: "allow" },
+      ],
+    })
+    const state = readPolicyState("global", project)
+    expect(() => planSkillReset(state, false)).toThrow("--yes")
+    const plan = planSkillReset(state, true)
+    const policies = plan.nextConfig.policies as Array<Record<string, unknown>>
+    expect(policies).toHaveLength(1)
+    expect(policies[0]!.id).toBe("path")
+  })
+})
+
+describe("档案与快捷视图", () => {
+  it("档案整份写入与移除", () => {
+    const state = readPolicyState("global", project)
+    const upsert = planProfileUpsert(state, { name: "front", allow: ["fxri-*"] })
+    applyPolicyPlan(upsert)
+    expect(readGlobal().skillProfiles).toEqual({ front: { allow: ["fxri-*"] } })
+    expect(() => planProfileUpsert(readPolicyState("global", project), { name: "front" })).toThrow("至少提供")
+    const removed = planProfileRemove(readPolicyState("global", project), "front")
+    expect(removed.nextConfig.skillProfiles).toBeUndefined()
+  })
+
+  it("档案允许项展开用于技能排除", () => {
+    writeGlobal({ skillProfiles: { front: { allow: ["fxri-a", "fxri-b"] } } })
+    expect(profileAllowPatterns(project, ["front"])).toEqual(["fxri-a", "fxri-b"])
+    expect(() => profileAllowPatterns(project, ["missing"])).toThrow("未找到档案")
+  })
+
+  it("项目层不可写时给出原因并拒绝", () => {
+    const loose = join(home, "loose")
+    mkdirSync(loose, { recursive: true })
+    expect(() => readPolicyState("project", loose)).toThrow("未写入配置")
+  })
+})

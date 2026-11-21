@@ -102,7 +102,9 @@
   "projectSkills": { "mode": "skills" },
   "usage":         { "enabled": false, "sources": {}, "skills": {}, "capture": {}, "storage": {}, "upload": {} },
   "docs":          { "nav": {}, "dist": {}, "rules": {} },
-  "activation":    { "mode": "all", "include": [], "exclude": [], "markers": { "include": [], "exclude": [] }, "gitRemotes": [] }
+  "activation":    { "mode": "all", "include": [], "exclude": [], "markers": { "include": [], "exclude": [] }, "gitRemotes": [] },
+  "policies":      [],
+  "skillProfiles": {}
 }
 ```
 

@@ -706,6 +706,53 @@ exports[`各域行为与错误路径 > scope exclude 预演 1`] = `
 "
 `;
 
+exports[`各域行为与错误路径 > scope policy add deny 缺确认 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ deny 规则会拒绝该范围全部技能；限定技能请改用 toolkit scope skills deny；确认后加 --yes 再执行（未写入配置）"
+`;
+
+exports[`各域行为与错误路径 > scope policy add 预演 1`] = `
+"退出码：0
+--- stdout ---
+
+作用域策略：新增
+  写入：<SANDBOX>/home/.toolkitrc.json
+  新增策略：golden-policy
+[预演] 未写入任何文件
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > scope policy list 1`] = `
+"退出码：0
+--- stdout ---
+作用域策略：
+  目录：<SANDBOX>/workspace
+  判定：生效（未配置作用域（默认全域生效））
+  未配置策略
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > scope policy remove 缺参数 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ 请指定 --id 或 --name；未写入配置"
+`;
+
+exports[`各域行为与错误路径 > scope policy reset 缺参数 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ 请指定 --id / --paths，或显式 --all；未写入配置"
+`;
+
 exports[`各域行为与错误路径 > scope remove 互转预演 1`] = `
 "退出码：0
 --- stdout ---
@@ -735,6 +782,20 @@ exports[`各域行为与错误路径 > scope reset 预演 1`] = `
 "
 `;
 
+exports[`各域行为与错误路径 > scope status 技能清单 1`] = `
+"退出码：0
+--- stdout ---
+技能作用域：
+  目录：<SANDBOX>/workspace
+  ✔ fxri-plan-review：生效（未配置作用域（默认全域生效））
+  ✔ fxri-plan-to-task：生效（未配置作用域（默认全域生效））
+  ✔ fxri-release-changelog：生效（未配置作用域（默认全域生效））
+  ✔ fxri-session-recap：生效（未配置作用域（默认全域生效））
+  ✔ fxri-text-encoding：生效（未配置作用域（默认全域生效））
+--- stderr ---
+"
+`;
+
 exports[`各域行为与错误路径 > scope status 非法格式 1`] = `
 "退出码：1
 --- stdout ---
@@ -749,6 +810,17 @@ exports[`各域行为与错误路径 > scope wizard 非交互 1`] = `
 
 --- stderr ---
 ⚠️ 当前环境不支持交互（作用域向导）：非交互请使用 toolkit scope status / list / add / exclude / remove / default / reset"
+`;
+
+exports[`各域行为与错误路径 > scope 技能清单 1`] = `
+"退出码：0
+--- stdout ---
+技能档案：
+  未配置
+技能策略：
+  未配置
+--- stderr ---
+"
 `;
 
 exports[`各域行为与错误路径 > scope 裸命令 1`] = `
