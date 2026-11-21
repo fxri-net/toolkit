@@ -46,6 +46,9 @@ const POLICY_LAYER_BY_CONFIG: Record<ConfigLayerName, PolicyLayer> = {
   本地层: "local",
 }
 
+// 策略层优先级：档案可见性判断使用
+const POLICY_LAYER_RANK: Record<PolicyLayer, number> = { global: 1, project: 2, local: 3 }
+
 // 判定结果 + 现场：命令层只消费这里，便于统一打印与 JSON 输出
 export interface ScopeReport {
   decision: ScopeDecision
@@ -438,10 +441,11 @@ function mergePolicies(candidates: ScopePolicyInput[], warnings: string[]): Scop
   return [...map.values()]
 }
 
-// 引用校验：未知档案告警并剔除引用，避免 allowlist 规则静默放行
+// 引用校验：未知档案告警并剔除引用；更高层档案告警但保留（当前项目仍可解析）
 function validateProfileRefs(
   policies: ScopePolicyInput[],
   profiles: ScopeProfile[],
+  profileLayers: Map<string, PolicyLayer[]>,
   warnings: string[],
 ): void {
   const names = new Set(profiles.map((profile) => profile.name))
@@ -449,9 +453,18 @@ function validateProfileRefs(
     const refs = policy.skills?.profiles
     if (!refs) continue
     const kept = refs.filter((name) => {
-      if (names.has(name)) return true
-      warnings.push(`策略 ${policy.id} 引用的档案「${name}」不存在，已忽略该引用`)
-      return false
+      if (!names.has(name)) {
+        warnings.push(`策略 ${policy.id} 引用的档案「${name}」不存在，已忽略该引用`)
+        return false
+      }
+      const layers = profileLayers.get(name) ?? []
+      const rank = POLICY_LAYER_RANK[policy.layer ?? "global"]
+      if (layers.length > 0 && !layers.some((layer) => POLICY_LAYER_RANK[layer] <= rank)) {
+        warnings.push(
+          `策略 ${policy.id} 引用的档案「${name}」只在 ${layers.join(" / ")} 层定义，当前层无法稳定引用；已保留引用（当前项目仍可解析）`,
+        )
+      }
+      return true
     })
     if (kept.length !== refs.length) policy.skills = { ...policy.skills, profiles: kept }
   }
@@ -526,8 +539,12 @@ function buildSnapshot(layers: ConfigLayers, baseDir: string): ScopeSnapshot {
     profileCandidates.push(...parseProfiles(layerRecord.config.skillProfiles, layer, file, warnings))
   }
   const profiles = mergeProfiles(profileCandidates)
+  const profileLayers = new Map<string, PolicyLayer[]>()
+  for (const profile of profileCandidates) {
+    profileLayers.set(profile.name, [...(profileLayers.get(profile.name) ?? []), profile.layer])
+  }
   const policies = mergePolicies([...legacyPolicies, ...newPolicies], warnings)
-  validateProfileRefs(policies, profiles, warnings)
+  validateProfileRefs(policies, profiles, profileLayers, warnings)
   const compiled = compilePolicies(policies, baseDir, {
     home: getHomeDir(),
     profiles: toProfileDefinitions(profiles),

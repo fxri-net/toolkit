@@ -28,6 +28,10 @@ function writeProject(config: unknown): void {
   writeFileSync(join(project, ".toolkitrc.json"), JSON.stringify(config))
 }
 
+function writeLocal(config: unknown): void {
+  writeFileSync(join(project, ".toolkitrc.local.json"), JSON.stringify(config))
+}
+
 function readGlobal(): Record<string, unknown> {
   return JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8")) as Record<string, unknown>
 }
@@ -185,8 +189,43 @@ describe("档案与快捷视图", () => {
 
   it("档案允许项展开用于技能排除", () => {
     writeGlobal({ skillProfiles: { front: { allow: ["fxri-a", "fxri-b"] } } })
-    expect(profileAllowPatterns(project, ["front"])).toEqual(["fxri-a", "fxri-b"])
-    expect(() => profileAllowPatterns(project, ["missing"])).toThrow("未找到档案")
+    expect(profileAllowPatterns(project, ["front"], "global")).toEqual(["fxri-a", "fxri-b"])
+    expect(() => profileAllowPatterns(project, ["missing"], "global")).toThrow("未找到档案")
+  })
+
+  it("策略只能引用同层及更低层定义的档案", () => {
+    writeProject({ skillProfiles: { projectOnly: { allow: ["fxri-*"] } } })
+    resetToolkitConfigCache()
+    expect(() =>
+      planPolicyAdd(readPolicyState("global", project), {
+        effect: "allow",
+        skills: { mode: "allowlist", profiles: ["projectOnly"] },
+      }),
+    ).toThrow("project 层")
+    expect(
+      planPolicyAdd(readPolicyState("project", project), {
+        effect: "allow",
+        skills: { mode: "allowlist", profiles: ["projectOnly"] },
+      }).changed,
+    ).toBe(true)
+
+    writeLocal({ skillProfiles: { localOnly: { allow: ["fxri-*"] } } })
+    resetToolkitConfigCache()
+    expect(() =>
+      planPolicyAdd(readPolicyState("project", project), {
+        effect: "allow",
+        skills: { mode: "allowlist", profiles: ["localOnly"] },
+      }),
+    ).toThrow("local 层")
+
+    writeGlobal({ skillProfiles: { shared: { allow: ["fxri-*"] } } })
+    resetToolkitConfigCache()
+    expect(
+      planPolicyAdd(readPolicyState("project", project), {
+        effect: "allow",
+        skills: { mode: "allowlist", profiles: ["shared"] },
+      }).changed,
+    ).toBe(true)
   })
 
   it("项目层不可写时给出原因并拒绝", () => {

@@ -14,6 +14,7 @@ import type { ActivationMode, PolicyLayer, PolicySkills, ScopeCondition, ScopePo
 // 策略层顺序：与配置读取顺序一致
 export const POLICY_LAYERS: readonly PolicyLayer[] = ["global", "project", "local"]
 const MODES: readonly ActivationMode[] = ["all", "allowlist", "denylist"]
+const LAYER_RANK: Record<PolicyLayer, number> = { global: 1, project: 2, local: 3 }
 
 export interface PolicyState {
   layer: PolicyLayer
@@ -112,8 +113,43 @@ function isExactSkillName(value: string): boolean {
   return !value.startsWith("re:") && !value.includes("*") && !value.includes("?")
 }
 
-// 技能维度校验：模式、档案引用与精确技能名
-function validateSkills(skills: PolicySkills | undefined, startDir: string): void {
+// 档案定义层：三层原始 skillProfiles 的键，用于判断策略能否稳定引用
+function profileLayerMap(startDir: string): Map<string, PolicyLayer[]> {
+  const map = new Map<string, PolicyLayer[]>()
+  for (const layer of POLICY_LAYERS) {
+    const config = readLayerConfig(layer, startDir)
+    const profiles = isRecord(config.skillProfiles) ? config.skillProfiles : {}
+    for (const name of Object.keys(profiles)) {
+      map.set(name, [...(map.get(name) ?? []), layer])
+    }
+  }
+  return map
+}
+
+// 档案可见性：策略只能引用其所在层及更低层定义的档案，否则换项目后引用会失效
+function validateProfileVisibility(names: string[], startDir: string, layer: PolicyLayer): void {
+  if (names.length === 0) return
+  const map = profileLayerMap(startDir)
+  const missing: string[] = []
+  const hidden: string[] = []
+  for (const name of names) {
+    const defined = map.get(name)
+    if (!defined) {
+      missing.push(name)
+      continue
+    }
+    if (!defined.some((item) => LAYER_RANK[item] <= LAYER_RANK[layer])) {
+      hidden.push(`${name}（只在 ${defined.join(" / ")} 层定义）`)
+    }
+  }
+  if (missing.length > 0) throw new Error(`未找到档案「${missing.join("、")}」；未写入配置`)
+  if (hidden.length > 0) {
+    throw new Error(`档案「${hidden.join("、")}」，${layer} 层策略只能引用同层及更低层档案；未写入配置`)
+  }
+}
+
+// 技能维度校验：模式、档案可见性与精确技能名
+function validateSkills(skills: PolicySkills | undefined, startDir: string, layer: PolicyLayer): void {
   if (!skills) return
   if (skills.mode && !MODES.includes(skills.mode)) {
     throw new Error(`技能模式须为 ${MODES.join(" / ")}；未写入配置`)
@@ -121,11 +157,7 @@ function validateSkills(skills: PolicySkills | undefined, startDir: string): voi
   const patterns = [...(skills.match ?? []), ...(skills.allow ?? []), ...(skills.deny ?? [])]
   for (const pattern of patterns) assertPattern(pattern, "技能名单")
   const profiles = skills.profiles ?? []
-  if (profiles.length > 0) {
-    const known = new Set(resolveScope(startDir).profiles.map((profile) => profile.name))
-    const missing = profiles.filter((name) => !known.has(name))
-    if (missing.length > 0) throw new Error(`未找到档案「${missing.join("、")}」；未写入配置`)
-  }
+  validateProfileVisibility(profiles, startDir, layer)
   const exact = patterns.filter(isExactSkillName)
   if (exact.length > 0) {
     const known = new Set(listPackageSkills().map((skill) => skill.name))
@@ -198,7 +230,7 @@ function assertPolicyId(id: string): void {
 // 新增策略：id 缺省自动生成且不可变；deny 未限定技能时标记需 --yes
 export function planPolicyAdd(state: PolicyState, input: PolicyAddInput): PolicyEditPlan {
   validateWhen(input.when)
-  validateSkills(input.skills, state.startDir)
+  validateSkills(input.skills, state.startDir, state.layer)
   const id = input.id?.trim() || `policy-${randomUUID()}`
   assertPolicyId(id)
   const occupied = findPolicyLayerById(state.startDir, id)
@@ -330,9 +362,10 @@ export function planProfileRemove(state: PolicyState, name: string): PolicyEditP
   return finalizePlan(state, nextConfig, [`移除档案：${key}`])
 }
 
-// 档案允许项展开：scope skills deny --profile 使用
-export function profileAllowPatterns(startDir: string, names: string[]): string[] {
+// 档案允许项展开：scope skills deny --profile 使用；先校验目标层可见性
+export function profileAllowPatterns(startDir: string, names: string[], layer: PolicyLayer): string[] {
   if (names.length === 0) return []
+  validateProfileVisibility(names, startDir, layer)
   const profiles = new Map(resolveScope(startDir).profiles.map((profile) => [profile.name, profile]))
   const missing = names.filter((name) => !profiles.has(name))
   if (missing.length > 0) throw new Error(`未找到档案「${missing.join("、")}」；未写入配置`)

@@ -176,6 +176,16 @@ describe("resolveScope 策略校验", () => {
     expect(report.policies.every((policy) => policy.id.startsWith("auto:global:"))).toBe(true)
   })
 
+  it("手写跨层档案引用告警但保留当前项目解析", () => {
+    writeProject({ skillProfiles: { projectOnly: { allow: ["fxri-*"] } } })
+    writeGlobal({
+      policies: [{ id: "global-use-project", skills: { mode: "allowlist", profiles: ["projectOnly"] } }],
+    })
+    const report = resolveScope(project, "fxri-plan-review")
+    expect(report.warnings.join("\n")).toContain("无法稳定引用")
+    expect(report.decision.active).toBe(true)
+  })
+
   it("非数组 policies 与空档案名告警忽略", () => {
     writeGlobal({
       policies: {},

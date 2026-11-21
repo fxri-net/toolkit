@@ -330,7 +330,7 @@ async function runSkillsDeny(skills: string[], options: SkillPolicyOptions): Pro
   const resolved = resolvePolicyLayer(options.layer)
   if (!resolved) return
   try {
-    const profiles = profileAllowPatterns(process.cwd(), options.profile ?? [])
+    const profiles = profileAllowPatterns(process.cwd(), options.profile ?? [], resolved.layer)
     const match = [...skills, ...profiles]
     if (match.length === 0) {
       fail("请指定技能或 --profile；未写入配置")
