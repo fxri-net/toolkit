@@ -7,7 +7,7 @@ import { writeFileAtomic } from "../../write-atomic"
 import { assertUniqueSkillNames, buildSkillGateShell, classifyExisting, isSameDir, isEmptyDir, isSkillGateShell, pathKey, isPathPresent, readSkillDescription, removeArtifact, resolveSkillTargets, resolveTargetsByName, skillTargetLabel, skillsSourceDir, sourceSkillItems, targetId, writeArtifact, writeGateArtifact, type SkillSource } from "../source"
 import { acquireSkillsLock, skillsLockFile } from "../lock"
 import { readSkillsState, skillsStateFile, writeSkillsState } from "../state"
-import { readSkillsDeliveryConfig, readSkillsInstallConfig, writeSkillsInstallConfig } from "../config"
+import { readSkillsDeliveryConfig, readSkillsInstallConfig, writeSkillsDeliveryDefault, writeSkillsInstallConfig } from "../config"
 import { gateRulesToDeliveryRules, resolveDelivery, type DeliveryDecision, type DeliveryMode } from "../delivery"
 import { derivePolicyDelivery, loadPolicyDeliveryContext } from "../policy-delivery"
 import { resolveGateSetting } from "../gate"
@@ -346,9 +346,9 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
         console.warn(`⚠️ 内容闸门开关未保存：本次有 ${failures} 个技能安装失败，修复后重跑 toolkit skills install`)
       } else {
         try {
-          // 显式 --gate 不清掉已配置的接管规则
-          const nextGate = options.gate === true && typeof previousGate === "object" ? previousGate : options.gate
-          writeSkillsInstallConfig({ gate: nextGate })
+          // 布尔开关写入新段默认形态；对象形态（库调用）仍走旧键，保留排除优先语义
+          if (typeof options.gate === "boolean") writeSkillsDeliveryDefault(options.gate ? "gated" : "full")
+          else writeSkillsInstallConfig({ gate: options.gate })
         } catch (e) {
           console.warn(`⚠️ 内容闸门开关保存失败：${(e as Error).message}`)
         }

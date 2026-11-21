@@ -6,7 +6,7 @@ import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { runGuard } from "../scope/guard"
 import { resetScopeCache } from "../scope/load"
-import { autoLinkSkills, installSkills, isSkillGateShell, isSkillGated, listPackageSkills, readSkillsInstallConfig, readSkillsState, removeSkills, resetSkillGateWarnings, resetSkillsRootCache, setPackageRootForTest, skillsSourceDir, skillsStateFile, skillsStatus } from "../skills"
+import { autoLinkSkills, installSkills, isSkillGateShell, isSkillGated, listPackageSkills, readSkillsDeliveryConfig, readSkillsInstallConfig, readSkillsState, removeSkills, resetSkillGateWarnings, resetSkillsRootCache, setPackageRootForTest, skillsSourceDir, skillsStateFile, skillsStatus } from "../skills"
 
 // 默认全部技能都被接管（include: ["*"]）
 const ALL_SKILLS = listPackageSkills().map((skill) => skill.name)
@@ -146,13 +146,15 @@ describe("内容闸门安装形态", () => {
     expect(item?.state).toBe("gate")
   })
 
-  it("闸门开关随安装成功落盘，预演不写", () => {
+  it("闸门开关随安装成功写入 skillsDelivery.default，预演不写", () => {
     installSkills({ gate: true, dryRun: true })
-    expect(readSkillsInstallConfig().gate).toBeUndefined()
+    expect(readSkillsDeliveryConfig().default).toBeUndefined()
     installSkills({ gate: true })
-    expect(readSkillsInstallConfig().gate).toBe(true)
+    expect(readSkillsDeliveryConfig().default).toBe("gated")
     installSkills({ gate: false })
-    expect(readSkillsInstallConfig().gate).toBe(false)
+    expect(readSkillsDeliveryConfig().default).toBe("full")
+    // 旧键不再被写入：读取旧键仍按未配置处理
+    expect(readSkillsInstallConfig().gate).toBeUndefined()
   })
 
   it("入口壳内容过期时 status 报 gate-drift，重跑 install 恢复", () => {
