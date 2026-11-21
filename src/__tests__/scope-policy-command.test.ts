@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import {
   applyPolicyPlan,
+  listProfilesInLayer,
   planPolicyAdd,
   planPolicyRemove,
   planPolicyReset,
@@ -235,6 +236,18 @@ describe("档案与快捷视图", () => {
     writeGlobal({ skillProfiles: { front: { allow: ["fxri-a", "fxri-b"] } } })
     expect(profileAllowPatterns(project, ["front"], "global")).toEqual(["fxri-a", "fxri-b"])
     expect(() => profileAllowPatterns(project, ["missing"], "global")).toThrow("未找到档案")
+  })
+
+  it("按层列出档案，未传层由命令使用合并视图", () => {
+    writeGlobal({ skillProfiles: { front: { allow: ["fxri-*"] } } })
+    writeProject({ skillProfiles: { team: { deny: ["fxri-plan-review"] } } })
+    resetToolkitConfigCache()
+    expect(listProfilesInLayer(readPolicyState("global", project))).toEqual([
+      { name: "front", allow: ["fxri-*"], deny: [] },
+    ])
+    expect(listProfilesInLayer(readPolicyState("project", project))).toEqual([
+      { name: "team", allow: [], deny: ["fxri-plan-review"] },
+    ])
   })
 
   it("策略只能引用同层及更低层定义的档案", () => {

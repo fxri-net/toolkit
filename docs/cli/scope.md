@@ -58,6 +58,7 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 - `scope skills` 是技能维度快捷视图：`allow` 只允许列出的技能，`deny` 排除列出的技能，`profile` 管理档案，`reset` 清空该层技能策略
   `profile` 移除时提示仍被哪些策略引用与同名回退
   `profile` 的精确技能名按包内清单校验；只含 deny 的档案不能用于 allowlist / deny 展开
+  `profile` 省略档案名时按 `--layer` 过滤列表，未传为合并视图
 - 优先级：层（local > project > global）→ 具体度 → `deny` > `allow` → 后写覆盖；只取最高优先的一条，不合并
 - 非技能维度（纯路径 / 标记 / 远端）同样用 `scope policy` 表达；`--mode` / `--allow` 仅在 `allowlist` 下参与放行
 - `deny` 未限定技能会拒绝该范围全部技能，写入需 `--yes`；只拒绝某个技能请用 `scope skills deny`

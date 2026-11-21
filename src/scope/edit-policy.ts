@@ -82,6 +82,24 @@ export function readPolicyState(layer: PolicyLayer, startDir = process.cwd()): P
   return { layer, startDir, target, config, raw: [...raw], profiles: { ...profiles } }
 }
 
+export interface LayerProfile {
+  name: string
+  allow: string[]
+  deny: string[]
+}
+
+// 层内档案：按原始配置列出，供 profile 列表按 --layer 过滤
+export function listProfilesInLayer(state: PolicyState): LayerProfile[] {
+  return Object.entries(state.profiles).map(([name, raw]) => {
+    const record = isRecord(raw) ? raw : {}
+    return {
+      name,
+      allow: Array.isArray(record.allow) ? record.allow.filter((item): item is string => typeof item === "string") : [],
+      deny: Array.isArray(record.deny) ? record.deny.filter((item): item is string => typeof item === "string") : [],
+    }
+  })
+}
+
 // 策略可读标识：id + 可选名称
 function labelOf(raw: unknown): string {
   if (!isRecord(raw)) return "未命名策略"

@@ -18,6 +18,7 @@ import { analyzeSkillLinkage, formatLinkageHints } from "../scope/linkage"
 import {
   POLICY_LAYERS,
   applyPolicyPlanWithPrompt,
+  listProfilesInLayer,
   planPolicyAdd,
   planPolicyRemove,
   planPolicyReset,
@@ -362,10 +363,26 @@ async function runSkillsProfile(
         fail("请指定档案名；未写入配置")
         return
       }
+      if (resolved.explicit) {
+        const layerProfiles = listProfilesInLayer(readPolicyState(resolved.layer))
+        console.log(`技能档案（${resolved.layer} 层）：`)
+        if (layerProfiles.length === 0) {
+          console.log("  未配置")
+          return
+        }
+        for (const profile of layerProfiles) {
+          const parts: string[] = []
+          if (profile.allow.length) parts.push(`allow=${profile.allow.join(",")}`)
+          if (profile.deny.length) parts.push(`deny=${profile.deny.join(",")}`)
+          console.log(`  ${profile.name}：${parts.join("；") || "空档案"}`)
+        }
+        return
+      }
       const report = resolveScope()
       for (const warning of report.warnings) console.error(`⚠️ ${warning}`)
+      console.log("技能档案（合并视图）：")
       if (report.profiles.length === 0) {
-        console.log("未配置技能档案")
+        console.log("  未配置")
         return
       }
       for (const profile of report.profiles) {
