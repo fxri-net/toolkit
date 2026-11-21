@@ -5,7 +5,8 @@ title: scope（作用域）
 # scope（作用域）
 
 > 按项目 / 目录决定技能与规则是否生效。默认全域生效，只有写了作用域配置才出现局部生效。
-> `status` / `list` / `policy list` / `skills list` 只读；`policy` / `skills` 写命令复用同一套预览与确认。
+> `status` / `list` / `policy list` / `skills list` 只读；`policy` / `skills` 写命令复用同一套预览与确认，
+> 预览会展示完整规则 / 档案内容。
 
 ## 用途与场景
 

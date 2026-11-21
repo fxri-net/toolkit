@@ -61,6 +61,11 @@ describe("planPolicyAdd", () => {
       skills: { mode: "allowlist", allow: ["fxri-plan-review"] },
     })
     expect(plan.changed).toBe(true)
+    const details = plan.details.join("\n")
+    expect(details).toContain("效果：allow")
+    expect(details).toContain("paths=/work/**")
+    expect(details).toContain("mode=allowlist")
+    expect(details).toContain("allow=fxri-plan-review")
     applyPolicyPlan(plan)
     const saved = readGlobal()
     const policies = saved.policies as Array<Record<string, unknown>>
@@ -180,11 +185,20 @@ describe("档案与快捷视图", () => {
   it("档案整份写入与移除", () => {
     const state = readPolicyState("global", project)
     const upsert = planProfileUpsert(state, { name: "front", allow: ["fxri-*"] })
+    expect(upsert.details.join("\n")).toContain("allow：fxri-*")
+    expect(upsert.details.join("\n")).toContain("deny：无")
     applyPolicyPlan(upsert)
     expect(readGlobal().skillProfiles).toEqual({ front: { allow: ["fxri-*"] } })
     expect(() => planProfileUpsert(readPolicyState("global", project), { name: "front" })).toThrow("至少提供")
     const removed = planProfileRemove(readPolicyState("global", project), "front")
     expect(removed.nextConfig.skillProfiles).toBeUndefined()
+  })
+
+  it("档案写入未提供的名单会告警并展示清空结果", () => {
+    writeGlobal({ skillProfiles: { front: { allow: ["fxri-a"], deny: ["fxri-b"] } } })
+    const plan = planProfileUpsert(readPolicyState("global", project), { name: "front", allow: ["fxri-c"] })
+    expect(plan.warnings.join("\n")).toContain("将清空原 deny")
+    expect(plan.details.join("\n")).toContain("deny：无")
   })
 
   it("档案允许项展开用于技能排除", () => {

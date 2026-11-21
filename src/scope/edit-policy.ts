@@ -34,6 +34,8 @@ export interface PolicyEditPlan {
   nextConfig: Record<string, unknown>
   changes: string[]
   warnings: string[]
+  // 规则 / 档案明细：预览阶段逐行展示，确认前可核对完整内容
+  details: string[]
   // 需要额外 --yes 确认（整域拒绝 / 整层清空）
   requiresYes: boolean
   changed: boolean
@@ -193,6 +195,7 @@ function finalizePlan(
   changes: string[],
   warnings: string[] = [],
   requiresYes = false,
+  details: string[] = [],
 ): PolicyEditPlan {
   return {
     layer: state.layer,
@@ -201,6 +204,7 @@ function finalizePlan(
     nextConfig,
     changes,
     warnings,
+    details,
     requiresYes,
     changed: JSON.stringify(nextConfig) !== JSON.stringify(state.config),
   }
@@ -213,11 +217,12 @@ function planForPolicies(
   changes: string[],
   warnings: string[] = [],
   requiresYes = false,
+  details: string[] = [],
 ): PolicyEditPlan {
   const nextConfig = { ...state.config }
   if (nextRaw.length > 0) nextConfig.policies = nextRaw
   else delete nextConfig.policies
-  return finalizePlan(state, nextConfig, changes, warnings, requiresYes)
+  return finalizePlan(state, nextConfig, changes, warnings, requiresYes, details)
 }
 
 // 策略 id：稳定机器键，禁止空白 / 控制字符与 legacy: 前缀，避免联动解析失败与只读误标
@@ -225,6 +230,26 @@ function assertPolicyId(id: string): void {
   if (isInvalidPolicyId(id)) {
     throw new Error("策略 id 不能包含空白 / 控制字符，且不能以 legacy: 开头；未写入配置")
   }
+}
+
+// 策略明细：预览逐行展示条件与技能维度
+function policyDetails(policy: ScopePolicy): string[] {
+  const when: string[] = []
+  if (policy.when?.paths?.length) when.push(`paths=${policy.when.paths.join(",")}`)
+  if (policy.when?.subpaths?.length) when.push(`subpaths=${policy.when.subpaths.join(",")}`)
+  if (policy.when?.markers?.length) when.push(`markers=${policy.when.markers.join(",")}`)
+  if (policy.when?.gitRemotes?.length) when.push(`remotes=${policy.when.gitRemotes.join(",")}`)
+  const skills: string[] = []
+  if (policy.skills?.match?.length) skills.push(`match=${policy.skills.match.join(",")}`)
+  if (policy.skills?.mode) skills.push(`mode=${policy.skills.mode}`)
+  if (policy.skills?.profiles?.length) skills.push(`profiles=${policy.skills.profiles.join(",")}`)
+  if (policy.skills?.allow?.length) skills.push(`allow=${policy.skills.allow.join(",")}`)
+  if (policy.skills?.deny?.length) skills.push(`deny=${policy.skills.deny.join(",")}`)
+  return [
+    `效果：${policy.effect ?? "allow"}`,
+    `条件：${when.join("；") || "全部目录（兜底）"}`,
+    `技能：${skills.join("；") || "无"}`,
+  ]
 }
 
 // 新增策略：id 缺省自动生成且不可变；deny 未限定技能时标记需 --yes
@@ -251,7 +276,14 @@ export function planPolicyAdd(state: PolicyState, input: PolicyAddInput): Policy
     if (hasAllow && policy.skills.mode !== "allowlist") warnings.push("allow / profile 仅在 --mode allowlist 下生效")
     if (policy.skills.mode === "allowlist" && !hasAllow) warnings.push("allowlist 未配置 allow / profile，该范围将不允许任何技能")
   }
-  return planForPolicies(state, [...state.raw, policy], [`新增策略：${labelOf(policy)}`], warnings, requiresYes)
+  return planForPolicies(
+    state,
+    [...state.raw, policy],
+    [`新增策略：${labelOf(policy)}`],
+    warnings,
+    requiresYes,
+    policyDetails(policy),
+  )
 }
 
 // 定位待移除项：--id 精确匹配；--name 仅在该层唯一且无跨层同名时可用
@@ -342,12 +374,23 @@ export function planProfileUpsert(state: PolicyState, input: ProfileUpsertInput)
     throw new Error("请至少提供 --allow 或 --deny；未写入配置")
   }
   for (const pattern of [...(input.allow ?? []), ...(input.deny ?? [])]) assertPattern(pattern, "档案名单")
+  const existing = isRecord(state.profiles[name]) ? state.profiles[name] : {}
+  const existingAllow = Array.isArray(existing.allow) ? existing.allow : []
+  const existingDeny = Array.isArray(existing.deny) ? existing.deny : []
+  const warnings: string[] = []
+  if (input.allow === undefined && existingAllow.length > 0) warnings.push("未提供 --allow，将清空原 allow 名单")
+  if (input.deny === undefined && existingDeny.length > 0) warnings.push("未提供 --deny，将清空原 deny 名单")
   const profile: Record<string, string[]> = {}
   if (input.allow) profile.allow = input.allow
   if (input.deny) profile.deny = input.deny
   const nextProfiles = { ...state.profiles, [name]: profile }
   const nextConfig = { ...state.config, skillProfiles: nextProfiles }
-  return finalizePlan(state, nextConfig, [`写入档案：${name}`])
+  const details = [
+    `档案：${name}`,
+    `allow：${input.allow?.length ? input.allow.join("、") : "无"}`,
+    `deny：${input.deny?.length ? input.deny.join("、") : "无"}`,
+  ]
+  return finalizePlan(state, nextConfig, [`写入档案：${name}`], warnings, false, details)
 }
 
 // 档案删除：只删目标层的同名档案
@@ -372,10 +415,10 @@ export function profileAllowPatterns(startDir: string, names: string[], layer: P
   return names.flatMap((name) => profiles.get(name)?.allow ?? [])
 }
 
-// 预览文本：写入文件 + 告警 + 变更
+// 预览文本：写入文件 + 规则 / 档案明细 + 告警 + 变更
 export function describePolicyPlan(plan: PolicyEditPlan): string[] {
   if (!plan.changed) return ["没有变化，无需写入"]
-  return [`写入：${plan.target.file}`, ...plan.warnings, ...plan.changes]
+  return [`写入：${plan.target.file}`, ...plan.details, ...plan.warnings, ...plan.changes]
 }
 
 // 落盘：完整 nextConfig 原子写回

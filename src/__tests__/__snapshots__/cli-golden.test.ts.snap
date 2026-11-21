@@ -720,6 +720,9 @@ exports[`各域行为与错误路径 > scope policy add 预演 1`] = `
 
 作用域策略：新增
   写入：<SANDBOX>/home/.toolkitrc.json
+  效果：allow
+  条件：paths=work
+  技能：无
   新增策略：golden-policy
 [预演] 未写入任何文件
 --- stderr ---
