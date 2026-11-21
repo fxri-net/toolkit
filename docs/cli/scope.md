@@ -49,7 +49,8 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 - `scope policy list [--at <目录>] [--format json]`：列出来源层、`id`、`name`、条件、技能维度与当前命中结果；
   旧 `activation` 编译出的规则标注 `legacy` 只读
 - `scope policy add`：条件 `--paths` / `--subpaths` / `--markers` / `--git-remotes`；
-  技能维度 `--mode` / `--profile` / `--allow` / `--deny`；`--effect` 缺省 `allow`，`--id` 自动生成且不可变
+  技能维度 `--mode` / `--profile` / `--allow` / `--deny`；`--effect` 缺省 `allow`
+  `--id` 不含空白 / 控制字符且不能以 `legacy:` 开头，缺省自动生成且不可变
 - `scope policy remove`：优先 `--id`；`--name` 仅在该层唯一且无跨层同名时可用
 - `scope policy reset`：按 `--id` / `--paths` 批量清除；整层清空需 `--all` + `--yes`，只清 `policies`，不清旧 `activation`
 - `scope skills` 是技能维度快捷视图：`allow` 只允许列出的技能，`deny` 排除列出的技能，`profile` 管理档案，`reset` 清空该层技能策略

@@ -9,6 +9,7 @@ import { compilePattern, matchPathPattern } from "./pattern"
 import {
   compilePolicies,
   decidePolicy,
+  isInvalidPolicyId,
   legacyToPolicies,
   type CompiledPolicySet,
   type ScopePolicyInput,
@@ -307,9 +308,19 @@ function parsePolicyItem(
     return null
   }
   let id = ""
+  let idInvalid = false
   if (raw.id !== undefined) {
-    if (typeof raw.id === "string" && raw.id.trim()) id = raw.id.trim()
-    else warnings.push(`${file} 的 policies[${index}].id 须为非空字符串，已忽略该项`)
+    if (typeof raw.id === "string" && raw.id.trim()) {
+      const candidate = raw.id.trim()
+      if (isInvalidPolicyId(candidate)) {
+        idInvalid = true
+        warnings.push(`${file} 的 policies[${index}].id 含空白 / 控制字符或以 legacy: 开头，已按内容派生 id`)
+      } else {
+        id = candidate
+      }
+    } else {
+      warnings.push(`${file} 的 policies[${index}].id 须为非空字符串，已忽略该项`)
+    }
   }
   const label = id || `policies[${index}]`
   if (raw.layer !== undefined) {
@@ -338,7 +349,9 @@ function parsePolicyItem(
   if (!id) {
     policy.id = derivePolicyId(policy, layer)
     warnings.push(
-      `${file} 的 ${label} 缺少 id，已按内容派生 ${policy.id}；建议显式写 id（内容变更后 id 会变）`,
+      idInvalid
+        ? `${file} 的 ${label} 的 id 非法（空白 / 控制字符 / legacy: 前缀），已按内容派生 ${policy.id}`
+        : `${file} 的 ${label} 缺少 id，已按内容派生 ${policy.id}；建议显式写 id（内容变更后 id 会变）`,
     )
   }
   if (!when) warnings.push(`${file} 的策略 ${policy.id} 未设置 when 条件（兜底规则），请确认影响范围`)

@@ -116,6 +116,12 @@ export function isLegacyPolicyId(id: string): boolean {
   return id.startsWith(LEGACY_ID_PREFIX)
 }
 
+// 非法策略 id：含空白 / 控制字符或使用 legacy: 前缀，会破坏 matchedRule 解析与只读标记
+export function isInvalidPolicyId(id: string): boolean {
+  if (id.startsWith(LEGACY_ID_PREFIX)) return true
+  return [...id].some((char) => char.trim() === "" || (char.codePointAt(0) ?? 0) < 0x20)
+}
+
 function nonEmpty(list: string[] | undefined): string[] {
   return (list ?? []).filter((item) => item.trim() !== "")
 }

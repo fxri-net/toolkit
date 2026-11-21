@@ -94,6 +94,12 @@ describe("planPolicyAdd", () => {
     expect(() => planPolicyAdd(state, { effect: "allow", when: { paths: ["re:("] } })).toThrow("非法")
   })
 
+  it("id 含空白或 legacy: 前缀时拒绝写入", () => {
+    const state = readPolicyState("global", project)
+    expect(() => planPolicyAdd(state, { id: "bad id", effect: "allow" })).toThrow("空白")
+    expect(() => planPolicyAdd(state, { id: "legacy:mine", effect: "allow" })).toThrow("legacy:")
+  })
+
   it("空条件与无效技能模式给出告警", () => {
     const state = readPolicyState("global", project)
     const plan = planPolicyAdd(state, { effect: "allow", skills: { allow: ["fxri-*"] } })

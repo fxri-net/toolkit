@@ -163,6 +163,19 @@ describe("resolveScope 策略校验", () => {
     expect(report.decision.active).toBe(false)
   })
 
+  it("手写策略 id 含空白或 legacy 前缀时派生 auto id", () => {
+    writeGlobal({
+      policies: [
+        { id: "bad id", when: { paths: [posix(project)] }, effect: "allow" },
+        { id: "legacy:mine", when: { paths: [posix(project)] }, effect: "deny" },
+      ],
+    })
+    const report = resolveScope(project)
+    expect(report.warnings.join("\n")).toContain("id 非法")
+    expect(report.policies).toHaveLength(2)
+    expect(report.policies.every((policy) => policy.id.startsWith("auto:global:"))).toBe(true)
+  })
+
   it("非数组 policies 与空档案名告警忽略", () => {
     writeGlobal({
       policies: {},

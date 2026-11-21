@@ -8,6 +8,7 @@ import { layerConfigTarget, readLayerConfig, writeLayerConfig, type LayerConfigT
 import { pathKey } from "./edit"
 import { resolveScope } from "./load"
 import { compilePattern } from "./pattern"
+import { isInvalidPolicyId } from "./policy"
 import type { ActivationMode, PolicyLayer, PolicySkills, ScopeCondition, ScopePolicy } from "./types"
 
 // 策略层顺序：与配置读取顺序一致
@@ -187,11 +188,19 @@ function planForPolicies(
   return finalizePlan(state, nextConfig, changes, warnings, requiresYes)
 }
 
+// 策略 id：稳定机器键，禁止空白 / 控制字符与 legacy: 前缀，避免联动解析失败与只读误标
+function assertPolicyId(id: string): void {
+  if (isInvalidPolicyId(id)) {
+    throw new Error("策略 id 不能包含空白 / 控制字符，且不能以 legacy: 开头；未写入配置")
+  }
+}
+
 // 新增策略：id 缺省自动生成且不可变；deny 未限定技能时标记需 --yes
 export function planPolicyAdd(state: PolicyState, input: PolicyAddInput): PolicyEditPlan {
   validateWhen(input.when)
   validateSkills(input.skills, state.startDir)
   const id = input.id?.trim() || `policy-${randomUUID()}`
+  assertPolicyId(id)
   const occupied = findPolicyLayerById(state.startDir, id)
   if (occupied) throw new Error(`策略 id「${id}」已存在于 ${occupied} 层；未写入配置`)
   const policy: ScopePolicy = { id, effect: input.effect }
