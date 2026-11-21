@@ -15,7 +15,8 @@ toolkit changelog changelog             # 仅格式化已有 CHANGELOG
 toolkit changelog changelog --history   # 连带追溯改写历史版本块
 toolkit changelog audit                 # 列出同对象净变更候选（只提示不改写）
 toolkit changelog mirror                # 生成/更新文档站更新日志镜像
-toolkit changelog mirror --check        # 只比对镜像，不写文件
+toolkit changelog mirror --check        # 逐页比对（主页 + 归档页），不写文件
+toolkit changelog mirror --dry-run      # 只列出将写入与清理的文件
 toolkit changelog publish               # 发布已升版产物（透传给 changesets）
 toolkit changelog changeset add         # 创建变更集（透传给 changesets）
 toolkit changelog changeset list        # 待发布变更集只读简表
@@ -40,7 +41,8 @@ toolkit changelog changeset status      # 待发布变更集状态（透传给 c
 | `--exclude <dirs>` | bump / changelog | 额外跳过的目录，逗号分隔；默认已跳过依赖安装目录、构建产物与 gitignore 覆盖的目录 |
 | `--include <dirs>` | bump / changelog | 强制处理的目录，逗号分隔；优先于默认跳过名单 |
 | `--no-sync-doc` | bump | 发版后不自动同步镜像页 |
-| `--check` | mirror | 只比对镜像页与根 CHANGELOG，不写文件；不一致时输出首个差异行并以 1 退出 |
+| `--check` | mirror | 逐页比对主页与归档页，不写文件；报告首个差异页并汇总缺页 / 多页 / 内容差异，有差异时以 1 退出 |
+| `--dry-run` | mirror | 只列出将写入与清理的文件清单，不写盘 |
 | `--from <path>` / `--to <path>` | mirror | 根 CHANGELOG 与镜像页路径，默认 `CHANGELOG.md` / `docs/changelog.md` |
 | `--title <text>` / `--outline <value>` | mirror | 镜像页标题与 frontmatter outline |
 | `--no-frontmatter` | mirror | 不写 VitePress frontmatter |
@@ -52,6 +54,11 @@ toolkit changelog changeset status      # 待发布变更集状态（透传给 c
 - `mirror`：从根 `CHANGELOG.md` 生成文档站镜像页，剥离源 H1、拼固定页头并校验至少一个版本块
   - 默认 `CHANGELOG.md` → `docs/changelog.md`
   - `--lang` 非默认语言（如 `en`）时默认路径追加语言后缀（`CHANGELOG.en.md` → `docs/changelog.en.md`），见[语言与镜像](../config/changelog)
+  - 按主版本分页（`changelogDoc.split`，默认 `major`）：主页保留最新主版本，其余主版本归档为 `docs/changelog/<major>.x.md`
+  - 主页紧随页头追加一行「历史版本」入口；只有单一主版本时不拆页、不加入口，输出与原整篇镜像逐字一致
+  - 归档目录取镜像目标去扩展名的同名目录（`docs/changelog.md → docs/changelog/`、`docs/changelog.en.md → docs/changelog.en/`），中英归档互不覆盖
+  - 归档页带生成标记，同步只删除带标记且本次不再生成的页；无标记的多余页保留并提示人工处理
+  - `--dry-run` 只打印将写入与清理的文件清单，不写盘；`--check` 逐页比对并以 1 退出表示待同步
   - `bump` 成功后自动执行一次（`--no-sync-doc` 关闭），失败只告警不阻断发版
 - `bump`：先透传 changesets 消费变更集，再对 CHANGELOG 做语义分组归类——**条目前缀是唯一归类信号**。
   - 改写范围只覆盖本仓自身的包：跳过依赖安装目录（`vendor`、`node_modules`、`.venv` 等，含 composer `config.vendor-dir` 自定义目录）
@@ -83,9 +90,11 @@ pnpm exec toolkit changelog bump                   # 发版 + 自动语义分组
 pnpm exec toolkit changelog changelog --lang en    # 指定语言仅格式化（内置 zh / en）
 pnpm exec toolkit changelog changelog --history    # 连带追溯改写历史版本块
 pnpm exec toolkit changelog mirror                 # 生成/更新文档站更新日志镜像
+pnpm exec toolkit changelog mirror --dry-run       # 预演：只列出将写入与清理的文件
 ```
 
 `bump` 成功后自动同步镜像页（`--no-sync-doc` 关闭）；镜像页由根 `CHANGELOG.md` 剥离 H1 后拼固定页头生成，
+按主版本分页默认开启（`changelogDoc.split`），单一主版本时输出与整篇镜像逐字一致。
 路径等可用 `changelog mirror` 的 `--from` / `--to` / `--title` / `--outline` 或 `changelogDoc` 配置段覆盖。
 
 ⚠️ 跨语言边界：语言在**首次归组时确定**，换语言重跑不会重新归组既有块；确需改语言只能用 `replacements` 写死「源标题 → 目标标题」映射。

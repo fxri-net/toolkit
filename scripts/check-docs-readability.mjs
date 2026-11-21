@@ -15,8 +15,9 @@ export const BASELINE_PATH = ["scripts", "docs-readability-baseline.json"]
 // 检查面：门面与根规则 + 文档站页面 + 技能正文
 const TARGET_FILES = ["README.md", "AGENTS.md", "SPEC.md"]
 const TARGET_DIRS = ["docs", "skills"]
-// 自动生成页豁免（C-40）：toolkit release mirror 产出，内容不由人书写
+// 自动生成页豁免（C-40）：toolkit release mirror 产出的主页与按主版本分页的归档目录
 const EXCLUDED = new Set(["docs/changelog.md"])
+const EXCLUDED_PREFIXES = ["docs/changelog/"]
 
 /** 递归收集 Markdown 页面，返回仓库根相对路径（正斜杠） */
 export function collectMarkdown(root, dir) {
@@ -24,7 +25,7 @@ export function collectMarkdown(root, dir) {
   for (const entry of readdirSync(join(root, dir), { withFileTypes: true })) {
     const rel = `${dir}/${entry.name}`
     if (entry.isDirectory()) files.push(...collectMarkdown(root, rel))
-    else if (entry.name.endsWith(".md") && !EXCLUDED.has(rel)) files.push(rel)
+    else if (entry.name.endsWith(".md") && !EXCLUDED.has(rel) && !EXCLUDED_PREFIXES.some((prefix) => rel.startsWith(prefix))) files.push(rel)
   }
   return files
 }

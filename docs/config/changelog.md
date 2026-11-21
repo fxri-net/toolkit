@@ -51,6 +51,12 @@ title: 语言与镜像（changelog / changelogDoc）
 | `outline` | string | `[2, 2]` | VitePress frontmatter outline |
 | `frontmatter` | boolean | `true` | 是否写 frontmatter；`--no-frontmatter` 可本次关闭 |
 | `note` | string | 内置来源说明 | 页头来源说明文案 |
+| `split` | string | `major` | 是否按主版本分页：`major` 主页只保留最新主版本、其余主版本归档为 `<目标目录>/<major>.x.md`；`none` 退回整篇镜像；非法值告警后按 `major` 处理 |
+
+`split` 为 `major` 时，归档目录取镜像目标去扩展名的同名目录：
+`docs/changelog.md → docs/changelog/`、`docs/changelog.en.md → docs/changelog.en/`，中英归档互不覆盖。
+只有单一主版本时不生成归档页、不加历史版本入口，输出与原整篇镜像逐字一致；多主版本时主页紧随页头追加一行「历史版本」入口。
+归档页带生成标记，同步只清理带标记且本次不再生成的页；无标记的多余页保留，并由 `--check` 报错提示人工处理。
 
 `toolkit changelog mirror` 与 `changelog bump` 发版后的自动同步共用本段；CLI 显式参数优先。非法值告警后按默认处理。
 

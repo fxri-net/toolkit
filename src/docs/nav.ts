@@ -1,7 +1,7 @@
 // 文档站导航校验：以 docs/site-nav.json 为唯一数据来源，先按随包 schema 校验结构，再判定导航与命名规则
 // 数据契约替代源码解析：检查器不读 config.mts，也不随 VitePress 版本变化
 import { existsSync } from "node:fs"
-import { join, relative } from "node:path"
+import { basename, join, relative, sep } from "node:path"
 import { walkFiles } from "../fs-scope"
 import { readTextFile } from "../read-text"
 import { skillsPackageDir } from "../skills"
@@ -182,6 +182,17 @@ function displayPath(abs: string): string {
   return rel === "" || rel.startsWith("..") ? abs.split("\\").join("/") : rel
 }
 
+// 页面体量豁免：条目按文件名或相对文档目录的路径前缀匹配，使整目录可被一次排除
+function isPageSizeExcluded(file: string, docsDir: string, patterns: string[]): boolean {
+  const name = basename(file)
+  const rel = relative(docsDir, file).split(sep).join("/")
+  return patterns.some((pattern) => {
+    const normalized = pattern.split(/[\\/]/).join("/")
+    if (normalized === name) return true
+    return normalized.endsWith("/") ? rel.startsWith(normalized) : rel === normalized || rel.startsWith(`${normalized}/`)
+  })
+}
+
 // 分组名收集：一级项一律参与，更深层级只取带子项的节点（纯页面条目豁免长度限制）
 function collectNavGroupNames(items: NavItemLike[], depth = 0, out: string[] = []): string[] {
   for (const item of items) {
@@ -340,7 +351,7 @@ export function checkDocsNav(
   // 页面体量只告警：拆分判据涉及读者与主题，机器不宜阻断
   // 遍历范围走共用判据（跳过依赖、产物与 gitignore 目录），站点自有的 cache / public 一并排除
   for (const page of walkFiles(docsDir, (name) => name.endsWith(".md"), { exclude: ["cache", "public"] })) {
-    if (config.pageSizeExclude.includes(page.split(/[\\/]/).pop() ?? "")) continue
+    if (isPageSizeExcluded(page, docsDir, config.pageSizeExclude)) continue
     const lines = readTextFile(page).replace(/\r\n/g, "\n").split("\n").length
     if (lines > config.maxPageLines) add("nav/page-size", `页面超过 ${config.maxPageLines} 行（${lines} 行），考虑拆分`, "warn", displayPath(page))
   }

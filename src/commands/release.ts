@@ -118,9 +118,17 @@ export function registerChangelogCommands(program: Command): void {
     formatChangelogs(".", localDate(), ctx.lang, ctx.redact, Boolean(options.history), collect)
   }
 
-  // 文档镜像：默认从根 CHANGELOG.md 生成，--check 只比对不写
+  // 文档镜像：默认从根 CHANGELOG.md 生成；--check 逐页比对，--dry-run 只列清单不写盘
   function runChangelogMirror(
-    options: ChangelogOptions & { check?: boolean; from?: string; to?: string; title?: string; outline?: string; frontmatter?: boolean },
+    options: ChangelogOptions & {
+      check?: boolean
+      dryRun?: boolean
+      from?: string
+      to?: string
+      title?: string
+      outline?: string
+      frontmatter?: boolean
+    },
   ): void {
     const ctx = resolveChangelogContext(options)
     try {
@@ -135,22 +143,33 @@ export function registerChangelogCommands(program: Command): void {
       })
       if (options.check) {
         const result = checkDoc(docOptions)
-        if (!result.ok) {
-          console.error(`⚠️ CHANGELOG 镜像不一致：第 ${result.line} 行`)
-          if (result.expected !== undefined) console.error(`  期望：${result.expected}`)
-          if (result.actual !== undefined) console.error(`  实际：${result.actual}`)
+        const first = result.problems[0]
+        if (!result.ok && first) {
+          const reason = first.kind === "missing" ? "缺少该页" : first.kind === "extra" ? "多余的归档页" : `第 ${first.line} 行`
+          console.error(`⚠️ CHANGELOG 镜像不一致：${first.file}（${reason}）`)
+          if (first.kind === "diff") {
+            console.error(`  期望：${first.expected}`)
+            console.error(`  实际：${first.actual}`)
+          }
+          const counts = { missing: 0, extra: 0, diff: 0 }
+          for (const problem of result.problems) counts[problem.kind] += 1
+          console.error(`  缺页 ${counts.missing} 个、多页 ${counts.extra} 个、内容差异 ${counts.diff} 个`)
           process.exitCode = 1
           return
         }
         console.log(line.ok(`CHANGELOG 镜像一致：${style.accent(docOptions.target)}`))
         return
       }
-      const result = syncDoc(docOptions)
-      console.log(
-        result.changed
-          ? line.ok(`CHANGELOG 镜像已更新：${style.accent(docOptions.target)}`)
-          : line.hint(`CHANGELOG 镜像无变化：${docOptions.target}`),
-      )
+      const result = syncDoc(docOptions, { dryRun: options.dryRun })
+      if (!result.changed) {
+        console.log(line.hint(`CHANGELOG 镜像无变化：${docOptions.target}`))
+        return
+      }
+      // 摘要列出本次生成与清理的全部页面，dry-run 用将来时措辞区分
+      console.log(`${options.dryRun ? "CHANGELOG 镜像（dry-run）" : line.ok("CHANGELOG 镜像已同步")}：${style.accent(docOptions.target)}`)
+      for (const file of result.written) console.log(`  ${options.dryRun ? "将写入" : "写入"}：${file}`)
+      for (const file of result.removed) console.log(`  ${options.dryRun ? "将清理" : "清理"}：${file}`)
+      for (const file of result.kept) console.warn(`⚠️ 归档目录存在无生成标记的页面，已保留待人工处理：${file}`)
     } catch (e) {
       console.error(`⚠️ ${(e as Error).message}`)
       process.exitCode = 1
@@ -206,13 +225,14 @@ export function registerChangelogCommands(program: Command): void {
     })
 
   addChangelogCommonOptions(changelogCmd.command("mirror").description("生成或校验文档站 CHANGELOG 镜像页"))
-    .option("--check", "只比对镜像页与根 CHANGELOG，不写文件")
+    .option("--check", "逐页比对镜像页与根 CHANGELOG，不写文件")
+    .option("--dry-run", "只列出将写入与清理的文件，不写盘")
     .option("--from <path>", "根 CHANGELOG 路径")
     .option("--to <path>", "镜像页路径")
     .option("--title <text>", "镜像页标题")
     .option("--outline <value>", "frontmatter outline")
     .option("--no-frontmatter", "不写 frontmatter")
-    .action((options: ChangelogOptions & { check?: boolean; from?: string; to?: string; title?: string; outline?: string; frontmatter?: boolean }) => {
+    .action((options: ChangelogOptions & { check?: boolean; dryRun?: boolean; from?: string; to?: string; title?: string; outline?: string; frontmatter?: boolean }) => {
       runChangelogMirror(options)
     })
 

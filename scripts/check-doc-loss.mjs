@@ -8,7 +8,9 @@ import { join } from "node:path"
 const MIN_SENTENCE = 20
 const MAX_SEGMENT = 200
 const MAX_PER_FILE = 5
+// 自动生成页（更新日志主页与按主版本分页的归档目录）不参与比对：历史句压缩不算丢事实
 const EXCLUDED = new Set(["docs/changelog.md"])
+const EXCLUDED_PREFIXES = ["docs/changelog/"]
 const TARGET_FILES = ["README.md", "AGENTS.md", "SPEC.md"]
 const TARGET_PREFIXES = ["docs/", "skills/"]
 
@@ -35,7 +37,7 @@ if (!listed) {
 
 const files = listed
   .split(/\r?\n/)
-  .filter((file) => file.endsWith(".md") && !EXCLUDED.has(file))
+  .filter((file) => file.endsWith(".md") && !EXCLUDED.has(file) && !EXCLUDED_PREFIXES.some((prefix) => file.startsWith(prefix)))
   .filter((file) => TARGET_FILES.includes(file) || TARGET_PREFIXES.some((prefix) => file.startsWith(prefix)))
 
 // 批量取基线内容：一次 git cat-file --batch 读完全部文件，避免逐文件各起一个子进程（二三十次进程启动即秒级开销）

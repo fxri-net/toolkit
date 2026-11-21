@@ -31,6 +31,11 @@ const MINIMAL = {
   sidebar: [{ text: "开始", items: [{ text: "首页", link: "/" }] }],
 }
 
+// 超过 300 行的页面内容
+function longPage(): string {
+  return `${Array.from({ length: 301 }, (_, index) => `第 ${index} 行`).join("\n")}\n`
+}
+
 // 写入站点数据、404 页与引用数据的站点配置
 function writeSite(nav: unknown, notFound = "---\nsearch: false\n---\n\n# 页面未找到\n"): void {
   writeFileSync(join(dir, "site-nav.json"), JSON.stringify(nav, null, 2))
@@ -259,11 +264,32 @@ describe("checkDocsNav", () => {
 
   it("单页超过 300 行只告警，不影响通过", () => {
     writeSite(MINIMAL)
-    writeFileSync(join(dir, "long.md"), `${Array.from({ length: 301 }, (_, index) => `第 ${index} 行`).join("\n")}\n`)
+    writeFileSync(join(dir, "long.md"), longPage())
     const result = checkDocsNav(dir)
     expect(result.ok).toBe(true)
     expect(result.problems.map((problem) => problem.id)).toContain("nav/page-size")
     expect(result.problems.every((problem) => problem.level === "warn")).toBe(true)
+  })
+
+  // 更新日志按主版本分页后归档到 changelog/ 目录：默认豁免须覆盖整目录，避免每个版本页各报一次
+  it("页面体量豁免默认覆盖 changelog/ 归档目录", () => {
+    writeSite(MINIMAL)
+    mkdirSync(join(dir, "changelog"), { recursive: true })
+    writeFileSync(join(dir, "changelog", "1.x.md"), longPage())
+    expect(ids()).not.toContain("nav/page-size")
+  })
+
+  it("页面体量豁免支持相对路径前缀，自定义目录整目录跳过", () => {
+    writeSite(MINIMAL)
+    mkdirSync(join(dir, "archive"), { recursive: true })
+    writeFileSync(join(dir, "archive", "v1.md"), longPage())
+    writeFileSync(join(dir, "guide.md"), longPage())
+    expect(ids()).toContain("nav/page-size")
+
+    const result = checkDocsNav(dir, { config: { pageSizeExclude: ["changelog.md", "archive/"] } })
+    const flagged = result.problems.filter((problem) => problem.id === "nav/page-size").map((problem) => problem.file)
+    expect(flagged.some((file) => file.includes("archive/"))).toBe(false)
+    expect(flagged.some((file) => file.endsWith("guide.md"))).toBe(true)
   })
 
   // 依赖目录下的 md 不是站点页面：即便超长也不该计入体量告警（vendor 常被提交进版本库的 PHP 项目同样适用）

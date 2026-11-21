@@ -53,7 +53,8 @@ export const DEFAULT_DOCS_NAV: Readonly<DocsNavConfig> = {
   lastItem: "帮助",
   helpChildren: ["常见问题", "更新日志"],
   maxPageLines: 300,
-  pageSizeExclude: ["changelog.md"],
+  // 条目按文件名或相对文档目录的路径前缀匹配；changelog/ 覆盖按主版本分页的归档目录
+  pageSizeExclude: ["changelog.md", "changelog/"],
   locales: {},
 }
 

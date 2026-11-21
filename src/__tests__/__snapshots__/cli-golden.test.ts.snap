@@ -138,9 +138,10 @@ exports[`各域行为与错误路径 > changelog mirror 校验 1`] = `
 --- stdout ---
 
 --- stderr ---
-⚠️ CHANGELOG 镜像不一致：第 1 行
+⚠️ CHANGELOG 镜像不一致：docs/changelog.md（第 1 行）
   期望：---
-  实际：# 更新日志"
+  实际：# 更新日志
+  缺页 0 个、多页 0 个、内容差异 1 个"
 `;
 
 exports[`各域行为与错误路径 > changelog 裸命令 1`] = `

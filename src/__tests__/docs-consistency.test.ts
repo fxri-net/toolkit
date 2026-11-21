@@ -5,7 +5,7 @@ import { dirname, join, normalize } from "node:path"
 import { createMarkdownRenderer } from "vitepress"
 import { listBuiltinRuleNames } from "../privacy/redact"
 import { DESCRIPTION } from "../about"
-import { buildDocPage } from "../changelog/doc"
+import { buildDocPages } from "../changelog/doc"
 import { composeRules, loadRuleset } from "../rules"
 
 // 提取文档「内置规则：」起的规则名清单（名称以反引号包裹，括号内为补充说明）
@@ -85,11 +85,12 @@ describe("文档一致性：规划态与执行态分离", () => {
   })
 })
 
-// 站点更新日志镜像页的期望内容：直接调用镜像脚本的转换函数，不在测试内复刻同一份逻辑
+// 站点更新日志主页的期望内容：直接调用镜像脚本的转换函数，不在测试内复刻同一份逻辑
 // （复刻会让脚本缺陷被同样的错误实现掩盖，CRLF 误报即由此漏过）
 describe("文档一致性：更新日志镜像", () => {
   it("docs/changelog.md 与根 CHANGELOG.md 同步（漏跑同步脚本或手改镜像页即失败）", () => {
-    expect(readDoc("docs/changelog.md")).toBe(buildDocPage(readFileSync(join(process.cwd(), "CHANGELOG.md"), "utf8")))
+    const changelog = readFileSync(join(process.cwd(), "CHANGELOG.md"), "utf8")
+    expect(readDoc("docs/changelog.md")).toBe(buildDocPages(changelog, { target: "docs/changelog.md" }).home)
   })
 })
 

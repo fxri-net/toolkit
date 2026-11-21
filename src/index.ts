@@ -18,8 +18,17 @@ export * from "./changelog/languages"
 export { collectChangelogs } from "./changelog/collect"
 export type { CollectOptions } from "./changelog/collect"
 export { localDate, formatChangelog, formatChangelogs } from "./changelog/format"
-export { buildDocPage, checkDoc, syncDoc, resolveDocOptions, syncDocAfterVersion } from "./changelog/doc"
-export type { DocOptions, DocCliOptions, DocCheckResult } from "./changelog/doc"
+export { buildDocPage, buildDocPages, checkDoc, syncDoc, resolveDocOptions, syncDocAfterVersion, ARCHIVE_MARKER } from "./changelog/doc"
+export type {
+  DocOptions,
+  DocCliOptions,
+  DocCheckResult,
+  DocCheckProblem,
+  DocSplit,
+  DocPages,
+  DocArchivePage,
+  DocSyncResult,
+} from "./changelog/doc"
 
 // privacy 域
 export { redactText } from "./privacy/redact"

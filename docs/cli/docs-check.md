@@ -102,7 +102,7 @@ toolkit docs nav init --config <path> # 指定站点配置文件
 | `docs.nav.firstItem` / `lastItem` | 快速开始 / 帮助 | 顶栏首末项文案 |
 | `docs.nav.helpChildren` | 常见问题、更新日志 | 末项下拉的必备项 |
 | `docs.nav.maxPageLines` | `300` | 单页体量告警阈值 |
-| `docs.nav.pageSizeExclude` | `changelog.md` | 不参与体量告警的文件 |
+| `docs.nav.pageSizeExclude` | `["changelog.md", "changelog/"]` | 不参与体量告警的文件或目录前缀（如 `changelog/` 整目录豁免） |
 | `docs.nav.locales` | `{}` | 各语言包的首末项与帮助必备项，未声明则跳过语言相关规则 |
 | `docs.dist.dir` | `.vitepress/dist` | 产物目录，相对文档目录 |
 | `docs.dist.sitemap` | `error` | sitemap 缺失时按 `error` / `warn` / `off` 处置 |
