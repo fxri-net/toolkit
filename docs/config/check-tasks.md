@@ -1,8 +1,8 @@
 ---
-title: 校验与任务区（check / tasks）
+title: 校验与任务区（check / task）
 ---
 
-# 校验与任务区（check / tasks）
+# 校验与任务区（check / task）
 
 > 软告警开关、勾选框与词标记扫描，以及任务目录与导入列映射。
 
@@ -16,16 +16,16 @@ title: 校验与任务区（check / tasks）
 
 `tasks check` 另校验 `scope` 取值是否在 `.tasks/conventions/index.md` 的端清单内（`common` 恒合法），载体缺失或端清单为空表时跳过；只校验 active 任务，不回溯归档。
 
-## tasks：任务目录与导入列映射
+## task：任务目录与导入列映射
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
-| `dir` | string | `".tasks"` | 任务目录；支持绝对路径或 `../` 相对路径，任务区可放项目外（如独立文档仓库）；被 CLI `--dir` 覆盖，`init`、`tasks` 与 `conventions` 同口径 |
+| `dir` | string | `".tasks"` | 任务目录；支持绝对路径或 `../` 相对路径，任务区可放项目外（如独立文档仓库）；被 CLI `--dir` 覆盖，`init`、`tasks` 与 `conventions` 同口径。旧段名 `tasks` 仍可读取，`toolkit init` 自动重写 |
 | `importColumns` | object | 无 | 键 = 实际表头列名（匹配不区分大小写），值 = 标准字段名（`title`/`status`/`owner`/`scope`/`created`/`updated`/`completed`/`depends`/`body`）；优先级高于内置别名表 |
 
 ```json
 {
-  "tasks": {
+  "task": {
     "dir": "../my-tasks-repo",
     "importColumns": { "我的标题": "title", "Deadline": "completed" }
   }

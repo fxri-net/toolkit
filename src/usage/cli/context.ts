@@ -165,7 +165,7 @@ export function printUsageInfo(dirOption?: string): void {
   }).map((adapter) => adapter.id)
   const lastHookError = readLastHookError(paths)
   printConfig(config, dir)
-  if (config.channel === "rule") console.log("规则入口：toolkit usage rule（输出可复制到全局规则的文案）")
+  if (config.channel === "rule") console.log("规则入口：toolkit rules compose --module usage（输出可复制到全局规则的文案）")
   console.log(`Hook：${installedHooks.length > 0 ? installedHooks.join("、") : "未安装"}`)
   console.log(`队列：${queueCount(paths)} 条待处理`)
   console.log(`事件：${events.length} 条（索引 ${index.eventIds.length} 条，文件 ${files.length} 个）`)

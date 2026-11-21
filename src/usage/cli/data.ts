@@ -9,10 +9,8 @@ import { processHookEvent } from "../ingest"
 import { parseTranscript } from "../transcript"
 import { buildEvent, resolveSkillMeta } from "../event"
 import { shouldRecord } from "../filter"
-import { loadUsageConfig } from "../config"
 import { flushQueue } from "../flush"
-import { hasRecordableSkills, recordSkills } from "../record"
-import { usageGlobalRule } from "../rule"
+import { recordSkills } from "../record"
 import { eventsToCsv, eventsToJsonl, filterEvents, summarize, unusedSkills } from "../stats"
 import { appendEvent, dedupeStore, purgeEvents, readAllEvents, readIndex, rebuildIndex } from "../store"
 import { createContext, parseImportFile, parseOlderThanDays, parseSinceOption, parseSource, printJson, printSkillSummary, printTriggers, splitNames } from "./context"
@@ -378,23 +376,6 @@ export function registerUsageDataCommands(usage: Command): void {
         console.log(`事件：${events.length} 条 / 去重后 ${unique.size} 条 / 索引 ${index.eventIds.length} 条`)
         if (items.length === 0) console.log(line.ok("未发现问题"))
         else for (const item of items) console.log(`${item.level === "warn" ? "⚠️" : "ℹ️"} ${item.message}`)
-      })
-
-    // 规则文案：供用户复制到全局规则；配置不会统计任何技能时先提示空转
-    usage
-      .command("rule")
-      .description("输出可复制的全局规则文案")
-      .action(() => {
-        const config = loadUsageConfig()
-        if (!hasRecordableSkills(config)) {
-          console.error("⚠️ 当前配置不会统计任何技能（总开关关闭 / 技能模式为 none / include 为空 / 来源全关），规则执行也不会产生记录")
-        }
-        try {
-          console.log(usageGlobalRule())
-        } catch (error) {
-          console.error(`⚠️ ${(error as Error).message}`)
-          process.exitCode = 1
-        }
       })
 
     // 索引重建：doctor 提示后使用

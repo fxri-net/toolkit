@@ -893,8 +893,8 @@ export function registerSkillsCommands(program: Command): void {
     .option("--force", "覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）")
     .option("--prune", "清理未选择或 off 形态残留、且内容与本包真源一致的旧产物（只清本包登记条目）")
     .option("--mode <mode>", "技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）")
-    .option("--gate", "开启内容闸门：本次把技能写入口壳（声明退出的除外），成功后写 skillsDelivery.default")
-    .option("--embed", "回退内容闸门：把入口壳改回全文，成功后写 skillsDelivery.default")
+    .option("--gate", "开启内容闸门：本次把技能写入口壳（声明退出的除外），成功后写 skillDelivery.default")
+    .option("--embed", "回退内容闸门：把入口壳改回全文，成功后写 skillDelivery.default")
     .option("--no-skills", "本次不安装任何技能，不改模式与已保存选择")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .addHelpText(
@@ -1842,10 +1842,10 @@ export function registerSkillsCommands(program: Command): void {
       }
     })
 
-  // 内容闸门默认形态：on / off 写 skillsDelivery.default，不覆盖已有 rules；入口壳由 install 生成或还原
+  // 内容闸门默认形态：on / off 写 skillDelivery.default，不覆盖已有 rules；入口壳由 install 生成或还原
   skillsCmd
     .command("gate [value]")
-    .description("查看或切换内容闸门默认形态（on = 默认入口壳 / off = 默认全文；不覆盖 skillsDelivery.rules）")
+    .description("查看或切换内容闸门默认形态（on = 默认入口壳 / off = 默认全文；不覆盖 skillDelivery.rules）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action((value: string | undefined, options: { format?: string }) => {
       try {

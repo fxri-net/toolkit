@@ -74,7 +74,7 @@ export function analyzeSkillLinkage(startDir = process.cwd()): SkillLinkageRepor
     })
     if (decision.mode === "gated") gated += 1
     // 显式规则（含旧键映射）把被拒技能钉成全文才算策略无效
-    if (decision.mode === "full" && (decision.source.startsWith("skillsDelivery.rules") || decision.source.startsWith("旧键 skillsInstall.gate"))) {
+    if (decision.mode === "full" && (decision.source.startsWith("skillDelivery.rules") || decision.source.startsWith("旧键 skillInstall.gate"))) {
       ineffective.push(name)
     }
   }
@@ -88,7 +88,7 @@ export function formatLinkageHints(linkage: SkillLinkageReport): string[] {
   const hints: string[] = []
   if (!linkage.gateEnabled) hints.push("矩阵已配置，但正文仍全量加载：运行 toolkit skills gate on 开启内容闸门")
   if (linkage.ineffective.length > 0) {
-    hints.push(`策略对该技能无效：${linkage.ineffective.join("、")} 已显式设为全文安装（skillsDelivery.rules 覆盖了矩阵推导）`)
+    hints.push(`策略对该技能无效：${linkage.ineffective.join("、")} 已显式设为全文安装（skillDelivery.rules 覆盖了矩阵推导）`)
   }
   if (linkage.dead.length > 0) {
     hints.push(`已安装但矩阵未允许：${linkage.dead.join("、")}（不会自动删除，可用 toolkit skills uninstall 清理）`)

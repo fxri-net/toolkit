@@ -25,7 +25,7 @@ toolkit skills install --scope project --refresh # 只刷新已存在的项目�
 toolkit skills install --mode package # 纯包管理器模式：core 也可不装，允许零选
 toolkit skills install --no-skills  # 仅本次零装，不改模式与已保存选择
 toolkit skills install --gate       # 内容闸门：本次全部技能写入口壳，--embed 回退
-toolkit skills gate [on|off]        # 查看或切换默认分发形态（skillsDelivery.default，不覆盖 rules）
+toolkit skills gate [on|off]        # 查看或切换默认分发形态（skillDelivery.default，不覆盖 rules）
 toolkit skills plan                 # 分发计划：目标 / 当前形态 / 动作与判定来源（install --dry-run 的别名）
 toolkit skills mount --dry-run      # 批量挂载：预览将写入的项目（由 scope mount 迁入，原命令已移除）
 toolkit skills install --copy       # 强制副本（仅全局面；入口壳形态的技能仍写壳并告警）
@@ -76,8 +76,8 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - **曾用名迁移**：来源声明 `previousNames` 时，旧名产物按归属清理（链接或同内容副本）并回显「已改名迁移：旧名 → 新名」
   - 仅在新名本次已新建 / 更新 / 跳过时清理；新名冲突或失败时保留旧名，沿用既有冲突 / 失败报告
   - 新名写入状态后旧名不再残留
-- **分发形态**：按 [`skillsDelivery`](../config/skills#skillsdelivery-技能分发形态) 推导，`gated` 只写入口壳、`off` 不写产物（残留由 `--prune` 清理）
-  - `--gate` / `--embed` 为本次显式取值，成功后写 `skillsDelivery.default`；项目面同样生效
+- **分发形态**：按 [`skillDelivery`](../config/skills#skilldelivery-技能分发形态) 推导，`gated` 只写入口壳、`off` 不写产物（残留由 `--prune` 清理）
+  - `--gate` / `--embed` 为本次显式取值，成功后写 `skillDelivery.default`；项目面同样生效
 - 项目面按[作用域与安装面](../config/skills#作用域与安装面)的副本 + 薄壳口径写入；`gated` 技能的候选目录落入口壳，真源副本保留供 guard 读取正文
 - `--dry-run` 是 `skills plan` 的别名：只输出分发计划，不写文件
 - `--check` 只报告待收敛项，有漂移时退出码 1；不进入交互
@@ -105,7 +105,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 - **逐目标状态**：软链正常 / 软链悬空 / 软链指向其他版本 / 副本已同步 / 副本已漂移（本包登记副本与真源不一致）/
   入口壳已过期（与当前版本不一致）/ 形态不符（现场产物与目标分发形态不一致）/ 缺失（仅指已选择但缺失）/
   同名冲突（同名非本包产物）/ 未选择但已安装（单列提示，不计入问题）/ 残留（目标形态为 `off`，用 `install --prune` 清理）
-- **分发形态**：按 `skillsDelivery` 推导；`off` 的技能不参与缺失统计，其既有产物单列残留
+- **分发形态**：按 `skillDelivery` 推导；`off` 的技能不参与缺失统计，其既有产物单列残留
 - 来源中已无此名的悬空条目（改名后未声明曾用名）：`install` 无法补齐，汇总时给出含实际名字的 `uninstall` 命令
 - **健康目标折叠为一行**（`<目标>：<目录>　N 项正常`），仅含问题项或未选择产物的目标逐条展开
 - 末尾汇总需处理条目并按型给出指引：缺失 / 悬空 / 指向其他版本 / 副本漂移 / 入口壳过期用 `install` 补齐，
@@ -151,8 +151,8 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 
 ### gate
 
-- 无参数查看默认分发形态（`skillsDelivery.default`）与规则条数
-- `skills gate on|off` 只写 `skillsDelivery.default`（on → `gated`、off → `full`），**不覆盖 `rules`**
+- 无参数查看默认分发形态（`skillDelivery.default`）与规则条数
+- `skills gate on|off` 只写 `skillDelivery.default`（on → `gated`、off → `full`），**不覆盖 `rules`**
 - `--format json` 输出 `{ default, rules }`；非法取值报错退出 1
 
 ### mount
@@ -219,7 +219,7 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
    - `skills` 模式下 `core` 已选中且不可取消；`package` 模式下全部默认不选、`core` 可取消
    - `Enter` 确认、`Ctrl+C` 取消（取消时不写任何文件，退出码 130）；技能选择页按 ESC 等同取消，目标页与确认页按 ESC 逐级返回
 4. 已保存选择：非 TTY 或传入 `--yes` 时按保存的选择回显（非交互不进入任何提示）
-   - 全局层读 `~/.toolkitrc.json` 的 `skillsInstall.selection`；项目层读 `.toolkitrc.json` 的 `projectSkills.selection`
+   - 全局层读 `~/.toolkitrc.json` 的 `skillInstall.selection`；项目层读 `.toolkitrc.json` 的 `projectSkill.selection`
    - 保存名单里的曾用名（来源声明的 `previousNames`）会迁移为现用名后再回显
    - 某个来源的整份名单都已不存在（来源整体改名 / 重构）时，按默认口径重算：内置源取 `core`、外部来源取全部，并向 stderr 告警一次
    - 只有部分名字失效时只剔除失效项并告警，新增技能不自动补选（避免来源往用户环境塞技能）
@@ -248,8 +248,8 @@ toolkit skills path --format json   # JSON 输出：包根、技能源目录、�
 ## 策略与内容闸门
 
 - 策略（`scope policy` / `scope skills`）直接决定技能分发形态：带条件限制 → 入口壳，无条件拒绝 → 不安装，无需手动开闸门
-- 矩阵限制的技能由 `install` 自动生成入口壳，`skills plan` 可预览；显式 `skillsDelivery.rules` 仍可覆盖推导
-- 显式规则把被拒技能钉成全文时，提示「策略对该技能无效：已显式设为全文安装」；旧键 `skillsInstall.gate` / `metadata.gate` 仍读时兼容
+- 矩阵限制的技能由 `install` 自动生成入口壳，`skills plan` 可预览；显式 `skillDelivery.rules` 仍可覆盖推导
+- 显式规则把被拒技能钉成全文时，提示「策略对该技能无效：已显式设为全文安装」；旧键 `skillInstall.gate` / `metadata.gate` 仍读时兼容
 - 已安装但当前目录矩阵未允许的技能单列提示，不自动删除；确认不需要时用 `skills uninstall` 清理
 - 项目面安装（`install --scope project`）提供更硬的边界；策略与闸门只影响正文读取，不改变安装产物
 - 策略字段、优先级与子目录口径见[作用域配置（activation / policies）](../config/activation)

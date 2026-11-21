@@ -23,6 +23,7 @@ export async function runCli(version: string): Promise<void> {
     { registerDocsCommands },
     { registerRulesCommands },
     { registerScopeCommands },
+    { removedCommandHint },
   ] = await Promise.all([
     import("commander"),
     import("./init"),
@@ -42,6 +43,7 @@ export async function runCli(version: string): Promise<void> {
     import("./commands/docs"),
     import("./commands/rules"),
     import("./commands/scope"),
+    import("./command-registry"),
   ])
 
   // 使用情况事件记录当前 toolkit 版本：库形态不依赖包路径，由入口统一注入
@@ -62,6 +64,14 @@ export async function runCli(version: string): Promise<void> {
 
   // 旧环境变量名一次性提示：仅诊断，不读取旧值（C-26 降级不静默）
   warnLegacyEnvOnce()
+
+  // 已移除命令：直接给替代写法，避免只回「未知命令」让人无从迁移
+  const removedHint = removedCommandHint(argv.slice(2))
+  if (removedHint) {
+    console.error(`⚠️ ${removedHint}`)
+    process.exitCode = 1
+    return
+  }
 
   const program = new Command()
 

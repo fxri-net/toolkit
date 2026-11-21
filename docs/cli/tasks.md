@@ -22,7 +22,7 @@ toolkit tasks stats               # 周期统计：完成周期 / 滞留 / 吞�
 toolkit tasks stats --format json # 统计结果 JSON 输出
 toolkit tasks export 报表.xlsx    # 导出任务（按扩展名识别 csv / xlsx / json）
 toolkit tasks import 需求清单.csv --dry-run # 导入预演
-toolkit tasks --dir <path>        # 指定任务目录（CLI 参数 > 配置 tasks.dir > 默认 .tasks）
+toolkit tasks --dir <path>        # 指定任务目录（CLI 参数 > 配置 task.dir > 默认 .tasks）
 toolkit tasks check --strict      # 任务目录不存在时报错退出（默认容错为空结果）
 ```
 
@@ -30,7 +30,7 @@ toolkit tasks check --strict      # 任务目录不存在时报错退出（默�
 
 | 选项 | 说明 |
 | --- | --- |
-| `--dir <path>` | 任务目录（优先级：CLI 参数 > 配置 `tasks.dir` > 默认 `.tasks`） |
+| `--dir <path>` | 任务目录（优先级：CLI 参数 > 配置 `task.dir` > 默认 `.tasks`） |
 | `--redact` / `--no-redact` | 开启/关闭隐私脱敏（默认开启） |
 | `--warn` / `--no-warn` | 开启/关闭软告警（默认开启；作用于 `check` 的 warn 输出、归档时的变更集提醒） |
 | `--strict` | 任务目录不存在时报错退出（默认容错为空结果） |

@@ -20,7 +20,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
   assertUniqueSkillNames(allItems)
   const items = filterSkillItems(allItems, options.skills)
   const byName = new Map(allItems.map((item) => [item.name, { dir: item.dir, linkTarget: item.linkTarget }]))
-  // 分发形态：命令行显式取值 > skillsDelivery 配置 > 旧键兼容；命令行取值时配置规则不参与
+  // 分发形态：命令行显式取值 > skillDelivery 配置 > 旧键兼容；命令行取值时配置规则不参与
   const gateOption = options.gate
   const deliveryConfig = gateOption === undefined ? readSkillsDeliveryConfig("global") : { rules: [] }
   const cliRules = gateOption !== undefined && typeof gateOption === "object" ? gateRulesToDeliveryRules(gateOption) : []
@@ -417,7 +417,7 @@ function saveGlobalSelection(sources: SkillSource[], items: SkillItem[]): void {
   }
 }
 
-// 保存全局目标选择：只合并 skillsInstall 段，保留 selection / sources
+// 保存全局目标选择：只合并 skillInstall 段，保留 selection / sources
 function saveGlobalTargets(names: string[]): void {
   try {
     writeSkillsInstallConfig({ targets: names })

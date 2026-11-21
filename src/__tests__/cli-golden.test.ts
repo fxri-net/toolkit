@@ -242,7 +242,7 @@ beforeAll(() => {
   mkdirSync(workspace, { recursive: true })
   // workspace 夹具：包描述、配置、任务区、归档、变更集
   putFile(workspace, "package.json", `${JSON.stringify({ name: "golden-workspace", private: true }, null, 2)}\n`)
-  putFile(workspace, ".toolkitrc.json", `${JSON.stringify({ tasks: { dir: ".tasks" } }, null, 2)}\n`)
+  putFile(workspace, ".toolkitrc.json", `${JSON.stringify({ task: { dir: ".tasks" } }, null, 2)}\n`)
   putFile(workspace, ".tasks/active/202611/20261110-唐启云-基线示例进行中任务.md", ACTIVE_TASK)
   putFile(workspace, ".tasks/active/202611/20261111-唐启云-基线示例已完成任务.md", DONE_TASK)
   putFile(workspace, ".tasks/archive/202610/20261030.md", ARCHIVE_FILE)
@@ -373,6 +373,16 @@ describe("各域行为与错误路径", () => {
     ["usage stats", ["usage", "stats"]],
     ["usage doctor", ["usage", "doctor"]],
     ["usage rule", ["usage", "rule"]],
+    ["config list", ["config", "list"]],
+    ["config list JSON", ["config", "list", "--format", "json"]],
+    ["config get", ["config", "get", "task.dir"]],
+    ["config get explain", ["config", "get", "task.dir", "--explain"]],
+    ["config get 未知键", ["config", "get", "task.dri"]],
+    ["config set 预演", ["config", "set", "check.warnings", "false", "--dry-run"]],
+    ["config set 非交互缺 yes", ["config", "set", "check.warnings", "false"]],
+    ["config set 不可写层", ["config", "set", "usage.enabled", "true", "--layer", "project"]],
+    ["config set 非法取值", ["config", "set", "check.warnings", "maybe", "--yes"]],
+    ["config unset 预演", ["config", "unset", "task.dir", "--dry-run"]],
     ["usage 导出空数据", ["usage", "export"]],
     ["usage 补录预演", ["usage", "log", "--skill", "fxri-plan-to-task", "--session", "golden", "--dry-run"]],
     ["usage 去重", ["usage", "dedupe"]],

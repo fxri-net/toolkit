@@ -13,7 +13,7 @@ toolkit usage init            # 初始化向导，回车即按默认启用（一
 toolkit usage wizard          # 交互菜单：状态、统计、开关、Hook、上传、导出与清理
 toolkit usage info
 toolkit usage channel rule    # 采集通道：rule（全局规则上报）/ hook（Agent Hook）
-toolkit usage rule            # 输出可复制进全局规则的文案
+toolkit rules compose --module usage   # 输出可复制进全局规则的文案（等价于原 usage rule）
 toolkit usage record --skill fxri-plan-to-task --skill fxri-plan-review   # 规则通道批量上报（静默）
 toolkit usage enable
 toolkit usage origins --first-party --third-party
@@ -54,7 +54,8 @@ toolkit usage doctor
 | `upload status` | 上传开关、端点与待上传数量 | `--format json` |
 | `upload send --dry-run` | 预览批次与载荷，不发送 | `--limit` |
 | `upload send` | 手工发送一批 | `--limit` |
-| `rule` | 输出可复制全局规则（等价于 `toolkit rules compose --module usage`） | — |
+
+> `usage rule` 已移除：输出全局规则文案请用 `toolkit rules compose --module usage`（与旧命令输出逐字一致）。
 
 ## 时间参数
 
@@ -80,7 +81,7 @@ toolkit usage doctor
 - **异步消费**：`record` 只入队，随后由派生 worker 或下一次 `usage` 命令消费；`stats` 可能有数秒到一条命令的延迟，`info` 的「队列」行显示积压条数。反查失败只丢明细字段，技能名与次数照常落盘。
 - **明细缺失的三个原因**：该 Agent 会话记录不可读（Trae 不落可读文件）、会话格式尚未适配（dsh 为 v4 事件流）、或记录已过期 / 被清理。
    补救见 [Agent 接入 · 拿不到明细时的补救](../usage/agents#拿不到明细时的补救)：`usage log` 手工补录、改用 Hook 通道。
-- `rule` 在「当前配置不会统计任何技能」时先向 stderr 提示空转，再输出规则文案。
+- 原 `usage rule` 的「当前配置不会统计任何技能」空转提示随命令移除；改用 `toolkit rules compose --module usage` 时不再做该检查。
 - `usage stats --by trigger` 每条输出「次数｜最近调用时间｜触发词｜技能」，便于看某技能的调用明细。
 - Hook 安装与采集开启是两步：先 `hooks install`，再 `enable`。支持 Agent 与配置路径见 [Agent 接入](../usage/agents)。
 - `hooks install` 只处理本机已检测到的 Agent；显式 `--agent` 未检测到时告警跳过，全部跳过才以非 0 退出。

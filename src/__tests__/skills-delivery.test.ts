@@ -77,7 +77,7 @@ describe("分发形态推导", () => {
       config: { default: "full", rules: [{ match: ["fxri-*"], delivery: "gated" }] },
     })
     expect(decision.mode).toBe("gated")
-    expect(decision.source).toContain("skillsDelivery.rules[0]")
+    expect(decision.source).toContain("skillDelivery.rules[0]")
     expect(decision.reason).toContain("入口壳")
   })
 
@@ -110,14 +110,14 @@ describe("分发形态推导", () => {
   })
 
   it("旧键 include / exclude 映射后保持排除优先", () => {
-    writeHomeConfig({ skillsInstall: { gate: { include: ["fxri-*"], exclude: ["fxri-text-encoding"] } } })
+    writeHomeConfig({ skillInstall: { gate: { include: ["fxri-*"], exclude: ["fxri-text-encoding"] } } })
     const config = readSkillsDeliveryConfig("global", project)
     const gated = resolveDelivery({ name: "fxri-plan-to-task", config })
     const excluded = resolveDelivery({ name: "fxri-text-encoding", config })
     expect(gated.mode).toBe("gated")
-    expect(gated.source).toContain("旧键 skillsInstall.gate.include")
+    expect(gated.source).toContain("旧键 skillInstall.gate.include")
     expect(excluded.mode).toBe("full")
-    expect(excluded.source).toContain("旧键 skillsInstall.gate.exclude")
+    expect(excluded.source).toContain("旧键 skillInstall.gate.exclude")
   })
 
   it("技能声明 metadata.gate=false 单点退出，按全文安装", () => {
@@ -215,39 +215,39 @@ describe("外部来源的声明参与解释", () => {
 
 describe("分发形态配置读取", () => {
   it("全局面读全局层 + 本地层，忽略项目层并告警", () => {
-    writeHomeConfig({ skillsDelivery: { default: "gated" } })
-    writeProjectConfig(".toolkitrc.json", { skillsDelivery: { default: "off" } })
+    writeHomeConfig({ skillDelivery: { default: "gated" } })
+    writeProjectConfig(".toolkitrc.json", { skillDelivery: { default: "off" } })
     const config = readSkillsDeliveryConfig("global", project)
     expect(config.default).toBe("gated")
     expect(vi.mocked(console.warn).mock.calls.some((call) => String(call[0]).includes("全局面不读取项目层配置"))).toBe(true)
   })
 
   it("项目面读全局 + 项目 + 本地，项目层整段覆盖全局、本地层字段覆盖", () => {
-    writeHomeConfig({ skillsDelivery: { default: "gated" } })
-    writeProjectConfig(".toolkitrc.json", { skillsDelivery: { default: "off" } })
+    writeHomeConfig({ skillDelivery: { default: "gated" } })
+    writeProjectConfig(".toolkitrc.json", { skillDelivery: { default: "off" } })
     expect(readSkillsDeliveryConfig("project", project).default).toBe("off")
-    writeProjectConfig(".toolkitrc.local.json", { skillsDelivery: { default: "full" } })
+    writeProjectConfig(".toolkitrc.local.json", { skillDelivery: { default: "full" } })
     expect(readSkillsDeliveryConfig("project", project).default).toBe("full")
   })
 
   it("旧键 gate: true 映射为默认入口壳并提示一次", () => {
-    writeHomeConfig({ skillsInstall: { gate: true } })
+    writeHomeConfig({ skillInstall: { gate: true } })
     expect(readSkillsDeliveryConfig("global", project).default).toBe("gated")
-    const hits = () => vi.mocked(console.warn).mock.calls.filter((call) => String(call[0]).includes("skillsInstall.gate")).length
+    const hits = () => vi.mocked(console.warn).mock.calls.filter((call) => String(call[0]).includes("skillInstall.gate")).length
     expect(hits()).toBe(1)
     readSkillsDeliveryConfig("global", project)
     expect(hits()).toBe(1)
   })
 
-  it("新旧并存以 skillsDelivery 为准并告警旧键被忽略", () => {
-    writeHomeConfig({ skillsInstall: { gate: true }, skillsDelivery: { default: "off" } })
+  it("新旧并存以 skillDelivery 为准并告警旧键被忽略", () => {
+    writeHomeConfig({ skillInstall: { gate: true }, skillDelivery: { default: "off" } })
     expect(readSkillsDeliveryConfig("global", project).default).toBe("off")
     expect(vi.mocked(console.warn).mock.calls.some((call) => String(call[0]).includes("旧键不再生效"))).toBe(true)
   })
 
   it("非法枚举与非法模式告警剔除", () => {
     writeHomeConfig({
-      skillsDelivery: {
+      skillDelivery: {
         default: "half",
         rules: [
           { match: ["re:("], delivery: "gated" },
@@ -258,13 +258,13 @@ describe("分发形态配置读取", () => {
     const config = readSkillsDeliveryConfig("global", project)
     expect(config.default).toBeUndefined()
     expect(config.rules).toEqual([])
-    expect(vi.mocked(console.warn).mock.calls.some((call) => String(call[0]).includes("skillsDelivery.default"))).toBe(true)
+    expect(vi.mocked(console.warn).mock.calls.some((call) => String(call[0]).includes("skillDelivery.default"))).toBe(true)
   })
 })
 
 describe("安装与状态的分发形态口径", () => {
   it("规则指定 gated 只写入口壳，其余保持全文", () => {
-    writeHomeConfig({ skillsDelivery: { rules: [{ match: ["fxri-plan-to-task"], delivery: "gated" }] } })
+    writeHomeConfig({ skillDelivery: { rules: [{ match: ["fxri-plan-to-task"], delivery: "gated" }] } })
     const report = installSkills({ skills: ["fxri-plan-to-task", "fxri-text-encoding"] })
     const primary = report.targets.find((target) => target.kind === "primary")
     expect(primary?.gates).toEqual(["fxri-plan-to-task"])
@@ -273,7 +273,7 @@ describe("安装与状态的分发形态口径", () => {
   })
 
   it("规则指定 off 不写产物，status 不把缺失算作问题", () => {
-    writeHomeConfig({ skillsDelivery: { rules: [{ match: ["fxri-plan-to-task"], delivery: "off" }] } })
+    writeHomeConfig({ skillDelivery: { rules: [{ match: ["fxri-plan-to-task"], delivery: "off" }] } })
     installSkills({ skills: ["fxri-plan-to-task"] })
     expect(existsSync(join(primaryDir(), "fxri-plan-to-task"))).toBe(false)
     expect(primaryState("fxri-plan-to-task")).toBeUndefined()
@@ -282,7 +282,7 @@ describe("安装与状态的分发形态口径", () => {
   it("off 的既有产物在 status 单列残留，--prune 后清理", () => {
     installSkills({ skills: ["fxri-plan-to-task"] })
     expect(existsSync(join(primaryDir(), "fxri-plan-to-task"))).toBe(true)
-    writeHomeConfig({ skillsDelivery: { rules: [{ match: ["fxri-plan-to-task"], delivery: "off" }] } })
+    writeHomeConfig({ skillDelivery: { rules: [{ match: ["fxri-plan-to-task"], delivery: "off" }] } })
     expect(primaryState("fxri-plan-to-task")).toBe("residue")
     installSkills({ skills: ["fxri-plan-to-task"], prune: true })
     expect(existsSync(join(primaryDir(), "fxri-plan-to-task"))).toBe(false)

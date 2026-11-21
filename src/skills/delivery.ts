@@ -110,9 +110,9 @@ function matchRule(name: string, rule: DeliveryRule): { count: number; literal: 
 function ruleSource(rule: DeliveryRule, index: number, cli: boolean): string {
   const match = rule.match.join("、")
   if (cli) return `命令行规则（${match}）`
-  if (rule.origin === "legacy-include") return `旧键 skillsInstall.gate.include（${match}）`
-  if (rule.origin === "legacy-exclude") return `旧键 skillsInstall.gate.exclude（${match}）`
-  return `skillsDelivery.rules[${index}]（${match}）`
+  if (rule.origin === "legacy-include") return `旧键 skillInstall.gate.include（${match}）`
+  if (rule.origin === "legacy-exclude") return `旧键 skillInstall.gate.exclude（${match}）`
+  return `skillDelivery.rules[${index}]（${match}）`
 }
 
 // 被压规则提示：同一具体度下后一条胜出，前一条的真实受影响范围必须可见（降级不静默）
@@ -140,7 +140,7 @@ export function explainDelivery(input: ResolveDeliveryInput): DeliveryExplanatio
     const key = `metadata.gate\u0000${input.name}`
     if (!warned.has(key)) {
       warned.add(key)
-      console.warn(`⚠️ 技能「${input.name}」使用旧声明 metadata.gate=false：已按全文安装，建议迁移到 skillsDelivery 规则（2.0.0 起移除兼容）`)
+      console.warn(`⚠️ 技能「${input.name}」使用旧声明 metadata.gate=false：已按全文安装，建议迁移到 skillDelivery 规则（2.1.0 起移除兼容）`)
     }
     levels.push({ level: "技能声明 metadata.gate", hit: true, detail: "声明为 false，退出内容接管" })
     return done("full", "技能声明 metadata.gate=false", "技能包声明退出内容接管，按全文安装")
@@ -178,7 +178,7 @@ export function explainDelivery(input: ResolveDeliveryInput): DeliveryExplanatio
     levels.push({ level: "显式规则", hit: true, detail: `命中「${match}」→ ${deliveryModeLabel(winner.rule.delivery)}` })
     return done(winner.rule.delivery, ruleSource(winner.rule, winner.index, winner.cli), `命中规则「${match}」→ ${deliveryModeLabel(winner.rule.delivery)}`)
   }
-  levels.push({ level: "显式规则", hit: false, detail: "未命中任何 skillsDelivery.rules" })
+  levels.push({ level: "显式规则", hit: false, detail: "未命中任何 skillDelivery.rules" })
 
   // 策略推导：矩阵声明限制该技能时按目录收口或不安装
   if (input.policy) {
@@ -196,9 +196,9 @@ export function explainDelivery(input: ResolveDeliveryInput): DeliveryExplanatio
 
   if (input.config?.default) {
     levels.push({ level: "全局默认", hit: true, detail: deliveryModeLabel(input.config.default) })
-    return done(input.config.default, "skillsDelivery.default", `未命中规则，取配置默认${deliveryModeLabel(input.config.default)}`)
+    return done(input.config.default, "skillDelivery.default", `未命中规则，取配置默认${deliveryModeLabel(input.config.default)}`)
   }
-  levels.push({ level: "全局默认", hit: false, detail: "未配置 skillsDelivery.default，回落全文安装" })
+  levels.push({ level: "全局默认", hit: false, detail: "未配置 skillDelivery.default，回落全文安装" })
   return done("full", "默认", "未配置分发形态，按默认全文安装")
 }
 

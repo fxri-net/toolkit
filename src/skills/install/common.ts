@@ -19,7 +19,7 @@ export interface InstallOptions {
   targets?: string[]
   // 是否把本次目标选择写回配置；--no-save-agents 时为 false
   saveTargets?: boolean
-  // 本次临时外部来源（--from）；永久来源从 skillsInstall.sources 读取
+  // 本次临时外部来源（--from）；永久来源从 skillInstall.sources 读取
   externalSources?: ExternalSourceOption[]
   // 清理未选择且内容一致的本包产物
   prune?: boolean

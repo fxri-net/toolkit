@@ -104,7 +104,7 @@ export function registerConventionsCommands(program: Command): void {
   conventionsCmd
     .command("upgrade")
     .description("把 v1 / v2 规范载体升级为 v3（v2：删「状态」「确立来源任务」两列、退休条目迁入 retired.md 并删分册小节；v1 链式升级；幂等，先判后写）")
-    .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）")
+    .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 task.dir > 默认 .tasks）")
     .option("--dry-run", "预演（只预览将要执行的动作，不写文件）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action((options: { dir?: string; dryRun?: boolean; format?: string }) => {
@@ -123,7 +123,7 @@ export function registerConventionsCommands(program: Command): void {
   conventionsCmd
     .command("format")
     .description("归一表格与索引表单元格形态（紧凑形态 + 单一事实源链接化、归属裸值、规则去引号；当前语义只报不改；幂等、跳过 fenced code block，先报后写）")
-    .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）")
+    .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 task.dir > 默认 .tasks）")
     .option("--dry-run", "预演（只预览将要归一的行，不写文件）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action((options: { dir?: string; dryRun?: boolean; format?: string }) => {
@@ -143,7 +143,7 @@ export function registerConventionsCommands(program: Command): void {
     .command("status")
     .alias("check")
     .description("规范载体只读体检：形态 / 索引 / 入口层三块（只报不改，体检不阻断、退出码恒 0；仅 --format 传非法值时按参数错误报错退出）")
-    .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）；入口壳与检测入口按该目录所属仓库扫描")
+    .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 task.dir > 默认 .tasks）；入口壳与检测入口按该目录所属仓库扫描")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action((options: { dir?: string; format?: string }) => {
       try {

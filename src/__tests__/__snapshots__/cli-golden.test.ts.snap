@@ -33,7 +33,7 @@ description: 本项目协作规范入口。当需要查阅或遵循本项目沉�
 
 <!-- toolkit-conventions-entry: v2 -->
 <!-- 由 toolkit init 生成，可安全删除；需要时重跑 toolkit init 即可补齐 -->
-本技能只是入口，不承载条文：读本项目任务区（默认 \`.tasks\`，已配置 \`tasks.dir\` 时按配置声明）下的 \`conventions/index.md\`，按其「用法说明」节执行；条文以各文件的单一事实源为准。
+本技能只是入口，不承载条文：读本项目任务区（默认 \`.tasks\`，已配置 \`task.dir\` 时按配置声明）下的 \`conventions/index.md\`，按其「用法说明」节执行；条文以各文件的单一事实源为准。
 
 
 ### .gitignore
@@ -149,6 +149,379 @@ exports[`各域行为与错误路径 > changelog 裸命令 1`] = `
 "
 `;
 
+exports[`各域行为与错误路径 > config get 1`] = `
+"退出码：0
+--- stdout ---
+.tasks
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > config get explain 1`] = `
+"退出码：0
+--- stdout ---
+键：task.dir
+类型：非空字符串
+默认写入层：项目层；可写层：全局层 / 项目层 / 本地层
+说明：任务区目录（相对路径基于运行目录解析）
+生效值：.tasks（来源：项目层）
+覆盖链：
+  本地层：未配置
+  项目层：.tasks
+  全局层：未配置
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > config get 未知键 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ 未知配置键「task.dri」，是否想用 task.dir"
+`;
+
+exports[`各域行为与错误路径 > config list 1`] = `
+"退出码：0
+--- stdout ---
+  task.dir：.tasks（项目层）
+  redact.enabled：未配置（默认值）
+  redact.disable：未配置（默认值）
+  check.warnings：未配置（默认值）
+  updateCheck.enabled：未配置（默认值）
+  skills.autoLink：未配置（默认值）
+  skills.autoLinkReplaceForeign：未配置（默认值）
+  skillInstall.mode：未配置（默认值）
+  skillInstall.targets：未配置（默认值）
+  skillDelivery.default：未配置（默认值）
+  projectSkill.mode：未配置（默认值）
+  projectSkill.targets：未配置（默认值）
+  activation.mode：未配置（默认值）
+  docs.nav.dir：未配置（默认值）
+  docs.nav.maxItems：未配置（默认值）
+  docs.nav.maxGroupUnits：未配置（默认值）
+  docs.nav.firstItem：未配置（默认值）
+  docs.nav.lastItem：未配置（默认值）
+  docs.nav.maxPageLines：未配置（默认值）
+  docs.dist.dir：未配置（默认值）
+  docs.dist.sitemap：未配置（默认值）
+  docs.dist.searchProvider：未配置（默认值）
+  usage.enabled：未配置（默认值）
+  usage.channel：未配置（默认值）
+  usage.sources.firstParty：未配置（默认值）
+  usage.sources.thirdParty：未配置（默认值）
+  usage.sources.unmanaged：未配置（默认值）
+  usage.skills.mode：未配置（默认值）
+  usage.skills.include：未配置（默认值）
+  usage.skills.exclude：未配置（默认值）
+  usage.capture.triggerPrompt：未配置（默认值）
+  usage.capture.skillArgs：未配置（默认值）
+  usage.capture.outcome：未配置（默认值）
+  usage.storage.dir：未配置（默认值）
+  usage.storage.rotation：未配置（默认值）
+  usage.storage.retentionDays：未配置（默认值）
+  usage.storage.maxFileBytes：未配置（默认值）
+  usage.upload.enabled：未配置（默认值）
+  usage.upload.protocol：未配置（默认值）
+  usage.upload.endpoint：未配置（默认值）
+  usage.upload.batchSize：未配置（默认值）
+共 41 个可写键；写入用 toolkit config set <key> <value>
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > config list JSON 1`] = `
+"退出码：0
+--- stdout ---
+{
+  "schemaVersion": 1,
+  "layer": null,
+  "keys": [
+    {
+      "key": "task.dir",
+      "type": "string",
+      "summary": "任务区目录（相对路径基于运行目录解析）",
+      "value": ".tasks",
+      "source": "project"
+    },
+    {
+      "key": "redact.enabled",
+      "type": "boolean",
+      "summary": "启用内置脱敏",
+      "source": null
+    },
+    {
+      "key": "redact.disable",
+      "type": "stringList",
+      "summary": "按名禁用内置脱敏规则（逗号分隔）",
+      "source": null
+    },
+    {
+      "key": "check.warnings",
+      "type": "boolean",
+      "summary": "tasks check 输出软告警",
+      "source": null
+    },
+    {
+      "key": "updateCheck.enabled",
+      "type": "boolean",
+      "summary": "检查新版本并提示",
+      "source": null
+    },
+    {
+      "key": "skills.autoLink",
+      "type": "boolean",
+      "summary": "命令启动时自愈悬空技能链接",
+      "source": null
+    },
+    {
+      "key": "skills.autoLinkReplaceForeign",
+      "type": "boolean",
+      "summary": "自愈时替换指向其它包的同名技能链接",
+      "source": null
+    },
+    {
+      "key": "skillInstall.mode",
+      "type": "enum",
+      "summary": "全局技能安装形态",
+      "source": null
+    },
+    {
+      "key": "skillInstall.targets",
+      "type": "stringList",
+      "summary": "全局技能安装目标目录（逗号分隔）",
+      "source": null
+    },
+    {
+      "key": "skillDelivery.default",
+      "type": "enum",
+      "summary": "技能分发默认形态（全文 / 入口壳 / 不安装）",
+      "source": null
+    },
+    {
+      "key": "projectSkill.mode",
+      "type": "enum",
+      "summary": "项目技能安装形态",
+      "source": null
+    },
+    {
+      "key": "projectSkill.targets",
+      "type": "stringList",
+      "summary": "项目技能安装目录（逗号分隔）",
+      "source": null
+    },
+    {
+      "key": "activation.mode",
+      "type": "enum",
+      "summary": "旧激活段默认模式（新项目建议改用 policies）",
+      "source": null
+    },
+    {
+      "key": "docs.nav.dir",
+      "type": "string",
+      "summary": "文档目录",
+      "source": null
+    },
+    {
+      "key": "docs.nav.maxItems",
+      "type": "number",
+      "summary": "导航条目数上限",
+      "source": null
+    },
+    {
+      "key": "docs.nav.maxGroupUnits",
+      "type": "number",
+      "summary": "导航分组名长度上限",
+      "source": null
+    },
+    {
+      "key": "docs.nav.firstItem",
+      "type": "string",
+      "summary": "导航首项名",
+      "source": null
+    },
+    {
+      "key": "docs.nav.lastItem",
+      "type": "string",
+      "summary": "导航末项名",
+      "source": null
+    },
+    {
+      "key": "docs.nav.maxPageLines",
+      "type": "number",
+      "summary": "单页行数上限",
+      "source": null
+    },
+    {
+      "key": "docs.dist.dir",
+      "type": "string",
+      "summary": "产物目录（相对文档目录）",
+      "source": null
+    },
+    {
+      "key": "docs.dist.sitemap",
+      "type": "enum",
+      "summary": "sitemap 缺失时的处置",
+      "source": null
+    },
+    {
+      "key": "docs.dist.searchProvider",
+      "type": "enum",
+      "summary": "搜索实现",
+      "source": null
+    },
+    {
+      "key": "usage.enabled",
+      "type": "boolean",
+      "summary": "技能使用情况总开关",
+      "source": null
+    },
+    {
+      "key": "usage.channel",
+      "type": "enum",
+      "summary": "采集通道",
+      "source": null
+    },
+    {
+      "key": "usage.sources.firstParty",
+      "type": "boolean",
+      "summary": "统计一方技能",
+      "source": null
+    },
+    {
+      "key": "usage.sources.thirdParty",
+      "type": "boolean",
+      "summary": "统计第三方技能",
+      "source": null
+    },
+    {
+      "key": "usage.sources.unmanaged",
+      "type": "boolean",
+      "summary": "统计未托管技能",
+      "source": null
+    },
+    {
+      "key": "usage.skills.mode",
+      "type": "enum",
+      "summary": "技能统计范围模式",
+      "source": null
+    },
+    {
+      "key": "usage.skills.include",
+      "type": "stringList",
+      "summary": "技能统计白名单（逗号分隔）",
+      "source": null
+    },
+    {
+      "key": "usage.skills.exclude",
+      "type": "stringList",
+      "summary": "技能统计黑名单（逗号分隔）",
+      "source": null
+    },
+    {
+      "key": "usage.capture.triggerPrompt",
+      "type": "boolean",
+      "summary": "采集触发词",
+      "source": null
+    },
+    {
+      "key": "usage.capture.skillArgs",
+      "type": "boolean",
+      "summary": "采集技能参数",
+      "source": null
+    },
+    {
+      "key": "usage.capture.outcome",
+      "type": "boolean",
+      "summary": "采集执行结果",
+      "source": null
+    },
+    {
+      "key": "usage.storage.dir",
+      "type": "string",
+      "summary": "事件数据目录",
+      "source": null
+    },
+    {
+      "key": "usage.storage.rotation",
+      "type": "enum",
+      "summary": "事件文件轮转方式",
+      "source": null
+    },
+    {
+      "key": "usage.storage.retentionDays",
+      "type": "number",
+      "summary": "事件保留天数",
+      "source": null
+    },
+    {
+      "key": "usage.storage.maxFileBytes",
+      "type": "number",
+      "summary": "单文件大小上限（字节）",
+      "source": null
+    },
+    {
+      "key": "usage.upload.enabled",
+      "type": "boolean",
+      "summary": "上传事件到远端",
+      "source": null
+    },
+    {
+      "key": "usage.upload.protocol",
+      "type": "enum",
+      "summary": "上传协议",
+      "source": null
+    },
+    {
+      "key": "usage.upload.endpoint",
+      "type": "string",
+      "summary": "上传地址",
+      "source": null
+    },
+    {
+      "key": "usage.upload.batchSize",
+      "type": "number",
+      "summary": "单批上传条数",
+      "source": null
+    }
+  ]
+}
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > config set 不可写层 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ 配置键「usage.enabled」不可写入项目层：仅支持 全局层"
+`;
+
+exports[`各域行为与错误路径 > config set 非交互缺 yes 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ 非交互环境写入配置须显式加 --yes（或先用 --dry-run 预览）"
+`;
+
+exports[`各域行为与错误路径 > config set 非法取值 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ 配置键「check.warnings」取值非法：须为布尔值（true / false）（实际：maybe）"
+`;
+
+exports[`各域行为与错误路径 > config set 预演 1`] = `
+"退出码：0
+--- stdout ---
+将写入全局层：check.warnings = false（--dry-run，未落盘）
+--- stderr ---
+"
+`;
+
 exports[`各域行为与错误路径 > config status 1`] = `
 "退出码：0
 --- stdout ---
@@ -161,7 +534,7 @@ exports[`各域行为与错误路径 > config status 1`] = `
   本地层：无
 
 展示键来源：
-  tasks.dir：项目层
+  task.dir：项目层
   redact.enabled：默认值
   updateCheck.enabled：默认值
   check.warnings：默认值
@@ -198,7 +571,7 @@ exports[`各域行为与错误路径 > config status JSON 1`] = `
       "present": true,
       "ignored": null,
       "sections": [
-        "tasks"
+        "task"
       ],
       "otherSections": []
     },
@@ -213,7 +586,7 @@ exports[`各域行为与错误路径 > config status JSON 1`] = `
   ],
   "displayKeys": [
     {
-      "key": "tasks.dir",
+      "key": "task.dir",
       "source": "项目层"
     },
     {
@@ -256,19 +629,31 @@ exports[`各域行为与错误路径 > config status 非法格式 1`] = `
 ⚠️ 不支持的输出格式「xml」，仅支持 json"
 `;
 
+exports[`各域行为与错误路径 > config unset 预演 1`] = `
+"退出码：0
+--- stdout ---
+将从项目层删除：task.dir（--dry-run，未落盘）
+--- stderr ---
+"
+`;
+
 exports[`各域行为与错误路径 > config 裸命令 1`] = `
 "退出码：0
 --- stdout ---
 Usage: toolkit config [options] [command]
 
-配置分层：只读查看三层配置文件（全局层 / 项目层 / 本地层）的生效情况与来源
+配置：list / get / set / unset 唯一写入口，另有 status 只读体检三层配置文件
 
 Options:
-  -h, --help        显示帮助
+  -h, --help                   显示帮助
 
 Commands:
-  status [options]  配置分层只读体检：三层命中 / 来源层 / 环境变量层（只读、退出码恒 0；无 --dir，可用 --cwd
-                    指定查找起点）
+  list [options]               列出全部可写配置键：生效值与来源层（--layer 只看该层写入情况）
+  get [options] <key>          读取单个配置键（--explain 展示类型、可写层与三层覆盖链）
+  set [options] <key> <value>  写入单个配置键（默认落该键的默认层；非交互环境须加 --yes）
+  unset [options] <key>        删除单个配置键（默认删该键的默认层；非交互环境须加 --yes）
+  status [options]             配置分层只读体检：三层命中 / 来源层 / 环境变量层（只读、退出码恒 0；无 --dir，可用
+                               --cwd 指定查找起点）
 
 --- stderr ---
 "
@@ -1047,7 +1432,7 @@ Commands:
   plan [options]                预览技能分发计划（目标形态 / 当前形态 / 动作与判定来源；install --dry-run
                                 的别名）
   gate [options] [value]        查看或切换内容闸门默认形态（on = 默认入口壳 / off = 默认全文；不覆盖
-                                skillsDelivery.rules）
+                                skillDelivery.rules）
   mount [options] [dir]         在父目录下的项目里批量安装技能（交互选择项目并确认，会向所选项目写文件）
   path [options]                输出包根路径（内含 skills/，可委托上游安装器安装到表外 agent）
 
@@ -1419,20 +1804,11 @@ Hook：未安装
 `;
 
 exports[`各域行为与错误路径 > usage rule 1`] = `
-"退出码：0
+"退出码：1
 --- stdout ---
-> 规则更新时间 2026-11-20 11:47
 
-## 技能使用情况（必做）
-
-- 每次调用 Skill 工具（加载并遵循某个技能）后，立即执行 \`toolkit usage record --skill <技能名>\`；同一技能调用几次就重复传几次，未调用 Skill 工具则不执行。
-- 同一轮连续调用多个技能时，可在本轮最后一次调用后合并为一条命令；不得拖到下一轮或会话结束。
-- 给出最终回复前自检：本轮调用过 Skill 却尚未上报的，先补报；命令无法执行时在回复中说明原因，不静默跳过。
-- \`usage record\` 只把技能名写入本机 usage 队列，不改仓库、不改远端、不上传，因此不受「只读型请求默认只读」「方案确认不等于执行授权」限制，也无需逐次确认。
-- 上报只传技能名，触发词 / 参数 / 结果 / 耗时由工具反查会话记录补齐；统计范围与上传由本机 \`toolkit usage info\` 的配置决定，数据只留本机。
-- 查看统计用 \`toolkit usage stats\`；异常先 \`toolkit usage doctor\`；不要自行修改数据文件或把导出内容上传到未授权地址。
 --- stderr ---
-⚠️ 当前配置不会统计任何技能（总开关关闭 / 技能模式为 none / include 为空 / 来源全关），规则执行也不会产生记录"
+⚠️ toolkit usage rule 已移除，请改用 toolkit rules compose --module usage（输出与旧命令逐字一致）"
 `;
 
 exports[`各域行为与错误路径 > usage stats 1`] = `
@@ -1656,14 +2032,18 @@ exports[`帮助与版本口径 > config 帮助 1`] = `
 --- stdout ---
 Usage: toolkit config [options] [command]
 
-配置分层：只读查看三层配置文件（全局层 / 项目层 / 本地层）的生效情况与来源
+配置：list / get / set / unset 唯一写入口，另有 status 只读体检三层配置文件
 
 Options:
-  -h, --help        显示帮助
+  -h, --help                   显示帮助
 
 Commands:
-  status [options]  配置分层只读体检：三层命中 / 来源层 / 环境变量层（只读、退出码恒 0；无 --dir，可用 --cwd
-                    指定查找起点）
+  list [options]               列出全部可写配置键：生效值与来源层（--layer 只看该层写入情况）
+  get [options] <key>          读取单个配置键（--explain 展示类型、可写层与三层覆盖链）
+  set [options] <key> <value>  写入单个配置键（默认落该键的默认层；非交互环境须加 --yes）
+  unset [options] <key>        删除单个配置键（默认删该键的默认层；非交互环境须加 --yes）
+  status [options]             配置分层只读体检：三层命中 / 来源层 / 环境变量层（只读、退出码恒 0；无 --dir，可用
+                               --cwd 指定查找起点）
 
 --- stderr ---
 "
@@ -1677,7 +2057,7 @@ Usage: toolkit conventions format [options]
 归一表格与索引表单元格形态（紧凑形态 + 单一事实源链接化、归属裸值、规则去引号；当前语义只报不改；幂等、跳过 fenced code block，先报后写）
 
 Options:
-  --dir <path>       任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）
+  --dir <path>       任务目录（优先级：CLI 参数 > 配置 task.dir > 默认 .tasks）
   --dry-run          预演（只预览将要归一的行，不写文件）
   --format <format>  输出格式（json，输出到 stdout）
   -h, --help         显示帮助
@@ -1788,7 +2168,7 @@ Usage: toolkit tasks [options] [command]
 任务管理
 
 Options:
-  --dir <path>             任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）
+  --dir <path>             任务目录（优先级：CLI 参数 > 配置 task.dir > 默认 .tasks）
   --redact                 开启隐私脱敏
   --no-redact              关闭隐私脱敏
   --warn                   开启软告警
@@ -1836,7 +2216,8 @@ Commands:
                                    --from 外部来源统一管理）
   conventions [options] [command]  项目协作规范载体：结构升级（v1 / v2 →
                                    v3）、表格与索引单元格形态归一、只读体检（形态 / 索引 / 入口层）
-  config [options] [command]       配置分层：只读查看三层配置文件（全局层 / 项目层 / 本地层）的生效情况与来源
+  config [options] [command]       配置：list / get / set / unset 唯一写入口，另有 status
+                                   只读体检三层配置文件
   docs [options] [command]         文档站工具：主题、导航与产物的校验与写入
   tasks [options] [command]        任务管理
   changelog [options] [command]    多语言 CHANGELOG（封装 changesets）
@@ -1866,7 +2247,7 @@ Usage: toolkit init [options]
 初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐 .gitignore 片段与 prepare 刷新钩子）
 
 Options:
-  --dir <path>  任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）
+  --dir <path>  任务目录（优先级：CLI 参数 > 配置 task.dir > 默认 .tasks）
   --no-hooks    不写入 package.json 的 prepare 刷新钩子（默认写入，仅当本地依赖含 @xfri/toolkit）
   -h, --help    显示帮助
 
@@ -1942,8 +2323,8 @@ Options:
   --force            覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
   --prune            清理未选择或 off 形态残留、且内容与本包真源一致的旧产物（只清本包登记条目）
   --mode <mode>      技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）
-  --gate             开启内容闸门：本次把技能写入口壳（声明退出的除外），成功后写 skillsDelivery.default
-  --embed            回退内容闸门：把入口壳改回全文，成功后写 skillsDelivery.default
+  --gate             开启内容闸门：本次把技能写入口壳（声明退出的除外），成功后写 skillDelivery.default
+  --embed            回退内容闸门：把入口壳改回全文，成功后写 skillDelivery.default
   --no-skills        本次不安装任何技能，不改模式与已保存选择
   --format <format>  输出格式（json，输出到 stdout）
   -h, --help         显示帮助
@@ -1984,7 +2365,7 @@ Commands:
   plan [options]                预览技能分发计划（目标形态 / 当前形态 / 动作与判定来源；install --dry-run
                                 的别名）
   gate [options] [value]        查看或切换内容闸门默认形态（on = 默认入口壳 / off = 默认全文；不覆盖
-                                skillsDelivery.rules）
+                                skillDelivery.rules）
   mount [options] [dir]         在父目录下的项目里批量安装技能（交互选择项目并确认，会向所选项目写文件）
   path [options]                输出包根路径（内含 skills/，可委托上游安装器安装到表外 agent）
 
@@ -2000,7 +2381,7 @@ Usage: toolkit tasks [options] [command]
 任务管理
 
 Options:
-  --dir <path>             任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）
+  --dir <path>             任务目录（优先级：CLI 参数 > 配置 task.dir > 默认 .tasks）
   --redact                 开启隐私脱敏
   --no-redact              关闭隐私脱敏
   --warn                   开启软告警
@@ -2085,7 +2466,6 @@ Commands:
   dedupe [options]            压缩历史重复事件并重建索引
   purge [options]             清理本地事件（按保留期或全部）
   doctor [options]            诊断技能使用情况目录、索引与重复事件
-  rule [options]              输出可复制的全局规则文案
   rebuild [options]           从事件文件重建索引
 
 --- stderr ---
@@ -2113,7 +2493,8 @@ Commands:
                                    --from 外部来源统一管理）
   conventions [options] [command]  项目协作规范载体：结构升级（v1 / v2 →
                                    v3）、表格与索引单元格形态归一、只读体检（形态 / 索引 / 入口层）
-  config [options] [command]       配置分层：只读查看三层配置文件（全局层 / 项目层 / 本地层）的生效情况与来源
+  config [options] [command]       配置：list / get / set / unset 唯一写入口，另有 status
+                                   只读体检三层配置文件
   docs [options] [command]         文档站工具：主题、导航与产物的校验与写入
   tasks [options] [command]        任务管理
   changelog [options] [command]    多语言 CHANGELOG（封装 changesets）
@@ -2151,7 +2532,8 @@ Commands:
                                    --from 外部来源统一管理）
   conventions [options] [command]  项目协作规范载体：结构升级（v1 / v2 →
                                    v3）、表格与索引单元格形态归一、只读体检（形态 / 索引 / 入口层）
-  config [options] [command]       配置分层：只读查看三层配置文件（全局层 / 项目层 / 本地层）的生效情况与来源
+  config [options] [command]       配置：list / get / set / unset 唯一写入口，另有 status
+                                   只读体检三层配置文件
   docs [options] [command]         文档站工具：主题、导航与产物的校验与写入
   tasks [options] [command]        任务管理
   changelog [options] [command]    多语言 CHANGELOG（封装 changesets）

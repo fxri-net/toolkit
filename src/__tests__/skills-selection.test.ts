@@ -167,11 +167,11 @@ describe("状态文件新结构与旧结构导入", () => {
 })
 
 describe("技能选择落盘与未选择产物", () => {
-  it("安装后保存选择集到全局层 skillsInstall，重装按保存值回显", () => {
+  it("安装后保存选择集到全局层 skillInstall，重装按保存值回显", () => {
     const core = coreSkillNames(listPackageSkills())
     installSkills({ skills: core })
     expect(readSavedSelection(readSkillsInstallConfig())).toEqual(core)
-    expect(readGlobalConfig().skillsInstall).toEqual({ selection: { toolkit: core }, targets: ["canonical"] })
+    expect(readGlobalConfig().skillInstall).toEqual({ selection: { toolkit: core }, targets: ["canonical"] })
   })
 
   it("未选择且有产物的技能单列 installed-unselected，不计入问题；--prune 只清内容一致的条目", () => {
@@ -207,40 +207,40 @@ describe("技能选择落盘与未选择产物", () => {
   })
 })
 
-describe("skillsInstall / projectSkills 分层配置", () => {
-  it("skillsInstall 只认全局层，写在项目层时告警并忽略", () => {
-    writeFileSync(join(project, ".toolkitrc.json"), JSON.stringify({ skillsInstall: { selection: { toolkit: ["fxri-text-encoding"] } } }), "utf8")
+describe("skillInstall / projectSkill 分层配置", () => {
+  it("skillInstall 只认全局层，写在项目层时告警并忽略", () => {
+    writeFileSync(join(project, ".toolkitrc.json"), JSON.stringify({ skillInstall: { selection: { toolkit: ["fxri-text-encoding"] } } }), "utf8")
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const config = readSkillsInstallConfig(project)
     expect(config.selection).toBeUndefined()
-    expect(warn.mock.calls.some(([message]) => String(message).includes("skillsInstall") && String(message).includes("全局层"))).toBe(true)
+    expect(warn.mock.calls.some(([message]) => String(message).includes("skillInstall") && String(message).includes("全局层"))).toBe(true)
   })
 
-  it("projectSkills 只认项目层，写在全局层时告警并忽略", () => {
-    writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ projectSkills: { selection: ["fxri-plan-to-task"] } }), "utf8")
+  it("projectSkill 只认项目层，写在全局层时告警并忽略", () => {
+    writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ projectSkill: { selection: ["fxri-plan-to-task"] } }), "utf8")
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     expect(readProjectSkillsConfig(project).selection).toBeUndefined()
-    expect(warn.mock.calls.some(([message]) => String(message).includes("projectSkills") && String(message).includes("项目层"))).toBe(true)
+    expect(warn.mock.calls.some(([message]) => String(message).includes("projectSkill") && String(message).includes("项目层"))).toBe(true)
   })
 
   it("写全局段只合并目标段、保留其他段，并在二次写入前备份", () => {
-    writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ tasks: { dir: ".tasks" }, skillsInstall: { targets: ["claude-code"] } }), "utf8")
+    writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ task: { dir: ".tasks" }, skillInstall: { targets: ["claude-code"] } }), "utf8")
     writeSkillsInstallConfig({ selection: { toolkit: ["fxri-plan-to-task"] } })
     const first = readGlobalConfig()
-    expect(first.tasks).toEqual({ dir: ".tasks" })
-    expect(first.skillsInstall).toEqual({ targets: ["claude-code"], selection: { toolkit: ["fxri-plan-to-task"] } })
+    expect(first.task).toEqual({ dir: ".tasks" })
+    expect(first.skillInstall).toEqual({ targets: ["claude-code"], selection: { toolkit: ["fxri-plan-to-task"] } })
 
     writeSkillsInstallConfig({ targets: ["cursor"] })
     expect(existsSync(join(home, ".toolkitrc.json.bak"))).toBe(true)
     const second = readGlobalConfig()
-    expect(second.skillsInstall).toEqual({ targets: ["cursor"], selection: { toolkit: ["fxri-plan-to-task"] } })
+    expect(second.skillInstall).toEqual({ targets: ["cursor"], selection: { toolkit: ["fxri-plan-to-task"] } })
   })
 
   it("写项目段落在项目层，不写全局层", () => {
     writeProjectSkillsConfig({ selection: ["fxri-plan-to-task"] }, project)
     expect(existsSync(join(home, ".toolkitrc.json"))).toBe(false)
-    const projectConfig = JSON.parse(readFileSync(join(project, ".toolkitrc.json"), "utf8")) as { projectSkills?: unknown }
-    expect(projectConfig.projectSkills).toEqual({ selection: ["fxri-plan-to-task"] })
+    const projectConfig = JSON.parse(readFileSync(join(project, ".toolkitrc.json"), "utf8")) as { projectSkill?: unknown }
+    expect(projectConfig.projectSkill).toEqual({ selection: ["fxri-plan-to-task"] })
     expect(readProjectSkillsConfig(project).selection).toEqual(["fxri-plan-to-task"])
   })
 })

@@ -21,16 +21,16 @@ export interface ProjectInstallOptions {
   skills?: string[]
   // 本次写入的薄壳目录（仓库根相对）；省略时沿用已保存选择，未保存过则写全部已存在候选目录
   targetDirs?: string[]
-  // 是否把本次目录选择写回 projectSkills.targets；--no-save-agents 时为 false
+  // 是否把本次目录选择写回 projectSkill.targets；--no-save-agents 时为 false
   saveTargets?: boolean
-  // 本次临时外部来源（--from）；永久来源从 skillsInstall.sources 读取
+  // 本次临时外部来源（--from）；永久来源从 skillInstall.sources 读取
   externalSources?: ExternalSourceOption[]
   prune?: boolean
   // 本次选择是否写回配置；--no-skills 时为 false
   saveSelection?: boolean
   // 本次生效的安装模式；省略时读配置，默认 skills
   mode?: SkillsMode
-  // 内容闸门：--gate / --embed 显式取值，缺省读项目面 skillsDelivery 配置
+  // 内容闸门：--gate / --embed 显式取值，缺省读项目面 skillDelivery 配置
   gate?: boolean | GateRules
   // 只刷新归属账已存在的本包产物，不新增技能（prepare 钩子）
   refresh?: boolean
@@ -55,7 +55,7 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
     )
     items = items.filter((item) => recorded.has(item.name))
   }
-  // 分发形态：命令行显式取值 > 项目面 skillsDelivery 配置 > 旧键兼容；与全局面共用同一解析器
+  // 分发形态：命令行显式取值 > 项目面 skillDelivery 配置 > 旧键兼容；与全局面共用同一解析器
   const gateOption = options.gate
   const deliveryConfig = gateOption === undefined ? readSkillsDeliveryConfig("project", root) : { rules: [] }
   const cliRules = gateOption !== undefined && typeof gateOption === "object" ? gateRulesToDeliveryRules(gateOption) : []
@@ -328,7 +328,7 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
   }
 }
 
-// 保存项目选择集：只合并 projectSkills 段；失败只告警（产物已写入）
+// 保存项目选择集：只合并 projectSkill 段；失败只告警（产物已写入）
 function saveProjectSelection(root: string, names: string[]): void {
   try {
     const config = readProjectSkillsConfig(root)
@@ -338,7 +338,7 @@ function saveProjectSelection(root: string, names: string[]): void {
   }
 }
 
-// 保存项目目录选择：只合并 projectSkills.targets，保留 selection
+// 保存项目目录选择：只合并 projectSkill.targets，保留 selection
 function saveProjectTargets(root: string, names: string[]): void {
   try {
     writeProjectSkillsConfig({ targets: [...new Set(names)] }, root)

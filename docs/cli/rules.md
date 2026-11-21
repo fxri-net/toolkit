@@ -47,7 +47,7 @@ toolkit rules reset
 - `rules list` 的 `--format` 仅接受 `json`，非法值报错退出 `1`，不再回落文本。
 - `--out` / `--copy` 时 stdout 为空，确认与错误提示走 stderr；剪贴板写入失败以非 0 退出。
 - 组合只输出文本，不自动改写任何 Agent 的全局规则文件；粘贴位置与常用 Agent 入口见[全局规则 · 怎么落地](../rules/#怎么落地)
-- `usage` 模块与 `toolkit usage rule` 同源；后者等价于 `rules compose --module usage`。
+- `usage` 模块与 `toolkit rules compose --module usage` 同源；原 `toolkit usage rule` 已移除，替代写法即此命令。
 - 模块正文是唯一真源（`templates/rules/`）；文档站各规则页与 `--preset complete` 的组合结果由测试锁定逐字一致。
 
 ## 相关页面

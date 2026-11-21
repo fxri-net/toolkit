@@ -70,14 +70,14 @@ describe("configStatus 三层现场", () => {
 
   it("命中项目层与本地层：来源下沉到叶子键粒度", () => {
     const { start } = makeProject({
-      root: { tasks: { dir: "proj-tasks" }, redact: { enabled: true } },
+      root: { task: { dir: "proj-tasks" }, redact: { enabled: true } },
       sub: { redact: { enabled: false } },
     })
     const report = configStatus(start)
     expect(report.summary).toContain("共命中 2 层：项目层、本地层")
     const source = (key: string) => report.displayKeys.find((d) => d.key === key)?.source
     // 同一段各子键来源可不同：redact.enabled 落地在本地层、未被本地覆盖的键仍指项目层
-    expect(source("tasks.dir")).toBe("项目层")
+    expect(source("task.dir")).toBe("项目层")
     expect(source("redact.enabled")).toBe("本地层")
     expect(source("updateCheck.enabled")).toBeNull()
     expect(source("check.warnings")).toBeNull()
@@ -156,28 +156,28 @@ describe("configStatus 降级项渲染", () => {
 
   it("段值非对象：告警配置段须为对象", () => {
     const root = makeDir("tk-cfgst-badsec-")
-    writeFileSync(join(root, ".toolkitrc.local.json"), JSON.stringify({ tasks: "oops" }), "utf8")
+    writeFileSync(join(root, ".toolkitrc.local.json"), JSON.stringify({ task: "oops" }), "utf8")
     const report = configStatus(root)
     const item = report.items.find((i) => i.message.includes("配置段须为对象"))
     expect(item?.level).toBe("warn")
-    expect(item?.message).toContain("tasks")
+    expect(item?.message).toContain("task")
   })
 
   it("全局层段值非对象：告警配置段须为对象", () => {
-    writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ tasks: "oops" }), "utf8")
+    writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ task: "oops" }), "utf8")
     const report = configStatus(makeDir("tk-cfgst-global-"))
     const item = report.items.find((i) => i.message.includes("配置段须为对象"))
     expect(item?.level).toBe("warn")
-    expect(item?.message).toContain("tasks")
+    expect(item?.message).toContain("task")
     expect(report.warnings).toBeGreaterThanOrEqual(1)
   })
 
   it("项目层段值非对象：告警配置段须为对象", () => {
-    const { start } = makeProject({ root: { tasks: "oops" } })
+    const { start } = makeProject({ root: { task: "oops" } })
     const report = configStatus(start)
     const item = report.items.find((i) => i.message.includes("配置段须为对象"))
     expect(item?.level).toBe("warn")
-    expect(item?.message).toContain("tasks")
+    expect(item?.message).toContain("task")
     expect(report.warnings).toBeGreaterThanOrEqual(1)
   })
 })
@@ -190,14 +190,14 @@ describe("configStatus 提示项与文本折叠", () => {
       sub: {
         redct: { enabled: false },
         skills: { autoLink: false },
-        skillsInstall: { selection: {} },
-        projectSkills: { selection: [] },
+        skillInstall: { selection: {} },
+        projectSkill: { selection: [] },
         changelogDoc: { title: "更新日志" },
       },
     })
     const report = configStatus(start)
     const unknown = report.items.filter((i) => i.message.includes("疑似拼写错误"))
-    // 仅 redct 属未知段；usage / skills / skillsInstall / projectSkills / changelogDoc 均为已知段
+    // 仅 redct 属未知段；usage / skills / skillInstall / projectSkill / changelogDoc 均为已知段
     expect(unknown).toHaveLength(1)
     expect(unknown[0]!.level).toBe("info")
     expect(unknown[0]!.scope).toBe("配置")
@@ -209,15 +209,15 @@ describe("configStatus 提示项与文本折叠", () => {
 
   it("已知段名清单与 docs/config.md 字段总览逐项一致", () => {
     const doc = readFileSync(join(process.cwd(), "docs", "config.md"), "utf8")
-    // 文档内有多段 JSON 示例，字段总览以含 projectSkills 的那一段为准
+    // 文档内有多段 JSON 示例，字段总览以含 projectSkill 的那一段为准（旧段名只作兼容读取，不进总览）
     const blocks = [...doc.matchAll(/```json\n([\s\S]*?)```/g)].map((m) => m[1] as string)
-    const overview = blocks.find((block) => block.includes('"projectSkills"'))
+    const overview = blocks.find((block) => block.includes('"projectSkill"'))
     expect(overview, "docs/config.md 缺少字段总览 JSON 块").toBeTruthy()
     expect(Object.keys(JSON.parse(overview as string))).toEqual([...CONFIG_KNOWN_SECTIONS])
   })
 
   it("home 边界：home 下存在本地配置文件时给 info 提示，不计入 warnings", () => {
-    writeFileSync(join(home, CONFIG_LOCAL_FILE), JSON.stringify({ tasks: { dir: "x" } }), "utf8")
+    writeFileSync(join(home, CONFIG_LOCAL_FILE), JSON.stringify({ task: { dir: "x" } }), "utf8")
     const report = configStatus(makeDir("tk-cfgst-homebound-"))
     const item = report.items.find((i) => i.message.includes("止于 home"))
     expect(item?.level).toBe("info")

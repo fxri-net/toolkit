@@ -4,7 +4,7 @@
 // 覆盖链：CLI --flag > 环境变量 > 本地层 > 项目层 > 全局层 > 默认值。各能力域按需取自己的配置段。
 // 结构示例：
 // {
-//   "tasks":        { "dir": ".tasks" },
+//   "task":         { "dir": ".tasks" },
 //   "redact":       { "enabled": true, "disable": [], "rules": [] },
 //   "updateCheck":  { "enabled": true },
 //   "check":        { "warnings": true },
@@ -15,14 +15,27 @@ import { join, dirname, resolve } from "node:path"
 import { homedir } from "node:os"
 import { readTextFile } from "./read-text"
 import { normalizePathForCompare, canonicalPath } from "./git-ignore"
+import { writeFileAtomic } from "./write-atomic"
 
 // 项目配置文件名：团队共享，随 git 分发
-const CONFIG_PROJECT_FILE = ".toolkitrc.json"
+export const CONFIG_PROJECT_FILE = ".toolkitrc.json"
 // 本地配置文件名：个人私有，默认被 git 忽略（导出供 config status 提示 home 下的同名文件不参与查找）
 export const CONFIG_LOCAL_FILE = ".toolkitrc.local.json"
+
+// 旧段名 → 新段名：配置段统一为单数；读取时自动迁移，init 重写文件，2.1.0 移除兼容
+export const CONFIG_LEGACY_SECTIONS: Readonly<Record<string, string>> = {
+  skillsInstall: "skillInstall",
+  skillsDelivery: "skillDelivery",
+  projectSkills: "projectSkill",
+  tasks: "task",
+}
+
+// 旧段名告警去重集合：同一「文件 + 段」只提示一次
+const warnedLegacySections = new Set<string>()
+
 // 展示键清单（钉死四项）与其期望类型：类型非法的键按未写处理；该清单 ⊇ 环境变量覆盖组目标键（不变式）
 const DISPLAY_KEY_TYPES: ReadonlyArray<{ key: string; type: "string" | "boolean" }> = [
-  { key: "tasks.dir", type: "string" },
+  { key: "task.dir", type: "string" },
   { key: "redact.enabled", type: "boolean" },
   { key: "updateCheck.enabled", type: "boolean" },
   { key: "check.warnings", type: "boolean" },
@@ -240,14 +253,65 @@ function readConfigFile(filePath: string, fallbacks: ConfigFallback[]): Record<s
   return parsed
 }
 
-// 读取单层：定位到的文件不存在按未命中；解析成功后先校段级、再校展示键类型，最后归档段名与配置
+// 读取单层：定位到的文件不存在按未命中；解析成功后先迁旧段名、再校段级、最后校展示键类型，归档段名与配置
 function readLayer(layer: ConfigLayerName, filePath: string | null, fallbacks: ConfigFallback[]): ConfigLayerRecord {
   if (!filePath || !existsSync(filePath)) return { layer, file: null, hit: false, sections: [], config: null }
   const config = readConfigFile(filePath, fallbacks)
   if (!config) return { layer, file: filePath, hit: false, sections: [], config: null }
+  normalizeLegacySections(filePath, config)
   validateSections(filePath, config, fallbacks)
   validateDisplayKeys(filePath, config, fallbacks)
   return { layer, file: filePath, hit: true, sections: Object.keys(config), config }
+}
+
+// 旧段名迁移：新段名不存在时整段搬到新名下继续生效；两者并存时保留新段名并提示旧段被忽略
+// 只改内存中的解析结果，不改文件——重写文件由 init 显式执行，避免只读命令产生写入
+function normalizeLegacySections(filePath: string, config: Record<string, unknown>): void {
+  for (const [legacy, canonical] of Object.entries(CONFIG_LEGACY_SECTIONS)) {
+    if (!(legacy in config)) continue
+    const duplicated = canonical in config
+    if (!duplicated) config[canonical] = config[legacy]
+    delete config[legacy]
+    const key = `${filePath}\u0000${legacy}`
+    if (warnedLegacySections.has(key)) continue
+    warnedLegacySections.add(key)
+    console.warn(
+      duplicated
+        ? `⚠️ 配置段「${legacy}」已更名为「${canonical}」（${filePath}）：同名新段已存在，旧段内容已忽略`
+        : `⚠️ 配置段「${legacy}」已更名为「${canonical}」（${filePath}）：本次按新段名读取，运行 toolkit init 可自动重写`,
+    )
+  }
+}
+
+// 重写单个配置文件里的旧段名：返回被改名的段名；文件不存在或无需改写时返回空数组
+// 供 init 兑现「旧段名自动迁移」，写前备份、原子写入、写后重置缓存
+export function rewriteLegacySections(file: string): string[] {
+  if (!existsSync(file)) return []
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(readTextFile(file))
+  } catch {
+    return []
+  }
+  if (!isPlainObject(parsed)) return []
+  const renamed: string[] = []
+  for (const [legacy, canonical] of Object.entries(CONFIG_LEGACY_SECTIONS)) {
+    if (!(legacy in parsed)) continue
+    if (!(canonical in parsed)) parsed[canonical] = parsed[legacy]
+    delete parsed[legacy]
+    renamed.push(legacy)
+  }
+  if (renamed.length === 0) return []
+  const backup = `${file}.bak`
+  writeFileAtomic(backup, readTextFile(file))
+  writeFileAtomic(file, `${JSON.stringify(parsed, null, 2)}\n`)
+  resetToolkitConfigCache()
+  return renamed
+}
+
+// 项目配置文件定位：自 startDir 向上查找（止于 home），与本地层共用同一查找口径
+export function resolveProjectConfigPath(startDir: string = process.cwd()): string | null {
+  return findUpward(CONFIG_PROJECT_FILE, resolve(startDir), { stopAtHome: true })
 }
 
 // 失效配置缓存：库形态长驻进程 / 测试中修改配置文件后调用，使下次读取重新加载
@@ -255,6 +319,7 @@ export function resetToolkitConfigCache(): void {
   cached = undefined
   // 告警去重集合同步清空，使重新加载后的降级问题仍能提示
   warnedConfigFallbacks.clear()
+  warnedLegacySections.clear()
 }
 
 // 叶子键来源层：按分层覆盖语义判定——本地层段内字段级覆盖、项目层段级整体覆盖全局
@@ -277,13 +342,13 @@ export function resolveLocalConfigPath(startDir: string = process.cwd()): string
   return findUpward(CONFIG_LOCAL_FILE, resolve(startDir), { stopAtHome: true })
 }
 
-// 解析任务目录三档：CLI --dir 显式传参 > 配置 tasks.dir > 默认 .tasks
+// 解析任务目录三档：CLI --dir 显式传参 > 配置 task.dir > 默认 .tasks
 // 支持 .tasks 放项目外（绝对路径或 ../ 相对路径），配合独立文档仓库管理任务
-// ⚠️ tasks.dir 原样透传，相对路径的解析基准为 process.cwd()（非配置文件所在目录）；类型非法与空串的告警在加载时的类型校验统一给出
+// ⚠️ task.dir 原样透传，相对路径的解析基准为 process.cwd()（非配置文件所在目录）；类型非法与空串的告警在加载时的类型校验统一给出
 export function resolveTasksDir(cliValue?: string): string {
   if (cliValue) return cliValue
   // 类型不符与空串均已在展示键校验中降级剔除，此处只会取到有效非空字符串或 undefined
-  const dir = getConfigSection("tasks")?.dir
+  const dir = getConfigSection("task")?.dir
   return typeof dir === "string" ? dir : ".tasks"
 }
 

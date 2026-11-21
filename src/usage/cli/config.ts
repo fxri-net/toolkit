@@ -54,7 +54,7 @@ export function registerUsageConfigCommands(usage: Command): void {
         }
         console.log(line.ok(`采集通道已切换为 ${mode}`))
         if (mode === "rule") {
-          console.log(line.hint("规则通道不依赖 Hook：把 toolkit usage rule 的输出复制进 Agent 全局规则"))
+          console.log(line.hint("规则通道不依赖 Hook：把 toolkit rules compose --module usage 的输出复制进 Agent 全局规则"))
           console.log(line.hint("已安装的 Hook 需自行清理：toolkit usage hooks remove"))
         } else {
           console.log(line.hint("Hook 通道需安装 Hook 并配置 Agent：toolkit usage hooks install"))

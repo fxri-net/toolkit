@@ -107,7 +107,8 @@ pnpm dlx skills add fxri-net/toolkit                  # 也可用上游安装器
 - **跳过交互**：`--skills` / `--all` / `--no-optional` / `--agent` / `--all-agents` / `--yes`
   首次按模式默认（`skills` 装 `core`、`package` 零装）与全部可用目标，`--no-save-agents` 只影响本次
 - **模式**：`--mode package` 切纯包管理器模式（core 也可不装、允许零选），`--no-skills` 仅本次零装
-  选择集分别写入 `~/.toolkitrc.json` 的 `skillsInstall` 与项目层 `.toolkitrc.json` 的 `projectSkills`
+  选择集分别写入 `~/.toolkitrc.json` 的 `skillInstall` 与项目层 `.toolkitrc.json` 的 `projectSkill`；
+  旧段名 `skillsInstall` / `projectSkills` 仍可读，`toolkit init` 会自动重写
 - **外部来源**：`--from <path|url>` 临时纳入（副本、只写本次），加 `--save [name]` 登记为永久来源（默认软链）；`toolkit skills sources` 查看 / 注销来源
 - **作用域**：`--scope project` 换项目面——真源落 `<仓库根>/.agents/skills/`、其余候选目录落入口薄壳，
   随 git 入库后队友 clone 靠 `toolkit init` 写入的 `prepare` 钩子自动刷新已有产物（不新增技能）

@@ -28,6 +28,7 @@ import {
   resolveProjectSkillDirs,
 } from "./conventions/entry"
 import { checkIgnore, gitIgnoredSet, probeRepo } from "./git-ignore"
+import { resolveLocalConfigPath, resolveProjectConfigPath, rewriteLegacySections } from "./config"
 import { todayCompact } from "./date"
 import { hasGlobalSkillsInstalled, PKG_NAME } from "./skills"
 
@@ -133,6 +134,7 @@ export function initWorkspace(dir = ".tasks", cwd = process.cwd(), options: Init
     ...appendGitignore(cwd),
     ...appendPrettierignore(cwd, root),
     ...scaffoldEntryLayer(cwd),
+    ...migrateConfigSections(cwd),
     ...(options.hooks === false ? [{ target: "package.json", action: "skipped" as const, detail: "--no-hooks：跳过 prepare 刷新钩子写入" }] : scaffoldPrepareHook(cwd)),
   ]
   const report: InitReport = { tasksDir: dir, products, skillsInstalled: hasGlobalSkillsInstalled() }
@@ -303,6 +305,20 @@ export function appendPrettierignore(cwd: string, root: string): InitProduct[] {
   const next = body.length > 0 ? `${body.join(eol)}${eol}${eol}${block.join(eol)}${eol}` : `${block.join(eol)}${eol}`
   writeFileAtomic(file, next)
   return [{ target, action: "appended", detail: `已追加任务区排除行（${row}）` }]
+}
+
+// 配置文件旧段名重写：项目层与本地层各定位一份，命中即把旧段名就地改为单数新段名（写前备份）
+// 全局层不在 init 的处置范围（跨项目、非本项目产物），由 config 命令或用户自行迁移
+function migrateConfigSections(cwd: string): InitProduct[] {
+  const files = [...new Set([resolveProjectConfigPath(cwd), resolveLocalConfigPath(cwd)].filter((file): file is string => file !== null))]
+  if (files.length === 0) return []
+  return files.map((file) => {
+    const target = posix(relative(cwd, file))
+    const renamed = rewriteLegacySections(file)
+    return renamed.length > 0
+      ? { target, action: "updated" as const, detail: `已重写旧段名 ${renamed.join("、")}（原文件备份为 .bak）` }
+      : { target, action: "kept" as const, detail: "配置段名已是当前写法，保持不变" }
+  })
 }
 
 // 创建前校验路径可落地：目录链上有同名文件时报出占位路径与处置方式

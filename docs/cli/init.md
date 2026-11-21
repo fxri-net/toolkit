@@ -15,7 +15,7 @@ toolkit init --no-hooks               # 不写入 package.json 的 prepare 刷�
 在当前目录初始化任务区，逐项如实报告实际动作（新建 / 更新 / 保持 / 追加 / 跳过）：
 
 - 创建 `<任务目录>/active/{YYYYMM}/` 与 `<任务目录>/archive/` 目录骨架
-  - 默认目录 `.tasks`；优先级与 `tasks` 同口径：CLI 参数 > 配置 `tasks.dir` > 默认 `.tasks`
+  - 默认目录 `.tasks`；优先级与 `tasks` 同口径：CLI 参数 > 配置 `task.dir` > 默认 `.tasks`
 - 创建规范载体骨架 `<任务目录>/conventions/index.md`（v3 三节：端清单 / 索引 / 用法说明）与 `history.md`（语义演进记录）
   - `index.md` 已存在时保持不动；v1 / v2 形态另给升级提示
   - 存在待迁移的旧单文件 `<任务目录>/conventions.md` 时不建空骨架
@@ -56,7 +56,7 @@ toolkit init --no-hooks               # 不写入 package.json 的 prepare 刷�
 
 ⚠️ 重复执行安全：业务文件已存在一律保持不覆盖、不报错（逐项报告为「保持」）；唯一例外是**入口壳按标记版本分流**——标记不旧于当前版本时保持不变，标记落后或无标记时就地更新为当前版本（报告为「更新」）。
 
-⚠️ 任务区放项目外（独立文档仓库）：配置 `"tasks": { "dir": "../my-tasks-repo" }` 后，`init` 与全部 `tasks` 子命令都作用于该目录，一次配置永久生效。
+⚠️ 任务区放项目外（独立文档仓库）：配置 `"task": { "dir": "../my-tasks-repo" }` 后，`init` 与全部 `tasks` 子命令都作用于该目录，一次配置永久生效。
 
 `.gitignore` 片段仍写入当前项目。
 

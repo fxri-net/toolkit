@@ -40,7 +40,7 @@
 
 ⚠️ 本地层**不支持删除 / 清空团队键**：字段写 `null` 与未写等价（团队值保留）；将来若需清空能力，会以独立提案引入显式哨兵。
 
-⚠️ 任一层的**段值为非对象**（如 `"redact": "off"`、`"tasks": 123`、`"tasks": null`）时告警 + **整段按未写处理**（不覆盖 / 不顶掉其他层的同类段，安全侧优先）。
+⚠️ 任一层的**段值为非对象**（如 `"redact": "off"`、`"task": 123`、`"task": null`）时告警 + **整段按未写处理**（不覆盖 / 不顶掉其他层的同类段，安全侧优先）。
 
 **三层取值示例**（同一份配置在全局 / 项目 / 本地各写一段，演示两种粒度）：
 
@@ -52,12 +52,12 @@
 { "redact": { "enabled": true, "disable": ["手机号"], "rules": [{ "name": "内网域名", "pattern": "…" }] } }
 
 // .toolkitrc.local.json（本地层）
-{ "redact": { "enabled": false }, "tasks": { "dir": ".tasks-mine" } }
+{ "redact": { "enabled": false }, "task": { "dir": ".tasks-mine" } }
 ```
 
 - `redact`：全局层未配该段，项目层的 `disable` / `rules` 生效；本地层**字段级浅合并**只把 `enabled` 改成 `false`，
    `disable` / `rules` 仍在（这正是本地层相对段级覆盖的价值）
-- `tasks.dir`：仅本地层写 → 取本地层的 `.tasks-mine`（个人任务区，团队不受影响）
+- `task.dir`：仅本地层写 → 取本地层的 `.tasks-mine`（个人任务区，团队不受影响）
 - `updateCheck.enabled`：仅全局层写 → `false`
 - 若项目层也写了 `changelog` 段，则**整段覆盖**全局同名段、全局层配置的语言表整体失效——这是「全局层 → 项目层」段级覆盖的体现
 
@@ -66,13 +66,13 @@
 - 覆盖链：CLI `--flag` > 环境变量 > 本地层 > 项目层 > 全局层 > 默认值
 - 某级文件存在但非法（JSON 解析失败、或顶层非对象）：跳过该级继续向上，都不合法视为无配置。**降级不静默**：命中时 stderr 告警一次（同一进程内同一「文件 + 键」只提示一次），提示按「未配置」处理
 - 配置段显式写出但类型不符（非对象）同样告警后按未配置处理
-- **字段级类型校验**：`tasks.dir`（须**非空**字符串）、
+- **字段级类型校验**：`task.dir`（须**非空**字符串）、
    `redact.enabled` / `updateCheck.enabled` / `check.warnings`（须布尔）类型不符时 stderr 告警并**按未写处理**（回落团队值 / 默认值）；
-   `tasks.dir` 写空字符串同样告警并按未写处理、回落默认 `.tasks`
+   `task.dir` 写空字符串同样告警并按未写处理、回落默认 `.tasks`
 - 带 UTF-8 BOM 的配置文件可正常解析（Windows 下 PowerShell 写出场景）
 - 未找到：全部使用默认值
 - 不设强制 schema/版本字段：未知字段忽略，配置项变更随主版本记录于 CHANGELOG，读取向后兼容
-- **`tasks.dir` 相对路径的解析基准为 `process.cwd()`**（非配置文件所在目录），monorepo 子目录运行时须留意
+- **`task.dir` 相对路径的解析基准为 `process.cwd()`**（非配置文件所在目录），monorepo 子目录运行时须留意
 
 ## 本地配置文件为何默认被 git 忽略
 
@@ -93,14 +93,14 @@
 {
   "redact":        { "enabled": true, "disable": [], "rules": [] },
   "check":         { "warnings": true, "includeCheckbox": true, "pendingMarkers": true },
-  "tasks":         { "importColumns": {} },
+  "task":          { "importColumns": {} },
   "changelog":     { "languages": {} },
   "changelogDoc":  { "source": "CHANGELOG.md", "target": "docs/changelog.md" },
   "updateCheck":   { "enabled": true },
   "skills":        { "autoLink": true, "autoLinkReplaceForeign": true },
-  "skillsInstall": { "mode": "skills" },
-  "skillsDelivery": { "default": "full", "rules": [] },
-  "projectSkills": { "mode": "skills" },
+  "skillInstall":  { "mode": "skills" },
+  "skillDelivery": { "default": "full", "rules": [] },
+  "projectSkill":  { "mode": "skills" },
   "usage":         { "enabled": false, "sources": {}, "skills": {}, "capture": {}, "storage": {}, "upload": {} },
   "docs":          { "nav": {}, "dist": {}, "rules": {} },
   "activation":    { "mode": "all", "include": [], "exclude": [], "markers": { "include": [], "exclude": [] }, "gitRemotes": [] },
@@ -111,6 +111,11 @@
 
 ⚠️ `usage` 段只读全局层 `~/.toolkitrc.json`；项目层与本地层误写只告警、不生效，避免克隆仓库后被动开启采集。
 
+⚠️ **段名统一为单数**：`skillsInstall → skillInstall`、`skillsDelivery → skillDelivery`、
+`projectSkills → projectSkill`、`tasks → task`。
+旧段名仍可读取，命中时 stderr 提示一次；`toolkit init` 会把项目层 / 本地层配置文件里的旧段名重写为新段名（原文件备份为 `.bak`）；2.1.0 移除兼容。
+写入入口统一为 `toolkit config set`（`list` 查看全部可写键，`get --explain` 展示来源层与覆盖链）。
+
 段名清单（`CONFIG_KNOWN_SECTIONS`）与本段总览由单测锁定一致；`config status` 遇到未知段时会附带列出可用段名。
 
 ## 配置分页
@@ -118,7 +123,7 @@
 | 分组 | 内容 |
 | --- | --- |
 | [隐私脱敏（redact）](./config/redact) | 内置规则清单、按名禁用与自定义规则 |
-| [校验与任务区（check / tasks）](./config/check-tasks) | 软告警开关、勾选框与词标记扫描、任务目录与导入列映射 |
+| [校验与任务区（check / task）](./config/check-tasks) | 软告警开关、勾选框与词标记扫描、任务目录与导入列映射 |
 | [语言与镜像（changelog / changelogDoc）](./config/changelog) | 语言表与文档站更新页镜像 |
 | [升级检查（updateCheck）](./config/update) | 提示频率、通道、registry、缓存与诊断 |
 | [技能分发偏好（skills）](./config/skills) | 软链自愈、分发形态（全文 / 入口壳 / 不安装）与全局、项目面安装偏好 |

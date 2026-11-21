@@ -1,4 +1,4 @@
-// 技能安装偏好：skillsInstall 只读全局层（~/.toolkitrc.json），projectSkills 只读项目层（.toolkitrc.json）
+// 技能安装偏好：skillInstall 只读全局层（~/.toolkitrc.json），projectSkill 只读项目层（.toolkitrc.json）
 // 本地层 .toolkitrc.local.json 不参与技能安装偏好；误写层的取值一律告警并按未配置处理
 // 写配置只合并目标段、原子写、写前备份，写后重置配置缓存
 import { copyFileSync, existsSync, mkdirSync } from "node:fs"
@@ -82,12 +82,12 @@ function parseStringArray(section: string, field: string, value: unknown, file: 
 function parseSourceSelection(value: unknown, file: string | null): Record<string, string[]> | undefined {
   if (value === undefined) return undefined
   if (!isPlainObject(value)) {
-    warnInvalid("skillsInstall", "selection", file, "须为「来源 → 技能名数组」对象")
+    warnInvalid("skillInstall", "selection", file, "须为「来源 → 技能名数组」对象")
     return undefined
   }
   const out: Record<string, string[]> = {}
   for (const [source, names] of Object.entries(value)) {
-    const parsed = parseStringArray("skillsInstall", `selection.${source}`, names, file)
+    const parsed = parseStringArray("skillInstall", `selection.${source}`, names, file)
     if (parsed !== undefined) out[source] = parsed
   }
   return out
@@ -97,19 +97,19 @@ function parseSourceSelection(value: unknown, file: string | null): Record<strin
 function parseSources(value: unknown, file: string | null): Record<string, ExternalSourceConfig> | undefined {
   if (value === undefined) return undefined
   if (!isPlainObject(value)) {
-    warnInvalid("skillsInstall", "sources", file, "须为「来源名 → 来源配置」对象")
+    warnInvalid("skillInstall", "sources", file, "须为「来源名 → 来源配置」对象")
     return undefined
   }
   const out: Record<string, ExternalSourceConfig> = {}
   for (const [name, source] of Object.entries(value)) {
     if (!isPlainObject(source)) {
-      warnInvalid("skillsInstall", `sources.${name}`, file, "来源配置须为对象且包含非空 root 或 url")
+      warnInvalid("skillInstall", `sources.${name}`, file, "来源配置须为对象且包含非空 root 或 url")
       continue
     }
     const root = typeof source.root === "string" && source.root.trim() !== "" ? source.root.trim() : undefined
     const url = typeof source.url === "string" && source.url.trim() !== "" ? source.url.trim() : undefined
     if (!root && !url) {
-      warnInvalid("skillsInstall", `sources.${name}`, file, "来源配置须包含非空 root 或 url")
+      warnInvalid("skillInstall", `sources.${name}`, file, "来源配置须包含非空 root 或 url")
       continue
     }
     const ref = typeof source.ref === "string" && source.ref.trim() !== "" ? source.ref.trim() : undefined
@@ -121,15 +121,15 @@ function parseSources(value: unknown, file: string | null): Record<string, Exter
 // 读取全局技能安装偏好：只取全局层；项目层 / 本地层误写时告警并忽略
 export function readSkillsInstallConfig(startDir = process.cwd()): SkillsInstallConfig {
   const layers = inspectConfigLayers(startDir)
-  if (layers.project.config?.skillsInstall !== undefined) warnMisplaced("skillsInstall", layers.project.file, "全局层（~/.toolkitrc.json）")
-  if (layers.local.config?.skillsInstall !== undefined) warnMisplaced("skillsInstall", layers.local.file, "全局层（~/.toolkitrc.json）")
-  const section = layers.global.config?.skillsInstall
+  if (layers.project.config?.skillInstall !== undefined) warnMisplaced("skillInstall", layers.project.file, "全局层（~/.toolkitrc.json）")
+  if (layers.local.config?.skillInstall !== undefined) warnMisplaced("skillInstall", layers.local.file, "全局层（~/.toolkitrc.json）")
+  const section = layers.global.config?.skillInstall
   if (!isPlainObject(section)) return {}
   return {
-    targets: parseStringArray("skillsInstall", "targets", section.targets, layers.global.file),
+    targets: parseStringArray("skillInstall", "targets", section.targets, layers.global.file),
     sources: parseSources(section.sources, layers.global.file),
     selection: parseSourceSelection(section.selection, layers.global.file),
-    mode: parseMode("skillsInstall", section.mode, layers.global.file),
+    mode: parseMode("skillInstall", section.mode, layers.global.file),
     gate: parseGate(section.gate, layers.global.file),
   }
 }
@@ -137,14 +137,14 @@ export function readSkillsInstallConfig(startDir = process.cwd()): SkillsInstall
 // 读取项目技能安装偏好：只取项目层；全局层 / 本地层误写时告警并忽略
 export function readProjectSkillsConfig(cwd = process.cwd()): ProjectSkillsConfig {
   const layers = inspectConfigLayers(cwd)
-  if (layers.global.config?.projectSkills !== undefined) warnMisplaced("projectSkills", layers.global.file, "项目层（.toolkitrc.json）")
-  if (layers.local.config?.projectSkills !== undefined) warnMisplaced("projectSkills", layers.local.file, "项目层（.toolkitrc.json）")
-  const section = layers.project.config?.projectSkills
+  if (layers.global.config?.projectSkill !== undefined) warnMisplaced("projectSkill", layers.global.file, "项目层（.toolkitrc.json）")
+  if (layers.local.config?.projectSkill !== undefined) warnMisplaced("projectSkill", layers.local.file, "项目层（.toolkitrc.json）")
+  const section = layers.project.config?.projectSkill
   if (!isPlainObject(section)) return {}
   return {
-    targets: parseStringArray("projectSkills", "targets", section.targets, layers.project.file),
-    selection: parseStringArray("projectSkills", "selection", section.selection, layers.project.file),
-    mode: parseMode("projectSkills", section.mode, layers.project.file),
+    targets: parseStringArray("projectSkill", "targets", section.targets, layers.project.file),
+    selection: parseStringArray("projectSkill", "selection", section.selection, layers.project.file),
+    mode: parseMode("projectSkill", section.mode, layers.project.file),
   }
 }
 
@@ -166,7 +166,7 @@ function parseGate(value: unknown, file: string | null): boolean | GateRules | u
       exclude: parseGatePatterns(value.exclude, "exclude", file) ?? [],
     }
   }
-  warnInvalid("skillsInstall", "gate", file, "须为布尔值或 { include, exclude } 对象")
+  warnInvalid("skillInstall", "gate", file, "须为布尔值或 { include, exclude } 对象")
   return undefined
 }
 
@@ -174,18 +174,18 @@ function parseGate(value: unknown, file: string | null): boolean | GateRules | u
 function parseGatePatterns(value: unknown, field: string, file: string | null): string[] | undefined {
   if (value === undefined) return undefined
   if (!Array.isArray(value)) {
-    warnInvalid("skillsInstall", `gate.${field}`, file, "须为字符串数组")
+    warnInvalid("skillInstall", `gate.${field}`, file, "须为字符串数组")
     return undefined
   }
   const out: string[] = []
   for (const item of value) {
     if (typeof item !== "string" || item.trim() === "") {
-      warnInvalid("skillsInstall", `gate.${field}`, file, "含非字符串或空项，已剔除")
+      warnInvalid("skillInstall", `gate.${field}`, file, "含非字符串或空项，已剔除")
       continue
     }
     const compiled = compilePattern(item.trim())
     if (!compiled.ok) {
-      warnInvalid("skillsInstall", `gate.${field}`, file, `规则「${item.trim()}」${compiled.reason}，已剔除`)
+      warnInvalid("skillInstall", `gate.${field}`, file, `规则「${item.trim()}」${compiled.reason}，已剔除`)
       continue
     }
     out.push(item.trim())
@@ -196,35 +196,35 @@ function parseGatePatterns(value: unknown, field: string, file: string | null): 
 // 安装面：全局面读全局层 + 本地层，项目面另读项目层（段级覆盖全局、本地层字段级覆盖）
 export type SkillsDeliveryFace = "global" | "project"
 
-// 读取分发形态配置：按安装面合层后解析；旧键仅在无 skillsDelivery 段时映射，读时只提示不写盘
+// 读取分发形态配置：按安装面合层后解析；旧键仅在无 skillDelivery 段时映射，读时只提示不写盘
 export function readSkillsDeliveryConfig(face: SkillsDeliveryFace = "global", startDir = process.cwd()): SkillsDeliveryConfig {
   const layers = inspectConfigLayers(startDir)
   // 全局面不读项目层：项目层配置只对项目面生效，误写时告警并按未配置处理
-  if (face === "global" && layers.project.config?.skillsDelivery !== undefined && isPlainObject(layers.project.config.skillsDelivery)) {
+  if (face === "global" && layers.project.config?.skillDelivery !== undefined && isPlainObject(layers.project.config.skillDelivery)) {
     warnOnce(
-      `${layers.project.file ?? ""}\u0000skillsDelivery\u0000global-face`,
-      `⚠️ 忽略配置段「skillsDelivery」${layers.project.file ? `（${layers.project.file}）` : ""}：全局面不读取项目层配置，该段仅对项目面生效`,
+      `${layers.project.file ?? ""}\u0000skillDelivery\u0000global-face`,
+      `⚠️ 忽略配置段「skillDelivery」${layers.project.file ? `（${layers.project.file}）` : ""}：全局面不读取项目层配置，该段仅对项目面生效`,
     )
   }
-  const globalSection = asDeliverySection(layers.global.config?.skillsDelivery)
-  const projectSection = face === "project" ? asDeliverySection(layers.project.config?.skillsDelivery) : undefined
-  const localSection = asDeliverySection(layers.local.config?.skillsDelivery)
+  const globalSection = asDeliverySection(layers.global.config?.skillDelivery)
+  const projectSection = face === "project" ? asDeliverySection(layers.project.config?.skillDelivery) : undefined
+  const localSection = asDeliverySection(layers.local.config?.skillDelivery)
   // 段级覆盖：项目层整段覆盖全局；本地层再按字段覆盖（rules 为数组，本地层写出时整体替换）
   const merged = mergeDeliverySections(projectSection ?? globalSection, localSection)
-  const legacy = readLegacyGate(layers.global.config?.skillsInstall)
+  const legacy = readLegacyGate(layers.global.config?.skillInstall)
   if (merged) {
     if (legacy) {
       warnOnce(
-        "skillsDelivery\u0000legacy-ignored",
-        "⚠️ 忽略旧配置「skillsInstall.gate」：已由配置段「skillsDelivery」接管，旧键不再生效（2.0.0 起移除兼容）",
+        "skillDelivery\u0000legacy-ignored",
+        "⚠️ 忽略旧配置「skillInstall.gate」：已由配置段「skillDelivery」接管，旧键不再生效（2.1.0 起移除兼容）",
       )
     }
     return parseDeliverySection(merged)
   }
   if (legacy) {
     warnOnce(
-      "skillsDelivery\u0000legacy-migrated",
-      "⚠️ 检测到旧配置「skillsInstall.gate」：已按「skillsDelivery」等价值读取，建议迁移（2.0.0 起移除兼容）",
+      "skillDelivery\u0000legacy-migrated",
+      "⚠️ 检测到旧配置「skillInstall.gate」：已按「skillDelivery」等价值读取，建议迁移（2.1.0 起移除兼容）",
     )
     return legacy
   }
@@ -262,7 +262,7 @@ function parseDeliverySection(section: Record<string, unknown>): SkillsDeliveryC
 function parseDeliveryMode(field: string, value: unknown): DeliveryMode | undefined {
   if (value === undefined) return undefined
   if (typeof value === "string" && DELIVERY_MODES.includes(value as DeliveryMode)) return value as DeliveryMode
-  warnInvalid("skillsDelivery", field, null, "须为 full / gated / off")
+  warnInvalid("skillDelivery", field, null, "须为 full / gated / off")
   return undefined
 }
 
@@ -270,39 +270,39 @@ function parseDeliveryMode(field: string, value: unknown): DeliveryMode | undefi
 function parseDeliveryRules(value: unknown): DeliveryRule[] {
   if (value === undefined) return []
   if (!Array.isArray(value)) {
-    warnInvalid("skillsDelivery", "rules", null, "须为规则数组")
+    warnInvalid("skillDelivery", "rules", null, "须为规则数组")
     return []
   }
   const out: DeliveryRule[] = []
   value.forEach((item, index) => {
     const field = `rules[${index}]`
     if (!isPlainObject(item)) {
-      warnInvalid("skillsDelivery", field, null, "规则须为对象")
+      warnInvalid("skillDelivery", field, null, "规则须为对象")
       return
     }
     if (!Array.isArray(item.match)) {
-      warnInvalid("skillsDelivery", `${field}.match`, null, "须为字符串数组")
+      warnInvalid("skillDelivery", `${field}.match`, null, "须为字符串数组")
       return
     }
     const patterns: string[] = []
     for (const raw of item.match) {
       if (typeof raw !== "string" || raw.trim() === "") {
-        warnInvalid("skillsDelivery", `${field}.match`, null, "含非字符串或空项，已剔除")
+        warnInvalid("skillDelivery", `${field}.match`, null, "含非字符串或空项，已剔除")
         continue
       }
       const compiled = compilePattern(raw.trim())
       if (!compiled.ok) {
-        warnInvalid("skillsDelivery", `${field}.match`, null, `规则「${raw.trim()}」${compiled.reason}，已剔除`)
+        warnInvalid("skillDelivery", `${field}.match`, null, `规则「${raw.trim()}」${compiled.reason}，已剔除`)
         continue
       }
       patterns.push(raw.trim())
     }
     if (patterns.length === 0) {
-      warnInvalid("skillsDelivery", `${field}.match`, null, "无有效规则，整条规则已剔除")
+      warnInvalid("skillDelivery", `${field}.match`, null, "无有效规则，整条规则已剔除")
       return
     }
     if (item.delivery === undefined) {
-      warnInvalid("skillsDelivery", `${field}.delivery`, null, "缺少 delivery")
+      warnInvalid("skillDelivery", `${field}.delivery`, null, "缺少 delivery")
       return
     }
     const delivery = parseDeliveryMode(`${field}.delivery`, item.delivery)
@@ -363,21 +363,21 @@ function writeConfigSection(file: string, sectionName: string, patch: Record<str
   resetToolkitConfigCache()
 }
 
-// 写全局技能安装偏好：只合并 skillsInstall 段；写入失败向上抛出，由调用方决定是否继续
+// 写全局技能安装偏好：只合并 skillInstall 段；写入失败向上抛出，由调用方决定是否继续
 export function writeSkillsInstallConfig(patch: Partial<SkillsInstallConfig>): void {
-  writeConfigSection(join(getHomeDir(), ".toolkitrc.json"), "skillsInstall", patch as Record<string, unknown>)
+  writeConfigSection(join(getHomeDir(), ".toolkitrc.json"), "skillInstall", patch as Record<string, unknown>)
 }
 
-// 写全局分发形态默认值：只合并 skillsDelivery.default，已有 rules 原样保留（gate 命令降为语法糖）
+// 写全局分发形态默认值：只合并 skillDelivery.default，已有 rules 原样保留（gate 命令降为语法糖）
 export function writeSkillsDeliveryDefault(value: DeliveryMode): void {
-  writeConfigSection(join(getHomeDir(), ".toolkitrc.json"), "skillsDelivery", { default: value })
+  writeConfigSection(join(getHomeDir(), ".toolkitrc.json"), "skillDelivery", { default: value })
 }
 
 // 写项目技能安装偏好：定位最近的项目层配置；不存在则在 cwd 下新建
 export function writeProjectSkillsConfig(patch: Partial<ProjectSkillsConfig>, cwd = process.cwd()): void {
   const layers = inspectConfigLayers(cwd)
   const file = layers.project.file ?? join(resolve(cwd), ".toolkitrc.json")
-  writeConfigSection(file, "projectSkills", patch as Record<string, unknown>)
+  writeConfigSection(file, "projectSkill", patch as Record<string, unknown>)
 }
 
 // 升级提示频率：与 update-check 的取值保持一致

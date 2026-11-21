@@ -16,7 +16,7 @@
 | `toolkit usage` | 技能使用情况：开关、统计、导出与诊断（默认关闭） | `info` / `stats` / `export` / `doctor` | [技能使用情况](./cli/usage) |
 | `toolkit rules` | 全局规则：列出模块、组合输出与缓存管理 | `list` / `compose` / `reset` | [全局规则](./cli/rules) |
 | `toolkit scope` | 作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效） | `status` / `list` / `policy` / `skills` / `wizard` / `guard` / `add` / `exclude` / `remove` / `default` / `reset`（详见 scope 页） | [作用域](./cli/scope) |
-| `toolkit config` | 配置分层只读体检 | `status` | [配置体检](./cli/config) |
+| `toolkit config` | 配置唯一写入口（键清单 + 分层写入）与只读体检 | `list` / `get` / `set` / `unset` / `status` | [配置体检](./cli/config) |
 | `toolkit docs` | 文档站主题校验与写入、导航与产物校验 | `theme` / `nav` / `dist` | [文档站主题](./cli/docs-theme) · [文档站校验](./cli/docs-check) |
 | `toolkit help` | 显示帮助 | — | — |
 
@@ -33,7 +33,8 @@
 | 看技能用了多少次 | `toolkit usage stats`（`--by session` / `--by trigger` / `--limit`） |
 | 复制全局规则 | `toolkit rules compose`（按需 `--preset` / `--module`，`--copy` 直接进剪贴板） |
 | 规范沉淀 | `toolkit conventions status` → `toolkit conventions upgrade` / `format` |
-| 排查配置 | `toolkit config status`（不打印配置值） |
+| 排查配置 | `toolkit config status`（不打印配置值）→ `toolkit config get <key> --explain`（看来源层与覆盖链） |
+| 改配置 | `toolkit config set <key> <value>`（`--layer` 选层；非交互加 `--yes`），删除用 `config unset` |
 | 文档站主题漂移 | `toolkit docs theme check` |
 | 文档站导航或产物不合规 | `toolkit docs nav check` / `toolkit docs dist check` |
 
@@ -44,7 +45,7 @@
 | `toolkit tasks` | 打印任务总览（默认视图） | 同左，退出 0 | 无 | `--format json` / `export` |
 | `toolkit skills` | 打印本域帮助 | 同左，退出 0 | 无（`gate` / `mount` 等子命令参数化） | 各子命令 `--format json` |
 | `toolkit rules` | 打印本域帮助 | 同左，退出 0 | 无 | `list` / `compose --format json` |
-| `toolkit config` | 打印本域帮助 | 同左，退出 0 | 无 | `status --format json` |
+| `toolkit config` | 打印本域帮助 | 同左，退出 0 | 无 | `list` / `get` / `status --format json` |
 | `toolkit conventions` | 打印本域帮助 | 同左，退出 0 | 无 | `status` / `format` / `upgrade --format json` |
 | `toolkit docs` | 打印本域帮助 | 同左，退出 0 | 无 | `nav` / `dist --format json` |
 | `toolkit scope` | 状态优先向导 | 输出状态摘要与子命令提示，退出 0 | `scope wizard`（需要交互但无终端时退出 2） | `status` / `list --format json` |

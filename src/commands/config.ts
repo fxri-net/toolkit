@@ -1,12 +1,65 @@
-// config 命令：三层配置只读体检的注册入口与报告打印
+// config 命令：三层配置的唯一写入口（list / get / set / unset）与只读体检（status）
 import { existsSync, statSync } from "node:fs"
 import { resolve } from "node:path"
 import type { Command } from "commander"
 import { configStatus, foldHome, type ConfigStatusReport } from "../config-status"
 import type { LocalConfigIgnoreState } from "../git-ignore"
 import { assertJsonFormat } from "../json-output"
+import { readConfigKey, unsetConfigKey, writeConfigKey } from "../config-edit"
+import {
+  CONFIG_LAYER_LABELS,
+  configKeyNames,
+  configKeyTypeLabel,
+  getConfigKey,
+  isConfigLayer,
+  parseConfigValue,
+  suggestConfigKeys,
+  type ConfigKeyLayer,
+  type ConfigKeySpec,
+} from "../config-keys"
 import { printJson } from "./shared"
 import { line } from "../term-style"
+
+// 文本模式的取值渲染：数组用顿号连接，敏感值打码，未写给出占位文案
+function renderValue(spec: ConfigKeySpec, value: unknown): string {
+  if (value === undefined) return "未配置"
+  if (spec.sensitive) return "***（敏感值，仅 --format json 输出原文）"
+  if (Array.isArray(value)) return value.length === 0 ? "[]" : value.join("、")
+  return String(value)
+}
+
+// 来源层展示：未写为「默认值」
+function renderSource(layer: ConfigKeyLayer | null): string {
+  return layer === null ? "默认值" : CONFIG_LAYER_LABELS[layer]
+}
+
+// 层参数解析：未传返回 undefined；非法取值告警并置退出码，返回 null 由调用方中止
+function resolveLayerOption(options: { layer?: string }): ConfigKeyLayer | undefined | null {
+  if (options.layer === undefined) return undefined
+  if (!isConfigLayer(options.layer)) {
+    console.error(`⚠️ --layer 取值须为 global / project / local（实际：${options.layer}）`)
+    process.exitCode = 1
+    return null
+  }
+  return options.layer
+}
+
+// 未知键告警：附最接近的候选，便于直接改正拼写
+function rejectUnknownKey(key: string): void {
+  const suggestions = suggestConfigKeys(key)
+  const hint = suggestions.length > 0 ? `，是否想用 ${suggestions.join(" / ")}` : "，可用 toolkit config list 查看可写键"
+  console.error(`⚠️ 未知配置键「${key}」${hint}`)
+  process.exitCode = 1
+}
+
+// 写操作确认：非 TTY 下必须显式 --yes，避免脚本 / CI 里意外落盘
+function needsYes(options: { yes?: boolean }): boolean {
+  if (options.yes) return false
+  if (process.stdin.isTTY) return false
+  console.error("⚠️ 非交互环境写入配置须显式加 --yes（或先用 --dry-run 预览）")
+  process.exitCode = 1
+  return true
+}
 
 // 注册 config 命令：装配点只负责按序调用
 export function registerConfigCommands(program: Command): void {
@@ -56,10 +109,185 @@ export function registerConfigCommands(program: Command): void {
     for (const item of report.items) console.log(`${item.level === "warn" ? "⚠️" : "·"} [${item.scope}] ${item.message}`)
   }
 
-  // config 域：三层配置文件的只读体检（层级 / 来源 / 忽略状态；载体细则见 docs/config.md）
+  // config 域：唯一配置写入口 + 三层只读体检（载体细则见 docs/config.md）
   const configCmd = program
     .command("config")
-    .description("配置分层：只读查看三层配置文件（全局层 / 项目层 / 本地层）的生效情况与来源")
+    .description("配置：list / get / set / unset 唯一写入口，另有 status 只读体检三层配置文件")
+
+  // 枚举可写键：默认给三层合并后的生效值与来源层，--layer 只看该层文件里写了什么
+  configCmd
+    .command("list")
+    .description("列出全部可写配置键：生效值与来源层（--layer 只看该层写入情况）")
+    .option("--layer <layer>", "只看指定层：global / project / local")
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
+    .action((options: { layer?: string; format?: string }) => {
+      if (!assertJsonFormat(options.format)) return
+      const layer = resolveLayerOption(options)
+      if (layer === null) return
+      const rows = configKeyNames().map((key) => {
+        const spec = getConfigKey(key) as ConfigKeySpec
+        const state = readConfigKey(key)
+        return {
+          key,
+          type: spec.type,
+          summary: spec.summary,
+          value: layer === undefined ? state.value : state.layers[layer],
+          source: layer === undefined ? state.source : state.layers[layer] === undefined ? null : layer,
+        }
+      })
+      if (options.format === "json") {
+        printJson({ layer: layer ?? null, keys: rows })
+        return
+      }
+      for (const row of rows) {
+        const spec = getConfigKey(row.key) as ConfigKeySpec
+        console.log(`  ${row.key}：${renderValue(spec, row.value)}（${renderSource(row.source)}）`)
+      }
+      console.log(line.hint(`共 ${rows.length} 个可写键；写入用 toolkit config set <key> <value>`))
+    })
+
+  // 单键取值：--explain 展示类型、可写层与三层覆盖链，排查「为什么没生效」
+  configCmd
+    .command("get <key>")
+    .description("读取单个配置键（--explain 展示类型、可写层与三层覆盖链）")
+    .option("--explain", "展示键元数据与三层覆盖链")
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
+    .action((key: string, options: { explain?: boolean; format?: string }) => {
+      if (!assertJsonFormat(options.format)) return
+      const spec = getConfigKey(key)
+      if (!spec) {
+        rejectUnknownKey(key)
+        return
+      }
+      const state = readConfigKey(key)
+      if (options.format === "json") {
+        printJson({
+          key,
+          type: spec.type,
+          summary: spec.summary,
+          value: state.value,
+          source: state.source,
+          layers: state.layers,
+          env: state.env ?? null,
+        })
+        return
+      }
+      if (!options.explain) {
+        console.log(renderValue(spec, state.value))
+        return
+      }
+      console.log(`键：${spec.key}`)
+      console.log(`类型：${configKeyTypeLabel(spec)}`)
+      console.log(`默认写入层：${CONFIG_LAYER_LABELS[spec.defaultLayer]}；可写层：${spec.writableLayers.map((item) => CONFIG_LAYER_LABELS[item]).join(" / ")}`)
+      console.log(`说明：${spec.summary}`)
+      console.log(`生效值：${renderValue(spec, state.value)}（来源：${renderSource(state.source)}）`)
+      console.log("覆盖链：")
+      for (const item of ["local", "project", "global"] as const) {
+        console.log(`  ${CONFIG_LAYER_LABELS[item]}：${renderValue(spec, state.layers[item])}`)
+      }
+      if (state.env) console.log(line.hint(`环境变量 ${state.env} 已设置：运行期以此为准，文件取值仅作记录`))
+    })
+
+  // 写单键：默认落该键的默认层，--layer 切换；类型、枚举、可写层不合法一律报错
+  configCmd
+    .command("set <key> <value>")
+    .description("写入单个配置键（默认落该键的默认层；非交互环境须加 --yes）")
+    .option("--layer <layer>", "写入层：global / project / local")
+    .option("--dry-run", "只预览将写入的内容，不落盘")
+    .option("--yes", "非交互环境确认写入")
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
+    .action((key: string, raw: string, options: { layer?: string; dryRun?: boolean; yes?: boolean; format?: string }) => {
+      if (!assertJsonFormat(options.format)) return
+      const spec = getConfigKey(key)
+      if (!spec) {
+        rejectUnknownKey(key)
+        return
+      }
+      const layer = resolveLayerOption(options)
+      if (layer === null) return
+      const target = layer ?? spec.defaultLayer
+      if (!spec.writableLayers.includes(target)) {
+        console.error(
+          `⚠️ 配置键「${key}」不可写入${CONFIG_LAYER_LABELS[target]}：仅支持 ${spec.writableLayers.map((item) => CONFIG_LAYER_LABELS[item]).join(" / ")}`,
+        )
+        process.exitCode = 1
+        return
+      }
+      const parsed = parseConfigValue(spec, raw)
+      if (parsed.error) {
+        console.error(`⚠️ 配置键「${key}」取值非法：${parsed.error}（实际：${raw}）`)
+        process.exitCode = 1
+        return
+      }
+      if (!options.dryRun && needsYes(options)) return
+      const preview = { key, layer: target, value: parsed.value, valueText: renderValue(spec, parsed.value) }
+      if (options.dryRun) {
+        if (options.format === "json") printJson({ ...preview, dryRun: true, file: null })
+        else console.log(line.hint(`将写入${CONFIG_LAYER_LABELS[target]}：${key} = ${renderValue(spec, parsed.value)}（--dry-run，未落盘）`))
+        return
+      }
+      try {
+        const result = writeConfigKey(target, key, parsed.value)
+        if (options.format === "json") {
+          printJson({ ...preview, dryRun: false, file: foldHome(result.file) })
+          return
+        }
+        const replaced = result.previous === undefined ? "" : `（原值：${renderValue(spec, result.previous)}）`
+        console.log(line.ok(`已写入${CONFIG_LAYER_LABELS[target]}：${key} = ${renderValue(spec, parsed.value)}${replaced}`))
+        console.log(line.hint(`文件：${foldHome(result.file)}`))
+      } catch (e) {
+        console.error(`⚠️ 写入失败：${(e as Error).message}`)
+        process.exitCode = 1
+      }
+    })
+
+  // 删单键：只删目标层文件里的该键，删后回收空段；未写时按成功退出并说明无需删除
+  configCmd
+    .command("unset <key>")
+    .description("删除单个配置键（默认删该键的默认层；非交互环境须加 --yes）")
+    .option("--layer <layer>", "删除层：global / project / local")
+    .option("--dry-run", "只预览将删除的键，不落盘")
+    .option("--yes", "非交互环境确认删除")
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
+    .action((key: string, options: { layer?: string; dryRun?: boolean; yes?: boolean; format?: string }) => {
+      if (!assertJsonFormat(options.format)) return
+      const spec = getConfigKey(key)
+      if (!spec) {
+        rejectUnknownKey(key)
+        return
+      }
+      const layer = resolveLayerOption(options)
+      if (layer === null) return
+      const target = layer ?? spec.defaultLayer
+      if (!spec.writableLayers.includes(target)) {
+        console.error(
+          `⚠️ 配置键「${key}」不在${CONFIG_LAYER_LABELS[target]}：仅支持 ${spec.writableLayers.map((item) => CONFIG_LAYER_LABELS[item]).join(" / ")}`,
+        )
+        process.exitCode = 1
+        return
+      }
+      if (options.dryRun) {
+        if (options.format === "json") printJson({ key, layer: target, dryRun: true, removed: null })
+        else console.log(line.hint(`将从${CONFIG_LAYER_LABELS[target]}删除：${key}（--dry-run，未落盘）`))
+        return
+      }
+      if (needsYes(options)) return
+      try {
+        const result = unsetConfigKey(target, key)
+        if (options.format === "json") {
+          printJson({ key, layer: target, dryRun: false, removed: result.removed, file: foldHome(result.file) })
+          return
+        }
+        console.log(
+          result.removed
+            ? line.ok(`已从${CONFIG_LAYER_LABELS[target]}删除：${key}（原值：${renderValue(spec, result.previous)}）`)
+            : line.hint(`${CONFIG_LAYER_LABELS[target]}未写该键，无需删除`),
+        )
+      } catch (e) {
+        console.error(`⚠️ 删除失败：${(e as Error).message}`)
+        process.exitCode = 1
+      }
+    })
 
   // 状态：只读体检，只报不改（不给 --fix）；体检本身不阻断、退出码恒 0，仅 --format 非法与 --cwd 非法时按参数错误报错退出
   configCmd
@@ -86,7 +314,7 @@ export function registerConfigCommands(program: Command): void {
       }
     })
 
-  // 裸 `toolkit config`：打印本域帮助，列出 1 个子命令
+  // 裸 `toolkit config`：打印本域帮助，子命令数按实际注册数给出
   configCmd.action(() => {
     configCmd.help()
   })

@@ -1,4 +1,4 @@
-// 发布包内容：规则模块必须随 templates 分发，否则 toolkit usage rule / rules compose 会失效
+// 发布包内容：规则模块必须随 templates 分发，否则 rules compose（含 --module usage）会失效
 import { describe, expect, it } from "vitest"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"

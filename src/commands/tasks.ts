@@ -108,7 +108,7 @@ export function registerTasksCommands(program: Command): void {
   // 任务子命令公共选项：目录、脱敏、软告警与严格模式
   function addTasksCommonOptions(command: Command): Command {
     return command
-      .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 tasks.dir > 默认 .tasks）")
+      .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 task.dir > 默认 .tasks）")
       .option("--redact", "开启隐私脱敏")
       .option("--no-redact", "关闭隐私脱敏")
       .option("--warn", "开启软告警")
@@ -314,7 +314,7 @@ export function registerTasksCommands(program: Command): void {
   ): Promise<void> {
     const ctx = resolveTasksContext(options)
     if (!ctx) return
-    const section = getConfigSection("tasks")
+    const section = getConfigSection("task")
     const custom = section?.importColumns && typeof section.importColumns === "object" ? (section.importColumns as Record<string, string>) : undefined
     const target = options.target ?? "active"
     if (!["active", "archive"].includes(target)) {

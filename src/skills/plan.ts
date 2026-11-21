@@ -54,7 +54,7 @@ export interface PlanOptions {
   targets?: string[]
   dirs?: string[]
   externalSources?: ExternalSourceOption[]
-  // 内容闸门：与 install 同口径的显式取值，缺省读 skillsDelivery 配置
+  // 内容闸门：与 install 同口径的显式取值，缺省读 skillDelivery 配置
   gate?: boolean | GateRules
 }
 
@@ -108,7 +108,7 @@ export function planSkills(options: PlanOptions = {}): SkillsPlanReport {
     }
   }
 
-  // 分发形态：命令行显式取值 > skillsDelivery 配置 > 旧键兼容
+  // 分发形态：命令行显式取值 > skillDelivery 配置 > 旧键兼容
   const gateOption = options.gate
   const deliveryConfig = gateOption === undefined ? readSkillsDeliveryConfig("global") : { rules: [] }
   const cliRules = gateOption !== undefined && typeof gateOption === "object" ? gateRulesToDeliveryRules(gateOption) : []

@@ -97,8 +97,8 @@ toolkit scope guard fxri-plan-to-task # 内容闸门：按当前目录作用域�
 
 ## 内容闸门 guard
 
-- 前置：技能已被判定为入口壳形态（矩阵限制或 `skillsDelivery` 规则），由 `toolkit skills install` 生成入口壳；
-  旧键 `skillsInstall.gate` / `metadata.gate: false` 仍读时兼容，新配置用 `skillsDelivery`
+- 前置：技能已被判定为入口壳形态（矩阵限制或 `skillDelivery` 规则），由 `toolkit skills install` 生成入口壳；
+  旧键 `skillInstall.gate` / `metadata.gate: false` 仍读时兼容，新配置用 `skillDelivery`
 - `toolkit scope guard <技能名>` 读取当前目录的作用域判定：**激活时**把真源 `SKILL.md` 正文写到 stdout；**未激活时** stdout 为空、原因写 stderr 并以**退出码 3**结束
 - 输出契约：stdout 只放正文（供 AI 直接消费），参考文件目录与诊断一律走 stderr；只读，不写缓存
 - 技能名须为内置包或已登记来源中存在的单段名字；未知名字或含路径分隔符时以退出码 `1` 报错

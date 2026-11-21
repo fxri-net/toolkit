@@ -68,7 +68,7 @@ export function buildEntryShell(): string {
     "",
     ENTRY_MARKER,
     "<!-- 由 toolkit init 生成，可安全删除；需要时重跑 toolkit init 即可补齐 -->",
-    "本技能只是入口，不承载条文：读本项目任务区（默认 `.tasks`，已配置 `tasks.dir` 时按配置声明）下的 `conventions/index.md`，按其「用法说明」节执行；条文以各文件的单一事实源为准。",
+    "本技能只是入口，不承载条文：读本项目任务区（默认 `.tasks`，已配置 `task.dir` 时按配置声明）下的 `conventions/index.md`，按其「用法说明」节执行；条文以各文件的单一事实源为准。",
     "",
   ].join("\n")
 }

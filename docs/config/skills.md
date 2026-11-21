@@ -6,6 +6,9 @@ title: 技能分发偏好（skills）
 
 > 软链自愈、全局与项目面安装偏好；分发命令与现场体检见 [技能分发](../cli/skills)。
 
+⚠️ **段名已统一为单数**：旧段名 `skillsInstall` / `skillsDelivery` / `projectSkills` 仍可读取（stderr 提示一次），
+`toolkit init` 会把项目层 / 本地层配置文件就地重写为新段名（备份 `.bak`），2.1.0 移除兼容。
+
 ## skills：技能分发
 
 | 字段 | 类型 | 默认 | 说明 |
@@ -31,7 +34,7 @@ title: 技能分发偏好（skills）
 }
 ```
 
-## skillsInstall：全局技能安装偏好
+## skillInstall：全局技能安装偏好
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
@@ -39,11 +42,11 @@ title: 技能分发偏好（skills）
 | `targets` | string[] | 无 | 长期目标选择：`canonical`（主目标）与各 agent 的 `name`（如 `claude-code`、`cursor`）。安装 / 交互选择后写回；未保存过时首次写全部可用目标；`--no-save-agents` 不写回；`--dir` 自定义目录不进入本字段 |
 | `sources` | object | 无 | 永久外部来源登记：本地来源写 `{ "root": "<绝对路径>" }`，远程来源写 `{ "url": "<Git 地址>", "ref": "<可选 ref>" }`。由 `toolkit skills install --from <path|url> --save [name]` 写入；启动时自动解析并纳入安装 / 状态，远程来源使用用户级缓存 `~/.toolkit/cache/skill-sources/`，来源失效时告警跳过 |
 | `mode` | string | `skills` | 安装模式：`skills`（core 必装）/ `package`（纯包管理器，全部可选、允许零选）；由 `toolkit skills install --mode` 写入，非法值告警后按 `skills` 处理 |
-| `gate` | boolean \| object | `false` | **旧键**（建议迁移到 `skillsDelivery`，2.0.0 起移除兼容）：`true` 开启并按默认规则全量接管；也可写 `{ "include": ["fxri-*"], "exclude": ["fxri-text-encoding"] }`（技能名 glob 或 `re:`，排除优先）裁剪范围。技能可用 `SKILL.md` 的 `metadata.gate: false` 单点退出，非法取值会告警并按未声明处理。读取时映射为等价的 `skillsDelivery` 配置；旧版本或库调用写入本键，`toolkit skills install --gate` / `--embed` 现改写 `skillsDelivery.default`。只影响全局面 |
+| `gate` | boolean \| object | `false` | **旧键**（建议迁移到 `skillDelivery`，2.1.0 起移除兼容）：`true` 开启并按默认规则全量接管；也可写 `{ "include": ["fxri-*"], "exclude": ["fxri-text-encoding"] }`（技能名 glob 或 `re:`，排除优先）裁剪范围。技能可用 `SKILL.md` 的 `metadata.gate: false` 单点退出，非法取值会告警并按未声明处理。读取时映射为等价的 `skillDelivery` 配置；旧版本或库调用写入本键，`toolkit skills install --gate` / `--embed` 现改写 `skillDelivery.default`。只影响全局面 |
 
 ```json
 {
-  "skillsInstall": {
+  "skillInstall": {
     "selection": { "toolkit": ["fxri-plan-to-task", "fxri-session-recap", "fxri-plan-review", "fxri-text-encoding"] },
     "targets": ["canonical", "claude-code"],
     "sources": {
@@ -54,11 +57,11 @@ title: 技能分发偏好（skills）
 }
 ```
 
-⚠️ **仅认全局层**：`skillsInstall` 只从全局层 `~/.toolkitrc.json` 读取；
-写在项目层 `.toolkitrc.json` 或本地层 `.toolkitrc.local.json` 时向 **stderr** 告警并忽略（不静默生效）。写入时只合并 `skillsInstall` 段、
+⚠️ **仅认全局层**：`skillInstall` 只从全局层 `~/.toolkitrc.json` 读取；
+写在项目层 `.toolkitrc.json` 或本地层 `.toolkitrc.local.json` 时向 **stderr** 告警并忽略（不静默生效）。写入时只合并 `skillInstall` 段、
 保留同文件其他配置段，写前备份 `.bak`、写后原子落盘并失效配置缓存。
 
-## skillsDelivery：技能分发形态
+## skillDelivery：技能分发形态
 
 每个技能只有一种分发形态，由本段单源推导，三态互斥且穷尽：
 
@@ -74,14 +77,14 @@ title: 技能分发偏好（skills）
 | `rules` | array | `[]` | 显式规则：`{ "match": ["fxri-*"], "delivery": "gated" }`，`match` 任一模式命中即生效（技能名 glob 或 `re:`）。同一技能命中多条时按具体度取胜（命中模式数 → 字面量长度 → 书写顺序），具体度相同取最后一条并向 **stderr** 提示被压规则；非法模式与非法枚举告警后剔除 |
 
 推导优先级（高 → 低）：技能声明 `metadata.gate: false`（旧键，按全文，命令行也不覆盖）→ 命令行显式取值 →
-`skillsDelivery.rules` → 策略推导（矩阵）→ `skillsDelivery.default` → 默认全文。
+`skillDelivery.rules` → 策略推导（矩阵）→ `skillDelivery.default` → 默认全文。
 
 **策略推导**：矩阵对技能的声明直接决定形态，不需要再手动开闸门——
 
 - 带条件的拒绝（`effect: deny` 且带路径 / 标记 / 远端条件，或 `skills.deny` 命中）→ `gated`
 - 允许名单收窄（`skills.mode: allowlist` 且名单不是 `*`）且技能不在其中 → `gated`
 - 无条件拒绝（无任何条件）→ `off`；无条件 `allow: ["*"]` 不产生限制
-- 多个策略命中时 `source` 列出全部策略 id，`reason` 取最具体一条；显式 `skillsDelivery.rules` 仍可覆盖推导
+- 多个策略命中时 `source` 列出全部策略 id，`reason` 取最具体一条；显式 `skillDelivery.rules` 仍可覆盖推导
 - `toolkit skills status --explain <技能>` 逐级打印命中 / 未命中与被压规则
 
 **技能包默认**：`SKILL.md` frontmatter 可声明 `metadata.delivery: full | gated`，位于策略推导之后、全局默认之前；
@@ -91,19 +94,19 @@ title: 技能分发偏好（skills）
 项目层整段覆盖全局、本地层按字段覆盖。项目面的 `gated` 同样落入口壳：真源副本仍在 `<仓库根>/.agents/skills/`，
 入口壳调用同一个 `toolkit scope guard`，判定读项目层配置，正文取项目真源副本。
 
-**旧键兼容**（读时映射、只提示不写盘，2.0.0 起移除）：
+**旧键兼容**（读时映射、只提示不写盘，2.1.0 起移除）：
 
-- `skillsInstall.gate: true` → `default: "gated"`；`skillsInstall.gate: { include, exclude }` → 等价的 `rules`
+- `skillInstall.gate: true` → `default: "gated"`；`skillInstall.gate: { include, exclude }` → 等价的 `rules`
   （include → `gated`、exclude → `full`，排除优先）
 - `SKILL.md` 的 `metadata.gate: false` → 该技能按全文安装
-- 新旧并存时以 `skillsDelivery` 为准，旧键被忽略并在 **stderr** 告警
+- 新旧并存时以 `skillDelivery` 为准，旧键被忽略并在 **stderr** 告警
 
 `toolkit skills gate on|off` 只写本段 `default`，不覆盖 `rules`。
 `toolkit skills install --gate` / `--embed` 是本次安装的显式取值，成功后写 `default`。
 
 ```json
 {
-  "skillsDelivery": {
+  "skillDelivery": {
     "default": "full",
     "rules": [
       { "match": ["fxri-plan-*", "fxri-session-*"], "delivery": "gated" },
@@ -116,7 +119,7 @@ title: 技能分发偏好（skills）
 `off` 的技能不参与 `skills status` 的缺失统计；既有产物在 `status` 单列为残留，
 `toolkit skills install --prune` 才按归属清理，`toolkit skills plan` 中显示为「清理」。
 
-## projectSkills：项目面技能安装偏好
+## projectSkill：项目面技能安装偏好
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
@@ -126,18 +129,18 @@ title: 技能分发偏好（skills）
 
 ```json
 {
-  "projectSkills": {
+  "projectSkill": {
     "selection": ["fxri-plan-to-task", "fxri-session-recap", "fxri-plan-review"],
     "targets": [".trae/skills", ".claude/skills"]
   }
 }
 ```
 
-⚠️ **仅认项目层**：`projectSkills` 只从项目层 `.toolkitrc.json` 读取；写在全局层或本地层时告警并忽略。项目面与全局面的选择集相互独立，`--scope all` 时两面共用本次交互结果。
+⚠️ **仅认项目层**：`projectSkill` 只从项目层 `.toolkitrc.json` 读取；写在全局层或本地层时告警并忽略。项目面与全局面的选择集相互独立，`--scope all` 时两面共用本次交互结果。
 
 ## 安装目标选择
 
-技能选择之后是**目标选择**：全局面选 agent 目录，项目面选已存在的候选薄壳目录；结果写入 `skillsInstall.targets` / `projectSkills.targets`。
+技能选择之后是**目标选择**：全局面选 agent 目录，项目面选已存在的候选薄壳目录；结果写入 `skillInstall.targets` / `projectSkill.targets`。
 
 - **优先级**（从高到低）：`--all-agents` / `--agent <names>` 显式指定 → TTY 方向键多选 → 已保存的 targets → 首次全部可用目标
 - **交互**：按「共读（canonical）→ agent → 自定义目录」分组展示；本机未检测到的已保存 agent 置灰保留，不凭空创建目录；只有一个可用目标时跳过选择
@@ -225,7 +228,7 @@ monorepo 子目录执行亦能命中项目面；**本包源仓库自身视为 `g
 - 卸载链接时**只摘链、不碰真源**
 - 软链落点是**写入穿透**形态：在落点目录里编辑文件等于编辑技能真源，且该真源随包升级整体换新
   - `status` 在存在软链落点时于报告末尾提示「写入将穿透至技能真源目录，改内容请改真源」
-- `skills.autoLink` / `autoLinkReplaceForeign` 控制软链自愈（默认开；不含首次安装与副本升级，`CI` 自动跳过），边界见「skillsInstall：全局技能安装偏好」一节
+- `skills.autoLink` / `autoLinkReplaceForeign` 控制软链自愈（默认开；不含首次安装与副本升级，`CI` 自动跳过），边界见「skillInstall：全局技能安装偏好」一节
 - 状态文件为**用户级**（`~/.agents/.toolkit-skills.json`），与上游安装器的 `skills-lock.json` 相互独立
   - 结构为 `format`（`fxri.toolkit.skills-state`）+ `schemaVersion`（`1`）+ `sources`（来源 → 目标 → 逐技能条目）
   - 升级前的旧结构在首次读取时一次性导入并备份为 `.bak`

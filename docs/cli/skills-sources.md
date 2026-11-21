@@ -12,7 +12,7 @@ title: 技能来源（skills sources）
 
 - 远程地址支持 `https://`、`ssh://`、`git@`、`github:owner/repo`，可带 `#分支/标签/提交`
 - 浅克隆到 `~/.toolkit/cache/skill-sources/` 缓存后复用同一套解析；缓存刷新失败时回落到旧缓存并告警
-- `--save [name]` 将来源登记为永久来源（写入全局层 `skillsInstall.sources`）：本地记 `root`，远程记 `url` + `ref`；
+- `--save [name]` 将来源登记为永久来源（写入全局层 `skillInstall.sources`）：本地记 `root`，远程记 `url` + `ref`；
   省略名字时按清单 `name`、仓库名或目录名派生
 
 ## 来源格式
@@ -51,4 +51,4 @@ title: 技能来源（skills sources）
 
 ## 相关页面
 
-- 参考：[技能分发](./skills) · [配置参考 · skillsInstall](../config/skills) · [完整攻略 · AI 技能包](../guide#ai-技能包-skills)
+- 参考：[技能分发](./skills) · [配置参考 · skillInstall](../config/skills) · [完整攻略 · AI 技能包](../guide#ai-技能包-skills)

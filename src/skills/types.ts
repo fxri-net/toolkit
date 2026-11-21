@@ -9,7 +9,7 @@ export const SKILL_ENTRY = "SKILL.md"
 export const CANONICAL_DIR = ".agents/skills"
 // 主目标显示名：解析与反查共用一份，避免两处字面量漂移
 export const CANONICAL_LABEL = "canonical（多家 agent 共读）"
-// 主目标稳定名：写入 skillsInstall.targets 时代表 canonical 目录
+// 主目标稳定名：写入 skillInstall.targets 时代表 canonical 目录
 export const CANONICAL_TARGET_NAME = "canonical"
 // 历史落点：Codex / Pi 改为 canonical 共读前的全局分发目录；升级前的产物与状态登记可能仍留在用户机器上
 export const LEGACY_SKILL_DIRS: Array<{ dir: string; label: string }> = [

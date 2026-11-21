@@ -126,7 +126,7 @@ title: 作用域配置（activation / policies）
 
 - 带条件的限制（路径 / 标记 / 远端拒绝，或允许名单收窄）→ 入口壳，正文由 `toolkit scope guard` 按目录判定
 - 无条件拒绝 → 不安装；无条件 `allow: ["*"]` 不产生限制
-- 显式 `skillsDelivery.rules` 把被拒技能钉成全文时，联动提示「策略对该技能无效：已显式设为全文安装」
+- 显式 `skillDelivery.rules` 把被拒技能钉成全文时，联动提示「策略对该技能无效：已显式设为全文安装」
 - 已安装但当前目录矩阵未允许的技能只提示、不自动删除，可用 `toolkit skills uninstall` 清理
 - 软限制不是物理隔离；需要更强边界时用 `toolkit skills install --scope project`，`skills install --embed` 回退全文
 

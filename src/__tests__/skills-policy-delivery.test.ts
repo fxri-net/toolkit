@@ -108,7 +108,7 @@ describe("策略推导", () => {
       policy: { mode: "gated", source: "policy:matrix", reason: "矩阵限制" },
     })
     expect(decision.mode).toBe("full")
-    expect(decision.source).toContain("skillsDelivery.rules[0]")
+    expect(decision.source).toContain("skillDelivery.rules[0]")
   })
 })
 

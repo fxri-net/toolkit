@@ -7,7 +7,6 @@ import { setHomeDirForTest } from "../config"
 import { composeRules, listRules, loadRuleModules, loadRuleset } from "../rules"
 import { CLIP_FILE_ENV, clipboardCommands, copyToClipboard } from "../rules/clipboard"
 import { clearRulesSelection, readRulesSelection, rulesSelectionPath, writeRulesSelection } from "../rules/cache"
-import { usageGlobalRule } from "../usage/rule"
 
 let home = ""
 
@@ -101,12 +100,6 @@ describe("规则组合缓存", () => {
     mkdirSync(dirname(rulesSelectionPath()), { recursive: true })
     writeFileSync(rulesSelectionPath(), JSON.stringify({ schema: 1, modules: ["core", "absent"] }), "utf8")
     expect(readRulesSelection(["core", "output"])).toEqual({ schema: 1, modules: ["core"] })
-  })
-})
-
-describe("usage 规则", () => {
-  it("模板缺失时给出可读错误", () => {
-    expect(() => usageGlobalRule(join(tmpdir(), "missing-rules-dir"))).toThrow("无法读取规则模板")
   })
 })
 
