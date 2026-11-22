@@ -238,6 +238,8 @@ const parallelSteps = [
   { label: "规范一致性（技能版本 / 用途列 / 触达）", args: ["scripts/check-consistency.mjs"] },
   // 仓库自检：正文段落单行行宽与分号数（规范 C-43），存量按基线棘轮、只在超出时失败
   { label: "文档可读性（段落行宽 / 分号）", args: ["scripts/check-docs-readability.mjs"] },
+  // 仓库自检：代码块内联注释按分组基准对齐（C-40 配套，口径见 skills/fxri-writing-docs）
+  { label: "文档注释对齐（代码块内联注释）", args: ["scripts/check-docs-comments.mjs"] },
   // eslint 默认缓存加速本地重复运行；CI 与 --full 走冷缓存，且本地冷缓存抖动时缓存本身也会造成「本地绿、CI 红」，故只作本地提速手段
   { label: isCI || full ? "静态检查（冷缓存）" : "静态检查", tool: "eslint", args: [".", ...(isCI || full ? ["--no-cache"] : ["--cache"])] },
 ]
