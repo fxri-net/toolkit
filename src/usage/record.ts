@@ -6,11 +6,12 @@ import { spawnFlushWorker } from "./flush"
 import { enqueueRecord, type UsageQueueEntry } from "./queue"
 import { detectAgent } from "./sessions"
 import { usagePaths } from "./store"
+import { ENV_USAGE_SESSION } from "../env"
 import type { UsageConfig } from "./types"
 
 // 已知会话变量：各家 Agent 暴露的会话标识不一，按顺序取第一个非空值
 const SESSION_ENV_KEYS = [
-  "FX_TOOLKIT_USAGE_SESSION",
+  ENV_USAGE_SESSION,
   "CLAUDE_SESSION_ID",
   "TRAE_SESSION_ID",
   "DSH_SESSION_ID",

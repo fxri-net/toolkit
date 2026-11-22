@@ -1,4 +1,15 @@
 // 旧环境变量名提示：旧名不再读取，命中时只在 stderr 提示一次，避免升级后取值被静默丢弃（C-26 / C-45）
+import {
+  ENV_CHECK_WARN,
+  ENV_DEBUG_UPDATE_CHECK,
+  ENV_NO_UPDATE_CHECK,
+  ENV_REDACT,
+  ENV_USAGE_AGENT,
+  ENV_USAGE_DIR,
+  ENV_USAGE_NO_WORKER,
+  ENV_USAGE_SESSION,
+} from "./env"
+
 export interface LegacyEnvName {
   // 已废弃的旧名
   legacy: string
@@ -8,15 +19,15 @@ export interface LegacyEnvName {
 
 // 旧名 → 新名对照：名称统一前发布过的两代产品前缀
 export const LEGACY_ENV_NAMES: readonly LegacyEnvName[] = [
-  { legacy: "FX_REDACT", current: "FX_TOOLKIT_REDACT" },
-  { legacy: "FX_CHECK_WARN", current: "FX_TOOLKIT_CHECK_WARN" },
-  { legacy: "FX_NO_UPDATE_CHECK", current: "FX_TOOLKIT_NO_UPDATE_CHECK" },
-  { legacy: "FX_DEBUG_UPDATE_CHECK", current: "FX_TOOLKIT_DEBUG_UPDATE_CHECK" },
-  { legacy: "TOOLKIT_TELEMETRY_DIR", current: "FX_TOOLKIT_USAGE_DIR" },
-  { legacy: "TOOLKIT_USAGE_DIR", current: "FX_TOOLKIT_USAGE_DIR" },
-  { legacy: "TOOLKIT_USAGE_AGENT", current: "FX_TOOLKIT_USAGE_AGENT" },
-  { legacy: "TOOLKIT_USAGE_NO_WORKER", current: "FX_TOOLKIT_USAGE_NO_WORKER" },
-  { legacy: "TOOLKIT_USAGE_SESSION", current: "FX_TOOLKIT_USAGE_SESSION" },
+  { legacy: "FX_REDACT", current: ENV_REDACT },
+  { legacy: "FX_CHECK_WARN", current: ENV_CHECK_WARN },
+  { legacy: "FX_NO_UPDATE_CHECK", current: ENV_NO_UPDATE_CHECK },
+  { legacy: "FX_DEBUG_UPDATE_CHECK", current: ENV_DEBUG_UPDATE_CHECK },
+  { legacy: "TOOLKIT_TELEMETRY_DIR", current: ENV_USAGE_DIR },
+  { legacy: "TOOLKIT_USAGE_DIR", current: ENV_USAGE_DIR },
+  { legacy: "TOOLKIT_USAGE_AGENT", current: ENV_USAGE_AGENT },
+  { legacy: "TOOLKIT_USAGE_NO_WORKER", current: ENV_USAGE_NO_WORKER },
+  { legacy: "TOOLKIT_USAGE_SESSION", current: ENV_USAGE_SESSION },
 ]
 
 // 已提示过的旧名：同进程内多条入口只提示一次，避免刷屏

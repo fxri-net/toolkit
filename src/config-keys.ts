@@ -1,6 +1,11 @@
 // 配置键元数据：config list / get / set / unset 的唯一真源
 // 每个键声明类型、默认写入层、可写层与校验口径，读取实现只按段取值，写入实现只按本表落盘，避免两处漂移
 import type { ConfigLayerName } from "./config"
+// 默认值单源：域模块持有默认值，本表只做展示镜像（F-2 / F-16 / F-17）
+import { DEFAULT_DOCS_DIST, DEFAULT_DOCS_NAV } from "./docs/config"
+import { DEFAULT_USAGE_CONFIG, DEFAULT_USAGE_DIR_LABEL } from "./usage/config"
+// 枚举取值单源：分发形态由技能域模块持有
+import { DELIVERY_MODES } from "./skills/delivery"
 
 // 写入层标识：与 scope/config-file.ts 的三层命名一致
 export type ConfigKeyLayer = "global" | "project" | "local"
@@ -62,7 +67,7 @@ const CONFIG_KEY_DEFINITIONS: readonly ConfigKeySpec[] = [
   {
     key: "skillDelivery.default",
     type: "enum",
-    values: ["full", "gated", "off"],
+    values: DELIVERY_MODES,
     summary: "技能分发默认形态（全文 / 入口壳 / 不安装）",
     defaultLayer: "global",
     writableLayers: ALL_LAYERS,
@@ -85,6 +90,20 @@ const CONFIG_KEY_DEFINITIONS: readonly ConfigKeySpec[] = [
   { key: "docs.nav.maxGroupUnits", type: "number", min: 1, summary: "导航分组名长度上限", defaultLayer: "project", writableLayers: ALL_LAYERS },
   { key: "docs.nav.firstItem", type: "string", summary: "导航首项名", defaultLayer: "project", writableLayers: ALL_LAYERS },
   { key: "docs.nav.lastItem", type: "string", summary: "导航末项名", defaultLayer: "project", writableLayers: ALL_LAYERS },
+  {
+    key: "docs.nav.helpChildren",
+    type: "stringList",
+    summary: "顶栏末项下拉包含的页面名（逗号分隔）",
+    defaultLayer: "project",
+    writableLayers: ALL_LAYERS,
+  },
+  {
+    key: "docs.nav.pageSizeExclude",
+    type: "stringList",
+    summary: "不计入单页行数的文件或目录前缀（逗号分隔）",
+    defaultLayer: "project",
+    writableLayers: ALL_LAYERS,
+  },
   { key: "docs.nav.maxPageLines", type: "number", min: 1, summary: "单页行数上限", defaultLayer: "project", writableLayers: ALL_LAYERS },
   // 文档站产物
   { key: "docs.dist.dir", type: "string", summary: "产物目录（相对文档目录）", defaultLayer: "project", writableLayers: ALL_LAYERS },
@@ -160,33 +179,35 @@ const CONFIG_KEY_DEFAULTS: Readonly<Record<string, ConfigKeySpec["default"]>> = 
   "skillDelivery.default": "full",
   "projectSkill.mode": "skills",
   "activation.mode": "all",
-  "docs.nav.dir": "docs",
-  "docs.nav.maxItems": 5,
-  "docs.nav.maxGroupUnits": 4,
-  "docs.nav.firstItem": "快速开始",
-  "docs.nav.lastItem": "帮助",
-  "docs.nav.maxPageLines": 300,
-  "docs.dist.dir": ".vitepress/dist",
-  "docs.dist.sitemap": "error",
-  "docs.dist.searchProvider": "local",
-  "usage.enabled": false,
-  "usage.channel": "hook",
-  "usage.sources.firstParty": false,
-  "usage.sources.thirdParty": false,
-  "usage.sources.unmanaged": false,
-  "usage.skills.mode": "none",
-  "usage.skills.include": [],
-  "usage.skills.exclude": [],
-  "usage.capture.triggerPrompt": false,
-  "usage.capture.skillArgs": false,
-  "usage.capture.outcome": false,
-  "usage.storage.dir": "~/.toolkit/usage",
-  "usage.storage.rotation": "monthly",
-  "usage.storage.retentionDays": 180,
-  "usage.storage.maxFileBytes": 8 * 1024 * 1024,
-  "usage.upload.enabled": false,
-  "usage.upload.protocol": "webhook",
-  "usage.upload.batchSize": 100,
+  "docs.nav.dir": DEFAULT_DOCS_NAV.dir,
+  "docs.nav.maxItems": DEFAULT_DOCS_NAV.maxItems,
+  "docs.nav.maxGroupUnits": DEFAULT_DOCS_NAV.maxGroupUnits,
+  "docs.nav.firstItem": DEFAULT_DOCS_NAV.firstItem,
+  "docs.nav.lastItem": DEFAULT_DOCS_NAV.lastItem,
+  "docs.nav.helpChildren": [...DEFAULT_DOCS_NAV.helpChildren],
+  "docs.nav.pageSizeExclude": [...DEFAULT_DOCS_NAV.pageSizeExclude],
+  "docs.nav.maxPageLines": DEFAULT_DOCS_NAV.maxPageLines,
+  "docs.dist.dir": DEFAULT_DOCS_DIST.dir,
+  "docs.dist.sitemap": DEFAULT_DOCS_DIST.sitemap,
+  "docs.dist.searchProvider": DEFAULT_DOCS_DIST.searchProvider,
+  "usage.enabled": DEFAULT_USAGE_CONFIG.enabled,
+  "usage.channel": DEFAULT_USAGE_CONFIG.channel,
+  "usage.sources.firstParty": DEFAULT_USAGE_CONFIG.sources.firstParty,
+  "usage.sources.thirdParty": DEFAULT_USAGE_CONFIG.sources.thirdParty,
+  "usage.sources.unmanaged": DEFAULT_USAGE_CONFIG.sources.unmanaged,
+  "usage.skills.mode": DEFAULT_USAGE_CONFIG.skills.mode,
+  "usage.skills.include": [...DEFAULT_USAGE_CONFIG.skills.include],
+  "usage.skills.exclude": [...DEFAULT_USAGE_CONFIG.skills.exclude],
+  "usage.capture.triggerPrompt": DEFAULT_USAGE_CONFIG.capture.triggerPrompt,
+  "usage.capture.skillArgs": DEFAULT_USAGE_CONFIG.capture.skillArgs,
+  "usage.capture.outcome": DEFAULT_USAGE_CONFIG.capture.outcome,
+  "usage.storage.dir": DEFAULT_USAGE_DIR_LABEL,
+  "usage.storage.rotation": DEFAULT_USAGE_CONFIG.storage.rotation,
+  "usage.storage.retentionDays": DEFAULT_USAGE_CONFIG.storage.retentionDays,
+  "usage.storage.maxFileBytes": DEFAULT_USAGE_CONFIG.storage.maxFileBytes,
+  "usage.upload.enabled": DEFAULT_USAGE_CONFIG.upload.enabled,
+  "usage.upload.protocol": DEFAULT_USAGE_CONFIG.upload.protocol,
+  "usage.upload.batchSize": DEFAULT_USAGE_CONFIG.upload.batchSize,
 }
 
 // 对外键表：定义 + 默认值合并后的只读清单

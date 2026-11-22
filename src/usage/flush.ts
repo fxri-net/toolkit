@@ -7,6 +7,7 @@ import { listQueueFiles, readQueueEntry, removeQueueFile } from "./queue"
 import { detectAgent, lookupSessionCalls } from "./sessions"
 import type { SessionCall } from "./sessions/types"
 import { appendEvent, usagePaths } from "./store"
+import { ENV_USAGE_NO_WORKER } from "../env"
 
 // 消费参数：dir 供命令指定，lookup 供测试注入，maxBatches 限制单次处理量
 export interface FlushOptions {
@@ -107,7 +108,7 @@ export function flushQueue(options: FlushOptions = {}): FlushResult {
 // 派发后台 worker：派生失败只返回 false，由下次命令的惰性兜底接管
 export function spawnFlushWorker(): boolean {
   // 测试环境关闭派生：vitest 的 argv[1] 不是 CLI，误派生会拉起重跑测试
-  if (process.env.FX_TOOLKIT_USAGE_NO_WORKER === "1") return false
+  if (process.env[ENV_USAGE_NO_WORKER] === "1") return false
   try {
     const cli = process.argv[1]
     if (!cli) return false

@@ -7,11 +7,8 @@ import { getHomeDir, inspectConfigLayers, resetToolkitConfigCache } from "../con
 import { compilePattern } from "../scope/pattern"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
-import { gateRulesToDeliveryRules, type DeliveryMode, type DeliveryRule, type SkillsDeliveryConfig } from "./delivery"
+import { DELIVERY_MODES, gateRulesToDeliveryRules, type DeliveryMode, type DeliveryRule, type SkillsDeliveryConfig } from "./delivery"
 import { BUILTIN_SOURCE, type GateRules, type SkillsMode } from "./types"
-
-// 分发形态集合：解析与告警共用，避免两处枚举漂移
-const DELIVERY_MODES: readonly DeliveryMode[] = ["full", "gated", "off"]
 
 // 外部来源登记：本地来源记 root（绝对路径），远程来源记 url 与可选 ref
 export interface ExternalSourceConfig {

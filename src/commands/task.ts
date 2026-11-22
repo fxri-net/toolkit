@@ -21,6 +21,7 @@ import { resolveRedactEnabled } from "../privacy/redact"
 import { assertJsonFormat, jsonEnvelope } from "../json-output"
 import { getCheckWarnings, printJson, resolveLanguages, splitMulti } from "./shared"
 import { line, style } from "../term-style"
+import { ENV_CHECK_WARN } from "../env"
 
 // tasks 域公共选项：目录、脱敏、软告警与严格模式
 interface TasksCommonOptions {
@@ -141,7 +142,7 @@ export function registerTasksCommands(program: Command): void {
     }
     return {
       redact: resolveRedactEnabled(options.redact),
-      warn: resolveEnabled(options.warn, "FX_TOOLKIT_CHECK_WARN", getCheckWarnings(), true),
+      warn: resolveEnabled(options.warn, ENV_CHECK_WARN, getCheckWarnings(), true),
       dir,
     }
   }
@@ -411,7 +412,7 @@ export function registerTasksCommands(program: Command): void {
     .command("update <key>")
     .description("更新任务字段与状态（非交互写入须 --yes）")
     .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 task.dir > 默认 .tasks）")
-    .option("--status <status>", "状态：待办 / 进行中 / 已完成 / 阻塞 / 已放弃 / 搁置")
+    .option("--status <status>", `状态：${ALL_STATUSES.join(" / ")}`)
     .option("--owner <name>", "负责人")
     .option("--scope <scope>", "影响范围（单值）")
     .option("--depends-on <keys...>", "依赖的任务唯一键（可多个；传空清除）")

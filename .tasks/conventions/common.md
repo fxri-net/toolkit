@@ -78,7 +78,7 @@
 | --- | --- | --- | --- | --- | --- |
 | F-1 | 退出码 | `src/exit-codes.ts`（包内 dist） | 派生 + 生成 + 守卫 | 守卫派生除 0 / 1 外的码；删第二处数值表 | B1 |
 | F-2 | 配置键与枚举选项 | `src/config-keys.ts`（包内 dist） | 派生 | 默认值由域模块派生；登记两个导航键 | B2 |
-| F-3 | 命令元数据 | `src/command-registry.ts`（包内 dist） | 派生 | help 描述读注册表；补覆盖校验 | B2 |
+| F-3 | 命令元数据 | `src/command-registry.ts`（包内 dist） | 派生 | 只留结构（路径 / 参数 / 别名 / 弃用），补命令树覆盖校验 | B2 |
 | F-4 | JSON 信封 | `src/json-output.ts`（包内 dist） | 契约 + 指针 | 文档只在一页描述字段 | B1 |
 | F-5 | 站点导航 | `docs/site-nav.json`（文档站） | 生成产物 + 机检 | 已由 `config.mts` 直接引用 | — |
 | F-6 | 规则模块与数量 | `templates/rules` + `ruleset.json`（包内） | 指针 | 模块数措辞改指针 | B1 |

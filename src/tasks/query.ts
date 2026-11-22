@@ -10,10 +10,11 @@ import { parseDepends } from "./depends"
 import { parseMetaSegments } from "./meta"
 import { displayRel } from "./paths"
 import { toYmd, todayDash } from "../date"
+import { UNLABELED } from "./types"
 import type { TaskRow, TaskView, TaskFilter, TaskSummary } from "./types"
 
 // 终端展示与导出的状态分组顺序
-export const STATUS_ORDER = ["待办", "进行中", "阻塞", "搁置", "已完成", "已放弃", "未标注"]
+export const STATUS_ORDER = ["待办", "进行中", "阻塞", "搁置", "已完成", "已放弃", UNLABELED]
 
 // 读取待完成任务（active）为统一行
 export function listActiveTasks(tasksDir = ".tasks"): TaskRow[] {
@@ -22,13 +23,13 @@ export function listActiveTasks(tasksDir = ".tasks"): TaskRow[] {
     const content = readFileSync(file, "utf8")
     const fm = parseFrontmatter(content)
     const title = titleOf(content) || basename(file, ".md")
-    const status = fm.status || "未标注"
+    const status = fm.status || UNLABELED
     const held = heldInfo(status, stripFrontmatter(content), fm.updated || "")
     return {
       view: "待完成",
       title,
       status,
-      owner: fm.owner || "未标注",
+      owner: fm.owner || UNLABELED,
       scope: fm.scope || "-",
       created: fm.created || dateFromFileName(file),
       updated: fm.updated || "",
@@ -69,7 +70,7 @@ function heldInfo(status: string, body: string, updated: string): { days: number
 // 从块元数据行提取 负责人/状态/范围（复用公共解析，缺省兜底）
 function parseMetaLine(metaLine: string | null): { owner: string; status: string; scope: string } {
   const seg = parseMetaSegments(metaLine)
-  return { owner: seg.owner || "未标注", status: seg.status || "已完成", scope: seg.scope || "-" }
+  return { owner: seg.owner || UNLABELED, status: seg.status || "已完成", scope: seg.scope || "-" }
 }
 
 // 读取已归档任务（archive/**/*.md 的任务块）为统一行；months 为月份目录白名单（日期过滤下推，跳过范围外目录）
@@ -183,7 +184,7 @@ export function buildSummary(rows: TaskRow[]): TaskSummary {
     bump(byOwner, r.owner)
     // 范围多值拆段各计；空值 / 缺省归「未标注」，与看板展示口径一致
     const scopes = splitScope(r.scope)
-    for (const seg of scopes.length > 0 ? scopes : ["未标注"]) bump(byScope, seg === "-" ? "未标注" : seg)
+    for (const seg of scopes.length > 0 ? scopes : [UNLABELED]) bump(byScope, seg === "-" ? UNLABELED : seg)
     bump(byBatch, r.batch || "未分批")
   }
   return { total: rows.length, byStatus, byOwner, byScope, byBatch }

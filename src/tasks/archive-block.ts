@@ -4,6 +4,7 @@
 // 正文内部的 `## ` 小节因此不会被误判为任务边界。
 import { stripBom } from "../read-text"
 import { parseMetaSegments } from "./meta"
+import { UNLABELED } from "./types"
 
 // 归档块结构
 export interface ArchiveBlockInfo {
@@ -43,14 +44,14 @@ function ownerFromTitle(title: string): string {
 
 // 生成规范的元数据行
 export function buildMetaLine(title: string, completed: string): string {
-  const owner = ownerFromTitle(title) || "未标注"
+  const owner = ownerFromTitle(title) || UNLABELED
   return `> 负责人：${owner}　状态：已完成　范围：-　完成时间：${normalizeCompleted(completed)}`
 }
 
 // 补齐元数据行：保留原行已有的 负责人/状态/范围 段，仅补缺失项，避免整行重写改错状态（如 已放弃→已完成）
 export function completeMetaLine(title: string, completed: string, metaLine: string | null): string {
   const seg = parseMetaSegments(metaLine)
-  const owner = seg.owner || ownerFromTitle(title) || "未标注"
+  const owner = seg.owner || ownerFromTitle(title) || UNLABELED
   const status = seg.status || "已完成"
   const scope = seg.scope || "-"
   return `> 负责人：${owner}　状态：${status}　范围：${scope}　完成时间：${normalizeCompleted(completed)}`

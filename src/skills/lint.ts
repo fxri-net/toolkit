@@ -10,29 +10,32 @@ import { readSkillFrontmatterListFromContent, readSkillFrontmatterValueFromConte
 import { skillsSourceDir } from "./source/package"
 import { isInside, realPath, toRepoRel } from "./source/paths"
 import { STRICT_SKILL_VERSION, parseSkillVersion, readBodyVersionFromContent, readFrontmatterVersionFromContent } from "./versioning"
+import { SKILL_PREFIX } from "./prefix"
+import { SKILL_TIERS, SKILL_TYPE_VALUES } from "./types"
 
 // 技能标识文件与 references 目录
 const SKILL_ENTRY = "SKILL.md"
 const REFERENCES_DIR = "references"
-// 目录名默认前缀与命名规则：小写 kebab
-const DEFAULT_PREFIX = "fxri-"
+// 技能目录名前缀（轻量模块提供，命名门禁与 help 文案共用）
+const DEFAULT_PREFIX = SKILL_PREFIX
 const DIR_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 // 版本号严格三段式：技能版本独立于产品包版本，不接受预发布后缀
 const STRICT_VERSION_PATTERN = STRICT_SKILL_VERSION
 // 入口篇幅默认档：150 行 / 8000 字符只告警，200 行 / 12000 字符报错
-const DEFAULT_WARN_LINES = 150
-const DEFAULT_MAX_LINES = 200
-const DEFAULT_MAX_CHARS = 12000
+// 导出供 `skill lint --help` 文案拼接，避免帮助里再写一份数字
+export const DEFAULT_WARN_LINES = 150
+export const DEFAULT_MAX_LINES = 200
+export const DEFAULT_MAX_CHARS = 12000
 // 告警字符线取硬上限的 2/3（默认 8000 / 12000 同比例），随 --budget 同步缩放
 const WARN_CHARS_RATIO = 2 / 3
 // frontmatter 必填字段：顶层键与 metadata 缩进键统一由 readSkillFrontmatterValue 读取
 const REQUIRED_FIELDS = ["name", "description", "license", "version", "tier", "author", "source"]
 // 技能分层枚举：与安装侧 SkillTier 同源
-const TIERS = ["core", "optional"]
+const TIERS: readonly string[] = SKILL_TIERS
 // 命名族表文件名：本包 skills/ 下存在该文件时启用命名门禁，外部目录不强制
 const NAMESPACES_FILE = "namespaces.json"
 // 元数据三件取值：形态枚举 / 作用域非空 / 触发词非空数组
-const SKILL_TYPES = ["profile", "practice", "template"]
+const SKILL_TYPES: readonly string[] = SKILL_TYPE_VALUES
 
 export interface SkillLintOptions {
   // 待检查目录：缺省为本包 skills/

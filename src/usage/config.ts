@@ -5,6 +5,7 @@ import { join, resolve } from "node:path"
 import { getHomeDir, inspectConfigLayers, type ConfigLayerRecord } from "../config"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
+import { ENV_USAGE_DIR } from "../env"
 import type {
   UsageChannel,
   UsageConfig,
@@ -12,6 +13,9 @@ import type {
   UsageSkillMode,
   UsageUploadProtocol,
 } from "./types"
+
+// 展示口径的默认数据目录：resolveUsageDir 未配置时回落到同一路径（家目录 + .toolkit/usage）
+export const DEFAULT_USAGE_DIR_LABEL = "~/.toolkit/usage"
 
 // 默认配置：任何开关未显式写出时都按关闭处理
 export const DEFAULT_USAGE_CONFIG: UsageConfig = {
@@ -241,7 +245,7 @@ function expandHome(path: string): string {
 // 解析数据目录：CLI > 环境变量 > 配置 > 默认 ~/.toolkit/usage
 export function resolveUsageDir(cliDir?: string, config?: UsageConfig): string {
   const cfg = config ?? loadUsageConfig()
-  const envDir = process.env.FX_TOOLKIT_USAGE_DIR
+  const envDir = process.env[ENV_USAGE_DIR]
   const legacyDir = join(getHomeDir(), ".toolkit", "telemetry")
   if (!cliDir && !envDir && !cfg.storage.dir && existsSync(legacyDir)) {
     warnLegacyOnce("dir", `⚠️ 检测到旧数据目录 ${legacyDir}：已停用且不再读取，如需沿用请用 --dir 或 storage.dir 指定`)

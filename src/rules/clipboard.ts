@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process"
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { ENV_CLIP_FILE } from "../env"
 
 export interface ClipboardResult {
   ok: boolean
@@ -16,7 +17,7 @@ export interface ClipboardResult {
 }
 
 // 临时文件路径的环境变量名：带产品标识，避免与其它工具撞名
-export const CLIP_FILE_ENV = "FX_TOOLKIT_CLIP_FILE"
+export const CLIP_FILE_ENV = ENV_CLIP_FILE
 
 // Windows 命令：按 UTF-8 读取环境变量给出的文件全文后写入剪贴板
 const WINDOWS_CLIP_COMMAND = `Set-Clipboard -Value (Get-Content -Raw -Encoding UTF8 -LiteralPath $env:${CLIP_FILE_ENV})`

@@ -23,7 +23,7 @@
     "occurredAt": { "type": "string", "format": "date-time" },
     "agent": {
       "type": "string",
-      "enum": ["trae", "claude", "cursor", "codex", "copilot", "manual"]
+      "enum": ["trae", "dsh", "claude", "cursor", "codex", "copilot", "manual"]
     },
     "sessionId": { "type": "string", "minLength": 1 },
     "toolUseId": { "type": "string", "minLength": 1 },

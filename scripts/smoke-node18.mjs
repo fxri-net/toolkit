@@ -1,7 +1,7 @@
 // Node 18 运行下限冒烟：验证已发布形态的 CLI 在该版本上可加载交互组件、关键命令可用、changesets 透传可跑
 // CI 由 node18 作业调用；本地验证可传 --cli dist/cli.js 直接跑构建产物（不依赖全局安装）
 import { spawnSync } from "node:child_process"
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join, resolve } from "node:path"
 
@@ -50,11 +50,19 @@ function runGit(gitArgs, cwd) {
 }
 
 console.log(`Node 18 冒烟：node ${process.versions.node}`)
+// 下限以被测包的 engines 为唯一基线：避免脚本自写数值与发布声明失同步
+const packageRoot = resolvePackageRoot()
+const enginesNode = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8")).engines?.node ?? ""
+const minimum = /(\d+)\.(\d+)/.exec(enginesNode)
+if (!minimum) fail(`读取 package.json engines.node（${packageRoot}）`, 1)
+const [needMajor = 0, needMinor = 0] = [Number(minimum[1]), Number(minimum[2])]
 // 先自证运行版本达到下限，避免在更低版本上跑出「假阳性」
 const [major = 0, minor = 0] = process.versions.node.split(".").map((part) => Number(part))
-if (major < 18 || (major === 18 && minor < 17)) fail(`node ${process.versions.node} 低于 18.17.0`, 1)
+if (major < needMajor || (major === needMajor && minor < needMinor)) {
+  fail(`node ${process.versions.node} 低于 ${needMajor}.${needMinor}.0`, 1)
+}
 runCli(["--version"], process.cwd())
-probePrompts(resolvePackageRoot())
+probePrompts(packageRoot)
 
 const work = mkdtempSync(join(tmpdir(), "toolkit-node18-"))
 try {

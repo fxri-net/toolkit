@@ -4,6 +4,7 @@ import { parseFrontmatter, stripFrontmatter, titleOf } from "./parse"
 import { listTaskFiles, dateFromFileName } from "./scan"
 import { redactText } from "../privacy/redact"
 import { STATUS_ORDER, queryTasks, displayDate } from "./query"
+import { UNLABELED } from "./types"
 import type { Task, TaskRow, TaskView, TaskFilter, TaskSummary } from "./types"
 import { line } from "../term-style"
 
@@ -36,11 +37,15 @@ export function printTaskBoard(tasksDir = ".tasks", view: TaskView = "active", f
   renderTaskBoard(rows, summary, view, filter, redact)
 }
 
-// 搁置行后缀：仅待完成视图中的搁置行显示天数；超过 90 天加警示、超过 1 年提示终结
+// 搁置天数阈值：超过前者加警示，超过后者建议终结（文档与台账按此口径引用）
+export const HELD_WARN_DAYS = 90
+export const HELD_TERMINATE_DAYS = 365
+
+// 搁置行后缀：仅待完成视图中的搁置行显示天数；超过阈值时附警示
 function heldSuffix(r: TaskRow): string {
   if (r.view === "已归档" || r.heldDays == null) return ""
   const approx = r.heldDaysApprox ? "（近似）" : ""
-  const flag = r.heldDays > 365 ? " ⚠️ 建议终结" : r.heldDays > 90 ? " ⚠️" : ""
+  const flag = r.heldDays > HELD_TERMINATE_DAYS ? " ⚠️ 建议终结" : r.heldDays > HELD_WARN_DAYS ? " ⚠️" : ""
   return `　搁置 ${r.heldDays} 天${approx}${flag}`
 }
 
@@ -66,7 +71,7 @@ export function renderTaskBoard(rows: TaskRow[], summary: TaskSummary, view: Tas
     console.log(`【${status}】${list.length} 项`)
     for (const r of list) {
       const tag = view === "all" ? `${r.view} ` : ""
-      console.log(`  ${displayDate(r)}  ${tag}${(r.owner || "未标注").padEnd(8)}  ${redactText(r.title, redact)}（${r.scope || "-"}）${heldSuffix(r)}`)
+      console.log(`  ${displayDate(r)}  ${tag}${(r.owner || UNLABELED).padEnd(8)}  ${redactText(r.title, redact)}（${r.scope || "-"}）${heldSuffix(r)}`)
     }
     console.log("")
   }

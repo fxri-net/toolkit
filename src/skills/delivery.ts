@@ -4,8 +4,9 @@
 import { matchPattern } from "../scope/pattern"
 import type { GateRules } from "./types"
 
-// 分发形态：full 全文安装到处可用 / gated 只放入口壳 / off 不安装
-export type DeliveryMode = "full" | "gated" | "off"
+// 分发形态枚举：full 全文安装到处可用 / gated 只放入口壳 / off 不安装
+export const DELIVERY_MODES = ["full", "gated", "off"] as const
+export type DeliveryMode = (typeof DELIVERY_MODES)[number]
 
 // 规则来源：显式配置 / 旧键 include / 旧键 exclude；旧键 exclude 保持「排除优先」的旧语义
 export type DeliveryOrigin = "config" | "legacy-include" | "legacy-exclude"

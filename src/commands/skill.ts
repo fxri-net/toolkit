@@ -9,6 +9,8 @@ import { assertChoice } from "../cli-ui"
 import { runScopeMount } from "../scope/wizard"
 import { analyzeSkillLinkage, formatLinkageHints, type SkillLinkageReport } from "../scope/linkage"
 import { collectSkillVersionUpdates, type SkillVersionReport } from "../skills/version-status"
+import { DEFAULT_MAX_CHARS, DEFAULT_MAX_LINES, DEFAULT_WARN_LINES } from "../skills/lint"
+import { SKILL_PREFIX } from "../skills/prefix"
 import { versionGt } from "../version"
 import {
   availableTargetNames,
@@ -1416,11 +1418,11 @@ export function registerSkillsCommands(program: Command): void {
     .argument("[dirs...]", "技能目录（可多个；缺省为本包 skills/）")
     .option("--dir <path>", "技能目录（可重复，与位置参数并用）", collectDir, [])
     .option("--base <ref>", "版本递增基准（git ref）；不传则不校验递增")
-    .option("--budget <chars>", "入口字符硬上限（默认 12000；告警线为 2/3）")
-    .option("--max-lines <n>", "入口行数硬上限（默认 200）")
-    .option("--warn-lines <n>", "入口行数告警线（默认 150）")
+    .option("--budget <chars>", `入口字符硬上限（默认 ${DEFAULT_MAX_CHARS}；告警线为 2/3）`)
+    .option("--max-lines <n>", `入口行数硬上限（默认 ${DEFAULT_MAX_LINES}）`)
+    .option("--warn-lines <n>", `入口行数告警线（默认 ${DEFAULT_WARN_LINES}）`)
     .option("--ignore <glob>", "跳过匹配的技能目录（可重复）", collectDir, [])
-    .option("--prefix <name>", "技能目录名前缀（默认 fxri-）")
+    .option("--prefix <name>", `技能目录名前缀（默认 ${SKILL_PREFIX}）`)
     .option("--strict", "告警按失败处理")
     .option("--json", "输出格式（等价于 --format json）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")

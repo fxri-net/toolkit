@@ -6,8 +6,16 @@ export type UsageRotation = "monthly" | "size" | "none"
 // 技能统计范围：none 不统计 / all 全部已开启来源 / include 仅列表内 / exclude 列表外
 export type UsageSkillMode = "none" | "all" | "include" | "exclude"
 
-// 技能来源：toolkit 一方、toolkit 分发的第三方、未托管、未知
-export type UsageSkillSource = "toolkit-first-party" | "toolkit-third-party" | "unmanaged" | "unknown"
+// 事件 agent 枚举：内置适配器 id + 手工导入；与 schemas/ 下事件 schema 的一致性由单测锁定
+export const USAGE_EVENT_AGENTS = ["trae", "dsh", "claude", "cursor", "codex", "copilot", "manual"] as const
+
+// 技能来源枚举：toolkit 一方、toolkit 分发的第三方、未托管、未知
+export const USAGE_SKILL_SOURCES = ["toolkit-first-party", "toolkit-third-party", "unmanaged", "unknown"] as const
+export type UsageSkillSource = (typeof USAGE_SKILL_SOURCES)[number]
+
+// 托管归属枚举：事件 schema 的 managedBy 取值与类型共用一份
+export const USAGE_MANAGED_BY = ["toolkit", "external", "unknown"] as const
+export type UsageManagedBy = (typeof USAGE_MANAGED_BY)[number]
 
 // 上传协议：Webhook / OTLP HTTP / 本地文件导出
 export type UsageUploadProtocol = "webhook" | "otlp-http" | "file"
@@ -15,8 +23,32 @@ export type UsageUploadProtocol = "webhook" | "otlp-http" | "file"
 // 采集通道：rule 由全局规则显式上报 / hook 由 Agent Hook 自动触发；二选一，避免同一调用被记两次
 export type UsageChannel = "rule" | "hook"
 
-// 采集结果：来自 Hook 载荷的可见结果，未知时不伪造
-export type UsageOutcome = "success" | "failure" | "unknown"
+// 采集结果枚举：来自 Hook 载荷的可见结果，未知时不伪造
+export const USAGE_OUTCOMES = ["success", "failure", "unknown"] as const
+export type UsageOutcome = (typeof USAGE_OUTCOMES)[number]
+
+// 事件必填与可选字段清单：与 schemas/skill-usage-event.v1.json 的一致性由单测锁定
+export const SKILL_USAGE_EVENT_REQUIRED = [
+  "schemaVersion",
+  "eventId",
+  "occurredAt",
+  "agent",
+  "sessionId",
+  "skill",
+  "skillSource",
+  "managedBy",
+  "originAdapter",
+  "toolkitVersion",
+] as const
+export const SKILL_USAGE_EVENT_OPTIONAL = [
+  "toolUseId",
+  "project",
+  "skillVersion",
+  "triggerPrompt",
+  "skillArgs",
+  "outcome",
+  "durationMs",
+] as const
 
 // 使用情况配置：usage 段只读全局层，所有开关默认关闭
 export interface UsageConfig {
@@ -64,7 +96,7 @@ export interface UsageSkillMeta {
   name: string
   version: string
   source: UsageSkillSource
-  managedBy: "toolkit" | "external" | "unknown"
+  managedBy: UsageManagedBy
 }
 
 // 单条技能使用事件：schemaVersion 为 1，新增字段只增不改
@@ -79,7 +111,7 @@ export interface SkillUsageEvent {
   skill: string
   skillVersion?: string
   skillSource: UsageSkillSource
-  managedBy: "toolkit" | "external" | "unknown"
+  managedBy: UsageManagedBy
   triggerPrompt?: string
   skillArgs?: string
   outcome?: UsageOutcome

@@ -2,6 +2,7 @@
 import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { getHomeDir } from "../../config"
+import { ENV_USAGE_AGENT } from "../../env"
 import { lookupClaudeSession } from "./claude"
 import { lookupDshSession } from "./dsh"
 import { lookupTraeSession } from "./trae"
@@ -9,7 +10,7 @@ import type { SessionLookup } from "./types"
 
 // 识别 Agent：显式环境变量 > 各 Agent 的会话变量 > 已存在的配置目录
 export function detectAgent(env: NodeJS.ProcessEnv = process.env): string {
-  const explicit = env.FX_TOOLKIT_USAGE_AGENT
+  const explicit = env[ENV_USAGE_AGENT]
   if (explicit && explicit.trim() !== "") return explicit.trim()
   if (env.CLAUDE_SESSION_ID || env.CLAUDE_CONFIG_DIR) return "claude"
   if (env.TRAE_SESSION_ID) return "trae"

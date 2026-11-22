@@ -35,8 +35,13 @@ export type TargetKind = "primary" | "agent" | "custom"
 export type ArtifactMode = "link" | "copy"
 // 状态文件里的产物模式：项目面薄壳单列 shell，内容闸门入口壳单列 gate
 export type StateMode = ArtifactMode | "shell" | "gate"
-// 技能分层：core 必装、不可取消；optional 可选，缺省按 optional 处理
-export type SkillTier = "core" | "optional"
+// 技能分层枚举：core 必装、不可取消；optional 可选，缺省按 optional 处理
+export const SKILL_TIERS = ["core", "optional"] as const
+export type SkillTier = (typeof SKILL_TIERS)[number]
+
+// 技能形态枚举：写 frontmatter metadata.type，lint 与文档共用同一份取值
+export const SKILL_TYPE_VALUES = ["profile", "practice", "template"] as const
+export type SkillType = (typeof SKILL_TYPE_VALUES)[number]
 
 // 内容闸门接管规则：include / exclude 为技能名模式（glob 或 re:），排除优先
 export interface GateRules {

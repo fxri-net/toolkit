@@ -2,6 +2,7 @@
 // 自定义规则追加（且优先于内置），可用 disable 按 name 禁用内置规则；enabled=false 时整体关闭
 import { getConfigSection } from "../config"
 import { resolveEnabled } from "../switch"
+import { ENV_REDACT } from "../env"
 
 interface RedactRule {
   name: string
@@ -108,5 +109,5 @@ export function redactText(text: string, enabled: boolean): string {
 
 // 解析脱敏总开关：CLI > 环境变量 FX_TOOLKIT_REDACT > 配置 enabled > 默认开启（双向，见 switch.resolveEnabled）
 export function resolveRedactEnabled(cliEnabled: boolean | undefined): boolean {
-  return resolveEnabled(cliEnabled, "FX_TOOLKIT_REDACT", loadConfig()?.enabled, true)
+  return resolveEnabled(cliEnabled, ENV_REDACT, loadConfig()?.enabled, true)
 }

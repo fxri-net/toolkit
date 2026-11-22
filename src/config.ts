@@ -16,6 +16,7 @@ import { homedir } from "node:os"
 import { readTextFile } from "./read-text"
 import { normalizePathForCompare, canonicalPath } from "./git-ignore"
 import { writeFileAtomic } from "./write-atomic"
+import { ENV_CHECK_WARN, ENV_NO_UPDATE_CHECK, ENV_REDACT } from "./env"
 
 // 项目配置文件名：团队共享，随 git 分发
 export const CONFIG_PROJECT_FILE = ".toolkitrc.json"
@@ -77,9 +78,9 @@ export const CONFIG_DISPLAY_KEYS: readonly string[] = DISPLAY_KEY_TYPES.map((ite
 
 // 环境变量覆盖组：环境变量名 → 目标配置键；优先级高于三层文件，作 config status 与文档的共同真源
 export const CONFIG_ENV_OVERRIDES: ReadonlyArray<{ env: string; key: string }> = [
-  { env: "FX_TOOLKIT_REDACT", key: "redact.enabled" },
-  { env: "FX_TOOLKIT_NO_UPDATE_CHECK", key: "updateCheck.enabled" },
-  { env: "FX_TOOLKIT_CHECK_WARN", key: "check.warnings" },
+  { env: ENV_REDACT, key: "redact.enabled" },
+  { env: ENV_NO_UPDATE_CHECK, key: "updateCheck.enabled" },
+  { env: ENV_CHECK_WARN, key: "check.warnings" },
 ]
 
 // 能力旁路组：非配置键覆盖（CI 下跳过 skills.autoLink 自愈），须与覆盖组分开呈现，避免被当作配置覆盖排查

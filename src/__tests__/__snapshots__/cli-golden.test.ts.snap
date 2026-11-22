@@ -227,6 +227,8 @@ exports[`各域行为与错误路径 > config list 1`] = `
   docs.nav.maxGroupUnits：未配置（默认 4）
   docs.nav.firstItem：未配置（默认 快速开始）
   docs.nav.lastItem：未配置（默认 帮助）
+  docs.nav.helpChildren：未配置（默认 常见问题、更新日志）
+  docs.nav.pageSizeExclude：未配置（默认 changelog.md、changelog/）
   docs.nav.maxPageLines：未配置（默认 300）
   docs.dist.dir：未配置（默认 .vitepress/dist）
   docs.dist.sitemap：未配置（默认 error）
@@ -250,7 +252,7 @@ exports[`各域行为与错误路径 > config list 1`] = `
   usage.upload.protocol：未配置（默认 webhook）
   usage.upload.endpoint：未配置
   usage.upload.batchSize：未配置（默认 100）
-共 41 个可写键；写入用 toolkit config set <key> <value>
+共 43 个可写键；写入用 toolkit config set <key> <value>
 --- stderr ---
 "
 `;
@@ -372,6 +374,18 @@ exports[`各域行为与错误路径 > config list JSON 1`] = `
         "key": "docs.nav.lastItem",
         "type": "string",
         "summary": "导航末项名",
+        "source": null
+      },
+      {
+        "key": "docs.nav.helpChildren",
+        "type": "stringList",
+        "summary": "顶栏末项下拉包含的页面名（逗号分隔）",
+        "source": null
+      },
+      {
+        "key": "docs.nav.pageSizeExclude",
+        "type": "stringList",
+        "summary": "不计入单页行数的文件或目录前缀（逗号分隔）",
         "source": null
       },
       {
@@ -539,11 +553,13 @@ exports[`各域行为与错误路径 > config list 按层过滤 1`] = `
   docs.nav.maxGroupUnits：未写
   docs.nav.firstItem：未写
   docs.nav.lastItem：未写
+  docs.nav.helpChildren：未写
+  docs.nav.pageSizeExclude：未写
   docs.nav.maxPageLines：未写
   docs.dist.dir：未写
   docs.dist.sitemap：未写
   docs.dist.searchProvider：未写
-共 20 个项目层可写键；写入用 toolkit config set <key> <value>
+共 22 个项目层可写键；写入用 toolkit config set <key> <value>
 --- stderr ---
 "
 `;

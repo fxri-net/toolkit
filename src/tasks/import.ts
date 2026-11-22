@@ -7,7 +7,7 @@ import { createRequire } from "node:module"
 import { readTextFile, stripBom } from "../read-text"
 import { normalizeCompleted, parseArchiveBlocks, renderArchiveFile } from "./archive-block"
 import type { ArchiveBlockInfo } from "./archive-block"
-import { ALL_STATUSES, DONE_STATUSES, FRONTMATTER_KEYS } from "./types"
+import { ALL_STATUSES, DONE_STATUSES, FRONTMATTER_KEYS, UNLABELED } from "./types"
 import { toYmd, toYmdCompact, todayCompact } from "../date"
 import type { ImportOptions, ImportResult } from "./types"
 import { writeFileAtomic } from "../write-atomic"
@@ -234,7 +234,7 @@ function normalizeRecord(rec: Record<string, string>, options: ImportOptions, wa
     t: {
       title,
       status,
-      owner: owner || "未标注",
+      owner: owner || UNLABELED,
       scope,
       created: toYmdCompact(rec.created || ""),
       // 来源缺更新日期时留空，由写入端回退为当天（保留来源真实时间，不因导入抹平）

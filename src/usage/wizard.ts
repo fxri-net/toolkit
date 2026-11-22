@@ -2,7 +2,7 @@
 import { AGENT_ADAPTERS, detectedAdapters, isAdapterAvailable, resolveAdapters } from "./adapters"
 import type { AgentAdapter } from "./adapters/types"
 import { buildHookCommand } from "./hook-command"
-import { loadUsageConfig, resolveUsageDir, usageConfigPath, updateUsageConfig } from "./config"
+import { DEFAULT_USAGE_CONFIG, loadUsageConfig, resolveUsageDir, usageConfigPath, updateUsageConfig } from "./config"
 import { purgeEvents, usagePaths } from "./store"
 import { runUploadSetup } from "./upload"
 import { readHookActivity, readLastHookError } from "./ingest"
@@ -11,6 +11,7 @@ import { LIST_PAGE_SIZE, ask, exitWithCancel, isPromptCancel, loadPrompts, requi
 import { askCheckbox, askConfirm, askInput, confirmWrite, runMenu } from "../cli-ui"
 import { createContext, formatLocalTime, printDefaultStats, printUsageInfo } from "./cli/context"
 import { exportUsageEvents, purgeUsageEvents } from "./cli/data"
+import { SKILL_PREFIX } from "../skills/prefix"
 import type { UsageChannel, UsageConfig, UsageRotation, UsageSkillMode } from "./types"
 
 // 预设：已配置时沿用当前配置，首次默认覆盖一方与第三方技能
@@ -85,7 +86,7 @@ function runNonInteractiveInit(options: InitWizardOptions): void {
     sources: { firstParty: true, thirdParty: preset === "third-party", unmanaged: false },
     skills: { mode: "all" as UsageSkillMode, include: [], exclude: [] },
     capture: { triggerPrompt: false, skillArgs: false, outcome: false },
-    storage: { dir, rotation: "monthly" as UsageRotation, retentionDays: 180 },
+    storage: { dir, rotation: DEFAULT_USAGE_CONFIG.storage.rotation as UsageRotation, retentionDays: DEFAULT_USAGE_CONFIG.storage.retentionDays },
   }
   // 规则通道只写采集配置：不装 Hook，也不依赖本机是否检测到 Agent
   if (channel === "rule") {
@@ -279,8 +280,8 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
       skillArgs: usingSaved ? defaults.skillArgs : false,
       outcome: usingSaved ? defaults.outcome : false,
       dir: usingSaved ? defaults.dir : resolveUsageDir(undefined, existingConfig),
-      rotation: (usingSaved ? defaults.rotation : "monthly") as UsageRotation,
-      retention: usingSaved ? String(defaults.retentionDays) : "180",
+      rotation: (usingSaved ? defaults.rotation : DEFAULT_USAGE_CONFIG.storage.rotation) as UsageRotation,
+      retention: usingSaved ? String(defaults.retentionDays) : String(DEFAULT_USAGE_CONFIG.storage.retentionDays),
     }
     // 步骤顺序：规则通道跳过 Agent 选择
     const flow = (): string[] =>
@@ -347,7 +348,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
         continue
       }
       if (step === "firstParty") {
-        const answer = await ask(() => confirm({ message: "统计 toolkit 一方技能（fxri-*）？", default: state.firstParty }), { back: true })
+        const answer = await ask(() => confirm({ message: `统计 toolkit 一方技能（${SKILL_PREFIX}*）？`, default: state.firstParty }), { back: true })
         if ("back" in answer) {
           index -= 1
           continue

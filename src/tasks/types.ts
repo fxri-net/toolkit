@@ -8,6 +8,9 @@ export const ALL_STATUSES: TaskStatus[] = ["待办", "进行中", "已完成", "
 // 已终结状态（可归档）
 export const DONE_STATUSES: TaskStatus[] = ["已完成", "已放弃"]
 
+// 展示占位：owner / status / scope 未填时统一显示该值，避免各展示处各写一份字面量
+export const UNLABELED = "未标注"
+
 // 任务 frontmatter 元数据
 export interface TaskFrontmatter {
   owner: string

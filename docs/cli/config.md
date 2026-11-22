@@ -30,7 +30,8 @@ toolkit config status --cwd <path>       # 指定向上查找的起始目录（�
 写入语义：
 
 - **键清单是唯一真源**（`src/config-keys.ts` 的 `CONFIG_KEYS`）：每键声明类型、默认层、可写层、默认值与敏感标记，`list` / `get` / `set` / `unset` 共用
-- **可写键范围**：仅 `CONFIG_KEYS` 里的简单叶子键；`redact.rules`、`changelog.languages`、`docs.nav.helpChildren` 等对象 / 嵌套字段仍手改配置文件
+- **可写键范围**：仅 `CONFIG_KEYS` 里的简单叶子键（含 `docs.nav.helpChildren` 等字符串数组键）
+  `redact.rules`、`changelog.languages`、`docs.nav.locales` 等对象 / 嵌套字段仍手改配置文件
 - **可写层约束**：`usage.*` 与 `skillInstall.*` 仅全局层、`projectSkill.*` 仅项目层；写到其它层直接报错，不静默改名
 - **未知键给建议**：拼接错误时按编辑距离给出最接近的候选（最多 3 个），退出码 1
 - **敏感值**：`usage.upload.endpoint` 的文本与 JSON 输出默认都打码为 `***`，加 `--reveal` 才输出原文——避免 `--format json` 把带 token 的端点写进 CI 日志

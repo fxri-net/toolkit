@@ -15,6 +15,7 @@ import { listTaskFiles } from "../tasks/scan"
 import { getCheckWarnings, printJson, resolveLanguages } from "./shared"
 import { assertJsonFormat, jsonEnvelope } from "../json-output"
 import { line, style } from "../term-style"
+import { ENV_CHECK_WARN } from "../env"
 
 const require = createRequire(import.meta.url)
 // 解析 @changesets/cli 的 bin 绝对路径（pnpm 下 bin 不提升到使用方，需显式定位）
@@ -91,7 +92,7 @@ export function registerChangelogCommands(program: Command): void {
       lang,
       docLang: unknown ? DEFAULT_LANG : (options.lang ?? DEFAULT_LANG),
       redact: resolveRedactEnabled(options.redact),
-      warn: resolveEnabled(options.warn, "FX_TOOLKIT_CHECK_WARN", getCheckWarnings(), true),
+      warn: resolveEnabled(options.warn, ENV_CHECK_WARN, getCheckWarnings(), true),
     }
   }
 

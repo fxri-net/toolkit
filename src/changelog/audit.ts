@@ -2,6 +2,7 @@
 import { existsSync, readdirSync } from "node:fs"
 import { readTextFile } from "../read-text"
 import { join } from "node:path"
+import { SKILL_PREFIX } from "../skills/prefix"
 
 // 参与净变更合并的类型：文档、清理、依赖与重大变更不参与
 const NET_TYPES = ["新增", "修改", "修复", "优化"] as const
@@ -119,7 +120,7 @@ function extractObjects(text: string): string[] {
   for (const match of text.matchAll(/`([^`]+)`/g)) {
     if (match[1]) objects.add(match[1].trim())
   }
-  for (const match of text.matchAll(/\bfxri-[a-z0-9-]+\b/gi)) {
+  for (const match of text.matchAll(new RegExp(`\\b${SKILL_PREFIX}[a-z0-9-]+\\b`, "gi"))) {
     objects.add(match[0])
   }
   for (const match of text.matchAll(/\btoolkit\s+([a-z][a-z0-9-]*)/gi)) {

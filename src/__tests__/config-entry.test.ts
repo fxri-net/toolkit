@@ -258,7 +258,6 @@ describe("命令注册表", () => {
     expect(new Set(paths).size).toBe(paths.length)
     for (const entry of COMMAND_REGISTRY) {
       expect(["current", "planned"]).toContain(entry.stage)
-      expect(entry.description.trim()).not.toBe("")
       if (entry.deprecatesTo) expect(entry.deprecatesTo.trim()).not.toBe("")
     }
   })

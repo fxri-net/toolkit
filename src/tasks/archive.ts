@@ -3,7 +3,7 @@ import { join, basename, dirname, resolve, sep } from "node:path"
 import { parseFrontmatter, stripFrontmatter, titleOf } from "./parse"
 import { listTaskFiles, dateFromFileName } from "./scan"
 import { briefMatchesTitle, parseTaskName } from "./name"
-import { DONE_STATUSES } from "./types"
+import { DONE_STATUSES, UNLABELED } from "./types"
 import { redactText } from "../privacy/redact"
 import { isBeyondTzFuture, MAX_UTC_OFFSET_HOURS } from "../date"
 import { writeFileAtomic } from "../write-atomic"
@@ -72,8 +72,8 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
       file,
       name: basename(file, ".md"),
       title: titleOf(content),
-      owner: fm.owner || "未标注",
-      status: fm.status || "未标注",
+      owner: fm.owner || UNLABELED,
+      status: fm.status || UNLABELED,
       scope: fm.scope || "-",
       completed: normalizeCompleted(raw),
       body: stripFrontmatter(content).trim(),
