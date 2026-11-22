@@ -44,8 +44,8 @@
 
 | 域 | 裸命令（TTY） | 非 TTY | 显式向导入口 | 机器可读 |
 | --- | --- | --- | --- | --- |
-| `toolkit task` | 打印任务总览（默认视图） | 同左，退出 0 | 无 | `--format json` / `export` |
-| `toolkit skill` | 打印本域帮助 | 同左，退出 0 | 无（`mount` 等子命令参数化） | 各子命令 `--format json` |
+| `toolkit task` | 打印任务总览（默认视图） | 同左，退出 0 | 无 | `list` / `stats --format json`、`export` |
+| `toolkit skill` | 打印本域帮助 | 同左，退出 0 | 无（`mount` 等子命令参数化） | 多数子命令 `--format json`（`mount` 等除外） |
 | `toolkit rule` | 打印本域帮助 | 同左，退出 0 | 无 | `list` / `compose --format json` |
 | `toolkit config` | 打印本域帮助 | 同左，退出 0 | 无 | `list` / `get` / `status --format json` |
 | `toolkit convention` | 打印本域帮助 | 同左，退出 0 | 无 | `status` / `format` / `upgrade --format json` |

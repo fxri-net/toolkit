@@ -53,6 +53,8 @@ toolkit task check --strict      # 任务目录不存在时报错退出（默认
 
 不带子命令时输出待完成看板，末尾汇总与 `stats` 共用同一维度；任务正文的 `> 批次：第 N 批（共 M 批）` 行会被解析进「按批次」汇总。
 
+机器可读只在 `list` / `stats`（`--format json`）与 `export` 提供；`check` / `archive` / `normalize` 为文本报告，不支持 `--format json`。
+
 ### archive
 
 - 条件：`status` 为 `已完成` / `已放弃` 且带 `completed`，按完成日期聚合归档

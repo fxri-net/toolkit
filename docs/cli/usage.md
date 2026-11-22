@@ -78,7 +78,7 @@ toolkit usage data doctor
 | 子命令 | 说明 | 主要选项 |
 | --- | --- | --- |
 | `record` | 规则通道批量上报：入队后立即返回、按出现次数计数、静默、退出码恒 0；明细由后台反查补齐 | `--skill`（可重复或逗号分隔）、`--session`、`--dir` |
-| `log` | 手工补录一次使用 | `--skill`、`--session`、`--agent`、`--prompt`、`--args`、`--outcome` |
+| `log` | 手工补录一次使用（`--session` 必填） | `--skill`、`--session`（必填）、`--agent`、`--prompt`、`--args`、`--outcome` |
 | `flush` | 内部命令：消费上报队列并写入事件（后台 worker 与惰性兜底调用，通常无需手动执行） | `--dir`、`--limit` |
 
 > `usage rule` 已移除：输出全局规则文案请用 `toolkit rule compose --module usage`（与旧命令输出逐字一致）。
