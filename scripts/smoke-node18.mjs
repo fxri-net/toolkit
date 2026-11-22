@@ -58,17 +58,17 @@ probePrompts(resolvePackageRoot())
 
 const work = mkdtempSync(join(tmpdir(), "toolkit-node18-"))
 try {
-  runCli(["tasks", "list"], work)
-  runCli(["skills", "install", "--scope", "global", "--dry-run", "--yes"], work)
+  runCli(["task", "list"], work)
+  runCli(["skill", "install", "--scope", "global", "--dry-run", "--yes"], work)
   // changesets 透传：真正加载 changesets 的是动作子命令，--help 会被 commander 短路
   writeFileSync(join(work, "package.json"), JSON.stringify({ name: "smoke-pkg", version: "1.0.0" }, null, 2))
-  runCli(["changelog", "init"], work)
+  runCli(["release", "changeset", "init"], work)
   writeFileSync(join(work, ".changeset", "smoke-fix.md"), '---\n"smoke-pkg": patch\n---\n\n- 修复：冒烟\n')
   // status 需要与基准分支比较：建一个只有初始提交的最小 git 仓库
   runGit(["init", "-q", "-b", "main"], work)
   runGit(["-c", "user.email=smoke@example.com", "-c", "user.name=smoke", "add", "-A"], work)
   runGit(["-c", "user.email=smoke@example.com", "-c", "user.name=smoke", "commit", "-qm", "init"], work)
-  runCli(["changelog", "status"], work)
+  runCli(["release", "changeset", "status"], work)
 } finally {
   rmSync(work, { recursive: true, force: true })
 }
