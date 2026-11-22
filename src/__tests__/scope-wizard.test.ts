@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { setHomeDirForTest } from "../config"
-import { runScopeWizard } from "../scope/wizard"
+import { buildLayerChoices, runScopeWizard } from "../scope/wizard"
 import * as skills from "../skills"
 
 // 提示应答队列：按调用顺序消费
@@ -75,6 +75,26 @@ afterEach(() => {
   delete (process.stdin as { isTTY?: boolean }).isTTY
   delete (process.stdout as { isTTY?: boolean }).isTTY
   process.exitCode = 0
+})
+
+describe("层选择项", () => {
+  it("项目层 / 本地层不可用时只显示层名，不展示不会写入的路径", () => {
+    const outside = mkdtempSync(join(tmpdir(), "tk-scope-layer-"))
+    try {
+      const choices = buildLayerChoices(outside)
+      const global = choices.find((choice) => choice.value === "global")
+      expect(global?.disabled).toBe(false)
+      expect(global?.name.startsWith("全局（")).toBe(true)
+      const project = choices.find((choice) => choice.value === "project")
+      expect(project?.name).toBe("当前项目（随仓库共享）")
+      expect(String(project?.disabled)).toContain("无法定位项目根")
+      const local = choices.find((choice) => choice.value === "local")
+      expect(local?.name).toBe("当前项目本机（不入库）")
+      expect(local?.disabled).toBeTruthy()
+    } finally {
+      rmSync(outside, { recursive: true, force: true })
+    }
+  })
 })
 
 describe("作用域向导菜单", () => {

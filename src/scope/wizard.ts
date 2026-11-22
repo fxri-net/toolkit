@@ -42,18 +42,24 @@ export function printScopeStatus(): void {
   for (const text of formatStatus(report)) console.log(text)
 }
 
-// 选择规则归属：项目层 / 本地层在当前目录无法定位项目根时置灰并说明原因
-async function pickLayer(current?: ConfigLayer): Promise<ConfigLayer | null> {
-  const layers: ConfigLayer[] = ["global", "project", "local"]
-  const choices = layers.map((layer) => {
-    const target = layerConfigTarget(layer)
+// 可选配置层：固定顺序，交互与默认值共用
+const LAYERS: ConfigLayer[] = ["global", "project", "local"]
+
+// 层选择项：不可用时只显示层名，避免展示一个实际不会写入的路径（原因由禁用文案承载）
+export function buildLayerChoices(startDir = process.cwd()): Array<{ name: string; value: ConfigLayer; disabled: boolean | string }> {
+  return LAYERS.map((layer) => {
+    const target = layerConfigTarget(layer, startDir)
     return {
-      name: `${LAYER_LABEL[layer]}（${displayPath(target.file)}）`,
+      name: target.available ? `${LAYER_LABEL[layer]}（${displayPath(target.file)}）` : LAYER_LABEL[layer],
       value: layer,
       disabled: target.available ? false : target.reason,
     }
   })
-  return askSelect({ message: "规则作用于哪一层", choices, default: current })
+}
+
+// 选择规则归属：项目层 / 本地层在当前目录无法定位项目根时置灰并说明原因
+async function pickLayer(current?: ConfigLayer): Promise<ConfigLayer | null> {
+  return askSelect({ message: "规则作用于哪一层", choices: buildLayerChoices(), default: current })
 }
 
 // 空列表显示「未配置」
