@@ -70,8 +70,8 @@ toolkit usage log --skill fxri-plan-task --session manual-1 --prompt "归档任�
 ## 安装与启用是两步
 
 ```bash
-toolkit usage setup hooks install --agent trae   # 只写 Hook 配置
-toolkit config set usage.enabled true            # 才打开采集总开关
+toolkit usage setup hooks install --agent trae  # 只写 Hook 配置
+toolkit config set usage.enabled true           # 才打开采集总开关
 ```
 
 未开启总开关时，Hook 即使被调用也直接退出，不写文件。`usage setup hooks install` 支持 `--dry-run` 预览，写前打印预览并确认，写前自动备份原配置；配置无法解析时不覆盖。

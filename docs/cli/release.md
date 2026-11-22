@@ -7,20 +7,20 @@ title: 发版与更新日志（release）
 > 基于 changesets 的发版与多语言更新日志维护。
 
 ```bash
-toolkit release status                # 默认：待发布变更集概览（只读，不消费）
-toolkit release bump                  # 消费变更集 + 格式化 + 同步镜像（默认中文）
-toolkit release bump --lang en        # 指定语言
-toolkit release bump --history        # 连带追溯改写历史版本块
-toolkit release changelog             # 仅格式化已有 CHANGELOG
-toolkit release changelog --history   # 连带追溯改写历史版本块
-toolkit release audit                 # 列出同对象净变更候选（只提示不改写）
-toolkit release mirror                # 生成/更新文档站更新日志镜像
-toolkit release mirror --check        # 逐页比对（主页 + 归档页），不写文件
-toolkit release mirror --dry-run      # 只列出将写入与清理的文件
-toolkit release publish               # 发布已升版产物（透传给 changesets）
-toolkit release changeset add         # 创建变更集（透传给 changesets）
-toolkit release changeset list        # 待发布变更集只读简表
-toolkit release changeset status      # 待发布变更集状态（透传给 changesets）
+toolkit release status               # 默认：待发布变更集概览（只读，不消费）
+toolkit release bump                 # 消费变更集 + 格式化 + 同步镜像（默认中文）
+toolkit release bump --lang en       # 指定语言
+toolkit release bump --history       # 连带追溯改写历史版本块
+toolkit release changelog            # 仅格式化已有 CHANGELOG
+toolkit release changelog --history  # 连带追溯改写历史版本块
+toolkit release audit                # 列出同对象净变更候选（只提示不改写）
+toolkit release mirror               # 生成/更新文档站更新日志镜像
+toolkit release mirror --check       # 逐页比对（主页 + 归档页），不写文件
+toolkit release mirror --dry-run     # 只列出将写入与清理的文件
+toolkit release publish              # 发布已升版产物（透传给 changesets）
+toolkit release changeset add        # 创建变更集（透传给 changesets）
+toolkit release changeset list       # 待发布变更集只读简表
+toolkit release changeset status     # 待发布变更集状态（透传给 changesets）
 ```
 
 `status` 为默认命令，只读概览；`bump` / `changelog` / `mirror` / `audit` 为本包自处理子命令，
@@ -87,12 +87,12 @@ toolkit release changeset status      # 待发布变更集状态（透传给 cha
 在项目根用 `pnpm exec toolkit` 执行（全局安装时直接 `toolkit`）：
 
 ```bash
-pnpm exec toolkit release changeset add          # 创建变更集（等价 changeset）
-pnpm exec toolkit release bump                   # 发版 + 自动语义分组归类与组标题格式化（默认中文）
-pnpm exec toolkit release changelog --lang en    # 指定语言仅格式化（内置 zh / en）
-pnpm exec toolkit release changelog --history    # 连带追溯改写历史版本块
-pnpm exec toolkit release mirror                 # 生成/更新文档站更新日志镜像
-pnpm exec toolkit release mirror --dry-run       # 预演：只列出将写入与清理的文件
+pnpm exec toolkit release changeset add        # 创建变更集（等价 changeset）
+pnpm exec toolkit release bump                 # 发版 + 自动语义分组归类与组标题格式化（默认中文）
+pnpm exec toolkit release changelog --lang en  # 指定语言仅格式化（内置 zh / en）
+pnpm exec toolkit release changelog --history  # 连带追溯改写历史版本块
+pnpm exec toolkit release mirror               # 生成/更新文档站更新日志镜像
+pnpm exec toolkit release mirror --dry-run     # 预演：只列出将写入与清理的文件
 ```
 
 `bump` 成功后自动同步镜像页（`--no-sync-doc` 关闭）；镜像页由根 `CHANGELOG.md` 剥离 H1 后拼固定页头生成，

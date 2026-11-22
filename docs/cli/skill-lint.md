@@ -7,11 +7,11 @@ title: 技能校验（skill lint）
 > 可对任意技能目录运行的只读规范校验；规范真源在 toolkit，产品仓只调用命令、不复制规则。
 
 ```bash
-toolkit skill lint                     # 校验本包 skills/（缺省档：150 行 / 8000 字符告警，200 行 / 12000 字符报错）
-toolkit skill lint skills/ --base HEAD # 技能内容相对基准有变更时，版本必须已递增
-toolkit skill lint --dir ../other/skills --strict # 外部仓技能目录：告警按失败处理
-toolkit skill lint skills/ --format json # JSON 输出：统一信封，data 含 files、issues（带 level）与 summary
-toolkit skill lint skills/ --ignore 'fxri-temp-*' # 跳过误报技能（按目录名或相对路径）
+toolkit skill lint                                 # 校验本包 skills/（缺省档：150 行 / 8000 字符告警，200 行 / 12000 字符报错）
+toolkit skill lint skills/ --base HEAD             # 技能内容相对基准有变更时，版本必须已递增
+toolkit skill lint --dir ../other/skills --strict  # 外部仓技能目录：告警按失败处理
+toolkit skill lint skills/ --format json           # JSON 输出：统一信封，data 含 files、issues（带 level）与 summary
+toolkit skill lint skills/ --ignore 'fxri-temp-*'  # 跳过误报技能（按目录名或相对路径）
 ```
 
 缺省检查本包 `skills/`，位置参数与 `--dir` 可同时给出以支持多根；目录本身就是技能或目录下逐个技能均可。

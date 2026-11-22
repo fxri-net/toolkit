@@ -7,15 +7,15 @@ title: 规范载体（convention）
 > 规范载体的结构升级、表格与索引单元格归一、只读体检。
 
 ```bash
-toolkit convention upgrade               # 把 v1 / v2 规范载体升级为 v3（幂等，先判后写）
-toolkit convention upgrade --dry-run     # 预演：只预览将执行的动作，不写文件
-toolkit convention upgrade --format json # JSON 输出：ID 映射、内部引用改写、结构动作清单
-toolkit convention status                # 只读体检：形态 / 索引 / 入口层三块（只报不改，体检不阻断、退出码恒 0；仅 --format 传非法值时按参数错误退出）
-toolkit convention status --format json  # JSON 输出：形态、条目数、入口壳现场与逐条体检项
-toolkit convention status --dir ./repo/.tasks # 跨仓体检：入口壳与检测入口按该目录所属仓库扫描（父目录含 package.json / .git 即视为仓库根；task check --dir 同口径）
-toolkit convention format                # 归一任务区表格形态与索引表单元格：列对齐填充压回紧凑形态，单一事实源链接化、归属裸值、规则去引号
-toolkit convention format --dry-run      # 预演：只报告将改动的文件与行数，不写文件
-toolkit convention format --format json  # JSON 输出：status、目录、文件数、变更文件数、逐文件变更行号与待人工处理项
+toolkit convention upgrade                     # 把 v1 / v2 规范载体升级为 v3（幂等，先判后写）
+toolkit convention upgrade --dry-run           # 预演：只预览将执行的动作，不写文件
+toolkit convention upgrade --format json       # JSON 输出：ID 映射、内部引用改写、结构动作清单
+toolkit convention status                      # 只读体检：形态 / 索引 / 入口层三块（只报不改，体检不阻断、退出码恒 0；仅 --format 传非法值时按参数错误退出）
+toolkit convention status --format json        # JSON 输出：形态、条目数、入口壳现场与逐条体检项
+toolkit convention status --dir ./repo/.tasks  # 跨仓体检：入口壳与检测入口按该目录所属仓库扫描（父目录含 package.json / .git 即视为仓库根；task check --dir 同口径）
+toolkit convention format                      # 归一任务区表格形态与索引表单元格：列对齐填充压回紧凑形态，单一事实源链接化、归属裸值、规则去引号
+toolkit convention format --dry-run            # 预演：只报告将改动的文件与行数，不写文件
+toolkit convention format --format json        # JSON 输出：status、目录、文件数、变更文件数、逐文件变更行号与待人工处理项
 ```
 
 裸 `toolkit convention` 打印本域帮助（列出 3 个子命令）。

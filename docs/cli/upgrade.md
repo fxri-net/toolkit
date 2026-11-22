@@ -10,12 +10,12 @@ title: 升级迁移（upgrade）
 ## 常用命令
 
 ```bash
-toolkit upgrade --dry-run          # 只看计划，不写盘
-toolkit upgrade --diff             # 计划 + 行级差异，不写盘
-toolkit upgrade --check            # 只读检查；有可自动处理的残留时退出 1
-toolkit upgrade                    # TTY 下逐项确认后执行
-toolkit upgrade --yes              # 非交互执行（CI / 脚本）
-toolkit upgrade --restore latest   # 从最近一次备份恢复
+toolkit upgrade --dry-run         # 只看计划，不写盘
+toolkit upgrade --diff            # 计划 + 行级差异，不写盘
+toolkit upgrade --check           # 只读检查；有可自动处理的残留时退出 1
+toolkit upgrade                   # TTY 下逐项确认后执行
+toolkit upgrade --yes             # 非交互执行（CI / 脚本）
+toolkit upgrade --restore latest  # 从最近一次备份恢复
 ```
 
 ## 参数

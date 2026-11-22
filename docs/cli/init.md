@@ -8,8 +8,8 @@ title: 项目初始化（init）
 
 ```bash
 toolkit init
-toolkit init --dir ../my-tasks-repo   # 任务区放项目外（独立仓库管理）
-toolkit init --no-hooks               # 不写入 package.json 的 prepare 刷新钩子
+toolkit init --dir ../my-tasks-repo  # 任务区放项目外（独立仓库管理）
+toolkit init --no-hooks              # 不写入 package.json 的 prepare 刷新钩子
 ```
 
 在当前目录初始化任务区，逐项如实报告实际动作（新建 / 更新 / 保持 / 追加 / 跳过）：

@@ -17,32 +17,32 @@ title: 作用域（scope）
 ## 常用命令
 
 ```bash
-toolkit scope                         # 状态优先向导：看状态 / 加白黑名单 / 管条目 / 默认值 / 高级规则 / 技能矩阵
-toolkit scope wizard                  # 显式进入交互向导（非 TTY 按无交互退出码结束）
-toolkit scope status                  # 当前目录的判定与原因
-toolkit scope status --skill fxri-plan-review # 按技能级规则判定单个技能
-toolkit scope status --skills          # 列出包内与已安装外部技能在该目录的生效结论
+toolkit scope                                  # 状态优先向导：看状态 / 加白黑名单 / 管条目 / 默认值 / 高级规则 / 技能矩阵
+toolkit scope wizard                           # 显式进入交互向导（非 TTY 按无交互退出码结束）
+toolkit scope status                           # 当前目录的判定与原因
+toolkit scope status --skill fxri-plan-review  # 按技能级规则判定单个技能
+toolkit scope status --skills                  # 列出包内与已安装外部技能在该目录的生效结论
 toolkit scope status --skills --at ~/work/repo # 以指定目录为判定起点（不改进程 cwd）
-toolkit scope status --format json    # 给 AI / 脚本消费
-toolkit scope list                    # 规则、来源与优先级
-toolkit scope policy list             # 列出策略、来源层与当前命中结果
+toolkit scope status --format json             # 给 AI / 脚本消费
+toolkit scope list                             # 规则、来源与优先级
+toolkit scope policy list                      # 列出策略、来源层与当前命中结果
 toolkit scope policy add --paths ~/work --mode allowlist --allow fxri-plan-review # 新增策略
-toolkit scope policy remove --id policy-xxx # 按稳定 id 移除
+toolkit scope policy remove --id policy-xxx    # 按稳定 id 移除
 toolkit scope policy reset --paths ~/work --dry-run # 按路径批量清除（预演）
-toolkit scope skills list            # 技能档案与技能维度策略
+toolkit scope skills list                      # 技能档案与技能维度策略
 toolkit scope skills allow fxri-plan-review --paths ~/work # 只允许列出的技能
 toolkit scope skills deny fxri-code-encoding --paths ~/work # 排除列出的技能
 toolkit scope skills profile front --allow "fxri-*" # 写入技能档案
-toolkit scope list add ~/work              # 加入白名单，默认切到「仅名单内生效」
-toolkit scope list exclude ~/work/legacy   # 加入黑名单，默认值不变
-toolkit scope list add ~/work --layer project # 写入当前项目层（随仓库共享）
+toolkit scope list add ~/work                  # 加入白名单，默认切到「仅名单内生效」
+toolkit scope list exclude ~/work/legacy       # 加入黑名单，默认值不变
+toolkit scope list add ~/work --layer project  # 写入当前项目层（随仓库共享）
 toolkit scope list remove ~/work --from include --to exclude # 白名单转黑名单
-toolkit scope list remove ~/work/legacy --from exclude       # 从黑名单移除
-toolkit scope list default                 # 查看当前默认值
-toolkit scope list default off             # 切换为「仅名单内生效」
-toolkit scope list reset                   # 清除限制（全部生效）
-toolkit skill mount ~/work --dry-run  # 批量项目面安装：先预览（由 scope mount 迁入）
-toolkit scope guard fxri-plan-task # 内容闸门：按当前目录作用域输出技能正文（未激活按未激活退出码结束）
+toolkit scope list remove ~/work/legacy --from exclude # 从黑名单移除
+toolkit scope list default                     # 查看当前默认值
+toolkit scope list default off                 # 切换为「仅名单内生效」
+toolkit scope list reset                       # 清除限制（全部生效）
+toolkit skill mount ~/work --dry-run           # 批量项目面安装：先预览（由 scope mount 迁入）
+toolkit scope guard fxri-plan-task             # 内容闸门：按当前目录作用域输出技能正文（未激活按未激活退出码结束）
 ```
 
 名单的查看与增删改统一收进 `scope list` 组：裸 `scope list` 查看名单，

@@ -96,10 +96,10 @@ pnpm exec toolkit task import 需求清单.csv --target active
 **目标**：变更集 → CHANGELOG → 发布，多语言分组标题不手翻。
 
 ```bash
-pnpm exec toolkit release changeset add   # 创建变更集（等价 changeset，选 patch/minor/major）
-pnpm exec toolkit release audit # 可选：列出同对象净变更候选，先人工合并
-pnpm exec toolkit release bump            # 消费变更集：升版本号 + 中文 CHANGELOG + 发布日期
-pnpm exec toolkit release mirror          # 同步文档站更新日志镜像（bump 后也会自动同步）
+pnpm exec toolkit release changeset add  # 创建变更集（等价 changeset，选 patch/minor/major）
+pnpm exec toolkit release audit          # 可选：列出同对象净变更候选，先人工合并
+pnpm exec toolkit release bump           # 消费变更集：升版本号 + 中文 CHANGELOG + 发布日期
+pnpm exec toolkit release mirror         # 同步文档站更新日志镜像（bump 后也会自动同步）
 # 提交 → 打 vX.Y.Z 标签 → 发布（按项目渠道，如 npm publish）
 ```
 
@@ -113,8 +113,8 @@ pnpm exec toolkit release mirror          # 同步文档站更新日志镜像（
 ### 升级
 
 ```bash
-pnpm add -g @fxri/toolkit   # 全局安装（推荐）
-pnpm up @fxri/toolkit       # 项目内（版本随仓库锁定）
+pnpm add -g @fxri/toolkit  # 全局安装（推荐）
+pnpm up @fxri/toolkit      # 项目内（版本随仓库锁定）
 toolkit skill status       # 查 CLI 版本提示与技能现场
 ```
 
@@ -136,8 +136,8 @@ toolkit skill status       # 查 CLI 版本提示与技能现场
 ### 卸载
 
 ```bash
-toolkit skill uninstall --all      # 1. 先摘技能产物（只清本包装的，不碰你自己装的技能）
-pnpm remove -g @fxri/toolkit     # 2. 再卸 CLI
+toolkit skill uninstall --all  # 1. 先摘技能产物（只清本包装的，不碰你自己装的技能）
+pnpm remove -g @fxri/toolkit   # 2. 再卸 CLI
 ```
 
 ⚠️ **顺序别反**：`skill uninstall --all` 依赖本工具（CLI + 包内真源）才能定位产物；先卸了 CLI，清技能就没工具可用——重装一次再执行即可。

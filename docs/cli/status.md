@@ -8,9 +8,9 @@ title: 整体状态（status）
 > 问题按所属区块标注，可直接对照各域命令处理。
 
 ```bash
-toolkit status                 # 人类摘要：逐区块一行结论 + 待处理项（只汇总现状，退出码恒 0）
-toolkit status --check         # 存在 error 级问题时退出 1，可直接作为自查门禁
-toolkit status --format json   # 统一信封输出到 stdout（诊断仍走 stderr）
+toolkit status                # 人类摘要：逐区块一行结论 + 待处理项（只汇总现状，退出码恒 0）
+toolkit status --check        # 存在 error 级问题时退出 1，可直接作为自查门禁
+toolkit status --format json  # 统一信封输出到 stdout（诊断仍走 stderr）
 ```
 
 ## 输出内容

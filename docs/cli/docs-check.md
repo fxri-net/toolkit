@@ -7,15 +7,15 @@ title: 文档站校验（docs nav / docs dist）
 > 按同一份数据契约校验导航结构与构建产物；规则随包分发，各站点不再各自维护校验脚本。
 
 ```bash
-toolkit docs nav check                  # 校验 docs/site-nav.json 的结构与导航规则
-toolkit docs                           # 默认全量校验：主题 + 导航 + 产物
-toolkit docs check                     # 与裸 docs 等价的显式写法
-toolkit docs nav check --format json    # 机器可读输出（含规则版本）
-toolkit docs nav check --dir <path>     # 指定文档目录（缺省 docs）
-toolkit docs nav init                   # 从站点配置抽取 nav / sidebar 生成 site-nav.json
-toolkit docs nav init --force           # 已存在 site-nav.json 时覆盖
-toolkit docs dist check                 # 校验构建产物：404 不进 sitemap 与站内搜索索引
-toolkit docs dist check --format json   # 机器可读输出（含规则版本与跳过标记）
+toolkit docs nav check         # 校验 docs/site-nav.json 的结构与导航规则
+toolkit docs                   # 默认全量校验：主题 + 导航 + 产物
+toolkit docs check             # 与裸 docs 等价的显式写法
+toolkit docs nav check --format json # 机器可读输出（含规则版本）
+toolkit docs nav check --dir <path> # 指定文档目录（缺省 docs）
+toolkit docs nav init          # 从站点配置抽取 nav / sidebar 生成 site-nav.json
+toolkit docs nav init --force  # 已存在 site-nav.json 时覆盖
+toolkit docs dist check        # 校验构建产物：404 不进 sitemap 与站内搜索索引
+toolkit docs dist check --format json # 机器可读输出（含规则版本与跳过标记）
 ```
 
 裸 `toolkit docs` / `toolkit docs check` 执行主题 + 导航 + 产物全量校验。
@@ -66,8 +66,8 @@ export default defineConfig({
 已有站点用一次性助手抽取数据，省去手工搬运：
 
 ```bash
-toolkit docs nav init                 # 读 docs/.vitepress/config.mts，生成 docs/site-nav.json
-toolkit docs nav init --config <path> # 指定站点配置文件
+toolkit docs nav init                  # 读 docs/.vitepress/config.mts，生成 docs/site-nav.json
+toolkit docs nav init --config <path>  # 指定站点配置文件
 ```
 
 助手只解析字面量（字符串、数字、布尔、数组、对象）；遇到变量引用、函数调用、展开语法会报错并停下，不落半截文件。检测到 `locales` 多语言配置时直接拒绝，避免把某个语言包误当成全站数据。生成后须人工核对，再把站点配置改为引用展开。

@@ -7,11 +7,11 @@ title: 配置体检（config）
 > `list` / `get` / `set` / `unset` 是配置的唯一写入口；`status` 只读查看三层配置文件的生效情况与来源，不打印配置值。
 
 ```bash
-toolkit config list                     # 列出可写键：生效值与来源层（--layer 只看该层可写键）
-toolkit config get task.dir             # 读取单个键（--explain 展示类型、可写层与三层覆盖链）
-toolkit config set check.warnings false # 写入（默认落该键的默认层；--layer global|project|local 切换）
-toolkit config unset task.dir           # 删除（默认该键的默认层；删后回收空段并提示回落来源）
-toolkit config list --cwd <path>        # 指定查找起点（四个子命令均支持）
+toolkit config list                      # 列出可写键：生效值与来源层（--layer 只看该层可写键）
+toolkit config get task.dir              # 读取单个键（--explain 展示类型、可写层与三层覆盖链）
+toolkit config set check.warnings false  # 写入（默认落该键的默认层；--layer global|project|local 切换）
+toolkit config unset task.dir            # 删除（默认该键的默认层；删后回收空段并提示回落来源）
+toolkit config list --cwd <path>         # 指定查找起点（四个子命令均支持）
 toolkit config status                    # 只读体检：三层命中 / 来源层 / 环境变量层（退出码恒 0）
 toolkit config status --format json      # JSON 输出：层级明细、展示键来源、环境变量层、待处理项
 toolkit config status --cwd <path>       # 指定向上查找的起始目录（缺省当前工作目录）

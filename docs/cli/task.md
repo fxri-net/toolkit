@@ -9,23 +9,23 @@ title: 任务管理（task）
 ## 常用命令
 
 ```bash
-toolkit task                     # 待完成总览（默认）
-toolkit task --view archived     # 仅已归档
-toolkit task --view all          # 待完成 + 已归档（状态分组，来源可辨）
-toolkit task archive             # 归档已完成任务
+toolkit task                      # 待完成总览（默认）
+toolkit task --view archived      # 仅已归档
+toolkit task --view all           # 待完成 + 已归档（状态分组，来源可辨）
+toolkit task archive              # 归档已完成任务
 toolkit task archive --task 20261112-唐启云-示例任务 # 只归档指定任务（唯一键）
-toolkit task archive --dry-run   # 归档预演（只预览，不落盘）
-toolkit task check               # 校验 active 与变更集写法
-toolkit task normalize           # 检查归档块（默认只读）
-toolkit task normalize --fix     # 修复归档问题
-toolkit task stats               # 周期统计：完成周期 / 滞留 / 吞吐
-toolkit task stats --format json # 统计结果 JSON 输出
-toolkit task export 报表.xlsx    # 导出任务（按扩展名识别 csv / xlsx / json）
+toolkit task archive --dry-run    # 归档预演（只预览，不落盘）
+toolkit task check                # 校验 active 与变更集写法
+toolkit task normalize            # 检查归档块（默认只读）
+toolkit task normalize --fix      # 修复归档问题
+toolkit task stats                # 周期统计：完成周期 / 滞留 / 吞吐
+toolkit task stats --format json  # 统计结果 JSON 输出
+toolkit task export 报表.xlsx     # 导出任务（按扩展名识别 csv / xlsx / json）
 toolkit task import 需求清单.csv --dry-run # 导入预演
 toolkit task add --title "命令分组" --scope cli --yes # 新建任务档（TTY 无参进入交互；非 TTY 须 --yes）
 toolkit task update 命令分组 --status 进行中 --yes # 改状态 / 字段；终态须同时给 --completed
-toolkit task --dir <path>        # 指定任务目录（CLI 参数 > 配置 task.dir > 默认 .tasks）
-toolkit task check --strict      # 任务目录不存在时报错退出（默认容错为空结果）
+toolkit task --dir <path>         # 指定任务目录（CLI 参数 > 配置 task.dir > 默认 .tasks）
+toolkit task check --strict       # 任务目录不存在时报错退出（默认容错为空结果）
 ```
 
 ## 任务域选项

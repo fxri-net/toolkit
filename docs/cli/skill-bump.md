@@ -7,13 +7,13 @@ title: 技能版本递增（skill bump）
 > 同源改写 `SKILL.md` 的两处版本声明；技能版本独立于产品包版本，内部规则变更即递增。
 
 ```bash
-toolkit skill bump fxri-plan-task patch   # 单技能 patch 递增
-toolkit skill bump --all --dry-run           # 预演批量递增，只打印 from → to
-toolkit skill bump --all minor --yes         # 非交互批量递增须显式 --yes
-toolkit skill bump fxri-plan-review --set 2.0.0 # 直接设定版本（与递增类型互斥）
-toolkit skill bump --dir skills --all patch  # 外部仓：对指定技能目录批量递增
+toolkit skill bump fxri-plan-task patch          # 单技能 patch 递增
+toolkit skill bump --all --dry-run               # 预演批量递增，只打印 from → to
+toolkit skill bump --all minor --yes             # 非交互批量递增须显式 --yes
+toolkit skill bump fxri-plan-review --set 2.0.0  # 直接设定版本（与递增类型互斥）
+toolkit skill bump --dir skills --all patch      # 外部仓：对指定技能目录批量递增
 toolkit skill bump --dir a/skills --dir b/skills --all patch --yes # monorepo 多根
-toolkit skill bump fxri-plan-review --from body # 两处版本不一致时以正文为准
+toolkit skill bump fxri-plan-review --from body  # 两处版本不一致时以正文为准
 ```
 
 ## 行为

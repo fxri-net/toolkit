@@ -55,10 +55,10 @@
 ### 方式一：全局安装（个人多项目默认）
 
 ```bash
-pnpm add -g @fxri/toolkit       # pnpm（bin 落在 pnpm home，不受 nvm 切版本影响）
-npm add -g @fxri/toolkit        # npm（bin 硬链在 Node 目录，切版本需重装）
-yarn global add @fxri/toolkit   # yarn 1.x；2+ 无全局安装，改用 yarn dlx
-bun add -g @fxri/toolkit        # bun
+pnpm add -g @fxri/toolkit      # pnpm（bin 落在 pnpm home，不受 nvm 切版本影响）
+npm add -g @fxri/toolkit       # npm（bin 硬链在 Node 目录，切版本需重装）
+yarn global add @fxri/toolkit  # yarn 1.x；2+ 无全局安装，改用 yarn dlx
+bun add -g @fxri/toolkit       # bun
 ```
 
 升级用同一条安装命令即可。各管理器的全局安装语法并不同一（yarn 1.x 是 `global add`、2+ 没有全局安装），上表按管理器列出可直接复制的形式。
@@ -114,8 +114,8 @@ bunx @fxri/toolkit task      # bun
 安装 skills（一条命令，随 CLI 同批分发）：
 
 ```bash
-toolkit skill install                    # 全局分发（推荐；技能随包分发，与 CLI 同一发布批次）
-toolkit skill install --scope project    # 项目面分发（团队推荐，技能随仓库入库、队友 clone 即用）
+toolkit skill install                  # 全局分发（推荐；技能随包分发，与 CLI 同一发布批次）
+toolkit skill install --scope project  # 项目面分发（团队推荐，技能随仓库入库、队友 clone 即用）
 ```
 
 - **默认**：软链真源，链接创建失败自动降级副本；`--yes` 跳过交互
@@ -132,12 +132,12 @@ GitHub 拉不下来？国内网络走 [Gitee 镜像渠道](./faq#国内网络优
 默认全域生效：装了全局技能 / 规则后，所有项目都会命中。需要收窄时用 `toolkit scope`：
 
 ```bash
-toolkit scope status        # 先看当前目录是否生效、命中的规则与来源
-toolkit scope               # 交互菜单：设范围、管目录、切换配置层
-toolkit scope list add ~/work    # 只在这个目录（含子目录）生效（切到 allowlist 模式）
-toolkit scope policy add --paths ~/work --mode allowlist --allow fxri-plan-review  # 按策略规则收口
-toolkit scope skills deny fxri-code-encoding --paths ~/work                        # 排除指定技能
-toolkit skill mount ~/work # 在父目录下的项目里做项目面安装（技能物理落在仓库内）
+toolkit scope status           # 先看当前目录是否生效、命中的规则与来源
+toolkit scope                  # 交互菜单：设范围、管目录、切换配置层
+toolkit scope list add ~/work  # 只在这个目录（含子目录）生效（切到 allowlist 模式）
+toolkit scope policy add --paths ~/work --mode allowlist --allow fxri-plan-review # 按策略规则收口
+toolkit scope skills deny fxri-code-encoding --paths ~/work # 排除指定技能
+toolkit skill mount ~/work     # 在父目录下的项目里做项目面安装（技能物理落在仓库内）
 ```
 
 - 旧 `activation` 字段的判定顺序：排除规则 → 排除标记 → 启用标记 → git 远端 → 白名单；不配置即全域生效

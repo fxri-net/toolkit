@@ -9,14 +9,14 @@ title: 技能使用情况（usage）
 ## 常用命令
 
 ```bash
-toolkit usage show              # 查看开关、通道、配置路径、数据目录、队列与计数（默认）
-toolkit usage show stats --since 30d --limit 10   # 统计视图
-toolkit usage setup init        # 初始化向导，回车即按默认启用（一方 + 第三方技能）
-toolkit usage setup wizard      # 交互菜单：状态、统计、开关、Hook、上传、导出与清理
-toolkit usage config channel rule    # 采集通道：rule（全局规则上报）/ hook（Agent Hook）
-toolkit rule compose --module usage   # 输出可复制进全局规则的文案（等价于原 usage rule）
-toolkit usage record --skill fxri-plan-task --skill fxri-plan-review   # 规则通道批量上报（静默）
-toolkit config set usage.enabled true    # 打开总开关（关闭用 false）
+toolkit usage show                     # 查看开关、通道、配置路径、数据目录、队列与计数（默认）
+toolkit usage show stats --since 30d --limit 10 # 统计视图
+toolkit usage setup init               # 初始化向导，回车即按默认启用（一方 + 第三方技能）
+toolkit usage setup wizard             # 交互菜单：状态、统计、开关、Hook、上传、导出与清理
+toolkit usage config channel rule      # 采集通道：rule（全局规则上报）/ hook（Agent Hook）
+toolkit rule compose --module usage    # 输出可复制进全局规则的文案（等价于原 usage rule）
+toolkit usage record --skill fxri-plan-task --skill fxri-plan-review # 规则通道批量上报（静默）
+toolkit config set usage.enabled true  # 打开总开关（关闭用 false）
 toolkit usage config origins --first-party --third-party
 toolkit usage config scope --mode all
 toolkit usage config capture --trigger

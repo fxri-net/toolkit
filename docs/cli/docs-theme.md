@@ -7,10 +7,10 @@ title: 文档站主题（docs theme）
 > 校验与写入文档站主题模板，发现跨仓样式漂移。
 
 ```bash
-toolkit docs theme check                 # 只校验：index.ts 全文一致、custom.css 页头与公共段一致
-toolkit docs theme write                 # 写入或刷新模板，保留 brand-start / brand-end 之间的品牌段
-toolkit docs theme write --force         # 既有文件缺少品牌标记时也覆盖
-toolkit docs theme check --dir <path>    # 指定主题目录（缺省 docs/.vitepress/theme）
+toolkit docs theme check               # 只校验：index.ts 全文一致、custom.css 页头与公共段一致
+toolkit docs theme write               # 写入或刷新模板，保留 brand-start / brand-end 之间的品牌段
+toolkit docs theme write --force       # 既有文件缺少品牌标记时也覆盖
+toolkit docs theme check --dir <path>  # 指定主题目录（缺省 docs/.vitepress/theme）
 ```
 
 裸 `toolkit docs theme` 打印子命令帮助（列出 `check` / `write`）。
