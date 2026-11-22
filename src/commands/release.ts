@@ -8,6 +8,7 @@ import { countUntypedEntries, formatChangelogs, localDate } from "../changelog/f
 import type { CollectOptions } from "../changelog/collect"
 import { auditChangesets, formatAuditReport, formatChangesetSummaries, readChangesetSummaries } from "../changelog/audit"
 import { checkDoc, resolveDocOptions, syncDoc, syncDocAfterVersion } from "../changelog/doc"
+import { childExitCode, EXIT } from "../exit-codes"
 import { resolveRedactEnabled } from "../privacy/redact"
 import { resolveEnabled } from "../switch"
 import { listTaskFiles } from "../tasks/scan"
@@ -24,10 +25,11 @@ function resolveChangesetBin(): string {
   return changesetBin
 }
 
-// 调用 changesets（子进程执行，继承 stdio）
+// 调用 changesets（子进程执行，继承 stdio）：退出码原样透出，子进程被信号终止时按 128 + 信号编号
 const runChangeset = (cmd: string[]) => {
   const res = spawnSync(process.execPath, [resolveChangesetBin(), ...cmd], { stdio: "inherit" })
-  if (res.status !== 0) process.exit(res.status ?? 1)
+  const code = childExitCode(res)
+  if (code !== EXIT.OK) process.exit(code)
 }
 
 // 检测 active 是否有未归档任务

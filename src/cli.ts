@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { createRequire } from "node:module"
+import { installEpipeGuard } from "./epipe"
 import { MIN_NODE, nodeVersionAtLeast } from "./node-version"
 import { installConsoleStyle, line, setStyleEnabled } from "./term-style"
 
@@ -34,6 +35,8 @@ function guardTarget(argv: string[]): string | null {
 // 两者拆成独立入口，保证 guard 的启动成本不含完整命令集的解析开销
 async function main(): Promise<void> {
   ensureUtf8()
+  // 断管守护先于任何输出：下游关闭管道时静默成功退出，不打印堆栈
+  installEpipeGuard()
   // 样式出口先于任何提示安装：版本过低等早期提示也要按语义着色；guard 正文走 stdout.write，不受影响
   if (process.argv.includes("--no-color")) setStyleEnabled(false)
   installConsoleStyle()

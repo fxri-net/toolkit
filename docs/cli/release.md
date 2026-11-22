@@ -78,6 +78,7 @@ toolkit release changeset status      # 待发布变更集状态（透传给 cha
   - 未识别的前缀（如正文里的 `说明：`）与依赖源条目 `- Updated dependencies`（续行承载包版本）原样保留
   - 语言未声明 `groups` 时不改分组、只剥离可识别前缀
 - 其余子命令（`changeset add` / `changeset status` / `publish` / `changeset pre|tag|init`）原样透传给 changesets
+- 透传子命令的退出码原样返回，子进程被信号终止时按 `128 + 信号编号`（见[退出码](./exit-codes)）
 - 透传子命令以 changesets 2.27 为准；运行时下限 Node.js >= 18.17.0（Node 18 已 EOL，仅保证可运行）
 
 ## 发版流程

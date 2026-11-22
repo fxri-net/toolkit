@@ -35,6 +35,18 @@ title: 退出码与解析错误
 未知命令、未知选项、参数个数不符等解析错误统一输出 `⚠️` 开头的中文提示，并附一行 `运行 toolkit --help 查看可用命令` 指引（退出码 `1`），不再混出 commander 的英文原文。
 `release` 透传给 changesets 的英文输出不在其列——那属第三方 CLI 自身的报错通道。
 
+## 外部终止与断管
+
+toolkit 不注册 SIGTERM / SIGKILL 等信号处理器：进程被外部终止时退出码不由 toolkit 决定，
+由 shell 按「128 + 信号编号」呈现（SIGTERM → `143`、SIGKILL → `137`）。
+`timeout` 命令超时返回的 `124` 同样属其自身约定，不是 toolkit 的输出。
+`130` 只代表「在交互提示中按 Ctrl+C」，不代表任何 SIGINT 都会被转换成 `130`。
+
+`release publish` 与 `release changeset add / status / pre / tag / init` 透传 changesets：
+子进程退出码原样返回，子进程被信号终止时返回 `128 + 信号编号`，不再一律包装成 `1`。
+
+标准输出管道被下游提前关闭（如 `toolkit --help | head -1`）时按断管处理，静默以 `0` 退出，不打印堆栈。
+
 ## 相关页面
 
 - 参考：[CLI 参考](../cli) · [常见问题](../faq)

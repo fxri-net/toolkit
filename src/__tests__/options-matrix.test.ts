@@ -18,9 +18,11 @@ vi.mock("node:os", async (importOriginal) => {
 })
 
 // 子进程派生注入：spawn 避免单测真的拉起升级检查 worker；spawnSync 避免 changelog 透传时真的调用 changesets 改仓库文件
+// 返回值由用例按需改写：验证透传退出码时据此构造子进程状态
+const childState = vi.hoisted(() => ({ spawnSync: { status: 0 as number | null, signal: null as string | null } }))
 vi.mock("node:child_process", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:child_process")>()
-  return { ...actual, spawn: vi.fn(), spawnSync: vi.fn(() => ({ status: 0 })) }
+  return { ...actual, spawn: vi.fn(), spawnSync: vi.fn(() => childState.spawnSync) }
 })
 
 // 交互确认直接返回 true、多选默认空选：只模拟按键结果，不开真实终端
@@ -120,6 +122,7 @@ afterEach(() => {
   delete process.env.FX_TOOLKIT_NO_UPDATE_CHECK
   process.argv = originalArgv
   process.exitCode = 0
+  childState.spawnSync = { status: 0, signal: null }
   vi.restoreAllMocks()
   rmSync(cacheFile, { force: true })
 })
@@ -1075,5 +1078,28 @@ describe("skill source remove 预演校验", () => {
     const r = await runCli(["skill", "source", "remove", "fxri-not-exists", "--dry-run"])
     expect(r.code).toBe(1)
     expect(r.err.join("\n")).toContain("未找到已登记来源")
+  })
+})
+
+// 透传给 changesets 的子命令：退出码原样返回，被信号终止按 128 + 信号编号，不包装成 1
+describe("release 透传子进程退出码", () => {
+  it("子进程成功时不退出进程", async () => {
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never)
+    await runCli(["release", "changeset", "status"])
+    expect(exit).not.toHaveBeenCalled()
+  })
+
+  it("子进程失败时原样返回其退出码", async () => {
+    childState.spawnSync = { status: 7, signal: null }
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never)
+    await runCli(["release", "changeset", "status"])
+    expect(exit).toHaveBeenCalledWith(7)
+  })
+
+  it("子进程被信号终止时按 128 + 信号编号退出", async () => {
+    childState.spawnSync = { status: null, signal: "SIGTERM" }
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never)
+    await runCli(["release", "changeset", "status"])
+    expect(exit).toHaveBeenCalledWith(143)
   })
 })

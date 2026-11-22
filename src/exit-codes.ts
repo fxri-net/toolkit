@@ -10,6 +10,31 @@ export const EXIT = {
   CANCEL: 130,
 } as const
 
+// 子进程被信号终止时的退出码：POSIX 惯例为 128 + 信号编号。
+// 只列各 POSIX 平台编号一致的信号；SIGUSR1 / SIGUSR2 等的编号随平台变化，不做猜测而回落 FAIL。
+const SIGNAL_NUMBERS: Readonly<Record<string, number>> = {
+  SIGHUP: 1,
+  SIGINT: 2,
+  SIGQUIT: 3,
+  SIGILL: 4,
+  SIGTRAP: 5,
+  SIGABRT: 6,
+  SIGBUS: 7,
+  SIGFPE: 8,
+  SIGKILL: 9,
+  SIGSEGV: 11,
+  SIGPIPE: 13,
+  SIGALRM: 14,
+  SIGTERM: 15,
+}
+
+// 子进程结果 → 退出码：正常退出原样返回；被信号终止按 128 + 信号编号，未知信号回落 FAIL
+export function childExitCode(result: { status: number | null; signal?: string | null }): number {
+  if (typeof result.status === "number") return result.status
+  const number = result.signal ? SIGNAL_NUMBERS[result.signal] : undefined
+  return number === undefined ? EXIT.FAIL : 128 + number
+}
+
 // 文档表行：code 为数值字面量，供生成器直接读取；与 EXIT 的一致性由单测锁定
 export interface ExitCodeRow {
   code: number
