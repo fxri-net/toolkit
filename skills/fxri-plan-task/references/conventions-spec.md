@@ -53,7 +53,7 @@
 
 载体可另配套**入口壳（一阶触发面）**：在**已存在的**项目级技能目录下生成 `toolkit-conventions/SKILL.md`，目录名与 frontmatter `name` 同名（Agent Skills 标准要求）。
 
-- **落点**：内置候选目录清单见[配置参考 · 分发落点](https://fxri-net.github.io/toolkit/config/skill#分发落点)；
+- **落点**：内置候选目录清单见[skill-dirs.generated.md](./skill-dirs.generated.md)（随包分发的本地副本）；
   多 agent 并存时**每处各写一份**、互不覆盖，一个都不存在时回落 `.agents/skills/`
 - **内容**：壳只作入口、不承载条文，正文指回任务区 `conventions/index.md`
 - **生成**：由 `toolkit init` 幂等生成，可安全删除、重跑补回；只在已有目录内落盘，不为未安装的 agent 凭空建目录，本包源仓库自身不生成
@@ -62,7 +62,7 @@
 - **标记位置**：壳首部为 frontmatter，故 `<!-- toolkit-conventions-entry: v2 -->` 退居其后、须全文件扫描（载体标记只看首行）
 - **告警**：壳标记与当前 toolkit 不一致、或被 `.gitignore` 覆盖时，`toolkit convention status` 与 `toolkit task check` 软告警
 - **告警合并**：标记不一致可重跑 `toolkit init` 就地更新；同类告警在多落点并存时**合并为一条**并内联全部落点路径，不按壳逐条重复
-- **体检范围**：只扫配置参考列出的内置候选目录（`findEntryShells`）；用户手工把壳拷到未收录目录（如 `.bob/skills`）不参与体检
+- **体检范围**：只扫本技能生成文件列出的内置候选目录（`findEntryShells`）；用户手工把壳拷到未收录目录（如 `.bob/skills`）不参与体检
 - **与技能薄壳的关系**：同一批候选目录还承载项目面技能薄壳，即在真源 `<仓库根>/.agents/skills/` 之外的其他已存在候选目录生成 `fxri-*` 薄壳
 - 两类壳不同名并存、互不覆盖；入口壳由 `toolkit init` 生成，技能薄壳由 `toolkit skill install --scope project` 分发
 
@@ -166,7 +166,7 @@
 ```markdown
 # 规范演进记录
 
-> 元规则：规则语义变更时不得覆盖旧语义直接丢史——在「演进记录」追加一条（规则 ID → 修订内容 → 修订来源任务；修订内容新立条目直接写其语义、语义变更写「旧语义」→「新语义」），`index.md` 索引表只保留当前语义；规则层源头变更（`AGENTS.md` / `docs/rules/ai.md` / skills 条文）随该变更同批落盘。
+> 元规则：规则语义变更时不得覆盖旧语义直接丢史——在「演进记录」追加一条（规则 ID → 修订内容 → 修订来源任务；修订内容新立条目直接写其语义、语义变更写「旧语义」→「新语义」），`index.md` 索引表只保留当前语义；规则层源头变更（项目规则入口，如 `AGENTS.md` 或各 agent 规则文件 / skills 条文）随该变更同批落盘。
 > 表语义边界：本表只记**规范语义变更**；载体结构升级、入口壳生成 / 删除、条目退休均不入表（退休见 `retired.md`）。
 
 | ID | 修订内容 | 修订来源任务 |

@@ -30,8 +30,9 @@ export function registerInitCommands(program: Command): void {
     if (!report.skillsInstalled) {
       console.log(line.hint("  全局技能：未安装，执行 toolkit skill install 启用（规范触达第一层，不依赖项目内文件；toolkit skill status 可查现场）"))
     }
-    console.log(line.hint(`  快速开始：${INIT_LINKS.gettingStarted}`))
-    console.log(line.hint(`  完整攻略：${INIT_LINKS.guide}`))
+    console.log(line.hint("  本机一览：toolkit status（分域查看用 toolkit task / toolkit skill status）"))
+    console.log(line.hint(`  快速开始（在线，可选）：${INIT_LINKS.gettingStarted}`))
+    console.log(line.hint(`  完整攻略（在线，可选）：${INIT_LINKS.guide}`))
   }
 
   // init：初始化项目任务区（生成任务区骨架、规范载体与技能入口壳，幂等可重复执行）

@@ -68,6 +68,51 @@ describe("规范一致性：技能 references 引用", () => {
   })
 })
 
+// C-49 离线自包含：正文远端链接、越界相对链接、无兜底的兄弟技能引用都要能拦住
+describe("规范一致性：技能离线自包含（C-49）", () => {
+  const base = { "skills/fxri-demo/references/task-spec.md": "# 任务规范\n" }
+  const withBody = (body: string) => skillDoc.replace("细则见 `references/task-spec.md`。", body)
+
+  it("frontmatter source、标注可选的外链与本地链接均放行", () => {
+    const doc = withBody("细则见 `references/task-spec.md`；在线说明为可选补充：[FAQ](https://example.com/faq)。")
+    const root = createFixture({ ...base, "skills/fxri-demo/SKILL.md": doc })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(0)
+  })
+
+  it("正文出现未标注可选的远端链接时报 error", () => {
+    const root = createFixture({ ...base, "skills/fxri-demo/SKILL.md": withBody("细则见 https://example.com/guide。") })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("未标注可选的远端链接")
+  })
+
+  it("链接指向未随包分发的路径时报 error", () => {
+    const root = createFixture({
+      ...base,
+      "docs/extra.md": "# 额外\n",
+      "skills/fxri-demo/SKILL.md": withBody("细则见 [extra](../../docs/extra.md)。"),
+    })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("未随包分发")
+  })
+
+  it("兄弟技能引用无兜底时报 error", () => {
+    const root = createFixture({ ...base, "skills/fxri-demo/SKILL.md": withBody("口径见 `../fxri-other/references/spec.md`。") })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("缺少「技能源 / 包内真源」兜底")
+  })
+
+  it("兄弟技能引用带兜底时放行", () => {
+    const body = "口径见 `../fxri-other/references/spec.md`；兄弟路径不存在时读 toolkit skill status 打印的技能源目录。"
+    const root = createFixture({ ...base, "skills/fxri-demo/SKILL.md": withBody(body) })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(0)
+  })
+})
+
 // 站点导航锚点：锚点按标题归一比对，写错即报 error（页面标题见 docs/faq.md 的 H2）
 const faqDoc = ["# 常见问题", "", "## 安装与环境", "", "### 示例问题", "", "略。", ""].join("\n")
 

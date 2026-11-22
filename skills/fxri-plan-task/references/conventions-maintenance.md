@@ -25,7 +25,7 @@
 - 旧载体只有 `common.md` 时，归属写作 `common`、命中即读 `common.md`，行为不失效
 - 判定依据只有索引一行，因此「当前语义」须写明适用面，而不是完整条文
 - 「当前语义」超 120 字符时，`toolkit convention status` 软告警提示改写为路由写法（何时适用 + 一句话要求）；
-  存量载体的归一清单见 `docs/cli/convention.md`
+  存量载体的归一清单以 `toolkit convention status` 的输出为准
 
 ## 6. 写入判定（沉淀归属）
 

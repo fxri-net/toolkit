@@ -18,8 +18,9 @@ exports[`写盘产物 > init 生成任务区骨架与入口壳 1`] = `
 
 下一步：
   全局技能：未安装，执行 toolkit skill install 启用（规范触达第一层，不依赖项目内文件；toolkit skill status 可查现场）
-  快速开始：https://fxri-net.github.io/toolkit/getting-started
-  完整攻略：https://fxri-net.github.io/toolkit/guide
+  本机一览：toolkit status（分域查看用 toolkit task / toolkit skill status）
+  快速开始（在线，可选）：https://fxri-net.github.io/toolkit/getting-started
+  完整攻略（在线，可选）：https://fxri-net.github.io/toolkit/guide
 --- stderr ---
 "
 `;
@@ -1529,7 +1530,7 @@ registry：registry.npmjs.org（来源：默认）
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
 技能源：<REPO>/skills
-技能版本：fxri-code-encoding@1.2.12、fxri-plan-recap@1.7.8、fxri-plan-review@1.0.17、fxri-plan-task@1.12.20、fxri-release-changelog@1.3.12、fxri-test-tty@0.1.2、fxri-writing-docs@0.1.2、fxri-writing-skill@1.0.2
+技能版本：fxri-code-encoding@1.2.12、fxri-plan-recap@1.7.9、fxri-plan-review@1.0.18、fxri-plan-task@1.12.21、fxri-release-changelog@1.3.12、fxri-test-tty@0.1.2、fxri-writing-docs@0.1.2、fxri-writing-skill@1.0.2
 内容闸门：未开启（全文安装）
 选择集（3）：fxri-plan-recap、fxri-plan-review、fxri-plan-task
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-code-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
@@ -1607,7 +1608,7 @@ registry：registry.npmjs.org（来源：默认）
 
 项目面 · 项目根：<SANDBOX>/workspace
 项目面 · 技能真源：.agents/skills
-项目面 · 技能版本：fxri-code-encoding@1.2.12、fxri-plan-recap@1.7.8、fxri-plan-review@1.0.17、fxri-plan-task@1.12.20、fxri-release-changelog@1.3.12、fxri-test-tty@0.1.2、fxri-writing-docs@0.1.2、fxri-writing-skill@1.0.2
+项目面 · 技能版本：fxri-code-encoding@1.2.12、fxri-plan-recap@1.7.9、fxri-plan-review@1.0.18、fxri-plan-task@1.12.21、fxri-release-changelog@1.3.12、fxri-test-tty@0.1.2、fxri-writing-docs@0.1.2、fxri-writing-skill@1.0.2
 项目面 · 选择集（3）：fxri-plan-recap、fxri-plan-review、fxri-plan-task
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-code-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
 项目面 · 目录选择集：全部已存在候选目录（未保存过目录选择）
@@ -2405,7 +2406,11 @@ Commands:
 常用入口：
   作用域 toolkit scope（按目录决定技能 / 规则是否生效，默认全域）
 
-文档站：
+本机帮助：
+  整体状态 toolkit status
+  分域帮助 toolkit <域> --help（如 toolkit task --help）
+
+文档站（在线，可选）：
   快速开始 https://fxri-net.github.io/toolkit/getting-started
   完整攻略 https://fxri-net.github.io/toolkit/guide
   全部文档 https://fxri-net.github.io/toolkit/
@@ -2663,7 +2668,11 @@ Commands:
 常用入口：
   作用域 toolkit scope（按目录决定技能 / 规则是否生效，默认全域）
 
-文档站：
+本机帮助：
+  整体状态 toolkit status
+  分域帮助 toolkit <域> --help（如 toolkit task --help）
+
+文档站（在线，可选）：
   快速开始 https://fxri-net.github.io/toolkit/getting-started
   完整攻略 https://fxri-net.github.io/toolkit/guide
   全部文档 https://fxri-net.github.io/toolkit/
@@ -2705,7 +2714,11 @@ Commands:
 常用入口：
   作用域 toolkit scope（按目录决定技能 / 规则是否生效，默认全域）
 
-文档站：
+本机帮助：
+  整体状态 toolkit status
+  分域帮助 toolkit <域> --help（如 toolkit task --help）
+
+文档站（在线，可选）：
   快速开始 https://fxri-net.github.io/toolkit/getting-started
   完整攻略 https://fxri-net.github.io/toolkit/guide
   全部文档 https://fxri-net.github.io/toolkit/

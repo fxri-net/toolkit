@@ -226,10 +226,14 @@ describe("顶层命令与外部域", () => {
     expect(r.out.join("")).toMatch(/\d+\.\d+\.\d+/)
   })
 
-  it("--help：退出码 0 且输出中文帮助", async () => {
+  it("--help：退出码 0 且输出中文帮助，尾部先给本机入口再给可选在线链接", async () => {
     const r = await runCli(["--help"])
     expect(r.code).toBe(0)
-    expect(r.out.join("")).toContain("显示帮助")
+    const text = r.out.join("")
+    expect(text).toContain("显示帮助")
+    expect(text).toContain("本机帮助")
+    expect(text).toContain("toolkit <域> --help")
+    expect(text).toContain("文档站（在线，可选）")
   })
 
   it("未知选项：退出码 1 且中文提示", async () => {
@@ -657,7 +661,11 @@ describe("顶层命令与外部域", () => {
     expect(r.code).toBe(0)
     expect(existsSync(join(initTasksDir, "active"))).toBe(true)
     expect(existsSync(join(initTasksDir, "archive"))).toBe(true)
-    expect(r.log.join("\n")).toContain("toolkit skill install")
+    const text = r.log.join("\n")
+    expect(text).toContain("toolkit skill install")
+    // 首次提示先给本机入口，在线链接标注可选，离线环境也能自助
+    expect(text).toContain("本机一览：toolkit status")
+    expect(text).toContain("（在线，可选）")
   })
 
   // ⚠️ 顺序约束：本例真实写入状态文件，须置于依赖「未安装」态的 init 用例之后

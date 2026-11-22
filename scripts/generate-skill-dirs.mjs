@@ -9,8 +9,8 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const sourceFile = join(root, "src", "conventions", "entry.ts")
 const START = "<!-- toolkit:skill-dirs:start -->"
 const END = "<!-- toolkit:skill-dirs:end -->"
-// 两处展示同一份清单：包内技能说明与文档站配置参考
-const TARGET_FILES = ["skills/README.md", "docs/config/skill.md"]
+// 三处展示同一份清单：包内技能说明、文档站配置参考与技能内的离线副本
+const TARGET_FILES = ["skills/README.md", "docs/config/skill.md", "skills/fxri-plan-task/references/skill-dirs.generated.md"]
 // 首列补注：真源目录与特殊命名目录，其余按目录名直出
 const NOTES = new Map([
   [".agents/skills", "（真源）"],

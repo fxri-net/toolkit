@@ -9,9 +9,9 @@ Cursor、Codex、Gemini CLI 等兼容 agent 按需加载。
 
 | 技能 | 版本 | 用途 | 层级 |
 | --- | --- | --- | --- |
-| [fxri-plan-task](./fxri-plan-task/SKILL.md) | 1.12.20 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
-| [fxri-plan-review](./fxri-plan-review/SKILL.md) | 1.0.17 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
-| [fxri-plan-recap](./fxri-plan-recap/SKILL.md) | 1.7.8 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
+| [fxri-plan-task](./fxri-plan-task/SKILL.md) | 1.12.21 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
+| [fxri-plan-review](./fxri-plan-review/SKILL.md) | 1.0.18 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
+| [fxri-plan-recap](./fxri-plan-recap/SKILL.md) | 1.7.9 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.3.12 | changesets 发版与多语言 CHANGELOG 维护 | optional |
 | [fxri-writing-skill](./fxri-writing-skill/SKILL.md) | 1.0.2 | 技能编写规范：统一骨架、references 拆分、安全边界，把可机械检出的规则交给 lint、版本递增交给 bump | optional |
 | [fxri-writing-docs](./fxri-writing-docs/SKILL.md) | 0.1.2 | 文档站写作规范：分类骨架、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏与 404 兜底、导航用工具命令校验 | optional |
@@ -99,19 +99,24 @@ pnpm dlx skills list / update / remove                         # 查看 / 升级
 - ⚠️ 两条路径不要混用：上游安装器把技能落成**实体副本**，且不在本包状态文件 `~/.agents/.toolkit-skills.json` 的登记内，
    内置命令会把它判为「同名非本包产物」——混用后 `toolkit skill status` 报「同名冲突」，
    且再跑一次 `pnpm dlx skills update -g` 会把 `~/.agents/skills/` 重写回实体副本，冲突复发
-- 已用方式二装过、想换回方式一：`toolkit skill install --force` 一键接管同名旧副本，详见 [常见问题](https://fxri-net.github.io/toolkit/faq)
+- 已用方式二装过、想换回方式一：`toolkit skill install --force` 一键接管同名旧副本；在线常见问题为可选补充：[常见问题](https://fxri-net.github.io/toolkit/faq)
 
 #### GitHub 拉取受限时（国内网络 / 内网）
 
-`npx skills` 只认 GitHub 源与本地路径；GitHub 不稳时改从 [Gitee 镜像](https://gitee.com/fxri/toolkit)（同源同步）克隆后走本地路径源：
+`npx skills` 只认 GitHub 源与本地路径；GitHub 不稳时（网络可用时可选）改从 [Gitee 镜像](https://gitee.com/fxri/toolkit)（同源同步）克隆后走本地路径源：
 
 ```bash
 git clone https://gitee.com/fxri/toolkit fxri-toolkit
 pnpm dlx skills add fxri-toolkit --global       # npm 用户把 pnpm dlx 换成 npx
 ```
 
-完全离线场景：先用 `pnpm pack @fxri/toolkit` 打出 tgz 拷进内网 `pnpm add -g <tgz>` 离线装 CLI，再 `toolkit skill install`（技能随包分发，
-全程不碰 GitHub）；详见 [FAQ · 内网或离线环境怎么装](https://fxri-net.github.io/toolkit/faq)。
+完全离线场景（无需外网与在线文档）：
+
+1. 联网机器执行 `pnpm pack @fxri/toolkit` 打出 tgz，拷入内网；
+2. 内网机器执行 `pnpm add -g <tgz>` 装 CLI；
+3. 执行 `toolkit skill install` 分发随包技能，全程不碰 GitHub。
+
+在线 FAQ 为可选补充：[内网或离线环境怎么装](https://fxri-net.github.io/toolkit/faq)。
 
 ### 方式三：手工复制 / 软链
 

@@ -44,6 +44,7 @@
 | C-46 | 运行时版本基线 | 写代码时：以 engines 为唯一基线、只用基线已稳定 API、最低版本须有 CI 回归入口、类型声明与基线一致 | platform | [platform.md](./platform.md) |
 | C-47 | 交互与入口统一 | 新增或改命令入口 / 交互时：交互走 `cli-ui` 基座，写操作预览 + 确认 + `--yes`，裸命令按域类型给视图，入口矩阵以 `docs/cli.md` 为准 | common | [common.md](./common.md)、[cli.md](../../docs/cli.md) |
 | C-48 | 单一真源与事实注册表 | 改代码、文档或技能前：同一事实只留一个 owner，按派生 > 指针 > 生成 > 校验选手段，用户可见事实不得只放本仓，新增事实先登记 `F-<n>` | common | [common.md](./common.md) C-48 |
+| C-49 | 离线自包含 | 写技能或工具提示时：规范正文、候选清单与升级步骤随包分发，技能内远端链接须标可选，跨技能引用带兜底，升级提示给本地入口 | common | [common.md](./common.md) C-49、`scripts/check-consistency.mjs` |
 
 ## 三、用法说明
 

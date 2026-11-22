@@ -3,7 +3,7 @@ name: fxri-plan-recap
 description: 会话收尾的工作记忆沉淀 + 新会话开场恢复 + 历史任务时间修正：收尾时把整场会话的全部任务完整建档归档，按四级时间源还原真实完成时间，沉淀规范进 conventions 载体；新会话开场按三层恢复（全量索引 + active 精读 + 近窗归档）重建现场并核对规范；也可批量修正历史归档时间。用户表达会话收尾意图（今天先到这、收个尾、归档本次会话、把结论记下来）、接续意图（恢复上下文、继续上次、上次做到哪）或修正历史任务时间时使用。不用于会话中途的常规方案建档（那是 fxri-plan-task 的职责）、与工作交接无关的代码技术总结。
 license: MIT
 metadata:
-  version: "1.7.8"
+  version: "1.7.9"
   tier: core
   previousNames: ["fxri-session-recap"]
   type: practice
@@ -15,7 +15,7 @@ metadata:
 
 # 会话归档、上下文恢复与历史修正
 
-> 本技能版本 1.7.8（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.7.9（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -43,7 +43,7 @@ metadata:
 
 ## 核心规则
 
-### R1 四级时间源（口径真源：`../fxri-plan-task/references/task-spec.md` §2.2）
+### R1 四级时间源（口径真源：`../fxri-plan-task/references/task-spec.md` §2.2；兄弟路径不存在时读 `toolkit skill status` 打印的「技能源」目录下同名文件）
 
 created / completed / updated 一律按四级时间源取证，禁止估算、取对话时间或时区换算：
 当场打点（首选）→ 聊天记录可见的准确时间戳 → 任务改动的 git 提交时间 → 系统当前时间兜底（正文标注「时间为收尾补记」）。
@@ -58,6 +58,7 @@ created / completed / updated 一律按四级时间源取证，禁止估算、�
 ```
 
 - 顺序与边界以 `fxri-plan-task/references/task-spec.md` §6 为准：归档是中间步骤、验收须晚于归档、提交 / 发版 / 推送非必经、动作不算改动才算；本技能不重复
+  （兄弟技能路径不存在时，改读 `toolkit skill status` 打印的「技能源」目录下同名文件）
 - 会话特有：规范沉淀与会话级提炼同落点、与已有规范合并去重；会话内发现的缺失归档须补档
 - **跨仓库会话各自归档**：各仓在各自仓库建档归档，任务档只记本仓改动与动机；`scope` 只标本仓内的端 / 面
 

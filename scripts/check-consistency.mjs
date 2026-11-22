@@ -135,9 +135,82 @@ for (const name of skillNames) {
       if (!/(^|\/)references\//.test(base) || /^[a-z]+:\/\//i.test(base) || base.includes("<")) continue
       // 依次按「引用所在文件目录」「skills/ 根（兄弟技能路径）」「技能根」解析
       const candidates = [join(fileDir, base), join("skills", base), join(skillRoot, base)]
-      if (!candidates.some((candidate) => existsSync(join(root, candidate)))) {
+      // 兄弟技能引用解析不到时不在此处报错：允许改读包内真源，兜底要求由 C-49 检查
+      if (!candidates.some((candidate) => existsSync(join(root, candidate))) && !base.includes("../fxri-")) {
         errors.push(`${file} 引用的 ${ref} 不存在`)
       }
+    }
+  }
+}
+
+// C-49 离线自包含：技能正文不得依赖远端页面，越界相对链接与无兜底的兄弟技能引用均阻断
+// 只扫 SKILL.md / references / assets 的正文；skills/README.md 属包内说明，不纳入远端链接禁令
+const PACKAGE_FILES = (() => {
+  if (!existsSync(join(root, "package.json"))) return ["skills"]
+  try {
+    const pkg = JSON.parse(read("package.json"))
+    return Array.isArray(pkg.files) ? pkg.files : ["skills"]
+  } catch {
+    return ["skills"]
+  }
+})()
+
+// 去围栏代码块与行内代码：示例写法不是真实链接，避免文档里的示例被误判
+function stripCode(text) {
+  return text.replace(/```[\s\S]*?```/g, "").replace(/`[^`\n]*`/g, "")
+}
+
+// 统一正斜杠：Windows 下 join 产出反斜杠，与白名单前缀比对前先归一
+function toPosix(rel) {
+  return rel.replace(/\\/g, "/")
+}
+
+// 包内分发白名单：路径首段命中 package.json files 即视为随包
+function inPackageFiles(rel) {
+  const normalized = toPosix(rel).replace(/^\.\//, "")
+  if (normalized.startsWith("skills/")) return true
+  return PACKAGE_FILES.some((entry) => normalized === entry || normalized.startsWith(`${entry}/`))
+}
+
+// 兄弟技能引用的兜底句：指出改读位置即可（技能源目录 / 包内真源 / 兄弟路径不存在）
+const SIBLING_FALLBACK = /技能源|包内真源|兄弟路径不存在|兄弟技能/
+
+for (const name of skillNames) {
+  const skillRoot = `skills/${name}`
+  for (const file of skillMarkdowns(skillRoot)) {
+    // 只扫随包技能正文：SKILL.md、references / assets 下的 markdown
+    if (!/(^|\/)(SKILL\.md|references\/.+\.md|assets\/.+\.md)$/.test(file)) continue
+    const text = read(file)
+    const body = stripCode(text)
+    // 远端链接：frontmatter source 与明确标注可选的链接行除外
+    body.split("\n").forEach((line, index) => {
+      if (/^\s*source\s*:/.test(line)) return
+      if (/可选|在线|网络可用时/.test(line)) return
+      const matched = /https?:\/\/\S+/.exec(line)
+      if (matched) errors.push(`${file} L${index + 1} 出现未标注可选的远端链接：${matched[0]}（C-49 离线自包含）`)
+    })
+    // 相对链接：本技能目录内存在即可；技能外须在 package.json files 白名单内
+    const fileDir = file.slice(0, file.lastIndexOf("/"))
+    for (const matched of body.matchAll(/\]\(([^)\s#]+)(?:#[^)]*)?\)/g)) {
+      const target = matched[1]
+      if (/^[a-z]+:/i.test(target) || target.startsWith("#") || target.includes("<")) continue
+      const resolved = toPosix(join(fileDir, target))
+      if (existsSync(join(root, resolved))) {
+        if (!resolved.startsWith(`${skillRoot}/`) && !inPackageFiles(resolved)) {
+          errors.push(`${file} 链接指向未随包分发的 ${target}（C-49 离线自包含）`)
+        }
+        continue
+      }
+      if (/\.\.\/fxri-[^/]+\//.test(target) && !SIBLING_FALLBACK.test(text)) {
+        errors.push(`${file} 的兄弟技能引用 ${target} 缺少「技能源 / 包内真源」兜底（C-49）`)
+        continue
+      }
+      errors.push(`${file} 链接目标不存在：${target}`)
+    }
+    // 兄弟技能行内引用：允许，但整篇须有兜底句
+    const siblingInline = [...text.matchAll(/`(\.\.\/fxri-[^`]+)`/g)].map((match) => match[1])
+    if (siblingInline.length > 0 && !SIBLING_FALLBACK.test(text)) {
+      errors.push(`${file} 的兄弟技能引用 ${siblingInline[0]} 缺少「技能源 / 包内真源」兜底（C-49）`)
     }
   }
 }
