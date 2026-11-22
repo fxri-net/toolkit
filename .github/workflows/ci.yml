@@ -109,3 +109,18 @@ jobs:
           cache: pnpm
       - name: 门禁校验（macOS 单测）
         run: pnpm verify --tests-only
+
+  # Node 24 LTS 回归：在 20.x 之外再锁一个当前 LTS，提前暴露工具链与新版本 Node 的兼容问题
+  node24:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: 门禁校验（Node 24 单测）
+        run: pnpm verify --tests-only
