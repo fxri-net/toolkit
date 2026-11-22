@@ -49,13 +49,14 @@
 | `toolkit rule` | 打印本域帮助 | 同左，退出 0 | 无 | `list` / `compose --format json` |
 | `toolkit config` | 打印本域帮助 | 同左，退出 0 | 无 | `list` / `get` / `status --format json` |
 | `toolkit convention` | 打印本域帮助 | 同左，退出 0 | 无 | `status` / `format` / `upgrade --format json` |
-| `toolkit docs` | 打印本域帮助 | 同左，退出 0 | 无 | `nav` / `dist --format json` |
+| `toolkit docs` | 默认全量校验（theme / nav / dist） | 同左 | 无 | `nav` / `dist --format json` |
 | `toolkit scope` | 状态优先向导 | 输出状态摘要与子命令提示，退出 0 | `scope wizard`（需要交互但无终端时退出 2） | `status` / `list --format json` |
 | `toolkit usage` | 交互向导 | 输出 `show` 摘要与子命令提示，退出 0 | `usage setup wizard`（需要交互但无终端时退出 2） | `show` / `show stats` / `data doctor` 等 `--format json` |
 | `toolkit release` | 默认 `status` 只读概览 | 同左，退出 0 | 无 | `status` / `changeset list` 等 `--format json` |
 
 规则：查询型域给默认视图，配置 / 分发型域给帮助，向导型域给摘要 + `wizard` 入口提示；
-裸命令在非 TTY 一律退出 `0`，显式 `wizard` 子命令需要交互时退出 `2`。
+查询 / 分发型裸命令在非 TTY 退出 `0`；校验型裸命令（`toolkit docs`）按校验结论退出，存在 error 时为 `1`；
+显式 `wizard` 子命令需要交互时退出 `2`。
 
 ## 术语表
 
