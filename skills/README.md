@@ -14,7 +14,7 @@ Cursor、Codex、Gemini CLI 等兼容 agent 按需加载。
 | [fxri-plan-recap](./fxri-plan-recap/SKILL.md) | 1.7.9 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.3.12 | changesets 发版与多语言 CHANGELOG 维护 | optional |
 | [fxri-writing-skill](./fxri-writing-skill/SKILL.md) | 1.0.3 | 技能编写规范：统一骨架、references 拆分、安全边界，把可机械检出的规则交给 lint、版本递增交给 bump | optional |
-| [fxri-writing-docs](./fxri-writing-docs/SKILL.md) | 0.1.3 | 文档站写作规范：分类骨架、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏与 404 兜底、导航用工具命令校验 | optional |
+| [fxri-writing-docs](./fxri-writing-docs/SKILL.md) | 0.1.4 | 文档站写作规范：分类骨架、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏与 404 兜底、导航用工具命令校验、代码块内联注释对齐 | optional |
 | [fxri-code-encoding](./fxri-code-encoding/SKILL.md) | 1.2.12 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
 | [fxri-test-tty](./fxri-test-tty/SKILL.md) | 0.1.2 | 交互测试：PTY 驱动向导与多选，含断言清单 | optional |
 
@@ -32,7 +32,7 @@ Cursor、Codex、Gemini CLI 等兼容 agent 按需加载。
 安装了 CLI 后，技能取自包内 `skills/`，随包同源分发（与 CLI 同一发布批次；技能内容版本独立编号，看的是各 SKILL.md 自己的版本），**不需要第二条供应链、不需要访问 GitHub**：
 
 ```bash
-pnpm add -g @fxri/toolkit   # 1. 装 CLI（npm 用户 npm add -g @fxri/toolkit）
+pnpm add -g @fxri/toolkit  # 1. 装 CLI（npm 用户 npm add -g @fxri/toolkit）
 toolkit skill install      # 2. 把包内技能装到各 agent 的全局技能目录
                             #    先按 tier 选技能：core 必装、optional 可选（TTY 下方向键多选；--mode package 时 core 也可取消）
                             #    再选目标：canonical + 已检测 agent（--agent / --all-agents / --no-save-agents）
@@ -88,9 +88,9 @@ toolkit skill uninstall       # 卸载本包装的产物（只清自己装的，
 技能从 GitHub 拉取）：
 
 ```bash
-pnpm dlx skills add fxri-net/toolkit                           # pnpm 用户（官方命令为 npx skills）
-pnpm dlx skills add fxri-net/toolkit --skill fxri-plan-task # 只装单个技能
-pnpm dlx skills list / update / remove                         # 查看 / 升级 / 卸载
+pnpm dlx skills add fxri-net/toolkit                         # pnpm 用户（官方命令为 npx skills）
+pnpm dlx skills add fxri-net/toolkit --skill fxri-plan-task  # 只装单个技能
+pnpm dlx skills list / update / remove                       # 查看 / 升级 / 卸载
 # npm 用户把上述 pnpm dlx 换成 npx 即可
 ```
 

@@ -97,9 +97,9 @@ toolkit scope
 安装步骤见上文「30 秒上手」（全局装 CLI 后 `toolkit skill install`）；下面是分面与开关细节。
 
 ```bash
-pnpm add -g @fxri/toolkit && toolkit skill install   # 装了 CLI 一键分发（npm 用户：npm add -g @fxri/toolkit）
-toolkit skill install --scope project                # 项目面分发：真源与入口薄壳随仓库入库、队友 clone 即用
-pnpm dlx skills add fxri-net/toolkit                  # 也可用上游安装器（npm 用户：npx skills add fxri-net/toolkit）
+pnpm add -g @fxri/toolkit && toolkit skill install  # 装了 CLI 一键分发（npm 用户：npm add -g @fxri/toolkit）
+toolkit skill install --scope project               # 项目面分发：真源与入口薄壳随仓库入库、队友 clone 即用
+pnpm dlx skills add fxri-net/toolkit                # 也可用上游安装器（npm 用户：npx skills add fxri-net/toolkit）
 ```
 
 技能随包分发（真源为包内 `skills/`），与 CLI 同一发布批次（技能内容版本独立编号）。
@@ -124,16 +124,16 @@ pnpm dlx skills add fxri-net/toolkit                  # 也可用上游安装器
 - [fxri-plan-review](./skills/fxri-plan-review/SKILL.md)：复核已落档任务拆分，输出新增疏漏、建议与修订计划表，按后续是否落档标记
 - [fxri-code-encoding](./skills/fxri-code-encoding/SKILL.md)：文本字节形态基线（文件、管道、命令行、API 请求体，含临时脚本与一次性命令），
   非 ASCII 文本丢失 / 乱码与首行报错的定位与修复
-- [fxri-writing-docs](./skills/fxri-writing-docs/SKILL.md)：文档站写作规范（分类骨架、页面标题「显示名（标识）」、索引与引用口径、导航短别名、顶栏与 404）
+- [fxri-writing-docs](./skills/fxri-writing-docs/SKILL.md)：文档站写作规范（分类骨架、页面标题「显示名（标识）」、索引与引用口径、导航短别名、顶栏与 404、代码块注释对齐）
 
 skills 与工具的关系、只在公司项目激活等说明见 [常见问题](./docs/faq.md) 与 [完整攻略](./docs/guide.md#ai-技能包-skills)。
 
 ## 📦 安装
 
 ```bash
-pnpm add -g @fxri/toolkit          # 全局（个人多项目默认；pnpm 不受 nvm 切版本影响）
-pnpm add -D @fxri/toolkit          # 项目 devDependency（团队项目推荐，版本随仓库锁定）
-pnpm dlx @fxri/toolkit task       # 不安装临时执行
+pnpm add -g @fxri/toolkit    # 全局（个人多项目默认；pnpm 不受 nvm 切版本影响）
+pnpm add -D @fxri/toolkit    # 项目 devDependency（团队项目推荐，版本随仓库锁定）
+pnpm dlx @fxri/toolkit task  # 不安装临时执行
 ```
 
 npm / yarn / bun 用户与各方式对比见 [快速开始 · 安装](./docs/getting-started.md#安装)。

@@ -34,14 +34,14 @@
 
 ```
 .tasks/
-├── active/{YYYYMM}/{YYYYMMDD}-{用户名}-{任务简述}.md   # 实时任务，按月分目录
+├── active/{YYYYMM}/{YYYYMMDD}-{用户名}-{任务简述}.md  # 实时任务，按月分目录
 ├── archive/{YYYYMM}/{YYYYMMDD}.md                     # 已归档，按完成日期聚合、块降序
 └── conventions/                                       # 项目协作规范载体（可选）
-    ├── index.md      # 唯一入口与唯一权威（常驻读）：首行形态标记、索引表首列稳定 ID
-    ├── history.md    # 规范语义演进记录（只追加、不改旧行；归档面、按需读）
-    ├── retired.md    # 退休台账：已作废规范的冻结语义（按需创建；归档面、按需读）
-    ├── common.md     # 全端通用条文（按需创建）
-    └── <端名>.md / <分类标签>.md   # 端分册 / 按 scope 标签命中加载的分册（按需创建）
+    ├── index.md                   # 唯一入口与唯一权威（常驻读）：首行形态标记、索引表首列稳定 ID
+    ├── history.md                 # 规范语义演进记录（只追加、不改旧行；归档面、按需读）
+    ├── retired.md                 # 退休台账：已作废规范的冻结语义（按需创建；归档面、按需读）
+    ├── common.md                  # 全端通用条文（按需创建）
+    └── <端名>.md / <分类标签>.md  # 端分册 / 按 scope 标签命中加载的分册（按需创建）
 ```
 
 `conventions/` 不是任务文件：task 子命令不读其内容、check 不因**条文内容**告警，只对载体形态、入口壳与表格填充态软告警（细则见 [规范载体](./cli/convention)）。
@@ -191,7 +191,7 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 | `fxri-plan-recap` | 1.7.9 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | `fxri-release-changelog` | 1.3.12 | changesets 发版与多语言 CHANGELOG 维护 | optional |
 | `fxri-writing-skill` | 1.0.3 | 技能编写规范：统一骨架、references 拆分、安全边界，把可机械检出的规则交给 lint、版本递增交给 bump | optional |
-| `fxri-writing-docs` | 0.1.3 | 文档站写作规范：分类骨架、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏与 404 兜底、导航用工具命令校验 | optional |
+| `fxri-writing-docs` | 0.1.4 | 文档站写作规范：分类骨架、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏与 404 兜底、导航用工具命令校验、代码块内联注释对齐 | optional |
 | `fxri-code-encoding` | 1.2.12 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
 | `fxri-test-tty` | 0.1.2 | 交互测试：PTY 驱动向导与多选，含断言清单 | optional |
 
