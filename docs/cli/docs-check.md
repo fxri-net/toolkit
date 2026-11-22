@@ -139,6 +139,8 @@ toolkit docs nav init --config <path> # 指定站点配置文件
 | `docs nav check` | 1.2.0 | 字段对齐 VitePress；schema 关键字守卫 | 1.16.12 |
 | `docs nav check` | 1.3.0 | 多路径侧栏与 `locales` 多语言 | 1.16.12 |
 | `docs nav check` | 1.4.0 | 接线断言 `nav/config-not-wired` | 1.16.12 |
+| `docs nav check` | 1.4.1 | 侧栏分组允许 `collapsed`（VitePress 官方字段） | 1.16.13 |
+| `docs nav check` | 1.5.0 | 分组名长度改按显示单位计（CJK 按字、空格分词语言按词），配置键改为 `maxGroupUnits` | 1.17.7 |
 | `docs dist check` | 1.0.0 | 初版规则 | 1.16.11 |
 | `docs dist check` | 1.1.0 | sitemap 可降级；产物目录与搜索实现可配 | 1.16.12 |
 
