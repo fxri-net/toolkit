@@ -441,6 +441,38 @@ if (existsSync(join(root, "docs"))) {
   }
 }
 
+// 事实注册表（C-48）：只校验结构，不解析散文路径——与本条「生成器不得正则解析源码结构」同口径
+const CONVENTIONS_COMMON = ".tasks/conventions/common.md"
+if (existsSync(join(root, CONVENTIONS_COMMON))) {
+  const section = /## C-48\.[^\n]*\n([\s\S]*)$/.exec(read(CONVENTIONS_COMMON))?.[1]
+  if (!section) {
+    errors.push(`${CONVENTIONS_COMMON} 缺少 C-48「单一真源与事实注册表」小节`)
+  } else {
+    const factRows = []
+    for (const line of section.split("\n")) {
+      const cells = line.split("|").slice(1, -1).map((cell) => cell.trim())
+      if (cells.length === 6 && /^F-\d+$/.test(cells[0])) factRows.push(cells)
+    }
+    if (factRows.length === 0) {
+      errors.push(`${CONVENTIONS_COMMON} 的 C-48 缺少事实行（| F-<n> | … |，六列）`)
+    } else {
+      const ids = factRows.map((cells) => Number(cells[0].slice(2)))
+      if (new Set(ids).size !== ids.length) errors.push(`${CONVENTIONS_COMMON} 的事实注册表 ID 有重复`)
+      for (const [index, id] of ids.entries()) {
+        if (id !== index + 1) {
+          errors.push(`${CONVENTIONS_COMMON} 的事实注册表 ID 须从 F-1 连续递增：第 ${index + 1} 行为 F-${id}`)
+          break
+        }
+      }
+      for (const cells of factRows) {
+        if (cells[5] !== "—" && !/^B[0-3]/.test(cells[5])) {
+          errors.push(`${CONVENTIONS_COMMON} 的 ${cells[0]} 批次须以 B0–B3 开头或记「—」：${cells[5]}`)
+        }
+      }
+    }
+  }
+}
+
 // 输出：error 阻断，warn 只提示
 if (warns.length > 0) {
   console.log("规范一致性检查：")

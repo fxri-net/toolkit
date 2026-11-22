@@ -291,3 +291,49 @@ describe("规范一致性：规则块读者向措辞", () => {
     expect(result.status).toBe(0)
   })
 })
+
+// 事实注册表（C-48）：只校验结构——小节存在、ID 连续、批次合法；不解析 owner 散文路径
+function factsDoc(ids: string[], batch = "B1"): string {
+  return [
+    "# 全端通用规范（common）",
+    "",
+    "## C-48. 单一真源与事实注册表",
+    "",
+    "| ID | 事实 | owner | 手段 | 补强 | 批次 |",
+    "| --- | --- | --- | --- | --- | --- |",
+    ...ids.map((id) => `| ${id} | 示例事实 | \`src/a.ts\` | 派生 | — | ${batch} |`),
+    "",
+  ].join("\n")
+}
+
+describe("规范一致性：事实注册表结构", () => {
+  const base = { "skills/fxri-demo/references/task-spec.md": "# 任务规范\n" }
+
+  it("ID 连续、批次合法时通过", () => {
+    const root = createFixture({ ...base, ".tasks/conventions/common.md": factsDoc(["F-1", "F-2"]) })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(0)
+  })
+
+  it("ID 不连续时报 error", () => {
+    const root = createFixture({ ...base, ".tasks/conventions/common.md": factsDoc(["F-1", "F-3"]) })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("须从 F-1 连续递增")
+  })
+
+  it("缺少 C-48 小节时报 error", () => {
+    const doc = ["# 全端通用规范（common）", "", "## C-47. 其它", "", "略。", ""].join("\n")
+    const root = createFixture({ ...base, ".tasks/conventions/common.md": doc })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("缺少 C-48")
+  })
+
+  it("批次非法时报 error", () => {
+    const root = createFixture({ ...base, ".tasks/conventions/common.md": factsDoc(["F-1"], "B9") })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("批次须以 B0–B3 开头")
+  })
+})
