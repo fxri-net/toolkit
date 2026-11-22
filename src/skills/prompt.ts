@@ -152,7 +152,7 @@ export function buildGlobalTargetChoices(all: SkillTarget[], saved: string[] | u
   if (canonical) {
     choices.push({
       value: canonical.name,
-      label: `共读｜${canonical.label}`,
+      label: `共读｜${canonical.name}`,
       checked: savedSet ? savedSet.has(canonical.name) : true,
     })
   }
@@ -161,7 +161,7 @@ export function buildGlobalTargetChoices(all: SkillTarget[], saved: string[] | u
     if (!target.available && !savedSet?.has(target.name)) continue
     choices.push({
       value: target.name,
-      label: `agent｜${target.label}${target.available ? "" : "（未检测到）"}`,
+      label: `agent｜${target.label}`,
       checked: target.available ? (savedSet ? savedSet.has(target.name) : true) : false,
       disabled: target.available ? false : "本机未检测到该 agent，不凭空创建目录",
     })
@@ -170,7 +170,7 @@ export function buildGlobalTargetChoices(all: SkillTarget[], saved: string[] | u
   for (const target of all.filter((item) => item.kind === "custom" && custom.has(item.dir))) {
     choices.push({
       value: target.dir,
-      label: `自定义｜${target.dir}（一次性 --dir）`,
+      label: `自定义｜${target.dir}`,
       checked: true,
       disabled: "一次性 --dir，本次固定写入、不保存为长期选择",
     })
@@ -193,13 +193,13 @@ export function buildProjectTargetChoices(
   }))
   for (const dir of missing) {
     if (!savedSet?.has(dir)) continue
-    choices.push({ value: dir, label: `项目目录｜${dir}（不存在）`, checked: false, disabled: "目录不存在，补齐后重跑即可" })
+    choices.push({ value: dir, label: `项目目录｜${dir}`, checked: false, disabled: "目录不存在，补齐后重跑即可" })
   }
   for (const dir of extraDirs) {
     if (available.includes(dir)) continue
     choices.push({
       value: dir,
-      label: `自定义｜${dir}（一次性 --dir）`,
+      label: `自定义｜${dir}`,
       checked: true,
       disabled: "一次性 --dir，本次固定写入、不保存为长期选择",
     })
