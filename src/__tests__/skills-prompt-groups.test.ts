@@ -9,7 +9,7 @@ vi.mock("../cli-ui", async (importOriginal) => {
   return { ...actual, askCheckbox }
 })
 
-import { promptSkillSelection, type PromptSkill } from "../skills/prompt"
+import { promptSkillSelection, promptTargetSelection, type PromptSkill } from "../skills/prompt"
 
 // 分组渲染行：技能项取 name / value / disabled，分隔行取 type / separator
 interface RenderRow {
@@ -61,5 +61,32 @@ describe("promptSkillSelection 分组标题", () => {
     const picked = await promptSkillSelection(mixed, [], "skills")
     // withCore 按入参顺序收敛，core 全含
     expect(picked).toEqual(["core-b", "opt-a", "core-a"])
+  })
+})
+
+describe("promptTargetSelection 分组标题", () => {
+  const targets = [
+    { value: "canonical", group: "主目标", label: "canonical（多家 agent 共读）", checked: true },
+    { value: "claude-code", group: "agent", label: "Claude Code", checked: true },
+    { value: "extra", group: "自定义（一次性）", label: "extra", checked: true, disabled: "一次性 --dir，本次固定写入、不保存为长期选择" },
+  ]
+
+  it("多组时按组插入分隔行，标签不再带「类型｜」前缀", async () => {
+    askCheckbox.mockResolvedValue(["canonical"])
+    await promptTargetSelection(targets, "选择目标")
+    const rows = askCheckbox.mock.calls[0]?.[0].choices as RenderRow[]
+    expect(rows.filter((row) => row.type === "separator").map((row) => row.separator)).toEqual([
+      "── 主目标 ──",
+      "── agent ──",
+      "── 自定义（一次性） ──",
+    ])
+    expect(rows.filter((row) => row.value).map((row) => row.name)).toEqual(["canonical（多家 agent 共读）", "Claude Code", "extra"])
+  })
+
+  it("单组时不插入分隔行", async () => {
+    askCheckbox.mockResolvedValue([])
+    await promptTargetSelection([targets[0]!], "选择目标")
+    const rows = askCheckbox.mock.calls[0]?.[0].choices as RenderRow[]
+    expect(rows.some((row) => row.type === "separator")).toBe(false)
   })
 })

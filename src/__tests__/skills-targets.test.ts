@@ -105,20 +105,23 @@ describe("全局目标选择", () => {
     enableAgent(".claude")
     const all = resolveSkillTargets([])
     const choices = buildGlobalTargetChoices(all, ["canonical", "claude-code", "cursor"], [])
-    expect(choices[0]?.label).toBe("共读｜canonical")
+    expect(choices[0]?.group).toBe("主目标")
+    expect(choices[0]?.label).toBe("canonical（多家 agent 共读）")
     expect(choices.find((choice) => choice.value === "claude-code")?.checked).toBe(true)
     const cursor = choices.find((choice) => choice.value === "cursor")
-    // 标签不再叠「（未检测到）」，原因只由禁用文案承载
-    expect(cursor?.label).toBe("agent｜Cursor")
+    // 分组改用分隔标题，标签只留显示名；原因只由禁用文案承载
+    expect(cursor?.group).toBe("agent")
+    expect(cursor?.label).toBe("Cursor")
     expect(String(cursor?.disabled)).toContain("未检测到该 agent")
     expect(cursor?.checked).toBe(false)
   })
 
-  it("--dir 自定义目标：标签不叠「（一次性 --dir）」", () => {
+  it("--dir 自定义目标：标签只留路径，分组标注一次性", () => {
     const extra = join(home, "custom-skills")
     const choices = buildGlobalTargetChoices(resolveSkillTargets([extra]), undefined, [extra])
     const custom = choices.find((choice) => choice.value === extra)
-    expect(custom?.label).toBe(`自定义｜${extra}`)
+    expect(custom?.group).toBe("自定义（一次性）")
+    expect(custom?.label).toBe(extra)
     expect(String(custom?.disabled)).toContain("一次性 --dir")
   })
 })
@@ -164,18 +167,22 @@ describe("项目薄壳目录选择", () => {
     mkdirSync(join(project, ".trae", "skills"), { recursive: true })
     const targets = resolveProjectTargets(project)
     const choices = buildProjectTargetChoices(targets.shellDirs, [".trae/skills", ".claude/skills"], [], targets.missingDirs)
-    expect(choices.find((choice) => choice.value === ".trae/skills")?.checked).toBe(true)
+    const available = choices.find((choice) => choice.value === ".trae/skills")
+    expect(available?.group).toBe("项目目录")
+    expect(available?.checked).toBe(true)
     const missing = choices.find((choice) => choice.value === ".claude/skills")
-    // 标签不再叠「（不存在）」，原因只由禁用文案承载
-    expect(missing?.label).toBe("项目目录｜.claude/skills")
+    // 分组改用分隔标题，标签只留目录，原因只由禁用文案承载
+    expect(missing?.group).toBe("已保存（目录不存在）")
+    expect(missing?.label).toBe(".claude/skills")
     expect(String(missing?.disabled)).toContain("目录不存在")
   })
 
-  it("项目面 --dir 自定义目录：标签不叠「（一次性 --dir）」", () => {
+  it("项目面 --dir 自定义目录：标签只留路径，分组标注一次性", () => {
     const targets = resolveProjectTargets(project)
     const choices = buildProjectTargetChoices(targets.shellDirs, undefined, [".custom/skills"])
     const custom = choices.find((choice) => choice.value === ".custom/skills")
-    expect(custom?.label).toBe("自定义｜.custom/skills")
+    expect(custom?.group).toBe("自定义（一次性）")
+    expect(custom?.label).toBe(".custom/skills")
     expect(String(custom?.disabled)).toContain("一次性 --dir")
   })
 })

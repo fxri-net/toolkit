@@ -1,7 +1,7 @@
 // 技能选择：纯函数负责「已保存选择 / 显式参数 / 非 TTY 回落」，交互层只做 TTY 下的多选
 // core 技能默认选中且不可取消；optional 可切换；只有一个可选层级时跳过交互
 import type { PackageSkill, SkillsMode, SkillTarget } from "./types"
-import { BUILTIN_SOURCE } from "./types"
+import { BUILTIN_SOURCE, CANONICAL_LABEL } from "./types"
 import { LIST_PAGE_SIZE, loadPrompts } from "../prompts"
 import { askCheckbox, askConfirm } from "../cli-ui"
 
@@ -136,9 +136,10 @@ export function planSkillSelection(input: SkillSelectionInput): SkillSelectionPl
   return { names: base, invalid: [], savedInvalid, needsPrompt }
 }
 
-// 目标选择项：value 全局面为 canonical / agent name，项目面为仓库相对目录
+// 目标选择项：value 全局面为 canonical / agent name，项目面为仓库相对目录；group 用于分隔小标题
 export interface TargetChoice {
   value: string
+  group: string
   label: string
   checked: boolean
   disabled?: boolean | string
@@ -152,7 +153,8 @@ export function buildGlobalTargetChoices(all: SkillTarget[], saved: string[] | u
   if (canonical) {
     choices.push({
       value: canonical.name,
-      label: `共读｜${canonical.name}`,
+      group: "主目标",
+      label: CANONICAL_LABEL,
       checked: savedSet ? savedSet.has(canonical.name) : true,
     })
   }
@@ -161,7 +163,8 @@ export function buildGlobalTargetChoices(all: SkillTarget[], saved: string[] | u
     if (!target.available && !savedSet?.has(target.name)) continue
     choices.push({
       value: target.name,
-      label: `agent｜${target.label}`,
+      group: "agent",
+      label: target.label,
       checked: target.available ? (savedSet ? savedSet.has(target.name) : true) : false,
       disabled: target.available ? false : "本机未检测到该 agent，不凭空创建目录",
     })
@@ -170,7 +173,8 @@ export function buildGlobalTargetChoices(all: SkillTarget[], saved: string[] | u
   for (const target of all.filter((item) => item.kind === "custom" && custom.has(item.dir))) {
     choices.push({
       value: target.dir,
-      label: `自定义｜${target.dir}`,
+      group: "自定义（一次性）",
+      label: target.dir,
       checked: true,
       disabled: "一次性 --dir，本次固定写入、不保存为长期选择",
     })
@@ -188,18 +192,20 @@ export function buildProjectTargetChoices(
   const savedSet = saved ? new Set(saved) : undefined
   const choices: TargetChoice[] = available.map((dir) => ({
     value: dir,
-    label: `项目目录｜${dir}`,
+    group: "项目目录",
+    label: dir,
     checked: savedSet ? savedSet.has(dir) : true,
   }))
   for (const dir of missing) {
     if (!savedSet?.has(dir)) continue
-    choices.push({ value: dir, label: `项目目录｜${dir}`, checked: false, disabled: "目录不存在，补齐后重跑即可" })
+    choices.push({ value: dir, group: "已保存（目录不存在）", label: dir, checked: false, disabled: "目录不存在，补齐后重跑即可" })
   }
   for (const dir of extraDirs) {
     if (available.includes(dir)) continue
     choices.push({
       value: dir,
-      label: `自定义｜${dir}`,
+      group: "自定义（一次性）",
+      label: dir,
       checked: true,
       disabled: "一次性 --dir，本次固定写入、不保存为长期选择",
     })
@@ -210,16 +216,24 @@ export function buildProjectTargetChoices(
 // 目标多选：返回选中值；ESC 返回 null（调用方决定回上一步或取消），Ctrl+C 由上层统一按 130 结束
 export async function promptTargetSelection(choices: TargetChoice[], message: string): Promise<string[] | null> {
   if (choices.length === 0) return []
-  return askCheckbox({
-    message,
-    choices: choices.map((choice) => ({
+  // 按 group 聚合稳定分组；多组时插入分隔标题，单组保持扁平
+  const groups = new Map<string, TargetChoice[]>()
+  for (const choice of choices) {
+    const list = groups.get(choice.group)
+    if (list) list.push(choice)
+    else groups.set(choice.group, [choice])
+  }
+  const { Separator } = await loadPrompts()
+  const rows = [...groups].flatMap(([title, items]) => {
+    const mapped = items.map((choice) => ({
       value: choice.value,
       name: choice.label,
       checked: choice.checked,
       disabled: choice.disabled ?? false,
-    })),
-    pageSize: LIST_PAGE_SIZE,
+    }))
+    return groups.size > 1 ? [new Separator(`── ${title} ──`), ...mapped] : mapped
   })
+  return askCheckbox({ message, choices: rows, pageSize: LIST_PAGE_SIZE })
 }
 
 // 汇总确认：返回 true 继续、false 放弃、null 按 ESC 返回上一步；破坏性操作应传 defaultValue = false
