@@ -15,6 +15,9 @@ export interface MultiChoice<T extends string> extends MenuChoice<T> {
   checked?: boolean
 }
 
+// 分组标题行：Separator 实例由调用方在交互组件加载后构造，这里只做类型透传
+type SeparatorChoice = InstanceType<typeof import("@inquirer/prompts").Separator>
+
 // 菜单：back=true 时末位为「← 返回」、ESC 返回 "back"；否则末位为「退出」、ESC 返回 "exit"
 export async function runMenu<T extends string>(options: {
   message: string
@@ -54,10 +57,10 @@ export async function askSelect<T extends string>(options: {
   return "back" in answer ? null : answer.value
 }
 
-// 多选：ESC 返回 null，其余返回选中值（允许空选）
+// 多选：ESC 返回 null，其余返回选中值（允许空选）；choices 可混入 Separator 做分组标题
 export async function askCheckbox<T extends string>(options: {
   message: string
-  choices: Array<MultiChoice<T>>
+  choices: Array<MultiChoice<T> | SeparatorChoice>
   pageSize?: number
 }): Promise<T[] | null> {
   const { checkbox } = await loadPrompts()

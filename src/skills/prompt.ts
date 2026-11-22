@@ -1,14 +1,24 @@
 // 技能选择：纯函数负责「已保存选择 / 显式参数 / 非 TTY 回落」，交互层只做 TTY 下的多选
 // core 技能默认选中且不可取消；optional 可切换；只有一个可选层级时跳过交互
 import type { PackageSkill, SkillsMode, SkillTarget } from "./types"
-import { LIST_PAGE_SIZE } from "../prompts"
+import { BUILTIN_SOURCE } from "./types"
+import { LIST_PAGE_SIZE, loadPrompts } from "../prompts"
 import { askCheckbox, askConfirm } from "../cli-ui"
+
+// 交互层技能条目：来源名由收集层（SkillItem）带入，纯包内调用可省略
+export type PromptSkill = PackageSkill & { source?: string }
 
 // 单个技能在交互界面中的选项
 export interface SkillChoice {
   name: string
   tier: PackageSkill["tier"]
   selected: boolean
+}
+
+// 分组选项：title 为分隔行文案，choices 为该组技能
+export interface SkillChoiceGroup {
+  title: string
+  choices: SkillChoice[]
 }
 
 // 选择解析结果：error 非空表示显式取值全部非法，调用方应报错退出
@@ -44,15 +54,42 @@ export function optionalSkillNames(skills: PackageSkill[]): string[] {
 }
 
 // 交互选项：skills 模式 core 恒选中；package 模式全部按已保存选择回显（未保存过时全不选）
-// 展示顺序稳定分区：core 在前、optional 在后，组内保持包内名称升序
-export function buildSkillChoices(skills: PackageSkill[], saved?: string[], mode: SkillsMode = "skills"): SkillChoice[] {
+// 分组顺序：包内（core 在前、optional 在后）→ 各外部来源按来源名排序；组内按技能名升序
+export function groupSkillChoices(skills: PromptSkill[], saved?: string[], mode: SkillsMode = "skills"): SkillChoiceGroup[] {
   const savedSet = new Set(saved ?? [])
-  const ordered = [...skills.filter((skill) => skill.tier === "core"), ...skills.filter((skill) => skill.tier !== "core")]
-  return ordered.map((skill) => ({
+  const sourceOf = (skill: PromptSkill): string => skill.source?.trim() || BUILTIN_SOURCE
+  const byName = (a: PromptSkill, b: PromptSkill): number => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
+  const toChoice = (skill: PromptSkill): SkillChoice => ({
     name: skill.name,
     tier: skill.tier,
     selected: mode === "skills" ? skill.tier === "core" || savedSet.has(skill.name) : savedSet.has(skill.name),
-  }))
+  })
+
+  const builtin = skills.filter((skill) => sourceOf(skill) === BUILTIN_SOURCE)
+  const core = builtin.filter((skill) => skill.tier === "core").sort(byName)
+  const optional = builtin.filter((skill) => skill.tier !== "core").sort(byName)
+  const groups: SkillChoiceGroup[] = []
+  if (mode === "package") {
+    // package 模式 core 也可取消，合并为一个「包内」组，不写「必装」
+    const all = [...core, ...optional]
+    if (all.length > 0) groups.push({ title: "包内", choices: all.map(toChoice) })
+  } else {
+    if (core.length > 0) groups.push({ title: "包内 · 必装", choices: core.map(toChoice) })
+    if (optional.length > 0) groups.push({ title: "包内 · 可选", choices: optional.map(toChoice) })
+  }
+
+  const external = skills.filter((skill) => sourceOf(skill) !== BUILTIN_SOURCE)
+  const sourceNames = [...new Set(external.map(sourceOf))].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+  for (const source of sourceNames) {
+    const items = external.filter((skill) => sourceOf(skill) === source).sort(byName)
+    groups.push({ title: source, choices: items.map(toChoice) })
+  }
+  return groups
+}
+
+// 交互选项（扁平）：顺序与分组一致，供非交互消费与既有调用面复用
+export function buildSkillChoices(skills: PromptSkill[], saved?: string[], mode: SkillsMode = "skills"): SkillChoice[] {
+  return groupSkillChoices(skills, saved, mode).flatMap((group) => group.choices)
 }
 
 // 过滤出包内存在的技能名并去重，保持包内顺序
@@ -206,14 +243,20 @@ export async function promptUninstallSelection(choices: UninstallChoice[]): Prom
   })
 }
 
-// TTY 多选：core 默认选中且禁用切换；返回 null 表示用户取消（调用方不得写任何文件）
-export async function promptSkillSelection(skills: PackageSkill[], saved?: string[], mode: SkillsMode = "skills"): Promise<string[] | null> {
-  const choices = buildSkillChoices(skills, saved, mode).map((choice) => ({
-    value: choice.name,
-    name: mode === "skills" && choice.tier === "core" ? `${choice.name}（core）` : choice.name,
-    checked: choice.selected,
-    disabled: mode === "skills" && choice.tier === "core" ? "core（必装）" : false,
-  }))
+// TTY 多选：core 默认选中且禁用切换；分组多于一个时插入来源 / 层级分隔行；返回 null 表示用户取消（调用方不得写任何文件）
+export async function promptSkillSelection(skills: PromptSkill[], saved?: string[], mode: SkillsMode = "skills"): Promise<string[] | null> {
+  const groups = groupSkillChoices(skills, saved, mode)
+  const { Separator } = await loadPrompts()
+  const choices = groups.flatMap((group) => {
+    const items = group.choices.map((choice) => ({
+      value: choice.name,
+      name: mode === "skills" && choice.tier === "core" ? `${choice.name}（core）` : choice.name,
+      checked: choice.selected,
+      disabled: mode === "skills" && choice.tier === "core" ? "core（必装）" : false,
+    }))
+    // 单组时不加标题，保持原列表观感；多组用分隔行标注来源与层级
+    return groups.length > 1 ? [new Separator(`── ${group.title} ──`), ...items] : items
+  })
   const message = mode === "package" ? "选择要安装的技能（空格切换，回车确认；全不选即纯包管理器模式）" : "选择要安装的技能（空格切换，回车确认；core 必装）"
   const picked = await askCheckbox({ message, choices, pageSize: LIST_PAGE_SIZE })
   if (picked === null) return null

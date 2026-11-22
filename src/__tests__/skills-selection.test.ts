@@ -8,6 +8,7 @@ import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import {
   buildSkillChoices,
   coreSkillNames,
+  groupSkillChoices,
   hasGlobalSkillsInstalled,
   installSkills,
   listPackageSkills,
@@ -131,6 +132,53 @@ describe("planSkillSelection 选择集解析", () => {
       expect(cores).toEqual([...cores].sort())
       expect(optionals).toEqual([...optionals].sort())
     }
+  })
+})
+
+// 构造交互层技能条目：source 省略即包内
+function promptSkill(name: string, tier: "core" | "optional", source?: string) {
+  return { name, dir: `/tmp/${name}`, version: "1.0.0", tier, requires: [], previousNames: [], source }
+}
+
+describe("groupSkillChoices 按来源分组", () => {
+  const mixed = [
+    promptSkill("fxri-web", "optional"),
+    promptSkill("fxri-plan-task", "core"),
+    promptSkill("playbook-b", "optional", "playbook"),
+    promptSkill("playbook-a", "optional", "playbook"),
+    promptSkill("alpha-x", "optional", "alpha"),
+    promptSkill("fxri-plan-review", "core"),
+  ]
+
+  it("包内 core → 包内 optional → 外部来源按来源名排序，组内按技能名升序", () => {
+    const groups = groupSkillChoices(mixed, [], "skills")
+    expect(groups.map((group) => group.title)).toEqual(["包内 · 必装", "包内 · 可选", "alpha", "playbook"])
+    expect(groups[0]?.choices.map((choice) => choice.name)).toEqual(["fxri-plan-review", "fxri-plan-task"])
+    expect(groups[1]?.choices.map((choice) => choice.name)).toEqual(["fxri-web"])
+    expect(groups[3]?.choices.map((choice) => choice.name)).toEqual(["playbook-a", "playbook-b"])
+  })
+
+  it("package 模式合并为单一「包内」组，不写必装", () => {
+    const groups = groupSkillChoices(mixed, [], "package")
+    expect(groups.map((group) => group.title)).toEqual(["包内", "alpha", "playbook"])
+    expect(groups[0]?.choices.map((choice) => choice.name)).toEqual([
+      "fxri-plan-review",
+      "fxri-plan-task",
+      "fxri-web",
+    ])
+  })
+
+  it("选择语义不变：skills 模式 core 恒选，package 模式未保存时全不选，已保存回显", () => {
+    const skillsMode = groupSkillChoices(mixed, ["playbook-a"], "skills").flatMap((group) => group.choices)
+    expect(skillsMode.filter((choice) => choice.tier === "core").every((choice) => choice.selected)).toBe(true)
+    expect(skillsMode.find((choice) => choice.name === "playbook-a")?.selected).toBe(true)
+    expect(skillsMode.find((choice) => choice.name === "alpha-x")?.selected).toBe(false)
+
+    const packageMode = groupSkillChoices(mixed, undefined, "package").flatMap((group) => group.choices)
+    expect(packageMode.every((choice) => !choice.selected)).toBe(true)
+
+    const echoed = groupSkillChoices(mixed, ["alpha-x"], "package").flatMap((group) => group.choices)
+    expect(echoed.find((choice) => choice.name === "alpha-x")?.selected).toBe(true)
   })
 })
 
