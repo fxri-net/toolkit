@@ -4,6 +4,7 @@ import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { MAX_UTC_OFFSET_HOURS } from "../date"
 import { LIST_PAGE_SIZE } from "../prompts"
+import { DEFAULT_MAX_CHARS, DEFAULT_MAX_LINES, DEFAULT_WARN_CHARS, DEFAULT_WARN_LINES } from "../skills/lint"
 import { HELD_TERMINATE_DAYS, HELD_WARN_DAYS } from "../tasks/list"
 import { CHECK_TTL, FAIL_TTL } from "../update-check"
 import { DEFAULT_USAGE_CONFIG } from "../usage/config"
@@ -53,6 +54,16 @@ describe("文档引用的阈值与代码常量一致", () => {
     expect(doc("docs/guide.md")).toContain(`超过 ${tzHours}`)
     expect(doc("skills/fxri-plan-recap/SKILL.md")).toContain(tzHours)
     expect(doc("skills/fxri-plan-task/references/task-spec.md")).toContain(`UTC+${MAX_UTC_OFFSET_HOURS}`)
+  })
+
+  it("技能体量阈值：skill-lint 与 skill 页复述与常量一致", () => {
+    for (const file of ["docs/cli/skill-lint.md", "docs/cli/skill.md"]) {
+      const text = doc(file)
+      expect(text).toContain(`${DEFAULT_WARN_LINES} 行`)
+      expect(text).toContain(`${DEFAULT_WARN_CHARS} 字符`)
+      expect(text).toContain(`${DEFAULT_MAX_LINES} 行`)
+      expect(text).toContain(`${DEFAULT_MAX_CHARS} 字符`)
+    }
   })
 
   it("更新检查间隔与使用数据保留期", () => {

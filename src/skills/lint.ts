@@ -28,6 +28,8 @@ export const DEFAULT_MAX_LINES = 200
 export const DEFAULT_MAX_CHARS = 12000
 // 告警字符线取硬上限的 2/3（默认 8000 / 12000 同比例），随 --budget 同步缩放
 const WARN_CHARS_RATIO = 2 / 3
+// 默认告警字符线单独导出：文档一致性测试直接引用，不在别处再算一次
+export const DEFAULT_WARN_CHARS = Math.floor(DEFAULT_MAX_CHARS * WARN_CHARS_RATIO)
 // frontmatter 必填字段：顶层键与 metadata 缩进键统一由 readSkillFrontmatterValue 读取
 const REQUIRED_FIELDS = ["name", "description", "license", "version", "tier", "author", "source"]
 // 技能分层枚举：与安装侧 SkillTier 同源
@@ -588,7 +590,8 @@ export function lintSkills(options: SkillLintOptions = {}): SkillLintReport {
   const warnLines = options.warnLines ?? DEFAULT_WARN_LINES
   const maxLines = options.maxLines ?? DEFAULT_MAX_LINES
   const maxChars = options.budget ?? DEFAULT_MAX_CHARS
-  const warnChars = Math.floor(maxChars * WARN_CHARS_RATIO)
+  // 未显式给 --budget 时直接用默认常量，显式给值时按同比例缩放
+  const warnChars = options.budget === undefined ? DEFAULT_WARN_CHARS : Math.floor(maxChars * WARN_CHARS_RATIO)
   const dirs = options.dirs && options.dirs.length > 0 ? options.dirs : [skillsSourceDir()]
   const ignores = options.ignore ?? []
   const { targets, ignored } = collectTargets(dirs, ignores, issues)
