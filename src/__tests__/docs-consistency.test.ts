@@ -202,19 +202,33 @@ describe("文档一致性：站内链接目标与锚点可解析", () => {
 })
 
 // 站点导航/侧边栏链接不在 VitePress 死链检查范围内（实测改坏 nav 后 build 仍成功），
-// 故从导航数据里提取站内 link，落到 docs/ 下做存在性校验
+// 故从导航数据里提取站内 link，落到 docs/ 下做存在性校验；带 # 的锚点按目标页真实标题校验
 describe("文档一致性：站点导航与侧边栏链接目标存在", () => {
-  it("docs/site-nav.json 的站内链接都指向存在的文档页（路径打错或页面被删即失败）", () => {
-    // 只取以 / 开头的站内写法：外链（http…）与相对路径天然不参与
-    const pages = new Map<string, Set<string>>(collectMarkdown("docs", []).map((p) => [p, new Set<string>()]))
+  it("docs/site-nav.json 的站内链接都指向存在的文档页，带 # 的锚点能在目标页标题中找到（路径打错、页面被删或锚点写错即失败）", async () => {
+    const docsDir = join(process.cwd(), "docs")
+    // 锚点用 VitePress 自身渲染器产出：与站点实际 slugify 规则同源，测试内不复刻规则
+    const md = await createMarkdownRenderer(docsDir)
+    const anchorsOf = new Map<string, Set<string>>()
+    for (const page of collectMarkdown("docs", [])) {
+      const html = md.render(readFileSync(join(process.cwd(), page), "utf8"))
+      anchorsOf.set(page, new Set([...html.matchAll(/<h[1-6][^>]*\sid="([^"]*)"/g)].map((m) => m[1] as string)))
+    }
     const problems: string[] = []
+    // 只取以 / 开头的站内写法：外链（http…）与相对路径天然不参与
     for (const matched of readDoc("docs/site-nav.json").matchAll(/"link":\s*"(\/[^"]*)"/g)) {
       const href = matched[1] as string
-      const clean = (href.split("#")[0] as string).replace(/^\/+/, "")
+      const [rawTarget, anchor] = href.split("#")
+      const clean = (rawTarget as string).replace(/^\/+/, "")
       // 站点根链接（'/'）视作首页 docs/index.md
       const page = normalize(join("docs", clean === "" ? "index.md" : clean)).replace(/\\/g, "/")
-      if (!resolvePage(page, pages)) {
+      const resolved = resolvePage(page, anchorsOf)
+      if (!resolved) {
         problems.push(`docs/site-nav.json：导航链接「${href}」指向的页面 ${page} 不存在`)
+        continue
+      }
+      // 导航允许指向页内小节锚点，但锚点须真实存在：写错或标题改名后未同步导航即静默失效
+      if (anchor && !anchorsOf.get(resolved)!.has(anchor)) {
+        problems.push(`docs/site-nav.json：导航链接「${href}」的锚点在 ${resolved} 中不存在`)
       }
     }
     expect(problems).toEqual([])
