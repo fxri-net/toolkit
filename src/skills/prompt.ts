@@ -250,14 +250,14 @@ export async function promptSkillSelection(skills: PromptSkill[], saved?: string
   const choices = groups.flatMap((group) => {
     const items = group.choices.map((choice) => ({
       value: choice.name,
-      name: mode === "skills" && choice.tier === "core" ? `${choice.name}（core）` : choice.name,
+      name: choice.name,
       checked: choice.selected,
-      disabled: mode === "skills" && choice.tier === "core" ? "core（必装）" : false,
+      disabled: mode === "skills" && choice.tier === "core" ? "必装，不可取消" : false,
     }))
     // 单组时不加标题，保持原列表观感；多组用分隔行标注来源与层级
     return groups.length > 1 ? [new Separator(`── ${group.title} ──`), ...items] : items
   })
-  const message = mode === "package" ? "选择要安装的技能（空格切换，回车确认；全不选即纯包管理器模式）" : "选择要安装的技能（空格切换，回车确认；core 必装）"
+  const message = mode === "package" ? "选择要安装的技能（空格切换，回车确认；全不选即纯包管理器模式）" : "选择要安装的技能（空格切换，回车确认；必装项不可取消）"
   const picked = await askCheckbox({ message, choices, pageSize: LIST_PAGE_SIZE })
   if (picked === null) return null
   return mode === "package" ? picked : withCore(skills, picked)

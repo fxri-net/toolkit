@@ -11,10 +11,11 @@ vi.mock("../cli-ui", async (importOriginal) => {
 
 import { promptSkillSelection, type PromptSkill } from "../skills/prompt"
 
-// 分组渲染行：技能项取 name / value，分隔行取 type / separator
+// 分组渲染行：技能项取 name / value / disabled，分隔行取 type / separator
 interface RenderRow {
   name?: string
   value?: string
+  disabled?: boolean | string
   type?: string
   separator?: string
 }
@@ -40,6 +41,11 @@ describe("promptSkillSelection 分组标题", () => {
       "── playbook ──",
     ])
     expect(rows.filter((row) => row.value).map((row) => row.value)).toEqual(["core-a", "core-b", "opt-a", "ext-x"])
+    // 分组标题已标明必装，条目不再叠「（core）」后缀，只保留禁用原因
+    expect(rows.some((row) => row.name?.includes("（core）"))).toBe(false)
+    const coreRows = rows.filter((row) => row.value === "core-a" || row.value === "core-b")
+    expect(coreRows.map((row) => row.name)).toEqual(["core-a", "core-b"])
+    expect(coreRows.every((row) => row.disabled === "必装，不可取消")).toBe(true)
   })
 
   it("单组时不插入分隔行，列表保持扁平", async () => {
