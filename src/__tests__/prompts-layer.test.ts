@@ -1,6 +1,6 @@
 // 交互层：TTY 判定、非 TTY 口径、命令层收口与统一词汇
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { BACK_CHOICE, EXIT_CHOICE, INTERACTIVE_EXIT, isInteractive, requireInteractive, runInteractive } from "../prompts"
+import { BACK_CHOICE, EXIT_CHOICE, INTERACTIVE_EXIT, exitOnPromptCancel, isInteractive, requireInteractive, runInteractive } from "../prompts"
 
 // 伪 TTY：分别控制 stdin / stdout
 function setTty(stdin: boolean, stdout: boolean): void {
@@ -73,6 +73,14 @@ describe("命令层交互收口", () => {
   it("成功路径不改退出码", async () => {
     await runInteractive(async () => {})
     expect(process.exitCode).toBe(0)
+  })
+
+  it("命令自身的 catch 可用 exitOnPromptCancel 把取消收口为 130", () => {
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never)
+    expect(exitOnPromptCancel(cancelError())).toBe(true)
+    expect(exit).toHaveBeenCalledWith(130)
+    // 普通异常不由它处理，交回调用方按业务失败提示
+    expect(exitOnPromptCancel(new Error("磁盘写入失败"))).toBe(false)
   })
 })
 

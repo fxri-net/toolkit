@@ -3,7 +3,7 @@ import { join } from "node:path"
 import { Option, type Command } from "commander"
 import { getHomeDir } from "../config"
 import { assertJsonFormat, jsonEnvelope } from "../json-output"
-import { exitWithCancel, isInteractive, runInteractive } from "../prompts"
+import { exitOnPromptCancel, exitWithCancel, isInteractive, runInteractive } from "../prompts"
 import { assertChoice } from "../cli-ui"
 import { runScopeMount } from "../scope/wizard"
 import { analyzeSkillLinkage, formatLinkageHints, type SkillLinkageReport } from "../scope/linkage"
@@ -1191,6 +1191,8 @@ export function registerSkillsCommands(program: Command): void {
         if (options.format === "json") printJson(jsonEnvelope("skill install", true, { dryRun, scope: scope.choice, global, project }))
         else printInstallReports(scope, global, project, dryRun)
       } catch (e) {
+        // 交互中按 Ctrl+C 属取消而非失败：统一按 130 结束
+        if (exitOnPromptCancel(e)) return
         console.error(`⚠️ 安装失败：${(e as Error).message}`)
         process.exitCode = 1
       }
@@ -1399,6 +1401,8 @@ export function registerSkillsCommands(program: Command): void {
         if (options.format === "json") printJson(jsonEnvelope("skill uninstall", true, { dryRun, scope: scope.choice, global, project }))
         else printRemoveReports(scope, global, project, dryRun)
       } catch (e) {
+        // 交互中按 Ctrl+C 属取消而非失败：统一按 130 结束
+        if (exitOnPromptCancel(e)) return
         console.error(`⚠️ 卸载失败：${(e as Error).message}`)
         process.exitCode = 1
       }
@@ -1554,6 +1558,8 @@ export function registerSkillsCommands(program: Command): void {
         if (options.json || options.format === "json") printJson(jsonEnvelope("skill bump", true, { dryRun: Boolean(options.dryRun), skills: results }))
         else for (const item of results) console.log(`${options.dryRun ? "[预演] " : ""}${item.name}：${item.from} → ${item.to}（${item.file}）`)
       } catch (e) {
+        // 交互确认中按 Ctrl+C 属取消而非失败：统一按 130 结束
+        if (exitOnPromptCancel(e)) return
         console.error(`⚠️ 递增失败：${(e as Error).message}`)
         process.exitCode = 1
       }
