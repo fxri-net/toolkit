@@ -37,22 +37,19 @@ toolkit status --format json   # 统一信封输出到 stdout（诊断仍走 std
 下一步：运行 toolkit init 创建任务区、规范载体与技能入口层
 ```
 
-该现场退出码仍为 `0`（含 `--check`），初始化后才会进入逐域汇总。
+该现场仍按成功退出（含 `--check`），初始化后才会进入逐域汇总。
 
 ## 参数
 
 | 参数 | 说明 |
 | --- | --- |
-| `--check` | 存在 error 级问题时退出 `1`；warn / info 不影响退出码（与 `task check` 同口径） |
-| `--format <format>` | 仅支持 `json`；非法值报错并退出 `1`，不做聚合 |
+| `--check` | 存在 error 级问题时按失败退出；warn / info 不影响退出码（与 `task check` 同口径） |
+| `--format <format>` | 仅支持 `json`；非法值报错并按失败退出，不做聚合 |
 
 ## 退出码
 
-| 场景 | 退出码 |
-| --- | --- |
-| 默认模式（只汇总） | `0`（未初始化也是 `0`） |
-| `--check` 且存在 error 级问题 | `1` |
-| `--format` 非法 | `1` |
+与全工具口径一致：默认只汇总时成功退出；`--check` 存在 error 级问题、`--format` 取值非法均按失败退出。
+数值与含义见[退出码与解析错误](./exit-codes)。
 
 ## JSON 契约
 

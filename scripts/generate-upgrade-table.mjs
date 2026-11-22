@@ -9,14 +9,48 @@ const REGISTRY = "src/command-registry.ts"
 // 已移除命令无别名，单独放在升级页置顶表，不混入「已改名」生成段
 const REMOVED = new Set(["usage rule"])
 
-// 从注册表源码提取旧路径与弃用目标：每条目一行，按行解析比整体求值更稳
-function readMigrationRows() {
+// 从注册表源码提取旧路径与弃用目标：每条目一行，按行解析比整体求值更稳。
+// 不变量：解析条数（含 REMOVED 跳过项）必须等于源码中 deprecatesTo: 的出现次数——换行或调序时显式报错而非静默少行
+function readMigrationRows(text = readFileSync(REGISTRY, "utf8")) {
   const rows = []
-  for (const line of readFileSync(REGISTRY, "utf8").split(/\r?\n/)) {
+  let skipped = 0
+  for (const line of text.split(/\r?\n/)) {
     const matched = /^\s*\{ path: "([^"]+)".*deprecatesTo: "([^"]+)".*\},?\s*$/.exec(line)
-    if (matched && !REMOVED.has(matched[1])) rows.push([matched[1], matched[2]])
+    if (!matched) continue
+    if (REMOVED.has(matched[1])) {
+      skipped += 1
+      continue
+    }
+    rows.push([matched[1], matched[2]])
+  }
+  const declared = [...text.matchAll(/deprecatesTo:/g)].length
+  if (rows.length + skipped !== declared) {
+    throw new Error(`解析到 ${rows.length + skipped} 条迁移（含跳过 ${skipped}），但注册表出现 ${declared} 处 deprecatesTo:，结构可能已变化`)
   }
   return rows
+}
+
+// 假现场：单行写法可解析；改成多行后不变量必须报错
+function selfTest() {
+  const single = '  { path: "tasks", description: "示例", stage: "current", deprecatesTo: "task" },\n'
+  const reformatted = ['  {', '    path: "tasks",', '    deprecatesTo: "task",', '  },'].join("\n")
+  const parsed = readMigrationRows(single)
+  let detected = false
+  try {
+    readMigrationRows(reformatted)
+  } catch {
+    detected = true
+  }
+  if (parsed.length !== 1 || parsed[0][0] !== "tasks" || !detected) {
+    console.error(`⚠️ 命令对照生成器自检失败：解析 ${parsed.length} 条（期望 1），结构漂移检出 ${detected}`)
+    process.exit(1)
+  }
+  console.log("命令对照生成器自检通过：单行解析与结构漂移拦截正常")
+}
+
+if (process.argv.includes("--self-test")) {
+  selfTest()
+  process.exit(0)
 }
 
 // 单元格转义：弃用目标里可能出现 `|`（如 config get|set），须转义
@@ -41,7 +75,14 @@ function main() {
     process.exitCode = 1
     return
   }
-  const body = renderTable(readMigrationRows())
+  let body
+  try {
+    body = renderTable(readMigrationRows())
+  } catch (error) {
+    console.error(`⚠️ ${error instanceof Error ? error.message : String(error)}`)
+    process.exitCode = 1
+    return
+  }
   const next = `${page.slice(0, start + START.length)}\n${body}\n${page.slice(end)}`
   if (check) {
     if (next !== page) {

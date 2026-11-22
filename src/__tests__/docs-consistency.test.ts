@@ -32,8 +32,10 @@ describe("文档一致性：脱敏内置规则清单", () => {
     expect(docRuleNames("docs/config/redact.md").sort()).toEqual([...listBuiltinRuleNames()].sort())
   })
 
-  it("docs/guide.md 列举的规则集合与代码内置规则一致", () => {
-    expect(docRuleNames("docs/guide.md").sort()).toEqual([...listBuiltinRuleNames()].sort())
+  it("docs/guide.md 不再重复规则清单，改为指向配置参考", () => {
+    const text = readDoc("docs/guide.md")
+    expect(text, "docs/guide.md 未指向脱敏规则单一真源").toContain("配置参考 · 隐私脱敏")
+    expect(text.includes("内置规则："), "docs/guide.md 仍在复述规则清单").toBe(false)
   })
 })
 

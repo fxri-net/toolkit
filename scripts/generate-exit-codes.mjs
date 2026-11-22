@@ -49,6 +49,21 @@ export function applyBlock(text, block) {
   return text.slice(0, start) + block + text.slice(end + END.length)
 }
 
+/**
+ * 解析并校验不变量：解析出的行数必须等于源码中 `code:` 的出现次数。
+ * 正则依赖对象的属性顺序与单行写法；结构变化时解析会静默少行，这里把它变成显式报错。
+ * @param {string} text src/exit-codes.ts 内容
+ * @return {{code: string, name: string, meaning: string, scene: string}[]} 行数据
+ */
+export function parseRowsStrict(text) {
+  const rows = parseRows(text)
+  const declared = [...text.matchAll(/\bcode:\s*\d+/g)].length
+  if (rows.length !== declared) {
+    throw new Error(`解析到 ${rows.length} 行，但源码出现 ${declared} 处 code:，EXIT_CODE_TABLE 结构可能已变化`)
+  }
+  return rows
+}
+
 // 假现场：表格渲染、替换与漂移判定都在内存中断言，不写盘
 function selfTest() {
   const rows = [
@@ -71,7 +86,19 @@ function selfTest() {
     console.error("⚠️ 退出码生成器自检失败：内容变化未被判定为漂移")
     process.exit(1)
   }
-  console.log("退出码生成器自检通过：渲染、替换与漂移判定正常")
+  // 结构漂移：属性顺序变化后正则不再命中，严格解析必须报错而不是少行
+  const reordered = 'const table = [\n  { name: "OK", code: 0, meaning: "", scene: "" },\n]'
+  let detected = false
+  try {
+    parseRowsStrict(reordered)
+  } catch {
+    detected = true
+  }
+  if (!detected) {
+    console.error("⚠️ 退出码生成器自检失败：结构变化未被解析不变量拦截")
+    process.exit(1)
+  }
+  console.log("退出码生成器自检通过：渲染、替换、漂移判定与解析不变量正常")
 }
 
 if (process.argv.includes("--self-test")) {
@@ -79,7 +106,13 @@ if (process.argv.includes("--self-test")) {
   process.exit(0)
 }
 
-const rows = parseRows(readFileSync(sourceFile, "utf8"))
+let rows
+try {
+  rows = parseRowsStrict(readFileSync(sourceFile, "utf8"))
+} catch (error) {
+  console.error(`⚠️ ${error instanceof Error ? error.message : String(error)}`)
+  process.exit(1)
+}
 if (rows.length === 0) {
   console.error("⚠️ 未从 src/exit-codes.ts 解析到任何退出码行，检查 EXIT_CODE_TABLE 结构")
   process.exit(1)

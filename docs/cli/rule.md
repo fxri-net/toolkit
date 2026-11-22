@@ -8,7 +8,7 @@ title: 全局规则（rule）
 
 ## 用途与场景
 
-- 全局规则会整段进入 Agent 上下文，可按需组合 `core` / `output` / `workflow` / `personal` / `env` / `commit` / `usage` 七个模块。
+- 全局规则会整段进入 Agent 上下文，可按需组合模块（清单见[全局规则索引](../rules/)）。
 - 预设：`minimal`（仅 core）、`recommended`（core + output + workflow，默认）、
   `complete`（自用全篇：推荐 + 个人偏好 + env，等于文档站 AI 全局规则整篇加个人偏好规则）、`full`（全部）。
 - 组合更新时间取所选模块的**最新锚点**；选择与顺序可缓存在 `~/.toolkit/cache/rules-selection.json`。

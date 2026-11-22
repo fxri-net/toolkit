@@ -82,7 +82,7 @@ toolkit scope
 | [使用统计](./docs/usage/index.md) | 启用后可查技能调用次数、触发词与采集边界 |
 | [更新日志](./docs/changelog.md) | 查各版本变更内容 |
 | [常见问题](./docs/faq.md) | 遇到问题先来这里找 |
-| [全局规则索引](./docs/rules/index.md) | 规则组合器：7 个模块自由勾选、排序与一键复制 |
+| [全局规则索引](./docs/rules/index.md) | 规则组合器：模块自由勾选、排序与一键复制 |
 | [推荐 AI 全局规则](./docs/rules/ai.md) | 想让 AI 助手按本工具的最佳实践协作 |
 | [个人偏好规则](./docs/rules/personal.md) | 想把收尾提交等个人偏好单独配置 |
 | [推荐提交信息规则](./docs/rules/commit.md) | 想让 AI 按统一格式写 git 提交信息 |
@@ -137,8 +137,8 @@ npm / yarn / bun 用户与各方式对比见 [快速开始 · 安装](./docs/get
 
 ## 🔒 隐私脱敏
 
-落盘记录默认脱敏敏感信息：内置邮箱、手机号、身份证、IPv4、内网 URL、JWT、AWS / GitHub / OpenAI / Slack 密钥等 13 类规则，
-支持自定义规则与禁用。开关三档（CLI 参数 > 环境变量 > 配置文件），详见 [配置参考](./docs/config.md)。
+落盘记录默认按内置规则脱敏（敏感信息不落盘），支持自定义规则与禁用，规则清单见[配置参考 · 隐私脱敏](./docs/config/redact.md)。
+开关三档（CLI 参数 > 环境变量 > 配置文件），详见 [配置参考](./docs/config.md)。
 
 ## ⚙️ 环境要求
 

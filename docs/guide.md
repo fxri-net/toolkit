@@ -186,10 +186,10 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 
 | 技能 | 版本 | 用途 | 层级 |
 | --- | --- | --- | --- |
-| `fxri-plan-task` | 1.12.18 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
+| `fxri-plan-task` | 1.12.19 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
 | `fxri-plan-review` | 1.0.17 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
 | `fxri-plan-recap` | 1.7.8 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
-| `fxri-release-changelog` | 1.3.11 | changesets 发版与多语言 CHANGELOG 维护 | optional |
+| `fxri-release-changelog` | 1.3.12 | changesets 发版与多语言 CHANGELOG 维护 | optional |
 | `fxri-writing-skill` | 1.0.2 | 技能编写规范：统一骨架、references 拆分、安全边界，把可机械检出的规则交给 lint、版本递增交给 bump | optional |
 | `fxri-writing-docs` | 0.1.2 | 文档站写作规范：分类骨架、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏与 404 兜底、导航用工具命令校验 | optional |
 | `fxri-code-encoding` | 1.2.12 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
@@ -251,8 +251,8 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 
 落盘记录自由文本（任务正文 / 标题、CHANGELOG 条目）时默认脱敏，`owner` 等结构化字段不脱敏；作用范围是**终端展示、导出文件与归档落盘**，`.tasks/active/` 源文件保持原样。
 
-内置规则：`内网URL`（含端口）、`邮箱`、`JWT`、`AWS密钥`、`GitHub密钥`、`GitHub细粒度密钥`、`OpenAI密钥`、`OpenAI项目密钥`、
-`Slack密钥`、`Slack应用令牌`、`手机号`、`身份证`、`IPv4`。密钥类规则带长度门槛，避免误伤正常文本。
+内置规则覆盖常见敏感信息（联系方式、证件、网络地址与各平台密钥等）；密钥类规则带长度门槛，避免误伤正常文本。
+完整清单与自定义方式见[配置参考 · 隐私脱敏](./config/redact)。
 
 开关为双向三档（CLI `--redact/--no-redact` > 环境变量 `FX_TOOLKIT_REDACT` > 配置 `redact.enabled` > 默认开启）。
 自定义规则与本地层「整段替换非追加」的合并语义见[配置参考 · 隐私脱敏](./config/redact)。

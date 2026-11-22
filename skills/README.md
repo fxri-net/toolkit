@@ -9,10 +9,10 @@ Cursor、Codex、Gemini CLI 等兼容 agent 按需加载。
 
 | 技能 | 版本 | 用途 | 层级 |
 | --- | --- | --- | --- |
-| [fxri-plan-task](./fxri-plan-task/SKILL.md) | 1.12.18 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
+| [fxri-plan-task](./fxri-plan-task/SKILL.md) | 1.12.19 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
 | [fxri-plan-review](./fxri-plan-review/SKILL.md) | 1.0.17 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
 | [fxri-plan-recap](./fxri-plan-recap/SKILL.md) | 1.7.8 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
-| [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.3.11 | changesets 发版与多语言 CHANGELOG 维护 | optional |
+| [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.3.12 | changesets 发版与多语言 CHANGELOG 维护 | optional |
 | [fxri-writing-skill](./fxri-writing-skill/SKILL.md) | 1.0.2 | 技能编写规范：统一骨架、references 拆分、安全边界，把可机械检出的规则交给 lint、版本递增交给 bump | optional |
 | [fxri-writing-docs](./fxri-writing-docs/SKILL.md) | 0.1.2 | 文档站写作规范：分类骨架、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏与 404 兜底、导航用工具命令校验 | optional |
 | [fxri-code-encoding](./fxri-code-encoding/SKILL.md) | 1.2.12 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
@@ -153,7 +153,7 @@ pnpm dlx skills add fxri-toolkit --global       # npm 用户把 pnpm dlx 换成 
 - [ ] metadata.type / metadata.scope / metadata.triggers 已声明（type ∈ profile / practice / template，triggers 为 3–6 个短触发词）
 - [ ] description：≤1024 字符，含做什么 + 何时用 + 触发意图与示例（示例非穷举）+ 反向排除
 - [ ] metadata.version：内容变更即递增，且与正文首部版本声明一致
-- [ ] 主干 SKILL.md < 200 行且 ≤ 8,000 字符，细节下沉 `references/`，可复制资产放 `assets/`
+- [ ] 主干 SKILL.md 控制在篇幅告警线内（默认档见 `toolkit skill lint --help`），细节下沉 `references/`，可复制资产放 `assets/`
 - [ ] 引用的 references / assets 相对路径有效
 - [ ] 技能用途描述已同步 docs/guide 技能表与本文「技能列表」表（含版本标注）
 - [ ] 涉规范载体（convention）的改动：

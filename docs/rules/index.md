@@ -8,7 +8,7 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 
 # 全局规则
 
-> 四份规则模板可按需整篇复制；也可以在下方的组合器里自由勾选 7 个模块、调整顺序并一键复制。
+> 整篇规则可直接复制；也可以在下方的组合器里自由勾选模块、调整顺序并一键复制。
 
 ## 用途与场景
 
@@ -41,7 +41,7 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 - 文档站记忆写在 `localStorage`（键 `fxri-toolkit:rules:v1`），仅当前浏览器；命令行记忆写在 `~/.toolkit/cache/rules-selection.json`，两端不自动同步。
 - 「恢复默认」会清除本机记忆；禁用本地存储时组合器仍可使用，只是不保留选择。
 
-## 三篇整篇规则
+## 整篇规则
 
 | 规则 | 适用对象 | 复制方式 |
 | --- | --- | --- |

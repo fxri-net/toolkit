@@ -4,10 +4,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { userInfo } from "node:os"
 import { basename, join } from "node:path"
 import { skillsPackageDir } from "../skills/source/package"
-import { ALL_STATUSES, type TaskStatus } from "./types"
-
-// 归档态：进入后必须补 completed，离开时清空
-const TERMINAL_STATUSES: readonly TaskStatus[] = ["已完成", "已放弃"]
+import { ALL_STATUSES, DONE_STATUSES, type TaskStatus } from "./types"
 
 // 本机默认负责人：优先 git user.name，失败回落系统用户名
 export function defaultOwner(): string {
@@ -216,7 +213,7 @@ export function updateTask(input: UpdateTaskInput): { file: string; content: str
   // 校验状态并处理 completed 与终态约束
   if (input.status !== undefined) {
     if (!ALL_STATUSES.includes(input.status as TaskStatus)) throw new Error(`非法状态：${input.status}`)
-    const terminal = TERMINAL_STATUSES.includes(input.status as TaskStatus)
+    const terminal = DONE_STATUSES.includes(input.status as TaskStatus)
     if (terminal && input.completed === undefined) {
       const existing = lines.find((line) => line.startsWith("completed:"))?.slice("completed:".length).trim().replace(/^['"]|['"]$/g, "")
       if (!existing) throw new Error(`状态改为「${input.status}」时须提供 --completed YYYY-MM-DD HH:mm`)
