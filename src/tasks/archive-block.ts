@@ -15,7 +15,7 @@ export interface ArchiveBlockInfo {
 }
 
 // 完成时间识别正则：带时分（YYYY-MM-DD HH:mm）与前缀补齐秒；纯日期（YYYY-MM-DD）
-const COMPLETED_DT_RE = /^(\d{4})-(\d{1,2})-(\d{1,2})[T\s](\d{1,2}):(\d{2})(?::\d{2})?$/
+const COMPLETED_DT_RE = /^(\d{4})-(\d{1,2})-(\d{1,2})[T\s](\d{1,2}):(\d{1,2})(?::\d{2})?$/
 const COMPLETED_DATE_RE = /^(\d{4})-(\d{1,2})-(\d{1,2})$/
 
 // 判断完成时间是否为可识别的规整时间：仅日期或带时分均为可识别，其余为自由文本一律不可识别；

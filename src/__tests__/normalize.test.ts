@@ -21,6 +21,9 @@ describe("normalizeCompleted", () => {
     expect(normalizeCompleted("2026-09-03")).toBe("2026-09-03 00:00")
     expect(normalizeCompleted("2026-09-03T8:05:22")).toBe("2026-09-03 08:05")
     expect(normalizeCompleted("2026-09-03 08:05")).toBe("2026-09-03 08:05")
+    // 单数字分钟与单数字小时同样补零（手工编辑归档时的常见写法）
+    expect(normalizeCompleted("2026-1-2 3:4")).toBe("2026-01-02 03:04")
+    expect(normalizeCompleted("2026-09-03T8:5:22")).toBe("2026-09-03 08:05")
     expect(normalizeCompleted("乱写的")).toBe("乱写的")
   })
 })
