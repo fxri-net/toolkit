@@ -1793,14 +1793,15 @@ export function registerSkillsCommands(program: Command): void {
           }
           return
         }
-        if (dryRun) {
-          console.log(`[预演] 将注销来源登记：${name}（产物与状态保留）`)
-          return
-        }
+        // 预演与实跑同口径：先确认来源确实已登记，避免预览承诺实际不会发生的动作
         const config = readSkillsInstallConfig()
         if (!config.sources?.[name]) {
           console.error(`⚠️ 未找到已登记来源：${name}`)
           process.exitCode = 1
+          return
+        }
+        if (dryRun) {
+          console.log(`[预演] 将注销来源登记：${name}（产物与状态保留）`)
           return
         }
         const nextSources = { ...config.sources }

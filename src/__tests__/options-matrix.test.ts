@@ -1068,3 +1068,12 @@ describe("task 写确认的 TTY 判定", () => {
     expect(r.err.join("\n")).toContain("--yes")
   })
 })
+
+// 来源注销的预演与实跑同口径：未登记来源不能被预览成「将注销」
+describe("skill source remove 预演校验", () => {
+  it("未登记来源的 dry-run 与实跑一致：退出 1", async () => {
+    const r = await runCli(["skill", "source", "remove", "fxri-not-exists", "--dry-run"])
+    expect(r.code).toBe(1)
+    expect(r.err.join("\n")).toContain("未找到已登记来源")
+  })
+})
