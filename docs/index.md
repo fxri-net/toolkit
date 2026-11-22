@@ -1,12 +1,12 @@
 ---
 layout: home
 # 首页无正文 h1，显式给 title 避免浏览器标签出现「方弦工具集 - 方弦工具集」重复
-title: 任务管理与配套 AI 协作工具
+title: 把 AI 协作沉淀为工程资产
 
 hero:
   name: 方弦工具集
-  text: 任务管理与配套 AI 协作工具
-  tagline: 专为多人 + AI 跨项目协作打造。把方案确认、任务校验、归档链路沉淀为仓库内可检索、可校验的文件，顺手解决发版 CHANGELOG 的多语言维护问题。
+  text: 把 AI 协作沉淀为工程资产
+  tagline: 专为多人 + AI 跨项目协作打造。方案与交付离开对话、进入仓库：可校验、可分发、可迁移。
   actions:
     - theme: brand
       text: 30 秒上手
@@ -20,37 +20,37 @@ hero:
 
 features:
   - icon: ✅
-    title: 方案落盘即约束
+    title: 协作 · 方案落盘即约束
     details: 方案确认完就丢、AI 会话一关什么都不剩？任务文件落在仓库 .tasks/，toolkit task check 校验、task archive 归档，决策不再随会话消失。
   - icon: 📐
-    title: 规范载体可校验
+    title: 协作 · 规范载体可校验
     details: 任务里提炼的规范收进 .tasks/conventions/：v3 三分区、稳定 ID 索引、结构升级与表格 / 索引单元格归一，规范可检索也可体检。
   - icon: 🔒
-    title: 多人协作不互踩
+    title: 协作 · 多人协作不互踩
     details: 任务唯一键 + 先查后写约定 + 归档排他锁，多人（含多个 AI）同时维护任务不会互相覆盖。
   - icon: 📊
-    title: 全目录总览与统计
+    title: 协作 · 全目录总览与统计
     details: 一条命令扫 .tasks/ 全目录，按状态/负责人/范围/日期过滤，可导出 CSV / XLSX / JSON。
-  - icon: 🌍
-    title: 多语言 CHANGELOG
-    details: 封装 changesets，条目按变更类型（新增/修复/优化…）语义分组，分组标题不再被英文格式头绑架，任意语言可配置扩展。
-  - icon: 🧭
-    title: 全局规则可组合
-    details: 按模块组合、排序与复制 AI 全局规则（角色、输出、工作流、提交、使用统计等），预设与缓存随包分发，升级后重新组合即同步。
   - icon: 🧩
-    title: AI 技能包
-    details: 不装本工具，也能让 AI 按同一套规范干活——零依赖 Agent Skills，各 agent 全局技能目录通用；装了 CLI 可 `toolkit skill install` 一键分发，与 CLI 同一发布批次。
+    title: 分发 · AI 技能包
+    details: 不装本工具，也能让 AI 按同一套规范干活——零依赖 Agent Skills，各 agent 全局技能目录通用；装了 CLI 可 toolkit skill install 一键分发，与 CLI 同一发布批次。
+  - icon: 🧭
+    title: 分发 · 全局规则可组合
+    details: 按模块组合、排序与复制 AI 全局规则（角色、输出、工作流、提交、使用统计等），预设与缓存随包分发，升级后重新组合即同步。
   - icon: 🎯
-    title: 作用域按目录生效
+    title: 分发 · 作用域按目录生效
     details: 默认全域生效；只想在公司项目生效、个人项目不被插入时，用 toolkit scope 设白名单 / 黑名单、标记、git 远端或技能矩阵策略，必要时 skills mount 做项目面安装。
   - icon: 📈
-    title: 技能使用有据可查
+    title: 分发 · 技能使用有据可查
     details: 统计技能在哪些会话、被哪句话触发、用了多少次；默认关闭、不联网、数据只留本机。
+  - icon: 🌍
+    title: 治理 · 多语言 CHANGELOG
+    details: 封装 changesets，条目按变更类型（新增/修复/优化…）语义分组，分组标题不再被英文格式头绑架，任意语言可配置扩展。
   - icon: 🛡️
-    title: 隐私脱敏
+    title: 治理 · 隐私脱敏
     details: 任务正文与 CHANGELOG 落盘前自动掩码邮箱、手机号、密钥等敏感信息，多人协作不泄密。
   - icon: 🌐
-    title: 文档站工程化
+    title: 治理 · 文档站工程化
     details: 主题、导航与构建产物按随包规则校验，多仓文档站样式与导航漂移一条命令发现。
 ---
 

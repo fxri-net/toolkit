@@ -14,12 +14,14 @@
 > 问题反馈走 [GitHub Issues](https://github.com/fxri-net/toolkit/issues)，
 > 或 [Gitee Issues](https://gitee.com/fxri/toolkit/issues)。
 
-专为**多人 + AI 跨项目协作**打造：任务管理与配套的规范沉淀、规则、技能分发为主，附带多语言 CHANGELOG 与文档站。
+专为**多人 + AI 跨项目协作**打造：把对话里的方案与交付，沉淀为仓库内可校验、可分发、可迁移的工程资产。
 
 AI 参与开发后，方案与决策散落在对话记录里，会话一关什么都不剩；任务记录零散，谁在做、做到哪，无从查起；
 发版 CHANGELOG 还要人肉维护多语言。本工具把这条链路沉淀为**仓库内可检索、可校验、可归档的文件**——人离开会话，记忆留在仓库里。
 
-除任务主线外，CLI 还提供规范载体（convention）、技能分发（skill）、作用域（scope）、规则组合（rule）、文档站校验（docs）与使用统计（usage）。
+三层能力覆盖全链路：**协作过程可校验**（任务、规范载体、整体状态）、**能力可分发**（技能包、全局规则、作用域、使用统计）、
+**交付可治理**（多语言 CHANGELOG、文档站校验、隐私脱敏、升级迁移）。落到命令域：协作侧 `task` / `convention` / `status`，
+分发侧 `skill` / `rule` / `scope` / `usage`，交付侧 `release` / `docs`，隐私脱敏与版本迁移贯穿其中。
 
 - **零依赖 AI 技能包（skills）**：方案落盘、会话收尾、发版 CHANGELOG 等工作流沉淀为 Agent Skills，不绑定任何 AI 工具；skills 可以独立工作，
   CLI 是可选加速——推荐都装，体验最完整（[什么关系？](./docs/faq.md#工具和-skills-都得装吗)）
@@ -56,17 +58,17 @@ toolkit scope
 | 能力 | 适用场景 | 文档 |
 | --- | --- | --- |
 | 任务管理（task） | 方案落盘、总览过滤、校验归档、导入导出 CSV / XLSX / JSON | [CLI 参考](./docs/cli.md) · [任务文件规范](./docs/guide.md#任务文件规范) |
-| 整体状态（status） | 一条命令汇总任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项；`--check` 存在 error 时退出 1，可作自查门禁 | [CLI 参考](./docs/cli/status.md) |
-| 升级迁移（upgrade） | v1 工程一键迁移：三层配置、工程脚本、技能旧名与规范载体；支持预演、复检、备份恢复 | [升级迁移](./docs/cli/upgrade.md) |
-| 多语言 CHANGELOG（release） | 封装 changesets 发版、分组标题本地化 | [CLI 参考](./docs/cli/release.md) |
 | 协作规范载体（convention） | 把任务里提炼的规范收进 `.tasks/conventions/`，成为可检索、可校验的项目规范源；支持结构升级、表格与索引单元格形态归一、只读体检 | [CLI 参考](./docs/cli.md) · [完整攻略](./docs/guide.md#conventions-规范沉淀地) |
+| 整体状态（status） | 一条命令汇总任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项；`--check` 存在 error 时退出 1，可作自查门禁 | [CLI 参考](./docs/cli/status.md) |
 | AI 技能包（skill） | 不装本工具也能让 AI 按同一套规范干活；装了可一键分发技能（`--scope project` 随仓库入库、队友 clone 即用） | [完整攻略](./docs/guide.md#ai-技能包-skills) · [常见问题](./docs/faq.md#工具和-skills-都得装吗) |
-| 作用域（scope） | 按项目 / 目录决定技能与规则是否生效：策略规则、白名单 / 黑名单、标记与 git 远端；默认全域；技能矩阵与内容闸门联动 | [CLI 参考](./docs/cli/scope.md) · [配置参考](./docs/config/activation.md) |
 | 全局规则（rule） | 按模块组合、排序与复制 AI 全局规则（含提交信息、技能使用情况等模块），预设与缓存随包分发 | [CLI 参考](./docs/cli/rule.md) |
+| 作用域（scope） | 按项目 / 目录决定技能与规则是否生效：策略规则、白名单 / 黑名单、标记与 git 远端；默认全域；技能矩阵与内容闸门联动 | [CLI 参考](./docs/cli/scope.md) · [配置参考](./docs/config/activation.md) |
 | 技能使用统计（usage） | 统计技能调用次数、触发词与结果；默认关闭、不联网、数据只留本机 | [CLI 参考](./docs/cli/usage.md) · [使用统计](./docs/usage/index.md) |
+| 多语言 CHANGELOG（release） | 封装 changesets 发版、分组标题本地化 | [CLI 参考](./docs/cli/release.md) |
 | 文档站工具（docs） | 校验主题一致性、导航结构与构建产物，规则随包分发、跨仓样式漂移可发现 | [CLI 参考](./docs/cli/docs-theme.md) · [docs 校验](./docs/cli/docs-check.md) |
 | 隐私脱敏 | 落盘前自动掩码邮箱、手机号、密钥等 | [配置参考](./docs/config.md) |
 | 配置文件 | 三层（全局 / 项目 / 本地）定制脱敏、告警、导入列映射、语言表；`toolkit config status` 只读查看生效情况与来源 | [CLI 参考](./docs/cli/config.md) · [配置参考](./docs/config.md) |
+| 升级迁移（upgrade） | v1 工程一键迁移：三层配置、工程脚本、技能旧名与规范载体；支持预演、复检、备份恢复 | [升级迁移](./docs/cli/upgrade.md) |
 | Node API | 把上述能力嵌进脚本或平台 | [API 参考](./docs/api.md) |
 
 ## 📚 文档

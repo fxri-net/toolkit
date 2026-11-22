@@ -73,4 +73,4 @@ toolkit upgrade --restore latest   # 从最近一次备份恢复
 
 ## 相关页面
 
-- [v2 升级说明](../upgrade-v2) · [CLI 参考](../cli) · [退出码](./exit-codes)
+- [v1 → v2 升级](../upgrade-v2) · [CLI 参考](../cli) · [退出码](./exit-codes)

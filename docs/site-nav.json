@@ -31,7 +31,6 @@
       "text": "帮助",
       "items": [
         { "text": "常见问题", "link": "/faq" },
-        { "text": "v2 升级说明", "link": "/upgrade-v2" },
         { "text": "更新日志", "link": "/changelog" }
       ]
     }
@@ -98,6 +97,12 @@
       ]
     },
     {
+      "text": "升级",
+      "items": [
+        { "text": "v1 → v2 升级", "link": "/upgrade-v2" }
+      ]
+    },
+    {
       "text": "使用统计",
       "items": [
         { "text": "概览", "link": "/usage/" },
@@ -131,8 +136,7 @@
             { "text": "发版与升级", "link": "/faq#发版与升级" }
           ]
         },
-        { "text": "更新日志", "link": "/changelog" },
-        { "text": "v2 升级说明", "link": "/upgrade-v2" }
+        { "text": "更新日志", "link": "/changelog" }
       ]
     }
   ]
