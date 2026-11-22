@@ -13,7 +13,7 @@ Cursor、Codex、Gemini CLI 等兼容 agent 按需加载。
 | [fxri-plan-review](./fxri-plan-review/SKILL.md) | 1.1.0 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
 | [fxri-plan-recap](./fxri-plan-recap/SKILL.md) | 1.7.9 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.3.12 | changesets 发版与多语言 CHANGELOG 维护 | optional |
-| [fxri-writing-skill](./fxri-writing-skill/SKILL.md) | 1.0.2 | 技能编写规范：统一骨架、references 拆分、安全边界，把可机械检出的规则交给 lint、版本递增交给 bump | optional |
+| [fxri-writing-skill](./fxri-writing-skill/SKILL.md) | 1.0.3 | 技能编写规范：统一骨架、references 拆分、安全边界，把可机械检出的规则交给 lint、版本递增交给 bump | optional |
 | [fxri-writing-docs](./fxri-writing-docs/SKILL.md) | 0.1.3 | 文档站写作规范：分类骨架、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏与 404 兜底、导航用工具命令校验 | optional |
 | [fxri-code-encoding](./fxri-code-encoding/SKILL.md) | 1.2.12 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
 | [fxri-test-tty](./fxri-test-tty/SKILL.md) | 0.1.2 | 交互测试：PTY 驱动向导与多选，含断言清单 | optional |
@@ -51,7 +51,7 @@ toolkit skill uninstall       # 卸载本包装的产物（只清自己装的，
   - 共读 agent：Cline、Codex、Dexto、Kimi Code CLI、Loaf、Pi、Sarvam Code、Warp、Zed、DeepSeek Harness
   - `--dir` 可多次指定，供表外 agent 使用；只在当次安装时写入，技能增删后需带相同 `--dir` 重跑 `toolkit skill install`
   - 升级前的 Codex / Pi 历史落点（`~/.codex/skills`、`~/.pi/agent/skills`）若仍有本包登记，`toolkit skill status` 会单列「历史落点残留」提示清理（只提示、不自动删除）
-  - 指向技能源缓存或本包技能目录、却未在任何来源 / 状态登记的链接，`toolkit skill status` 会单列「疑似残留」提示清理（同样只提示，确认后按名字 `uninstall --skills`）
+  - 指向技能源缓存或本包技能目录、却未在任何来源 / 状态登记的链接，`toolkit skill status` 会单列「疑似残留」提示清理（同样只提示，确认后按名字用 `toolkit skill uninstall --skills`）
 - **技能改名**：外部来源可在 `skills.json` 条目或 `SKILL.md` frontmatter 声明 `previousNames`
   - 安装时选择集与状态按别名迁移、旧名产物按归属清理；新名冲突或失败时保留旧名，沿用既有冲突 / 失败报告
   - 未声明时也不会丢：旧名断链保留登记并在 `status` 报出，来源整份名单失效时按默认口径重算（内置取 `core`、外部取全部）

@@ -106,7 +106,7 @@
 
 `toolkit init` 会生成 `.tasks/` 骨架、项目级技能入口壳与 `.gitignore` 片段；
 项目本地依赖含 `@fxri/toolkit` 时还会写入 `prepare` 刷新钩子
-（`toolkit skill install --scope project --refresh`，只刷新已有产物；`--no-hooks` 可关）。
+（`toolkit skill install --scope project --refresh`，只刷新已有产物；`init --no-hooks` 可关）。
 
 ⚠️ 发布型包注意：技能产物（`.agents/skills/`、各候选目录薄壳、`.toolkit/`）与内置任务区都不在 `.gitignore` 忽略列表，
 `npm` 无 `.npmignore` 时可能被打进包——请加入 `files` 白名单或 `.npmignore`（`init` 会提示、不代改）。
@@ -190,7 +190,7 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 | `fxri-plan-review` | 1.1.0 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
 | `fxri-plan-recap` | 1.7.9 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | `fxri-release-changelog` | 1.3.12 | changesets 发版与多语言 CHANGELOG 维护 | optional |
-| `fxri-writing-skill` | 1.0.2 | 技能编写规范：统一骨架、references 拆分、安全边界，把可机械检出的规则交给 lint、版本递增交给 bump | optional |
+| `fxri-writing-skill` | 1.0.3 | 技能编写规范：统一骨架、references 拆分、安全边界，把可机械检出的规则交给 lint、版本递增交给 bump | optional |
 | `fxri-writing-docs` | 0.1.3 | 文档站写作规范：分类骨架、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏与 404 兜底、导航用工具命令校验 | optional |
 | `fxri-code-encoding` | 1.2.12 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
 | `fxri-test-tty` | 0.1.2 | 交互测试：PTY 驱动向导与多选，含断言清单 | optional |

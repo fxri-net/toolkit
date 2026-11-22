@@ -3,7 +3,7 @@ name: fxri-writing-skill
 description: 编写或修改 AI 技能（SKILL.md 与 references）时加载：按统一骨架组织入口、判断何时拆 references、写清触发与不做，并复用 toolkit 的机械校验与版本递增。新建技能、调整技能结构、评审技能文案或把其他仓库的规范迁入技能时适用。不用于任务建档、发版流程或普通项目文档写作。
 license: MIT
 metadata:
-  version: "1.0.2"
+  version: "1.0.3"
   tier: optional
   previousNames: ["fxri-skill-authoring"]
   type: practice
@@ -15,7 +15,7 @@ metadata:
 
 # 技能编写规范
 
-> 本技能版本 1.0.2（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.0.3（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 

@@ -24,7 +24,7 @@
 - [ ] `metadata.tier` 使用既有取值，不新造层级。
 - [ ] 正文首部存在「本技能版本」，且与 `metadata.version` 一致。
 - [ ] 内容变更后用 `toolkit skill bump` 递增，两处同时更新；内容未变不递增。
-- [ ] 两处版本不一致时先跑 `toolkit skill lint`，需要指定源头时用 `--from frontmatter|body`。
+- [ ] 两处版本不一致时先跑 `toolkit skill lint`；仍不一致时用 `toolkit skill bump --from frontmatter|body` 指定源头。
 
 ## 四、安全与边界
 
