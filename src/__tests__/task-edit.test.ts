@@ -107,6 +107,16 @@ describe("updateTask：从搁置转出时删除搁置节", () => {
     expect(readFileSync(created.file, "utf8")).not.toContain("## 搁置")
   })
 
+  it("转进行中同样删节", () => {
+    const created = createTask({ dir, title: "唤醒进行中", owner: "测试员", scope: "cli", now: new Date("2026-11-21T10:00:00") })
+    markHeld("唤醒进行中")
+    updateTask({ dir, key: "唤醒进行中", status: "进行中", now: new Date("2026-11-21T11:00:00") })
+    const content = readFileSync(created.file, "utf8")
+    expect(content).not.toContain("## 搁置")
+    expect(content).toContain("## 背景")
+    expect(content).toContain("status: 进行中")
+  })
+
   it("转已放弃保留搁置节作终结理由", () => {
     const created = createTask({ dir, title: "搁置终止", owner: "测试员", scope: "cli", now: new Date("2026-11-21T10:00:00") })
     markHeld("搁置终止")
