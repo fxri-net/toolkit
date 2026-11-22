@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import { rewriteConfigFile, rewritePackage } from "../upgrade/apply"
 import { buildUpgradePlan, runUpgrade, verifyUpgrade } from "../upgrade"
 import { latestBackup, restoreBackup } from "../upgrade/backup"
+import { planUpgradeDiffs } from "../upgrade/diff"
 
 const fixtures: string[] = []
 
@@ -67,6 +68,29 @@ describe("升级迁移：配置改写", () => {
     const parsed = JSON.parse(readFileSync(join(root, ".toolkitrc.json"), "utf8")) as Record<string, unknown>
     expect(parsed.task).toEqual({ dir: "new" })
     expect(parsed.tasks).toEqual({ dir: "old" })
+  })
+})
+
+describe("升级迁移：行级差异", () => {
+  it("配置与 package 的改写产出 unified diff", () => {
+    const root = makeProject({ ".toolkitrc.json": legacyConfig, "package.json": legacyPackage })
+    const plan = buildUpgradePlan(root)
+    const diffs = planUpgradeDiffs(plan.items)
+
+    const config = diffs.find((entry) => entry.file.endsWith(".toolkitrc.json"))
+    expect(config?.patch).toContain("--- ")
+    expect(config?.patch).toContain("+++ ")
+    expect(config?.patch).toContain('-{"skillsInstall"')
+    expect(config?.patch).toContain('+  "skillDelivery": {')
+
+    const pkg = diffs.find((entry) => entry.file.endsWith("package.json"))
+    expect(pkg?.patch).toContain('+        "prepare": "toolkit skill install --scope project --refresh"')
+  })
+
+  it("干净工程没有可预览的差异", () => {
+    const root = makeProject({ ".toolkitrc.json": JSON.stringify({ task: { dir: ".tasks" } }), "package.json": '{\n  "name": "demo"\n}\n' })
+    const plan = buildUpgradePlan(root)
+    expect(planUpgradeDiffs(plan.items)).toEqual([])
   })
 })
 

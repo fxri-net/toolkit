@@ -9,6 +9,7 @@ import { line, style } from "../term-style"
 import { latestBackup, restoreBackup } from "../upgrade/backup"
 import { buildUpgradePlan, checkVersionGate, runUpgrade } from "../upgrade"
 import { ALL_LAYERS } from "../upgrade/detect"
+import { planUpgradeDiffs } from "../upgrade/diff"
 import type { UpgradeItem, UpgradeLayer } from "../upgrade/types"
 
 // 命令选项：与文档中的参数表保持一致
@@ -137,11 +138,18 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
   }
 
   if (options.dryRun || options.diff) {
+    // --diff 在清单之后追加行级差异；--dry-run 仍只出清单，两者都不写盘
+    const diffs = options.diff ? planUpgradeDiffs(plan.items) : []
     if (options.format === "json") {
-      printJson(jsonEnvelope({ command: "upgrade", data: { dryRun: true, plan: plan.items, residue: plan.autoResidue } }))
+      const data = options.diff ? { dryRun: true, plan: plan.items, residue: plan.autoResidue, diffs } : { dryRun: true, plan: plan.items, residue: plan.autoResidue }
+      printJson(jsonEnvelope({ command: "upgrade", data }))
       return
     }
     printPlan(plan.items)
+    if (options.diff) {
+      if (diffs.length === 0) console.log(line.ok("没有会被改写的文件内容"))
+      for (const entry of diffs) console.log(entry.patch)
+    }
     return
   }
 
@@ -200,7 +208,7 @@ export function registerUpgradeCommands(program: Command): void {
     .option("--cwd <path>", "项目根目录（缺省当前工作目录）")
     .option("--check", "只读检查；存在可自动处理的残留时退出 1")
     .option("--dry-run", "只输出迁移计划，不写盘")
-    .option("--diff", "输出迁移计划与将改动的文件（不写盘）")
+    .option("--diff", "输出迁移计划与行级差异（不写盘）")
     .option("--yes", "非交互执行，跳过确认")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .option("--layers <layers>", "迁移层：global / project / local（逗号分隔，缺省全部）")

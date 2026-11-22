@@ -48,7 +48,8 @@ function gateToDelivery(gate: unknown): Record<string, unknown> | null {
 }
 
 // 重写单个配置文件：段名整体搬移，旧闸门键映射；段内出现未知键时整段保留并记人工
-export function rewriteConfigFile(file: string): { changed: boolean; manual: string[] } {
+// 返回结果不写盘，供 upgrade --diff 预览与真正写入共用同一份转换
+export function planConfigContent(file: string): { changed: boolean; content?: string; manual: string[] } {
   const data = readObject(file)
   if (!data) return { changed: false, manual: [`配置文件解析失败，未改写：${file}`] }
   const originalKeys = Object.keys(data)
@@ -109,8 +110,14 @@ export function rewriteConfigFile(file: string): { changed: boolean; manual: str
   for (const [key, value] of Object.entries(data)) {
     if (!(key in ordered)) ordered[key] = value
   }
-  writeFileAtomic(file, `${JSON.stringify(ordered, null, 2)}\n`)
-  return { changed, manual }
+  return { changed, content: `${JSON.stringify(ordered, null, 2)}\n`, manual }
+}
+
+// 改写单个配置文件：计算后落盘，行为与 planConfigContent 完全一致
+export function rewriteConfigFile(file: string): { changed: boolean; manual: string[] } {
+  const planned = planConfigContent(file)
+  if (planned.changed && planned.content !== undefined) writeFileAtomic(file, planned.content)
+  return { changed: planned.changed, manual: planned.manual }
 }
 
 // 逐段改写脚本里的旧命令：只处理命令位置的 toolkit 调用，普通字符串不动
@@ -135,7 +142,8 @@ function rewriteScript(value: string): string {
 }
 
 // 重写 package.json：prepare 旧写法与 scripts 旧命令；保留原缩进与其余字段
-export function rewritePackage(file: string): { changed: boolean; manual: string[] } {
+// 与配置文件同口径：先算内容，再由调用方决定写盘或仅预览
+export function planPackageContent(file: string): { changed: boolean; content?: string; manual: string[] } {
   if (!existsSync(file)) return { changed: false, manual: [] }
   const raw = readTextFile(file)
   const pkg = readObject(file)
@@ -160,8 +168,14 @@ export function rewritePackage(file: string): { changed: boolean; manual: string
   }
   if (!changed) return { changed, manual }
   const indent = /"\s*:\s*[^\n]*\n([ \t]+)"/.exec(raw)?.[1] ?? "  "
-  writeFileAtomic(file, `${JSON.stringify(pkg, null, indent)}\n`)
-  return { changed, manual }
+  return { changed, content: `${JSON.stringify(pkg, null, indent)}\n`, manual }
+}
+
+// 改写 package.json：计算后落盘
+export function rewritePackage(file: string): { changed: boolean; manual: string[] } {
+  const planned = planPackageContent(file)
+  if (planned.changed && planned.content !== undefined) writeFileAtomic(file, planned.content)
+  return { changed: planned.changed, manual: planned.manual }
 }
 
 // 规范载体目录下的 markdown 清单：备份与新建文件比对共用

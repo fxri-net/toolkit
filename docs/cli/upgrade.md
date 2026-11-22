@@ -11,6 +11,7 @@ title: 升级迁移（upgrade）
 
 ```bash
 toolkit upgrade --dry-run          # 只看计划，不写盘
+toolkit upgrade --diff             # 计划 + 行级差异，不写盘
 toolkit upgrade --check            # 只读检查；有可自动处理的残留时退出 1
 toolkit upgrade                    # TTY 下逐项确认后执行
 toolkit upgrade --yes              # 非交互执行（CI / 脚本）
@@ -24,7 +25,7 @@ toolkit upgrade --restore latest   # 从最近一次备份恢复
 | `--cwd <path>` | 项目根目录，缺省当前工作目录 |
 | `--check` | 只读检查；仅「可自动处理却未处理」的残留计入退出码 |
 | `--dry-run` | 输出迁移计划，不写盘 |
-| `--diff` | 输出迁移计划与将改动的文件，不写盘 |
+| `--diff` | 输出迁移计划与行级差异，不写盘 |
 | `--yes` | 非交互执行，跳过确认 |
 | `--format json` | 输出八键信封到 stdout |
 | `--layers <layers>` | `global` / `project` / `local`，逗号分隔，缺省全部 |
@@ -40,6 +41,7 @@ toolkit upgrade --restore latest   # 从最近一次备份恢复
 - 只支持「上一个 major → 当前 major」；跨多个 major 时命令会给出逐级升级步骤，不硬迁。
 - 备份集中在 `.toolkit/backup/<时间>/`（全局面为 `~/.toolkit/backup/<时间>/`），清单记录文件哈希；恢复时默认不覆盖迁移后被用户改过的文件。
 - 手动项（规则快照正文、CI 文件里的旧命令名、无法确认归属的目录）只告警，不阻断 CI。
+- `--diff` 的行级差异只覆盖会被文本改写的配置文件与 `package.json`；技能清理、载体升级等非文本迁移仍以计划清单呈现。
 
 ## JSON 契约
 
@@ -48,6 +50,7 @@ toolkit upgrade --restore latest   # 从最近一次备份恢复
 | 字段 | 内容 |
 | --- | --- |
 | `plan[]` | 迁移项：`id / surface / action / risk / files / status / reason` |
+| `diffs[]` | `--diff` 时的行级差异：`file / patch`（unified diff 文本） |
 | `applied` / `failed` | 已执行 / 失败的迁移项 id |
 | `backups` | 本次备份目录 |
 | `residue` | 复检后仍可自动处理的项 |

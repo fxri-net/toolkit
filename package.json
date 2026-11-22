@@ -90,6 +90,7 @@
     "@changesets/cli": "2.27.12",
     "@inquirer/prompts": "^7.10.1",
     "commander": "^13.1.0",
+    "diff": "^8.0.4",
     "exceljs": "^4.4.0"
   },
   "devDependencies": {
