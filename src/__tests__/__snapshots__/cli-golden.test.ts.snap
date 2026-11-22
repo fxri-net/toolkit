@@ -565,7 +565,7 @@ exports[`各域行为与错误路径 > config set 不可写层 1`] = `
 `;
 
 exports[`各域行为与错误路径 > config set 非交互缺 yes 1`] = `
-"退出码：1
+"退出码：2
 --- stdout ---
 
 --- stderr ---

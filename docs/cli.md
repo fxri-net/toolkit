@@ -68,7 +68,7 @@
 | 策略 | 作用域规则条目：条件 + 技能维度 + allow / deny；按层与具体度取唯一命中 | `scope policy`、`scope status --skills` |
 | 档案 | 可复用的技能名单，供策略 `skills.profiles` 引用 | `scope skills profile`、`skillProfiles` 配置段 |
 | 预演 | `--dry-run`：只打印将执行的动作，不写文件 / 剪贴板 / 缓存 | 全部写命令 |
-| 确认 | 写前展示预览并交互确认；`--yes` 跳过确认 | `scope` / `usage` / `skill` 写命令 |
+| 确认 | 写前展示预览并交互确认；`--yes` 跳过确认 | `usage` / `skill` / `config` 写命令；`scope` 写命令在非 TTY 带显式参数直接执行 |
 | 来源 | 技能来源：内置 `toolkit` 源与 `--source` 外部来源 | `skill`、`skill source` |
 | 目标 | 技能安装目标：agent 全局目录 / 项目薄壳目录 | `skill install`、`skill status` |
 | 范围 | 按上下文区分：作用域命中范围（scope）或技能统计范围（usage） | `scope` / `usage config scope` |

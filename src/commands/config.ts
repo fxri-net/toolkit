@@ -17,6 +17,7 @@ import {
   type ConfigKeyLayer,
   type ConfigKeySpec,
 } from "../config-keys"
+import { INTERACTIVE_EXIT } from "../prompts"
 import { printJson } from "./shared"
 import { line } from "../term-style"
 
@@ -84,12 +85,12 @@ function rejectUnknownKey(key: string): void {
   process.exitCode = 1
 }
 
-// 写操作确认：非 TTY 下必须显式 --yes，避免脚本 / CI 里意外落盘
+// 写操作确认：非 TTY 下必须显式 --yes，避免脚本 / CI 里意外落盘（与其它写确认命令同退 2）
 function needsYes(options: { yes?: boolean }): boolean {
   if (options.yes) return false
   if (process.stdin.isTTY) return false
   console.error("⚠️ 非交互环境写入配置须显式加 --yes（或先用 --dry-run 预览）")
-  process.exitCode = 1
+  process.exitCode = INTERACTIVE_EXIT
   return true
 }
 

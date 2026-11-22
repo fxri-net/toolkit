@@ -24,7 +24,9 @@ title: 退出码与解析错误
 `scope` 交互里的「← 返回」与 ESC 属于正常导航（回到上层菜单），不产生中断退出码；主动选择「退出」按成功计 `0`。
 需要交互但没有可用终端的命令（`toolkit scope wizard`、`toolkit usage setup wizard`、`toolkit usage setup init` /
 `toolkit usage setup uninstall` / `toolkit usage config upload setup` / `toolkit usage setup hooks install` /
-`toolkit usage setup hooks remove`、`toolkit task add` / `task update` 的写确认）统一输出 `⚠️` 提示并以 `2` 结束，提示里给出等价的非交互参数。
+`toolkit usage setup hooks remove`、`toolkit task add` / `task update` 的写确认、`toolkit config set` / `config unset` 的写确认）
+统一输出 `⚠️` 提示并以 `2` 结束，提示里给出等价的非交互参数。
+`scope` 写命令是已知例外：非 TTY 下带显式参数直接执行并以 `0` 结束，不要求 `--yes`（见[作用域](./scope)）。
 裸 `toolkit scope` / `toolkit usage` 不在此列：非 TTY 下输出摘要并成功退出。
 
 未知命令、未知选项、参数个数不符等解析错误统一输出 `⚠️` 开头的中文提示，并附一行 `运行 toolkit --help 查看可用命令` 指引（退出码 `1`），不再混出 commander 的英文原文。
