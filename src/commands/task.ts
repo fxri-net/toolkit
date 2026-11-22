@@ -11,6 +11,7 @@ import { validateTasks, type CheckIssue } from "../tasks/validate"
 import { checkArchive, fixArchive } from "../tasks/normalize"
 import { createTask, defaultOwner, updateTask } from "../tasks/edit"
 import { isInteractive, loadPrompts, runInteractive } from "../prompts"
+import { EXIT } from "../exit-codes"
 import type { TaskView, TaskFilter, ImportTarget } from "../tasks/types"
 import { ALL_STATUSES } from "../tasks/types"
 import { findUntypedChangesetEntries, findUnbulletedChangesetEntries } from "../changelog/format"
@@ -383,13 +384,13 @@ export function registerTasksCommands(program: Command): void {
       }
       if (!title) {
         console.error("⚠️ 非交互环境须用 --title 指定任务标题")
-        process.exitCode = 2
+        process.exitCode = EXIT.INTERACTIVE
         return
       }
       // 非交互环境才要求 --yes：TTY 下已在提示中完成全部字段，直接写入
       if (!options.dryRun && !options.yes && !isInteractive()) {
         console.error("⚠️ 非交互环境写入任务档须显式加 --yes")
-        process.exitCode = 2
+        process.exitCode = EXIT.INTERACTIVE
         return
       }
       try {
@@ -422,7 +423,7 @@ export function registerTasksCommands(program: Command): void {
       // 非交互环境才要求 --yes：TTY 下直接按显式参数写入
       if (!options.dryRun && !options.yes && !isInteractive()) {
         console.error("⚠️ 非交互环境写入任务档须显式加 --yes")
-        process.exitCode = 2
+        process.exitCode = EXIT.INTERACTIVE
         return
       }
       try {

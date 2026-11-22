@@ -4,6 +4,7 @@
 // 运行时下限真源移到轻量模块，交互组件与 cli 快速路径共用同一份判定
 import { MIN_NODE } from "./node-version"
 import { line } from "./term-style"
+import { EXIT } from "./exit-codes"
 
 // 再导出保持既有引用面不变（测试与命令层仍从本模块取）
 export { MIN_NODE, nodeVersionAtLeast } from "./node-version"
@@ -21,11 +22,11 @@ export async function loadPrompts(): Promise<typeof import("@inquirer/prompts")>
 // 判断是否用户取消（Ctrl+C / 程序 cancel）：inquirer 以专用错误名抛出
 const CANCEL_ERROR_NAMES = new Set(["ExitPromptError", "AbortPromptError", "CancelPromptError"])
 
-// 交互取消的退出码：与 shell 对 SIGINT 的惯例一致
-export const CANCEL_EXIT_CODE = 130
+// 交互取消 / 无交互终端的退出码：数值唯一定义在 exit-codes，这里仅作兼容再导出
+export const CANCEL_EXIT_CODE = EXIT.CANCEL
 
 // 需要交互但当前环境不支持的退出码：脚本据此区分「环境不支持」与业务失败
-export const INTERACTIVE_EXIT = 2
+export const INTERACTIVE_EXIT = EXIT.INTERACTIVE
 
 // 列表统一分页：各命令不再各写一个数字
 export const LIST_PAGE_SIZE = 15

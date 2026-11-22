@@ -4,6 +4,7 @@ import { Option, type Command } from "commander"
 import { getHomeDir } from "../config"
 import { assertJsonFormat, jsonEnvelope } from "../json-output"
 import { exitOnPromptCancel, exitWithCancel, isInteractive, runInteractive } from "../prompts"
+import { EXIT } from "../exit-codes"
 import { assertChoice } from "../cli-ui"
 import { runScopeMount } from "../scope/wizard"
 import { analyzeSkillLinkage, formatLinkageHints, type SkillLinkageReport } from "../scope/linkage"
@@ -1439,17 +1440,17 @@ export function registerSkillsCommands(program: Command): void {
         const warnLines = parsePositiveInt(options.warnLines)
         if (budget === null || maxLines === null || warnLines === null) {
           console.error("⚠️ --budget / --max-lines / --warn-lines 须为正整数")
-          process.exitCode = 2
+          process.exitCode = EXIT.USAGE
           return
         }
         if (warnLines !== undefined && maxLines !== undefined && warnLines > maxLines) {
           console.error("⚠️ --warn-lines 不能大于 --max-lines")
-          process.exitCode = 2
+          process.exitCode = EXIT.USAGE
           return
         }
         if (options.base !== undefined && options.base.trim() === "") {
           console.error("⚠️ --base 不能为空；不校验递增时请不要传入")
-          process.exitCode = 2
+          process.exitCode = EXIT.USAGE
           return
         }
         const report = lintSkills({
