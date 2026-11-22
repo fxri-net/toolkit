@@ -634,7 +634,7 @@ export function printHooksStatus(options: { agent?: string; all?: boolean; dir?:
     const status = adapter.status()
     if (status.installed) installed.push(adapter.id)
     const detected = isAdapterAvailable(adapter)
-    console.log(`${adapter.displayName}：${status.installed ? "已安装" : "未安装"}｜${status.file}${detected ? "" : "（本机未检测到安装）"}`)
+    console.log(`${adapter.displayName}：${status.installed ? "已安装" : "未安装"}｜${status.file}${detected ? "" : "（本机未检测到该 agent）"}`)
     if (status.command) console.log(`  命令：${status.command}`)
     if (status.legacyCommand) {
       console.warn(`  ⚠️ 检测到旧版 Hook（telemetry 命令）已失效，请执行 toolkit usage setup hooks install --agent ${adapter.id}`)

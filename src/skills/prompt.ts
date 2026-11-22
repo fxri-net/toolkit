@@ -237,7 +237,7 @@ export interface UninstallChoice {
 // 卸载多选：默认全不选，空格勾选、回车确认；返回 null 表示 ESC 取消，空数组表示未选择
 export async function promptUninstallSelection(choices: UninstallChoice[]): Promise<string[] | null> {
   return askCheckbox({
-    message: "选择要卸载的技能（空格选择，回车确认）",
+    message: "选择要卸载的技能（空格切换，回车确认）",
     choices: choices.map((item) => ({ name: `${item.group}｜${item.label}`, value: item.value })),
     pageSize: LIST_PAGE_SIZE,
   })
