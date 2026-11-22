@@ -61,6 +61,13 @@ export function isPromptCancel(error: unknown): boolean {
   return CANCEL_ERROR_NAMES.has(error.name) || /force closed/i.test(error.message)
 }
 
+// 区分「用户中断」与「输入被关闭」：TTY 内的取消属用户操作（130）；
+// 非 TTY / EOF 导致的 prompt 关闭属环境不支持（2），不应冒充用户取消
+export function classifyPromptCancel(error: unknown): "user" | "environment" | null {
+  if (!isPromptCancel(error)) return null
+  return process.stdin.isTTY ? "user" : "environment"
+}
+
 // 交互取消的终止出口：置 130 后立即结束进程，避免在残留的 readline 状态上继续开提示；
 // 无法拿到原始错误的位置也可直接调用
 export function exitWithCancel(): never {
@@ -68,9 +75,16 @@ export function exitWithCancel(): never {
   process.exit(CANCEL_EXIT_CODE)
 }
 
-// 交互取消统一出口：命中取消即按取消退出，其余错误交回调用方
+// 交互取消统一出口：用户中断按 130，输入被关闭按无交互环境（2）；其余错误交回调用方
 export function exitOnPromptCancel(error: unknown): boolean {
-  if (!isPromptCancel(error)) return false
+  const kind = classifyPromptCancel(error)
+  if (kind === null) return false
+  if (kind === "environment") {
+    console.error(line.hint("交互输入已关闭（非 TTY / EOF）：按无交互环境结束，请在终端运行或改用非交互参数"))
+    process.exitCode = INTERACTIVE_EXIT
+    process.exit(INTERACTIVE_EXIT)
+    return true
+  }
   process.exitCode = CANCEL_EXIT_CODE
   process.exit(CANCEL_EXIT_CODE)
   return true

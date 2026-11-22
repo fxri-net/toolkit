@@ -77,6 +77,7 @@ describe("取消判定", () => {
   })
 
   it("命中取消才以 130 结束进程", () => {
+    Object.defineProperty(process.stdin, "isTTY", { value: true, configurable: true })
     const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never)
     process.exitCode = 0
     expect(exitOnPromptCancel(new Error("普通失败"))).toBe(false)

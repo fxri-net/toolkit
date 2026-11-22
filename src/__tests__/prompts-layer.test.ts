@@ -54,12 +54,21 @@ describe("交互可用性", () => {
 
 describe("命令层交互收口", () => {
   it("取消以 130 结束进程", async () => {
+    setTty(true, true)
     const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never)
     await runInteractive(async () => {
       throw cancelError()
     })
     expect(exit).toHaveBeenCalledWith(130)
     expect(process.exitCode).toBe(130)
+  })
+
+  it("非 TTY 的输入关闭按无交互退出码结束", () => {
+    setTty(false, false)
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never)
+    expect(exitOnPromptCancel(cancelError())).toBe(true)
+    expect(exit).toHaveBeenCalledWith(INTERACTIVE_EXIT)
+    expect(process.exitCode).toBe(INTERACTIVE_EXIT)
   })
 
   it("普通异常输出提示信息并以 1 收尾", async () => {
@@ -76,6 +85,7 @@ describe("命令层交互收口", () => {
   })
 
   it("命令自身的 catch 可用 exitOnPromptCancel 把取消收口为 130", () => {
+    setTty(true, true)
     const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never)
     expect(exitOnPromptCancel(cancelError())).toBe(true)
     expect(exit).toHaveBeenCalledWith(130)
