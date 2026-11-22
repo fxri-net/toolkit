@@ -5,6 +5,7 @@ import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, rea
 import { tmpdir } from "node:os"
 import { join, normalize } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
+import { removeArtifact } from "../skills/source/artifact"
 import { CARRIER_VERSION, ENTRY_VERSION } from "../conventions/format"
 import {
   AGENT_SKILL_DIRS,
@@ -1128,6 +1129,16 @@ describe("悬空链接判定与自动清理", () => {
     const report = removeSkills()
     expect(report.targets[0]!.removed).toContain(name)
     expect(report.targets[0]!.skippedForeign).toHaveLength(0)
+  })
+
+  it("悬空链接清理不依赖 rmSync（Node 23 Windows 兼容）", () => {
+    const target = join(home, "dangling-target")
+    const dest = join(home, "dangling-link")
+    mkdirSync(target, { recursive: true })
+    symlinkSync(target, dest, LINK_TYPE)
+    rmSync(target, { recursive: true, force: true })
+    removeArtifact(dest)
+    expect(() => lstatSync(dest)).toThrow()
   })
 
   it("自愈重建指向已失效旧版本段的悬空链接", () => {

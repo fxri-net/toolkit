@@ -4,6 +4,7 @@
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from "vitest"
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
+import { removeArtifact } from "../skills/source/artifact"
 
 // 沙箱路径用 vi.hoisted 构造（mock 工厂早于模块顶层求值执行，不能引用未初始化的顶层变量）
 const sandbox = vi.hoisted(() => {
@@ -336,7 +337,7 @@ describe("顶层命令与外部域", () => {
       expect(text).toContain("--skills ghost-old")
       expect(text).toContain("--dry-run")
     } finally {
-      rmSync(stale, { recursive: true, force: true })
+      removeArtifact(stale)
     }
   })
 
@@ -395,7 +396,7 @@ describe("顶层命令与外部域", () => {
       expect(readFileSync(stateFile, "utf8")).toContain("fxri-plan-review")
     } finally {
       restoreTty()
-      rmSync(stale, { recursive: true, force: true })
+      removeArtifact(stale)
       rmSync(stateFile, { force: true })
     }
   })
@@ -525,7 +526,7 @@ describe("顶层命令与外部域", () => {
       expect(text).toContain("旧名残留")
       expect(text).toContain("--scope global --skills legacy-gone")
     } finally {
-      rmSync(stale, { recursive: true, force: true })
+      removeArtifact(stale)
       rmSync(stateFile, { force: true })
     }
   })
