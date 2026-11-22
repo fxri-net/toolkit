@@ -76,7 +76,7 @@ toolkit config set usage.enabled true            # 才打开采集总开关
 
 未开启总开关时，Hook 即使被调用也直接退出，不写文件。`usage setup hooks install` 支持 `--dry-run` 预览，写前打印预览并确认，写前自动备份原配置；配置无法解析时不覆盖。
 `usage setup hooks install` / `usage setup hooks remove` / `usage setup uninstall` 在 CI、脚本等无终端环境
-需显式加 `--yes`，否则以退出码 `2` 提示非交互用法。
+需显式加 `--yes`，否则按无交互退出码提示非交互用法（见[退出码](../cli/exit-codes)）。
 
 `usage setup hooks install` 只处理**本机已检测到**的 Agent：Trae 看 `~/.trae-cn` 或 `~/.trae`，DeepSeek Harness 看 `~/.dsh`，
 Claude Code 看 `CLAUDE_CONFIG_DIR` 或 `~/.claude`，Cursor 看 `~/.cursor`，Codex 看 `CODEX_HOME` 或 `~/.codex`，

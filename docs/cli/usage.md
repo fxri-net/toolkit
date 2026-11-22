@@ -66,8 +66,8 @@ toolkit usage data doctor
 
 | 子命令 | 说明 | 主要选项 |
 | --- | --- | --- |
-| `setup init` | 初始化向导：预设、通道、Agent（仅 hook）、来源、字段与存储；首次执行即启用（默认预设「一方 + 第三方技能（数据只留本机，不上传）」，采集字段仍默认关闭），重复执行沿用历史选择、已配置时默认「保持当前配置」并只重装 Hook | `--yes`（须显式给 `--preset`）、`--preset off\|recommended\|third-party`、`--channel rule\|hook`、`--agent`；非 TTY 退出码 2 |
-| `setup wizard` | 交互菜单：状态、统计、开关、Hook 管理、上传、导出与清理；子页 ESC 返回、顶层退出、Ctrl+C 退出码 130 | — |
+| `setup init` | 初始化向导：预设、通道、Agent（仅 hook）、来源、字段与存储；首次执行即启用（默认预设「一方 + 第三方技能（数据只留本机，不上传）」，采集字段仍默认关闭），重复执行沿用历史选择、已配置时默认「保持当前配置」并只重装 Hook | `--yes`（须显式给 `--preset`）、`--preset off\|recommended\|third-party`、`--channel rule\|hook`、`--agent`；非 TTY 按无交互退出码结束 |
+| `setup wizard` | 交互菜单：状态、统计、开关、Hook 管理、上传、导出与清理；子页 ESC 返回、顶层退出、Ctrl+C 按取消退出码结束 | — |
 | `setup uninstall` | 停用采集并卸载 Hook，默认保留数据；写前预览，取消即不写 | `--yes`、`--agent`、`--purge`、`--dry-run` |
 | `setup hooks install` | 只写 Hook 配置，不开启采集；写前预览并确认，通道为 rule 时提示不生效 | `--agent`、`--yes`、`--dry-run` |
 | `setup hooks status` | 查看 Hook 安装状态与最近触发时间；通道与 Hook 不一致时告警 | `--agent`、`--all`、`--dir` |
@@ -91,15 +91,16 @@ toolkit usage data doctor
 ## 边界与注意
 
 - 裸 `toolkit usage` 在 TTY 下进入交互菜单；非 TTY 输出 `show` 摘要与子命令提示并以退出码 0 结束。
-  需要显式交互入口时用 `toolkit usage setup wizard`（非 TTY 退出码 2）；菜单子页按 ESC 返回、顶层按 ESC 或选「退出」结束，Ctrl+C 退出码 130，取消不写任何文件。
+  需要显式交互入口时用 `toolkit usage setup wizard`（非 TTY 按无交互退出码结束，见[退出码](./exit-codes)）；
+  菜单子页按 ESC 返回、顶层按 ESC 或选「退出」结束，Ctrl+C 按取消退出码结束，取消不写任何文件。
 - `usage show` / `usage show stats`、`usage config` 的 `channel` / `origins` / `scope` / `capture` / `storage`、
   `usage config upload status`、`usage data doctor` 支持 `--format json`：文本与 JSON 由同一份摘要数据渲染，
   文本模式只输出本段（`config origins` 不再打印整份配置），JSON 走统一信封 `{ schemaVersion, command, ok, data, issues }`，
   `data` 内只含本段载荷。
 - `usage setup hooks install` / `usage setup hooks remove` / `usage setup uninstall` 写前统一打印预览并确认；
-  非 TTY 须显式加 `--yes`，否则以退出码 2 提示用法。
+  非 TTY 须显式加 `--yes`，否则按无交互退出码提示用法。
   `usage setup uninstall --dry-run` 只打印预览，不写配置、不动 Hook、不删数据。
-- `usage setup init` 的多步向导支持按 ESC 回到上一步、按 Ctrl+C 取消（退出码 130，不写任何文件）；首步按 ESC 等同取消。
+- `usage setup init` 的多步向导支持按 ESC 回到上一步、按 Ctrl+C 取消（取消退出码，不写任何文件）；首步按 ESC 等同取消。
 - 通道二选一：`usage.channel` 为 `rule` 时只有 `usage record` 写入、Hook 不写入；为 `hook` 时只有 Hook 写入、`record` 静默跳过。切换通道不会自动清理另一侧配置。
 - 非交互初始化用 `toolkit usage setup init --yes --preset recommended --channel rule`（默认 `rule`）；
    `--channel hook` 时会安装 Hook 并需要检测到 Agent，`--preset off` 与 `--channel` 同时出现时 `off` 优先；

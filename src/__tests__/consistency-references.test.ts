@@ -127,10 +127,9 @@ describe("规范一致性：站点导航锚点", () => {
 })
 
 // CLI 入口矩阵、术语表与退出码：缺小节或缺行即报 error；假现场没有 docs/cli.md 时跳过
-function cliDoc(options: { domains?: string[]; terms?: string[]; codes?: string[] } = {}): string {
+function cliDoc(options: { domains?: string[]; terms?: string[] } = {}): string {
   const domains = options.domains ?? ["task", "skill", "rule", "config", "convention", "docs", "scope", "usage"]
   const terms = options.terms ?? ["层", "面", "名单", "预演", "确认", "来源", "目标", "范围"]
-  const codes = options.codes ?? ["`0`", "`1`", "`2`", "`3`", "`130`"]
   return [
     "# CLI 参考",
     "",
@@ -148,19 +147,20 @@ function cliDoc(options: { domains?: string[]; terms?: string[]; codes?: string[
     "",
     "## 退出码",
     "",
-    "| 退出码 | 含义 |",
-    "| --- | --- |",
-    ...codes.map((code) => `| ${code} | 示例 |`),
+    "退出码以[退出码与解析错误](./cli/exit-codes)为单一真源。",
     "",
     "## 相关页面",
     "",
   ].join("\n")
 }
 
-describe("规范一致性：CLI 入口矩阵与术语表", () => {
-  const base = { "skills/fxri-demo/references/task-spec.md": "# 任务规范\n" }
+// 退出码页：数值表由生成器维护，检查器只要求标记存在
+const exitDoc = ["# 退出码", "", "<!-- toolkit:exit-codes:start -->", "<!-- toolkit:exit-codes:end -->", ""].join("\n")
 
-  it("入口矩阵、术语表与退出码齐全时通过", () => {
+describe("规范一致性：CLI 入口矩阵与术语表", () => {
+  const base = { "skills/fxri-demo/references/task-spec.md": "# 任务规范\n", "docs/cli/exit-codes.md": exitDoc }
+
+  it("入口矩阵、术语表与退出码单源齐全时通过", () => {
     const root = createFixture({ ...base, "docs/cli.md": cliDoc() })
     const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
     expect(result.status).toBe(0)
@@ -180,11 +180,19 @@ describe("规范一致性：CLI 入口矩阵与术语表", () => {
     expect(result.stderr).toContain("术语表缺少「预演」")
   })
 
-  it("退出码表缺 3 时报 error", () => {
-    const root = createFixture({ ...base, "docs/cli.md": cliDoc({ codes: ["`0`", "`1`", "`2`", "`130`"] }) })
+  it("cli.md 未引用退出码单一真源时报 error", () => {
+    const doc = cliDoc().replace("./cli/exit-codes", "./cli/something")
+    const root = createFixture({ ...base, "docs/cli.md": doc })
     const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
     expect(result.status).toBe(1)
-    expect(result.stderr).toContain("退出码表缺少 `3`")
+    expect(result.stderr).toContain("未引用退出码单一真源")
+  })
+
+  it("退出码页缺生成标记时报 error", () => {
+    const root = createFixture({ ...base, "docs/cli.md": cliDoc(), "docs/cli/exit-codes.md": "# 退出码\n" })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("缺少生成标记")
   })
 })
 

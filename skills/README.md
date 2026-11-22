@@ -16,7 +16,7 @@ Cursor、Codex、Gemini CLI 等兼容 agent 按需加载。
 | [fxri-writing-skill](./fxri-writing-skill/SKILL.md) | 1.0.2 | 技能编写规范：统一骨架、references 拆分、安全边界，把可机械检出的规则交给 lint、版本递增交给 bump | optional |
 | [fxri-writing-docs](./fxri-writing-docs/SKILL.md) | 0.1.2 | 文档站写作规范：分类骨架、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏与 404 兜底、导航用工具命令校验 | optional |
 | [fxri-code-encoding](./fxri-code-encoding/SKILL.md) | 1.2.12 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
-| [fxri-test-tty](./fxri-test-tty/SKILL.md) | 0.1.1 | 交互测试：PTY 驱动向导与多选，含断言清单 | optional |
+| [fxri-test-tty](./fxri-test-tty/SKILL.md) | 0.1.2 | 交互测试：PTY 驱动向导与多选，含断言清单 | optional |
 
 表中按能力族（`plan` / `release` / `writing` / `code` / `test`）分组排列，族名与归属见 [namespaces.json](./namespaces.json)；
 技能名统一为 `fxri-<族>-<主题>`。

@@ -349,8 +349,16 @@ if (existsSync(join(root, "docs", "cli.md"))) {
   for (const term of ["层", "面", "名单", "预演", "确认", "来源", "目标", "范围"]) {
     if (termsSection && !termsSection.includes(`| ${term} |`)) errors.push(`docs/cli.md 术语表缺少「${term}」`)
   }
-  for (const code of ["`0`", "`1`", "`2`", "`3`", "`130`"]) {
-    if (!cliDoc.includes(`| ${code} |`)) errors.push(`docs/cli.md 退出码表缺少 ${code}`)
+  // 退出码数值表以 docs/cli/exit-codes.md 为单一真源：cli.md 只引用，不重复维护表格
+  if (!cliDoc.includes("./cli/exit-codes")) errors.push("docs/cli.md 未引用退出码单一真源（./cli/exit-codes）")
+  const exitDocPath = join(root, "docs", "cli", "exit-codes.md")
+  if (existsSync(exitDocPath)) {
+    const exitDoc = read("docs/cli/exit-codes.md")
+    if (!exitDoc.includes("<!-- toolkit:exit-codes:start -->") || !exitDoc.includes("<!-- toolkit:exit-codes:end -->")) {
+      errors.push("docs/cli/exit-codes.md 缺少生成标记：数值表须由 src/exit-codes.ts 生成")
+    }
+  } else {
+    errors.push("缺少 docs/cli/exit-codes.md：退出码必须有单一真源页")
   }
 }
 

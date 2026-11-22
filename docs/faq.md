@@ -167,7 +167,7 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 默认全局技能是全文安装，`description` 命中即整篇进入上下文。矩阵策略限制的技能会自动改为入口壳；
 也可用 `skillDelivery` 规则或 `toolkit skill install --gate` 显式指定：
 技能只保留 `name` / `description` 与一句「先运行 `toolkit scope guard <技能名>`」，正文由 guard 按当前目录判定——
-激活时输出正文，未激活以退出码 3 结束（stdout 为空）。
+激活时输出正文，未激活以未激活退出码结束（stdout 为空，见[退出码](./cli/exit-codes)）。
 `--embed` 可把本次安装回退全文；旧键 `skillInstall.gate` 与技能声明 `metadata.gate: false` 仍读时兼容。
 契约见 [技能分发](./cli/skill#策略与内容闸门) 与 [作用域 · 内容闸门](./cli/scope#内容闸门-guard)。
 

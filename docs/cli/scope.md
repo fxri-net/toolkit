@@ -18,7 +18,7 @@ title: 作用域（scope）
 
 ```bash
 toolkit scope                         # 状态优先向导：看状态 / 加白黑名单 / 管条目 / 默认值 / 高级规则 / 技能矩阵
-toolkit scope wizard                  # 显式进入交互向导（非 TTY 退出码 2）
+toolkit scope wizard                  # 显式进入交互向导（非 TTY 按无交互退出码结束）
 toolkit scope status                  # 当前目录的判定与原因
 toolkit scope status --skill fxri-plan-review # 按技能级规则判定单个技能
 toolkit scope status --skills          # 列出包内与已安装外部技能在该目录的生效结论
@@ -42,7 +42,7 @@ toolkit scope list default                 # 查看当前默认值
 toolkit scope list default off             # 切换为「仅名单内生效」
 toolkit scope list reset                   # 清除限制（全部生效）
 toolkit skill mount ~/work --dry-run  # 批量项目面安装：先预览（由 scope mount 迁入）
-toolkit scope guard fxri-plan-task # 内容闸门：按当前目录作用域输出技能正文（未激活退出码 3）
+toolkit scope guard fxri-plan-task # 内容闸门：按当前目录作用域输出技能正文（未激活按未激活退出码结束）
 ```
 
 名单的查看与增删改统一收进 `scope list` 组：裸 `scope list` 查看名单，
@@ -72,7 +72,7 @@ toolkit scope guard fxri-plan-task # 内容闸门：按当前目录作用域输�
 ## 交互与写命令
 
 - 无参 `toolkit scope`：TTY 下进入状态优先向导；非 TTY 输出状态摘要与子命令提示并以 `0` 退出。
-  交互入口也可显式运行 `toolkit scope wizard`（非 TTY 退出码 `2`）
+  交互入口也可显式运行 `toolkit scope wizard`（非 TTY 按无交互退出码结束，见[退出码](./exit-codes)）
 - `scope status` / `list` 的 `--format` 仅接受 `json`，非法值在 stderr 报错并以 `1` 退出，不再回落文本
 - 向导首页固定显示「当前层 + 配置文件 + 默认值 + 白名单 / 黑名单条数」；首项为查看状态 / 规则清单，避免盲改
 - 动作按意图排列：添加白名单 / 添加黑名单 / 管理条目（移除、互转）/ 切换默认值 / 清除限制 / 高级规则 / 技能矩阵 / 切换配置层 / 退出
@@ -86,7 +86,7 @@ toolkit scope guard fxri-plan-task # 内容闸门：按当前目录作用域输�
 - 内容闸门与批量挂载已移出本域：默认分发形态用 `toolkit config set skillDelivery.default gated|full` 切换，
   `on` 对应 `gated`（入口壳）、`off` 对应 `full`（全文），查看用 `toolkit config get skillDelivery.default`；
   `toolkit skill install --gate` / `--embed` 生成或还原入口壳；批量挂载用 `toolkit skill mount`
-- 选择页统一提供「← 返回」（末位）与 ESC 返回上一级；顶层「退出」按成功计 `0`，Ctrl+C 结束整个命令（退出码 `130`）
+- 选择页统一提供「← 返回」（末位）与 ESC 返回上一级；顶层「退出」按成功计 `0`，Ctrl+C 结束整个命令（取消退出码）
 - ESC 有约 500ms 判定延迟（readline 需先排除方向键序列），属正常现象
 - `scope list add` / `list exclude` / `list remove` 均需显式目录：无参只提示改用 `toolkit scope wizard`，不再隐式进入完整向导
 - `list add` 加入白名单并把默认值切到「仅名单内生效」；`list exclude` 只加黑名单、默认值不变；同路径在另一侧时写前预览「移入 / 转入」
@@ -98,13 +98,14 @@ toolkit scope guard fxri-plan-task # 内容闸门：按当前目录作用域输�
 - `scope list` 同时输出条目存在性：文本模式列出「条目异常」，`--format json` 的 `data.items` 含 `path` / `list` / `exists`；
   相对路径条目按所属配置层的项目根解析
 - 批量项目面安装已迁至 `toolkit skill mount`（原 `scope mount` 已移除）；写入边界与 `--dry-run` 见 [技能分发 · mount](./skill#mount)
-- 非 TTY 环境：`wizard` 会提示无法交互（退出码 `2`）；写命令请直接带参数
+- 非 TTY 环境：`wizard` 会提示无法交互（无交互退出码，见[退出码](./exit-codes)）；写命令请直接带参数
 
 ## 内容闸门 guard
 
 - 前置：技能已被判定为入口壳形态（矩阵限制或 `skillDelivery` 规则），由 `toolkit skill install` 生成入口壳；
   旧键 `skillInstall.gate` / `metadata.gate: false` 仍读时兼容，新配置用 `skillDelivery`
-- `toolkit scope guard <技能名>` 读取当前目录的作用域判定：**激活时**把真源 `SKILL.md` 正文写到 stdout；**未激活时** stdout 为空、原因写 stderr 并以**退出码 3**结束
+- `toolkit scope guard <技能名>` 读取当前目录的作用域判定：**激活时**把真源 `SKILL.md` 正文写到 stdout。
+  **未激活时** stdout 为空、原因写 stderr 并以**未激活退出码**结束（见[退出码](./exit-codes)）
 - 输出契约：stdout 只放正文（供 AI 直接消费），参考文件目录与诊断一律走 stderr；只读，不写缓存
 - 技能名须为内置包或已登记来源中存在的单段名字；未知名字或含路径分隔符时以退出码 `1` 报错
 - 仅在 argv 恰为 `scope guard <技能名>` 时走快速路径（不加载完整命令集）；带其它参数（含 `--help`）回落常规 CLI

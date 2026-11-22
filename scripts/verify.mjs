@@ -233,6 +233,8 @@ const parallelSteps = [
   { label: "升级页命令对照同步", args: ["scripts/generate-upgrade-table.mjs", "--check"] },
   // 退出码数值唯一来源：阻止 src 下重新出现 2 / 3 / 130 字面量
   { label: "退出码单一真源（字面量检查）", args: ["scripts/check-exit-codes.mjs"] },
+  // 退出码文档表由 src/exit-codes.ts 生成，检查生成段未漂移
+  { label: "退出码文档同步", args: ["scripts/generate-exit-codes.mjs", "--check"] },
   // 仓库自检：技能版本四点一致、技能表用途列不残留旧术语、active 任务触达路径存在
   { label: "规范一致性（技能版本 / 用途列 / 触达）", args: ["scripts/check-consistency.mjs"] },
   // 仓库自检：正文段落单行行宽与分号数（规范 C-43），存量按基线棘轮、只在超出时失败

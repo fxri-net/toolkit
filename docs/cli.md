@@ -50,8 +50,8 @@
 | `toolkit config` | 打印本域帮助 | 同左，退出 0 | 无 | `list` / `get` / `status --format json` |
 | `toolkit convention` | 打印本域帮助 | 同左，退出 0 | 无 | `status` / `format` / `upgrade --format json` |
 | `toolkit docs` | 默认全量校验（theme / nav / dist） | 同左 | 无 | `nav` / `dist --format json` |
-| `toolkit scope` | 状态优先向导 | 输出状态摘要与子命令提示，退出 0 | `scope wizard`（需要交互但无终端时退出 2） | `status` / `list --format json` |
-| `toolkit usage` | 交互向导 | 输出 `show` 摘要与子命令提示，退出 0 | `usage setup wizard`（需要交互但无终端时退出 2） | `show` / `show stats` / `data doctor` 等 `--format json` |
+| `toolkit scope` | 状态优先向导 | 输出状态摘要与子命令提示，退出 0 | `scope wizard`（需要交互但无终端时按无交互退出码结束，见[退出码](./cli/exit-codes)） | `status` / `list --format json` |
+| `toolkit usage` | 交互向导 | 输出 `show` 摘要与子命令提示，退出 0 | `usage setup wizard`（需要交互但无终端时按无交互退出码结束，见[退出码](./cli/exit-codes)） | `show` / `show stats` / `data doctor` 等 `--format json` |
 | `toolkit release` | 默认 `status` 只读概览 | 同左，退出 0 | 无 | `status` / `changeset list` 等 `--format json` |
 
 规则：查询型域给默认视图，配置 / 分发型域给帮助，向导型域给摘要 + `wizard` 入口提示；
@@ -133,19 +133,13 @@
 
 交互提示统一走同一套基座（`rule` / `scope` / `usage` / `skill` 已接入，其余域按同一口径演进）：
 
-- 有上级步骤时按 ESC 返回上一级；顶层按 ESC 或 Ctrl+C 取消整个命令（退出码 `130`）。
+- 有上级步骤时按 ESC 返回上一级；顶层按 ESC 或 Ctrl+C 取消整个命令（取消退出码见[退出码](./cli/exit-codes)）。
 - 写操作先展示预览再确认；`--yes` 跳过确认，`--dry-run` 只预览、不写文件 / 剪贴板 / 缓存。
 - 非法取值统一在 stderr 报错并以 `1` 退出；`--format` 只接受 `json`，不再回落文本。
 
 ## 退出码
 
-| 退出码 | 含义 |
-| --- | --- |
-| `0` | 成功（含 check 通过、归档跳过、裸命令输出摘要等正常路径） |
-| `1` | 操作失败或校验存在 error 级问题（check 有 error、参数冲突、非法子命令、文件/目录异常等） |
-| `2` | 需要交互但当前环境不支持（`scope wizard` / `usage setup wizard` 及 `usage setup init` / `usage setup uninstall` / `usage config upload setup` / `usage setup hooks` 写命令等；stderr 给出非交互替代） |
-| `3` | `scope guard <技能名>` 判定当前目录未激活（stdout 为空，原因写 stderr） |
-| `130` | 用户在交互提示中按 Ctrl+C 中断（不写任何文件） |
+退出码的数值、含义与场景以[退出码与解析错误](./cli/exit-codes)为单一真源，本页不再重复。
 
 软告警（warn 级）不影响退出码。解析错误的提示格式与 `release` 透传差异见[退出码与解析错误](./cli/exit-codes)。
 
