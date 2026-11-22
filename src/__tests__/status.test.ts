@@ -29,6 +29,11 @@ vi.mock("../config", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../config")>()
   return { ...actual, resolveTasksDir: () => ".tasks" }
 })
+// 弃用命中读本机缓存：健康现场固定为空，避免开发者跑过旧命令后本地门禁误红
+vi.mock("../command-registry", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../command-registry")>()
+  return { ...actual, takeDeprecationHits: () => [] }
+})
 
 import { collectStatus } from "../status"
 import { runStatus } from "../commands/status"
