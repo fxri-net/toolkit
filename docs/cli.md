@@ -57,7 +57,8 @@
 | `toolkit release` | 默认 `status` 只读概览 | 同左，退出 0 | 无 | `status` / `changeset list` 等 `--format json` |
 
 规则：查询型域给默认视图，配置 / 分发型域给帮助，向导型域给摘要 + `wizard` 入口提示；
-查询 / 分发型裸命令在非 TTY 退出 `0`；校验型裸命令（`toolkit docs`）按校验结论退出，存在 error 时为 `1`；
+查询 / 分发型裸命令在非 TTY 退出 `0`；校验型裸命令（`toolkit docs`）按校验结论退出，存在 error 时为 `1`，
+未检测到 `docs/` 目录时跳过并退出 `0`；
 显式 `wizard` 子命令需要交互时退出 `2`。
 
 ## 术语表

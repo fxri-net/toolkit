@@ -122,6 +122,7 @@ toolkit docs nav init --config <path> # 指定站点配置文件
 ## 退出码与输出
 
 - 存在 error 级问题退出 1，仅 warn 退出 0。
+- 未检测到 `docs/` 目录时，裸 `toolkit docs` 跳过并退出 0；`docs/` 存在但缺主题或 `site-nav.json` 时按校验结论退出 1。
 - `docs dist check` 在产物目录缺失时跳过并退出 0，是否漏跑构建由调用方判断。
 - `--format json` 走统一信封（字段见[输出约定](../cli#输出约定)）。
 - `nav check` / `dist check` 的 `data` 含 `ruleVersion` / `problems`，`dist check` 另含 `skipped`。
