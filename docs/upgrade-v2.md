@@ -4,15 +4,23 @@ title: v2 升级说明（upgrade-v2）
 
 # v2 升级说明（upgrade-v2）
 
-> 2.0.0 的破坏面集中在「脚本里的命令名」与「JSON 解析」；其余动作重跑命令即可完成。
+> 2.0.0 的破坏面集中在「脚本里的命令名」与「JSON 解析」；工程侧迁移由 `toolkit upgrade` 一次完成。
 
-## 三步升级
+## 一键迁移（推荐）
 
 1. 升级 CLI：`pnpm add -g @fxri/toolkit`（项目内依赖用 `pnpm add -D @fxri/toolkit@2`）
-2. 重跑初始化：`toolkit init`（改写 prepare 钩子与项目 / 本地配置段名，原文件备份 `.bak`）
-3. 重装技能：`toolkit skill install --yes`
+2. 在当前工程执行 `toolkit upgrade`（TTY 逐项确认；CI / 脚本用 `toolkit upgrade --yes`）
+   - 先看计划：`toolkit upgrade --dry-run`；作为门禁：`toolkit upgrade --check`
+   - 自动处理三层配置段名、`package.json` 旧钩子与旧命令名、技能旧名登记、规范载体与历史 `.bak`
+3. 重新生成规则快照：`toolkit rule compose --copy`，把输出粘贴回 Agent 全局规则入口
 
-随后重新生成规则快照：`toolkit rule compose`，把输出粘贴回 Agent 全局规则入口。
+细节与退出码见[升级迁移](./cli/upgrade)。迁移只改形态、不改行为；迁移后重跑 `toolkit init` 应零改动。
+
+## 手工兜底（个别步骤未自动完成时）
+
+- 项目配置：`toolkit init`（只处理项目 / 本地层，原文件备份 `.bak`）
+- 技能：`toolkit skill install --yes`（安装器会跟随曾用名迁移）
+- 规范载体：`toolkit convention upgrade`
 
 ## 已移除（无别名，须立即改）
 
@@ -63,8 +71,8 @@ title: v2 升级说明（upgrade-v2）
 | `projectSkills` | `projectSkill` |
 | `tasks` | `task` |
 
-项目层与本地层由 `toolkit init` 就地重写；全局层 `~/.toolkitrc.json` 不在 init 处置范围，
-按上表手动改名，2.1.0 起移除兼容。
+三层配置均由 `toolkit upgrade` 就地重写（含全局层 `~/.toolkitrc.json`）；手工兜底时，
+项目层与本地层可用 `toolkit init`，全局层需手动改名，2.1.0 起移除兼容。
 
 ## JSON 输出
 
@@ -97,7 +105,7 @@ title: v2 升级说明（upgrade-v2）
 
 ## 新命令
 
-`task add` / `task update`、`rule check`、`docs`（默认全量校验，`docs check` 同义）。
+`task add` / `task update`、`rule check`、`upgrade`（v1 工程一键迁移）、`docs`（默认全量校验，`docs check` 同义）。
 
 ## 安装旧版本
 

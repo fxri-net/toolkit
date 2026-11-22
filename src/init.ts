@@ -59,11 +59,11 @@ const GITIGNORE_ROWS: ReadonlyArray<{ row: string; patterns: RegExp[] }> = [
 ]
 
 // prepare 钩子脚本：只收敛项目面已存在的产物（不新增技能），幂等；挂在本地依赖 @fxri/toolkit 时才有意义
-const PREPARE_SCRIPT = "toolkit skill install --scope project --refresh"
+export const PREPARE_SCRIPT = "toolkit skill install --scope project --refresh"
 // prepare 钩子的等价写法白名单：带 --refresh 的显式写法，与不带作用域的裸写法（在仓库内执行时自动判定为项目面）
 const PREPARE_EQUIVALENTS = [PREPARE_SCRIPT, "toolkit skill install --refresh"]
 // 旧版钩子写法：升级为 --refresh（只刷新已有产物），不再全量安装；旧命令名同样纳入改写
-const LEGACY_PREPARE_SCRIPTS = [
+export const LEGACY_PREPARE_SCRIPTS = [
   "toolkit skills install --scope project --refresh",
   "toolkit skills install --refresh",
   "toolkit skills install --scope project",

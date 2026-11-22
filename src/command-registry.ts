@@ -24,6 +24,7 @@ export interface CommandEntry {
 export const COMMAND_REGISTRY: readonly CommandEntry[] = [
   { path: "init", stage: "current" },
   { path: "status", stage: "current" },
+  { path: "upgrade", stage: "current" },
 
   { path: "config", stage: "current" },
   { path: "config list", params: "[--layer <layer>]", stage: "current" },

@@ -18,6 +18,7 @@ export async function runCli(version: string): Promise<void> {
     { DESCRIPTION },
     { registerStatusCommands },
     { registerInitCommands },
+    { registerUpgradeCommands },
     { registerSkillsCommands },
     { registerTasksCommands },
     { registerChangelogCommands },
@@ -39,6 +40,7 @@ export async function runCli(version: string): Promise<void> {
     import("./about"),
     import("./commands/status"),
     import("./commands/init"),
+    import("./commands/upgrade"),
     import("./commands/skill"),
     import("./commands/task"),
     import("./commands/release"),
@@ -139,6 +141,7 @@ export async function runCli(version: string): Promise<void> {
 
   // init 与 skills 域：命令注册与打印移入 ./commands 下的独立模块
   registerInitCommands(program)
+  registerUpgradeCommands(program)
   registerSkillsCommands(program)
   registerConventionsCommands(program)
   registerConfigCommands(program)

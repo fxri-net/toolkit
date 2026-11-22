@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest"
 import { COMMAND_REGISTRY } from "../command-registry"
 import { registerStatusCommands } from "../commands/status"
 import { registerInitCommands } from "../commands/init"
+import { registerUpgradeCommands } from "../commands/upgrade"
 import { registerSkillsCommands } from "../commands/skill"
 import { registerTasksCommands } from "../commands/task"
 import { registerChangelogCommands } from "../commands/release"
@@ -19,6 +20,7 @@ function buildProgram(): Command {
   const program = new Command().name("toolkit")
   registerStatusCommands(program, "0.0.0")
   registerInitCommands(program)
+  registerUpgradeCommands(program)
   registerSkillsCommands(program)
   registerConventionsCommands(program)
   registerConfigCommands(program)

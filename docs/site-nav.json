@@ -64,6 +64,7 @@
             { "text": "整体状态", "link": "/cli/status" },
             { "text": "任务区", "link": "/cli/task" },
             { "text": "初始化", "link": "/cli/init" },
+            { "text": "升级迁移", "link": "/cli/upgrade" },
             { "text": "作用域", "link": "/cli/scope" },
             { "text": "规范载体", "link": "/cli/convention" },
             { "text": "发版与更新日志", "link": "/cli/release" },
