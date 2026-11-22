@@ -123,11 +123,11 @@ toolkit docs nav init --config <path> # 指定站点配置文件
 
 - 存在 error 级问题退出 1，仅 warn 退出 0。
 - `docs dist check` 在产物目录缺失时跳过并退出 0，是否漏跑构建由调用方判断。
-- `--format json` 走统一信封 `{ schemaVersion, command, ok, data, issues }`。
+- `--format json` 走统一信封（字段见[输出约定](../cli#输出约定)）。
 - `nav check` / `dist check` 的 `data` 含 `ruleVersion` / `problems`，`dist check` 另含 `skipped`。
 - 全量 `docs check` 的 `data` 按 `theme` / `nav` / `dist` 分块。
 - `problems` 每项含 `id` / `level` / `file` / `message` 四个字段；同一批问题映射到顶层 `issues[]`（`scope` 取规则 `id`），原始项保留在 `data` 内便于对照。
-- `ok` 反映本次校验结论：存在 error 级问题时为 `false`；`dist check` 因产物缺失而跳过时仍为 `true`。
+- `code` 反映本次校验结论：存在 error 级问题时为 `422`，否则为 `200`；`dist check` 因产物缺失而跳过时仍为 `200`。
 - `ruleVersion` 独立于包版本，规则或结构变化时才递增，便于下游门禁比对。
 
 ### 规则版本

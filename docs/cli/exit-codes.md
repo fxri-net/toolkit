@@ -20,7 +20,8 @@ title: 退出码与解析错误
 全局 `--cwd` 指向不存在或非目录的路径时按 `1` 退出，不回落当前目录。
 
 `--format json` 的业务失败仍在 stderr 报错并保留上表退出码，不在 stdout 输出半截 JSON；报告类成功输出的统一信封
-`{ schemaVersion, command, ok, data, issues }` 中，`ok` 反映报告结论（check 类按是否存在 error，只告警时仍为 `true`）。
+字段见[输出约定](../cli#输出约定)，其中 `code` 只反映报告结论（check 类按是否存在 error），
+进程退出码另由 `extend.exitCode` 承载，两者可以不一致（如 `status` 不带 `--check`）。
 
 交互中断固定为 `130`，与 shell 对 SIGINT 的惯例一致：`scope` / `usage` / `skill` / `rule` 等命令在提示中按 Ctrl+C 都以此结束，不再回落为 `0` 或 `1`。
 `scope` 交互里的「← 返回」与 ESC 属于正常导航（回到上层菜单），不产生中断退出码；主动选择「退出」按成功计 `0`。

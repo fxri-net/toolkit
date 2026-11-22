@@ -110,7 +110,7 @@ toolkit task check --strict      # 任务目录不存在时报错退出（默认
 - 活跃任务滞留时长（不含搁置：搁置是有意不投入，计入会把平均滞留长期拉高；搁置项在输出末单列「另有搁置 N 个」）
 - 按完成月吞吐汇总
 - 汇总块与 `toolkit task` 看板一致：按状态 / 负责人 / 范围 / 批次（范围多值拆段、空值与 `-` 归「未标注」；批次解析正文行 `> 批次：第 N 批（共 M 批）`，无该行归「未分批」）
-- `--format json` 输出统一信封（`schemaVersion` / `command` / `ok` / `data` / `issues`），统计字段位于 `data`；
+- `--format json` 输出统一信封（字段见[输出约定](../cli#输出约定)），统计字段位于 `data`；
   过滤选项与视图查询一致（`--view` 默认 `all`，含归档）；JSON 的 `byOwner` / `byScope` 仍是完成样本吞吐口径，统一分布见 `summary` 字段，
   `view` 记录本次统计视图（`all` / `active` / `archived`）
 - ⚠️ JSON 的 `active.count` / `avgStay` / `maxStay` 均为**不含搁置**口径（字段名未变、含义变更，新增搁置状态后的口径调整）；

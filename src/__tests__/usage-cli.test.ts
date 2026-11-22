@@ -80,9 +80,9 @@ function event(overrides: Partial<SkillUsageEvent> = {}): SkillUsageEvent {
 describe("usage CLI", () => {
   it("状态与开关命令回显并写全局配置", async () => {
     await run(["show", "--format", "json"])
-    const payload = JSON.parse(logs.join("\n")) as { command: string; ok: boolean; data: { enabled: boolean; hooks: unknown; upload: unknown } }
+    const payload = JSON.parse(logs.join("\n")) as { command: string; code: number; data: { enabled: boolean; hooks: unknown; upload: unknown } }
     expect(payload.command).toBe("usage show")
-    expect(payload.ok).toBe(true)
+    expect(payload.code).toBe(200)
     expect(payload.data.enabled).toBe(true)
     expect(payload.data.hooks).toBeDefined()
     expect(payload.data.upload).toBeDefined()

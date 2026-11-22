@@ -8,7 +8,8 @@ import { isInteractive, runInteractive } from "../prompts"
 import { resolveComparablePath } from "../scope/paths"
 import { runScopeWizard } from "../scope/wizard"
 import { line } from "../term-style"
-import { assertJsonFormat, jsonEnvelope, toJsonText } from "../json-output"
+import { assertJsonFormat, jsonEnvelope } from "../json-output"
+import { printJson } from "./shared"
 import { registerHelpCommand } from "../help"
 import { assertChoice, fail } from "../cli-ui"
 import { modeLabel, planAdd, planDefault, planRemove, planReset, readScopeState, type ScopeList, type RemoveFrom } from "../scope/edit"
@@ -202,9 +203,10 @@ function runPolicyList(options: { at?: string; format?: string }): void {
   const report = resolveScope(options.at)
   for (const warning of report.warnings) console.error(`⚠️ ${warning}`)
   if (options.format === "json") {
-    console.log(
-      toJsonText(
-        jsonEnvelope("scope policy list", true, {
+    printJson(
+      jsonEnvelope({
+        command: "scope policy list",
+        data: {
           at: report.context.cwd,
           baseDir: report.decision.baseDir,
           active: report.decision.active,
@@ -214,8 +216,8 @@ function runPolicyList(options: { at?: string; format?: string }): void {
             ...policy,
             legacy: isLegacyPolicyId(policy.id),
           })),
-        }),
-      ),
+        },
+      }),
     )
     return
   }
@@ -249,9 +251,10 @@ function runSkillsList(options: { at?: string; format?: string }): void {
   const policies = report.policies.filter((policy) => policy.skills && Object.keys(policy.skills).length > 0)
   const linkage = analyzeSkillLinkage(options.at)
   if (options.format === "json") {
-    console.log(
-      toJsonText(
-        jsonEnvelope("scope skills list", true, {
+    printJson(
+      jsonEnvelope({
+        command: "scope skills list",
+        data: {
           at: report.context.cwd,
           baseDir: report.decision.baseDir,
           profiles: report.profiles,
@@ -260,8 +263,8 @@ function runSkillsList(options: { at?: string; format?: string }): void {
             ...policy,
             legacy: isLegacyPolicyId(policy.id),
           })),
-        }),
-      ),
+        },
+      }),
     )
     return
   }
@@ -537,15 +540,16 @@ export function registerScopeCommands(program: Command): void {
           }))
           const linkage = analyzeSkillLinkage(options.at)
           if (options.format === "json") {
-            console.log(
-              toJsonText(
-                jsonEnvelope("scope status", true, {
+            printJson(
+              jsonEnvelope({
+                command: "scope status",
+                data: {
                   at: base.context.cwd,
                   baseDir: base.decision.baseDir,
                   linkage,
                   skills: items,
-                }),
-              ),
+                },
+              }),
             )
             return
           }
@@ -566,9 +570,10 @@ export function registerScopeCommands(program: Command): void {
         if (report.migrationHint) console.error(`⚠️ ${report.migrationHint}`)
         if (options.format === "json") {
           const { decision } = report
-          console.log(
-            toJsonText(
-              jsonEnvelope("scope status", true, {
+          printJson(
+            jsonEnvelope({
+              command: "scope status",
+              data: {
                 active: decision.active,
                 mode: decision.mode,
                 baseDir: decision.baseDir,
@@ -578,8 +583,8 @@ export function registerScopeCommands(program: Command): void {
                 policyCount: report.policyCount,
                 matchedRule: decision.matchedRule,
                 reason: decision.reason,
-              }),
-            ),
+              },
+            }),
           )
           for (const hint of formatLinkageHints(analyzeSkillLinkage(options.at))) console.error(`⚠️ ${hint}`)
           return
@@ -610,9 +615,10 @@ export function registerScopeCommands(program: Command): void {
           ...exclude.map((path) => ({ path, list: "exclude", exists: existsSync(resolveComparablePath(path, report.decision.baseDir)) })),
         ]
         if (options.format === "json") {
-          console.log(
-            toJsonText(
-              jsonEnvelope("scope list", true, {
+          printJson(
+            jsonEnvelope({
+              command: "scope list",
+              data: {
                 configured: Boolean(activation),
                 sourceFile: report.decision.sourceFile,
                 baseDir: report.decision.baseDir,
@@ -623,8 +629,8 @@ export function registerScopeCommands(program: Command): void {
                 gitRemotes: activation?.gitRemotes ?? [],
                 skills: activation?.skills ?? {},
                 items,
-              }),
-            ),
+              },
+            }),
           )
           return
         }

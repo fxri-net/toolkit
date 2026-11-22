@@ -184,7 +184,7 @@ toolkit skill status --path --format json   # JSON 输出：包根、技能源�
 
 `toolkit skill status --path` 输出包根（内含 `skills/`）与 JSON 清单，便于委托上游安装器。
 
-`--format json` 统一信封 `{ schemaVersion, command, ok, data, issues }`，下表字段位于 `data`，
+`--format json` 走统一信封（字段见[输出约定](../cli#输出约定)），下表字段位于 `data`，
 检查问题同时映射到顶层 `issues`。
 
 | 子命令 | 额外字段 |

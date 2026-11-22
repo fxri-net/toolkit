@@ -68,19 +68,23 @@ title: v2 升级说明（upgrade-v2）
 
 ## JSON 输出
 
-报告类命令统一为 `{ schemaVersion, command, ok, data, issues }`：
+报告类命令统一为八键信封（字段定义见 [CLI 参考 · 输出约定](./cli#输出约定)）：
 
 ```json
 {
   "schemaVersion": 1,
   "command": "task stats",
-  "ok": true,
+  "code": 200,
+  "message": "成功",
   "data": { "total": 3 },
+  "extend": { "exitCode": 0 },
+  "debug": {},
   "issues": []
 }
 ```
 
-读取变化：原顶层字段移入 `data`，`command` 标识命令来源，`issues` 汇总问题。
+读取变化：原顶层字段移入 `data`，`command` 标识命令来源，`code` / `message` 表达结论，
+`extend.exitCode` 承载进程退出码，`issues` 汇总问题。
 数据流保持原格式，不套信封：`usage data export`、`task export` 写出的文件、`release changeset` 透传。
 
 ## 全局工作目录

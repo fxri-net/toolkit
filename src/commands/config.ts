@@ -176,15 +176,18 @@ export function registerConfigCommands(program: Command): void {
       })
       if (options.format === "json") {
         printJson(
-          jsonEnvelope("config list", true, {
-            layer: layer ?? null,
-            keys: rows.map((row) => ({
-              key: row.key,
-              type: row.type,
-              summary: row.summary,
-              value: jsonValue(row.spec, row.value, reveal),
-              source: row.source,
-            })),
+          jsonEnvelope({
+            command: "config list",
+            data: {
+              layer: layer ?? null,
+              keys: rows.map((row) => ({
+                key: row.key,
+                type: row.type,
+                summary: row.summary,
+                value: jsonValue(row.spec, row.value, reveal),
+                source: row.source,
+              })),
+            },
           }),
         )
         return
@@ -226,18 +229,21 @@ export function registerConfigCommands(program: Command): void {
       const state = readConfigKey(key, cwd)
       if (options.format === "json") {
         printJson(
-          jsonEnvelope("config get", true, {
-            key,
-            type: spec.type,
-            summary: spec.summary,
-            value: jsonValue(spec, state.value, reveal),
-            source: state.source,
-            layers: {
-              global: jsonValue(spec, state.layers.global, reveal),
-              project: jsonValue(spec, state.layers.project, reveal),
-              local: jsonValue(spec, state.layers.local, reveal),
+          jsonEnvelope({
+            command: "config get",
+            data: {
+              key,
+              type: spec.type,
+              summary: spec.summary,
+              value: jsonValue(spec, state.value, reveal),
+              source: state.source,
+              layers: {
+                global: jsonValue(spec, state.layers.global, reveal),
+                project: jsonValue(spec, state.layers.project, reveal),
+                local: jsonValue(spec, state.layers.local, reveal),
+              },
+              env: state.env ?? null,
             },
-            env: state.env ?? null,
           }),
         )
         return
@@ -300,13 +306,16 @@ export function registerConfigCommands(program: Command): void {
       if (options.dryRun) {
         if (options.format === "json") {
           printJson(
-            jsonEnvelope("config set", true, {
-              key,
-              layer: target,
-              value: jsonValue(spec, parsed.value, reveal),
-              valueText: renderValue(spec, parsed.value, reveal),
-              dryRun: true,
-              file: null,
+            jsonEnvelope({
+              command: "config set",
+              data: {
+                key,
+                layer: target,
+                value: jsonValue(spec, parsed.value, reveal),
+                valueText: renderValue(spec, parsed.value, reveal),
+                dryRun: true,
+                file: null,
+              },
             }),
           )
         } else {
@@ -319,13 +328,16 @@ export function registerConfigCommands(program: Command): void {
         const result = writeConfigKey(target, key, parsed.value, cwd)
         if (options.format === "json") {
           printJson(
-            jsonEnvelope("config set", true, {
-              key,
-              layer: target,
-              value: jsonValue(spec, parsed.value, reveal),
-              valueText: renderValue(spec, parsed.value, reveal),
-              dryRun: false,
-              file: foldHome(result.file),
+            jsonEnvelope({
+              command: "config set",
+              data: {
+                key,
+                layer: target,
+                value: jsonValue(spec, parsed.value, reveal),
+                valueText: renderValue(spec, parsed.value, reveal),
+                dryRun: false,
+                file: foldHome(result.file),
+              },
             }),
           )
           return
@@ -370,7 +382,7 @@ export function registerConfigCommands(program: Command): void {
         return
       }
       if (options.dryRun) {
-        if (options.format === "json") printJson(jsonEnvelope("config unset", true, { key, layer: target, dryRun: true, removed: null }))
+        if (options.format === "json") printJson(jsonEnvelope({ command: "config unset", data: { key, layer: target, dryRun: true, removed: null } }))
         else console.log(line.hint(`将从${CONFIG_LAYER_LABELS[target]}删除：${key}（--dry-run，未落盘）`))
         return
       }
@@ -382,14 +394,17 @@ export function registerConfigCommands(program: Command): void {
         const effective = readConfigKey(key, cwd)
         if (options.format === "json") {
           printJson(
-            jsonEnvelope("config unset", true, {
-              key,
-              layer: target,
-              dryRun: false,
-              removed: result.removed,
-              previous: jsonValue(spec, result.previous, reveal),
-              file: foldHome(result.file),
-              effective: { value: jsonValue(spec, effective.value, reveal), source: effective.source },
+            jsonEnvelope({
+              command: "config unset",
+              data: {
+                key,
+                layer: target,
+                dryRun: false,
+                removed: result.removed,
+                previous: jsonValue(spec, result.previous, reveal),
+                file: foldHome(result.file),
+                effective: { value: jsonValue(spec, effective.value, reveal), source: effective.source },
+              },
             }),
           )
           return
@@ -425,12 +440,11 @@ export function registerConfigCommands(program: Command): void {
         const report = configStatus(cwd)
         if (options.format === "json") {
           printJson(
-            jsonEnvelope(
-              "config status",
-              true,
-              report,
-              report.items.map((item) => ({ level: item.level, scope: item.scope, message: item.message })),
-            ),
+            jsonEnvelope({
+              command: "config status",
+              data: report,
+              issues: report.items.map((item) => ({ level: item.level, scope: item.scope, message: item.message })),
+            }),
           )
         } else printConfigStatus(report)
       } catch (e) {

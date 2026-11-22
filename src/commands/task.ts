@@ -187,7 +187,7 @@ export function registerTasksCommands(program: Command): void {
     try {
       const { rows, summary } = queryTasks(ctx.dir, view, filter)
       if (options.format === "json") {
-        printJson(jsonEnvelope(command, true, toJSONData(rows, summary, ctx.redact)))
+        printJson(jsonEnvelope({ command, data: toJSONData(rows, summary, ctx.redact) }))
         return
       }
       renderTaskBoard(rows, summary, view, filter, ctx.redact)
@@ -256,7 +256,7 @@ export function registerTasksCommands(program: Command): void {
     if (!filter) return
     try {
       const stats = computeStats(ctx.dir, filter, view)
-      if (options.format === "json") printJson(jsonEnvelope("task stats", true, stats))
+      if (options.format === "json") printJson(jsonEnvelope({ command: "task stats", data: stats }))
       else for (const line of renderStats(stats)) console.log(line)
     } catch (e) {
       console.error(`⚠️ 操作失败：${(e as Error).message}`)

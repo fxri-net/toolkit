@@ -1,4 +1,4 @@
-// 机器可读输出单测：JSON 序列化的 schemaVersion 锚点契约，以及 --format 取值门禁
+// 机器可读输出单测：JSON 序列化的 schemaVersion 锚点契约、统一信封字段与缺省推导，以及 --format 取值门禁
 // 门禁覆盖各命令的 --format 校验（非法值告警并置退出码 1），防止新增命令漏接校验
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { toJsonText, assertJsonFormat, jsonEnvelope } from "../json-output"
@@ -17,16 +17,71 @@ describe("toJsonText", () => {
 })
 
 describe("jsonEnvelope", () => {
-  it("固定 command / ok / data / issues 四字段，schemaVersion 由序列化统一前置", () => {
-    const issue = { level: "warn" as const, scope: "文档站", message: "导航告警" }
-    const parsed = JSON.parse(toJsonText(jsonEnvelope("status", false, { initialized: true }, [issue]))) as Record<string, unknown>
+  it("固定八键与键序：schemaVersion / command / code / message / data / extend / debug / issues", () => {
+    const parsed = JSON.parse(toJsonText(jsonEnvelope({ command: "status", data: { initialized: true } }))) as Record<string, unknown>
+    expect(Object.keys(parsed)).toEqual(["schemaVersion", "command", "code", "message", "data", "extend", "debug", "issues"])
     expect(parsed).toEqual({
       schemaVersion: 1,
       command: "status",
-      ok: false,
+      code: 200,
+      message: "成功",
       data: { initialized: true },
-      issues: [issue],
+      extend: { exitCode: 0 },
+      debug: {},
+      issues: [],
     })
+  })
+
+  it("无 issues 时 code 取 200、message 取「成功」，extend 与 debug 仍为对象", () => {
+    const parsed = jsonEnvelope({ command: "task stats", data: {} })
+    expect(parsed.code).toBe(200)
+    expect(parsed.message).toBe("成功")
+    expect(parsed.extend).toEqual({ exitCode: 0 })
+    expect(parsed.debug).toEqual({})
+    expect(parsed.issues).toEqual([])
+  })
+
+  it("只含 warn / info 时 code 仍为 200，message 汇总提示条数", () => {
+    const parsed = jsonEnvelope({
+      command: "config status",
+      data: {},
+      issues: [
+        { level: "warn", scope: "配置", message: "告警一" },
+        { level: "info", scope: "配置", message: "说明二" },
+      ],
+    })
+    expect(parsed.code).toBe(200)
+    expect(parsed.message).toBe("成功（2 项提示）")
+  })
+
+  it("含 error 时缺省 code 取 422、message 取首条 error 文案", () => {
+    const parsed = jsonEnvelope({
+      command: "docs check",
+      data: {},
+      issues: [
+        { level: "warn", scope: "导航", message: "告警" },
+        { level: "error", scope: "导航", message: "导航缺少顶栏" },
+        { level: "error", scope: "产物", message: "sitemap 含 404" },
+      ],
+    })
+    expect(parsed.code).toBe(422)
+    expect(parsed.message).toBe("导航缺少顶栏")
+  })
+
+  it("显式 code / message / exitCode 优先于缺省推导，且 extend 内同名键不能覆盖 exitCode", () => {
+    const parsed = jsonEnvelope({
+      command: "skill lint",
+      code: 422,
+      message: "自定义结论",
+      data: {},
+      exitCode: 1,
+      extend: { exitCode: 0, strict: true },
+      debug: { elapsed: 12 },
+    })
+    expect(parsed.code).toBe(422)
+    expect(parsed.message).toBe("自定义结论")
+    expect(parsed.extend).toEqual({ exitCode: 1, strict: true })
+    expect(parsed.debug).toEqual({ elapsed: 12 })
   })
 })
 

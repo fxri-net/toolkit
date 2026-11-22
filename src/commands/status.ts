@@ -63,10 +63,10 @@ export function runStatus(options: StatusOptions, version: string): void {
   const report = collectStatus(version)
   if (options.format === "json") {
     printJson(
-      jsonEnvelope(
-        "status",
-        report.ok,
-        {
+      jsonEnvelope({
+        command: "status",
+        code: report.ok ? 200 : 422,
+        data: {
           version: report.version,
           initialized: report.initialized,
           cwd: report.cwd,
@@ -75,8 +75,10 @@ export function runStatus(options: StatusOptions, version: string): void {
           deprecated: report.deprecated,
           runtimeHits: report.runtimeHits,
         },
-        report.issues,
-      ),
+        issues: report.issues,
+        // 报告结论与退出码分离：不带 --check 时即使有 error 也不阻断
+        exitCode: options.check && !report.ok ? 1 : 0,
+      }),
     )
   } else {
     printStatusText(report)

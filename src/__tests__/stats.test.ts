@@ -188,10 +188,11 @@ describe("stats JSON 输出", () => {
     writeArchive(dir, "20260905", ["## 20260901-张三-任务甲\n\n> 负责人：张三　状态：已完成　范围：core　完成时间：2026-09-05 10:00\n\n正文\n"])
     writeTask(dir, "20260901-李四-滞留任务", { owner: "李四", status: "待办", created: "20260901", updated: "20260901", completed: "", depends_on: "[]", scope: "core" })
     const stats = computeStats(dir)
-    const parsed = JSON.parse(toJsonText(jsonEnvelope("task stats", true, stats))) as Record<string, unknown>
+    const parsed = JSON.parse(toJsonText(jsonEnvelope({ command: "task stats", data: stats }))) as Record<string, unknown>
     expect(parsed.schemaVersion).toBe(1)
     expect(parsed.command).toBe("task stats")
-    expect(parsed.ok).toBe(true)
+    expect(parsed.code).toBe(200)
+    expect(parsed.message).toBe("成功")
     expect(parsed.issues).toEqual([])
     const data = parsed.data as Record<string, unknown>
     expect(data.duration).toEqual(stats.duration)

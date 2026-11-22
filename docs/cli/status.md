@@ -53,14 +53,15 @@ toolkit status --format json   # 统一信封输出到 stdout（诊断仍走 std
 
 ## JSON 契约
 
-顶层为统一信封：`schemaVersion` / `command` / `ok` / `data` / `issues`（信封由 `src/json-output.ts` 统一构造）。
+顶层为统一信封（字段定义见[输出约定](../cli#输出约定)，由 `src/json-output.ts` 统一构造）。
 
 | 字段 | 内容 | 稳定性 |
 | --- | --- | --- |
-| `command` / `ok` / `issues[]` | 命令名、总体结论、聚合问题（`level` / `scope` / `message`） | 稳定契约 |
+| `command` / `code` / `message` / `extend.exitCode` / `issues[]` | 命令名、报告结论码、结论文案、进程退出码、聚合问题（`level` / `scope` / `message`） | 稳定契约 |
 | `data.version` / `data.initialized` / `data.sections[]` / `data.deprecated[]` / `data.runtimeHits[]` | 版本、初始化标记、逐区块摘要、静态迁移项、运行时命中记录 | 可能随版本扩展 |
 
-⚠️ `issues[].level` 为 `error` / `warn` / `info`，`scope` 为 `任务区` / `技能现场` / `配置层` / `文档站`；`ok` 只在无 error 级问题时为 `true`。
+⚠️ `issues[].level` 为 `error` / `warn` / `info`，`scope` 为 `任务区` / `技能现场` / `配置层` / `文档站`；
+`code` 只在无 error 级问题时为 `200`（否则 `422`），而 `extend.exitCode` 仅在带 `--check` 且存在 error 时为 `1`。
 
 ⚠️ 文本模式把 home 前缀折叠为 `~/…`（避免共享日志泄露本机目录结构）；`--format json` 保留绝对路径供脚本定位。
 

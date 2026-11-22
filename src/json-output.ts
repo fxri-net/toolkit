@@ -13,15 +13,49 @@ export interface JsonIssue {
   message: string
 }
 
-// 统一信封：command 标识来源、ok 为总体结论、data 为域载荷、issues 为聚合问题
-// schemaVersion 由 toJsonText 统一前置，构造函数不重复携带
-export function jsonEnvelope<T>(
-  command: string,
-  ok: boolean,
-  data: T,
-  issues: JsonIssue[] = [],
-): { command: string; ok: boolean; data: T; issues: JsonIssue[] } {
-  return { command, ok, data, issues }
+// 统一信封入参：code / message 缺省由 issues 推导，exitCode 独立于业务结论
+export interface JsonEnvelopeInput<T> {
+  command: string
+  // 业务结论码（HTTP 语义）：缺省含 error 取 422，否则取 200；调用点可显式覆盖
+  code?: number
+  // 结论文案：缺省无 issues 取「成功」，只含提示取「成功（N 项提示）」，含 error 取首条 error 文案
+  message?: string
+  data: T
+  issues?: JsonIssue[]
+  // 进程退出码，写入 extend.exitCode；与 code 分离，避免「有 error 但未阻断」被误读为失败退出
+  exitCode?: number
+  extend?: Record<string, unknown>
+  debug?: Record<string, unknown>
+}
+
+// 统一信封：固定 7 个载荷键，schemaVersion 由 toJsonText 统一前置
+// 键序固定为 command / code / message / data / extend / debug / issues，缺失项以空值补齐不省略
+export function jsonEnvelope<T>(input: JsonEnvelopeInput<T>): {
+  command: string
+  code: number
+  message: string
+  data: T
+  extend: Record<string, unknown>
+  debug: Record<string, unknown>
+  issues: JsonIssue[]
+} {
+  const issues = input.issues ?? []
+  const firstError = issues.find((issue) => issue.level === "error")
+  const code = input.code ?? (firstError ? 422 : 200)
+  // 提示计数只统计非 error 项：含 error 时文案直接取首条错误，不再报「N 项提示」
+  const noticeCount = issues.filter((issue) => issue.level !== "error").length
+  const message =
+    input.message ?? (firstError ? firstError.message : noticeCount > 0 ? `成功（${noticeCount} 项提示）` : "成功")
+  return {
+    command: input.command,
+    code,
+    message,
+    data: input.data,
+    // exitCode 是一等入参，不允许被 extend 内同名键覆盖
+    extend: { ...input.extend, exitCode: input.exitCode ?? 0 },
+    debug: input.debug ?? {},
+    issues,
+  }
 }
 
 // 校验 --format 取值：仅支持 json，非法值告警并置退出码 1；返回 false 时调用方直接 return

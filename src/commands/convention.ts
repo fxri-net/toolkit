@@ -111,7 +111,7 @@ export function registerConventionsCommands(program: Command): void {
       try {
         if (!assertJsonFormat(options.format)) return
         const report = upgradeConventions(resolveTasksDir(options.dir), { dryRun: options.dryRun })
-        if (options.format === "json") printJson(jsonEnvelope("convention upgrade", true, { dryRun: Boolean(options.dryRun), ...report }))
+        if (options.format === "json") printJson(jsonEnvelope({ command: "convention upgrade", data: { dryRun: Boolean(options.dryRun), ...report } }))
         else printUpgradeReport(report, Boolean(options.dryRun))
       } catch (e) {
         console.error(`⚠️ 升级失败：${(e as Error).message}`)
@@ -130,7 +130,7 @@ export function registerConventionsCommands(program: Command): void {
       try {
         if (!assertJsonFormat(options.format)) return
         const report = formatConventions(resolveTasksDir(options.dir), { dryRun: options.dryRun })
-        if (options.format === "json") printJson(jsonEnvelope("convention format", true, report))
+        if (options.format === "json") printJson(jsonEnvelope({ command: "convention format", data: report }))
         else printConventionsFormat(report, Boolean(options.dryRun))
       } catch (e) {
         console.error(`⚠️ 归一失败：${(e as Error).message}`)
@@ -151,7 +151,7 @@ export function registerConventionsCommands(program: Command): void {
         const tasksDir = resolveTasksDir(options.dir)
         const report = conventionsStatus(tasksDir, resolveCarrierRoot(tasksDir))
         if (options.format === "json") {
-          printJson(jsonEnvelope("convention status", true, report, report.items.map((item) => ({ level: item.level, scope: item.scope, message: item.message }))))
+          printJson(jsonEnvelope({ command: "convention status", data: report, issues: report.items.map((item) => ({ level: item.level, scope: item.scope, message: item.message })) }))
         } else printConventionsStatus(report)
       } catch (e) {
         console.error(`⚠️ 读取状态失败：${(e as Error).message}`)

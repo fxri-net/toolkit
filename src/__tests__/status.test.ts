@@ -157,7 +157,7 @@ describe("runStatus 输出与退出码", () => {
     expect(log).toHaveBeenCalled()
   })
 
-  it("--format json 输出统一信封：schemaVersion / command / ok / data / issues", () => {
+  it("--format json 输出统一信封：schemaVersion / command / code / message / data / extend / debug / issues", () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => {})
     const dir = makeDir(true)
     process.chdir(dir)
@@ -166,7 +166,10 @@ describe("runStatus 输出与退出码", () => {
     const payload = JSON.parse(log.mock.calls.map((call) => call.join(" ")).join("\n")) as Record<string, unknown>
     expect(payload.schemaVersion).toBe(1)
     expect(payload.command).toBe("status")
-    expect(payload.ok).toBe(true)
+    expect(payload.code).toBe(200)
+    expect(payload.message).toBe("成功")
+    expect(payload.extend).toEqual({ exitCode: 0 })
+    expect(payload.debug).toEqual({})
     expect(payload.issues).toEqual([])
     const data = payload.data as { version: string; initialized: boolean; sections: unknown[] }
     expect(data.version).toBe("1.2.3")

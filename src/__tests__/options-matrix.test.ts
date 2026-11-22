@@ -253,10 +253,10 @@ describe("顶层命令与外部域", () => {
   it("skills status --path --format json：统一信封且 data 带技能清单", async () => {
     const r = await runCli(["skill", "status", "--path", "--format", "json"])
     expect(r.code).toBe(0)
-    const payload = JSON.parse(r.log.join("\n")) as { schemaVersion: number; command: string; ok: boolean; data: { skills: string[] }; issues: unknown[] }
+    const payload = JSON.parse(r.log.join("\n")) as { schemaVersion: number; command: string; code: number; data: { skills: string[] }; issues: unknown[] }
     expect(payload.schemaVersion).toBe(1)
     expect(payload.command).toBe("skill status")
-    expect(payload.ok).toBe(true)
+    expect(payload.code).toBe(200)
     expect(payload.issues).toEqual([])
     expect(Array.isArray(payload.data.skills)).toBe(true)
   })
@@ -452,9 +452,9 @@ describe("顶层命令与外部域", () => {
   it("skills gate 旧写法重写到 config：查询与非法取值", async () => {
     const query = await runCli(["skills", "gate", "--format", "json"])
     expect(query.code).toBe(0)
-    const payload = JSON.parse(query.log.join("\n")) as { command: string; ok: boolean; data: { key: string } }
+    const payload = JSON.parse(query.log.join("\n")) as { command: string; code: number; data: { key: string } }
     expect(payload.command).toBe("config get")
-    expect(payload.ok).toBe(true)
+    expect(payload.code).toBe(200)
     expect(payload.data.key).toBe("skillDelivery.default")
     // 旧命令提示只走 stderr，stdout 保持机器可读
     expect(query.err.join("\n")).toContain("已弃用")
@@ -765,17 +765,17 @@ describe("config 域只读体检", () => {
     const parsed = JSON.parse(r.log.join("\n")) as {
       schemaVersion: number
       command: string
-      ok: boolean
+      code: number
       data: { warnings: number; levels: unknown[] }
       issues: unknown[]
     }
     expect(parsed.schemaVersion).toBe(1)
     expect(parsed.command).toBe("config status")
-    expect(parsed.ok).toBe(true)
+    expect(parsed.code).toBe(200)
     expect(typeof parsed.data.warnings).toBe("number")
     expect(Array.isArray(parsed.data.levels)).toBe(true)
-    // 顶层字段集合锁定：schemaVersion + 四个信封字段
-    expect(Object.keys(JSON.parse(r.log.join("\n")))).toHaveLength(5)
+    // 顶层字段集合锁定：schemaVersion + 七个信封字段
+    expect(Object.keys(JSON.parse(r.log.join("\n")))).toHaveLength(8)
   })
 
   it("--cwd 指向不存在路径：报错退出且不回落 process.cwd()", async () => {

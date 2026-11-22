@@ -27,7 +27,7 @@ export function registerUsageUploadCommands(usage: Command): void {
       .action((options: { format?: string }) => {
         if (!assertJsonFormat(options.format)) return
         const report = uploadStatus()
-        if (options.format === "json") printJson(jsonEnvelope("usage config upload status", true, report))
+        if (options.format === "json") printJson(jsonEnvelope({ command: "usage config upload status", data: report }))
         else {
           console.log(`上传：${report.enabled ? "已开启" : "已关闭"}`)
           console.log(`协议：${report.protocol}｜端点：${report.endpoint || "未配置"}`)

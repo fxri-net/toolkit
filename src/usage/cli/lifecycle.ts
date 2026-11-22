@@ -58,7 +58,7 @@ export function registerUsageShowCommands(show: Command): void {
         upload: { enabled: upload.enabled, pending: upload.pending },
         lastHookError: lastHookError ?? null,
       }
-      printJson(jsonEnvelope("usage show", true, report))
+      printJson(jsonEnvelope({ command: "usage show", data: report }))
     })
 }
 

@@ -100,7 +100,7 @@ export function registerUsageStatsCommands(show: Command): void {
         const summary = summarize(events)
         const unused = options.unused && by === "skill" ? unusedSkills(all) : undefined
         if (options.format === "json") {
-          printJson(jsonEnvelope("usage show stats", true, { ...summary, unused, dataDir: dir, by }))
+          printJson(jsonEnvelope({ command: "usage show stats", data: { ...summary, unused, dataDir: dir, by } }))
           return
         }
         if (by === "session") {
@@ -374,12 +374,11 @@ export function registerUsageDataCommands(data: Command, usage: Command): void {
         const report = { dataDir: dir, events: events.length, unique: unique.size, indexed: index.eventIds.length, crossAdapters, items }
         if (options.format === "json") {
           printJson(
-            jsonEnvelope(
-              "usage data doctor",
-              true,
-              report,
-              items.map((item) => ({ level: item.level, scope: item.code, message: item.message })),
-            ),
+            jsonEnvelope({
+              command: "usage data doctor",
+              data: report,
+              issues: items.map((item) => ({ level: item.level, scope: item.code, message: item.message })),
+            }),
           )
           return
         }

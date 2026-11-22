@@ -129,7 +129,7 @@ export function registerRulesCommands(program: Command): void {
         const listed = listRules()
         const selection = readRulesSelection(listed.modules.map((mod) => mod.id))
         if (options.format === "json") {
-          printJson(jsonEnvelope("rule list", true, { ...listed, selection: selection?.modules ?? null }))
+          printJson(jsonEnvelope({ command: "rule list", data: { ...listed, selection: selection?.modules ?? null } }))
           return
         }
         console.log("规则模块：")
@@ -263,12 +263,12 @@ export function registerRulesCommands(program: Command): void {
         const report = checkRuleAnchors(resolve(options.cwd ?? process.cwd()))
         if (options.format === "json") {
           printJson(
-            jsonEnvelope(
-              "rule check",
-              report.ok,
-              report,
-              report.issues.map((issue) => ({ level: issue.level, scope: issue.file, message: issue.message })),
-            ),
+            jsonEnvelope({
+              command: "rule check",
+              data: report,
+              issues: report.issues.map((issue) => ({ level: issue.level, scope: issue.file, message: issue.message })),
+              exitCode: report.ok ? 0 : 1,
+            }),
           )
         } else {
           for (const mod of report.modules) console.log(`${mod.anchor ? "✔" : "✖"} ${mod.file}：${mod.anchor ?? "缺少锚点"}`)

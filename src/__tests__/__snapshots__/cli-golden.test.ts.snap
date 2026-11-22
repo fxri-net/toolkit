@@ -183,7 +183,8 @@ exports[`各域行为与错误路径 > config get 敏感键 JSON 1`] = `
 {
   "schemaVersion": 1,
   "command": "config get",
-  "ok": true,
+  "code": 200,
+  "message": "成功",
   "data": {
     "key": "usage.upload.endpoint",
     "type": "string",
@@ -192,6 +193,10 @@ exports[`各域行为与错误路径 > config get 敏感键 JSON 1`] = `
     "layers": {},
     "env": null
   },
+  "extend": {
+    "exitCode": 0
+  },
+  "debug": {},
   "issues": []
 }
 --- stderr ---
@@ -263,7 +268,8 @@ exports[`各域行为与错误路径 > config list JSON 1`] = `
 {
   "schemaVersion": 1,
   "command": "config list",
-  "ok": true,
+  "code": 200,
+  "message": "成功",
   "data": {
     "layer": null,
     "keys": [
@@ -528,6 +534,10 @@ exports[`各域行为与错误路径 > config list JSON 1`] = `
       }
     ]
   },
+  "extend": {
+    "exitCode": 0
+  },
+  "debug": {},
   "issues": []
 }
 --- stderr ---
@@ -637,7 +647,8 @@ exports[`各域行为与错误路径 > config status JSON 1`] = `
 {
   "schemaVersion": 1,
   "command": "config status",
-  "ok": true,
+  "code": 200,
+  "message": "成功",
   "data": {
     "summary": "共命中 1 层：项目层",
     "cwd": "<SANDBOX>/workspace",
@@ -702,6 +713,10 @@ exports[`各域行为与错误路径 > config status JSON 1`] = `
     "items": [],
     "warnings": 0
   },
+  "extend": {
+    "exitCode": 0
+  },
+  "debug": {},
   "issues": []
 }
 --- stderr ---
@@ -778,7 +793,8 @@ exports[`各域行为与错误路径 > conventions status JSON 1`] = `
 {
   "schemaVersion": 1,
   "command": "convention status",
-  "ok": true,
+  "code": 200,
+  "message": "成功（1 项提示）",
   "data": {
     "initialized": false,
     "tasksDir": ".tasks",
@@ -797,6 +813,10 @@ exports[`各域行为与错误路径 > conventions status JSON 1`] = `
     "warnings": 0,
     "summary": "未找到 .tasks/conventions/，先执行 toolkit init"
   },
+  "extend": {
+    "exitCode": 0
+  },
+  "debug": {},
   "issues": [
     {
       "level": "info",
@@ -977,7 +997,8 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
 {
   "schemaVersion": 1,
   "command": "rule list",
-  "ok": true,
+  "code": 200,
+  "message": "成功",
   "data": {
     "presets": {
       "minimal": [
@@ -1117,6 +1138,10 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
     ],
     "selection": null
   },
+  "extend": {
+    "exitCode": 0
+  },
+  "debug": {},
   "issues": []
 }
 --- stderr ---
@@ -1258,7 +1283,8 @@ exports[`各域行为与错误路径 > scope policy list JSON 1`] = `
 {
   "schemaVersion": 1,
   "command": "scope policy list",
-  "ok": true,
+  "code": 200,
+  "message": "成功",
   "data": {
     "at": "<SANDBOX>/workspace",
     "baseDir": "<SANDBOX>/workspace",
@@ -1267,6 +1293,10 @@ exports[`各域行为与错误路径 > scope policy list JSON 1`] = `
     "reason": "未配置作用域（默认全域生效）",
     "policies": []
   },
+  "extend": {
+    "exitCode": 0
+  },
+  "debug": {},
   "issues": []
 }
 --- stderr ---
@@ -1312,7 +1342,8 @@ exports[`各域行为与错误路径 > scope status 技能清单 JSON 1`] = `
 {
   "schemaVersion": 1,
   "command": "scope status",
-  "ok": true,
+  "code": 200,
+  "message": "成功",
   "data": {
     "at": "<SANDBOX>/workspace",
     "baseDir": "<SANDBOX>/workspace",
@@ -1373,6 +1404,10 @@ exports[`各域行为与错误路径 > scope status 技能清单 JSON 1`] = `
       }
     ]
   },
+  "extend": {
+    "exitCode": 0
+  },
+  "debug": {},
   "issues": []
 }
 --- stderr ---
@@ -1412,7 +1447,8 @@ exports[`各域行为与错误路径 > scope 技能清单 JSON 1`] = `
 {
   "schemaVersion": 1,
   "command": "scope skills list",
-  "ok": true,
+  "code": 200,
+  "message": "成功",
   "data": {
     "at": "<SANDBOX>/workspace",
     "baseDir": "<SANDBOX>/workspace",
@@ -1425,6 +1461,10 @@ exports[`各域行为与错误路径 > scope 技能清单 JSON 1`] = `
     },
     "policies": []
   },
+  "extend": {
+    "exitCode": 0
+  },
+  "debug": {},
   "issues": []
 }
 --- stderr ---
@@ -1699,7 +1739,8 @@ exports[`各域行为与错误路径 > tasks stats JSON 1`] = `
 {
   "schemaVersion": 1,
   "command": "task stats",
-  "ok": true,
+  "code": 200,
+  "message": "成功",
   "data": {
     "skipped": 0,
     "duration": {
@@ -1749,6 +1790,10 @@ exports[`各域行为与错误路径 > tasks stats JSON 1`] = `
     },
     "view": "all"
   },
+  "extend": {
+    "exitCode": 0
+  },
+  "debug": {},
   "issues": []
 }
 --- stderr ---
@@ -1799,7 +1844,8 @@ exports[`各域行为与错误路径 > tasks 总览 JSON 1`] = `
 {
   "schemaVersion": 1,
   "command": "task",
-  "ok": true,
+  "code": 200,
+  "message": "成功",
   "data": {
     "summary": {
       "total": 2,
@@ -1848,6 +1894,10 @@ exports[`各域行为与错误路径 > tasks 总览 JSON 1`] = `
       }
     ]
   },
+  "extend": {
+    "exitCode": 0
+  },
+  "debug": {},
   "issues": []
 }
 --- stderr ---
@@ -1918,7 +1968,8 @@ exports[`各域行为与错误路径 > usage config 来源 JSON 1`] = `
 {
   "schemaVersion": 1,
   "command": "usage config origins",
-  "ok": true,
+  "code": 200,
+  "message": "成功",
   "data": {
     "sources": {
       "firstParty": false,
@@ -1926,6 +1977,10 @@ exports[`各域行为与错误路径 > usage config 来源 JSON 1`] = `
       "unmanaged": false
     }
   },
+  "extend": {
+    "exitCode": 0
+  },
+  "debug": {},
   "issues": []
 }
 --- stderr ---
@@ -2066,7 +2121,8 @@ exports[`各域行为与错误路径 > usage 开启 JSON（config set） 1`] = `
 {
   "schemaVersion": 1,
   "command": "config set",
-  "ok": true,
+  "code": 200,
+  "message": "成功",
   "data": {
     "key": "usage.enabled",
     "layer": "global",
@@ -2075,6 +2131,10 @@ exports[`各域行为与错误路径 > usage 开启 JSON（config set） 1`] = `
     "dryRun": false,
     "file": "~/.toolkitrc.json"
   },
+  "extend": {
+    "exitCode": 0
+  },
+  "debug": {},
   "issues": []
 }
 --- stderr ---

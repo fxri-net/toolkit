@@ -95,7 +95,7 @@ toolkit usage data doctor
   菜单子页按 ESC 返回、顶层按 ESC 或选「退出」结束，Ctrl+C 按取消退出码结束，取消不写任何文件。
 - `usage show` / `usage show stats`、`usage config` 的 `channel` / `origins` / `scope` / `capture` / `storage`、
   `usage config upload status`、`usage data doctor` 支持 `--format json`：文本与 JSON 由同一份摘要数据渲染，
-  文本模式只输出本段（`config origins` 不再打印整份配置），JSON 走统一信封 `{ schemaVersion, command, ok, data, issues }`，
+  文本模式只输出本段（`config origins` 不再打印整份配置），JSON 走统一信封（字段见[输出约定](../cli#输出约定)），
   `data` 内只含本段载荷。
 - `usage setup hooks install` / `usage setup hooks remove` / `usage setup uninstall` 写前统一打印预览并确认；
   非 TTY 须显式加 `--yes`，否则按无交互退出码提示用法。

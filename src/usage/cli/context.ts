@@ -126,7 +126,7 @@ export function buildSegmentReport(config: UsageConfig, segment: ConfigSegment):
 export function printSegment(config: UsageConfig, segment: ConfigSegment, format: string | undefined, command: string): void {
   const report = buildSegmentReport(config, segment)
   if (format === "json") {
-    printJson(jsonEnvelope(command, true, report.payload))
+    printJson(jsonEnvelope({ command, data: report.payload }))
     return
   }
   for (const text of report.lines) console.log(text)

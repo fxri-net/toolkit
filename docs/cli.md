@@ -131,10 +131,24 @@
 
 机器可读输出不着色：`--format json`、`--out` 写入文件、`scope guard` 技能正文等数据通道恒为纯文本。
 
-报告类 `--format json` 统一为信封 `{ schemaVersion, command, ok, data, issues }`：`command` 为实际命令路径，
-`ok` 为报告结论（check 类按是否存在 error，只有告警时仍为 `true`），`data` 承载域载荷，
-`issues` 汇总问题（`level` / `scope` / `message`）。数据流输出不套信封：`usage data export`、`task export <path>`
-与 `release changeset` 透传保持原格式；业务错误仍写 stderr 并保留原退出码，不在 stdout 输出半截 JSON。
+报告类 `--format json` 统一为八键信封，字段定义与缺省取值只在本页维护：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `schemaVersion` | number | 信封结构版本，固定 `1` |
+| `command` | string | 实际命令路径 |
+| `code` | number | 业务结论：缺省成功 `200`、报告含 error `422`；冲突 / 内部错误由调用点显式给 `409` / `500` |
+| `message` | string | 结论文案：缺省 `成功` / `成功（N 项提示）` / 首条 error 的 message |
+| `data` | object | 域载荷 |
+| `extend` | object | 扩展位，恒为对象；`exitCode` 为进程退出码，不允许被同名扩展键覆盖 |
+| `debug` | object | 调试信息，缺省 `{}` |
+| `issues` | array | 聚合问题（`level` / `scope` / `message`），缺省 `[]` |
+
+`code` 与 `extend.exitCode` 分离：`code` 只表达报告结论，`extend.exitCode` 才是进程退出码。
+例如 `status` 不带 `--check` 时报告含 error，仍为 `code=422`、`extend.exitCode=0`。
+
+数据流输出不套信封：`usage data export`、`task export <path>` 与 `release changeset` 透传保持原格式；
+业务错误仍写 stderr 并保留原退出码，不在 stdout 输出半截 JSON。
 
 文本表格、报告数据行与规则正文同样不着色，便于复制与日志比对；交互菜单由组件库自行渲染，不在本约定内。
 

@@ -108,13 +108,13 @@ describe("skills lint", () => {
     const payload = JSON.parse(result.log.join("\n")) as {
       schemaVersion: number
       command: string
-      ok: boolean
+      code: number
       data: { files: string[]; issues: unknown[]; summary: { skills: number } }
       issues: unknown[]
     }
     expect(payload.schemaVersion).toBe(1)
     expect(payload.command).toBe("skill lint")
-    expect(payload.ok).toBe(true)
+    expect(payload.code).toBe(200)
     expect(payload.data.files).toHaveLength(1)
     expect(payload.data.issues).toEqual([])
     expect(payload.data.summary.skills).toBe(1)

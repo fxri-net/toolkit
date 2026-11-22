@@ -189,7 +189,7 @@ export function registerChangelogCommands(program: Command): void {
     if (!assertJsonFormat(options.format)) return
     const rows = readChangesetSummaries(".changeset")
     if (options.format === "json") {
-      printJson(jsonEnvelope(command, true, { total: rows.length, changesets: rows }))
+      printJson(jsonEnvelope({ command, data: { total: rows.length, changesets: rows } }))
       return
     }
     console.log(formatChangesetSummaries(rows))

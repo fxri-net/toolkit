@@ -26,7 +26,7 @@ export function registerDocsCommands(program: Command): void {
     const config = resolveDocsCheckConfig()
     const docsDir = resolve(options.dir ?? config.nav.dir)
     if (!existsSync(docsDir)) {
-      if (options.format === "json") printJson(jsonEnvelope("docs check", true, { skipped: true, reason: `未找到文档目录 ${docsDir}` }))
+      if (options.format === "json") printJson(jsonEnvelope({ command: "docs check", data: { skipped: true, reason: `未找到文档目录 ${docsDir}` } }))
       else console.log(line.hint(`未检测到文档站，跳过：${docsDir}`))
       return
     }
@@ -46,16 +46,16 @@ export function registerDocsCommands(program: Command): void {
         ...toDocsIssues(dist.problems),
       ]
       printJson(
-        jsonEnvelope(
-          "docs check",
-          ok,
-          {
+        jsonEnvelope({
+          command: "docs check",
+          data: {
             theme,
             nav: { ok: nav.ok, ruleVersion: NAV_RULES_VERSION, problems: nav.problems },
             dist: { ok: dist.ok, skipped: dist.skipped, ruleVersion: DIST_RULES_VERSION, problems: dist.problems },
           },
           issues,
-        ),
+          exitCode: ok ? 0 : 1,
+        }),
       )
     } else {
       console.log(theme.ok ? line.ok("主题校验通过") : `⚠️ 主题校验失败（${theme.problems.length} 项）`)
@@ -176,12 +176,12 @@ export function registerDocsCommands(program: Command): void {
       const result = checkDocsNav(resolve(options.dir ?? config.nav.dir), { config: config.nav, rules: config.rules })
       if (options.format === "json") {
         printJson(
-          jsonEnvelope(
-            "docs nav check",
-            result.ok,
-            { ruleVersion: NAV_RULES_VERSION, problems: result.problems },
-            toDocsIssues(result.problems),
-          ),
+          jsonEnvelope({
+            command: "docs nav check",
+            data: { ruleVersion: NAV_RULES_VERSION, problems: result.problems },
+            issues: toDocsIssues(result.problems),
+            exitCode: result.ok ? 0 : 1,
+          }),
         )
       } else if (result.ok) {
         // 多语言站标明语言包数量，避免把首个语言包的顶栏数当成全站
@@ -214,12 +214,12 @@ export function registerDocsCommands(program: Command): void {
       const result = checkDocsDist(resolve(options.dir ?? config.nav.dir), { config: config.dist, rules: config.rules })
       if (options.format === "json") {
         printJson(
-          jsonEnvelope(
-            "docs dist check",
-            result.ok,
-            { ruleVersion: DIST_RULES_VERSION, skipped: result.skipped, problems: result.problems },
-            toDocsIssues(result.problems),
-          ),
+          jsonEnvelope({
+            command: "docs dist check",
+            data: { ruleVersion: DIST_RULES_VERSION, skipped: result.skipped, problems: result.problems },
+            issues: toDocsIssues(result.problems),
+            exitCode: result.ok ? 0 : 1,
+          }),
         )
       } else if (result.skipped) {
         console.log(line.hint(`跳过文档站产物校验：未找到 ${config.dist.dir}（需先执行文档站构建）`))

@@ -49,8 +49,8 @@ toolkit config status --cwd <path>       # 指定向上查找的起始目录（�
 | `--yes` | 仅 `set` / `unset`：非交互环境确认写入 / 删除 |
 | `--cwd <path>` | `list` / `get` / `set` / `unset` / `status`：查找起点（缺省当前工作目录）；相对路径先 resolve 为绝对；指向不存在 / 非目录的路径时报错退出、不回落当前目录 |
 
-报告（`--format json`）顶层为统一信封 `{ schemaVersion, command, ok, data, issues }`；下表字段位于 `data`，
-`items[]` 同时映射到顶层 `issues[]`（`level` / `scope` / `message`）。`config status` 为只读体检，`ok` 恒为 `true`。
+报告（`--format json`）顶层为统一信封（字段见[输出约定](../cli#输出约定)）；下表字段位于 `data`，
+`items[]` 同时映射到顶层 `issues[]`（`level` / `scope` / `message`）。`config status` 为只读体检，`extend.exitCode` 恒为 `0`。
 
 | 字段 | 内容 | 稳定性 |
 | --- | --- | --- |

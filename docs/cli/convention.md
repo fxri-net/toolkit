@@ -22,8 +22,9 @@ toolkit convention format --format json  # JSON 输出：status、目录、文�
 
 `convention check` 为 `convention status` 的别名，参数与输出完全一致（补命令名与直觉不一致的入口）。
 
-三者的 `--format json` 均走统一信封 `{ schemaVersion, command, ok, data, issues }`：下表所列报告字段位于 `data`；
-`status` 的体检项同时映射到顶层 `issues`（`level` / `scope` / `message`），体检不阻断时 `ok` 恒为 `true`。
+三者的 `--format json` 均走统一信封（字段见[输出约定](../cli#输出约定)）：下表所列报告字段位于 `data`；
+`status` 的体检项同时映射到顶层 `issues`（`level` / `scope` / `message`），体检不阻断时 `extend.exitCode` 恒为 `0`
+（报告含 error 时 `code` 仍为 `422`，结论与退出码分离）。
 
 | 子命令 | 行为 |
 | --- | --- |
