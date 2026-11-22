@@ -386,7 +386,8 @@ export function registerTasksCommands(program: Command): void {
         process.exitCode = 2
         return
       }
-      if (!options.dryRun && !options.yes) {
+      // 非交互环境才要求 --yes：TTY 下已在提示中完成全部字段，直接写入
+      if (!options.dryRun && !options.yes && !isInteractive()) {
         console.error("⚠️ 非交互环境写入任务档须显式加 --yes")
         process.exitCode = 2
         return
@@ -418,7 +419,8 @@ export function registerTasksCommands(program: Command): void {
     .option("--yes", "非交互确认写入")
     .action((key: string, options: { dir?: string; status?: string; owner?: string; scope?: string; dependsOn?: string[]; completed?: string; dryRun?: boolean; yes?: boolean }) => {
       const dir = resolveTasksDir(options.dir)
-      if (!options.dryRun && !options.yes) {
+      // 非交互环境才要求 --yes：TTY 下直接按显式参数写入
+      if (!options.dryRun && !options.yes && !isInteractive()) {
         console.error("⚠️ 非交互环境写入任务档须显式加 --yes")
         process.exitCode = 2
         return

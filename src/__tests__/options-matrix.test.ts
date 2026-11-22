@@ -2,7 +2,7 @@
 // ⚠️ cli.ts 顶层即执行主流程，无法被静态导入：每个用例重置模块注册表后动态 import ../cli 并 await 其导出的 cliReady
 // 沙箱隔离：home 指向临时目录（skills 与配置），升级缓存经 mock 的 tmpdir 落沙箱，子进程派生注入 mock（不真跑进程）
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from "vitest"
-import { existsSync, lstatSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 
 // 沙箱路径用 vi.hoisted 构造（mock 工厂早于模块顶层求值执行，不能引用未初始化的顶层变量）
@@ -1027,5 +1027,44 @@ describe("rules 命令参数边界", () => {
     expect(result.code).toBe(0)
     expect(existsSync(out)).toBe(true)
     expect(readFileSync(out, "utf8")).toContain("## 代码规范")
+  })
+})
+
+// TTY 写确认：交互环境答完提示即写入，只有非交互环境才要求 --yes
+describe("task 写确认的 TTY 判定", () => {
+  it("TTY 下 task add 给齐参数无需 --yes", async () => {
+    const dir = join(sandbox, "tty-task-a")
+    setTty(true)
+    try {
+      const r = await runCli(["task", "add", "--dir", dir, "--title", "TTY 写入", "--owner", "冒烟", "--scope", "cli"])
+      expect(r.code).toBe(0)
+      expect(r.err.join("\n")).not.toContain("--yes")
+      expect(existsSync(dir)).toBe(true)
+    } finally {
+      restoreTty()
+    }
+  })
+
+  it("TTY 下 task update 无需 --yes", async () => {
+    const dir = join(sandbox, "tty-task-b")
+    setTty(true)
+    try {
+      const added = await runCli(["task", "add", "--dir", dir, "--title", "TTY 更新", "--owner", "冒烟", "--scope", "cli"])
+      expect(added.code).toBe(0)
+      const month = readdirSync(join(dir, "active"))[0]!
+      const file = readdirSync(join(dir, "active", month)).find((name) => name.endsWith(".md"))!
+      const r = await runCli(["task", "update", file.replace(/\.md$/, ""), "--dir", dir, "--status", "进行中"])
+      expect(r.code).toBe(0)
+      expect(r.err.join("\n")).not.toContain("--yes")
+    } finally {
+      restoreTty()
+    }
+  })
+
+  it("非 TTY 下仍要求 --yes", async () => {
+    const dir = join(sandbox, "tty-task-c")
+    const r = await runCli(["task", "add", "--dir", dir, "--title", "非 TTY 写入"])
+    expect(r.code).toBe(2)
+    expect(r.err.join("\n")).toContain("--yes")
   })
 })
