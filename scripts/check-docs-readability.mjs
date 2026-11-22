@@ -8,7 +8,7 @@ import { TOUCH_FILES, TOUCH_PREFIXES } from "./touch-surface.mjs"
 
 export const MAX_CHARS = 120
 export const MAX_SEMICOLONS = 2
-// 页面体量（C-40）：正文行不计表格、代码块、标题与空行；徽章 / 图片行同样不计
+// 页面体量（C-40）：正文行不计表格、代码块、标题与空行；字符数同样不计代码块（对齐等空白改动不占正文预算）；徽章 / 图片行不计
 export const MAX_PROSE_LINES = 150
 export const MAX_PAGE_CHARS = 12000
 export const BASELINE_PATH = ["scripts", "docs-readability-baseline.json"]
@@ -87,22 +87,26 @@ export function collectViolations(root) {
   return counted
 }
 
-/** 单页体量：正文行数与字符数（C-40） */
+/** 单页体量：正文行数（不计表格 / 代码块 / 标题 / 空行）与正文字符数（不计代码块） */
 export function pageStats(text) {
   const lines = text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").split("\n")
   let inFence = false
   let prose = 0
+  let chars = 0
   for (const line of lines) {
     const trimmed = line.trim()
     if (trimmed.startsWith("```")) {
       inFence = !inFence
       continue
     }
-    if (inFence || !trimmed || trimmed.startsWith("#") || trimmed.startsWith("|")) continue
+    // 代码块内的字符不占正文预算：注释对齐等空白改动不应挤占可读性额度
+    if (inFence) continue
+    chars += [...line].length + 1
+    if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("|")) continue
     if (trimmed.startsWith("[![") || trimmed.startsWith("![")) continue
     prose += 1
   }
-  return { prose, chars: [...text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n")].length }
+  return { prose, chars }
 }
 
 /** 页面体量超限明细（不设基线，硬校验） */
@@ -160,7 +164,7 @@ export function run({ root = process.cwd(), argv = process.argv } = {}) {
     if (lines > 300) console.warn(`[docs] 页面超过 300 行：${file}（${lines} 行）`)
   }
   const total = [...counted.values()].reduce((sum, list) => sum + list.length, 0)
-  const sizeNote = `页面体量：正文 ≤${MAX_PROSE_LINES} 行、字符 ≤${MAX_PAGE_CHARS}`
+  const sizeNote = `页面体量：正文 ≤${MAX_PROSE_LINES} 行、正文字符（不含代码块）≤${MAX_PAGE_CHARS}`
   console.log(
     existsSync(baselineFile)
       ? `文档可读性检查：正文单行 ≤${MAX_CHARS} 字符、分号 ≤${MAX_SEMICOLONS} 个；${sizeNote}；存量 ${total} 处均在基线内（${relative(root, baselineFile)}）`

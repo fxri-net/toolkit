@@ -95,11 +95,17 @@ describe("文档可读性检查：页面体量（C-40）", () => {
     expect(run(fit).status).toBe(0)
   })
 
-  it("字符数超过 12k 即阻断（表格与代码块不计正文行，但计入字符）", () => {
+  it("正文字符超过 12k 即阻断（按正文字符计，代码块不计）", () => {
     const body = Array.from({ length: 120 }, () => "a".repeat(110)).join("\n")
     const root = createFixture({ "docs/heavy.md": `${body}\n` })
     const result = run(root)
     expect(result.status).toBe(1)
     expect(result.stderr).toContain("字符（上限 12000）")
+  })
+
+  it("代码块不计入字符上限：大代码块放行", () => {
+    const code = Array.from({ length: 400 }, () => `echo ${"x".repeat(60)}  # 注释`).join("\n")
+    const root = createFixture({ "docs/code.md": `说明一行。\n\n\`\`\`bash\n${code}\n\`\`\`\n` })
+    expect(run(root).status).toBe(0)
   })
 })

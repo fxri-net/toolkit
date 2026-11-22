@@ -7,57 +7,57 @@ title: 技能分发（skill）
 > 把包内技能分发到各 agent，并管理来源、目标与版本。
 
 ```bash
-toolkit skill install              # 安装包内技能（缺省按现场判定作用域）
-toolkit skill install --scope project # 仅项目面：真源副本 + 候选目录薄壳
-toolkit skill install --scope global  # 仅全局面：软链 / 副本到 agent 目录
-toolkit skill install --scope all     # 项目面 + 全局面都执行
+toolkit skill install                       # 安装包内技能（缺省按现场判定作用域）
+toolkit skill install --scope project       # 仅项目面：真源副本 + 候选目录薄壳
+toolkit skill install --scope global        # 仅全局面：软链 / 副本到 agent 目录
+toolkit skill install --scope all           # 项目面 + 全局面都执行
 toolkit skill install --skills fxri-plan-task,fxri-code-encoding # 只装指定技能（core 恒装）
-toolkit skill install --all        # 安装全部技能（含可选技能）
-toolkit skill install --no-optional # 只装 core 技能
-toolkit skill install --yes        # 非交互：跳过选择与确认，采用已保存选择
-toolkit skill install --use-saved # 跳过选择交互，仍保留最终确认
+toolkit skill install --all                 # 安装全部技能（含可选技能）
+toolkit skill install --no-optional         # 只装 core 技能
+toolkit skill install --yes                 # 非交互：跳过选择与确认，采用已保存选择
+toolkit skill install --use-saved           # 跳过选择交互，仍保留最终确认
 toolkit skill install --agent claude-code,canonical # 只写指定 agent（canonical 为主目标）
-toolkit skill install --all-agents # 写入全部已检测的 agent
-toolkit skill install --no-save-agents # 目标选择只对本次生效，不写回配置
-toolkit skill install --prune      # 清理未选择且与真源一致的旧产物
-toolkit skill install --check      # 只报告待收敛项：有漂移时退出码 1（CI 门禁）
+toolkit skill install --all-agents          # 写入全部已检测的 agent
+toolkit skill install --no-save-agents      # 目标选择只对本次生效，不写回配置
+toolkit skill install --prune               # 清理未选择且与真源一致的旧产物
+toolkit skill install --check               # 只报告待收敛项：有漂移时退出码 1（CI 门禁）
 toolkit skill install --scope project --refresh # 只刷新已存在的项目面产物（prepare 钩子口径）
-toolkit skill install --mode package # 纯包管理器模式：core 也可不装，允许零选
-toolkit skill install --no-skills  # 仅本次零装，不改模式与已保存选择
-toolkit skill install --gate       # 内容闸门：本次全部技能写入口壳，--embed 回退
-toolkit config get skillDelivery.default   # 查看默认分发形态
-toolkit config set skillDelivery.default gated   # 切换为入口壳（full 回退全文，不覆盖 rules）
-toolkit skill plan                 # 分发计划：目标 / 当前形态 / 动作与判定来源（install --dry-run 的别名）
-toolkit skill mount --dry-run      # 批量挂载：预览将写入的项目（由 scope mount 迁入，原命令已移除）
-toolkit skill install --copy       # 强制副本（仅全局面；入口壳形态的技能仍写壳并告警）
-toolkit skill install --dry-run    # 预演：输出分发计划，不写文件（`skill plan` 的别名）
-toolkit skill install --force      # 覆盖同名非本包产物（默认跳过；不改已登记副本形态）
-toolkit skill install --dir <path> # 额外目标目录（可多次；全局面兜底未收录 agent，项目面须在仓库内）
-toolkit skill install --source <name|path> # 外部来源（已登记名 / 目录 / Git 地址；只写本次，可重复）
+toolkit skill install --mode package        # 纯包管理器模式：core 也可不装，允许零选
+toolkit skill install --no-skills           # 仅本次零装，不改模式与已保存选择
+toolkit skill install --gate                # 内容闸门：本次全部技能写入口壳，--embed 回退
+toolkit config get skillDelivery.default    # 查看默认分发形态
+toolkit config set skillDelivery.default gated # 切换为入口壳（full 回退全文，不覆盖 rules）
+toolkit skill plan                          # 分发计划：目标 / 当前形态 / 动作与判定来源（install --dry-run 的别名）
+toolkit skill mount --dry-run               # 批量挂载：预览将写入的项目（由 scope mount 迁入，原命令已移除）
+toolkit skill install --copy                # 强制副本（仅全局面；入口壳形态的技能仍写壳并告警）
+toolkit skill install --dry-run             # 预演：输出分发计划，不写文件（`skill plan` 的别名）
+toolkit skill install --force               # 覆盖同名非本包产物（默认跳过；不改已登记副本形态）
+toolkit skill install --dir <path>          # 额外目标目录（可多次；全局面兜底未收录 agent，项目面须在仓库内）
+toolkit skill install --source <name|path>  # 外部来源（已登记名 / 目录 / Git 地址；只写本次，可重复）
 toolkit skill install --source https://github.com/fxri-net/playbook#vX.Y.Z --save play # 远程永久来源
-toolkit skill uninstall --source play # 只清理指定外部来源的登记与产物
-toolkit skill source                # 列出外部来源、版本与生效的更新提示频率（内置源不在列表内）
+toolkit skill uninstall --source play          # 只清理指定外部来源的登记与产物
+toolkit skill source                           # 列出外部来源、版本与生效的更新提示频率（内置源不在列表内）
 toolkit skill source notify play --frequency daily # 设置单个来源的提示频率（--scope global|project）
-toolkit skill source refresh        # 刷新全部外部来源缓存与版本（--dry-run 列出将刷新来源与当前版本，不联网）
-toolkit skill source remove play --prune # 注销来源登记并清理其产物、状态与提示配置
-toolkit skill bump fxri-plan-task patch # 递增技能版本（frontmatter 与正文首部两处同源改写）
-toolkit skill bump --all --dry-run      # 预演批量递增全部技能，只打印 from → to
-toolkit skill bump --all minor --yes    # 批量递增（非交互须 --yes）
+toolkit skill source refresh                   # 刷新全部外部来源缓存与版本（--dry-run 列出将刷新来源与当前版本，不联网）
+toolkit skill source remove play --prune       # 注销来源登记并清理其产物、状态与提示配置
+toolkit skill bump fxri-plan-task patch        # 递增技能版本（frontmatter 与正文首部两处同源改写）
+toolkit skill bump --all --dry-run             # 预演批量递增全部技能，只打印 from → to
+toolkit skill bump --all minor --yes           # 批量递增（非交互须 --yes）
 toolkit skill bump fxri-plan-review --set 2.0.0 # 直接设定版本（与递增类型互斥）
-toolkit skill bump --dir skills --all patch # 外部仓：对指定技能目录批量递增
-toolkit skill lint                     # 校验本包 skills/（150 行 / 8000 字符告警，200 行 / 12000 字符报错）
-toolkit skill lint skills/ --base HEAD # 技能内容相对基准有变更时，版本必须已递增
-toolkit skill status               # 查看技能现场状态与包内技能真源版本（缺省按现场判定作用域）
-toolkit skill status --scope all   # 项目面与全局面都体检
-toolkit skill status --format json # JSON 输出：scope、global / project 各自的现场报告
-toolkit skill status --explain fxri-plan-task # 解释该技能的分发形态推导过程
-toolkit skill uninstall               # 卸载本包安装的技能产物（缺省按现场判定作用域；目标目录清空后一并回收）
+toolkit skill bump --dir skills --all patch    # 外部仓：对指定技能目录批量递增
+toolkit skill lint                             # 校验本包 skills/（150 行 / 8000 字符告警，200 行 / 12000 字符报错）
+toolkit skill lint skills/ --base HEAD         # 技能内容相对基准有变更时，版本必须已递增
+toolkit skill status                           # 查看技能现场状态与包内技能真源版本（缺省按现场判定作用域）
+toolkit skill status --scope all               # 项目面与全局面都体检
+toolkit skill status --format json             # JSON 输出：scope、global / project 各自的现场报告
+toolkit skill status --explain fxri-plan-task  # 解释该技能的分发形态推导过程
+toolkit skill uninstall                        # 卸载本包安装的技能产物（缺省按现场判定作用域；目标目录清空后一并回收）
 toolkit skill uninstall --skills fxri-code-encoding # 只卸载指定技能的选择与产物（逗号分隔）
-toolkit skill uninstall --scope all   # 项目面与全局面都卸载
-toolkit skill uninstall --dry-run     # 卸载预演（只预览将移除的条目）
-toolkit skill uninstall --format json # JSON 输出：dryRun、scope 与 global / project 各自的卸载报告
-toolkit skill status --path        # 输出包根路径（内含 skills/）
-toolkit skill status --path --format json   # JSON 输出：包根、技能源目录、技能清单
+toolkit skill uninstall --scope all            # 项目面与全局面都卸载
+toolkit skill uninstall --dry-run              # 卸载预演（只预览将移除的条目）
+toolkit skill uninstall --format json          # JSON 输出：dryRun、scope 与 global / project 各自的卸载报告
+toolkit skill status --path                    # 输出包根路径（内含 skills/）
+toolkit skill status --path --format json      # JSON 输出：包根、技能源目录、技能清单
 ```
 
 裸 `toolkit skill` 打印本域帮助（列出全部子命令）。
