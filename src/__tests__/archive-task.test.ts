@@ -141,3 +141,39 @@ describe("归档软告警：已放弃缺放弃原因", () => {
     }
   })
 })
+
+describe("归档软告警：残留搁置节", () => {
+  const HELD_BODY = "\n## 搁置\n\n- 搁置原因：等待契约\n- 重启条件：契约冻结\n- 进度锚点：方案已定稿\n- 搁置日期：2026-11-10\n"
+
+  it("已完成档残留搁置节时告警且照常归档", () => {
+    const dir = taskDir()
+    try {
+      putTask(dir, KEY_A, "已完成", "2026-11-12 10:00", HELD_BODY)
+      const result = archiveTasks(dir, false)
+      expect(result.archived).toBe(1)
+      expect(result.warnings.some((w) => w.includes("## 搁置"))).toBe(true)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it("已放弃档保留搁置节属预期，不告警", () => {
+    const dir = taskDir()
+    try {
+      putTask(dir, KEY_A, "已放弃", "2026-11-12 10:00", `> 放弃原因：成本高于收益${HELD_BODY}`)
+      expect(archiveTasks(dir, false).warnings.some((w) => w.includes("## 搁置"))).toBe(false)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it("--no-warn 时不输出", () => {
+    const dir = taskDir()
+    try {
+      putTask(dir, KEY_A, "已完成", "2026-11-12 10:00", HELD_BODY)
+      expect(archiveTasks(dir, false, { warn: false }).warnings.some((w) => w.includes("## 搁置"))).toBe(false)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})

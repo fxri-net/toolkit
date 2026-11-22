@@ -146,6 +146,13 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
     if (noReason.length > 0) {
       warnings.push(`已放弃但正文缺少「> 放弃原因：」的 ${noReason.length} 个任务：${noReason.join("、")}`)
     }
+    // 残留搁置节：已放弃保留该节作终结理由，其余终结态说明唤醒时未删节；归档后即成冻结记录，只提示不阻断
+    const staleHeld = doneTasks.filter((t) => t.status !== "已放弃" && /^##\s+搁置\s*$/m.test(t.body)).map((t) => t.name)
+    if (staleHeld.length > 0) {
+      warnings.push(
+        `正文仍残留「## 搁置」节、归档后将固化为过期摘要的 ${staleHeld.length} 个任务：${staleHeld.join("、")}（可用 task update 改写状态触发自动删节）`,
+      )
+    }
   }
 
   // 按完成时间日期（YYYYMMDD）分组

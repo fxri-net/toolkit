@@ -188,6 +188,38 @@ export function findActiveTask(dir: string, key: string): string {
   return hits[0]!
 }
 
+// 删除正文中的「## 搁置」整节：从精确标题到下一个二级标题（或文末），连同紧随空行
+export function stripHeldSection(body: string): string {
+  const lines = body.replace(/\r\n?/g, "\n").split("\n")
+  // 模板注释里也含「## 搁置」占位，跳过 HTML 注释块避免删到一半留下残缺注释
+  let inComment = false
+  let start = -1
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? ""
+    if (inComment) {
+      if (line.includes("-->")) inComment = false
+      continue
+    }
+    if (line.trimStart().startsWith("<!--")) {
+      if (!line.includes("-->")) inComment = true
+      continue
+    }
+    if (/^##\s+搁置\s*$/.test(line)) {
+      start = i
+      break
+    }
+  }
+  if (start === -1) return body
+  let end = start + 1
+  while (end < lines.length && !/^##\s+\S/.test(lines[end] ?? "")) end++
+  // 节后紧随的空行一并删除，避免删除后留下连续空行
+  while (end < lines.length && lines[end] === "") end++
+  const head = lines.slice(0, start)
+  // 节前若已有多余空行（如模板占位注释删除后残留），收敛为一个空行
+  while (head.length > 1 && head[head.length - 1] === "" && head[head.length - 2] === "") head.pop()
+  return [...head, ...lines.slice(end)].join("\n")
+}
+
 // 改任务字段：只改 frontmatter 指定键，保留正文与未知字段
 export function updateTask(input: UpdateTaskInput): { file: string; content: string; changes: string[] } {
   const file = findActiveTask(input.dir, input.key)
@@ -197,6 +229,8 @@ export function updateTask(input: UpdateTaskInput): { file: string; content: str
   const lines = (match[2] ?? "").split(/\r?\n/)
   const stamp = todayStamp(input.now ?? new Date())
   const changes: string[] = []
+  // 改前状态：从「搁置」唤醒时据此清理搁置节
+  const previousStatus = lines.find((line) => line.startsWith("status:"))?.slice("status:".length).trim().replace(/^['"]|['"]$/g, "")
 
   const set = (key: string, value: string): void => {
     const index = lines.findIndex((line) => line.startsWith(`${key}:`))
@@ -229,7 +263,13 @@ export function updateTask(input: UpdateTaskInput): { file: string; content: str
   if (input.dependsOn !== undefined) set("depends_on", renderValue("depends_on", input.dependsOn))
   set("updated", stamp)
 
-  const content = `${match[1]}${lines.join("\n")}${match[3]}${raw.slice(match[0].length)}`
+  // 从「搁置」转出时自动删节，避免过期摘要随任务进入归档；转「已放弃」保留该节作终结理由
+  let body = raw.slice(match[0].length)
+  if (input.status !== undefined && previousStatus === "搁置" && input.status !== "已放弃") {
+    body = stripHeldSection(body)
+  }
+
+  const content = `${match[1]}${lines.join("\n")}${match[3]}${body}`
   if (!input.dryRun) writeFile(file, content)
   return { file, content, changes }
 }
