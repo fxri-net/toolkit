@@ -1,6 +1,6 @@
 {
   "name": "@fxri/toolkit",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "专为多人 + AI 跨项目协作打造：把对话里的方案与交付，沉淀为仓库内可校验、可分发、可迁移的工程资产。",
   "license": "MIT",
   "author": {
