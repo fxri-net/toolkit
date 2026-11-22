@@ -117,7 +117,9 @@ function resolvePage(page: string, anchorsOf: Map<string, Set<string>>): string 
 // 此处只保留无法机检的旧称呼清理，避免同一事实两处维护
 describe("文档一致性：导航文案", () => {
   it("不出现裸 FAQ、新手指南等旧称呼", () => {
-    for (const page of collectMarkdown("docs", []).filter((file) => !file.endsWith("/changelog.md"))) {
+    // 更新日志镜像页与按主版本归档页是生成物，条目里会记录历史旧称呼，不参与现行命名检查
+    const generated = (file: string): boolean => file === "docs/changelog.md" || file.startsWith("docs/changelog/")
+    for (const page of collectMarkdown("docs", []).filter((file) => !generated(file))) {
       const text = readDoc(page)
       expect(text.includes("新手指南"), `${page} 残留「新手指南」`).toBe(false)
       expect(/\[FAQ\]|^# FAQ$/m.test(text), `${page} 残留 FAQ 旧称呼`).toBe(false)
