@@ -177,6 +177,7 @@ DeepSeek Harness 的项目级技能目录与项目面真源同路径（`<仓库�
 
 ⚠️ **`--dir` 自定义目录**：只在当次安装时写入并登记，技能增删后不同步；变化后需带相同 `--dir` 重跑 `toolkit skill install`。
 
+<!-- toolkit:skill-dirs:start -->
 **项目面候选目录**（19 个，仅在目录已存在时落壳）：
 
 | 候选目录 | 候选目录 | 候选目录 |
@@ -188,6 +189,7 @@ DeepSeek Harness 的项目级技能目录与项目面真源同路径（`<仓库�
 | `.iflow/skills/` | `.junie/skills/` | `.kiro/skills/` |
 | `.openhands/skills/` | `.qwen/skills/` | `.roo/skills/` |
 | `.windsurf/skills/` |  |  |
+<!-- toolkit:skill-dirs:end -->
 
 `.cursor/skills/`、`.trae-cn/skills/` 是这两家 agent 的**全局**目录，不在项目级候选内。
 

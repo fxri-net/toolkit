@@ -3,6 +3,7 @@ import { readFileSync, statSync, existsSync } from "node:fs"
 import { createRequire } from "node:module"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
+import { isTouchPath } from "./touch-surface.mjs"
 
 // 单一门禁真源：本仓库全部验收步骤由本脚本定义并按序执行，本地与四处 CI（GitHub check / windows / macos、GitLab test）共用同一份清单。
 // 目的：消除「各写一份步骤清单、彼此漂移」的结构性问题，使「本地自检通过、CI 才暴露」在清单层面不可能发生。
@@ -69,16 +70,10 @@ function changedFiles() {
   return names
 }
 
-// 文档站构建的触发面：文档内容、根说明与技能包都会被 VitePress 读取渲染，任一变动都可能引发死链
-const DOC_TOUCH_PREFIXES = ["docs/"]
-const DOC_TOUCH_FILES = new Set(["README.md"])
-
-// 判定一组改动文件是否触及文档站构建面（本地改动面与 CI 基线比对共用同一口径）
+// 判定一组改动文件是否触及文档站构建面（触达面清单与其它自检脚本共用 scripts/touch-surface.mjs）
 function docsTouched(names) {
   for (const name of names) {
-    if (DOC_TOUCH_FILES.has(name)) return true
-    if (DOC_TOUCH_PREFIXES.some((prefix) => name.startsWith(prefix))) return true
-    if (name.startsWith("skills/")) return true
+    if (isTouchPath(name)) return true
   }
   return false
 }
@@ -231,6 +226,10 @@ const parallelSteps = [
   { label: "文档规则产物同步", args: ["scripts/generate-docs-rules.mjs", "--check"] },
   // 升级页命令对照表由命令注册表生成，检查生成段未漂移
   { label: "升级页命令对照同步", args: ["scripts/generate-upgrade-table.mjs", "--check"] },
+  // 项目面候选目录表由 PROJECT_SKILL_DIRS 生成，检查生成段未漂移
+  { label: "技能候选目录同步", args: ["scripts/generate-skill-dirs.mjs", "--check"] },
+  // 环境变量清单由 src/env.ts 生成，检查生成段未漂移
+  { label: "环境变量清单同步", args: ["scripts/generate-env-table.mjs", "--check"] },
   // 退出码数值唯一来源：阻止 src 下重新出现 2 / 3 / 130 字面量
   { label: "退出码单一真源（字面量检查）", args: ["scripts/check-exit-codes.mjs"] },
   // 退出码文档表由 src/exit-codes.ts 生成，检查生成段未漂移

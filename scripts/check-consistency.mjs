@@ -2,8 +2,9 @@
 // 只服务本仓库（不属产品能力）：用 node 直跑，由 scripts/verify.mjs 统一挂载
 // 另提供 --diff [base]：归档前比对「登记了触达却没改 / 改了触达面却没登记」，仅告警不阻断
 import { spawnSync } from "node:child_process"
-import { existsSync, readFileSync, readdirSync } from "node:fs"
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs"
 import { join, relative } from "node:path"
+import { TOUCH_FILES, TOUCH_PREFIXES } from "./touch-surface.mjs"
 
 const root = process.cwd()
 const errors = []
@@ -13,10 +14,6 @@ const warns = []
 const diffIndex = process.argv.indexOf("--diff")
 const diffNext = process.argv[diffIndex + 1]
 const diffBase = diffIndex < 0 ? null : diffNext && !diffNext.startsWith("-") ? diffNext : "HEAD"
-
-// 触达面：文档与技能都会被使用者读到，改动后须在任务「影响范围」登记
-const TOUCH_PREFIXES = ["docs/", "skills/"]
-const TOUCH_FILES = new Set(["README.md"])
 
 // 读文本并归一换行：Windows 检出会把文本转为 CRLF，逐字节比对会误判
 function read(rel) {
@@ -275,7 +272,7 @@ if (diffBase) {
     }
     for (const rel of changed) {
       if (touchesByPath.has(rel)) continue
-      if (TOUCH_FILES.has(rel) || TOUCH_PREFIXES.some((prefix) => rel.startsWith(prefix))) {
+      if (TOUCH_FILES.includes(rel) || TOUCH_PREFIXES.some((prefix) => rel.startsWith(prefix))) {
         warns.push(`改动了触达面但未登记：${rel}（在对应任务的「影响范围」补一行 - 文档触达：…）`)
       }
     }
@@ -333,15 +330,40 @@ for (const { rel, text } of ruleTexts) {
   }
 }
 
+// 命令域：从命令注册表派生「有子命令的顶层命令」；别名与弃用路径不要求独立文档入口
+// 假现场（最小仓库）没有注册表时返回 null，由调用方跳过该项
+function registryDomains() {
+  const registry = "src/command-registry.ts"
+  if (!existsSync(join(root, registry))) return null
+  const text = read(registry)
+  const entries = [...text.matchAll(/\{\s*path:\s*"([^"]+)"([^}]*)\}/g)].map((matched) => ({ path: matched[1], body: matched[2] }))
+  const declared = [...text.matchAll(/path:\s*"/g)].length
+  if (entries.length !== declared) {
+    errors.push(`src/command-registry.ts 解析到 ${entries.length} 条命令，但源码出现 ${declared} 处 path:，结构可能已变化`)
+  }
+  const topLevel = entries.filter((entry) => !entry.path.includes(" ") && !entry.body.includes("deprecatesTo"))
+  return [
+    ...new Set(
+      topLevel
+        .filter((top) => entries.some((entry) => entry.path.startsWith(`${top.path} `)))
+        .map((top) => top.path),
+    ),
+  ]
+}
+
 // CLI 入口矩阵、术语表与退出码总览：docs/cli.md 是新增命令的默认口径，缺块即视为文档与实现开始漂移
 // 假现场（只含技能表的最小仓库）没有 docs/cli.md：跳过，不把缺失当违规
 if (existsSync(join(root, "docs", "cli.md"))) {
   const cliDoc = read("docs/cli.md")
   const entrySection = /## 裸命令入口\n([\s\S]*?)\n## /.exec(cliDoc)?.[1] ?? ""
   if (!entrySection) errors.push("docs/cli.md 缺少「裸命令入口」小节：入口行为须与实现逐域核对")
-  for (const domain of ["task", "skill", "rule", "config", "convention", "docs", "scope", "usage"]) {
-    if (entrySection && !entrySection.includes(`\`toolkit ${domain}\``)) {
-      errors.push(`docs/cli.md 的裸命令入口缺少 \`toolkit ${domain}\``)
+  const domains = registryDomains()
+  if (domains !== null) {
+    if (domains.length === 0) errors.push("未能从命令注册表派生命令域：裸命令入口核对无对象")
+    for (const domain of domains) {
+      if (entrySection && !entrySection.includes(`\`toolkit ${domain}\``)) {
+        errors.push(`docs/cli.md 的裸命令入口缺少 \`toolkit ${domain}\``)
+      }
     }
   }
   const termsSection = /## 术语表\n([\s\S]*?)\n## /.exec(cliDoc)?.[1] ?? ""
@@ -437,6 +459,51 @@ if (existsSync(join(root, "docs"))) {
       }
       const title = pageTitle(page)
       if (label !== title) errors.push(`docs/config.md 的索引文案「${label}」≠ 目标页标题「${title}」（${page}）`)
+    }
+  }
+
+  // 两份文档索引不做生成，但目标页集合必须一致：新增页面只登记一处即失败
+  function readIndexPages(file) {
+    const section = /## (?:📚 )?文档(?:索引)?\n([\s\S]*?)\n## /.exec(read(file))?.[1] ?? ""
+    if (!section) {
+      errors.push(`${file} 缺少「文档索引」小节`)
+      return new Set()
+    }
+    const baseDir = file.includes("/") ? file.slice(0, file.lastIndexOf("/")) : "."
+    const pages = new Set()
+    for (const matched of section.matchAll(/\[[^\]]+\]\(([^)\s]+)\)/g)) {
+      const href = matched[1]
+      if (href.startsWith("#") || /^[a-z]+:\/\//i.test(href)) continue
+      const clean = href.split("#")[0].replace(/\/+$/, "")
+      if (!clean) continue
+      const joined = clean.startsWith("./")
+        ? baseDir === "."
+          ? clean.slice(2)
+          : `${baseDir}/${clean.slice(2)}`
+        : clean.startsWith("/")
+          ? `docs${clean}`
+          : clean
+      const rel = joined.replace(/^\.\//, "")
+      // 目录与同名 .md 并存时取页面文件，避免把 docs/cli 记成目录
+      const page = [rel, `${rel}.md`, `${rel}/index.md`].find(
+        (candidate) => existsSync(join(root, candidate)) && statSync(join(root, candidate)).isFile(),
+      )
+      if (!page) {
+        errors.push(`${file} 的文档索引 ${href} 指向不存在的页面`)
+        continue
+      }
+      pages.add(page)
+    }
+    return pages
+  }
+  // 假现场可能只有 docs 子页而没有两份索引：缺任一份即跳过集合比对
+  if (existsSync(join(root, "README.md")) && existsSync(join(root, "docs", "index.md"))) {
+    const [readmeIndex, docsIndex] = ["README.md", "docs/index.md"].map(readIndexPages)
+    for (const page of readmeIndex) {
+      if (!docsIndex.has(page)) errors.push(`README.md 文档索引列出的 ${page} 不在 docs/index.md 文档索引中`)
+    }
+    for (const page of docsIndex) {
+      if (!readmeIndex.has(page)) errors.push(`docs/index.md 文档索引列出的 ${page} 不在 README.md 文档索引中`)
     }
   }
 }

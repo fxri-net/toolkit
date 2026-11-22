@@ -7,6 +7,8 @@ const scripts = [
   "scripts/check-exit-codes.mjs",
   "scripts/generate-exit-codes.mjs",
   "scripts/generate-upgrade-table.mjs",
+  "scripts/generate-skill-dirs.mjs",
+  "scripts/generate-env-table.mjs",
 ]
 
 describe("脚本自检可执行", () => {

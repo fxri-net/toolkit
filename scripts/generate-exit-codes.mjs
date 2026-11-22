@@ -3,6 +3,7 @@
 import { readFileSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
+import { applyBlock } from "./lib/markers.mjs"
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const sourceFile = join(root, "src", "exit-codes.ts")
@@ -25,28 +26,14 @@ export function parseRows(text) {
 }
 
 /**
- * 渲染 markdown 表格块（含标记）。
+ * 渲染 markdown 表格正文（不含标记）。
  * @param {{code: string, name: string, meaning: string, scene: string}[]} rows 行数据
- * @return {string} 带标记的表格块
+ * @return {string} 表格正文
  */
-export function renderBlock(rows) {
-  const lines = [START, "| 退出码 | 常量 | 含义 | 场景 |", "| --- | --- | --- | --- |"]
+export function renderTableBody(rows) {
+  const lines = ["| 退出码 | 常量 | 含义 | 场景 |", "| --- | --- | --- | --- |"]
   for (const row of rows) lines.push(`| \`${row.code}\` | ${row.name} | ${row.meaning} | ${row.scene} |`)
-  lines.push(END)
   return lines.join("\n")
-}
-
-/**
- * 用生成块替换文档中的标记区间；标记缺失时返回 null。
- * @param {string} text 文档内容
- * @param {string} block 生成块
- * @return {string|null} 替换后的内容
- */
-export function applyBlock(text, block) {
-  const start = text.indexOf(START)
-  const end = text.indexOf(END)
-  if (start < 0 || end < 0 || end < start) return null
-  return text.slice(0, start) + block + text.slice(end + END.length)
 }
 
 /**
@@ -70,18 +57,18 @@ function selfTest() {
     { code: "0", name: "OK", meaning: "成功", scene: "全部" },
     { code: "130", name: "CANCEL", meaning: "取消", scene: "交互" },
   ]
-  const block = renderBlock(rows)
-  if (!block.includes("| `130` | CANCEL |") || !block.includes(START) || !block.includes(END)) {
+  const body = renderTableBody(rows)
+  if (!body.includes("| `130` | CANCEL |")) {
     console.error("⚠️ 退出码生成器自检失败：表格渲染不符合预期")
     process.exit(1)
   }
   const fixture = `intro\n${START}\nold\n${END}\ntail\n`
-  const applied = applyBlock(fixture, block)
+  const applied = applyBlock(fixture, START, END, body)
   if (applied === null || !applied.startsWith("intro") || !applied.endsWith("tail\n") || applied.includes("old")) {
     console.error("⚠️ 退出码生成器自检失败：标记区间替换不符合预期")
     process.exit(1)
   }
-  const drift = applyBlock(applied, renderBlock([...rows].reverse())) !== applied
+  const drift = applyBlock(applied, START, END, renderTableBody([...rows].reverse())) !== applied
   if (!drift) {
     console.error("⚠️ 退出码生成器自检失败：内容变化未被判定为漂移")
     process.exit(1)
@@ -117,9 +104,8 @@ if (rows.length === 0) {
   console.error("⚠️ 未从 src/exit-codes.ts 解析到任何退出码行，检查 EXIT_CODE_TABLE 结构")
   process.exit(1)
 }
-const block = renderBlock(rows)
 const current = readFileSync(docFile, "utf8")
-const next = applyBlock(current, block)
+const next = applyBlock(current, START, END, renderTableBody(rows))
 if (next === null) {
   console.error(`⚠️ ${docFile} 缺少标记 ${START} / ${END}，无法写入生成块`)
   process.exit(1)

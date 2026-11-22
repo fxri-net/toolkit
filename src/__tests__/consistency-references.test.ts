@@ -157,8 +157,19 @@ function cliDoc(options: { domains?: string[]; terms?: string[] } = {}): string 
 // 退出码页：数值表由生成器维护，检查器只要求标记存在
 const exitDoc = ["# 退出码", "", "<!-- toolkit:exit-codes:start -->", "<!-- toolkit:exit-codes:end -->", ""].join("\n")
 
+// 命令注册表假现场：域清单从注册表派生，每个域至少登记一条子命令
+const registryFixture = [
+  "export const COMMAND_REGISTRY = [",
+  ...["task", "skill", "rule", "config", "convention", "docs", "scope", "usage"].flatMap((domain) => [
+    `  { path: "${domain}", stage: "current" },`,
+    `  { path: "${domain} demo", stage: "current" },`,
+  ]),
+  "]",
+  "",
+].join("\n")
+
 describe("规范一致性：CLI 入口矩阵与术语表", () => {
-  const base = { "skills/fxri-demo/references/task-spec.md": "# 任务规范\n", "docs/cli/exit-codes.md": exitDoc }
+  const base = { "skills/fxri-demo/references/task-spec.md": "# 任务规范\n", "docs/cli/exit-codes.md": exitDoc, "src/command-registry.ts": registryFixture }
 
   it("入口矩阵、术语表与退出码单源齐全时通过", () => {
     const root = createFixture({ ...base, "docs/cli.md": cliDoc() })

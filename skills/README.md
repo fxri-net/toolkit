@@ -9,7 +9,7 @@ Cursor、Codex、Gemini CLI 等兼容 agent 按需加载。
 
 | 技能 | 版本 | 用途 | 层级 |
 | --- | --- | --- | --- |
-| [fxri-plan-task](./fxri-plan-task/SKILL.md) | 1.12.19 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
+| [fxri-plan-task](./fxri-plan-task/SKILL.md) | 1.12.20 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
 | [fxri-plan-review](./fxri-plan-review/SKILL.md) | 1.0.17 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
 | [fxri-plan-recap](./fxri-plan-recap/SKILL.md) | 1.7.8 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.3.12 | changesets 发版与多语言 CHANGELOG 维护 | optional |
@@ -65,7 +65,9 @@ toolkit skill uninstall       # 卸载本包装的产物（只清自己装的，
   - 产物记录在 `<仓库根>/.toolkit/state.json`（与真源、薄壳一并入库）
   - `toolkit init` 会写入 `prepare` 刷新钩子（只刷新归属账已存在的产物，不新增技能；非 TTY / CI 只打印漂移），队友 clone 即用
   - `--copy` 仅全局面生效，项目面恒为副本
-  - 项目级候选目录（19 个，仅在目录已存在时落壳）：
+
+<!-- toolkit:skill-dirs:start -->
+**项目面候选目录**（19 个，仅在目录已存在时落壳）：
 
 | 候选目录 | 候选目录 | 候选目录 |
 | --- | --- | --- |
@@ -76,6 +78,7 @@ toolkit skill uninstall       # 卸载本包装的产物（只清自己装的，
 | `.iflow/skills/` | `.junie/skills/` | `.kiro/skills/` |
 | `.openhands/skills/` | `.qwen/skills/` | `.roo/skills/` |
 | `.windsurf/skills/` |  |  |
+<!-- toolkit:skill-dirs:end -->
 
 - 发布型包误打包检查：`toolkit init` 在未标 `private` 且无 `files` 白名单的项目里会提示技能产物（`.agents/skills/`）与内置任务区（`.tasks/`）可能被打进 npm 包——只提示、不代改
 

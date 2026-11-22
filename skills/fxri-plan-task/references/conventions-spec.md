@@ -53,7 +53,8 @@
 
 载体可另配套**入口壳（一阶触发面）**：在**已存在的**项目级技能目录下生成 `toolkit-conventions/SKILL.md`，目录名与 frontmatter `name` 同名（Agent Skills 标准要求）。
 
-- **落点**：19 个内置候选目录见下表；多 agent 并存时**每处各写一份**、互不覆盖，一个都不存在时回落 `.agents/skills/`
+- **落点**：内置候选目录清单见[配置参考 · 分发落点](https://fxri-net.github.io/toolkit/config/skill#分发落点)；
+  多 agent 并存时**每处各写一份**、互不覆盖，一个都不存在时回落 `.agents/skills/`
 - **内容**：壳只作入口、不承载条文，正文指回任务区 `conventions/index.md`
 - **生成**：由 `toolkit init` 幂等生成，可安全删除、重跑补回；只在已有目录内落盘，不为未安装的 agent 凭空建目录，本包源仓库自身不生成
 - **版本分流**：已存在的壳按标记版本判定——标记不旧于当前版本保持不变，落后或无标记就地更新为当前版本
@@ -61,21 +62,9 @@
 - **标记位置**：壳首部为 frontmatter，故 `<!-- toolkit-conventions-entry: v2 -->` 退居其后、须全文件扫描（载体标记只看首行）
 - **告警**：壳标记与当前 toolkit 不一致、或被 `.gitignore` 覆盖时，`toolkit convention status` 与 `toolkit task check` 软告警
 - **告警合并**：标记不一致可重跑 `toolkit init` 就地更新；同类告警在多落点并存时**合并为一条**并内联全部落点路径，不按壳逐条重复
-- **体检范围**：只扫下表 19 个内置候选目录（`findEntryShells`）；用户手工把壳拷到未收录目录（如 `.bob/skills`）不参与体检
+- **体检范围**：只扫配置参考列出的内置候选目录（`findEntryShells`）；用户手工把壳拷到未收录目录（如 `.bob/skills`）不参与体检
 - **与技能薄壳的关系**：同一批候选目录还承载项目面技能薄壳，即在真源 `<仓库根>/.agents/skills/` 之外的其他已存在候选目录生成 `fxri-*` 薄壳
 - 两类壳不同名并存、互不覆盖；入口壳由 `toolkit init` 生成，技能薄壳由 `toolkit skill install --scope project` 分发
-
-**内置候选目录**（19 个）：
-
-| 候选目录 | 候选目录 | 候选目录 |
-| --- | --- | --- |
-| `.agents/skills/` | `.trae/skills/` | `.claude/skills/` |
-| `agent/skills/`（Eve） | `.augment/skills/` | `.codebuddy/skills/` |
-| `.continue/skills/` | `.crush/skills/` | `.devin/skills/` |
-| `.goose/skills/` | `.grok/skills/` | `.hermes/skills/` |
-| `.iflow/skills/` | `.junie/skills/` | `.kiro/skills/` |
-| `.openhands/skills/` | `.qwen/skills/` | `.roo/skills/` |
-| `.windsurf/skills/` |  |  |
 
 规范触发面共三层，**任一层可用即可触达**：① 全局技能 `fxri-plan-task`（随包分发到各 agent 全局技能目录，
 其工作流第 1 步即要求读 `conventions/index.md`）——**不依赖项目内任何文件、恒在兜底**；② 上述项目级入口壳（用户不主动发问也能被 agent 读到）；

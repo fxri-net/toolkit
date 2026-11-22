@@ -4,6 +4,7 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
 import { join, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
+import { TOUCH_FILES, TOUCH_PREFIXES } from "./touch-surface.mjs"
 
 export const MAX_CHARS = 120
 export const MAX_SEMICOLONS = 2
@@ -12,9 +13,9 @@ export const MAX_PROSE_LINES = 150
 export const MAX_PAGE_CHARS = 12000
 export const BASELINE_PATH = ["scripts", "docs-readability-baseline.json"]
 
-// 检查面：门面与根规则 + 文档站页面 + 技能正文
-const TARGET_FILES = ["README.md", "AGENTS.md", "SPEC.md"]
-const TARGET_DIRS = ["docs", "skills"]
+// 检查面：与其它自检脚本共用同一份触达面清单
+const TARGET_FILES = TOUCH_FILES
+const TARGET_DIRS = TOUCH_PREFIXES.map((prefix) => prefix.replace(/\/$/, ""))
 // 自动生成页豁免（C-40）：toolkit release mirror 产出的主页与按主版本分页的归档目录
 const EXCLUDED = new Set(["docs/changelog.md"])
 const EXCLUDED_PREFIXES = ["docs/changelog/"]

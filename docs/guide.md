@@ -186,7 +186,7 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 
 | 技能 | 版本 | 用途 | 层级 |
 | --- | --- | --- | --- |
-| `fxri-plan-task` | 1.12.19 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
+| `fxri-plan-task` | 1.12.20 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
 | `fxri-plan-review` | 1.0.17 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
 | `fxri-plan-recap` | 1.7.8 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | `fxri-release-changelog` | 1.3.12 | changesets 发版与多语言 CHANGELOG 维护 | optional |
@@ -259,8 +259,8 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 
 ## 多语言 CHANGELOG
 
-封装 changesets，内置 `zh` / `en`，任意语言可配置扩展（差异只在语言表，结构为 `groups` / `replacements` / `deps` / `released` 四段，
-见[配置参考 · 语言与镜像](./config/changelog)）。
+封装 changesets，内置语言与扩展方式见[配置参考 · 语言与镜像](./config/changelog)（差异只在语言表，
+结构为 `groups` / `replacements` / `deps` / `released` 四段）。
 
 ```bash
 pnpm exec toolkit release changeset add        # 创建变更集（等价 changeset）

@@ -34,7 +34,7 @@ toolkit release changeset status      # 待发布变更集状态（透传给 cha
 
 | 选项 | 适用子命令 | 说明 |
 | --- | --- | --- |
-| `--lang <lang>` | bump / changelog / mirror | 输出语言，默认 `zh`；内置 `zh`/`en`，其余经配置扩展；传入未定义语言时 stderr 告警并回落默认语言 |
+| `--lang <lang>` | bump / changelog / mirror | 输出语言，默认 `zh`；内置语言见[语言与镜像](../config/changelog)，其余经配置扩展；传入未定义语言时 stderr 告警并回落默认语言 |
 | `--redact` / `--no-redact` | bump / changelog / mirror | 开启/关闭隐私脱敏（默认开启；作用于 CHANGELOG 终端展示与落盘） |
 | `--warn` / `--no-warn` | bump / changelog / mirror | 开启/关闭软告警（默认开启；作用于发版前未归档任务提醒与无类型前缀条目计数告警） |
 | `--history` | bump / changelog | 追溯改写全部历史版本块（默认只处理 changesets 新写入块与无分组的最新版本块） |

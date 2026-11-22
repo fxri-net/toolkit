@@ -1,5 +1,6 @@
 // 从命令注册表生成升级页的命令对照段：只重写标记之间的内容，避免页面手写第二份清单
 import { readFileSync, writeFileSync } from "node:fs"
+import { applyBlock } from "./lib/markers.mjs"
 
 const START = "<!-- toolkit:command-table:start -->"
 const END = "<!-- toolkit:command-table:end -->"
@@ -68,13 +69,6 @@ function renderTable(rows) {
 function main() {
   const check = process.argv.includes("--check")
   const page = readFileSync(PAGE, "utf8")
-  const start = page.indexOf(START)
-  const end = page.indexOf(END)
-  if (start === -1 || end === -1 || end < start) {
-    console.error(`⚠️ ${PAGE} 缺少命令对照生成标记`)
-    process.exitCode = 1
-    return
-  }
   let body
   try {
     body = renderTable(readMigrationRows())
@@ -83,7 +77,12 @@ function main() {
     process.exitCode = 1
     return
   }
-  const next = `${page.slice(0, start + START.length)}\n${body}\n${page.slice(end)}`
+  const next = applyBlock(page, START, END, body)
+  if (next === null) {
+    console.error(`⚠️ ${PAGE} 缺少命令对照生成标记`)
+    process.exitCode = 1
+    return
+  }
   if (check) {
     if (next !== page) {
       console.error(`⚠️ ${PAGE} 的命令对照段与注册表不一致：运行 node scripts/generate-upgrade-table.mjs 更新`)
