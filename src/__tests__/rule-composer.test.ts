@@ -8,6 +8,27 @@ const STORAGE_KEY = "fxri-toolkit:rules:v1"
 const originalClipboard = navigator.clipboard
 const originalExecCommand = document.execCommand
 
+// Node 25+ 自带实验性全局 localStorage，会遮蔽 happy-dom 的存储实现且缺少 clear 等方法；
+// 组件只依赖 getItem / setItem / removeItem / clear，用内存实现保证跨 Node 大版本一致
+const memoryStore = new Map<string, string>()
+Object.defineProperty(globalThis, "localStorage", {
+  configurable: true,
+  value: {
+    get length() {
+      return memoryStore.size
+    },
+    clear: () => memoryStore.clear(),
+    getItem: (key: string) => memoryStore.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      memoryStore.set(key, String(value))
+    },
+    removeItem: (key: string) => {
+      memoryStore.delete(key)
+    },
+    key: (index: number) => [...memoryStore.keys()][index] ?? null,
+  },
+})
+
 beforeEach(() => {
   localStorage.clear()
   vi.restoreAllMocks()
