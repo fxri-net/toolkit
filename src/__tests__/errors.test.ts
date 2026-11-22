@@ -51,8 +51,18 @@ describe("formatCommanderError", () => {
     )
   })
 
-  it("帮助与其余 code：返回 null，交由调用方回退原始文案", () => {
+  it("缺少必填参数 / 选项：转为中文并附帮助指引", () => {
+    expect(formatCommanderError(new CommanderError(1, "commander.missingArgument", "error: missing required argument 'x'"))).toBe(
+      "⚠️ 缺少必填参数「x」。\n运行 toolkit --help 查看可用命令",
+    )
+    expect(
+      formatCommanderError(
+        new CommanderError(1, "commander.missingMandatoryOptionValue", "error: required option '--session <id>' not specified"),
+      ),
+    ).toBe("⚠️ 缺少必填选项「--session <id>」。\n运行 toolkit --help 查看可用命令")
+  })
+
+  it("帮助：返回 null，交由调用方回退原始文案", () => {
     expect(formatCommanderError(parseError(["--help"]))).toBeNull()
-    expect(formatCommanderError(new CommanderError(1, "commander.missingArgument", "error: missing required argument 'x'"))).toBeNull()
   })
 })

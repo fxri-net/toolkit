@@ -34,6 +34,16 @@ export function formatCommanderError(err: CommanderError): string | null {
       const subject = matched[1] ? `命令「${matched[1]}」` : "命令"
       return `⚠️ ${style.warn(`${subject}期望 ${matched[2]} 个参数，实际收到 ${matched[3]} 个。`)}\n${style.hint(HELP_HINT)}`
     }
+    case "commander.missingArgument": {
+      const name = /missing required argument '([^']*)'/.exec(err.message)?.[1]
+      if (!name) return null
+      return `⚠️ ${style.warn(`缺少必填参数「${name}」。`)}\n${style.hint(HELP_HINT)}`
+    }
+    case "commander.missingMandatoryOptionValue": {
+      const flag = /required option '([^']*)' not specified/.exec(err.message)?.[1]
+      if (!flag) return null
+      return `⚠️ ${style.warn(`缺少必填选项「${flag}」。`)}\n${style.hint(HELP_HINT)}`
+    }
     default:
       return null
   }

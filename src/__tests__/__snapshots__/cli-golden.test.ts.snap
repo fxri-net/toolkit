@@ -1815,8 +1815,8 @@ exports[`各域行为与错误路径 > tasks 导出缺参数 1`] = `
 --- stdout ---
 
 --- stderr ---
-error: missing required argument 'path'
-"
+⚠️ 缺少必填参数「path」。
+运行 toolkit --help 查看可用命令"
 `;
 
 exports[`各域行为与错误路径 > tasks 总览 1`] = `
