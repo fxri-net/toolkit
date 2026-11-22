@@ -44,7 +44,7 @@
 | C-44 | 自检脚本配假现场 | 改 `scripts/check-*.mjs` 时：每个新增或修改的校验都要有假现场用例（合规通过 / 违规报出），容错分支同样要锁 | testing | [testing.md](./testing.md) |
 | C-45 | 命名与封装统一 | 写代码或命名时：动词族与谓词形态固定、参数用 options/config、fx 只用于 src/shared/、全局命名带 FX_TOOLKIT_ 标识；展示基建须收敛单模块并落门禁；兼容读取须写明移除版本 | common | [common.md](./common.md) |
 | C-46 | 运行时版本基线 | 写代码时：以 engines 为唯一基线、只用基线已稳定 API、最低版本须有 CI 回归入口、类型声明与基线一致 | platform | [platform.md](./platform.md) |
-| C-47 | 交互与入口统一 | 新增或改命令入口 / 交互时：交互走 `cli-ui` 基座（ESC 返回、130 取消、取消文案统一），写操作预览 + 确认 + `--yes` / `--dry-run`，裸命令按域类型给总览 / 帮助 / 摘要，入口矩阵以 `docs/cli.md` 为单一事实源 | common | [common.md](./common.md)、[cli.md](../../docs/cli.md) |
+| C-47 | 交互与入口统一 | 新增或改命令入口 / 交互时：交互走 `cli-ui` 基座，写操作预览 + 确认 + `--yes`，裸命令按域类型给视图，入口矩阵以 `docs/cli.md` 为准 | common | [common.md](./common.md)、[cli.md](../../docs/cli.md) |
 
 ## 三、用法说明
 
