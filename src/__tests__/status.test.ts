@@ -10,6 +10,8 @@ const stubs = vi.hoisted(() => ({
   configStatus: vi.fn(),
   checkDocsNav: vi.fn(),
   checkDocsDist: vi.fn(),
+  detectUpgradeItems: vi.fn(),
+  countAutoResidue: vi.fn(),
 }))
 
 vi.mock("../skills/status", () => ({ skillsStatus: stubs.skillsStatus }))
@@ -21,6 +23,8 @@ vi.mock("../config-status", async (importOriginal) => {
 vi.mock("../docs/nav", () => ({ NAV_RULES_VERSION: "test", checkDocsNav: stubs.checkDocsNav }))
 vi.mock("../docs/dist", () => ({ DIST_RULES_VERSION: "test", checkDocsDist: stubs.checkDocsDist }))
 vi.mock("../docs/config", () => ({ resolveDocsCheckConfig: () => ({ nav: { dir: "docs" }, dist: {}, rules: {} }) }))
+// 迁移检测取数与升级命令共用同一实现，聚合层只验证区块映射，不在此复刻检测规则
+vi.mock("../upgrade/detect", () => ({ detectUpgradeItems: stubs.detectUpgradeItems, countAutoResidue: stubs.countAutoResidue }))
 vi.mock("../config", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../config")>()
   return { ...actual, resolveTasksDir: () => ".tasks" }
@@ -56,7 +60,11 @@ beforeEach(() => {
   stubs.configStatus.mockReset()
   stubs.checkDocsNav.mockReset()
   stubs.checkDocsDist.mockReset()
+  stubs.detectUpgradeItems.mockReset()
+  stubs.countAutoResidue.mockReset()
   healthyDomains()
+  stubs.detectUpgradeItems.mockReturnValue([])
+  stubs.countAutoResidue.mockReturnValue(0)
   process.exitCode = 0
 })
 
@@ -121,6 +129,24 @@ describe("collectStatus 三现场", () => {
     expect(report.issues.some((issue) => issue.message.includes("nav/first-item"))).toBe(true)
   })
 
+  it("迁移提示：存在 v1 形态时追加 migrate 区块，不计入问题清单", () => {
+    stubs.detectUpgradeItems.mockReturnValue([
+      { id: "config:project", surface: "config", layers: ["project"], action: "旧段名", risk: "low", files: [], reason: "", status: "planned" },
+      { id: "project:package", surface: "project-file", layers: ["project"], action: "旧 prepare", risk: "low", files: [], reason: "", status: "manual" },
+    ])
+    stubs.countAutoResidue.mockReturnValue(1)
+
+    const report = collectStatus("1.2.3", makeDir(true))
+    const section = report.sections.find((item) => item.id === "migrate")
+    expect(section?.summary).toContain("2 项")
+    expect(section?.details).toContain("可自动 1 项 / 需人工 1 项")
+    expect(report.issues).toEqual([])
+    expect(report.errorCount).toBe(0)
+    expect(report.warnCount).toBe(0)
+    // 只查项目与本地层，不因 status 去扫全局目录
+    expect(stubs.detectUpgradeItems).toHaveBeenCalledWith(expect.any(String), ["project", "local"])
+  })
+
   it("未初始化现场：只提示 init，不逐域报错", () => {
     const report = collectStatus("1.2.3", makeDir(false))
     expect(report.initialized).toBe(false)
@@ -175,6 +201,22 @@ describe("runStatus 输出与退出码", () => {
     expect(data.version).toBe("1.2.3")
     expect(data.initialized).toBe(true)
     expect(data.sections).toHaveLength(5)
+  })
+
+  it("--format json：迁移项进入 sections，顶层键与 issues 不变", () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {})
+    process.chdir(makeDir(true))
+    stubs.detectUpgradeItems.mockReturnValue([
+      { id: "config:project", surface: "config", layers: ["project"], action: "旧段名", risk: "low", files: [], reason: "", status: "planned" },
+    ])
+    stubs.countAutoResidue.mockReturnValue(1)
+
+    runStatus({ format: "json" }, "1.2.3")
+    const payload = JSON.parse(log.mock.calls.map((call) => call.join(" ")).join("\n")) as Record<string, unknown>
+    expect(Object.keys(payload).sort()).toEqual(["code", "command", "data", "debug", "extend", "issues", "message", "schemaVersion"])
+    expect(payload.issues).toEqual([])
+    const data = payload.data as { sections: Array<{ id: string }> }
+    expect(data.sections.map((section) => section.id)).toContain("migrate")
   })
 
   it("非法 --format 报错退出 1，不做聚合", () => {

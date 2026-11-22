@@ -11,6 +11,8 @@ import { checkDocsNav } from "./docs/nav"
 import { skillsStatus } from "./skills/status"
 import { listTaskFiles } from "./tasks/scan"
 import { validateTasks } from "./tasks/validate"
+import { countAutoResidue, detectUpgradeItems } from "./upgrade/detect"
+import type { UpgradeItem, UpgradeSurface } from "./upgrade/types"
 
 // 聚合问题：level 与各域 check 同口径；scope 标注所属区块，便于按域定位
 export interface StatusIssue {
@@ -21,7 +23,7 @@ export interface StatusIssue {
 
 // 区块摘要：counts 只统计本区块问题，ok 表示该区块无 error 级问题
 export interface StatusSection {
-  id: "tasks" | "skills" | "config" | "docs" | "version"
+  id: "tasks" | "skills" | "config" | "docs" | "version" | "migrate"
   label: string
   ok: boolean
   summary: string
@@ -144,6 +146,39 @@ function docsDomain(cwd: string): DomainResult {
   return { summary: `${navText}；${distText}`, issues }
 }
 
+// 迁移面中文名：与 upgrade 计划展示同口径，便于在总览里按面计数
+const SURFACE_LABELS: Record<UpgradeSurface, string> = {
+  config: "配置",
+  "project-file": "工程文件",
+  skill: "技能现场",
+  convention: "规范载体",
+  backup: "备份收编",
+}
+
+// 迁移提示：只查项目与本地层（全局层与当前工程无关）；无残留时不占区块，也不产生 issue
+function migrateDomain(cwd: string): DomainResult | null {
+  let items: UpgradeItem[]
+  try {
+    items = detectUpgradeItems(cwd, ["project", "local"])
+  } catch (e) {
+    return { summary: `迁移检测失败（跳过）：${(e as Error).message}`, issues: [] }
+  }
+  if (items.length === 0) return null
+  const auto = countAutoResidue(items)
+  const counts = new Map<UpgradeSurface, number>()
+  for (const item of items) counts.set(item.surface, (counts.get(item.surface) ?? 0) + 1)
+  const distribution = [...counts].map(([surface, count]) => `${SURFACE_LABELS[surface]} ${count}`).join("、")
+  return {
+    summary: `发现 ${items.length} 项 v1 形态待迁移`,
+    details: [
+      `可自动 ${auto} 项 / 需人工 ${items.length - auto} 项`,
+      `分布：${distribution}`,
+      "运行 toolkit upgrade --check 查看完整清单（只提示，不自动修复）",
+    ],
+    issues: [],
+  }
+}
+
 // 版本与弃用：包版本 + 注册表静态迁移项 + 本机旧命令命中记录（读取即清空，避免重复计数）
 function versionDomain(version: string, deprecated: CommandMigrationRow[], hits: DeprecationHit[]): DomainResult {
   const hitNote = hits.length > 0 ? `；本机命中旧命令 ${hits.length} 次` : ""
@@ -179,8 +214,11 @@ export function collectStatus(version: string, cwd: string = process.cwd()): Sta
     guard("skills", "技能现场", () => skillsDomain()),
     guard("config", "配置层", () => configDomain(cwd)),
     guard("docs", "文档站", () => docsDomain(cwd)),
-    guard("version", "版本与弃用", () => versionDomain(version, deprecated, runtimeHits)),
   ]
+  // 迁移提示为可选区块：检测不到 v1 形态时整节省略，不制造日常噪音
+  const migrate = migrateDomain(cwd)
+  if (migrate) results.push(guard("migrate", "迁移", () => migrate))
+  results.push(guard("version", "版本与弃用", () => versionDomain(version, deprecated, runtimeHits)))
   const sections = results.map((result) => result.section)
   const issues = results.flatMap((result) => result.issues)
   const errorCount = issues.filter((issue) => issue.level === "error").length

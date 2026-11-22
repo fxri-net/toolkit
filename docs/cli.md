@@ -28,7 +28,7 @@
 | --- | --- |
 | 新项目接入 | `toolkit init` → `toolkit skill install` → `toolkit config status` |
 | 整体自查 | `toolkit status` 一次看全貌（`--check` 有 error 时退出 1；`--format json` 供脚本） |
-| 从 1.x 升级 | `toolkit upgrade --dry-run` 看清单 → `toolkit upgrade` 执行 → 复检残留 |
+| 从 1.x 升级 | `toolkit status` 出现迁移提示 → `toolkit upgrade --dry-run` 看清单 → `toolkit upgrade` 执行 → 复检残留 |
 | 日常任务 | `toolkit task` 看板 → `toolkit task check` 校验 → `toolkit task archive` 归档 |
 | 新会话恢复 | `toolkit status`（或 `toolkit task --view all` + `toolkit convention status`） |
 | 发版 | `toolkit release bump` → `pnpm verify` → 打标签发布 |
