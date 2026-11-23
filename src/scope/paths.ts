@@ -23,6 +23,11 @@ export function normalizeRulePath(input: string, base = process.cwd(), home = ho
   return normalizePathForCompare(resolveComparablePath(input, base, home))
 }
 
+// 字面路径判定：re: 正则或含通配符的规则不是真实路径，存在性检查应跳过
+export function isLiteralPath(rule: string): boolean {
+  return !rule.startsWith("re:") && !/[*?]/.test(rule)
+}
+
 // 目录覆盖规则：裸路径补 /**，已含通配符或 re: 正则原样保留，避免重复追加
 export function toTreePattern(input: string): string {
   const value = input.trim().replace(/[\\/]+$/, "")

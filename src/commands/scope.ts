@@ -5,7 +5,7 @@ import { resolveScope } from "../scope"
 import { runGuard } from "../scope/guard"
 import { formatList, formatStatus, plainIncludeHint } from "../scope/print"
 import { isInteractive, runInteractive } from "../prompts"
-import { resolveComparablePath, toTreePattern } from "../scope/paths"
+import { isLiteralPath, resolveComparablePath, toTreePattern } from "../scope/paths"
 import { runScopeWizard } from "../scope/wizard"
 import { line, policyEffectText, policyLayerText, scopeModeText, termText } from "../term-style"
 import { assertJsonFormat, jsonEnvelope } from "../json-output"
@@ -635,9 +635,11 @@ export function registerScopeCommands(program: Command): void {
         const activation = report.activation
         const include = activation?.include ?? []
         const exclude = activation?.exclude ?? []
+        // glob / re: 规则不是真实路径，存在性检查跳过，避免误报「路径不存在」
+        const entryState = (path: string) => !isLiteralPath(path) || existsSync(resolveComparablePath(path, report.decision.baseDir))
         const items = [
-          ...include.map((path) => ({ path, list: "include", exists: existsSync(resolveComparablePath(path, report.decision.baseDir)) })),
-          ...exclude.map((path) => ({ path, list: "exclude", exists: existsSync(resolveComparablePath(path, report.decision.baseDir)) })),
+          ...include.map((path) => ({ path, list: "include", exists: entryState(path) })),
+          ...exclude.map((path) => ({ path, list: "exclude", exists: entryState(path) })),
         ]
         if (options.format === "json") {
           printJson(

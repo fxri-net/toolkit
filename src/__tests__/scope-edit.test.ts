@@ -5,7 +5,7 @@ import { join, resolve } from "node:path"
 import { tmpdir } from "node:os"
 import { setHomeDirForTest } from "../config"
 import { applyPlan, describePlan, modeLabel, planAdd, planDefault, planRemove, planReset, readScopeState } from "../scope/edit"
-import { toTreePattern } from "../scope/paths"
+import { isLiteralPath, toTreePattern } from "../scope/paths"
 
 let home = ""
 let root = ""
@@ -79,6 +79,13 @@ describe("目录覆盖规则", () => {
     expect(toTreePattern("/work/")).toBe("/work/**")
     expect(toTreePattern("/work/**")).toBe("/work/**")
     expect(toTreePattern("re:^/work$")).toBe("re:^/work$")
+  })
+
+  it("字面路径判定：通配符与 re: 规则不做存在性检查", () => {
+    expect(isLiteralPath("D:/Work/Dev-Space")).toBe(true)
+    expect(isLiteralPath("D:/Work/Dev-Space/**")).toBe(false)
+    expect(isLiteralPath("D:/Work/Dev-Space/*")).toBe(false)
+    expect(isLiteralPath("re:^/work$")).toBe(false)
   })
 })
 

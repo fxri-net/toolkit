@@ -100,7 +100,7 @@ toolkit scope guard fxri-plan-task              # 内容闸门：按当前目录
 - 结果块统一输出写入文件、变更条目与当前默认值；无变化时只提示「没有变化，无需写入」
 - 相对路径按目标层项目根解析（全局层按当前目录）；`--layer global|project|local` 缺省全局
 - `scope list` 同时输出条目存在性：文本模式列出「条目异常」，`--format json` 的 `data.items` 含 `path` / `list` / `exists`；
-  相对路径条目按所属配置层的项目根解析
+  相对路径条目按所属配置层的项目根解析；含 `*` / `?` 或 `re:` 的规则跳过存在性检查（`exists` 恒为 `true`）
 - 批量项目面安装已迁至 `toolkit skill mount`（原 `scope mount` 已移除）；写入边界与 `--dry-run` 见 [技能分发 · mount](./skill#mount)
 - 非 TTY 环境：`wizard` 会提示无法交互（无交互退出码，见[退出码](./exit-codes)）；写命令请直接带参数
 
