@@ -73,6 +73,14 @@ export function formatStatus(report: ScopeReport): string[] {
   return lines
 }
 
+// 白名单裸路径提示：仅名单内生效且条目无通配符时，提示覆盖不到子目录
+export function plainIncludeHint(report: ScopeReport): string | null {
+  if (!report.activation || report.decision.mode !== "allowlist") return null
+  const plain = report.activation.include.filter((item) => !item.startsWith("re:") && !/[*?]/.test(item))
+  if (plain.length === 0) return null
+  return `白名单条目 ${plain.join("、")} 只匹配该目录自身；要覆盖其下项目请改为 <目录>/**（或在添加时加 --tree）`
+}
+
 // list 文本行：旧 activation 字段 + 新策略条目；旧字段编译产物已在 activation 段呈现，不重复列出
 export function formatList(report: ScopeReport): string[] {
   const activation = report.activation

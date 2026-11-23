@@ -5,6 +5,7 @@ import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { setHomeDirForTest } from "../config"
 import { buildLayerChoices, runScopeWizard } from "../scope/wizard"
+import { toTreePattern } from "../scope/paths"
 import * as skills from "../skills"
 
 // 提示应答队列：按调用顺序消费
@@ -116,7 +117,7 @@ describe("作用域向导菜单", () => {
 
 describe("名单写入", () => {
   it("加入白名单并切换默认值", async () => {
-    answers.select.push("global", "add-include", "cwd", "exit")
+    answers.select.push("global", "add-include", "cwd", "dir", "exit")
     answers.confirm.push(true)
     await runScopeWizard()
     const activation = readActivation()
@@ -125,12 +126,19 @@ describe("名单写入", () => {
   })
 
   it("加入黑名单保持默认值", async () => {
-    answers.select.push("global", "add-exclude", "cwd", "exit")
+    answers.select.push("global", "add-exclude", "cwd", "dir", "exit")
     answers.confirm.push(true)
     await runScopeWizard()
     const activation = readActivation()
     expect(activation.mode).toBe("all")
     expect(activation.exclude).toEqual([process.cwd()])
+  })
+
+  it("选择覆盖子目录时写入 /**", async () => {
+    answers.select.push("global", "add-include", "cwd", "tree", "exit")
+    answers.confirm.push(true)
+    await runScopeWizard()
+    expect(readActivation().include).toEqual([toTreePattern(process.cwd())])
   })
 })
 

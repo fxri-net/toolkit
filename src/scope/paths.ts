@@ -23,6 +23,13 @@ export function normalizeRulePath(input: string, base = process.cwd(), home = ho
   return normalizePathForCompare(resolveComparablePath(input, base, home))
 }
 
+// 目录覆盖规则：裸路径补 /**，已含通配符或 re: 正则原样保留，避免重复追加
+export function toTreePattern(input: string): string {
+  const value = input.trim().replace(/[\\/]+$/, "")
+  if (!value || value.startsWith("re:") || /[*?]/.test(value)) return input
+  return `${value}/**`
+}
+
 // 向上查找 git 根：命中 .git（普通仓库目录或 worktree 文件）即返回，找不到返回 null
 export function findGitRoot(start = process.cwd()): string | null {
   let current = resolve(start)

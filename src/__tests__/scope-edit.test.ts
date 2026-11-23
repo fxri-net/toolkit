@@ -5,6 +5,7 @@ import { join, resolve } from "node:path"
 import { tmpdir } from "node:os"
 import { setHomeDirForTest } from "../config"
 import { applyPlan, describePlan, modeLabel, planAdd, planDefault, planRemove, planReset, readScopeState } from "../scope/edit"
+import { toTreePattern } from "../scope/paths"
 
 let home = ""
 let root = ""
@@ -63,6 +64,21 @@ describe("加入白 / 黑名单", () => {
     expect(plan.nextMode).toBe("all")
     expect(plan.nextExclude).toEqual([resolve(root, "legacy")])
     expect(plan.changes.join("\n")).toContain("新增：[黑]")
+  })
+
+  it("tree 模式把裸目录扩为 /**，已含通配符的保持不变", () => {
+    const plan = planAdd(readScopeState("project", sub), "include", ["work"], sub, true)
+    expect(plan.nextInclude).toEqual([toTreePattern(resolve(root, "work"))])
+    expect(plan.nextInclude[0]?.endsWith("/**")).toBe(true)
+  })
+})
+
+describe("目录覆盖规则", () => {
+  it("裸路径补 /**，已含通配符或 re: 原样保留", () => {
+    expect(toTreePattern("/work")).toBe("/work/**")
+    expect(toTreePattern("/work/")).toBe("/work/**")
+    expect(toTreePattern("/work/**")).toBe("/work/**")
+    expect(toTreePattern("re:^/work$")).toBe("re:^/work$")
   })
 })
 

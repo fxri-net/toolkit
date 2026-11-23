@@ -1,7 +1,7 @@
 // 作用域写命令的纯计划：读配置 → 计算两列表与默认值 → 返回预览与结果，落盘由命令层执行
 import { normalizePathForCompare } from "../git-ignore"
 import { layerConfigTarget, readLayerConfig, writeLayerConfig, type ConfigLayer, type LayerConfigTarget } from "./config-file"
-import { resolveComparablePath } from "./paths"
+import { resolveComparablePath, toTreePattern } from "./paths"
 import { mergeActivation } from "./plan"
 import type { ActivationMode } from "./types"
 
@@ -107,17 +107,26 @@ function sameList(left: string[], right: string[]): boolean {
   return right.every((item) => keys.has(pathKey(item)))
 }
 
-// 目录按目标层项目根解析；全局层按当前目录解析
-function resolveDirs(state: ScopeState, dirs: string[], startDir: string): string[] {
+// 目录按目标层项目根解析；全局层按当前目录解析；tree 时补 /** 覆盖子目录
+function resolveDirs(state: ScopeState, dirs: string[], startDir: string, tree = false): string[] {
   return appendUnique(
     [],
-    dirs.map((dir) => resolveComparablePath(dir, state.target.root ?? startDir)),
+    dirs.map((dir) => {
+      const resolved = resolveComparablePath(dir, state.target.root ?? startDir)
+      return tree ? toTreePattern(resolved) : resolved
+    }),
   )
 }
 
 // 加入白名单 / 黑名单：同路径在另一侧时就地互转
-export function planAdd(state: ScopeState, list: ScopeList, dirs: string[], startDir = process.cwd()): ScopeEditPlan {
-  const paths = resolveDirs(state, dirs, startDir)
+export function planAdd(
+  state: ScopeState,
+  list: ScopeList,
+  dirs: string[],
+  startDir = process.cwd(),
+  tree = false,
+): ScopeEditPlan {
+  const paths = resolveDirs(state, dirs, startDir, tree)
   return buildPlan(state, (current) => {
     const include = [...current.include]
     let exclude = [...current.exclude]

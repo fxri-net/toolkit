@@ -3,9 +3,9 @@ import { existsSync } from "node:fs"
 import type { Command } from "commander"
 import { resolveScope } from "../scope"
 import { runGuard } from "../scope/guard"
-import { formatList, formatStatus } from "../scope/print"
+import { formatList, formatStatus, plainIncludeHint } from "../scope/print"
 import { isInteractive, runInteractive } from "../prompts"
-import { resolveComparablePath } from "../scope/paths"
+import { resolveComparablePath, toTreePattern } from "../scope/paths"
 import { runScopeWizard } from "../scope/wizard"
 import { line, policyEffectText, policyLayerText, scopeModeText, termText } from "../term-style"
 import { assertJsonFormat, jsonEnvelope } from "../json-output"
@@ -53,9 +53,10 @@ function buildWhen(options: {
   subpaths?: string[]
   markers?: string[]
   gitRemotes?: string[]
+  tree?: boolean
 }): ScopeCondition | undefined {
   const when: ScopeCondition = {}
-  if (options.paths?.length) when.paths = options.paths
+  if (options.paths?.length) when.paths = options.tree ? options.paths.map(toTreePattern) : options.paths
   if (options.subpaths?.length) when.subpaths = options.subpaths
   if (options.markers?.length) when.markers = options.markers
   if (options.gitRemotes?.length) when.gitRemotes = options.gitRemotes
@@ -108,6 +109,7 @@ function isWinner(matchedRule: string | null, id: string): boolean {
 }
 
 interface PolicyAddOptions {
+  tree?: boolean
   id?: string
   name?: string
   effect?: string
@@ -442,14 +444,22 @@ async function runSkillsReset(options: { layer?: string; dryRun?: boolean; yes?:
 }
 
 // 加入白 / 黑名单
-async function runListEdit(kind: ScopeList, dirs: string[], options: { layer?: string; dryRun?: boolean; yes?: boolean }): Promise<void> {
+async function runListEdit(
+  kind: ScopeList,
+  dirs: string[],
+  options: { layer?: string; dryRun?: boolean; yes?: boolean; tree?: boolean },
+): Promise<void> {
   const layer = resolveLayer(options.layer)
   if (!layer) return
   if (dirs.length === 0) {
     fail("请指定目录；交互设置请运行 toolkit scope wizard")
     return
   }
-  await applyScopePlan(kind === "include" ? "作用域：加入白名单" : "作用域：加入黑名单", planAdd(readScopeState(layer), kind, dirs), options)
+  await applyScopePlan(
+    kind === "include" ? "作用域：加入白名单" : "作用域：加入黑名单",
+    planAdd(readScopeState(layer), kind, dirs, process.cwd(), options.tree),
+    options,
+  )
 }
 
 // 移除 / 互转
@@ -509,6 +519,8 @@ export function registerScopeCommands(program: Command): void {
     if (!isInteractive()) {
       const report = resolveScope()
       for (const warning of report.warnings) console.error(`⚠️ ${warning}`)
+      const treeHint = plainIncludeHint(report)
+      if (treeHint) console.error(`⚠️ ${treeHint}`)
       for (const text of formatStatus(report)) console.log(text)
       console.log(line.hint("非交互环境已输出状态摘要；交互向导请运行 toolkit scope wizard"))
       return
@@ -535,6 +547,8 @@ export function registerScopeCommands(program: Command): void {
         if (!assertJsonFormat(options.format)) return
         if (options.skills) {
           const base = resolveScope(options.at)
+          const treeHint = plainIncludeHint(base)
+          if (treeHint) console.error(`⚠️ ${treeHint}`)
           const names = options.skill ? [options.skill] : listInstalledSkillNames(options.at)
           const reports = names.map((name) => resolveScope(options.at, name))
           const warnings = new Set([...base.warnings, ...reports.flatMap((report) => report.warnings)])
@@ -577,6 +591,8 @@ export function registerScopeCommands(program: Command): void {
         const report = resolveScope(options.at, options.skill)
         for (const warning of report.warnings) console.error(`⚠️ ${warning}`)
         if (report.migrationHint) console.error(`⚠️ ${report.migrationHint}`)
+        const treeHint = plainIncludeHint(report)
+        if (treeHint) console.error(`⚠️ ${treeHint}`)
         if (options.format === "json") {
           const { decision } = report
           printJson(
@@ -644,6 +660,8 @@ export function registerScopeCommands(program: Command): void {
           return
         }
         for (const text of formatList(report)) console.log(text)
+        const treeHint = plainIncludeHint(report)
+        if (treeHint) console.log(line.hint(treeHint))
         const missing = items.filter((item) => !item.exists)
         if (missing.length > 0) console.log(line.hint(`  条目异常：${missing.map((item) => item.path).join("、")}（路径不存在）`))
       } catch (error) {
@@ -673,6 +691,7 @@ export function registerScopeCommands(program: Command): void {
     .option("--markers <markers...>", "目录或 git 根下须存在的标记文件")
     .option("--git-remotes <remotes...>", "git 远端的扁平文本 / glob")
     .option("--mode <mode>", "技能名单模式：全部生效（all）/ 仅名单内生效（allowlist）/ 排除名单（denylist）")
+    .option("--tree", "把 --paths 的裸目录扩为 <目录>/**，覆盖其下所有项目")
     .option("--profile <profiles...>", "引用技能档案（需已定义）")
     .option("--allow <patterns...>", "允许的技能名 / glob（仅名单内生效时参与）")
     .option("--deny <patterns...>", "排除技能名 / glob")
@@ -796,10 +815,11 @@ export function registerScopeCommands(program: Command): void {
   listCmd
     .command("add [dirs...]")
     .description("把目录加入白名单（需显式指定目录；交互设置请运行 toolkit scope）")
+    .option("--tree", "覆盖该目录及其下所有项目（写入 <目录>/**）")
     .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
-    .action(async (dirs: string[] = [], options: { layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {
+    .action(async (dirs: string[] = [], options: { layer?: string; dryRun?: boolean; yes?: boolean; tree?: boolean } = {}) => {
       await runInteractive(() => runListEdit("include", dirs, options))
     })
 

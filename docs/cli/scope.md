@@ -17,32 +17,34 @@ title: 作用域（scope）
 ## 常用命令
 
 ```bash
-toolkit scope                                  # 状态优先向导：看状态 / 加白黑名单 / 管条目 / 默认值 / 高级规则 / 技能矩阵
-toolkit scope wizard                           # 显式进入交互向导（非 TTY 按无交互退出码结束）
-toolkit scope status                           # 当前目录的判定与原因
-toolkit scope status --skill fxri-plan-review  # 按技能级规则判定单个技能
-toolkit scope status --skills                  # 列出包内与已安装外部技能在该目录的生效结论
-toolkit scope status --skills --at ~/work/repo # 以指定目录为判定起点（不改进程 cwd）
-toolkit scope status --format json             # 给 AI / 脚本消费
-toolkit scope list                             # 规则、来源与优先级
-toolkit scope policy list                      # 列出策略、来源层与当前命中结果
+toolkit scope                                   # 状态优先向导：看状态 / 加白黑名单 / 管条目 / 默认值 / 高级规则 / 技能矩阵
+toolkit scope wizard                            # 显式进入交互向导（非 TTY 按无交互退出码结束）
+toolkit scope status                            # 当前目录的判定与说明
+toolkit scope status --skill fxri-plan-review   # 按技能级规则判定单个技能
+toolkit scope status --skills                   # 列出包内与已安装外部技能在该目录的生效结论
+toolkit scope status --skills --at ~/work/repo  # 以指定目录为判定起点（不改进程 cwd）
+toolkit scope status --format json              # 给 AI / 脚本消费
+toolkit scope list                              # 名单、配置来源与判定目录
+toolkit scope policy list                       # 列出策略、来源层与当前命中结果
 toolkit scope policy add --paths ~/work --mode allowlist --allow fxri-plan-review # 新增策略
-toolkit scope policy remove --id policy-xxx    # 按稳定 id 移除
+toolkit scope policy add --paths ~/work --tree --mode allowlist --allow fxri-plan-review # 覆盖子目录
+toolkit scope policy remove --id policy-xxx     # 按稳定 id 移除
 toolkit scope policy reset --paths ~/work --dry-run # 按路径批量清除（预演）
-toolkit scope skills list                      # 技能档案与技能维度策略
+toolkit scope skills list                       # 技能档案与技能维度策略
 toolkit scope skills allow fxri-plan-review --paths ~/work # 只允许列出的技能
 toolkit scope skills deny fxri-code-encoding --paths ~/work # 排除列出的技能
 toolkit scope skills profile front --allow "fxri-*" # 写入技能档案
-toolkit scope list add ~/work                  # 加入白名单，默认切到「仅名单内生效」
-toolkit scope list exclude ~/work/legacy       # 加入黑名单，默认值不变
-toolkit scope list add ~/work --layer project  # 写入当前项目层（随仓库共享）
+toolkit scope list add ~/work                   # 加入白名单，默认切到「仅名单内生效」
+toolkit scope list add ~/work --tree            # 覆盖 ~/work 及其下所有项目
+toolkit scope list exclude ~/work/legacy        # 加入黑名单，默认值不变
+toolkit scope list add ~/work --layer project   # 写入当前项目层（随仓库共享）
 toolkit scope list remove ~/work --from include --to exclude # 白名单转黑名单
 toolkit scope list remove ~/work/legacy --from exclude # 从黑名单移除
-toolkit scope list default                     # 查看当前默认值
-toolkit scope list default off                 # 切换为「仅名单内生效」
-toolkit scope list reset                       # 清除限制（全部生效）
-toolkit skill mount ~/work --dry-run           # 批量项目面安装：先预览（由 scope mount 迁入）
-toolkit scope guard fxri-plan-task             # 内容闸门：按当前目录作用域输出技能正文（未激活按未激活退出码结束）
+toolkit scope list default                      # 查看名单外目录的处理
+toolkit scope list default off                  # 切换为「仅名单内生效」
+toolkit scope list reset                        # 清除限制（全部生效）
+toolkit skill mount ~/work --dry-run            # 批量项目面安装：先预览（由 scope mount 迁入）
+toolkit scope guard fxri-plan-task              # 内容闸门：按当前目录作用域输出技能正文（未激活按未激活退出码结束）
 ```
 
 名单的查看与增删改统一收进 `scope list` 组：裸 `scope list` 查看名单，
@@ -90,8 +92,9 @@ toolkit scope guard fxri-plan-task             # 内容闸门：按当前目录�
 - ESC 有约 500ms 判定延迟（readline 需先排除方向键序列），属正常现象
 - `scope list add` / `list exclude` / `list remove` 均需显式目录：无参只提示改用 `toolkit scope wizard`，不再隐式进入完整向导
 - `list add` 加入白名单并把默认值切到「仅名单内生效」；`list exclude` 只加黑名单、默认值不变；同路径在另一侧时写前预览「移入 / 转入」
+- `list add --tree` 与 `policy add --paths ... --tree` 把裸目录写成 `<目录>/**`，覆盖目录自身与其下所有项目；向导添加目录时会询问生效范围
 - `list remove --from include|exclude|both`（默认 `both`）指定来源侧，`--to include|exclude` 一步转入另一侧；带参与交互同口径
-- `list default on|off` 查看或切换默认值；`list reset` 清除限制（全部生效并清空两列表，保留标记 / git 远端 / 技能级规则）
+- `list default on|off` 查看或切换名单外目录的处理；`list reset` 清除限制（全部生效并清空两列表，保留标记 / git 远端 / 技能级规则）
 - 写前统一展示预览：TTY 下确认后落盘，`--yes` 跳过确认，`--dry-run` 只预览；非 TTY 带显式参数直接执行
 - 结果块统一输出写入文件、变更条目与当前默认值；无变化时只提示「没有变化，无需写入」
 - 相对路径按目标层项目根解析（全局层按当前目录）；`--layer global|project|local` 缺省全局

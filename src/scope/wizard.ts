@@ -236,7 +236,19 @@ async function addFlow(state: ScopeState, list: "include" | "exclude"): Promise<
     console.log(line.hint("未选择目录，已取消"))
     return
   }
-  await applyScopePlan(list === "include" ? "作用域：加入白名单" : "作用域：加入黑名单", planAdd(state, list, dirs, state.startDir))
+  const scope = await runMenu<string>({
+    message: "生效范围",
+    back: true,
+    choices: [
+      { name: "该目录及所有子目录（推荐）", value: "tree" },
+      { name: "仅该目录", value: "dir" },
+    ],
+  })
+  if (scope === "back" || scope === "exit") return
+  await applyScopePlan(
+    list === "include" ? "作用域：加入白名单" : "作用域：加入黑名单",
+    planAdd(state, list, dirs, state.startDir, scope === "tree"),
+  )
 }
 
 // 条目现场：路径是否存在、是否被同层其它规则覆盖

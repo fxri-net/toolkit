@@ -132,12 +132,12 @@ GitHub 拉不下来？国内网络走 [Gitee 镜像渠道](./faq#国内网络优
 默认全域生效：装了全局技能后，所有项目都会命中。需要收窄时用 `toolkit scope`：
 
 ```bash
-toolkit scope status           # 先看当前目录是否生效、命中的规则与来源
-toolkit scope                  # 交互菜单：设范围、管目录、切换配置层
-toolkit scope list add ~/work  # 只在这个目录（含子目录）生效（切到 allowlist 模式）
+toolkit scope status                  # 先看当前目录是否生效、命中的规则与来源
+toolkit scope                         # 交互菜单：设范围、管目录、切换配置层
+toolkit scope list add ~/work --tree  # 覆盖 ~/work 及其下所有项目（切到 allowlist 模式）
 toolkit scope policy add --paths ~/work --mode allowlist --allow fxri-plan-review # 按策略规则收口
 toolkit scope skills deny fxri-code-encoding --paths ~/work # 排除指定技能
-toolkit skill mount ~/work     # 在父目录下的项目里做项目面安装（技能物理落在仓库内）
+toolkit skill mount ~/work            # 在父目录下的项目里做项目面安装（技能物理落在仓库内）
 ```
 
 - 旧 `activation` 字段的判定顺序：排除规则 → 排除标记 → 启用标记 → git 远端 → 白名单；不配置即全域生效
