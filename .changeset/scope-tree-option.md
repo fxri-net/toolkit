@@ -1,6 +1,6 @@
 ---
-"@fxri/toolkit": minor
+"@fxri/toolkit": patch
 ---
 
-- 新增：`scope list add` 与 `scope policy add --paths` 支持 `--tree`，把目录扩为 `/**` 覆盖子目录
+- 修复：白名单条目默认不覆盖子目录，新增 `--tree` 显式覆盖
 - 修改：向导添加目录时询问生效范围；白名单裸路径在 status / list 给出提示
