@@ -133,7 +133,7 @@ describe("外部来源安装与卸载", () => {
     expect(lstatSync(dest).isSymbolicLink()).toBe(false)
     const state = readSkillsState()
     expect(state?.sources.ext?.temporary).toBe(true)
-    expect(state?.sources.ext?.targets[0]?.entries).toContainEqual({ name: "ext-alpha", version: "1.2.3", mode: "copy" })
+    expect(state?.sources.ext?.targets[0]?.entries).toContainEqual({ name: "ext-alpha", version: "1.2.3", mode: "copy", summary: "外部测试技能 ext-alpha" })
 
     const status = skillsStatus()
     expect(status.sources.find((source) => source.name === "ext")?.temporary).toBe(true)

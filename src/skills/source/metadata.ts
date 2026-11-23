@@ -174,6 +174,7 @@ export function listPackageSkills(): PackageSkill[] {
     out.push({
       name,
       dir,
+      description: readSkillDescription(dir),
       version: readSkillVersion(dir),
       tier: readSkillTier(dir),
       requires: readSkillRequires(dir),
@@ -296,7 +297,7 @@ function packageSkill(dir: string, name?: string, previousNames?: string[]): Pac
   return {
     name: resolved,
     dir,
-    description: readSkillFrontmatterValue(dir, "description"),
+    description: readSkillDescription(dir),
     version: readSkillVersion(dir),
     tier: readSkillTier(dir),
     requires: readSkillRequires(dir),

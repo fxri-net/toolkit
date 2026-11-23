@@ -70,6 +70,8 @@ import {
   buildSkillMatrix,
   printSkillMatrix,
   legacyShapeHints,
+  buildSkillList,
+  formatSkillLine,
   packageVersion,
   type InstallReport,
   type ProjectDirResult,
@@ -1950,6 +1952,43 @@ export function registerSkillsCommands(program: Command): void {
         }
       } catch (e) {
         console.error(`⚠️ 收敛技能产物失败：${(e as Error).message}`)
+        process.exitCode = 1
+      }
+    })
+
+  // 技能列表：已装技能的名称 / 简介 / 版本 / 形态 / 目标数（只读）
+  skillsCmd
+    .command("list")
+    .description("列出已安装技能（名称 / 简介 / 版本 / 形态 / 目标数）")
+    .option("--all", "包含包内未安装的技能")
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
+    .action((options: { all?: boolean; format?: string }) => {
+      try {
+        if (!assertJsonFormat(options.format)) return
+        const entries = buildSkillList({ all: Boolean(options.all) })
+        if (options.format === "json") {
+          printJson(jsonEnvelope({ command: "skill list", data: { all: Boolean(options.all), skills: entries } }))
+          return
+        }
+        console.log(options.all ? "技能列表（含未安装）：" : "技能列表（已安装）：")
+        if (entries.length === 0) {
+          console.log("  未安装任何技能，可运行 toolkit skill install")
+          return
+        }
+        const width = process.stdout.columns && process.stdout.columns > 60 ? process.stdout.columns : 120
+        for (const entry of entries) {
+          const line = formatSkillLine({
+            name: entry.name,
+            summary: entry.summary || "—",
+            version: entry.version || undefined,
+            form: entry.form,
+            targets: entry.installed ? entry.targets : undefined,
+            maxWidth: width,
+          })
+          console.log(`  ${line}${entry.installed ? "" : "（未安装）"}`)
+        }
+      } catch (e) {
+        console.error(`⚠️ 读取技能列表失败：${(e as Error).message}`)
         process.exitCode = 1
       }
     })

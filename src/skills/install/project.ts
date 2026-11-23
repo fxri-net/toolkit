@@ -8,6 +8,7 @@ import { projectStateFile, readProjectState, removeProjectStateFile, writeProjec
 import { readProjectSkillsConfig, readSkillsDeliveryConfig, writeProjectSkillsConfig } from "../config"
 import { gateRulesToDeliveryRules, resolveDelivery, type DeliveryDecision, type DeliveryMode } from "../delivery"
 import { derivePolicyDelivery, loadPolicyDeliveryContext } from "../policy-delivery"
+import { skillSummary } from "../summary"
 import { BUILTIN_SOURCE, SKILL_ENTRY, type GateRules, type ProjectDirResult, type ProjectInstallReport, type ProjectRemoveReport, type ProjectRemoveResult, type SkillStateEntry, type SkillStateSource, type SkillStateTarget, type SkillsMode } from "../types"
 import { applyGateShell, applyShell, applySourceCopy, collectSources, isConsistentShell, isConsistentSourceCopy, filterSkillItems, pruneEntries, recordAction, type ExternalSourceOption } from "./common"
 
@@ -142,7 +143,7 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
         const action = applySourceCopy(item.dir, join(sourceAbs, item.name), recorded, Boolean(options.force), Boolean(options.dryRun))
         recordAction(source, action, item.name)
         if (action !== "conflict" && !options.dryRun) {
-          sourceEntriesBySource.set(item.source, [...(sourceEntriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: "copy" }])
+          sourceEntriesBySource.set(item.source, [...(sourceEntriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: "copy", summary: skillSummary(item.description ?? "") }])
         }
       } catch (e) {
         source.failed.push({ name: item.name, reason: (e as Error).message })
@@ -180,7 +181,7 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
             recordAction(result, action, item.name)
             if (action !== "conflict") result.gates.push(item.name)
             if (action !== "conflict" && !options.dryRun) {
-              entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: "gate" }])
+              entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: "gate", summary: skillSummary(item.description ?? "") }])
             }
             continue
           }
@@ -188,7 +189,7 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
           const action = applyShell(join(root, dir, item.name, SKILL_ENTRY), expected, Boolean(options.force), Boolean(options.dryRun))
           recordAction(result, action, item.name)
           if (action !== "conflict" && !options.dryRun) {
-            entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: "shell" }])
+            entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: "shell", summary: skillSummary(item.description ?? "") }])
           }
         } catch (e) {
           result.failed.push({ name: item.name, reason: (e as Error).message })

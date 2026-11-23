@@ -50,6 +50,7 @@ export const COMMAND_REGISTRY: readonly CommandEntry[] = [
 
   { path: "skill", stage: "current" },
   { path: "skill install", stage: "current" },
+  { path: "skill list", stage: "current" },
   { path: "skill status", params: "[--path]", stage: "current" },
   { path: "skill uninstall", stage: "current" },
   { path: "skill plan", stage: "current", tier: "advanced" },

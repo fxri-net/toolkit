@@ -1,4 +1,4 @@
-// 技能安装与卸载（global）：自 install.ts 按面拆分，逻辑逐字未改
+﻿// 技能安装与卸载（global）：自 install.ts 按面拆分，逻辑逐字未改
 import { existsSync, lstatSync, mkdirSync, rmSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { getHomeDir } from "../../config"
@@ -10,6 +10,7 @@ import { readSkillsState, skillsStateFile, writeSkillsState } from "../state"
 import { readSkillsDeliveryConfig, readSkillsInstallConfig, writeSkillsDeliveryDefault, writeSkillsInstallConfig } from "../config"
 import { gateRulesToDeliveryRules, resolveDelivery, type DeliveryDecision, type DeliveryMode } from "../delivery"
 import { derivePolicyDelivery, loadPolicyDeliveryContext } from "../policy-delivery"
+import { skillSummary } from "../summary"
 import { SKILL_ENTRY, STATE_FORMAT, STATE_SCHEMA_VERSION, type InstallReport, type RemoveResult, type SkillStateEntry, type SkillStateSource, type SkillStateTarget, type SkillItem, type SkillsRemoveReport, type TargetInstallResult } from "../types"
 import { collectSources, filterSkillItems, canRemoveOrphanArtifact, pruneEntries, sourceSkillMap, type InstallOptions, type RemoveSkillsOptions } from "./common"
 
@@ -115,6 +116,13 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
         migrated: [],
       }
       const entriesBySource = new Map<string, SkillStateEntry[]>()
+      // 状态条目统一构造：附带简介摘要，供来源不可用时 list 兜底展示
+      const stateEntry = (entryItem: SkillItem, mode: SkillStateEntry["mode"]): SkillStateEntry => ({
+        name: entryItem.name,
+        version: entryItem.version,
+        mode,
+        summary: skillSummary(entryItem.description ?? ""),
+      })
       for (const item of items) {
         const decision = decisions.get(item.name)!
         // off：目标形态不安装产物；既有残留不在此处理，交由 --prune 按归属清理
@@ -134,7 +142,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
           if (ownGate && current === expected) {
             result.skipped.push(item.name)
             result.gates.push(item.name)
-            entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: "gate" }])
+            entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), stateEntry(item, "gate")])
             continue
           }
           // 实体目录既非本包闸门壳也未登记为本包产物：视为用户自装技能，未加 --force 不覆盖
@@ -158,7 +166,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
             if (kind === "absent") result.created.push(item.name)
             else result.updated.push(item.name)
             result.gates.push(item.name)
-            entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: "gate" }])
+            entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), stateEntry(item, "gate")])
           } catch (e) {
             result.failed.push({ name: item.name, reason: (e as Error).message })
           }
@@ -167,7 +175,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
         if (kind === "link-ok") {
           result.skipped.push(item.name)
           result.links.push(item.name)
-          entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: "link" }])
+          entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), stateEntry(item, "link")])
           continue
         }
         if (kind === "dir" && !options.force) {
@@ -179,7 +187,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
           if (recordedCopyHere && isSameDir(item.dir, dest)) {
             result.skipped.push(item.name)
             result.copies.push(item.name)
-            entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: "copy" }])
+            entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), stateEntry(item, "copy")])
             continue
           }
         }
@@ -206,7 +214,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
             result.copies.push(item.name)
             if (written.reason) result.degraded.push({ name: item.name, reason: written.reason })
           }
-          entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), { name: item.name, version: item.version, mode: written.mode }])
+          entriesBySource.set(item.source, [...(entriesBySource.get(item.source) ?? []), stateEntry(item, written.mode)])
         } catch (e) {
           result.failed.push({ name: item.name, reason: (e as Error).message })
         }

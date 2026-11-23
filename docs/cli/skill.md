@@ -35,29 +35,32 @@ toolkit skill install --force               # 覆盖同名非本包产物（默�
 toolkit skill install --dir <path>          # 额外目标目录（可多次；全局面兜底未收录 agent，项目面须在仓库内）
 toolkit skill install --source <name|path>  # 外部来源（已登记名 / 目录 / Git 地址；只写本次，可重复）
 toolkit skill install --source https://github.com/fxri-net/playbook#vX.Y.Z --save play # 远程永久来源
-toolkit skill uninstall --source play          # 只清理指定外部来源的登记与产物
-toolkit skill source                           # 列出外部来源、版本与生效的更新提示频率（内置源不在列表内）
+toolkit skill uninstall --source play        # 只清理指定外部来源的登记与产物
+toolkit skill source                         # 列出外部来源、版本与生效的更新提示频率（内置源不在列表内）
 toolkit skill source notify play --frequency daily # 设置单个来源的提示频率（--scope global|project）
-toolkit skill source refresh                   # 刷新全部外部来源缓存与版本（--dry-run 列出将刷新来源与当前版本，不联网）
-toolkit skill source remove play --prune       # 注销来源登记并清理其产物、状态与提示配置
-toolkit skill bump fxri-plan-task patch        # 递增技能版本（frontmatter 与正文首部两处同源改写）
-toolkit skill bump --all --dry-run             # 预演批量递增全部技能，只打印 from → to
-toolkit skill bump --all minor --yes           # 批量递增（非交互须 --yes）
+toolkit skill source refresh                 # 刷新全部外部来源缓存与版本（--dry-run 列出将刷新来源与当前版本，不联网）
+toolkit skill source remove play --prune     # 注销来源登记并清理其产物、状态与提示配置
+toolkit skill bump fxri-plan-task patch      # 递增技能版本（frontmatter 与正文首部两处同源改写）
+toolkit skill bump --all --dry-run           # 预演批量递增全部技能，只打印 from → to
+toolkit skill bump --all minor --yes         # 批量递增（非交互须 --yes）
 toolkit skill bump fxri-plan-review --set 2.0.0 # 直接设定版本（与递增类型互斥）
-toolkit skill bump --dir skills --all patch    # 外部仓：对指定技能目录批量递增
-toolkit skill lint                             # 校验本包 skills/（150 行 / 8000 字符告警，200 行 / 12000 字符报错）
-toolkit skill lint skills/ --base HEAD         # 技能内容相对基准有变更时，版本必须已递增
-toolkit skill status                           # 查看技能现场状态与包内技能真源版本（缺省按现场判定作用域）
-toolkit skill status --scope all               # 项目面与全局面都体检
-toolkit skill status --format json             # JSON 输出：scope、global / project 各自的现场报告
-toolkit skill status --explain fxri-plan-task  # 解释该技能的分发形态推导过程
-toolkit skill uninstall                        # 卸载本包安装的技能产物（缺省按现场判定作用域；目标目录清空后一并回收）
+toolkit skill bump --dir skills --all patch  # 外部仓：对指定技能目录批量递增
+toolkit skill lint                           # 校验本包 skills/（150 行 / 8000 字符告警，200 行 / 12000 字符报错）
+toolkit skill lint skills/ --base HEAD       # 技能内容相对基准有变更时，版本必须已递增
+toolkit skill status                         # 查看技能现场状态与包内技能真源版本（缺省按现场判定作用域）
+toolkit skill status --scope all             # 项目面与全局面都体检
+toolkit skill status --format json           # JSON 输出：scope、global / project 各自的现场报告
+toolkit skill status --explain fxri-plan-task # 解释该技能的分发形态推导过程
+toolkit skill uninstall                      # 卸载本包安装的技能产物（缺省按现场判定作用域；目标目录清空后一并回收）
 toolkit skill uninstall --skills fxri-code-encoding # 只卸载指定技能的选择与产物（逗号分隔）
-toolkit skill uninstall --scope all            # 项目面与全局面都卸载
-toolkit skill uninstall --dry-run              # 卸载预演（只预览将移除的条目）
-toolkit skill uninstall --format json          # JSON 输出：dryRun、scope 与 global / project 各自的卸载报告
-toolkit skill status --path                    # 输出包根路径（内含 skills/）
-toolkit skill status --path --format json      # JSON 输出：包根、技能源目录、技能清单
+toolkit skill uninstall --scope all          # 项目面与全局面都卸载
+toolkit skill uninstall --dry-run            # 卸载预演（只预览将移除的条目）
+toolkit skill uninstall --format json        # JSON 输出：dryRun、scope 与 global / project 各自的卸载报告
+toolkit skill status --path                  # 输出包根路径（内含 skills/）
+toolkit skill status --path --format json    # JSON 输出：包根、技能源目录、技能清单
+toolkit skill list                           # 已装技能的名称 / 简介 / 版本 / 形态 / 目标数
+toolkit skill list --all                     # 含包内未安装技能（行末标「未安装」）
+toolkit skill list --format json             # JSON 输出：逐技能条目
 ```
 
 裸 `toolkit skill` 打印本域帮助（列出全部子命令）。
@@ -140,6 +143,14 @@ toolkit skill status --path --format json      # JSON 输出：包根、技能�
   - `sources`：来源名 / 版本 / 是否临时 / 生效频率 / 频率来源
   - 两面报告另含 `skillsOutdated`（内置技能落后清单）
 
+### list
+
+- 默认只列已装技能，每行「名称 · 简介 · 版本 · 形态 · 目标数」；`--all` 补上包内未安装技能并在行末标「（未安装）」
+- 简介取 `SKILL.md` 的 `description` 首句并按终端宽度截断；来源不可解析时用状态文件登记的 `summary` 兜底，仍缺失显示 `—`
+- 形态按当前配置推导（与 `install` 同口径：全文安装 / 入口壳 / 不安装）；目标数为已写入的目标目录数
+- 只读命令，不改配置与产物；目录级形态排查仍走 `skill status --matrix`
+- `--format json` 的 `data` 为 `all` 与 `skills`（逐条 `name` / `summary` / `version` / `form` / `targets` / `installed`）
+
 ### uninstall
 
 - **全局面**先清选择 / 来源配置、再清产物、最后重写状态：只清理本包登记产物（链接摘除、副本一致才删），其余交人工确认
@@ -201,6 +212,7 @@ toolkit skill status --path --format json      # JSON 输出：包根、技能�
 | `install` / `status` | `mode`（当前安装模式）、`selection`（技能选择集）、`targetSelection`（目标选择集） |
 | `status` | 两面报告另含 `skillVersions`（各技能真源版本）与 `skillVersionsFromState` |
 | `status` | `linkage` 为矩阵联动结论，全局面为 `null`，与文本提示同口径 |
+| `list` | `all`（是否含未安装）、`skills`（逐条 `name` / `summary` / `version` / `form` / `targets` / `installed`） |
 
 ## 技能选择
 

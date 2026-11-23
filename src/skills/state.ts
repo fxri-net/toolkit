@@ -136,7 +136,8 @@ function normalizeSources(raw: Record<string, unknown>): Record<string, SkillSta
       for (const entry of Array.isArray(target.entries) ? target.entries : []) {
         if (!isPlainObject(entry) || typeof entry.name !== "string") continue
         const mode = entry.mode === "copy" || entry.mode === "shell" || entry.mode === "gate" ? entry.mode : "link"
-        entries.push({ name: entry.name, version: typeof entry.version === "string" ? entry.version : "", mode })
+        const summary = typeof entry.summary === "string" && entry.summary.trim() !== "" ? entry.summary : undefined
+        entries.push({ name: entry.name, version: typeof entry.version === "string" ? entry.version : "", mode, ...(summary ? { summary } : {}) })
       }
       targets.push({
         id: typeof target.id === "string" ? target.id : target.dir,

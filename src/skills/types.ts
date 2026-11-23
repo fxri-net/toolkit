@@ -373,6 +373,8 @@ export interface SkillStateEntry {
   name: string
   version: string
   mode: StateMode
+  // 安装时的简介摘要：来源不可用时 list 仍能展示；旧账缺失按未记录处理
+  summary?: string
 }
 
 export interface SkillStateTarget {
