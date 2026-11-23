@@ -67,18 +67,43 @@ beforeEach(() => {
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   process.env.CI = "1"
+  process.env.FX_TOOLKIT_NO_UPDATE_CHECK = "1"
   vi.spyOn(console, "warn").mockImplementation(() => {})
 })
 
 afterEach(() => {
   vi.restoreAllMocks()
   delete process.env.CI
+  delete process.env.FX_TOOLKIT_NO_UPDATE_CHECK
   setHomeDirForTest(undefined)
   resetToolkitConfigCache()
   resetSkillsRootCache()
   resetSkillGateWarnings()
   rmSync(home, { recursive: true, force: true })
 })
+
+// 跑一次 CLI：重置模块注册表并注入 home 与 argv，收集 stdout 行
+async function runCli(args: string[]): Promise<string[]> {
+  vi.resetModules()
+  const config = await import("../config")
+  config.setHomeDirForTest(home)
+  config.resetToolkitConfigCache()
+  const log: string[] = []
+  vi.spyOn(console, "log").mockImplementation((...items: unknown[]) => {
+    log.push(items.join(" "))
+  })
+  vi.spyOn(process.stdout, "write").mockImplementation((() => true) as unknown as typeof process.stdout.write)
+  const originalArgv = process.argv
+  process.argv = ["node", "toolkit", ...args]
+  try {
+    const cli = await import("../cli")
+    await cli.cliReady
+  } finally {
+    process.argv = originalArgv
+    process.exitCode = 0
+  }
+  return log
+}
 
 describe("skill list", () => {
   it("已装技能带简介、版本、形态与目标数", () => {
@@ -128,5 +153,14 @@ describe("skill list", () => {
     const old = entries.find((item) => item.name === "legacy-old")
     expect(old!.summary).toBe("")
     expect(old!.installed).toBe(true)
+  })
+
+  it("未安装条目形态位显示「未安装」，不并列分发形态", async () => {
+    const log = await runCli(["skill", "list", "--all"])
+    const line = log.find((item) => item.includes("fxri-plan-task"))
+    expect(line).toBeDefined()
+    expect(line).toContain("未安装")
+    expect(line).not.toContain("全文安装（未安装）")
+    expect(line).not.toContain("个目标")
   })
 })

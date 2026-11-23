@@ -59,7 +59,7 @@ toolkit skill uninstall --format json        # JSON 输出：dryRun、scope 与 
 toolkit skill status --path                  # 输出包根路径（内含 skills/）
 toolkit skill status --path --format json    # JSON 输出：包根、技能源目录、技能清单
 toolkit skill list                           # 已装技能的名称 / 简介 / 版本 / 形态 / 目标数
-toolkit skill list --all                     # 含包内未安装技能（行末标「未安装」）
+toolkit skill list --all                     # 含包内未安装技能（形态位显示「未安装」）
 toolkit skill list --format json             # JSON 输出：逐技能条目
 ```
 
@@ -145,9 +145,9 @@ toolkit skill list --format json             # JSON 输出：逐技能条目
 
 ### list
 
-- 默认只列已装技能，每行「名称 · 简介 · 版本 · 形态 · 目标数」；`--all` 补上包内未安装技能并在行末标「（未安装）」
+- 默认只列已装技能，每行「名称 · 简介 · 版本 · 形态 · 目标数」；`--all` 补上包内未安装技能，其形态位显示「未安装」
 - 简介取 `SKILL.md` 的 `description` 首句并按终端宽度截断；来源不可解析时用状态文件登记的 `summary` 兜底，仍缺失显示 `—`
-- 形态按当前配置推导（与 `install` 同口径：全文安装 / 入口壳 / 不安装）；目标数为已写入的目标目录数
+- 已装条目的形态按当前配置推导（与 `install` 同口径：全文安装 / 入口壳 / 不安装）；目标数为已写入的目标目录数
 - 只读命令，不改配置与产物；目录级形态排查仍走 `skill status --matrix`
 - `--format json` 的 `data` 为 `all` 与 `skills`（逐条 `name` / `summary` / `version` / `form` / `targets` / `installed`）
 

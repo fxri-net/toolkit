@@ -1981,11 +1981,12 @@ export function registerSkillsCommands(program: Command): void {
             name: entry.name,
             summary: entry.summary || "—",
             version: entry.version || undefined,
-            form: entry.form,
+            // 未安装只标状态，不并列分发形态，避免「全文安装（未安装）」语义冲突
+            form: entry.installed ? entry.form : "未安装",
             targets: entry.installed ? entry.targets : undefined,
             maxWidth: width,
           })
-          console.log(`  ${line}${entry.installed ? "" : "（未安装）"}`)
+          console.log(`  ${line}`)
         }
       } catch (e) {
         console.error(`⚠️ 读取技能列表失败：${(e as Error).message}`)
