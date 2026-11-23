@@ -103,7 +103,7 @@ export function registerConventionsCommands(program: Command): void {
   // 升级：纯机械结构升级，先判后写；形态异常或未初始化时拒绝执行并给非 0 退出码（异常态不写任何文件）
   conventionsCmd
     .command("upgrade")
-    .description("把 v1 / v2 规范载体升级为 v3（v2：删「状态」「确立来源任务」两列、退休条目迁入 retired.md 并删分册小节；v1 链式升级；幂等，先判后写）")
+    .description("把 v1 / v2 规范载体升级为 v3（幂等，先判后写；异常态不写文件）")
     .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 task.dir > 默认 .tasks）")
     .option("--dry-run", "预演（只预览将要执行的动作，不写文件）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
@@ -122,7 +122,7 @@ export function registerConventionsCommands(program: Command): void {
   // 归一：表格压回紧凑形态，并把索引表单元格收敛到规范写法（只做可确定项，语义列只报不改；幂等，跳过代码块，先判后写）
   conventionsCmd
     .command("format")
-    .description("归一表格与索引表单元格形态（紧凑形态 + 单一事实源链接化、归属裸值、规则去引号；当前语义只报不改；幂等、跳过 fenced code block，先报后写）")
+    .description("归一表格与索引单元格形态（幂等，跳过代码块；语义列只报不改）")
     .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 task.dir > 默认 .tasks）")
     .option("--dry-run", "预演（只预览将要归一的行，不写文件）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")

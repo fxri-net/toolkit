@@ -755,8 +755,7 @@ Commands:
   get [options] <key>          读取单个配置键（--explain 展示类型、可写层与三层覆盖链）
   set [options] <key> <value>  写入单个配置键（默认落该键的默认层；非交互环境须加 --yes）
   unset [options] <key>        删除单个配置键（默认删该键的默认层；非交互环境须加 --yes）
-  status [options]             配置分层只读体检：三层命中 / 来源层 / 环境变量层（只读、退出码恒 0；无 --dir，可用
-                               --cwd 指定查找起点）
+  status [options]             配置分层只读体检：三层命中、来源层与环境变量层（只读，退出码恒 0）
 
 --- stderr ---
 "
@@ -857,10 +856,8 @@ Options:
   -h, --help         显示帮助
 
 Commands:
-  upgrade [options]  把 v1 / v2 规范载体升级为 v3（v2：删「状态」「确立来源任务」两列、退休条目迁入 retired.md
-                     并删分册小节；v1 链式升级；幂等，先判后写）
-  format [options]   归一表格与索引表单元格形态（紧凑形态 + 单一事实源链接化、归属裸值、规则去引号；当前语义只报不改；幂等、跳过
-                     fenced code block，先报后写）
+  upgrade [options]  把 v1 / v2 规范载体升级为 v3（幂等，先判后写；异常态不写文件）
+  format [options]   归一表格与索引单元格形态（幂等，跳过代码块；语义列只报不改）
   status [options]   规范载体只读体检：形态 / 索引 / 入口层三块（只报不改，体检不阻断、退出码恒 0；仅 --format
                      传非法值时按参数错误报错退出）
 
@@ -2243,8 +2240,7 @@ Commands:
   get [options] <key>          读取单个配置键（--explain 展示类型、可写层与三层覆盖链）
   set [options] <key> <value>  写入单个配置键（默认落该键的默认层；非交互环境须加 --yes）
   unset [options] <key>        删除单个配置键（默认删该键的默认层；非交互环境须加 --yes）
-  status [options]             配置分层只读体检：三层命中 / 来源层 / 环境变量层（只读、退出码恒 0；无 --dir，可用
-                               --cwd 指定查找起点）
+  status [options]             配置分层只读体检：三层命中、来源层与环境变量层（只读，退出码恒 0）
 
 --- stderr ---
 "
@@ -2255,7 +2251,7 @@ exports[`帮助与版本口径 > conventions format 帮助 1`] = `
 --- stdout ---
 Usage: toolkit convention format [options]
 
-归一表格与索引表单元格形态（紧凑形态 + 单一事实源链接化、归属裸值、规则去引号；当前语义只报不改；幂等、跳过 fenced code block，先报后写）
+归一表格与索引单元格形态（幂等，跳过代码块；语义列只报不改）
 
 Options:
   --dir <path>       任务目录（优先级：CLI 参数 > 配置 task.dir > 默认 .tasks）
@@ -2278,10 +2274,8 @@ Options:
   -h, --help         显示帮助
 
 Commands:
-  upgrade [options]  把 v1 / v2 规范载体升级为 v3（v2：删「状态」「确立来源任务」两列、退休条目迁入 retired.md
-                     并删分册小节；v1 链式升级；幂等，先判后写）
-  format [options]   归一表格与索引表单元格形态（紧凑形态 + 单一事实源链接化、归属裸值、规则去引号；当前语义只报不改；幂等、跳过
-                     fenced code block，先报后写）
+  upgrade [options]  把 v1 / v2 规范载体升级为 v3（幂等，先判后写；异常态不写文件）
+  format [options]   归一表格与索引单元格形态（幂等，跳过代码块；语义列只报不改）
   status [options]   规范载体只读体检：形态 / 索引 / 入口层三块（只报不改，体检不阻断、退出码恒 0；仅 --format
                      传非法值时按参数错误报错退出）
 
@@ -2507,8 +2501,9 @@ Options:
   --force               覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
   --prune               清理未选择或 off 形态残留、且内容与本包真源一致的旧产物（只清本包登记条目）
   --mode <mode>         技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）
-  --gate                开启内容闸门：本次把技能写入口壳（声明退出的除外），成功后写 skillDelivery.default
-  --embed               回退内容闸门：把入口壳改回全文，成功后写 skillDelivery.default
+  --gate                开启内容闸门：本次把技能写入口壳（声明退出者除外），成功后把 skillDelivery.default 设为
+                        gated
+  --embed               回退内容闸门：把入口壳改回全文，成功后把 skillDelivery.default 设为 full
   --no-skills           本次不安装任何技能，不改模式与已保存选择
   --format <format>     输出格式（json，输出到 stdout）
   -h, --help            显示帮助

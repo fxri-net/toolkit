@@ -424,7 +424,7 @@ export function registerConfigCommands(program: Command): void {
   // 状态：只读体检，只报不改（不给 --fix）；体检本身不阻断、退出码恒 0，仅 --format 非法与 --cwd 非法时按参数错误报错退出
   configCmd
     .command("status")
-    .description("配置分层只读体检：三层命中 / 来源层 / 环境变量层（只读、退出码恒 0；无 --dir，可用 --cwd 指定查找起点）")
+    .description("配置分层只读体检：三层命中、来源层与环境变量层（只读，退出码恒 0）")
     .option("--cwd <path>", "向上查找的起始目录（缺省当前工作目录）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action((options: { cwd?: string; format?: string }) => {

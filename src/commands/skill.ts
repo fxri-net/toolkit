@@ -896,8 +896,8 @@ export function registerSkillsCommands(program: Command): void {
     .option("--force", "覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）")
     .option("--prune", "清理未选择或 off 形态残留、且内容与本包真源一致的旧产物（只清本包登记条目）")
     .option("--mode <mode>", "技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）")
-    .option("--gate", "开启内容闸门：本次把技能写入口壳（声明退出的除外），成功后写 skillDelivery.default")
-    .option("--embed", "回退内容闸门：把入口壳改回全文，成功后写 skillDelivery.default")
+    .option("--gate", "开启内容闸门：本次把技能写入口壳（声明退出者除外），成功后把 skillDelivery.default 设为 gated")
+    .option("--embed", "回退内容闸门：把入口壳改回全文，成功后把 skillDelivery.default 设为 full")
     .option("--no-skills", "本次不安装任何技能，不改模式与已保存选择")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .addHelpText(
