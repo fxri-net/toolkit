@@ -1208,7 +1208,7 @@ exports[`各域行为与错误路径 > scope list exclude 预演 1`] = `
 
 作用域：加入黑名单
   写入：<SANDBOX>/home/.toolkitrc.json
-  默认：全部生效
+  名单模式：全部生效
   新增：[黑] <SANDBOX>/workspace/work
 [预演] 未写入任何文件
 --- stderr ---
@@ -1221,7 +1221,7 @@ exports[`各域行为与错误路径 > scope list remove 互转预演 1`] = `
 
 作用域：移除 / 互转
   写入：<SANDBOX>/home/.toolkitrc.json
-  默认：全部生效
+  名单模式：全部生效
   转入：[黑] <SANDBOX>/workspace/work
 [预演] 未写入任何文件
 --- stderr ---

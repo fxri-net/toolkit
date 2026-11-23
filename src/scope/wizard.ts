@@ -59,7 +59,7 @@ export function buildLayerChoices(startDir = process.cwd()): Array<{ name: strin
 
 // 选择规则归属：项目层 / 本地层在当前目录无法定位项目根时置灰并说明原因
 async function pickLayer(current?: ConfigLayer): Promise<ConfigLayer | null> {
-  return askSelect({ message: "规则作用于哪一层", choices: buildLayerChoices(), default: current })
+  return askSelect({ message: "把规则写进哪一层配置", choices: buildLayerChoices(), default: current })
 }
 
 // 空列表显示「未配置」
@@ -84,9 +84,13 @@ function skillSummary(value: unknown): string {
 function printStateHeader(state: ScopeState): void {
   console.log("")
   console.log(`作用域 · ${LAYER_LABEL[state.layer]}`)
-  console.log(`配置：${displayPath(state.target.file)}`)
+  console.log(`配置来源：${displayPath(state.target.file)}`)
   console.log(`名单模式：${modeLabel(state.mode)}　白名单 ${state.include.length}　黑名单 ${state.exclude.length}`)
-  console.log(line.hint("内容闸门用 toolkit config set skillDelivery.default gated|full 与 skills install --gate / --embed；批量挂载用 toolkit skill mount"))
+  console.log(
+    line.hint(
+      "内容闸门：toolkit config set skillDelivery.default gated（入口壳）/ full（全文）；单次用 toolkit skill install --gate / --embed；批量挂载用 toolkit skill mount",
+    ),
+  )
 }
 
 // 规则清单 / 高级规则详情
@@ -95,8 +99,8 @@ function printStateDetails(state: ScopeState, advanced = false): void {
   const markers = activation.markers && typeof activation.markers === "object" && !Array.isArray(activation.markers)
     ? (activation.markers as Record<string, unknown>)
     : {}
-  console.log(`配置：${displayPath(state.target.file)}`)
-  console.log(`模式：${state.mode}（${modeLabel(state.mode)}）`)
+  console.log(`配置来源：${displayPath(state.target.file)}`)
+  console.log(`名单模式：${modeLabel(state.mode)}`)
   console.log(`白名单：${displayList(state.include)}`)
   console.log(`黑名单：${displayList(state.exclude)}`)
   console.log(`启用标记：${displayList(stringList(markers.include))}`)
@@ -227,7 +231,7 @@ async function pickManual(): Promise<string[] | null> {
 // 加入白 / 黑名单：先选目标侧，再选来源
 async function addFlow(state: ScopeState, list: "include" | "exclude"): Promise<void> {
   const source = await runMenu<string>({
-    message: list === "include" ? "白名单目录来源" : "黑名单目录来源",
+    message: list === "include" ? "从哪里选要加入白名单的目录" : "从哪里选要加入黑名单的目录",
     back: true,
     choices: [
       { name: "扫描项目选择", value: "scan" },
@@ -299,7 +303,7 @@ async function manageFlow(state: ScopeState): Promise<void> {
   })
   if (picked === null || picked.length === 0) return
   const action = await runMenu<string>({
-    message: "处理方式",
+    message: "对选中的条目做什么",
     back: true,
     choices: [
       { name: "移出名单", value: "remove" },
@@ -314,7 +318,7 @@ async function manageFlow(state: ScopeState): Promise<void> {
 // 切换默认值
 async function defaultFlow(state: ScopeState): Promise<void> {
   const choice = await runMenu<string>({
-    message: `默认值（当前：${modeLabel(state.mode)}）`,
+    message: `名单外目录的处理（当前：${modeLabel(state.mode)}）`,
     back: true,
     choices: [
       { name: "全部生效", value: "on" },
@@ -408,7 +412,7 @@ function describeMatrixSkills(mode: "allowlist" | "denylist", profiles: string[]
 // 矩阵作用范围：当前项目 / 手动输入项目与子路径 / 扫描选择
 async function pickMatrixWhen(state: ScopeState): Promise<ScopeCondition | null> {
   const source = await runMenu<string>({
-    message: "矩阵作用范围",
+    message: "这条技能规则作用于哪些目录",
     back: true,
     choices: [
       { name: "当前项目", value: "cwd" },
@@ -458,7 +462,7 @@ async function skillMatrixFlow(state: ScopeState): Promise<void> {
     }
     if (!mode) {
       const value = await runMenu<string>({
-        message: "矩阵模式",
+        message: "技能怎么放行",
         back: true,
         choices: [
           { name: "只允许列出的技能", value: "allowlist" },
@@ -497,7 +501,7 @@ async function skillMatrixFlow(state: ScopeState): Promise<void> {
         return
       }
       const picked = await askCheckbox({
-        message: "选择技能 / 档案（空格切换，回车确认）",
+        message: "选择技能或技能档案（空格切换，回车确认）",
         choices,
         pageSize: LIST_PAGE_SIZE,
       })
@@ -517,7 +521,7 @@ async function skillMatrixFlow(state: ScopeState): Promise<void> {
       }
     }
 
-    const markers = await askInput({ message: "启用标记（逗号分隔，留空跳过）", default: "" })
+    const markers = await askInput({ message: "启用标记文件名（逗号分隔，留空跳过）", default: "" })
     if (markers === null) {
       selection = null
       continue
@@ -586,17 +590,17 @@ export async function runScopeWizard(): Promise<void> {
     }
     choices.push(
       { name: "查看状态", value: "status" },
-      { name: "查看规则清单", value: "list" },
+      { name: "查看名单与策略", value: "list" },
       { name: "添加白名单…", value: "add-include" },
       { name: "添加黑名单…", value: "add-exclude" },
       { name: "管理条目（移除 / 互转）…", value: "manage" },
-      { name: `切换默认值（当前：${modeLabel(state.mode)}）…`, value: "default" },
+      { name: `修改名单外目录的处理（当前：${modeLabel(state.mode)}）…`, value: "default" },
       { name: "清除限制", value: "reset" },
       { name: "高级规则（标记 / git 远端 / 技能级）", value: "advanced" },
       { name: "技能矩阵（按技能维度限制）…", value: "matrix" },
       { name: "切换配置层…", value: "layer" },
     )
-    const action = await runMenu({ message: "要做什么", choices })
+    const action = await runMenu({ message: "下一步做什么", choices })
     if (action === "exit") return
     if (action === "status") printScopeStatus()
     else if (action === "list") printStateDetails(state)

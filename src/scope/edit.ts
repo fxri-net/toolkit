@@ -232,7 +232,7 @@ export function planDefault(state: ScopeState, on: boolean): ScopeEditPlan {
     mode: on ? "all" : "allowlist",
     include: current.include,
     exclude: current.exclude,
-    changes: [`默认：${on ? "全部生效" : "仅名单内生效"}`],
+    changes: [`名单模式：${on ? "全部生效" : "仅名单内生效"}`],
     warnings: [],
   }))
 }
@@ -251,7 +251,7 @@ export function planReset(state: ScopeState): ScopeEditPlan {
 // 预览文案：写入文件 + 默认值 + 警告 + 变更
 export function describePlan(plan: ScopeEditPlan): string[] {
   if (!plan.changed) return ["没有变化，无需写入"]
-  return [`写入：${plan.target.file}`, `默认：${modeLabel(plan.nextMode)}`, ...plan.warnings, ...plan.changes]
+  return [`写入：${plan.target.file}`, `名单模式：${modeLabel(plan.nextMode)}`, ...plan.warnings, ...plan.changes]
 }
 
 // 落盘：只改 mode / include / exclude，保留 markers / gitRemotes / skills
