@@ -22,7 +22,7 @@ describe("技能简介摘要", () => {
 
 describe("技能行格式", () => {
   it("选择项把简介跟在名称后，超宽时收缩简介且不换行", () => {
-    const line = formatSkillChoice("fxri-plan-task", "方案落盘：任务分解与归档", 40)
+    const line = formatSkillChoice("fxri-plan-task", "方案落盘：任务分解与归档", { columns: 40 })
     expect(line.startsWith("fxri-plan-task  ")).toBe(true)
     expect(line).not.toContain("\n")
     expect(displayWidth(line)).toBeLessThanOrEqual(40)

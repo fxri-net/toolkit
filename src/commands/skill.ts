@@ -71,6 +71,7 @@ import {
   printSkillMatrix,
   legacyShapeHints,
   buildSkillList,
+  skillDescriptionMap,
   formatSkillLine,
   packageVersion,
   type InstallReport,
@@ -545,16 +546,17 @@ function registeredSkillCount(runGlobal: boolean, runProject: boolean): number {
 // 卸载候选：按面与类型分组，value 前缀区分，避免跨面同名混淆
 function collectUninstallCandidates(runGlobal: boolean, runProject: boolean): UninstallChoice[] {
   const out: UninstallChoice[] = []
+  const descriptions = skillDescriptionMap()
   const pushRegistered = (state: ReturnType<typeof readSkillsState>, prefix: string, group: string): void => {
     const names = new Set<string>()
     for (const source of Object.values(state?.sources ?? {})) {
       for (const target of source.targets) for (const entry of target.entries) names.add(entry.name)
     }
-    for (const name of [...names].sort()) out.push({ value: `${prefix}${name}`, group, label: name })
+    for (const name of [...names].sort()) out.push({ value: `${prefix}${name}`, group, label: name, description: descriptions.get(name) })
   }
   if (runGlobal) {
     pushRegistered(readSkillsState(), "g:", "全局")
-    for (const name of staleArtifactNames().sort()) out.push({ value: `s:${name}`, group: "疑似残留", label: name })
+    for (const name of staleArtifactNames().sort()) out.push({ value: `s:${name}`, group: "疑似残留", label: name, description: descriptions.get(name) })
   }
   if (runProject) pushRegistered(readProjectState(resolveProjectTargets().root), "p:", "项目")
   return out

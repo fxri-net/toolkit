@@ -1,12 +1,10 @@
 // 技能行格式：名称 + 简介的统一拼装，供选择列表与 list / status 复用
+import { formatChoiceLine } from "../prompt-line"
 import { displayWidth, skillSummary } from "./summary"
 
-// 技能选择项文案：名称后跟简介，按可用宽度截断，避免在终端里换行
-export function formatSkillChoice(name: string, description: string, maxWidth = 0): string {
-  const limit = maxWidth > 0 ? maxWidth : 100
-  const budget = limit - displayWidth(name) - 2
-  const summary = skillSummary(description, Math.max(12, budget))
-  return summary ? `${name}  ${summary}` : name
+// 技能选择项文案：名称后跟单行暗色简介，预算按终端列数与前后缀占用计算
+export function formatSkillChoice(name: string, description: string, options: { reserved?: number; columns?: number } = {}): string {
+  return formatChoiceLine({ name, description, ...options })
 }
 
 // 列表行：名称 · 简介 · 版本 · 形态（缺省字段自动省略；目标目录数只走 JSON，不进文本行）

@@ -27,7 +27,18 @@ vi.mock("node:child_process", async (importOriginal) => {
 })
 
 // 交互确认直接返回 true、多选默认空选：只模拟按键结果，不开真实终端
-vi.mock("@inquirer/prompts", () => ({ confirm: vi.fn(async () => true), checkbox: vi.fn(async () => [] as string[]) }))
+vi.mock("@inquirer/prompts", () => ({
+  confirm: vi.fn(async () => true),
+  checkbox: vi.fn(async () => [] as string[]),
+  // 分组多选会构造分隔行：补一个与 inquirer 同形的 Separator
+  Separator: class Separator {
+    type = "separator"
+    constructor(public separator: string) {}
+    static isSeparator(item: unknown): boolean {
+      return Boolean(item && (item as { type?: string }).type === "separator")
+    }
+  },
+}))
 
 // 沙箱内固定路径
 const homeDir = join(sandbox, "home")

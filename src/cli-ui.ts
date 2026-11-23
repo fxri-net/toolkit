@@ -57,6 +57,17 @@ export async function askSelect<T extends string>(options: {
   return "back" in answer ? null : answer.value
 }
 
+// 答案行折叠：多选过多时只列前几项，避免提交后的答案铺满屏幕
+export const ANSWER_COLLAPSE_LIMIT = 6
+export const ANSWER_COLLAPSE_SHOW = 5
+
+// 答案摘要：优先取 short（不含辅助说明），超过上限折叠为「前 N 个 等 M 项」
+export function renderSelectedChoices(selected: ReadonlyArray<{ short?: string; name: string }>): string {
+  const names = selected.map((choice) => choice.short ?? choice.name)
+  if (names.length <= ANSWER_COLLAPSE_LIMIT) return names.join(", ")
+  return `${names.slice(0, ANSWER_COLLAPSE_SHOW).join(", ")} 等 ${names.length} 项`
+}
+
 // 多选：ESC 返回 null，其余返回选中值（允许空选）；choices 可混入 Separator 做分组标题
 export async function askCheckbox<T extends string>(options: {
   message: string
@@ -70,6 +81,7 @@ export async function askCheckbox<T extends string>(options: {
       choices: options.choices,
       pageSize: options.pageSize,
       required: false,
+      theme: { style: { renderSelectedChoices } },
     }),
   )
   return "back" in answer ? null : answer.value

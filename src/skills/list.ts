@@ -58,11 +58,24 @@ function candidateSkills(): Map<string, PackageSkill> {
   return out
 }
 
+// 技能简介：真源 description 优先，状态登记 summary 兜底；list 与卸载列表共用
+export function skillDescriptionMap(): Map<string, string> {
+  const out = new Map<string, string>()
+  for (const [name, skill] of candidateSkills()) {
+    if (skill.description) out.set(name, skillSummary(skill.description))
+  }
+  for (const [name, entry] of stateEntries()) {
+    if (!out.has(name) && entry.summary) out.set(name, entry.summary)
+  }
+  return out
+}
+
 // 列表入口：默认只列已装；all 为真时并上包内未装技能
 export function buildSkillList(options: { all?: boolean } = {}): SkillListEntry[] {
   const status = skillsStatus()
   const packages = candidateSkills()
   const registered = stateEntries()
+  const descriptions = skillDescriptionMap()
   const installed = new Map<string, { targets: number; version: string }>()
   for (const target of status.targets) {
     for (const item of target.items) {
@@ -81,11 +94,10 @@ export function buildSkillList(options: { all?: boolean } = {}): SkillListEntry[
   return names.map((name) => {
     const pkg = packages.get(name)
     const recorded = registered.get(name)
-    const summary = (pkg?.description ? skillSummary(pkg.description) : "") || recorded?.summary || ""
     const form = resolveDelivery({ name, config, policy: derivePolicyDelivery(name, policyContext) }).mode
     return {
       name,
-      summary,
+      summary: descriptions.get(name) ?? "",
       version: pkg?.version || installed.get(name)?.version || recorded?.version || "",
       form: deliveryModeLabel(form),
       targets: installed.get(name)?.targets ?? 0,

@@ -4,6 +4,8 @@ import type { PackageSkill, SkillsMode, SkillTarget } from "./types"
 import { BUILTIN_SOURCE, CANONICAL_LABEL } from "./types"
 import { LIST_PAGE_SIZE, loadPrompts } from "../prompts"
 import { askCheckbox, askConfirm } from "../cli-ui"
+import { formatChoiceLine, terminalColumns } from "../prompt-line"
+import { displayWidth } from "../text-line"
 import { formatSkillChoice } from "./format"
 
 // 交互层技能条目：来源名由收集层（SkillItem）带入，纯包内调用可省略
@@ -250,13 +252,32 @@ export interface UninstallChoice {
   value: string
   group: string
   label: string
+  // 简介：行内暗色单行展示，缺省时只显示名称
+  description?: string
 }
 
-// 卸载多选：默认全不选，空格勾选、回车确认；返回 null 表示 ESC 取消，空数组表示未选择
+// 卸载多选：按面分组，行内名称 + 暗色单行简介；答案行用「面｜名称」保留归属
 export async function promptUninstallSelection(choices: UninstallChoice[]): Promise<string[] | null> {
+  const { Separator } = await loadPrompts()
+  const columns = terminalColumns()
+  const groups = new Map<string, UninstallChoice[]>()
+  for (const choice of choices) {
+    const list = groups.get(choice.group)
+    if (list) list.push(choice)
+    else groups.set(choice.group, [choice])
+  }
+  const rows = [...groups].flatMap(([title, items]) => {
+    const mapped = items.map((item) => ({
+      value: item.value,
+      // 3 为光标 + 勾选符 + 空格，2 为名称与简介之间的间隔
+      name: formatChoiceLine({ name: item.label, description: item.description, reserved: 5, columns }),
+      short: `${title}｜${item.label}`,
+    }))
+    return groups.size > 1 ? [new Separator(`── ${title} ──`), ...mapped] : mapped
+  })
   return askCheckbox({
     message: "选择要卸载的技能（空格切换，回车确认）",
-    choices: choices.map((item) => ({ name: `${item.group}｜${item.label}`, value: item.value })),
+    choices: rows,
     pageSize: LIST_PAGE_SIZE,
   })
 }
@@ -265,15 +286,20 @@ export async function promptUninstallSelection(choices: UninstallChoice[]): Prom
 export async function promptSkillSelection(skills: PromptSkill[], saved?: string[], mode: SkillsMode = "skills"): Promise<string[] | null> {
   const groups = groupSkillChoices(skills, saved, mode)
   const { Separator } = await loadPrompts()
-  // 简介跟在名称后并按终端宽度截断，避免选择器行内换行把光标位置打乱
-  const width = process.stdout.columns && process.stdout.columns > 40 ? process.stdout.columns : 100
+  const columns = terminalColumns()
   const choices = groups.flatMap((group) => {
-    const items = group.choices.map((choice) => ({
-      value: choice.name,
-      name: formatSkillChoice(choice.name, choice.description ?? "", width),
-      checked: choice.selected,
-      disabled: mode === "skills" && choice.tier === "core" ? "必装，不可取消" : false,
-    }))
+    const items = group.choices.map((choice) => {
+      const reason = mode === "skills" && choice.tier === "core" ? "必装，不可取消" : ""
+      // 3 为光标 + 勾选符 + 空格，2 为名称与简介之间的间隔；禁用原因由 inquirer 追加在行尾
+      const reserved = 5 + (reason ? 1 + displayWidth(reason) : 0)
+      return {
+        value: choice.name,
+        name: formatSkillChoice(choice.name, choice.description ?? "", { reserved, columns }),
+        short: choice.name,
+        checked: choice.selected,
+        disabled: reason || false,
+      }
+    })
     // 单组时不加标题，保持原列表观感；多组用分隔行标注来源与层级
     return groups.length > 1 ? [new Separator(`── ${group.title} ──`), ...items] : items
   })
