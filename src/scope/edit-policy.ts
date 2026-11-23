@@ -6,6 +6,7 @@ import { isInteractive } from "../prompts"
 import { listPackageSkills } from "../skills/source"
 import { line, scopeModeText, termText } from "../term-style"
 import { layerConfigTarget, readLayerConfig, writeLayerConfig, type LayerConfigTarget } from "./config-file"
+import { applyArtifactLinkage, describeShapeChanges, previewShapeChanges } from "./artifact-linkage"
 import { resolveScope } from "./load"
 import { compilePattern, matchPathPattern } from "./pattern"
 import { findProjectRoot, resolveComparablePath } from "./paths"
@@ -514,19 +515,21 @@ export function applyPolicyPlan(plan: PolicyEditPlan): string {
   return writeLayerConfig(plan.layer, plan.nextConfig, plan.startDir)
 }
 
-// 预览 → 确认 → 落盘 → 结果块：与 scope 其它写命令同一口径
+// 预览 → 确认 → 落盘 → 结果块 → 产物联动：与 scope 其它写命令同一口径
 export async function applyPolicyPlanWithPrompt(
   title: string,
   plan: PolicyEditPlan,
-  options: { dryRun?: boolean; yes?: boolean } = {},
+  options: { dryRun?: boolean; yes?: boolean; noLink?: boolean } = {},
 ): Promise<void> {
   if (!plan.changed) {
     for (const text of describePolicyPlan(plan)) console.log(line.hint(text))
     return
   }
+  // 写前预演：配置变更与技能形态变更同屏展示，确认前即可看到产物影响
+  const changes = options.noLink ? [] : previewShapeChanges(plan.layer, plan.nextConfig, plan.startDir)
   const confirmed = await confirmWrite({
     title,
-    lines: describePolicyPlan(plan),
+    lines: [...describePolicyPlan(plan), ...(options.noLink ? [] : describeShapeChanges(changes))],
     yes: Boolean(options.yes) || !isInteractive(),
     dryRun: Boolean(options.dryRun),
   })
@@ -537,4 +540,14 @@ export async function applyPolicyPlanWithPrompt(
   }
   const file = applyPolicyPlan(plan)
   reportWrite({ file, notes: plan.changes })
+  if (options.noLink) {
+    console.error(line.hint("已只写配置，产物未联动，可重跑 toolkit skill reconcile"))
+    return
+  }
+  const outcome = applyArtifactLinkage(changes, plan.startDir)
+  for (const text of outcome.lines) console.log(line.hint(text))
+  if (outcome.failed > 0) {
+    console.error(`⚠️ 配置已写入，产物未完全收敛（${outcome.failed} 项），可重跑 toolkit skill reconcile`)
+    process.exitCode = 1
+  }
 }

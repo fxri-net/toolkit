@@ -639,12 +639,33 @@ function toPublicPolicy(policy: ScopePolicyInput): ScopePolicy {
 
 // 组装判定现场并给出结论：策略为空时默认全域生效
 export function resolveScope(startDir = process.cwd(), skillName?: string): ScopeReport {
+  return resolveScopeFrom(inspectConfigLayers(startDir), startDir, skillName, true)
+}
+
+// 预演：用「即将写入」的配置覆盖目标层，只在内存生效，供写前展示技能形态变化
+export function resolveScopeProjected(
+  layer: PolicyLayer,
+  config: Record<string, unknown>,
+  startDir = process.cwd(),
+  skillName?: string,
+): ScopeReport {
+  const layers = inspectConfigLayers(startDir)
+  const patched: ConfigLayers = { ...layers, [layer]: { ...layers[layer], hit: true, config } }
+  return resolveScopeFrom(patched, startDir, skillName, false)
+}
+
+// 判定主流程：cache 为真时按配置指纹复用快照，预演必须绕过缓存
+function resolveScopeFrom(
+  layers: ConfigLayers,
+  startDir: string,
+  skillName: string | undefined,
+  cache: boolean,
+): ScopeReport {
   const cwd = resolveComparablePath(startDir)
   // 判定基准取项目根：子目录内按整个项目匹配，精确路径即可覆盖其下所有层级
   const baseDir = resolveComparablePath(findProjectRoot(startDir))
-  const layers = inspectConfigLayers(startDir)
   const key = `${cwd}\u0000${baseDir}\u0000${getHomeDir()}\u0000${layerSignature(layers)}`
-  const snapshot = snapshotFor(key, () => buildSnapshot(layers, baseDir))
+  const snapshot = cache ? snapshotFor(key, () => buildSnapshot(layers, baseDir)) : buildSnapshot(layers, baseDir)
   const context = buildContext(snapshot.policies, cwd, baseDir, startDir, skillName)
   const policyDecision = decidePolicy(snapshot.compiled, context)
   // 完全未配置时沿用旧文案，避免 status 输出与既有快照漂移

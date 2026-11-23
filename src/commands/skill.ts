@@ -66,6 +66,7 @@ import {
   gateRulesToDeliveryRules,
   resolveDelivery,
   explainSkillDelivery,
+  reconcileSkills,
   packageVersion,
   type InstallReport,
   type ProjectDirResult,
@@ -1885,6 +1886,52 @@ export function registerSkillsCommands(program: Command): void {
         }
       } catch (e) {
         console.error(`⚠️ 生成分发计划失败：${(e as Error).message}`)
+        process.exitCode = 1
+      }
+    })
+
+  // 产物收敛：手工改配置或队友 pull 后对齐形态；不改选择集、不新增技能
+  skillsCmd
+    .command("reconcile")
+    .description("按当前配置收敛技能产物形态（不改选择集、不新增技能）")
+    .option("--scope <scope>", "作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）")
+    .option("--skills <names>", "只收敛指定技能（逗号分隔）")
+    .option("--dry-run", "只预览，不写文件")
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
+    .action((options: { scope?: string; skills?: string; dryRun?: boolean; format?: string }) => {
+      try {
+        if (!assertJsonFormat(options.format)) return
+        const scope = resolveScopeChoice(options.scope)
+        if (!scope) return
+        const names = options.skills !== undefined ? (splitMulti(options.skills) ?? []) : undefined
+        if (names && names.length === 0) {
+          console.error("⚠️ --skills 取值为空，未执行收敛")
+          process.exitCode = 1
+          return
+        }
+        const dryRun = Boolean(options.dryRun)
+        const faces: Array<"global" | "project"> = scope.choice === "all" ? ["global", "project"] : [scope.choice]
+        const results = faces.map((face) => reconcileSkills({ scope: face, startDir: process.cwd(), skills: names, dryRun }))
+        if (options.format === "json") {
+          printJson(jsonEnvelope({ command: "skill reconcile", data: { scope: scope.choice, dryRun, results } }))
+        } else {
+          console.log(scopeHeadline(scope))
+          for (const result of results) {
+            const faceText = result.scope === "global" ? "全局面" : "项目面"
+            if (result.items.length === 0) console.log(`  ${faceText}：产物已一致`)
+            for (const item of result.items) {
+              const status = item.status === "changed" ? "已收敛" : item.status === "failed" ? "未收敛" : "待收敛"
+              console.log(`  ${faceText} · ${item.name}：${status}（${item.message}）`)
+            }
+          }
+        }
+        const failed = results.reduce((sum, result) => sum + result.failed, 0)
+        if (failed > 0) {
+          console.error(`⚠️ 产物未完全收敛（${failed} 项），请检查文件权限或同名冲突后重试`)
+          process.exitCode = 1
+        }
+      } catch (e) {
+        console.error(`⚠️ 收敛技能产物失败：${(e as Error).message}`)
         process.exitCode = 1
       }
     })

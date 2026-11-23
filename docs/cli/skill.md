@@ -84,6 +84,8 @@ toolkit skill status --path --format json      # JSON 输出：包根、技能�
 - `--dry-run` 是 `skill plan` 的别名：只输出分发计划，不写文件
 - `--check` 只报告待收敛项，有漂移时退出码 1；不进入交互
 - `--refresh` 只收敛已存在的项目面产物，不新增技能、不改选择集；不进入交互，非 TTY / CI 只打印漂移
+- `skill reconcile`：按当前配置把已装产物的形态对齐到矩阵，不改选择集、不新增技能；
+  `--scope project|global|all`、`--skills`、`--dry-run` 可选，零差异时报「产物已一致」，未收敛条目非 0 退出
 - **技能多选展示**：按「包内 · 必装 / 包内 · 可选 / 各外部来源名」分组并插入分隔行，组内按技能名升序；
   `--mode package` 下包内合并为「包内」一组、core 也可取消，选择语义不变
 - `--format json` 输出机器可读安装报告到 stdout（含 `dryRun` / `scope` 标记与 `selection` / `targetSelection`）

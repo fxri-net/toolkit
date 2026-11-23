@@ -719,6 +719,7 @@ export function registerScopeCommands(program: Command): void {
     .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
+    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
     .action(async (options: PolicyAddOptions) => {
       await runInteractive(() => runPolicyAdd(options))
     })
@@ -731,6 +732,7 @@ export function registerScopeCommands(program: Command): void {
     .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
+    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
     .action(async (options: { id?: string; name?: string; layer?: string; dryRun?: boolean; yes?: boolean }) => {
       await runInteractive(() => runPolicyRemove(options))
     })
@@ -744,6 +746,7 @@ export function registerScopeCommands(program: Command): void {
     .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
+    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
     .action(async (options: { id?: string[]; paths?: string[]; all?: boolean; layer?: string; dryRun?: boolean; yes?: boolean }) => {
       await runInteractive(() => runPolicyReset(options))
     })
@@ -774,6 +777,7 @@ export function registerScopeCommands(program: Command): void {
     .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
+    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
     .action(async (skills: string[] = [], options: SkillPolicyOptions = {}) => {
       await runInteractive(() => runSkillsAllow(skills, options))
     })
@@ -791,6 +795,7 @@ export function registerScopeCommands(program: Command): void {
     .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
+    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
     .action(async (skills: string[] = [], options: SkillPolicyOptions = {}) => {
       await runInteractive(() => runSkillsDeny(skills, options))
     })
@@ -804,6 +809,7 @@ export function registerScopeCommands(program: Command): void {
     .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
+    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
     .action(
       async (
         name: string | undefined,
@@ -819,6 +825,7 @@ export function registerScopeCommands(program: Command): void {
     .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
+    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
     .action(async (options: { layer?: string; dryRun?: boolean; yes?: boolean }) => {
       await runInteractive(() => runSkillsReset(options))
     })
@@ -838,6 +845,7 @@ export function registerScopeCommands(program: Command): void {
     .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
+    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
     .action(async (dirs: string[] = [], options: { layer?: string; dryRun?: boolean; yes?: boolean; tree?: boolean } = {}) => {
       await runInteractive(() => runListEdit("include", dirs, options))
     })
@@ -848,6 +856,7 @@ export function registerScopeCommands(program: Command): void {
     .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
+    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
     .action(async (dirs: string[] = [], options: { layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {
       await runInteractive(() => runListEdit("exclude", dirs, options))
     })
@@ -860,6 +869,7 @@ export function registerScopeCommands(program: Command): void {
     .option("--to <list>", "移除后转入另一侧：白名单（include）/ 黑名单（exclude）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
+    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
     .action(
       async (dirs: string[] = [], options: { layer?: string; from?: string; to?: string; dryRun?: boolean; yes?: boolean } = {}) => {
         await runInteractive(() => runRemove(dirs, options))
@@ -872,6 +882,7 @@ export function registerScopeCommands(program: Command): void {
     .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
+    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
     .action(async (value: string | undefined, options: { layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {
       await runInteractive(() => runDefault(value, options))
     })
@@ -882,6 +893,7 @@ export function registerScopeCommands(program: Command): void {
     .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
+    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
     .action(async (options: { layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {
       await runInteractive(() => runReset(options))
     })

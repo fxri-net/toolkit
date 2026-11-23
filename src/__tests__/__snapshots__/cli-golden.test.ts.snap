@@ -1208,6 +1208,15 @@ exports[`各域行为与错误路径 > scope list exclude 预演 1`] = `
   写入：<SANDBOX>/home/.toolkitrc.json
   名单模式：全部生效
   新增：[黑] <SANDBOX>/workspace/work
+  技能形态变更（8 项）：
+    全局面 · fxri-code-encoding：全文安装 → 入口壳
+    全局面 · fxri-plan-recap：全文安装 → 入口壳
+    全局面 · fxri-plan-review：全文安装 → 入口壳
+    全局面 · fxri-plan-task：全文安装 → 入口壳
+    全局面 · fxri-release-changelog：全文安装 → 入口壳
+    全局面 · fxri-test-tty：全文安装 → 入口壳
+    全局面 · fxri-writing-docs：全文安装 → 入口壳
+    全局面 · fxri-writing-skill：全文安装 → 入口壳
 [预演] 未写入任何文件
 --- stderr ---
 "
@@ -1221,6 +1230,15 @@ exports[`各域行为与错误路径 > scope list remove 互转预演 1`] = `
   写入：<SANDBOX>/home/.toolkitrc.json
   名单模式：全部生效
   转入：[黑] <SANDBOX>/workspace/work
+  技能形态变更（8 项）：
+    全局面 · fxri-code-encoding：全文安装 → 入口壳
+    全局面 · fxri-plan-recap：全文安装 → 入口壳
+    全局面 · fxri-plan-review：全文安装 → 入口壳
+    全局面 · fxri-plan-task：全文安装 → 入口壳
+    全局面 · fxri-release-changelog：全文安装 → 入口壳
+    全局面 · fxri-test-tty：全文安装 → 入口壳
+    全局面 · fxri-writing-docs：全文安装 → 入口壳
+    全局面 · fxri-writing-skill：全文安装 → 入口壳
 [预演] 未写入任何文件
 --- stderr ---
 "
@@ -1260,6 +1278,7 @@ exports[`各域行为与错误路径 > scope policy add 预演 1`] = `
   条件：paths=work
   技能：无
   新增策略：golden-policy
+  技能形态：无变化
 [预演] 未写入任何文件
 --- stderr ---
 "
@@ -1597,6 +1616,7 @@ Commands:
   bump [options] [name] [type]  递增技能版本（两处版本声明同源改写；--all 批量、--set 直接设定、--dir
                                 支持外部目录）
   source [options] [command]    查看 / 刷新 / 注销外部技能来源，并管理来源提示频率
+  reconcile [options]           按当前配置收敛技能产物形态（不改选择集、不新增技能）
 
 --- stderr ---
 "
@@ -2549,6 +2569,7 @@ Commands:
   bump [options] [name] [type]  递增技能版本（两处版本声明同源改写；--all 批量、--set 直接设定、--dir
                                 支持外部目录）
   source [options] [command]    查看 / 刷新 / 注销外部技能来源，并管理来源提示频率
+  reconcile [options]           按当前配置收敛技能产物形态（不改选择集、不新增技能）
 
 --- stderr ---
 "

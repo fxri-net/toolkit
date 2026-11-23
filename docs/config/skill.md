@@ -124,6 +124,10 @@ title: 技能分发偏好（skills）
 `off` 的技能不参与 `skill status` 的缺失统计；既有产物在 `status` 单列为残留，
 `toolkit skill install --prune` 才按归属清理，`toolkit skill plan` 中显示为「清理」。
 
+**两类「移除」的差别**：作用域白名单 / 黑名单移除技能属声明式配置，写命令会**自动**把产物收敛成入口壳或不安装；
+取消安装选择或取消目标则**保留**已装产物（`status` 标「未选择但已安装」，`--prune` 才清理），避免误删本地改动出的副本。
+手工改配置、队友 pull 项目层配置后，用 `toolkit skill reconcile` 一键对齐形态：只动已装产物，不改选择集、不新增技能。
+
 ## projectSkill：项目面技能安装偏好
 
 | 字段 | 类型 | 默认 | 说明 |

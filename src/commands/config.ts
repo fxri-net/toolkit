@@ -326,6 +326,10 @@ export function registerConfigCommands(program: Command): void {
       warnOutsideRepo(target, cwd)
       try {
         const result = writeConfigKey(target, key, parsed.value, cwd)
+        // 影响技能形态的配置键：低层写入口只提示漂移，不自动联动产物
+        if (key.startsWith("skillDelivery.") || key.startsWith("activation.")) {
+          console.error("⚠️ 该配置影响技能分发形态，产物未自动收敛；可运行 toolkit skill reconcile")
+        }
         if (options.format === "json") {
           printJson(
             jsonEnvelope({
