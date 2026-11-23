@@ -65,8 +65,11 @@ export function resolveGuard(name: string, startDir = process.cwd()): GuardResul
   // 项目面优先取仓库内真源副本；仓库内无该技能时回落包内 / 外部来源
   const skillDir = projectSkillDir(name, startDir) ?? packageSkillDir(name)
   const report = resolveScope(startDir, name)
-  if (!report.decision.active) {
-    return { name, active: false, content: "", skillDir, referencesDir: "", reason: report.decision.reason, report }
+  // 策略声明该目录不安装时与未激活同口径：stdout 为空、按未激活退出码结束
+  const unavailable = !report.decision.active || report.decision.delivery === "off"
+  if (unavailable) {
+    const reason = report.decision.active ? "策略声明该目录不安装该技能" : report.decision.reason
+    return { name, active: false, content: "", skillDir, referencesDir: "", reason, report }
   }
   const referencesDir = join(skillDir, "references")
   return {

@@ -248,6 +248,33 @@ describe("guard 契约", () => {
     expect(io.err()).toContain("公司策略")
   })
 
+  it("策略声明该目录不安装时按未激活结束，声明入口壳时照常输出正文", () => {
+    writeFileSync(
+      join(home, ".toolkitrc.json"),
+      JSON.stringify({
+        policies: [{ id: "shape-off", effect: "allow", when: { paths: [process.cwd()] }, delivery: "off" }],
+      }),
+    )
+    resetToolkitConfigCache()
+    resetScopeCache()
+    const off = capture()
+    expect(runGuard("fxri-plan-task")).toBe(3)
+    expect(off.out()).toBe("")
+    expect(off.err()).toContain("不安装该技能")
+
+    writeFileSync(
+      join(home, ".toolkitrc.json"),
+      JSON.stringify({
+        policies: [{ id: "shape-gated", effect: "allow", when: { paths: [process.cwd()] }, delivery: "gated" }],
+      }),
+    )
+    resetToolkitConfigCache()
+    resetScopeCache()
+    const gated = capture()
+    expect(runGuard("fxri-plan-task")).toBe(0)
+    expect(gated.out()).toBe(readFileSync(join(skillsSourceDir(), "fxri-plan-task", "SKILL.md"), "utf8"))
+  })
+
   it("未知技能与路径穿越均拒绝，退出码 1", () => {
     const io = capture()
     expect(runGuard("no-such-skill")).toBe(1)

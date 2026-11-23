@@ -88,6 +88,7 @@ title: 技能分发偏好（skills）
 - 策略显式写 `delivery` 时直接作为该范围形态（`allow` + `full|gated|off` 均可），不再走上面的推导；
   `deny` 只能配 `gated` / `off`，配 `full` 时加载告警并丢弃该字段
 - 多个策略命中时 `source` 列出全部策略 id，`reason` 取最具体一条；显式 `skillDelivery.rules` 仍可覆盖推导
+- 产物按技能汇总：所有目录都判全文才装全文；任一目录判入口壳或不安装就装全局入口壳（由 guard 按目录决定是否给正文）；全部目录都不安装才不安装
 - `toolkit skill status --explain <技能>` 逐级打印命中 / 未命中与被压规则
 
 **技能包默认**：`SKILL.md` frontmatter 可声明 `metadata.delivery: full | gated`，位于策略推导之后、全局默认之前；

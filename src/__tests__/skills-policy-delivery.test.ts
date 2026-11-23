@@ -226,4 +226,20 @@ describe("安装按矩阵推导", () => {
     expect(primary?.gates).toContain("fxri-plan-task")
     expect(existsSync(join(primaryDir(), "fxri-plan-task", "SKILL.md"))).toBe(true)
   })
+
+  it("策略显式声明的形态直接决定产物：声明入口壳的装壳，未声明的保持全文", () => {
+    writeFileSync(
+      join(home, ".toolkitrc.json"),
+      JSON.stringify({
+        policies: [
+          { id: "shape", effect: "allow", skills: { match: ["fxri-plan-task"] }, delivery: "gated" },
+        ],
+      }),
+    )
+    resetToolkitConfigCache()
+    const report = installSkills({ skills: ["fxri-plan-review", "fxri-plan-task"] })
+    const primary = report.targets.find((target) => target.kind === "primary")
+    expect(primary?.links).toContain("fxri-plan-review")
+    expect(primary?.gates).toContain("fxri-plan-task")
+  })
 })

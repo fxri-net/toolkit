@@ -112,7 +112,8 @@ toolkit scope guard fxri-plan-task              # 内容闸门：按当前目录
   旧键 `skillInstall.gate` / `metadata.gate: false` 仍读时兼容，新配置用 `skillDelivery`
 - `toolkit scope guard <技能名>` 读取当前目录的作用域判定：**激活时**把真源 `SKILL.md` 正文写到 stdout。
   guard 已包含目录判定，无需先跑 `scope status`；`status` 用于排查与解释，建议同目录同会话只查一次。
-  **未激活时** stdout 为空、原因写 stderr 并以**未激活退出码**结束（见[退出码](./exit-codes)）
+  **未激活或策略声明该目录不安装（`delivery: off`）时** stdout 为空、原因写 stderr 并以**未激活退出码**结束（见[退出码](./exit-codes)）
+  形态按目录解析：`full` 与 `gated` 都输出正文，区别只在安装产物是全文还是入口壳
 - 输出契约：stdout 只放正文（供 AI 直接消费），参考文件目录与诊断一律走 stderr；只读，不写缓存
 - 技能名须为内置包或已登记来源中存在的单段名字；未知名字或含路径分隔符时以退出码 `1` 报错
 - 仅在 argv 恰为 `scope guard <技能名>` 时走快速路径（不加载完整命令集）；带其它参数（含 `--help`）回落常规 CLI
