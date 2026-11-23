@@ -1,6 +1,20 @@
 // 终端样式基建：启用判定矩阵、五种语义色转义、关闭时原样返回、显式开关优先于环境
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { decorate, isStyleEnabled, line, policyEffectText, policyLayerText, scopeModeText, setStyleEnabled, style, termText } from "../term-style"
+import {
+  decorate,
+  isStyleEnabled,
+  line,
+  notifyFrequencyText,
+  policyEffectText,
+  policyLayerText,
+  scopeModeText,
+  setStyleEnabled,
+  style,
+  termText,
+  usageChannelText,
+  usageRotationText,
+  usageSkillsModeText,
+} from "../term-style"
 
 // 仿 TTY：分别控制 stdout / stderr，还原时删掉自建属性
 function setTty(stdout: boolean, stderr: boolean): void {
@@ -192,6 +206,13 @@ describe("术语映射", () => {
   it("人读文案不直接复用机器键（兼容提示除外）", () => {
     expect(scopeModeText.all).not.toBe("all")
     expect(scopeModeText.allowlist).not.toBe("allowlist")
+  })
+
+  it("技能统计的通道、模式、轮转与频率都有中文文案", () => {
+    expect(termText(usageChannelText, "hook")).toContain("Agent Hook")
+    expect(termText(usageSkillsModeText, "none")).toBe("不采集（none）")
+    expect(termText(usageRotationText, "monthly")).toBe("按月（monthly）")
+    expect(termText(notifyFrequencyText, "off")).toBe("关闭（off）")
   })
 })
 

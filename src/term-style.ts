@@ -130,6 +130,31 @@ export const policyLayerText: Record<string, string> = {
   local: "本地层",
 }
 
+export const usageChannelText: Record<string, string> = {
+  rule: "全局规则上报（rule）",
+  hook: "Agent Hook（hook）",
+}
+
+export const usageSkillsModeText: Record<string, string> = {
+  all: "全部采集（all）",
+  include: "仅名单（include）",
+  exclude: "排除名单（exclude）",
+  none: "不采集（none）",
+}
+
+export const usageRotationText: Record<string, string> = {
+  monthly: "按月（monthly）",
+  size: "按大小（size）",
+  none: "不轮转（none）",
+}
+
+export const notifyFrequencyText: Record<string, string> = {
+  always: "每次（always）",
+  daily: "每天（daily）",
+  weekly: "每周（weekly）",
+  off: "关闭（off）",
+}
+
 // 查表：未知取值原样返回，避免把写错的配置悄悄吞掉
 export function termText(map: Record<string, string>, value: string): string {
   return map[value] ?? value

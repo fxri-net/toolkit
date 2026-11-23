@@ -1,7 +1,7 @@
 // 使用情况 CLI（context）：上下文、格式与解析助手，自 commands.ts 原样搬移
 import { existsSync, readFileSync } from "node:fs"
 import { jsonEnvelope, toJsonText } from "../../json-output"
-import { line } from "../../term-style"
+import { line, termText, usageChannelText, usageRotationText, usageSkillsModeText } from "../../term-style"
 import { redactText, resolveRedactEnabled } from "../../privacy/redact"
 import { uploadStatus } from "../upload"
 import { resolveSkillMeta } from "../event"
@@ -94,7 +94,7 @@ export function buildSegmentReport(config: UsageConfig, segment: ConfigSegment):
     return { payload: { enabled: config.enabled }, lines: [`技能使用情况：${config.enabled ? "已开启" : "已关闭"}`] }
   }
   if (segment === "channel") {
-    const label = config.channel === "rule" ? "rule（全局规则上报）" : "hook（Agent Hook）"
+    const label = termText(usageChannelText, config.channel)
     return { payload: { channel: config.channel }, lines: [`采集通道：${label}`] }
   }
   if (segment === "sources") {
@@ -106,7 +106,8 @@ export function buildSegmentReport(config: UsageConfig, segment: ConfigSegment):
   }
   if (segment === "skills") {
     const names = config.skills.mode === "exclude" ? config.skills.exclude : config.skills.include
-    return { payload: { skills: config.skills }, lines: [`技能模式：${config.skills.mode}；名单：${names.join("、") || "空"}`] }
+    const label = termText(usageSkillsModeText, config.skills.mode)
+    return { payload: { skills: config.skills }, lines: [`技能模式：${label}；名单：${names.join("、") || "空"}`] }
   }
   if (segment === "capture") {
     const { triggerPrompt, skillArgs, outcome } = config.capture
@@ -118,7 +119,7 @@ export function buildSegmentReport(config: UsageConfig, segment: ConfigSegment):
   const { rotation, retentionDays, maxFileBytes } = config.storage
   return {
     payload: { storage: config.storage },
-    lines: [`存储：${rotation} / 保留 ${retentionDays} 天 / 单文件 ${maxFileBytes} 字节`],
+    lines: [`存储：${termText(usageRotationText, rotation)} / 保留 ${retentionDays} 天 / 单文件 ${maxFileBytes} 字节`],
   }
 }
 

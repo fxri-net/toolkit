@@ -2,7 +2,7 @@
 import { resolve } from "node:path"
 import type { Command } from "commander"
 import { assertJsonFormat } from "../../json-output"
-import { line } from "../../term-style"
+import { line, termText, usageChannelText } from "../../term-style"
 import { loadUsageConfig, updateUsageConfig } from "../config"
 import { printSegment, splitNames } from "./context"
 
@@ -30,7 +30,7 @@ export function registerUsageConfigCommands(usage: Command): void {
           printSegment(loadUsageConfig(), "channel", options.format, "usage config channel")
           return
         }
-        console.log(line.ok(`采集通道已切换为 ${mode}`))
+        console.log(line.ok(`采集通道已切换为 ${termText(usageChannelText, String(mode))}`))
         if (mode === "rule") {
           console.log(line.hint("规则通道不依赖 Hook：把 toolkit rule compose --module usage 的输出复制进 Agent 全局规则"))
           console.log(line.hint("已安装的 Hook 需自行清理：toolkit usage setup hooks remove"))
@@ -114,7 +114,7 @@ export function registerUsageConfigCommands(usage: Command): void {
       .command("storage")
       .description("查看或设置本地存储（目录 / 轮转 / 保留期 / 单文件上限）")
       .option("--dir <path>", "数据目录（默认 ~/.toolkit/usage）")
-      .option("--rotation <mode>", "轮转：monthly / size / none")
+      .option("--rotation <mode>", "轮转：按月（monthly）/ 按大小（size）/ 不轮转（none）")
       .option("--retention <days>", "保留天数")
       .option("--max-size <bytes>", "单文件大小上限（字节）")
       .option("--format <format>", "输出格式（json，输出到 stdout）")

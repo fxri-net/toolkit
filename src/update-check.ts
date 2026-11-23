@@ -9,7 +9,7 @@ import { getConfigSection, getHomeDir } from "./config"
 import { resolveCacheEntry } from "./cache"
 import { readTextFile } from "./read-text"
 import { writeFileAtomic } from "./write-atomic"
-import { line } from "./term-style"
+import { line, notifyFrequencyText, termText } from "./term-style"
 import { ENV_DEBUG_UPDATE_CHECK, ENV_NO_UPDATE_CHECK } from "./env"
 
 // 成功检查有效期：24 小时内不重复请求 registry
@@ -135,7 +135,8 @@ export function isCiEnv(): boolean {
 function normalizeNotify(value: unknown, fallback: NotifyFrequency, label: string): NotifyFrequency {
   if (value === undefined) return fallback
   if (value === "always" || value === "daily" || value === "weekly" || value === "off") return value
-  console.warn(`⚠️ ${label} 取值「${String(value)}」不支持，仅支持 always / daily / weekly / off，已回落 ${fallback}`)
+  const allowed = Object.values(notifyFrequencyText).join(" / ")
+  console.warn(`⚠️ ${label} 取值「${String(value)}」不支持，仅支持 ${allowed}，已回落 ${termText(notifyFrequencyText, fallback)}`)
   return fallback
 }
 

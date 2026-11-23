@@ -366,10 +366,10 @@ export function registerUsageDataCommands(data: Command, usage: Command): void {
           }
         }
         if (config.channel === "rule" && installedHooks.length > 0) {
-          add("rule-channel-with-hooks", "warn", `采集通道为 rule，但本机仍有 Hook（${installedHooks.join("、")}）：执行 toolkit usage setup hooks remove 清理，避免重复采集`)
+          add("rule-channel-with-hooks", "warn", `采集通道为全局规则上报（rule），但本机仍有 Hook（${installedHooks.join("、")}）：执行 toolkit usage setup hooks remove 清理，避免重复采集`)
         }
         if (config.channel === "hook" && installedHooks.length === 0) {
-          add("hook-channel-without-hooks", "warn", "采集通道为 hook，但未安装任何 Hook：执行 toolkit usage setup hooks install，或切换为 rule（toolkit usage config channel rule）")
+          add("hook-channel-without-hooks", "warn", "采集通道为 Agent Hook（hook），但未安装任何 Hook：执行 toolkit usage setup hooks install，或切换为全局规则上报（toolkit usage config channel rule）")
         }
         const report = { dataDir: dir, events: events.length, unique: unique.size, indexed: index.eventIds.length, crossAdapters, items }
         if (options.format === "json") {

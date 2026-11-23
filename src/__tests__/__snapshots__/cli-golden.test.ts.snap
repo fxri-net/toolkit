@@ -1951,7 +1951,7 @@ exports[`各域行为与错误路径 > usage config 字段 1`] = `
 exports[`各域行为与错误路径 > usage config 存储 1`] = `
 "退出码：0
 --- stdout ---
-存储：monthly / 保留 180 天 / 单文件 8388608 字节
+存储：按月（monthly） / 保留 180 天 / 单文件 8388608 字节
 --- stderr ---
 "
 `;
@@ -1992,7 +1992,7 @@ exports[`各域行为与错误路径 > usage config 来源 JSON 1`] = `
 exports[`各域行为与错误路径 > usage config 范围 1`] = `
 "退出码：0
 --- stdout ---
-技能模式：none；名单：空
+技能模式：不采集（none）；名单：空
 --- stderr ---
 "
 `;
@@ -2000,7 +2000,7 @@ exports[`各域行为与错误路径 > usage config 范围 1`] = `
 exports[`各域行为与错误路径 > usage config 通道 1`] = `
 "退出码：0
 --- stdout ---
-采集通道：hook（Agent Hook）
+采集通道：Agent Hook（hook）
 --- stderr ---
 "
 `;
@@ -2012,7 +2012,7 @@ exports[`各域行为与错误路径 > usage data doctor 1`] = `
 事件：0 条 / 去重后 0 条 / 索引 0 条
 ⚠️ 数据目录尚未创建：<SANDBOX>/home/.toolkit/usage
 ℹ️ 技能使用情况总开关处于关闭状态
-⚠️ 采集通道为 hook，但未安装任何 Hook：执行 toolkit usage setup hooks install，或切换为 rule（toolkit usage config channel rule）
+⚠️ 采集通道为 Agent Hook（hook），但未安装任何 Hook：执行 toolkit usage setup hooks install，或切换为全局规则上报（toolkit usage config channel rule）
 --- stderr ---
 "
 `;
@@ -2081,14 +2081,14 @@ exports[`各域行为与错误路径 > usage show 1`] = `
 "退出码：0
 --- stdout ---
 技能使用情况：已关闭
-采集通道：hook（Agent Hook）
+采集通道：Agent Hook（hook）
 配置：<SANDBOX>/home/.toolkitrc.json
 数据目录：<SANDBOX>/home/.toolkit/usage
 Agent：未开启
 来源：一方 关 / 第三方 关 / 未托管 关
-技能模式：none；名单：空
+技能模式：不采集（none）；名单：空
 字段：触发词 关 / 参数 关 / 结果 关
-存储：monthly / 保留 180 天 / 单文件 8388608 字节
+存储：按月（monthly） / 保留 180 天 / 单文件 8388608 字节
 上传：已关闭
 Hook：未安装
 队列：0 条待处理
@@ -2164,14 +2164,14 @@ exports[`各域行为与错误路径 > usage 裸命令 1`] = `
 "退出码：0
 --- stdout ---
 技能使用情况：已关闭
-采集通道：hook（Agent Hook）
+采集通道：Agent Hook（hook）
 配置：<SANDBOX>/home/.toolkitrc.json
 数据目录：<SANDBOX>/home/.toolkit/usage
 Agent：未开启
 来源：一方 关 / 第三方 关 / 未托管 关
-技能模式：none；名单：空
+技能模式：不采集（none）；名单：空
 字段：触发词 关 / 参数 关 / 结果 关
-存储：monthly / 保留 180 天 / 单文件 8388608 字节
+存储：按月（monthly） / 保留 180 天 / 单文件 8388608 字节
 上传：已关闭
 Hook：未安装
 队列：0 条待处理

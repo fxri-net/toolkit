@@ -6,7 +6,7 @@ import { DEFAULT_USAGE_CONFIG, loadUsageConfig, resolveUsageDir, usageConfigPath
 import { purgeEvents, usagePaths } from "./store"
 import { runUploadSetup } from "./upload"
 import { readHookActivity, readLastHookError } from "./ingest"
-import { line, style } from "../term-style"
+import { line, style, termText, usageChannelText, usageRotationText, usageSkillsModeText } from "../term-style"
 import { LIST_PAGE_SIZE, ask, exitWithCancel, isPromptCancel, loadPrompts, requireInteractive } from "../prompts"
 import { askCheckbox, askConfirm, askInput, confirmWrite, runMenu } from "../cli-ui"
 import { createContext, formatLocalTime, printDefaultStats, printUsageInfo } from "./cli/context"
@@ -125,11 +125,11 @@ function printConfigSummary(
 ): void {
   console.log("")
   console.log("即将应用：")
-  console.log(`  通道：${channel === "rule" ? "全局规则上报（rule）" : "Agent Hook（hook）"}`)
+  console.log(`  通道：${termText(usageChannelText, channel)}`)
   console.log(`  Agent：${channel === "rule" ? "不适用（规则通道）" : agents.length > 0 ? agents.join("、") : "无"}`)
   console.log(`  来源：一方 ${firstParty ? "开" : "关"} / 第三方 ${thirdParty ? "开" : "关"} / 未托管 关`)
-  console.log(`  技能模式：${mode}`)
-  console.log(`  存储：${dir}（${rotation}，保留 ${retention} 天）`)
+  console.log(`  技能模式：${termText(usageSkillsModeText, mode)}`)
+  console.log(`  存储：${dir}（${termText(usageRotationText, rotation)}，保留 ${retention} 天）`)
   console.log("  上传：关闭")
 }
 

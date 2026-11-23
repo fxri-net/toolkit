@@ -231,11 +231,11 @@ describe("usage flush 命令", () => {
 describe("usage config channel 与 setup init（沿用上一版语义）", () => {
   it("查看与切换通道，非法值报错退出", async () => {
     await run(["config", "channel"])
-    expect(logs.join("\n")).toContain("rule（全局规则上报）")
+    expect(logs.join("\n")).toContain("全局规则上报（rule）")
 
     logs = []
     await run(["config", "channel", "hook"])
-    expect(logs.join("\n")).toContain("采集通道已切换为 hook")
+    expect(logs.join("\n")).toContain("采集通道已切换为 Agent Hook（hook）")
     const config = JSON.parse(readFileSync(join(home, ".toolkitrc.json"), "utf8"))
     expect(config.usage.channel).toBe("hook")
 
