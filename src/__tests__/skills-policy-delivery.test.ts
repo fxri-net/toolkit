@@ -13,6 +13,8 @@ import {
   resetSkillsRootCache,
   resolveDelivery,
 } from "../skills"
+import { legacyToPolicies } from "../scope/policy"
+import type { ActivationConfig } from "../scope/types"
 
 // 临时 home：矩阵与产物只落在临时目录
 let home = ""
@@ -78,6 +80,26 @@ describe("策略推导", () => {
       profiles: emptyProfiles,
     })
     expect(skillFallback?.mode).toBe("gated")
+  })
+
+  it("真实编译的 allowlist 兜底推导为入口壳", () => {
+    const base: ActivationConfig = {
+      mode: "allowlist",
+      include: ["/work/**"],
+      exclude: [],
+      markers: { include: [], exclude: [] },
+      gitRemotes: [],
+    }
+    const policies = legacyToPolicies(base, "global")
+    expect(policies.some((policy) => policy.id === "legacy:global:fallback:0")).toBe(true)
+    expect(derivePolicyDelivery("fxri-plan-task", { policies, profiles: emptyProfiles })?.mode).toBe("gated")
+
+    const withSkill = legacyToPolicies(
+      { ...base, skills: { "fxri-plan-task": { mode: "allowlist", include: ["/work/**"] } } },
+      "global",
+    )
+    expect(withSkill.some((policy) => policy.id.startsWith("legacy:global:skill-fallback:"))).toBe(true)
+    expect(derivePolicyDelivery("fxri-plan-task", { policies: withSkill, profiles: emptyProfiles })?.mode).toBe("gated")
   })
 
   it("收窄的允许名单不含该技能时推导为入口壳", () => {
