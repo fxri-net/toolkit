@@ -296,6 +296,7 @@ function packageSkill(dir: string, name?: string, previousNames?: string[]): Pac
   return {
     name: resolved,
     dir,
+    description: readSkillFrontmatterValue(dir, "description"),
     version: readSkillVersion(dir),
     tier: readSkillTier(dir),
     requires: readSkillRequires(dir),

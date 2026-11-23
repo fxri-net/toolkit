@@ -159,6 +159,8 @@ export type SkillsMode = "skills" | "package"
 export interface PackageSkill {
   name: string
   dir: string
+  // SKILL.md frontmatter description：供选择列表与 list 展示，缺省为空
+  description?: string
   // SKILL.md frontmatter metadata.version；未声明版本时为空串（兼容第三方技能）
   version: string
   // SKILL.md frontmatter metadata.tier；缺省按 optional

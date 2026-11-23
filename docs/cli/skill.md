@@ -89,6 +89,7 @@ toolkit skill status --path --format json      # JSON 输出：包根、技能�
 - `skill status --matrix [--at <目录>] [--format json]`：逐技能列出产物形态、当前目录形态、命中规则的策略 id 与条件；
   末尾附旧配置迁移提示。JSON 的 `data` 为 `at` / `matrix` / `migrationHints`
 - **技能多选展示**：按「包内 · 必装 / 包内 · 可选 / 各外部来源名」分组并插入分隔行，组内按技能名升序；
+  每项在名称后跟一行简介（`SKILL.md` 的 `description` 首句，按终端宽度截断，超宽补 `…`），非 TTY 不展示；
   `--mode package` 下包内合并为「包内」一组、core 也可取消，选择语义不变
 - `--format json` 输出机器可读安装报告到 stdout（含 `dryRun` / `scope` 标记与 `selection` / `targetSelection`）
   - 预演键为 `plan` / `project`；`--check` / `--refresh` 为 `plans` 数组

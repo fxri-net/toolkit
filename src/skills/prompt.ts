@@ -4,6 +4,7 @@ import type { PackageSkill, SkillsMode, SkillTarget } from "./types"
 import { BUILTIN_SOURCE, CANONICAL_LABEL } from "./types"
 import { LIST_PAGE_SIZE, loadPrompts } from "../prompts"
 import { askCheckbox, askConfirm } from "../cli-ui"
+import { formatSkillChoice } from "./format"
 
 // 交互层技能条目：来源名由收集层（SkillItem）带入，纯包内调用可省略
 export type PromptSkill = PackageSkill & { source?: string }
@@ -11,6 +12,8 @@ export type PromptSkill = PackageSkill & { source?: string }
 // 单个技能在交互界面中的选项
 export interface SkillChoice {
   name: string
+  // 简介：选择列表里跟在名称后展示，缺省为空串
+  description: string
   tier: PackageSkill["tier"]
   selected: boolean
 }
@@ -61,6 +64,7 @@ export function groupSkillChoices(skills: PromptSkill[], saved?: string[], mode:
   const byName = (a: PromptSkill, b: PromptSkill): number => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
   const toChoice = (skill: PromptSkill): SkillChoice => ({
     name: skill.name,
+    description: skill.description ?? "",
     tier: skill.tier,
     selected: mode === "skills" ? skill.tier === "core" || savedSet.has(skill.name) : savedSet.has(skill.name),
   })
@@ -261,10 +265,12 @@ export async function promptUninstallSelection(choices: UninstallChoice[]): Prom
 export async function promptSkillSelection(skills: PromptSkill[], saved?: string[], mode: SkillsMode = "skills"): Promise<string[] | null> {
   const groups = groupSkillChoices(skills, saved, mode)
   const { Separator } = await loadPrompts()
+  // 简介跟在名称后并按终端宽度截断，避免选择器行内换行把光标位置打乱
+  const width = process.stdout.columns && process.stdout.columns > 40 ? process.stdout.columns : 100
   const choices = groups.flatMap((group) => {
     const items = group.choices.map((choice) => ({
       value: choice.name,
-      name: choice.name,
+      name: formatSkillChoice(choice.name, choice.description ?? "", width),
       checked: choice.selected,
       disabled: mode === "skills" && choice.tier === "core" ? "必装，不可取消" : false,
     }))
