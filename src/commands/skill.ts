@@ -1956,10 +1956,10 @@ export function registerSkillsCommands(program: Command): void {
       }
     })
 
-  // 技能列表：已装技能的名称 / 简介 / 版本 / 形态 / 目标数（只读）
+  // 技能列表：已装技能的名称 / 简介 / 版本 / 形态（只读；目标目录数只在 JSON 中提供）
   skillsCmd
     .command("list")
-    .description("列出已安装技能（名称 / 简介 / 版本 / 形态 / 目标数）")
+    .description("列出已安装技能（名称 / 简介 / 版本 / 形态）")
     .option("--all", "包含包内未安装的技能")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action((options: { all?: boolean; format?: string }) => {
@@ -1983,7 +1983,6 @@ export function registerSkillsCommands(program: Command): void {
             version: entry.version || undefined,
             // 未安装只标状态，不并列分发形态，避免「全文安装（未安装）」语义冲突
             form: entry.installed ? entry.form : "未安装",
-            targets: entry.installed ? entry.targets : undefined,
             maxWidth: width,
           })
           console.log(`  ${line}`)

@@ -1,4 +1,4 @@
-// 技能列表：已装技能的名称 / 简介 / 版本 / 形态 / 目标数，供 skill list 与脚本消费
+// 技能列表：已装技能的名称 / 简介 / 版本 / 形态，JSON 另含目标目录数，供 skill list 与脚本消费
 import { existsSync } from "node:fs"
 import { readSkillsDeliveryConfig, readSkillsInstallConfig } from "./config"
 import { deliveryModeLabel, resolveDelivery } from "./delivery"

@@ -106,7 +106,7 @@ async function runCli(args: string[]): Promise<string[]> {
 }
 
 describe("skill list", () => {
-  it("已装技能带简介、版本、形态与目标数", () => {
+  it("已装技能带简介、版本与形态，JSON 保留目标数", () => {
     // 取 core 技能：skills 模式下 core 恒装，选择结果稳定
     const pkg = listPackageSkills().find((skill) => skill.tier === "core")!
     installSkills({ skills: [pkg.name] })
@@ -155,12 +155,21 @@ describe("skill list", () => {
     expect(old!.installed).toBe(true)
   })
 
-  it("未安装条目形态位显示「未安装」，不并列分发形态", async () => {
+  it("文本行不展示目标数；未安装条目形态位显示「未安装」", async () => {
+    const pkg = listPackageSkills().find((skill) => skill.tier === "core")!
+    const missing = listPackageSkills().find((skill) => skill.tier === "optional")!
+    installSkills({ skills: [pkg.name] })
     const log = await runCli(["skill", "list", "--all"])
-    const line = log.find((item) => item.includes("fxri-plan-task"))
-    expect(line).toBeDefined()
-    expect(line).toContain("未安装")
-    expect(line).not.toContain("全文安装（未安装）")
-    expect(line).not.toContain("个目标")
+
+    const installedLine = log.find((item) => item.includes(pkg.name))
+    expect(installedLine).toBeDefined()
+    expect(installedLine).toContain("全文安装")
+    expect(installedLine).not.toContain("个目标")
+
+    const uninstalledLine = log.find((item) => item.includes(missing.name))
+    expect(uninstalledLine).toBeDefined()
+    expect(uninstalledLine).toContain("未安装")
+    expect(uninstalledLine).not.toContain("全文安装（未安装）")
+    expect(uninstalledLine).not.toContain("个目标")
   })
 })

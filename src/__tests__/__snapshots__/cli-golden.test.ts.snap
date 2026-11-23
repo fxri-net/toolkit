@@ -1625,7 +1625,7 @@ Commands:
                                 支持外部目录）
   source [options] [command]    查看 / 刷新 / 注销外部技能来源，并管理来源提示频率
   reconcile [options]           按当前配置收敛技能产物形态（不改选择集、不新增技能）
-  list [options]                列出已安装技能（名称 / 简介 / 版本 / 形态 / 目标数）
+  list [options]                列出已安装技能（名称 / 简介 / 版本 / 形态）
 
 --- stderr ---
 "
@@ -2580,7 +2580,7 @@ Commands:
                                 支持外部目录）
   source [options] [command]    查看 / 刷新 / 注销外部技能来源，并管理来源提示频率
   reconcile [options]           按当前配置收敛技能产物形态（不改选择集、不新增技能）
-  list [options]                列出已安装技能（名称 / 简介 / 版本 / 形态 / 目标数）
+  list [options]                列出已安装技能（名称 / 简介 / 版本 / 形态）
 
 --- stderr ---
 "

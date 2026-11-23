@@ -28,8 +28,8 @@ describe("技能行格式", () => {
     expect(displayWidth(line)).toBeLessThanOrEqual(40)
   })
 
-  it("列表行按 名称 · 简介 · 版本 · 形态 · 目标数 拼装", () => {
-    const line = formatSkillLine({ name: "fxri-plan-task", summary: "方案落盘", version: "1.13.2", form: "入口壳", targets: 3 })
-    expect(line).toBe("fxri-plan-task · 方案落盘 · v1.13.2 · 入口壳 · 3 个目标")
+  it("列表行按 名称 · 简介 · 版本 · 形态 拼装", () => {
+    const line = formatSkillLine({ name: "fxri-plan-task", summary: "方案落盘", version: "1.13.2", form: "入口壳" })
+    expect(line).toBe("fxri-plan-task · 方案落盘 · v1.13.2 · 入口壳")
   })
 })
