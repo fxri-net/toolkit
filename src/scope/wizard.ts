@@ -199,17 +199,22 @@ async function pickFromScan(): Promise<string[] | null> {
     const columns = terminalColumns()
     const picked = await askCheckbox({
       message: `选择项目（共 ${repos.length} 个，空格切换，回车确认）`,
-      choices: repos.map((repo) => ({
-        name: formatChoiceLine({
-          name: `${repo.name} · ${relativeToParents(parents, repo.path)}`,
-          description: repo.kind === "npm" ? "非 git" : undefined,
-          reserved: 5,
-          columns,
-          path: true,
-        }),
-        value: repo.path,
-        checked: false,
-      })),
+      choices: repos.map((repo) => {
+        const relative = relativeToParents(parents, repo.path)
+        const label = `${repo.name} · ${relative}`
+        return {
+          name: formatChoiceLine({
+            name: label,
+            description: repo.kind === "npm" ? "非 git" : undefined,
+            reserved: 5,
+            columns,
+            path: true,
+          }),
+          short: label,
+          value: repo.path,
+          checked: false,
+        }
+      }),
       pageSize: LIST_PAGE_SIZE,
     })
     if (picked === null) return null
