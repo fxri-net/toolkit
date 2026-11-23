@@ -83,6 +83,7 @@
 | 内容闸门 | 按目录控制技能正文是否可读的机制，不是产物名 | `scope guard`、`skillDelivery` |
 | 全文安装 | 技能正文直接落盘，不经过内容闸门 | `skillDelivery.default=full` |
 | 技能统计 | usage 域：采集通道、技能模式、轮转、更新提示频率 | `usage` |
+| 错误级 | 文档中的「error 级」指 JSON `level: error`；文本输出显示为「错误」 | `status --check`、`task check` |
 
 ## 文案约定
 
