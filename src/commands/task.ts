@@ -453,7 +453,7 @@ export function registerTasksCommands(program: Command): void {
       runTasksArchive(options)
     })
 
-  addTasksCommonOptions(tasksCmd.command("check").description("校验任务区：规则与变更集写法，存在 error 时退出码 1"))
+  addTasksCommonOptions(tasksCmd.command("check").description("校验任务区：规则与变更集写法，存在错误时退出码 1"))
     .action((options: TasksCommonOptions) => {
       runTasksCheck(options)
     })

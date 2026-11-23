@@ -2446,7 +2446,7 @@ Usage: toolkit rule compose [options]
 组合规则模块并输出（TTY 无参时交互选择；非 TTY 按缓存 > 推荐组合 recommended）
 
 Options:
-  --preset <name>   预设：minimal / recommended / complete / full
+  --preset <name>   预设：极简（minimal）/ 推荐（recommended）/ 完整（complete）/ 全量（full）
   --module <id...>  模块 id（可重复，也可逗号分隔）
   --no-anchor       不输出首行更新时间锚点
   --out <file>      写入文件（stdout 为空）
@@ -2580,7 +2580,7 @@ Commands:
   add [options]            新建任务档（TTY 无参会交互补齐；非 TTY 须 --title 与 --yes）
   update [options] <key>   更新任务字段与状态（非交互写入须 --yes）
   archive [options]        归档已完成任务
-  check [options]          校验任务区：规则与变更集写法，存在 error 时退出码 1
+  check [options]          校验任务区：规则与变更集写法，存在错误时退出码 1
   normalize [options]      任务区归一化：默认只读检查，--fix 修复（含去 BOM）
   stats [options]          任务统计：周期 / 滞留 / 吞吐
   export [options] <path>  导出任务到文件（.csv / .xlsx / .json）

@@ -583,7 +583,7 @@ export function registerScopeCommands(program: Command): void {
             return
           }
           for (const item of items) {
-            console.log(`  ${item.active ? "✔" : "✘"} ${item.name}：${item.active ? "生效" : "未生效"}（${item.reason}）`)
+            console.log(`  ${item.active ? "✔" : "✖"} ${item.name}：${item.active ? "生效" : "未生效"}（${item.reason}）`)
           }
           for (const hint of formatLinkageHints(linkage)) console.log(line.hint(hint))
           return

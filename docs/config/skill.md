@@ -68,7 +68,7 @@ title: 技能分发偏好（skills）
 | 形态 | 含义 | 落盘 |
 | --- | --- | --- |
 | `full` | 全文安装，到处可用（默认） | 软链 / 副本 |
-| `gated` | 只放入口壳，正文由 `toolkit scope guard` 按作用域下发 | 薄壳 |
+| `gated` | 只放入口壳，正文由 `toolkit scope guard` 按作用域下发 | 入口壳 |
 | `off` | 不安装；已装残留不自动删除，`install --prune` 才清理 | 无产物 |
 
 | 字段 | 类型 | 默认 | 说明 |

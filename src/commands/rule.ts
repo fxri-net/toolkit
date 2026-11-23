@@ -148,7 +148,7 @@ export function registerRulesCommands(program: Command): void {
   rulesCmd
     .command("compose")
     .description("组合规则模块并输出（TTY 无参时交互选择；非 TTY 按缓存 > 推荐组合 recommended）")
-    .option("--preset <name>", "预设：minimal / recommended / complete / full")
+    .option("--preset <name>", "预设：极简（minimal）/ 推荐（recommended）/ 完整（complete）/ 全量（full）")
     .option("--module <id...>", "模块 id（可重复，也可逗号分隔）")
     .option("--no-anchor", "不输出首行更新时间锚点")
     .option("--out <file>", "写入文件（stdout 为空）")

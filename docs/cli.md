@@ -75,9 +75,9 @@
 | 来源 | 技能来源：内置 `toolkit` 源与 `--source` 外部来源 | `skill`、`skill source` |
 | 目标 | 技能安装目标：agent 全局目录 / 项目薄壳目录 | `skill install`、`skill status` |
 | 范围 | 按上下文区分：作用域命中范围（scope）或技能统计范围（usage） | `scope` / `usage config scope` |
-| 名单模式 | 作用域的缺省判定：全部生效（all）/ 仅名单内生效（allowlist）/ 排除名单（denylist，兼容读取） | `scope` 的 status / list / default |
+| 名单模式 | 作用域的缺省判定：全部生效（all）/ 仅名单内生效（allowlist）/ 全部生效（denylist 兼容读取） | `scope` 的 status / list / default |
 | 命中策略 | 当前目录最终命中的那条作用域策略；名单配置生成的规则显示中文名，新策略保留 `policy:<id>` | `scope status`、`scope policy list` |
-| 判定目录 | 判定基准：优先 git 根，其次含 `.tasks` 的根，都没有则当前目录 | `scope status` / `list` |
+| 判定目录 | 判定所依据的目录：优先 git 根，其次含 `.tasks` 的根，都没有则当前目录 | `scope status` / `list` |
 | 入口壳 | 内容闸门产物：只保留名称与描述，正文由 `scope guard` 按作用域下发 | `skill status`、`skillDelivery` |
 | 项目面薄壳 | 项目面安装时指向真源的别名壳；历史文档中的「入口薄壳」「薄壳」均指它 | `skill install --scope project`、`init` |
 | 内容闸门 | 按目录控制技能正文是否可读的机制，不是产物名 | `scope guard`、`skillDelivery` |
