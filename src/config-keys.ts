@@ -6,6 +6,8 @@ import { DEFAULT_DOCS_DIST, DEFAULT_DOCS_NAV } from "./docs/config"
 import { DEFAULT_USAGE_CONFIG, DEFAULT_USAGE_DIR_LABEL } from "./usage/config"
 // 枚举取值单源：分发形态由技能域模块持有
 import { DELIVERY_MODES } from "./skills/delivery"
+// 枚举取值单源：本机路径档位由隐私域模块持有
+import { LOCAL_PATH_LEVELS } from "./privacy/paths"
 
 // 写入层标识：与 scope/config-file.ts 的三层命名一致
 export type ConfigKeyLayer = "global" | "project" | "local"
@@ -47,6 +49,15 @@ const CONFIG_KEY_DEFINITIONS: readonly ConfigKeySpec[] = [
   // 脱敏
   { key: "redact.enabled", type: "boolean", summary: "启用内置脱敏", defaultLayer: "global", writableLayers: ALL_LAYERS },
   { key: "redact.disable", type: "stringList", summary: "按名禁用内置脱敏规则（逗号分隔）", defaultLayer: "global", writableLayers: ALL_LAYERS },
+  // 本机路径：项目级 opt-in，默认 off（业务仓库可保留本地路径）
+  {
+    key: "privacy.localPaths",
+    type: "enum",
+    values: LOCAL_PATH_LEVELS,
+    summary: "本机路径归一与隐私扫描档位（off / warn / error）",
+    defaultLayer: "project",
+    writableLayers: ALL_LAYERS,
+  },
   // 校验
   { key: "check.warnings", type: "boolean", summary: "tasks check 输出软告警", defaultLayer: "global", writableLayers: ALL_LAYERS },
   // 升级检查
@@ -171,6 +182,7 @@ const CONFIG_KEY_DEFAULTS: Readonly<Record<string, ConfigKeySpec["default"]>> = 
   "task.dir": ".tasks",
   "redact.enabled": true,
   "redact.disable": [],
+  "privacy.localPaths": "off",
   "check.warnings": true,
   "updateCheck.enabled": true,
   "skills.autoLink": true,

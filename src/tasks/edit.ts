@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process"
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
 import { userInfo } from "node:os"
 import { basename, join } from "node:path"
+import { normalizeIfEnabled, reportNormalizedPaths } from "../privacy/paths"
 import { skillsPackageDir } from "../skills/source/package"
 import { ALL_STATUSES, DONE_STATUSES, type TaskStatus } from "./types"
 
@@ -78,9 +79,11 @@ function renderValue(key: string, value: string | string[]): string {
   return /^[\w.\-\u4e00-\u9fa5]+$/.test(value) ? value : JSON.stringify(value)
 }
 
-// 写入文件：统一 UTF-8 无 BOM + LF
+// 写入文件：统一 UTF-8 无 BOM + LF；档位开启时归一正文里的本机路径
 function writeFile(file: string, content: string): void {
-  writeFileSync(file, content.replace(/\r\n/g, "\n"), { encoding: "utf8" })
+  const normalized = normalizeIfEnabled(content.replace(/\r\n/g, "\n"))
+  reportNormalizedPaths(normalized.count)
+  writeFileSync(file, normalized.text, { encoding: "utf8" })
 }
 
 export interface AddTaskInput {

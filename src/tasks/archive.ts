@@ -5,6 +5,7 @@ import { listTaskFiles, dateFromFileName } from "./scan"
 import { briefMatchesTitle, parseTaskName } from "./name"
 import { DONE_STATUSES, UNLABELED } from "./types"
 import { redactText } from "../privacy/redact"
+import { normalizeIfEnabled, reportNormalizedPaths } from "../privacy/paths"
 import { isBeyondTzFuture, MAX_UTC_OFFSET_HOURS } from "../date"
 import { writeFileAtomic } from "../write-atomic"
 import type { ArchiveBlock, ArchiveResult, ArchiveOptions } from "./types"
@@ -200,14 +201,20 @@ export function archiveTasks(tasksDir = ".tasks", redact = true, options: Archiv
         }
       }
 
+      let normalizedPaths = 0
       all.push(
-        ...newTasks.map((t) => ({
-          title: t.name,
-          metaLine: `> 负责人：${t.owner}　状态：${t.status}　范围：${t.scope}　完成时间：${t.completed}`,
-          completed: t.completed,
-          body: redactText(t.body, redact),
-        })),
+        ...newTasks.map((t) => {
+          const normalized = normalizeIfEnabled(redactText(t.body, redact))
+          normalizedPaths += normalized.count
+          return {
+            title: t.name,
+            metaLine: `> 负责人：${t.owner}　状态：${t.status}　范围：${t.scope}　完成时间：${t.completed}`,
+            completed: t.completed,
+            body: normalized.text,
+          }
+        }),
       )
+      reportNormalizedPaths(normalizedPaths)
 
       // 预演模式：只打印将要写入的内容，不落盘、不删除 active
       if (dryRun) {

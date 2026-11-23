@@ -92,6 +92,7 @@
 ```json
 {
   "redact":        { "enabled": true, "disable": [], "rules": [] },
+  "privacy":       { "localPaths": "off" },
   "check":         { "warnings": true, "includeCheckbox": true, "pendingMarkers": true },
   "task":          { "importColumns": {} },
   "changelog":     { "languages": {} },
@@ -110,6 +111,9 @@
 ```
 
 ⚠️ `usage` 段只读全局层 `~/.toolkitrc.json`；项目层与本地层误写只告警、不生效，避免克隆仓库后被动开启采集。
+
+⚠️ `privacy.localPaths` 默认 `off`：任务写盘与归档都不做路径归一、扫描也不执行；改成 `warn` / `error` 后才把盘符与家目录路径归一为
+`<本机>/…/末段`、`~/…/末段`，并由扫描按档位决定提示或阻断。开源仓库可开启，业务仓库通常保持默认，以便归档保留本地路径。
 
 ⚠️ **段名统一为单数**：`skillsInstall → skillInstall`、`skillsDelivery → skillDelivery`、
 `projectSkills → projectSkill`、`tasks → task`。

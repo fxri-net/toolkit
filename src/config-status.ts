@@ -67,6 +67,7 @@ const DISPLAY_KEY_SET = new Set(CONFIG_DISPLAY_KEYS)
 // 已知段名清单：与 docs/config.md 的字段总览同源（由单测锁定一致），用于把「本版本未读取的段名」与「有效但非展示键的段」区分开
 export const CONFIG_KNOWN_SECTIONS: readonly string[] = [
   "redact",
+  "privacy",
   "check",
   "task",
   "changelog",

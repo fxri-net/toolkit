@@ -5,6 +5,7 @@ import { existsSync, mkdirSync } from "node:fs"
 import { join } from "node:path"
 import { createRequire } from "node:module"
 import { readTextFile, stripBom } from "../read-text"
+import { normalizeIfEnabled, reportNormalizedPaths } from "../privacy/paths"
 import { normalizeCompleted, parseArchiveBlocks, renderArchiveFile } from "./archive-block"
 import type { ArchiveBlockInfo } from "./archive-block"
 import { ALL_STATUSES, DONE_STATUSES, FRONTMATTER_KEYS, UNLABELED } from "./types"
@@ -288,9 +289,12 @@ function writeActiveTask(tasksDir: string, t: TaskWrite, dryRun: boolean, warnin
     `# ${t.title}`,
   ].join("\n")
   const full = content + (t.body ? `\n\n${t.body}\n` : "\n")
+  // 档位开启时归一正文里的本机路径；off 时与原行为一致
+  const normalized = normalizeIfEnabled(full)
+  reportNormalizedPaths(normalized.count)
   if (!dryRun) {
     mkdirSync(monthDir, { recursive: true })
-    writeFileAtomic(file, full)
+    writeFileAtomic(file, normalized.text)
   }
   return file
 }
@@ -333,7 +337,11 @@ function writeArchiveGroup(tasksDir: string, date: string, incoming: ArchiveBloc
   }
   // 按标题去重 + 完成时间降序 + 块间 `---` 分隔统一由 renderArchiveFile 保证（重复导入同名任务幂等）
   blocks.push(...incoming)
-  writeFileAtomic(file, renderArchiveFile(header, blocks))
+  const rendered = renderArchiveFile(header, blocks)
+  // 档位开启时归一归档块正文里的本机路径（属事实更正类最小改写）
+  const normalized = normalizeIfEnabled(rendered)
+  reportNormalizedPaths(normalized.count)
+  writeFileAtomic(file, normalized.text)
 }
 
 // 导入主入口：file 扩展名决定解析方式（csv/xlsx/json），返回创建/跳过统计

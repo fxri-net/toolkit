@@ -35,6 +35,21 @@ title: 隐私与数据边界
 
 静态检查用例会扫描 `src/usage`（`upload.ts` 除外），出现 `fetch(` 或 `http(s).request(` 即失败，防止未启用路径偷偷联网。
 
+## 本机路径（可选）
+
+路径归一默认关闭（`privacy.localPaths: "off"`）：任务档、归档与导入都不改写路径，业务仓库可在归档里保留本地路径。
+
+开源仓库可显式开启：
+
+```json
+{ "privacy": { "localPaths": "error" } }
+```
+
+开启后 `task add` / `update` / `import` / `archive` 写盘前把盘符路径与 `/Users`、`/home` 路径归一为 `<本机>/…/末段` 或 `~/…/末段`；
+`<本机>`、`~/`、`%USERPROFILE%` 等占位符不动，重复执行幂等。
+
+⚠️ 归一与 `redact` 相互独立：`--no-redact` 只关闭密钥脱敏，不影响路径归一。
+
 ## 清理与删除
 
 ```bash
