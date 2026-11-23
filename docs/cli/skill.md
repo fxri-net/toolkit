@@ -150,6 +150,8 @@ toolkit skill list --format json             # JSON 输出：逐技能条目
 - 已装条目的形态按当前配置推导（与 `install` 同口径：全文安装 / 入口壳 / 不安装）；目标数为已写入的目标目录数
 - 只读命令，不改配置与产物；目录级形态排查仍走 `skill status --matrix`
 - `--format json` 的 `data` 为 `all` 与 `skills`（逐条 `name` / `summary` / `version` / `form` / `targets` / `installed`）
+  - `form` 恒为分发形态推导值，是否已装看 `installed`；未安装条目 `targets` 为 0，`form` 仍按配置给出形态（含「不安装」）
+  - 文本层才以「未安装」替代形态位；脚本筛选未装技能请用 `installed === false`
 
 ### uninstall
 
