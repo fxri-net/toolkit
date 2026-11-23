@@ -9,6 +9,7 @@ import { resolveDocsCheckConfig } from "./docs/config"
 import { checkDocsDist } from "./docs/dist"
 import { checkDocsNav } from "./docs/nav"
 import { skillsStatus } from "./skills/status"
+import { legacyShapeHints } from "./skills/matrix"
 import { listTaskFiles } from "./tasks/scan"
 import { validateTasks } from "./tasks/validate"
 import { countAutoResidue, detectUpgradeItems } from "./upgrade/detect"
@@ -163,17 +164,20 @@ function migrateDomain(cwd: string): DomainResult | null {
   } catch (e) {
     return { summary: `迁移检测失败（跳过）：${(e as Error).message}`, issues: [] }
   }
-  if (items.length === 0) return null
+  // 旧作用域字段与旧分发规则：只提示，不自动改写
+  const shapeHints = legacyShapeHints(cwd)
+  if (items.length === 0 && shapeHints.length === 0) return null
   const auto = countAutoResidue(items)
   const counts = new Map<UpgradeSurface, number>()
   for (const item of items) counts.set(item.surface, (counts.get(item.surface) ?? 0) + 1)
   const distribution = [...counts].map(([surface, count]) => `${SURFACE_LABELS[surface]} ${count}`).join("、")
   return {
-    summary: `发现 ${items.length} 项 v1 形态待迁移`,
+    summary: items.length > 0 ? `发现 ${items.length} 项 v1 形态待迁移` : "存在旧作用域 / 分发配置（只提示，不影响使用）",
     details: [
-      `可自动 ${auto} 项 / 需人工 ${items.length - auto} 项`,
-      `分布：${distribution}`,
-      "运行 toolkit upgrade --check 查看完整清单（只提示，不自动修复）",
+      ...(items.length > 0
+        ? [`可自动 ${auto} 项 / 需人工 ${items.length - auto} 项`, `分布：${distribution}`, "运行 toolkit upgrade --check 查看完整清单（只提示，不自动修复）"]
+        : []),
+      ...shapeHints,
     ],
     issues: [],
   }

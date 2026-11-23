@@ -67,6 +67,9 @@ import {
   resolveDelivery,
   explainSkillDelivery,
   reconcileSkills,
+  buildSkillMatrix,
+  printSkillMatrix,
+  legacyShapeHints,
   packageVersion,
   type InstallReport,
   type ProjectDirResult,
@@ -1209,10 +1212,25 @@ export function registerSkillsCommands(program: Command): void {
     .option("--scope <scope>", "作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）")
     .option("--explain <skill>", "解释指定技能的分发形态推导过程（只读，不受 --scope 影响）")
     .option("--path", "只输出包根路径（内含 skills/，可委托上游安装器安装到表外 agent）")
+    .option("--matrix", "以矩阵视图列出技能形态与命中依据（只读）")
+    .option("--at <dir>", "以指定目录为判定起点（配合 --matrix，不改变进程 cwd）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
-    .action((options: { scope?: string; explain?: string; path?: boolean; format?: string }) => {
+    .action((options: { scope?: string; explain?: string; path?: boolean; matrix?: boolean; at?: string; format?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return
+        // 矩阵视图：逐技能给出产物形态、当前目录形态与命中规则，附旧配置迁移提示
+        if (options.matrix) {
+          const startDir = options.at ?? process.cwd()
+          const matrix = buildSkillMatrix(startDir)
+          const migrationHints = legacyShapeHints(startDir)
+          if (options.format === "json") {
+            printJson(jsonEnvelope({ command: "skill status", data: { at: startDir, matrix, migrationHints } }))
+            return
+          }
+          printSkillMatrix(matrix, startDir)
+          for (const hint of migrationHints) console.log(line.hint(hint))
+          return
+        }
         // 包根定位：从 status 下沉而来，原样保留旧的文本 / JSON 两种输出
         if (options.path) {
           if (options.format === "json") {

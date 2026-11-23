@@ -98,6 +98,9 @@ title: 技能分发偏好（skills）
 项目层整段覆盖全局、本地层按字段覆盖。项目面的 `gated` 同样落入口壳：真源副本仍在 `<仓库根>/.agents/skills/`，
 入口壳调用同一个 `toolkit scope guard`，判定读项目层配置，正文取项目真源副本。
 
+**旧配置迁移（只提示，不自动改写）**：`skillDelivery.rules` 可改用策略的 `delivery` 表达，`activation` 由名单配置编译为策略；
+新旧并存时按「rules > policies > default」解释，`skill status --matrix` 逐技能显示来源，`toolkit status` 在检测到旧字段时给一次迁移提示。
+
 **旧键兼容**（读时映射、只提示不写盘，2.1.0 起移除）：
 
 - `skillInstall.gate: true` → `default: "gated"`；`skillInstall.gate: { include, exclude }` → 等价的 `rules`

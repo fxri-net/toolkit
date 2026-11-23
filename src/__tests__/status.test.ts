@@ -12,6 +12,7 @@ const stubs = vi.hoisted(() => ({
   checkDocsDist: vi.fn(),
   detectUpgradeItems: vi.fn(),
   countAutoResidue: vi.fn(),
+  legacyShapeHints: vi.fn(),
 }))
 
 vi.mock("../skills/status", () => ({ skillsStatus: stubs.skillsStatus }))
@@ -25,6 +26,8 @@ vi.mock("../docs/dist", () => ({ DIST_RULES_VERSION: "test", checkDocsDist: stub
 vi.mock("../docs/config", () => ({ resolveDocsCheckConfig: () => ({ nav: { dir: "docs" }, dist: {}, rules: {} }) }))
 // 迁移检测取数与升级命令共用同一实现，聚合层只验证区块映射，不在此复刻检测规则
 vi.mock("../upgrade/detect", () => ({ detectUpgradeItems: stubs.detectUpgradeItems, countAutoResidue: stubs.countAutoResidue }))
+// 旧作用域 / 分发配置提示由 skills 域给出：健康现场固定为空，避免读到开发者本机全局配置
+vi.mock("../skills/matrix", () => ({ legacyShapeHints: stubs.legacyShapeHints }))
 vi.mock("../config", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../config")>()
   return { ...actual, resolveTasksDir: () => ".tasks" }
@@ -44,6 +47,7 @@ function healthyDomains(): void {
   stubs.configStatus.mockReturnValue({ summary: "共命中 1 层：项目层", items: [] })
   stubs.checkDocsNav.mockReturnValue({ ok: true, problems: [], navCount: 1, sidebarCount: 1, localeCount: 1 })
   stubs.checkDocsDist.mockReturnValue({ ok: true, skipped: false, searchChecked: true, problems: [] })
+  stubs.legacyShapeHints.mockReturnValue([])
 }
 
 const dirs: string[] = []

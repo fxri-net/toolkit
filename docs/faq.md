@@ -171,6 +171,13 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 `--embed` 可把本次安装回退全文；旧键 `skillInstall.gate` 与技能声明 `metadata.gate: false` 仍读时兼容。
 契约见 [技能分发](./cli/skill#策略与内容闸门) 与 [作用域 · 内容闸门](./cli/scope#内容闸门-guard)。
 
+### 某个技能为什么是入口壳 / 不安装？改完配置要不要再手动装？
+
+用 `toolkit skill status --matrix [--at <目录>]` 查看：它会逐技能列出产物形态、当前目录形态、命中规则的策略 id 与条件，
+并提示仍在生效的旧 `activation` / `skillDelivery.rules`。
+用 `scope list` / `policy` / `skills` 写配置后会自动按矩阵收敛产物（写前预览形态变更、写后逐技能报告），不需要再手动装；
+只有手工改配置文件、或队友 pull 了项目层配置时，才需要跑一次 `toolkit skill reconcile`。
+
 ⚠️ 入口壳只降低正文被读取的概率，不是物理隔离；需要绝对干净用 `toolkit skill mount` 或 `toolkit skill install --scope project`。
 
 ## 任务与流程

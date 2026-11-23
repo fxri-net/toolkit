@@ -12,7 +12,7 @@ export interface PolicyDeliveryContext {
 }
 
 // 单条策略的命中：mode 为推导形态，score 用于同一技能的「最具体一条」展示
-interface PolicyHit {
+export interface PolicyHit {
   id: string
   mode: DeliveryMode
   score: number
@@ -81,7 +81,7 @@ function isLegacyFallback(policy: ScopePolicy): boolean {
 }
 
 // 单条策略判定：返回命中结论；未限制该技能返回 null
-function evaluatePolicy(policy: ScopePolicy, profiles: ScopeProfile[], name: string): PolicyHit | null {
+export function evaluatePolicy(policy: ScopePolicy, profiles: ScopeProfile[], name: string): PolicyHit | null {
   if (!selectorMatches(policy.skills, name)) return null
   const skills = policy.skills
   const conditional = hasConditions(policy.when)
