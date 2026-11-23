@@ -62,6 +62,7 @@
           "items": [
             { "text": "整体状态", "link": "/cli/status" },
             { "text": "任务区", "link": "/cli/task" },
+            { "text": "隐私体检", "link": "/cli/privacy" },
             { "text": "初始化", "link": "/cli/init" },
             { "text": "升级迁移", "link": "/cli/upgrade" },
             { "text": "作用域", "link": "/cli/scope" },

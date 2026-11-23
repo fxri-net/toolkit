@@ -81,6 +81,7 @@ toolkit task check --strict       # 任务目录不存在时报错退出（默�
 - **阻塞节**：`status: 阻塞` 的档须在正文第一个二级标题处有 `## 阻塞` 节，三行顺序固定（阻塞原因 / 解除条件 / 阻塞日期）、
    全角冒号、阻塞日期为 `YYYY-MM-DD`；解除记录日期晚于阻塞日期时提示转回进行中；非阻塞档保留该节不校验——均软告警
 - **文件位置**：游离于 `active/` 层级外的日期前缀文件
+- **本机路径**：`privacy.localPaths` 开启时并入同一扫描——归档与规范载体里的本机绝对路径按档位报 error / warn，`active/` 只提示（详见[隐私体检](./privacy)）
 - **规范载体**：旧单文件 `conventions.md` 残留待迁移；
    `conventions/` 缺 `index.md`；形态异常（形态标记、`history.md` 与索引表首列 ID 三者不一致）；
    v3 索引表列集合偏离五列；`history.md` / `retired.md` 表头偏离固定列；

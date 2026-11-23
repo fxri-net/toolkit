@@ -33,6 +33,9 @@ export const COMMAND_REGISTRY: readonly CommandEntry[] = [
   { path: "config unset", params: "<key> [--layer <layer>]", stage: "current" },
   { path: "config status", params: "[--cwd <path>]", stage: "current" },
 
+  { path: "privacy", stage: "current" },
+  { path: "privacy scan", stage: "current" },
+
   { path: "task", stage: "current" },
   { path: "task list", stage: "current", tier: "advanced" },
   { path: "task add", stage: "current" },

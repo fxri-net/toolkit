@@ -1,7 +1,8 @@
 // active 任务校验：frontmatter 合法性、完成时间格式、重名、方案正文子项未闭合
 // 供 tasks check 使用，输出问题清单；error 为硬性错误，warn 为软告警（默认开启可关）
-import { join, basename, dirname } from "node:path"
+import { join, basename, dirname, relative } from "node:path"
 import { listTaskFiles } from "./scan"
+import { scanPrivacy } from "../privacy/scan"
 import { checkArchive } from "./normalize"
 import { readDeclaredEndpoints, validateTaskFile } from "./validate-file"
 // 单文件校验是公开 API 的一部分，从本文件统一出口转发
@@ -61,6 +62,13 @@ export function validateTasks(tasksDir = ".tasks", cwd = process.cwd()): CheckRe
   // 避免 validate 与 normalize 各写一套导致判据漂移；归档问题一律 warn 级（明细与修复走 tasks normalize / normalize --fix）
   for (const i of checkArchive(tasksDir)) {
     issues.push({ level: "warn", file: i.file, message: i.message })
+  }
+
+  // 隐私扫描：档位开启时把任务区（含归档与规范载体）里的本机路径并入校验结果
+  const tasksRoot = relative(cwd, join(cwd, tasksDir)).split("\\").join("/")
+  const privacy = scanPrivacy(cwd, { roots: [tasksRoot || tasksDir] })
+  for (const hit of privacy.hits) {
+    issues.push({ level: hit.level, file: hit.file, line: hit.line, message: `本机路径（privacy.localPaths）：${hit.text}` })
   }
 
   // 跨文件重名检测：同名任务文件疑似重复建档

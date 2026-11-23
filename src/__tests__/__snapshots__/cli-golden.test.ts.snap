@@ -2428,6 +2428,7 @@ Commands:
   config [options] [command]      配置：list / get / set / unset 唯一写入口，另有 status
                                   只读体检三层配置文件
   docs [options] [command]        文档站工具：默认全量校验（theme / nav / dist），另可按项校验与写入
+  privacy [options] [command]     隐私体检：本机绝对路径扫描与归一（按 privacy.localPaths 档位）
   task [options] [command]        任务管理
   release [options] [command]     多语言更新日志与发版（默认 status；封装 changesets）
   rule [options] [command]        全局规则：列出模块、组合输出与缓存管理
@@ -2695,6 +2696,7 @@ Commands:
   config [options] [command]      配置：list / get / set / unset 唯一写入口，另有 status
                                   只读体检三层配置文件
   docs [options] [command]        文档站工具：默认全量校验（theme / nav / dist），另可按项校验与写入
+  privacy [options] [command]     隐私体检：本机绝对路径扫描与归一（按 privacy.localPaths 档位）
   task [options] [command]        任务管理
   release [options] [command]     多语言更新日志与发版（默认 status；封装 changesets）
   rule [options] [command]        全局规则：列出模块、组合输出与缓存管理
@@ -2742,6 +2744,7 @@ Commands:
   config [options] [command]      配置：list / get / set / unset 唯一写入口，另有 status
                                   只读体检三层配置文件
   docs [options] [command]        文档站工具：默认全量校验（theme / nav / dist），另可按项校验与写入
+  privacy [options] [command]     隐私体检：本机绝对路径扫描与归一（按 privacy.localPaths 档位）
   task [options] [command]        任务管理
   release [options] [command]     多语言更新日志与发版（默认 status；封装 changesets）
   rule [options] [command]        全局规则：列出模块、组合输出与缓存管理

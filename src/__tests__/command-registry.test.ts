@@ -11,6 +11,7 @@ import { registerChangelogCommands } from "../commands/release"
 import { registerConventionsCommands } from "../commands/convention"
 import { registerConfigCommands } from "../commands/config"
 import { registerDocsCommands } from "../commands/docs"
+import { registerPrivacyCommands } from "../commands/privacy"
 import { registerRulesCommands } from "../commands/rule"
 import { registerScopeCommands } from "../commands/scope"
 import { registerUsageCommands } from "../usage/commands"
@@ -25,6 +26,7 @@ function buildProgram(): Command {
   registerConventionsCommands(program)
   registerConfigCommands(program)
   registerDocsCommands(program)
+  registerPrivacyCommands(program)
   registerTasksCommands(program)
   registerChangelogCommands(program)
   registerRulesCommands(program)

@@ -281,6 +281,8 @@ const tailSteps = [
   // 技能规范：本仓技能必须通过 lint；--base 下内容变更未递增即失败，默认档只告警篇幅
   { label: "技能规范校验（skill lint）", args: ["dist/cli.js", "skill", "lint", "skills", "--base", skillBase], env: cliEnv },
   { label: "任务区体检（task check）", args: ["dist/cli.js", "task", "check"], env: { TZ: "Asia/Shanghai", ...cliEnv } },
+  // 隐私扫描：档位 off（未启用）时立即通过，业务仓库默认零噪音
+  { label: "隐私扫描（privacy.localPaths 档位）", args: ["dist/cli.js", "privacy", "scan"], env: cliEnv },
   { label: "归档块归一核验（task normalize）", args: ["dist/cli.js", "task", "normalize"], env: { TZ: "Asia/Shanghai", ...cliEnv } },
 ]
 

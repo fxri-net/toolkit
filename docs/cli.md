@@ -19,6 +19,7 @@
 | `toolkit rule` | 全局规则：列出模块、组合输出、锚点校验与缓存管理 | `list` / `compose` / `reset` / `check` | [全局规则](./cli/rule) |
 | `toolkit scope` | 作用域：按项目 / 目录判定技能是否生效（默认全域生效） | `status` / `list` / `policy` / `skills` / `wizard` / `guard`（`list` 组含 add / exclude / remove / default / reset，详见 scope 页） | [作用域](./cli/scope) |
 | `toolkit config` | 配置唯一写入口（键清单 + 分层写入）与只读体检 | `list` / `get` / `set` / `unset` / `status` | [配置体检](./cli/config) |
+| `toolkit privacy` | 隐私体检：本机绝对路径扫描与归一（按项目档位） | `scan` | [隐私体检](./cli/privacy) |
 | `toolkit docs` | 文档站全量校验（默认）、主题写入与分项校验 | `check` / `theme` / `nav` / `dist` | [文档站主题](./cli/docs-theme) · [文档站校验](./cli/docs-check) |
 | `toolkit help` | 显示帮助 | — | — |
 
@@ -50,6 +51,7 @@
 | `toolkit skill` | 打印本域帮助 | 同左，退出 0 | `skill mount` 需交互（非 TTY 退 2） | 多数子命令 `--format json`（`mount` 等除外） |
 | `toolkit rule` | 打印本域帮助 | 同左，退出 0 | 无 | `list` / `compose --format json` |
 | `toolkit config` | 打印本域帮助 | 同左，退出 0 | 无 | `list` / `get` / `status --format json` |
+| `toolkit privacy` | 打印本域帮助 | 同左，退出 0 | 无 | `scan --format json` |
 | `toolkit convention` | 打印本域帮助 | 同左，退出 0 | 无 | `status` / `format` / `upgrade --format json` |
 | `toolkit docs` | 默认全量校验（theme / nav / dist） | 同左 | 无 | `nav` / `dist --format json` |
 | `toolkit scope` | 状态优先向导 | 输出状态摘要与子命令提示，退出 0 | `scope wizard`（需要交互但无终端时按无交互退出码结束，见[退出码](./cli/exit-codes)） | `status` / `list --format json` |

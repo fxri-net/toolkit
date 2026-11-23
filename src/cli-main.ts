@@ -25,6 +25,7 @@ export async function runCli(version: string): Promise<void> {
     { registerConventionsCommands },
     { registerConfigCommands },
     { registerDocsCommands },
+    { registerPrivacyCommands },
     { registerRulesCommands },
     { registerScopeCommands },
     { removedCommandHint, rewriteDeprecatedArgv, recordDeprecationHits },
@@ -47,6 +48,7 @@ export async function runCli(version: string): Promise<void> {
     import("./commands/convention"),
     import("./commands/config"),
     import("./commands/docs"),
+    import("./commands/privacy"),
     import("./commands/rule"),
     import("./commands/scope"),
     import("./command-registry"),
@@ -146,6 +148,8 @@ export async function runCli(version: string): Promise<void> {
   registerConventionsCommands(program)
   registerConfigCommands(program)
   registerDocsCommands(program)
+  // 隐私体检：本机路径扫描与归一（按 privacy.localPaths 档位）
+  registerPrivacyCommands(program)
 
   // tasks 与 changelog 域：命令注册与打印移入 ./commands 下的独立模块
   registerTasksCommands(program)

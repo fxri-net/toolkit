@@ -38,7 +38,7 @@ title: 事件 Schema
   "agent": "trae",
   "sessionId": "9b4c1f17-4cdb-444e-a372-77405e91b4b9",
   "toolUseId": "call_abc123",
-  "project": "d:/Work/Dev-Space/fxri/0001.base/toolkit",
+  "project": "<本机>/…/toolkit",
   "skill": "fxri-plan-task",
   "skillVersion": "1.9.16",
   "skillSource": "toolkit-first-party",

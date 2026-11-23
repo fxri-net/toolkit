@@ -7,7 +7,7 @@ export type LocalPathLevel = (typeof LOCAL_PATH_LEVELS)[number]
 
 // 盘符路径与 POSIX 家目录路径：占位符（<本机> / ~/ / %USERPROFILE%）不会被匹配；
 // 通配规则（含 `*` / `?`）与裸目录写法（如 `/Users/`）原样保留，避免把文档里的规则示例改坏
-const WINDOWS_PATH = /[A-Za-z]:[\\/][^\s`"'()<>|，。；：、]*/g
+const WINDOWS_PATH = /(?<![A-Za-z0-9])[A-Za-z]:[\\/][^\s`"'()<>|，。；：、]*/g
 const POSIX_HOME_PATH = /(?:\/Users|\/home)\/[^\s`"'()<>|，。；：、*?]+/g
 
 // 读取档位：未配置即 off；非法取值告警后按 off 处理（降级不静默）
@@ -42,6 +42,25 @@ export function normalizeLocalPaths(text: string): { text: string; count: number
       return tail ? `~/…/${tail}` : "~/…"
     })
   return { text: out, count }
+}
+
+// 单条路径命中：value 为原文片段，kind 区分盘符与 POSIX 家目录
+export interface LocalPathHit {
+  value: string
+  kind: "windows" | "posix-home"
+}
+
+// 查找（不改写）：供扫描与任务校验使用；通配与裸目录写法同样跳过
+export function findLocalPaths(text: string): LocalPathHit[] {
+  const hits: LocalPathHit[] = []
+  for (const match of text.matchAll(new RegExp(WINDOWS_PATH.source, "g"))) {
+    if (/[*?]/.test(match[0])) continue
+    hits.push({ value: match[0], kind: "windows" })
+  }
+  for (const match of text.matchAll(new RegExp(POSIX_HOME_PATH.source, "g"))) {
+    hits.push({ value: match[0], kind: "posix-home" })
+  }
+  return hits
 }
 
 // 写盘前归一：档位为 off 时原样返回，保证业务仓库行为与升级前一致

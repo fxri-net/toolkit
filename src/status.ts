@@ -10,6 +10,7 @@ import { checkDocsDist } from "./docs/dist"
 import { checkDocsNav } from "./docs/nav"
 import { skillsStatus } from "./skills/status"
 import { legacyShapeHints } from "./skills/matrix"
+import { scanPrivacy } from "./privacy/scan"
 import { listTaskFiles } from "./tasks/scan"
 import { validateTasks } from "./tasks/validate"
 import { countAutoResidue, detectUpgradeItems } from "./upgrade/detect"
@@ -166,6 +167,11 @@ function migrateDomain(cwd: string): DomainResult | null {
   }
   // 旧作用域字段与旧分发规则：只提示，不自动改写
   const shapeHints = legacyShapeHints(cwd)
+  // 本机路径：档位开启且有命中时并入迁移区块，off 时整段省略
+  const privacy = scanPrivacy(cwd)
+  if (!privacy.skipped && privacy.hits.length > 0) {
+    shapeHints.push(`本机路径 ${privacy.errors} 处阻断 / ${privacy.warnings} 处提示：可运行 toolkit privacy scan 查看，任务区加 --fix 归一`)
+  }
   if (items.length === 0 && shapeHints.length === 0) return null
   const auto = countAutoResidue(items)
   const counts = new Map<UpgradeSurface, number>()
