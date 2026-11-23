@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { setHomeDirForTest } from "../config"
-import { buildLayerChoices, runScopeWizard } from "../scope/wizard"
+import { buildLayerChoices, runScopeWizard, scanRangeChoices } from "../scope/wizard"
 import { toTreePattern } from "../scope/paths"
 import * as skills from "../skills"
 
@@ -112,6 +112,23 @@ describe("作用域向导菜单", () => {
     await runScopeWizard()
     expect(log.mock.calls.flat().join("\n")).toContain("高级规则只读")
     expect(readActivation().include).toEqual([])
+  })
+})
+
+describe("扫描范围选项", () => {
+  it("只剪枝嵌套仓库时也给出入口，两项可同时可选", () => {
+    expect(scanRangeChoices(0, 3).map((choice) => choice.value)).toEqual(["nested"])
+    expect(scanRangeChoices(2, 3).map((choice) => choice.value)).toEqual(["hidden", "nested"])
+    expect(scanRangeChoices(0, 0)).toEqual([])
+  })
+
+  it("文案用扫描 / 展开，不再用包含", () => {
+    const names = scanRangeChoices(1, 1)
+      .map((choice) => choice.name)
+      .join("\n")
+    expect(names).toContain("扫描隐藏目录")
+    expect(names).toContain("展开仓库内部")
+    expect(names).not.toContain("包含")
   })
 })
 

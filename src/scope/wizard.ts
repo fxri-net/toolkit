@@ -106,6 +106,17 @@ function printStateDetails(state: ScopeState, advanced = false): void {
   if (advanced) console.log(line.hint("高级规则只读：复制配置路径后自行编辑，保存后运行 toolkit scope status 校验"))
 }
 
+// 扫描范围可开启项：按当前跳过计数生成，结果页与空结果页复用同一套文案
+export function scanRangeChoices(
+  hiddenCount: number,
+  nestedCount: number,
+): Array<{ name: string; value: "hidden" | "nested" }> {
+  const choices: Array<{ name: string; value: "hidden" | "nested" }> = []
+  if (hiddenCount > 0) choices.push({ name: "扫描隐藏目录（以 . 开头）", value: "hidden" })
+  if (nestedCount > 0) choices.push({ name: "展开仓库内部，查找嵌套仓库", value: "nested" })
+  return choices
+}
+
 // 扫描父目录并多选项目：0 结果时就地提供下探 / 隐藏 / 嵌套选项
 async function pickFromScan(): Promise<string[] | null> {
   const input = await askInput({ message: "要扫描的父目录（多个用逗号或换行分隔）", default: process.cwd() })
@@ -121,7 +132,6 @@ async function pickFromScan(): Promise<string[] | null> {
   })
   if (parents.length === 0) return null
   let options: ScanOptions = {}
-  let prompted = false
   for (;;) {
     const results = parents.map((parent) => scanRepositoryTree(parent, options))
     const truncated = results.find((result) => result.truncated)?.truncated
@@ -137,12 +147,12 @@ async function pickFromScan(): Promise<string[] | null> {
       })
     if (repos.length === 0) {
       const next = await runMenu<string>({
-        message: "未发现仓库，下一步",
+        message: "没找到仓库，接下来怎么做",
         back: true,
         choices: [
           { name: "下探更深", value: "deeper" },
-          { name: "包含隐藏目录", value: "hidden" },
-          { name: "包含嵌套仓库", value: "nested" },
+          { name: "扫描隐藏目录（以 . 开头）", value: "hidden" },
+          { name: "展开仓库内部，查找嵌套仓库", value: "nested" },
         ],
       })
       if (next === "back" || next === "exit") return null
@@ -156,18 +166,14 @@ async function pickFromScan(): Promise<string[] | null> {
     const hiddenCount = skipped.filter((item) => item.reason === "隐藏目录").length
     const depCount = skipped.filter((item) => item.reason === "依赖 / 产物目录").length
     const nestedCount = results.reduce((sum, result) => sum + result.nestedPruned, 0)
-    console.log(line.hint(`已跳过：隐藏目录 ${hiddenCount} 个、依赖 / 产物目录 ${depCount} 个、未展开仓库 ${nestedCount} 个`))
-    // 只有确实跳过了隐藏目录时才打断；未展开仓库属默认剪枝的常态，只展示计数
-    if (!prompted && hiddenCount > 0) {
-      prompted = true
+    console.log(line.hint(`已跳过：隐藏目录 ${hiddenCount} 个、依赖 / 产物目录 ${depCount} 个、未展开的仓库内部 ${nestedCount} 个`))
+    // 有可开启项就给出入口；隐藏目录与嵌套仓库可先后开启，直到用户选择按当前范围继续
+    const rangeChoices = scanRangeChoices(hiddenCount, nestedCount)
+    if (rangeChoices.length > 0) {
       const scopeChoice = await runMenu<string>({
-        message: "是否调整扫描范围",
+        message: "扫描范围",
         back: true,
-        choices: [
-          { name: "保持跳过（默认）", value: "keep" },
-          { name: "包含隐藏目录", value: "hidden" },
-          { name: "包含嵌套仓库", value: "nested" },
-        ],
+        choices: [...rangeChoices, { name: "按当前范围继续", value: "keep" }],
       })
       if (scopeChoice === "back" || scopeChoice === "exit") return null
       if (scopeChoice === "hidden") {
