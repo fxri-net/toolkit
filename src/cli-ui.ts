@@ -10,9 +10,11 @@ export interface MenuChoice<T extends string> {
   disabled?: boolean | string
 }
 
-// 多选项：checked 控制默认勾选
+// 多选项：checked 控制默认勾选；short 为答案行展示值（缺省取 name），checkedName 为勾选后的行内文案
 export interface MultiChoice<T extends string> extends MenuChoice<T> {
   checked?: boolean
+  short?: string
+  checkedName?: string
 }
 
 // 分组标题行：Separator 实例由调用方在交互组件加载后构造，这里只做类型透传

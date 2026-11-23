@@ -3,7 +3,9 @@ import { existsSync } from "node:fs"
 import { resolve } from "node:path"
 import type { Command } from "commander"
 import { assertJsonFormat, jsonEnvelope } from "../json-output"
-import { INTERACTIVE_EXIT, isInteractive, loadPrompts, reportCancelled } from "../prompts"
+import { INTERACTIVE_EXIT, exitWithCancel, isInteractive } from "../prompts"
+import { askCheckbox } from "../cli-ui"
+import { formatChoiceLine, terminalColumns } from "../prompt-line"
 import { printJson } from "./shared"
 import { line, style } from "../term-style"
 import { latestBackup, restoreBackup } from "../upgrade/backup"
@@ -82,18 +84,24 @@ function printResult(applied: string[], failed: string[], backups: string[], res
   }
 }
 
-// 交互式选择：返回勾选的迁移项；手动项不进入选择集
+// 交互式选择：返回勾选的迁移项；手动项不进入选择集，ESC 取消返回 null
 async function selectItems(items: UpgradeItem[]): Promise<UpgradeItem[] | null> {
-  const prompts = await loadPrompts()
+  const columns = terminalColumns()
   const choices = items
     .filter((item) => item.status === "planned")
-    .map((item) => ({ name: `${item.id}｜${item.action}`, value: item.id, checked: item.risk !== "high" }))
+    .map((item) => ({
+      name: formatChoiceLine({ name: `${item.id}｜${item.action}`, reserved: 5, columns }),
+      short: item.id,
+      value: item.id,
+      checked: item.risk !== "high",
+    }))
   if (choices.length === 0) {
     console.log(line.hint("没有可自动迁移的项"))
     return []
   }
-  const selected = await prompts.checkbox({ message: "选择要执行的迁移项（空格切换，回车确认）", choices })
-  const picked = new Set(selected as string[])
+  const selected = await askCheckbox<string>({ message: "选择要执行的迁移项（空格切换，回车确认）", choices })
+  if (selected === null) return null
+  const picked = new Set(selected)
   return items.filter((item) => picked.has(item.id))
 }
 
@@ -171,10 +179,8 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
   if (isInteractive()) {
     printPlan(plan.items)
     const picked = await selectItems(plan.items)
-    if (!picked) {
-      reportCancelled()
-      return
-    }
+    // 顶层 ESC 与 Ctrl+C 同口径：按取消退出码结束，不落任何写入
+    if (!picked) exitWithCancel()
     targets = picked
   } else {
     if (!options.yes) {

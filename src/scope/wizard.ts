@@ -3,6 +3,7 @@ import { existsSync } from "node:fs"
 import { relative } from "node:path"
 import { LIST_PAGE_SIZE, requireInteractive } from "../prompts"
 import { installProjectSkills, listPackageSkills } from "../skills"
+import { formatChoiceLine, terminalColumns } from "../prompt-line"
 import { line } from "../term-style"
 import { askCheckbox, askConfirm, askInput, askSelect, reportWrite, runMenu } from "../cli-ui"
 import { applyScopePlan } from "./apply"
@@ -195,10 +196,17 @@ async function pickFromScan(): Promise<string[] | null> {
       const needle = keyword.trim().toLowerCase()
       if (needle) repos = repos.filter((repo) => repo.name.toLowerCase().includes(needle) || repo.path.toLowerCase().includes(needle))
     }
+    const columns = terminalColumns()
     const picked = await askCheckbox({
       message: `选择项目（共 ${repos.length} 个，空格切换，回车确认）`,
       choices: repos.map((repo) => ({
-        name: `${repo.name} · ${relativeToParents(parents, repo.path)}${repo.kind === "npm" ? " · 非 git" : ""}`,
+        name: formatChoiceLine({
+          name: `${repo.name} · ${relativeToParents(parents, repo.path)}`,
+          description: repo.kind === "npm" ? "非 git" : undefined,
+          reserved: 5,
+          columns,
+          path: true,
+        }),
         value: repo.path,
         checked: false,
       })),
@@ -479,17 +487,22 @@ async function skillMatrixFlow(state: ScopeState): Promise<void> {
     }
     if (!selection) {
       const profiles = resolveScope(state.startDir).profiles
-      const packageSkills = listPackageSkills().map((skill) => skill.name)
-      const choices: Array<{ name: string; value: string }> = []
+      const columns = terminalColumns()
+      const choices: Array<{ name: string; value: string; short?: string }> = []
       if (mode === "allowlist") {
         for (const profile of profiles) {
-          choices.push({
-            name: `[档案] ${profile.name}（允许 ${profile.allow.length} 项）`,
-            value: `profile::${profile.name}`,
-          })
+          const label = `[档案] ${profile.name}（允许 ${profile.allow.length} 项）`
+          choices.push({ name: label, value: `profile::${profile.name}`, short: label })
         }
       }
-      for (const name of packageSkills) choices.push({ name: `[技能] ${name}`, value: `skill::${name}` })
+      for (const skill of listPackageSkills()) {
+        const label = `[技能] ${skill.name}`
+        choices.push({
+          name: formatChoiceLine({ name: label, description: skill.description, reserved: 5, columns }),
+          short: label,
+          value: `skill::${skill.name}`,
+        })
+      }
       if (choices.length === 0) {
         console.log(
           line.hint(

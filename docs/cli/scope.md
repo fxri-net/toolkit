@@ -87,6 +87,7 @@ toolkit scope guard fxri-plan-task              # 内容闸门：按当前目录
 - 高级规则（启用标记 / git 远端 / 技能级规则）只读展示并给出配置文件路径，复制后自行编辑，不自造低频编辑 UI
 - 技能矩阵页：选择范围（当前项目 / 手动项目与子路径 / 扫描）、模式（只允许 / 全部允许但排除）、技能或档案，
   可选标记 / 远端条件；预览后写入，空现场提示先安装技能或创建档案，不写空规则
+  - 技能项后缀暗色单行简介（来源 `description`），项目扫描列表的长路径按中段省略、`非 git` 以暗色标注；答案行只显示名称
 - 内容闸门与批量挂载已移出本域：默认分发形态用 `toolkit config set skillDelivery.default gated|full` 切换，
   `on` 对应 `gated`（入口壳）、`off` 对应 `full`（全文），查看用 `toolkit config get skillDelivery.default`；
   `toolkit skill install --gate` / `--embed` 生成或还原入口壳；批量挂载用 `toolkit skill mount`

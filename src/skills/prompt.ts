@@ -230,13 +230,19 @@ export async function promptTargetSelection(choices: TargetChoice[], message: st
     else groups.set(choice.group, [choice])
   }
   const { Separator } = await loadPrompts()
+  const columns = terminalColumns()
   const rows = [...groups].flatMap(([title, items]) => {
-    const mapped = items.map((choice) => ({
-      value: choice.value,
-      name: choice.label,
-      checked: choice.checked,
-      disabled: choice.disabled ?? false,
-    }))
+    const mapped = items.map((choice) => {
+      // 禁用原因由 inquirer 追加在行尾，预算须一并扣除
+      const reasonWidth = typeof choice.disabled === "string" ? 1 + displayWidth(choice.disabled) : 0
+      const asPath = ["自定义（一次性）", "项目目录", "已保存（目录不存在）"].includes(choice.group)
+      return {
+        value: choice.value,
+        name: formatChoiceLine({ name: choice.label, reserved: 5 + reasonWidth, columns, path: asPath }),
+        checked: choice.checked,
+        disabled: choice.disabled ?? false,
+      }
+    })
     return groups.size > 1 ? [new Separator(`── ${title} ──`), ...mapped] : mapped
   })
   return askCheckbox({ message, choices: rows, pageSize: LIST_PAGE_SIZE })
