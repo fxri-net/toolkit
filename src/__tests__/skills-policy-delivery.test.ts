@@ -131,6 +131,44 @@ describe("策略推导", () => {
     expect(decision?.reason).toContain("policy:exact")
   })
 
+  it("显式声明的形态直接参与矩阵推导", () => {
+    const gated = derivePolicyDelivery("fxri-plan-task", {
+      policies: [{ id: "shape-gated", effect: "allow", when: { paths: ["/work/**"] }, delivery: "gated" }],
+      profiles: emptyProfiles,
+    })
+    expect(gated?.mode).toBe("gated")
+    expect(gated?.reason).toContain("声明该范围为入口壳")
+
+    const off = derivePolicyDelivery("fxri-plan-task", {
+      policies: [{ id: "shape-off", effect: "allow", when: { paths: ["/work/**"] }, delivery: "off" }],
+      profiles: emptyProfiles,
+    })
+    expect(off?.mode).toBe("off")
+
+    const denied = derivePolicyDelivery("fxri-plan-task", {
+      policies: [{ id: "deny-gated", effect: "deny", when: { paths: ["/work/**"] }, delivery: "gated" }],
+      profiles: emptyProfiles,
+    })
+    expect(denied?.mode).toBe("gated")
+  })
+
+  it("全文声明与不安装并存时仍装入口壳，只有全文声明等同未限制", () => {
+    const mixed = derivePolicyDelivery("fxri-plan-task", {
+      policies: [
+        { id: "full-a", effect: "allow", when: { paths: ["/a/**"] }, delivery: "full" },
+        { id: "off-b", effect: "allow", when: { paths: ["/b/**"] }, delivery: "off" },
+      ],
+      profiles: emptyProfiles,
+    })
+    expect(mixed?.mode).toBe("gated")
+
+    const onlyFull = derivePolicyDelivery("fxri-plan-task", {
+      policies: [{ id: "full-only", effect: "allow", when: { paths: ["/a/**"] }, delivery: "full" }],
+      profiles: emptyProfiles,
+    })
+    expect(onlyFull).toBeUndefined()
+  })
+
   it("技能声明退出高于命令行显式取值", () => {
     const decision = resolveDelivery({ name: "fxri-plan-task", override: "gated", gate: false })
     expect(decision.mode).toBe("full")

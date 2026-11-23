@@ -78,6 +78,25 @@ describe("planPolicyAdd", () => {
     expect(policies[0]!.skills).toEqual({ mode: "allowlist", allow: ["fxri-plan-review"] })
   })
 
+  it("形态随策略写入；拒绝不能声明全文，允许 + 不安装给出提示", () => {
+    const state = readPolicyState("global", project)
+    const plan = planPolicyAdd(state, {
+      effect: "allow",
+      when: { paths: ["/work/**"] },
+      skills: { match: ["fxri-plan-review"] },
+      delivery: "gated",
+    })
+    expect(plan.details.join("\n")).toContain("形态：gated")
+    applyPolicyPlan(plan)
+    const saved = readGlobal()
+    expect((saved.policies as Array<Record<string, unknown>>)[0]!.delivery).toBe("gated")
+    expect(() => planPolicyAdd(state, { effect: "deny", when: { paths: ["/x"] }, delivery: "full" })).toThrow(
+      "不能与 --effect deny",
+    )
+    const offPlan = planPolicyAdd(state, { effect: "allow", when: { paths: ["/y/**"] }, delivery: "off" })
+    expect(offPlan.warnings.join("\n")).toContain("允许但不安装")
+  })
+
   it("id 重复时跨层报错", () => {
     writeProject({ policies: [{ id: "team-only", effect: "deny" }] })
     resetToolkitConfigCache()

@@ -23,6 +23,9 @@ export interface PolicySkills {
   deny?: string[]
 }
 
+// 策略声明的内容形态：full 全文 / gated 入口壳 / off 不安装
+export type PolicyDelivery = "full" | "gated" | "off"
+
 // 统一策略条目：目录、标记、远端与技能维度合为一体，由判定内核按层与具体度取唯一命中
 export interface ScopePolicy {
   // 稳定机器标识：CLI 生成、跨层唯一、不可变
@@ -32,6 +35,8 @@ export interface ScopePolicy {
   when?: ScopeCondition
   skills?: PolicySkills
   effect?: "allow" | "deny"
+  // 该范围的内容形态：未写时由命中结论推导（拒绝 → off / 入口壳，允许 → 全文）
+  delivery?: PolicyDelivery
   // 来源层：由加载层填充，手写配置无需填写
   layer?: PolicyLayer
 }
@@ -74,6 +79,8 @@ export interface ScopeDecision {
   sourceFile: string | null
   matchedRule: string | null
   reason: string
+  // 当前目录的内容形态：未命中规则或允许为 full，拒绝为 off，规则显式声明时按声明
+  delivery?: PolicyDelivery
 }
 
 // 合并后的技能档案：同名档案按最近层整份覆盖，layer 保留生效来源

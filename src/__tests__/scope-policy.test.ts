@@ -63,6 +63,19 @@ describe("decidePolicy 条件与默认值", () => {
     expect(decision.reason).toContain("默认全域生效")
   })
 
+  it("当前目录形态：未命中与允许为全文，拒绝为不安装，声明优先", () => {
+    expect(decide([]).delivery).toBe("full")
+    const allowed = decide([{ id: "allow", when: { paths: [`${ROOT}/**`] }, effect: "allow" }])
+    expect(allowed.delivery).toBe("full")
+    const denied = decide([{ id: "deny", when: { paths: [`${ROOT}/**`] }, effect: "deny" }])
+    expect(denied.delivery).toBe("off")
+    const declared = decide([
+      { id: "shape", when: { paths: [`${ROOT}/**`] }, effect: "allow", delivery: "gated" },
+    ])
+    expect(declared.active).toBe(true)
+    expect(declared.delivery).toBe("gated")
+  })
+
   it("同字段 OR、跨字段 AND", () => {
     const rule = [{ id: "rule", when: { paths: [`${ROOT}/**`], markers: ["m"] }, effect: "deny" as const }]
     expect(decide(rule, context()).active).toBe(true)

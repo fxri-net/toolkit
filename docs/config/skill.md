@@ -85,6 +85,8 @@ title: 技能分发偏好（skills）
 - 允许名单收窄（`skills.mode: allowlist` 且名单不是 `*`）且技能不在其中 → `gated`
 - 无条件拒绝（无任何条件）→ `off`；无条件 `allow: ["*"]` 不产生限制
 - 名单配置的兜底拒绝（`legacy:*:fallback:*` / `legacy:*:skill-fallback:*`）是目录或技能名单的补集，按带条件限制推导为 `gated`，不算无条件拒绝
+- 策略显式写 `delivery` 时直接作为该范围形态（`allow` + `full|gated|off` 均可），不再走上面的推导；
+  `deny` 只能配 `gated` / `off`，配 `full` 时加载告警并丢弃该字段
 - 多个策略命中时 `source` 列出全部策略 id，`reason` 取最具体一条；显式 `skillDelivery.rules` 仍可覆盖推导
 - `toolkit skill status --explain <技能>` 逐级打印命中 / 未命中与被压规则
 

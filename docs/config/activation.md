@@ -75,11 +75,15 @@ title: 作用域配置（activation / policies）
 | `when` | 条件：`paths` / `subpaths` / `markers` / `gitRemotes`；同字段内 OR，跨字段 AND |
 | `skills` | 技能维度：`match` 限定适用技能，`mode` / `profiles` / `allow` / `deny` 决定放行 |
 | `effect` | `allow`（默认）或 `deny`；`deny` 命中即拒绝整个范围 |
+| `delivery` | 该范围的内容形态：`full` 全文安装 / `gated` 入口壳 / `off` 不安装；不写则按命中结论推导 |
 
 - `effect: allow` 时按 `skills.mode`：`allowlist` 需命中 `profiles` / `allow` 且不在 `deny`；`denylist` 与 `all` 仅 `deny` 排除
 - `effect: deny` 不读取技能名单，写入带名单且无 `skills.match` 的 deny 规则会被拒绝；
   只拒绝某个技能时用 `scope skills deny` 生成带 `skills.match` 的规则
 - `when` 为空或全空数组即兜底规则，加载时会告警
+- `delivery` 让「技能 × 目录」矩阵写进策略本身：`allow` + `gated` 表示该目录可用但只安装入口壳，
+  `allow` + `off` 表示可用但不产出安装产物；`deny` + `full` 互斥（拒绝的规则不能声明全文），加载时告警并丢弃 `delivery`
+- 不写 `delivery` 时按命中结论推导：允许 → 全文；拒绝 / 不在允许名单 → 该目录不提供正文（产物侧见 [skillDelivery](../config/skill#skilldelivery-技能分发形态)）
 
 ```json
 {
@@ -111,6 +115,7 @@ title: 作用域配置（activation / policies）
 3. 同具体度：`deny` > `allow`；仍相同则后写覆盖
 
 无规则命中时默认允许。规则是覆盖而非叠加：项目要追加技能时，引用同一档案并补一条更具体的增量规则。
+每条命中规则同时决定**是否生效**与**该目录的形态**：拒绝一律为不安装，允许取规则的 `delivery`，未写即全文。
 旧 `activation` 编译为同层策略；最近一份 `activation` 仍整段覆盖更远层，是该模型唯一的例外。
 父目录 glob（如 `~/work/**`）自动覆盖其后新建的项目，无需逐项目配置。
 

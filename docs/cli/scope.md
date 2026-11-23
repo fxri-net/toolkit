@@ -53,10 +53,11 @@ toolkit scope guard fxri-plan-task              # 内容闸门：按当前目录
 
 ## 策略命令
 
-- `scope policy list [--at <目录>] [--format json]`：列出来源层、`id`、`name`、条件、技能维度与当前命中结果；
+- `scope policy list [--at <目录>] [--format json]`：列出来源层、`id`、`name`、条件、技能维度、显式形态与当前命中结果；
   由 `activation` 编译出的名单规则标注「由名单配置生成，只读」
 - `scope policy add`：条件 `--paths` / `--subpaths` / `--markers` / `--git-remotes`；
   技能维度 `--mode` / `--profile` / `--allow` / `--deny`；`--effect` 缺省 `allow`
+  `--delivery <full|gated|off>` 把该范围的内容形态写进规则（`--effect deny` 不能配 `full`，命令直接报错不写盘）
   `--effect deny` 不接受这些技能名单，只按 `scope skills deny` 生成的技能选择器生效
   `--id` 不含空白 / 控制字符且不能以 `legacy:` 开头，缺省自动生成且不可变
   `--profile` 只能引用目标层及更低层已定义的档案
@@ -68,6 +69,7 @@ toolkit scope guard fxri-plan-task              # 内容闸门：按当前目录
   `profile` 的精确技能名按包内清单校验；只含 deny 的档案不能用于 allowlist / deny 展开
   `profile` 省略档案名时按 `--layer` 过滤列表，未传为合并视图
 - 优先级：层（local > project > global）→ 具体度 → `deny` > `allow` → 后写覆盖；只取最高优先的一条，不合并
+- 每条命中规则同时给出「是否生效」与「该目录形态」：拒绝为不安装、允许取 `--delivery`、未写即全文；`scope status --skills` 逐技能显示形态
 - 非技能维度（纯路径 / 标记 / 远端）同样用 `scope policy` 表达；`--mode` / `--allow` 仅在 `allowlist` 下参与放行
 - `deny` 只按技能选择器限定范围，携带名单会被拒绝；未限定技能会拒绝该范围全部技能，写入需 `--yes`
 

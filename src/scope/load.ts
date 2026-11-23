@@ -21,6 +21,7 @@ import type {
   ActivationConfig,
   ActivationMode,
   LoadedActivation,
+  PolicyDelivery,
   PolicyLayer,
   PolicySkills,
   ScopeCondition,
@@ -32,6 +33,8 @@ import type {
 } from "./types"
 
 const MODES = new Set<ActivationMode>(["all", "allowlist", "denylist"])
+// 策略形态合法取值：与 skillDelivery 三态一致
+const DELIVERY_VALUES = new Set<PolicyDelivery>(["full", "gated", "off"])
 
 // 配置层顺序：全局 → 项目 → 本地；策略按该顺序拼接，层优先级由判定内核比较
 const LAYER_ORDER: ReadonlyArray<{ record: "global" | "project" | "local"; policy: PolicyLayer }> = [
@@ -298,6 +301,7 @@ function derivePolicyId(policy: ScopePolicyInput, layer: PolicyLayer): string {
     when: policy.when ?? {},
     skills: policy.skills ?? {},
     effect: policy.effect ?? "allow",
+    delivery: policy.delivery ?? null,
   })
   const hash = createHash("sha1").update(material).digest("hex").slice(0, 10)
   return `auto:${layer}:${hash}`
@@ -347,13 +351,26 @@ function parsePolicyItem(
       return null
     }
   }
+  let delivery: PolicyDelivery | undefined
+  if (raw.delivery !== undefined) {
+    if (typeof raw.delivery === "string" && DELIVERY_VALUES.has(raw.delivery as PolicyDelivery)) {
+      delivery = raw.delivery as PolicyDelivery
+    } else {
+      warnings.push(`${file} 的 ${label}.delivery 非法（${String(raw.delivery)}），已忽略该项`)
+    }
+  }
+  // 拒绝的规则不能声明全文：语义互斥，丢弃 delivery 后按拒绝推导形态
+  if (delivery === "full" && effect === "deny") {
+    warnings.push(`${file} 的 ${label} 同时声明拒绝与全文形态，已忽略 delivery（拒绝的规则不能声明全文）`)
+    delivery = undefined
+  }
   const when = parseWhen(raw.when, label, file, warnings)
   const skills = parseSkills(raw.skills, label, file, warnings)
   if (when === null || skills === null) {
     warnings.push(`${file} 的 ${label} 含非法条件，已忽略该规则`)
     return null
   }
-  const policy: ScopePolicyInput = { id, name, when, skills, effect, layer }
+  const policy: ScopePolicyInput = { id, name, when, skills, effect, delivery, layer }
   if (!id) {
     policy.id = derivePolicyId(policy, layer)
     warnings.push(
@@ -616,6 +633,7 @@ function toPublicPolicy(policy: ScopePolicyInput): ScopePolicy {
     skills: policy.skills,
     effect: policy.effect,
     layer: policy.layer,
+    ...(policy.delivery ? { delivery: policy.delivery } : {}),
   }
 }
 
@@ -641,6 +659,7 @@ export function resolveScope(startDir = process.cwd(), skillName?: string): Scop
     sourceFile: snapshot.sourceFile,
     matchedRule: policyDecision.matchedRule,
     reason,
+    delivery: policyDecision.delivery,
   }
   const hint =
     migrationHint(snapshot.activation, context, decision, snapshot.sourceFile) ??

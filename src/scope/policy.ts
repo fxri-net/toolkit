@@ -6,6 +6,7 @@ import { normalizeRemote, normalizeRulePath } from "./paths"
 import type {
   ActivationConfig,
   ActivationMode,
+  PolicyDelivery,
   PolicyLayer,
   PolicySkills,
   ScopeCondition,
@@ -51,6 +52,8 @@ export interface CompiledPolicy {
   // 声明顺序：同层同具体度时后写覆盖
   order: number
   effect: "allow" | "deny"
+  // 规则显式声明的内容形态；未声明时由命中结论推导
+  delivery: PolicyDelivery | undefined
   paths: PathMatcher[]
   subpaths: PathMatcher[]
   markers: string[]
@@ -80,6 +83,8 @@ export interface PolicyDecision {
   matchedRule: string | null
   matchedPolicy: ScopePolicy | null
   reason: string
+  // 当前目录的内容形态：拒绝即 off，允许取规则声明，未声明即 full
+  delivery: PolicyDelivery
 }
 
 const LAYER_RANK: Record<PolicyLayer, number> = { global: 1, project: 2, local: 3 }
@@ -223,6 +228,7 @@ function compileOne(
     tier: input.legacyTier ?? NEW_POLICY_TIER,
     order: index,
     effect: input.effect ?? "allow",
+    delivery: input.delivery,
     paths,
     subpaths,
     markers,
@@ -436,6 +442,7 @@ export function decidePolicy(set: CompiledPolicySet, context: ScopeContext): Pol
       matchedRule: null,
       matchedPolicy: null,
       reason: "未命中策略（默认全域生效）",
+      delivery: "full",
     }
   }
   const label = policyLabel(winner)
@@ -445,6 +452,7 @@ export function decidePolicy(set: CompiledPolicySet, context: ScopeContext): Pol
       matchedRule: policyKey(winner),
       matchedPolicy: winner.policy,
       reason: `策略 ${label} 含子目录条件，在项目根执行按拒绝处理`,
+      delivery: "off",
     }
   }
   if (winner.effect === "deny") {
@@ -453,6 +461,7 @@ export function decidePolicy(set: CompiledPolicySet, context: ScopeContext): Pol
       matchedRule: policyKey(winner),
       matchedPolicy: winner.policy,
       reason: `命中策略 ${label}：拒绝该范围`,
+      delivery: "off",
     }
   }
   const skills = evaluateSkills(winner.skillDimension, set.profiles, context.skill)
@@ -462,6 +471,7 @@ export function decidePolicy(set: CompiledPolicySet, context: ScopeContext): Pol
       matchedRule: policyKey(winner),
       matchedPolicy: winner.policy,
       reason: `命中策略 ${label}：${skills.note}`,
+      delivery: "off",
     }
   }
   return {
@@ -469,6 +479,7 @@ export function decidePolicy(set: CompiledPolicySet, context: ScopeContext): Pol
     matchedRule: policyKey(winner),
     matchedPolicy: winner.policy,
     reason: `命中策略 ${label}：允许该范围${skills.note}`,
+    delivery: winner.delivery ?? "full",
   }
 }
 

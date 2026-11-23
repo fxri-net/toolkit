@@ -78,6 +78,7 @@ toolkit skill status --path --format json      # JSON 输出：包根、技能�
   - 仅在新名本次已新建 / 更新 / 跳过时清理；新名冲突或失败时保留旧名，沿用既有冲突 / 失败报告
   - 新名写入状态后旧名不再残留
 - **分发形态**：按 [`skillDelivery`](../config/skill#skilldelivery-技能分发形态) 推导，`gated` 只写入口壳、`off` 不写产物（残留由 `--prune` 清理）
+  - 策略规则里显式写的 `delivery` 优先于名单推导（见[作用域策略](../config/activation#策略规则)）
   - `--gate` / `--embed` 为本次显式取值，成功后写 `skillDelivery.default`；项目面同样生效
 - 项目面按[作用域与安装面](../config/skill#作用域与安装面)的副本 + 薄壳口径写入；`gated` 技能的候选目录落入口壳，真源副本保留供 guard 读取正文
 - `--dry-run` 是 `skill plan` 的别名：只输出分发计划，不写文件

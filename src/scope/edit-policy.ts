@@ -10,7 +10,7 @@ import { resolveScope } from "./load"
 import { compilePattern, matchPathPattern } from "./pattern"
 import { findProjectRoot, resolveComparablePath } from "./paths"
 import { isInvalidPolicyId } from "./policy"
-import type { ActivationMode, PolicyLayer, PolicySkills, ScopeCondition, ScopePolicy } from "./types"
+import type { ActivationMode, PolicyDelivery, PolicyLayer, PolicySkills, ScopeCondition, ScopePolicy } from "./types"
 
 // 策略层顺序：与配置读取顺序一致
 export const POLICY_LAYERS: readonly PolicyLayer[] = ["global", "project", "local"]
@@ -48,6 +48,7 @@ export interface PolicyAddInput {
   effect: "allow" | "deny"
   when?: ScopeCondition
   skills?: PolicySkills
+  delivery?: PolicyDelivery
 }
 
 export interface PolicyRemoveInput {
@@ -283,6 +284,7 @@ function policyDetails(policy: ScopePolicy): string[] {
     `效果：${policy.effect ?? "allow"}`,
     `条件：${when.join("；") || "全部目录（兜底）"}`,
     `技能：${skills.join("；") || "无"}`,
+    ...(policy.delivery ? [`形态：${policy.delivery}`] : []),
   ]
 }
 
@@ -291,6 +293,10 @@ export function planPolicyAdd(state: PolicyState, input: PolicyAddInput): Policy
   validateWhen(input.when)
   assertDenySkillScope(input.effect, input.skills)
   validateSkills(input.skills, state.startDir, state.layer)
+  // 拒绝的规则不能声明全文：拒绝即该范围不提供正文，与全文互斥
+  if (input.effect === "deny" && input.delivery === "full") {
+    throw new Error("--delivery full 不能与 --effect deny 同时使用；未写入配置")
+  }
   const id = input.id?.trim() || `policy-${randomUUID()}`
   assertPolicyId(id)
   const occupied = findPolicyLayerById(state.startDir, id)
@@ -299,9 +305,13 @@ export function planPolicyAdd(state: PolicyState, input: PolicyAddInput): Policy
   if (input.name?.trim()) policy.name = input.name.trim()
   if (input.when && Object.keys(input.when).length > 0) policy.when = input.when
   if (input.skills && Object.keys(input.skills).length > 0) policy.skills = input.skills
+  if (input.delivery) policy.delivery = input.delivery
   const warnings: string[] = []
   let requiresYes = false
   if (!policy.when) warnings.push("未设置 when 条件（兜底规则），会影响该层全部目录")
+  if (policy.effect === "allow" && policy.delivery === "off") {
+    warnings.push("允许但不安装：该范围技能仍生效，只是不产出安装产物；可用 toolkit skill reconcile 收敛")
+  }
   if (policy.effect === "deny" && !policy.skills?.match?.length) {
     warnings.push("deny 规则会拒绝该范围全部技能；限定技能请改用 toolkit scope skills deny")
     requiresYes = true

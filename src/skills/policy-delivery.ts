@@ -3,7 +3,7 @@
 import { resolveScope } from "../scope/load"
 import { matchPattern } from "../scope/pattern"
 import type { PolicySkills, ScopeCondition, ScopePolicy, ScopeProfile } from "../scope/types"
-import type { DeliveryDecision } from "./delivery"
+import { deliveryModeLabel, type DeliveryDecision, type DeliveryMode } from "./delivery"
 
 // 策略推导上下文：一次命令内只解析一次，逐技能复用
 export interface PolicyDeliveryContext {
@@ -14,7 +14,7 @@ export interface PolicyDeliveryContext {
 // 单条策略的命中：mode 为推导形态，score 用于同一技能的「最具体一条」展示
 interface PolicyHit {
   id: string
-  mode: "gated" | "off"
+  mode: DeliveryMode
   score: number
   reason: string
 }
@@ -88,9 +88,33 @@ function evaluatePolicy(policy: ScopePolicy, profiles: ScopeProfile[], name: str
   const fallback = isLegacyFallback(policy)
   const denial = policy.effect === "deny" || denyHit(skills, profiles, name)
   const narrowed = allowNarrowed(skills, profiles) && !allowHit(skills, profiles, name)
-  if (!denial && !narrowed) return null
-  // 无条件拒绝 = 全站禁用 → 不安装；名单兜底与其余限制（含收窄允许名单）→ 入口壳
-  const mode = denial && !conditional && !fallback ? "off" : "gated"
+  const declared = policy.delivery
+  // 纯允许且未声明形态不构成限制
+  if (!denial && !narrowed && !declared) return null
+  let mode: DeliveryMode
+  let reason: string
+  if (denial) {
+    // 拒绝：显式声明优先；只有全站拒绝才不安装，带条件 / 名单兜底 / 收窄名单仍装入口壳
+    mode = declared === "gated" || declared === "off" ? declared : conditional || fallback ? "gated" : "off"
+    reason =
+      declared !== undefined
+        ? `策略 policy:${policy.id} 拒绝该范围并声明${deliveryModeLabel(mode)}`
+        : conditional
+          ? `策略 policy:${policy.id} 在该范围拒绝该技能 → 入口壳`
+          : fallback
+            ? `名单配置在该范围未允许该技能 → 入口壳`
+            : `策略 policy:${policy.id} 无条件拒绝该技能 → 不安装`
+  } else if (narrowed) {
+    mode = declared === "off" ? "off" : "gated"
+    reason =
+      mode === "off"
+        ? `策略 policy:${policy.id} 的允许名单不含该技能并声明不安装`
+        : `策略 policy:${policy.id} 的允许名单不含该技能 → 入口壳`
+  } else {
+    // 显式声明的形态：允许 + full / gated / off 都按声明参与矩阵
+    mode = declared as DeliveryMode
+    reason = `策略 policy:${policy.id} 声明该范围为${deliveryModeLabel(mode)}`
+  }
   const score =
     selectorScore(skills, name) * 10000 +
     Math.max(
@@ -99,13 +123,6 @@ function evaluatePolicy(policy: ScopePolicy, profiles: ScopeProfile[], name: str
       ...((policy.when?.subpaths ?? []).map((pattern) => pattern.length)),
     ) +
     (conditional ? 1000 : 0)
-  const reason = denial
-    ? conditional
-      ? `策略 policy:${policy.id} 在该范围拒绝该技能 → 入口壳`
-      : fallback
-        ? `名单配置在该范围未允许该技能 → 入口壳`
-        : `策略 policy:${policy.id} 无条件拒绝该技能 → 不安装`
-    : `策略 policy:${policy.id} 的允许名单不含该技能 → 入口壳`
   return { id: policy.id, mode, score, reason }
 }
 
@@ -117,7 +134,12 @@ export function derivePolicyDelivery(name: string, context: PolicyDeliveryContex
     if (hit) hits.push(hit)
   }
   if (hits.length === 0) return undefined
-  const mode = hits.some((hit) => hit.mode === "gated") ? "gated" : "off"
+  const gated = hits.some((hit) => hit.mode === "gated")
+  const off = hits.some((hit) => hit.mode === "off")
+  const full = hits.some((hit) => hit.mode === "full")
+  // 任一目录收口或不安装都要入口壳；只有「全部不安装」才整体不安装；纯全文声明等同未限制
+  const mode: DeliveryMode = gated || (full && off) ? "gated" : off ? "off" : "full"
+  if (mode === "full") return undefined
   const best = [...hits].sort((left, right) => right.score - left.score)[0]!
   return {
     mode,

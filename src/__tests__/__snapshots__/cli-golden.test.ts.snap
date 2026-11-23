@@ -1323,14 +1323,14 @@ exports[`各域行为与错误路径 > scope status 技能清单 1`] = `
 --- stdout ---
 技能作用域：
   当前目录：<SANDBOX>/workspace
-  ✔ fxri-code-encoding：生效（未配置作用域（默认全域生效））
-  ✔ fxri-plan-recap：生效（未配置作用域（默认全域生效））
-  ✔ fxri-plan-review：生效（未配置作用域（默认全域生效））
-  ✔ fxri-plan-task：生效（未配置作用域（默认全域生效））
-  ✔ fxri-release-changelog：生效（未配置作用域（默认全域生效））
-  ✔ fxri-test-tty：生效（未配置作用域（默认全域生效））
-  ✔ fxri-writing-docs：生效（未配置作用域（默认全域生效））
-  ✔ fxri-writing-skill：生效（未配置作用域（默认全域生效））
+  ✔ fxri-code-encoding：生效 · 形态 全文安装（未配置作用域（默认全域生效））
+  ✔ fxri-plan-recap：生效 · 形态 全文安装（未配置作用域（默认全域生效））
+  ✔ fxri-plan-review：生效 · 形态 全文安装（未配置作用域（默认全域生效））
+  ✔ fxri-plan-task：生效 · 形态 全文安装（未配置作用域（默认全域生效））
+  ✔ fxri-release-changelog：生效 · 形态 全文安装（未配置作用域（默认全域生效））
+  ✔ fxri-test-tty：生效 · 形态 全文安装（未配置作用域（默认全域生效））
+  ✔ fxri-writing-docs：生效 · 形态 全文安装（未配置作用域（默认全域生效））
+  ✔ fxri-writing-skill：生效 · 形态 全文安装（未配置作用域（默认全域生效））
 --- stderr ---
 "
 `;
@@ -1356,48 +1356,56 @@ exports[`各域行为与错误路径 > scope status 技能清单 JSON 1`] = `
       {
         "name": "fxri-code-encoding",
         "active": true,
+        "delivery": "full",
         "matchedRule": null,
         "reason": "未配置作用域（默认全域生效）"
       },
       {
         "name": "fxri-plan-recap",
         "active": true,
+        "delivery": "full",
         "matchedRule": null,
         "reason": "未配置作用域（默认全域生效）"
       },
       {
         "name": "fxri-plan-review",
         "active": true,
+        "delivery": "full",
         "matchedRule": null,
         "reason": "未配置作用域（默认全域生效）"
       },
       {
         "name": "fxri-plan-task",
         "active": true,
+        "delivery": "full",
         "matchedRule": null,
         "reason": "未配置作用域（默认全域生效）"
       },
       {
         "name": "fxri-release-changelog",
         "active": true,
+        "delivery": "full",
         "matchedRule": null,
         "reason": "未配置作用域（默认全域生效）"
       },
       {
         "name": "fxri-test-tty",
         "active": true,
+        "delivery": "full",
         "matchedRule": null,
         "reason": "未配置作用域（默认全域生效）"
       },
       {
         "name": "fxri-writing-docs",
         "active": true,
+        "delivery": "full",
         "matchedRule": null,
         "reason": "未配置作用域（默认全域生效）"
       },
       {
         "name": "fxri-writing-skill",
         "active": true,
+        "delivery": "full",
         "matchedRule": null,
         "reason": "未配置作用域（默认全域生效）"
       }

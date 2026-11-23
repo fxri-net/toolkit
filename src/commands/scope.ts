@@ -15,6 +15,7 @@ import { assertChoice, fail } from "../cli-ui"
 import { modeLabel, planAdd, planDefault, planRemove, planReset, readScopeState, type ScopeList, type RemoveFrom } from "../scope/edit"
 import { applyScopePlan } from "../scope/apply"
 import { isLegacyPolicyId } from "../scope/policy"
+import { DELIVERY_MODES, deliveryModeLabel } from "../skills/delivery"
 import { analyzeSkillLinkage, formatLinkageHints, listInstalledSkillNames } from "../scope/linkage"
 import {
   POLICY_LAYERS,
@@ -29,7 +30,7 @@ import {
   profileAllowPatterns,
   readPolicyState,
 } from "../scope/edit-policy"
-import type { PolicyLayer, PolicySkills, ScopeCondition } from "../scope/types"
+import type { PolicyDelivery, PolicyLayer, PolicySkills, ScopeCondition } from "../scope/types"
 
 // 配置层取值
 const LAYERS = ["global", "project", "local"] as const
@@ -101,6 +102,11 @@ function describeSkills(skills: PolicySkills | undefined): string {
   return parts.join("；")
 }
 
+// 策略形态人读：未声明时不打印，避免与推导结论混淆
+function describeDelivery(delivery: PolicyDelivery | undefined): string {
+  return delivery ? `形态：${deliveryModeLabel(delivery)}` : ""
+}
+
 // 当前命中判定：matchedRule 为 policy:<id>，兼容带 name 的旧形态
 function isWinner(matchedRule: string | null, id: string): boolean {
   if (!matchedRule?.startsWith("policy:")) return false
@@ -121,6 +127,7 @@ interface PolicyAddOptions {
   profile?: string[]
   allow?: string[]
   deny?: string[]
+  delivery?: string
   layer?: string
   dryRun?: boolean
   yes?: boolean
@@ -132,6 +139,7 @@ async function runPolicyAdd(options: PolicyAddOptions): Promise<void> {
   if (!resolved) return
   const effect = options.effect ?? "allow"
   if (!assertChoice(effect, ["allow", "deny"], "--effect")) return
+  if (options.delivery !== undefined && !assertChoice(options.delivery, DELIVERY_MODES, "--delivery")) return
   try {
     const plan = planPolicyAdd(readPolicyState(resolved.layer), {
       id: options.id,
@@ -139,6 +147,7 @@ async function runPolicyAdd(options: PolicyAddOptions): Promise<void> {
       effect: effect as "allow" | "deny",
       when: buildWhen(options),
       skills: buildSkills(options),
+      delivery: options.delivery as PolicyDelivery | undefined,
     })
     if (plan.requiresYes && !options.yes && !options.dryRun) {
       fail(`${plan.warnings.join("；")}；确认后加 --yes 再执行（未写入配置）`)
@@ -244,6 +253,8 @@ function runPolicyList(options: { at?: string; format?: string }): void {
     if (when) console.log(`    条件：${when}`)
     const skills = describeSkills(policy.skills)
     if (skills) console.log(`    技能：${skills}`)
+    const delivery = describeDelivery(policy.delivery)
+    if (delivery) console.log(`    ${delivery}`)
   }
   if (report.policies.some((policy) => isLegacyPolicyId(policy.id))) {
     console.log(line.hint("名单规则由 activation 配置生成，只读；请用 toolkit scope list 的 add / exclude / default / reset 修改"))
@@ -300,6 +311,8 @@ function runSkillsList(options: { at?: string; format?: string }): void {
       if (when) console.log(`    条件：${when}`)
       const skills = describeSkills(policy.skills)
       if (skills) console.log(`    技能：${skills}`)
+      const delivery = describeDelivery(policy.delivery)
+      if (delivery) console.log(`    ${delivery}`)
     }
   }
   for (const hint of formatLinkageHints(linkage)) console.log(line.hint(hint))
@@ -558,6 +571,7 @@ export function registerScopeCommands(program: Command): void {
           const items = reports.map((report) => ({
             name: report.context.skill ?? "",
             active: report.decision.active,
+            delivery: report.decision.delivery ?? "full",
             matchedRule: report.decision.matchedRule,
             reason: report.decision.reason,
           }))
@@ -583,7 +597,9 @@ export function registerScopeCommands(program: Command): void {
             return
           }
           for (const item of items) {
-            console.log(`  ${item.active ? "✔" : "✖"} ${item.name}：${item.active ? "生效" : "未生效"}（${item.reason}）`)
+            const state = item.active ? "生效" : "未生效"
+            const shape = ` · 形态 ${deliveryModeLabel(item.delivery)}`
+            console.log(`  ${item.active ? "✔" : "✖"} ${item.name}：${state}${shape}（${item.reason}）`)
           }
           for (const hint of formatLinkageHints(linkage)) console.log(line.hint(hint))
           return
@@ -697,6 +713,7 @@ export function registerScopeCommands(program: Command): void {
     .option("--profile <profiles...>", "引用技能档案（需已定义）")
     .option("--allow <patterns...>", "允许的技能名 / glob（仅名单内生效时参与）")
     .option("--deny <patterns...>", "排除技能名 / glob")
+    .option("--delivery <mode>", "该范围的内容形态：全文安装（full）/ 入口壳（gated）/ 不安装（off）")
     .option("--name <name>", "可读标签，可重复")
     .option("--id <id>", "稳定标识：跨层唯一、不可变；缺省自动生成")
     .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")

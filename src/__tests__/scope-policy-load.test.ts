@@ -47,6 +47,24 @@ afterEach(() => {
 })
 
 describe("resolveScope 策略合并", () => {
+  it("策略形态进入判定结论，非法取值与拒绝 + 全文互斥均告警剔除", () => {
+    writeProject({
+      policies: [
+        { id: "shape", when: { paths: [posix(project)] }, effect: "allow", delivery: "gated" },
+        { id: "bad", when: { paths: [posix(project)] }, effect: "allow", delivery: "half" },
+        { id: "conflict", when: { paths: [posix(project)] }, effect: "deny", delivery: "full" },
+      ],
+    })
+    const report = resolveScope(project)
+    expect(report.policies.find((policy) => policy.id === "shape")?.delivery).toBe("gated")
+    expect(report.policies.find((policy) => policy.id === "bad")?.delivery).toBeUndefined()
+    expect(report.policies.find((policy) => policy.id === "conflict")?.delivery).toBeUndefined()
+    // 同具体度下拒绝胜出，本目录形态为不安装
+    expect(report.decision.delivery).toBe("off")
+    const warnings = report.warnings.join("\n")
+    expect(warnings).toContain("delivery 非法")
+    expect(warnings).toContain("拒绝的规则不能声明全文")
+  })
   it("全局策略 + 项目覆盖 + 本地最高", () => {
     writeGlobal({ policies: [{ id: "global-deny", when: { paths: [`${posix(home)}/**`] }, effect: "deny" }] })
     writeProject({ policies: [{ id: "project-allow", when: { paths: [posix(project)] }, effect: "allow" }] })
