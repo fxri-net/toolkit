@@ -111,3 +111,26 @@ export const style = {
   // 行内路径 / 命令名：青色
   accent: (text: string): string => paint(SGR.cyan, text),
 }
+
+// 枚举人读文案：文本层只给中文，机器键只进 JSON；新增枚举先在此登记
+export const scopeModeText: Record<string, string> = {
+  all: "全部生效",
+  allowlist: "仅名单内生效",
+  denylist: "全部生效（兼容读取 denylist）",
+}
+
+export const policyEffectText: Record<string, string> = {
+  allow: "允许",
+  deny: "拒绝",
+}
+
+export const policyLayerText: Record<string, string> = {
+  global: "全局层",
+  project: "项目层",
+  local: "本地层",
+}
+
+// 查表：未知取值原样返回，避免把写错的配置悄悄吞掉
+export function termText(map: Record<string, string>, value: string): string {
+  return map[value] ?? value
+}

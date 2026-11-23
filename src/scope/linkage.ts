@@ -18,12 +18,12 @@ export interface SkillLinkageReport {
   dead: string[]
 }
 
-// 命中策略 id：matchedRule 形如 policy:<id> 或 policy:<id> (name)
+// 命中策略 id：matchedRule 为 policy:<id>，兼容带 name 的旧形态
 function matchedPolicyId(matchedRule: string | null): string | null {
   if (!matchedRule?.startsWith("policy:")) return null
   const rest = matchedRule.slice("policy:".length)
-  const space = rest.indexOf(" ")
-  return space < 0 ? rest : rest.slice(0, space)
+  const end = rest.search(/[ （(]/)
+  return end < 0 ? rest : rest.slice(0, end)
 }
 
 // 已安装技能名：包内真源 + 全局 / 项目状态登记，去重后排序

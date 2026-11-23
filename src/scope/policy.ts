@@ -386,9 +386,15 @@ function evaluateSkills(
   return allowed ? { allowed: true, note: "" } : { allowed: false, note: `技能 ${skill} 不在允许名单` }
 }
 
-// 命中规则的可读标识：id 为机器键，name 存在时附带展示
+// 命中策略的机器标识：JSON 契约与命令定位共用，始终是纯 policy:<id>
+function policyKey(policy: CompiledPolicy): string {
+  return `policy:${policy.id}`
+}
+
+// 命中策略的人读标识：名单配置生成的规则只显示中文名，新策略保留 id 便于 --id 操作
 function policyLabel(policy: CompiledPolicy): string {
-  return policy.name ? `policy:${policy.id} (${policy.name})` : `policy:${policy.id}`
+  if (isLegacyPolicyId(policy.id)) return policy.name ?? "名单规则"
+  return policy.name ? `policy:${policy.id}（${policy.name}）` : `policy:${policy.id}`
 }
 
 // 纯判定：无规则命中默认允许；命中后按覆盖语义只取最高优先规则
@@ -436,7 +442,7 @@ export function decidePolicy(set: CompiledPolicySet, context: ScopeContext): Pol
   if (winnerMatch.failClosed) {
     return {
       active: false,
-      matchedRule: label,
+      matchedRule: policyKey(winner),
       matchedPolicy: winner.policy,
       reason: `策略 ${label} 含子目录条件，在项目根执行按拒绝处理`,
     }
@@ -444,7 +450,7 @@ export function decidePolicy(set: CompiledPolicySet, context: ScopeContext): Pol
   if (winner.effect === "deny") {
     return {
       active: false,
-      matchedRule: label,
+      matchedRule: policyKey(winner),
       matchedPolicy: winner.policy,
       reason: `命中策略 ${label}：拒绝该范围`,
     }
@@ -453,14 +459,14 @@ export function decidePolicy(set: CompiledPolicySet, context: ScopeContext): Pol
   if (!skills.allowed) {
     return {
       active: false,
-      matchedRule: label,
+      matchedRule: policyKey(winner),
       matchedPolicy: winner.policy,
       reason: `命中策略 ${label}：${skills.note}`,
     }
   }
   return {
     active: true,
-    matchedRule: label,
+    matchedRule: policyKey(winner),
     matchedPolicy: winner.policy,
     reason: `命中策略 ${label}：允许该范围${skills.note}`,
   }
@@ -484,7 +490,7 @@ export function legacyToPolicies(activation: ActivationConfig, layer: PolicyLaye
   activation.exclude.forEach((path, index) => {
     out.push({
       id: legacyId(layer, "exclude", index),
-      name: "旧字段排除",
+      name: "名单排除",
       when: { paths: [path] },
       effect: "deny",
       layer,
@@ -494,7 +500,7 @@ export function legacyToPolicies(activation: ActivationConfig, layer: PolicyLaye
   activation.markers.exclude.forEach((marker, index) => {
     out.push({
       id: legacyId(layer, "marker-exclude", index),
-      name: "旧字段排除标记",
+      name: "排除标记",
       when: { markers: [marker] },
       effect: "deny",
       layer,
@@ -507,7 +513,7 @@ export function legacyToPolicies(activation: ActivationConfig, layer: PolicyLaye
     activation.include.forEach((path, index) => {
       out.push({
         id: legacyId(layer, "include", index),
-        name: "旧字段白名单",
+        name: "名单允许",
         when: { ...shared, paths: [path] },
         effect: "allow",
         layer,
@@ -516,7 +522,7 @@ export function legacyToPolicies(activation: ActivationConfig, layer: PolicyLaye
     })
     out.push({
       id: legacyId(layer, "fallback", 0),
-      name: "旧字段兜底拒绝",
+      name: "名单兜底",
       when: {},
       effect: "deny",
       layer,
@@ -526,7 +532,7 @@ export function legacyToPolicies(activation: ActivationConfig, layer: PolicyLaye
     // 标记 / 远端为正条件：满足时允许，缺条件时由兜底拒绝覆盖
     out.push({
       id: legacyId(layer, "open", 0),
-      name: "旧字段启用条件",
+      name: "启用条件",
       when: { ...shared },
       effect: "allow",
       layer,
@@ -534,7 +540,7 @@ export function legacyToPolicies(activation: ActivationConfig, layer: PolicyLaye
     })
     out.push({
       id: legacyId(layer, "fallback", 0),
-      name: "旧字段兜底拒绝",
+      name: "名单兜底",
       when: {},
       effect: "deny",
       layer,

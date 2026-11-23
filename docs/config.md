@@ -132,7 +132,7 @@
 | [技能分发偏好（skills）](./config/skill) | 软链自愈、分发形态（全文 / 入口壳 / 不安装）与全局、项目面安装偏好 |
 | [使用情况配置](./usage/configuration) | 总开关、来源、技能范围、字段、存储与上传；仅全局层 |
 | [文档站校验（docs nav / docs dist）](./cli/docs-check#配置) | 导航阈值、产物目录、sitemap 策略、搜索实现与规则开关 |
-| [作用域配置（activation / policies）](./config/activation) | 按项目 / 目录决定技能与规则是否生效；默认全域生效 |
+| [作用域配置（activation / policies）](./config/activation) | 按项目 / 目录决定技能是否生效；默认全域生效 |
 
 ## 相关页面
 

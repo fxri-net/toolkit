@@ -7,7 +7,7 @@ import { formatList, formatStatus } from "../scope/print"
 import { isInteractive, runInteractive } from "../prompts"
 import { resolveComparablePath } from "../scope/paths"
 import { runScopeWizard } from "../scope/wizard"
-import { line } from "../term-style"
+import { line, policyEffectText, policyLayerText, scopeModeText, termText } from "../term-style"
 import { assertJsonFormat, jsonEnvelope } from "../json-output"
 import { printJson } from "./shared"
 import { registerHelpCommand } from "../help"
@@ -81,10 +81,10 @@ function buildSkills(options: {
 function describeWhen(when: ScopeCondition | undefined): string {
   if (!when) return ""
   const parts: string[] = []
-  if (when.paths?.length) parts.push(`paths=${when.paths.join(",")}`)
-  if (when.subpaths?.length) parts.push(`subpaths=${when.subpaths.join(",")}`)
-  if (when.markers?.length) parts.push(`markers=${when.markers.join(",")}`)
-  if (when.gitRemotes?.length) parts.push(`remotes=${when.gitRemotes.join(",")}`)
+  if (when.paths?.length) parts.push(`路径 ${when.paths.join("、")}`)
+  if (when.subpaths?.length) parts.push(`子路径 ${when.subpaths.join("、")}`)
+  if (when.markers?.length) parts.push(`标记 ${when.markers.join("、")}`)
+  if (when.gitRemotes?.length) parts.push(`远端 ${when.gitRemotes.join("、")}`)
   return parts.join("；")
 }
 
@@ -92,18 +92,19 @@ function describeWhen(when: ScopeCondition | undefined): string {
 function describeSkills(skills: PolicySkills | undefined): string {
   if (!skills) return ""
   const parts: string[] = []
-  if (skills.match?.length) parts.push(`match=${skills.match.join(",")}`)
-  if (skills.mode) parts.push(`mode=${skills.mode}`)
-  if (skills.profiles?.length) parts.push(`profiles=${skills.profiles.join(",")}`)
-  if (skills.allow?.length) parts.push(`allow=${skills.allow.join(",")}`)
-  if (skills.deny?.length) parts.push(`deny=${skills.deny.join(",")}`)
+  if (skills.match?.length) parts.push(`技能 ${skills.match.join("、")}`)
+  if (skills.mode) parts.push(`名单模式 ${termText(scopeModeText, skills.mode)}`)
+  if (skills.profiles?.length) parts.push(`档案 ${skills.profiles.join("、")}`)
+  if (skills.allow?.length) parts.push(`允许 ${skills.allow.join("、")}`)
+  if (skills.deny?.length) parts.push(`拒绝 ${skills.deny.join("、")}`)
   return parts.join("；")
 }
 
-// 当前命中判定：matchedRule 形如 policy:<id> 或 policy:<id> (name)
+// 当前命中判定：matchedRule 为 policy:<id>，兼容带 name 的旧形态
 function isWinner(matchedRule: string | null, id: string): boolean {
-  if (!matchedRule) return false
-  return matchedRule === `policy:${id}` || matchedRule.startsWith(`policy:${id} `)
+  if (!matchedRule?.startsWith("policy:")) return false
+  const rest = matchedRule.slice("policy:".length)
+  return (rest.split(/[ （(]/)[0] ?? "") === id
 }
 
 interface PolicyAddOptions {
@@ -222,24 +223,28 @@ function runPolicyList(options: { at?: string; format?: string }): void {
     return
   }
   console.log("作用域策略：")
-  console.log(`  目录：${report.context.cwd}`)
-  console.log(`  判定：${report.decision.active ? "生效" : "未生效"}（${report.decision.reason}）`)
+  console.log(`  当前目录：${report.context.cwd}`)
+  console.log(`  结果：${report.decision.active ? "生效" : "未生效"}（${report.decision.reason}）`)
   if (report.policies.length === 0) {
     console.log("  未配置策略")
     return
   }
   for (const policy of report.policies) {
-    const legacy = isLegacyPolicyId(policy.id) ? " · legacy 只读" : ""
+    const legacy = isLegacyPolicyId(policy.id)
+    const legacyTag = legacy ? " · 由名单配置生成，只读" : ""
     const winner = isWinner(report.decision.matchedRule, policy.id) ? " ← 当前命中" : ""
     const name = policy.name ? `（${policy.name}）` : ""
-    console.log(`  [${policy.layer}] ${policy.id}${name} ${policy.effect ?? "allow"}${legacy}${winner}`)
+    const label = legacy ? (policy.name ?? "名单规则") : `${policy.id}${name}`
+    const layer = termText(policyLayerText, policy.layer ?? "global")
+    const effect = termText(policyEffectText, policy.effect ?? "allow")
+    console.log(`  ${layer} ${label} ${effect}${legacyTag}${winner}`)
     const when = describeWhen(policy.when)
     if (when) console.log(`    条件：${when}`)
     const skills = describeSkills(policy.skills)
     if (skills) console.log(`    技能：${skills}`)
   }
   if (report.policies.some((policy) => isLegacyPolicyId(policy.id))) {
-    console.log(line.hint("legacy 规则由旧 activation 编译，只读；请用 toolkit scope list 的 add / exclude / default / reset 修改"))
+    console.log(line.hint("名单规则由 activation 配置生成，只读；请用 toolkit scope list 的 add / exclude / default / reset 修改"))
   }
 }
 
@@ -282,9 +287,13 @@ function runSkillsList(options: { at?: string; format?: string }): void {
   if (policies.length === 0) console.log("  未配置")
   else {
     for (const policy of policies) {
-      const legacy = isLegacyPolicyId(policy.id) ? " · legacy 只读" : ""
+      const legacy = isLegacyPolicyId(policy.id)
+      const legacyTag = legacy ? " · 由名单配置生成，只读" : ""
       const name = policy.name ? `（${policy.name}）` : ""
-      console.log(`  [${policy.layer}] ${policy.id}${name} ${policy.effect ?? "allow"}${legacy}`)
+      const label = legacy ? (policy.name ?? "名单规则") : `${policy.id}${name}`
+      const layer = termText(policyLayerText, policy.layer ?? "global")
+      const effect = termText(policyEffectText, policy.effect ?? "allow")
+      console.log(`  ${layer} ${label} ${effect}${legacyTag}`)
       const when = describeWhen(policy.when)
       if (when) console.log(`    条件：${when}`)
       const skills = describeSkills(policy.skills)
@@ -474,8 +483,8 @@ async function runDefault(value: string | undefined, options: { layer?: string; 
   if (!layer) return
   const state = readScopeState(layer)
   if (value === undefined) {
-    console.log(`默认：${modeLabel(state.mode)}（白名单 ${state.include.length} / 黑名单 ${state.exclude.length}）`)
-    console.log(`配置：${state.target.file}`)
+    console.log(`名单模式：${modeLabel(state.mode)}（白名单 ${state.include.length} / 黑名单 ${state.exclude.length}）`)
+    console.log(`配置来源：${state.target.file}`)
     return
   }
   if (value !== "on" && value !== "off") {
@@ -494,7 +503,7 @@ async function runReset(options: { layer?: string; dryRun?: boolean; yes?: boole
 
 // 注册 scope 命令：默认行为不变（无配置时全域生效）
 export function registerScopeCommands(program: Command): void {
-  const scopeCmd = program.command("scope").description("作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效）")
+  const scopeCmd = program.command("scope").description("作用域：按项目 / 目录判定技能是否生效（默认全域生效）")
   scopeCmd.action(async () => {
     // 裸命令：非 TTY 输出状态摘要并成功退出，交互入口显式交给 scope wizard
     if (!isInteractive()) {
@@ -509,14 +518,14 @@ export function registerScopeCommands(program: Command): void {
 
   scopeCmd
     .command("wizard")
-    .description("交互向导：状态、名单、默认值、高级规则、技能矩阵")
+    .description("交互向导：状态、名单、名单外处理、高级规则、技能矩阵")
     .action(async () => {
       await runInteractive(() => runScopeWizard())
     })
 
   scopeCmd
     .command("status")
-    .description("查看当前目录的作用域判定与原因")
+    .description("查看当前目录的作用域判定与说明")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .option("--skill <name>", "按指定技能判定（应用技能级规则）")
     .option("--skills", "列出包内与已安装外部技能在该目录的生效结论")
@@ -554,7 +563,7 @@ export function registerScopeCommands(program: Command): void {
             return
           }
           console.log("技能作用域：")
-          console.log(`  目录：${base.context.cwd}`)
+          console.log(`  当前目录：${base.context.cwd}`)
           if (items.length === 0) {
             console.log("  包内未找到技能")
             return
@@ -600,7 +609,7 @@ export function registerScopeCommands(program: Command): void {
   // 目录名单组：裸 list 查看现状，增删改作为同组子命令
   const listCmd = scopeCmd
     .command("list")
-    .description("目录名单：查看当前规则、来源与优先级（add / exclude / remove / default / reset 同组）")
+    .description("目录名单：查看当前名单、配置来源与判定目录（add / exclude / remove / default / reset 同组）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action((options: { format?: string }) => {
       try {
@@ -646,7 +655,7 @@ export function registerScopeCommands(program: Command): void {
   // 策略命令组：统一表达路径、标记、远端与技能维度
   const policyCmd = scopeCmd
     .command("policy")
-    .description("策略规则：按层（local > project > global）→ 具体度 → deny → 后写取唯一命中，不合并多条")
+    .description("作用域策略：多条命中时只取优先级最高的一条（层 > 具体度 > 拒绝优先 > 后写），不合并")
   registerHelpCommand(policyCmd)
   policyCmd
     .command("list")
@@ -657,19 +666,19 @@ export function registerScopeCommands(program: Command): void {
 
   policyCmd
     .command("add")
-    .description("新增策略；条件同字段 OR、跨字段 AND；未指定 --effect 默认 allow")
-    .option("--effect <effect>", "allow（默认）/ deny（只接受技能选择器，不接受技能名单）")
+    .description("新增策略：同字段条件满足其一、跨字段需同时满足；不传 --effect 时为允许")
+    .option("--effect <effect>", "允许（allow，默认）/ 拒绝（deny，只接受技能选择器，不接受技能名单）")
     .option("--paths <paths...>", "按项目根匹配的路径 / glob")
-    .option("--subpaths <subpaths...>", "按项目根相对当前目录匹配；在项目根执行时 allow 失败关闭")
+    .option("--subpaths <subpaths...>", "相对项目根、按当前目录匹配；在项目根执行时允许规则按未命中处理")
     .option("--markers <markers...>", "目录或 git 根下须存在的标记文件")
     .option("--git-remotes <remotes...>", "git 远端的扁平文本 / glob")
-    .option("--mode <mode>", "技能模式：all / allowlist / denylist")
+    .option("--mode <mode>", "技能名单模式：全部生效（all）/ 仅名单内生效（allowlist）/ 排除名单（denylist）")
     .option("--profile <profiles...>", "引用技能档案（需已定义）")
-    .option("--allow <patterns...>", "允许技能名 / glob（allowlist 下生效）")
+    .option("--allow <patterns...>", "允许的技能名 / glob（仅名单内生效时参与）")
     .option("--deny <patterns...>", "排除技能名 / glob")
     .option("--name <name>", "可读标签，可重复")
     .option("--id <id>", "稳定标识：跨层唯一、不可变；缺省自动生成")
-    .option("--layer <layer>", "配置层：global（默认）/ project / local")
+    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
     .action(async (options: PolicyAddOptions) => {
@@ -681,7 +690,7 @@ export function registerScopeCommands(program: Command): void {
     .description("移除策略：优先 --id；--name 仅在该层唯一时可用")
     .option("--id <id>", "稳定标识")
     .option("--name <name>", "可读标签（该层唯一）")
-    .option("--layer <layer>", "配置层：global（默认）/ project / local")
+    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
     .action(async (options: { id?: string; name?: string; layer?: string; dryRun?: boolean; yes?: boolean }) => {
@@ -690,11 +699,11 @@ export function registerScopeCommands(program: Command): void {
 
   policyCmd
     .command("reset")
-    .description("按 --id / --paths 批量清除；整层清空需 --all --yes（不清旧 activation）")
+    .description("按 --id / --paths 批量清除；整层清空需 --all --yes（不改名单配置）")
     .option("--id <ids...>", "按稳定标识批量清除")
     .option("--paths <paths...>", "按路径条件批量清除")
-    .option("--all", "清除该层全部 policies（不清旧 activation）")
-    .option("--layer <layer>", "配置层：global（默认）/ project / local")
+    .option("--all", "清除该层全部策略（不改名单配置）")
+    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
     .action(async (options: { id?: string[]; paths?: string[]; all?: boolean; layer?: string; dryRun?: boolean; yes?: boolean }) => {
@@ -716,15 +725,15 @@ export function registerScopeCommands(program: Command): void {
 
   skillsCmd
     .command("allow [skills...]")
-    .description("只允许列出的技能（等同带 allowlist 技能维度的 policy add）")
+    .description("只允许列出的技能（等同新增一条仅名单内生效的技能策略）")
     .option("--profile <profiles...>", "引用技能档案（需已定义）")
     .option("--paths <paths...>", "按项目根匹配的路径 / glob")
-    .option("--subpaths <subpaths...>", "按项目根相对当前目录匹配；在项目根执行时 allow 失败关闭")
+    .option("--subpaths <subpaths...>", "相对项目根、按当前目录匹配；在项目根执行时允许规则按未命中处理")
     .option("--markers <markers...>", "目录或 git 根下须存在的标记文件")
     .option("--git-remotes <remotes...>", "git 远端的扁平文本 / glob")
     .option("--name <name>", "可读标签，可重复")
     .option("--id <id>", "稳定标识：跨层唯一、不可变；缺省自动生成")
-    .option("--layer <layer>", "配置层：global（默认）/ project / local")
+    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
     .action(async (skills: string[] = [], options: SkillPolicyOptions = {}) => {
@@ -733,15 +742,15 @@ export function registerScopeCommands(program: Command): void {
 
   skillsCmd
     .command("deny [skills...]")
-    .description("排除列出的技能（等同带技能选择器的 deny 策略）")
+    .description("排除列出的技能（等同新增一条带技能选择器的拒绝策略）")
     .option("--profile <profiles...>", "展开档案中的允许技能一并排除")
     .option("--paths <paths...>", "按项目根匹配的路径 / glob")
-    .option("--subpaths <subpaths...>", "按项目根相对当前目录匹配；在项目根执行时 allow 失败关闭")
+    .option("--subpaths <subpaths...>", "相对项目根、按当前目录匹配；在项目根执行时允许规则按未命中处理")
     .option("--markers <markers...>", "目录或 git 根下须存在的标记文件")
     .option("--git-remotes <remotes...>", "git 远端的扁平文本 / glob")
     .option("--name <name>", "可读标签，可重复")
     .option("--id <id>", "稳定标识：跨层唯一、不可变；缺省自动生成")
-    .option("--layer <layer>", "配置层：global（默认）/ project / local")
+    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
     .action(async (skills: string[] = [], options: SkillPolicyOptions = {}) => {
@@ -754,7 +763,7 @@ export function registerScopeCommands(program: Command): void {
     .option("--allow <patterns...>", "档案允许技能名 / glob")
     .option("--deny <patterns...>", "档案排除技能名 / glob")
     .option("--remove", "移除档案（需 --yes）")
-    .option("--layer <layer>", "配置层：global（默认）/ project / local")
+    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
     .action(
@@ -769,7 +778,7 @@ export function registerScopeCommands(program: Command): void {
   skillsCmd
     .command("reset")
     .description("清除该层全部技能维度策略（需 --yes）")
-    .option("--layer <layer>", "配置层：global（默认）/ project / local")
+    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
     .action(async (options: { layer?: string; dryRun?: boolean; yes?: boolean }) => {
@@ -787,7 +796,7 @@ export function registerScopeCommands(program: Command): void {
   listCmd
     .command("add [dirs...]")
     .description("把目录加入白名单（需显式指定目录；交互设置请运行 toolkit scope）")
-    .option("--layer <layer>", "配置层：global（默认）/ project / local")
+    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
     .action(async (dirs: string[] = [], options: { layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {
@@ -797,7 +806,7 @@ export function registerScopeCommands(program: Command): void {
   listCmd
     .command("exclude [dirs...]")
     .description("把目录加入黑名单（默认值保持不变；需显式指定目录）")
-    .option("--layer <layer>", "配置层：global（默认）/ project / local")
+    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
     .action(async (dirs: string[] = [], options: { layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {
@@ -807,9 +816,9 @@ export function registerScopeCommands(program: Command): void {
   listCmd
     .command("remove [dirs...]")
     .description("移除条目，可指定来源侧与转入侧")
-    .option("--layer <layer>", "配置层：global（默认）/ project / local")
-    .option("--from <list>", "从哪侧移除：include / exclude / both（默认 both）")
-    .option("--to <list>", "移除后转入另一侧：include / exclude")
+    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
+    .option("--from <list>", "从哪侧移除：白名单（include）/ 黑名单（exclude）/ 两侧（both，默认）")
+    .option("--to <list>", "移除后转入另一侧：白名单（include）/ 黑名单（exclude）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
     .action(
@@ -820,8 +829,8 @@ export function registerScopeCommands(program: Command): void {
 
   listCmd
     .command("default [value]")
-    .description("查看或切换默认值：on（全部生效）/ off（仅名单内生效）")
-    .option("--layer <layer>", "配置层：global（默认）/ project / local")
+    .description("查看或切换名单外目录的处理：on（全部生效）/ off（仅名单内生效）")
+    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
     .action(async (value: string | undefined, options: { layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {
@@ -831,7 +840,7 @@ export function registerScopeCommands(program: Command): void {
   listCmd
     .command("reset")
     .description("清除限制（全部生效并清空两名单）")
-    .option("--layer <layer>", "配置层：global（默认）/ project / local")
+    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
     .action(async (options: { layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {

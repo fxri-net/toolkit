@@ -1196,8 +1196,8 @@ exports[`各域行为与错误路径 > scope list add 缺参数 1`] = `
 exports[`各域行为与错误路径 > scope list default 查看 1`] = `
 "退出码：0
 --- stdout ---
-默认：全部生效（白名单 0 / 黑名单 0）
-配置：<SANDBOX>/home/.toolkitrc.json
+名单模式：全部生效（白名单 0 / 黑名单 0）
+配置来源：<SANDBOX>/home/.toolkitrc.json
 --- stderr ---
 "
 `;
@@ -1271,8 +1271,8 @@ exports[`各域行为与错误路径 > scope policy list 1`] = `
 "退出码：0
 --- stdout ---
 作用域策略：
-  目录：<SANDBOX>/workspace
-  判定：生效（未配置作用域（默认全域生效））
+  当前目录：<SANDBOX>/workspace
+  结果：生效（未配置作用域（默认全域生效））
   未配置策略
 --- stderr ---
 "
@@ -1324,7 +1324,7 @@ exports[`各域行为与错误路径 > scope status 技能清单 1`] = `
 "退出码：0
 --- stdout ---
 技能作用域：
-  目录：<SANDBOX>/workspace
+  当前目录：<SANDBOX>/workspace
   ✔ fxri-code-encoding：生效（未配置作用域（默认全域生效））
   ✔ fxri-plan-recap：生效（未配置作用域（默认全域生效））
   ✔ fxri-plan-review：生效（未配置作用域（默认全域生效））
@@ -1477,11 +1477,11 @@ exports[`各域行为与错误路径 > scope 裸命令 1`] = `
 --- stdout ---
 作用域状态：
   当前目录：<SANDBOX>/workspace
-  判定基准：<SANDBOX>/workspace
+  判定目录：<SANDBOX>/workspace
   结果：生效
-  命中规则：未命中
-  来源：默认（未配置）
-  原因：未配置作用域（默认全域生效）
+  命中策略：未命中
+  配置来源：未配置
+  判定说明：未配置作用域（默认全域生效）
 非交互环境已输出状态摘要；交互向导请运行 toolkit scope wizard
 --- stderr ---
 "
@@ -2400,13 +2400,13 @@ Commands:
   task [options] [command]        任务管理
   release [options] [command]     多语言更新日志与发版（默认 status；封装 changesets）
   rule [options] [command]        全局规则：列出模块、组合输出与缓存管理
-  scope [options] [command]       作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效）
+  scope [options] [command]       作用域：按项目 / 目录判定技能是否生效（默认全域生效）
   usage [options] [command]       技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
   help [command]                  显示帮助
 
 
 常用入口：
-  作用域 toolkit scope（按目录决定技能 / 规则是否生效，默认全域）
+  作用域 toolkit scope（按目录决定技能是否生效，默认全域）
 
 本机帮助：
   整体状态 toolkit status
@@ -2665,12 +2665,12 @@ Commands:
   task [options] [command]        任务管理
   release [options] [command]     多语言更新日志与发版（默认 status；封装 changesets）
   rule [options] [command]        全局规则：列出模块、组合输出与缓存管理
-  scope [options] [command]       作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效）
+  scope [options] [command]       作用域：按项目 / 目录判定技能是否生效（默认全域生效）
   usage [options] [command]       技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
   help [command]                  显示帮助
 
 常用入口：
-  作用域 toolkit scope（按目录决定技能 / 规则是否生效，默认全域）
+  作用域 toolkit scope（按目录决定技能是否生效，默认全域）
 
 本机帮助：
   整体状态 toolkit status
@@ -2712,13 +2712,13 @@ Commands:
   task [options] [command]        任务管理
   release [options] [command]     多语言更新日志与发版（默认 status；封装 changesets）
   rule [options] [command]        全局规则：列出模块、组合输出与缓存管理
-  scope [options] [command]       作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效）
+  scope [options] [command]       作用域：按项目 / 目录判定技能是否生效（默认全域生效）
   usage [options] [command]       技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
   help [command]                  显示帮助
 
 
 常用入口：
-  作用域 toolkit scope（按目录决定技能 / 规则是否生效，默认全域）
+  作用域 toolkit scope（按目录决定技能是否生效，默认全域）
 
 本机帮助：
   整体状态 toolkit status

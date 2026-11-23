@@ -6,7 +6,7 @@ title: 作用域配置（activation / policies）
 
 # 作用域配置（activation / policies）
 
-> 控制技能与规则在哪些项目 / 目录生效。现行配置以 `policies`（策略规则）与 `skillProfiles`（技能档案）为主，
+> 控制技能在哪些项目 / 目录生效。现行配置以 `policies`（策略规则）与 `skillProfiles`（技能档案）为主，
 > 旧 `activation` 字段仍兼容读取，加载时编译为同层策略；**不配置时全域生效**。
 
 ## 字段
@@ -61,7 +61,7 @@ title: 作用域配置（activation / policies）
 ## 技能级规则（旧字段）
 
 `activation.skills` 保留兼容：加载时编译为同层技能策略，优先级高于同层目录规则；未命中时回落目录级。
-新配置建议直接用 `policies` + `skillProfiles`。旧字段在 `scope policy list` 中标注 `legacy` 只读，
+新配置建议直接用 `policies` + `skillProfiles`。由 `activation` 编译的名单规则在 `scope policy list` 中标注「由名单配置生成，只读」，
 `scope policy reset --all` 不会清除它，需用 `scope list reset`。
 
 ## 策略规则

@@ -123,7 +123,7 @@ export async function runCli(version: string): Promise<void> {
     [
       "",
       "常用入口：",
-      "  作用域 toolkit scope（按目录决定技能 / 规则是否生效，默认全域）",
+      "  作用域 toolkit scope（按目录决定技能是否生效，默认全域）",
       "",
       "本机帮助：",
       "  整体状态 toolkit status",

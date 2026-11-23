@@ -1,6 +1,6 @@
 // 终端样式基建：启用判定矩阵、五种语义色转义、关闭时原样返回、显式开关优先于环境
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { decorate, isStyleEnabled, line, setStyleEnabled, style } from "../term-style"
+import { decorate, isStyleEnabled, line, policyEffectText, policyLayerText, scopeModeText, setStyleEnabled, style, termText } from "../term-style"
 
 // 仿 TTY：分别控制 stdout / stderr，还原时删掉自建属性
 function setTty(stdout: boolean, stderr: boolean): void {
@@ -174,6 +174,24 @@ describe("输出出口装饰", () => {
     setStyleEnabled(false)
     expect(decorate("⚠️ 注意")).toBe("⚠️ 注意")
     expect(decorate("[预演] 未写入任何文件")).toBe("[预演] 未写入任何文件")
+  })
+})
+
+describe("术语映射", () => {
+  it("名单模式、效果与层都有中文文案", () => {
+    expect(scopeModeText.all).toBe("全部生效")
+    expect(scopeModeText.allowlist).toBe("仅名单内生效")
+    expect(policyEffectText).toEqual({ allow: "允许", deny: "拒绝" })
+    expect(policyLayerText).toEqual({ global: "全局层", project: "项目层", local: "本地层" })
+  })
+
+  it("未知取值原样返回，不悄悄吞掉", () => {
+    expect(termText(scopeModeText, "custom")).toBe("custom")
+  })
+
+  it("人读文案不直接复用机器键（兼容提示除外）", () => {
+    expect(scopeModeText.all).not.toBe("all")
+    expect(scopeModeText.allowlist).not.toBe("allowlist")
   })
 })
 

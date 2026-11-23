@@ -283,10 +283,11 @@ describe("legacyToPolicies 行为对拍", () => {
 })
 
 describe("compilePolicies 校验与性能", () => {
-  it("缺省 id 按层与序号派生，name 进入命中标识", () => {
+  it("缺省 id 按层与序号派生，命中标识为纯 id、name 进 reason", () => {
     const set = compilePolicies([{ id: "", name: "主规则", effect: "deny" }], ROOT)
     const decision = decidePolicy(set, context())
-    expect(decision.matchedRule).toBe("policy:global:policy:0 (主规则)")
+    expect(decision.matchedRule).toBe("policy:global:policy:0")
+    expect(decision.reason).toContain("主规则")
   })
 
   it("非法模式使整条策略作废，不产生残缺匹配", () => {

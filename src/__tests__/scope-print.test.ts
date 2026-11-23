@@ -42,19 +42,19 @@ describe("displayPath", () => {
   it("非 home 路径原样输出，null 回落默认文案", () => {
     setHomeDirForTest("C:\\Users\\Tqy")
     expect(displayPath("D:\\Work\\repo")).toBe("D:\\Work\\repo")
-    expect(displayPath(null)).toBe("默认（未配置）")
+    expect(displayPath(null)).toBe("未配置")
   })
 
   it("只有策略时 status 显示策略条数与来源，不显示旧模式", () => {
     const text = formatStatus(scopeReport()).join("\n")
-    expect(text).not.toContain("模式：")
-    expect(text).toContain("策略：1 条")
-    expect(text).toContain("来源：/repo/.toolkitrc.json")
+    expect(text).not.toContain("名单模式：")
+    expect(text).toContain("策略规则：1 条")
+    expect(text).toContain("配置来源：/repo/.toolkitrc.json")
   })
 
   it("list 追加策略摘要", () => {
     const text = formatList(scopeReport()).join("\n")
     expect(text).toContain("策略规则：")
-    expect(text).toContain("[project] p1（规则） deny")
+    expect(text).toContain("项目层 p1（规则） 拒绝")
   })
 })

@@ -4,13 +4,13 @@ title: 作用域（scope）
 
 # 作用域（scope）
 
-> 按项目 / 目录决定技能与规则是否生效。默认全域生效，只有写了作用域配置才出现局部生效。
+> 按项目 / 目录决定技能是否生效。默认全域生效，只有写了作用域配置才出现局部生效。
 > `status` / 裸 `list` / `policy list` / `skills list` 只读；`list` 的 add / exclude / remove / default / reset
 > 与 `policy` / `skills` 写命令复用同一套预览与确认，预览会展示完整规则 / 档案内容。
 
 ## 用途与场景
 
-- 全局装了 CLI、技能与规则，但只想在指定项目 / 父目录生效，或排除某些项目 / 目录
+- 全局装了 CLI 与技能，但只想在指定项目 / 父目录生效，或排除某些项目 / 目录
 - 排查「为什么这个目录生效 / 不生效」：看命中的配置文件与规则
 - 团队自建项目层配置时，同样按就近覆盖参与判定
 
@@ -52,7 +52,7 @@ toolkit scope guard fxri-plan-task             # 内容闸门：按当前目录�
 ## 策略命令
 
 - `scope policy list [--at <目录>] [--format json]`：列出来源层、`id`、`name`、条件、技能维度与当前命中结果；
-  旧 `activation` 编译出的规则标注 `legacy` 只读
+  由 `activation` 编译出的名单规则标注「由名单配置生成，只读」
 - `scope policy add`：条件 `--paths` / `--subpaths` / `--markers` / `--git-remotes`；
   技能维度 `--mode` / `--profile` / `--allow` / `--deny`；`--effect` 缺省 `allow`
   `--effect deny` 不接受这些技能名单，只按 `scope skills deny` 生成的技能选择器生效
@@ -122,17 +122,17 @@ toolkit scope guard fxri-plan-task             # 内容闸门：按当前目录�
 3. 无策略命中默认允许
 
 旧 `activation` 加载时编译为同层策略：`exclude` / 标记排除为 deny，`include` 与启用条件为 allow，空 allowlist 产生兜底 deny，
-既有配置结论不变。判定基准为项目根：优先 git 根，其次最近 `.tasks` 根，都没有则回落当前目录。
+既有配置结论不变。判定目录为项目根：优先 git 根，其次最近 `.tasks` 根，都没有则回落当前目录。
 `scope status --format json` 走统一信封，`data` 内含 `active` / `mode` / `baseDir` / `skill` /
 `sourceFile` / `matchedRule` / `reason`。
-`matchedRule` 为 `policy:<id>`，有 `name` 时附 `（name）`。
+`matchedRule` 为纯 `policy:<id>`（不含 name）；文本模式再按策略记录补中文名，名单配置生成的规则只显示中文名。
 `scope status --skills --format json` 的 `data` 另含 `skills` 与 `linkage`。
-只有 `policies` 时，`scope status` 不显示旧字段模式，改为显示策略条数与策略来源；`scope list` 同样追加策略摘要。
+只有 `policies` 时，`scope status` 不显示名单模式，改为显示策略条数与策略来源；`scope list` 同样追加策略摘要。
 基准变化或规则按真实路径写入导致不命中时，status 会在 stderr 给出提示。
 
 ## 边界
 
-- 默认 `mode = all`，不配置时与历史行为完全一致；`denylist` 是等价的兼容别名，`status` / `list` 显示为 `all（兼容读取 denylist）`，
+- 默认 `mode = all`，不配置时与历史行为完全一致；`denylist` 是等价的兼容别名，`status` / `list` 显示为 `全部生效（兼容读取 denylist）`，
   任何写命令都会把旧值归一为 `all`
 - `mode = all` 时 `include` 不参与判定，`list` 会在白名单后标注「当前默认全部生效，未参与判定」
 - 只影响技能与内容闸门（`scope guard`），不影响 `toolkit` 命令本身（命令是显式调用的）

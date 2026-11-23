@@ -17,7 +17,7 @@
 | `toolkit skill` | AI 技能分发：安装、分发计划、状态、卸载、来源与版本 | `install` / `plan` / `status` / `uninstall` / `source` / `bump` / `lint` | [技能分发](./cli/skill) |
 | `toolkit usage` | 技能使用情况：开关、统计、导出与诊断（默认关闭） | `show` / `data` / `config` / `setup` / `record` | [技能使用情况](./cli/usage) |
 | `toolkit rule` | 全局规则：列出模块、组合输出、锚点校验与缓存管理 | `list` / `compose` / `reset` / `check` | [全局规则](./cli/rule) |
-| `toolkit scope` | 作用域：按项目 / 目录判定技能与规则是否生效（默认全域生效） | `status` / `list` / `policy` / `skills` / `wizard` / `guard`（`list` 组含 add / exclude / remove / default / reset，详见 scope 页） | [作用域](./cli/scope) |
+| `toolkit scope` | 作用域：按项目 / 目录判定技能是否生效（默认全域生效） | `status` / `list` / `policy` / `skills` / `wizard` / `guard`（`list` 组含 add / exclude / remove / default / reset，详见 scope 页） | [作用域](./cli/scope) |
 | `toolkit config` | 配置唯一写入口（键清单 + 分层写入）与只读体检 | `list` / `get` / `set` / `unset` / `status` | [配置体检](./cli/config) |
 | `toolkit docs` | 文档站全量校验（默认）、主题写入与分项校验 | `check` / `theme` / `nav` / `dist` | [文档站主题](./cli/docs-theme) · [文档站校验](./cli/docs-check) |
 | `toolkit help` | 显示帮助 | — | — |
@@ -75,6 +75,26 @@
 | 来源 | 技能来源：内置 `toolkit` 源与 `--source` 外部来源 | `skill`、`skill source` |
 | 目标 | 技能安装目标：agent 全局目录 / 项目薄壳目录 | `skill install`、`skill status` |
 | 范围 | 按上下文区分：作用域命中范围（scope）或技能统计范围（usage） | `scope` / `usage config scope` |
+| 名单模式 | 作用域的缺省判定：全部生效（all）/ 仅名单内生效（allowlist）/ 排除名单（denylist，兼容读取） | `scope` 的 status / list / default |
+| 命中策略 | 当前目录最终命中的那条作用域策略；名单配置生成的规则显示中文名，新策略保留 `policy:<id>` | `scope status`、`scope policy list` |
+| 判定目录 | 判定基准：优先 git 根，其次含 `.tasks` 的根，都没有则当前目录 | `scope status` / `list` |
+| 入口壳 | 内容闸门产物：只保留名称与描述，正文由 `scope guard` 按作用域下发 | `skill status`、`skillDelivery` |
+| 项目面薄壳 | 项目面安装时指向真源的别名壳；不再写「入口薄壳」 | `skill install --scope project`、`init` |
+| 内容闸门 | 按目录控制技能正文是否可读的机制，不是产物名 | `scope guard`、`skillDelivery` |
+| 全文安装 | 技能正文直接落盘，不经过内容闸门 | `skillDelivery.default=full` |
+| 技能统计 | usage 域：采集通道、技能模式、轮转、更新提示频率 | `usage` |
+
+## 文案约定
+
+- 文本层只给人读中文；`policy:<id>`、`allowlist`、`gated` 等机器键只进 `--format json` 与调试输出。
+- 同一概念只用一个词：作用域里「策略」指 `policy`，「规则」只指全局 `rule`；入口壳是内容闸门产物，项目面薄壳是安装别名，二者不混用。
+- 报告行写「对象 + 结论 + 依据 / 下一步」，不把裸问句或内部术语当标签。
+- 枚举默认只写中文；用户需要手写配置时才写「中文（原值）」。
+- 交互菜单标题写「选择…」，选项描述结果而不是实现；只有组件支持默认值时才标「（默认）」。
+- 中文句子用全角标点，命令 / 键 / 路径用反引号，强调用「」；中英之间留一个空格。
+- 结果与机器可读内容走 stdout，提示、告警与进度走 stderr。
+- help 文案写「做什么 + 何时用」，取值列中文并在需要时括注原值，不写内部排序算法。
+- 未知枚举值原样回退并告警，不静默吞掉。
 
 ## 全局约定
 
