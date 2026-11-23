@@ -75,16 +75,22 @@ function allowNarrowed(skills: PolicySkills | undefined, profiles: ScopeProfile[
   return ![...own, ...inherited].some((pattern) => pattern.trim() === "*")
 }
 
+// 名单配置的兜底拒绝：来自目录 / 技能名单的补集，按带条件限制处理，不按无条件拒绝
+function isLegacyFallback(policy: ScopePolicy): boolean {
+  return policy.id.startsWith("legacy:") && /:(?:skill-)?fallback:/.test(policy.id)
+}
+
 // 单条策略判定：返回命中结论；未限制该技能返回 null
 function evaluatePolicy(policy: ScopePolicy, profiles: ScopeProfile[], name: string): PolicyHit | null {
   if (!selectorMatches(policy.skills, name)) return null
   const skills = policy.skills
   const conditional = hasConditions(policy.when)
+  const fallback = isLegacyFallback(policy)
   const denial = policy.effect === "deny" || denyHit(skills, profiles, name)
   const narrowed = allowNarrowed(skills, profiles) && !allowHit(skills, profiles, name)
   if (!denial && !narrowed) return null
-  // 无条件拒绝 = 全站禁用 → 不安装；其余限制（含收窄允许名单）→ 入口壳
-  const mode = denial && !conditional ? "off" : "gated"
+  // 无条件拒绝 = 全站禁用 → 不安装；名单兜底与其余限制（含收窄允许名单）→ 入口壳
+  const mode = denial && !conditional && !fallback ? "off" : "gated"
   const score =
     selectorScore(skills, name) * 10000 +
     Math.max(
@@ -96,7 +102,9 @@ function evaluatePolicy(policy: ScopePolicy, profiles: ScopeProfile[], name: str
   const reason = denial
     ? conditional
       ? `策略 policy:${policy.id} 在该范围拒绝该技能 → 入口壳`
-      : `策略 policy:${policy.id} 无条件拒绝该技能 → 不安装`
+      : fallback
+        ? `名单配置在该范围未允许该技能 → 入口壳`
+        : `策略 policy:${policy.id} 无条件拒绝该技能 → 不安装`
     : `策略 policy:${policy.id} 的允许名单不含该技能 → 入口壳`
   return { id: policy.id, mode, score, reason }
 }

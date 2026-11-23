@@ -249,7 +249,8 @@ toolkit skill status --path --format json      # JSON 输出：包根、技能�
 
 ## 策略与内容闸门
 
-- 策略（`scope policy` / `scope skills`）直接决定技能分发形态：带条件限制 → 入口壳，无条件拒绝 → 不安装，无需手动开闸门
+- 策略（`scope policy` / `scope skills`）直接决定技能分发形态：带条件限制 → 入口壳，无条件拒绝 → 不安装，无需手动开闸门；
+  名单配置的兜底拒绝属于目录 / 技能名单的补集，按带条件限制算入口壳
 - 矩阵限制的技能由 `install` 自动生成入口壳，`skill plan` 可预览；显式 `skillDelivery.rules` 仍可覆盖推导
 - 显式规则把被拒技能钉成全文时，提示「策略对该技能无效：已显式设为全文安装」；旧键 `skillInstall.gate` / `metadata.gate` 仍读时兼容
 - 已安装但当前目录矩阵未允许的技能单列提示，不自动删除；确认不需要时用 `skill uninstall` 清理

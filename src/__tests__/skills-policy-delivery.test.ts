@@ -66,6 +66,20 @@ describe("策略推导", () => {
     expect(decision?.mode).toBe("off")
   })
 
+  it("名单配置的兜底拒绝按目录限制推导为入口壳", () => {
+    const pathFallback = derivePolicyDelivery("fxri-plan-task", {
+      policies: [{ id: "legacy:global:fallback:0", effect: "deny", name: "名单兜底" }],
+      profiles: emptyProfiles,
+    })
+    expect(pathFallback?.mode).toBe("gated")
+
+    const skillFallback = derivePolicyDelivery("fxri-plan-task", {
+      policies: [{ id: "legacy:global:skill-fallback:fxri-*", effect: "deny" }],
+      profiles: emptyProfiles,
+    })
+    expect(skillFallback?.mode).toBe("gated")
+  })
+
   it("收窄的允许名单不含该技能时推导为入口壳", () => {
     const decision = derivePolicyDelivery("fxri-plan-task", {
       policies: [{ id: "allow-small", skills: { mode: "allowlist", allow: ["fxri-plan-review"] } }],
