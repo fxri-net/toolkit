@@ -282,6 +282,37 @@ describe("guard 契约", () => {
     expect(io.err()).toContain("技能名非法")
   })
 
+  it("多个来源共享同一目录时按条目合并，已装闸门壳不误报同名冲突", () => {
+    writeFileSync(
+      join(home, ".toolkitrc.json"),
+      JSON.stringify({
+        skillInstall: { selection: { toolkit: ["fxri-plan-task"] } },
+        policies: [{ id: "shape", effect: "allow", skills: { match: ["fxri-plan-task"] }, delivery: "gated" }],
+      }),
+    )
+    resetToolkitConfigCache()
+    installSkills({ skills: ["fxri-plan-task"] })
+    const state = readSkillsState()!
+    const builtin = Object.values(state.sources)[0]!
+    // 追加一个与内置源共用同一目标目录的外部来源，其条目不含本包技能
+    const sources = state.sources as unknown as Record<string, unknown>
+    sources.extra = JSON.parse(
+      JSON.stringify({
+        kind: "local",
+        version: "9.9.9",
+        temporary: false,
+        root: join(home, "ext"),
+        targets: builtin.targets.map((target) => ({ ...target, entries: [{ name: "other-skill", version: "1.0.0", mode: "copy" }] })),
+      }),
+    )
+    writeFileSync(skillsStateFile(), JSON.stringify(state))
+    resetSkillsRootCache()
+    const item = skillsStatus()
+      .targets.flatMap((target) => target.items)
+      .find((entry) => entry.name === "fxri-plan-task")
+    expect(item?.state).toBe("gate")
+  })
+
   it("外部来源技能按状态文件登记解析正文", () => {
     const pkgRoot = mkdtempSync(join(tmpdir(), "tk-gate-pkg-"))
     mkdirSync(join(pkgRoot, "skills"), { recursive: true })

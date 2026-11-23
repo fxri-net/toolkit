@@ -321,7 +321,12 @@ export function skillsStatus(): SkillsStatusReport {
   const nameByDir = new Map(targets.filter((target) => target.name).map((target) => [pathKey(target.dir), target.name]))
   const stateByDir = new Map<string, SkillStateTarget>()
   for (const source of Object.values(state?.sources ?? {})) {
-    for (const target of source.targets) stateByDir.set(pathKey(target.dir), target)
+    for (const target of source.targets) {
+      // 同一目录可能被多个来源登记（内置源 + 外部来源）：按目录合并条目，避免后登记来源把前者的产物误判为同名冲突
+      const key = pathKey(target.dir)
+      const existing = stateByDir.get(key)
+      stateByDir.set(key, existing ? { ...existing, entries: [...existing.entries, ...target.entries] } : { ...target, entries: [...target.entries] })
+    }
   }
   const knownNames = new Set(allNames)
 
