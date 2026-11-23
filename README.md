@@ -98,7 +98,7 @@ toolkit scope
 
 ```bash
 pnpm add -g @fxri/toolkit && toolkit skill install  # 装了 CLI 一键分发（npm 用户：npm add -g @fxri/toolkit）
-toolkit skill install --scope project               # 项目面分发：真源与入口薄壳随仓库入库、队友 clone 即用
+toolkit skill install --scope project               # 项目面分发：真源与项目面薄壳随仓库入库、队友 clone 即用
 pnpm dlx skills add fxri-net/toolkit                # 也可用上游安装器（npm 用户：npx skills add fxri-net/toolkit）
 ```
 
@@ -115,7 +115,7 @@ pnpm dlx skills add fxri-net/toolkit                # 也可用上游安装器�
   旧段名 `skillsInstall` / `projectSkills` 仍可读，`toolkit init` 会自动重写
 - **外部来源**：`--source <name|path>` 临时纳入（已登记来源名、目录或 Git 地址；副本、只写本次），
   加 `--save [name]` 登记为永久来源（默认软链）；`toolkit skill source` 查看 / 注销来源
-- **作用域**：`--scope project` 换项目面——真源落 `<仓库根>/.agents/skills/`、其余候选目录落入口薄壳，
+- **作用域**：`--scope project` 换项目面——真源落 `<仓库根>/.agents/skills/`、其余候选目录落项目面薄壳，
   随 git 入库后队友 clone 靠 `toolkit init` 写入的 `prepare` 钩子自动刷新已有产物（不新增技能）
 
 - [fxri-plan-task](./skills/fxri-plan-task/SKILL.md)：方案确认后落盘为任务文件（任务分解与纯展示计划表、一次建完全部任务档、check、归档 + 任务级规范沉淀为强制终点）

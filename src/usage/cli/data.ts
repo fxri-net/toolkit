@@ -385,7 +385,7 @@ export function registerUsageDataCommands(data: Command, usage: Command): void {
         console.log(`数据目录：${dir}`)
         console.log(`事件：${events.length} 条 / 去重后 ${unique.size} 条 / 索引 ${index.eventIds.length} 条`)
         if (items.length === 0) console.log(line.ok("未发现问题"))
-        else for (const item of items) console.log(`${item.level === "warn" ? "⚠️" : "ℹ️"} ${item.message}`)
+        else for (const item of items) console.log(`${item.level === "warn" ? "⚠️" : "·"} ${item.message}`)
       })
 
     // 索引重建：doctor 提示后使用

@@ -27,8 +27,8 @@ function issueMark(level: StatusReport["issues"][number]["level"]): string {
 
 // 结论：区分 error 与软告警，并说明 --check 的退出语义
 function conclusion(report: StatusReport): string {
-  if (report.errorCount > 0) return `结论：存在 ${report.errorCount} 项 error 级问题（--check 时退出 1）`
-  if (report.warnCount > 0) return `结论：整体可用，${report.warnCount} 项软告警待清理（不影响退出码）`
+  if (report.errorCount > 0) return `结论：存在 ${report.errorCount} 项错误（--check 时退出 1）`
+  if (report.warnCount > 0) return `结论：整体可用，${report.warnCount} 项警告待清理（不影响退出码）`
   return "结论：整体健康，未发现问题"
 }
 

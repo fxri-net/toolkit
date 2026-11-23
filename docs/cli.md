@@ -79,7 +79,7 @@
 | 命中策略 | 当前目录最终命中的那条作用域策略；名单配置生成的规则显示中文名，新策略保留 `policy:<id>` | `scope status`、`scope policy list` |
 | 判定目录 | 判定基准：优先 git 根，其次含 `.tasks` 的根，都没有则当前目录 | `scope status` / `list` |
 | 入口壳 | 内容闸门产物：只保留名称与描述，正文由 `scope guard` 按作用域下发 | `skill status`、`skillDelivery` |
-| 项目面薄壳 | 项目面安装时指向真源的别名壳；不再写「入口薄壳」 | `skill install --scope project`、`init` |
+| 项目面薄壳 | 项目面安装时指向真源的别名壳；历史文档中的「入口薄壳」「薄壳」均指它 | `skill install --scope project`、`init` |
 | 内容闸门 | 按目录控制技能正文是否可读的机制，不是产物名 | `scope guard`、`skillDelivery` |
 | 全文安装 | 技能正文直接落盘，不经过内容闸门 | `skillDelivery.default=full` |
 | 技能统计 | usage 域：采集通道、技能模式、轮转、更新提示频率 | `usage` |
@@ -151,6 +151,7 @@
 
 成功结论（`✔`）绿色、告警（`⚠️`）黄色、失败（`✖`）红色、次要说明与操作指引（`·`）暗色，
 `[预演]` 标记青色，路径与命令名等强调文本青色。关闭颜色时符号保留、文案不变。
+符号集固定为这四种，不再使用 `✓` / `ℹ️` 等同义符号。
 
 机器可读输出不着色：`--format json`、`--out` 写入文件、`scope guard` 技能正文等数据通道恒为纯文本。
 

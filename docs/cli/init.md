@@ -48,7 +48,7 @@ toolkit init --no-hooks              # 不写入 package.json 的 prepare 刷新
 - ⚠️ 发布型包误打包检查**独立于钩子**：`package.json` 未标 `private` 且无 `files` 白名单时，报告附提示
   - 与钩子是否写入无关：`--no-hooks`、未声明本地依赖、非等价 `prepare` 等情形同样提示
   - 原因：`npm` 无 `.npmignore` 时退回 `.gitignore` 决定打包面，而项目面技能产物与内置任务区都不在忽略列表、会被打进包
-  - 涉及产物：技能真源 `.agents/skills/`、各候选目录下的入口薄壳、归属账 `.toolkit/`，以及内置任务区 `.tasks/`（任务区外置时不计入）
+  - 涉及产物：技能真源 `.agents/skills/`、各候选目录下的项目面薄壳、归属账 `.toolkit/`，以及内置任务区 `.tasks/`（任务区外置时不计入）
   - 处置：发布型包请把它们加入 `files` 白名单或 `.npmignore`；`init` 只提示、不代改
 - 输出后续步骤与文档站链接；检测到尚未安装全局技能时，后续步骤中补一行 `toolkit skill install` 指引（规范触达第一层，不依赖项目内文件；已安装则不重复提示）
 

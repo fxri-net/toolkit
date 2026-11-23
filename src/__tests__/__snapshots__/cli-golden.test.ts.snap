@@ -988,7 +988,7 @@ exports[`各域行为与错误路径 > rules list 1`] = `
     commit   2026-11-13 10:13  提交信息规则（full）
     usage    2026-11-21 21:52  技能使用情况（full）
 预设：minimal=core；recommended=core+output+workflow；complete=core+output+workflow+personal+env；full=core+output+workflow+personal+env+commit+usage
-当前缓存：无（默认 recommended）
+当前缓存：无（默认推荐组合 recommended）
 --- stderr ---
 "
 `;
@@ -1178,7 +1178,7 @@ Options:
 
 Commands:
   list [options]     列出规则模块、预设与当前缓存选择
-  compose [options]  组合规则模块并输出（TTY 无参时交互选择；非 TTY 按缓存 > recommended）
+  compose [options]  组合规则模块并输出（TTY 无参时交互选择；非 TTY 按缓存 > 推荐组合 recommended）
   check [options]    校验规则模块与规则页的更新锚点是否同源（只报不改）
   reset [options]    清除规则组合缓存
 
@@ -1605,7 +1605,7 @@ registry：registry.npmjs.org（来源：默认）
 提示频率：cli always / 内置 inherit / 第三方 always
 检查时间：尚未检查（下次可提示：随时）
 
-作用域：项目面（仓库内唯一真源副本 + 各候选目录薄壳）（--scope 指定）
+作用域：项目面（仓库内唯一真源副本 + 各候选目录的项目面薄壳）（--scope 指定）
 
 项目面 · 项目根：<SANDBOX>/workspace
 项目面 · 技能真源：.agents/skills
@@ -1649,7 +1649,7 @@ registry：registry.npmjs.org（来源：默认）
 exports[`各域行为与错误路径 > skills 项目面预演 1`] = `
 "退出码：0
 --- stdout ---
-作用域：项目面（仓库内唯一真源副本 + 各候选目录薄壳）（--scope 指定）
+作用域：项目面（仓库内唯一真源副本 + 各候选目录的项目面薄壳）（--scope 指定）
 
 [预演] 技能分发计划：8 个技能 · 1 个目标
 
@@ -1673,8 +1673,8 @@ exports[`各域行为与错误路径 > tasks check 1`] = `
 "退出码：0
 --- stdout ---
 任务校验：
-【error】0 项
-【warn】1 项
+✖ 错误 0 项
+⚠️ 警告 1 项
   20261111-唐启云-基线示例已完成任务.md: 文件名日期 20261111 与 created 20261109 不一致
 --- stderr ---
 "
@@ -1684,8 +1684,8 @@ exports[`各域行为与错误路径 > tasks check 全部通过 1`] = `
 "退出码：0
 --- stdout ---
 任务校验：
-【error】0 项
-【warn】0 项
+✖ 错误 0 项
+⚠️ 警告 0 项
 ✔ 未发现问题
 --- stderr ---
 "
@@ -2011,7 +2011,7 @@ exports[`各域行为与错误路径 > usage data doctor 1`] = `
 数据目录：<SANDBOX>/home/.toolkit/usage
 事件：0 条 / 去重后 0 条 / 索引 0 条
 ⚠️ 数据目录尚未创建：<SANDBOX>/home/.toolkit/usage
-ℹ️ 技能使用情况总开关处于关闭状态
+· 技能使用情况总开关处于关闭状态
 ⚠️ 采集通道为 Agent Hook（hook），但未安装任何 Hook：执行 toolkit usage setup hooks install，或切换为全局规则上报（toolkit usage config channel rule）
 --- stderr ---
 "
@@ -2443,7 +2443,7 @@ exports[`帮助与版本口径 > rules compose 帮助 1`] = `
 --- stdout ---
 Usage: toolkit rule compose [options]
 
-组合规则模块并输出（TTY 无参时交互选择；非 TTY 按缓存 > recommended）
+组合规则模块并输出（TTY 无参时交互选择；非 TTY 按缓存 > 推荐组合 recommended）
 
 Options:
   --preset <name>   预设：minimal / recommended / complete / full
@@ -2471,7 +2471,7 @@ Options:
 
 Commands:
   list [options]     列出规则模块、预设与当前缓存选择
-  compose [options]  组合规则模块并输出（TTY 无参时交互选择；非 TTY 按缓存 > recommended）
+  compose [options]  组合规则模块并输出（TTY 无参时交互选择；非 TTY 按缓存 > 推荐组合 recommended）
   check [options]    校验规则模块与规则页的更新锚点是否同源（只报不改）
   reset [options]    清除规则组合缓存
 

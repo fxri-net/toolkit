@@ -115,7 +115,7 @@ function resolveScopeChoice(value: string | undefined): { choice: ScopeChoice; e
 
 // 作用域中文标签（报告回显用）
 const SCOPE_LABEL: Record<ScopeChoice, string> = {
-  project: "项目面（仓库内唯一真源副本 + 各候选目录薄壳）",
+  project: "项目面（仓库内唯一真源副本 + 各候选目录的项目面薄壳）",
   global: "全局面（软链 / 副本到各 agent 全局技能目录）",
   all: "项目面 + 全局面",
 }

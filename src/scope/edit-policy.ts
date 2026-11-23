@@ -4,7 +4,7 @@ import { confirmWrite, reportWrite } from "../cli-ui"
 import { getHomeDir } from "../config"
 import { isInteractive } from "../prompts"
 import { listPackageSkills } from "../skills/source"
-import { line } from "../term-style"
+import { line, scopeModeText, termText } from "../term-style"
 import { layerConfigTarget, readLayerConfig, writeLayerConfig, type LayerConfigTarget } from "./config-file"
 import { resolveScope } from "./load"
 import { compilePattern, matchPathPattern } from "./pattern"
@@ -193,7 +193,7 @@ function assertDenySkillScope(effect: "allow" | "deny", skills: PolicySkills | u
 function validateSkills(skills: PolicySkills | undefined, startDir: string, layer: PolicyLayer): void {
   if (!skills) return
   if (skills.mode && !MODES.includes(skills.mode)) {
-    throw new Error(`技能模式须为 ${MODES.join(" / ")}；未写入配置`)
+    throw new Error(`技能模式须为 ${MODES.map((mode) => termText(scopeModeText, mode)).join(" / ")}；未写入配置`)
   }
   const patterns = [...(skills.match ?? []), ...(skills.allow ?? []), ...(skills.deny ?? [])]
   for (const pattern of patterns) assertPattern(pattern, "技能名单")

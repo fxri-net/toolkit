@@ -138,7 +138,7 @@ export function registerRulesCommands(program: Command): void {
           console.log(`  ${mark} ${mod.id.padEnd(8)} ${mod.anchor}  ${mod.title}（${mod.presets.join(" / ") || "无预设"}）`)
         }
         console.log(`预设：${Object.entries(listed.presets).map(([name, ids]) => `${name}=${ids.join("+")}`).join("；")}`)
-        console.log(`当前缓存：${selection ? selection.modules.join(" → ") : "无（默认 recommended）"}`)
+        console.log(`当前缓存：${selection ? selection.modules.join(" → ") : "无（默认推荐组合 recommended）"}`)
       } catch (error) {
         console.error(`⚠️ ${(error as Error).message}`)
         process.exitCode = 1
@@ -147,7 +147,7 @@ export function registerRulesCommands(program: Command): void {
 
   rulesCmd
     .command("compose")
-    .description("组合规则模块并输出（TTY 无参时交互选择；非 TTY 按缓存 > recommended）")
+    .description("组合规则模块并输出（TTY 无参时交互选择；非 TTY 按缓存 > 推荐组合 recommended）")
     .option("--preset <name>", "预设：minimal / recommended / complete / full")
     .option("--module <id...>", "模块 id（可重复，也可逗号分隔）")
     .option("--no-anchor", "不输出首行更新时间锚点")

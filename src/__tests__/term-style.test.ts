@@ -155,7 +155,6 @@ describe("输出出口装饰", () => {
 
   it("按行首语义符号着色，符号本身不参与着色", () => {
     expect(decorate("✔ 完成")).toBe("✔ \u001b[32m完成\u001b[0m")
-    expect(decorate("✓ 完成")).toBe("✓ \u001b[32m完成\u001b[0m")
     expect(decorate("⚠️ 注意")).toBe("⚠️ \u001b[33m注意\u001b[0m")
     expect(decorate("✖ 失败")).toBe("✖ \u001b[31m失败\u001b[0m")
     expect(decorate("· 说明")).toBe("· \u001b[2m说明\u001b[0m")

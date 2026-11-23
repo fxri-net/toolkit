@@ -214,7 +214,7 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 
 默认**软链**（Windows 用 junction）。⚠️ 软链落点是**写入穿透**形态：改落点文件即改真源，要改技能内容请改真源。
 
-**项目面分发（`--scope project`）**：真源落 `<仓库根>/.agents/skills/`（完整副本），其余已存在候选目录各放每个技能一份**入口薄壳**指向真源，避免多目录重复；
+**项目面分发（`--scope project`）**：真源落 `<仓库根>/.agents/skills/`（完整副本），其余已存在候选目录各放每个技能一份**项目面薄壳**指向真源，避免多目录重复；
 按 `skillDelivery` 判定为 `gated` 的技能在候选目录落**入口壳**（正文由 `toolkit scope guard` 读项目真源副本），`off` 不落产物。
 归属账写 `<仓库根>/.toolkit/state.json`，`prepare` 钩子在 `pnpm install` 时自动刷新，队友 clone 即用。
 候选目录清单、逐技能现场状态与卸载口径见 [技能分发](./cli/skill)。
@@ -228,7 +228,7 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 需求：**只在公司项目激活 toolkit 技能，个人项目不被插入**（全局安装 skills 会污染所有项目）。做法二选一：
 
 **路径一 · 项目面分发（团队推荐，clone 即用）**：项目里以 devDependency 装 CLI，执行 `toolkit skill install --scope project`——
-技能真源与入口薄壳一并入库，队友 `pnpm install` 即补齐；个人项目不装 CLI 即不受影响。`--scope` 缺省时按 CLI 安装位置自动判定（项目内装的走项目面，全局装的走全局面）。
+技能真源与项目面薄壳一并入库，队友 `pnpm install` 即补齐；个人项目不装 CLI 即不受影响。`--scope` 缺省时按 CLI 安装位置自动判定（项目内装的走项目面，全局装的走全局面）。
 
 **路径二 · 全局面 + rules 选择性引用**（仓库根放引用文件并提交）：
 

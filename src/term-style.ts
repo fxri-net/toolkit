@@ -42,11 +42,9 @@ function paint(code: string, text: string): string {
 // 行首语义符号对应的颜色：统一输出出口据此兜底，命令层不必逐条判断
 const LINE_STYLES: ReadonlyArray<readonly [string, string]> = [
   ["✔", SGR.green],
-  ["✓", SGR.green],
   ["⚠️", SGR.yellow],
   ["✖", SGR.red],
   ["·", SGR.dim],
-  ["ℹ️", SGR.dim],
 ]
 
 // 按行首语义符号着色：保留缩进与符号，只给其后文本上色

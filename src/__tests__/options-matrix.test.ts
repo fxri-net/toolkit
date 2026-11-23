@@ -690,13 +690,13 @@ describe("tasks check 装配位：变更集缺前缀并入软告警", () => {
     })
     try {
       const on = await runCli(["task", "check", "--dir", missingTasksDir])
-      expect(on.log.join("\n")).toContain("【warn】1 项")
+      expect(on.log.join("\n")).toContain("⚠️ 警告 1 项")
       expect(on.log.join("\n")).toContain(".changeset/probe.md:1: 变更集条目缺类型前缀（本文件 2 条）")
       expect(on.code).toBe(0)
 
       const off = await runCli(["task", "check", "--dir", missingTasksDir, "--no-warn"])
       expect(off.log.join("\n")).not.toContain("缺类型前缀")
-      expect(off.log.join("\n")).toContain("（软告警已关闭，warn 不展示）")
+      expect(off.log.join("\n")).toContain("（软告警已关闭，警告不展示）")
     } finally {
       vi.doUnmock("../changelog/format")
     }

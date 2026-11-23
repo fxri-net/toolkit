@@ -376,7 +376,7 @@ export async function runScopeMount(parent?: string, dryRun = false): Promise<vo
     }
     try {
       const report = installProjectSkills({ cwd: repo, skills, mode: "skills", saveSelection: true, saveTargets: true })
-      console.log(`✓ ${report.root}：技能 ${report.selection.length} 个，薄壳 ${report.shells.length} 个`)
+      console.log(`✔ ${report.root}：技能 ${report.selection.length} 个，项目面薄壳 ${report.shells.length} 个`)
     } catch (error) {
       console.error(`⚠️ ${repo}：${(error as Error).message}`)
     }

@@ -229,13 +229,13 @@ export function registerTasksCommands(program: Command): void {
       const issues = ctx.warn ? [...result.issues, ...changesetPrefixIssues()] : result.issues
       const errorCount = issues.filter((i) => i.level === "error").length
       console.log("任务校验：")
-      console.log(`【error】${errorCount} 项`)
+      console.log(`✖ 错误 ${errorCount} 项`)
       printIssues(issues.filter((i) => i.level === "error"), { emptyMessage: false })
       if (ctx.warn) {
-        console.log(`【warn】${issues.length - errorCount} 项`)
+        console.log(`⚠️ 警告 ${issues.length - errorCount} 项`)
         printIssues(issues.filter((i) => i.level === "warn"), { emptyMessage: false })
       } else {
-        console.log(line.hint("（软告警已关闭，warn 不展示）"))
+        console.log(line.hint("（软告警已关闭，警告不展示）"))
       }
       if (issues.length === 0) console.log(line.ok("未发现问题"))
       if (errorCount > 0) process.exitCode = 1

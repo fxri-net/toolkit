@@ -35,7 +35,7 @@ toolkit rule check                    # 校验模块与规则页的更新锚点�
 | 子命令 | 说明 | 主要选项 |
 | --- | --- | --- |
 | `list` | 列出模块、锚点、预设归属与当前缓存 | `--format json` |
-| `compose` | 组合输出；无参数时按「缓存 > recommended」取值 | `--preset`、`--module`（可重复 / 逗号分隔）、`--no-anchor`、`--out`、`--copy`、`--no-cache`、`--dry-run` |
+| `compose` | 组合输出；无参数时按「缓存 > 推荐组合 recommended」取值 | `--preset`、`--module`（可重复 / 逗号分隔）、`--no-anchor`、`--out`、`--copy`、`--no-cache`、`--dry-run` |
 | `reset` | 清除组合缓存 | — |
 | `check` | 校验 `templates/rules/*.md` 与 `docs/rules/*.md` 的更新锚点：格式合法且页面锚点等于所含模块最大值 | `--cwd`、`--format json` |
 
@@ -47,7 +47,7 @@ toolkit rule check                    # 校验模块与规则页的更新锚点�
 - `--module` 的出现顺序即输出顺序；`--preset` 按清单顺序；二者同时出现报错。
 - 交互预设选择按 ESC 取消整个命令（取消退出码）；进入「自定义…」后按 ESC 回到预设，不会直接退出。
 - 显式传入 `--preset` / `--module` 时默认写入缓存（含顺序），`--no-cache` 可关闭；带 `--out` / `--copy` 时不写缓存（一次性导出不改变默认组合），
-   缓存损坏或含未知模块时告警并回落 `recommended`。
+   缓存损坏或含未知模块时告警并回落推荐组合 `recommended`。
 - `--dry-run` 只预览：不写缓存、不写 `--out` 文件、不复制剪贴板；默认输出仍把组合文本送到 stdout。
 - `rule list` 的 `--format` 仅接受 `json`，非法值报错退出 `1`，不再回落文本。
 - `--out` / `--copy` 时 stdout 为空，确认与错误提示走 stderr；剪贴板写入失败以非 0 退出。
