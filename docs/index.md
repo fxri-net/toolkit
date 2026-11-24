@@ -21,7 +21,7 @@ hero:
 features:
   - icon: ✅
     title: 协作 · 方案落盘即约束
-    details: 方案确认完就丢、AI 会话一关什么都不剩？任务文件落在仓库 .tasks/，toolkit task check 校验、task archive 归档，决策不再随会话消失。
+    details: 方案确认完就丢、AI 会话一关什么都不剩？任务文件落在仓库 .tasks/，格式自动校验、完成后自动归档，决策不再随会话消失。
   - icon: 📐
     title: 协作 · 规范载体可校验
     details: 任务里提炼的规范收进 .tasks/conventions/：v3 三分区、稳定 ID 索引、结构升级与表格 / 索引单元格归一，规范可检索也可体检。
@@ -33,13 +33,13 @@ features:
     details: 一条命令扫 .tasks/ 全目录，按状态/负责人/范围/日期过滤，可导出 CSV / XLSX / JSON。
   - icon: 🧩
     title: 分发 · AI 技能包
-    details: 不装本工具，也能让 AI 按同一套规范干活——零依赖 Agent Skills，各 agent 全局技能目录通用；装了 CLI 可 toolkit skill install 一键分发，与 CLI 同一发布批次。
+    details: 不装本工具，也能让 AI 按同一套规范干活——零依赖 Agent Skills，各 agent 全局技能目录通用。装了 CLI 后一条命令分发到各 agent，与 CLI 同一发布批次。
   - icon: 🧭
     title: 分发 · 全局规则可组合
     details: 按模块组合、排序与复制 AI 全局规则（角色、输出、工作流、提交、使用统计等），预设与缓存随包分发，升级后重新组合即同步。
   - icon: 🎯
     title: 分发 · 作用域按目录生效
-    details: 默认全域生效；只想在公司项目生效、个人项目不被插入时，用 toolkit scope 设白名单 / 黑名单、标记、git 远端或技能矩阵策略，必要时 skill mount 做项目面安装。
+    details: 默认全域生效；只想在公司项目生效、个人项目不被插入时，按目录、标记、git 远端或技能矩阵设定生效范围，必要时做项目面安装。
   - icon: 📈
     title: 分发 · 技能使用有据可查
     details: 统计技能在哪些会话、被哪句话触发、用了多少次；默认关闭、不联网、数据只留本机。
