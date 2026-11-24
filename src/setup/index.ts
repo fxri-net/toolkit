@@ -6,6 +6,7 @@ import { isInteractive, reportCancelled, runInteractive } from "../prompts"
 import { askCheckbox } from "../cli-ui"
 import { line } from "../term-style"
 import { inspectSetupSteps, runSetupStep, type StepId, type SetupStep } from "./steps"
+import { readSetupSelection, writeSetupSelection } from "./selection"
 
 export interface SetupOptions {
   yes?: boolean
@@ -54,6 +55,15 @@ export async function runSetupWizard(options: SetupOptions): Promise<void> {
   const steps = inspectSetupSteps(preset, options.rules !== undefined)
   const pick = (id: StepId) => steps.find((step) => step.id === id)
 
+  // 上次确认的勾选优先于代码默认值；显式参数仍随后覆盖
+  const remembered = readSetupSelection()
+  if (remembered) {
+    for (const step of steps) {
+      const selected = remembered[step.id]
+      if (selected !== undefined) step.selected = selected
+    }
+  }
+
   // 显式参数即视为勾选，避免未进交互时漏做
   if (options.skills) {
     const step = pick("skills")
@@ -96,6 +106,8 @@ export async function runSetupWizard(options: SetupOptions): Promise<void> {
         })),
       })
       for (const step of steps) step.selected = picked?.includes(step.id) ?? false
+      // 确认勾选即记住；dry-run 不写盘，ESC 取消（picked 为 null）不记
+      if (picked && !options.dryRun) writeSetupSelection(picked)
     })
   }
 

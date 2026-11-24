@@ -10,8 +10,9 @@ export interface SetupStep {
   label: string
   // 单行说明：写到哪里、会改什么，只作展示不参与判定
   summary: string
-  // 已就绪：无选择的步骤据此决定默认勾选
+  // 已就绪：只作「检查环境」的状态展示，不参与默认勾选
   ready: boolean
+  // 默认勾选：由上次确认的记忆覆盖，首次按代码默认值
   selected: boolean
   // 勾选后必进交互：交互与零交互两条路径各自的执行参数
   interactive: boolean
@@ -32,7 +33,8 @@ export function inspectSetupSteps(preset: string, rulesPresetExplicit = false): 
       label: "安装 AI 技能",
       summary: "写到本机全局技能目录，各项目直接可用",
       ready: skillsReady,
-      selected: !skillsReady,
+      // 技能安装是接入的第一步，已装也默认勾选，进交互可直接沿用上次选择
+      selected: true,
       interactive: true,
       readiness: true,
       // 勾选后进入技能与目标选择；--yes 时用已保存选择，首次只装 core
@@ -60,7 +62,8 @@ export function inspectSetupSteps(preset: string, rulesPresetExplicit = false): 
       label: "设置生效范围",
       summary: "写到本机作用域配置，决定哪些项目生效",
       ready: false,
-      selected: true,
+      // 范围决定影响哪些项目，不在默认路径替用户做选择
+      selected: false,
       interactive: true,
       readiness: false,
       argv: ["scope"],
