@@ -1,5 +1,81 @@
 # 方弦工具集
 
+## 2.0.5
+
+> 2026-11-24 发布
+
+### 🚨 重大变更
+
+- 移除 `scope wizard` / `usage setup wizard` / `skill plan` 三个入口，不保留别名；替代写法分别为裸 `toolkit scope`、裸 `toolkit usage setup`、`toolkit skill install --dry-run`
+- v1 顶层 `init` 只保留任务区初始化并迁为 `toolkit task init`，`--dir` / `--no-hooks` 随能力迁入 task 域；本机接入向导另用 `toolkit setup`
+- `toolkit setup` 为本机接入向导（安装 AI 技能、配置全局规则、设置生效范围）；任务区初始化由 `toolkit task init` 负责
+- `rule list --format json` 的 `presets` 由模块 id 数组改为含 `label` / `summary` / `modules` 的对象
+- 全局规则模块由 7 个合并为 6 个，`personal` 与 `env` 合并为「推荐做法」（`practices`）
+- 预设重排为极简（仅工作流）/ 推荐 / 全量，删除 `complete`（自用全篇）
+- 移除 `scope policy` / `scope skills` / `scope list` 三组子命令；名单与策略统一由 `scope allow` / `deny` 写入，覆盖由 `scope remove` / `default` / `reset` 承担，档案由 `scope profile` 管理
+
+### ✨ 新增功能
+
+- 发版技能补「重大」判定条件——须同时满足「对象上一版已存在」与「按原用法继续会失败或结果不同」，并明确只增不改不构成重大
+- `toolkit task init`、`toolkit privacy scan --fix`、`toolkit usage setup init` 补齐 `--dry-run`，输出与真实执行同构的动作清单且不写盘
+- 补「内部推广」页，提供一句话介绍、讲稿、试点方案与决策者问答
+- 补「一图看懂」页，用可点击的结构图与能力全景说明组成与关系
+- 补「适用场景」页，按个人 / 团队 / 组织 / 沉淀者 / 维护者 / 存量迁移给出起步路径
+- 接入向导四项勾选，已就绪项默认不勾、可手动重跑，有交互的步骤勾选后必进交互并可「退出」返回
+- `toolkit rule sync` 把提交信息规则同步到项目内 `.trae/rules/git-commit-message.md`，支持 `--dry-run` 看差异、`--yes` 直接写入
+- 同步文件首部记录生成版本与正文摘要，无差异零改动；被手改或无生成标记时默认停在「查看」，不默认覆盖
+
+### 🔧 功能调整
+
+- `commit` 规则模块补一行边界说明——「重大」只用于变更集条目，提交标题仍按七类
+- 明确该前缀只标注破坏性、不决定 bump；提交信息类型字典不含「重大」
+- `skill install`、`task init` 报告统一为三段式——动作前标明作用层（全局层 / 项目层 / 本机层 / 只读），逐项动作行，动作后汇总完成 / 跳过 / 失败并给出重试命令
+- `skill install --dry-run` 的分发计划标明全局层 / 项目层；`usage setup init --dry-run` 复用 Hook 安装预演
+- 裸 `toolkit scope` / `toolkit usage setup` 直接进交互；非 TTY 需要强制交互时统一用 `--interactive`（无终端按无交互退出码结束）
+- `command-registry` 同步入口登记与 v1 `usage wizard` 的迁移目标；`src/exit-codes.ts` 场景口径改指 `--interactive`
+- init 实现迁入 `src/tasks/init.ts`，文档站链接常量上移到 `src/links.ts`，不留转发壳
+- 源码内提示文案、文档与技能引用统一为 `toolkit task init`，技能 `fxri-plan-task` 升版
+- `--yes` 与「设置生效范围」「开启使用统计」互斥，零交互模式不写任何范围决定
+- 规则预设的显示名、模块清单与适用面统一由 `templates/rules/ruleset.json` 派生，`rule compose` 交互选项与文档站组合器各附一行说明
+- `toolkit setup` 四项勾选补「做什么 + 写到哪里」说明；`usage setup` 的预设、通道、技能范围与轮转选项，以及 `upgrade` 的迁移项补影响面说明
+- `toolkit status` 对项目内提交规则漂移只提示「跑 toolkit rule sync 更新」，不改文件
+- `workflow` 的提交纪律改为「提交是否执行由规则约定，未约定时需你确认」，与推荐做法不再冲突
+- `scope allow` / `deny` 按条件选项自动分流——无条件选项写目录名单，出现 `--skill` / `--profile` / `--paths` 等任一条件时写策略
+- `scope status` 新增 `--lists` 与 `--policies` 视图；`scope reset` 默认清名单、策略与档案并一次预览确认
+- v1 顶层 `scope add` / `exclude` 的迁移目标改为 `allow` / `deny`；消息、帮助与文档中的旧命令口径同步
+
+### ⚡ 优化改进
+
+- 历史更新日志页不进站内搜索索引，避免索引分块超限
+- 首页删除与卡片重复的痛点表，改为按场景进入并增加「一张图看懂」入口
+- 首页特性卡片图标与标题同行，说明文字跨满两列（主题模板同步升 2.2）
+- 按实用性重排文档站导航与索引顺序，修正参考组、CLI 参考与四处索引的错位
+- 统一页尾体例，补齐缺失的相关页面并合并技能分发的碎节
+- 三张图示改为序号徽标 + 等宽卡片网格，层说明与序号左缘对齐，窄屏两列铺满、五件套固定四列不再折行
+- 快速开始按「最短路径优先」重排并压缩导语
+- 文档站写作规范补页面标题边界——无命令名 / 配置键的页面只写显示名，索引与 H1 保持一致
+- 补显示名取词判据——导读型用行动词、检索型用名词，同一对象在 H1 / 顶栏 / 侧栏同名
+- 全局规则模块改为语义自述，消除跨模块悬空指代
+- `workflow` 模块把「个人偏好可覆写」改为「除非规则另有约定」，按 `recommended` 预设复制时不再指向未包含的 `personal` 模块
+- `usage` 与 `personal` 模块去掉对其它模块条目的具名引用，单独复制即可读通
+
+### 📝 文档更新
+
+- `docs/rules/commit.md` 与 `.trae/rules/git-commit-message.md` 同步投影
+- 「一图看懂」页的层级说明改为顺读「接入 → 能力 → 产出」，与图中流向一致
+- `docs/cli/skill.md`、`task.md`、`privacy.md`、`init.md`、`usage.md` 同步输出节奏与 `--dry-run` 说明
+- 入口矩阵、作用域 / 使用情况 / 技能分发 / 初始化页与退出码场景同步
+- 接入向导页落点为 `docs/cli/setup.md`，项目初始化说明并入 `docs/cli/task.md`
+- 快速开始、30 秒上手、README 与首页统一以 `toolkit setup` 为官方接入入口
+- `docs/cli/rule.md`、`docs/cli/setup.md`、`docs/rules/index.md` 同步预设适用面与四项说明
+- `rule compose` 组合结果与文档站规则页同步更新锚点
+- `docs/cli/rule.md`、`docs/cli/status.md`、`docs/cli/setup.md`、`docs/rules/commit.md` 同步显式同步口径
+- 规则页、导航、规则组合器与上手文档同步
+
+### 🧹 清理移除
+
+- `workflow` 模块移除「技能上报」转发条，上报要求由 `usage` 模块独立承载
+
 ## 2.0.4
 
 > 2026-11-23 发布
