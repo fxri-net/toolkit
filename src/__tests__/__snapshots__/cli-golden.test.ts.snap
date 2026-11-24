@@ -1173,15 +1173,60 @@ exports[`各域行为与错误路径 > scope --interactive 非交互 1`] = `
 ⚠️ 当前环境不支持交互（作用域向导）：非交互请使用 toolkit scope status / list / add / exclude / remove / default / reset"
 `;
 
-exports[`各域行为与错误路径 > scope list add 缺参数 1`] = `
+exports[`各域行为与错误路径 > scope allow 名单预演 1`] = `
+"退出码：0
+--- stdout ---
+
+作用域：加入白名单
+  写入：<SANDBOX>/home/.toolkitrc.json
+  名单模式：仅名单内生效
+  新增：[白] <SANDBOX>/workspace/work
+  技能形态变更（8 项）：
+    全局面 · fxri-code-encoding：全文安装 → 入口壳
+    全局面 · fxri-plan-recap：全文安装 → 入口壳
+    全局面 · fxri-plan-review：全文安装 → 入口壳
+    全局面 · fxri-plan-task：全文安装 → 入口壳
+    全局面 · fxri-release-changelog：全文安装 → 入口壳
+    全局面 · fxri-test-tty：全文安装 → 入口壳
+    全局面 · fxri-writing-docs：全文安装 → 入口壳
+    全局面 · fxri-writing-skill：全文安装 → 入口壳
+[预演] 未写入任何文件
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > scope allow 策略预演 1`] = `
+"退出码：0
+--- stdout ---
+
+作用域：允许
+  写入：<SANDBOX>/home/.toolkitrc.json
+  效果：allow
+  条件：paths=work
+  技能：mode=allowlist；allow=fxri-plan-task
+  新增策略：golden-allow
+  技能形态变更（7 项）：
+    全局面 · fxri-code-encoding：全文安装 → 入口壳
+    全局面 · fxri-plan-recap：全文安装 → 入口壳
+    全局面 · fxri-plan-review：全文安装 → 入口壳
+    全局面 · fxri-release-changelog：全文安装 → 入口壳
+    全局面 · fxri-test-tty：全文安装 → 入口壳
+    全局面 · fxri-writing-docs：全文安装 → 入口壳
+    全局面 · fxri-writing-skill：全文安装 → 入口壳
+[预演] 未写入任何文件
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > scope allow 缺参数 1`] = `
 "退出码：1
 --- stdout ---
 
 --- stderr ---
-⚠️ 请指定目录；交互设置请运行 toolkit scope --interactive"
+⚠️ 请指定目录或条件选项；交互设置请运行 toolkit scope --interactive"
 `;
 
-exports[`各域行为与错误路径 > scope list default 查看 1`] = `
+exports[`各域行为与错误路径 > scope default 查看 1`] = `
 "退出码：0
 --- stdout ---
 名单模式：全部生效（白名单 0 / 黑名单 0）
@@ -1190,7 +1235,7 @@ exports[`各域行为与错误路径 > scope list default 查看 1`] = `
 "
 `;
 
-exports[`各域行为与错误路径 > scope list exclude 预演 1`] = `
+exports[`各域行为与错误路径 > scope deny 名单预演 1`] = `
 "退出码：0
 --- stdout ---
 
@@ -1212,7 +1257,58 @@ exports[`各域行为与错误路径 > scope list exclude 预演 1`] = `
 "
 `;
 
-exports[`各域行为与错误路径 > scope list remove 互转预演 1`] = `
+exports[`各域行为与错误路径 > scope deny 策略缺确认 1`] = `
+"退出码：0
+--- stdout ---
+
+作用域：拒绝
+  写入：<SANDBOX>/home/.toolkitrc.json
+  效果：deny
+  条件：markers=package.json
+  技能：无
+  deny 规则会拒绝该范围全部技能；限定技能请改用 toolkit scope deny --skill
+  新增策略：golden-deny-all
+  技能形态变更（8 项）：
+    全局面 · fxri-code-encoding：全文安装 → 入口壳
+    全局面 · fxri-plan-recap：全文安装 → 入口壳
+    全局面 · fxri-plan-review：全文安装 → 入口壳
+    全局面 · fxri-plan-task：全文安装 → 入口壳
+    全局面 · fxri-release-changelog：全文安装 → 入口壳
+    全局面 · fxri-test-tty：全文安装 → 入口壳
+    全局面 · fxri-writing-docs：全文安装 → 入口壳
+    全局面 · fxri-writing-skill：全文安装 → 入口壳
+[预演] 未写入任何文件
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > scope deny 策略预演 1`] = `
+"退出码：0
+--- stdout ---
+
+作用域：拒绝
+  写入：<SANDBOX>/home/.toolkitrc.json
+  效果：deny
+  条件：paths=work
+  技能：match=fxri-plan-task
+  新增策略：golden-deny
+  技能形态变更（1 项）：
+    全局面 · fxri-plan-task：全文安装 → 入口壳
+[预演] 未写入任何文件
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > scope profile 列表 1`] = `
+"退出码：0
+--- stdout ---
+技能档案（合并视图）：
+  未配置
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > scope remove 互转预演 1`] = `
 "退出码：0
 --- stdout ---
 
@@ -1234,7 +1330,15 @@ exports[`各域行为与错误路径 > scope list remove 互转预演 1`] = `
 "
 `;
 
-exports[`各域行为与错误路径 > scope list remove 非法 from 1`] = `
+exports[`各域行为与错误路径 > scope remove 缺参数 1`] = `
+"退出码：1
+--- stdout ---
+
+--- stderr ---
+⚠️ 请指定目录、--paths 或 --id / --name；未写入配置"
+`;
+
+exports[`各域行为与错误路径 > scope remove 非法 from 1`] = `
 "退出码：1
 --- stdout ---
 
@@ -1242,39 +1346,33 @@ exports[`各域行为与错误路径 > scope list remove 非法 from 1`] = `
 ⚠️ --from 取值须为 include / exclude / both"
 `;
 
-exports[`各域行为与错误路径 > scope list reset 预演 1`] = `
-"退出码：0
---- stdout ---
-没有变化，无需写入
---- stderr ---
-"
-`;
-
-exports[`各域行为与错误路径 > scope policy add deny 缺确认 1`] = `
+exports[`各域行为与错误路径 > scope reset 非法 what 1`] = `
 "退出码：1
 --- stdout ---
 
 --- stderr ---
-⚠️ deny 规则会拒绝该范围全部技能；限定技能请改用 toolkit scope skills deny；确认后加 --yes 再执行（未写入配置）"
+⚠️ --what 取值须为 lists / policies / profiles / all（非法：bad）"
 `;
 
-exports[`各域行为与错误路径 > scope policy add 预演 1`] = `
+exports[`各域行为与错误路径 > scope reset 预演 1`] = `
 "退出码：0
 --- stdout ---
-
-作用域策略：新增
-  写入：<SANDBOX>/home/.toolkitrc.json
-  效果：allow
-  条件：paths=work
-  技能：无
-  新增策略：golden-policy
-  技能形态：无变化
-[预演] 未写入任何文件
+没有可清除的条目，未写入配置
 --- stderr ---
 "
 `;
 
-exports[`各域行为与错误路径 > scope policy list 1`] = `
+exports[`各域行为与错误路径 > scope status --lists 1`] = `
+"退出码：0
+--- stdout ---
+作用域名单与策略：
+  配置来源：未配置
+  判定目录：<SANDBOX>/workspace
+--- stderr ---
+"
+`;
+
+exports[`各域行为与错误路径 > scope status --policies 1`] = `
 "退出码：0
 --- stdout ---
 作用域策略：
@@ -1285,12 +1383,12 @@ exports[`各域行为与错误路径 > scope policy list 1`] = `
 "
 `;
 
-exports[`各域行为与错误路径 > scope policy list JSON 1`] = `
+exports[`各域行为与错误路径 > scope status --policies JSON 1`] = `
 "退出码：0
 --- stdout ---
 {
   "schemaVersion": 1,
-  "command": "scope policy list",
+  "command": "scope status",
   "code": 200,
   "message": "成功",
   "data": {
@@ -1311,172 +1409,12 @@ exports[`各域行为与错误路径 > scope policy list JSON 1`] = `
 "
 `;
 
-exports[`各域行为与错误路径 > scope policy remove 缺参数 1`] = `
-"退出码：1
---- stdout ---
-
---- stderr ---
-⚠️ 请指定 --id 或 --name；未写入配置"
-`;
-
-exports[`各域行为与错误路径 > scope policy reset 缺参数 1`] = `
-"退出码：1
---- stdout ---
-
---- stderr ---
-⚠️ 请指定 --id / --paths，或显式 --all；未写入配置"
-`;
-
-exports[`各域行为与错误路径 > scope status 技能清单 1`] = `
-"退出码：0
---- stdout ---
-技能作用域：
-  当前目录：<SANDBOX>/workspace
-  ✔ fxri-code-encoding：生效 · 形态 全文安装（未配置作用域（默认全域生效））
-  ✔ fxri-plan-recap：生效 · 形态 全文安装（未配置作用域（默认全域生效））
-  ✔ fxri-plan-review：生效 · 形态 全文安装（未配置作用域（默认全域生效））
-  ✔ fxri-plan-task：生效 · 形态 全文安装（未配置作用域（默认全域生效））
-  ✔ fxri-release-changelog：生效 · 形态 全文安装（未配置作用域（默认全域生效））
-  ✔ fxri-test-tty：生效 · 形态 全文安装（未配置作用域（默认全域生效））
-  ✔ fxri-writing-docs：生效 · 形态 全文安装（未配置作用域（默认全域生效））
-  ✔ fxri-writing-skill：生效 · 形态 全文安装（未配置作用域（默认全域生效））
---- stderr ---
-"
-`;
-
-exports[`各域行为与错误路径 > scope status 技能清单 JSON 1`] = `
-"退出码：0
---- stdout ---
-{
-  "schemaVersion": 1,
-  "command": "scope status",
-  "code": 200,
-  "message": "成功",
-  "data": {
-    "at": "<SANDBOX>/workspace",
-    "baseDir": "<SANDBOX>/workspace",
-    "linkage": {
-      "matrixConfigured": false,
-      "gateEnabled": false,
-      "ineffective": [],
-      "dead": []
-    },
-    "skills": [
-      {
-        "name": "fxri-code-encoding",
-        "active": true,
-        "delivery": "full",
-        "matchedRule": null,
-        "reason": "未配置作用域（默认全域生效）"
-      },
-      {
-        "name": "fxri-plan-recap",
-        "active": true,
-        "delivery": "full",
-        "matchedRule": null,
-        "reason": "未配置作用域（默认全域生效）"
-      },
-      {
-        "name": "fxri-plan-review",
-        "active": true,
-        "delivery": "full",
-        "matchedRule": null,
-        "reason": "未配置作用域（默认全域生效）"
-      },
-      {
-        "name": "fxri-plan-task",
-        "active": true,
-        "delivery": "full",
-        "matchedRule": null,
-        "reason": "未配置作用域（默认全域生效）"
-      },
-      {
-        "name": "fxri-release-changelog",
-        "active": true,
-        "delivery": "full",
-        "matchedRule": null,
-        "reason": "未配置作用域（默认全域生效）"
-      },
-      {
-        "name": "fxri-test-tty",
-        "active": true,
-        "delivery": "full",
-        "matchedRule": null,
-        "reason": "未配置作用域（默认全域生效）"
-      },
-      {
-        "name": "fxri-writing-docs",
-        "active": true,
-        "delivery": "full",
-        "matchedRule": null,
-        "reason": "未配置作用域（默认全域生效）"
-      },
-      {
-        "name": "fxri-writing-skill",
-        "active": true,
-        "delivery": "full",
-        "matchedRule": null,
-        "reason": "未配置作用域（默认全域生效）"
-      }
-    ]
-  },
-  "extend": {
-    "exitCode": 0
-  },
-  "debug": {},
-  "issues": []
-}
---- stderr ---
-"
-`;
-
 exports[`各域行为与错误路径 > scope status 非法格式 1`] = `
 "退出码：1
 --- stdout ---
 
 --- stderr ---
 ⚠️ 不支持的输出格式「xml」，仅支持 json"
-`;
-
-exports[`各域行为与错误路径 > scope 技能清单 1`] = `
-"退出码：0
---- stdout ---
-技能档案：
-  未配置
-技能策略：
-  未配置
---- stderr ---
-"
-`;
-
-exports[`各域行为与错误路径 > scope 技能清单 JSON 1`] = `
-"退出码：0
---- stdout ---
-{
-  "schemaVersion": 1,
-  "command": "scope skills list",
-  "code": 200,
-  "message": "成功",
-  "data": {
-    "at": "<SANDBOX>/workspace",
-    "baseDir": "<SANDBOX>/workspace",
-    "profiles": [],
-    "linkage": {
-      "matrixConfigured": false,
-      "gateEnabled": false,
-      "ineffective": [],
-      "dead": []
-    },
-    "policies": []
-  },
-  "extend": {
-    "exitCode": 0
-  },
-  "debug": {},
-  "issues": []
-}
---- stderr ---
-"
 `;
 
 exports[`各域行为与错误路径 > scope 裸命令 1`] = `

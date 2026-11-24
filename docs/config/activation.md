@@ -61,8 +61,8 @@ title: 作用域配置（activation / policies）
 ## 技能级规则（旧字段）
 
 `activation.skills` 保留兼容：加载时编译为同层技能策略，优先级高于同层目录规则；未命中时回落目录级。
-新配置建议直接用 `policies` + `skillProfiles`。由 `activation` 编译的名单规则在 `scope policy list` 中标注「由名单配置生成，只读」，
-`scope policy reset --all` 不会清除它，需用 `scope list reset`。
+新配置建议直接用 `policies` + `skillProfiles`。由 `activation` 编译的名单规则在 `scope status --policies` 中标注「由名单配置生成，只读」，
+`scope reset --what policies` 不会清除它，需用 `scope reset --what lists`。
 
 ## 策略规则
 
@@ -79,7 +79,7 @@ title: 作用域配置（activation / policies）
 
 - `effect: allow` 时按 `skills.mode`：`allowlist` 需命中 `profiles` / `allow` 且不在 `deny`；`denylist` 与 `all` 仅 `deny` 排除
 - `effect: deny` 不读取技能名单，写入带名单且无 `skills.match` 的 deny 规则会被拒绝；
-  只拒绝某个技能时用 `scope skills deny` 生成带 `skills.match` 的规则
+  只拒绝某个技能时用 `scope deny --skill` 生成带 `skills.match` 的规则
 - `when` 为空或全空数组即兜底规则，加载时会告警
 - `delivery` 让「技能 × 目录」矩阵写进策略本身：`allow` + `gated` 表示该目录可用但只安装入口壳，
   `allow` + `off` 表示可用但不产出安装产物；`deny` + `full` 互斥（拒绝的规则不能声明全文），加载时告警并丢弃 `delivery`
@@ -103,8 +103,8 @@ title: 作用域配置（activation / policies）
 `skillProfiles` 与 `activation` 同级：键为档案名，值为 `{ allow?, deny? }` 技能名 / glob。
 策略通过 `skills.profiles` 引用档案；同名档案按最近层**整份覆盖**，不做名单合并。
 策略只能引用其所在层及更低层定义的档案（全局策略只能引用全局档案）；手写配置越层引用时加载告警但保留。
-档案 `allow` / `deny` 中的精确技能名按包内清单校验；只含 `deny` 的档案不能用于 allowlist 或 `scope skills deny --profile` 展开。
-`scope skills profile` 可查看 / 写入 / 移除档案。
+档案 `allow` / `deny` 中的精确技能名按包内清单校验；只含 `deny` 的档案不能用于 allowlist 或 `scope deny --profile` 展开。
+`scope profile` 可查看 / 写入 / 移除档案。
 
 ## 优先级与合并
 
@@ -116,7 +116,7 @@ title: 作用域配置（activation / policies）
 
 无规则命中时默认允许。规则是覆盖而非叠加：项目要追加技能时，引用同一档案并补一条更具体的增量规则。
 每条命中规则同时决定**是否生效**与**该目录的形态**：拒绝一律为不安装，允许取规则的 `delivery`，未写即全文。
-用 `scope list` / `policy` / `skills` 写配置后会自动收敛技能产物（写前预览形态变更、写后逐技能报告），不需要再手动跑安装；
+用 `scope allow` / `deny` / `remove` / `reset` / `profile` 写配置后会自动收敛技能产物（写前预览形态变更、写后逐技能报告），不需要再手动跑安装；
 手工改配置文件后可用 `toolkit skill reconcile` 对齐。
 旧 `activation` 编译为同层策略；最近一份 `activation` 仍整段覆盖更远层，是该模型唯一的例外。
 父目录 glob（如 `~/work/**`）自动覆盖其后新建的项目，无需逐项目配置。
@@ -125,7 +125,7 @@ title: 作用域配置（activation / policies）
 
 `subpaths` 按项目根相对当前 cwd 匹配，用于「同一项目只在某个子目录生效」。
 在项目根执行时，带 `subpaths` 的 allow 规则按**失败关闭**处理，deny 规则视为不适用。
-查看结论用 `toolkit scope skills list --at <目录>` 或 `scope status --skills --at <目录>`；`--at` 不改进程 cwd。
+查看结论用 `toolkit scope status --skills --at <目录>`；`--at` 不改进程 cwd。
 
 ## 软限制边界
 

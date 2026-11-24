@@ -156,7 +156,7 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 ### 只在公司项目激活，个人项目不被插入怎么做？
 
 全局装 skills 后，可以先用 `toolkit scope` 设置生效范围（只在我选的目录 / 除了我选的目录），再在公司项目根的 AGENTS.md / 项目 rules 中显式引用 fxri 技能并提交；个人项目不放引用文件即可。
-需要按技能维度收口时，用 `toolkit scope skills allow/deny` 或 `toolkit scope policy add` 写策略规则（条件 + 技能维度）。
+需要按技能维度收口时，用 `toolkit scope allow|deny --skill <名字>` 写策略规则（也可附带路径 / 标记 / 远端条件）。
 介于两者之间可用**内容闸门**（`toolkit skill install --gate`）：技能壳仍全局可见，正文按作用域由 `toolkit scope guard` 下发。
 需要绝对隔离（技能物理不在场）时用 `toolkit skill mount <父目录>` 批量做项目面安装。
 兼容 agent 仍可能按 `description` 匹配自动触发，若需要稳定启用（而非碰运气触发），个人项目同样建议显式声明。
@@ -175,7 +175,7 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 
 用 `toolkit skill status --matrix [--at <目录>]` 查看：它会逐技能列出产物形态、当前目录形态、命中规则的策略 id 与条件，
 并提示仍在生效的旧 `activation` / `skillDelivery.rules`。
-用 `scope list` / `policy` / `skills` 写配置后会自动按矩阵收敛产物（写前预览形态变更、写后逐技能报告），不需要再手动装；
+用 `scope allow` / `deny` / `remove` / `reset` / `profile` 写配置后会自动按矩阵收敛产物（写前预览形态变更、写后逐技能报告），不需要再手动装；
 只有手工改配置文件、或队友 pull 了项目层配置时，才需要跑一次 `toolkit skill reconcile`。
 
 ⚠️ 入口壳只降低正文被读取的概率，不是物理隔离；需要绝对干净用 `toolkit skill mount` 或 `toolkit skill install --scope project`。

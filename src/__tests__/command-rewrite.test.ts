@@ -44,16 +44,17 @@ describe("rewriteDeprecatedArgv：旧路径 → 新路径", () => {
     ])
   })
 
-  it("scope 名单命令收进 list 组", () => {
+  it("scope 旧顶层名单命令改写为 allow / deny，当前命令不重写", () => {
     expect(rewriteDeprecatedArgv(["scope", "add", "work", "--layer", "project"]).argv).toEqual([
       "scope",
-      "list",
-      "add",
+      "allow",
       "work",
       "--layer",
       "project",
     ])
-    expect(rewriteDeprecatedArgv(["scope", "reset"]).argv).toEqual(["scope", "list", "reset"])
+    expect(rewriteDeprecatedArgv(["scope", "exclude", "legacy"]).argv).toEqual(["scope", "deny", "legacy"])
+    expect(rewriteDeprecatedArgv(["scope", "reset"]).argv).toEqual(["scope", "reset"])
+    expect(rewriteDeprecatedArgv(["scope", "remove", "work"]).argv).toEqual(["scope", "remove", "work"])
   })
 
   it("发版子命令改名与 changeset 分组", () => {

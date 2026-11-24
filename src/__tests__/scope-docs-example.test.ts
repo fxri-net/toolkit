@@ -73,8 +73,8 @@ describe("策略文档示例与实现一致", () => {
 
   it("命令文档包含策略 / 技能快捷视图与联动提示", () => {
     const scopeDoc = readFileSync("docs/cli/scope.md", "utf8")
-    expect(scopeDoc).toContain("scope policy add")
-    expect(scopeDoc).toContain("scope skills allow")
+    expect(scopeDoc).toContain("scope allow")
+    expect(scopeDoc).toContain("scope deny --skill")
     expect(scopeDoc).toContain("policy:<id>")
     const skillsDoc = readFileSync("docs/cli/skill.md", "utf8")
     expect(skillsDoc).toContain("## 策略与内容闸门")

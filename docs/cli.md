@@ -17,7 +17,7 @@
 | `toolkit skill` | AI 技能分发：安装、分发预览、状态、卸载、来源与版本 | `install` / `status` / `uninstall` / `source` / `bump` / `lint` | [技能分发](./cli/skill) |
 | `toolkit usage` | 技能使用情况：开关、统计、导出与诊断（默认关闭） | `show` / `data` / `config` / `setup` / `record` | [技能使用情况](./cli/usage) |
 | `toolkit rule` | 全局规则：列出模块、组合输出、锚点校验与缓存管理 | `list` / `compose` / `reset` / `check` | [全局规则](./cli/rule) |
-| `toolkit scope` | 作用域：按项目 / 目录判定技能是否生效（默认全域生效） | `status` / `list` / `policy` / `skills` / `guard`（`list` 组含 add / exclude / remove / default / reset，裸命令进交互，详见 scope 页） | [作用域](./cli/scope) |
+| `toolkit scope` | 作用域：按项目 / 目录判定技能是否生效（默认全域生效） | `status` / `allow` / `deny` / `remove` / `default` / `reset` / `profile` / `guard`（裸命令进交互，详见 scope 页） | [作用域](./cli/scope) |
 | `toolkit config` | 配置唯一写入口（键清单 + 分层写入）与只读体检 | `list` / `get` / `set` / `unset` / `status` | [配置体检](./cli/config) |
 | `toolkit privacy` | 隐私体检：本机绝对路径扫描与归一（按项目档位） | `scan` | [隐私体检](./cli/privacy) |
 | `toolkit docs` | 文档站全量校验（默认）、主题写入与分项校验 | `check` / `theme` / `nav` / `dist` | [文档站主题](./cli/docs-theme) · [文档站校验](./cli/docs-check) |
@@ -70,17 +70,17 @@
 | --- | --- | --- |
 | 层 | 配置文件层级：global 全局 / project 项目 / local 本地 | `--layer`（scope 写命令；`source notify` 的 `--layer` 是它的别名） |
 | 面 | 技能安装面：全局面 global / 项目面 project | `skill install --scope`、`skill status` / `uninstall` |
-| 名单 | 作用域白名单（include）与黑名单（exclude） | `scope` 菜单与写命令、`scope list` |
-| 策略 | 作用域规则条目：条件 + 技能维度 + allow / deny；按层与具体度取唯一命中 | `scope policy`、`scope status --skills` |
-| 档案 | 可复用的技能名单，供策略 `skills.profiles` 引用 | `scope skills profile`、`skillProfiles` 配置段 |
+| 名单 | 作用域白名单（include）与黑名单（exclude） | `scope` 菜单与写命令、`scope status --lists` |
+| 策略 | 作用域规则条目：条件 + 技能维度 + allow / deny；按层与具体度取唯一命中 | `scope allow` / `deny`（带条件选项时）、`scope status --policies` |
+| 档案 | 可复用的技能名单，供策略 `skills.profiles` 引用 | `scope profile`、`skillProfiles` 配置段 |
 | 预演 | `--dry-run`：只打印将执行的动作，不写文件 / 剪贴板 / 缓存 | 全部写命令 |
 | 确认 | 写前展示预览并交互确认；`--yes` 跳过确认 | `usage` / `skill` / `config` 写命令；`scope` 写命令在非 TTY 带显式参数直接执行 |
 | 来源 | 技能来源：内置 `toolkit` 源与 `--source` 外部来源 | `skill`、`skill source` |
 | 目标 | 技能安装目标：agent 全局目录 / 项目薄壳目录 | `skill install`、`skill status` |
 | 范围 | 按上下文区分：作用域命中范围（scope）或技能统计范围（usage） | `scope` / `usage config scope` |
-| 名单模式 | 作用域的缺省判定：全部生效（all）/ 仅名单内生效（allowlist）/ 全部生效（denylist 兼容读取） | `scope` 的 status / list / default |
-| 命中策略 | 当前目录最终命中的那条作用域策略；名单配置生成的规则显示中文名，新策略保留 `policy:<id>` | `scope status`、`scope policy list` |
-| 判定目录 | 判定所依据的目录：优先 git 根，其次含 `.tasks` 的根，都没有则当前目录 | `scope status` / `list` |
+| 名单模式 | 作用域的缺省判定：全部生效（all）/ 仅名单内生效（allowlist）/ 全部生效（denylist 兼容读取） | `scope status` / `status --lists` / `default` |
+| 命中策略 | 当前目录最终命中的那条作用域策略；名单配置生成的规则显示中文名，新策略保留 `policy:<id>` | `scope status`、`scope status --policies` |
+| 判定目录 | 判定所依据的目录：优先 git 根，其次含 `.tasks` 的根，都没有则当前目录 | `scope status` |
 | 入口壳 | 内容闸门产物：只保留名称与描述，正文由 `scope guard` 按作用域下发 | `skill status`、`skillDelivery` |
 | 项目面薄壳 | 项目面安装时指向真源的别名壳；历史文档中的「入口薄壳」「薄壳」均指它 | `skill install --scope project`、`task init` |
 | 内容闸门 | 按目录控制技能正文是否可读的机制，不是产物名 | `scope guard`、`skillDelivery` |

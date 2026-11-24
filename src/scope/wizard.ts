@@ -512,7 +512,7 @@ async function skillMatrixFlow(state: ScopeState): Promise<void> {
         console.log(
           line.hint(
             mode === "allowlist"
-              ? "没有可用技能或档案：请先安装技能，或用 toolkit scope skills profile 创建档案"
+              ? "没有可用技能或档案：请先安装技能，或用 toolkit scope profile 创建档案"
               : "没有可用技能：请先安装技能",
           ),
         )

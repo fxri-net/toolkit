@@ -186,7 +186,7 @@ function assertDenySkillScope(effect: "allow" | "deny", skills: PolicySkills | u
   const hasLists = Boolean(skills.mode || skills.profiles?.length || skills.allow?.length || skills.deny?.length)
   if (hasLists && !skills.match?.length) {
     throw new Error(
-      "deny 不接受技能名单（--mode / --profile / --allow / --deny）；只拒绝某个技能请用 toolkit scope skills deny；未写入配置",
+      "deny 不接受技能名单（--mode / --profile / --allow / --deny）；只拒绝某个技能请用 toolkit scope deny --skill；未写入配置",
     )
   }
 }
@@ -314,7 +314,7 @@ export function planPolicyAdd(state: PolicyState, input: PolicyAddInput): Policy
     warnings.push("允许但不安装：该范围技能仍生效，只是不产出安装产物；可用 toolkit skill reconcile 收敛")
   }
   if (policy.effect === "deny" && !policy.skills?.match?.length) {
-    warnings.push("deny 规则会拒绝该范围全部技能；限定技能请改用 toolkit scope skills deny")
+    warnings.push("deny 规则会拒绝该范围全部技能；限定技能请改用 toolkit scope deny --skill")
     requiresYes = true
   }
   if (policy.effect === "allow" && policy.skills) {
@@ -405,7 +405,7 @@ export function planPolicyReset(state: PolicyState, input: PolicyResetInput): Po
     changes.push(`按路径清除：${input.paths.join("、")}`)
   }
   if (state.config.activation !== undefined) {
-    changes.push("旧 activation 字段未清除，请用 toolkit scope list reset 处理")
+    changes.push("旧 activation 字段未清除，请用 toolkit scope reset --what lists 处理")
   }
   return planForPolicies(state, nextRaw, changes)
 }
@@ -492,7 +492,7 @@ export function planProfileRemove(state: PolicyState, name: string): PolicyEditP
   return finalizePlan(state, nextConfig, [`移除档案：${key}`], warnings)
 }
 
-// 档案允许项展开：scope skills deny --profile 使用；先校验目标层可见性
+// 档案允许项展开：scope deny --profile 使用；先校验目标层可见性
 export function profileAllowPatterns(startDir: string, names: string[], layer: PolicyLayer): string[] {
   if (names.length === 0) return []
   validateProfileVisibility(names, startDir, layer)

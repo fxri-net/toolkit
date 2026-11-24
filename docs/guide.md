@@ -240,7 +240,7 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 - 方案确认后必须落盘为 .tasks 任务文件；定稿后收到开工授权即一次建完全部任务档并校验，再按表顺序逐个任务交付提交；多任务 / 多仓方案先出纯展示计划表
 ```
 
-**路径三 · 策略 / 技能矩阵**：全局技能照装，用 `toolkit scope policy add` 或 `toolkit scope skills allow|deny`
+**路径三 · 策略 / 技能矩阵**：全局技能照装，用 `toolkit scope allow|deny --skill`（可附带路径条件）
 按目录与技能维度收口；被矩阵限制的技能自动按入口壳分发，只在命中目录下发正文，
 个人项目不命中即不加载，规则见[作用域配置](./config/activation)。
 

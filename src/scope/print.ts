@@ -58,7 +58,7 @@ export function formatStatus(report: ScopeReport): string[] {
   ]
   if (report.activation) lines.push(`  名单模式：${displayMode(decision.mode)}`)
   if (legacyCount > 0) lines.push(`  名单规则：${legacyCount} 条（由名单配置生成）`)
-  if (report.policyCount > 0) lines.push(`  策略规则：${report.policyCount} 条（查看：toolkit scope policy list）`)
+  if (report.policyCount > 0) lines.push(`  策略规则：${report.policyCount} 条（查看：toolkit scope status --policies）`)
   lines.push(`  命中策略：${matchedRuleText(report) ?? "未命中"}`)
   lines.push(`  配置来源：${displayPath(report.activation ? decision.sourceFile : report.policySourceFile)}`)
   if (

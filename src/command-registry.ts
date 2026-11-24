@@ -149,24 +149,13 @@ export const COMMAND_REGISTRY: readonly CommandEntry[] = [
 
   { path: "scope", params: "[--interactive]", stage: "current" },
   { path: "scope status", stage: "current" },
+  { path: "scope allow", params: "[dirs...] [--skill <patterns...>]", stage: "current" },
+  { path: "scope deny", params: "[dirs...] [--skill <patterns...>]", stage: "current" },
+  { path: "scope remove", params: "[dirs...] [--id <id> | --name <name> | --paths <paths...>]", stage: "current" },
+  { path: "scope default", params: "[on|off]", stage: "current" },
+  { path: "scope reset", params: "[--what lists|policies|profiles|all]", stage: "current" },
+  { path: "scope profile", params: "[name]", stage: "current" },
   { path: "scope guard", stage: "current", tier: "advanced" },
-  { path: "scope list", stage: "current" },
-  { path: "scope list add", stage: "current" },
-  { path: "scope list exclude", stage: "current" },
-  { path: "scope list remove", stage: "current" },
-  { path: "scope list default", stage: "current" },
-  { path: "scope list reset", stage: "current" },
-  { path: "scope skills", stage: "current" },
-  { path: "scope skills list", stage: "current" },
-  { path: "scope skills allow", stage: "current" },
-  { path: "scope skills deny", stage: "current" },
-  { path: "scope skills profile", stage: "current" },
-  { path: "scope skills reset", stage: "current" },
-  { path: "scope policy", stage: "current" },
-  { path: "scope policy list", stage: "current" },
-  { path: "scope policy add", stage: "current" },
-  { path: "scope policy remove", stage: "current" },
-  { path: "scope policy reset", stage: "current" },
 ]
 
 // 迁移对照表行：只列带弃用目标或别名的条目，供升级说明与帮助附录渲染
@@ -246,12 +235,9 @@ export const DEPRECATED_REWRITES: readonly DeprecatedRewrite[] = [
   { from: ["usage", "init"], to: ["usage", "setup", "init"] },
   { from: ["usage", "uninstall"], to: ["usage", "setup", "uninstall"] },
   { from: ["usage", "hooks"], to: ["usage", "setup", "hooks"] },
-  // scope 名单组
-  { from: ["scope", "add"], to: ["scope", "list", "add"] },
-  { from: ["scope", "exclude"], to: ["scope", "list", "exclude"] },
-  { from: ["scope", "remove"], to: ["scope", "list", "remove"] },
-  { from: ["scope", "default"], to: ["scope", "list", "default"] },
-  { from: ["scope", "reset"], to: ["scope", "list", "reset"] },
+  // scope 名单组：v1 顶层名下沉后重新并入 allow / deny（remove / default / reset 已是当前命令本身）
+  { from: ["scope", "add"], to: ["scope", "allow"] },
+  { from: ["scope", "exclude"], to: ["scope", "deny"] },
   // 发版域子命令改名与分组（旧顶层名 changelog 在表末统一映射到 release）
   { from: ["changelog", "version"], to: ["release", "bump"] },
   { from: ["changelog", "format"], to: ["release", "changelog"] },

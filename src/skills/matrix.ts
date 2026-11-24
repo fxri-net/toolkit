@@ -82,7 +82,7 @@ export function printSkillMatrix(entries: SkillMatrixEntry[], startDir: string):
 export function legacyShapeHints(startDir = process.cwd()): string[] {
   const hints: string[] = []
   if (resolveScope(startDir).activation) {
-    hints.push("旧 activation 仍在生效（已编译为策略）：可用 scope policy add --delivery 改写为矩阵规则")
+    hints.push("旧 activation 仍在生效（已编译为策略）：可用 scope allow --delivery 改写为矩阵规则")
   }
   if (readSkillsDeliveryConfig("global", startDir).rules.length > 0) {
     hints.push("skillDelivery.rules 可迁移为策略 delivery；两条真源并存时以 rules 为准")

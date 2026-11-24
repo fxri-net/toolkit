@@ -121,7 +121,7 @@ describe("planPolicyAdd", () => {
     expect(() => planPolicyAdd(state, { effect: "deny", skills: { allow: ["fxri-plan-review"] } })).toThrow(
       "deny 不接受技能名单",
     )
-    expect(() => planPolicyAdd(state, { effect: "deny", skills: { mode: "allowlist" } })).toThrow("scope skills deny")
+    expect(() => planPolicyAdd(state, { effect: "deny", skills: { mode: "allowlist" } })).toThrow("scope deny --skill")
     expect(planPolicyAdd(state, { effect: "deny", when: { paths: ["/x"] } }).changed).toBe(true)
     expect(planPolicyAdd(state, { effect: "deny", skills: { match: ["fxri-*"] } }).changed).toBe(true)
   })

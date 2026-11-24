@@ -17,67 +17,59 @@ title: 作用域（scope）
 ## 常用命令
 
 ```bash
-toolkit scope                                   # 状态优先向导：看状态 / 加白黑名单 / 管条目 / 名单外处理 / 高级规则 / 技能矩阵
-toolkit scope --interactive                     # 无终端时也强制进入交互向导（否则按无交互退出码结束）
-toolkit scope status                            # 当前目录的判定与说明
-toolkit scope status --skill fxri-plan-review   # 按技能级规则判定单个技能
-toolkit scope status --skills                   # 列出包内与已安装外部技能在该目录的生效结论
-toolkit scope status --skills --at ~/work/repo  # 以指定目录为判定起点（不改进程 cwd）
-toolkit scope status --format json              # 给 AI / 脚本消费
-toolkit scope list                              # 名单、配置来源与判定目录
-toolkit scope policy list                       # 列出策略、来源层与当前命中结果
-toolkit scope policy add --paths ~/work --mode allowlist --allow fxri-plan-review # 新增策略
-toolkit scope policy add --paths ~/work --tree --mode allowlist --allow fxri-plan-review # 覆盖子目录
-toolkit scope policy remove --id policy-xxx     # 按稳定 id 移除
-toolkit scope policy reset --paths ~/work --dry-run # 按路径批量清除（预演）
-toolkit scope skills list                       # 技能档案与技能维度策略
-toolkit scope skills allow fxri-plan-review --paths ~/work # 只允许列出的技能
-toolkit scope skills deny fxri-code-encoding --paths ~/work # 排除列出的技能
-toolkit scope skills profile front --allow "fxri-*" # 写入技能档案
-toolkit scope list add ~/work                   # 加入白名单，默认切到「仅名单内生效」
-toolkit scope list add ~/work --tree            # 覆盖 ~/work 及其下所有项目
-toolkit scope list exclude ~/work/legacy        # 加入黑名单，默认值不变
-toolkit scope list add ~/work --layer project   # 写入当前项目层（随仓库共享）
-toolkit scope list remove ~/work --from include --to exclude # 白名单转黑名单
-toolkit scope list remove ~/work/legacy --from exclude # 从黑名单移除
-toolkit scope list default                      # 查看名单外目录的处理
-toolkit scope list default off                  # 切换为「仅名单内生效」
-toolkit scope list reset                        # 清除限制（全部生效）
-toolkit skill mount ~/work --dry-run            # 批量项目面安装：先预览（由 scope mount 迁入）
-toolkit scope guard fxri-plan-task              # 内容闸门：按当前目录作用域输出技能正文（未激活按未激活退出码结束）
+toolkit scope                                 # 状态优先向导：看状态 / 加白黑名单 / 管条目 / 名单外处理 / 高级规则 / 技能矩阵
+toolkit scope --interactive                   # 无终端时也强制进入交互向导（否则按无交互退出码结束）
+toolkit scope status                          # 当前目录的判定与说明
+toolkit scope status --lists                  # 目录名单、配置来源与判定目录
+toolkit scope status --policies               # 策略、来源层与当前目录命中结果
+toolkit scope status --skills                 # 包内与已安装外部技能在该目录的生效结论
+toolkit scope status --skill fxri-plan-review # 按技能级规则判定单个技能
+toolkit scope status --skills --at ~/work/repo # 以指定目录为判定起点（不改进程 cwd）
+toolkit scope status --format json            # 给 AI / 脚本消费
+toolkit scope allow ~/work                    # 加入白名单，默认切到「仅名单内生效」
+toolkit scope allow ~/work --tree             # 覆盖 ~/work 及其下所有项目
+toolkit scope allow ~/work --layer project    # 写入当前项目层（随仓库共享）
+toolkit scope allow ~/work --skill fxri-plan-review --delivery gated # 写入允许策略
+toolkit scope deny ~/work/legacy              # 加入黑名单，默认值不变
+toolkit scope deny --markers legacy --skill "fxri-*" # 写入拒绝策略
+toolkit scope remove ~/work --from include --to exclude # 白名单转黑名单
+toolkit scope remove ~/work/legacy --from exclude # 从黑名单移除
+toolkit scope remove --id policy-xxx          # 按稳定 id 移除策略
+toolkit scope remove --paths ~/work --dry-run # 按路径批量清除策略（预演）
+toolkit scope default                         # 查看名单外目录的处理
+toolkit scope default off                     # 切换为「仅名单内生效」
+toolkit scope reset                           # 清名单、策略与技能档案（预览后确认）
+toolkit scope reset --what policies --dry-run # 只清策略（预演）
+toolkit scope profile front --allow "fxri-*"  # 写入技能档案
+toolkit skill mount ~/work --dry-run          # 批量项目面安装：先预览（由 scope mount 迁入）
+toolkit scope guard fxri-plan-task            # 内容闸门：按当前目录作用域输出技能正文（未激活按未激活退出码结束）
 ```
 
-名单的查看与增删改统一收进 `scope list` 组：裸 `scope list` 查看名单，
-`list add` / `list exclude` / `list remove` / `list default` / `list reset` 负责写入。
-旧写法 `scope add` / `scope exclude` / `scope remove` / `scope default` / `scope reset` 仍可用，但会提示已弃用并提示迁移到该子组。
+`allow` / `deny` 按是否出现条件选项自动分流：无条件选项时写目录名单，出现任一条件选项时写策略。
+`remove` / `default` / `reset` / `profile` 各管一类写入；`policy` / `skills` / `list` 三组子命令已移除，不保留别名。
 
-## 策略命令
+## 写入命令
 
-- `scope policy list [--at <目录>] [--format json]`：列出来源层、`id`、`name`、条件、技能维度、显式形态与当前命中结果；
-  由 `activation` 编译出的名单规则标注「由名单配置生成，只读」
-- `scope policy add`：条件 `--paths` / `--subpaths` / `--markers` / `--git-remotes`；
-  技能维度 `--mode` / `--profile` / `--allow` / `--deny`；`--effect` 缺省 `allow`
-  `--delivery <full|gated|off>` 把该范围的内容形态写进规则（`--effect deny` 不能配 `full`，命令直接报错不写盘）
-  `--effect deny` 不接受这些技能名单，只按 `scope skills deny` 生成的技能选择器生效
-  `--id` 不含空白 / 控制字符且不能以 `legacy:` 开头，缺省自动生成且不可变
-  `--profile` 只能引用目标层及更低层已定义的档案
-- `scope policy remove`：优先 `--id`；`--name` 仅在该层唯一且无跨层同名时可用
-- `scope policy reset`：按 `--id` / `--paths`（精确或 glob 命中）批量清除；整层清空需 `--all` + `--yes`，
-  只清 `policies`，不清旧 `activation`
-- `scope skills` 是技能维度快捷视图：`allow` 只允许列出的技能，`deny` 排除列出的技能，`profile` 管理档案，`reset` 清空该层技能策略
-  `profile` 移除时提示仍被哪些策略引用与同名回退
-  `profile` 的精确技能名按包内清单校验；只含 deny 的档案不能用于 allowlist / deny 展开
-  `profile` 省略档案名时按 `--layer` 过滤列表，未传为合并视图
+- `allow` / `deny` 的条件选项：`--skill`、`--profile`、`--paths`、`--subpaths`、`--markers`、`--git-remotes`、
+  `--delivery`（仅 allow）；出现任一条件即写策略，位置参数并入 `paths`
+  - 无条件选项时写目录名单：`allow` 加入白名单并切到「仅名单内生效」，`deny` 只加黑名单、默认值不变；`--tree` 把位置参数写成 `<目录>/**`
+  - `--id` 不含空白 / 控制字符且不能以 `legacy:` 开头；`--profile` 只能引用目标层及更低层已定义的档案
+  - `deny` 未限定技能时拒绝该范围全部技能，写入需 `--yes`；只拒绝某个技能用 `scope deny --skill <名字>` 生成带 `skills.match` 的规则
+  - `--delivery` 仅 allow 接受：`full` 全文 / `gated` 入口壳 / `off` 允许但不安装
+- `remove`：位置参数按名单移除（`--from include|exclude|both`、`--to include|exclude` 控制来源侧与转入侧）；
+  `--paths` 按条件批量清除策略；`--id` / `--name` 移除指定策略（`--name` 仅在该层唯一时可用）
+- `reset`：默认清名单、策略与技能档案，写前列出将清空的条目并确认；`--what lists|policies|profiles|all` 可只清其中一类
+- `default on|off`：查看或切换名单外目录的处理
+- `profile <name>`：整份写入 `--allow` / `--deny`；`--remove` 移除并提示引用与同名回退；省略名称时列出（`--layer` 过滤层，未传为合并视图）
+  - 档案的精确技能名按包内清单校验；只含 deny 的档案不能用于 allowlist / deny 展开
 - 优先级：层（local > project > global）→ 具体度 → `deny` > `allow` → 后写覆盖；只取最高优先的一条，不合并
-- 每条命中规则同时给出「是否生效」与「该目录形态」：拒绝为不安装、允许取 `--delivery`、未写即全文；`scope status --skills` 逐技能显示形态
-- 非技能维度（纯路径 / 标记 / 远端）同样用 `scope policy` 表达；`--mode` / `--allow` 仅在 `allowlist` 下参与放行
-- `deny` 只按技能选择器限定范围，携带名单会被拒绝；未限定技能会拒绝该范围全部技能，写入需 `--yes`
+- 每条命中同时给出「是否生效」与「目录形态」：拒绝不安装、允许取 `--delivery`、未写即全文；`scope status --skills` 逐技能显示形态
 
 ## 交互与写命令
 
 - 无参 `toolkit scope`：TTY 下进入状态优先向导；非 TTY 输出状态摘要与子命令提示并以 `0` 退出。
   需要强制交互时加 `--interactive`（无终端按无交互退出码结束，见[退出码](./exit-codes)）
-- `scope status` / `list` 的 `--format` 仅接受 `json`，非法值在 stderr 报错并以 `1` 退出，不再回落文本
+- `scope status` 的 `--format` 仅接受 `json`，非法值在 stderr 报错并以 `1` 退出，不再回落文本
 - 向导首页固定显示「当前层 + 配置来源 + 名单模式 + 白名单 / 黑名单条数」；首项为查看状态 / 名单与策略，避免盲改
 - 动作按意图排列：添加白名单 / 添加黑名单 / 管理条目（移除、互转）/ 修改名单外处理 / 清除限制 / 高级规则 / 技能矩阵 / 切换配置层 / 退出
 - 添加流程先选白或黑，再选来源：扫描项目选择、手动输入目录、使用当前目录；扫描结果页显示跳过统计，
@@ -93,20 +85,20 @@ toolkit scope guard fxri-plan-task              # 内容闸门：按当前目录
   `toolkit skill install --gate` / `--embed` 生成或还原入口壳；批量挂载用 `toolkit skill mount`
 - 选择页统一提供「← 返回」（末位）与 ESC 返回上一级；顶层「退出」按成功计 `0`，Ctrl+C 结束整个命令（取消退出码）
 - ESC 有约 500ms 判定延迟（readline 需先排除方向键序列），属正常现象
-- `scope list add` / `list exclude` / `list remove` 均需显式目录：无参只提示改用 `toolkit scope --interactive`，不再隐式进入完整向导
-- `list add` 加入白名单并把默认值切到「仅名单内生效」；`list exclude` 只加黑名单、默认值不变；同路径在另一侧时写前预览「移入 / 转入」
-- `list add --tree` 与 `policy add --paths ... --tree` 把裸目录写成 `<目录>/**`，覆盖目录自身与其下所有项目；向导添加目录时会询问生效范围
-- `list remove --from include|exclude|both`（默认 `both`）指定来源侧，`--to include|exclude` 一步转入另一侧；带参与交互同口径
-- `list default on|off` 查看或切换名单外目录的处理；`list reset` 清除限制（全部生效并清空两列表，保留标记 / git 远端 / 技能级规则）
+- `scope allow` / `deny` / `remove` 均需显式目录或条件：无参只提示改用 `toolkit scope --interactive`，不再隐式进入完整向导
+- `allow` 加入白名单并把默认值切到「仅名单内生效」；`deny` 只加黑名单、默认值不变；同路径在另一侧时写前预览「移入 / 转入」
+- `allow --tree` 与 `allow <目录> --paths` 把裸目录写成 `<目录>/**`，覆盖目录自身与其下所有项目；向导添加目录时会询问生效范围
+- `remove --from include|exclude|both`（默认 `both`）指定来源侧，`--to include|exclude` 一步转入另一侧；带参与交互同口径
+- `default on|off` 查看或切换名单外目录的处理；`reset --what lists` 清除限制（全部生效并清空两列表，保留标记 / git 远端 / 技能级规则）
 - 向导内对应入口为「修改名单外目录的处理」，不再叫「切换默认值」
 - 写前统一展示预览：TTY 下确认后落盘，`--yes` 跳过确认，`--dry-run` 只预览；非 TTY 带显式参数直接执行
 - 结果块统一输出写入文件、变更条目与当前名单模式；无变化时只提示「没有变化，无需写入」
 - 相对路径按目标层项目根解析（全局层按当前目录）；`--layer global|project|local` 缺省全局
-- `scope list` 同时输出条目存在性：文本模式列出「条目异常」，`--format json` 的 `data.items` 含 `path` / `list` / `exists`；
+- `scope status --lists` 同时输出条目存在性：文本模式列出「条目异常」，`--format json` 的 `data.items` 含 `path` / `list` / `exists`；
   相对路径条目按所属配置层的项目根解析；含 `*` / `?` 或 `re:` 的规则跳过存在性检查（`exists` 恒为 `true`）
 - 批量项目面安装已迁至 `toolkit skill mount`（原 `scope mount` 已移除）；写入边界与 `--dry-run` 见 [技能分发 · mount](./skill#mount)
 - 非 TTY 环境：`--interactive` 会提示无法交互（无交互退出码，见[退出码](./exit-codes)）；写命令请直接带参数
-- **写入即收敛**：`list *` / `policy *` / `skills *` 与向导写配置后会按矩阵自动收敛技能产物——
+- **写入即收敛**：`allow` / `deny` / `remove` / `reset` / `profile` 与向导写配置后会按矩阵自动收敛技能产物——
   写前预览同时列出「配置变更」与「技能形态变更」（哪个技能从全文变入口壳 / 变不安装），确认后先落配置再改产物，逐技能报告结果
   - 层 → 安装面：写全局层只动全局面，写项目层只动项目面，写本地层同时重算两面；项目面在 `CI` / 非 TTY 下只报告不写盘
   - 收敛失败不静默：退出码非 0，并提示「配置已写入，产物未完全收敛，可重跑 `toolkit skill reconcile`」；无差异时只报「技能形态：无变化」
@@ -126,7 +118,7 @@ toolkit scope guard fxri-plan-task              # 内容闸门：按当前目录
 - 入口壳只降低正文被读取的概率，不是物理隔离；需要绝对干净用 `skill mount` 或 `skill install --scope project` 做项目面安装
 - `toolkit skill install --embed` 可随时回退为全文安装
 - 联动提示：矩阵限制的技能已按策略推导自动进入入口壳；仅当显式规则把被拒技能设为全文时，
-  `scope status` / `scope skills list` / `skill status`（项目面）提示「策略对该技能无效：已显式设为全文安装」
+  `scope status` / `skill status`（项目面）提示「策略对该技能无效：已显式设为全文安装」
 
 ## 判定顺序
 
@@ -141,16 +133,16 @@ toolkit scope guard fxri-plan-task              # 内容闸门：按当前目录
 `sourceFile` / `matchedRule` / `reason`。
 `matchedRule` 为纯 `policy:<id>`（不含 name）；文本模式再按策略记录补中文名，名单配置生成的规则只显示中文名。
 `scope status --skills --format json` 的 `data` 另含 `skills` 与 `linkage`。
-只有 `policies` 时，`scope status` 不显示名单模式，改为显示策略条数与策略来源；`scope list` 同样追加策略摘要。
+只有 `policies` 时，`scope status` 不显示名单模式，改为显示策略条数与策略来源；`scope status --lists` 同样追加策略摘要。
 基准变化或规则按真实路径写入导致不命中时，status 会在 stderr 给出提示。
 
 ## 边界
 
-- 默认 `mode = all`，不配置时与历史行为完全一致；`denylist` 是等价的兼容别名，`status` / `list` 显示为 `全部生效（兼容读取 denylist）`，
+- 默认 `mode = all`，不配置时与历史行为完全一致；`denylist` 是等价的兼容别名，`status` / `status --lists` 显示为 `全部生效（兼容读取 denylist）`，
   任何写命令都会把旧值归一为 `all`
-- `mode = all` 时 `include` 不参与判定，`list` 会在白名单后标注「当前默认全部生效，未参与判定」
+- `mode = all` 时 `include` 不参与判定，`status --lists` 会在白名单后标注「当前默认全部生效，未参与判定」
 - 只影响技能与内容闸门（`scope guard`），不影响 `toolkit` 命令本身（命令是显式调用的）
-- `scope policy reset --all` 只清 `policies`；旧 `activation` 需 `scope list reset`，两者不要混用
+- `scope reset --what policies` 只清 `policies`；旧 `activation` 需 `scope reset --what lists`，两者不要混用
 - 矩阵未允许的已安装技能只提示、不自动删除，用 `toolkit skill uninstall` 清理
 - 全局规则无法按目录排除（agent 限制）；项目专用规则需落在项目内
 - 工具不创建、不修改项目内配置或标记；项目层配置由用户自行写入时正常参与

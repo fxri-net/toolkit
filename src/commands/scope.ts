@@ -10,16 +10,16 @@ import { runScopeWizard } from "../scope/wizard"
 import { line, policyEffectText, policyLayerText, scopeModeText, termText } from "../term-style"
 import { assertJsonFormat, jsonEnvelope } from "../json-output"
 import { printJson } from "./shared"
-import { registerHelpCommand } from "../help"
-import { assertChoice, fail } from "../cli-ui"
-import { modeLabel, planAdd, planDefault, planRemove, planReset, readScopeState, type ScopeList, type RemoveFrom } from "../scope/edit"
+import { assertChoice, confirmWrite, fail } from "../cli-ui"
+import { describePlan, modeLabel, planAdd, planDefault, planRemove, planReset, readScopeState, type ScopeList, type RemoveFrom } from "../scope/edit"
 import { applyScopePlan } from "../scope/apply"
 import { isLegacyPolicyId } from "../scope/policy"
-import { DELIVERY_MODES, deliveryModeLabel } from "../skills/delivery"
+import { deliveryModeLabel } from "../skills/delivery"
 import { analyzeSkillLinkage, formatLinkageHints, listInstalledSkillNames } from "../scope/linkage"
 import {
   POLICY_LAYERS,
   applyPolicyPlanWithPrompt,
+  describePolicyPlan,
   listProfilesInLayer,
   planPolicyAdd,
   planPolicyRemove,
@@ -64,21 +64,6 @@ function buildWhen(options: {
   return Object.keys(when).length > 0 ? when : undefined
 }
 
-// 从命令选项组装技能维度：模式 / 档案 / 名单
-function buildSkills(options: {
-  mode?: string
-  profile?: string[]
-  allow?: string[]
-  deny?: string[]
-}): PolicySkills | undefined {
-  const skills: PolicySkills = {}
-  if (options.mode) skills.mode = options.mode as PolicySkills["mode"]
-  if (options.profile?.length) skills.profiles = options.profile
-  if (options.allow?.length) skills.allow = options.allow
-  if (options.deny?.length) skills.deny = options.deny
-  return Object.keys(skills).length > 0 ? skills : undefined
-}
-
 // 条件人读：只列已写字段
 function describeWhen(when: ScopeCondition | undefined): string {
   if (!when) return ""
@@ -112,51 +97,6 @@ function isWinner(matchedRule: string | null, id: string): boolean {
   if (!matchedRule?.startsWith("policy:")) return false
   const rest = matchedRule.slice("policy:".length)
   return (rest.split(/[ （(]/)[0] ?? "") === id
-}
-
-interface PolicyAddOptions {
-  tree?: boolean
-  id?: string
-  name?: string
-  effect?: string
-  paths?: string[]
-  subpaths?: string[]
-  markers?: string[]
-  gitRemotes?: string[]
-  mode?: string
-  profile?: string[]
-  allow?: string[]
-  deny?: string[]
-  delivery?: string
-  layer?: string
-  dryRun?: boolean
-  yes?: boolean
-}
-
-// 新增策略：deny 未限定技能时须 --yes
-async function runPolicyAdd(options: PolicyAddOptions): Promise<void> {
-  const resolved = resolvePolicyLayer(options.layer)
-  if (!resolved) return
-  const effect = options.effect ?? "allow"
-  if (!assertChoice(effect, ["allow", "deny"], "--effect")) return
-  if (options.delivery !== undefined && !assertChoice(options.delivery, DELIVERY_MODES, "--delivery")) return
-  try {
-    const plan = planPolicyAdd(readPolicyState(resolved.layer), {
-      id: options.id,
-      name: options.name,
-      effect: effect as "allow" | "deny",
-      when: buildWhen(options),
-      skills: buildSkills(options),
-      delivery: options.delivery as PolicyDelivery | undefined,
-    })
-    if (plan.requiresYes && !options.yes && !options.dryRun) {
-      fail(`${plan.warnings.join("；")}；确认后加 --yes 再执行（未写入配置）`)
-      return
-    }
-    await applyPolicyPlanWithPrompt("作用域策略：新增", plan, options)
-  } catch (error) {
-    fail((error as Error).message)
-  }
 }
 
 // 移除策略：--id 优先，--name 仅在该层唯一且无跨层同名时可用
@@ -217,7 +157,7 @@ function runPolicyList(options: { at?: string; format?: string }): void {
   if (options.format === "json") {
     printJson(
       jsonEnvelope({
-        command: "scope policy list",
+        command: "scope status",
         data: {
           at: report.context.cwd,
           baseDir: report.decision.baseDir,
@@ -257,128 +197,49 @@ function runPolicyList(options: { at?: string; format?: string }): void {
     if (delivery) console.log(`    ${delivery}`)
   }
   if (report.policies.some((policy) => isLegacyPolicyId(policy.id))) {
-    console.log(line.hint("名单规则由 activation 配置生成，只读；请用 toolkit scope list 的 add / exclude / default / reset 修改"))
+    console.log(line.hint("名单规则由 activation 配置生成，只读；请用 toolkit scope allow / deny / default / reset 修改"))
   }
 }
 
-// 技能维度清单：档案 + 带 skills 的策略
-function runSkillsList(options: { at?: string; format?: string }): void {
+// 目录名单视图：status --lists 与旧 list 视图共用同一份输出
+function runScopeList(options: { format?: string } = {}): void {
   if (!assertJsonFormat(options.format)) return
-  const report = resolveScope(options.at)
+  const report = resolveScope()
   for (const warning of report.warnings) console.error(`⚠️ ${warning}`)
-  const policies = report.policies.filter((policy) => policy.skills && Object.keys(policy.skills).length > 0)
-  const linkage = analyzeSkillLinkage(options.at)
+  const activation = report.activation
+  const include = activation?.include ?? []
+  const exclude = activation?.exclude ?? []
+  // glob / re: 规则不是真实路径，存在性检查跳过，避免误报「路径不存在」
+  const entryState = (path: string) => !isLiteralPath(path) || existsSync(resolveComparablePath(path, report.decision.baseDir))
+  const items = [
+    ...include.map((path) => ({ path, list: "include", exists: entryState(path) })),
+    ...exclude.map((path) => ({ path, list: "exclude", exists: entryState(path) })),
+  ]
   if (options.format === "json") {
     printJson(
       jsonEnvelope({
-        command: "scope skills list",
+        command: "scope status",
         data: {
-          at: report.context.cwd,
+          configured: Boolean(activation),
+          sourceFile: report.decision.sourceFile,
           baseDir: report.decision.baseDir,
-          profiles: report.profiles,
-          linkage,
-          policies: policies.map((policy) => ({
-            ...policy,
-            legacy: isLegacyPolicyId(policy.id),
-          })),
+          mode: report.decision.mode,
+          include,
+          exclude,
+          markers: activation?.markers ?? { include: [], exclude: [] },
+          gitRemotes: activation?.gitRemotes ?? [],
+          skills: activation?.skills ?? {},
+          items,
         },
       }),
     )
     return
   }
-  console.log("技能档案：")
-  if (report.profiles.length === 0) console.log("  未配置")
-  else {
-    for (const profile of report.profiles) {
-      const parts: string[] = []
-      if (profile.allow.length) parts.push(`allow=${profile.allow.join(",")}`)
-      if (profile.deny.length) parts.push(`deny=${profile.deny.join(",")}`)
-      console.log(`  ${profile.name}（${profile.layer}）：${parts.join("；") || "空档案"}`)
-    }
-  }
-  console.log("技能策略：")
-  if (policies.length === 0) console.log("  未配置")
-  else {
-    for (const policy of policies) {
-      const legacy = isLegacyPolicyId(policy.id)
-      const legacyTag = legacy ? " · 由名单配置生成，只读" : ""
-      const name = policy.name ? `（${policy.name}）` : ""
-      const label = legacy ? (policy.name ?? "名单规则") : `${policy.id}${name}`
-      const layer = termText(policyLayerText, policy.layer ?? "global")
-      const effect = termText(policyEffectText, policy.effect ?? "allow")
-      console.log(`  ${layer} ${label} ${effect}${legacyTag}`)
-      const when = describeWhen(policy.when)
-      if (when) console.log(`    条件：${when}`)
-      const skills = describeSkills(policy.skills)
-      if (skills) console.log(`    技能：${skills}`)
-      const delivery = describeDelivery(policy.delivery)
-      if (delivery) console.log(`    ${delivery}`)
-    }
-  }
-  for (const hint of formatLinkageHints(linkage)) console.log(line.hint(hint))
-}
-
-interface SkillPolicyOptions {
-  id?: string
-  name?: string
-  paths?: string[]
-  subpaths?: string[]
-  markers?: string[]
-  gitRemotes?: string[]
-  profile?: string[]
-  layer?: string
-  dryRun?: boolean
-  yes?: boolean
-}
-
-// 只允许列出的技能：生成 allowlist 技能维度策略
-async function runSkillsAllow(skills: string[], options: SkillPolicyOptions): Promise<void> {
-  const resolved = resolvePolicyLayer(options.layer)
-  if (!resolved) return
-  const profiles = options.profile ?? []
-  if (skills.length === 0 && profiles.length === 0) {
-    fail("请指定技能或 --profile；未写入配置")
-    return
-  }
-  const skillsConfig: PolicySkills = { mode: "allowlist" }
-  if (skills.length) skillsConfig.allow = skills
-  if (profiles.length) skillsConfig.profiles = profiles
-  try {
-    const plan = planPolicyAdd(readPolicyState(resolved.layer), {
-      id: options.id,
-      name: options.name,
-      effect: "allow",
-      when: buildWhen(options),
-      skills: skillsConfig,
-    })
-    await applyPolicyPlanWithPrompt("作用域技能：只允许", plan, options)
-  } catch (error) {
-    fail((error as Error).message)
-  }
-}
-
-// 排除列出的技能：生成带技能选择器的 deny 策略
-async function runSkillsDeny(skills: string[], options: SkillPolicyOptions): Promise<void> {
-  const resolved = resolvePolicyLayer(options.layer)
-  if (!resolved) return
-  try {
-    const profiles = profileAllowPatterns(process.cwd(), options.profile ?? [], resolved.layer)
-    const match = [...skills, ...profiles]
-    if (match.length === 0) {
-      fail("请指定技能或 --profile；未写入配置")
-      return
-    }
-    const plan = planPolicyAdd(readPolicyState(resolved.layer), {
-      id: options.id,
-      name: options.name,
-      effect: "deny",
-      when: buildWhen(options),
-      skills: { match },
-    })
-    await applyPolicyPlanWithPrompt("作用域技能：排除", plan, options)
-  } catch (error) {
-    fail((error as Error).message)
-  }
+  for (const text of formatList(report)) console.log(text)
+  const treeHint = plainIncludeHint(report)
+  if (treeHint) console.log(line.hint(treeHint))
+  const missing = items.filter((item) => !item.exists)
+  if (missing.length > 0) console.log(line.hint(`  条目异常：${missing.map((item) => item.path).join("、")}（路径不存在）`))
 }
 
 // 档案：省略名称时列出，--remove 删除，其余整份写入
@@ -456,7 +317,179 @@ async function runSkillsReset(options: { layer?: string; dryRun?: boolean; yes?:
   }
 }
 
-// 加入白 / 黑名单
+// 加入白 / 黑名单或写入策略：条件选项任一出现即写策略，否则写目录名单
+export interface EntryOptions {
+  skill?: string[]
+  profile?: string[]
+  paths?: string[]
+  subpaths?: string[]
+  markers?: string[]
+  gitRemotes?: string[]
+  delivery?: string
+  tree?: boolean
+  name?: string
+  id?: string
+  layer?: string
+  dryRun?: boolean
+  yes?: boolean
+  noLink?: boolean
+}
+
+// 条件选项出现即走策略：技能 / 档案 / 路径条件 / 标记 / 远端 / 形态
+export function hasPolicyConditions(options: EntryOptions): boolean {
+  return Boolean(
+    options.skill?.length ||
+      options.profile?.length ||
+      options.paths?.length ||
+      options.subpaths?.length ||
+      options.markers?.length ||
+      options.gitRemotes?.length ||
+      options.delivery !== undefined,
+  )
+}
+
+// 允许策略的技能维度：点名技能或档案时为仅名单内生效，否则整段允许
+export function allowSkills(options: EntryOptions): PolicySkills | undefined {
+  const allow = options.skill ?? []
+  const profiles = options.profile ?? []
+  if (allow.length === 0 && profiles.length === 0) return undefined
+  const skills: PolicySkills = { mode: "allowlist" }
+  if (allow.length > 0) skills.allow = allow
+  if (profiles.length > 0) skills.profiles = profiles
+  return skills
+}
+
+// 拒绝策略的技能维度：档案展开为允许清单后一并排除；未点名即拒绝该范围全部技能
+export function denySkills(options: EntryOptions, layer: PolicyLayer): PolicySkills | undefined {
+  const match = [...(options.skill ?? []), ...profileAllowPatterns(process.cwd(), options.profile ?? [], layer)]
+  return match.length > 0 ? { match } : undefined
+}
+
+async function runEntryWrite(effect: "allow" | "deny", dirs: string[], options: EntryOptions): Promise<void> {
+  const resolved = resolvePolicyLayer(options.layer)
+  if (!resolved) return
+  // 无条件选项：写目录名单（白名单 / 黑名单），与策略写入共用同一预览与联动
+  if (!hasPolicyConditions(options)) {
+    if (dirs.length === 0) {
+      fail("请指定目录或条件选项；交互设置请运行 toolkit scope --interactive")
+      return
+    }
+    await runListEdit(effect === "allow" ? "include" : "exclude", dirs, options)
+    return
+  }
+  // 条件选项出现：位置参数按路径条件处理，其余条件原样进入策略
+  const paths = [...(options.paths ?? []), ...dirs]
+  try {
+    const plan = planPolicyAdd(readPolicyState(resolved.layer), {
+      id: options.id,
+      name: options.name,
+      effect,
+      when: buildWhen({ ...options, paths }),
+      skills: effect === "allow" ? allowSkills(options) : denySkills(options, resolved.layer),
+      delivery: effect === "allow" ? (options.delivery as PolicyDelivery | undefined) : undefined,
+    })
+    if (plan.requiresYes && !options.yes && !options.dryRun) {
+      fail(`${plan.warnings.join("；")}；确认后加 --yes 再执行（未写入配置）`)
+      return
+    }
+    await applyPolicyPlanWithPrompt(effect === "allow" ? "作用域：允许" : "作用域：拒绝", plan, options)
+  } catch (error) {
+    fail((error as Error).message)
+  }
+}
+
+// 移除条目：--id / --name 移除策略，--paths 按条件批量清除策略，其余按目录移除名单条目
+async function runEntryRemove(
+  dirs: string[],
+  options: { id?: string; name?: string; paths?: string[]; from?: string; to?: string; layer?: string; dryRun?: boolean; yes?: boolean },
+): Promise<void> {
+  if (options.id || options.name) {
+    await runPolicyRemove(options)
+    return
+  }
+  if (options.paths?.length) {
+    await runPolicyReset({ paths: options.paths, layer: options.layer, dryRun: options.dryRun, yes: options.yes })
+    return
+  }
+  if (dirs.length === 0) {
+    fail("请指定目录、--paths 或 --id / --name；未写入配置")
+    return
+  }
+  await runRemove(dirs, options)
+}
+
+// 清除：默认清名单、策略与档案；--what 可只清其中一类，三类共用一次预览与确认
+async function runScopeReset(options: { what?: string; layer?: string; dryRun?: boolean; yes?: boolean; noLink?: boolean }): Promise<void> {
+  const allowed = ["lists", "policies", "profiles"] as const
+  const raw = options.what ?? "all"
+  const parts = raw
+    .split(/[,，]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+  const invalid = parts.filter((item) => item !== "all" && !(allowed as readonly string[]).includes(item))
+  if (invalid.length > 0) {
+    fail(`--what 取值须为 lists / policies / profiles / all（非法：${invalid.join("、")}）`)
+    return
+  }
+  const selected = new Set<string>(parts.includes("all") ? allowed : parts)
+  const resolved = resolvePolicyLayer(options.layer)
+  if (!resolved) return
+  try {
+    // 预览取自同一份现场：只用于展示，实际落盘按类别顺序逐项重读现场
+    const previews: string[] = []
+    const targets = { lists: false, policies: false, profiles: false }
+    if (selected.has("lists")) {
+      const listsPlan = planReset(readScopeState(resolved.layer))
+      if (listsPlan.changed) {
+        previews.push(...describePlan(listsPlan))
+        targets.lists = true
+      }
+    }
+    const policyState = readPolicyState(resolved.layer)
+    // 空类别不算失败：没有可清除项时跳过该类，其余类别照常预览
+    if (selected.has("policies")) {
+      try {
+        previews.push(...describePolicyPlan(planPolicyReset(policyState, { all: true, confirmed: true })))
+        targets.policies = true
+      } catch {
+        targets.policies = false
+      }
+    }
+    if (selected.has("profiles")) {
+      try {
+        previews.push(...describePolicyPlan(planSkillReset(policyState, true)))
+        targets.profiles = true
+      } catch {
+        targets.profiles = false
+      }
+    }
+    if (previews.length === 0) {
+      console.log(line.hint("没有可清除的条目，未写入配置"))
+      return
+    }
+    const confirmed = await confirmWrite({
+      title: `作用域：清除（${[...selected].join(" / ")}）`,
+      lines: previews,
+      yes: Boolean(options.yes) || !isInteractive(),
+      dryRun: Boolean(options.dryRun),
+    })
+    if (options.dryRun) {
+      console.log(line.hint("[预演] 未写入任何文件"))
+      return
+    }
+    if (!confirmed) {
+      console.error(line.hint("已取消，未写入任何文件"))
+      return
+    }
+    // 逐类落盘：每次都重读现场，避免后一类用旧快照覆盖前一类的结果
+    if (targets.lists) await runReset({ ...options, yes: true })
+    if (targets.policies) await runPolicyReset({ all: true, layer: options.layer, yes: true })
+    if (targets.profiles) await runSkillsReset({ layer: options.layer, yes: true })
+  } catch (error) {
+    fail((error as Error).message)
+  }
+}
+
 async function runListEdit(
   kind: ScopeList,
   dirs: string[],
@@ -550,10 +583,20 @@ export function registerScopeCommands(program: Command): void {
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .option("--skill <name>", "按指定技能判定（应用技能级规则）")
     .option("--skills", "列出包内与已安装外部技能在该目录的生效结论")
+    .option("--lists", "查看目录名单、配置来源与判定目录")
+    .option("--policies", "列出策略、来源层与当前目录命中结果")
     .option("--at <dir>", "以指定目录为判定与配置查找起点（不改变进程 cwd）")
-    .action((options: { format?: string; skill?: string; skills?: boolean; at?: string }) => {
+    .action((options: { format?: string; skill?: string; skills?: boolean; lists?: boolean; policies?: boolean; at?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return
+        if (options.policies) {
+          runPolicyList({ at: options.at, format: options.format })
+          return
+        }
+        if (options.lists) {
+          runScopeList({ format: options.format })
+          return
+        }
         if (options.skills) {
           const base = resolveScope(options.at)
           const treeHint = plainIncludeHint(base)
@@ -634,198 +677,6 @@ export function registerScopeCommands(program: Command): void {
       }
     })
 
-  // 目录名单组：裸 list 查看现状，增删改作为同组子命令
-  const listCmd = scopeCmd
-    .command("list")
-    .description("目录名单：查看当前名单、配置来源与判定目录（add / exclude / remove / default / reset 同组）")
-    .option("--format <format>", "输出格式（json，输出到 stdout）")
-    .action((options: { format?: string }) => {
-      try {
-        if (!assertJsonFormat(options.format)) return
-        const report = resolveScope()
-        for (const warning of report.warnings) console.error(`⚠️ ${warning}`)
-        const activation = report.activation
-        const include = activation?.include ?? []
-        const exclude = activation?.exclude ?? []
-        // glob / re: 规则不是真实路径，存在性检查跳过，避免误报「路径不存在」
-        const entryState = (path: string) => !isLiteralPath(path) || existsSync(resolveComparablePath(path, report.decision.baseDir))
-        const items = [
-          ...include.map((path) => ({ path, list: "include", exists: entryState(path) })),
-          ...exclude.map((path) => ({ path, list: "exclude", exists: entryState(path) })),
-        ]
-        if (options.format === "json") {
-          printJson(
-            jsonEnvelope({
-              command: "scope list",
-              data: {
-                configured: Boolean(activation),
-                sourceFile: report.decision.sourceFile,
-                baseDir: report.decision.baseDir,
-                mode: report.decision.mode,
-                include,
-                exclude,
-                markers: activation?.markers ?? { include: [], exclude: [] },
-                gitRemotes: activation?.gitRemotes ?? [],
-                skills: activation?.skills ?? {},
-                items,
-              },
-            }),
-          )
-          return
-        }
-        for (const text of formatList(report)) console.log(text)
-        const treeHint = plainIncludeHint(report)
-        if (treeHint) console.log(line.hint(treeHint))
-        const missing = items.filter((item) => !item.exists)
-        if (missing.length > 0) console.log(line.hint(`  条目异常：${missing.map((item) => item.path).join("、")}（路径不存在）`))
-      } catch (error) {
-        console.error(`⚠️ ${(error as Error).message}`)
-        process.exitCode = 1
-      }
-    })
-
-  // 策略命令组：统一表达路径、标记、远端与技能维度
-  const policyCmd = scopeCmd
-    .command("policy")
-    .description("作用域策略：多条命中时只取优先级最高的一条（层 > 具体度 > 拒绝优先 > 后写），不合并")
-  registerHelpCommand(policyCmd)
-  policyCmd
-    .command("list")
-    .description("列出策略、来源层与当前目录命中结果")
-    .option("--at <dir>", "以指定目录为判定与配置查找起点（不改变进程 cwd）")
-    .option("--format <format>", "输出格式（json，输出到 stdout）")
-    .action((options: { at?: string; format?: string }) => runPolicyList(options))
-
-  policyCmd
-    .command("add")
-    .description("新增策略：同字段条件满足其一、跨字段需同时满足；不传 --effect 时为允许")
-    .option("--effect <effect>", "允许（allow，默认）/ 拒绝（deny，只接受技能选择器，不接受技能名单）")
-    .option("--paths <paths...>", "按项目根匹配的路径 / glob")
-    .option("--subpaths <subpaths...>", "相对项目根、按当前目录匹配；在项目根执行时允许规则按未命中处理")
-    .option("--markers <markers...>", "目录或 git 根下须存在的标记文件")
-    .option("--git-remotes <remotes...>", "git 远端的扁平文本 / glob")
-    .option("--mode <mode>", "技能名单模式：全部生效（all）/ 仅名单内生效（allowlist）/ 排除名单（denylist）")
-    .option("--tree", "把 --paths 的裸目录扩为 <目录>/**，覆盖其下所有项目")
-    .option("--profile <profiles...>", "引用技能档案（需已定义）")
-    .option("--allow <patterns...>", "允许的技能名 / glob（仅名单内生效时参与）")
-    .option("--deny <patterns...>", "排除技能名 / glob")
-    .option("--delivery <mode>", "该范围的内容形态：全文安装（full）/ 入口壳（gated）/ 不安装（off）")
-    .option("--name <name>", "可读标签，可重复")
-    .option("--id <id>", "稳定标识：跨层唯一、不可变；缺省自动生成")
-    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
-    .option("--dry-run", "只预览，不写配置")
-    .option("--yes", "跳过写前确认（预览照常打印）")
-    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
-    .action(async (options: PolicyAddOptions) => {
-      await runInteractive(() => runPolicyAdd(options))
-    })
-
-  policyCmd
-    .command("remove")
-    .description("移除策略：优先 --id；--name 仅在该层唯一时可用")
-    .option("--id <id>", "稳定标识")
-    .option("--name <name>", "可读标签（该层唯一）")
-    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
-    .option("--dry-run", "只预览，不写配置")
-    .option("--yes", "跳过写前确认（预览照常打印）")
-    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
-    .action(async (options: { id?: string; name?: string; layer?: string; dryRun?: boolean; yes?: boolean }) => {
-      await runInteractive(() => runPolicyRemove(options))
-    })
-
-  policyCmd
-    .command("reset")
-    .description("按 --id / --paths 批量清除；整层清空需 --all --yes（不改名单配置）")
-    .option("--id <ids...>", "按稳定标识批量清除")
-    .option("--paths <paths...>", "按路径条件批量清除")
-    .option("--all", "清除该层全部策略（不改名单配置）")
-    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
-    .option("--dry-run", "只预览，不写配置")
-    .option("--yes", "跳过写前确认（预览照常打印）")
-    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
-    .action(async (options: { id?: string[]; paths?: string[]; all?: boolean; layer?: string; dryRun?: boolean; yes?: boolean }) => {
-      await runInteractive(() => runPolicyReset(options))
-    })
-
-  // 技能维度快捷视图：底层复用同一计划与写盘模块
-  const skillsCmd = scopeCmd
-    .command("skills")
-    .description("技能维度快捷视图：allow 只允许列出的技能 / deny 排除列出的技能")
-  registerHelpCommand(skillsCmd)
-
-  skillsCmd
-    .command("list")
-    .description("列出技能档案与技能维度策略")
-    .option("--at <dir>", "以指定目录为判定与配置查找起点（不改变进程 cwd）")
-    .option("--format <format>", "输出格式（json，输出到 stdout）")
-    .action((options: { at?: string; format?: string }) => runSkillsList(options))
-
-  skillsCmd
-    .command("allow [skills...]")
-    .description("只允许列出的技能（等同新增一条仅名单内生效的技能策略）")
-    .option("--profile <profiles...>", "引用技能档案（需已定义）")
-    .option("--paths <paths...>", "按项目根匹配的路径 / glob")
-    .option("--subpaths <subpaths...>", "相对项目根、按当前目录匹配；在项目根执行时允许规则按未命中处理")
-    .option("--markers <markers...>", "目录或 git 根下须存在的标记文件")
-    .option("--git-remotes <remotes...>", "git 远端的扁平文本 / glob")
-    .option("--name <name>", "可读标签，可重复")
-    .option("--id <id>", "稳定标识：跨层唯一、不可变；缺省自动生成")
-    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
-    .option("--dry-run", "只预览，不写配置")
-    .option("--yes", "跳过写前确认（预览照常打印）")
-    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
-    .action(async (skills: string[] = [], options: SkillPolicyOptions = {}) => {
-      await runInteractive(() => runSkillsAllow(skills, options))
-    })
-
-  skillsCmd
-    .command("deny [skills...]")
-    .description("排除列出的技能（等同新增一条带技能选择器的拒绝策略）")
-    .option("--profile <profiles...>", "展开档案中的允许技能一并排除")
-    .option("--paths <paths...>", "按项目根匹配的路径 / glob")
-    .option("--subpaths <subpaths...>", "相对项目根、按当前目录匹配；在项目根执行时允许规则按未命中处理")
-    .option("--markers <markers...>", "目录或 git 根下须存在的标记文件")
-    .option("--git-remotes <remotes...>", "git 远端的扁平文本 / glob")
-    .option("--name <name>", "可读标签，可重复")
-    .option("--id <id>", "稳定标识：跨层唯一、不可变；缺省自动生成")
-    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
-    .option("--dry-run", "只预览，不写配置")
-    .option("--yes", "跳过写前确认（预览照常打印）")
-    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
-    .action(async (skills: string[] = [], options: SkillPolicyOptions = {}) => {
-      await runInteractive(() => runSkillsDeny(skills, options))
-    })
-
-  skillsCmd
-    .command("profile [name]")
-    .description("查看 / 写入 / 移除技能档案；移除时提示引用与同名回退（省略档案名时列出）")
-    .option("--allow <patterns...>", "档案允许技能名 / glob")
-    .option("--deny <patterns...>", "档案排除技能名 / glob")
-    .option("--remove", "移除档案（需 --yes）")
-    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
-    .option("--dry-run", "只预览，不写配置")
-    .option("--yes", "跳过写前确认（预览照常打印）")
-    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
-    .action(
-      async (
-        name: string | undefined,
-        options: { allow?: string[]; deny?: string[]; remove?: boolean; layer?: string; dryRun?: boolean; yes?: boolean },
-      ) => {
-        await runInteractive(() => runSkillsProfile(name, options))
-      },
-    )
-
-  skillsCmd
-    .command("reset")
-    .description("清除该层全部技能维度策略（需 --yes）")
-    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
-    .option("--dry-run", "只预览，不写配置")
-    .option("--yes", "跳过写前确认（预览照常打印）")
-    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
-    .action(async (options: { layer?: string; dryRun?: boolean; yes?: boolean }) => {
-      await runInteractive(() => runSkillsReset(options))
-    })
-
   // 内容闸门：stdout 只放正文，未激活时退出码 3
   scopeCmd
     .command("guard <skill>")
@@ -834,45 +685,61 @@ export function registerScopeCommands(program: Command): void {
       process.exitCode = runGuard(skill)
     })
 
-  listCmd
-    .command("add [dirs...]")
-    .description("把目录加入白名单（需显式指定目录；交互设置请运行 toolkit scope）")
-    .option("--tree", "覆盖该目录及其下所有项目（写入 <目录>/**）")
-    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
-    .option("--dry-run", "只预览，不写配置")
-    .option("--yes", "跳过写前确认（预览照常打印）")
-    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
-    .action(async (dirs: string[] = [], options: { layer?: string; dryRun?: boolean; yes?: boolean; tree?: boolean } = {}) => {
-      await runInteractive(() => runListEdit("include", dirs, options))
-    })
+  // 写入命令的公共条件选项：出现任一条件即写策略，否则写目录名单
+  function entryConditions(command: Command, withDelivery: boolean): Command {
+    command
+      .option("--skill <patterns...>", "技能名 / glob（出现即写策略）")
+      .option("--profile <profiles...>", "引用技能档案（需已定义）")
+      .option("--paths <paths...>", "按项目根匹配的路径 / glob")
+      .option("--subpaths <subpaths...>", "相对项目根、按当前目录匹配")
+      .option("--markers <markers...>", "目录或 git 根下须存在的标记文件")
+      .option("--git-remotes <remotes...>", "git 远端的扁平文本 / glob")
+      .option("--tree", "把路径条件中的裸目录扩为 <目录>/**")
+      .option("--name <name>", "可读标签，可重复")
+      .option("--id <id>", "稳定标识：跨层唯一、不可变；缺省自动生成")
+      .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
+      .option("--dry-run", "只预览，不写配置")
+      .option("--yes", "跳过写前确认（预览照常打印）")
+      .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
+    if (withDelivery) command.option("--delivery <mode>", "该范围的内容形态：全文安装（full）/ 入口壳（gated）")
+    return command
+  }
 
-  listCmd
-    .command("exclude [dirs...]")
-    .description("把目录加入黑名单（默认值保持不变；需显式指定目录）")
-    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
-    .option("--dry-run", "只预览，不写配置")
-    .option("--yes", "跳过写前确认（预览照常打印）")
-    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
-    .action(async (dirs: string[] = [], options: { layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {
-      await runInteractive(() => runListEdit("exclude", dirs, options))
-    })
+  entryConditions(
+    scopeCmd.command("allow [dirs...]").description("允许：目录写入白名单；带条件选项（技能 / 档案 / 路径条件 / 形态）时写入允许策略"),
+    true,
+  ).action(async (dirs: string[] = [], options: EntryOptions = {}) => {
+    await runInteractive(() => runEntryWrite("allow", dirs, options))
+  })
 
-  listCmd
+  entryConditions(
+    scopeCmd.command("deny [dirs...]").description("拒绝：目录写入黑名单；带条件选项时写入拒绝策略（未限定技能即拒绝该范围全部技能）"),
+    false,
+  ).action(async (dirs: string[] = [], options: EntryOptions = {}) => {
+    await runInteractive(() => runEntryWrite("deny", dirs, options))
+  })
+
+  scopeCmd
     .command("remove [dirs...]")
-    .description("移除条目，可指定来源侧与转入侧")
-    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
-    .option("--from <list>", "从哪侧移除：白名单（include）/ 黑名单（exclude）/ 两侧（both，默认）")
+    .description("移除：目录按名单移除，--paths 按条件清除策略，--id / --name 移除指定策略")
+    .option("--paths <paths...>", "按路径条件批量清除策略")
+    .option("--id <id>", "策略稳定标识")
+    .option("--name <name>", "策略可读标签（该层唯一）")
+    .option("--from <list>", "名单来源侧：白名单（include）/ 黑名单（exclude）/ 两侧（both，默认）")
     .option("--to <list>", "移除后转入另一侧：白名单（include）/ 黑名单（exclude）")
+    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
-    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
     .action(
-      async (dirs: string[] = [], options: { layer?: string; from?: string; to?: string; dryRun?: boolean; yes?: boolean } = {}) => {
-        await runInteractive(() => runRemove(dirs, options))
+      async (
+        dirs: string[] = [],
+        options: { id?: string; name?: string; paths?: string[]; from?: string; to?: string; layer?: string; dryRun?: boolean; yes?: boolean } = {},
+      ) => {
+        await runInteractive(() => runEntryRemove(dirs, options))
       },
     )
 
-  listCmd
+  scopeCmd
     .command("default [value]")
     .description("查看或切换名单外目录的处理：on（全部生效）/ off（仅名单内生效）")
     .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
@@ -883,14 +750,32 @@ export function registerScopeCommands(program: Command): void {
       await runInteractive(() => runDefault(value, options))
     })
 
-  listCmd
+  scopeCmd
     .command("reset")
-    .description("清除限制（全部生效并清空两名单）")
+    .description("清除限制：默认清名单、策略与技能档案；--what 可只清其中一类")
+    .option("--what <what>", "清除范围：lists / policies / profiles / all（默认 all，可逗号分隔）")
     .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")
-    .option("--no-link", "只写配置，不联动收敛技能产物（之后可跑 toolkit skill reconcile）")
-    .action(async (options: { layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {
-      await runInteractive(() => runReset(options))
+    .action(async (options: { what?: string; layer?: string; dryRun?: boolean; yes?: boolean } = {}) => {
+      await runInteractive(() => runScopeReset(options))
     })
+
+  scopeCmd
+    .command("profile [name]")
+    .description("技能档案：省略名称时列出；写入允许 / 排除清单；--remove 移除")
+    .option("--allow <patterns...>", "档案允许技能名 / glob")
+    .option("--deny <patterns...>", "档案排除技能名 / glob")
+    .option("--remove", "移除档案（需 --yes）")
+    .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
+    .option("--dry-run", "只预览，不写配置")
+    .option("--yes", "跳过写前确认（预览照常打印）")
+    .action(
+      async (
+        name: string | undefined,
+        options: { allow?: string[]; deny?: string[]; remove?: boolean; layer?: string; dryRun?: boolean; yes?: boolean },
+      ) => {
+        await runInteractive(() => runSkillsProfile(name, options))
+      },
+    )
 }
