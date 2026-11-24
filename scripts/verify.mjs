@@ -156,6 +156,23 @@ function buildSkipReason() {
   return "未触及 src/、构建配置与依赖"
 }
 
+// 单测的触发面：测试会读 docs/、skills/、templates/ 与根规则文件，只有任务区与变更集不影响测试结果；
+// 真实任务区自检（warn-threshold）是独立步骤，不受本裁剪影响
+const TEST_INERT_PREFIXES = [".tasks/", ".changeset/"]
+
+/**
+ * 判断本次是否需要跑单测。
+ * @return {string} 空串表示需要执行；非空为跳过原因
+ */
+function testSkipReason() {
+  if (isCI || full) return ""
+  const names = changedFiles()
+  // 拿不到改动面或工作区干净时保守执行
+  if (names === null || names.size === 0) return ""
+  const inert = [...names].every((name) => TEST_INERT_PREFIXES.some((prefix) => name.startsWith(prefix)))
+  return inert ? "改动面仅任务区 / 变更集" : ""
+}
+
 // 本地包 bin 解析：直调 node + 入口，绕过 pnpm / corepack 垫片（Windows 上每步可省约 1 秒）；失败返回 null 由调用方回落
 const TOOL_PACKAGES = {
   tsc: "typescript",
@@ -240,6 +257,8 @@ const coverageSkipReason = skipCoverage
   : !isCI && !full && !testsOnly && scopedCoverageFiles.length === 0
     ? "本次无 src 改动，覆盖率交由流水线校验"
     : ""
+// 任务区 / 变更集改动不影响单测结果，跳过时覆盖率也一并无意义
+const testSkip = testSkipReason()
 // 增量类型检查的构建信息目录
 mkdirSync(join(root, ".toolkit-verify"), { recursive: true })
 
@@ -279,11 +298,13 @@ const parallelSteps = [
 // 因此单测不与其它重步骤并发；构建、文档构建、仓库自检互不依赖，放到下一阶段并发。
 const heavySteps = [
   {
-    label: coverageSkipReason
-      ? "单元测试（不含覆盖率）"
-      : scopedCoverage
-        ? `单元测试 + 覆盖率采集（仅改动 ${scopedCoverageFiles.length} 个文件）`
-        : "单元测试 + 覆盖率采集",
+    label: testSkip
+      ? "单元测试"
+      : coverageSkipReason
+        ? "单元测试（不含覆盖率）"
+        : scopedCoverage
+          ? `单元测试 + 覆盖率采集（仅改动 ${scopedCoverageFiles.length} 个文件）`
+          : "单元测试 + 覆盖率采集",
     tool: "vitest",
     // 覆盖率与单测合并为一次运行：同一批测试不再跑两遍；报告器由 vitest.config 决定（text / json / json-summary）
     args: [
@@ -295,6 +316,7 @@ const heavySteps = [
       "src/__tests__/warn-threshold.test.ts",
     ],
     env: { TZ: "UTC" },
+    skip: testSkip,
   },
 ]
 
