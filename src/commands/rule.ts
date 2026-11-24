@@ -33,6 +33,7 @@ async function selectInteractively(ruleset: Ruleset, cached: string[] | null): P
         checked: fallback.includes(mod.id),
       })),
       pageSize: 10,
+      escape: "back",
     })
     if (picked === null) continue
     return normalizePickedModules(

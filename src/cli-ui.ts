@@ -111,16 +111,17 @@ export function renderSelectedChoices(selected: ReadonlyArray<{ short?: string; 
 }
 
 // 多选：ESC 返回 null，其余返回选中值（允许空选）；choices 可混入 Separator 做分组标题
-// 操作提示由基座补齐，避免各调用方一半带一半不带
+// 出口不放进选项列表：多选的「a 全选」会把哨兵项一并选中，改由提示文案声明 ESC 语义
 export async function askCheckbox<T extends string>(options: {
   message: string
   choices: Array<MultiChoice<T> | SeparatorChoice>
   pageSize?: number
+  escape?: "cancel" | "back"
 }): Promise<T[] | null> {
   const { checkbox } = await loadPrompts()
   const answer = await askWithBack(() =>
     checkbox<T>({
-      message: withCheckboxHint(options.message),
+      message: withCheckboxHint(options.message, options.escape),
       choices: options.choices,
       pageSize: options.pageSize,
       required: false,
@@ -130,51 +131,13 @@ export async function askCheckbox<T extends string>(options: {
   return "back" in answer ? null : answer.value
 }
 
-// 首步多选：末位补「退出」，勾选退出或 ESC 都返回 null（取消整条命令）
-export async function askCheckboxOrExit<T extends string>(options: {
-  message: string
-  choices: Array<MultiChoice<T> | SeparatorChoice>
-  pageSize?: number
-}): Promise<T[] | null> {
-  const { checkbox } = await loadPrompts()
-  const answer = await askWithBack(() =>
-    checkbox<T | "exit">({
-      message: withCheckboxHint(options.message),
-      choices: [...options.choices, EXIT_CHOICE],
-      pageSize: options.pageSize,
-      required: false,
-      theme: { style: { renderSelectedChoices } },
-    }),
-  )
-  if ("back" in answer) return null
-  if (answer.value.includes("exit")) return null
-  return answer.value.filter((value): value is T => value !== "exit")
-}
-
-// 多选操作提示：文案里已有「空格切换」就不再重复
-function withCheckboxHint(message: string): string {
-  return message.includes("空格切换") ? message : `${message}（空格切换，回车确认）`
-}
-
-// 子流程多选：末位补「← 返回」，选中或 ESC 都返回 null（回上一步）
-export async function askCheckboxBack<T extends string>(options: {
-  message: string
-  choices: Array<MultiChoice<T> | SeparatorChoice>
-  pageSize?: number
-}): Promise<T[] | null> {
-  const { checkbox } = await loadPrompts()
-  const answer = await askWithBack(() =>
-    checkbox<T | "back">({
-      message: withCheckboxHint(options.message),
-      choices: [...options.choices, BACK_CHOICE],
-      pageSize: options.pageSize,
-      required: false,
-      theme: { style: { renderSelectedChoices } },
-    }),
-  )
-  if ("back" in answer) return null
-  if (answer.value.includes("back")) return null
-  return answer.value.filter((value): value is T => value !== "back")
+// 多选操作提示：补齐操作方式与 ESC 语义，避免各调用方一半带一半不带
+function withCheckboxHint(message: string, escape?: "cancel" | "back"): string {
+  // 文案里已声明过 ESC 语义的不再改写，避免重复追加
+  if (/ESC/.test(message)) return message
+  const base = message.includes("空格切换") ? message : `${message}（空格切换，回车确认）`
+  if (!escape) return base
+  return `${base}；ESC ${escape === "cancel" ? "取消" : "返回上一步"}`
 }
 
 // 文本输入：ESC 返回 null

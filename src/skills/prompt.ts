@@ -3,7 +3,7 @@
 import type { PackageSkill, SkillsMode, SkillTarget } from "./types"
 import { BUILTIN_SOURCE, CANONICAL_LABEL } from "./types"
 import { LIST_PAGE_SIZE, loadPrompts } from "../prompts"
-import { askCheckboxBack, askCheckboxOrExit, askConfirm } from "../cli-ui"
+import { askCheckbox, askConfirm } from "../cli-ui"
 import { formatChoiceLine, terminalColumns } from "../prompt-line"
 import { displayWidth } from "../text-line"
 import { formatSkillChoice } from "./format"
@@ -245,8 +245,8 @@ export async function promptTargetSelection(choices: TargetChoice[], message: st
     })
     return groups.size > 1 ? [new Separator(`── ${title} ──`), ...mapped] : mapped
   })
-  // 目标选择是安装流程第二步：末位给「← 返回」，可退回技能选择
-  return askCheckboxBack({ message, choices: rows, pageSize: LIST_PAGE_SIZE })
+  // 目标选择是安装流程第二步：ESC 退回技能选择
+  return askCheckbox({ message, choices: rows, pageSize: LIST_PAGE_SIZE, escape: "back" })
 }
 
 // 汇总确认：返回 true 继续、false 放弃、null 按 ESC 返回上一步；破坏性操作应传 defaultValue = false
@@ -282,10 +282,11 @@ export async function promptUninstallSelection(choices: UninstallChoice[]): Prom
     }))
     return groups.size > 1 ? [new Separator(`── ${title} ──`), ...mapped] : mapped
   })
-  return askCheckboxOrExit({
+  return askCheckbox({
     message: "选择要卸载的技能（空格切换，回车确认）",
     choices: rows,
     pageSize: LIST_PAGE_SIZE,
+    escape: "cancel",
   })
 }
 
@@ -311,7 +312,7 @@ export async function promptSkillSelection(skills: PromptSkill[], saved?: string
     return groups.length > 1 ? [new Separator(`── ${group.title} ──`), ...items] : items
   })
   const message = mode === "package" ? "选择要安装的技能（空格切换，回车确认；全不选即纯包管理器模式）" : "选择要安装的技能（空格切换，回车确认；必装项不可取消）"
-  const picked = await askCheckboxOrExit({ message, choices, pageSize: LIST_PAGE_SIZE })
+  const picked = await askCheckbox({ message, choices, pageSize: LIST_PAGE_SIZE, escape: "cancel" })
   if (picked === null) return null
   return mode === "package" ? picked : withCore(skills, picked)
 }

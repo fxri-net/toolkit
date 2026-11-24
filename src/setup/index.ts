@@ -3,7 +3,7 @@ import { INIT_LINKS } from "../links"
 import { EXIT } from "../exit-codes"
 import { formatChoiceLine } from "../prompt-line"
 import { isInteractive, reportCancelled, runInteractive } from "../prompts"
-import { askCheckboxOrExit } from "../cli-ui"
+import { askCheckbox } from "../cli-ui"
 import { line } from "../term-style"
 import { inspectSetupSteps, runSetupStep, type StepId, type SetupStep } from "./steps"
 
@@ -86,8 +86,9 @@ export async function runSetupWizard(options: SetupOptions): Promise<void> {
     return
   } else {
     await runInteractive(async () => {
-      const picked = await askCheckboxOrExit<StepId>({
+      const picked = await askCheckbox<StepId>({
         message: "要配置哪些内容",
+        escape: "cancel",
         choices: steps.map((step) => ({
           name: formatChoiceLine({ name: step.label, description: step.summary }),
           value: step.id,

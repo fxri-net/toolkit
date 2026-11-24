@@ -5,7 +5,7 @@ import { LIST_PAGE_SIZE, requireInteractive } from "../prompts"
 import { installProjectSkills, listPackageSkills } from "../skills"
 import { formatChoiceLine, terminalColumns } from "../prompt-line"
 import { line } from "../term-style"
-import { askCheckbox, askCheckboxBack, askCheckboxOrExit, askConfirm, askInput, askSelect, reportWrite, runMenu } from "../cli-ui"
+import { askCheckbox, askConfirm, askInput, askSelect, reportWrite, runMenu } from "../cli-ui"
 import { applyScopePlan } from "./apply"
 import { layerConfigTarget, type ConfigLayer } from "./config-file"
 import {
@@ -220,6 +220,7 @@ async function pickFromScan(): Promise<string[] | null> {
         }
       }),
       pageSize: LIST_PAGE_SIZE,
+      escape: "back",
     })
     if (picked === null) return null
     return picked
@@ -313,10 +314,11 @@ async function manageFlow(state: ScopeState): Promise<void> {
     console.log(line.hint("当前没有条目"))
     return
   }
-  const picked = await askCheckboxBack({
+  const picked = await askCheckbox({
     message: "选择条目（空格切换，回车确认）",
     choices: entries.map((entry) => ({ name: entry.label, value: entry.value })),
     pageSize: LIST_PAGE_SIZE,
+    escape: "back",
   })
   if (picked === null || picked.length === 0) return
   const action = await runMenu<string>({
@@ -366,10 +368,11 @@ export async function runScopeMount(parent?: string, dryRun = false): Promise<vo
     console.log(line.hint("未发现仓库（按 .git / package.json / .tasks 识别）"))
     return
   }
-  const picked = await askCheckboxOrExit({
+  const picked = await askCheckbox({
     message: "选择要安装技能的项目（会把技能文件写入这些项目）",
     choices: repos.map((repo) => ({ name: repo.name, value: repo.path })),
     pageSize: LIST_PAGE_SIZE,
+    escape: "cancel",
   })
   if (picked === null) return
   if (picked.length === 0) {
@@ -522,10 +525,11 @@ async function skillMatrixFlow(state: ScopeState): Promise<void> {
         )
         return
       }
-      const picked = await askCheckboxBack({
+      const picked = await askCheckbox({
         message: "选择技能或技能档案（空格切换，回车确认）",
         choices,
         pageSize: LIST_PAGE_SIZE,
+        escape: "back",
       })
       if (picked === null) {
         mode = null

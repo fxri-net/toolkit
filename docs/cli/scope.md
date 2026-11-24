@@ -84,7 +84,7 @@ toolkit scope guard fxri-plan-task            # 内容闸门：按当前目录�
   `on` 对应 `gated`（入口壳）、`off` 对应 `full`（全文），查看用 `toolkit config get skillDelivery.default`；
   `toolkit skill install --gate` / `--embed` 生成或还原入口壳；批量挂载用 `toolkit skill mount`
 - 选择页统一提供「← 返回」（末位）与 ESC 返回上一级；首步选配置层的末位是「退出」，选中或按 ESC 都按取消处理、以 `0` 结束；Ctrl+C 才按取消退出码 `130`。
-- 多选同样带末位项：管理条目、技能矩阵技能选择末位是「← 返回」，批量挂载的项目多选末位是「退出」。
+- 多选不设出口项（`a` 全选会把出口一并勾上）：管理条目、技能矩阵、扫描结果按 ESC 返回上一级，批量挂载的项目多选按 ESC 取消整条命令。
 - ESC 有约 500ms 判定延迟（readline 需先排除方向键序列），属正常现象
 - `scope allow` / `deny` / `remove` 均需显式目录或条件：无参只提示改用 `toolkit scope --interactive`，不再隐式进入完整向导
 - `allow` 加入白名单并把默认值切到「仅名单内生效」；`deny` 只加黑名单、默认值不变；同路径在另一侧时写前预览「移入 / 转入」

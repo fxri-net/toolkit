@@ -24,7 +24,7 @@ title: 退出码与解析错误
 进程退出码另由 `extend.exitCode` 承载，两者可以不一致（如 `status` 不带 `--check`）。
 
 交互中断固定为 `130`，与 shell 对 SIGINT 的惯例一致：`scope` / `usage` / `skill` / `rule` 等命令在提示中按 Ctrl+C 都以此结束，不再回落为 `0` 或 `1`。
-按 ESC 或选末位「退出」/「← 返回」属正常导航（返回上一步或取消当前命令），一律按 `0` 结束。
+按 ESC（单选还可选末位「退出」/「← 返回」）属正常导航（返回上一步或取消当前命令），一律按 `0` 结束。
 需要交互但没有可用终端的命令统一输出 `⚠️` 提示并以 `2` 结束，提示里给出等价的非交互参数：
 `toolkit setup`、`toolkit scope --interactive`、`toolkit usage setup --interactive`、
 `toolkit usage setup init` / `toolkit usage setup uninstall` / `toolkit usage config upload setup`、

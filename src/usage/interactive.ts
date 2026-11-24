@@ -9,7 +9,7 @@ import { readHookActivity, readLastHookError } from "./ingest"
 import { line, style, termText, usageChannelText, usageRotationText, usageSkillsModeText } from "../term-style"
 import { formatChoiceLine } from "../prompt-line"
 import { LIST_PAGE_SIZE, ask, exitWithCancel, isPromptCancel, loadPrompts, reportCancelled, requireInteractive } from "../prompts"
-import { askCheckboxBack, askConfirm, askInput, askSelectBack, askSelectOrExit, confirmWrite, runMenu } from "../cli-ui"
+import { askCheckbox, askConfirm, askInput, askSelectBack, askSelectOrExit, confirmWrite, runMenu } from "../cli-ui"
 import { createContext, formatLocalTime, printDefaultStats, printUsageInfo } from "./cli/context"
 import { exportUsageEvents, purgeUsageEvents } from "./cli/data"
 import { SKILL_PREFIX } from "../skills/prefix"
@@ -223,7 +223,7 @@ export async function runUsageInitInteractive(options: InitInteractiveOptions = 
     return
   }
   if (!requireInteractive({ action: "usage setup init", hint: "非交互请用 --yes --preset，或执行 toolkit usage --help" })) return
-  const { checkbox, confirm, input } = await loadPrompts()
+  const { confirm, input } = await loadPrompts()
   try {
     const detected = detectedAdapters()
     if (detected.length === 0) console.log(line.hint("未检测到可接入的 Agent：本向导将只能使用规则通道（toolkit rule compose --module usage）"))
@@ -362,25 +362,21 @@ export async function runUsageInitInteractive(options: InitInteractiveOptions = 
         continue
       }
       if (step === "agents") {
-        const answer = await ask(
-          () =>
-            checkbox<string>({
-              message: "选择要接入的 Agent（空格切换，回车确认）",
-              choices: detected.map((adapter) => ({
-                name: formatChoiceLine({ name: adapter.displayName, description: `写 ${adapter.configPath()}` }),
-                value: adapter.id,
-                checked: state.agents.some((item) => item.id === adapter.id),
-              })),
-              pageSize: LIST_PAGE_SIZE,
-              required: false,
-            }),
-          { back: true },
-        )
-        if ("back" in answer) {
+        const answer = await askCheckbox<string>({
+          message: "选择要接入的 Agent",
+          choices: detected.map((adapter) => ({
+            name: formatChoiceLine({ name: adapter.displayName, description: `写 ${adapter.configPath()}` }),
+            value: adapter.id,
+            checked: state.agents.some((item) => item.id === adapter.id),
+          })),
+          pageSize: LIST_PAGE_SIZE,
+          escape: "back",
+        })
+        if (answer === null) {
           index -= 1
           continue
         }
-        state.agents = detected.filter((adapter) => answer.value.includes(adapter.id))
+        state.agents = detected.filter((adapter) => answer.includes(adapter.id))
         if (state.agents.length === 0) {
           console.log(line.hint("未选择 Agent，未修改任何文件"))
           return
@@ -779,10 +775,11 @@ async function hooksFlow(): Promise<void> {
       console.log(line.hint("未检测到可接入的 Agent"))
       return
     }
-    const picked = await askCheckboxBack({
+    const picked = await askCheckbox({
       message: "选择要安装 Hook 的 Agent（安装不等于开启采集）",
       choices: detected.map((adapter) => ({ name: adapter.displayName, value: adapter.id })),
       pageSize: LIST_PAGE_SIZE,
+      escape: "back",
     })
     if (picked === null || picked.length === 0) return
     await installUsageHooks({ agent: picked.join(","), yes: true })
@@ -799,10 +796,11 @@ async function hooksFlow(): Promise<void> {
     console.log(line.hint("未发现本包 Hook"))
     return
   }
-  const picked = await askCheckboxBack({
+  const picked = await askCheckbox({
     message: "选择要移除 Hook 的 Agent",
     choices: installed.map((adapter) => ({ name: adapter.displayName, value: adapter.id })),
     pageSize: LIST_PAGE_SIZE,
+    escape: "back",
   })
   if (picked === null || picked.length === 0) return
   await removeUsageHooks({ agent: picked.join(","), yes: true })

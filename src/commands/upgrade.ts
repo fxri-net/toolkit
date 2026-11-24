@@ -4,7 +4,7 @@ import { resolve } from "node:path"
 import type { Command } from "commander"
 import { assertJsonFormat, jsonEnvelope } from "../json-output"
 import { INTERACTIVE_EXIT, isInteractive, reportCancelled } from "../prompts"
-import { askCheckboxOrExit } from "../cli-ui"
+import { askCheckbox } from "../cli-ui"
 import { formatChoiceLine, terminalColumns } from "../prompt-line"
 import { printJson } from "./shared"
 import { line, style } from "../term-style"
@@ -105,7 +105,7 @@ async function selectItems(items: UpgradeItem[]): Promise<UpgradeItem[] | null> 
     console.log(line.hint("没有可自动迁移的项"))
     return []
   }
-  const selected = await askCheckboxOrExit<string>({ message: "选择要执行的迁移项", choices })
+  const selected = await askCheckbox<string>({ message: "选择要执行的迁移项", choices, escape: "cancel" })
   if (selected === null) return null
   const picked = new Set(selected)
   return items.filter((item) => picked.has(item.id))

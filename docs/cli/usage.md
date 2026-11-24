@@ -104,7 +104,7 @@ toolkit usage data doctor
   首步预设选择末位有「退出」，选中或按 ESC 都按取消处理、以 `0` 结束；后续选择步骤末位有「← 返回」，与 ESC 一样退回上一步。
 - `usage setup uninstall` 的两问串联：第二问按 ESC 或「← 返回」回到第一问，第一问取消才算整体取消（`0`，不写任何文件）。
 - `usage config upload setup` 三步向导（协议 → 端点 → 请求头）：第 2、3 步按 ESC 回到上一步，第 1 步末位「退出」或 ESC 取消（`0`）。
-- 菜单里的多选与输入同样带出口：管理 Hook 的 Agent 多选末位是「← 返回」；导出 / 清理子页的路径输入与删除确认用「ESC 返回上一步」标注。
+- 菜单里的多选不设出口项：管理 Hook 的 Agent 多选按 ESC 返回上一步；导出 / 清理子页的路径输入与删除确认用「ESC 返回上一步」标注。
 - 通道二选一：`usage.channel` 为 `rule` 时只有 `usage record` 写入、Hook 不写入；为 `hook` 时只有 Hook 写入、`record` 静默跳过。切换通道不会自动清理另一侧配置。
 - 非交互初始化用 `toolkit usage setup init --yes --preset recommended --channel rule`（默认 `rule`）；
    `--channel hook` 时会安装 Hook 并需要检测到 Agent，`--preset off` 与 `--channel` 同时出现时 `off` 优先；

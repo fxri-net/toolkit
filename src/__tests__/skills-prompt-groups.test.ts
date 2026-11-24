@@ -1,12 +1,12 @@
 // 交互列表分组渲染：多组时插入来源分隔标题，单组保持扁平；skills 模式仍自动补 core
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const { askCheckboxOrExit, askCheckboxBack } = vi.hoisted(() => ({ askCheckboxOrExit: vi.fn(), askCheckboxBack: vi.fn() }))
+const { askCheckbox } = vi.hoisted(() => ({ askCheckbox: vi.fn() }))
 
 // 只替换多选交互，保留 cli-ui 其余导出
 vi.mock("../cli-ui", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../cli-ui")>()
-  return { ...actual, askCheckboxOrExit, askCheckboxBack }
+  return { ...actual, askCheckbox }
 })
 
 import { promptSkillSelection, promptTargetSelection, type PromptSkill } from "../skills/prompt"
@@ -27,15 +27,14 @@ function skill(name: string, tier: "core" | "optional", source?: string): Prompt
 const mixed = [skill("core-b", "core"), skill("opt-a", "optional"), skill("core-a", "core"), skill("ext-x", "optional", "playbook")]
 
 beforeEach(() => {
-  askCheckboxOrExit.mockReset()
-  askCheckboxBack.mockReset()
+  askCheckbox.mockReset()
 })
 
 describe("promptSkillSelection 分组标题", () => {
   it("多组时按组插入分隔行，标题与顺序同分组", async () => {
-    askCheckboxOrExit.mockResolvedValue(["opt-a"])
+    askCheckbox.mockResolvedValue(["opt-a"])
     await promptSkillSelection(mixed, [], "skills")
-    const rows = askCheckboxOrExit.mock.calls[0]?.[0].choices as RenderRow[]
+    const rows = askCheckbox.mock.calls[0]?.[0].choices as RenderRow[]
     expect(rows.filter((row) => row.type === "separator").map((row) => row.separator)).toEqual([
       "── 包内 · 必装 ──",
       "── 包内 · 可选 ──",
@@ -50,15 +49,15 @@ describe("promptSkillSelection 分组标题", () => {
   })
 
   it("单组时不插入分隔行，列表保持扁平", async () => {
-    askCheckboxOrExit.mockResolvedValue([])
+    askCheckbox.mockResolvedValue([])
     await promptSkillSelection([skill("opt-a", "optional")], [], "skills")
-    const rows = askCheckboxOrExit.mock.calls[0]?.[0].choices as RenderRow[]
+    const rows = askCheckbox.mock.calls[0]?.[0].choices as RenderRow[]
     expect(rows.some((row) => row.type === "separator")).toBe(false)
     expect(rows.map((row) => row.name)).toEqual(["opt-a"])
   })
 
   it("skills 模式选中结果仍自动补 core", async () => {
-    askCheckboxOrExit.mockResolvedValue(["opt-a"])
+    askCheckbox.mockResolvedValue(["opt-a"])
     const picked = await promptSkillSelection(mixed, [], "skills")
     // withCore 按入参顺序收敛，core 全含
     expect(picked).toEqual(["core-b", "opt-a", "core-a"])
@@ -73,9 +72,11 @@ describe("promptTargetSelection 分组标题", () => {
   ]
 
   it("多组时按组插入分隔行，标签不再带「类型｜」前缀", async () => {
-    askCheckboxBack.mockResolvedValue(["canonical"])
+    askCheckbox.mockResolvedValue(["canonical"])
     await promptTargetSelection(targets, "选择目标")
-    const rows = askCheckboxBack.mock.calls[0]?.[0].choices as RenderRow[]
+    const rows = askCheckbox.mock.calls[0]?.[0].choices as RenderRow[]
+    // 目标页是子流程，ESC 语义为返回上一步
+    expect(askCheckbox.mock.calls[0]?.[0].escape).toBe("back")
     expect(rows.filter((row) => row.type === "separator").map((row) => row.separator)).toEqual([
       "── 主目标 ──",
       "── agent ──",
@@ -85,9 +86,9 @@ describe("promptTargetSelection 分组标题", () => {
   })
 
   it("单组时不插入分隔行", async () => {
-    askCheckboxBack.mockResolvedValue([])
+    askCheckbox.mockResolvedValue([])
     await promptTargetSelection([targets[0]!], "选择目标")
-    const rows = askCheckboxBack.mock.calls[0]?.[0].choices as RenderRow[]
+    const rows = askCheckbox.mock.calls[0]?.[0].choices as RenderRow[]
     expect(rows.some((row) => row.type === "separator")).toBe(false)
   })
 })
