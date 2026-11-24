@@ -7,10 +7,10 @@ import { describe, expect, it } from "vitest"
 // 约定的主段：fxts = 品牌 + test suite，产品段按项目追加（本项目为 tk）
 const PREFIX = "fxts-tk"
 const TEST_DIR = join(process.cwd(), "src", "__tests__")
-// 直接建临时目录的字面量前缀
-const MKDTEMP = /mkdtempSync\(\s*join\(\s*tmpdir\(\)\s*,\s*"([^"]*)"/g
+// 直接建临时目录的字面量前缀（引号形态兼容双引号 / 单引号 / 模板字符串）
+const MKDTEMP = /mkdtempSync\(\s*join\(\s*tmpdir\(\)\s*,\s*(["'`])([^"'`]*)\1/g
 // 包装函数首参的字面量前缀（helpers.tempDir / makeTasksDir 与各文件自建的同名包装）
-const WRAPPER = /\b(?:tempDir|makeTasksDir|makeDir|tmpRoot|makeRepo|runInDir)\(\s*"([^"]*)"/g
+const WRAPPER = /\b(?:tempDir|makeTasksDir|makeDir|tmpRoot|makeRepo|runInDir)\(\s*(["'`])([^"'`]*)\1/g
 
 /**
  * 提取源码中创建临时目录时使用的前缀字面量及其行号。
@@ -23,7 +23,7 @@ function extractPrefixes(source: string): Array<{ prefix: string; line: number }
   for (const pattern of [MKDTEMP, WRAPPER]) {
     for (const match of source.matchAll(pattern)) {
       const line = source.slice(0, match.index ?? 0).split("\n").length
-      found.push({ prefix: match[1]!, line })
+      found.push({ prefix: match[2]!, line })
     }
   }
   return found
@@ -40,9 +40,11 @@ describe("测试临时目录前缀", () => {
     expect(offenders).toEqual([])
   })
 
-  it("提取函数能识别旧前缀并给出行号", () => {
-    // 样例用拼接构造，避免本文件自身被上一条用例扫成违规
-    const sample = 'mkdtempSync(join(tmpdir(), ' + '"legacy-suite-"))'
-    expect(extractPrefixes(sample)).toEqual([{ prefix: "legacy-suite-", line: 1 }])
+  it("双引号、单引号与模板字符串形态都能识别", () => {
+    // 样例由字符拼接生成，避免本文件自身被上一条用例扫成违规
+    const sample = (quote: string) => `mkdtempSync(join(tmpdir(), ${quote}legacy-suite-${quote}))`
+    for (const quote of ['"', "'", "`"]) {
+      expect(extractPrefixes(sample(quote))).toEqual([{ prefix: "legacy-suite-", line: 1 }])
+    }
   })
 })
