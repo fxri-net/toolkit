@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { checkDocsTheme, writeDocsTheme } from "../docs/theme"
+import { checkDocsTheme, writeDocsTheme, THEME_VERSION } from "../docs/theme"
 
 // 临时主题目录：每个用例独立，避免互相污染
 let dir: string
@@ -70,7 +70,7 @@ describe("writeDocsTheme / checkDocsTheme", () => {
     writeDocsTheme(dir)
     const cssPath = join(dir, "custom.css")
     const legacy = readFileSync(cssPath, "utf8")
-      .replace("/* fxri-docs-theme: 2.1 */", "/* fxri-docs-theme: 1.0 */")
+      .replace(`/* fxri-docs-theme: ${THEME_VERSION} */`, "/* fxri-docs-theme: 1.0 */")
       .replace("--fx-accent: #4f5bd5;", "--fx-accent: #409eff;")
     writeFileSync(cssPath, legacy)
 
@@ -113,5 +113,22 @@ describe("writeDocsTheme / checkDocsTheme", () => {
     expect(() => writeDocsTheme(dir)).toThrow("--force")
     expect(() => writeDocsTheme(dir, { force: true })).not.toThrow()
     expect(checkDocsTheme(dir).ok).toBe(true)
+  })
+
+  it("模板首行版本与 THEME_VERSION 不一致时校验失败", () => {
+    const templateDir = mkdtempSync(join(tmpdir(), "fxts-tk-docs-theme-tpl-"))
+    const realTemplate = join(process.cwd(), "templates", "docs-theme")
+    writeFileSync(join(templateDir, "index.ts"), readFileSync(join(realTemplate, "index.ts"), "utf8"))
+    const staleCss = readFileSync(join(realTemplate, "custom.css"), "utf8").replace(
+      `/* fxri-docs-theme: ${THEME_VERSION} */`,
+      "/* fxri-docs-theme: 1.0 */",
+    )
+    writeFileSync(join(templateDir, "custom.css"), staleCss)
+
+    writeDocsTheme(dir, { templateDir })
+    const result = checkDocsTheme(dir, templateDir)
+    expect(result.ok).toBe(false)
+    expect(result.problems.join("\n")).toContain("模板版本标记与 THEME_VERSION 不一致")
+    rmSync(templateDir, { recursive: true, force: true })
   })
 })

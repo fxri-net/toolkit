@@ -1,4 +1,4 @@
-/* fxri-docs-theme: 2.1 */
+/* fxri-docs-theme: 2.2 */
 /* fxri-docs-theme:brand-start */
 /* 本站品牌与装饰：唯一允许各站不同的区段，--write 会原样保留 */
 :root {
@@ -98,6 +98,30 @@
 .VPFeature .icon {
   background: var(--fx-accent-soft, rgba(79, 91, 213, 0.1));
   border-radius: 8px;
+}
+
+/* 特性卡片内：图标与标题同一行，说明文字跨满两列（VitePress 默认把三者竖排，图标独占一行） */
+.VPFeatures .VPFeature .box {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 12px;
+  align-items: center;
+}
+
+.VPFeatures .VPFeature .icon {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 0;
+  font-size: 18px;
+}
+
+.VPFeatures .VPFeature .title {
+  margin: 0;
+}
+
+.VPFeatures .VPFeature .details {
+  grid-column: 1 / -1;
+  padding-top: 12px;
 }
 
 /* 表格：中性表头 + 统一留白，保留 VitePress 默认横向滚动 */

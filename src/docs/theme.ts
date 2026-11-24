@@ -6,7 +6,7 @@ import { writeFileAtomic } from "../write-atomic"
 import { skillsPackageDir } from "../skills"
 
 // 模板版本：公共规则变更时递增（视觉调整升次版本，标记格式或品牌段语义变更升主版本）
-export const THEME_VERSION = "2.1"
+export const THEME_VERSION = "2.2"
 
 const HEADER = `/* fxri-docs-theme: ${THEME_VERSION} */`
 // 任一合法版本标记都可解析（兼容早期的整数式 v1）：升级时据此保留品牌段，再由 --check 判定版本是否落后
@@ -91,6 +91,10 @@ export function checkDocsTheme(themeDir: string, templateDir = defaultThemeTempl
   const templateIndex = normalize(readTextFile(join(templateDir, "index.ts")))
   const templateCss = splitTheme(readTextFile(join(templateDir, "custom.css")))
   if (!templateCss) throw new Error(`主题模板缺少标记行：${join(templateDir, "custom.css")}`)
+  // 模板首行必须与 THEME_VERSION 同步：write 把模板首行原样写给站点，只改常量时版本实际没变、也无处暴露
+  if (templateCss.header !== HEADER) {
+    problems.push(`模板版本标记与 THEME_VERSION 不一致（模板 ${templateCss.header}，期望 ${HEADER}）；同步模板首行`)
+  }
 
   const indexPath = join(themeDir, "index.ts")
   const cssPath = join(themeDir, "custom.css")
