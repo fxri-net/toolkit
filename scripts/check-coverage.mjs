@@ -2,7 +2,7 @@
 // 覆盖率双轨门禁：改动行覆盖率阻断「新代码未测」，全局下限兜底「整体塌方」
 // 阈值唯一真源在本脚本；vitest.config 只负责产出报告（text / json / json-summary）
 import { execFileSync } from "node:child_process"
-import { existsSync, readFileSync } from "node:fs"
+import { appendFileSync, existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 
 const ROOT = process.cwd()
@@ -17,10 +17,12 @@ const FLOORS = { statements: 78, branches: 65, functions: 82, lines: 81 }
  * @return {{ diffFile: string, coverageDir: string }} 解析结果
  */
 function parseArgs(argv) {
-  const options = { diffFile: "", coverageDir: join(ROOT, "coverage") }
+  const options = { diffFile: "", coverageDir: join(ROOT, "coverage"), noFloors: false }
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index] === "--diff") options.diffFile = argv[index + 1] ?? ""
     if (argv[index] === "--coverage") options.coverageDir = argv[index + 1] ?? options.coverageDir
+    // 局部采集（本地只覆盖改动文件）时全局下限算不出，跳过
+    if (argv[index] === "--no-floors") options.noFloors = true
   }
   return options
 }
@@ -117,18 +119,22 @@ function findEntry(coverage, rel) {
  * @param {Record<string, { pct: number }>} input.total 覆盖率汇总 total
  * @return {{ ok: boolean, problems: string[], notes: string[] }} 判定结果
  */
-function evaluate({ added, coverage, total }) {
+function evaluate({ added, coverage, total, checkFloors = true }) {
   const problems = []
   const notes = []
 
-  // 全局下限：只在整体塌方时触发，正常改动不该碰到
-  for (const [metric, floor] of Object.entries(FLOORS)) {
-    const pct = total?.[metric]?.pct
-    if (typeof pct !== "number") {
-      notes.push(`覆盖率汇总缺少 ${metric} 百分比，跳过该下限`)
-      continue
+  // 全局下限：只在整体塌方时触发，正常改动不该碰到；局部采集模式下算不出，跳过并说明
+  if (checkFloors) {
+    for (const [metric, floor] of Object.entries(FLOORS)) {
+      const pct = total?.[metric]?.pct
+      if (typeof pct !== "number") {
+        notes.push(`覆盖率汇总缺少 ${metric} 百分比，跳过该下限`)
+        continue
+      }
+      if (pct < floor) problems.push(`全局 ${metric} ${pct}% 低于下限 ${floor}%`)
     }
-    if (pct < floor) problems.push(`全局 ${metric} ${pct}% 低于下限 ${floor}%`)
+  } else {
+    notes.push("局部采集模式，跳过全局下限（仅流水线与 --full 校验）")
   }
 
   // 改动行：只统计起始行落在新增行上的语句，避免历史低覆盖目录拖累判定
@@ -164,6 +170,26 @@ function evaluate({ added, coverage, total }) {
 }
 
 /**
+ * GitHub Actions 作业摘要：存在 GITHUB_STEP_SUMMARY 时追加覆盖率摘要；本地与 GitLab 不写。
+ * @param {Record<string, any>} summary coverage-summary.json 内容
+ * @param {{ ok: boolean, problems: string[], notes: string[] }} result 判定结果
+ * @return {void}
+ */
+function writeGithubSummary(summary, result) {
+  const target = process.env.GITHUB_STEP_SUMMARY ?? ""
+  if (!target) return
+  const lines = ["## 覆盖率", "", "| 指标 | 覆盖 |", "| --- | --- |"]
+  for (const metric of ["statements", "branches", "functions", "lines"]) {
+    const pct = summary?.total?.[metric]?.pct
+    if (typeof pct === "number") lines.push(`| ${metric} | ${pct}% |`)
+  }
+  lines.push("", "结论：", "")
+  for (const note of result.notes) lines.push(`- ${note}`)
+  for (const problem of result.problems) lines.push(`- ✖ ${problem}`)
+  appendFileSync(target, `${lines.join("\n")}\n`, "utf8")
+}
+
+/**
  * 入口：读取报告与改动行，输出结论并按结论退出。
  * @return {void}
  */
@@ -179,8 +205,9 @@ function main() {
   const summary = JSON.parse(readFileSync(summaryFile, "utf8"))
   const changed = collectChangedLines(options)
   if (changed.note) console.log(`提示：${changed.note}`)
-  const result = evaluate({ added: changed.added, coverage, total: summary.total })
+  const result = evaluate({ added: changed.added, coverage, total: summary.total, checkFloors: !options.noFloors })
   for (const note of result.notes) console.log(`· ${note}`)
+  writeGithubSummary(summary, result)
   if (!result.ok) {
     for (const problem of result.problems) console.error(`✖ ${problem}`)
     process.exit(1)

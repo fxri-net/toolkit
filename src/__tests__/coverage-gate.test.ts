@@ -1,7 +1,7 @@
 // 覆盖率双轨门禁：改动行判定与全局下限的假现场用例（C-44）
 // 被测脚本按 process.cwd() 读 coverage 报告，测试用临时目录充当仓库根并以子进程实跑，验证真实退出码与输出
 import { spawnSync } from "node:child_process"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
@@ -110,5 +110,32 @@ describe("覆盖率门禁：双轨判定", () => {
     const result = run(root)
     expect(result.status).toBe(1)
     expect(result.stderr).toContain("请先执行带覆盖率的单测")
+  })
+
+  it("--no-floors 时局部采集跳过全局下限", () => {
+    const root = createFixture({
+      statements: [3, 4, 5, 6, 7, 8].map((line) => ({ line, hits: 1 })),
+      summary: { statements: 10, branches: 10, functions: 10, lines: 10 },
+    })
+    const result = spawnSync(process.execPath, [script, "--coverage", "coverage", "--diff", "diff.txt", "--no-floors"], {
+      cwd: root,
+      encoding: "utf8",
+    })
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain("跳过全局下限")
+  })
+
+  it("存在 GITHUB_STEP_SUMMARY 时追加摘要", () => {
+    const root = createFixture({ statements: [3, 4, 5, 6, 7, 8].map((line) => ({ line, hits: 1 })) })
+    const target = join(root, "summary.md")
+    const result = spawnSync(process.execPath, [script, "--coverage", "coverage", "--diff", "diff.txt"], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, GITHUB_STEP_SUMMARY: target },
+    })
+    expect(result.status).toBe(0)
+    const written = readFileSync(target, "utf8")
+    expect(written).toContain("## 覆盖率")
+    expect(written).toContain("改动行覆盖率")
   })
 })

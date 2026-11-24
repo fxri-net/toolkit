@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from "node:child_process"
-import { readFileSync, statSync, existsSync } from "node:fs"
+import { mkdirSync, readFileSync, statSync, existsSync } from "node:fs"
 import { createRequire } from "node:module"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -226,9 +226,26 @@ const docsSkip = skipDocs ? "--skip-docs" : docsNeeded ? "" : "未触及 docs/�
 // 文档类型检查只随改动面跳过：--skip-docs 只裁文档构建与产物校验，不裁类型检查（跨平台 job 走 --tests-only 时整段不进入）
 const docsTypeSkip = docsNeeded ? "" : "未触及 docs/、README.md、skills/"
 
+// 本地覆盖率采集范围：只采集本次改动的 src 文件，避免 200+ 文件的报告开销；流水线与 --full 走全量
+const scopedCoverageFiles = (() => {
+  if (isCI || full || skipCoverage || testsOnly) return []
+  const names = changedFiles()
+  if (!names) return []
+  return [...names].filter((name) => name.startsWith("src/") && name.endsWith(".ts") && !name.includes("__tests__"))
+})()
+const scopedCoverage = !isCI && !full && !skipCoverage && !testsOnly && scopedCoverageFiles.length > 0
+// 空串表示照常采集；非空为「为何不采集」的说明（本地无改动时把全量覆盖率留给流水线）
+const coverageSkipReason = skipCoverage
+  ? "覆盖率本地默认跳过（--full 可跑）"
+  : !isCI && !full && !testsOnly && scopedCoverageFiles.length === 0
+    ? "本次无 src 改动，覆盖率交由流水线校验"
+    : ""
+// 增量类型检查的构建信息目录
+mkdirSync(join(root, ".toolkit-verify"), { recursive: true })
+
 // 阶段一：互不依赖、可并行的前置检查；类型 / 规范一致性 / 静态检查都不读 dist、不写工作区
 const parallelSteps = [
-  { label: "类型检查", tool: "tsc", args: ["--noEmit", "-p", "tsconfig.typecheck.json"] },
+  { label: "类型检查", tool: "tsc", args: ["--noEmit", "--incremental", "--tsBuildInfoFile", join(root, ".toolkit-verify", "tsconfig.tsbuildinfo"), "-p", "tsconfig.typecheck.json"] },
   // 文档站类型检查：VitePress 构建只转译不类型检查，?raw / JSON / .vue 导入需 vue-tsc 兜住
   { label: "文档类型检查", tool: "vue-tsc", args: ["--noEmit", "-p", "docs/tsconfig.json"], skip: docsTypeSkip },
   // 文档规则数据由 templates/rules 生成，检查生成物未漂移
@@ -262,10 +279,21 @@ const parallelSteps = [
 // 因此单测不与其它重步骤并发；构建、文档构建、仓库自检互不依赖，放到下一阶段并发。
 const heavySteps = [
   {
-    label: skipCoverage ? "单元测试（不含覆盖率）" : "单元测试 + 覆盖率采集",
+    label: coverageSkipReason
+      ? "单元测试（不含覆盖率）"
+      : scopedCoverage
+        ? `单元测试 + 覆盖率采集（仅改动 ${scopedCoverageFiles.length} 个文件）`
+        : "单元测试 + 覆盖率采集",
     tool: "vitest",
     // 覆盖率与单测合并为一次运行：同一批测试不再跑两遍；报告器由 vitest.config 决定（text / json / json-summary）
-    args: ["run", ...(skipCoverage ? [] : ["--coverage"]), "--exclude", "src/__tests__/warn-threshold.test.ts"],
+    args: [
+      "run",
+      ...(coverageSkipReason
+        ? []
+        : ["--coverage", ...scopedCoverageFiles.flatMap((file) => [`--coverage.include=${file}`])]),
+      "--exclude",
+      "src/__tests__/warn-threshold.test.ts",
+    ],
     env: { TZ: "UTC" },
   },
 ]
@@ -274,11 +302,12 @@ const heavySteps = [
 const buildSteps = [
   // 构建：tsup 直接调用，NODE_ENV 与 package.json 的 build 脚本保持一致
   { label: "构建", tool: "tsup", args: [], env: { NODE_ENV: "production" }, skip: buildSkip },
-  // 覆盖率双轨门禁：只读单测产出的报告（改动行 + 全局下限），与构建并发无副作用
+  // 覆盖率双轨门禁：只读单测产出的报告（改动行 + 全局下限），与构建并发无副作用；
+  // 本地局部采集时全局下限算不出，跳过并提示，仅流水线与 --full 校验
   {
-    label: "覆盖率门禁（改动行 + 全局下限）",
-    args: ["scripts/check-coverage.mjs"],
-    skip: skipCoverage ? "覆盖率本地默认跳过（--full 可跑）" : "",
+    label: scopedCoverage ? "覆盖率门禁（改动行，局部采集）" : "覆盖率门禁（改动行 + 全局下限）",
+    args: ["scripts/check-coverage.mjs", ...(scopedCoverage ? ["--no-floors"] : [])],
+    skip: coverageSkipReason,
   },
   { label: "文档站构建（死链检查）", tool: "vitepress", args: ["build", "docs"], skip: docsSkip },
   // 本仓库自检：读真实 .tasks/.changeset 断言双零，须在数据原地时区（Asia/Shanghai）判定

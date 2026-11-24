@@ -57,7 +57,9 @@
   类型检查单独走放开该排除项的 `tsconfig.typecheck.json`，不得让测试文件落在盲区；
 - **验收与提交须串联失败即止**：`pnpm verify` 与 `git commit` 之间用 `&&` 串联或分步执行，禁止用 `;` 串联——门禁失败后仍提交会让问题越过质量门，修复须另起提交并留痕；
 - **覆盖率门禁为「改动行 + 全局下限」双轨**（阈值唯一真源在 `scripts/check-coverage.mjs`）：本次改动的 `src/` 行需 ≥80% 覆盖，
-  改动语句少于 5 条时放行；全局下限 statements 78 / branches 65 / functions 82 / lines 81；CI 基线取不到时只校验全局下限并显式提示。
+  改动语句少于 5 条时放行；全局下限 statements 78 / branches 65 / functions 82 / lines 81。
+  本地只对改动文件采集覆盖率并跳过全局下限（局部数据算不出），全局下限与 GitHub job summary 由流水线与 `--full` 承担；
+  本次无 `src` 改动时本地不采集覆盖率，明确提示交流水线校验。
 - `toolkit task check` 的 error 与 warn 均应为 0（除非任务规格另有豁免）——已在 `pnpm verify` 内执行，此处强调阈值；
 - grep 确认文档与 skills 措辞落地；
 - 验证有上限：同一改动在提交前跑一次 `pnpm verify` 即可，失败则修复后重跑全量、通过后不再重复；已确认通过的检查不因再次被询问而重跑，不为自我确认额外加跑；
