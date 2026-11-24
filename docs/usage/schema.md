@@ -64,3 +64,7 @@ title: 事件 Schema
 - 新增可选字段不升 `schemaVersion`。
 - 删除字段、改变字段含义或类型时升 `schemaVersion`，并提供 `usage data import` 迁移说明。
 - 统计与上传消费方须忽略未知字段，不因新增字段失败。
+
+## 相关页面
+
+- 参考：[技能使用情况概览](./) · [使用情况配置](./configuration) · [隐私与数据边界](./privacy) · [CLI 参考 · 技能使用情况](../cli/usage)

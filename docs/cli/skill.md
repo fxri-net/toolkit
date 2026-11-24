@@ -250,20 +250,14 @@ toolkit skill list --format json             # JSON 输出：逐技能条目
 
 `SKILL.md` frontmatter `metadata.requires` 声明的依赖会自动补全：选择带依赖的技能时一并安装其依赖（可递归）；依赖缺失时告警并跳过该依赖，不阻断其余技能。
 
-## 目标选择
+## 分发目标与来源
 
-技能选择之后是目标选择：全局面选 agent 目录，项目面选已存在的候选薄壳目录。
-优先级、交互流程、长期选择写回与取消目标口径见[配置参考 · 安装目标选择](../config/skill#安装目标选择)。
-
-## 外部来源
-
-`--source <name|path>` 把已登记来源名、本地目录或 Git 远程地址纳入同一套 tier / 选择 / 状态 / prune 管理；
-来源格式、曾用名、永久登记与安装锁见[技能来源](./skill-sources)。
-
-## 作用域
-
-`install` / `status` / `uninstall` 三子命令均支持 `--scope <project|global|all>`，缺省按现场自动判定；
-安装面判定、项目面归属账与逐技能状态见[配置参考 · 作用域与安装面](../config/skill#作用域与安装面)。
+- **目标选择**：技能选择之后是目标选择——全局面选 agent 目录，项目面选已存在的候选薄壳目录；
+  优先级、交互流程、长期选择写回与取消目标口径见[配置参考 · 安装目标选择](../config/skill#安装目标选择)。
+- **外部来源**：`--source <name|path>` 把已登记来源名、本地目录或 Git 远程地址纳入同一套 tier / 选择 / 状态 / prune 管理；
+  来源格式、曾用名、永久登记与安装锁见[技能来源](./skill-sources)。
+- **作用域**：`install` / `status` / `uninstall` 三子命令均支持 `--scope <project|global|all>`，缺省按现场自动判定；
+  安装面判定、项目面归属账与逐技能状态见[配置参考 · 作用域与安装面](../config/skill#作用域与安装面)。
 
 ## 策略与内容闸门
 

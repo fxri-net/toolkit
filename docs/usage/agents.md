@@ -173,3 +173,8 @@ Hook 错误写入数据目录的 `hook-errors.log`，只保留最近 200 行。
 - 旧版本安装的 Hook 仍指向 `telemetry` 命令，升级后不再生效；
   `usage setup hooks status` 与 `usage data doctor` 会提示，重跑 `usage setup hooks install` 即替换为新命令。
 - transcript 的时间以导入时刻为准，不还原原始会话时间。
+
+## 相关页面
+
+- 参考：[技能使用情况概览](./) · [使用情况配置](./configuration) · [隐私与数据边界](./privacy) ·
+  [推荐技能使用情况规则](../rules/usage)

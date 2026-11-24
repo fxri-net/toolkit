@@ -36,3 +36,7 @@ toolkit privacy scan --format json    # 机器可读结果
 ## 与脱敏的关系
 
 密钥与 PII 脱敏由 [`redact`](../config/redact) 负责，`task archive` 默认执行；本命令只管本机路径，两者互不影响。
+
+## 相关页面
+
+- 参考：[配置参考 · 隐私脱敏](../config/redact) · [任务区](./task) · [退出码](./exit-codes)

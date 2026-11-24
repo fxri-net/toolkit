@@ -58,3 +58,7 @@ toolkit usage data purge --all
 ```
 
 `usage data purge` 只删事件文件并重建索引；上传账本与配置保留，避免误删后重复上传或丢失授权记录。
+
+## 相关页面
+
+- 参考：[技能使用情况概览](./) · [使用情况配置](./configuration) · [事件 Schema](./schema) · [CLI 参考 · 技能使用情况](../cli/usage)

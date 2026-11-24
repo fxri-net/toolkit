@@ -70,3 +70,8 @@ toolkit usage show stats               # 查看统计
 - 没有 Hook 的 Agent 用 `usage data import` 或 `usage log` 补录。
 - 上传默认关闭；开启后仍需显式配置端点与认证，详见 [隐私与数据边界](./privacy)。
 - 事件 schema 版本为 `1`，新增字段只增不改，详见 [事件 Schema](./schema)。
+
+## 相关页面
+
+- 参考：[使用情况配置](./configuration) · [Agent 接入](./agents) · [隐私与数据边界](./privacy) · [事件 Schema](./schema) ·
+  [CLI 参考 · 技能使用情况](../cli/usage)
