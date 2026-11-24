@@ -31,12 +31,13 @@ export const PRESET_LABELS: Record<Preset, { name: string; summary: string }> = 
 // 首次初始化的默认预设：显式执行 init 即启用意图，默认一并统计第三方技能
 export const DEFAULT_INIT_PRESET = "third-party" as const
 
-// 初始化选项：--yes 走非交互路径，只支持 off / recommended / third-party
+// 初始化选项：--yes 走非交互路径，只支持 off / recommended / third-party；--dry-run 只预览
 export interface InitWizardOptions {
   yes?: boolean
   preset?: string
   agent?: string
   channel?: string
+  dryRun?: boolean
 }
 
 // 卸载选项：默认保留数据，--purge 才删除事件
@@ -91,6 +92,12 @@ function runNonInteractiveInit(options: InitWizardOptions): void {
   }
   // 规则通道只写采集配置：不装 Hook，也不依赖本机是否检测到 Agent
   if (channel === "rule") {
+    if (options.dryRun) {
+      console.log(`[预演] 写入本机层：${usageConfigPath()}`)
+      printConfigSummary([], base.sources.firstParty, base.sources.thirdParty, base.skills.mode, dir, base.storage.rotation, base.storage.retentionDays, "rule")
+      console.log(line.hint("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行"))
+      return
+    }
     updateUsageConfig({ ...base, agents: {} })
     console.log(line.ok(`已启用技能使用情况（${preset}，通道 rule），数据目录：${dir}`))
     console.log(line.hint("规则通道不依赖 Hook：把 toolkit rule compose --module usage 的输出复制进 Agent 全局规则"))
@@ -106,6 +113,23 @@ function runNonInteractiveInit(options: InitWizardOptions): void {
   if (adapters.length === 0) {
     console.error("⚠️ 没有可接入的 Agent：请先安装对应工具，或用 --agent 指定已安装的 Agent；也可改用 --channel rule")
     process.exitCode = 1
+    return
+  }
+  if (options.dryRun) {
+    console.log(`[预演] 写入本机层：${usageConfigPath()}`)
+    printConfigSummary(
+      adapters.map((adapter) => adapter.displayName),
+      base.sources.firstParty,
+      base.sources.thirdParty,
+      base.skills.mode,
+      dir,
+      base.storage.rotation,
+      base.storage.retentionDays,
+      "hook",
+    )
+    // 复用 Hook 安装的预演分支，输出与真实执行同构的逐项动作
+    installHooks(adapters, true)
+    console.log(line.hint("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行"))
     return
   }
   updateUsageConfig({ ...base, agents: Object.fromEntries(adapters.map((adapter) => [adapter.id, true])) })
@@ -260,6 +284,12 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
         "hook",
       )
       if (!existingConfig.enabled) console.log("  ⚠️ 当前总开关关闭：Hook 会重装，但不会写入事件")
+      if (options.dryRun) {
+        console.log(`[预演] 写入本机层：${usageConfigPath()}`)
+        installHooks(selected, true)
+        console.log(line.hint("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行"))
+        return
+      }
       const applyKeep = await confirm({ message: "按当前配置重装 Hook？", default: true })
       if (!applyKeep) {
         console.log(line.hint("已取消，未修改任何文件"))
@@ -507,6 +537,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
         index += 1
         continue
       }
+      console.log(`${options.dryRun ? "[预演] " : ""}写入本机层：${usageConfigPath()}`)
       printConfigSummary(
         state.agents.map((adapter) => adapter.displayName),
         state.firstParty,
@@ -520,6 +551,10 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
       if (state.channel === "hook") {
         console.log("  Hook 将写入：")
         for (const adapter of state.agents) console.log(`    ${adapter.displayName} → ${adapter.configPath()}`)
+      }
+      if (options.dryRun) {
+        console.log(line.hint("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行"))
+        return
       }
       const apply = await ask(
         () => confirm({ message: state.channel === "hook" ? "确认写入配置并安装 Hook？" : "确认写入配置？", default: true }),

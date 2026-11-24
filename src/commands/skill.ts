@@ -285,9 +285,25 @@ function skillVersionLine(report: { skills: string[]; skillVersions: Record<stri
   return report.skills.map((name) => `${skillLabel(name, report.skillVersions[name] ?? "")}${stateOnly.has(name) ? "（登记值）" : ""}`).join("、") || "无"
 }
 
+// 安装结果汇总：动作后一行给出完成 / 跳过 / 失败，失败时附重试入口
+function printInstallSummary(rows: Array<{ created: string[]; updated: string[]; skipped: string[]; conflicts: string[]; failed: unknown[] }>, tag: string, retry: string): void {
+  let done = 0
+  let skipped = 0
+  let failed = 0
+  for (const row of rows) {
+    done += row.created.length + row.updated.length
+    skipped += row.skipped.length + row.conflicts.length
+    failed += row.failed.length
+  }
+  console.log(`${tag}汇总：完成 ${done} 项 / 跳过 ${skipped} 项 / 失败 ${failed} 项`)
+  if (failed > 0) console.log(`  重试：${retry}`)
+}
+
 // 打印安装报告：按目标分组列出新建/更新/跳过/降级/失败，并给出未纳入目标的处理入口
 function printInstallReport(report: InstallReport, dryRun: boolean): void {
   const tag = dryRun ? "[预演] " : ""
+  // 动作前一行写清作用层与目标数
+  console.log(`${tag}写入全局层：${report.targets.length} 个目标`)
   console.log(`${tag}技能源：${report.source}`)
   console.log(`${tag}本次选择（${report.selection.length}）：${report.selection.map((name) => skillLabel(name, report.versions[name] ?? "")).join("、") || "无"}`)
   console.log(`${tag}本次目标（${report.targetSelection.length}）：${report.targetSelection.join("、") || "无"}`)
@@ -321,6 +337,7 @@ function printInstallReport(report: InstallReport, dryRun: boolean): void {
     )
   }
   console.log(`${tag}状态文件：${report.stateFile}`)
+  printInstallSummary(report.targets, tag, "toolkit skill install")
   if (dryRun) console.log("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行")
 }
 
@@ -341,7 +358,7 @@ function currentFormLabel(current: CurrentForm): string {
 
 // 打印分发计划：逐目标逐技能列出动作、目标形态与判定来源；skills plan 与 install --dry-run 共用
 function printPlanReport(report: SkillsPlanReport): void {
-  console.log(`[预演] 技能分发计划：${report.skills.length} 个技能 · ${report.targets.length} 个目标`)
+  console.log(`[预演] 技能分发计划（${report.scope === "global" ? "全局层" : "项目层"}）：${report.skills.length} 个技能 · ${report.targets.length} 个目标`)
   for (const t of report.targets) {
     console.log("")
     console.log(`${t.label}：${t.dir}`)
@@ -622,7 +639,8 @@ function printProjectDir(result: ProjectDirResult, indent = "  "): void {
 function printProjectInstallReport(report: ProjectInstallReport, dryRun: boolean): void {
   const tag = dryRun ? "[预演] " : ""
   const versionByName = new Map(listPackageSkills().map((s) => [s.name, s.version]))
-  console.log(`${tag}项目面 · 项目根：${report.root}`)
+  // 动作前一行写清作用层与项目根
+  console.log(`${tag}写入项目层：${report.root}`)
   console.log(`${tag}项目面 · 本次选择（${report.selection.length}）：${report.selection.map((name) => skillLabel(name, versionByName.get(name) ?? "")).join("、") || "无"}`)
   console.log(`${tag}项目面 · 本次目录（${report.targetSelection.length}）：${report.targetSelection.join("、") || "无"}`)
   console.log("")
@@ -641,6 +659,7 @@ function printProjectInstallReport(report: ProjectInstallReport, dryRun: boolean
   // 库外 --dir 被剔除：降级不静默，如实告警（不静默丢弃用户显式传入的取值）
   for (const dir of report.ignoredDirs) console.warn(`⚠️ 项目面忽略 --dir「${dir}」：落在仓库之外，不写入`)
   console.log(`${tag}项目面 · 状态文件：${report.stateFile}`)
+  printInstallSummary([report.source, ...report.shells], tag, "toolkit skill install --scope project")
   if (dryRun) console.log("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行")
 }
 

@@ -12,7 +12,7 @@ function printScan(report: PrivacyScanReport): void {
     console.log(line.hint("隐私扫描：privacy.localPaths 为 off（未启用），跳过"))
     return
   }
-  console.log(`隐私扫描（档位 ${report.level}，扫描 ${report.scannedFiles} 个文件）：`)
+  console.log(`隐私扫描（只读，档位 ${report.level}，扫描 ${report.scannedFiles} 个文件）：`)
   if (report.hits.length === 0) {
     console.log("  未发现本机绝对路径")
     return
@@ -37,17 +37,22 @@ export function registerPrivacyCommands(program: Command): void {
     .command("scan")
     .description("扫描任务区 / 变更集 / 文档 / 技能里的本机绝对路径；档位 off 时跳过")
     .option("--fix", "自动归一任务区与规范载体里的路径（文档与技能只报告）")
+    .option("--dry-run", "配合 --fix 只列出将改写的文件与处数，不写盘")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
-    .action((options: { fix?: boolean; format?: string }) => {
+    .action((options: { fix?: boolean; dryRun?: boolean; format?: string }) => {
       if (!assertJsonFormat(options.format)) return
       const fix = Boolean(options.fix)
-      const fixed = fix ? fixPrivacyPaths() : null
+      const dryRun = fix && Boolean(options.dryRun)
+      if (options.dryRun && !fix) console.error(line.hint("--dry-run 仅作用于 --fix；扫描本身不写盘"))
+      const fixed = fix ? fixPrivacyPaths(process.cwd(), { dryRun }) : null
       const report = scanPrivacy()
       if (options.format === "json") {
-        printJson(jsonEnvelope({ command: "privacy scan", data: { fix, fixed, report } }))
+        printJson(jsonEnvelope({ command: "privacy scan", data: { fix, dryRun, fixed, report } }))
       } else {
         if (fixed) {
-          if (fixed.files.length === 0) console.log(line.hint("自动归一：无改动"))
+          // 动作前一行写清作用层与是否落盘，动作后汇总处数
+          if (fixed.files.length === 0) console.log(line.hint(`自动归一（任务区）：${dryRun ? "预演无改动" : "无改动"}`))
+          else if (dryRun) console.log(`[预演] 将归一 ${fixed.normalized} 处，涉及 ${fixed.files.length} 个文件（任务区）：${fixed.files.join("、")}`)
           else console.log(line.ok(`自动归一 ${fixed.normalized} 处，涉及 ${fixed.files.length} 个文件：${fixed.files.join("、")}`))
         }
         printScan(report)

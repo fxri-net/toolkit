@@ -1,8 +1,24 @@
 // usage 向导默认值单测：重复执行 init 时应沿用历史选择
-import { describe, expect, it } from "vitest"
-import { DEFAULT_USAGE_CONFIG } from "../usage/config"
-import { DEFAULT_INIT_PRESET, PRESET_LABELS, resolveInitDefaults } from "../usage/wizard"
+import { afterEach, describe, expect, it, vi } from "vitest"
+import { mkdtempSync, rmSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
+import { DEFAULT_USAGE_CONFIG, loadUsageConfig, resetUsageConfigWarnings } from "../usage/config"
+import { DEFAULT_INIT_PRESET, PRESET_LABELS, resolveInitDefaults, runUsageInitWizard } from "../usage/wizard"
 import type { UsageConfig } from "../usage/types"
+
+let home = ""
+
+afterEach(() => {
+  vi.restoreAllMocks()
+  setHomeDirForTest(undefined)
+  resetToolkitConfigCache()
+  resetUsageConfigWarnings()
+  process.exitCode = 0
+  if (home) rmSync(home, { recursive: true, force: true })
+  home = ""
+})
 
 // 以默认配置为底，按需覆盖
 function makeConfig(patch: Partial<UsageConfig> = {}): UsageConfig {
@@ -65,5 +81,20 @@ describe("usage 向导默认值", () => {
       expect(text, `预设 ${key} 仍含「本地 +」`).not.toContain("本地 +")
       expect(text, `预设 ${key} 仍含「本地统计」`).not.toContain("本地统计")
     }
+  })
+
+  it("--yes --dry-run 只预览计划，不写配置", async () => {
+    home = mkdtempSync(join(tmpdir(), "tk-usage-dry-"))
+    setHomeDirForTest(home)
+    resetToolkitConfigCache()
+    const logs: string[] = []
+    vi.spyOn(console, "log").mockImplementation((...args: unknown[]) => {
+      logs.push(args.map(String).join(" "))
+    })
+    await runUsageInitWizard({ yes: true, preset: "recommended", channel: "rule", dryRun: true })
+    const text = logs.join("\n")
+    expect(text).toContain("[预演] 写入本机层")
+    expect(text).toContain("未写入任何文件")
+    expect(loadUsageConfig().enabled).toBe(false)
   })
 })

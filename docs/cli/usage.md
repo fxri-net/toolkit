@@ -66,7 +66,7 @@ toolkit usage data doctor
 
 | 子命令 | 说明 | 主要选项 |
 | --- | --- | --- |
-| `setup init` | 初始化向导：预设、通道、Agent（仅 hook）、来源、字段与存储；首次执行即启用（默认预设「一方 + 第三方技能（数据只留本机，不上传）」，采集字段仍默认关闭），重复执行沿用历史选择、已配置时默认「保持当前配置」并只重装 Hook | `--yes`（须显式给 `--preset`）、`--preset off\|recommended\|third-party`、`--channel rule\|hook`、`--agent`；非 TTY 按无交互退出码结束 |
+| `setup init` | 初始化向导：预设、通道、Agent（仅 hook）、来源、字段与存储；首次执行即启用（默认预设「一方 + 第三方技能（数据只留本机，不上传）」，采集字段仍默认关闭），重复执行沿用历史选择、已配置时默认「保持当前配置」并只重装 Hook | `--yes`（须显式给 `--preset`）、`--preset off\|recommended\|third-party`、`--channel rule\|hook`、`--agent`、`--dry-run`（只预览将写入本机层的配置与 Hook 动作）；非 TTY 按无交互退出码结束 |
 | `setup wizard` | 交互菜单：状态、统计、开关、Hook 管理、上传、导出与清理；子页 ESC 返回、顶层退出、Ctrl+C 按取消退出码结束 | — |
 | `setup uninstall` | 停用采集并卸载 Hook，默认保留数据；写前预览，取消即不写 | `--yes`、`--agent`、`--purge`、`--dry-run` |
 | `setup hooks install` | 只写 Hook 配置，不开启采集；写前预览并确认，通道为 rule 时提示不生效 | `--agent`、`--yes`、`--dry-run` |

@@ -296,8 +296,8 @@ export interface LegacyRewriteResult {
 }
 
 // 重写单个配置文件里的旧段名：文件不存在返回空结果；解析失败标记 invalid，供 init 给出准确报告
-// 供 init 兑现「旧段名自动迁移」，写前备份、原子写入、写后重置缓存
-export function rewriteLegacySections(file: string): LegacyRewriteResult {
+// 供 init 兑现「旧段名自动迁移」，写前备份、原子写入、写后重置缓存；dryRun 只计算改写结果
+export function rewriteLegacySections(file: string, options: { dryRun?: boolean } = {}): LegacyRewriteResult {
   if (!existsSync(file)) return { renamed: [], invalid: false }
   let parsed: unknown
   try {
@@ -314,6 +314,7 @@ export function rewriteLegacySections(file: string): LegacyRewriteResult {
     renamed.push(legacy)
   }
   if (renamed.length === 0) return { renamed: [], invalid: false }
+  if (options.dryRun) return { renamed, invalid: false }
   const backup = `${file}.bak`
   writeFileAtomic(backup, readTextFile(file))
   writeFileAtomic(file, `${JSON.stringify(parsed, null, 2)}\n`)

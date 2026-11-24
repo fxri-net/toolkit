@@ -110,34 +110,40 @@ function posix(p: string): string {
   return p.replace(/\\/g, "/")
 }
 
-// init 选项：hooks 控制是否写入 package.json 的 prepare 刷新钩子（对应 CLI --no-hooks）
+// init 选项：hooks 控制是否写入 package.json 的 prepare 刷新钩子（对应 CLI --no-hooks）；dryRun 只输出动作清单
 export interface InitOptions {
   hooks?: boolean
+  dryRun?: boolean
 }
 
 // 初始化项目任务区：任务区骨架 → 规范载体 → .gitignore 片段 → .prettierignore 托管 → 技能入口层 → prepare 刷新钩子
 // dir 为任务目录（默认 .tasks，支持绝对路径或 ../ 相对路径指向项目外），cwd 为仓库根（.gitignore 与 AGENTS.md 所在目录）
 export function initWorkspace(dir = ".tasks", cwd = process.cwd(), options: InitOptions = {}): InitReport {
+  const dryRun = Boolean(options.dryRun)
   const month = todayCompact().slice(0, 6)
   // resolve：dir 为绝对路径（项目外独立仓库）时直接使用，相对路径时基于 cwd 解析
   const root = resolve(cwd, dir)
   const rootExisted = existsSync(root)
   // 任务区根或其祖先被普通文件占用时先给出归因，避免 mkdirSync 抛裸 ENOENT
   assertCreatable(cwd, root, "任务区")
-  mkdirSync(join(root, "active", month), { recursive: true })
-  mkdirSync(join(root, "archive"), { recursive: true })
+  if (!dryRun) {
+    mkdirSync(join(root, "active", month), { recursive: true })
+    mkdirSync(join(root, "archive"), { recursive: true })
+  }
   const products: InitProduct[] = [
     {
       target: `${posix(dir)}/active/${month}/、${posix(dir)}/archive/`,
       action: rootExisted ? "kept" : "created",
       detail: rootExisted ? "任务区已存在，保持不变" : "已创建",
     },
-    ...scaffoldConventions(cwd, root, dir),
-    ...appendGitignore(cwd),
-    ...appendPrettierignore(cwd, root),
-    ...scaffoldEntryLayer(cwd),
-    ...migrateConfigSections(cwd),
-    ...(options.hooks === false ? [{ target: "package.json", action: "skipped" as const, detail: "--no-hooks：跳过 prepare 刷新钩子写入" }] : scaffoldPrepareHook(cwd)),
+    ...scaffoldConventions(cwd, root, dir, dryRun),
+    ...appendGitignore(cwd, dryRun),
+    ...appendPrettierignore(cwd, root, dryRun),
+    ...scaffoldEntryLayer(cwd, dryRun),
+    ...migrateConfigSections(cwd, dryRun),
+    ...(options.hooks === false
+      ? [{ target: "package.json", action: "skipped" as const, detail: "--no-hooks：跳过 prepare 刷新钩子写入" }]
+      : scaffoldPrepareHook(cwd, dryRun)),
   ]
   const report: InitReport = { tasksDir: dir, products, skillsInstalled: hasGlobalSkillsInstalled() }
   const publishRiskHint = detectPublishRisk(cwd, root)
@@ -147,7 +153,7 @@ export function initWorkspace(dir = ".tasks", cwd = process.cwd(), options: Init
 
 // 生成规范载体骨架（index.md + history.md）；已存在索引、或存在待迁移的旧单文件 conventions.md 时不动
 // 旧文件在时不建空骨架：否则空骨架会抢占目录形态的优先地位，旧内容形同被吞
-function scaffoldConventions(cwd: string, root: string, display: string): InitProduct[] {
+function scaffoldConventions(cwd: string, root: string, display: string, dryRun: boolean): InitProduct[] {
   const dir = join(root, CONVENTIONS_DIR)
   const index = join(dir, INDEX_FILE)
   const target = `${posix(display)}/${CONVENTIONS_DIR}/${INDEX_FILE}`
@@ -167,9 +173,11 @@ function scaffoldConventions(cwd: string, root: string, display: string): InitPr
   }
   // 规范载体目录被同名文件占用时同样先归因，不让 mkdirSync 抛裸 ENOENT
   assertCreatable(cwd, dir, "规范载体")
-  mkdirSync(dir, { recursive: true })
-  writeFileAtomic(index, CONVENTIONS_INDEX)
-  writeFileAtomic(join(dir, HISTORY_FILE), HISTORY_SKELETON)
+  if (!dryRun) {
+    mkdirSync(dir, { recursive: true })
+    writeFileAtomic(index, CONVENTIONS_INDEX)
+    writeFileAtomic(join(dir, HISTORY_FILE), HISTORY_SKELETON)
+  }
   return [
     { target, action: "created", detail: "已创建（端清单 / 索引 / 用法说明三节）" },
     { target: `${posix(display)}/${CONVENTIONS_DIR}/${HISTORY_FILE}`, action: "created", detail: "已创建（规范演进记录）" },
@@ -189,13 +197,13 @@ function isRowCovered(item: { row: string; patterns: RegExp[] }, cwd: string, li
 }
 
 // 向 .gitignore 追加忽略片段：逐行判定覆盖情况、只补缺失行，重复执行不改动，用户手写的等价忽略写法原样保留
-export function appendGitignore(cwd: string): InitProduct[] {
+export function appendGitignore(cwd: string, dryRun = false): InitProduct[] {
   const file = join(cwd, ".gitignore")
   const cover = `覆盖 ${GITIGNORE_ROWS.map((item) => item.row).join(" / ")}`
   const head = [GITIGNORE_COMMENT, GITIGNORE_EXIT_HINT]
   if (!existsSync(file)) {
     // 无 .gitignore：直接创建并写入完整片段
-    writeFileAtomic(file, `${head.join("\n")}\n${GITIGNORE_ROWS.map((item) => item.row).join("\n")}\n`)
+    if (!dryRun) writeFileAtomic(file, `${head.join("\n")}\n${GITIGNORE_ROWS.map((item) => item.row).join("\n")}\n`)
     return [{ target: ".gitignore", action: "created", detail: `已创建并写入 ${GITIGNORE_MARKER} 忽略片段（${cover}）` }]
   }
   const raw = readTextFile(file)
@@ -211,7 +219,7 @@ export function appendGitignore(cwd: string): InitProduct[] {
       return [{ target: ".gitignore", action: "kept", detail: `已含 ${GITIGNORE_MARKER} 忽略片段（${cover}）` }]
     }
     const tail = lines.slice(markerAt + 1).filter((line) => !isOwnedLine(line))
-    writeFileAtomic(file, [...lines.slice(0, markerAt), ...head, ...tail].join(eol))
+    if (!dryRun) writeFileAtomic(file, [...lines.slice(0, markerAt), ...head, ...tail].join(eol))
     return [{ target: ".gitignore", action: "updated", detail: `已就地把 ${GITIGNORE_MARKER} 片段头更新为当前文案（${cover}）` }]
   }
   // 摘除本工具认领的旧片段行后重建，避免旧文案 / 旧指引残留
@@ -219,7 +227,7 @@ export function appendGitignore(cwd: string): InitProduct[] {
   while (body.length > 0 && body[body.length - 1] === "") body.pop()
   const block = [...head, ...missing.map((item) => item.row)]
   const next = body.length > 0 ? `${body.join(eol)}${eol}${eol}${block.join(eol)}${eol}` : `${block.join(eol)}${eol}`
-  writeFileAtomic(file, next)
+  if (!dryRun) writeFileAtomic(file, next)
   return [{ target: ".gitignore", action: "appended", detail: `已追加 ${GITIGNORE_MARKER} 忽略片段（${cover}）` }]
 }
 
@@ -265,7 +273,7 @@ function hasPrettierSign(cwd: string): boolean {
 // 向 .prettierignore 追加任务区排除行：任务区里的表格一旦进入格式化范围就会被填充出列对齐空白（预览不显示、阅读受扰）
 // 触发条件（缺一不写）：任务区落在仓库内且非仓库根、非本包源仓库、宿主疑似使用 prettier
 // prettier 的 --ignore-path 默认同时读 .gitignore 与 .prettierignore，故新建此文件不影响既有忽略语义
-export function appendPrettierignore(cwd: string, root: string): InitProduct[] {
+export function appendPrettierignore(cwd: string, root: string, dryRun = false): InitProduct[] {
   const target = ".prettierignore"
   if (isToolkitSourceRepo(cwd)) {
     return [{ target, action: "skipped", detail: `本仓库即 ${PKG_NAME} 源仓库，不写入 ${target} 托管` }]
@@ -291,7 +299,7 @@ export function appendPrettierignore(cwd: string, root: string): InitProduct[] {
   const head = `${GITIGNORE_MARKER} 任务区不参与格式化（表格保持紧凑形态，避免列对齐填充）`
   const file = join(cwd, target)
   if (!existsSync(file)) {
-    writeFileAtomic(file, `${head}\n${row}\n`)
+    if (!dryRun) writeFileAtomic(file, `${head}\n${row}\n`)
     return [{ target, action: "created", detail: `已创建并写入任务区排除行（${row}）` }]
   }
   const raw = readTextFile(file)
@@ -305,18 +313,18 @@ export function appendPrettierignore(cwd: string, root: string): InitProduct[] {
   while (body.length > 0 && body[body.length - 1] === "") body.pop()
   const block = [head, row]
   const next = body.length > 0 ? `${body.join(eol)}${eol}${eol}${block.join(eol)}${eol}` : `${block.join(eol)}${eol}`
-  writeFileAtomic(file, next)
+  if (!dryRun) writeFileAtomic(file, next)
   return [{ target, action: "appended", detail: `已追加任务区排除行（${row}）` }]
 }
 
 // 配置文件旧段名重写：项目层与本地层各定位一份，命中即把旧段名就地改为单数新段名（写前备份）
 // 全局层不在 init 的处置范围（跨项目、非本项目产物），由 config 命令或用户自行迁移
-function migrateConfigSections(cwd: string): InitProduct[] {
+function migrateConfigSections(cwd: string, dryRun: boolean): InitProduct[] {
   const files = [...new Set([resolveProjectConfigPath(cwd), resolveLocalConfigPath(cwd)].filter((file): file is string => file !== null))]
   if (files.length === 0) return []
   return files.map((file) => {
     const target = posix(relative(cwd, file))
-    const result = rewriteLegacySections(file)
+    const result = rewriteLegacySections(file, { dryRun })
     if (result.invalid) return { target, action: "skipped" as const, detail: "配置文件 JSON 解析失败，未改写" }
     return result.renamed.length > 0
       ? { target, action: "updated" as const, detail: `已重写旧段名 ${result.renamed.join("、")}（原文件备份为 .bak）` }
@@ -345,7 +353,7 @@ function findBlockingFile(cwd: string, target: string): string | null {
 
 // 技能入口层：生成项目级入口壳 + 在已存在的 AGENTS.md 中幂等追加指针块
 // 源仓库靠 fxri-* 技能自举，不生成自己的入口壳（内部判定，不暴露 CLI 参数）
-function scaffoldEntryLayer(cwd: string): InitProduct[] {
+function scaffoldEntryLayer(cwd: string, dryRun: boolean): InitProduct[] {
   if (isToolkitSourceRepo(cwd)) {
     return [
       {
@@ -381,8 +389,10 @@ function scaffoldEntryLayer(cwd: string): InitProduct[] {
         continue
       }
       // 标记缺失或落后：就地重写为当前版本壳，兑现「重跑 toolkit task init 即可补齐」
-      mkdirSync(dir, { recursive: true })
-      writeFileAtomic(file, buildEntryShell())
+      if (!dryRun) {
+        mkdirSync(dir, { recursive: true })
+        writeFileAtomic(file, buildEntryShell())
+      }
       const product: InitProduct = {
         target: rel,
         action: "updated",
@@ -392,19 +402,21 @@ function scaffoldEntryLayer(cwd: string): InitProduct[] {
       products.push(product)
       continue
     }
-    mkdirSync(dir, { recursive: true })
-    writeFileAtomic(file, buildEntryShell())
+    if (!dryRun) {
+      mkdirSync(dir, { recursive: true })
+      writeFileAtomic(file, buildEntryShell())
+    }
     const product: InitProduct = { target: rel, action: "created", detail: "已创建（只作入口，不承载条文）" }
     if (ignoredHere) product.hint = gitHint
     products.push(product)
   }
   // 指针块只指入口壳形态、不写死落点；多候选目录并存时每份壳内容逐字等价
-  products.push(...upsertAgentsPointer(cwd))
+  products.push(...upsertAgentsPointer(cwd, dryRun))
   return products
 }
 
 // AGENTS.md 指针块：仅当文件已存在时幂等追加，不存在不新建（不替用户决定是否引入 AGENTS.md）
-function upsertAgentsPointer(cwd: string): InitProduct[] {
+function upsertAgentsPointer(cwd: string, dryRun: boolean): InitProduct[] {
   const file = join(cwd, "AGENTS.md")
   if (!existsSync(file)) {
     return [
@@ -424,7 +436,7 @@ function upsertAgentsPointer(cwd: string): InitProduct[] {
   const eol = raw.includes("\r\n") ? "\r\n" : "\n"
   const base = raw.endsWith("\n") || raw === "" ? raw : raw + eol
   const sep = /(\r?\n){2}$/.test(base) ? "" : eol
-  writeFileAtomic(file, `${base}${sep}${buildAgentsPointer().replace(/\n/g, eol)}${eol}`)
+  if (!dryRun) writeFileAtomic(file, `${base}${sep}${buildAgentsPointer().replace(/\n/g, eol)}${eol}`)
   return [{ target: "AGENTS.md", action: "appended", detail: "已追加规范入口指针块（幂等，重复执行不重复追加）" }]
 }
 
@@ -484,7 +496,7 @@ function insertPrepareScript(raw: string): string | null {
 
 // prepare 刷新钩子：项目本地依赖含 @fxri/toolkit 时才写入（依赖装在本项目，钩子才跑得起来）
 // 已存在等价钩子保持不动；存在非等价 prepare 时告警不改写（降级不静默，不擅自破坏用户既有流水线）
-function scaffoldPrepareHook(cwd: string): InitProduct[] {
+function scaffoldPrepareHook(cwd: string, dryRun: boolean): InitProduct[] {
   const target = "package.json"
   const file = join(cwd, target)
   if (isToolkitSourceRepo(cwd)) {
@@ -524,7 +536,7 @@ function scaffoldPrepareHook(cwd: string): InitProduct[] {
       try {
         const check = JSON.parse(next) as { scripts?: Record<string, unknown> }
         if (check.scripts?.prepare !== PREPARE_SCRIPT) throw new Error("替换结果校验未通过")
-        writeFileAtomic(file, next)
+        if (!dryRun) writeFileAtomic(file, next)
         return [{ target, action: "updated", detail: `prepare 钩子升级为 ${PREPARE_SCRIPT}（只刷新已有产物，不新增技能）` }]
       } catch {
         return [
@@ -557,7 +569,7 @@ function scaffoldPrepareHook(cwd: string): InitProduct[] {
   } catch {
     return [{ target, action: "skipped", detail: "自动插入 prepare 失败（原文件格式特殊），未改写", hint: `可手工加 "prepare": "${PREPARE_SCRIPT}"` }]
   }
-  writeFileAtomic(file, next)
+  if (!dryRun) writeFileAtomic(file, next)
   const product: InitProduct = { target, action: "updated", detail: `已写入 prepare 钩子（${PREPARE_SCRIPT}），安装依赖后自动刷新项目侧技能` }
   return [product]
 }

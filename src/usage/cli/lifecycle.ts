@@ -72,7 +72,8 @@ export function registerUsageSetupCommands(setup: Command, usage: Command): void
     .option("--preset <name>", "非交互预设：off / recommended / third-party")
     .option("--channel <mode>", "采集通道：rule（默认，全局规则上报）/ hook（Agent Hook）")
     .option("--agent <names>", "非交互模式指定 Agent（逗号分隔，仅 hook 通道需要）")
-    .action(async (options: { yes?: boolean; preset?: string; agent?: string; channel?: string }) => {
+    .option("--dry-run", "只预览将写入的配置与 Hook 动作，不写盘")
+    .action(async (options: { yes?: boolean; preset?: string; agent?: string; channel?: string; dryRun?: boolean }) => {
       await runInteractive(() => runUsageInitWizard(options))
     })
 

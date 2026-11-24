@@ -1497,7 +1497,7 @@ exports[`各域行为与错误路径 > skills install 预演 1`] = `
 --- stdout ---
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
-[预演] 技能分发计划：8 个技能 · 1 个目标
+[预演] 技能分发计划（全局层）：8 个技能 · 1 个目标
 
 canonical（多家 agent 共读）：<SANDBOX>/home/.agents/skills
   换全文　fxri-code-encoding　全文安装　← 默认（未配置分发形态，按默认全文安装）
@@ -1657,7 +1657,7 @@ exports[`各域行为与错误路径 > skills 项目面预演 1`] = `
 --- stdout ---
 作用域：项目面（仓库内唯一真源副本 + 各候选目录的项目面薄壳）（--scope 指定）
 
-[预演] 技能分发计划：8 个技能 · 1 个目标
+[预演] 技能分发计划（项目层）：8 个技能 · 1 个目标
 
 真源副本：.agents/skills
   换全文　fxri-code-encoding　全文安装　← 默认（未配置分发形态，按默认全文安装）

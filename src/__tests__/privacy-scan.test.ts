@@ -67,4 +67,14 @@ describe("隐私扫描", () => {
     expect(readFileSync(join(root, ".tasks", "archive", "202611", "20261123.md"), "utf8")).toContain("<本机>/…/tk-fulltest")
     expect(readFileSync(join(root, "docs", "guide.md"), "utf8")).toContain("/home/me/proj")
   })
+
+  it("--fix --dry-run 只统计将改写的处数，不写盘", () => {
+    writeScene()
+    writeLevel("error")
+    const before = readFileSync(join(root, ".tasks", "archive", "202611", "20261123.md"), "utf8")
+    const fixed = fixPrivacyPaths(process.cwd(), { dryRun: true })
+    expect(fixed.normalized).toBe(1)
+    expect(fixed.files).toEqual([".tasks/archive/202611/20261123.md"])
+    expect(readFileSync(join(root, ".tasks", "archive", "202611", "20261123.md"), "utf8")).toBe(before)
+  })
 })

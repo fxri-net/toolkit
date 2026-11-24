@@ -9,7 +9,7 @@ title: 项目初始化（init）
 ```bash
 toolkit init                   # 交互向导
 toolkit init --yes             # 非交互：按默认值执行
-toolkit init --dry-run         # 只预览将执行的动作
+toolkit init --dry-run         # 只输出逐项动作清单，不写盘
 toolkit init --rules full      # 指定全局规则预设
 toolkit init --skills project  # 指定技能分发范围
 toolkit init --no-scope --no-usage

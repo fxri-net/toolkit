@@ -96,8 +96,8 @@ export interface PrivacyFixResult {
   normalized: number
 }
 
-// 自动归一：只改任务区（含归档与规范载体），文档与技能只报告不擅改
-export function fixPrivacyPaths(root = process.cwd()): PrivacyFixResult {
+// 自动归一：只改任务区（含归档与规范载体），文档与技能只报告不擅改；dryRun 只统计不改写
+export function fixPrivacyPaths(root = process.cwd(), options: { dryRun?: boolean } = {}): PrivacyFixResult {
   const files: string[] = []
   const targets = [".tasks/active", ".tasks/archive", ".tasks/conventions"]
   const collected: string[] = []
@@ -113,7 +113,7 @@ export function fixPrivacyPaths(root = process.cwd()): PrivacyFixResult {
     }
     const result = normalizeLocalPaths(text)
     if (result.count === 0) continue
-    writeFileSync(abs, result.text, "utf8")
+    if (!options.dryRun) writeFileSync(abs, result.text, "utf8")
     files.push(relative(root, abs).split(sep).join("/"))
     normalized += result.count
   }

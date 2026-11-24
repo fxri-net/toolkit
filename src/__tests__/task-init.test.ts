@@ -66,6 +66,16 @@ describe("initWorkspace 骨架生成", () => {
     // .gitignore 片段仍写入项目内
     expect(existsSync(join(cwd, ".gitignore"))).toBe(true)
   })
+
+  it("--dry-run 不写盘，动作清单与真实执行同构", () => {
+    const { cwd } = track(runInDir("tk-init-dry-"))
+    const preview = initWorkspace(".tasks", cwd, { dryRun: true })
+    // 预演后现场不应出现任何产物
+    expect(existsSync(join(cwd, ".tasks"))).toBe(false)
+    expect(existsSync(join(cwd, ".gitignore"))).toBe(false)
+    const real = initWorkspace(".tasks", cwd)
+    expect(preview.products).toEqual(real.products)
+  })
 })
 
 describe("initWorkspace 规范载体骨架", () => {

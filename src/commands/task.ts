@@ -353,16 +353,23 @@ export function registerTasksCommands(program: Command): void {
     skipped: "跳过",
   }
 
-  // 打印 init 报告：逐项列出实际动作与原因，hint 另起一行提示后续可选操作
-  function printInitReport(report: InitReport): void {
-    console.log(`任务区：${report.tasksDir}`)
+  // 打印 init 报告：动作前一行写清作用层，逐项列出实际动作与原因，动作后汇总并给下一步
+  function printInitReport(report: InitReport, dryRun: boolean): void {
+    const tag = dryRun ? "[预演] " : ""
+    console.log(`${tag}写入项目层：${report.tasksDir}`)
     for (const p of report.products) {
-      console.log(`  ${INIT_ACTION_LABEL[p.action]} ${p.target}${p.detail ? `（${p.detail}）` : ""}`)
+      console.log(`  ${tag}${INIT_ACTION_LABEL[p.action]} ${p.target}${p.detail ? `（${p.detail}）` : ""}`)
       if (p.hint) console.log(line.hint(`    提示：${p.hint}`))
     }
     // 发布型包误打包提醒独立于产物列表：判据与 prepare 钩子是否写入无关（风险不是一种产物动作）
     if (report.publishRiskHint) console.log(line.hint(`提示：${report.publishRiskHint}`))
+    const changed = report.products.filter((p) => p.action === "created" || p.action === "updated" || p.action === "appended").length
     console.log("")
+    console.log(`${tag}汇总：改动 ${changed} 项 / 保持或跳过 ${report.products.length - changed} 项`)
+    if (dryRun) {
+      console.log(line.hint("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行"))
+      return
+    }
     console.log(line.hint("下一步："))
     // 规范触达第一层是全局技能（不依赖项目内任何文件）；未安装时补一行安装指引，已装不重复打扰
     if (!report.skillsInstalled) {
@@ -379,10 +386,12 @@ export function registerTasksCommands(program: Command): void {
     .description("初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐 .gitignore 片段与 prepare 刷新钩子）")
     .option("--dir <path>", "任务目录（优先级：CLI 参数 > 配置 task.dir > 默认 .tasks）")
     .option("--no-hooks", "不写入 package.json 的 prepare 刷新钩子（默认写入，仅当本地依赖含 @xfri/toolkit）")
-    .action((options: { dir?: string; hooks?: boolean }) => {
+    .option("--dry-run", "只输出动作清单，不写盘")
+    .action((options: { dir?: string; hooks?: boolean; dryRun?: boolean }) => {
       try {
         // 与其余 task 子命令同口径：初始化时也尊重配置中已声明的外置任务目录
-        printInitReport(initWorkspace(resolveTasksDir(options.dir), process.cwd(), { hooks: options.hooks }))
+        const report = initWorkspace(resolveTasksDir(options.dir), process.cwd(), { hooks: options.hooks, dryRun: options.dryRun })
+        printInitReport(report, Boolean(options.dryRun))
       } catch (e) {
         console.error(`⚠️ 初始化失败：${(e as Error).message}`)
         process.exitCode = 1
