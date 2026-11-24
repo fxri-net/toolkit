@@ -9,7 +9,7 @@ import { checkDocsDist } from "../docs/dist"
 let dir: string
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), "fxri-docs-dist-"))
+  dir = mkdtempSync(join(tmpdir(), "fxts-tk-docs-dist-"))
   writeFileSync(join(dir, "404.md"), "---\nsearch: false\n---\n\n# 页面未找到\n")
 })
 

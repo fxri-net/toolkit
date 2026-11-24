@@ -18,7 +18,7 @@ function git(root: string, args: string[]) {
 }
 
 function createRepo(files: Record<string, string>): string {
-  const root = mkdtempSync(join(tmpdir(), "fxri-doc-loss-"))
+  const root = mkdtempSync(join(tmpdir(), "fxts-tk-doc-loss-"))
   fixtures.push(root)
   git(root, ["init"])
   for (const [rel, content] of Object.entries(files)) {

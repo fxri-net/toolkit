@@ -29,7 +29,7 @@ function writeLocal(config: unknown, dir = project): void {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "scope-policy-home-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-scope-policy-home-"))
   project = join(home, "work", "repo")
   personal = join(home, "personal")
   mkdirSync(project, { recursive: true })

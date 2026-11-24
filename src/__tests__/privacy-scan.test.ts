@@ -26,7 +26,7 @@ function writeLevel(level: string): void {
 
 beforeEach(() => {
   originalCwd = process.cwd()
-  root = mkdtempSync(join(tmpdir(), "privacy-scan-"))
+  root = mkdtempSync(join(tmpdir(), "fxts-tk-privacy-scan-"))
   process.chdir(root)
   resetToolkitConfigCache()
 })

@@ -9,7 +9,7 @@ import { jsonEnvelope, toJsonText } from "../json-output"
 // 临时目录收集，用例结束后统一清理
 const dirs: string[] = []
 function makeDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), "fx-stats-"))
+  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-stats-"))
   dirs.push(dir)
   return dir
 }

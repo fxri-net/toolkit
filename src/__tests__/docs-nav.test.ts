@@ -9,7 +9,7 @@ import { checkDocsNav, CONFIG_FILES } from "../docs/nav"
 let dir: string
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), "fxri-docs-nav-"))
+  dir = mkdtempSync(join(tmpdir(), "fxts-tk-docs-nav-"))
 })
 
 afterEach(() => {

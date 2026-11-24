@@ -8,7 +8,7 @@ import { dedupe, mergeActivation, scanRepositories, scanRepositoryTree } from ".
 let root = ""
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "scope-plan-"))
+  root = mkdtempSync(join(tmpdir(), "fxts-tk-scope-plan-"))
 })
 
 afterEach(() => {

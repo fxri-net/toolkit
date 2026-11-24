@@ -8,7 +8,7 @@ import { migrateSiteNav } from "../docs/migrate"
 let dir = ""
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), "fxri-docs-migrate-"))
+  dir = mkdtempSync(join(tmpdir(), "fxts-tk-docs-migrate-"))
   mkdirSync(join(dir, ".vitepress"), { recursive: true })
 })
 

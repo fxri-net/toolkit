@@ -17,7 +17,7 @@ function writeConfig(config: unknown): void {
 
 beforeEach(() => {
   originalCwd = process.cwd()
-  home = mkdtempSync(join(tmpdir(), "privacy-paths-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-privacy-paths-"))
   setHomeDirForTest(home)
   // 切到临时目录：避免读到本仓 .toolkitrc.json 的项目层配置
   process.chdir(home)

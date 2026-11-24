@@ -22,7 +22,7 @@ const gatedConfig = {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "scope-linkage-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-scope-linkage-"))
   project = join(home, "repo")
   mkdirSync(project, { recursive: true })
   setHomeDirForTest(home)

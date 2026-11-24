@@ -21,7 +21,7 @@ import { buildHookCommand } from "../usage/hook-command"
 let home = ""
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk dsh home-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-dsh-home-"))
   setHomeDirForTest(home)
   // 显式钉住 dsh 家目录，避免读本机真实配置
   process.env.DSH_HOME = join(home, ".dsh")

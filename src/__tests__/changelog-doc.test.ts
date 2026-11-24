@@ -287,9 +287,9 @@ describe("resolveDocOptions：split 配置", () => {
 
   // 写项目层配置并清缓存，使下一次读取生效
   function writeConfig(split: unknown): void {
-    home = mkdtempSync(join(tmpdir(), "fxri-doc-split-home-"))
+    home = mkdtempSync(join(tmpdir(), "fxts-tk-doc-split-home-"))
     setHomeDirForTest(home)
-    project = mkdtempSync(join(tmpdir(), "fxri-doc-split-"))
+    project = mkdtempSync(join(tmpdir(), "fxts-tk-doc-split-"))
     process.chdir(project)
     writeFileSync(join(project, ".toolkitrc.json"), JSON.stringify({ changelogDoc: { split } }), "utf8")
     resetToolkitConfigCache()

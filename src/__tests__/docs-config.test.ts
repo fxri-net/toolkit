@@ -16,9 +16,9 @@ let home = ""
 let project = ""
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxri-docs-cfg-home-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-docs-cfg-home-"))
   setHomeDirForTest(home)
-  project = mkdtempSync(join(tmpdir(), "fxri-docs-cfg-"))
+  project = mkdtempSync(join(tmpdir(), "fxts-tk-docs-cfg-"))
   process.chdir(project)
 })
 

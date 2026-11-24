@@ -19,7 +19,7 @@ function writeProject(config: unknown): void {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "skills-matrix-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-skills-matrix-"))
   project = join(home, "repo")
   mkdirSync(project, { recursive: true })
   setHomeDirForTest(home)

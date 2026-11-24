@@ -9,7 +9,7 @@ import { checkDocsTheme, writeDocsTheme } from "../docs/theme"
 let dir: string
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), "fxri-docs-theme-"))
+  dir = mkdtempSync(join(tmpdir(), "fxts-tk-docs-theme-"))
 })
 
 afterEach(() => {

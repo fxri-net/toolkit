@@ -15,7 +15,7 @@ function writeGlobal(config: unknown): void {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "scope-linkage-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-scope-linkage-"))
   project = join(home, "repo")
   mkdirSync(join(project, ".tasks"), { recursive: true })
   setHomeDirForTest(home)

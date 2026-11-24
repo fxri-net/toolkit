@@ -16,7 +16,7 @@ function writeGlobal(config: unknown): void {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "scope-home-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-scope-home-"))
   project = join(home, "work", "repo")
   other = join(home, "personal")
   mkdirSync(project, { recursive: true })

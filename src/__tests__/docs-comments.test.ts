@@ -9,7 +9,7 @@ const script = join(process.cwd(), "scripts", "check-docs-comments.mjs")
 const fixtures: string[] = []
 
 function createFixture(files: Record<string, string>): string {
-  const root = mkdtempSync(join(tmpdir(), "fxri-comments-"))
+  const root = mkdtempSync(join(tmpdir(), "fxts-tk-comments-"))
   fixtures.push(root)
   for (const [rel, content] of Object.entries(files)) {
     const target = join(root, rel)

@@ -32,7 +32,7 @@ const skillTable = [
 ].join("\n")
 
 function createFixture(references: Record<string, string>): string {
-  const root = mkdtempSync(join(tmpdir(), "fxri-consistency-"))
+  const root = mkdtempSync(join(tmpdir(), "fxts-tk-consistency-"))
   fixtures.push(root)
   const files: Record<string, string> = {
     "skills/fxri-demo/SKILL.md": skillDoc,

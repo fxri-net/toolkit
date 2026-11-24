@@ -38,7 +38,7 @@ function readGlobal(): Record<string, unknown> {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "scope-policy-command-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-scope-policy-command-"))
   project = join(home, "repo")
   mkdirSync(join(project, ".tasks"), { recursive: true })
   setHomeDirForTest(home)
