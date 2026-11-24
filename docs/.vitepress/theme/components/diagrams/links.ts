@@ -1,4 +1,4 @@
-// 核心模型页图示的节点数据：组件与单检共用同一份，保证图、表与跳转目标一处维护
+// 一图看懂页图示的节点数据：组件与单检共用同一份，保证图、表与跳转目标一处维护
 export interface DiagramLink {
   id: string
   label: string

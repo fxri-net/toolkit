@@ -4,9 +4,9 @@
     {
       "text": "指南",
       "items": [
-        { "text": "核心模型", "link": "/concepts" },
+        { "text": "一图看懂", "link": "/concepts" },
         { "text": "适用场景", "link": "/scenarios" },
-        { "text": "内网推广", "link": "/adoption" },
+        { "text": "内部推广", "link": "/adoption" },
         { "text": "操作手册", "link": "/handbook" },
         { "text": "项目级激活", "link": "/guide#项目级激活模板" },
         { "text": "完整攻略", "link": "/guide" }
@@ -49,9 +49,9 @@
     {
       "text": "指南",
       "items": [
-        { "text": "核心模型", "link": "/concepts" },
+        { "text": "一图看懂", "link": "/concepts" },
         { "text": "适用场景", "link": "/scenarios" },
-        { "text": "内网推广", "link": "/adoption" },
+        { "text": "内部推广", "link": "/adoption" },
         { "text": "操作手册", "link": "/handbook" },
         { "text": "项目级激活", "link": "/guide#项目级激活模板" },
         { "text": "完整攻略", "link": "/guide" }

@@ -1,8 +1,8 @@
 ---
-title: 内网推广（adoption）
+title: 内部推广
 ---
 
-# 内网推广（adoption）
+# 内部推广
 
 > 目标读者：自己用着好、想在公司里推广的人。这里有可直接发出去的介绍、试点方案与决策者问答，不需要再自己整理材料。
 
@@ -63,4 +63,4 @@ title: 内网推广（adoption）
 
 ## 相关页面
 
-- 参考：[适用场景](./scenarios) · [核心模型](./concepts) · [隐私与数据边界](./usage/privacy) · [快速开始](./getting-started)
+- 参考：[适用场景](./scenarios) · [一图看懂](./concepts) · [隐私与数据边界](./usage/privacy) · [快速开始](./getting-started)
