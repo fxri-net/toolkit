@@ -1027,6 +1027,27 @@ describe("rules 命令参数边界", () => {
     rmSync(cache, { force: true })
   })
 
+  it("list 标注上次预设，自定义组合不残留预设", async () => {
+    const cache = join(homeDir, ".toolkit", "cache", "rules-selection.json")
+    rmSync(cache, { force: true })
+    expect((await runCli(["rule", "compose", "--preset", "minimal"])).code).toBe(0)
+    const text = await runCli(["rule", "list"])
+    expect(text.log.join("\n")).toContain("当前缓存：预设 minimal（workflow）")
+    const payload = JSON.parse((await runCli(["rule", "list", "--format", "json"])).log.join("\n")) as {
+      data: { selection: string[]; selectionPreset: string | null }
+    }
+    expect(payload.data.selection).toEqual(["workflow"])
+    expect(payload.data.selectionPreset).toBe("minimal")
+    // 自定义组合：不再保留预设标记
+    expect((await runCli(["rule", "compose", "--module", "core"])).code).toBe(0)
+    expect((await runCli(["rule", "list"])).log.join("\n")).toContain("当前缓存：自定义（core）")
+    const custom = JSON.parse((await runCli(["rule", "list", "--format", "json"])).log.join("\n")) as {
+      data: { selectionPreset: string | null }
+    }
+    expect(custom.data.selectionPreset).toBeNull()
+    rmSync(cache, { force: true })
+  })
+
   it("--copy 与 --out 互斥，不生成文件", async () => {
     const out = join(sandbox, "rules-copy.md")
     const result = await runCli(["rule", "compose", "--copy", "--out", out])

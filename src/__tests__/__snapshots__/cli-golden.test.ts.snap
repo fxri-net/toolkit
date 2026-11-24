@@ -1117,7 +1117,8 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
         ]
       }
     ],
-    "selection": null
+    "selection": null,
+    "selectionPreset": null
   },
   "extend": {
     "exitCode": 0

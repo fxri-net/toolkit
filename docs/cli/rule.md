@@ -56,7 +56,7 @@ toolkit rule sync --dry-run  # 只显示差异，不写盘
 - 交互选中的预设会被记住，下次进入默认高亮该预设；选「自定义…」后下次默认高亮仍为自定义，模块勾选沿用上次组合。
 - `--dry-run` 只预览：不写缓存、不写 `--out` 文件、不复制剪贴板；默认输出仍把组合文本送到 stdout。
 - `rule list` 的 `--format` 仅接受 `json`，非法值报错退出 `1`，不再回落文本；JSON 的 `presets` 为 `{ label, summary, modules }` 对象，
-   交互选项与文档站组合器据此展示预设说明。
+   交互选项与文档站组合器据此展示预设说明；`selection` 为上次模块数组（无缓存为 `null`），`selectionPreset` 为上次预设名（自定义或无缓存为 `null`）。
 - `--out` / `--copy` 时 stdout 为空，确认与错误提示走 stderr；剪贴板写入失败以非 0 退出。
 - 组合只输出文本，不自动改写任何 Agent 的全局规则文件；粘贴位置与常用 Agent 入口见[全局规则 · 怎么落地](../rules/#怎么落地)
 - `usage` 模块与 `toolkit rule compose --module usage` 同源；原 `toolkit usage rule` 已移除，替代写法即此命令。

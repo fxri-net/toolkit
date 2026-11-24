@@ -147,7 +147,17 @@ export function registerRulesCommands(program: Command): void {
         const listed = listRules()
         const selection = readRulesSelection(listed.modules.map((mod) => mod.id))
         if (options.format === "json") {
-          printJson(jsonEnvelope({ command: "rule list", data: { ...listed, selection: selection?.modules ?? null } }))
+          printJson(
+            jsonEnvelope({
+              command: "rule list",
+              // selection 保持模块数组以兼容既有消费方，预设名另列字段
+              data: {
+                ...listed,
+                selection: selection?.modules ?? null,
+                selectionPreset: selection?.preset ?? null,
+              },
+            }),
+          )
           return
         }
         console.log("规则模块：")
@@ -156,7 +166,11 @@ export function registerRulesCommands(program: Command): void {
           console.log(`  ${mark} ${mod.id.padEnd(8)} ${mod.anchor}  ${mod.title}（${mod.presets.join(" / ") || "无预设"}）`)
         }
         console.log(`预设：${Object.entries(listed.presets).map(([name, preset]) => `${name}=${preset.modules.join("+")}`).join("；")}`)
-        console.log(`当前缓存：${selection ? selection.modules.join(" → ") : "无（默认推荐组合 recommended）"}`)
+        // 有缓存时标注来源：上次是预设还是自定义，便于判断要不要重新组合
+        const cachedLabel = selection
+          ? `${selection.preset ? `预设 ${selection.preset}` : "自定义"}（${selection.modules.join(" → ")}）`
+          : "无（默认推荐组合 recommended）"
+        console.log(`当前缓存：${cachedLabel}`)
       } catch (error) {
         console.error(`⚠️ ${(error as Error).message}`)
         process.exitCode = 1
