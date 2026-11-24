@@ -219,7 +219,7 @@ describe("resolveScope 策略校验", () => {
     expect(report.decision.active).toBe(true)
   })
 
-  it("200 条策略加载与缓存判定在宽松预算内", () => {
+  it("200 条策略加载与缓存命中不重编译、不重新排序", () => {
     const policies = Array.from({ length: 200 }, (_, index) => ({
       id: `p${index}`,
       when: { paths: [`${posix(home)}/work/**`] },
@@ -229,12 +229,13 @@ describe("resolveScope 策略校验", () => {
     const started = Date.now()
     const report = resolveScope(project)
     expect(report.policies).toHaveLength(200)
-    expect(Date.now() - started).toBeLessThan(3000)
+    // 宽松上限只兜住挂死类退化；性能回归由下方缓存计数器判定，不用墙钟（覆盖率插桩会让绝对耗时翻倍）
+    expect(Date.now() - started).toBeLessThan(15000)
     // 同一现场重复判定命中进程内快照：不再编译正则、不再预计算与排序
     resetPolicyStats()
     const cachedStart = Date.now()
     for (let index = 0; index < 100; index += 1) resolveScope(project)
-    expect(Date.now() - cachedStart).toBeLessThan(3000)
+    expect(Date.now() - cachedStart).toBeLessThan(15000)
     expect(readPolicyStats()).toEqual({ compiles: 0, sorts: 0 })
   })
 })
