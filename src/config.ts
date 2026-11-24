@@ -283,8 +283,8 @@ function normalizeLegacySections(layer: ConfigLayerName, filePath: string, confi
     }
     const hint =
       layer === "全局层"
-        ? "全局层不归 toolkit init 处置，请手动把该段改名为新段名（2.1.0 起不再兼容）"
-        : "本次按新段名读取，运行 toolkit init 可自动重写"
+        ? "全局层不归 toolkit task init 处置，请手动把该段改名为新段名（2.1.0 起不再兼容）"
+        : "本次按新段名读取，运行 toolkit task init 可自动重写"
     console.warn(`⚠️ 配置段「${legacy}」已更名为「${canonical}」（${filePath}）：${hint}`)
   }
 }

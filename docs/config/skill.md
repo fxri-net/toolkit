@@ -7,7 +7,7 @@ title: 技能分发偏好（skills）
 > 软链自愈、全局与项目面安装偏好；分发命令与现场体检见 [技能分发](../cli/skill)。
 
 ⚠️ **段名已统一为单数**：旧段名 `skillsInstall` / `skillsDelivery` / `projectSkills` 仍可读取（stderr 提示一次），
-`toolkit init` 会把项目层 / 本地层配置文件就地重写为新段名（备份 `.bak`），2.1.0 移除兼容。
+`toolkit task init` 会把项目层 / 本地层配置文件就地重写为新段名（备份 `.bak`），2.1.0 移除兼容。
 
 ## skills：技能分发
 
@@ -19,7 +19,7 @@ title: 技能分发偏好（skills）
 **作用边界**（护栏）：
 
 - **仅作用于全局面软链**：`autoLink` / `autoLinkReplaceForeign` 只做全局技能目录的软链自愈；项目面（仓库内唯一真源副本 + 各候选目录薄壳）不受这两个开关影响，
-   其刷新由 `toolkit init` 写入的 `package.json` `prepare` 钩子（`toolkit skill install --scope project --refresh`）承担，
+   其刷新由 `toolkit task init` 写入的 `package.json` `prepare` 钩子（`toolkit skill install --scope project --refresh`）承担，
    产物归属账另存 `<仓库根>/.toolkit/state.json`（非配置文件、随 git 分发）
 - **只补链与修链**：不含首次安装（未安装过、无状态文件时不动作），不含副本刷新（副本形式的技能不自动升级，需重跑 `toolkit skill install`）
 - **只对状态文件记载的链接生效**：现场被替换成实体目录 / 普通文件时，默认清理后重建为软链；`autoLinkReplaceForeign: false` 改为一律不动——该开关**只豁免实体产物**，
@@ -231,7 +231,7 @@ monorepo 子目录执行亦能命中项目面；**本包源仓库自身视为 `g
 「来源内未选择」汇总与折叠、补齐口径同全局面：漂移与缺失用 `install --scope project` 补齐，同名冲突加 `--force`，未选择产物清理加 `--prune`。
 
 ⚠️ **clone 即用**：项目面真源副本与归属账随 git 入库，队友 clone 后无需重跑 `skill install` 即开箱可用。
-`toolkit init` 在本地依赖含 `@fxri/toolkit` 时，向 `package.json` 补 `prepare` 钩子
+`toolkit task init` 在本地依赖含 `@fxri/toolkit` 时，向 `package.json` 补 `prepare` 钩子
 （`toolkit skill install --scope project --refresh`），依赖升级后自动刷新项目面（详见 [项目初始化](../cli/init)）。
 
 全局面软链 / 副本形态、pnpm 锚点、写入穿透与状态文件结构见下文[全局面分发细节](#全局面分发细节)。

@@ -106,7 +106,7 @@ export function listMarkdownFiles(root: string): string[] {
 // 归一主流程：先全量扫描再统一写盘（dryRun 只报不改）；已是紧凑形态时幂等返回 already-compact
 // 索引表另做单元格形态归一（仅 conventions/index.md），无法机械判定的项只进 warnings
 export function formatConventions(tasksDir = ".tasks", options: FormatOptions = {}): FormatReport {
-  if (!existsSync(tasksDir)) throw new Error(`任务区目录不存在：${tasksDir}（先执行 toolkit init 初始化）`)
+  if (!existsSync(tasksDir)) throw new Error(`任务区目录不存在：${tasksDir}（先执行 toolkit task init 初始化）`)
   const files = listMarkdownFiles(tasksDir)
   const indexFile = join(tasksDir, CONVENTIONS_DIR, INDEX_FILE)
   const changes: FormatChange[] = []

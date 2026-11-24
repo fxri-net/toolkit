@@ -67,7 +67,7 @@ export function buildEntryShell(): string {
     "---",
     "",
     ENTRY_MARKER,
-    "<!-- 由 toolkit init 生成，可安全删除；需要时重跑 toolkit init 即可补齐 -->",
+    "<!-- 由 toolkit task init 生成，可安全删除；需要时重跑 toolkit task init 即可补齐 -->",
     "本技能只是入口，不承载条文：读本项目任务区（默认 `.tasks`，已配置 `task.dir` 时按配置声明）下的 `conventions/index.md`，按其「用法说明」节执行；条文以各文件的单一事实源为准。",
     "",
   ].join("\n")
@@ -103,13 +103,13 @@ export function mismatchedShellAlert(shells: EntryShell[]): EntryShellAlert | nu
   if (shells.length === 1) {
     return {
       file: first.file,
-      message: `入口壳标记 ${mark(first)}，与当前 toolkit 的 v${ENTRY_VERSION} 不一致：重跑 toolkit init 可补齐`,
+      message: `入口壳标记 ${mark(first)}，与当前 toolkit 的 v${ENTRY_VERSION} 不一致：重跑 toolkit task init 可补齐`,
     }
   }
   const list = shells.map((s) => `${s.file}（标记 ${mark(s)}）`).join("、")
   return {
     file: first.file,
-    message: `入口壳标记与当前 toolkit 的 v${ENTRY_VERSION} 不一致，共 ${shells.length} 处：${list}；重跑 toolkit init 可一次性补齐`,
+    message: `入口壳标记与当前 toolkit 的 v${ENTRY_VERSION} 不一致，共 ${shells.length} 处：${list}；重跑 toolkit task init 可一次性补齐`,
   }
 }
 
@@ -146,7 +146,7 @@ export function buildAgentsPointer(): string {
     AGENTS_POINTER_START,
     "## 项目协作规范",
     "",
-    `本项目沉淀的协作规范以项目级技能目录下的 \`${ENTRY_SHELL_NAME}/${SKILL_ENTRY}\` 为入口（由 \`toolkit init\` 生成，多 agent 混用团队在各已存在的技能目录各有一份），条文以任务区 \`conventions/index.md\` 及各分册的单一事实源为准；需要查阅或遵循本项目规范时先读该入口。`,
+    `本项目沉淀的协作规范以项目级技能目录下的 \`${ENTRY_SHELL_NAME}/${SKILL_ENTRY}\` 为入口（由 \`toolkit task init\` 生成，多 agent 混用团队在各已存在的技能目录各有一份），条文以任务区 \`conventions/index.md\` 及各分册的单一事实源为准；需要查阅或遵循本项目规范时先读该入口。`,
     AGENTS_POINTER_END,
   ].join("\n")
 }

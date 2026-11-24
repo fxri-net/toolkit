@@ -1,85 +1,16 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`写盘产物 > init 生成任务区骨架与入口壳 1`] = `
-"退出码：0
+"退出码：1
 --- stdout ---
-任务区：.tasks
-  新建 .tasks/active/202611/、.tasks/archive/（已创建）
-  新建 .tasks/conventions/index.md（已创建（端清单 / 索引 / 用法说明三节））
-  新建 .tasks/conventions/history.md（已创建（规范演进记录））
-  新建 .gitignore（已创建并写入 # @fxri/toolkit 忽略片段（覆盖 .archive.lock / .toolkitrc.local.json / .toolkitrc.json.bak / .toolkitrc.local.json.bak））
-  跳过 .prettierignore（未见 prettier 使用迹象，跳过任务区排除行写入）
-    提示：项目启用 prettier 后重跑 toolkit init 会自动补上该排除行
-  新建 .agents/skills/toolkit-conventions/SKILL.md（已创建（只作入口，不承载条文））
-  跳过 AGENTS.md（文件不存在；不新建，需要时手工添加或先建文件再重跑 toolkit init）
-    提示：无该指针块不影响规范可用：本项目规范仍可经全局技能 fxri-plan-task 触达（其工作流第一步即读 conventions/index.md）
-  跳过 package.json（本地依赖未声明 @fxri/toolkit，不写入 prepare 钩子）
-    提示：技能副本随 git 分发即可 clone 即用；依赖装在本项目后需要时手工加 "prepare": "toolkit skill install --scope project --refresh" 以在安装依赖后自动刷新
 
-下一步：
-  全局技能：未安装，执行 toolkit skill install 启用（规范触达第一层，不依赖项目内文件；toolkit skill status 可查现场）
-  本机一览：toolkit status（分域查看用 toolkit task / toolkit skill status）
-  快速开始（在线，可选）：https://fxri-net.github.io/toolkit/getting-started
-  完整攻略（在线，可选）：https://fxri-net.github.io/toolkit/guide
 --- stderr ---
-"
+⚠️ 未知命令「init」。
+运行 toolkit --help 查看可用命令"
 `;
 
 exports[`写盘产物 > init 生成任务区骨架与入口壳 2`] = `
-"### .agents/skills/toolkit-conventions/SKILL.md
----
-name: toolkit-conventions
-description: 本项目协作规范入口。当需要查阅或遵循本项目沉淀的协作规范、判断某条规范如何落地、或新增与修订规范时使用。
----
-
-<!-- toolkit-conventions-entry: v2 -->
-<!-- 由 toolkit init 生成，可安全删除；需要时重跑 toolkit init 即可补齐 -->
-本技能只是入口，不承载条文：读本项目任务区（默认 \`.tasks\`，已配置 \`task.dir\` 时按配置声明）下的 \`conventions/index.md\`，按其「用法说明」节执行；条文以各文件的单一事实源为准。
-
-
-### .gitignore
-# @fxri/toolkit 忽略片段（运行时文件与个人本地配置，不入库）
-# 不想改团队 .gitignore 者，可把这些忽略行写进 .git/info/exclude（本地排除、不进版本控制）
-.archive.lock
-.toolkitrc.local.json
-.toolkitrc.json.bak
-.toolkitrc.local.json.bak
-
-
-### .tasks/conventions/history.md
-# 规范演进记录
-
-> 元规则：规则语义变更时不得覆盖旧语义直接丢史——在「演进记录」追加一条（规则 ID → 修订内容 → 修订来源任务；修订内容新立条目直接写其语义、语义变更写「旧语义」→「新语义」），\`index.md\` 索引表只保留当前语义；规则层源头变更（\`AGENTS.md\` / \`docs/rules/ai.md\` / skills 条文）随该变更同批落盘。
-> 表语义边界：本表只记**规范语义变更**；载体结构升级、入口壳生成 / 删除、条目退休均不入表（退休见 \`retired.md\`）。
-
-| ID | 修订内容 | 修订来源任务 |
-| --- | --- | --- |
-
-
-### .tasks/conventions/index.md
-<!-- toolkit-conventions: v3 -->
-# 项目协作规范索引
-
-> 唯一入口与唯一权威：端清单在此声明、每条规范在此留一行指针；分册（\`common.md\` / \`<端名>.md\`）按需创建。
-> 端名与任务 frontmatter 的 \`scope\` 取值共用同一套词表、逐字一致；保留字 \`index\` / \`common\` 不得作端名。
-> 演进记录见 \`history.md\`；超长条目升级见分册。
-
-## 一、端清单
-
-| 端名 | 说明 |
-| --- | --- |
-
-## 二、索引
-
-| ID | 规则 | 当前语义 | 归属 | 单一事实源 |
-| --- | --- | --- | --- | --- |
-
-## 三、用法说明
-
-（在此写明本项目采用溯源索引式还是条文式、读写判定要点、规则层源头变更时的同步纪律）
-
-
-### package.json
+"### package.json
 {
   "name": "init-target",
   "private": true
@@ -790,7 +721,7 @@ exports[`各域行为与错误路径 > conventions format 预演 1`] = `
 exports[`各域行为与错误路径 > conventions status 1`] = `
 "退出码：0
 --- stdout ---
-未找到 .tasks/conventions/，先执行 toolkit init
+未找到 .tasks/conventions/，先执行 toolkit task init
 --- stderr ---
 "
 `;
@@ -815,11 +746,11 @@ exports[`各域行为与错误路径 > conventions status JSON 1`] = `
       {
         "level": "info",
         "scope": "形态",
-        "message": "未找到 .tasks/conventions/，先执行 toolkit init"
+        "message": "未找到 .tasks/conventions/，先执行 toolkit task init"
       }
     ],
     "warnings": 0,
-    "summary": "未找到 .tasks/conventions/，先执行 toolkit init"
+    "summary": "未找到 .tasks/conventions/，先执行 toolkit task init"
   },
   "extend": {
     "exitCode": 0
@@ -829,7 +760,7 @@ exports[`各域行为与错误路径 > conventions status JSON 1`] = `
     {
       "level": "info",
       "scope": "形态",
-      "message": "未找到 .tasks/conventions/，先执行 toolkit init"
+      "message": "未找到 .tasks/conventions/，先执行 toolkit task init"
     }
   ]
 }
@@ -842,7 +773,7 @@ exports[`各域行为与错误路径 > conventions upgrade 1`] = `
 --- stdout ---
 
 --- stderr ---
-⚠️ 升级失败：未找到 .tasks/conventions/index.md，先执行 toolkit init"
+⚠️ 升级失败：未找到 .tasks/conventions/index.md，先执行 toolkit task init"
 `;
 
 exports[`各域行为与错误路径 > conventions upgrade 预演 1`] = `
@@ -850,7 +781,7 @@ exports[`各域行为与错误路径 > conventions upgrade 预演 1`] = `
 --- stdout ---
 
 --- stderr ---
-⚠️ 升级失败：未找到 .tasks/conventions/index.md，先执行 toolkit init"
+⚠️ 升级失败：未找到 .tasks/conventions/index.md，先执行 toolkit task init"
 `;
 
 exports[`各域行为与错误路径 > conventions 裸命令 1`] = `
@@ -1590,7 +1521,7 @@ registry：registry.npmjs.org（来源：默认）
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
 技能源：<REPO>/skills
-技能版本：fxri-code-encoding@1.2.12、fxri-plan-recap@1.7.9、fxri-plan-review@1.1.0、fxri-plan-task@1.13.2、fxri-release-changelog@1.3.12、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.1、fxri-writing-skill@1.0.3
+技能版本：fxri-code-encoding@1.2.12、fxri-plan-recap@1.7.9、fxri-plan-review@1.1.0、fxri-plan-task@1.13.3、fxri-release-changelog@1.3.12、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.1、fxri-writing-skill@1.0.3
 内容闸门：未开启（全文安装）
 选择集（3）：fxri-plan-recap、fxri-plan-review、fxri-plan-task
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-code-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
@@ -1670,11 +1601,11 @@ registry：registry.npmjs.org（来源：默认）
 
 项目面 · 项目根：<SANDBOX>/workspace
 项目面 · 技能真源：.agents/skills
-项目面 · 技能版本：fxri-code-encoding@1.2.12、fxri-plan-recap@1.7.9、fxri-plan-review@1.1.0、fxri-plan-task@1.13.2、fxri-release-changelog@1.3.12、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.1、fxri-writing-skill@1.0.3
+项目面 · 技能版本：fxri-code-encoding@1.2.12、fxri-plan-recap@1.7.9、fxri-plan-review@1.1.0、fxri-plan-task@1.13.3、fxri-release-changelog@1.3.12、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.1、fxri-writing-skill@1.0.3
 项目面 · 选择集（3）：fxri-plan-recap、fxri-plan-review、fxri-plan-task
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-code-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
 项目面 · 目录选择集：全部已存在候选目录（未保存过目录选择）
-项目面 · 状态文件：.toolkit/state.json（未记录，尚未执行过 toolkit init / skills install）
+项目面 · 状态文件：.toolkit/state.json（未记录，尚未执行过 toolkit task init / skill install）
 
 真源副本：.agents/skills
   fxri-plan-recap：缺失
@@ -2445,8 +2376,6 @@ Options:
 
 Commands:
   status [options]                整体状态：聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项（只读）
-  init [options]                  初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐
-                                  .gitignore 片段与 prepare 刷新钩子）
   upgrade [options]               迁移 v1 项目到当前版本：配置段名 / 工程脚本 / 技能旧名 /
                                   规范载体，支持预览、复检与恢复
   skill [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源（包内 skills/ 与
@@ -2484,14 +2413,47 @@ Commands:
 exports[`帮助与版本口径 > init 帮助 1`] = `
 "退出码：0
 --- stdout ---
-Usage: toolkit init [options]
+Usage: toolkit [options] [command]
 
-初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐 .gitignore 片段与 prepare 刷新钩子）
+专为多人 + AI 跨项目协作打造：把对话里的方案与交付，沉淀为仓库内可校验、可分发、可迁移的工程资产。
 
 Options:
-  --dir <path>  任务目录（优先级：CLI 参数 > 配置 task.dir > 默认 .tasks）
-  --no-hooks    不写入 package.json 的 prepare 刷新钩子（默认写入，仅当本地依赖含 @xfri/toolkit）
-  -h, --help    显示帮助
+  -v, --version                   显示版本号
+  --no-color                      关闭终端颜色输出
+  --cwd <path>                    在指定目录执行命令（等价先切换工作目录）
+  -h, --help                      显示帮助
+
+Commands:
+  status [options]                整体状态：聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项（只读）
+  upgrade [options]               迁移 v1 项目到当前版本：配置段名 / 工程脚本 / 技能旧名 /
+                                  规范载体，支持预览、复检与恢复
+  skill [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源（包内 skills/ 与
+                                  --source 外部来源统一管理）
+  convention [options] [command]  项目协作规范载体：结构升级（v1 / v2 →
+                                  v3）、表格与索引单元格形态归一、只读体检（形态 / 索引 / 入口层）
+  config [options] [command]      配置：list / get / set / unset 唯一写入口，另有 status
+                                  只读体检三层配置文件
+  docs [options] [command]        文档站工具：默认全量校验（theme / nav / dist），另可按项校验与写入
+  privacy [options] [command]     隐私体检：本机绝对路径扫描与归一（按 privacy.localPaths 档位）
+  task [options] [command]        任务管理
+  release [options] [command]     多语言更新日志与发版（默认 status；封装 changesets）
+  rule [options] [command]        全局规则：列出模块、组合输出与缓存管理
+  scope [options] [command]       作用域：按项目 / 目录判定技能是否生效（默认全域生效）
+  usage [options] [command]       技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
+  help [command]                  显示帮助
+
+
+常用入口：
+  作用域 toolkit scope（按目录决定技能是否生效，默认全域）
+
+本机帮助：
+  整体状态 toolkit status
+  分域帮助 toolkit <域> --help（如 toolkit task --help）
+
+文档站（在线，可选）：
+  快速开始 https://fxri-net.github.io/toolkit/getting-started
+  完整攻略 https://fxri-net.github.io/toolkit/guide
+  全部文档 https://fxri-net.github.io/toolkit/
 
 --- stderr ---
 "
@@ -2639,6 +2601,8 @@ Options:
   -h, --help               显示帮助
 
 Commands:
+  init [options]           初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐 .gitignore 片段与
+                           prepare 刷新钩子）
   add [options]            新建任务档（TTY 无参会交互补齐；非 TTY 须 --title 与 --yes）
   update [options] <key>   更新任务字段与状态（非交互写入须 --yes）
   archive [options]        归档已完成任务
@@ -2714,8 +2678,6 @@ Options:
 
 Commands:
   status [options]                整体状态：聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项（只读）
-  init [options]                  初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐
-                                  .gitignore 片段与 prepare 刷新钩子）
   upgrade [options]               迁移 v1 项目到当前版本：配置段名 / 工程脚本 / 技能旧名 /
                                   规范载体，支持预览、复检与恢复
   skill [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源（包内 skills/ 与
@@ -2762,8 +2724,6 @@ Options:
 
 Commands:
   status [options]                整体状态：聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项（只读）
-  init [options]                  初始化项目任务区（生成 .tasks/ 骨架、规范载体与技能入口壳，补齐
-                                  .gitignore 片段与 prepare 刷新钩子）
   upgrade [options]               迁移 v1 项目到当前版本：配置段名 / 工程脚本 / 技能旧名 /
                                   规范载体，支持预览、复检与恢复
   skill [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源（包内 skills/ 与

@@ -131,7 +131,7 @@ export function upgradeConventions(tasksDir = ".tasks", options: UpgradeOptions 
     throw new Error(
       state.hasLegacy
         ? `仅存在旧单文件 ${LEGACY_FILE}：请先按 conventions-spec 迁移为目录形态，再执行 conventions upgrade；本次未写入任何文件`
-        : `未找到 ${state.dir}/${INDEX_FILE}，先执行 toolkit init`,
+        : `未找到 ${state.dir}/${INDEX_FILE}，先执行 toolkit task init`,
     )
   }
   if (state.form === "abnormal") {

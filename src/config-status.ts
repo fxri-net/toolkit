@@ -142,7 +142,7 @@ function ignoreItem(ignore: LocalConfigIgnore, file: string): ConfigStatusItem {
       return {
         level: "warn",
         scope: "本地层",
-        message: "本地配置文件未纳入 git 忽略，可能随 git 提交泄露个人配置：重跑 toolkit init 可自动补写忽略行",
+        message: "本地配置文件未纳入 git 忽略，可能随 git 提交泄露个人配置：重跑 toolkit task init 可自动补写忽略行",
       }
     case "tracked":
       return {

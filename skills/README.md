@@ -9,7 +9,7 @@ Cursor、Codex、Gemini CLI 等兼容 agent 按需加载。
 
 | 技能 | 版本 | 用途 | 层级 |
 | --- | --- | --- | --- |
-| [fxri-plan-task](./fxri-plan-task/SKILL.md) | 1.13.2 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
+| [fxri-plan-task](./fxri-plan-task/SKILL.md) | 1.13.3 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
 | [fxri-plan-review](./fxri-plan-review/SKILL.md) | 1.1.0 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
 | [fxri-plan-recap](./fxri-plan-recap/SKILL.md) | 1.7.9 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.3.12 | changesets 发版与多语言 CHANGELOG 维护 | optional |
@@ -63,7 +63,7 @@ toolkit skill uninstall       # 卸载本包装的产物（只清自己装的，
 - **项目面（`--scope project`）**：`--scope` 缺省时按 CLI 安装位置自动判定（项目内装 CLI → 项目面）
   - 真源落 `<仓库根>/.agents/skills/`（完整副本），其余**已存在**的候选目录各放每个技能一份入口薄壳指向真源
   - 产物记录在 `<仓库根>/.toolkit/state.json`（与真源、薄壳一并入库）
-  - `toolkit init` 会写入 `prepare` 刷新钩子（只刷新归属账已存在的产物，不新增技能；非 TTY / CI 只打印漂移），队友 clone 即用
+  - `toolkit task init` 会写入 `prepare` 刷新钩子（只刷新归属账已存在的产物，不新增技能；非 TTY / CI 只打印漂移），队友 clone 即用
   - `--copy` 仅全局面生效，项目面恒为副本
 
 <!-- toolkit:skill-dirs:start -->
@@ -80,7 +80,8 @@ toolkit skill uninstall       # 卸载本包装的产物（只清自己装的，
 | `.windsurf/skills/` |  |  |
 <!-- toolkit:skill-dirs:end -->
 
-- 发布型包误打包检查：`toolkit init` 在未标 `private` 且无 `files` 白名单的项目里会提示技能产物（`.agents/skills/`）与内置任务区（`.tasks/`）可能被打进 npm 包——只提示、不代改
+- 发布型包误打包检查：`toolkit task init` 在未标 `private` 且无 `files` 白名单的项目里会提示技能产物（`.agents/skills/`）
+  与内置任务区（`.tasks/`）可能被打进 npm 包——只提示、不代改
 
 ### 方式二：上游安装器 `npx skills`（需锁定文件或覆盖表外 agent 时）
 

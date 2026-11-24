@@ -664,7 +664,7 @@ function printProjectStatusReport(report: ProjectStatusReport): void {
   for (const m of report.versionMismatches) {
     console.warn(`⚠️ 技能版本双写位不一致：${m.name}（frontmatter ${m.frontmatter} / 正文 ${m.body || "未声明"}）`)
   }
-  console.log(`项目面 · 状态文件：${report.stateFile}${report.stateExists ? "" : "（未记录，尚未执行过 toolkit init / skills install）"}`)
+  console.log(`项目面 · 状态文件：${report.stateFile}${report.stateExists ? "" : "（未记录，尚未执行过 toolkit task init / skill install）"}`)
   // 项目面曾用名视图：旧名副本无从校验、不自动删，但要让用户看清「这是旧名、该删哪个」
   const renamed = findProjectRenamedArtifacts(report)
   let problems = 0

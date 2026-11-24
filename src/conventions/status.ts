@@ -278,7 +278,7 @@ function checkEntryLayer(cwd: string, items: ConventionsStatusItem[]): EntryShel
     items.push(
       isToolkitSourceRepo(cwd)
         ? { level: "info", scope: "入口层", message: "本包源仓库不生成入口壳（靠 fxri-* 技能自举）：无需补生成" }
-        : { level: "info", scope: "入口层", message: "未找到入口壳：执行 toolkit init 可生成（项目级技能目录）" },
+        : { level: "info", scope: "入口层", message: "未找到入口壳：执行 toolkit task init 可生成（项目级技能目录）" },
     )
   }
   return states
@@ -307,7 +307,7 @@ export function conventionsStatus(tasksDir = ".tasks", cwd = process.cwd()): Con
   if (!state.hasIndex) {
     const message = state.hasLegacy
       ? `未找到 ${state.dir}/${INDEX_FILE}（仅存旧单文件 ${LEGACY_FILE}）：先按 conventions-spec 迁移为目录形态，再执行 toolkit convention status`
-      : `未找到 ${join(tasksDir, CONVENTIONS_DIR)}/，先执行 toolkit init`
+      : `未找到 ${join(tasksDir, CONVENTIONS_DIR)}/，先执行 toolkit task init`
     return {
       initialized: false,
       ...base,

@@ -104,7 +104,7 @@
 | `.archive.lock` | ❌ 忽略 | 运行时排他锁，无共享价值 |
 | 导出产物（`tasks.csv` 等） | 按需 | 一般为临时分析产物，默认忽略 |
 
-`toolkit init` 会生成 `.tasks/` 骨架、项目级技能入口壳与 `.gitignore` 片段；
+`toolkit task init` 会生成 `.tasks/` 骨架、项目级技能入口壳与 `.gitignore` 片段；
 项目本地依赖含 `@fxri/toolkit` 时还会写入 `prepare` 刷新钩子
 （`toolkit skill install --scope project --refresh`，只刷新已有产物；`init --no-hooks` 可关）。
 
@@ -165,7 +165,7 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 索引行从 `index.md` 删除并迁入 `retired.md`（冻结退休时语义、记后继与条文去向），同时物理删除分册内该条小节、同步删改外部单一事实源，不留「已废弃」占位。
 
 **表格形态**：任务区 md 表格以**紧凑形态**（`| a | b |`）为规范形态；prettier 等格式化器填充出的列对齐空白属偏离。
-`toolkit init` 幂等托管 `.prettierignore`（任务区不参与格式化）；`toolkit convention format` 把存量表格压回紧凑形态
+`toolkit task init` 幂等托管 `.prettierignore`（任务区不参与格式化）；`toolkit convention format` 把存量表格压回紧凑形态
 （只动空白层、跳过 fenced code block、幂等），并把索引表单元格归一——单一事实源按载体内外写成相对链接或行内代码、归属裸值、规则去引号；
 当前语义缺全角冒号时只出清单不改写。
 
@@ -186,7 +186,7 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 
 | 技能 | 版本 | 用途 | 层级 |
 | --- | --- | --- | --- |
-| `fxri-plan-task` | 1.13.2 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
+| `fxri-plan-task` | 1.13.3 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
 | `fxri-plan-review` | 1.1.0 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
 | `fxri-plan-recap` | 1.7.9 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | `fxri-release-changelog` | 1.3.12 | changesets 发版与多语言 CHANGELOG 维护 | optional |

@@ -4,7 +4,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, mkdtempSync
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { execSync } from "node:child_process"
-import { initWorkspace } from "../init"
+import { initWorkspace } from "../tasks/init"
 import { todayCompact } from "../date"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { skillsStateFile } from "../skills"
@@ -482,7 +482,7 @@ describe("initWorkspace .prettierignore 托管", () => {
     expect(existsSync(join(cwd, ".prettierignore"))).toBe(false)
     const product = report.products.find((p) => p.target === ".prettierignore")
     expect(product?.action).toBe("skipped")
-    expect(product?.hint).toContain("重跑 toolkit init")
+    expect(product?.hint).toContain("重跑 toolkit task init")
   })
 
   it("已有 .prettierignore 时追加排除行并保留原内容", () => {

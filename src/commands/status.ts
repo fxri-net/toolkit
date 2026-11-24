@@ -36,7 +36,7 @@ function conclusion(report: StatusReport): string {
 function printStatusText(report: StatusReport): void {
   if (!report.initialized) {
     console.log(`当前目录未初始化：未找到任务区 ${report.tasksDir}`)
-    console.log(line.hint("下一步：运行 toolkit init 创建任务区、规范载体与技能入口层"))
+    console.log(line.hint("下一步：运行 toolkit task init 创建任务区、规范载体与技能入口层"))
     return
   }
   console.log(`toolkit status ${report.version}`)

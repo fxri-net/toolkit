@@ -94,7 +94,7 @@ function writeShell(cwd: string, skillDir: string, content: string): void {
 }
 
 describe("未初始化提前返回", () => {
-  it("无载体时报未初始化并指向 toolkit init，不散成一堆异常项", () => {
+  it("无载体时报未初始化并指向 toolkit task init，不散成一堆异常项", () => {
     const root = makeDir("tk-status-none-")
     const cwd = makeDir("tk-status-none-cwd-")
 
@@ -104,8 +104,8 @@ describe("未初始化提前返回", () => {
     expect(report.entries).toBe(0)
     expect(report.shells).toEqual([])
     expect(report.warnings).toBe(0)
-    expect(report.items.filter((i) => i.level === "info" && i.message.includes("先执行 toolkit init"))).toHaveLength(1)
-    expect(report.summary).toContain("先执行 toolkit init")
+    expect(report.items.filter((i) => i.level === "info" && i.message.includes("先执行 toolkit task init"))).toHaveLength(1)
+    expect(report.summary).toContain("先执行 toolkit task init")
   })
 
   it("仅存旧单文件 conventions.md 时指向 conventions-spec 迁移", () => {
@@ -397,8 +397,8 @@ describe("入口层体检", () => {
     const report = conventionsStatus(root, cwd)
     expect(report.shells).toEqual([])
     expect(report.warnings).toBe(0)
-    // 源仓库不生成壳属预期，不得提示跑注定空转的 toolkit init
-    expect(report.items.filter((i) => i.scope === "入口层" && i.message.includes("toolkit init"))).toEqual([])
+    // 源仓库不生成壳属预期，不得提示跑注定空转的 toolkit task init
+    expect(report.items.filter((i) => i.scope === "入口层" && i.message.includes("toolkit task init"))).toEqual([])
     expect(report.items.filter((i) => i.scope === "入口层" && i.message.includes("本包源仓库不生成入口壳"))).toHaveLength(1)
   })
 

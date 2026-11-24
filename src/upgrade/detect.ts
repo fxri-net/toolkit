@@ -9,7 +9,7 @@ import { conventionsStatus } from "../conventions/status"
 import { readTextFile } from "../read-text"
 import { findProjectRoot } from "../scope/paths"
 import { readProjectState, readSkillsState, skillsStateFile, projectStateFile } from "../skills/state"
-import { LEGACY_PREPARE_SCRIPTS } from "../init"
+import { LEGACY_PREPARE_SCRIPTS } from "../tasks/init"
 import type { UpgradeItem, UpgradeLayer } from "./types"
 
 // 旧技能名 → 当前技能名：与升级页对照表同源，用于识别历史安装产物

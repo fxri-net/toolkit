@@ -107,7 +107,7 @@ export function buildSkillShell(name: string, sourceRel: string, description: st
     "---",
     "",
     `<!-- ${SKILL_SHELL_MARKER}: v${SKILL_SHELL_VERSION} -->`,
-    "<!-- 由 toolkit 生成，可安全删除；需要时重跑 toolkit init 或 pnpm install（prepare 钩子）即可补齐 -->",
+    "<!-- 由 toolkit 生成，可安全删除；需要时重跑 toolkit task init 或 pnpm install（prepare 钩子）即可补齐 -->",
     `本技能只是入口壳，不承载技能内容：内容以项目仓库根下 \`${sourceRel}/${name}/SKILL.md\` 为唯一真源，同目录的 \`references/\`、\`assets/\` 按需读取。`,
     "",
   ].join("\n")

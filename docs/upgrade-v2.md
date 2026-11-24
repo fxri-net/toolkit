@@ -14,11 +14,11 @@ title: v1 → v2 升级（upgrade-v2）
    - 自动处理三层配置段名、`package.json` 旧钩子与旧命令名、技能旧名登记、规范载体与历史 `.bak`
 3. 重新生成规则快照：`toolkit rule compose --copy`，把输出粘贴回 Agent 全局规则入口
 
-细节与退出码见[升级迁移](./cli/upgrade)。迁移只改形态、不改行为；迁移后重跑 `toolkit init` 应零改动。
+细节与退出码见[升级迁移](./cli/upgrade)。迁移只改形态、不改行为；迁移后重跑 `toolkit task init` 应零改动。
 
 ## 手工兜底（个别步骤未自动完成时）
 
-- 项目配置：`toolkit init`（只处理项目 / 本地层，原文件备份 `.bak`）
+- 项目配置：`toolkit task init`（只处理项目 / 本地层，原文件备份 `.bak`）
 - 技能：`toolkit skill install --yes`（安装器会跟随曾用名迁移）
 - 规范载体：`toolkit convention upgrade`
 
@@ -72,7 +72,7 @@ title: v1 → v2 升级（upgrade-v2）
 | `tasks` | `task` |
 
 三层配置均由 `toolkit upgrade` 就地重写（含全局层 `~/.toolkitrc.json`）；手工兜底时，
-项目层与本地层可用 `toolkit init`，全局层需手动改名，2.1.0 起移除兼容。
+项目层与本地层可用 `toolkit task init`，全局层需手动改名，2.1.0 起移除兼容。
 
 ## JSON 输出
 

@@ -13,7 +13,7 @@
 | 1 装 CLI | 个人多项目 `pnpm add -g @fxri/toolkit`（默认，配合全局技能与全局规则）；团队项目 `pnpm add -D @fxri/toolkit`（版本随仓库锁定） |
 | 2 装 skills | `toolkit skill install`；项目面用 `--scope project`（技能随仓库入库、队友 clone 即用） |
 | 3 配全局规则（推荐） | `toolkit rule compose` 交互式选择后粘贴到所用 Agent 的全局规则入口；也可从 [AI 全局规则](./rules/ai) 复制模板，提交习惯另取[提交信息规则](./rules/commit) |
-| 4 建任务区 | 对 AI 说「初始化任务区」（AI 执行 `toolkit init` 并完成建档；也可自己运行 `toolkit init`） |
+| 4 建任务区 | 对 AI 说「初始化任务区」（AI 执行 `toolkit task init` 并完成建档；也可自己运行 `toolkit task init`） |
 
 初始化做了什么、30 秒最短路径见[快速开始 · 30 秒上手](./getting-started#_30-秒上手)。
 
@@ -68,7 +68,7 @@
 | 只修订内容（不换形态） | 「第 3 条规范改成 …」 | 语义变更：AI 在 `history.md` 追加留痕（只追加、不改旧行）→ 更新 `index.md` 该行「当前语义」；规则**作废**走「迁出 + 三层清理」——索引行从 `index.md` **删除**并迁入 `retired.md`（冻结退休时语义、记后继与条文去向），同时**物理删除**分册内该条小节、同步删改外部单一事实源 |
 
 - **入口**：`toolkit task check` 报旧单文件存在 / 缺 `index.md` / 形态异常时按提示处理；`toolkit convention status` 查载体现场；
-   新项目 `toolkit init` 已预生成骨架
+   新项目 `toolkit task init` 已预生成骨架
 - **端名与读法**：端名与任务 `scope` 逐字一致（`web+server` → `web.md` + `server.md`），端清单以 `index.md` 顶部声明为唯一权威；迁移期间新旧兼容读，
    两者并存以目录形态为准；表格被格式化器填充出空隙时用 `toolkit convention format` 归一
 

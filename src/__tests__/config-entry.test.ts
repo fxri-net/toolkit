@@ -217,7 +217,7 @@ describe("旧段名迁移提示", () => {
     const text = warns.join("\n")
     expect(text).toContain("skillsInstall")
     expect(text).toContain("请手动把该段改名")
-    expect(text).not.toContain("运行 toolkit init")
+    expect(text).not.toContain("运行 toolkit task init")
   })
 
   it("项目层提示运行 init 重写", () => {
@@ -232,7 +232,7 @@ describe("旧段名迁移提示", () => {
     } finally {
       spy.mockRestore()
     }
-    expect(warns.join("\n")).toContain("运行 toolkit init 可自动重写")
+    expect(warns.join("\n")).toContain("运行 toolkit task init 可自动重写")
   })
 
   it("同一文件同一旧段名只提示一次", () => {

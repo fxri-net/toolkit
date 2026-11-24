@@ -306,10 +306,10 @@ describe("v2 → v3 迁移", () => {
 })
 
 describe("升级前先判，异常态拒绝", () => {
-  it("未初始化时报错并提示先执行 toolkit init，不写任何文件", () => {
+  it("未初始化时报错并提示先执行 toolkit task init，不写任何文件", () => {
     const root = makeDir("tk-upgrade-none-")
     mkdirSync(join(root, "conventions"), { recursive: true })
-    expect(() => upgradeConventions(root)).toThrow(/先执行 toolkit init/)
+    expect(() => upgradeConventions(root)).toThrow(/先执行 toolkit task init/)
   })
 
   it("仅存在旧单文件 conventions.md 时报错并指向 conventions-spec 迁移", () => {

@@ -44,7 +44,7 @@
 现场用 `toolkit skill status --scope project` 查，清理用 `toolkit skill uninstall --scope project --all`（只摘本包登记的产物）。
 
 ⚠️ 发布型包要把这些产物加入 `files` 白名单或 `.npmignore`，否则 `npm` 无 `.npmignore` 时可能被打进包。
-`toolkit init` 会提示但不代改，完整说明见[完整攻略 · Git 纳管范围](./guide#git-纳管范围)。
+`toolkit task init` 会提示但不代改，完整说明见[完整攻略 · Git 纳管范围](./guide#git-纳管范围)。
 
 ### 用 nvm 切了 Node 版本，全局装的 toolkit 不见了？
 
@@ -185,7 +185,7 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 ### `.tasks/` 要提交到 git 吗？哪些文件该提交？
 
 `.tasks/` 整体（active + archive）必须入库——任务记录是团队共享的工作记忆。
-`.toolkitrc.json` 建议提交，`.toolkitrc.local.json` 应忽略（`toolkit init` 自动写忽略行，存量项目重跑 `init` 幂等补写）。
+`.toolkitrc.json` 建议提交，`.toolkitrc.local.json` 应忽略（`toolkit task init` 自动写忽略行，存量项目重跑 `init` 幂等补写）。
 `.archive.lock` 为运行时锁、默认忽略。完整纳管表见[完整攻略 · Git 纳管范围](./guide#git-纳管范围)。
 
 ### 我一个人用，还有必要提交任务记录吗？
@@ -245,10 +245,10 @@ v2 有标记与稳定 ID 但无归档面，v1 连标记都没有。
 ### 载体表格里为什么有大量空格？怎么去掉？
 
 那是宿主格式化器（prettier）对 GFM 表格做**列对齐填充**的结果，预览不显示、纯文本阅读时干扰。
-两种处置：`toolkit init` 在检测到 prettier 时幂等托管 `.prettierignore` 把任务区排除；
+两种处置：`toolkit task init` 在检测到 prettier 时幂等托管 `.prettierignore` 把任务区排除；
 已存在的填充用 `toolkit convention format` 归一回紧凑形态（幂等、跳过 fenced code block）。详见[完整攻略 · 表格形态](./guide#conventions-规范沉淀地)。
 
-### `toolkit init` 生成的「规范入口壳」是什么？必须留着吗？
+### `toolkit task init` 生成的「规范入口壳」是什么？必须留着吗？
 
 它是在**已存在的**项目级技能目录（如 `.agents/skills/toolkit-conventions/SKILL.md`）生成的**只作入口、不承载条文**的小技能壳。
 多个候选目录并存时每处各写一份，一个都不存在则回落 `.agents/skills/`；壳让 AI 在项目里能按需发现 `.tasks/conventions/` 载体，正文指回 `index.md`。

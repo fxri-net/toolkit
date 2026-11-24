@@ -72,8 +72,8 @@
    `toolkit task check` / `toolkit convention status` 对载体各文件（`index.md`、分册、`history.md`、`retired.md`）检出并软告警，
    跳过 fenced code block（块内表为示例、不参与检测）
 - **写入纪律**：手工建档、沉淀、归档时写表一律用紧凑形态，**不为对齐空格手工补齐**；工具自身写入的表格（`init` 骨架、`upgrade` 改写、`archive` 归档块）本就紧凑
-- **豁免托管**：`toolkit init` 检测到宿主疑似用 prettier 时幂等托管 `.prettierignore`、把任务区**整目录**排除，从源头不再被填充（本包源仓库自身、
-   任务区在仓库外或即仓库根、无 prettier 迹象三种情形跳过；末者报告提示「项目启用 prettier 后重跑 `toolkit init` 会自动补上」）
+- **豁免托管**：`toolkit task init` 检测到宿主疑似用 prettier 时幂等托管 `.prettierignore`、把任务区**整目录**排除，从源头不再被填充（本包源仓库自身、
+   任务区在仓库外或即仓库根、无 prettier 迹象三种情形跳过；末者报告提示「项目启用 prettier 后重跑 `toolkit task init` 会自动补上」）
 - **存量归一**：`toolkit convention format` 把已存在的填充收敛回紧凑形态——只动单元格间距、分隔行横线长度与列对齐填充、**不改语义**，
    跳过 fenced code block（代码块内原样保留），保留对齐标记（`:---` / `---:`）与行尾符，**幂等**（已紧凑时原样返回并报 `already-compact`），
    `--dry-run` 只预览行号不写盘；范围为任务区全部 md（载体各文件 + `active/` + `archive/`）。
@@ -117,7 +117,7 @@ v1 / v2 / v3 都按目录形态正常读取，形态判据见 `conventions-migra
 - [ ] 索引表「归属」列取值为 `common`、端清单端名或已存在的分类标签分册名（无悬空指针）
 - [ ] 分册文件与端清单 + `common` + 分类标签对应，无孤立文件
 - [ ] 旧单文件 `conventions.md` 已迁移（不存在，或已提示待清理）
-- [ ] 有入口壳时其标记与当前 toolkit 一致（落后或无标记可重跑 `toolkit init` 就地更新）、且未被 `.gitignore` 覆盖（否则 `check` / `convention status` 告警）
+- [ ] 有入口壳时其标记与当前 toolkit 一致（落后或无标记可重跑 `toolkit task init` 就地更新）、且未被 `.gitignore` 覆盖（否则 `check` / `convention status` 告警）
 - [ ] 载体与任务区表格为紧凑形态（无列对齐填充、无按列宽补长的分隔行横线；`toolkit convention format` 可归一，`check` / `convention status` 会检出）
 - [ ] 索引表单元格符合 `conventions-spec.md` §2.2 书写形态（单一事实源为链接或行内代码、归属裸值、当前语义含全角冒号；可解析路径未链接与归属 / 源列不一致均可检出）
 - [ ] 规范写入均经用户确认，来源可溯：活跃条目记于写入任务文件正文，退休条目记入 `retired.md` 的「退休来源任务」列

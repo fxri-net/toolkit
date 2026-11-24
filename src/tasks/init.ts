@@ -2,8 +2,8 @@
 // 重复执行幂等：业务文件已存在一律保持不覆盖；仅入口壳按标记版本分流（落后或无标记就地更新为当前版本）
 import { existsSync, mkdirSync, statSync } from "node:fs"
 import { isAbsolute, join, relative, resolve } from "node:path"
-import { writeFileAtomic } from "./write-atomic"
-import { readTextFile } from "./read-text"
+import { writeFileAtomic } from "../write-atomic"
+import { readTextFile } from "../read-text"
 import {
   CARRIER_MARKER,
   CONVENTIONS_DIR,
@@ -17,7 +17,7 @@ import {
   LEGACY_FILE,
   readCarrier,
   readEntryVersion,
-} from "./conventions/format"
+} from "../conventions/format"
 import {
   AGENTS_POINTER_START,
   ENTRY_SHELL_NAME,
@@ -26,18 +26,11 @@ import {
   buildEntryShell,
   isToolkitSourceRepo,
   resolveProjectSkillDirs,
-} from "./conventions/entry"
-import { checkIgnore, gitIgnoredSet, probeRepo } from "./git-ignore"
-import { resolveLocalConfigPath, resolveProjectConfigPath, rewriteLegacySections } from "./config"
-import { todayCompact } from "./date"
-import { hasGlobalSkillsInstalled, PKG_NAME } from "./skills"
-
-// init 时输出的后续步骤提示（getting-started / guide 链接与文档站同源）
-export const INIT_LINKS = {
-  site: "https://fxri-net.github.io/toolkit/",
-  gettingStarted: "https://fxri-net.github.io/toolkit/getting-started",
-  guide: "https://fxri-net.github.io/toolkit/guide",
-}
+} from "../conventions/entry"
+import { checkIgnore, gitIgnoredSet, probeRepo } from "../git-ignore"
+import { resolveLocalConfigPath, resolveProjectConfigPath, rewriteLegacySections } from "../config"
+import { todayCompact } from "../date"
+import { hasGlobalSkillsInstalled, PKG_NAME } from "../skills"
 
 // .gitignore 片段稳定标识：认领本工具写入的注释行，重跑 init 时据此改写旧文案、不留双注释
 const GITIGNORE_MARKER = "# @fxri/toolkit"
@@ -287,7 +280,7 @@ export function appendPrettierignore(cwd: string, root: string): InitProduct[] {
         target,
         action: "skipped",
         detail: "未见 prettier 使用迹象，跳过任务区排除行写入",
-        hint: "项目启用 prettier 后重跑 toolkit init 会自动补上该排除行",
+        hint: "项目启用 prettier 后重跑 toolkit task init 会自动补上该排除行",
       },
     ]
   }
@@ -335,7 +328,7 @@ function migrateConfigSections(cwd: string): InitProduct[] {
 // mkdirSync 遇到该情形只抛 ENOENT，报错无从归因，故统一在创建前显式识别
 function assertCreatable(base: string, target: string, label: string): void {
   const blocker = findBlockingFile(base, target)
-  if (blocker) throw new Error(`${label}无法创建：${blocker} 是文件而非目录；请先删除该文件或改为目录后重跑 toolkit init`)
+  if (blocker) throw new Error(`${label}无法创建：${blocker} 是文件而非目录；请先删除该文件或改为目录后重跑 toolkit task init`)
 }
 
 // 判定目录链上是否有同名文件占位：返回首个被普通文件占用的仓库相对路径，无占用返回 null
@@ -387,7 +380,7 @@ function scaffoldEntryLayer(cwd: string): InitProduct[] {
         products.push(product)
         continue
       }
-      // 标记缺失或落后：就地重写为当前版本壳，兑现「重跑 toolkit init 即可补齐」
+      // 标记缺失或落后：就地重写为当前版本壳，兑现「重跑 toolkit task init 即可补齐」
       mkdirSync(dir, { recursive: true })
       writeFileAtomic(file, buildEntryShell())
       const product: InitProduct = {
@@ -418,7 +411,7 @@ function upsertAgentsPointer(cwd: string): InitProduct[] {
       {
         target: "AGENTS.md",
         action: "skipped",
-        detail: "文件不存在；不新建，需要时手工添加或先建文件再重跑 toolkit init",
+        detail: "文件不存在；不新建，需要时手工添加或先建文件再重跑 toolkit task init",
         hint: "无该指针块不影响规范可用：本项目规范仍可经全局技能 fxri-plan-task 触达（其工作流第一步即读 conventions/index.md）",
       },
     ]

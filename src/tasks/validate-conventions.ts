@@ -36,7 +36,7 @@ function localConfigIssues(cwd: string): CheckIssue[] {
     ]
   }
   if (ignore.state === "ignored") return []
-  return [{ level: "warn", file: rel, message: "本地配置文件未被 gitignore 覆盖，可能随 git 提交泄露个人配置：重跑 toolkit init 可自动补写忽略行" }]
+  return [{ level: "warn", file: rel, message: "本地配置文件未被 gitignore 覆盖，可能随 git 提交泄露个人配置：重跑 toolkit task init 可自动补写忽略行" }]
 }
 
 // 规范载体形态检查（软告警，不读内容）：只读首行标记与文件存在性，形态判据走 format.ts 的单一实现

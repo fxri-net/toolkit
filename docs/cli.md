@@ -9,9 +9,8 @@
 | 命令 | 用途 | 常用子命令 | 分页 |
 | --- | --- | --- | --- |
 | `toolkit status` | 整体状态：只读聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项 | — | [整体状态](./cli/status) |
-| `toolkit init` | 初始化任务区：目录骨架、规范载体、技能入口壳、忽略片段 | — | [项目初始化](./cli/init) |
 | `toolkit upgrade` | v1 工程一键迁移：配置段名、工程脚本、技能旧名、规范载体，含预演、复检与恢复 | — | [升级迁移](./cli/upgrade) |
-| `toolkit task` | 任务管理：总览、建档、更新、归档、校验、归一、统计、导入导出 | `add` / `update` / `archive` / `check` / `normalize` / `stats` / `export` / `import` | [任务管理](./cli/task) |
+| `toolkit task` | 任务管理：初始化、总览、建档、更新、归档、校验、归一、统计、导入导出 | `init` / `add` / `update` / `archive` / `check` / `normalize` / `stats` / `export` / `import` | [任务管理](./cli/task) |
 | `toolkit convention` | 规范载体：结构升级、表格与索引单元格归一、只读体检 | `upgrade` / `status` / `format` | [规范载体](./cli/convention) |
 | `toolkit release` | 多语言 CHANGELOG 与发版（封装 changesets，默认 `status`） | `status` / `bump` / `changelog` / `mirror` / `publish` / `audit` / `changeset` | [发版与更新日志](./cli/release) |
 | `toolkit skill` | AI 技能分发：安装、分发计划、状态、卸载、来源与版本 | `install` / `plan` / `status` / `uninstall` / `source` / `bump` / `lint` | [技能分发](./cli/skill) |
@@ -27,7 +26,7 @@
 
 | 你在做什么 | 用什么 |
 | --- | --- |
-| 新项目接入 | `toolkit init` → `toolkit skill install` → `toolkit config status` |
+| 新项目接入 | `toolkit task init` → `toolkit skill install` → `toolkit config status` |
 | 整体自查 | `toolkit status` 一次看全貌（`--check` 有 error 时退出 1；`--format json` 供脚本） |
 | 从 1.x 升级 | `toolkit status` 出现迁移提示 → `toolkit upgrade --dry-run` 看清单 → `toolkit upgrade` 执行 → 复检残留 |
 | 日常任务 | `toolkit task` 看板 → `toolkit task check` 校验 → `toolkit task archive` 归档 |
@@ -81,7 +80,7 @@
 | 命中策略 | 当前目录最终命中的那条作用域策略；名单配置生成的规则显示中文名，新策略保留 `policy:<id>` | `scope status`、`scope policy list` |
 | 判定目录 | 判定所依据的目录：优先 git 根，其次含 `.tasks` 的根，都没有则当前目录 | `scope status` / `list` |
 | 入口壳 | 内容闸门产物：只保留名称与描述，正文由 `scope guard` 按作用域下发 | `skill status`、`skillDelivery` |
-| 项目面薄壳 | 项目面安装时指向真源的别名壳；历史文档中的「入口薄壳」「薄壳」均指它 | `skill install --scope project`、`init` |
+| 项目面薄壳 | 项目面安装时指向真源的别名壳；历史文档中的「入口薄壳」「薄壳」均指它 | `skill install --scope project`、`task init` |
 | 内容闸门 | 按目录控制技能正文是否可读的机制，不是产物名 | `scope guard`、`skillDelivery` |
 | 全文安装 | 技能正文直接落盘，不经过内容闸门 | `skillDelivery.default=full` |
 | 技能统计 | usage 域：采集通道、技能模式、轮转、更新提示频率 | `usage` |
@@ -117,7 +116,7 @@
 
 `--redact` / `--warn` 为**域级开关**：仅 `task` 与 `release` 两个域支持。
 
-`init` / `skill` / `convention` / `config` / `docs` / `usage` / `rule` 域不提供，清单见各域的选项表。
+`skill` / `convention` / `config` / `docs` / `usage` / `rule` 域不提供，清单见各域的选项表。
 
 **批量参数**：目标集合是命令主语时省略参数即全部（如 `skill source refresh`）。
 

@@ -20,7 +20,7 @@ title: 校验与任务区（check / task）
 
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
-| `dir` | string | `".tasks"` | 任务目录；支持绝对路径或 `../` 相对路径，任务区可放项目外（如独立文档仓库）；被 CLI `--dir` 覆盖，`init`、`tasks` 与 `conventions` 同口径。旧段名 `tasks` 仍可读取，`toolkit init` 自动重写 |
+| `dir` | string | `".tasks"` | 任务目录；支持绝对路径或 `../` 相对路径，任务区可放项目外（如独立文档仓库）；被 CLI `--dir` 覆盖，`init`、`tasks` 与 `conventions` 同口径。旧段名 `tasks` 仍可读取，`toolkit task init` 自动重写 |
 | `importColumns` | object | 无 | 键 = 实际表头列名（匹配不区分大小写），值 = 标准字段名（`title`/`status`/`owner`/`scope`/`created`/`updated`/`completed`/`depends`/`body`）；优先级高于内置别名表 |
 
 ```json
