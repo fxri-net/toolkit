@@ -26,7 +26,7 @@ title: 退出码与解析错误
 交互中断固定为 `130`，与 shell 对 SIGINT 的惯例一致：`scope` / `usage` / `skill` / `rule` 等命令在提示中按 Ctrl+C 都以此结束，不再回落为 `0` 或 `1`。
 `scope` 交互里的「← 返回」与 ESC 属于正常导航（回到上层菜单），不产生中断退出码；主动选择「退出」按成功计 `0`。
 需要交互但没有可用终端的命令统一输出 `⚠️` 提示并以 `2` 结束，提示里给出等价的非交互参数：
-`toolkit init`、`toolkit scope --interactive`、`toolkit usage setup --interactive`、
+`toolkit setup`、`toolkit scope --interactive`、`toolkit usage setup --interactive`、
 `toolkit usage setup init` / `toolkit usage setup uninstall` / `toolkit usage config upload setup`、
 `toolkit usage setup hooks install` / `toolkit usage setup hooks remove`、`toolkit task add` / `task update` 的写确认、
 `toolkit config set` / `config unset` 的写确认。

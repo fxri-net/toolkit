@@ -4,9 +4,9 @@ import { EXIT } from "../exit-codes"
 import { formatChoiceLine } from "../prompt-line"
 import { isInteractive, loadPrompts, runInteractive } from "../prompts"
 import { line } from "../term-style"
-import { inspectWizardSteps, runWizardStep, type StepId, type WizardStep } from "./steps"
+import { inspectSetupSteps, runSetupStep, type StepId, type SetupStep } from "./steps"
 
-export interface InitWizardOptions {
+export interface SetupOptions {
   yes?: boolean
   dryRun?: boolean
   rules?: string
@@ -18,7 +18,7 @@ export interface InitWizardOptions {
 type StepOutcome = { status: "done" } | { status: "failed"; error: string }
 
 // 体检结果只作状态展示，不替用户决定交互步骤
-function reportEnvironment(steps: WizardStep[]): void {
+function reportEnvironment(steps: SetupStep[]): void {
   console.log("检查环境")
   for (const step of steps) {
     if (step.interactive) continue
@@ -28,7 +28,7 @@ function reportEnvironment(steps: WizardStep[]): void {
 }
 
 // 汇总：逐项结论 + 失败重试命令 + 结束指引
-function reportOutcome(steps: WizardStep[], outcomes: Map<string, StepOutcome>): void {
+function reportOutcome(steps: SetupStep[], outcomes: Map<string, StepOutcome>): void {
   console.log("")
   console.log("配置完成")
   for (const step of steps) {
@@ -48,9 +48,9 @@ function reportOutcome(steps: WizardStep[], outcomes: Map<string, StepOutcome>):
   console.log(line.hint(`  快速开始（在线，可选）：${INIT_LINKS.gettingStarted}`))
 }
 
-export async function runInitWizard(options: InitWizardOptions): Promise<void> {
+export async function runSetupWizard(options: SetupOptions): Promise<void> {
   const preset = options.rules ?? "recommended"
-  const steps = inspectWizardSteps(preset)
+  const steps = inspectSetupSteps(preset)
   const pick = (id: StepId) => steps.find((step) => step.id === id)
 
   // 显式参数即视为勾选，避免未进交互时漏做
@@ -110,7 +110,7 @@ export async function runInitWizard(options: InitWizardOptions): Promise<void> {
   for (const step of chosen) {
     console.log(`▶ ${step.label}`)
     try {
-      await runWizardStep(step.argv)
+      await runSetupStep(step.argv)
       outcomes.set(step.id, { status: "done" })
     } catch (e) {
       const error = (e as Error).message

@@ -1,26 +1,5 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`写盘产物 > init 生成任务区骨架与入口壳 1`] = `
-"退出码：2
---- stdout ---
-检查环境
-  安装 AI 技能：未配置
-  配置全局规则：未配置
-
---- stderr ---
-⚠️ 当前环境无法交互，请加 --yes 以默认值执行"
-`;
-
-exports[`写盘产物 > init 生成任务区骨架与入口壳 2`] = `
-"### package.json
-{
-  "name": "init-target",
-  "private": true
-}
-
-"
-`;
-
 exports[`写盘产物 > rules compose --dry-run 只预览，不写缓存 1`] = `
 "退出码：0
 --- stdout ---
@@ -40,6 +19,27 @@ exports[`写盘产物 > rules compose --dry-run 只预览，不写缓存 1`] = `
   一律遵循已加载的 \`fxri-code-encoding\` 技能；写盘后复核首三字节与行尾，别只补产物不修产线
 --- stderr ---
 将记住本次组合（core）；--dry-run 未写入缓存"
+`;
+
+exports[`写盘产物 > setup 在非 TTY 无 --yes 时不写盘 1`] = `
+"退出码：2
+--- stdout ---
+检查环境
+  安装 AI 技能：未配置
+  配置全局规则：未配置
+
+--- stderr ---
+⚠️ 当前环境无法交互，请加 --yes 以默认值执行"
+`;
+
+exports[`写盘产物 > setup 在非 TTY 无 --yes 时不写盘 2`] = `
+"### package.json
+{
+  "name": "init-target",
+  "private": true
+}
+
+"
 `;
 
 exports[`各域行为与错误路径 > changelog audit 1`] = `
@@ -2350,7 +2350,7 @@ Options:
 
 Commands:
   status [options]                整体状态：聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项（只读）
-  init [options]                  全局接入向导：安装 AI 技能、配置全局规则、设置生效范围（不初始化任务区）
+  setup [options]                 本机接入向导：安装 AI 技能、配置全局规则、设置生效范围（不初始化任务区）
   upgrade [options]               迁移 v1 项目到当前版本：配置段名 / 工程脚本 / 技能旧名 /
                                   规范载体，支持预览、复检与恢复
   skill [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源（包内 skills/ 与
@@ -2380,26 +2380,6 @@ Commands:
   快速开始 https://fxri-net.github.io/toolkit/getting-started
   完整攻略 https://fxri-net.github.io/toolkit/guide
   全部文档 https://fxri-net.github.io/toolkit/
-
---- stderr ---
-"
-`;
-
-exports[`帮助与版本口径 > init 帮助 1`] = `
-"退出码：0
---- stdout ---
-Usage: toolkit init [options]
-
-全局接入向导：安装 AI 技能、配置全局规则、设置生效范围（不初始化任务区）
-
-Options:
-  --yes             非交互：按默认值执行（设置生效范围与开启使用统计不执行）
-  --dry-run         只预览将执行的动作，不写盘
-  --rules <preset>  全局规则预设：minimal / recommended / full
-  --skills <scope>  技能分发范围：global / project / all
-  --no-scope        不设置生效范围
-  --no-usage        不开启使用统计
-  -h, --help        显示帮助
 
 --- stderr ---
 "
@@ -2442,6 +2422,26 @@ Commands:
   check [options]    校验规则模块与规则页的更新锚点是否同源（只报不改）
   reset [options]    清除规则组合缓存
   sync [options]     把提交信息规则同步到项目内 .trae/rules/git-commit-message.md（显式运行，不自动刷新）
+
+--- stderr ---
+"
+`;
+
+exports[`帮助与版本口径 > setup 帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit setup [options]
+
+本机接入向导：安装 AI 技能、配置全局规则、设置生效范围（不初始化任务区）
+
+Options:
+  --yes             非交互：按默认值执行（设置生效范围与开启使用统计不执行）
+  --dry-run         只预览将执行的动作，不写盘
+  --rules <preset>  全局规则预设：minimal / recommended / full
+  --skills <scope>  技能分发范围：global / project / all
+  --no-scope        不设置生效范围
+  --no-usage        不开启使用统计
+  -h, --help        显示帮助
 
 --- stderr ---
 "
@@ -2625,7 +2625,7 @@ Options:
 
 Commands:
   status [options]                整体状态：聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项（只读）
-  init [options]                  全局接入向导：安装 AI 技能、配置全局规则、设置生效范围（不初始化任务区）
+  setup [options]                 本机接入向导：安装 AI 技能、配置全局规则、设置生效范围（不初始化任务区）
   upgrade [options]               迁移 v1 项目到当前版本：配置段名 / 工程脚本 / 技能旧名 /
                                   规范载体，支持预览、复检与恢复
   skill [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源（包内 skills/ 与
@@ -2672,7 +2672,7 @@ Options:
 
 Commands:
   status [options]                整体状态：聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项（只读）
-  init [options]                  全局接入向导：安装 AI 技能、配置全局规则、设置生效范围（不初始化任务区）
+  setup [options]                 本机接入向导：安装 AI 技能、配置全局规则、设置生效范围（不初始化任务区）
   upgrade [options]               迁移 v1 项目到当前版本：配置段名 / 工程脚本 / 技能旧名 /
                                   规范载体，支持预览、复检与恢复
   skill [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源（包内 skills/ 与

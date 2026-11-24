@@ -56,7 +56,7 @@ features:
 
 ## 30 秒上手
 
-官方推荐路径：全局装 CLI → `toolkit init` 一步完成技能、规则与生效范围。按你的包管理器选一条安装：
+官方推荐路径：全局装 CLI → `toolkit setup` 一步完成技能、规则与生效范围。按你的包管理器选一条安装：
 
 ::: code-group
 
@@ -79,7 +79,7 @@ bun add -g @fxri/toolkit
 :::
 
 ```sh
-toolkit init  # 装技能、配规则、设生效范围（交互向导，可在任意目录执行）
+toolkit setup  # 装技能、配规则、设生效范围（交互向导，可在任意目录执行）
 ```
 
 任务区初始化交给 AI：进入项目后说「初始化任务区」即可（技能执行 `toolkit task init`）。团队项目改用 `pnpm add -D @fxri/toolkit` +

@@ -16,11 +16,11 @@
 不是都得装。**skills 独立可用，工具是可选加速**：只装 skills 时 AI 照着技能里的规范纯手工跑通建档、校验、归档全流程（零依赖，纯 Markdown）；
 只装工具时人可以用 CLI，但 AI 侧没有规范指引；两者都装时 AI 自动校验、自动归档，体验最完整（推荐）。
 一句话：skills 教 AI 怎么做，CLI 帮人（和 AI）做得快。
-安装顺序见[快速开始 · 安装](./getting-started#安装)：全局装 CLI → `toolkit init`（一次完成技能与规则接入）。
+安装顺序见[快速开始 · 安装](./getting-started#安装)：全局装 CLI → `toolkit setup`（一次完成技能与规则接入）。
 
 ### 个人用，全局装还是每个项目里装？
 
-个人多项目默认**双全局**，一次配置所有项目直接可用：全局装 CLI，再跑一次 `toolkit init` 完成技能、规则与生效范围（命令见[快速开始 · 安装](./getting-started#安装)）。
+个人多项目默认**双全局**，一次配置所有项目直接可用：全局装 CLI，再跑一次 `toolkit setup` 完成技能、规则与生效范围（命令见[快速开始 · 安装](./getting-started#安装)）。
 升级一条命令：`pnpm add -g @fxri/toolkit`。
 软链模式下技能随包自动更新；副本形式需重跑 `toolkit skill install`；skills 升级后开新会话，见「升级后要注意什么」。
 
@@ -67,7 +67,7 @@ Node 19 / 21 / 23 等非 LTS 版本只保证命令可运行，不纳入测试套
   ```bash
   toolkit skill install   # npm 用户先 npm add -g @fxri/toolkit
   ```
-  随后跑一次 `toolkit init` 完成规则配置与生效范围。
+  随后跑一次 `toolkit setup` 完成规则配置与生效范围。
   若仍想用上游安装器，也可把已装 CLI 包目录当本地源：
 
   - pnpm：`pnpm dlx skills add "$(pnpm root -g)/@fxri/toolkit" --global`
@@ -182,9 +182,10 @@ skills 是给 AI 编程助手看的「岗位说明书」：一份 Markdown 文�
 
 ## 任务与流程
 
-### `toolkit init` 会顺便把任务区建好吗？
+### `toolkit setup` 会顺便把任务区建好吗？
 
-不会，这是有意分工。`toolkit init` 只做全局接入（装技能、配规则、设生效范围），因为它的执行目录不一定是项目目录；
+不会，这是有意分工。`toolkit setup` 只做本机接入（装技能、配规则、设生效范围），因为它的执行目录不一定是项目目录；
+项目初始化由 `toolkit task init` 负责：建 `.tasks/` 骨架、规范载体与技能入口壳。
 任务区是项目内的东西：进入项目后对 AI 说「初始化任务区」即可，由技能执行 `toolkit task init`（也可手跑）。
 
 ### `.tasks/` 要提交到 git 吗？哪些文件该提交？

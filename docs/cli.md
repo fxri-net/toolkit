@@ -9,7 +9,7 @@
 | 命令 | 用途 | 常用子命令 | 分页 |
 | --- | --- | --- | --- |
 | `toolkit status` | 整体状态：只读聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项 | — | [整体状态](./cli/status) |
-| `toolkit init` | 全局接入向导：安装 AI 技能、配置全局规则、设置生效范围（不初始化任务区） | — | [项目初始化](./cli/init) |
+| `toolkit setup` | 本机接入向导：安装 AI 技能、配置全局规则、设置生效范围（不初始化任务区） | — | [本机接入](./cli/setup) |
 | `toolkit upgrade` | v1 工程一键迁移：配置段名、工程脚本、技能旧名、规范载体，含预演、复检与恢复 | — | [升级迁移](./cli/upgrade) |
 | `toolkit task` | 任务管理：初始化、总览、建档、更新、归档、校验、归一、统计、导入导出 | `init` / `add` / `update` / `archive` / `check` / `normalize` / `stats` / `export` / `import` | [任务管理](./cli/task) |
 | `toolkit convention` | 规范载体：结构升级、表格与索引单元格归一、只读体检 | `upgrade` / `status` / `format` | [规范载体](./cli/convention) |
@@ -27,7 +27,7 @@
 
 | 你在做什么 | 用什么 |
 | --- | --- |
-| 新项目接入 | `toolkit init` → `toolkit config status`（任务区由技能在项目内调 `toolkit task init`） |
+| 新项目接入 | `toolkit setup` → `toolkit config status`（任务区由技能在项目内调 `toolkit task init`） |
 | 整体自查 | `toolkit status` 一次看全貌（`--check` 有 error 时退出 1；`--format json` 供脚本） |
 | 从 1.x 升级 | `toolkit status` 出现迁移提示 → `toolkit upgrade --dry-run` 看清单 → `toolkit upgrade` 执行 → 复检残留 |
 | 日常任务 | `toolkit task` 看板 → `toolkit task check` 校验 → `toolkit task archive` 归档 |
@@ -47,7 +47,7 @@
 
 | 域 | 裸命令（TTY） | 非 TTY | 强制交互 | 机器可读 |
 | --- | --- | --- | --- | --- |
-| `toolkit init` | 全局接入向导 | 提示改用 `--yes`，按无交互退出码结束 | 无 | 无 |
+| `toolkit setup` | 本机接入向导 | 提示改用 `--yes`，按无交互退出码结束 | 无 | 无 |
 | `toolkit task` | 打印任务总览（默认视图） | 同左，退出 0 | 无 | `list` / `stats --format json`、`export` |
 | `toolkit skill` | 打印本域帮助 | 同左，退出 0 | `skill mount` 需交互（非 TTY 退 2） | 多数子命令 `--format json`（`mount` 等除外） |
 | `toolkit rule` | 打印本域帮助 | 同左，退出 0 | 无 | `list` / `compose --format json` |

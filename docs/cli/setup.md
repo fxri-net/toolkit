@@ -1,18 +1,18 @@
 ---
-title: 项目初始化（init）
+title: 本机接入（setup）
 ---
 
-# 项目初始化（init）
+# 本机接入（setup）
 
-> 一条命令完成全局接入：安装 AI 技能、配置全局规则、设置生效范围。只碰全局层，在任意目录可执行，不初始化任务区。
+> 一条命令完成本机接入：安装 AI 技能、配置全局规则、设置生效范围。只碰全局层，在任意目录可执行；项目初始化用 `toolkit task init`。
 
 ```bash
-toolkit init                   # 交互向导
-toolkit init --yes             # 非交互：按默认值执行
-toolkit init --dry-run         # 只输出逐项动作清单，不写盘
-toolkit init --rules full      # 指定全局规则预设
-toolkit init --skills project  # 指定技能分发范围
-toolkit init --no-scope --no-usage
+toolkit setup                   # 交互向导
+toolkit setup --yes             # 非交互：按默认值执行
+toolkit setup --dry-run         # 只输出逐项动作清单，不写盘
+toolkit setup --rules full      # 指定全局规则预设
+toolkit setup --skills project  # 指定技能分发范围
+toolkit setup --no-scope --no-usage
 ```
 
 ## 流程
@@ -32,11 +32,11 @@ toolkit init --no-scope --no-usage
 
 ## 行为约定
 
-- 只做全局接入，不初始化任务区：任务区是项目内的事，进入项目后对 AI 说「初始化任务区」，由技能执行 `toolkit task init`。
+- 只做本机接入，不初始化任务区：任务区与规范载体是项目内的事，进入项目后对 AI 说「初始化任务区」，由技能执行 `toolkit task init`。
 - 有交互的步骤一旦勾选就必进交互，不因「已配置」替用户跳过；选择页末项「退出」按成功返回并继续下一步。
 - 单步失败不中断后续，末尾汇总未完成项与重试命令；全部失败才非 0 退出。
 - 规则一步只生成文本并复制到剪贴板，不写任何 Agent 配置；粘贴位置由结尾提示给出。
-- 项目内的提交规则快照不由 init 刷新；需要更新时执行 `toolkit rule sync`（显式同步，不挂 prepare / init 自动化）。
+- 项目内的提交规则快照不由 setup 刷新；需要更新时执行 `toolkit rule sync`（显式同步，不挂 prepare / setup 自动化）。
 - `--yes` 与「设置生效范围」「开启使用统计」互斥：零交互模式不写任何范围决定，也不开启采集。
 - 非 TTY 且未给 `--yes`：提示改用 `--yes`，以无交互退出码结束。
 

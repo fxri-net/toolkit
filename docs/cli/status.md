@@ -58,7 +58,7 @@ toolkit status --format json  # 统一信封输出到 stdout（诊断仍走 stde
 
 ```text
 当前目录未初始化：未找到任务区 .tasks
-下一步：运行 toolkit init 创建任务区、规范载体与技能入口层
+下一步：运行 toolkit task init 创建任务区、规范载体与技能入口层
 ```
 
 该现场仍按成功退出（含 `--check`），初始化后才会进入逐域汇总。

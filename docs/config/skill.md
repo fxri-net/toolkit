@@ -232,7 +232,7 @@ monorepo 子目录执行亦能命中项目面；**本包源仓库自身视为 `g
 
 ⚠️ **clone 即用**：项目面真源副本与归属账随 git 入库，队友 clone 后无需重跑 `skill install` 即开箱可用。
 `toolkit task init` 在本地依赖含 `@fxri/toolkit` 时，向 `package.json` 补 `prepare` 钩子
-（`toolkit skill install --scope project --refresh`），依赖升级后自动刷新项目面（详见 [项目初始化](../cli/init)）。
+（`toolkit skill install --scope project --refresh`），依赖升级后自动刷新项目面（详见 [任务管理 · init](../cli/task#init)）。
 
 全局面软链 / 副本形态、pnpm 锚点、写入穿透与状态文件结构见下文[全局面分发细节](#全局面分发细节)。
 

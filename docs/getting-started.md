@@ -113,7 +113,7 @@ bunx @fxri/toolkit task      # bun
 
 安装 skills（一条命令，随 CLI 同批分发）：
 
-> 快速接入用 `toolkit init` 一步完成技能与规则；下面是分面与开关的进阶用法。
+> 快速接入用 `toolkit setup` 一步完成技能与规则；下面是分面与开关的进阶用法。
 
 ```bash
 toolkit skill install                  # 全局分发（推荐；技能随包分发，与 CLI 同一发布批次）
@@ -149,7 +149,7 @@ toolkit skill mount ~/work         # 在父目录下的项目里做项目面安�
 
 ## 配置全局规则
 
-> 快速接入已由 `toolkit init` 覆盖；本节是单独组合、手动粘贴的进阶用法。
+> 快速接入已由 `toolkit setup` 覆盖；本节是单独组合、手动粘贴的进阶用法。
 
 全局规则会整段进入 Agent 上下文，按需组合、只留当前需要的模块：
 
@@ -169,7 +169,7 @@ toolkit rule compose   # 交互式选择预设或自定义模块，选完自动�
 
 ```bash
 # 1. 全局接入：装技能、配规则、设生效范围（交互向导，可在任意目录执行）
-toolkit init
+toolkit setup
 ```
 
 进入项目后，对 AI 说「初始化任务区」即可（AI 执行 `toolkit task init` 并完成建档）；手操任务流程如下。
@@ -207,7 +207,7 @@ toolkit task archive
 
 不需要懂命令，直接对 AI 说：
 
-- 「新项目，先初始化任务区」→ AI 跑 `toolkit init`（1.7.0 新增命令）建 `.tasks/` 骨架、`conventions/` 规范载体与技能入口壳，并补齐 `.gitignore` 片段
+- 「新项目，先初始化任务区」→ AI 跑 `toolkit task init` 建 `.tasks/` 骨架、`conventions/` 规范载体与技能入口壳，并补齐 `.gitignore` 片段
   - 宿主疑似用 prettier 时另托管 `.prettierignore` 排除任务区，避免格式化器把表格填充出大量空白层
   - 项目本地依赖含 `@fxri/toolkit` 时写入 `prepare` 刷新钩子
   - 逐项报告实际动作

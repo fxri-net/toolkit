@@ -306,7 +306,7 @@ describe("帮助与版本口径", () => {
     ["docs theme 帮助", ["docs", "theme", "--help"]],
     ["docs nav 帮助", ["docs", "nav", "--help"]],
     ["docs dist 帮助", ["docs", "dist", "--help"]],
-    ["init 帮助", ["init", "--help"]],
+    ["setup 帮助", ["setup", "--help"]],
   ]
   for (const [name, args] of cases) {
     it(name, async () => {
@@ -436,11 +436,11 @@ describe("写盘产物", () => {
     expect(existsSync(join(homeDir, ".toolkit/cache/rules-selection.json"))).toBe(false)
   })
 
-  it("init 生成任务区骨架与入口壳", async () => {
+  it("setup 在非 TTY 无 --yes 时不写盘", async () => {
     rmSync(initDir, { recursive: true, force: true })
     mkdirSync(initDir, { recursive: true })
     putFile(initDir, "package.json", `${JSON.stringify({ name: "init-target", private: true }, null, 2)}\n`)
-    const run = await runCli(["init"], initDir)
+    const run = await runCli(["setup"], initDir)
     expect(render(run)).toMatchSnapshot()
     expect(renderTree(initDir)).toMatchSnapshot()
   })

@@ -5,7 +5,7 @@ import { readRulesSelection } from "../rules/cache"
 
 export type StepId = "skills" | "rules" | "scope" | "usage"
 
-export interface WizardStep {
+export interface SetupStep {
   id: StepId
   label: string
   // 单行说明：写到哪里、会改什么，只作展示不参与判定
@@ -20,7 +20,7 @@ export interface WizardStep {
 }
 
 // 体检：只读探测已就绪项，供默认勾选与状态展示
-export function inspectWizardSteps(preset: string): WizardStep[] {
+export function inspectSetupSteps(preset: string): SetupStep[] {
   const skillsReady = hasGlobalSkillsInstalled()
   const rulesReady = readRulesSelection() !== null
   return [
@@ -68,7 +68,7 @@ export function inspectWizardSteps(preset: string): WizardStep[] {
 }
 
 // 以子命令方式执行一步：用独立 program，避免污染顶层命令树
-export async function runWizardStep(argv: string[]): Promise<void> {
+export async function runSetupStep(argv: string[]): Promise<void> {
   const program = new Command().name("toolkit").exitOverride()
   const domain = argv[0]
   if (domain === "skill") {

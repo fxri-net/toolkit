@@ -22,7 +22,7 @@ export interface CommandEntry {
 
 // 顶层对象与动作：按 v2 目标命令树登记，阶段字段标注每个任务落地时点
 export const COMMAND_REGISTRY: readonly CommandEntry[] = [
-  { path: "init", stage: "current" },
+  { path: "setup", stage: "current" },
   { path: "status", stage: "current" },
   { path: "upgrade", stage: "current" },
 

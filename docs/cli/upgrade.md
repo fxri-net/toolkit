@@ -5,7 +5,7 @@ title: 升级迁移（upgrade）
 # 升级迁移（upgrade）
 
 `toolkit upgrade` 把 v1 工程迁到当前版本：配置段名与旧闸门键、`package.json` 的 prepare 钩子与旧命令名、
-技能旧名登记、规范载体结构、历史 `.bak`。迁移只改形态，不改业务行为；迁移后重跑 `toolkit init` 应零改动。
+技能旧名登记、规范载体结构、历史 `.bak`。迁移只改形态，不改业务行为；迁移后重跑 `toolkit task init` 应零改动。
 
 ## 常用命令
 
