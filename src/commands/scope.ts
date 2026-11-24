@@ -4,7 +4,7 @@ import type { Command } from "commander"
 import { resolveScope } from "../scope"
 import { runGuard } from "../scope/guard"
 import { formatList, formatStatus, plainIncludeHint } from "../scope/print"
-import { isInteractive, runInteractive } from "../prompts"
+import { isInteractive, reportCancelled, runInteractive } from "../prompts"
 import { isLiteralPath, resolveComparablePath, toTreePattern } from "../scope/paths"
 import { runScopeInteractive } from "../scope/interactive"
 import { line, policyEffectText, policyLayerText, scopeModeText, termText } from "../term-style"
@@ -478,7 +478,7 @@ async function runScopeReset(options: { what?: string; layer?: string; dryRun?: 
       return
     }
     if (!confirmed) {
-      console.error(line.hint("已取消，未写入任何文件"))
+      reportCancelled()
       return
     }
     // 逐类落盘：每次都重读现场，避免后一类用旧快照覆盖前一类的结果
