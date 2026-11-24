@@ -16,7 +16,7 @@ title: v1 → v2 升级（upgrade-v2）
 
 细节与退出码见[升级迁移](./cli/upgrade)。迁移只改形态、不改行为；迁移后重跑 `toolkit task init` 应零改动。
 
-## 手工兜底（个别步骤未自动完成时）
+## 手工兜底（自动迁移没覆盖到时）
 
 - 项目配置：`toolkit task init`（只处理项目 / 本地层，原文件备份 `.bak`）
 - 技能：`toolkit skill install --yes`（安装器会跟随曾用名迁移）

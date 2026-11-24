@@ -12,8 +12,8 @@
 ## 工作流总览
 
 ```
-方案确认 → 落盘建档(.tasks/active/) → task check 校验 → 执行开发
-        → 任务完成：标记 status/completed → task archive 归档
+方案确认 → 落盘建档(.tasks/active/) → 校验 → 执行开发
+        → 任务完成：自动归档（校验与归档由工具完成）
         → 规范沉淀(.tasks/conventions/，能力终点)
 ```
 
@@ -23,7 +23,7 @@
 提交代码（先归档与沉淀、后 git commit，同一提交） → release changeset add → release bump → tag → publish
 ```
 
-人可以直接执行命令；AI 侧装了技能包后，上述每一步都有对应的技能流程（见 [AI 技能包](#ai-技能包-skills)）。
+人可以直接执行命令；装了技能包后这些步骤都由 AI 按流程执行，通常不需要你手工跑（见 [AI 技能包](#ai-技能包-skills)）。
 
 ## 任务文件规范
 

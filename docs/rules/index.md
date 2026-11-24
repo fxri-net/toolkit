@@ -21,7 +21,7 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 | `recommended`（推荐，默认） | `core` + `output` + `workflow` + `practices` + `commit` | 多数项目从零起步 |
 | `full`（全量） | 推荐组合 + `usage` | 已启用 toolkit 技能统计，需连同上报纪律一并下发 |
 
-- `commit` 与既有 Conventional Commits / commitlint 互斥；`usage` 需先开启技能使用统计。
+- `commit` 与既有 Conventional Commits / commitlint 互斥；`usage` 仅在启用使用统计时参考。
 - 三篇规则页是「整篇阅读」入口，组合器负责细粒度生成；两者内容由测试锁定同源。
 
 ## 规则组合器
