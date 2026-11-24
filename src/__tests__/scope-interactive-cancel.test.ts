@@ -5,7 +5,7 @@ import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { setHomeDirForTest } from "../config"
 import { askWithBack, exitOnPromptCancel, exitWithCancel, isPromptCancel } from "../prompts"
-import { runScopeWizard } from "../scope/wizard"
+import { runScopeInteractive } from "../scope/interactive"
 
 let home = ""
 
@@ -124,14 +124,14 @@ describe("作用域向导取消与返回", () => {
   it("层选择按 ESC 返回并结束向导", async () => {
     answers.cancelName = "CancelPromptError"
     answers.throwAt = 1
-    await expect(runScopeWizard()).resolves.toBeUndefined()
+    await expect(runScopeInteractive()).resolves.toBeUndefined()
     expect(answers.selectCalls).toHaveLength(1)
   })
 
   it("层选择 Ctrl+C 向外抛出", async () => {
     answers.cancelName = "ExitPromptError"
     answers.throwAt = 1
-    await expect(runScopeWizard()).rejects.toMatchObject({ name: "ExitPromptError" })
+    await expect(runScopeInteractive()).rejects.toMatchObject({ name: "ExitPromptError" })
     expect(answers.selectCalls).toHaveLength(1)
   })
 
@@ -139,7 +139,7 @@ describe("作用域向导取消与返回", () => {
     answers.select.push("global")
     answers.cancelName = "ExitPromptError"
     answers.throwAt = 2
-    await expect(runScopeWizard()).rejects.toMatchObject({ name: "ExitPromptError" })
+    await expect(runScopeInteractive()).rejects.toMatchObject({ name: "ExitPromptError" })
     expect(answers.selectCalls).toHaveLength(2)
   })
 })

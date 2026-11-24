@@ -592,7 +592,7 @@ async function skillMatrixFlow(state: ScopeState): Promise<void> {
 }
 
 // 无参入口：状态优先菜单，循环直到退出
-export async function runScopeWizard(): Promise<void> {
+export async function runScopeInteractive(): Promise<void> {
   if (!requireInteractive({ action: "作用域向导", hint: "非交互请使用 toolkit scope status / list / add / exclude / remove / default / reset" })) return
   let layer = await pickLayer()
   if (!layer) return

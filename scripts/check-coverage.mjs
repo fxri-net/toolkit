@@ -11,7 +11,16 @@ const PATCH_THRESHOLD = 80
 const MIN_PATCH_STATEMENTS = 5
 const FLOORS = { statements: 78, branches: 65, functions: 82, lines: 81 }
 // 编排层：命令注册、输出文案与交互向导，正确性由 CLI 契约测试守，不参与改动行判定（新增命令层目录时在此登记）
-const ADAPTER_PREFIXES = ["src/commands/", "src/setup/", "src/usage/wizard.ts", "src/cli-main.ts", "src/status.ts"]
+const ADAPTER_PREFIXES = [
+  "src/commands/",
+  "src/setup/",
+  "src/cli-main.ts",
+  "src/status.ts",
+  "src/usage/commands.ts",
+  "src/usage/cli/",
+  "src/usage/interactive.ts",
+  "src/scope/interactive.ts",
+]
 
 /**
  * 读取命令行参数：--diff 指定 unified diff 文件（测试用），--coverage 指定报告目录

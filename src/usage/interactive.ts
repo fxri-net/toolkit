@@ -32,7 +32,7 @@ export const PRESET_LABELS: Record<Preset, { name: string; summary: string }> = 
 export const DEFAULT_INIT_PRESET = "third-party" as const
 
 // 初始化选项：--yes 走非交互路径，只支持 off / recommended / third-party；--dry-run 只预览
-export interface InitWizardOptions {
+export interface InitInteractiveOptions {
   yes?: boolean
   preset?: string
   agent?: string
@@ -55,7 +55,7 @@ function splitAgentNames(value: string | undefined): string[] {
 }
 
 // 非交互初始化：按预设写入配置并安装 Hook（规则通道不装 Hook），不做任何提问
-function runNonInteractiveInit(options: InitWizardOptions): void {
+function runNonInteractiveInit(options: InitInteractiveOptions): void {
   // 非交互模式必须显式给预设：不再回落「关闭」，避免显式 init 变成静默空操作
   if (!options.preset) {
     console.error("⚠️ 非交互模式须显式指定 --preset（off / recommended / third-party）")
@@ -217,7 +217,7 @@ export function resolveInitDefaults(config: UsageConfig): InitDefaults {
 }
 
 // 初始化向导：检测 → 预设 → Agent → 范围 → 字段 → 存储 → 预览 → 应用
-export async function runUsageInitWizard(options: InitWizardOptions = {}): Promise<void> {
+export async function runUsageInitInteractive(options: InitInteractiveOptions = {}): Promise<void> {
   if (options.yes) {
     runNonInteractiveInit(options)
     return
@@ -324,7 +324,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
         ? ["channel", "agents", "firstParty", "thirdParty", "mode", "include", "trigger", "args", "outcome", "dir", "rotation", "retention", "confirm"]
         : ["channel", "firstParty", "thirdParty", "mode", "include", "trigger", "args", "outcome", "dir", "rotation", "retention", "confirm"]
     // 首步按 ESC = 放弃整个向导，按取消口径退出
-    const abortWizard = (): never => {
+    const abortInteractive = (): never => {
       console.error(line.hint("已取消，未修改任何文件"))
       exitWithCancel()
     }
@@ -353,7 +353,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
           { back: true },
         )
         if ("back" in answer) {
-          abortWizard()
+          abortInteractive()
           return
         }
         state.channel = answer.value
@@ -855,7 +855,7 @@ async function toggleFlow(): Promise<void> {
 }
 
 // 无参菜单：每项调用对应子命令的实现；顶层退出、Ctrl+C 取消
-export async function runUsageWizard(): Promise<void> {
+export async function runUsageInteractive(): Promise<void> {
   if (!requireInteractive({ action: "usage setup", hint: "非交互请直接使用 toolkit usage 子命令，或在终端运行 toolkit usage setup" })) return
   for (;;) {
     const config = loadUsageConfig()

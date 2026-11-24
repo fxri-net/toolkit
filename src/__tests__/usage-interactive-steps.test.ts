@@ -5,7 +5,7 @@ import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { loadUsageConfig } from "../usage/config"
-import { runUsageInitWizard, runUsageWizard } from "../usage/wizard"
+import { runUsageInitInteractive, runUsageInteractive } from "../usage/interactive"
 
 // 调用计数：用于断言某一步被重新提问
 const calls = vi.hoisted(() => ({
@@ -87,7 +87,7 @@ afterEach(() => {
 
 describe("usage init 步骤机", () => {
   it("逐步前进并写入配置", async () => {
-    await runUsageInitWizard()
+    await runUsageInitInteractive()
     const config = loadUsageConfig()
     expect(config.enabled).toBe(true)
     expect(config.channel).toBe("rule")
@@ -98,14 +98,14 @@ describe("usage init 步骤机", () => {
 
   it("ESC 回到上一步并重新提问，而不是放弃整个向导", async () => {
     calls.backOnTrigger = true
-    await runUsageInitWizard()
+    await runUsageInitInteractive()
     // 第一次触发词确认被 ESC 取消，随后重新提问一次
     expect(calls.trigger).toBe(2)
     expect(loadUsageConfig().enabled).toBe(true)
   })
 
   it("菜单顶层选「退出」：不改任何配置", async () => {
-    await runUsageWizard()
+    await runUsageInteractive()
     expect(loadUsageConfig().enabled).toBe(false)
   })
 })

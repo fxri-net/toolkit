@@ -5,7 +5,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { DEFAULT_USAGE_CONFIG, loadUsageConfig, resetUsageConfigWarnings } from "../usage/config"
-import { DEFAULT_INIT_PRESET, PRESET_LABELS, resolveInitDefaults, runUsageInitWizard } from "../usage/wizard"
+import { DEFAULT_INIT_PRESET, PRESET_LABELS, resolveInitDefaults, runUsageInitInteractive } from "../usage/interactive"
 import type { UsageConfig } from "../usage/types"
 
 let home = ""
@@ -91,7 +91,7 @@ describe("usage 向导默认值", () => {
     vi.spyOn(console, "log").mockImplementation((...args: unknown[]) => {
       logs.push(args.map(String).join(" "))
     })
-    await runUsageInitWizard({ yes: true, preset: "recommended", channel: "rule", dryRun: true })
+    await runUsageInitInteractive({ yes: true, preset: "recommended", channel: "rule", dryRun: true })
     const text = logs.join("\n")
     expect(text).toContain("[预演] 写入本机层")
     expect(text).toContain("未写入任何文件")

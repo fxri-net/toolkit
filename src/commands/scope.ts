@@ -6,7 +6,7 @@ import { runGuard } from "../scope/guard"
 import { formatList, formatStatus, plainIncludeHint } from "../scope/print"
 import { isInteractive, runInteractive } from "../prompts"
 import { isLiteralPath, resolveComparablePath, toTreePattern } from "../scope/paths"
-import { runScopeWizard } from "../scope/wizard"
+import { runScopeInteractive } from "../scope/interactive"
 import { line, policyEffectText, policyLayerText, scopeModeText, termText } from "../term-style"
 import { assertJsonFormat, jsonEnvelope } from "../json-output"
 import { printJson } from "./shared"
@@ -566,7 +566,7 @@ export function registerScopeCommands(program: Command): void {
   scopeCmd.action(async (options: { interactive?: boolean }) => {
     // 裸命令：TTY 或显式 --interactive 进状态优先向导；非 TTY 输出状态摘要并成功退出
     if (options.interactive || isInteractive()) {
-      await runInteractive(() => runScopeWizard())
+      await runInteractive(() => runScopeInteractive())
       return
     }
     const report = resolveScope()

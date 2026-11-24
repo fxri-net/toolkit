@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { setHomeDirForTest } from "../config"
-import { buildLayerChoices, runScopeWizard, scanRangeChoices } from "../scope/wizard"
+import { buildLayerChoices, runScopeInteractive, scanRangeChoices } from "../scope/interactive"
 import { toTreePattern } from "../scope/paths"
 import * as skills from "../skills"
 
@@ -57,7 +57,7 @@ function setTty(value: boolean): void {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-scope-wizard-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-scope-interactive-"))
   configFile = join(home, ".toolkitrc.json")
   setHomeDirForTest(home)
   seed({ mode: "all", include: [], exclude: [] })
@@ -101,7 +101,7 @@ describe("层选择项", () => {
 describe("作用域向导菜单", () => {
   it("顶层退出不写任何配置", async () => {
     answers.select.push("global", "exit")
-    await runScopeWizard()
+    await runScopeInteractive()
     expect(readActivation().mode).toBe("all")
     expect(readActivation().include).toEqual([])
   })
@@ -109,7 +109,7 @@ describe("作用域向导菜单", () => {
   it("高级规则只读展示，不写配置", async () => {
     answers.select.push("global", "advanced", "exit")
     const log = vi.spyOn(console, "log")
-    await runScopeWizard()
+    await runScopeInteractive()
     expect(log.mock.calls.flat().join("\n")).toContain("高级规则只读")
     expect(readActivation().include).toEqual([])
   })
@@ -136,7 +136,7 @@ describe("名单写入", () => {
   it("加入白名单并切换默认值", async () => {
     answers.select.push("global", "add-include", "cwd", "dir", "exit")
     answers.confirm.push(true)
-    await runScopeWizard()
+    await runScopeInteractive()
     const activation = readActivation()
     expect(activation.mode).toBe("allowlist")
     expect(activation.include).toEqual([process.cwd()])
@@ -145,7 +145,7 @@ describe("名单写入", () => {
   it("加入黑名单保持默认值", async () => {
     answers.select.push("global", "add-exclude", "cwd", "dir", "exit")
     answers.confirm.push(true)
-    await runScopeWizard()
+    await runScopeInteractive()
     const activation = readActivation()
     expect(activation.mode).toBe("all")
     expect(activation.exclude).toEqual([process.cwd()])
@@ -154,7 +154,7 @@ describe("名单写入", () => {
   it("选择覆盖子目录时写入 /**", async () => {
     answers.select.push("global", "add-include", "cwd", "tree", "exit")
     answers.confirm.push(true)
-    await runScopeWizard()
+    await runScopeInteractive()
     expect(readActivation().include).toEqual([toTreePattern(process.cwd())])
   })
 })
@@ -167,7 +167,7 @@ describe("条目管理与默认值", () => {
     answers.select.push("global", "manage", "flip", "exit")
     answers.checkbox.push([`include::${target}`])
     answers.confirm.push(true)
-    await runScopeWizard()
+    await runScopeInteractive()
     const activation = readActivation()
     expect(activation.include).toEqual([])
     expect(activation.exclude).toEqual([target])
@@ -176,7 +176,7 @@ describe("条目管理与默认值", () => {
   it("切换为仅名单内生效", async () => {
     answers.select.push("global", "default", "off", "exit")
     answers.confirm.push(true)
-    await runScopeWizard()
+    await runScopeInteractive()
     expect(readActivation().mode).toBe("allowlist")
   })
 
@@ -184,7 +184,7 @@ describe("条目管理与默认值", () => {
     seed({ mode: "allowlist", include: ["/a"], exclude: ["/b"] })
     answers.select.push("global", "reset", "exit")
     answers.confirm.push(true)
-    await runScopeWizard()
+    await runScopeInteractive()
     const activation = readActivation()
     expect(activation.mode).toBe("all")
     expect(activation.include).toEqual([])
@@ -205,7 +205,7 @@ describe("技能矩阵", () => {
     answers.checkbox.push(["skill::fxri-plan-review"])
     answers.input.push("", "")
     answers.confirm.push(true)
-    await runScopeWizard()
+    await runScopeInteractive()
     const policy = matrixPolicy()
     expect(policy.name).toBe("技能矩阵")
     expect(policy.effect).toBe("allow")
@@ -218,7 +218,7 @@ describe("技能矩阵", () => {
     answers.checkbox.push(["skill::fxri-code-encoding"])
     answers.input.push("", "")
     answers.confirm.push(true)
-    await runScopeWizard()
+    await runScopeInteractive()
     expect(matrixPolicy().skills).toEqual({ mode: "denylist", deny: ["fxri-code-encoding"] })
   })
 
@@ -231,7 +231,7 @@ describe("技能矩阵", () => {
     answers.checkbox.push(["profile::front", "skill::fxri-plan-review"])
     answers.input.push("", "")
     answers.confirm.push(true)
-    await runScopeWizard()
+    await runScopeInteractive()
     expect(matrixPolicy().skills).toEqual({
       mode: "allowlist",
       profiles: ["front"],
@@ -244,7 +244,7 @@ describe("技能矩阵", () => {
     answers.checkbox.push(["skill::fxri-plan-review"])
     answers.input.push("AGENTS.md", "github.com/acme/**")
     answers.confirm.push(true)
-    await runScopeWizard()
+    await runScopeInteractive()
     expect(matrixPolicy().when).toEqual({
       paths: [process.cwd()],
       markers: ["AGENTS.md"],
@@ -256,14 +256,14 @@ describe("技能矩阵", () => {
     vi.spyOn(skills, "listPackageSkills").mockReturnValue([])
     answers.select.push("global", "matrix", "cwd", "allowlist", "exit")
     const log = vi.spyOn(console, "log")
-    await runScopeWizard()
+    await runScopeInteractive()
     expect(log.mock.calls.flat().join("\n")).toContain("没有可用技能或档案")
     expect(readConfig().policies).toBeUndefined()
   })
 
   it("ESC 从范围选择返回主菜单，不写配置", async () => {
     answers.select.push("global", "matrix", "back", "exit")
-    await runScopeWizard()
+    await runScopeInteractive()
     expect(readConfig().policies).toBeUndefined()
   })
 
@@ -272,14 +272,14 @@ describe("技能矩阵", () => {
     answers.checkbox.push(["skill::fxri-plan-review"])
     answers.input.push("", "")
     answers.confirm.push(true)
-    await runScopeWizard()
+    await runScopeInteractive()
     expect(matrixPolicy().skills).toEqual({ mode: "allowlist", allow: ["fxri-plan-review"] })
   })
 
   it("未勾选技能时取消，不写配置", async () => {
     answers.select.push("global", "matrix", "cwd", "allowlist", "exit")
     answers.checkbox.push([])
-    await runScopeWizard()
+    await runScopeInteractive()
     expect(readConfig().policies).toBeUndefined()
   })
 })

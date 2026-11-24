@@ -1,7 +1,7 @@
 // 使用情况 CLI：按 show / data / config / setup 四组装配；上报与补录保留在顶层
 import type { Command } from "commander"
 import { isInteractive, runInteractive } from "../prompts"
-import { runUsageWizard } from "./wizard"
+import { runUsageInteractive } from "./interactive"
 import { printUsageInfo } from "./cli/context"
 import { flushQueue } from "./flush"
 import { registerUsageSetupCommands, registerUsageShowCommands } from "./cli/lifecycle"
@@ -23,7 +23,7 @@ export function registerUsageCommands(program: Command): void {
       console.log(line.hint("交互向导请运行 toolkit usage setup；单项操作见 toolkit usage --help"))
       return
     }
-    await runInteractive(() => runUsageWizard())
+    await runInteractive(() => runUsageInteractive())
   })
 
   // 四组：show 看现场与统计、data 管事件、config 改采集配置、setup 管生命周期
@@ -37,7 +37,7 @@ export function registerUsageCommands(program: Command): void {
   // 裸 setup：TTY 或显式 --interactive 进交互向导，非 TTY 打印子命令列表
   setup.action(async (options: { interactive?: boolean }) => {
     if (options.interactive || isInteractive()) {
-      await runInteractive(() => runUsageWizard())
+      await runInteractive(() => runUsageInteractive())
       return
     }
     setup.help()

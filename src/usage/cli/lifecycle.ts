@@ -5,7 +5,7 @@ import { runInteractive } from "../../prompts"
 import { AGENT_ADAPTERS } from "../adapters"
 import { ingestFromStdin, readLastHookError } from "../ingest"
 import { uploadStatus } from "../upload"
-import { installUsageHooks, printHooksStatus, removeUsageHooks, runUsageInitWizard, runUsageUninstall } from "../wizard"
+import { installUsageHooks, printHooksStatus, removeUsageHooks, runUsageInitInteractive, runUsageUninstall } from "../interactive"
 import { usageConfigPath } from "../config"
 import { queueCount } from "../queue"
 import { listEventFiles, readAllEvents, readIndex } from "../store"
@@ -67,7 +67,7 @@ export function registerUsageSetupCommands(setup: Command, usage: Command): void
     .option("--agent <names>", "非交互模式指定 Agent（逗号分隔，仅 hook 通道需要）")
     .option("--dry-run", "只预览将写入的配置与 Hook 动作，不写盘")
     .action(async (options: { yes?: boolean; preset?: string; agent?: string; channel?: string; dryRun?: boolean }) => {
-      await runInteractive(() => runUsageInitWizard(options))
+      await runInteractive(() => runUsageInitInteractive(options))
     })
 
   // 卸载：停用采集、移除 Hook；默认保留数据
