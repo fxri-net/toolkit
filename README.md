@@ -73,6 +73,7 @@ toolkit setup
 | [推荐技能包](./docs/packages.md) | 按场景选择技能源（含 playbook 等外部来源） |
 | [核心模型](./docs/concepts.md) | 一张图看懂五件套的组成、关系与配合 |
 | [适用场景](./docs/scenarios.md) | 按个人 / 团队 / 组织 / 沉淀者 / 维护者 / 存量迁移对号入座 |
+| [内网推广](./docs/adoption.md) | 组织内推广：一句话介绍、讲稿、试点方案与决策者问答 |
 | [操作手册](./docs/handbook.md) | 日常照着做：每个场景该说什么、做什么 |
 | [完整攻略](./docs/guide.md) | 日常使用：工作流、Git 纳管、项目级激活、多语言 CHANGELOG |
 | [CLI 参考](./docs/cli.md) | 查命令、参数、默认值、退出码 |
