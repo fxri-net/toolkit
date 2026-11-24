@@ -41,7 +41,7 @@ export const PIPELINE_LAYERS: DiagramLayer[] = [
       { id: "setup", label: "toolkit setup", to: "/cli/setup", note: "技能 + 规则 + 范围" },
       { id: "install", label: "skill install", to: "/cli/skill", note: "全局 / 项目面" },
       { id: "scope", label: "scope", to: "/cli/scope", note: "哪些项目生效" },
-      { id: "usage", label: "usage", to: "/cli/usage", note: "默认关闭" },
+      { id: "usage", label: "usage", to: "/cli/usage", note: "本机统计与导出" },
     ],
   }
 ]
