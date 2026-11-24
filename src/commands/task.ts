@@ -10,6 +10,7 @@ import { computeStats, renderStats } from "../tasks/stats"
 import { validateTasks, type CheckIssue } from "../tasks/validate"
 import { checkArchive, fixArchive } from "../tasks/normalize"
 import { createTask, defaultOwner, updateTask } from "../tasks/edit"
+import { inferScopeDefault } from "../tasks/scope-default"
 import { isInteractive, reportCancelled, runInteractive } from "../prompts"
 import { askInput } from "../cli-ui"
 import { EXIT } from "../exit-codes"
@@ -447,7 +448,7 @@ export function registerTasksCommands(program: Command): void {
             return
           }
           owner = ownerAnswer.trim()
-          const scopeAnswer = await askInput({ message: "影响范围（单值，ESC 取消）", default: scope ?? "cli" })
+          const scopeAnswer = await askInput({ message: "影响范围（单值，ESC 取消）", default: scope ?? inferScopeDefault(dir) })
           if (scopeAnswer === null) {
             cancelled = true
             return

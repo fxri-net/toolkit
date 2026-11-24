@@ -3,9 +3,9 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
 import type { Command } from "commander"
 import { composeRules, listRules, loadRuleset, type Ruleset } from "../rules"
-import { clearRulesSelection, readRulesSelection, writeRulesSelection } from "../rules/cache"
+import { clearRulesSelection, readRulesSelection, writeRulesSelection, type RulesSelection } from "../rules/cache"
 import { copyToClipboard } from "../rules/clipboard"
-import { buildPresetChoices, CUSTOM_PRESET, normalizePickedModules } from "../rules/select"
+import { buildPresetChoices, CUSTOM_PRESET, defaultPreset, normalizePickedModules } from "../rules/select"
 import { inspectRuleSync, writeRuleSync } from "../rules/sync"
 import { INTERACTIVE_EXIT, exitOnPromptCancel, isInteractive, reportCancelled } from "../prompts"
 import { askCheckbox, askConfirm, askSelectOrExit, fail, reportWrite } from "../cli-ui"
@@ -15,16 +15,20 @@ import { line, style } from "../term-style"
 import { writeFileAtomic } from "../write-atomic"
 
 // 交互式选择：自定义步骤 ESC 回到预设，预设步骤 ESC / 退出项取消整条命令；取消不写缓存
-async function selectInteractively(ruleset: Ruleset, cached: string[] | null): Promise<string[] | null> {
-  const fallback = cached ?? ruleset.presets.recommended?.modules ?? []
+// 返回模块列表与所选预设名（自定义组合不带预设名），供缓存记录预设身份
+async function selectInteractively(
+  ruleset: Ruleset,
+  cached: RulesSelection | null,
+): Promise<{ modules: string[]; preset?: string } | null> {
+  const fallback = cached?.modules ?? ruleset.presets.recommended?.modules ?? []
   for (;;) {
     const choice = await askSelectOrExit({
       message: "选择规则组合",
-      default: cached ? CUSTOM_PRESET : "recommended",
+      default: defaultPreset(cached, ruleset.presets),
       choices: buildPresetChoices(ruleset.presets),
     })
     if (choice === null) return null
-    if (choice !== CUSTOM_PRESET) return ruleset.presets[choice]?.modules ?? []
+    if (choice !== CUSTOM_PRESET) return { modules: ruleset.presets[choice]?.modules ?? [], preset: choice }
     const picked = await askCheckbox({
       message: "选择要包含的规则模块（空格切换，回车确认）",
       choices: ruleset.modules.map((mod) => ({
@@ -36,10 +40,12 @@ async function selectInteractively(ruleset: Ruleset, cached: string[] | null): P
       escape: "back",
     })
     if (picked === null) continue
-    return normalizePickedModules(
-      ruleset.modules.map((mod) => mod.id),
-      picked,
-    )
+    return {
+      modules: normalizePickedModules(
+        ruleset.modules.map((mod) => mod.id),
+        picked,
+      ),
+    }
   }
 }
 
@@ -193,6 +199,7 @@ export function registerRulesCommands(program: Command): void {
         const interactive = isInteractive() && !options.preset && modules.length === 0
         let ids: string[]
         let explicit = false
+        let presetName: string | undefined
         if (modules.length > 0) {
           ids = modules
           explicit = true
@@ -204,13 +211,15 @@ export function registerRulesCommands(program: Command): void {
           }
           ids = preset.modules
           explicit = true
+          presetName = options.preset
         } else if (interactive) {
-          const picked = await selectInteractively(ruleset, cached?.modules ?? null)
+          const picked = await selectInteractively(ruleset, cached)
           if (!picked) {
             reportCancelled()
             return
           }
-          ids = picked
+          ids = picked.modules
+          presetName = picked.preset
           explicit = true
         } else if (cached) {
           ids = cached.modules
@@ -222,7 +231,7 @@ export function registerRulesCommands(program: Command): void {
         const remember = explicit && options.cache !== false
         const rememberCombo = (): void => {
           if (!remember || dryRun) return
-          writeRulesSelection(ids)
+          writeRulesSelection(ids, presetName)
           console.error(`${line.ok(`已记住本次组合（${ids.join(" → ")}）`)}，${style.hint("下次 rules compose 会作为默认勾选")}`)
         }
         if (remember && dryRun) console.error(line.hint(`将记住本次组合（${ids.join(" → ")}）；--dry-run 未写入缓存`))

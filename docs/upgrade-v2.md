@@ -12,7 +12,7 @@ title: v1 → v2 升级（upgrade-v2）
 2. 在当前工程执行 `toolkit upgrade`（TTY 逐项确认；CI / 脚本用 `toolkit upgrade --yes`）
    - 先看计划：`toolkit upgrade --dry-run`；作为门禁：`toolkit upgrade --check`
    - 自动处理三层配置段名、`package.json` 旧钩子与旧命令名、技能旧名登记、规范载体与历史 `.bak`
-3. 重新生成规则快照：`toolkit rule compose --copy`，把输出粘贴回 Agent 全局规则入口
+3. 重新生成规则快照：`toolkit rule compose --copy --no-cache`，把输出粘贴回 Agent 全局规则入口
 
 细节与退出码见[升级迁移](./cli/upgrade)。迁移只改形态、不改行为；迁移后重跑 `toolkit task init` 应零改动。
 

@@ -7,6 +7,7 @@ import { setHomeDirForTest } from "../config"
 import { composeRules, listRules, loadRuleModules, loadRuleset } from "../rules"
 import { CLIP_FILE_ENV, clipboardCommands, copyToClipboard } from "../rules/clipboard"
 import { clearRulesSelection, readRulesSelection, rulesSelectionPath, writeRulesSelection } from "../rules/cache"
+import { CUSTOM_PRESET, defaultPreset } from "../rules/select"
 
 let home = ""
 
@@ -104,6 +105,25 @@ describe("规则组合缓存", () => {
     mkdirSync(dirname(rulesSelectionPath()), { recursive: true })
     writeFileSync(rulesSelectionPath(), JSON.stringify({ schema: 1, modules: ["core", "absent"] }), "utf8")
     expect(readRulesSelection(["core", "output"])).toEqual({ schema: 1, modules: ["core"] })
+  })
+
+  it("记录预设名，自定义组合不残留旧预设", () => {
+    writeRulesSelection(["workflow"], "minimal")
+    expect(readRulesSelection()).toEqual({ schema: 1, modules: ["workflow"], preset: "minimal" })
+    writeRulesSelection(["workflow", "core"])
+    expect(readRulesSelection()).toEqual({ schema: 1, modules: ["workflow", "core"] })
+  })
+
+  it("交互默认预设：缓存预设仍存在时沿用，否则自定义或推荐", () => {
+    const presets = loadRuleset().presets
+    const custom = { modules: ["workflow"] }
+    const withPreset = { modules: ["workflow"], preset: "minimal" }
+    const stalePreset = { modules: ["workflow"], preset: "absent" }
+    expect(defaultPreset(null, presets)).toBe("recommended")
+    expect(defaultPreset(custom, presets)).toBe(CUSTOM_PRESET)
+    expect(defaultPreset(withPreset, presets)).toBe("minimal")
+    // 预设已从清单移除时回落到自定义
+    expect(defaultPreset(stalePreset, presets)).toBe(CUSTOM_PRESET)
   })
 })
 

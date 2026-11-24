@@ -54,6 +54,8 @@ toolkit task check --strict       # 任务目录不存在时报错退出（默�
 
 不带子命令时输出待完成看板，末尾汇总与 `stats` 共用同一维度；任务正文的 `> 批次：第 N 批（共 M 批）` 行会被解析进「按批次」汇总。
 
+`task add` 交互的影响范围默认取自项目内最近一条任务（含归档），读不到时回落 `cli`；负责人默认取 git 用户名。
+
 机器可读只在 `list` / `stats`（`--format json`）与 `export` 提供；`check` / `archive` / `normalize` 为文本报告，不支持 `--format json`。
 
 ### init

@@ -21,3 +21,12 @@ export function normalizePickedModules(moduleIds: string[], picked: string[]): s
   const wanted = new Set(picked)
   return moduleIds.filter((id) => wanted.has(id))
 }
+
+// 交互默认高亮的预设：缓存的预设仍存在时沿用，否则有缓存时落到自定义，无缓存时推荐组合
+export function defaultPreset(
+  cached: { modules: string[]; preset?: string } | null,
+  presets: Record<string, RulePreset>,
+): string {
+  if (cached?.preset && presets[cached.preset]) return cached.preset
+  return cached ? CUSTOM_PRESET : "recommended"
+}

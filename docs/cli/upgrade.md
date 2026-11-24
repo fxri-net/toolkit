@@ -69,7 +69,7 @@ toolkit upgrade --restore latest  # 从最近一次备份恢复
 ## 边界与注意
 
 - ⚠️ 迁移会改写 `package.json` 与配置文件；执行前先 `--dry-run`，必要时用 `--restore` 回滚。
-- ⚠️ 规则快照保存在各 Agent 的全局规则入口，`upgrade` 无法安全改写，需按提示重新 `toolkit rule compose --copy` 后粘贴。
+- ⚠️ 规则快照保存在各 Agent 的全局规则入口，`upgrade` 无法安全改写，需按提示重新 `toolkit rule compose --copy --no-cache` 后粘贴（`--no-cache` 避免这次快照改写默认组合）。
 - ⚠️ 无法确认归属的技能目录不会删除，只列入人工项，避免误删上游安装器产物。
 
 ## 相关页面
