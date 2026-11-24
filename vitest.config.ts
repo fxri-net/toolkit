@@ -11,8 +11,9 @@ export default defineConfig({
     hookTimeout: 30000,
     coverage: {
       provider: "v8",
-      // json / json-summary 供 scripts/check-coverage.mjs 做双轨判定；阈值唯一真源在脚本内，这里不再配置
-      reporter: ["text", "json", "json-summary"],
+      // json / json-summary 供 scripts/check-coverage.mjs 做双轨判定；阈值唯一真源在脚本内，这里不再配置。
+      // 默认不输出 text 表格（通过即静默）；需要逐文件明细时显式加 --coverage.reporter=text 或看 HTML 报告
+      reporter: ["json", "json-summary"],
       include: ["src/**/*.ts"],
       exclude: ["src/**/__tests__/**", "src/index.ts"],
     },

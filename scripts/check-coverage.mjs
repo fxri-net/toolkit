@@ -128,11 +128,13 @@ function findEntry(coverage, rel) {
  * @param {Map<string, Set<number>>} input.added 改动行
  * @param {Record<string, any>} input.coverage coverage-final.json
  * @param {Record<string, { pct: number }>} input.total 覆盖率汇总 total
- * @return {{ ok: boolean, problems: string[], notes: string[] }} 判定结果
+ * @return {{ ok: boolean, problems: string[], notes: string[], verdict: string }} 判定结果与一行结论
  */
 function evaluate({ added, coverage, total, checkFloors = true }) {
   const problems = []
   const notes = []
+  // 一行结论：通过时必须说清判了什么、判了多少，避免与「未判定」混淆
+  let verdict = ""
 
   // 全局下限：只在整体塌方时触发，正常改动不该碰到；局部采集模式下算不出，跳过并说明
   if (checkFloors) {
@@ -145,16 +147,20 @@ function evaluate({ added, coverage, total, checkFloors = true }) {
       if (pct < floor) problems.push(`全局 ${metric} ${pct}% 低于下限 ${floor}%`)
     }
   } else {
-    notes.push("局部采集模式，跳过全局下限（仅流水线与 --full 校验）")
+    notes.push("局部采集：本次未校验全局下限（由流水线与 --full 承担）")
   }
 
   // 改动行：只统计起始行落在新增行上的语句，避免历史低覆盖目录拖累判定
   let statements = 0
   let covered = 0
+  let adapterSkipped = 0
   const uncovered = []
   for (const [rel, lines] of added) {
     // 编排层跳过：其正确性由 CLI 契约测试覆盖，按行强求只会生产无效用例
-    if (ADAPTER_PREFIXES.some((prefix) => rel.startsWith(prefix))) continue
+    if (ADAPTER_PREFIXES.some((prefix) => rel.startsWith(prefix))) {
+      adapterSkipped += 1
+      continue
+    }
     const entry = findEntry(coverage, rel)
     if (!entry) continue
     for (const [id, statement] of Object.entries(entry.statementMap ?? {})) {
@@ -166,31 +172,37 @@ function evaluate({ added, coverage, total, checkFloors = true }) {
     }
   }
   if (statements === 0) {
-    notes.push("本次改动没有可统计的 src 语句，跳过改动行判定")
+    verdict = adapterSkipped > 0 && adapterSkipped === added.size ? "本次改动全在编排层，未判定" : "无新增行，未判定"
+    notes.push("改动行判定未执行：没有可统计的 src 语句")
   } else if (statements < MIN_PATCH_STATEMENTS) {
-    notes.push(`改动语句仅 ${statements} 条（少于 ${MIN_PATCH_STATEMENTS}），跳过改动行判定`)
+    verdict = `改动语句 ${statements} 条，未达判定门槛`
+    notes.push(`改动语句少于 ${MIN_PATCH_STATEMENTS} 条，跳过改动行判定`)
   } else {
     const pct = (covered / statements) * 100
+    verdict = `改动行 ${pct.toFixed(1)}%（${covered}/${statements}）`
     if (pct < PATCH_THRESHOLD) {
       const listed = uncovered.slice(0, 20).join("、")
       const more = uncovered.length > 20 ? ` …（共 ${uncovered.length} 行）` : ""
       problems.push(`改动行覆盖率 ${pct.toFixed(1)}%（${covered}/${statements}）低于 ${PATCH_THRESHOLD}%，未覆盖：${listed}${more}`)
-    } else {
-      notes.push(`改动行覆盖率 ${pct.toFixed(1)}%（${covered}/${statements}）`)
     }
   }
-  return { ok: problems.length === 0, problems, notes }
+  return { ok: problems.length === 0, problems, notes, verdict }
 }
 
 /**
- * GitHub Actions 作业摘要：存在 GITHUB_STEP_SUMMARY 时追加覆盖率摘要；本地与 GitLab 不写。
+ * GitHub Actions 作业摘要：通过写一行结论、失败写指标与明细；本地与 GitLab 不写。
  * @param {Record<string, any>} summary coverage-summary.json 内容
- * @param {{ ok: boolean, problems: string[], notes: string[] }} result 判定结果
+ * @param {{ ok: boolean, problems: string[], notes: string[], verdict: string }} result 判定结果
  * @return {void}
  */
 function writeGithubSummary(summary, result) {
   const target = process.env.GITHUB_STEP_SUMMARY ?? ""
   if (!target) return
+  // 做过就留痕：通过也写一行结论，让人在 CI 页面看得出这一关跑过；明细仍只在失败时展开
+  if (result.ok) {
+    appendFileSync(target, `## 覆盖率\n\n✔ 覆盖率门禁通过（${result.verdict}）\n`, "utf8")
+    return
+  }
   const lines = ["## 覆盖率", "", "| 指标 | 覆盖 |", "| --- | --- |"]
   for (const metric of ["statements", "branches", "functions", "lines"]) {
     const pct = summary?.total?.[metric]?.pct
@@ -219,13 +231,16 @@ function main() {
   const changed = collectChangedLines(options)
   if (changed.note) console.log(`提示：${changed.note}`)
   const result = evaluate({ added: changed.added, coverage, total: summary.total, checkFloors: !options.noFloors })
-  for (const note of result.notes) console.log(`· ${note}`)
   writeGithubSummary(summary, result)
   if (!result.ok) {
+    // 失败：先给判定范围与附注，再逐条列失败原因
+    for (const note of result.notes) console.log(`· ${note}`)
     for (const problem of result.problems) console.error(`✖ ${problem}`)
     process.exit(1)
   }
-  console.log("✔ 覆盖率门禁通过")
+  // 通过：一行结论说清判了什么，附注说明本次没校验的范围（如局部采集不校验全局下限）
+  console.log(`✔ 覆盖率门禁通过（${result.verdict}）`)
+  for (const note of result.notes) console.log(`· ${note}`)
 }
 
 main()

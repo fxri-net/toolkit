@@ -58,7 +58,7 @@
     "lint:fix": "eslint . --fix",
     "test": "vitest run --exclude \"src/__tests__/warn-threshold.test.ts\"",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage --exclude \"src/__tests__/warn-threshold.test.ts\"",
+    "test:coverage": "vitest run --coverage --coverage.reporter=text --exclude \"src/__tests__/warn-threshold.test.ts\"",
     "test:repo-guard": "vitest run src/__tests__/warn-threshold.test.ts",
     "verify": "node scripts/verify.mjs",
     "changeset": "changeset",

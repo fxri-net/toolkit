@@ -63,11 +63,12 @@ afterEach(() => {
 })
 
 describe("覆盖率门禁：双轨判定", () => {
-  it("改动语句全部覆盖时通过", () => {
+  it("通过时输出一行含判定范围的结论", () => {
     const root = createFixture({ statements: [3, 4, 5, 6, 7, 8].map((line) => ({ line, hits: 1 })) })
     const result = run(root)
     expect(result.status).toBe(0)
-    expect(result.stdout).toContain("改动行覆盖率 100.0%")
+    expect(result.stdout).toContain("覆盖率门禁通过")
+    expect(result.stdout).toContain("改动行 100.0%（6/6）")
   })
 
   it("改动行覆盖不足时失败并列出未覆盖文件行", () => {
@@ -80,21 +81,21 @@ describe("覆盖率门禁：双轨判定", () => {
     expect(result.stderr).toContain("src/demo.ts:6")
   })
 
-  it("没有新增行时跳过改动行判定", () => {
+  it("没有新增行时结论注明未判定", () => {
     const root = createFixture({
       statements: [3, 4, 5, 6, 7, 8].map((line) => ({ line, hits: 0 })),
       diff: "",
     })
     const result = run(root)
     expect(result.status).toBe(0)
-    expect(result.stdout).toContain("跳过改动行判定")
+    expect(result.stdout).toContain("无新增行，未判定")
   })
 
-  it("改动语句少于 5 条时放行（避免小改动被拦）", () => {
+  it("改动语句少于 5 条时放行并注明未达门槛", () => {
     const root = createFixture({ statements: [3, 4].map((line) => ({ line, hits: 0 })) })
     const result = run(root)
     expect(result.status).toBe(0)
-    expect(result.stdout).toContain("少于 5")
+    expect(result.stdout).toContain("未达判定门槛")
   })
 
   it("全局下限跌破时失败", () => {
@@ -124,10 +125,10 @@ describe("覆盖率门禁：双轨判定", () => {
       encoding: "utf8",
     })
     expect(result.status).toBe(0)
-    expect(result.stdout).toContain("跳过全局下限")
+    expect(result.stdout).toContain("未校验全局下限")
   })
 
-  it("存在 GITHUB_STEP_SUMMARY 时追加摘要", () => {
+  it("通过时 job summary 写一行结论", () => {
     const root = createFixture({ statements: [3, 4, 5, 6, 7, 8].map((line) => ({ line, hits: 1 })) })
     const target = join(root, "summary.md")
     const result = spawnSync(process.execPath, [script, "--coverage", "coverage", "--diff", "diff.txt"], {
@@ -136,9 +137,21 @@ describe("覆盖率门禁：双轨判定", () => {
       env: { ...process.env, GITHUB_STEP_SUMMARY: target },
     })
     expect(result.status).toBe(0)
-    const written = readFileSync(target, "utf8")
-    expect(written).toContain("## 覆盖率")
-    expect(written).toContain("改动行覆盖率")
+    expect(readFileSync(target, "utf8")).toContain("覆盖率门禁通过（改动行 100.0%（6/6））")
+  })
+
+  it("失败时写入 job summary", () => {
+    const root = createFixture({
+      statements: [3, 4, 5, 6, 7, 8].map((line, index) => ({ line, hits: index < 3 ? 1 : 0 })),
+    })
+    const target = join(root, "summary.md")
+    const result = spawnSync(process.execPath, [script, "--coverage", "coverage", "--diff", "diff.txt"], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, GITHUB_STEP_SUMMARY: target },
+    })
+    expect(result.status).toBe(1)
+    expect(readFileSync(target, "utf8")).toContain("## 覆盖率")
   })
 
   it("编排层文件的改动行不计入判定", () => {
@@ -149,6 +162,7 @@ describe("覆盖率门禁：双轨判定", () => {
     const result = run(root)
     expect(result.status).toBe(0)
     expect(result.stderr).toBe("")
+    expect(result.stdout).toContain("本次改动全在编排层，未判定")
   })
 
   it("核心域文件的改动行仍按 80% 判定", () => {
