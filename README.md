@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/fxri-net/toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/fxri-net/toolkit/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@fxri/toolkit)](https://www.npmjs.com/package/@fxri/toolkit)
-[![Node](https://img.shields.io/badge/node-%E2%89%A518.17-brightgreen)](./docs/getting-started.md#安装)
+[![Node](https://img.shields.io/badge/node-%E2%89%A518.17-brightgreen)](./docs/getting-started.md#完整安装)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 [![文档站](https://img.shields.io/badge/docs-fxri--net.github.io%2Ftoolkit-blueviolet)](https://fxri-net.github.io/toolkit/)
 
@@ -131,7 +131,7 @@ pnpm add -D @fxri/toolkit    # 项目 devDependency（团队项目推荐，版�
 pnpm dlx @fxri/toolkit task  # 不安装临时执行
 ```
 
-npm / yarn / bun 用户与各方式对比见 [快速开始 · 安装](./docs/getting-started.md#安装)。
+npm / yarn / bun 用户与各方式对比见 [快速开始 · 完整安装](./docs/getting-started.md#完整安装)。
 
 ## 🔒 隐私脱敏
 
