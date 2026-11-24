@@ -12,7 +12,7 @@ export interface DiagramLayer {
   nodes: DiagramLink[]
 }
 
-// 三层结构：仓库资产 ← 随包分发的能力 ← 一次性接入动作
+// 三层结构：一次性接入动作 → 随包分发的能力 → 仓库资产
 export const PIPELINE_LAYERS: DiagramLayer[] = [
   {
     title: "你的仓库（随 git 走）",
