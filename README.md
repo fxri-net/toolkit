@@ -45,7 +45,7 @@ toolkit setup
 之后：方案确认后由 AI 登记为 `.tasks/` 任务文件 → `toolkit task check` 校验 →
 完成后 `toolkit task archive` 归档并做规范沉淀。
 多任务 / 多仓方案先出纯展示计划表，确认后说「开始」即一次建完全部任务档并校验，再按序逐个交付提交。
-完整步骤见 [快速开始](./docs/getting-started.md)。
+完整步骤见 [快速开始](./docs/getting-started.md)。按场景选路径见 [适用场景](./docs/scenarios.md)，整体结构见 [核心模型](./docs/concepts.md)。
 
 ## ✨ 能力矩阵
 

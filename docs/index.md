@@ -12,11 +12,11 @@ hero:
       text: 30 秒上手
       link: ./getting-started
     - theme: alt
+      text: 一张图看懂
+      link: ./concepts
+    - theme: alt
       text: 完整攻略
       link: ./guide
-    - theme: alt
-      text: GitHub
-      link: https://github.com/fxri-net/toolkit
 
 features:
   - icon: ✅
@@ -54,6 +54,15 @@ features:
     details: 主题、导航与构建产物按随包规则校验，多仓文档站样式与导航漂移一条命令发现。
 ---
 
+## 按场景进入
+
+| 你是… | 从这里开始 |
+| --- | --- |
+| 个人 AI 重度用户 | [适用场景 · 个人](./scenarios#个人-ai-重度用户)：跨会话不丢上下文 |
+| 团队 AI 协作开发 | [适用场景 · 团队](./scenarios#团队-ai-协作开发)：多人多 AI 不互相覆盖 |
+| 公司 / 组织内部统一 | [适用场景 · 组织](./scenarios#公司-组织内部统一)：统一规范、按目录生效 |
+| 想在团队里推广 | [适用场景 · 组织](./scenarios#公司-组织内部统一)：先看试点思路与生效范围 |
+
 ## 30 秒上手
 
 官方推荐路径：全局装 CLI → `toolkit setup` 一步完成技能、规则与生效范围。按你的包管理器选一条安装：
@@ -86,18 +95,6 @@ toolkit setup  # 装技能、配规则、设生效范围（交互向导，可在
 `toolkit skill install --scope project` 锁定版本，项目内执行命令用 `pnpm exec toolkit`。
 
 详细步骤见[快速开始](./getting-started)。
-
-## 解决什么痛点
-
-| 痛点 | 本工具的做法 |
-| --- | --- |
-| 方案确认完就丢，AI 会话一关什么都不剩 | 方案落盘为标准任务文件，`toolkit task check` 校验、`toolkit task archive` 归档、规范沉淀进 conventions 载体，能力终点到沉淀为止 |
-| 多人（含多个 AI）同时维护任务，互相覆盖 | 任务唯一键 + 「先查后写」约定 + 归档排他锁 |
-| 任务散落各处，总览、过滤、统计靠人肉 | 一条命令扫 `.tasks/` 全目录，按状态/负责人/范围/日期过滤，可导出 CSV / XLSX / JSON |
-| 发版 CHANGELOG 分组标题是英文，且分组维度与变更类型对不上 | 封装 changesets，条目按变更类型语义分组并内置中文格式化，任意语言可配置扩展 |
-| 全局规则散在各人手里，升级后每份快照都不同步 | `toolkit rule` 按模块组合与复制，规则正文随包分发，升级后重新组合即同步 |
-| 全局技能在所有项目都被触发，个人项目也被插入 | 默认全域生效；`toolkit scope` 按白名单 / 黑名单 / 标记 / git 远端或技能矩阵策略限定生效目录，必要时 `skill mount` 做项目面安装 |
-| 多个仓库的文档站样式与导航各写一套，漂移无人发现 | `toolkit docs theme check` / `nav check` / `dist check` 按随包规则统一校验 |
 
 ## 文档索引
 
