@@ -4,6 +4,7 @@
     {
       "text": "指南",
       "items": [
+        { "text": "适用场景", "link": "/scenarios" },
         { "text": "操作手册", "link": "/handbook" },
         { "text": "项目级激活", "link": "/guide#项目级激活模板" },
         { "text": "完整攻略", "link": "/guide" }
@@ -46,6 +47,7 @@
     {
       "text": "指南",
       "items": [
+        { "text": "适用场景", "link": "/scenarios" },
         { "text": "操作手册", "link": "/handbook" },
         { "text": "项目级激活", "link": "/guide#项目级激活模板" },
         { "text": "完整攻略", "link": "/guide" }
