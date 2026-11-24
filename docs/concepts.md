@@ -51,8 +51,8 @@ import ModelMap from './.vitepress/theme/components/diagrams/ModelMap.vue'
 
 <TaskJourney />
 
-对话里说需求 → AI 出方案 → 你确认 → 建档落盘 → 执行 → `task check` 校验 → `task archive` 归档 → 规范沉淀。
-校验不通过就回到执行；提交与发版是可选的下一步，不是必经环节。
+对话里说需求 → AI 出方案 → 你确认 → 建档落盘 → 执行 → 校验 → 归档 → 规范沉淀。
+其中校验与归档由工具完成；校验不通过就回到执行。提交与发版是可选的下一步，不是必经环节。
 
 ## 五件套怎么配合
 
@@ -74,7 +74,7 @@ import ModelMap from './.vitepress/theme/components/diagrams/ModelMap.vue'
 | 让 AI 按团队规范做事 | 规范载体 → 技能 / 全局规则 |
 | 只在部分项目生效 | `toolkit scope` 与策略规则 |
 | 统一 AI 的输出格式 | `toolkit rule compose` |
-| 出问题先自查 | `toolkit status` / `task check` / `docs check` |
+| 出问题先自查 | 让 AI 看现场：状态、任务校验、文档校验都在它能跑的范围内 |
 
 ## 三个最容易混淆的点
 
@@ -82,7 +82,7 @@ import ModelMap from './.vitepress/theme/components/diagrams/ModelMap.vue'
 | --- | --- |
 | 装了 CLI ≠ 装了技能 | CLI 是命令；技能是给 AI 看的规范文本，要 `skill install` 或 `setup` 才落盘 |
 | 任务区 ≠ 规范载体 | 任务是一次交付，载体是跨任务沉淀下来的规则；同在 `.tasks/` 下但职责不同 |
-| 全局规则是快照 | 复制进 Agent 后不会自动更新，升级后要重新 `rule compose` |
+| 全局规则是快照 | 复制进 Agent 后不会自动更新；升级后重新组合一次即可同步，可让 AI 代做 |
 
 ## 深度了解
 

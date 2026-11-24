@@ -10,28 +10,15 @@
 
 ```bash
 pnpm add -g @fxri/toolkit  # 首次安装；npm / yarn / bun 与内网装法见下文「完整安装」
-toolkit setup              # 1. 本机接入：装技能、配规则、设生效范围（交互向导，可在任意目录执行）
-toolkit task init          # 2. 进项目后初始化任务区（也可直接对 AI 说「初始化任务区」）
-toolkit task               # 3. 查看任务总览（当前为空）
+toolkit setup              # 接入本机：装技能、配规则、设生效范围（交互向导，任意目录可执行）
 ```
 
-之后的日常闭环：
+**接好之后不必再记命令。** 进项目首次用到时，技能会自行初始化任务区与规范载体；
+建档、格式校验、归档与规范沉淀随你的工作自动完成，你照常说需求、确认方案即可。
 
-```bash
-# 4. 方案确认后，登记为任务文件（.tasks/active/202609/ 下）
-#    文件名：{YYYYMMDD}-{用户名}-{任务简述}.md
-#    简述取自正文标题（不翻译 / 不音译 / 不缩写），用户名与 owner 一致
-#    手工建档模板见「完整攻略」；装了 AI 技能包可直接让 AI 建档
-#    多任务 / 多仓方案：先出纯展示计划表，说「开始」后一次建完全部任务档并校验，再按序交付
-
-# 5. 校验
-toolkit task check
-
-# 6. 任务完成后：frontmatter 标记 status: 已完成 + completed 时间，然后归档
-toolkit task archive
-
-# 7.（可选，AI 协作时）归档后做任务级规范沉淀 → 能力终点
-```
+想看一眼进度时问一句「现在有哪些没做完的任务」。确实需要手工兜底时，等价命令是
+`toolkit task init`（初始化）、`toolkit task check`（校验）、`toolkit task archive`（归档），
+文件名与 frontmatter 规范见[完整攻略 · 任务文件规范](./guide#任务文件规范)。
 
 > 项目内安装（devDependency）时把 `toolkit` 换成 `pnpm exec toolkit`（npm 用户 `npx toolkit`）。
 
