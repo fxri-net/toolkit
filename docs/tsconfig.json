@@ -10,6 +10,8 @@
   "files": [
     ".vitepress/theme/components/RuleComposer.vue",
     ".vitepress/theme/components/diagrams/ConceptMap.vue",
+    ".vitepress/theme/components/diagrams/DiagramFrame.vue",
+    ".vitepress/theme/components/diagrams/DiagramNode.vue",
     ".vitepress/theme/components/diagrams/TaskJourney.vue",
     ".vitepress/theme/components/diagrams/ModelMap.vue"
   ],

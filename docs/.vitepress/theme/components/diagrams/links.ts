@@ -61,6 +61,6 @@ export const JOURNEY_LINKS: DiagramLink[] = [
 export const MODEL_LINKS: DiagramLink[] = [
   { id: "task", label: "任务文件", to: "/cli/task", note: "写下决策与交付" },
   { id: "conventions", label: "规范载体", to: "/cli/convention", note: "从任务提炼规范" },
-  { id: "delivery", label: "技能与规则", to: "/cli/skill", note: "让 AI 照做" },
+  { id: "delivery", label: "技能与规则", to: "/cli/skill", note: "AI 技能 + 全局规则" },
   { id: "scope", label: "配置与作用域", to: "/cli/scope", note: "决定在哪生效" }
 ]

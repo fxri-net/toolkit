@@ -15,6 +15,125 @@
   --fx-accent-soft: rgba(143, 155, 255, 0.16);
   --fx-shadow: rgba(0, 0, 0, 0.32);
 }
+
+/* 图示共享基座：层框、节点卡与徽标只在这里定义，组件只负责排列 */
+.fx-diagram {
+  margin: 20px 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* 层框：左层名 + 右节点；层说明另起一行，左缘与序号对齐 */
+.fx-diagram .fx-frame {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 14px;
+  border: 1px solid var(--fx-border);
+  border-radius: 12px;
+  background: var(--fx-bg-alt);
+}
+
+.fx-diagram .fx-frame-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 8px;
+  row-gap: 2px;
+  align-items: baseline;
+}
+
+.fx-diagram .fx-frame-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fx-text-1);
+}
+
+.fx-diagram .fx-frame-caption {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--fx-text-3);
+}
+
+/* 节点卡：标题与说明固定两行，宽度由排列决定 */
+.fx-diagram .fx-node {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--fx-border);
+  border-radius: 10px;
+  background: var(--fx-bg);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    background-color 0.18s ease-out,
+    border-color 0.18s ease-out;
+}
+
+.fx-diagram .fx-node:hover {
+  border-color: var(--fx-accent);
+  background: var(--fx-bg-alt);
+}
+
+.fx-diagram .fx-node:focus-visible {
+  outline: 2px solid var(--fx-accent);
+  outline-offset: 2px;
+}
+
+.fx-diagram .fx-node-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fx-diagram .fx-node-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fx-text-1);
+}
+
+.fx-diagram .fx-node-note {
+  font-size: 12px;
+  color: var(--fx-text-3);
+}
+
+/* 序号徽标：胶囊形，品牌色淡底，表格数字宽度避免逐位错位 */
+.fx-diagram .fx-badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--fx-accent-soft);
+  color: var(--fx-accent);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 窄屏层框改为上下结构，内边距收窄让节点仍能并排两列 */
+@media (max-width: 768px) {
+  .fx-diagram .fx-frame {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-diagram .fx-node {
+    transition: none;
+  }
+}
 /* fxri-docs-theme:brand-end */
 /* 以下为公共视觉规则：由 toolkit 统一分发，逐字一致，勿手改 */
 
