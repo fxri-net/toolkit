@@ -5,20 +5,20 @@ import { PIPELINE_LAYERS } from "./links"
 </script>
 
 <template>
-  <div class="tk-map">
-    <section v-for="layer in PIPELINE_LAYERS" :key="layer.title" class="tk-layer">
-      <p class="tk-layer-title">{{ layer.title }}</p>
-      <p class="tk-layer-caption">{{ layer.caption }}</p>
-      <div class="tk-nodes">
+  <div class="fx-map">
+    <section v-for="layer in PIPELINE_LAYERS" :key="layer.title" class="fx-layer">
+      <p class="fx-layer-title">{{ layer.title }}</p>
+      <p class="fx-layer-caption">{{ layer.caption }}</p>
+      <div class="fx-nodes">
         <a
           v-for="node in layer.nodes"
           :key="node.id"
-          class="tk-node"
+          class="fx-node"
           :href="withBase(node.to)"
           :title="`点击查看：${node.label}`"
         >
-          <span class="tk-node-label">{{ node.label }}</span>
-          <span class="tk-node-note">{{ node.note }}</span>
+          <span class="fx-node-label">{{ node.label }}</span>
+          <span class="fx-node-note">{{ node.note }}</span>
         </a>
       </div>
     </section>
@@ -26,39 +26,39 @@ import { PIPELINE_LAYERS } from "./links"
 </template>
 
 <style scoped>
-.tk-map {
+.fx-map {
   display: grid;
   gap: 10px;
   margin: 16px 0;
 }
 
-.tk-layer {
+.fx-layer {
   border: 1px solid var(--vp-c-divider);
   border-radius: 10px;
   padding: 12px 14px;
   background: var(--vp-c-bg-soft);
 }
 
-.tk-layer-title {
+.fx-layer-title {
   margin: 0;
   font-size: 13px;
   font-weight: 600;
   color: var(--vp-c-text-1);
 }
 
-.tk-layer-caption {
+.fx-layer-caption {
   margin: 2px 0 10px;
   font-size: 12px;
   color: var(--vp-c-text-3);
 }
 
-.tk-nodes {
+.fx-nodes {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.tk-node {
+.fx-node {
   display: inline-flex;
   flex-direction: column;
   gap: 2px;
@@ -72,30 +72,30 @@ import { PIPELINE_LAYERS } from "./links"
     transform 0.18s ease-out;
 }
 
-.tk-node:hover {
+.fx-node:hover {
   border-color: var(--vp-c-brand-1);
   transform: translateY(-1px);
 }
 
-.tk-node:focus-visible {
+.fx-node:focus-visible {
   outline: 2px solid var(--vp-c-brand-1);
   outline-offset: 2px;
 }
 
-.tk-node-label {
+.fx-node-label {
   font-size: 13px;
   font-weight: 600;
   color: var(--vp-c-text-1);
 }
 
-.tk-node-note {
+.fx-node-note {
   font-size: 11px;
   color: var(--vp-c-text-3);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tk-node,
-  .tk-node:hover {
+  .fx-node,
+  .fx-node:hover {
     transition: none;
     transform: none;
   }

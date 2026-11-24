@@ -5,19 +5,19 @@ import { MODEL_LINKS } from "./links"
 </script>
 
 <template>
-  <div class="tk-model">
+  <div class="fx-model">
     <template v-for="(node, index) in MODEL_LINKS" :key="node.id">
-      <a class="tk-card" :href="withBase(node.to)" :title="`点击查看：${node.label}`">
-        <span class="tk-card-label">{{ node.label }}</span>
-        <span class="tk-card-note">{{ node.note }}</span>
+      <a class="fx-card" :href="withBase(node.to)" :title="`点击查看：${node.label}`">
+        <span class="fx-card-label">{{ node.label }}</span>
+        <span class="fx-card-note">{{ node.note }}</span>
       </a>
-      <span v-if="index < MODEL_LINKS.length - 1" class="tk-arrow" aria-hidden="true">→</span>
+      <span v-if="index < MODEL_LINKS.length - 1" class="fx-arrow" aria-hidden="true">→</span>
     </template>
   </div>
 </template>
 
 <style scoped>
-.tk-model {
+.fx-model {
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
@@ -25,7 +25,7 @@ import { MODEL_LINKS } from "./links"
   margin: 16px 0;
 }
 
-.tk-card {
+.fx-card {
   flex: 1 1 140px;
   display: inline-flex;
   flex-direction: column;
@@ -40,35 +40,35 @@ import { MODEL_LINKS } from "./links"
     transform 0.18s ease-out;
 }
 
-.tk-card:hover {
+.fx-card:hover {
   border-color: var(--vp-c-brand-1);
   transform: translateY(-1px);
 }
 
-.tk-card:focus-visible {
+.fx-card:focus-visible {
   outline: 2px solid var(--vp-c-brand-1);
   outline-offset: 2px;
 }
 
-.tk-card-label {
+.fx-card-label {
   font-size: 13px;
   font-weight: 600;
   color: var(--vp-c-text-1);
 }
 
-.tk-card-note {
+.fx-card-note {
   font-size: 11px;
   color: var(--vp-c-text-3);
 }
 
-.tk-arrow {
+.fx-arrow {
   align-self: center;
   color: var(--vp-c-text-3);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tk-card,
-  .tk-card:hover {
+  .fx-card,
+  .fx-card:hover {
     transition: none;
     transform: none;
   }

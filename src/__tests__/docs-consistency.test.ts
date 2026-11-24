@@ -241,10 +241,11 @@ describe("文档一致性：站点配置引用的静态资源存在", () => {
   it("config.mts 的 logo / favicon / og:image 都指向 docs/public 下存在的文件（改名或删除即失败）", () => {
     const config = readDoc("docs/.vitepress/config.mts")
     // 三种写法分别取值：logo 为引号路径；favicon / og:image 为 `${base}` / `${siteUrl}` 模板前缀 + 文件名
+    // 引号形态按项目格式化口径（双引号）与历史写法（单引号）都接受，只校验取到的资源路径
     const refs = [
-      /logo:\s*'\/([^']+)'/.exec(config)?.[1],
-      /rel:\s*'icon',\s*href:\s*`\$\{base\}([^`]+)`/.exec(config)?.[1],
-      /property:\s*'og:image',\s*content:\s*`\$\{siteUrl\}([^`]+)`/.exec(config)?.[1],
+      /logo:\s*["']\/([^"']+)["']/.exec(config)?.[1],
+      /rel:\s*["']icon["'],\s*href:\s*`\$\{base\}([^`]+)`/.exec(config)?.[1],
+      /property:\s*["']og:image["'],\s*content:\s*`\$\{siteUrl\}([^`]+)`/.exec(config)?.[1],
     ]
     expect(refs.every(Boolean), "config.mts 未取到 logo / favicon / og:image 三处引用").toBe(true)
     for (const ref of refs) {
