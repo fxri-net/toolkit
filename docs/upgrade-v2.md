@@ -26,7 +26,7 @@ title: v1 → v2 升级（upgrade-v2）
 
 | 旧写法 | 替代 |
 | --- | --- |
-| `toolkit usage rule` | `toolkit rule compose --module usage` |
+| `toolkit usage rule` | `toolkit rule compose --module usage --no-cache` |
 
 ## 已改名（别名保留至 2.1.0）
 

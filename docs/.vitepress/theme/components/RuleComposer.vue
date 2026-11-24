@@ -44,7 +44,9 @@ const composed = computed(() => {
   }
 })
 const latest = computed(() => selectedModules.value.map((mod) => mod.anchor).sort().pop() ?? "")
-const cliCommand = computed(() => `toolkit rule compose ${selected.value.map((id) => `--module ${id}`).join(" ")}`)
+const cliCommand = computed(
+  () => `toolkit rule compose ${selected.value.map((id) => `--module ${id}`).join(" ")} --no-cache`,
+)
 const charCount = computed(() => composed.value.length)
 
 // 记住选择（仅模块有序列表）；存储不可用时只在本次会话内保留

@@ -59,7 +59,7 @@ toolkit usage show stats               # 查看统计
 | `data doctor` | 目录、索引与重复事件诊断 |
 | `config upload setup` / `status` / `send`（`--dry-run`） | 可选上传：默认关闭，需显式配置端点 |
 
-全局规则文案由 `toolkit rule compose --module usage` 输出（原 `usage rule` 已移除）。
+全局规则文案由 `toolkit rule compose --module usage --no-cache` 输出（原 `usage rule` 已移除）。
 
 完整参数见 [CLI 参考 · 技能使用情况](../cli/usage)，配置字段见 [使用情况配置](./configuration)，数据边界见 [隐私与数据边界](./privacy)，
 事件结构见 [事件 Schema](./schema)。

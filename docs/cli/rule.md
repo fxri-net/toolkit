@@ -32,7 +32,8 @@ toolkit rule sync --dry-run  # 只显示差异，不写盘
 ```
 
 无参且处于 TTY 时进入交互（预设 / 自定义两步）；非 TTY 或显式传 `--preset` / `--module` 时保持确定性输出，供脚本使用。
-交互模式下选择会写入缓存，下一次 `toolkit rule compose` 以缓存为默认勾选。
+交互选择与显式 `--preset` / `--module` 都会写入缓存，下一次 `toolkit rule compose` 以缓存为默认勾选；
+只需要一次产物、不想改默认组合时加 `--no-cache`。
 
 ## 子命令与选项
 

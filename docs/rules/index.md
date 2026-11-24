@@ -52,7 +52,7 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 | --- | --- | --- |
 | [AI 全局规则](./ai) | 通用 AI 协作纪律：代码规范、输出要求、方案落盘与推荐做法 | 复制「规则全文」代码块 |
 | [提交信息规则](./commit) | 统一 git 提交信息格式与语义 | 复制「规则全文」代码块；与 Conventional Commits / commitlint 互斥 |
-| [技能使用情况规则](./usage) | 启用 toolkit 技能使用统计后，约束 AI 不重复补记、不外传数据 | 可选；复制「规则全文」代码块，或执行 `toolkit rule compose --module usage` |
+| [技能使用情况规则](./usage) | 启用 toolkit 技能使用统计后，约束 AI 不重复补记、不外传数据 | 可选；复制「规则全文」代码块，或执行 `toolkit rule compose --module usage --no-cache` |
 
 ## 怎么落地
 

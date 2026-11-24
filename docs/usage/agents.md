@@ -11,7 +11,7 @@ title: Agent 接入
 
 | 对比项 | 规则（`channel=rule`） | Hook（`channel=hook`） |
 | --- | --- | --- |
-| 启用 | `toolkit usage setup init --yes --preset recommended --channel rule`，再把 `toolkit rule compose --module usage` 的输出复制进 Agent 全局规则 | `toolkit usage setup init --yes --preset recommended --channel hook`（或 `usage setup hooks install` + `toolkit config set usage.enabled true`） |
+| 启用 | `toolkit usage setup init --yes --preset recommended --channel rule`，再把 `toolkit rule compose --module usage --no-cache` 的输出复制进 Agent 全局规则 | `toolkit usage setup init --yes --preset recommended --channel hook`（或 `usage setup hooks install` + `toolkit config set usage.enabled true`） |
 | 依赖 | 只需 Agent 能执行 CLI；与 Agent 配置、IDE 开关、沙箱策略无关 | 依赖各 Agent 的 Hook 配置与执行环境；部分 Agent 还需 IDE 侧启用或桥接插件 |
 | 自动性 | 由 AI 按规则主动触发（我们自己发起的钩子），每批工具调用后合并一次；按调用次数逐条记录 | 由 Agent 事件被动触发，可采集触发词、参数与结果，也能识别未托管技能 |
 | 明细字段 | 规则只传技能名；触发词 / 参数 / 结果 / 耗时由工具**异步反查会话记录**补齐 | 来自 Hook 载荷，随事件一并到达 |
