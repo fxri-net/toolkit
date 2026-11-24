@@ -8,9 +8,9 @@ title: 发版与更新日志（release）
 
 ```bash
 toolkit release status               # 默认：待发布变更集概览（只读，不消费）
-toolkit release bump                 # 消费变更集 + 格式化 + 同步镜像（默认中文）
+toolkit release bump                 # 消费变更集 + 格式化（含历史块归一）+ 同步镜像（默认中文）
 toolkit release bump --lang en       # 指定语言
-toolkit release bump --history       # 连带追溯改写历史版本块
+toolkit release bump --history       # 兼容旧写法：现已默认归一，无需再传
 toolkit release changelog            # 仅格式化已有 CHANGELOG
 toolkit release changelog --history  # 连带追溯改写历史版本块
 toolkit release audit                # 列出同对象净变更候选（只提示不改写）
@@ -37,7 +37,7 @@ toolkit release changeset status     # 待发布变更集状态（透传给 chan
 | `--lang <lang>` | bump / changelog / mirror | 输出语言，默认 `zh`；内置语言见[语言与镜像](../config/changelog)，其余经配置扩展；传入未定义语言时 stderr 告警并回落默认语言 |
 | `--redact` / `--no-redact` | bump / changelog / mirror | 开启/关闭隐私脱敏（默认开启；作用于 CHANGELOG 终端展示与落盘） |
 | `--warn` / `--no-warn` | bump / changelog / mirror | 开启/关闭软告警（默认开启；作用于发版前未归档任务提醒与无类型前缀条目计数告警） |
-| `--history` | bump / changelog | 追溯改写全部历史版本块（默认只处理 changesets 新写入块与无分组的最新版本块） |
+| `--history` | bump / changelog | `changelog`：追溯改写全部历史版本块（默认只处理 changesets 新写入块与无分组的最新版本块）；`bump`：只在归一被关闭的旧流程里有用，现已默认归一，传参仅为兼容 |
 | `--exclude <dirs>` | bump / changelog | 额外跳过的目录，逗号分隔；默认已跳过依赖安装目录、构建产物与 gitignore 覆盖的目录 |
 | `--include <dirs>` | bump / changelog | 强制处理的目录，逗号分隔；优先于默认跳过名单 |
 | `--no-sync-doc` | bump | 发版后不自动同步镜像页 |

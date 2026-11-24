@@ -3,7 +3,7 @@ name: fxri-release-changelog
 description: 基于 changesets 的发版与多语言 CHANGELOG 维护流程：创建变更集、消费发版、把分组标题与条目转为项目语言风格、清理变更集、打标签发布；无 changesets 的项目提供同格式手工模式。用户表达发版或记录变更意图时使用——含创建变更集、changeset、发版、version、CHANGELOG 格式化等说法及口语近义表达（发一版、出个版本、记一下这次改动、生成更新日志）。⚠️ 注意区分：用户说「提交个版本 / 先提交一版 / commit」通常指 git 提交当前改动（走任务收尾后提交），**不是发版**。不用于日常 commit message 撰写、git 提交操作或与发版无关的文档修改。
 license: MIT
 metadata:
-  version: "1.4.0"
+  version: "1.4.1"
   tier: optional
   type: practice
   scope: general
@@ -14,7 +14,7 @@ metadata:
 
 # 发版与 CHANGELOG
 
-> 本技能版本 1.4.0（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.4.1（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -70,8 +70,10 @@ metadata:
 4. 格式化：按 `references/changelog-format.md` 的语义分组规则归类条目、转换分组标题、润色为项目语言风格（中文示例：
     `### Patch Changes` 下的 `- 修复：xxx` → `### 🐛 问题修复` 下的 `- xxx`——归类后类型前缀被剥离，类型由分组标题承接）；分组维度与 bump 维度正交，
     条目归组只看类型前缀；无 `###` 分组的版本块（如手工维护的更新记录）同样按前缀生成规范分组并剥离前缀，默认只处理最新一块；格式化前再核对一次第 2 步的净变更，避免过程性条目漏收敛
-5. 归一：润色后跑一次 `toolkit release changelog --history`——人工润色（含补写历史块明细）容易在条目之间留空行，该命令按「同组顶层条目逐行相邻」重排历史块；
-    项目另有更新日志镜像页（如 `docs/changelog.md`）时再跑一次 `toolkit release mirror`，否则镜像一致性校验会失败
+5. 归一：`toolkit release bump` 已在写镜像前自动归一历史块——changesets 写入会把「父条目 + 缩进子项」重排成松散列表（条目之间插空行），
+    不归一会把这个中间态写进归档页，下次归一又整体回退，形成每次发版都出现的空行抖动。人工润色若改动了条目间距，再补跑一次
+    `toolkit release changelog --history`；项目另有更新日志镜像页（如 `docs/changelog.md`）且手动跑过 `--history` 时，
+    再跑一次 `toolkit release mirror`，否则镜像一致性校验会失败
 6. 清理：删除已消费的 `.changeset/*.md`
 7. 门禁：发布前跑一次项目的验收命令（如 `pnpm verify`）——**关卡设在发布前而非推送前**：发布到包仓库 / 制品库不可逆，推送失败重推即可，故必须拦在不可逆动作之前；任一步失败即中止发版，不进入提交、打标签、发布
 8. 发布：提交版本与 CHANGELOG 改动 → 打 `vX.Y.Z` 标签 → 按项目渠道发布（如 `npm publish`）
@@ -94,7 +96,7 @@ metadata:
 | `toolkit task check` 报「变更集条目缺类型前缀」 | 打开所列文件，给缺前缀的**顶层条目**按「类型：描述」补前缀（缩进续行随父条目迁属、无需加）；补前缀只改分类信号，不改变 bump 级别 |
 | `toolkit task check` 报「变更集条目未加「- 」列表标记」 | 打开所列文件，把裸行逐条改为 `- 类型：描述`（成因见 changesets 流程第 1 步）；若已发版才发现，说明该版本块条目可能已挤在单组且前缀未剥离，按 references 的「人工事实更正」修 `CHANGELOG.md` 并重跑 `toolkit release mirror` |
 | 改动已发布却无归档记录（有提交、无任务档） | 先补归档（fxri-plan-recap 模式一）再继续发布后续步骤；发版本身不补建档 |
-| 发版后历史块内出现多余空行（`自举一致性` 类零改动用例失败） | 跑 `toolkit release changelog --history` 归一（**必须带 `--history`**，默认模式不动历史块），再补跑一次 `toolkit release mirror` |
+| 发版后历史块内出现多余空行（`自举一致性` 类零改动用例失败） | `release bump` 已默认归一；若仍出现（旧版本产出、手工 `changeset version`、或润色后手改），跑 `toolkit release changelog --history` 归一，再补跑一次 `toolkit release mirror` |
 | 格式化时 stderr 报「归类后条目数由 N 降为 M，疑似丢失内容」 | 归类只应搬移条目，减少即疑似丢内容：核对该版本块是否含非纯条目分组（标题下先出现正文）或被保留分组；若已在流程第 2 步按净变更合并，条目减少属预期，对照折叠清单确认后忽略，否则按 references 的归类规则修回 |
 | 同一版本块同时出现「新增 X / 修改 X / 修复 X」，用户只需知道最终能力 | 按流程第 2 步做净变更合并：只折叠上一版不存在的能力；上一版已存在行为的修改 / 修复必须体现在最终条目中；输出折叠清单后再格式化 |
 | 一批改动含新增能力 / 参数，却整批按 `修复：` 前缀登记（整块落 `问题修复` 组）——常见于 bump 判定为 patch 时，误以为级别与条目前缀绑定 | 前缀按**变更本身性质**逐条定：新增命令 / 参数 / 产物用 `新增：`、缺陷纠正用 `修复：`。分组只看前缀、与 bump 正交，**patch 也可挂 `新增：`**——bump 按用户影响阶梯判（新增小能力即 patch），口径见 references 的「版本口径」 |

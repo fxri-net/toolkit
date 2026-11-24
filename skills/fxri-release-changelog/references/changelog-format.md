@@ -27,6 +27,9 @@
    单行段落同样会被 changesets 并入上一条目，且因不带类型前缀而既归类失败、又易在润色时被误提升为游离段落（1.16.20 的成因）
 - 同一分组内顶层条目**逐行相邻输出**（条目之间不留空行，缩进子项紧随父条目），分组之间与日期行前后各留一个空行——这是格式化的**不动点**：
    合规文件重复执行 `toolkit release changelog` 应零改动，`--history` 归一之后同理
+- ⚠️ **changesets 写入会重排整个文件**：「父条目 + 缩进子项」的多行条目会被它序列化成松散列表（条目之间插空行）。
+   `toolkit release bump` 在写镜像前自动跑一次历史块归一，故发版产物是稳定的；手工执行 `changeset version`、或润色时改动了条目间距，需自行跑
+   `toolkit release changelog --history` 把历史块归一
 - ⚠️ 变更集条目以 `- ` 开头时，changesets 会写入 `- - 条目` 首行并把后续行缩进 2 空格（伪影）；`toolkit release bump/changelog` 会自动还原为顶层条目，手工模式需手动清理
 - 分组标题集合随版本演进而变化；**历史版本块保留当时口径，
    `toolkit release changelog` 不追溯改写**——默认只处理 changesets 本次新写入的英文源标题块与无 `###` 分组的最新版本块，

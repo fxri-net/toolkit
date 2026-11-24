@@ -1476,7 +1476,7 @@ registry：registry.npmjs.org（来源：默认）
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
 技能源：<REPO>/skills
-技能版本：fxri-code-encoding@1.2.12、fxri-plan-recap@1.7.9、fxri-plan-review@1.1.0、fxri-plan-task@1.13.3、fxri-release-changelog@1.4.0、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.2、fxri-writing-skill@1.0.3
+技能版本：fxri-code-encoding@1.2.12、fxri-plan-recap@1.7.9、fxri-plan-review@1.1.0、fxri-plan-task@1.13.3、fxri-release-changelog@1.4.1、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.2、fxri-writing-skill@1.0.3
 内容闸门：未开启（全文安装）
 选择集（3）：fxri-plan-recap、fxri-plan-review、fxri-plan-task
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-code-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
@@ -1556,7 +1556,7 @@ registry：registry.npmjs.org（来源：默认）
 
 项目面 · 项目根：<SANDBOX>/workspace
 项目面 · 技能真源：.agents/skills
-项目面 · 技能版本：fxri-code-encoding@1.2.12、fxri-plan-recap@1.7.9、fxri-plan-review@1.1.0、fxri-plan-task@1.13.3、fxri-release-changelog@1.4.0、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.2、fxri-writing-skill@1.0.3
+项目面 · 技能版本：fxri-code-encoding@1.2.12、fxri-plan-recap@1.7.9、fxri-plan-review@1.1.0、fxri-plan-task@1.13.3、fxri-release-changelog@1.4.1、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.2、fxri-writing-skill@1.0.3
 项目面 · 选择集（3）：fxri-plan-recap、fxri-plan-review、fxri-plan-task
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-code-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
 项目面 · 目录选择集：全部已存在候选目录（未保存过目录选择）
@@ -2154,7 +2154,7 @@ exports[`帮助与版本口径 > changelog bump 帮助 1`] = `
 --- stdout ---
 Usage: toolkit release bump [options]
 
-消费变更集并生成新版本块，随后同步文档镜像
+消费变更集并生成新版本块，归一一遍历史块后同步文档镜像
 
 Options:
   --lang <lang>     语言（内置 zh/en，可配置扩展） (default: "zh")
@@ -2162,7 +2162,7 @@ Options:
   --no-redact       关闭隐私脱敏
   --warn            开启软告警
   --no-warn         关闭软告警
-  --history         追溯改写历史版本块（默认保留）
+  --history         兼容旧写法：bump 现已默认归一历史块，无需再传
   --no-sync-doc     不自动同步文档站镜像
   --exclude <dirs>  额外跳过的目录，逗号分隔（默认已跳过依赖、产物与 gitignore 目录）
   --include <dirs>  强制处理的目录，逗号分隔（覆盖默认跳过名单）
@@ -2184,7 +2184,7 @@ Options:
 
 Commands:
   status [options]               待发布变更集概览（只读，不消费）
-  bump [options]                 消费变更集并生成新版本块，随后同步文档镜像
+  bump [options]                 消费变更集并生成新版本块，归一一遍历史块后同步文档镜像
   changelog [options]            按语言与类型归类重排 CHANGELOG 条目
   mirror [options]               生成或校验文档站 CHANGELOG 镜像页
   publish [options] [args...]    发布已升版产物（透传给 changesets publish）

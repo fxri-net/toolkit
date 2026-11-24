@@ -108,7 +108,9 @@ export function registerChangelogCommands(program: Command): void {
     // 软告警须前置于归类（须待 changesets 写入新块后再取数，否则无英文源标题块可扫）；
     // 归类后无前缀条目即并入兜底组，前缀缺失无从统计
     if (ctx.warn) warnUntypedEntries(Object.values(ctx.merged), collect)
-    formatChangelogs(".", localDate(), ctx.lang, ctx.redact, Boolean(options.history), collect)
+    // 历史块归一必须前置于镜像：changesets 写入会把「父条目 + 缩进子项」重排成松散列表，
+    // 不归一会把这个中间态写进归档页，下次归一后又回退，形成每次发版都出现的空行抖动
+    formatChangelogs(".", localDate(), ctx.lang, ctx.redact, true, collect)
     // 发版后自动同步文档站镜像：失败只告警，不阻断发版（镜像不是发版必需产物）
     if (options.syncDoc !== false) syncDocAfterVersion(ctx.docLang)
   }
@@ -210,8 +212,8 @@ export function registerChangelogCommands(program: Command): void {
     runChangelogStatus({}, "release")
   })
 
-  addChangelogCommonOptions(changelogCmd.command("bump").description("消费变更集并生成新版本块，随后同步文档镜像"))
-    .option("--history", "追溯改写历史版本块（默认保留）")
+  addChangelogCommonOptions(changelogCmd.command("bump").description("消费变更集并生成新版本块，归一一遍历史块后同步文档镜像"))
+    .option("--history", "兼容旧写法：bump 现已默认归一历史块，无需再传")
     .option("--no-sync-doc", "不自动同步文档站镜像")
     .option("--exclude <dirs>", "额外跳过的目录，逗号分隔（默认已跳过依赖、产物与 gitignore 目录）")
     .option("--include <dirs>", "强制处理的目录，逗号分隔（覆盖默认跳过名单）")
