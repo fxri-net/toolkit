@@ -113,6 +113,8 @@ bunx @fxri/toolkit task      # bun
 
 安装 skills（一条命令，随 CLI 同批分发）：
 
+> 快速接入用 `toolkit init` 一步完成技能与规则；下面是分面与开关的进阶用法。
+
 ```bash
 toolkit skill install                  # 全局分发（推荐；技能随包分发，与 CLI 同一发布批次）
 toolkit skill install --scope project  # 项目面分发（团队推荐，技能随仓库入库、队友 clone 即用）
@@ -147,6 +149,8 @@ toolkit skill mount ~/work            # 在父目录下的项目里做项目面�
 
 ## 配置全局规则
 
+> 快速接入已由 `toolkit init` 覆盖；本节是单独组合、手动粘贴的进阶用法。
+
 全局规则会整段进入 Agent 上下文，按需组合、只留当前需要的模块：
 
 ```bash
@@ -161,33 +165,40 @@ toolkit rule compose   # 交互式选择预设或自定义模块，选完自动�
 
 ## 30 秒上手
 
-装了 skills 时，进入项目对 AI 说「初始化任务区」即可（AI 执行 `toolkit init` 并完成建档）；下面是手操 CLI 的完整路径。
+装好 CLI 后，先跑一次全局接入：
 
 ```bash
-# 1. 初始化任务区（生成 .tasks/ 骨架、conventions/ 规范载体与技能入口壳，补齐 .gitignore 片段）
+# 1. 全局接入：装技能、配规则、设生效范围（交互向导，可在任意目录执行）
 toolkit init
+```
 
-# 2. 查看任务总览（当前为空）
+进入项目后，对 AI 说「初始化任务区」即可（AI 执行 `toolkit task init` 并完成建档）；手操任务流程如下。
+
+```bash
+# 2. 初始化任务区（生成 .tasks/ 骨架、conventions/ 规范载体与技能入口壳，补齐 .gitignore 片段）
+toolkit task init
+
+# 3. 查看任务总览（当前为空）
 toolkit task
 
-# 3. 方案确认后，登记为任务文件（.tasks/active/202609/ 下）
+# 4. 方案确认后，登记为任务文件（.tasks/active/202609/ 下）
 #    文件名：{YYYYMMDD}-{用户名}-{任务简述}.md
 #    简述取自正文标题（不翻译 / 不音译 / 不缩写），用户名与 owner 一致
 #    手工建档模板见「完整攻略」；装了 AI 技能包可直接让 AI 建档
 #    多任务 / 多仓方案：先出纯展示计划表，说「开始」后一次建完全部任务档并校验，再按序交付
 
-# 4. 校验
+# 5. 校验
 toolkit task check
 
-# 5. 任务完成后：frontmatter 标记 status: 已完成 + completed 时间，然后归档
+# 6. 任务完成后：frontmatter 标记 status: 已完成 + completed 时间，然后归档
 toolkit task archive
 
-# 6.（可选，AI 协作时）归档后做任务级规范沉淀 → 能力终点
+# 7.（可选，AI 协作时）归档后做任务级规范沉淀 → 能力终点
 ```
 
 > 项目内安装（devDependency）时把 `toolkit` 换成 `pnpm exec toolkit`（npm 用户 `npx toolkit`）。
 
-⚠️ `toolkit init` 为 1.7.0 新增；旧版本请手工建 `.tasks/active/{YYYYMM}/` 目录结构。
+⚠️ `toolkit task init` 为 1.7.0 新增；旧版本请手工建 `.tasks/active/{YYYYMM}/` 目录结构。
 
 > 不想把 `.tasks/` 放项目里？配置 `"task": { "dir": "../my-tasks-repo" }` 指向独立仓库（或每次用 `--dir` 传参）。
 > 详见[配置参考 · 校验与任务区](./config/check-tasks)。

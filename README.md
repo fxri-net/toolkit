@@ -33,14 +33,8 @@ AI 参与开发后，方案与决策散落在对话记录里，会话一关什�
 # 1. 全局安装 CLI（npm 用户 npm add -g @fxri/toolkit）
 pnpm add -g @fxri/toolkit
 
-# 2. 安装 AI 技能包（装到各 agent 的全局技能目录）
-toolkit skill install
-
-# 3. 交互式组合自己的全局规则，选完直接粘贴到所用 Agent 的全局规则入口
-toolkit rule compose
-
-# 4.（可选）限定技能的生效范围；不配置即全域生效
-toolkit scope
+# 2. 全局接入：装技能、配规则、设生效范围（交互向导，可在任意目录执行）
+toolkit init
 ```
 
 进入项目后，对 AI 说「初始化任务区」即可（AI 执行 `toolkit task init` 并完成建档与校验）。
@@ -93,7 +87,7 @@ toolkit scope
 
 ## 🧩 AI 技能包（skills）
 
-安装步骤见上文「30 秒上手」（全局装 CLI 后 `toolkit skill install`）；下面是分面与开关细节。
+安装步骤见上文「30 秒上手」（全局装 CLI 后跑 `toolkit init`）；下面是分面与开关细节。
 
 ```bash
 pnpm add -g @fxri/toolkit && toolkit skill install  # 装了 CLI 一键分发（npm 用户：npm add -g @fxri/toolkit）

@@ -1,12 +1,14 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`写盘产物 > init 生成任务区骨架与入口壳 1`] = `
-"退出码：1
+"退出码：2
 --- stdout ---
+检查环境
+  安装 AI 技能：未配置
+  配置全局规则：未配置
 
 --- stderr ---
-⚠️ 未知命令「init」。
-运行 toolkit --help 查看可用命令"
+⚠️ 当前环境无法交互，请加 --yes 以默认值执行"
 `;
 
 exports[`写盘产物 > init 生成任务区骨架与入口壳 2`] = `
@@ -2376,6 +2378,7 @@ Options:
 
 Commands:
   status [options]                整体状态：聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项（只读）
+  init [options]                  全局接入向导：安装 AI 技能、配置全局规则、设置生效范围（不初始化任务区）
   upgrade [options]               迁移 v1 项目到当前版本：配置段名 / 工程脚本 / 技能旧名 /
                                   规范载体，支持预览、复检与恢复
   skill [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源（包内 skills/ 与
@@ -2413,47 +2416,18 @@ Commands:
 exports[`帮助与版本口径 > init 帮助 1`] = `
 "退出码：0
 --- stdout ---
-Usage: toolkit [options] [command]
+Usage: toolkit init [options]
 
-专为多人 + AI 跨项目协作打造：把对话里的方案与交付，沉淀为仓库内可校验、可分发、可迁移的工程资产。
+全局接入向导：安装 AI 技能、配置全局规则、设置生效范围（不初始化任务区）
 
 Options:
-  -v, --version                   显示版本号
-  --no-color                      关闭终端颜色输出
-  --cwd <path>                    在指定目录执行命令（等价先切换工作目录）
-  -h, --help                      显示帮助
-
-Commands:
-  status [options]                整体状态：聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项（只读）
-  upgrade [options]               迁移 v1 项目到当前版本：配置段名 / 工程脚本 / 技能旧名 /
-                                  规范载体，支持预览、复检与恢复
-  skill [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源（包内 skills/ 与
-                                  --source 外部来源统一管理）
-  convention [options] [command]  项目协作规范载体：结构升级（v1 / v2 →
-                                  v3）、表格与索引单元格形态归一、只读体检（形态 / 索引 / 入口层）
-  config [options] [command]      配置：list / get / set / unset 唯一写入口，另有 status
-                                  只读体检三层配置文件
-  docs [options] [command]        文档站工具：默认全量校验（theme / nav / dist），另可按项校验与写入
-  privacy [options] [command]     隐私体检：本机绝对路径扫描与归一（按 privacy.localPaths 档位）
-  task [options] [command]        任务管理
-  release [options] [command]     多语言更新日志与发版（默认 status；封装 changesets）
-  rule [options] [command]        全局规则：列出模块、组合输出与缓存管理
-  scope [options] [command]       作用域：按项目 / 目录判定技能是否生效（默认全域生效）
-  usage [options] [command]       技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
-  help [command]                  显示帮助
-
-
-常用入口：
-  作用域 toolkit scope（按目录决定技能是否生效，默认全域）
-
-本机帮助：
-  整体状态 toolkit status
-  分域帮助 toolkit <域> --help（如 toolkit task --help）
-
-文档站（在线，可选）：
-  快速开始 https://fxri-net.github.io/toolkit/getting-started
-  完整攻略 https://fxri-net.github.io/toolkit/guide
-  全部文档 https://fxri-net.github.io/toolkit/
+  --yes             非交互：按默认值执行（设置生效范围与开启使用统计不执行）
+  --dry-run         只预览将执行的动作，不写盘
+  --rules <preset>  全局规则预设：minimal / recommended / full
+  --skills <scope>  技能分发范围：global / project / all
+  --no-scope        不设置生效范围
+  --no-usage        不开启使用统计
+  -h, --help        显示帮助
 
 --- stderr ---
 "
@@ -2678,6 +2652,7 @@ Options:
 
 Commands:
   status [options]                整体状态：聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项（只读）
+  init [options]                  全局接入向导：安装 AI 技能、配置全局规则、设置生效范围（不初始化任务区）
   upgrade [options]               迁移 v1 项目到当前版本：配置段名 / 工程脚本 / 技能旧名 /
                                   规范载体，支持预览、复检与恢复
   skill [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源（包内 skills/ 与
@@ -2724,6 +2699,7 @@ Options:
 
 Commands:
   status [options]                整体状态：聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项（只读）
+  init [options]                  全局接入向导：安装 AI 技能、配置全局规则、设置生效范围（不初始化任务区）
   upgrade [options]               迁移 v1 项目到当前版本：配置段名 / 工程脚本 / 技能旧名 /
                                   规范载体，支持预览、复检与恢复
   skill [options] [command]       AI 技能包分发：安装 / 状态 / 卸载 / 来源（包内 skills/ 与

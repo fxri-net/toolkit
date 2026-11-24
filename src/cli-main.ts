@@ -17,6 +17,7 @@ export async function runCli(version: string): Promise<void> {
     { formatCommanderError },
     { DESCRIPTION },
     { registerStatusCommands },
+    { registerInitCommands },
     { registerUpgradeCommands },
     { registerSkillsCommands },
     { registerTasksCommands },
@@ -39,6 +40,7 @@ export async function runCli(version: string): Promise<void> {
     import("./errors"),
     import("./about"),
     import("./commands/status"),
+    import("./commands/init"),
     import("./commands/upgrade"),
     import("./commands/skill"),
     import("./commands/task"),
@@ -139,7 +141,8 @@ export async function runCli(version: string): Promise<void> {
   // 整体状态聚合：放在各域之前注册，便于日常自查入口排在命令清单首位
   registerStatusCommands(program, version)
 
-  // 升级与 skills 域：命令注册与打印移入 ./commands 下的独立模块
+  // init 与 skills 域：命令注册与打印移入 ./commands 下的独立模块
+  registerInitCommands(program)
   registerUpgradeCommands(program)
   registerSkillsCommands(program)
   registerConventionsCommands(program)
