@@ -11,16 +11,10 @@ export default defineConfig({
     hookTimeout: 30000,
     coverage: {
       provider: "v8",
-      reporter: ["text", "json", "html"],
+      // json / json-summary 供 scripts/check-coverage.mjs 做双轨判定；阈值唯一真源在脚本内，这里不再配置
+      reporter: ["text", "json", "json-summary"],
       include: ["src/**/*.ts"],
       exclude: ["src/**/__tests__/**", "src/index.ts"],
-      // 覆盖率门槛：低于阈值时 pnpm test:coverage 直接失败（CI 已接入，防回归）
-      thresholds: {
-        statements: 80,
-        branches: 65,
-        functions: 80,
-        lines: 82,
-      },
     },
   },
 })

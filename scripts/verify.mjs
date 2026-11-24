@@ -262,10 +262,10 @@ const parallelSteps = [
 // 因此单测不与其它重步骤并发；构建、文档构建、仓库自检互不依赖，放到下一阶段并发。
 const heavySteps = [
   {
-    label: skipCoverage ? "单元测试（不含覆盖率）" : "单元测试 + 覆盖率门槛",
+    label: skipCoverage ? "单元测试（不含覆盖率）" : "单元测试 + 覆盖率采集",
     tool: "vitest",
-    // 覆盖率与单测合并为一次运行：同一批测试不再跑两遍，检查项与阈值判定不变
-    args: ["run", ...(skipCoverage ? [] : ["--coverage", "--coverage.reporter=text"]), "--exclude", "src/__tests__/warn-threshold.test.ts"],
+    // 覆盖率与单测合并为一次运行：同一批测试不再跑两遍；报告器由 vitest.config 决定（text / json / json-summary）
+    args: ["run", ...(skipCoverage ? [] : ["--coverage"]), "--exclude", "src/__tests__/warn-threshold.test.ts"],
     env: { TZ: "UTC" },
   },
 ]
@@ -274,6 +274,12 @@ const heavySteps = [
 const buildSteps = [
   // 构建：tsup 直接调用，NODE_ENV 与 package.json 的 build 脚本保持一致
   { label: "构建", tool: "tsup", args: [], env: { NODE_ENV: "production" }, skip: buildSkip },
+  // 覆盖率双轨门禁：只读单测产出的报告（改动行 + 全局下限），与构建并发无副作用
+  {
+    label: "覆盖率门禁（改动行 + 全局下限）",
+    args: ["scripts/check-coverage.mjs"],
+    skip: skipCoverage ? "覆盖率本地默认跳过（--full 可跑）" : "",
+  },
   { label: "文档站构建（死链检查）", tool: "vitepress", args: ["build", "docs"], skip: docsSkip },
   // 本仓库自检：读真实 .tasks/.changeset 断言双零，须在数据原地时区（Asia/Shanghai）判定
   { label: "本源仓库自检（真实数据双零）", tool: "vitest", args: ["run", "src/__tests__/warn-threshold.test.ts"], env: { TZ: "Asia/Shanghai" } },

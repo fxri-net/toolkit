@@ -32,6 +32,9 @@ test:
     pull_policy: if-not-present
   stage: test
   interruptible: true
+  # 覆盖率门禁按本次推送的改动行判定；首个提交无 before 时脚本降级为只校验全局下限
+  variables:
+    VERIFY_DIFF_BASE: $CI_COMMIT_BEFORE_SHA
   needs:
     - toolchain:spec
     - toolchain:ensure
