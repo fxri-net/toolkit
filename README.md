@@ -74,15 +74,16 @@ toolkit setup
 | [操作手册](./docs/handbook.md) | 日常照着做：每个场景该说什么、做什么 |
 | [完整攻略](./docs/guide.md) | 日常使用：工作流、Git 纳管、项目级激活、多语言 CHANGELOG |
 | [CLI 参考](./docs/cli.md) | 查命令、参数、默认值、退出码 |
-| [API 参考](./docs/api.md) | 作为库引入 Node 项目 |
 | [配置参考](./docs/config.md) | 查配置文件字段（全局 / 项目 / 本地三层） |
-| [使用统计](./docs/usage/index.md) | 启用后可查技能调用次数、触发词与采集边界 |
-| [更新日志](./docs/changelog.md) | 查各版本变更内容 |
-| [常见问题](./docs/faq.md) | 遇到问题先来这里找 |
+| [API 参考](./docs/api.md) | 作为库引入 Node 项目 |
 | [全局规则索引](./docs/rules/index.md) | 规则组合器：模块自由勾选、排序与一键复制 |
 | [推荐 AI 全局规则](./docs/rules/ai.md) | 想让 AI 助手按本工具的最佳实践协作 |
 | [推荐提交信息规则](./docs/rules/commit.md) | 想让 AI 按统一格式写 git 提交信息 |
 | [技能使用情况规则](./docs/rules/usage.md) | 启用本机使用统计后，约束 AI 不重复补记、不外传数据 |
+| [使用统计](./docs/usage/index.md) | 启用后可查技能调用次数、触发词与采集边界 |
+| [v1 → v2 升级](./docs/upgrade-v2.md) | 从 1.x 迁移：一键迁移与手工兜底 |
+| [常见问题](./docs/faq.md) | 遇到问题先来这里找 |
+| [更新日志](./docs/changelog.md) | 查各版本变更内容 |
 | [完整文档站](https://fxri-net.github.io/toolkit/) | 在线阅读体验 |
 
 ## 🧩 AI 技能包（skills）

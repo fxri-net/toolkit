@@ -129,14 +129,15 @@
 
 | 分组 | 内容 |
 | --- | --- |
-| [隐私脱敏（redact）](./config/redact) | 内置规则清单、按名禁用与自定义规则 |
 | [校验与任务区（check / task）](./config/check-tasks) | 软告警开关、勾选框与词标记扫描、任务目录与导入列映射 |
+| [技能分发偏好（skills）](./config/skill) | 软链自愈、分发形态（全文 / 入口壳 / 不安装）与全局、项目面安装偏好 |
+| [作用域配置（activation / policies）](./config/activation) | 按项目 / 目录决定技能是否生效；默认全域生效 |
+| [隐私脱敏（redact）](./config/redact) | 内置规则清单、按名禁用与自定义规则 |
 | [语言与镜像（changelog / changelogDoc）](./config/changelog) | 语言表与文档站更新页镜像 |
 | [升级检查（updateCheck）](./config/update) | 提示频率、通道、registry、缓存与诊断 |
-| [技能分发偏好（skills）](./config/skill) | 软链自愈、分发形态（全文 / 入口壳 / 不安装）与全局、项目面安装偏好 |
-| [使用情况配置](./usage/configuration) | 总开关、来源、技能范围、字段、存储与上传；仅全局层 |
-| [文档站校验（docs nav / docs dist）](./cli/docs-check#配置) | 导航阈值、产物目录、sitemap 策略、搜索实现与规则开关 |
-| [作用域配置（activation / policies）](./config/activation) | 按项目 / 目录决定技能是否生效；默认全域生效 |
+| [缓存目录](./config/cache) | 本机缓存布局、迁移与清理 |
+| [使用情况配置](./usage/configuration) | 总开关、来源、技能范围、字段、存储与上传；仅全局层（跨组） |
+| [文档站校验（docs nav / docs dist）](./cli/docs-check#配置) | 导航阈值、产物目录、sitemap 策略、搜索实现与规则开关（跨组） |
 
 ## 相关页面
 

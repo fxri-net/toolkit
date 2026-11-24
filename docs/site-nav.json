@@ -5,16 +5,16 @@
       "text": "指南",
       "items": [
         { "text": "操作手册", "link": "/handbook" },
-        { "text": "完整攻略", "link": "/guide" },
-        { "text": "项目级激活", "link": "/guide#项目级激活模板" }
+        { "text": "项目级激活", "link": "/guide#项目级激活模板" },
+        { "text": "完整攻略", "link": "/guide" }
       ]
     },
     {
       "text": "参考",
       "items": [
         { "text": "CLI 参考", "link": "/cli" },
-        { "text": "API 参考", "link": "/api" },
-        { "text": "配置参考", "link": "/config" }
+        { "text": "配置参考", "link": "/config" },
+        { "text": "API 参考", "link": "/api" }
       ]
     },
     {
@@ -47,8 +47,8 @@
       "text": "指南",
       "items": [
         { "text": "操作手册", "link": "/handbook" },
-        { "text": "完整攻略", "link": "/guide" },
-        { "text": "项目级激活", "link": "/guide#项目级激活模板" }
+        { "text": "项目级激活", "link": "/guide#项目级激活模板" },
+        { "text": "完整攻略", "link": "/guide" }
       ]
     },
     {
@@ -59,47 +59,68 @@
           "link": "/cli",
           "collapsed": false,
           "items": [
-            { "text": "整体状态", "link": "/cli/status" },
+            { "text": "本机接入", "link": "/cli/setup" },
             { "text": "任务区", "link": "/cli/task" },
-            { "text": "隐私体检", "link": "/cli/privacy" },
-            { "text": "接入", "link": "/cli/setup" },
-            { "text": "升级迁移", "link": "/cli/upgrade" },
-            { "text": "作用域", "link": "/cli/scope" },
-            { "text": "规范载体", "link": "/cli/convention" },
-            { "text": "发版与更新日志", "link": "/cli/release" },
-            { "text": "技能分发", "link": "/cli/skill" },
-            { "text": "技能校验", "link": "/cli/skill-lint" },
-            { "text": "技能版本", "link": "/cli/skill-bump" },
-            { "text": "技能来源", "link": "/cli/skill-sources" },
-            { "text": "技能使用情况", "link": "/cli/usage" },
+            { "text": "整体状态", "link": "/cli/status" },
             { "text": "全局规则", "link": "/cli/rule" },
-            { "text": "配置体检", "link": "/cli/config" },
-            { "text": "文档站主题", "link": "/cli/docs-theme" },
-            { "text": "文档站校验", "link": "/cli/docs-check" },
+            { "text": "作用域", "link": "/cli/scope" },
+            {
+              "text": "技能包",
+              "collapsed": false,
+              "items": [
+                { "text": "技能分发", "link": "/cli/skill" },
+                { "text": "技能校验", "link": "/cli/skill-lint" },
+                { "text": "技能版本", "link": "/cli/skill-bump" },
+                { "text": "技能来源", "link": "/cli/skill-sources" },
+                { "text": "技能使用情况", "link": "/cli/usage" }
+              ]
+            },
+            {
+              "text": "协作",
+              "collapsed": false,
+              "items": [
+                { "text": "规范载体", "link": "/cli/convention" },
+                { "text": "发版与更新日志", "link": "/cli/release" },
+                { "text": "升级迁移", "link": "/cli/upgrade" }
+              ]
+            },
+            {
+              "text": "工程",
+              "collapsed": false,
+              "items": [
+                { "text": "配置体检", "link": "/cli/config" },
+                { "text": "隐私体检", "link": "/cli/privacy" },
+                { "text": "文档站主题", "link": "/cli/docs-theme" },
+                { "text": "文档站校验", "link": "/cli/docs-check" }
+              ]
+            },
             { "text": "退出码", "link": "/cli/exit-codes" }
           ]
         },
-        { "text": "API 参考", "link": "/api" },
         {
           "text": "配置参考",
           "link": "/config",
           "collapsed": false,
           "items": [
-            { "text": "脱敏", "link": "/config/redact" },
             { "text": "校验与任务区", "link": "/config/check-tasks" },
+            { "text": "技能分发", "link": "/config/skill" },
+            { "text": "作用域", "link": "/config/activation" },
+            { "text": "脱敏", "link": "/config/redact" },
             { "text": "语言与镜像", "link": "/config/changelog" },
             { "text": "升级检查", "link": "/config/update" },
-            { "text": "技能分发", "link": "/config/skill" },
-            { "text": "缓存目录", "link": "/config/cache" },
-            { "text": "作用域", "link": "/config/activation" }
+            { "text": "缓存目录", "link": "/config/cache" }
           ]
-        }
+        },
+        { "text": "API 参考", "link": "/api" }
       ]
     },
     {
-      "text": "升级",
+      "text": "全局规则",
       "items": [
-        { "text": "v1 → v2 升级", "link": "/upgrade-v2" }
+        { "text": "规则组合", "link": "/rules/" },
+        { "text": "AI 全局规则", "link": "/rules/ai" },
+        { "text": "提交信息规则", "link": "/rules/commit" },
+        { "text": "技能使用情况规则", "link": "/rules/usage" }
       ]
     },
     {
@@ -113,12 +134,9 @@
       ]
     },
     {
-      "text": "全局规则",
+      "text": "升级",
       "items": [
-        { "text": "规则组合", "link": "/rules/" },
-        { "text": "AI 全局规则", "link": "/rules/ai" },
-        { "text": "提交信息规则", "link": "/rules/commit" },
-        { "text": "技能使用情况规则", "link": "/rules/usage" }
+        { "text": "v1 → v2 升级", "link": "/upgrade-v2" }
       ]
     },
     {
