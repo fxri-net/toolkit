@@ -59,6 +59,26 @@ export async function askSelect<T extends string>(options: {
   return "back" in answer ? null : answer.value
 }
 
+// 首步单选：末位补「退出」，选中或 ESC 都返回 null（取消整条命令）
+export async function askSelectOrExit<T extends string>(options: {
+  message: string
+  choices: Array<MenuChoice<T>>
+  default?: T
+  pageSize?: number
+}): Promise<T | null> {
+  const { select } = await loadPrompts()
+  const answer = await askWithBack(() =>
+    select<T | "exit">({
+      message: options.message,
+      choices: [...options.choices, EXIT_CHOICE],
+      default: options.default,
+      pageSize: options.pageSize,
+    }),
+  )
+  if ("back" in answer || answer.value === "exit") return null
+  return answer.value
+}
+
 // 答案行折叠：多选过多时只列前几项，避免提交后的答案铺满屏幕
 export const ANSWER_COLLAPSE_LIMIT = 6
 export const ANSWER_COLLAPSE_SHOW = 5
@@ -71,6 +91,7 @@ export function renderSelectedChoices(selected: ReadonlyArray<{ short?: string; 
 }
 
 // 多选：ESC 返回 null，其余返回选中值（允许空选）；choices 可混入 Separator 做分组标题
+// 操作提示由基座补齐，避免各调用方一半带一半不带
 export async function askCheckbox<T extends string>(options: {
   message: string
   choices: Array<MultiChoice<T> | SeparatorChoice>
@@ -79,7 +100,7 @@ export async function askCheckbox<T extends string>(options: {
   const { checkbox } = await loadPrompts()
   const answer = await askWithBack(() =>
     checkbox<T>({
-      message: options.message,
+      message: withCheckboxHint(options.message),
       choices: options.choices,
       pageSize: options.pageSize,
       required: false,
@@ -87,6 +108,32 @@ export async function askCheckbox<T extends string>(options: {
     }),
   )
   return "back" in answer ? null : answer.value
+}
+
+// 首步多选：末位补「退出」，勾选退出或 ESC 都返回 null（取消整条命令）
+export async function askCheckboxOrExit<T extends string>(options: {
+  message: string
+  choices: Array<MultiChoice<T> | SeparatorChoice>
+  pageSize?: number
+}): Promise<T[] | null> {
+  const { checkbox } = await loadPrompts()
+  const answer = await askWithBack(() =>
+    checkbox<T | "exit">({
+      message: withCheckboxHint(options.message),
+      choices: [...options.choices, EXIT_CHOICE],
+      pageSize: options.pageSize,
+      required: false,
+      theme: { style: { renderSelectedChoices } },
+    }),
+  )
+  if ("back" in answer) return null
+  if (answer.value.includes("exit")) return null
+  return answer.value.filter((value): value is T => value !== "exit")
+}
+
+// 多选操作提示：文案里已有「空格切换」就不再重复
+function withCheckboxHint(message: string): string {
+  return message.includes("空格切换") ? message : `${message}（空格切换，回车确认）`
 }
 
 // 文本输入：ESC 返回 null
@@ -104,12 +151,14 @@ export async function askConfirm(options: { message: string; default?: boolean }
 }
 
 // 写前确认：先打印预览；--dry-run 只预览，--yes 跳过确认
+// verb 按动作定制问句（写入 / 卸载 / 移除），缺省为写入
 export async function confirmWrite(options: {
   title: string
   lines: string[]
   default?: boolean
   yes?: boolean
   dryRun?: boolean
+  verb?: string
 }): Promise<boolean> {
   console.log("")
   console.log(options.title)
@@ -119,7 +168,7 @@ export async function confirmWrite(options: {
     return false
   }
   if (options.yes) return true
-  const ok = await askConfirm({ message: "继续写入？", default: options.default ?? true })
+  const ok = await askConfirm({ message: options.verb ?? "继续写入？", default: options.default ?? true })
   return ok === true
 }
 

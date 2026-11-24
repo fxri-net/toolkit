@@ -7,23 +7,23 @@ import { clearRulesSelection, readRulesSelection, writeRulesSelection } from "..
 import { copyToClipboard } from "../rules/clipboard"
 import { buildPresetChoices, CUSTOM_PRESET, normalizePickedModules } from "../rules/select"
 import { inspectRuleSync, writeRuleSync } from "../rules/sync"
-import { INTERACTIVE_EXIT, exitOnPromptCancel, exitWithCancel, isInteractive } from "../prompts"
-import { askCheckbox, askConfirm, askSelect, fail, reportWrite } from "../cli-ui"
+import { INTERACTIVE_EXIT, exitOnPromptCancel, isInteractive, reportCancelled } from "../prompts"
+import { askCheckbox, askConfirm, askSelectOrExit, fail, reportWrite } from "../cli-ui"
 import { assertJsonFormat, jsonEnvelope } from "../json-output"
 import { printJson } from "./shared"
 import { line, style } from "../term-style"
 import { writeFileAtomic } from "../write-atomic"
 
-// 交互式选择：自定义步骤 ESC 回到预设，预设步骤 ESC 取消整个命令；取消不写缓存
-async function selectInteractively(ruleset: Ruleset, cached: string[] | null): Promise<string[]> {
+// 交互式选择：自定义步骤 ESC 回到预设，预设步骤 ESC / 退出项取消整条命令；取消不写缓存
+async function selectInteractively(ruleset: Ruleset, cached: string[] | null): Promise<string[] | null> {
   const fallback = cached ?? ruleset.presets.recommended?.modules ?? []
   for (;;) {
-    const choice = await askSelect({
+    const choice = await askSelectOrExit({
       message: "选择规则组合",
       default: cached ? CUSTOM_PRESET : "recommended",
       choices: buildPresetChoices(ruleset.presets),
     })
-    if (choice === null) exitWithCancel()
+    if (choice === null) return null
     if (choice !== CUSTOM_PRESET) return ruleset.presets[choice]?.modules ?? []
     const picked = await askCheckbox({
       message: "选择要包含的规则模块（空格切换，回车确认）",
@@ -204,7 +204,12 @@ export function registerRulesCommands(program: Command): void {
           ids = preset.modules
           explicit = true
         } else if (interactive) {
-          ids = await selectInteractively(ruleset, cached?.modules ?? null)
+          const picked = await selectInteractively(ruleset, cached?.modules ?? null)
+          if (!picked) {
+            reportCancelled()
+            return
+          }
+          ids = picked
           explicit = true
         } else if (cached) {
           ids = cached.modules
@@ -328,7 +333,7 @@ export function registerRulesCommands(program: Command): void {
             }
             const ok = await askConfirm({ message: `创建 ${state.target}？`, default: true })
             if (ok !== true) {
-              console.log(line.hint("已取消，未修改任何文件"))
+              reportCancelled()
               return
             }
           }
@@ -356,7 +361,7 @@ export function registerRulesCommands(program: Command): void {
           return
         }
         for (;;) {
-          const choice = await askSelect({
+          const choice = await askSelectOrExit({
             message: "如何处理项目内提交规则？",
             default: state.handEdited ? "view" : "write",
             choices: [
@@ -365,8 +370,12 @@ export function registerRulesCommands(program: Command): void {
               { name: "查看完整内容", value: "view" },
             ],
           })
-          if (choice === null || choice === "keep") {
-            console.log(line.hint("已取消，未修改任何文件"))
+          if (choice === null) {
+            reportCancelled()
+            return
+          }
+          if (choice === "keep") {
+            console.log(line.hint("已保留当前文件，未做改动"))
             return
           }
           if (choice === "view") {

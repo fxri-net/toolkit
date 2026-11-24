@@ -104,7 +104,7 @@ toolkit skill list --format json             # JSON 输出：逐技能条目
 
 | 组合 | 技能选择 | 目标选择 | 最终确认 | 说明 |
 | --- | --- | --- | --- | --- |
-| 无参数（TTY） | 交互 | 交互 | 有 | ESC 逐级返回；技能页 ESC 等同取消 |
+| 无参数（TTY） | 交互 | 交互 | 有 | 各选择页末位有「退出」；ESC 逐级返回，技能页 ESC 等同取消 |
 | `--use-saved` | 跳过 | 跳过 | 有 | 沿用已保存选择；确认「否」按成功退出 0 |
 | `--yes` | 跳过 | 跳过 | 跳过 | 非交互首选；首次只装 core 与全部可用目标 |
 | 非 TTY 未给 `--yes` / `--use-saved` | 跳过 | 跳过 | 无 | 按已保存选择安装 |
@@ -237,7 +237,7 @@ toolkit skill list --format json             # JSON 输出：逐技能条目
 2. `--all`：安装全部技能；`--no-optional`：只装 `core` 技能
 3. TTY 交互：未传上述参数且未传 `--yes` 时，以方向键多选列出技能（core 组在前，组内按名称升序）
    - `skills` 模式下 `core` 已选中且不可取消；`package` 模式下全部默认不选、`core` 可取消
-   - `Enter` 确认、`Ctrl+C` 取消（取消时不写任何文件，按取消退出码结束）；技能选择页按 ESC 等同取消，目标页与确认页按 ESC 逐级返回
+   - `Enter` 确认、`Ctrl+C` 取消（取消时不写任何文件，按取消退出码结束）；技能选择页末位有「退出」，选中或按 ESC 等同取消；目标页与确认页按 ESC 逐级返回
 4. 已保存选择：非 TTY 或传入 `--yes` 时按保存的选择回显（非交互不进入任何提示）
    - 全局层读 `~/.toolkitrc.json` 的 `skillInstall.selection`；项目层读 `.toolkitrc.json` 的 `projectSkill.selection`
    - 保存名单里的曾用名（来源声明的 `previousNames`）会迁移为现用名后再回显

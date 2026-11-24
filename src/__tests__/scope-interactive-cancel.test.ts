@@ -128,6 +128,15 @@ describe("作用域向导取消与返回", () => {
     expect(answers.selectCalls).toHaveLength(1)
   })
 
+  it("首步层选择带「退出」项，选中后不再进入菜单", async () => {
+    answers.select.push("exit")
+    await expect(runScopeInteractive()).resolves.toBeUndefined()
+    const first = answers.selectCalls[0] as { choices: Array<{ name: string; value: string }> }
+    expect(first.choices.some((choice) => choice.value === "exit")).toBe(true)
+    expect(answers.selectCalls).toHaveLength(1)
+    expect(process.exitCode).toBe(0)
+  })
+
   it("层选择 Ctrl+C 向外抛出", async () => {
     answers.cancelName = "ExitPromptError"
     answers.throwAt = 1

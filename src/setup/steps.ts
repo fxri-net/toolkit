@@ -13,14 +13,17 @@ export interface SetupStep {
   // 已就绪：无选择的步骤据此决定默认勾选
   ready: boolean
   selected: boolean
-  // 有交互的步骤：勾选后必进交互，不因已就绪跳过
+  // 勾选后必进交互：交互与零交互两条路径各自的执行参数
   interactive: boolean
+  // 是否在「检查环境」里展示就绪状态（只有能探测的步骤才有意义）
+  readiness: boolean
   argv: string[]
+  argvYes?: string[]
   retry: string
 }
 
 // 体检：只读探测已就绪项，供默认勾选与状态展示
-export function inspectSetupSteps(preset: string): SetupStep[] {
+export function inspectSetupSteps(preset: string, rulesPresetExplicit = false): SetupStep[] {
   const skillsReady = hasGlobalSkillsInstalled()
   const rulesReady = readRulesSelection() !== null
   return [
@@ -30,8 +33,11 @@ export function inspectSetupSteps(preset: string): SetupStep[] {
       summary: "写到本机全局技能目录，各项目直接可用",
       ready: skillsReady,
       selected: !skillsReady,
-      interactive: false,
-      argv: ["skill", "install", "--yes"],
+      interactive: true,
+      readiness: true,
+      // 勾选后进入技能与目标选择；--yes 时用已保存选择，首次只装 core
+      argv: ["skill", "install"],
+      argvYes: ["skill", "install", "--yes"],
       retry: "toolkit skill install",
     },
     {
@@ -40,8 +46,13 @@ export function inspectSetupSteps(preset: string): SetupStep[] {
       summary: "生成规则文本并复制，由你粘贴到 Agent 的全局规则入口",
       ready: rulesReady,
       selected: !rulesReady,
-      interactive: false,
-      argv: ["rule", "compose", "--preset", preset, "--copy", "--no-cache"],
+      interactive: true,
+      readiness: true,
+      // 未显式指定预设时进入模块选择；指定了预设则直接按预设组合
+      argv: rulesPresetExplicit
+        ? ["rule", "compose", "--preset", preset, "--copy", "--no-cache"]
+        : ["rule", "compose", "--copy", "--no-cache"],
+      argvYes: ["rule", "compose", "--preset", preset, "--copy", "--no-cache"],
       retry: `toolkit rule compose --preset ${preset} --copy`,
     },
     {
@@ -51,6 +62,7 @@ export function inspectSetupSteps(preset: string): SetupStep[] {
       ready: false,
       selected: true,
       interactive: true,
+      readiness: false,
       argv: ["scope"],
       retry: "toolkit scope",
     },
@@ -61,6 +73,7 @@ export function inspectSetupSteps(preset: string): SetupStep[] {
       ready: false,
       selected: false,
       interactive: true,
+      readiness: false,
       argv: ["usage", "setup"],
       retry: "toolkit usage setup",
     },

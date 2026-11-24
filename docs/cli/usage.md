@@ -100,7 +100,7 @@ toolkit usage data doctor
 - `usage setup hooks install` / `usage setup hooks remove` / `usage setup uninstall` 写前统一打印预览并确认；
   非 TTY 须显式加 `--yes`，否则按无交互退出码提示用法。
   `usage setup uninstall --dry-run` 只打印预览，不写配置、不动 Hook、不删数据。
-- `usage setup init` 的多步向导支持按 ESC 回到上一步、按 Ctrl+C 取消（取消退出码，不写任何文件）；首步按 ESC 等同取消。
+- `usage setup init` 的多步向导支持按 ESC 回到上一步、按 Ctrl+C 取消（取消退出码，不写任何文件）；首步预设选择末位有「退出」，选中或按 ESC 都按取消处理、以 `0` 结束。
 - 通道二选一：`usage.channel` 为 `rule` 时只有 `usage record` 写入、Hook 不写入；为 `hook` 时只有 Hook 写入、`record` 静默跳过。切换通道不会自动清理另一侧配置。
 - 非交互初始化用 `toolkit usage setup init --yes --preset recommended --channel rule`（默认 `rule`）；
    `--channel hook` 时会安装 Hook 并需要检测到 Agent，`--preset off` 与 `--channel` 同时出现时 `off` 优先；

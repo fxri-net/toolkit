@@ -10,7 +10,8 @@ import { computeStats, renderStats } from "../tasks/stats"
 import { validateTasks, type CheckIssue } from "../tasks/validate"
 import { checkArchive, fixArchive } from "../tasks/normalize"
 import { createTask, defaultOwner, updateTask } from "../tasks/edit"
-import { isInteractive, loadPrompts, runInteractive } from "../prompts"
+import { isInteractive, reportCancelled, runInteractive } from "../prompts"
+import { askInput } from "../cli-ui"
 import { EXIT } from "../exit-codes"
 import type { TaskView, TaskFilter, ImportTarget } from "../tasks/types"
 import { ALL_STATUSES } from "../tasks/types"
@@ -431,13 +432,32 @@ export function registerTasksCommands(program: Command): void {
       let title = options.title?.trim()
       let owner = options.owner?.trim()
       let scope = options.scope?.trim()
+      let cancelled = false
       if (isInteractive() && !title) {
         await runInteractive(async () => {
-          const { input } = await loadPrompts()
-          title = (await input({ message: "任务标题" })).trim()
-          owner = (await input({ message: "负责人", default: owner ?? defaultOwner() })).trim()
-          scope = (await input({ message: "影响范围（单值）", default: scope ?? "cli" })).trim()
+          const titleAnswer = await askInput({ message: "任务标题" })
+          if (titleAnswer === null) {
+            cancelled = true
+            return
+          }
+          title = titleAnswer.trim()
+          const ownerAnswer = await askInput({ message: "负责人", default: owner ?? defaultOwner() })
+          if (ownerAnswer === null) {
+            cancelled = true
+            return
+          }
+          owner = ownerAnswer.trim()
+          const scopeAnswer = await askInput({ message: "影响范围（单值）", default: scope ?? "cli" })
+          if (scopeAnswer === null) {
+            cancelled = true
+            return
+          }
+          scope = scopeAnswer.trim()
         })
+      }
+      if (cancelled) {
+        reportCancelled()
+        return
       }
       if (!title) {
         console.error("⚠️ 非交互环境须用 --title 指定任务标题")

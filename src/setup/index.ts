@@ -2,7 +2,8 @@
 import { INIT_LINKS } from "../links"
 import { EXIT } from "../exit-codes"
 import { formatChoiceLine } from "../prompt-line"
-import { isInteractive, loadPrompts, runInteractive } from "../prompts"
+import { isInteractive, reportCancelled, runInteractive } from "../prompts"
+import { askCheckboxOrExit } from "../cli-ui"
 import { line } from "../term-style"
 import { inspectSetupSteps, runSetupStep, type StepId, type SetupStep } from "./steps"
 
@@ -21,7 +22,7 @@ type StepOutcome = { status: "done" } | { status: "failed"; error: string }
 function reportEnvironment(steps: SetupStep[]): void {
   console.log("检查环境")
   for (const step of steps) {
-    if (step.interactive) continue
+    if (!step.readiness) continue
     console.log(line.hint(`  ${step.label}：${step.ready ? "已就绪" : "未配置"}`))
   }
   console.log("")
@@ -50,7 +51,7 @@ function reportOutcome(steps: SetupStep[], outcomes: Map<string, StepOutcome>): 
 
 export async function runSetupWizard(options: SetupOptions): Promise<void> {
   const preset = options.rules ?? "recommended"
-  const steps = inspectSetupSteps(preset)
+  const steps = inspectSetupSteps(preset, options.rules !== undefined)
   const pick = (id: StepId) => steps.find((step) => step.id === id)
 
   // 显式参数即视为勾选，避免未进交互时漏做
@@ -58,7 +59,8 @@ export async function runSetupWizard(options: SetupOptions): Promise<void> {
     const step = pick("skills")
     if (step) {
       step.selected = true
-      step.argv = ["skill", "install", "--scope", options.skills, "--yes"]
+      step.argv = ["skill", "install", "--scope", options.skills]
+      step.argvYes = ["skill", "install", "--scope", options.skills, "--yes"]
     }
   }
   if (options.scope === false) {
@@ -73,30 +75,32 @@ export async function runSetupWizard(options: SetupOptions): Promise<void> {
   reportEnvironment(steps)
 
   if (options.yes) {
-    // 零交互：有选择的步骤一律不执行，也不替用户写任何范围决定
-    for (const step of steps) if (step.interactive) step.selected = false
+    // 零交互：有默认参数的步骤按默认值执行；范围与统计不替用户做决定
+    for (const step of steps) {
+      if (step.argvYes) step.argv = step.argvYes
+      else step.selected = false
+    }
   } else if (!isInteractive()) {
     console.error("⚠️ 当前环境无法交互，请加 --yes 以默认值执行")
     process.exitCode = EXIT.INTERACTIVE
     return
   } else {
     await runInteractive(async () => {
-      const { checkbox } = await loadPrompts()
-      const picked = await checkbox({
-        message: "要配置哪些内容？",
+      const picked = await askCheckboxOrExit<StepId>({
+        message: "要配置哪些内容",
         choices: steps.map((step) => ({
           name: formatChoiceLine({ name: step.label, description: step.summary }),
           value: step.id,
           checked: step.selected,
         })),
       })
-      for (const step of steps) step.selected = picked.includes(step.id)
+      for (const step of steps) step.selected = picked?.includes(step.id) ?? false
     })
   }
 
   const chosen = steps.filter((step) => step.selected)
   if (chosen.length === 0) {
-    console.log(line.hint("未选择任何内容，未做改动。"))
+    reportCancelled()
     return
   }
 

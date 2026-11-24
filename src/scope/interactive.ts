@@ -58,9 +58,13 @@ export function buildLayerChoices(startDir = process.cwd()): Array<{ name: strin
   })
 }
 
-// 选择规则归属：项目层 / 本地层在当前目录无法定位项目根时置灰并说明原因
-async function pickLayer(current?: ConfigLayer): Promise<ConfigLayer | null> {
-  return askSelect({ message: "把规则写进哪一层配置", choices: buildLayerChoices(), default: current })
+// 选择规则归属：首步（allowExit）末位给「退出」，ESC 同样按取消返回
+async function pickLayer(current?: ConfigLayer, allowExit = false): Promise<ConfigLayer | null> {
+  const message = "把规则写进哪一层配置"
+  const choices = buildLayerChoices()
+  if (!allowExit) return askSelect({ message, choices, default: current })
+  const picked = await runMenu<ConfigLayer>({ message, choices })
+  return picked === "exit" || picked === "back" ? null : picked
 }
 
 // 空列表显示「未配置」
@@ -594,7 +598,7 @@ async function skillMatrixFlow(state: ScopeState): Promise<void> {
 // 无参入口：状态优先菜单，循环直到退出
 export async function runScopeInteractive(): Promise<void> {
   if (!requireInteractive({ action: "作用域向导", hint: "非交互请使用 toolkit scope status / list / add / exclude / remove / default / reset" })) return
-  let layer = await pickLayer()
+  let layer = await pickLayer(undefined, true)
   if (!layer) return
   for (;;) {
     const state = readScopeState(layer)

@@ -51,8 +51,10 @@ export function requireInteractive(options: { action: string; hint: string; fall
   return false
 }
 
-// 取消提示：诊断统一走 stderr，stdout 只放数据
-export function reportCancelled(message = "已取消，未修改任何文件"): void {
+// 取消提示：诊断统一走 stderr，stdout 只放数据；文案全库共用一份
+export const CANCEL_MESSAGE = "已取消，未做任何改动"
+
+export function reportCancelled(message = CANCEL_MESSAGE): void {
   console.error(line.hint(message))
 }
 

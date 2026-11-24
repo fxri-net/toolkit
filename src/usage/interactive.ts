@@ -8,8 +8,8 @@ import { runUploadSetup } from "./upload"
 import { readHookActivity, readLastHookError } from "./ingest"
 import { line, style, termText, usageChannelText, usageRotationText, usageSkillsModeText } from "../term-style"
 import { formatChoiceLine } from "../prompt-line"
-import { LIST_PAGE_SIZE, ask, exitWithCancel, isPromptCancel, loadPrompts, requireInteractive } from "../prompts"
-import { askCheckbox, askConfirm, askInput, confirmWrite, runMenu } from "../cli-ui"
+import { LIST_PAGE_SIZE, ask, exitWithCancel, isPromptCancel, loadPrompts, reportCancelled, requireInteractive } from "../prompts"
+import { askCheckbox, askConfirm, askInput, askSelectOrExit, confirmWrite, runMenu } from "../cli-ui"
 import { createContext, formatLocalTime, printDefaultStats, printUsageInfo } from "./cli/context"
 import { exportUsageEvents, purgeUsageEvents } from "./cli/data"
 import { SKILL_PREFIX } from "../skills/prefix"
@@ -243,13 +243,17 @@ export async function runUsageInitInteractive(options: InitInteractiveOptions = 
       name: formatChoiceLine({ name: PRESET_LABELS[value].name, description: PRESET_LABELS[value].summary }),
       value,
     }))
-    const preset = await select<Preset>({
+    const preset = await askSelectOrExit<Preset>({
       message: defaults.configured ? "选择技能使用情况预设（默认沿用当前配置）" : "选择技能使用情况预设（默认启用，数据只留本机）",
       default: defaultPreset,
       choices: presetChoices,
     })
+    if (preset === null) {
+      reportCancelled()
+      return
+    }
     if (preset === "off") {
-      console.log(line.hint("保持关闭，未修改任何文件。需要时执行 toolkit config set usage.enabled true"))
+      console.log(line.hint("保持关闭，未做任何改动。需要时执行 toolkit config set usage.enabled true"))
       return
     }
     if (preset === "keep") {
@@ -290,9 +294,9 @@ export async function runUsageInitInteractive(options: InitInteractiveOptions = 
         console.log(line.hint("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行"))
         return
       }
-      const applyKeep = await confirm({ message: "按当前配置重装 Hook？", default: true })
-      if (!applyKeep) {
-        console.log(line.hint("已取消，未修改任何文件"))
+      const applyKeep = await askConfirm({ message: "按当前配置重装 Hook？", default: true })
+      if (applyKeep !== true) {
+        reportCancelled()
         return
       }
       installHooks(selected)
