@@ -3,9 +3,15 @@
   "compilerOptions": {
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "noEmit": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "skipLibCheck": true
   },
   "include": ["**/*.ts", "**/*.mts", "**/*.d.ts", "../types/**/*.d.ts"],
-  "files": [".vitepress/theme/components/RuleComposer.vue"],
+  "files": [
+    ".vitepress/theme/components/RuleComposer.vue",
+    ".vitepress/theme/components/diagrams/ConceptMap.vue",
+    ".vitepress/theme/components/diagrams/TaskJourney.vue",
+    ".vitepress/theme/components/diagrams/ModelMap.vue"
+  ],
   "exclude": ["node_modules", ".vitepress/cache", ".vitepress/dist"]
 }
