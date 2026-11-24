@@ -58,7 +58,7 @@ jobs:
       # 运行下限冒烟需要「已发布形态」的包：打包后传给 node18 作业，避免在旧版 Node 上安装 dev 工具链
       - name: 打包运行时产物
         run: pnpm pack --pack-destination .
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: toolkit-tgz
           path: "*.tgz"
@@ -75,7 +75,7 @@ jobs:
           node-version: 18.17.0
           # 该 job 只用 npm 安装包产物，不需要 pnpm；setup-node v5 默认按 packageManager 自动启用 pnpm 缓存，未装 pnpm 会直接失败
           package-manager-cache: false
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: toolkit-tgz
       - name: 安装包产物（全局）
@@ -100,8 +100,9 @@ jobs:
         run: pnpm verify --tests-only
 
   # macOS 回归：macOS 默认大小写不敏感文件系统（口径同 Windows、与 ubuntu 不同），路径归一 / 大小写折叠类逻辑须在此兜底
+  # 固定 Intel 镜像：macos-latest 现映射到 arm64，容量紧张时 job 会一直排队直到超时（实测两次失败）；大小写语义两架构一致
   macos:
-    runs-on: macos-latest
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v6
