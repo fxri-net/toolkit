@@ -9,7 +9,7 @@ import { readHookActivity, readLastHookError } from "./ingest"
 import { line, style, termText, usageChannelText, usageRotationText, usageSkillsModeText } from "../term-style"
 import { formatChoiceLine } from "../prompt-line"
 import { LIST_PAGE_SIZE, ask, exitWithCancel, isPromptCancel, loadPrompts, reportCancelled, requireInteractive } from "../prompts"
-import { askCheckbox, askConfirm, askInput, askSelectBack, askSelectOrExit, confirmWrite, runMenu } from "../cli-ui"
+import { askCheckboxBack, askConfirm, askInput, askSelectBack, askSelectOrExit, confirmWrite, runMenu } from "../cli-ui"
 import { createContext, formatLocalTime, printDefaultStats, printUsageInfo } from "./cli/context"
 import { exportUsageEvents, purgeUsageEvents } from "./cli/data"
 import { SKILL_PREFIX } from "../skills/prefix"
@@ -389,7 +389,7 @@ export async function runUsageInitInteractive(options: InitInteractiveOptions = 
         continue
       }
       if (step === "firstParty") {
-        const answer = await ask(() => confirm({ message: `统计 toolkit 一方技能（${SKILL_PREFIX}*）？`, default: state.firstParty }), { back: true })
+        const answer = await ask(() => confirm({ message: `统计 toolkit 一方技能（${SKILL_PREFIX}*）？（ESC 返回上一步）`, default: state.firstParty }), { back: true })
         if ("back" in answer) {
           index -= 1
           continue
@@ -405,7 +405,7 @@ export async function runUsageInitInteractive(options: InitInteractiveOptions = 
           index += 1
           continue
         }
-        const answer = await ask(() => confirm({ message: "统计 toolkit 分发的第三方技能？", default: state.thirdParty }), { back: true })
+        const answer = await ask(() => confirm({ message: "统计 toolkit 分发的第三方技能？（ESC 返回上一步）", default: state.thirdParty }), { back: true })
         if ("back" in answer) {
           index -= 1
           continue
@@ -443,7 +443,7 @@ export async function runUsageInitInteractive(options: InitInteractiveOptions = 
         const answer = await ask(
           () =>
             input({
-              message: state.mode === "include" ? "要统计的技能名（逗号分隔）" : "要排除的技能名（逗号分隔）",
+              message: state.mode === "include" ? "要统计的技能名（逗号分隔，ESC 返回上一步）" : "要排除的技能名（逗号分隔，ESC 返回上一步）",
               default: usingSaved ? savedList.join("，") : "",
             }),
           { back: true },
@@ -470,7 +470,7 @@ export async function runUsageInitInteractive(options: InitInteractiveOptions = 
           index += 1
           continue
         }
-        const answer = await ask(() => confirm({ message: item.message, default: item.current }), { back: true })
+        const answer = await ask(() => confirm({ message: `${item.message}（ESC 返回上一步）`, default: item.current }), { back: true })
         if ("back" in answer) {
           index -= 1
           continue
@@ -482,7 +482,7 @@ export async function runUsageInitInteractive(options: InitInteractiveOptions = 
         continue
       }
       if (step === "dir") {
-        const answer = await ask(() => input({ message: "数据目录", default: state.dir }), { back: true })
+        const answer = await ask(() => input({ message: "数据目录（ESC 返回上一步）", default: state.dir }), { back: true })
         if ("back" in answer) {
           index -= 1
           continue
@@ -511,7 +511,7 @@ export async function runUsageInitInteractive(options: InitInteractiveOptions = 
       }
       if (step === "retention") {
         // 非法取值就地重问，不前进也不写盘
-        const answer = await ask(() => input({ message: "保留天数", default: state.retention }), { back: true })
+        const answer = await ask(() => input({ message: "保留天数（ESC 返回上一步）", default: state.retention }), { back: true })
         if ("back" in answer) {
           index -= 1
           continue
@@ -779,7 +779,7 @@ async function hooksFlow(): Promise<void> {
       console.log(line.hint("未检测到可接入的 Agent"))
       return
     }
-    const picked = await askCheckbox({
+    const picked = await askCheckboxBack({
       message: "选择要安装 Hook 的 Agent（安装不等于开启采集）",
       choices: detected.map((adapter) => ({ name: adapter.displayName, value: adapter.id })),
       pageSize: LIST_PAGE_SIZE,
@@ -799,7 +799,7 @@ async function hooksFlow(): Promise<void> {
     console.log(line.hint("未发现本包 Hook"))
     return
   }
-  const picked = await askCheckbox({
+  const picked = await askCheckboxBack({
     message: "选择要移除 Hook 的 Agent",
     choices: installed.map((adapter) => ({ name: adapter.displayName, value: adapter.id })),
     pageSize: LIST_PAGE_SIZE,
@@ -814,19 +814,19 @@ async function maintenanceFlow(): Promise<void> {
     message: "导出 / 清理",
     back: true,
     choices: [
-      { name: "导出事件到文件（JSONL）", value: "export" },
-      { name: "清理早于保留期的事件", value: "purge" },
+      { name: "导出事件到文件（JSONL）…", value: "export" },
+      { name: "清理早于保留期的事件…", value: "purge" },
     ],
   })
   if (action === "back" || action === "exit") return
   if (action === "export") {
-    const out = await askInput({ message: "导出文件路径", default: "usage-events.jsonl" })
+    const out = await askInput({ message: "导出文件路径（ESC 返回上一步）", default: "usage-events.jsonl" })
     if (!out) return
     exportUsageEvents({ out })
     return
   }
   purgeUsageEvents({ dryRun: true })
-  const confirmed = await askConfirm({ message: "确认删除上述记录？", default: false })
+  const confirmed = await askConfirm({ message: "确认删除上述记录？（ESC 返回上一步）", default: false })
   if (confirmed !== true) return
   purgeUsageEvents({})
 }

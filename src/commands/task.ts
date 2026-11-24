@@ -435,19 +435,19 @@ export function registerTasksCommands(program: Command): void {
       let cancelled = false
       if (isInteractive() && !title) {
         await runInteractive(async () => {
-          const titleAnswer = await askInput({ message: "任务标题" })
+          const titleAnswer = await askInput({ message: "任务标题（ESC 取消）" })
           if (titleAnswer === null) {
             cancelled = true
             return
           }
           title = titleAnswer.trim()
-          const ownerAnswer = await askInput({ message: "负责人", default: owner ?? defaultOwner() })
+          const ownerAnswer = await askInput({ message: "负责人（ESC 取消）", default: owner ?? defaultOwner() })
           if (ownerAnswer === null) {
             cancelled = true
             return
           }
           owner = ownerAnswer.trim()
-          const scopeAnswer = await askInput({ message: "影响范围（单值）", default: scope ?? "cli" })
+          const scopeAnswer = await askInput({ message: "影响范围（单值，ESC 取消）", default: scope ?? "cli" })
           if (scopeAnswer === null) {
             cancelled = true
             return
