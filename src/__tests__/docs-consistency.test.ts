@@ -297,7 +297,7 @@ describe("文档一致性：规则层更新锚点", () => {
   it("usage 规则保留可执行性措辞：立即上报、只读豁免、回复前自检", () => {
     // 这三处是规则能否被稳定执行的判据，缺任意一处都会退回「等批次 / 等授权 / 忘报」的旧形态
     const rule = composeRules(["usage"])
-    for (const phrase of ["立即执行", "不受「只读型请求默认只读」", "回复前自检"]) {
+    for (const phrase of ["立即执行", "不受只读请求", "回复前自检"]) {
       expect(rule, `规则全文缺少「${phrase}」`).toContain(phrase)
     }
   })

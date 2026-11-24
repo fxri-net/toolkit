@@ -22,7 +22,7 @@
     {
       "id": "personal",
       "title": "个人偏好",
-      "summary": "可裁剪的个人偏好：覆写工作流默认行为",
+      "summary": "可裁剪的个人偏好：优先于同类默认约定",
       "file": "personal.md"
     },
     {
