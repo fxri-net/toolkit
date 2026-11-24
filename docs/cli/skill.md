@@ -27,10 +27,9 @@ toolkit skill install --no-skills           # 仅本次零装，不改模式与�
 toolkit skill install --gate                # 内容闸门：本次全部技能写入口壳，--embed 回退
 toolkit config get skillDelivery.default    # 查看默认分发形态
 toolkit config set skillDelivery.default gated # 切换为入口壳（full 回退全文，不覆盖 rules）
-toolkit skill plan                          # 分发计划：目标 / 当前形态 / 动作与判定来源（install --dry-run 的别名）
 toolkit skill mount --dry-run               # 批量挂载：预览将写入的项目（由 scope mount 迁入，原命令已移除）
 toolkit skill install --copy                # 强制副本（仅全局面；入口壳形态的技能仍写壳并告警）
-toolkit skill install --dry-run             # 预演：输出分发计划，不写文件（`skill plan` 的别名）
+toolkit skill install --dry-run             # 预演：输出分发计划，不写文件
 toolkit skill install --force               # 覆盖同名非本包产物（默认跳过；不改已登记副本形态）
 toolkit skill install --dir <path>          # 额外目标目录（可多次；全局面兜底未收录 agent，项目面须在仓库内）
 toolkit skill install --source <name|path>  # 外部来源（已登记名 / 目录 / Git 地址；只写本次，可重复）
@@ -86,7 +85,7 @@ toolkit skill list --format json             # JSON 输出：逐技能条目
 - 项目面按[作用域与安装面](../config/skill#作用域与安装面)的副本 + 薄壳口径写入；`gated` 技能的候选目录落入口壳，真源副本保留供 guard 读取正文
 - **输出节奏**：动作前一行写清作用层（全局层 / 项目层）；动作中按目标逐项列出新建 / 重建 / 跳过 / 清理 / 失败；
   动作后汇总「完成 / 跳过 / 失败」，有失败时给出重试命令
-- `--dry-run` 是 `skill plan` 的别名：只输出分发计划（标明全局层 / 项目层），不写文件
+- `--dry-run` 只输出分发计划（标明全局层 / 项目层），不写文件
 - `--check` 只报告待收敛项，有漂移时退出码 1；不进入交互
 - `--refresh` 只收敛已存在的项目面产物，不新增技能、不改选择集；不进入交互，非 TTY / CI 只打印漂移
 - `skill reconcile`：按当前配置把已装产物的形态对齐到矩阵，不改选择集、不新增技能；
@@ -169,12 +168,6 @@ toolkit skill list --format json             # JSON 输出：逐技能条目
   - 该类名字若完全未命中可清理产物，stderr 告警「未找到可清理的产物」并说明未执行删除，退出码不变
 - 项目面按[作用域与安装面](../config/skill#作用域与安装面)清理归属账记载的条目
 - `--format json` 输出机器可读卸载报告到 stdout（含各目标 `dirReclaimed` 回收标记与 `dryRun` / `scope` 标记）
-
-### plan
-
-- 逐技能列出目标 / 当前形态、动作（保持 / 建壳 / 换全文 / 清理）与判定来源、原因
-- 只读现场：选择与目标按非交互口径解析，不写配置；全局面与项目面均支持
-- `install --dry-run` 是同一实现的别名；JSON 输出 `{ scope, global, project }`
 
 ### 分发形态（config）
 
@@ -276,7 +269,7 @@ toolkit skill list --format json             # JSON 输出：逐技能条目
 
 - 策略（`scope policy` / `scope skills`）直接决定技能分发形态：带条件限制 → 入口壳，无条件拒绝 → 不安装，无需手动开闸门；
   名单配置的兜底拒绝属于目录 / 技能名单的补集，按带条件限制算入口壳
-- 矩阵限制的技能由 `install` 自动生成入口壳，`skill plan` 可预览；显式 `skillDelivery.rules` 仍可覆盖推导
+- 矩阵限制的技能由 `install` 自动生成入口壳，`skill install --dry-run` 可预览；显式 `skillDelivery.rules` 仍可覆盖推导
 - 显式规则把被拒技能钉成全文时，提示「策略对该技能无效：已显式设为全文安装」；旧键 `skillInstall.gate` / `metadata.gate` 仍读时兼容
 - 已安装但当前目录矩阵未允许的技能单列提示，不自动删除；确认不需要时用 `skill uninstall` 清理
 - 项目面安装（`install --scope project`）提供更硬的边界；策略与闸门只影响正文读取，不改变安装产物

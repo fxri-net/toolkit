@@ -1,4 +1,4 @@
-// 技能分发计划：逐技能给出目标形态 / 当前形态 / 动作与判定来源，install --dry-run 与 skills plan 共用
+// 技能分发计划：逐技能给出目标形态 / 当前形态 / 动作与判定来源，供 install --dry-run 预览
 // 只读现场，不写任何文件；真正落盘仍由 installSkills 按同一 resolveDelivery 结论执行
 import { existsSync } from "node:fs"
 import { join } from "node:path"

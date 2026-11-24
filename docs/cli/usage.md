@@ -12,7 +12,7 @@ title: 技能使用情况（usage）
 toolkit usage show                     # 查看开关、通道、配置路径、数据目录、队列与计数（默认）
 toolkit usage show stats --since 30d --limit 10 # 统计视图
 toolkit usage setup init               # 初始化向导，回车即按默认启用（一方 + 第三方技能）
-toolkit usage setup wizard             # 交互菜单：状态、统计、开关、Hook、上传、导出与清理
+toolkit usage setup                    # 交互菜单：状态、统计、开关、Hook、上传、导出与清理
 toolkit usage config channel rule      # 采集通道：rule（全局规则上报）/ hook（Agent Hook）
 toolkit rule compose --module usage    # 输出可复制进全局规则的文案（等价于原 usage rule）
 toolkit usage record --skill fxri-plan-task --skill fxri-plan-review # 规则通道批量上报（静默）
@@ -67,7 +67,7 @@ toolkit usage data doctor
 | 子命令 | 说明 | 主要选项 |
 | --- | --- | --- |
 | `setup init` | 初始化向导：预设、通道、Agent（仅 hook）、来源、字段与存储；首次执行即启用（默认预设「一方 + 第三方技能（数据只留本机，不上传）」，采集字段仍默认关闭），重复执行沿用历史选择、已配置时默认「保持当前配置」并只重装 Hook | `--yes`（须显式给 `--preset`）、`--preset off\|recommended\|third-party`、`--channel rule\|hook`、`--agent`、`--dry-run`（只预览将写入本机层的配置与 Hook 动作）；非 TTY 按无交互退出码结束 |
-| `setup wizard` | 交互菜单：状态、统计、开关、Hook 管理、上传、导出与清理；子页 ESC 返回、顶层退出、Ctrl+C 按取消退出码结束 | — |
+| `setup` | 裸命令进交互菜单：状态、统计、开关、Hook 管理、上传、导出与清理；子页 ESC 返回、顶层退出、Ctrl+C 按取消退出码结束；非 TTY 打印子命令列表 | `--interactive`（无终端也强制进入） |
 | `setup uninstall` | 停用采集并卸载 Hook，默认保留数据；写前预览，取消即不写 | `--yes`、`--agent`、`--purge`、`--dry-run` |
 | `setup hooks install` | 只写 Hook 配置，不开启采集；写前预览并确认，通道为 rule 时提示不生效 | `--agent`、`--yes`、`--dry-run` |
 | `setup hooks status` | 查看 Hook 安装状态与最近触发时间；通道与 Hook 不一致时告警 | `--agent`、`--all`、`--dir` |
@@ -91,7 +91,7 @@ toolkit usage data doctor
 ## 边界与注意
 
 - 裸 `toolkit usage` 在 TTY 下进入交互菜单；非 TTY 输出 `show` 摘要与子命令提示并以退出码 0 结束。
-  需要显式交互入口时用 `toolkit usage setup wizard`（非 TTY 按无交互退出码结束，见[退出码](./exit-codes)）；
+  需要显式交互入口时用 `toolkit usage setup`（非 TTY 加 `--interactive` 强制进入，无终端按无交互退出码结束，见[退出码](./exit-codes)）；
   菜单子页按 ESC 返回、顶层按 ESC 或选「退出」结束，Ctrl+C 按取消退出码结束，取消不写任何文件。
 - `usage show` / `usage show stats`、`usage config` 的 `channel` / `origins` / `scope` / `capture` / `storage`、
   `usage config upload status`、`usage data doctor` 支持 `--format json`：文本与 JSON 由同一份摘要数据渲染，

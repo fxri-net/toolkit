@@ -856,7 +856,7 @@ async function toggleFlow(): Promise<void> {
 
 // 无参菜单：每项调用对应子命令的实现；顶层退出、Ctrl+C 取消
 export async function runUsageWizard(): Promise<void> {
-  if (!requireInteractive({ action: "usage setup wizard", hint: "非交互请直接使用 toolkit usage 子命令，或在终端运行 toolkit usage setup wizard" })) return
+  if (!requireInteractive({ action: "usage setup", hint: "非交互请直接使用 toolkit usage 子命令，或在终端运行 toolkit usage setup" })) return
   for (;;) {
     const config = loadUsageConfig()
     const action = await runMenu<string>({

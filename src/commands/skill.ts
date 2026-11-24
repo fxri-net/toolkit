@@ -356,7 +356,7 @@ function currentFormLabel(current: CurrentForm): string {
   return deliveryModeLabel(current)
 }
 
-// 打印分发计划：逐目标逐技能列出动作、目标形态与判定来源；skills plan 与 install --dry-run 共用
+// 打印分发计划：逐目标逐技能列出动作、目标形态与判定来源；install --dry-run 使用
 function printPlanReport(report: SkillsPlanReport): void {
   console.log(`[预演] 技能分发计划（${report.scope === "global" ? "全局层" : "项目层"}）：${report.skills.length} 个技能 · ${report.targets.length} 个目标`)
   for (const t of report.targets) {
@@ -515,7 +515,7 @@ function printStatusReport(report: SkillsStatusReport): void {
     console.log(line.hint(`分发形态为 off 的残留 ${residueCount} 项：运行 toolkit skill install --prune 清理`))
   }
   if (report.pending.length > 0) {
-    console.log(line.hint(`待收敛 ${report.pending.length} 项：运行 toolkit skill install 收敛（可先 toolkit skill plan 预览）`))
+    console.log(line.hint(`待收敛 ${report.pending.length} 项：运行 toolkit skill install 收敛（可先 toolkit skill install --dry-run 预览）`))
   }
   // 软链落点是写入穿透形态：改落点文件等于改真源，需在报告末尾点明纪律，避免用户误在落点上编辑
   const linkCount = report.targets.reduce((n, t) => n + t.items.filter((i) => i.state === "link").length, 0)
@@ -917,7 +917,7 @@ export function registerSkillsCommands(program: Command): void {
     .option("--use-saved", "技能与目标采用已保存选择，不进入选择交互（仍保留最终确认）")
     .option("--copy", "强制以副本形式写入（仅全局面生效；项目面真源恒为副本、其余目录恒为薄壳）")
     .option("--dir <path>", "额外目标目录（可多次指定，兜底内置表未收录的 agent；不参与后续自动同步，技能变化后需带相同 --dir 重跑）", collectDir, [])
-    .option("--dry-run", "输出分发计划（skills plan 的别名），不写文件")
+    .option("--dry-run", "输出分发计划，不写文件")
     .option("--check", "只报告待收敛项：有漂移时退出码 1（不写文件，供 CI 使用）")
     .option("--refresh", "只收敛已存在的项目面产物，不新增技能；非 TTY / CI 下只打印漂移（prepare 钩子）")
     .option("--force", "覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）")
@@ -1114,7 +1114,7 @@ export function registerSkillsCommands(program: Command): void {
           }
           return
         }
-        // --dry-run 是 skills plan 的别名：只预览分发计划，不写任何文件
+        // --dry-run：只预览分发计划，不写任何文件
         if (dryRun) {
           const plan = runGlobal
             ? planSkills({ skills: selection, targets: globalTargets, dirs: options.dir, externalSources, gate: gateOption })
@@ -1864,69 +1864,6 @@ export function registerSkillsCommands(program: Command): void {
         console.log(`${line.ok(`已注销来源登记：${name}`)}；${style.hint("产物与状态保留，如需清理加 --prune")}`)
       } catch (e) {
         console.error(`⚠️ 注销来源失败：${(e as Error).message}`)
-        process.exitCode = 1
-      }
-    })
-
-  // 分发计划：逐技能给出目标 / 当前形态与动作，install --dry-run 的别名（低频，help 中隐藏）
-  skillsCmd
-    .command("plan", { hidden: true })
-    .description("预览技能分发计划（目标形态 / 当前形态 / 动作与判定来源；install --dry-run 的别名）")
-    .option("--scope <scope>", "作用域（project 项目面 / global 全局面 / all 两者；缺省按现场自动判定）")
-    .option("--skills <names>", "只预览指定技能（逗号分隔）")
-    .option("--all", "预览全部技能（含可选技能）")
-    .option("--no-optional", "只预览 core 技能")
-    .option("--agent <names>", "只预览指定 agent（逗号分隔，含 canonical）")
-    .option("--all-agents", "预览全部已检测的 agent")
-    .option("--dir <path>", "额外目标目录（可多次指定）", collectDir, [])
-    .option("--format <format>", "输出格式（json，输出到 stdout）")
-    .action(async (options: { scope?: string; skills?: string; all?: boolean; optional?: boolean; agent?: string; allAgents?: boolean; dir: string[]; format?: string }) => {
-      try {
-        if (!assertJsonFormat(options.format)) return
-        const scope = resolveScopeChoice(options.scope)
-        if (!scope) return
-        let items: SkillItem[]
-        try {
-          items = collectSkillItems({ dryRun: true })
-        } catch (e) {
-          console.error(`⚠️ 技能来源解析失败：${(e as Error).message}`)
-          process.exitCode = 1
-          return
-        }
-        // 只读预览：选择与目标都按非交互口径解析，不写入任何配置
-        const runProject = scope.choice !== "global"
-        const runGlobal = scope.choice !== "project"
-        let globalPlan: SkillsPlanReport | null = null
-        let projectPlan: SkillsPlanReport | null = null
-        if (runGlobal) {
-          const selection = await resolveSkillSelection(
-            { skills: options.skills, all: options.all, optional: options.optional, yes: true },
-            "global",
-            items,
-          )
-          if (!selection) return
-          const targets = await chooseGlobalTargets({ agent: options.agent, allAgents: options.allAgents, yes: true, dir: options.dir })
-          if (targets === null) return
-          globalPlan = planSkills({ skills: selection.names, targets, dirs: options.dir })
-        }
-        if (runProject) {
-          const selection = await resolveSkillSelection(
-            { skills: options.skills, all: options.all, optional: options.optional, yes: true },
-            "project",
-            items,
-          )
-          if (!selection) return
-          projectPlan = planProjectSkills({ cwd: process.cwd(), skills: selection.names })
-        }
-        if (options.format === "json") printJson(jsonEnvelope({ command: "skill plan", data: { scope: scope.choice, global: globalPlan, project: projectPlan } }))
-        else {
-          console.log(scopeHeadline(scope))
-          console.log("")
-          if (globalPlan) printPlanReport(globalPlan)
-          if (projectPlan) printPlanReport(projectPlan)
-        }
-      } catch (e) {
-        console.error(`⚠️ 生成分发计划失败：${(e as Error).message}`)
         process.exitCode = 1
       }
     })

@@ -42,7 +42,7 @@
 | C-44 | 自检脚本配假现场 | 改 `scripts/check-*.mjs` 时：每个新增或修改的校验都要有假现场用例（合规通过 / 违规报出），容错分支同样要锁 | testing | [testing.md](./testing.md) |
 | C-45 | 命名与封装统一 | 写代码或命名时：动词族与谓词形态固定、参数用 options/config、当前源码不用 fx 前缀（新增前缀须先立目录与白名单）、全局命名带 FX_TOOLKIT_ 标识；展示基建须收敛单模块并落门禁；兼容读取须写明移除版本 | common | [common.md](./common.md) |
 | C-46 | 运行时版本基线 | 写代码时：以 engines 为唯一基线、只用基线已稳定 API、最低版本须有 CI 回归入口、类型声明与基线一致 | platform | [platform.md](./platform.md) |
-| C-47 | 交互与入口统一 | 新增或改命令入口 / 交互时：交互走 `cli-ui` 基座，写操作预览 + 确认 + `--yes`，裸命令按域类型给视图，入口矩阵以 `docs/cli.md` 为准 | common | [common.md](./common.md)、[cli.md](../../docs/cli.md) |
+| C-47 | 交互与入口统一 | 新增或改命令入口 / 交互时：交互走 `cli-ui` 基座，写操作预览 + 确认 + `--yes`，裸命令按域类型给视图，强制交互用 `--interactive`，入口矩阵以 `docs/cli.md` 为准 | common | [common.md](./common.md)、[cli.md](../../docs/cli.md) |
 | C-48 | 单一真源与事实注册表 | 改代码、文档或技能前：同一事实只留一个 owner，按派生 > 指针 > 生成 > 校验选手段，用户可见事实不得只放本仓，新增事实先登记 `F-<n>` | common | [common.md](./common.md) C-48 |
 | C-49 | 离线自包含 | 写技能或工具提示时：规范正文、候选清单与升级步骤随包分发，技能内远端链接须标可选，跨技能引用带兜底，升级提示给本地入口 | common | [common.md](./common.md) C-49、`scripts/check-consistency.mjs` |
 | C-50 | 人读文案与机器键分离 | 写 CLI 人读文案时：文本层只给中文，机器键只进 JSON；称谓、符号与提示语按 `docs/cli.md` 术语表与文案约定 | common | [docs/cli.md](../../docs/cli.md) 文案约定 |

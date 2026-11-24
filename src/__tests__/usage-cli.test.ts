@@ -176,16 +176,16 @@ describe("usage CLI", () => {
     process.exitCode = 0
   })
 
-  it("裸 usage 输出摘要成功退出，wizard 在非交互环境报错退出", async () => {
+  it("裸 usage 输出摘要成功退出，setup --interactive 在非交互环境报错退出", async () => {
     await run([])
     expect(logs.join("\n")).toContain("技能使用情况")
-    expect(logs.join("\n")).toContain("toolkit usage setup wizard")
+    expect(logs.join("\n")).toContain("toolkit usage setup")
     expect(process.exitCode).toBe(0)
 
     logs = []
     errors = []
-    await run(["setup", "wizard"])
-    expect(errors.join("\n")).toContain("toolkit usage setup wizard")
+    await run(["setup", "--interactive"])
+    expect(errors.join("\n")).toContain("toolkit usage setup")
     expect(process.exitCode).toBe(2)
     process.exitCode = 0
   })

@@ -18,7 +18,7 @@ title: 作用域（scope）
 
 ```bash
 toolkit scope                                   # 状态优先向导：看状态 / 加白黑名单 / 管条目 / 名单外处理 / 高级规则 / 技能矩阵
-toolkit scope wizard                            # 显式进入交互向导（非 TTY 按无交互退出码结束）
+toolkit scope --interactive                     # 无终端时也强制进入交互向导（否则按无交互退出码结束）
 toolkit scope status                            # 当前目录的判定与说明
 toolkit scope status --skill fxri-plan-review   # 按技能级规则判定单个技能
 toolkit scope status --skills                   # 列出包内与已安装外部技能在该目录的生效结论
@@ -76,7 +76,7 @@ toolkit scope guard fxri-plan-task              # 内容闸门：按当前目录
 ## 交互与写命令
 
 - 无参 `toolkit scope`：TTY 下进入状态优先向导；非 TTY 输出状态摘要与子命令提示并以 `0` 退出。
-  交互入口也可显式运行 `toolkit scope wizard`（非 TTY 按无交互退出码结束，见[退出码](./exit-codes)）
+  需要强制交互时加 `--interactive`（无终端按无交互退出码结束，见[退出码](./exit-codes)）
 - `scope status` / `list` 的 `--format` 仅接受 `json`，非法值在 stderr 报错并以 `1` 退出，不再回落文本
 - 向导首页固定显示「当前层 + 配置来源 + 名单模式 + 白名单 / 黑名单条数」；首项为查看状态 / 名单与策略，避免盲改
 - 动作按意图排列：添加白名单 / 添加黑名单 / 管理条目（移除、互转）/ 修改名单外处理 / 清除限制 / 高级规则 / 技能矩阵 / 切换配置层 / 退出
@@ -93,7 +93,7 @@ toolkit scope guard fxri-plan-task              # 内容闸门：按当前目录
   `toolkit skill install --gate` / `--embed` 生成或还原入口壳；批量挂载用 `toolkit skill mount`
 - 选择页统一提供「← 返回」（末位）与 ESC 返回上一级；顶层「退出」按成功计 `0`，Ctrl+C 结束整个命令（取消退出码）
 - ESC 有约 500ms 判定延迟（readline 需先排除方向键序列），属正常现象
-- `scope list add` / `list exclude` / `list remove` 均需显式目录：无参只提示改用 `toolkit scope wizard`，不再隐式进入完整向导
+- `scope list add` / `list exclude` / `list remove` 均需显式目录：无参只提示改用 `toolkit scope --interactive`，不再隐式进入完整向导
 - `list add` 加入白名单并把默认值切到「仅名单内生效」；`list exclude` 只加黑名单、默认值不变；同路径在另一侧时写前预览「移入 / 转入」
 - `list add --tree` 与 `policy add --paths ... --tree` 把裸目录写成 `<目录>/**`，覆盖目录自身与其下所有项目；向导添加目录时会询问生效范围
 - `list remove --from include|exclude|both`（默认 `both`）指定来源侧，`--to include|exclude` 一步转入另一侧；带参与交互同口径
@@ -105,7 +105,7 @@ toolkit scope guard fxri-plan-task              # 内容闸门：按当前目录
 - `scope list` 同时输出条目存在性：文本模式列出「条目异常」，`--format json` 的 `data.items` 含 `path` / `list` / `exists`；
   相对路径条目按所属配置层的项目根解析；含 `*` / `?` 或 `re:` 的规则跳过存在性检查（`exists` 恒为 `true`）
 - 批量项目面安装已迁至 `toolkit skill mount`（原 `scope mount` 已移除）；写入边界与 `--dry-run` 见 [技能分发 · mount](./skill#mount)
-- 非 TTY 环境：`wizard` 会提示无法交互（无交互退出码，见[退出码](./exit-codes)）；写命令请直接带参数
+- 非 TTY 环境：`--interactive` 会提示无法交互（无交互退出码，见[退出码](./exit-codes)）；写命令请直接带参数
 - **写入即收敛**：`list *` / `policy *` / `skills *` 与向导写配置后会按矩阵自动收敛技能产物——
   写前预览同时列出「配置变更」与「技能形态变更」（哪个技能从全文变入口壳 / 变不安装），确认后先落配置再改产物，逐技能报告结果
   - 层 → 安装面：写全局层只动全局面，写项目层只动项目面，写本地层同时重算两面；项目面在 `CI` / 非 TTY 下只报告不写盘

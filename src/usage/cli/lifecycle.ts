@@ -1,18 +1,11 @@
-// 使用情况 CLI（lifecycle）：show 组的信息视图，以及 setup 组的初始化 / 停用 / Hook / 向导
+// 使用情况 CLI（lifecycle）：show 组的信息视图，以及 setup 组的初始化 / 停用 / Hook
 import type { Command } from "commander"
 import { assertJsonFormat, jsonEnvelope } from "../../json-output"
 import { runInteractive } from "../../prompts"
 import { AGENT_ADAPTERS } from "../adapters"
 import { ingestFromStdin, readLastHookError } from "../ingest"
 import { uploadStatus } from "../upload"
-import {
-  installUsageHooks,
-  printHooksStatus,
-  removeUsageHooks,
-  runUsageInitWizard,
-  runUsageUninstall,
-  runUsageWizard,
-} from "../wizard"
+import { installUsageHooks, printHooksStatus, removeUsageHooks, runUsageInitWizard, runUsageUninstall } from "../wizard"
 import { usageConfigPath } from "../config"
 import { queueCount } from "../queue"
 import { listEventFiles, readAllEvents, readIndex } from "../store"
@@ -89,14 +82,7 @@ export function registerUsageSetupCommands(setup: Command, usage: Command): void
       await runInteractive(() => runUsageUninstall(options))
     })
 
-  // 交互向导：状态、统计、开关、Hook、上传、导出与清理
-  setup
-    .command("wizard")
-    .description("交互向导：状态、统计、开关、Hook、上传、导出与清理")
-    .action(async () => {
-      await runInteractive(() => runUsageWizard())
-    })
-
+  // 交互向导：状态、统计、开关、Hook、上传、导出与清理（入口为裸 usage / 裸 usage setup）
   // Hook 管理：安装 / 状态 / 卸载
   const hooks = setup.command("hooks").description("管理 Agent Hook（安装 / 状态 / 卸载）")
 

@@ -26,7 +26,7 @@ export interface ReconcileOptions {
   dryRun?: boolean
 }
 
-// 现场形态人读：与 skill plan 的列口径一致
+// 现场形态人读：与 install --dry-run 的列口径一致
 export function currentFormLabel(form: CurrentForm): string {
   if (form === "none") return "未安装"
   if (form === "full") return "全文安装"

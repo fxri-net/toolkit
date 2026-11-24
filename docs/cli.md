@@ -14,10 +14,10 @@
 | `toolkit task` | 任务管理：初始化、总览、建档、更新、归档、校验、归一、统计、导入导出 | `init` / `add` / `update` / `archive` / `check` / `normalize` / `stats` / `export` / `import` | [任务管理](./cli/task) |
 | `toolkit convention` | 规范载体：结构升级、表格与索引单元格归一、只读体检 | `upgrade` / `status` / `format` | [规范载体](./cli/convention) |
 | `toolkit release` | 多语言 CHANGELOG 与发版（封装 changesets，默认 `status`） | `status` / `bump` / `changelog` / `mirror` / `publish` / `audit` / `changeset` | [发版与更新日志](./cli/release) |
-| `toolkit skill` | AI 技能分发：安装、分发计划、状态、卸载、来源与版本 | `install` / `plan` / `status` / `uninstall` / `source` / `bump` / `lint` | [技能分发](./cli/skill) |
+| `toolkit skill` | AI 技能分发：安装、分发预览、状态、卸载、来源与版本 | `install` / `status` / `uninstall` / `source` / `bump` / `lint` | [技能分发](./cli/skill) |
 | `toolkit usage` | 技能使用情况：开关、统计、导出与诊断（默认关闭） | `show` / `data` / `config` / `setup` / `record` | [技能使用情况](./cli/usage) |
 | `toolkit rule` | 全局规则：列出模块、组合输出、锚点校验与缓存管理 | `list` / `compose` / `reset` / `check` | [全局规则](./cli/rule) |
-| `toolkit scope` | 作用域：按项目 / 目录判定技能是否生效（默认全域生效） | `status` / `list` / `policy` / `skills` / `wizard` / `guard`（`list` 组含 add / exclude / remove / default / reset，详见 scope 页） | [作用域](./cli/scope) |
+| `toolkit scope` | 作用域：按项目 / 目录判定技能是否生效（默认全域生效） | `status` / `list` / `policy` / `skills` / `guard`（`list` 组含 add / exclude / remove / default / reset，裸命令进交互，详见 scope 页） | [作用域](./cli/scope) |
 | `toolkit config` | 配置唯一写入口（键清单 + 分层写入）与只读体检 | `list` / `get` / `set` / `unset` / `status` | [配置体检](./cli/config) |
 | `toolkit privacy` | 隐私体检：本机绝对路径扫描与归一（按项目档位） | `scan` | [隐私体检](./cli/privacy) |
 | `toolkit docs` | 文档站全量校验（默认）、主题写入与分项校验 | `check` / `theme` / `nav` / `dist` | [文档站主题](./cli/docs-theme) · [文档站校验](./cli/docs-check) |
@@ -34,7 +34,7 @@
 | 新会话恢复 | `toolkit status`（或 `toolkit task --view all` + `toolkit convention status`） |
 | 发版 | `toolkit release bump` → `pnpm verify` → 打标签发布 |
 | 技能升级 / 换装 | `toolkit skill status` → `toolkit skill install`（外部来源见 `skill source`） |
-| 看分发形态会怎么落 | `toolkit skill plan`（只读预览；`install --dry-run` 同义） |
+| 看分发形态会怎么落 | `toolkit skill install --dry-run`（只读预览，不写文件） |
 | 看技能用了多少次 | `toolkit usage show stats`（`--by session` / `--by trigger` / `--limit`） |
 | 复制全局规则 | `toolkit rule compose`（按需 `--preset` / `--module`，`--copy` 直接进剪贴板） |
 | 规范沉淀 | `toolkit convention status` → `toolkit convention upgrade` / `format` |
@@ -45,7 +45,7 @@
 
 ## 裸命令入口
 
-| 域 | 裸命令（TTY） | 非 TTY | 显式向导入口 | 机器可读 |
+| 域 | 裸命令（TTY） | 非 TTY | 强制交互 | 机器可读 |
 | --- | --- | --- | --- | --- |
 | `toolkit init` | 全局接入向导 | 提示改用 `--yes`，按无交互退出码结束 | 无 | 无 |
 | `toolkit task` | 打印任务总览（默认视图） | 同左，退出 0 | 无 | `list` / `stats --format json`、`export` |
@@ -55,14 +55,14 @@
 | `toolkit privacy` | 打印本域帮助 | 同左，退出 0 | 无 | `scan --format json` |
 | `toolkit convention` | 打印本域帮助 | 同左，退出 0 | 无 | `status` / `format` / `upgrade --format json` |
 | `toolkit docs` | 默认全量校验（theme / nav / dist） | 同左 | 无 | `nav` / `dist --format json` |
-| `toolkit scope` | 状态优先向导 | 输出状态摘要与子命令提示，退出 0 | `scope wizard`（需要交互但无终端时按无交互退出码结束，见[退出码](./cli/exit-codes)） | `status` / `list --format json` |
-| `toolkit usage` | 交互向导 | 输出 `show` 摘要与子命令提示，退出 0 | `usage setup wizard`（需要交互但无终端时按无交互退出码结束，见[退出码](./cli/exit-codes)） | `show` / `show stats` / `data doctor` 等 `--format json` |
+| `toolkit scope` | 状态优先向导 | 输出状态摘要与子命令提示，退出 0 | `--interactive`（无终端时按无交互退出码结束，见[退出码](./cli/exit-codes)） | `status` / `list --format json` |
+| `toolkit usage` | 交互菜单 | 输出 `show` 摘要与子命令提示，退出 0 | `usage setup --interactive`（无终端时按无交互退出码结束，见[退出码](./cli/exit-codes)） | `show` / `show stats` / `data doctor` 等 `--format json` |
 | `toolkit release` | 默认 `status` 只读概览 | 同左，退出 0 | 无 | `status` / `changeset list` 等 `--format json` |
 
-规则：查询型域给默认视图，配置 / 分发型域给帮助，向导型域给摘要 + `wizard` 入口提示；
+规则：查询型域给默认视图，配置 / 分发型域给帮助，交互型域给摘要与子命令提示；
 查询 / 分发型裸命令在非 TTY 退出 `0`；校验型裸命令（`toolkit docs`）按校验结论退出，存在 error 时为 `1`，
 未检测到 `docs/` 目录时跳过并退出 `0`；
-显式 `wizard` 子命令需要交互时退出 `2`。
+需要强制交互时用 `--interactive`（无终端时按无交互退出码结束）。
 
 ## 术语表
 

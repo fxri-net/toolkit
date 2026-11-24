@@ -11,7 +11,7 @@ title: 退出码与解析错误
 | --- | --- | --- | --- |
 | `0` | OK | 成功（含 check 通过、归档跳过等正常路径） | 全部命令 |
 | `1` | FAIL | 操作失败或校验存在 error 级问题（参数冲突、非法子命令、文件 / 目录异常等） | 全部命令 |
-| `2` | INTERACTIVE / USAGE | 需要交互但当前环境不支持；或 skill lint 的用法错误（非法数值、空 --base 等） | wizard、写确认命令、skill lint 参数校验 |
+| `2` | INTERACTIVE / USAGE | 需要交互但当前环境不支持；或 skill lint 的用法错误（非法数值、空 --base 等） | 裸命令交互（--interactive 或 TTY）、写确认命令、skill lint 参数校验 |
 | `3` | GUARD_INACTIVE | 内容闸门判定当前目录未激活（stdout 为空，原因写 stderr） | scope guard |
 | `130` | CANCEL | 用户在交互提示中按 Ctrl+C 中断（不写任何文件、不打印堆栈） | 所有交互提示 |
 <!-- toolkit:exit-codes:end -->
@@ -25,10 +25,11 @@ title: 退出码与解析错误
 
 交互中断固定为 `130`，与 shell 对 SIGINT 的惯例一致：`scope` / `usage` / `skill` / `rule` 等命令在提示中按 Ctrl+C 都以此结束，不再回落为 `0` 或 `1`。
 `scope` 交互里的「← 返回」与 ESC 属于正常导航（回到上层菜单），不产生中断退出码；主动选择「退出」按成功计 `0`。
-需要交互但没有可用终端的命令（`toolkit init`、`toolkit scope wizard`、`toolkit usage setup wizard`、`toolkit usage setup init` /
-`toolkit usage setup uninstall` / `toolkit usage config upload setup` / `toolkit usage setup hooks install` /
-`toolkit usage setup hooks remove`、`toolkit task add` / `task update` 的写确认、`toolkit config set` / `config unset` 的写确认）
-统一输出 `⚠️` 提示并以 `2` 结束，提示里给出等价的非交互参数。
+需要交互但没有可用终端的命令统一输出 `⚠️` 提示并以 `2` 结束，提示里给出等价的非交互参数：
+`toolkit init`、`toolkit scope --interactive`、`toolkit usage setup --interactive`、
+`toolkit usage setup init` / `toolkit usage setup uninstall` / `toolkit usage config upload setup`、
+`toolkit usage setup hooks install` / `toolkit usage setup hooks remove`、`toolkit task add` / `task update` 的写确认、
+`toolkit config set` / `config unset` 的写确认。
 `scope` 写命令是已知例外：非 TTY 下带显式参数直接执行并以 `0` 结束，不要求 `--yes`（见[作用域](./scope)）。
 输入被关闭（非 TTY / EOF）与用户中断分开处理：前者按无交互约定（`2`）结束，后者按取消约定（`130`）结束，不把环境问题记成用户取消。
 裸 `toolkit scope` / `toolkit usage` 不在此列：非 TTY 下输出摘要并成功退出。

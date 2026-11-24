@@ -16,11 +16,11 @@ export function registerUsageCommands(program: Command): void {
     .command("usage")
     .description("技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）")
 
-  // 裸命令：非 TTY 输出状态摘要并成功退出；交互入口显式交给 usage setup wizard
+  // 裸命令：非 TTY 输出状态摘要并成功退出；交互入口交给 usage setup
   usage.action(async () => {
     if (!isInteractive()) {
       printUsageInfo()
-      console.log(line.hint("交互向导请运行 toolkit usage setup wizard；单项操作见 toolkit usage --help"))
+      console.log(line.hint("交互向导请运行 toolkit usage setup；单项操作见 toolkit usage --help"))
       return
     }
     await runInteractive(() => runUsageWizard())
@@ -30,7 +30,19 @@ export function registerUsageCommands(program: Command): void {
   const show = usage.command("show").description("查看使用情况现场：开关、数据目录与事件计数（默认）")
   const data = usage.command("data").description("事件数据：导出 / 导入 / 去重 / 清理 / 重建索引")
   const config = usage.command("config").description("采集配置：通道 / 来源 / 范围 / 字段 / 存储 / 上传")
-  const setup = usage.command("setup").description("生命周期：初始化 / 停用 / Hook 与交互向导")
+  const setup = usage
+    .command("setup")
+    .description("生命周期：初始化 / 停用 / Hook 与交互向导")
+    .option("--interactive", "即使无终端也强制进入交互向导")
+  // 裸 setup：TTY 或显式 --interactive 进交互向导，非 TTY 打印子命令列表
+  setup.action(async (options: { interactive?: boolean }) => {
+    if (options.interactive || isInteractive()) {
+      await runInteractive(() => runUsageWizard())
+      return
+    }
+    setup.help()
+    console.log(line.hint("非交互请使用 toolkit usage setup init / uninstall / hooks；交互向导请在终端运行 toolkit usage setup"))
+  })
 
   registerUsageShowCommands(show)
   // 统计为 show 的二级视图（usage show stats）

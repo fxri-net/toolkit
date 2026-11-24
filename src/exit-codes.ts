@@ -60,7 +60,7 @@ export const EXIT_CODE_TABLE: readonly ExitCodeRow[] = [
     code: 2,
     name: "INTERACTIVE / USAGE",
     meaning: "需要交互但当前环境不支持；或 skill lint 的用法错误（非法数值、空 --base 等）",
-    scene: "wizard、写确认命令、skill lint 参数校验",
+    scene: "裸命令交互（--interactive 或 TTY）、写确认命令、skill lint 参数校验",
   },
   {
     code: 3,

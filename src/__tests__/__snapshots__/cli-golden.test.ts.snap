@@ -1165,12 +1165,20 @@ Commands:
 "
 `;
 
+exports[`各域行为与错误路径 > scope --interactive 非交互 1`] = `
+"退出码：2
+--- stdout ---
+
+--- stderr ---
+⚠️ 当前环境不支持交互（作用域向导）：非交互请使用 toolkit scope status / list / add / exclude / remove / default / reset"
+`;
+
 exports[`各域行为与错误路径 > scope list add 缺参数 1`] = `
 "退出码：1
 --- stdout ---
 
 --- stderr ---
-⚠️ 请指定目录；交互设置请运行 toolkit scope wizard"
+⚠️ 请指定目录；交互设置请运行 toolkit scope --interactive"
 `;
 
 exports[`各域行为与错误路径 > scope list default 查看 1`] = `
@@ -1430,14 +1438,6 @@ exports[`各域行为与错误路径 > scope status 非法格式 1`] = `
 ⚠️ 不支持的输出格式「xml」，仅支持 json"
 `;
 
-exports[`各域行为与错误路径 > scope wizard 非交互 1`] = `
-"退出码：2
---- stdout ---
-
---- stderr ---
-⚠️ 当前环境不支持交互（作用域向导）：非交互请使用 toolkit scope status / list / add / exclude / remove / default / reset"
-`;
-
 exports[`各域行为与错误路径 > scope 技能清单 1`] = `
 "退出码：0
 --- stdout ---
@@ -1489,7 +1489,7 @@ exports[`各域行为与错误路径 > scope 裸命令 1`] = `
   命中策略：未命中
   配置来源：未配置
   判定说明：未配置作用域（默认全域生效）
-非交互环境已输出状态摘要；交互向导请运行 toolkit scope wizard
+非交互环境已输出状态摘要；交互向导请在终端运行 toolkit scope，或加 --interactive 强制进入
 --- stderr ---
 "
 `;
@@ -1552,7 +1552,7 @@ canonical（多家 agent 共读）：<SANDBOX>/home/.agents/skills（目录未�
 未安装的 agent 65 个未纳入分发（需要时用 toolkit skill install --dir <路径> 指定）
 
 ✖ 共 3 处需处理：缺失 / 悬空 / 指向其他版本 / 副本漂移 / 入口壳过期用 toolkit skill install 补齐，同名冲突用 toolkit skill install --force 覆盖
-待收敛 3 项：运行 toolkit skill install 收敛（可先 toolkit skill plan 预览）
+待收敛 3 项：运行 toolkit skill install 收敛（可先 toolkit skill install --dry-run 预览）
 
 全局面未评估技能矩阵联动；查看项目面请用 toolkit skill status --scope project
 --- stderr ---
@@ -2069,6 +2069,14 @@ exports[`各域行为与错误路径 > usage rule 1`] = `
 ⚠️ toolkit usage rule 已移除，请改用 toolkit rule compose --module usage（输出与旧命令逐字一致）"
 `;
 
+exports[`各域行为与错误路径 > usage setup --interactive 非交互 1`] = `
+"退出码：2
+--- stdout ---
+
+--- stderr ---
+⚠️ 当前环境不支持交互（usage setup）：非交互请直接使用 toolkit usage 子命令，或在终端运行 toolkit usage setup"
+`;
+
 exports[`各域行为与错误路径 > usage setup hooks 卸载非交互 1`] = `
 "退出码：2
 --- stdout ---
@@ -2077,12 +2085,24 @@ exports[`各域行为与错误路径 > usage setup hooks 卸载非交互 1`] = `
 ⚠️ 当前环境不支持交互（usage setup hooks remove）：非交互请加 --yes，或执行 toolkit usage --help"
 `;
 
-exports[`各域行为与错误路径 > usage setup wizard 非交互 1`] = `
-"退出码：2
+exports[`各域行为与错误路径 > usage setup 非交互 1`] = `
+"退出码：0
 --- stdout ---
+Usage: toolkit usage setup [options] [command]
+
+生命周期：初始化 / 停用 / Hook 与交互向导
+
+Options:
+  --interactive              即使无终端也强制进入交互向导
+  -h, --help                 显示帮助
+
+Commands:
+  init [options]             初始化技能使用情况：选择 Agent、来源、字段与存储（执行即启用，默认统计一方与第三方技能）
+  uninstall [options]        停用技能使用情况并卸载 Hook（默认保留本地事件）
+  hooks [options] [command]  管理 Agent Hook（安装 / 状态 / 卸载）
 
 --- stderr ---
-⚠️ 当前环境不支持交互（usage setup wizard）：非交互请直接使用 toolkit usage 子命令，或在终端运行 toolkit usage setup wizard"
+"
 `;
 
 exports[`各域行为与错误路径 > usage show 1`] = `
@@ -2185,7 +2205,7 @@ Hook：未安装
 队列：0 条待处理
 事件：0 条（索引 0 条，文件 0 个）
 最近：暂无
-交互向导请运行 toolkit usage setup wizard；单项操作见 toolkit usage --help
+交互向导请运行 toolkit usage setup；单项操作见 toolkit usage --help
 --- stderr ---
 "
 `;
@@ -2511,7 +2531,7 @@ Options:
   --copy                强制以副本形式写入（仅全局面生效；项目面真源恒为副本、其余目录恒为薄壳）
   --dir <path>          额外目标目录（可多次指定，兜底内置表未收录的 agent；不参与后续自动同步，技能变化后需带相同 --dir
                         重跑） (default: [])
-  --dry-run             输出分发计划（skills plan 的别名），不写文件
+  --dry-run             输出分发计划，不写文件
   --check               只报告待收敛项：有漂移时退出码 1（不写文件，供 CI 使用）
   --refresh             只收敛已存在的项目面产物，不新增技能；非 TTY / CI 下只打印漂移（prepare 钩子）
   --force               覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）

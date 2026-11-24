@@ -465,7 +465,7 @@ async function runListEdit(
   const layer = resolveLayer(options.layer)
   if (!layer) return
   if (dirs.length === 0) {
-    fail("请指定目录；交互设置请运行 toolkit scope wizard")
+    fail("请指定目录；交互设置请运行 toolkit scope --interactive")
     return
   }
   await applyScopePlan(
@@ -480,7 +480,7 @@ async function runRemove(dirs: string[], options: { layer?: string; dryRun?: boo
   const layer = resolveLayer(options.layer)
   if (!layer) return
   if (dirs.length === 0) {
-    fail("请指定目录；交互管理请运行 toolkit scope wizard")
+    fail("请指定目录；交互管理请运行 toolkit scope --interactive")
     return
   }
   const from = (options.from ?? "both") as RemoveFrom
@@ -526,27 +526,23 @@ async function runReset(options: { layer?: string; dryRun?: boolean; yes?: boole
 
 // 注册 scope 命令：默认行为不变（无配置时全域生效）
 export function registerScopeCommands(program: Command): void {
-  const scopeCmd = program.command("scope").description("作用域：按项目 / 目录判定技能是否生效（默认全域生效）")
-  scopeCmd.action(async () => {
-    // 裸命令：非 TTY 输出状态摘要并成功退出，交互入口显式交给 scope wizard
-    if (!isInteractive()) {
-      const report = resolveScope()
-      for (const warning of report.warnings) console.error(`⚠️ ${warning}`)
-      const treeHint = plainIncludeHint(report)
-      if (treeHint) console.error(`⚠️ ${treeHint}`)
-      for (const text of formatStatus(report)) console.log(text)
-      console.log(line.hint("非交互环境已输出状态摘要；交互向导请运行 toolkit scope wizard"))
+  const scopeCmd = program
+    .command("scope")
+    .description("作用域：按项目 / 目录判定技能是否生效（默认全域生效）")
+    .option("--interactive", "即使无终端也强制进入交互向导")
+  scopeCmd.action(async (options: { interactive?: boolean }) => {
+    // 裸命令：TTY 或显式 --interactive 进状态优先向导；非 TTY 输出状态摘要并成功退出
+    if (options.interactive || isInteractive()) {
+      await runInteractive(() => runScopeWizard())
       return
     }
-    await runInteractive(() => runScopeWizard())
+    const report = resolveScope()
+    for (const warning of report.warnings) console.error(`⚠️ ${warning}`)
+    const treeHint = plainIncludeHint(report)
+    if (treeHint) console.error(`⚠️ ${treeHint}`)
+    for (const text of formatStatus(report)) console.log(text)
+    console.log(line.hint("非交互环境已输出状态摘要；交互向导请在终端运行 toolkit scope，或加 --interactive 强制进入"))
   })
-
-  scopeCmd
-    .command("wizard")
-    .description("交互向导：状态、名单、名单外处理、高级规则、技能矩阵")
-    .action(async () => {
-      await runInteractive(() => runScopeWizard())
-    })
 
   scopeCmd
     .command("status")

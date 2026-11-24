@@ -61,8 +61,8 @@ export function inspectWizardSteps(preset: string): WizardStep[] {
       ready: false,
       selected: false,
       interactive: true,
-      argv: ["usage", "setup", "wizard"],
-      retry: "toolkit usage setup wizard",
+      argv: ["usage", "setup"],
+      retry: "toolkit usage setup",
     },
   ]
 }
