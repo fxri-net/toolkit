@@ -8,6 +8,10 @@ include:
     ref: main
     file: /dynamic-image.yml
 
+# 流水线判别用仓库专用变量：scripts/verify.mjs 只认它，通用 CI 变量不参与（避免被 IDE / 终端注入误判）
+variables:
+  FX_TOOLKIT_PIPELINE: "1"
+
 # 全部作业只在默认分支执行，工具链作业随之收敛，避免分支推送反复触发镜像构建
 # 连续推送时取消过期流水线：旧提交的检查结果已无意义，只保留最新一次
 workflow:

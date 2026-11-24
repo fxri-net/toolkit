@@ -16,16 +16,16 @@ const flags = new Set(process.argv.slice(2))
 const skipDocs = flags.has("--skip-docs")
 // --tests-only：跨平台 job 专用裁剪——只装依赖并跑单测；静态检查、构建、文档与 CLI 收尾由 ubuntu 全量承担
 const testsOnly = flags.has("--tests-only")
-// --local 强制本地口径：IDE / 终端可能注入 CI=true，导致本地迭代也走全量（文档必建、eslint 冷缓存、强制安装）。
+// --local 强制本地口径：跳过覆盖率、按改动面裁剪并启用缓存；流水线判别只认 FX_TOOLKIT_PIPELINE，通用 CI 变量不参与
 // 提交前最终验收仍应跑不带 --local 的全量，避免把本地裁剪带进 CI。
 const forceLocal = flags.has("--local")
 // --full 强制全量：忽略本地缓存与改动面判断，等价于 CI 口径；与 --local 同时出现时以 --full 为准
 const full = flags.has("--full")
 // 覆盖率是门禁最重单项，本地口径默认跳过；提交前不带 --local 的全量仍跑覆盖率（--full 优先）
 const skipCoverage = flags.has("--skip-coverage") || testsOnly || (forceLocal && !full)
-// CI 环境一律全量：本地按改动面裁剪只应让步于开发效率，不能让 CI 漏检死链与冷缓存问题
-const ciValue = process.env.CI ?? ""
-const isCI = !forceLocal && ciValue !== "" && ciValue !== "0" && ciValue.toLowerCase() !== "false"
+// 流水线判别用仓库专用变量：通用 CI 会被 IDE / 终端注入，误判会静默关停本地自动修复与改动面裁剪
+const pipelineValue = process.env.FX_TOOLKIT_PIPELINE ?? ""
+const isCI = !forceLocal && pipelineValue !== "" && pipelineValue !== "0"
 
 /**
  * 读取文本文件并去除首尾空白。
@@ -68,6 +68,15 @@ function changedFiles() {
     if (line) names.add(line)
   }
   return names
+}
+
+/**
+ * 读取工作区状态快照，用于判断自动修复是否改动了文件。
+ * @return {string} git status --porcelain 原文；git 不可用时为空串
+ */
+function workingTreeState() {
+  const state = spawnSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" })
+  return state.status === 0 ? state.stdout.trim() : ""
 }
 
 // 判定一组改动文件是否触及文档站构建面（触达面清单与其它自检脚本共用 scripts/touch-surface.mjs）
@@ -240,8 +249,13 @@ const parallelSteps = [
   { label: "文档可读性（段落行宽 / 分号）", args: ["scripts/check-docs-readability.mjs"] },
   // 仓库自检：代码块内联注释按分组基准对齐（C-40 配套，口径见 skills/fxri-writing-docs）
   { label: "文档注释对齐（代码块内联注释）", args: ["scripts/check-docs-comments.mjs"] },
-  // eslint 默认缓存加速本地重复运行；CI 与 --full 走冷缓存，且本地冷缓存抖动时缓存本身也会造成「本地绿、CI 红」，故只作本地提速手段
-  { label: isCI || full ? "静态检查（冷缓存）" : "静态检查", tool: "eslint", args: [".", ...(isCI || full ? ["--no-cache"] : ["--cache"])] },
+  // eslint 默认缓存加速本地重复运行；流水线与 --full 走冷缓存，且本地冷缓存抖动时缓存本身也会造成「本地绿、CI 红」，故只作本地提速手段
+  // 告警与错误一并阻断：警告不许放行，避免靠提级规则层层补漏
+  {
+    label: isCI || full ? "静态检查（冷缓存）" : "静态检查",
+    tool: "eslint",
+    args: [".", "--max-warnings", "0", ...(isCI || full ? ["--no-cache"] : ["--cache"])],
+  },
 ]
 
 // 阶段二：单测独占。覆盖率插桩 + 真实 git 操作用例对 CPU / 磁盘敏感，与构建、文档构建并发会触发随机超时（实测 15s 上限被打穿），
@@ -334,10 +348,6 @@ function runSerial(steps) {
 }
 
 reportToolchain()
-// 环境提示：CI 变量被 IDE 注入时，本地门禁会按 CI 全量执行，先让人看见原因与快速入口
-if (!forceLocal && isCI && !(process.env.GITHUB_ACTIONS || process.env.GITLAB_CI)) {
-  console.log("提示：检测到 CI 环境变量（可能由 IDE / 终端注入），本次按 CI 全量执行；本地迭代可加 --local 恢复改动面裁剪与缓存，并默认跳过覆盖率")
-}
 const startedAt = Date.now()
 
 if (installNeeded) {
@@ -365,6 +375,17 @@ if (testsOnly) {
   }
   console.log(`\n✔ 门禁全部通过（仅单测口径，用时 ${testsSeconds}s）`)
   process.exit(0)
+}
+
+// 本地自动修复：先修可修项再判定（流水线与 --full 不改写工作区）；改动了文件时提示复核 diff
+if (isCI || full) {
+  console.log("\n⊘ 静态检查（自动修复）（流水线或 --full 口径，不改写工作区，跳过）")
+} else {
+  const before = workingTreeState()
+  console.log("\n▶ 静态检查（自动修复）")
+  const fix = spawnSync("eslint", [".", "--fix"], { cwd: root, stdio: "inherit", shell: isWindows })
+  if (fix.error) console.error(`✖ 自动修复执行失败：${fix.error.message}`)
+  if (workingTreeState() !== before) console.log("提示：已自动修复工作区文件，请复核 git diff 后再提交")
 }
 
 const phaseStarted = Date.now()

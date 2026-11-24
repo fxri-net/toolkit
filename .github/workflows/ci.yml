@@ -12,6 +12,10 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# 流水线判别用仓库专用变量：scripts/verify.mjs 只认它，通用 CI 变量不参与（避免被 IDE / 终端注入误判）
+env:
+  FX_TOOLKIT_PIPELINE: "1"
+
 jobs:
   # 验收步骤清单的唯一真源是 scripts/verify.mjs：各 job 都只调用它，不在 CI 里另写一份步骤，避免清单漂移
   check:

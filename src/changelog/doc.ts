@@ -121,7 +121,7 @@ export function buildDocPages(changelog: string, options: Partial<DocOptions> = 
       .filter((block) => block.major === major)
       .map((block) => block.text)
       .join("\n\n")
-    const head = pageHead(options, `${title} · ${major}.x`, archiveNote)
+    const head = pageHead(options, `${title} · ${major}.x`, archiveNote, false)
     return { major: String(major), content: `${head}${ARCHIVE_MARKER}\n\n${archiveBlocks}\n` }
   })
   return { home, archives }
@@ -215,9 +215,11 @@ export function resolveDocOptions(cli: DocCliOptions = {}): DocOptions {
 }
 
 // 页头：frontmatter + H1 + 来源说明；frontmatter 关闭时按纯文本页输出
-function pageHead(options: Partial<DocOptions>, title: string, note: string): string {
+// search=false 只用于历史归档页：上千行历史版本不进站内搜索索引，避免索引分块超限
+function pageHead(options: Partial<DocOptions>, title: string, note: string, search = true): string {
   const outline = options.outline ?? DEFAULT_OUTLINE
-  const header = options.frontmatter === false ? "" : `---\noutline: ${outline}\n---\n\n`
+  const searchLine = search ? "" : "search: false\n"
+  const header = options.frontmatter === false ? "" : `---\noutline: ${outline}\n${searchLine}---\n\n`
   return `${header}# ${title}\n\n${note}\n\n`
 }
 
