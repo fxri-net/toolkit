@@ -218,17 +218,14 @@ export function registerRulesCommands(program: Command): void {
           ids = ruleset.presets.recommended?.modules ?? []
         }
         const text = composeRules(ids, { anchor: options.anchor !== false })
-        if (explicit && options.cache !== false) {
-          // 导出 / 复制属一次性动作，不改变「下次裸跑 compose」的默认组合
-          if (options.out || options.copy) {
-            console.error(line.hint("已跳过组合缓存写入（--out / --copy 不改变默认组合）"))
-          } else if (dryRun) {
-            console.error(line.hint(`将记住本次组合（${ids.join(" → ")}）；--dry-run 未写入缓存`))
-          } else {
-            writeRulesSelection(ids)
-            console.error(`${line.ok(`已记住本次组合（${ids.join(" → ")}）`)}，${style.hint("下次 rules compose 会作为默认勾选")}`)
-          }
+        // 显式选择即记住本次组合：--no-cache 显式关闭，--dry-run 只预览
+        const remember = explicit && options.cache !== false
+        const rememberCombo = (): void => {
+          if (!remember || dryRun) return
+          writeRulesSelection(ids)
+          console.error(`${line.ok(`已记住本次组合（${ids.join(" → ")}）`)}，${style.hint("下次 rules compose 会作为默认勾选")}`)
         }
+        if (remember && dryRun) console.error(line.hint(`将记住本次组合（${ids.join(" → ")}）；--dry-run 未写入缓存`))
         if (options.copy) {
           if (dryRun) {
             console.error(line.hint(`[预演] 将复制到剪贴板（${text.length} 字符）`))
@@ -239,6 +236,7 @@ export function registerRulesCommands(program: Command): void {
             fail(`写入剪贴板失败：${result.error}`)
             return
           }
+          rememberCombo()
           console.error(`✔ ${style.ok(`已复制到剪贴板（${result.label}）`)}`)
           return
         }
@@ -249,10 +247,12 @@ export function registerRulesCommands(program: Command): void {
           }
           mkdirSync(dirname(resolve(options.out)), { recursive: true })
           writeFileAtomic(options.out, `${text}\n`)
+          rememberCombo()
           reportWrite({ file: options.out, added: ids })
           return
         }
         console.log(text)
+        rememberCombo()
         // 交互模式：输出后尽量直接送剪贴板，少一步手动复制；失败只提示，不影响退出码
         if (interactive && !dryRun) {
           const copied = copyToClipboard(text)

@@ -135,13 +135,13 @@ describe("setup 接入向导", () => {
     expect(skills?.argv).toEqual(["skill", "install"])
     expect(skills?.argvYes).toEqual(["skill", "install", "--yes"])
     expect(rules?.interactive).toBe(true)
-    expect(rules?.argv).toEqual(["rule", "compose", "--copy", "--no-cache"])
+    expect(rules?.argv).toEqual(["rule", "compose", "--copy"])
     expect(rules?.argvYes).toEqual(["rule", "compose", "--preset", "recommended", "--copy", "--no-cache"])
   })
 
   it("显式指定 --rules 时按预设直接组合，不再进模块选择", () => {
     const rules = inspectSetupSteps("full", true).find((step) => step.id === "rules")
-    expect(rules?.argv).toEqual(["rule", "compose", "--preset", "full", "--copy", "--no-cache"])
+    expect(rules?.argv).toEqual(["rule", "compose", "--preset", "full", "--copy"])
   })
 })
 

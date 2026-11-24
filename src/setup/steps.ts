@@ -51,9 +51,10 @@ export function inspectSetupSteps(preset: string, rulesPresetExplicit = false): 
       interactive: true,
       readiness: true,
       // 未显式指定预设时进入模块选择；指定了预设则直接按预设组合
+      // 复制也写入组合缓存，与裸 compose 共用一份记忆；--yes 不读不写，避免替用户固定默认组合
       argv: rulesPresetExplicit
-        ? ["rule", "compose", "--preset", preset, "--copy", "--no-cache"]
-        : ["rule", "compose", "--copy", "--no-cache"],
+        ? ["rule", "compose", "--preset", preset, "--copy"]
+        : ["rule", "compose", "--copy"],
       argvYes: ["rule", "compose", "--preset", preset, "--copy", "--no-cache"],
       retry: `toolkit rule compose --preset ${preset} --copy`,
     },

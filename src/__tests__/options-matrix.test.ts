@@ -1012,21 +1012,18 @@ describe("skills 安装预演标记", () => {
 })
 
 describe("rules 命令参数边界", () => {
-  it("--out 不写组合缓存，裸 compose 仍按原默认组合", async () => {
+  it("--out 也写组合缓存，裸 compose 按本次选择", async () => {
     const cache = join(homeDir, ".toolkit", "cache", "rules-selection.json")
     rmSync(cache, { force: true })
-    const out = join(sandbox, "rules-nocache.md")
+    const out = join(sandbox, "rules-remember.md")
     const exportRun = await runCli(["rule", "compose", "--preset", "minimal", "--out", out])
     expect(exportRun.code).toBe(0)
-    expect(exportRun.err.join("\n")).toContain("已跳过组合缓存写入")
-    expect(existsSync(cache)).toBe(false)
-    // 裸 compose 仍按推荐集输出（含输出要求），证明导出未改默认组合
-    const bare = await runCli(["rule", "compose", "--no-anchor"])
-    expect(bare.log.join("\n")).toContain("## 输出要求")
-    // 不带导出时仍写缓存
-    const remember = await runCli(["rule", "compose", "--preset", "minimal"])
-    expect(remember.err.join("\n")).toContain("已记住本次组合")
+    expect(exportRun.err.join("\n")).toContain("已记住本次组合")
     expect(existsSync(cache)).toBe(true)
+    // 裸 compose 按本次导出写入的 minimal（仅工作流）输出，证明导出已改默认组合
+    const bare = await runCli(["rule", "compose", "--no-anchor"])
+    expect(bare.log.join("\n")).toContain("## 工作流")
+    expect(bare.log.join("\n")).not.toContain("## 输出要求")
     rmSync(cache, { force: true })
   })
 
