@@ -90,7 +90,13 @@ async function selectItems(items: UpgradeItem[]): Promise<UpgradeItem[] | null> 
   const choices = items
     .filter((item) => item.status === "planned")
     .map((item) => ({
-      name: formatChoiceLine({ name: `${item.id}｜${item.action}`, reserved: 5, columns }),
+      // 名称给动作，说明给影响面：优先列受影响文件，无文件时退回迁移原因
+      name: formatChoiceLine({
+        name: `${item.id}｜${item.action}`,
+        description: item.files.length > 0 ? item.files.join("、") : item.reason,
+        reserved: 5,
+        columns,
+      }),
       short: item.id,
       value: item.id,
       checked: item.risk !== "high",

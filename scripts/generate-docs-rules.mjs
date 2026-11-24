@@ -15,7 +15,7 @@ const content = `// 由 scripts/generate-docs-rules.mjs 生成，请勿手改
 export interface Ruleset {
   schema: number
   modules: Array<{ id: string; title: string; summary: string; file: string }>
-  presets: Record<string, string[]>
+  presets: Record<string, { label: string; summary: string; modules: string[] }>
   pages: Array<{ page: string; modules: string[] }>
 }
 

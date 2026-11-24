@@ -1,6 +1,7 @@
 // 接入向导编排：检查环境 → 选择要配置的内容 → 串行执行 → 汇总
 import { INIT_LINKS } from "../links"
 import { EXIT } from "../exit-codes"
+import { formatChoiceLine } from "../prompt-line"
 import { isInteractive, loadPrompts, runInteractive } from "../prompts"
 import { line } from "../term-style"
 import { inspectWizardSteps, runWizardStep, type StepId, type WizardStep } from "./steps"
@@ -83,7 +84,11 @@ export async function runInitWizard(options: InitWizardOptions): Promise<void> {
       const { checkbox } = await loadPrompts()
       const picked = await checkbox({
         message: "要配置哪些内容？",
-        choices: steps.map((step) => ({ name: step.label, value: step.id, checked: step.selected })),
+        choices: steps.map((step) => ({
+          name: formatChoiceLine({ name: step.label, description: step.summary }),
+          value: step.id,
+          checked: step.selected,
+        })),
       })
       for (const step of steps) step.selected = picked.includes(step.id)
     })

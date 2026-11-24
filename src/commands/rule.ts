@@ -15,7 +15,7 @@ import { writeFileAtomic } from "../write-atomic"
 
 // 交互式选择：自定义步骤 ESC 回到预设，预设步骤 ESC 取消整个命令；取消不写缓存
 async function selectInteractively(ruleset: Ruleset, cached: string[] | null): Promise<string[]> {
-  const fallback = cached ?? ruleset.presets.recommended ?? []
+  const fallback = cached ?? ruleset.presets.recommended?.modules ?? []
   for (;;) {
     const choice = await askSelect({
       message: "选择规则组合",
@@ -23,7 +23,7 @@ async function selectInteractively(ruleset: Ruleset, cached: string[] | null): P
       choices: buildPresetChoices(ruleset.presets),
     })
     if (choice === null) exitWithCancel()
-    if (choice !== CUSTOM_PRESET) return ruleset.presets[choice] ?? []
+    if (choice !== CUSTOM_PRESET) return ruleset.presets[choice]?.modules ?? []
     const picked = await askCheckbox({
       message: "选择要包含的规则模块（空格切换，回车确认）",
       choices: ruleset.modules.map((mod) => ({
@@ -111,6 +111,16 @@ export function checkRuleAnchors(cwd: string): {
   return { ok: issues.length === 0, modules, pages, issues }
 }
 
+// --preset 的帮助文案：从清单派生，避免与 ruleset.json 的预设漂移
+function presetHint(): string {
+  try {
+    const presets = loadRuleset().presets
+    return `预设：${Object.entries(presets).map(([id, preset]) => `${preset.label}（${id}）`).join(" / ")}`
+  } catch {
+    return "预设：见 toolkit rule list"
+  }
+}
+
 // 注册 rules 命令：装配点只负责按序调用
 export function registerRulesCommands(program: Command): void {
   // 规则域：全局规则模块的自由组合、复制与缓存管理
@@ -137,7 +147,7 @@ export function registerRulesCommands(program: Command): void {
           const mark = selection?.modules.includes(mod.id) ? "●" : " "
           console.log(`  ${mark} ${mod.id.padEnd(8)} ${mod.anchor}  ${mod.title}（${mod.presets.join(" / ") || "无预设"}）`)
         }
-        console.log(`预设：${Object.entries(listed.presets).map(([name, ids]) => `${name}=${ids.join("+")}`).join("；")}`)
+        console.log(`预设：${Object.entries(listed.presets).map(([name, preset]) => `${name}=${preset.modules.join("+")}`).join("；")}`)
         console.log(`当前缓存：${selection ? selection.modules.join(" → ") : "无（默认推荐组合 recommended）"}`)
       } catch (error) {
         console.error(`⚠️ ${(error as Error).message}`)
@@ -148,7 +158,7 @@ export function registerRulesCommands(program: Command): void {
   rulesCmd
     .command("compose")
     .description("组合规则模块并输出（TTY 无参时交互选择；非 TTY 按缓存 > 推荐组合 recommended）")
-    .option("--preset <name>", "预设：极简（minimal）/ 推荐（recommended）/ 完整（complete）/ 全量（full）")
+    .option("--preset <name>", presetHint())
     .option("--module <id...>", "模块 id（可重复，也可逗号分隔）")
     .option("--no-anchor", "不输出首行更新时间锚点")
     .option("--out <file>", "写入文件（stdout 为空）")
@@ -190,7 +200,7 @@ export function registerRulesCommands(program: Command): void {
             fail(`未知预设「${options.preset}」，可选：${Object.keys(ruleset.presets).join(" / ")}`)
             return
           }
-          ids = preset
+          ids = preset.modules
           explicit = true
         } else if (interactive) {
           ids = await selectInteractively(ruleset, cached?.modules ?? null)
@@ -198,7 +208,7 @@ export function registerRulesCommands(program: Command): void {
         } else if (cached) {
           ids = cached.modules
         } else {
-          ids = ruleset.presets.recommended ?? []
+          ids = ruleset.presets.recommended?.modules ?? []
         }
         const text = composeRules(ids, { anchor: options.anchor !== false })
         if (explicit && options.cache !== false) {

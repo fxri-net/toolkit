@@ -34,9 +34,14 @@ describe("规则清单与模块", () => {
 
   it("极简预设只含工作流，推荐预设含推荐做法与提交信息", () => {
     const ruleset = loadRuleset()
-    expect(ruleset.presets.minimal).toEqual(["workflow"])
-    expect(ruleset.presets.recommended).toEqual(["core", "output", "workflow", "practices", "commit"])
+    expect(ruleset.presets.minimal?.modules).toEqual(["workflow"])
+    expect(ruleset.presets.recommended?.modules).toEqual(["core", "output", "workflow", "practices", "commit"])
     expect(ruleset.presets.complete).toBeUndefined()
+    // 预设说明供交互与文档派生：显示名非空，说明写清适合谁
+    for (const [name, preset] of Object.entries(ruleset.presets)) {
+      expect(preset.label, `预设 ${name} 缺少显示名`).not.toBe("")
+      expect(preset.summary, `预设 ${name} 缺少说明`).not.toBe("")
+    }
   })
 
   it("组合顺序按传入 id，锚点取最大值", () => {

@@ -8,6 +8,8 @@ export type StepId = "skills" | "rules" | "scope" | "usage"
 export interface WizardStep {
   id: StepId
   label: string
+  // 单行说明：写到哪里、会改什么，只作展示不参与判定
+  summary: string
   // 已就绪：无选择的步骤据此决定默认勾选
   ready: boolean
   selected: boolean
@@ -25,6 +27,7 @@ export function inspectWizardSteps(preset: string): WizardStep[] {
     {
       id: "skills",
       label: "安装 AI 技能",
+      summary: "写到本机全局技能目录，各项目直接可用",
       ready: skillsReady,
       selected: !skillsReady,
       interactive: false,
@@ -34,6 +37,7 @@ export function inspectWizardSteps(preset: string): WizardStep[] {
     {
       id: "rules",
       label: "配置全局规则",
+      summary: "生成规则文本并复制，由你粘贴到 Agent 的全局规则入口",
       ready: rulesReady,
       selected: !rulesReady,
       interactive: false,
@@ -43,6 +47,7 @@ export function inspectWizardSteps(preset: string): WizardStep[] {
     {
       id: "scope",
       label: "设置生效范围",
+      summary: "写到本机作用域配置，决定哪些项目生效",
       ready: false,
       selected: true,
       interactive: true,
@@ -52,6 +57,7 @@ export function inspectWizardSteps(preset: string): WizardStep[] {
     {
       id: "usage",
       label: "开启使用统计",
+      summary: "写到本机统计配置，事件只留本机、不上传",
       ready: false,
       selected: false,
       interactive: true,

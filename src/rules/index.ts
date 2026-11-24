@@ -17,10 +17,17 @@ export interface RulePage {
   modules: string[]
 }
 
+// 预设：label 为交互与文档的显示名，summary 说明包含哪些模块、适合谁，modules 为模块清单
+export interface RulePreset {
+  label: string
+  summary: string
+  modules: string[]
+}
+
 export interface Ruleset {
   schema: number
   modules: RuleModuleMeta[]
-  presets: Record<string, string[]>
+  presets: Record<string, RulePreset>
   pages: RulePage[]
 }
 
@@ -37,7 +44,7 @@ export interface RuleListModule extends RuleModuleMeta {
 
 export interface RuleList {
   modules: RuleListModule[]
-  presets: Record<string, string[]>
+  presets: Record<string, RulePreset>
   pages: RulePage[]
 }
 
@@ -76,15 +83,21 @@ export function loadRuleset(dir = defaultRulesDir()): Ruleset {
     if (ids.has(mod.id)) throw new Error(`规则清单存在重复模块 id「${mod.id}」：${file}`)
     ids.add(mod.id)
   }
-  const presets: Record<string, string[]> = {}
+  const presets: Record<string, RulePreset> = {}
   for (const [name, value] of Object.entries(parsed.presets)) {
-    if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
-      throw new Error(`规则预设「${name}」须为模块 id 数组：${file}`)
+    if (
+      !isRecord(value) ||
+      typeof value.label !== "string" ||
+      typeof value.summary !== "string" ||
+      !Array.isArray(value.modules) ||
+      value.modules.some((item) => typeof item !== "string")
+    ) {
+      throw new Error(`规则预设「${name}」须为 label / summary / modules 对象：${file}`)
     }
-    for (const id of value as string[]) {
+    for (const id of value.modules as string[]) {
       if (!ids.has(id)) throw new Error(`规则预设「${name}」引用了未知模块「${id}」：${file}`)
     }
-    presets[name] = value as string[]
+    presets[name] = { label: value.label, summary: value.summary, modules: value.modules as string[] }
   }
   const pages: RulePage[] = parsed.pages.map((item) => {
     if (!isRecord(item) || typeof item.page !== "string" || !Array.isArray(item.modules)) {
@@ -131,7 +144,7 @@ export function listRules(dir = defaultRulesDir()): RuleList {
       file: mod.file,
       anchor: mod.anchor,
       presets: Object.entries(ruleset.presets)
-        .filter(([, ids]) => ids.includes(mod.id))
+        .filter(([, preset]) => preset.modules.includes(mod.id))
         .map(([name]) => name),
     })),
   }

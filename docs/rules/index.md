@@ -13,8 +13,15 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 ## 用途与场景
 
 - 全局规则会整段进入 Agent 上下文：只选当前需要的模块，避免无关纪律占用上下文。
-- 三个预设：`minimal`（极简，只含 `workflow`）、`recommended`（推荐，默认）、`full`（全量）；
-   `commit` 与既有 Conventional Commits / commitlint 互斥；`usage` 需先开启技能使用统计。
+- 三个预设的显示名、模块清单与适用面随清单分发（`templates/rules/ruleset.json`），命令行交互与下方组合器同源：
+
+| 预设 | 包含模块 | 适合谁 |
+| --- | --- | --- |
+| `minimal`（极简） | `workflow` | 已有自己的代码规范，只想补授权与落盘纪律 |
+| `recommended`（推荐，默认） | `core` + `output` + `workflow` + `practices` + `commit` | 多数项目从零起步 |
+| `full`（全量） | 推荐组合 + `usage` | 已启用 toolkit 技能统计，需连同上报纪律一并下发 |
+
+- `commit` 与既有 Conventional Commits / commitlint 互斥；`usage` 需先开启技能使用统计。
 - 三篇规则页是「整篇阅读」入口，组合器负责细粒度生成；两者内容由测试锁定同源。
 
 ## 规则组合器

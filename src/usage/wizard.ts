@@ -7,6 +7,7 @@ import { purgeEvents, usagePaths } from "./store"
 import { runUploadSetup } from "./upload"
 import { readHookActivity, readLastHookError } from "./ingest"
 import { line, style, termText, usageChannelText, usageRotationText, usageSkillsModeText } from "../term-style"
+import { formatChoiceLine } from "../prompt-line"
 import { LIST_PAGE_SIZE, ask, exitWithCancel, isPromptCancel, loadPrompts, requireInteractive } from "../prompts"
 import { askCheckbox, askConfirm, askInput, confirmWrite, runMenu } from "../cli-ui"
 import { createContext, formatLocalTime, printDefaultStats, printUsageInfo } from "./cli/context"
@@ -17,14 +18,14 @@ import type { UsageChannel, UsageConfig, UsageRotation, UsageSkillMode } from ".
 // 预设：已配置时沿用当前配置，首次默认覆盖一方与第三方技能
 export type Preset = "keep" | "off" | "recommended" | "third-party" | "custom" | "advanced"
 
-// 预设显示名：易混淆项显式写明是否上传，避免与「本地来源 / 本地目录」混淆
-export const PRESET_LABELS: Record<Preset, string> = {
-  keep: "保持当前配置（按现有选择重装 Hook）",
-  off: "保持关闭（不安装 Hook、不采集）",
-  recommended: "推荐：仅一方技能（数据只留本机，不上传）",
-  "third-party": "一方 + 第三方技能（数据只留本机，不上传）",
-  custom: "自定义（沿用并修改当前选择）",
-  advanced: "高级：一方 + 第三方技能，并配置上传",
+// 预设显示名与单行说明：name 为选项名，summary 写清采集范围与是否上传，避免与「本地来源 / 本地目录」混淆
+export const PRESET_LABELS: Record<Preset, { name: string; summary: string }> = {
+  keep: { name: "保持当前配置", summary: "按现有选择重装 Hook，不改来源与范围" },
+  off: { name: "保持关闭", summary: "不安装 Hook、不采集任何数据" },
+  recommended: { name: "推荐（仅一方技能）", summary: "只统计 toolkit 一方技能；数据只留本机，不上传" },
+  "third-party": { name: "一方 + 第三方技能", summary: "统计一方与 toolkit 分发的第三方技能；数据只留本机，不上传" },
+  custom: { name: "自定义", summary: "沿用并修改当前的来源、技能范围与存储" },
+  advanced: { name: "高级（含上传）", summary: "一方 + 第三方技能，并配置上传地址与鉴权" },
 }
 
 // 首次初始化的默认预设：显式执行 init 即启用意图，默认一并统计第三方技能
@@ -206,14 +207,18 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
     const defaults = resolveInitDefaults(existingConfig)
     // 默认预设：已配置时沿用当前配置，首次默认「一方与第三方」，显式 init 即启用
     const defaultPreset: Preset = defaults.configured ? "keep" : DEFAULT_INIT_PRESET
-    const presetChoices: Array<{ name: string; value: Preset }> = [
-      ...(defaults.configured ? [{ name: PRESET_LABELS.keep, value: "keep" as Preset }] : []),
-      { name: PRESET_LABELS["third-party"], value: "third-party" },
-      { name: PRESET_LABELS.recommended, value: "recommended" },
-      { name: PRESET_LABELS.off, value: "off" },
-      { name: PRESET_LABELS.custom, value: "custom" },
-      { name: PRESET_LABELS.advanced, value: "advanced" },
+    const presetOrder: Preset[] = [
+      ...(defaults.configured ? (["keep"] as Preset[]) : []),
+      "third-party",
+      "recommended",
+      "off",
+      "custom",
+      "advanced",
     ]
+    const presetChoices: Array<{ name: string; value: Preset }> = presetOrder.map((value) => ({
+      name: formatChoiceLine({ name: PRESET_LABELS[value].name, description: PRESET_LABELS[value].summary }),
+      value,
+    }))
     const preset = await select<Preset>({
       message: defaults.configured ? "选择技能使用情况预设（默认沿用当前配置）" : "选择技能使用情况预设（默认启用，数据只留本机）",
       default: defaultPreset,
@@ -305,8 +310,14 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
               message: "采集通道",
               default: state.channel,
               choices: [
-                { name: "全局规则上报（不依赖 Agent 配置）", value: "rule" },
-                { name: "Agent Hook（自动触发，需在 Agent 侧启用）", value: "hook" },
+                {
+                  name: formatChoiceLine({ name: "全局规则上报", description: "不依赖 Agent 配置，需把规则复制进全局规则" }),
+                  value: "rule",
+                },
+                {
+                  name: formatChoiceLine({ name: "Agent Hook", description: "自动触发，写入各 Agent 的配置文件" }),
+                  value: "hook",
+                },
               ],
             }),
           { back: true },
@@ -326,7 +337,7 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
             checkbox<string>({
               message: "选择要接入的 Agent（空格切换，回车确认）",
               choices: detected.map((adapter) => ({
-                name: adapter.displayName,
+                name: formatChoiceLine({ name: adapter.displayName, description: `写 ${adapter.configPath()}` }),
                 value: adapter.id,
                 checked: state.agents.some((item) => item.id === adapter.id),
               })),
@@ -380,10 +391,10 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
               message: "技能统计范围",
               default: state.mode,
               choices: [
-                { name: "全部已开启来源", value: "all" },
-                { name: "只统计指定技能", value: "include" },
-                { name: "排除指定技能", value: "exclude" },
-                { name: "不统计任何技能", value: "none" },
+                { name: formatChoiceLine({ name: "全部已开启来源", description: "记录所有启用来源的技能事件" }), value: "all" },
+                { name: formatChoiceLine({ name: "只统计指定技能", description: "仅记录名单内的技能，其余忽略" }), value: "include" },
+                { name: formatChoiceLine({ name: "排除指定技能", description: "记录名单外的技能，用于屏蔽噪声" }), value: "exclude" },
+                { name: formatChoiceLine({ name: "不统计任何技能", description: "只记录开关状态，不写技能名与参数" }), value: "none" },
               ],
             }),
           { back: true },
@@ -461,9 +472,9 @@ export async function runUsageInitWizard(options: InitWizardOptions = {}): Promi
               message: "事件文件轮转",
               default: state.rotation,
               choices: [
-                { name: "按月轮转", value: "monthly" },
-                { name: "按文件大小轮转", value: "size" },
-                { name: "不轮转", value: "none" },
+                { name: formatChoiceLine({ name: "按月轮转", description: "每月新建事件文件，便于归档" }), value: "monthly" },
+                { name: formatChoiceLine({ name: "按文件大小轮转", description: "单文件超过上限即切分，适合高频使用" }), value: "size" },
+                { name: formatChoiceLine({ name: "不轮转", description: "全部写入同一文件，便于整体导出" }), value: "none" },
               ],
             }),
           { back: true },

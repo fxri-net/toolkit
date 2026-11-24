@@ -993,24 +993,36 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
   "message": "成功",
   "data": {
     "presets": {
-      "minimal": [
-        "workflow"
-      ],
-      "recommended": [
-        "core",
-        "output",
-        "workflow",
-        "practices",
-        "commit"
-      ],
-      "full": [
-        "core",
-        "output",
-        "workflow",
-        "practices",
-        "commit",
-        "usage"
-      ]
+      "minimal": {
+        "label": "极简",
+        "summary": "已有自己的代码规范，只想补授权与落盘纪律的项目",
+        "modules": [
+          "workflow"
+        ]
+      },
+      "recommended": {
+        "label": "推荐",
+        "summary": "多数项目从零起步：代码规范、输出、工作流、推荐做法与提交信息",
+        "modules": [
+          "core",
+          "output",
+          "workflow",
+          "practices",
+          "commit"
+        ]
+      },
+      "full": {
+        "label": "全量",
+        "summary": "已启用 toolkit 技能统计，需要连同上报纪律一并下发",
+        "modules": [
+          "core",
+          "output",
+          "workflow",
+          "practices",
+          "commit",
+          "usage"
+        ]
+      }
     },
     "pages": [
       {
@@ -2441,7 +2453,7 @@ Usage: toolkit rule compose [options]
 组合规则模块并输出（TTY 无参时交互选择；非 TTY 按缓存 > 推荐组合 recommended）
 
 Options:
-  --preset <name>   预设：极简（minimal）/ 推荐（recommended）/ 完整（complete）/ 全量（full）
+  --preset <name>   预设：极简（minimal） / 推荐（recommended） / 全量（full）
   --module <id...>  模块 id（可重复，也可逗号分隔）
   --no-anchor       不输出首行更新时间锚点
   --out <file>      写入文件（stdout 为空）

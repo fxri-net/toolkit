@@ -57,12 +57,13 @@ describe("usage 向导默认值", () => {
 
   it("预设文案写明上传口径，不再出现「本地 +」的歧义表述", () => {
     // 「本地」在 usage 域还指本地来源 / 本地目录，预设名必须显式说清是否上传
-    expect(PRESET_LABELS["third-party"]).toContain("不上传")
-    expect(PRESET_LABELS.recommended).toContain("不上传")
-    expect(PRESET_LABELS.advanced).toContain("配置上传")
-    for (const [key, label] of Object.entries(PRESET_LABELS)) {
-      expect(label, `预设 ${key} 仍含「本地 +」`).not.toContain("本地 +")
-      expect(label, `预设 ${key} 仍含「本地统计」`).not.toContain("本地统计")
+    expect(PRESET_LABELS["third-party"].summary).toContain("不上传")
+    expect(PRESET_LABELS.recommended.summary).toContain("不上传")
+    expect(PRESET_LABELS.advanced.summary).toContain("配置上传")
+    for (const [key, preset] of Object.entries(PRESET_LABELS)) {
+      const text = `${preset.name}${preset.summary}`
+      expect(text, `预设 ${key} 仍含「本地 +」`).not.toContain("本地 +")
+      expect(text, `预设 ${key} 仍含「本地统计」`).not.toContain("本地统计")
     }
   })
 })

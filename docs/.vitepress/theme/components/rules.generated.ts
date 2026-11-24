@@ -3,7 +3,7 @@
 export interface Ruleset {
   schema: number
   modules: Array<{ id: string; title: string; summary: string; file: string }>
-  presets: Record<string, string[]>
+  presets: Record<string, { label: string; summary: string; modules: string[] }>
   pages: Array<{ page: string; modules: string[] }>
 }
 
@@ -48,24 +48,36 @@ export const RULESET: Ruleset = {
     }
   ],
   "presets": {
-    "minimal": [
-      "workflow"
-    ],
-    "recommended": [
-      "core",
-      "output",
-      "workflow",
-      "practices",
-      "commit"
-    ],
-    "full": [
-      "core",
-      "output",
-      "workflow",
-      "practices",
-      "commit",
-      "usage"
-    ]
+    "minimal": {
+      "label": "极简",
+      "summary": "已有自己的代码规范，只想补授权与落盘纪律的项目",
+      "modules": [
+        "workflow"
+      ]
+    },
+    "recommended": {
+      "label": "推荐",
+      "summary": "多数项目从零起步：代码规范、输出、工作流、推荐做法与提交信息",
+      "modules": [
+        "core",
+        "output",
+        "workflow",
+        "practices",
+        "commit"
+      ]
+    },
+    "full": {
+      "label": "全量",
+      "summary": "已启用 toolkit 技能统计，需要连同上报纪律一并下发",
+      "modules": [
+        "core",
+        "output",
+        "workflow",
+        "practices",
+        "commit",
+        "usage"
+      ]
+    }
   },
   "pages": [
     {

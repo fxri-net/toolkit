@@ -7,7 +7,6 @@ import { RULESET, RULE_MODULES } from "./rules.generated"
 const STORAGE_KEY = "fxri-toolkit:rules:v1"
 const presets = RULESET.presets
 const presetNames = Object.keys(presets)
-const presetLabels: Record<string, string> = { minimal: "极简", recommended: "推荐", full: "全量" }
 
 // 模块正文与元数据：首行锚点单独解析，正文交给共享组合函数，避免前端重写拼接逻辑
 const modules: Array<RuleModule & { title: string; summary: string; presets: string[] }> = RULESET.modules.map((meta) => {
@@ -20,12 +19,12 @@ const modules: Array<RuleModule & { title: string; summary: string; presets: str
     summary: meta.summary,
     anchor,
     body: lines.slice(1).join("\n").trim(),
-    presets: presetNames.filter((name) => presets[name]?.includes(meta.id)),
+    presets: presetNames.filter((name) => presets[name]?.modules.includes(meta.id)),
   }
 })
 const byId = new Map(modules.map((mod) => [mod.id, mod]))
 
-const selected = ref<string[]>([...(presets.recommended ?? [])])
+const selected = ref<string[]>([...(presets.recommended?.modules ?? [])])
 const activePreset = ref("recommended")
 const copied = ref(false)
 const copyError = ref(false)
@@ -33,6 +32,10 @@ const storageAvailable = ref(true)
 const dragId = ref<string | null>(null)
 
 const selectedModules = computed(() => selected.value.map((id) => byId.get(id)).filter(Boolean) as typeof modules)
+// 预设说明：显示名与适用面都取自清单，前端不写第二份
+const activePresetSummary = computed(() =>
+  activePreset.value === "custom" ? "" : (presets[activePreset.value]?.summary ?? ""),
+)
 const composed = computed(() => {
   try {
     return composeModules(modules, selected.value)
@@ -78,7 +81,7 @@ function restore(): void {
     if (parsed.schema !== 1 || ids.length === 0) throw new Error("缓存结构不兼容")
     selected.value = ids
     activePreset.value =
-      presetNames.find((name) => (presets[name] ?? []).join("|") === ids.join("|")) ?? "custom"
+      presetNames.find((name) => (presets[name]?.modules ?? []).join("|") === ids.join("|")) ?? "custom"
   } catch {
     clearStored()
   }
@@ -93,7 +96,7 @@ function toggle(id: string, checked: boolean): void {
 
 // 预设即一键切换：选择与顺序都直接覆盖为预设内容，与 CLI 的 --preset 口径一致
 function applyPreset(name: string): void {
-  selected.value = [...(presets[name] ?? [])]
+  selected.value = [...(presets[name]?.modules ?? [])]
   activePreset.value = name
   persist()
 }
@@ -126,7 +129,7 @@ function onDrop(id: string): void {
 
 // 恢复默认即清除本机记忆：下次进入按最新推荐集与推荐顺序
 function reset(): void {
-  selected.value = [...(presets.recommended ?? [])]
+  selected.value = [...(presets.recommended?.modules ?? [])]
   activePreset.value = "recommended"
   copied.value = false
   copyError.value = false
@@ -193,10 +196,11 @@ async function copy(): Promise<void> {
         :class="{ active: activePreset === name }"
         @click="applyPreset(name)"
       >
-        {{ presetLabels[name] ?? name }}
+        {{ presets[name]?.label ?? name }}
       </button>
       <span v-if="activePreset === 'custom' && selected.length > 0" class="rc-preset-state">当前：自定义</span>
     </div>
+    <p v-if="activePresetSummary" class="rc-hint">{{ presets[activePreset]?.label }}：{{ activePresetSummary }}</p>
     <p class="rc-hint">默认选中「推荐」；点预设会直接切换为该预设的选择与顺序，手动勾选或排序后视为自定义组合。清空全部模块后刷新会回落推荐集。</p>
 
     <div class="rc-grid">

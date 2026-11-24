@@ -4,9 +4,14 @@ import { buildPresetChoices, CUSTOM_PRESET, normalizePickedModules } from "../ru
 
 describe("buildPresetChoices", () => {
   it("每个预设一项且末尾为自定义", () => {
-    const choices = buildPresetChoices({ minimal: ["core"], recommended: ["core", "output"] })
+    const choices = buildPresetChoices({
+      minimal: { label: "极简", summary: "只含工作流", modules: ["core"] },
+      recommended: { label: "推荐", summary: "常规组合", modules: ["core", "output"] },
+    })
     expect(choices.map((item) => item.value)).toEqual(["minimal", "recommended", CUSTOM_PRESET])
-    expect(choices[1]?.name).toContain("core → output")
+    // 选项行 = 预设显示名 + 模块清单 + 单行说明
+    expect(choices[1]?.name).toContain("推荐（core → output）")
+    expect(choices[1]?.name).toContain("常规组合")
   })
 
   it("无预设时只有自定义项", () => {
