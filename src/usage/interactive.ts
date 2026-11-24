@@ -9,7 +9,7 @@ import { readHookActivity, readLastHookError } from "./ingest"
 import { line, style, termText, usageChannelText, usageRotationText, usageSkillsModeText } from "../term-style"
 import { formatChoiceLine } from "../prompt-line"
 import { LIST_PAGE_SIZE, ask, exitWithCancel, isPromptCancel, loadPrompts, reportCancelled, requireInteractive } from "../prompts"
-import { askCheckbox, askConfirm, askInput, askSelectOrExit, confirmWrite, runMenu } from "../cli-ui"
+import { askCheckbox, askConfirm, askInput, askSelectBack, askSelectOrExit, confirmWrite, runMenu } from "../cli-ui"
 import { createContext, formatLocalTime, printDefaultStats, printUsageInfo } from "./cli/context"
 import { exportUsageEvents, purgeUsageEvents } from "./cli/data"
 import { SKILL_PREFIX } from "../skills/prefix"
@@ -223,7 +223,7 @@ export async function runUsageInitInteractive(options: InitInteractiveOptions = 
     return
   }
   if (!requireInteractive({ action: "usage setup init", hint: "非交互请用 --yes --preset，或执行 toolkit usage --help" })) return
-  const { select, checkbox, confirm, input } = await loadPrompts()
+  const { checkbox, confirm, input } = await loadPrompts()
   try {
     const detected = detectedAdapters()
     if (detected.length === 0) console.log(line.hint("未检测到可接入的 Agent：本向导将只能使用规则通道（toolkit rule compose --module usage）"))
@@ -338,29 +338,25 @@ export async function runUsageInitInteractive(options: InitInteractiveOptions = 
       if (index >= steps.length) break
       const step = steps[index]
       if (step === "channel") {
-        const answer = await ask(
-          () =>
-            select<UsageChannel>({
-              message: "采集通道",
-              default: state.channel,
-              choices: [
-                {
-                  name: formatChoiceLine({ name: "全局规则上报", description: "不依赖 Agent 配置，需把规则复制进全局规则" }),
-                  value: "rule",
-                },
-                {
-                  name: formatChoiceLine({ name: "Agent Hook", description: "自动触发，写入各 Agent 的配置文件" }),
-                  value: "hook",
-                },
-              ],
-            }),
-          { back: true },
-        )
-        if ("back" in answer) {
+        const channel = await askSelectOrExit<UsageChannel>({
+          message: "采集通道",
+          default: state.channel,
+          choices: [
+            {
+              name: formatChoiceLine({ name: "全局规则上报", description: "不依赖 Agent 配置，需把规则复制进全局规则" }),
+              value: "rule",
+            },
+            {
+              name: formatChoiceLine({ name: "Agent Hook", description: "自动触发，写入各 Agent 的配置文件" }),
+              value: "hook",
+            },
+          ],
+        })
+        if (channel === null) {
           abortInteractive()
           return
         }
-        state.channel = answer.value
+        state.channel = channel
         if (state.channel === "rule") console.log(line.hint("规则通道：不安装 Hook；完成后把 toolkit rule compose --module usage 的输出复制进全局规则"))
         index += 1
         continue
@@ -419,25 +415,21 @@ export async function runUsageInitInteractive(options: InitInteractiveOptions = 
         continue
       }
       if (step === "mode") {
-        const answer = await ask(
-          () =>
-            select<UsageSkillMode>({
-              message: "技能统计范围",
-              default: state.mode,
-              choices: [
-                { name: formatChoiceLine({ name: "全部已开启来源", description: "记录所有启用来源的技能事件" }), value: "all" },
-                { name: formatChoiceLine({ name: "只统计指定技能", description: "仅记录名单内的技能，其余忽略" }), value: "include" },
-                { name: formatChoiceLine({ name: "排除指定技能", description: "记录名单外的技能，用于屏蔽噪声" }), value: "exclude" },
-                { name: formatChoiceLine({ name: "不统计任何技能", description: "只记录开关状态，不写技能名与参数" }), value: "none" },
-              ],
-            }),
-          { back: true },
-        )
-        if ("back" in answer) {
+        const mode = await askSelectBack<UsageSkillMode>({
+          message: "技能统计范围",
+          default: state.mode,
+          choices: [
+            { name: formatChoiceLine({ name: "全部已开启来源", description: "记录所有启用来源的技能事件" }), value: "all" },
+            { name: formatChoiceLine({ name: "只统计指定技能", description: "仅记录名单内的技能，其余忽略" }), value: "include" },
+            { name: formatChoiceLine({ name: "排除指定技能", description: "记录名单外的技能，用于屏蔽噪声" }), value: "exclude" },
+            { name: formatChoiceLine({ name: "不统计任何技能", description: "只记录开关状态，不写技能名与参数" }), value: "none" },
+          ],
+        })
+        if (mode === null) {
           index -= 1
           continue
         }
-        state.mode = answer.value
+        state.mode = mode
         index += 1
         continue
       }
@@ -500,24 +492,20 @@ export async function runUsageInitInteractive(options: InitInteractiveOptions = 
         continue
       }
       if (step === "rotation") {
-        const answer = await ask(
-          () =>
-            select<UsageRotation>({
-              message: "事件文件轮转",
-              default: state.rotation,
-              choices: [
-                { name: formatChoiceLine({ name: "按月轮转", description: "每月新建事件文件，便于归档" }), value: "monthly" },
-                { name: formatChoiceLine({ name: "按文件大小轮转", description: "单文件超过上限即切分，适合高频使用" }), value: "size" },
-                { name: formatChoiceLine({ name: "不轮转", description: "全部写入同一文件，便于整体导出" }), value: "none" },
-              ],
-            }),
-          { back: true },
-        )
-        if ("back" in answer) {
+        const rotation = await askSelectBack<UsageRotation>({
+          message: "事件文件轮转",
+          default: state.rotation,
+          choices: [
+            { name: formatChoiceLine({ name: "按月轮转", description: "每月新建事件文件，便于归档" }), value: "monthly" },
+            { name: formatChoiceLine({ name: "按文件大小轮转", description: "单文件超过上限即切分，适合高频使用" }), value: "size" },
+            { name: formatChoiceLine({ name: "不轮转", description: "全部写入同一文件，便于整体导出" }), value: "none" },
+          ],
+        })
+        if (rotation === null) {
           index -= 1
           continue
         }
-        state.rotation = answer.value
+        state.rotation = rotation
         index += 1
         continue
       }
@@ -615,18 +603,19 @@ export async function runUsageUninstall(options: UninstallOptions = {}): Promise
     let removeHooks = true
     let purge = Boolean(options.purge)
     if (!options.yes && !options.dryRun) {
-      const hooksAnswer = await askConfirm({ message: "卸载已安装的 Hook？", default: true })
-      if (hooksAnswer === null) {
-        console.error(line.hint("已取消，未修改任何文件"))
-        return
+      // 两问串联：第二问按 ESC 或选「← 返回」回到第一问，第一问取消才算整体取消
+      for (;;) {
+        const hooksAnswer = await askConfirm({ message: "卸载已安装的 Hook？（ESC 返回上一步）", default: true })
+        if (hooksAnswer === null) {
+          reportCancelled()
+          return
+        }
+        removeHooks = hooksAnswer
+        const purgeAnswer = await askConfirm({ message: "同时删除本地事件？（ESC 返回上一步）", default: false })
+        if (purgeAnswer === null) continue
+        purge = purgeAnswer
+        break
       }
-      removeHooks = hooksAnswer
-      const purgeAnswer = await askConfirm({ message: "同时删除本地事件？", default: false })
-      if (purgeAnswer === null) {
-        console.error(line.hint("已取消，未修改任何文件"))
-        return
-      }
-      purge = purgeAnswer
     }
     const dir = resolveUsageDir(undefined, loadUsageConfig())
     const preview: string[] = ["停用技能使用情况总开关"]

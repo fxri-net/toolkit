@@ -3,8 +3,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, isAbsolute, join } from "node:path"
 import { writeFileAtomic } from "../write-atomic"
 import { line, style } from "../term-style"
-import { isPromptCancel, requireInteractive } from "../prompts"
-import { askInput, askSelect, confirmWrite } from "../cli-ui"
+import { isPromptCancel, reportCancelled, requireInteractive } from "../prompts"
+import { askInput, askSelectOrExit, confirmWrite } from "../cli-ui"
 import { loadUsageConfig, resolveUsageDir, updateUsageConfig } from "./config"
 import { readAllEvents, usagePaths, type UsagePaths } from "./store"
 import type { SkillUsageEvent, UsageConfig, UsageUploadProtocol } from "./types"
@@ -254,28 +254,50 @@ export async function runUploadSetup(options: UploadSetupOptions = {}): Promise<
   if (!requireInteractive({ action: "usage config upload setup", hint: "请直接编辑 ~/.toolkitrc.json 的 usage.upload 段" })) return
   try {
     const config = loadUsageConfig()
-    const protocol = await askSelect<UsageUploadProtocol>({
-      message: "上传协议",
-      default: config.upload.protocol,
-      choices: [
-        { name: "Webhook（自定义 HTTP）", value: "webhook" },
-        { name: "OTLP/HTTP（OpenUsage）", value: "otlp-http" },
-        { name: "本地文件（追加 JSONL）", value: "file" },
-      ],
-    })
-    if (protocol === null) {
-      console.error(line.hint("已取消，未修改任何配置"))
-      return
-    }
-    const endpoint = await askInput({ message: protocol === "file" ? "导出文件路径" : "上传端点 URL", default: config.upload.endpoint })
-    if (endpoint === null) {
-      console.error(line.hint("已取消，未修改任何配置"))
-      return
-    }
-    const headersRaw = await askInput({ message: "附加请求头 JSON（可留空）", default: JSON.stringify(config.upload.headers) })
-    if (headersRaw === null) {
-      console.error(line.hint("已取消，未修改任何配置"))
-      return
+    // 三步向导：第 2、3 步按 ESC 回到上一步；第 1 步取消即整体退出
+    let protocol: UsageUploadProtocol = config.upload.protocol
+    let endpoint = ""
+    let headersRaw = ""
+    let step = 0
+    for (;;) {
+      if (step === 0) {
+        const picked = await askSelectOrExit<UsageUploadProtocol>({
+          message: "上传协议",
+          default: config.upload.protocol,
+          choices: [
+            { name: "Webhook（自定义 HTTP）", value: "webhook" },
+            { name: "OTLP/HTTP（OpenUsage）", value: "otlp-http" },
+            { name: "本地文件（追加 JSONL）", value: "file" },
+          ],
+        })
+        if (picked === null) {
+          reportCancelled()
+          return
+        }
+        protocol = picked
+        step = 1
+        continue
+      }
+      if (step === 1) {
+        const value = await askInput({
+          message: `${protocol === "file" ? "导出文件路径" : "上传端点 URL"}（ESC 返回上一步）`,
+          default: config.upload.endpoint,
+        })
+        if (value === null) {
+          step = 0
+          continue
+        }
+        endpoint = value
+        step = 2
+        continue
+      }
+      const value = await askInput({ message: "附加请求头 JSON（可留空，ESC 返回上一步）", default: JSON.stringify(config.upload.headers) })
+      if (value === null) {
+        step = 1
+        continue
+      }
+      headersRaw = value
+      break
     }
     let headers: Record<string, string> = {}
     try {
@@ -296,13 +318,13 @@ export async function runUploadSetup(options: UploadSetupOptions = {}): Promise<
       ],
     })
     if (!confirmed) {
-      console.error(line.hint("已取消，未修改任何配置"))
+      reportCancelled()
       return
     }
     updateUsageConfig({ upload: { enabled: true, protocol, endpoint, headers } })
     console.log(`${line.ok("上传已启用")}；${style.hint("先执行 toolkit usage config upload send --dry-run 预览载荷")}`)
   } catch (error) {
-    if (isPromptCancel(error)) console.error(line.hint("已取消，未修改任何配置"))
+    if (isPromptCancel(error)) reportCancelled()
     throw error
   }
 }

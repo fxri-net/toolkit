@@ -3,7 +3,7 @@ import { join } from "node:path"
 import { Option, type Command } from "commander"
 import { getHomeDir } from "../config"
 import { assertJsonFormat, jsonEnvelope } from "../json-output"
-import { exitOnPromptCancel, exitWithCancel, isInteractive, runInteractive } from "../prompts"
+import { exitOnPromptCancel, isInteractive, reportCancelled, runInteractive } from "../prompts"
 import { EXIT } from "../exit-codes"
 import { assertChoice } from "../cli-ui"
 import { runScopeMount } from "../scope/interactive"
@@ -1023,8 +1023,8 @@ export function registerSkillsCommands(program: Command): void {
           )
         let selectionResult = await selectSkills()
         if (!selectionResult) {
-          console.error(line.hint("已取消技能选择，未写入任何文件"))
-          exitWithCancel()
+          reportCancelled()
+          return
         }
         // 三步交互：技能 → 目标 → 确认；目标页 ESC 回技能选择，确认页 ESC 回目标选择，「否」按成功退出
         let globalTargets: string[] | undefined
@@ -1047,8 +1047,8 @@ export function registerSkillsCommands(program: Command): void {
           if (back) {
             const reselected = await selectSkills()
             if (!reselected) {
-              console.error(line.hint("已取消技能选择，未写入任何文件"))
-              exitWithCancel()
+              reportCancelled()
+              return
             }
             selectionResult = reselected
             continue
@@ -1064,7 +1064,7 @@ export function registerSkillsCommands(program: Command): void {
           const ok = await promptConfirm("确认执行安装？")
           if (ok === null) continue
           if (!ok) {
-            console.log(line.hint("已取消安装，未写入任何文件"))
+            reportCancelled()
             return
           }
           break
@@ -1386,8 +1386,8 @@ export function registerSkillsCommands(program: Command): void {
             }
             const picked = await promptUninstallSelection(candidates)
             if (picked === null) {
-              console.error(line.hint("已取消，未执行任何清理"))
-              exitWithCancel()
+              reportCancelled()
+              return
             }
             if (picked.length === 0) {
               console.log(line.hint("未选择任何技能，未执行卸载"))
@@ -1413,12 +1413,8 @@ export function registerSkillsCommands(program: Command): void {
               } else {
                 const staleText = staleNames.length > 0 ? `，并清理疑似残留 ${staleNames.length} 项` : ""
                 const answer = await promptConfirm(`将卸载已登记的 ${registeredSkillCount(runGlobal, runProject)} 项${staleText}，是否继续？`, false)
-                if (answer === null) {
-                  console.error(line.hint("已取消，未执行任何清理"))
-                  exitWithCancel()
-                }
-                if (!answer) {
-                  console.log(line.hint("已取消，未执行任何清理"))
+                if (answer !== true) {
+                  reportCancelled()
                   return
                 }
               }
@@ -1584,12 +1580,8 @@ export function registerSkillsCommands(program: Command): void {
             return
           }
           const confirmed = await promptConfirm(`将${action}，确认继续？`)
-          if (confirmed === null) {
-            console.error(line.hint("已取消，未写入任何文件"))
-            exitWithCancel()
-          }
-          if (!confirmed) {
-            console.log(line.hint("已取消，未写入任何文件"))
+          if (confirmed !== true) {
+            reportCancelled()
             return
           }
         }

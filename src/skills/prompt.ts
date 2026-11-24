@@ -3,7 +3,7 @@
 import type { PackageSkill, SkillsMode, SkillTarget } from "./types"
 import { BUILTIN_SOURCE, CANONICAL_LABEL } from "./types"
 import { LIST_PAGE_SIZE, loadPrompts } from "../prompts"
-import { askCheckboxOrExit, askConfirm } from "../cli-ui"
+import { askCheckboxBack, askCheckboxOrExit, askConfirm } from "../cli-ui"
 import { formatChoiceLine, terminalColumns } from "../prompt-line"
 import { displayWidth } from "../text-line"
 import { formatSkillChoice } from "./format"
@@ -245,7 +245,8 @@ export async function promptTargetSelection(choices: TargetChoice[], message: st
     })
     return groups.size > 1 ? [new Separator(`── ${title} ──`), ...mapped] : mapped
   })
-  return askCheckboxOrExit({ message, choices: rows, pageSize: LIST_PAGE_SIZE })
+  // 目标选择是安装流程第二步：末位给「← 返回」，可退回技能选择
+  return askCheckboxBack({ message, choices: rows, pageSize: LIST_PAGE_SIZE })
 }
 
 // 汇总确认：返回 true 继续、false 放弃、null 按 ESC 返回上一步；破坏性操作应传 defaultValue = false

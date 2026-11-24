@@ -79,6 +79,26 @@ export async function askSelectOrExit<T extends string>(options: {
   return answer.value
 }
 
+// 子流程单选：末位补「← 返回」，选中或 ESC 都返回 null（回上一步）
+export async function askSelectBack<T extends string>(options: {
+  message: string
+  choices: Array<MenuChoice<T>>
+  default?: T
+  pageSize?: number
+}): Promise<T | null> {
+  const { select } = await loadPrompts()
+  const answer = await askWithBack(() =>
+    select<T | "back">({
+      message: options.message,
+      choices: [...options.choices, BACK_CHOICE],
+      default: options.default,
+      pageSize: options.pageSize,
+    }),
+  )
+  if ("back" in answer || answer.value === "back") return null
+  return answer.value
+}
+
 // 答案行折叠：多选过多时只列前几项，避免提交后的答案铺满屏幕
 export const ANSWER_COLLAPSE_LIMIT = 6
 export const ANSWER_COLLAPSE_SHOW = 5
@@ -134,6 +154,27 @@ export async function askCheckboxOrExit<T extends string>(options: {
 // 多选操作提示：文案里已有「空格切换」就不再重复
 function withCheckboxHint(message: string): string {
   return message.includes("空格切换") ? message : `${message}（空格切换，回车确认）`
+}
+
+// 子流程多选：末位补「← 返回」，选中或 ESC 都返回 null（回上一步）
+export async function askCheckboxBack<T extends string>(options: {
+  message: string
+  choices: Array<MultiChoice<T> | SeparatorChoice>
+  pageSize?: number
+}): Promise<T[] | null> {
+  const { checkbox } = await loadPrompts()
+  const answer = await askWithBack(() =>
+    checkbox<T | "back">({
+      message: withCheckboxHint(options.message),
+      choices: [...options.choices, BACK_CHOICE],
+      pageSize: options.pageSize,
+      required: false,
+      theme: { style: { renderSelectedChoices } },
+    }),
+  )
+  if ("back" in answer) return null
+  if (answer.value.includes("back")) return null
+  return answer.value.filter((value): value is T => value !== "back")
 }
 
 // 文本输入：ESC 返回 null
