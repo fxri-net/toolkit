@@ -8,6 +8,27 @@ outline: [2, 2]
 
 历史版本：[1.x](./changelog/1.x)
 
+## 2.0.6
+
+> 2026-11-24 发布
+
+### 🔧 功能调整
+
+- `toolkit setup` 勾选「安装 AI 技能」「配置全局规则」后进入各自的交互选择，上次结果只作默认勾选、须确认才执行；`--yes` 仍按默认值直接执行
+
+### ⚡ 优化改进
+
+- 交互基座统一多选操作提示与取消文案，确认问句按动作区分（卸载 / 移除不再问「继续写入」）
+- 子流程菜单项统一「…」后缀，子流程结束行为写进交互约定（菜单驱动回主菜单、单用途命令直接结束）
+
+### 🐛 问题修复
+
+- `toolkit scope` 首步选配置层补「退出」项，不再只能靠 Ctrl+C 退出
+- `toolkit rule compose` / `rule sync`、`toolkit upgrade`、`toolkit usage setup init`、`toolkit task add` 的首步与原生提示补齐「退出」与 ESC 取消；ESC 一律按 `0` 结束，`130` 只保留给 Ctrl+C
+- `skill install` 目标选择改为末位「← 返回」，安装 / 卸载 / 批量递增的取消一律按 `0` 结束，不再混用 `130`
+- `usage setup init` 的选择步骤补「← 返回」，`usage setup uninstall` 两问可退回上一问，`usage config upload setup` 三步可退回上一步
+- `scope` 管理条目 / 技能矩阵与 `usage` Hook 多选补「← 返回」，批量挂载补「退出」；输入与确认步骤统一标注「ESC 返回上一步」或「ESC 取消」
+
 ## 2.0.5
 
 > 2026-11-24 发布
