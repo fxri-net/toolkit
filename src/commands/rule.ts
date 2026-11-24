@@ -6,8 +6,9 @@ import { composeRules, listRules, loadRuleset, type Ruleset } from "../rules"
 import { clearRulesSelection, readRulesSelection, writeRulesSelection } from "../rules/cache"
 import { copyToClipboard } from "../rules/clipboard"
 import { buildPresetChoices, CUSTOM_PRESET, normalizePickedModules } from "../rules/select"
-import { exitOnPromptCancel, exitWithCancel, isInteractive } from "../prompts"
-import { askCheckbox, askSelect, fail, reportWrite } from "../cli-ui"
+import { inspectRuleSync, writeRuleSync } from "../rules/sync"
+import { INTERACTIVE_EXIT, exitOnPromptCancel, exitWithCancel, isInteractive } from "../prompts"
+import { askCheckbox, askConfirm, askSelect, fail, reportWrite } from "../cli-ui"
 import { assertJsonFormat, jsonEnvelope } from "../json-output"
 import { printJson } from "./shared"
 import { line, style } from "../term-style"
@@ -298,6 +299,89 @@ export function registerRulesCommands(program: Command): void {
     .description("清除规则组合缓存")
     .action(() => {
       console.log(clearRulesSelection() ? line.ok("已清除规则组合缓存") : line.hint("无规则组合缓存可清除"))
+    })
+
+  // 项目内提交规则快照：显式同步，不挂 prepare / init 自动化
+  rulesCmd
+    .command("sync")
+    .description("把提交信息规则同步到项目内 .trae/rules/git-commit-message.md（显式运行，不自动刷新）")
+    .option("--yes", "有差异时直接写入，跳过确认")
+    .option("--dry-run", "只显示差异，不写盘")
+    .action(async (options: { yes?: boolean; dryRun?: boolean }) => {
+      try {
+        const state = inspectRuleSync(process.cwd())
+        if (state.exists && state.upToDate) {
+          console.log(line.ok(`已是最新（版本 ${state.currentVersion ?? state.latestVersion}）`))
+          return
+        }
+        if (!state.exists) {
+          console.log(`目标文件：${state.target}（不存在，将创建；版本 ${state.latestVersion}）`)
+          if (options.dryRun) {
+            console.log(line.hint("[预演] 未写入任何文件；确认无误后去掉 --dry-run 执行"))
+            return
+          }
+          if (!options.yes) {
+            if (!isInteractive()) {
+              console.error(`⚠️ 非交互环境须显式加 --yes 创建 ${state.target}`)
+              process.exitCode = INTERACTIVE_EXIT
+              return
+            }
+            const ok = await askConfirm({ message: `创建 ${state.target}？`, default: true })
+            if (ok !== true) {
+              console.log(line.hint("已取消，未修改任何文件"))
+              return
+            }
+          }
+          writeRuleSync(state)
+          console.log(line.ok(`已创建 ${state.target}（版本 ${state.latestVersion}）`))
+          return
+        }
+        // 有差异：先给路径、版本与差异摘要，再由用户决定是否覆盖
+        console.log(`目标文件：${state.target}`)
+        console.log(`当前版本：${state.currentVersion ?? "无生成标记（手工维护）"}；最新版本：${state.latestVersion}`)
+        console.log(`差异：+${state.added} −${state.removed}`)
+        if (state.handEdited) console.log(line.hint("与上次生成内容不一致：文件可能被手改，默认不覆盖"))
+        if (options.dryRun) {
+          console.log(state.patch)
+          return
+        }
+        if (options.yes) {
+          writeRuleSync(state)
+          console.log(line.ok(`已写入 ${state.target}（版本 ${state.latestVersion}）`))
+          return
+        }
+        if (!isInteractive()) {
+          console.error("⚠️ 非交互环境须显式加 --yes 写入，或加 --dry-run 查看差异")
+          process.exitCode = INTERACTIVE_EXIT
+          return
+        }
+        for (;;) {
+          const choice = await askSelect({
+            message: "如何处理项目内提交规则？",
+            default: state.handEdited ? "view" : "write",
+            choices: [
+              { name: "写入最新版本", value: "write" },
+              { name: "保留当前文件", value: "keep" },
+              { name: "查看完整内容", value: "view" },
+            ],
+          })
+          if (choice === null || choice === "keep") {
+            console.log(line.hint("已取消，未修改任何文件"))
+            return
+          }
+          if (choice === "view") {
+            console.log(state.patch)
+            continue
+          }
+          writeRuleSync(state)
+          console.log(line.ok(`已写入 ${state.target}（版本 ${state.latestVersion}）`))
+          return
+        }
+      } catch (error) {
+        if (exitOnPromptCancel(error)) return
+        console.error(`⚠️ 同步失败：${(error as Error).message}`)
+        process.exitCode = 1
+      }
     })
 
 }

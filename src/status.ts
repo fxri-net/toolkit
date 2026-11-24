@@ -5,6 +5,7 @@ import { isAbsolute, join, resolve } from "node:path"
 import { commandMigrationRows, takeDeprecationHits, type CommandMigrationRow, type DeprecationHit } from "./command-registry"
 import { resolveTasksDir } from "./config"
 import { configStatus } from "./config-status"
+import { inspectRuleSync } from "./rules/sync"
 import { resolveDocsCheckConfig } from "./docs/config"
 import { checkDocsDist } from "./docs/dist"
 import { checkDocsNav } from "./docs/nav"
@@ -229,8 +230,20 @@ export function collectStatus(version: string, cwd: string = process.cwd()): Sta
   const migrate = migrateDomain(cwd)
   if (migrate) results.push(guard("migrate", "迁移", () => migrate))
   results.push(guard("version", "版本与弃用", () => versionDomain(version, deprecated, runtimeHits)))
+  // 项目内提交规则快照：只提示漂移，不自动改写（规则改动属低频事件，由用户显式同步）
+  const ruleSync = inspectRuleSync(cwd)
+  const ruleSyncIssues: StatusIssue[] =
+    ruleSync.exists && !ruleSync.upToDate
+      ? [
+          {
+            level: "info",
+            scope: "规则快照",
+            message: `${ruleSync.target} 与当前版本不一致（当前 ${ruleSync.currentVersion ?? "无生成标记"}），运行 toolkit rule sync 更新`,
+          },
+        ]
+      : []
   const sections = results.map((result) => result.section)
-  const issues = results.flatMap((result) => result.issues)
+  const issues = [...results.flatMap((result) => result.issues), ...ruleSyncIssues]
   const errorCount = issues.filter((issue) => issue.level === "error").length
   const warnCount = issues.filter((issue) => issue.level === "warn").length
   const infoCount = issues.filter((issue) => issue.level === "info").length

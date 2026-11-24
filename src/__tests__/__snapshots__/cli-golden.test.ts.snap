@@ -1159,6 +1159,7 @@ Commands:
   compose [options]  组合规则模块并输出（TTY 无参时交互选择；非 TTY 按缓存 > 推荐组合 recommended）
   check [options]    校验规则模块与规则页的更新锚点是否同源（只报不改）
   reset [options]    清除规则组合缓存
+  sync [options]     把提交信息规则同步到项目内 .trae/rules/git-commit-message.md（显式运行，不自动刷新）
 
 --- stderr ---
 "
@@ -2482,6 +2483,7 @@ Commands:
   compose [options]  组合规则模块并输出（TTY 无参时交互选择；非 TTY 按缓存 > 推荐组合 recommended）
   check [options]    校验规则模块与规则页的更新锚点是否同源（只报不改）
   reset [options]    清除规则组合缓存
+  sync [options]     把提交信息规则同步到项目内 .trae/rules/git-commit-message.md（显式运行，不自动刷新）
 
 --- stderr ---
 "

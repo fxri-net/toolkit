@@ -74,6 +74,7 @@ export const COMMAND_REGISTRY: readonly CommandEntry[] = [
   { path: "rule compose", stage: "current" },
   { path: "rule reset", stage: "current" },
   { path: "rule check", stage: "current" },
+  { path: "rule sync", stage: "current" },
   { path: "rules", stage: "current", deprecatesTo: "rule" },
 
   { path: "convention", stage: "current" },

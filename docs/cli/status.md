@@ -42,6 +42,16 @@ toolkit status --format json  # 统一信封输出到 stdout（诊断仍走 stde
 
 只查项目层与本地层（全局层与当前工程无关）。迁移项不进入 `issues`，`--check` 退出码不受影响。
 
+## 规则快照提示
+
+项目内存在 `.trae/rules/git-commit-message.md` 且正文与当前版本不一致时，追加一条 `info` 级提示（只提示、不改文件）：
+
+```text
+规则快照：.trae/rules/git-commit-message.md 与当前版本不一致（当前 2.0.4），运行 toolkit rule sync 更新
+```
+
+`info` 不影响退出码；同步由用户显式执行 `toolkit rule sync`，`status` 与 `init` 都不自动改写该文件。
+
 ## 未初始化现场
 
 找不到任务区目录时不逐域报错，只输出一行提示与下一步：

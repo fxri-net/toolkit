@@ -258,11 +258,14 @@ describe("文档一致性：站点配置引用的静态资源存在", () => {
 // 三处正文须逐字一致（规范 C-16），此处锁模板与 .trae 的镜像，docs 页面另由模块组合测试覆盖
 describe("文档一致性：提交信息规则模板真源镜像", () => {
   it("templates/rules/commit.md 正文与 .trae/rules/git-commit-message.md 逐字一致（只改一处即失败）", () => {
-    // 模板首行是模块更新时间锚点，比对时剔除；frontmatter 是 agent 规则元数据，同样不进正文
+    // 模板首行是模块更新时间锚点，比对时剔除；frontmatter 是 agent 规则元数据、生成标记是 rule sync 的说明行，同样不进正文
     const template = readDoc("templates/rules/commit.md")
     expect(template, "templates/rules/commit.md 首行缺少规则更新时间锚点").toMatch(/^> 规则更新时间 [^\n]*\n/)
     const body = template.replace(/^> 规则更新时间 [^\n]*\n/, "").trim()
-    const source = readDoc(".trae/rules/git-commit-message.md").replace(/^---\n[\s\S]*?\n---\n/, "").trim()
+    const source = readDoc(".trae/rules/git-commit-message.md")
+      .replace(/^---\n[\s\S]*?\n---\n/, "")
+      .replace(/^<!-- 由 toolkit 生成[^\n]*\n\n?/, "")
+      .trim()
     expect(body).toBe(source)
   })
 })
