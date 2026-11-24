@@ -20,16 +20,10 @@
       "file": "workflow.md"
     },
     {
-      "id": "personal",
-      "title": "个人偏好",
-      "summary": "可裁剪的个人偏好：优先于同类默认约定",
-      "file": "personal.md"
-    },
-    {
-      "id": "env",
-      "title": "环境与版本",
-      "summary": "安装命令与「不自行全局安装」红线",
-      "file": "env.md"
+      "id": "practices",
+      "title": "推荐做法",
+      "summary": "官方推荐的可裁剪做法：优先于同类默认约定",
+      "file": "practices.md"
     },
     {
       "id": "commit",
@@ -45,14 +39,12 @@
     }
   ],
   "presets": {
-    "minimal": ["core"],
-    "recommended": ["core", "output", "workflow"],
-    "complete": ["core", "output", "workflow", "personal", "env"],
-    "full": ["core", "output", "workflow", "personal", "env", "commit", "usage"]
+    "minimal": ["workflow"],
+    "recommended": ["core", "output", "workflow", "practices", "commit"],
+    "full": ["core", "output", "workflow", "practices", "commit", "usage"]
   },
   "pages": [
-    { "page": "ai", "modules": ["core", "output", "workflow", "env"] },
-    { "page": "personal", "modules": ["personal"] },
+    { "page": "ai", "modules": ["core", "output", "workflow", "practices"] },
     { "page": "commit", "modules": ["commit"] },
     { "page": "usage", "modules": ["usage"] }
   ]

@@ -278,7 +278,7 @@ describe("文档一致性：规则层更新锚点", () => {
   }
 
   it("四篇规则页的规则全文首行为合法更新时间锚点", () => {
-    for (const file of ["docs/rules/commit.md", "docs/rules/ai.md", "docs/rules/personal.md", "docs/rules/usage.md"]) {
+    for (const file of ["docs/rules/commit.md", "docs/rules/ai.md", "docs/rules/usage.md"]) {
       expect(fenceAnchor(file), `${file} 的规则全文首行不是合法更新时间锚点`).toMatch(/^> 规则更新时间 \d{4}-\d{2}-\d{2} \d{2}:\d{2}$/)
     }
   })

@@ -7,7 +7,7 @@ describe("发布包内容", () => {
   it("package.json 的 files 含 templates，且规则模块文件齐全", () => {
     const pkg = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf8")) as { files?: string[] }
     expect(pkg.files, "package.json files 缺少 templates").toContain("templates")
-    for (const file of ["ruleset.json", "core.md", "output.md", "workflow.md", "env.md", "commit.md", "usage.md"]) {
+    for (const file of ["ruleset.json", "core.md", "output.md", "workflow.md", "practices.md", "commit.md", "usage.md"]) {
       expect(existsSync(join(process.cwd(), "templates", "rules", file)), `templates/rules/${file} 缺失`).toBe(true)
     }
   })

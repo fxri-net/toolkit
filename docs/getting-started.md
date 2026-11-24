@@ -153,7 +153,7 @@ toolkit skill mount ~/work            # 在父目录下的项目里做项目面�
 toolkit rule compose   # 交互式选择预设或自定义模块，选完自动尝试复制到剪贴板
 ```
 
-- 预设：`minimal` / `recommended` / `complete`（自用全篇）/ `full`；也可选「自定义」逐项勾选
+- 预设：`minimal`（极简）/ `recommended`（推荐，默认）/ `full`（全量）；也可选「自定义」逐项勾选
 - 非交互环境（脚本 / CI）用 `--preset` 或 `--module`；`toolkit rule list` 查看模块与当前选择
 - 组合只输出文本，**需粘贴到所用 Agent 的全局规则入口**（如 Trae 的规则设置、Claude Code 的 `CLAUDE.md`、
   Cursor 的全局 Rules）；入口随工具版本变化，以各工具官方文档为准

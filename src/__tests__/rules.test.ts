@@ -21,25 +21,22 @@ afterEach(() => {
 })
 
 describe("规则清单与模块", () => {
-  it("清单包含 7 个模块，id 唯一且首行锚点合法", () => {
+  it("清单包含 6 个模块，id 唯一且首行锚点合法", () => {
     const ruleset = loadRuleset()
     const modules = loadRuleModules()
-    expect(ruleset.modules.map((mod) => mod.id)).toEqual(["core", "output", "workflow", "personal", "env", "commit", "usage"])
-    expect(modules).toHaveLength(7)
+    expect(ruleset.modules.map((mod) => mod.id)).toEqual(["core", "output", "workflow", "practices", "commit", "usage"])
+    expect(modules).toHaveLength(6)
     for (const mod of modules) {
       expect(mod.anchor, `${mod.id} 锚点格式`).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/)
       expect(mod.body.length).toBeGreaterThan(0)
     }
   })
 
-  it("推荐预设不含 env，完整预设等于 ai 页模块加个人偏好", () => {
+  it("极简预设只含工作流，推荐预设含推荐做法与提交信息", () => {
     const ruleset = loadRuleset()
-    expect(ruleset.presets.recommended).toEqual(["core", "output", "workflow"])
-    // 期望值由 ai 页模块序列派生：个人偏好紧跟在 workflow 之后
-    const aiPage = ruleset.pages.find((page) => page.page === "ai")!
-    const expected = [...aiPage.modules]
-    expected.splice(expected.indexOf("workflow") + 1, 0, "personal")
-    expect(ruleset.presets.complete).toEqual(expected)
+    expect(ruleset.presets.minimal).toEqual(["workflow"])
+    expect(ruleset.presets.recommended).toEqual(["core", "output", "workflow", "practices", "commit"])
+    expect(ruleset.presets.complete).toBeUndefined()
   })
 
   it("组合顺序按传入 id，锚点取最大值", () => {
@@ -70,16 +67,18 @@ describe("规则清单与模块", () => {
     expect(text.startsWith("你是一个严谨的编程助手")).toBe(true)
   })
 
-  it("env 单独组合以二级标题开头，与其余模块同级", () => {
-    const text = composeRules(["env"], { anchor: false })
-    expect(text.startsWith("## 环境与版本")).toBe(true)
+  it("推荐做法单独组合以二级标题开头，与其余模块同级", () => {
+    const text = composeRules(["practices"], { anchor: false })
+    expect(text.startsWith("## 推荐做法")).toBe(true)
   })
 
   it("listRules 返回预设归属与当前锚点", () => {
     const listed = listRules()
+    const workflow = listed.modules.find((mod) => mod.id === "workflow")
     const core = listed.modules.find((mod) => mod.id === "core")
     const coreAnchor = loadRuleModules().find((mod) => mod.id === "core")?.anchor
-    expect(core?.presets).toEqual(expect.arrayContaining(["minimal", "recommended", "complete", "full"]))
+    expect(workflow?.presets).toEqual(expect.arrayContaining(["minimal", "recommended", "full"]))
+    expect(core?.presets).toEqual(expect.arrayContaining(["recommended", "full"]))
     expect(core?.anchor).toBe(coreAnchor)
   })
 })

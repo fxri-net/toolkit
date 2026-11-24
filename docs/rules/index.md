@@ -13,9 +13,9 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 ## 用途与场景
 
 - 全局规则会整段进入 Agent 上下文：只选当前需要的模块，避免无关纪律占用上下文。
-- `recommended` 是默认集（角色与代码规范 + 输出要求 + 工作流）；`complete` 等于 [AI 全局规则](./ai) 整篇加[个人偏好规则](./personal)；
+- 三个预设：`minimal`（极简，只含 `workflow`）、`recommended`（推荐，默认）、`full`（全量）；
    `commit` 与既有 Conventional Commits / commitlint 互斥；`usage` 需先开启技能使用统计。
-- 四篇规则页是「整篇阅读」入口，组合器负责细粒度生成；两者内容由测试锁定同源。
+- 三篇规则页是「整篇阅读」入口，组合器负责细粒度生成；两者内容由测试锁定同源。
 
 ## 规则组合器
 
@@ -25,18 +25,16 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 
 | 模块 | 内容 | 预设 |
 | --- | --- | --- |
-| `core` | 角色定位与代码规范 | 极简 / 推荐 / 自用全篇 / 全量 |
-| `output` | 输出要求 | 推荐 / 自用全篇 / 全量 |
-| `workflow` | 工作流与方案落盘 | 推荐 / 自用全篇 / 全量 |
-| `personal` | 个人偏好 | 自用全篇 / 全量 |
-| `env` | 环境与版本 | 自用全篇 / 全量 |
-| `commit` | 提交信息规则 | 全量 |
+| `core` | 角色定位与代码规范 | 推荐 / 全量 |
+| `output` | 输出要求 | 推荐 / 全量 |
+| `workflow` | 工作流与方案落盘 | 极简 / 推荐 / 全量 |
+| `practices` | 推荐做法 | 推荐 / 全量 |
+| `commit` | 提交信息规则 | 推荐 / 全量 |
 | `usage` | 技能使用情况 | 全量 |
 
-- 组合更新时间取所选模块的**最新锚点**；`recommended` 默认不含 `env`，`complete`（自用全篇）等于 [AI 全局规则](./ai) 整篇加[个人偏好规则](./personal)。
+- 组合更新时间取所选模块的**最新锚点**；`recommended` 默认不含 `usage`，`full` 为全部 6 个模块。
 - 点预设会直接切换为该预设的选择与顺序（与 CLI `rule compose --preset` 一致），手动勾选或排序后视为自定义组合并显示「当前：自定义」。
 - 「全部取消」清空选择且不写入记忆，刷新回落 `recommended`；空态下该按钮禁用。
-- `env` 是环境前置说明，正文以 `## 环境与版本` 开头；建议与 `workflow` 一起使用。
 - 清空全部模块不会持久化，刷新回落 `recommended`。
 - 文档站记忆写在 `localStorage`（键 `fxri-toolkit:rules:v1`），仅当前浏览器；命令行记忆写在 `~/.toolkit/cache/rules-selection.json`，两端不自动同步。
 - 「恢复默认」会清除本机记忆；禁用本地存储时组合器仍可使用，只是不保留选择。
@@ -45,7 +43,7 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 
 | 规则 | 适用对象 | 复制方式 |
 | --- | --- | --- |
-| [AI 全局规则](./ai) | 通用 AI 协作纪律：代码规范、输出要求、方案落盘与验证 | 复制「规则全文」代码块，或组合 `complete` 预设 |
+| [AI 全局规则](./ai) | 通用 AI 协作纪律：代码规范、输出要求、方案落盘与推荐做法 | 复制「规则全文」代码块 |
 | [提交信息规则](./commit) | 统一 git 提交信息格式与语义 | 复制「规则全文」代码块；与 Conventional Commits / commitlint 互斥 |
 | [技能使用情况规则](./usage) | 启用 toolkit 技能使用统计后，约束 AI 不重复补记、不外传数据 | 可选；复制「规则全文」代码块，或执行 `toolkit rule compose --module usage` |
 

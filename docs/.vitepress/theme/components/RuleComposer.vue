@@ -7,7 +7,7 @@ import { RULESET, RULE_MODULES } from "./rules.generated"
 const STORAGE_KEY = "fxri-toolkit:rules:v1"
 const presets = RULESET.presets
 const presetNames = Object.keys(presets)
-const presetLabels: Record<string, string> = { minimal: "极简", recommended: "推荐", complete: "自用全篇", full: "全量" }
+const presetLabels: Record<string, string> = { minimal: "极简", recommended: "推荐", full: "全量" }
 
 // 模块正文与元数据：首行锚点单独解析，正文交给共享组合函数，避免前端重写拼接逻辑
 const modules: Array<RuleModule & { title: string; summary: string; presets: string[] }> = RULESET.modules.map((meta) => {
@@ -41,7 +41,6 @@ const composed = computed(() => {
   }
 })
 const latest = computed(() => selectedModules.value.map((mod) => mod.anchor).sort().pop() ?? "")
-const envHint = computed(() => selected.value.includes("env") && !selected.value.includes("workflow"))
 const cliCommand = computed(() => `toolkit rule compose ${selected.value.map((id) => `--module ${id}`).join(" ")}`)
 const charCount = computed(() => composed.value.length)
 
@@ -199,7 +198,6 @@ async function copy(): Promise<void> {
       <span v-if="activePreset === 'custom' && selected.length > 0" class="rc-preset-state">当前：自定义</span>
     </div>
     <p class="rc-hint">默认选中「推荐」；点预设会直接切换为该预设的选择与顺序，手动勾选或排序后视为自定义组合。清空全部模块后刷新会回落推荐集。</p>
-    <p v-if="envHint" class="rc-warning">环境与版本是工作流章节的补充，建议与工作流一起使用。</p>
 
     <div class="rc-grid">
       <section class="rc-modules">

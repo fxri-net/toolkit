@@ -926,7 +926,7 @@ exports[`各域行为与错误路径 > rules compose 单模块 1`] = `
 --- stdout ---
 
 --- stderr ---
-⚠️ 未知规则模块「common」，可选：core / output / workflow / personal / env / commit / usage"
+⚠️ 未知规则模块「common」，可选：core / output / workflow / practices / commit / usage"
 `;
 
 exports[`各域行为与错误路径 > rules compose 未知预设 1`] = `
@@ -934,13 +934,13 @@ exports[`各域行为与错误路径 > rules compose 未知预设 1`] = `
 --- stdout ---
 
 --- stderr ---
-⚠️ 未知预设「bogus」，可选：minimal / recommended / complete / full"
+⚠️ 未知预设「bogus」，可选：minimal / recommended / full"
 `;
 
 exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 "退出码：0
 --- stdout ---
-> 规则更新时间 2026-11-24 09:57
+> 规则更新时间 2026-11-24 10:55
 
 你是一个严谨的编程助手，专注于产出可维护、风格一致的代码
 
@@ -973,9 +973,63 @@ exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 - 「继续」按状态解释：未开工=继续评估；开工被打断=恢复执行（回显范围 → 复核现场 → 再动手）。
 - 不可逆动作（发布、推送、打远端标签、全局安装）逐次授权；计划表列出或上一任务执行过不构成授权；**当前指令已含授权则直接执行**，不重复询问。
 - 质量门：项目聚合验收命令必须通过，本地与 CI 共用同一份清单；skill 指引、help 输出与 check 反馈不一致时，以 check 的实际反馈为准。
-- 动作不算、改动才算：提交 / 发版 / 推送本身不构成任务；归档 + 规范沉淀即流程终点，提交默认需你确认，除非规则另有约定。
+- 动作不算、改动才算：提交 / 发版 / 推送本身不构成任务；归档 + 规范沉淀即流程终点，提交是否执行由规则约定，未约定时需你确认。
 - 判断目录能否用时跑一次 \`toolkit scope status\`，同会话复用；入口壳未激活即停。
 - 任务管理细节以已加载的 fxri-* 技能为准。
+
+## 推荐做法
+
+- 以下条目优先于同类默认约定。
+- 任务收尾的 git 提交自动执行。
+- **不自行安装**：任何安装动作（全局包、项目依赖、系统工具）都须用户在方案或计划里明确授权；未授权时只给命令与排查建议。
+
+## 提交信息规则
+
+### 要求
+
+- 标题**全中文**，禁止英文格式头（feat:、fix: 等）
+- 格式：\`类型：描述\`，全角冒号"："
+- 标题为祈使句、30 汉字内、句末不加句号
+- 包名/API 名等专有名词可保留英文
+- 复杂改动：标题后空一行，用"- "列表说明变更点和原因（可选）
+
+### 类型字典
+
+| 类型 | 适用场景                                         |
+| ---- | ------------------------------------------------ |
+| 新增 | 新功能、新文件、新依赖                           |
+| 修改 | 修改已有功能、调整逻辑、替换内容                 |
+| 修复 | 修复 Bug                                         |
+| 优化 | 性能、体验、样式、配置、结构调整、依赖升级等改进 |
+| 清理 | 删除无用代码、清理依赖                           |
+| 文档 | 更新文档、注释                                   |
+| 版本 | 版本号提升、变更日志生成、发布准备与回滚         |
+
+> 类型选择：改变对外行为用「修改」，不改对外行为的改进用「优化」，删减用「清理」。
+
+### 示例
+
+- ✅ 新增：新增数据导出功能
+- ✅ 修改：修改审批流程逻辑
+- ✅ 修复：修复金额计算精度丢失
+- ✅ 优化：升级构建工具链至最新版本
+- ✅ 清理：清理无用依赖和冗余代码
+- ✅ 文档：补充接口调用说明文档
+- ✅ 版本：1.2.16
+
+### 正文示例（可选）
+
+\`\`\`
+优化：优化列表滚动加载性能
+
+- 改用虚拟滚动，减少首屏渲染节点数
+- 增加请求缓存，避免重复加载
+\`\`\`
+
+### 反面示例
+
+- ❌ fix: update some code（英文格式头）
+- ❌ 更新了 index.ts 文件（只罗列文件，未说明动作）
 --- stderr ---
 "
 `;
@@ -984,14 +1038,13 @@ exports[`各域行为与错误路径 > rules list 1`] = `
 "退出码：0
 --- stdout ---
 规则模块：
-    core     2026-11-19 09:30  角色定位与代码规范（minimal / recommended / complete / full）
-    output   2026-11-08 02:21  输出要求（recommended / complete / full）
-    workflow 2026-11-24 09:57  工作流与方案落盘（recommended / complete / full）
-    personal 2026-11-24 09:57  个人偏好（complete / full）
-    env      2026-11-20 11:47  环境与版本（complete / full）
-    commit   2026-11-13 10:13  提交信息规则（full）
+    core     2026-11-19 09:30  角色定位与代码规范（recommended / full）
+    output   2026-11-08 02:21  输出要求（recommended / full）
+    workflow 2026-11-24 10:55  工作流与方案落盘（minimal / recommended / full）
+    practices 2026-11-24 10:55  推荐做法（recommended / full）
+    commit   2026-11-13 10:13  提交信息规则（recommended / full）
     usage    2026-11-24 09:57  技能使用情况（full）
-预设：minimal=core；recommended=core+output+workflow；complete=core+output+workflow+personal+env；full=core+output+workflow+personal+env+commit+usage
+预设：minimal=workflow；recommended=core+output+workflow+practices+commit；full=core+output+workflow+practices+commit+usage
 当前缓存：无（默认推荐组合 recommended）
 --- stderr ---
 "
@@ -1008,26 +1061,20 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
   "data": {
     "presets": {
       "minimal": [
-        "core"
+        "workflow"
       ],
       "recommended": [
         "core",
         "output",
-        "workflow"
-      ],
-      "complete": [
-        "core",
-        "output",
         "workflow",
-        "personal",
-        "env"
+        "practices",
+        "commit"
       ],
       "full": [
         "core",
         "output",
         "workflow",
-        "personal",
-        "env",
+        "practices",
         "commit",
         "usage"
       ]
@@ -1039,13 +1086,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
           "core",
           "output",
           "workflow",
-          "env"
-        ]
-      },
-      {
-        "page": "personal",
-        "modules": [
-          "personal"
+          "practices"
         ]
       },
       {
@@ -1069,9 +1110,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
         "file": "core.md",
         "anchor": "2026-11-19 09:30",
         "presets": [
-          "minimal",
           "recommended",
-          "complete",
           "full"
         ]
       },
@@ -1083,7 +1122,6 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
         "anchor": "2026-11-08 02:21",
         "presets": [
           "recommended",
-          "complete",
           "full"
         ]
       },
@@ -1092,32 +1130,21 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
         "title": "工作流与方案落盘",
         "summary": "方案先行、只读判定、授权边界、作用域查询与技能指针",
         "file": "workflow.md",
-        "anchor": "2026-11-24 09:57",
+        "anchor": "2026-11-24 10:55",
+        "presets": [
+          "minimal",
+          "recommended",
+          "full"
+        ]
+      },
+      {
+        "id": "practices",
+        "title": "推荐做法",
+        "summary": "官方推荐的可裁剪做法：优先于同类默认约定",
+        "file": "practices.md",
+        "anchor": "2026-11-24 10:55",
         "presets": [
           "recommended",
-          "complete",
-          "full"
-        ]
-      },
-      {
-        "id": "personal",
-        "title": "个人偏好",
-        "summary": "可裁剪的个人偏好：优先于同类默认约定",
-        "file": "personal.md",
-        "anchor": "2026-11-24 09:57",
-        "presets": [
-          "complete",
-          "full"
-        ]
-      },
-      {
-        "id": "env",
-        "title": "环境与版本",
-        "summary": "安装命令与「不自行全局安装」红线",
-        "file": "env.md",
-        "anchor": "2026-11-20 11:47",
-        "presets": [
-          "complete",
           "full"
         ]
       },
@@ -1128,6 +1155,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
         "file": "commit.md",
         "anchor": "2026-11-13 10:13",
         "presets": [
+          "recommended",
           "full"
         ]
       },

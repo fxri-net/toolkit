@@ -1049,7 +1049,7 @@ describe("rules 命令参数边界", () => {
     const result = await runCli(["rule", "compose", "--preset", "minimal", "--out", out, "--no-cache"])
     expect(result.code).toBe(0)
     expect(existsSync(out)).toBe(true)
-    expect(readFileSync(out, "utf8")).toContain("## 代码规范")
+    expect(readFileSync(out, "utf8")).toContain("## 工作流")
   })
 })
 
