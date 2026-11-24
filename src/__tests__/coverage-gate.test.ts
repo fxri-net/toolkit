@@ -12,6 +12,8 @@ const fixtures: string[] = []
 interface FixtureOptions {
   // 每个语句的起始行与命中次数
   statements: Array<{ line: number; hits: number }>
+  // 被统计的源文件路径（缺省 src/demo.ts），用于区分核心域与编排层
+  file?: string
   // 覆盖率汇总百分比，缺省全部 90（高于下限）
   summary?: { statements: number; branches: number; functions: number; lines: number }
   // 注入的 unified diff；缺省按语句行生成「全部新增」
@@ -21,12 +23,12 @@ interface FixtureOptions {
 }
 
 // 构造 unified diff：把给定行区间标为新增
-function buildDiff(lines: number[]): string {
+function buildDiff(lines: number[], file = "src/demo.ts"): string {
   if (lines.length === 0) return ""
   const start = Math.min(...lines)
   const end = Math.max(...lines)
   const body = Array.from({ length: end - start + 1 }, () => "+const value = 1").join("\n")
-  return `diff --git a/src/demo.ts b/src/demo.ts\n--- a/src/demo.ts\n+++ b/src/demo.ts\n@@ -0,0 +${start},${end - start + 1} @@\n${body}\n`
+  return `diff --git a/${file} b/${file}\n--- a/${file}\n+++ b/${file}\n@@ -0,0 +${start},${end - start + 1} @@\n${body}\n`
 }
 
 function createFixture(options: FixtureOptions): string {
@@ -36,7 +38,7 @@ function createFixture(options: FixtureOptions): string {
   const summary = options.summary ?? { statements: 90, branches: 90, functions: 90, lines: 90 }
   const total = Object.fromEntries(Object.entries(summary).map(([metric, pct]) => [metric, { pct }]))
   const coverage = {
-    [join(root, "src", "demo.ts")]: {
+    [join(root, options.file ?? "src/demo.ts")]: {
       statementMap: Object.fromEntries(
         statements.map((item, index) => [String(index), { start: { line: item.line, column: 0 }, end: { line: item.line, column: 1 } }]),
       ),
@@ -48,7 +50,7 @@ function createFixture(options: FixtureOptions): string {
     writeFileSync(join(root, "coverage", "coverage-final.json"), JSON.stringify(coverage), "utf8")
     writeFileSync(join(root, "coverage", "coverage-summary.json"), JSON.stringify({ total }), "utf8")
   }
-  writeFileSync(join(root, "diff.txt"), options.diff ?? buildDiff(statements.map((item) => item.line)), "utf8")
+  writeFileSync(join(root, "diff.txt"), options.diff ?? buildDiff(statements.map((item) => item.line), options.file), "utf8")
   return root
 }
 
@@ -137,5 +139,25 @@ describe("覆盖率门禁：双轨判定", () => {
     const written = readFileSync(target, "utf8")
     expect(written).toContain("## 覆盖率")
     expect(written).toContain("改动行覆盖率")
+  })
+
+  it("编排层文件的改动行不计入判定", () => {
+    const root = createFixture({
+      file: "src/commands/rule.ts",
+      statements: [3, 4, 5, 6, 7, 8].map((line) => ({ line, hits: 0 })),
+    })
+    const result = run(root)
+    expect(result.status).toBe(0)
+    expect(result.stderr).toBe("")
+  })
+
+  it("核心域文件的改动行仍按 80% 判定", () => {
+    const root = createFixture({
+      file: "src/rules/sync.ts",
+      statements: [3, 4, 5, 6, 7, 8].map((line, index) => ({ line, hits: index < 3 ? 1 : 0 })),
+    })
+    const result = run(root)
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("src/rules/sync.ts:6")
   })
 })

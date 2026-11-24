@@ -56,8 +56,9 @@
   且类型检查须覆盖测试文件——基础 `tsconfig.json` 的 `exclude` 排除 `**/__tests__` 等测试路径，
   类型检查单独走放开该排除项的 `tsconfig.typecheck.json`，不得让测试文件落在盲区；
 - **验收与提交须串联失败即止**：`pnpm verify` 与 `git commit` 之间用 `&&` 串联或分步执行，禁止用 `;` 串联——门禁失败后仍提交会让问题越过质量门，修复须另起提交并留痕；
-- **覆盖率门禁为「改动行 + 全局下限」双轨**（阈值唯一真源在 `scripts/check-coverage.mjs`）：本次改动的 `src/` 行需 ≥80% 覆盖，
-  改动语句少于 5 条时放行；全局下限 statements 78 / branches 65 / functions 82 / lines 81。
+- **覆盖率门禁按职责分层**（阈值与分层清单唯一真源在 `scripts/check-coverage.mjs`）：核心域改动的 `src/` 行需 ≥80% 覆盖，
+  改动语句少于 5 条时放行；编排层（`src/commands/`、`src/setup/`、`src/usage/wizard.ts`、`src/cli-main.ts`、`src/status.ts`）
+  是命令注册、输出文案与交互向导，正确性由 CLI 契约测试守，不参与改动行判定；全局下限 statements 78 / branches 65 / functions 82 / lines 81。
   本地只对改动文件采集覆盖率并跳过全局下限（局部数据算不出），全局下限与 GitHub job summary 由流水线与 `--full` 承担；
   本次无 `src` 改动时本地不采集覆盖率，明确提示交流水线校验。
 - `toolkit task check` 的 error 与 warn 均应为 0（除非任务规格另有豁免）——已在 `pnpm verify` 内执行，此处强调阈值；
