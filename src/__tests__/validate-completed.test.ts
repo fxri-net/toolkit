@@ -19,7 +19,7 @@ const warnTexts = (dir: string) => validateTasks(dir).issues.filter((i) => i.lev
 
 // 建指定 completed 值的已完成任务（文件名与 created 用 20990101，避免与当前日期耦合）
 function withCompleted(completed: string): string {
-  const dir = mkdtempSync(join(tmpdir(), "tk-completed-"))
+  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-completed-"))
   mkdirSync(join(dir, "active", "209901"), { recursive: true })
   writeFileSync(
     join(dir, "active", "209901", "20990101-唐启云-时间校验.md"),
@@ -31,7 +31,7 @@ function withCompleted(completed: string): string {
 
 describe("搁置状态校验", () => {
   it("搁置属合法状态且不要求 completed", () => {
-    const dir = mkdtempSync(join(tmpdir(), "tk-held-"))
+    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-held-"))
     mkdirSync(join(dir, "active", "209901"), { recursive: true })
     writeFileSync(
       join(dir, "active", "209901", "20990101-唐启云-搁置校验.md"),

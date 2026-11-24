@@ -127,7 +127,7 @@ describe("filledTableLines 填充态检出", () => {
 
 describe("listMarkdownFiles 递归收集", () => {
   it("收集全部层级 .md 并排序，非 md 文件不计入", () => {
-    const root = makeDir("tk-fmt-list-")
+    const root = makeDir("fxts-tk-fmt-list-")
     writeFile(root, "conventions/index.md", "# idx")
     writeFile(root, "conventions/history.md", "# hist")
     writeFile(root, "active/202610/task.md", "# task")
@@ -146,12 +146,12 @@ describe("listMarkdownFiles 递归收集", () => {
 
 describe("formatConventions 归一主流程", () => {
   it("任务区不存在时报错并给出初始化指引", () => {
-    const root = makeDir("tk-fmt-none-")
+    const root = makeDir("fxts-tk-fmt-none-")
     expect(() => formatConventions(join(root, "nope"))).toThrow(/任务区目录不存在/)
   })
 
   it("逐文件归一写盘，报告给出文件数与命中行数", () => {
-    const root = makeDir("tk-fmt-write-")
+    const root = makeDir("fxts-tk-fmt-write-")
     const a = writeFile(root, "active/202610/task.md", "| a   | b |\n| c | d |")
     writeFile(root, "archive/202609/20260915.md", "| e   | f |\n")
     writeFile(root, "conventions/index.md", "| g | h |\n")
@@ -167,7 +167,7 @@ describe("formatConventions 归一主流程", () => {
   })
 
   it("重复执行为幂等：二次返回 already-compact 且不再写盘", () => {
-    const root = makeDir("tk-fmt-idem-")
+    const root = makeDir("fxts-tk-fmt-idem-")
     writeFile(root, "active/202610/task.md", "| a   | b |\n")
 
     formatConventions(root)
@@ -179,7 +179,7 @@ describe("formatConventions 归一主流程", () => {
   })
 
   it("--dry-run 只报不改，文件保持填充态", () => {
-    const root = makeDir("tk-fmt-dry-")
+    const root = makeDir("fxts-tk-fmt-dry-")
     const a = writeFile(root, "active/202610/task.md", "| a   | b |\n")
 
     const report = formatConventions(root, { dryRun: true })
@@ -190,7 +190,7 @@ describe("formatConventions 归一主流程", () => {
   })
 
   it("代码块内的表格样例不参与写盘", () => {
-    const root = makeDir("tk-fmt-fence-")
+    const root = makeDir("fxts-tk-fmt-fence-")
     const a = writeFile(root, "active/202610/task.md", "```\n| a   | b |\n```\n")
 
     const report = formatConventions(root)
@@ -217,7 +217,7 @@ function writeIndex(root: string, rows: string[]): string {
 
 describe("formatConventions 索引表单元格归一", () => {
   it("反引号分册名与裸文件名转相对链接，归属去包裹，规则去引号", () => {
-    const root = makeDir("tk-fmt-cells-")
+    const root = makeDir("fxts-tk-fmt-cells-")
     writeFile(root, "conventions/common.md", "# 通用规范\n")
     const index = writeIndex(root, [
       "| C-1 | 「四级时间源」 | 建档时：当场打点优先 | `common` | `common.md` |",
@@ -232,7 +232,7 @@ describe("formatConventions 索引表单元格归一", () => {
   })
 
   it("行内代码包裹的载体外文件若目标存在同样转相对链接", () => {
-    const repo = makeDir("tk-fmt-cells-ext-")
+    const repo = makeDir("fxts-tk-fmt-cells-ext-")
     writeFile(repo, "AGENTS.md", "# 规则\n")
     writeFile(repo, "docs/rules/ai.md", "# AI 规则\n")
     const index = writeIndex(join(repo, ".tasks"), [
@@ -248,7 +248,7 @@ describe("formatConventions 索引表单元格归一", () => {
   })
 
   it("载体外文件目标不存在时保持行内代码并告警", () => {
-    const root = makeDir("tk-fmt-cells-out-")
+    const root = makeDir("fxts-tk-fmt-cells-out-")
     const index = writeIndex(root, [
       "| C-1 | 细节只进 skills | 写规则时：可变流程只进 skills | common | `AGENTS.md` 质量门 5 |",
       "| C-2 | 门禁 | 改验收时：只认 verify | common | AGENTS.md 质量门 2 |",
@@ -263,7 +263,7 @@ describe("formatConventions 索引表单元格归一", () => {
   })
 
   it("当前语义缺全角冒号时只告警不改写", () => {
-    const root = makeDir("tk-fmt-cells-colon-")
+    const root = makeDir("fxts-tk-fmt-cells-colon-")
     writeFile(root, "conventions/common.md", "# 通用规范\n")
     const index = writeIndex(root, ["| C-1 | 四级时间源 | 当场打点优先 | common | [common.md](./common.md) |"])
 
@@ -275,7 +275,7 @@ describe("formatConventions 索引表单元格归一", () => {
   })
 
   it("归一后幂等：二次执行为 already-compact 且无告警", () => {
-    const root = makeDir("tk-fmt-cells-idem-")
+    const root = makeDir("fxts-tk-fmt-cells-idem-")
     writeFile(root, "conventions/common.md", "# 通用规范\n")
     writeIndex(root, ["| C-1 | 四级时间源 | 建档时：当场打点优先 | `common` | `common.md` |"])
 
@@ -287,7 +287,7 @@ describe("formatConventions 索引表单元格归一", () => {
   })
 
   it("代码块内的索引表样例不参与单元格归一", () => {
-    const root = makeDir("tk-fmt-cells-fence-")
+    const root = makeDir("fxts-tk-fmt-cells-fence-")
     const index = writeFile(
       root,
       "conventions/index.md",

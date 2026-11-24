@@ -26,7 +26,7 @@ function primaryDir(): string {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-policy-delivery-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-policy-delivery-"))
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   resetSkillsConfigWarnings()

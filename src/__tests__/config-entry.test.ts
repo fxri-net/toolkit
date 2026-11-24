@@ -14,8 +14,8 @@ let project = ""
 const originalCwd = process.cwd()
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-cfg-entry-home-"))
-  project = mkdtempSync(join(tmpdir(), "tk-cfg-entry-proj-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-cfg-entry-home-"))
+  project = mkdtempSync(join(tmpdir(), "fxts-tk-cfg-entry-proj-"))
   // 项目根判定依赖 .git 或 .tasks，这里放一个空 .git 目录
   mkdirSync(join(project, ".git"), { recursive: true })
   setHomeDirForTest(home)
@@ -128,7 +128,7 @@ describe("三层写入往返", () => {
 
 describe("查找起点与批量读取", () => {
   it("传入目录参数时读写落在该目录", () => {
-    const other = mkdtempSync(join(tmpdir(), "tk-cfg-other-"))
+    const other = mkdtempSync(join(tmpdir(), "fxts-tk-cfg-other-"))
     try {
       mkdirSync(join(other, ".git"), { recursive: true })
       writeConfigKey("project", "task.dir", "other-tasks", other)
@@ -152,7 +152,7 @@ describe("查找起点与批量读取", () => {
 
   it("仓库判定：有 .git 或 .tasks 为真，都没有为假", () => {
     expect(configLayerInRepo(project)).toBe(true)
-    const plain = mkdtempSync(join(tmpdir(), "tk-cfg-plain-"))
+    const plain = mkdtempSync(join(tmpdir(), "fxts-tk-cfg-plain-"))
     try {
       expect(configLayerInRepo(plain)).toBe(false)
     } finally {

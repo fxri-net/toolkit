@@ -28,7 +28,7 @@ beforeEach(() => {
     delete process.env[key]
   }
   // home 指向独立临时目录：全局层不读到真实用户 ~/.toolkitrc.json
-  home = mkdtempSync(join(tmpdir(), "tk-cfgst-home-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-cfgst-home-"))
   setHomeDirForTest(home)
 })
 
@@ -44,7 +44,7 @@ afterEach(() => {
 
 // 建项目现场：root 放项目层配置、sub 作查找起点（可另放本地层配置）
 function makeProject(files: { root?: object; sub?: object }): { root: string; start: string } {
-  const root = makeDir("tk-cfgst-root-")
+  const root = makeDir("fxts-tk-cfgst-root-")
   if (files.root) writeFileSync(join(root, ".toolkitrc.json"), JSON.stringify(files.root), "utf8")
   let start = root
   if (files.sub) {
@@ -57,7 +57,7 @@ function makeProject(files: { root?: object; sub?: object }): { root: string; st
 
 describe("configStatus 三层现场", () => {
   it("三层全空：给正结论、来源全默认、无待处理项", () => {
-    const start = makeDir("tk-cfgst-empty-")
+    const start = makeDir("fxts-tk-cfgst-empty-")
     const report = configStatus(start)
     expect(report.summary).toContain("三层均无配置文件")
     expect(report.cwd).toBe(start)
@@ -96,7 +96,7 @@ describe("configStatus 环境变量层与能力旁路", () => {
   it("非空即命中，覆盖组与旁路组分别呈现", () => {
     process.env.FX_TOOLKIT_CHECK_WARN = "1"
     process.env.CI = "1"
-    const report = configStatus(makeDir("tk-cfgst-env-"))
+    const report = configStatus(makeDir("fxts-tk-cfgst-env-"))
     expect(report.env).toEqual([{ env: "FX_TOOLKIT_CHECK_WARN", key: "check.warnings" }])
     expect(report.bypass).toEqual([{ env: "CI", key: "skills.autoLink" }])
   })
@@ -104,7 +104,7 @@ describe("configStatus 环境变量层与能力旁路", () => {
   it("命中只判非空，与是否开启无关", () => {
     process.env.FX_TOOLKIT_REDACT = ""
     process.env.CI = ""
-    const report = configStatus(makeDir("tk-cfgst-env0-"))
+    const report = configStatus(makeDir("fxts-tk-cfgst-env0-"))
     expect(report.env).toEqual([])
     expect(report.bypass).toEqual([])
   })
@@ -112,7 +112,7 @@ describe("configStatus 环境变量层与能力旁路", () => {
   it("关闭态取值仍计入 env[]：命中 = 已设置且非空，不代表开启", () => {
     process.env.FX_TOOLKIT_CHECK_WARN = "0"
     process.env.FX_TOOLKIT_NO_UPDATE_CHECK = "1"
-    const report = configStatus(makeDir("tk-cfgst-envoff-"))
+    const report = configStatus(makeDir("fxts-tk-cfgst-envoff-"))
     // 键序跟随 CONFIG_ENV_OVERRIDES（FX_TOOLKIT_NO_UPDATE_CHECK 在 FX_TOOLKIT_CHECK_WARN 之前）
     expect(report.env).toEqual([
       { env: "FX_TOOLKIT_NO_UPDATE_CHECK", key: "updateCheck.enabled" },
@@ -135,7 +135,7 @@ describe("configStatus 本地层忽略提示", () => {
 
 describe("configStatus 降级项渲染", () => {
   it("本地文件为目录：层级记为命中但告警文件读取失败", () => {
-    const root = makeDir("tk-cfgst-iodir-")
+    const root = makeDir("fxts-tk-cfgst-iodir-")
     mkdirSync(join(root, ".toolkitrc.local.json"))
     const report = configStatus(root)
     const local = report.levels.find((l) => l.layer === "本地层")
@@ -148,14 +148,14 @@ describe("configStatus 降级项渲染", () => {
   })
 
   it("JSON 非法：告警 JSON 解析失败", () => {
-    const root = makeDir("tk-cfgst-badjson-")
+    const root = makeDir("fxts-tk-cfgst-badjson-")
     writeFileSync(join(root, ".toolkitrc.local.json"), "{ 非法", "utf8")
     const report = configStatus(root)
     expect(report.items.some((i) => i.message.includes("JSON 解析失败"))).toBe(true)
   })
 
   it("段值非对象：告警配置段须为对象", () => {
-    const root = makeDir("tk-cfgst-badsec-")
+    const root = makeDir("fxts-tk-cfgst-badsec-")
     writeFileSync(join(root, ".toolkitrc.local.json"), JSON.stringify({ task: "oops" }), "utf8")
     const report = configStatus(root)
     const item = report.items.find((i) => i.message.includes("配置段须为对象"))
@@ -165,7 +165,7 @@ describe("configStatus 降级项渲染", () => {
 
   it("全局层段值非对象：告警配置段须为对象", () => {
     writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ task: "oops" }), "utf8")
-    const report = configStatus(makeDir("tk-cfgst-global-"))
+    const report = configStatus(makeDir("fxts-tk-cfgst-global-"))
     const item = report.items.find((i) => i.message.includes("配置段须为对象"))
     expect(item?.level).toBe("warn")
     expect(item?.message).toContain("task")
@@ -218,7 +218,7 @@ describe("configStatus 提示项与文本折叠", () => {
 
   it("home 边界：home 下存在本地配置文件时给 info 提示，不计入 warnings", () => {
     writeFileSync(join(home, CONFIG_LOCAL_FILE), JSON.stringify({ task: { dir: "x" } }), "utf8")
-    const report = configStatus(makeDir("tk-cfgst-homebound-"))
+    const report = configStatus(makeDir("fxts-tk-cfgst-homebound-"))
     const item = report.items.find((i) => i.message.includes("止于 home"))
     expect(item?.level).toBe("info")
     expect(item?.scope).toBe("本地层")
@@ -229,7 +229,7 @@ describe("configStatus 提示项与文本折叠", () => {
   it("文本折叠：体检项文案内嵌的 home 路径折叠为 ~，JSON 报告保留绝对路径", () => {
     // home 下写非法 JSON：降级项 message 内嵌该文件的绝对路径
     writeFileSync(join(home, ".toolkitrc.json"), "{ 非法", "utf8")
-    const report = configStatus(makeDir("tk-cfgst-fold-"))
+    const report = configStatus(makeDir("fxts-tk-cfgst-fold-"))
     const item = report.items.find((i) => i.message.includes("JSON 解析失败"))
     expect(item).toBeDefined()
     // JSON 报告保留绝对路径（供脚本定位，分隔符经 toPosix 归一后比较）
@@ -247,7 +247,7 @@ describe("configStatus 提示项与文本折叠", () => {
 
 describe("configStatus 报告契约", () => {
   it("JSON 顶层字段集合固定（只增不减）", () => {
-    const report = configStatus(makeDir("tk-cfgst-contract-"))
+    const report = configStatus(makeDir("fxts-tk-cfgst-contract-"))
     expect(Object.keys(report).sort()).toEqual([
       "bypass",
       "cwd",
@@ -261,7 +261,7 @@ describe("configStatus 报告契约", () => {
   })
 
   it("展示键键序与 CONFIG_DISPLAY_KEYS 一致，且覆盖环境变量覆盖组目标键", () => {
-    const report = configStatus(makeDir("tk-cfgst-keys-"))
+    const report = configStatus(makeDir("fxts-tk-cfgst-keys-"))
     expect(report.displayKeys.map((d) => d.key)).toEqual([...CONFIG_DISPLAY_KEYS])
     // 不变式：覆盖组目标键必须都在展示键内（旁路组为能力开关，不属配置键，不纳入）
     for (const item of CONFIG_ENV_OVERRIDES) expect(CONFIG_DISPLAY_KEYS).toContain(item.key)

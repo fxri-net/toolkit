@@ -45,7 +45,7 @@ function stateIn(dir: string, name: string): string | undefined {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-proj-delivery-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-proj-delivery-"))
   project = mkdtempSync(join(home, "repo-"))
   setHomeDirForTest(home)
   mkdirSync(join(project, ".tasks"), { recursive: true })

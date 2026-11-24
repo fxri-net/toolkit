@@ -38,8 +38,8 @@ function versions(name: string, dir = root): { frontmatter: string; body: string
 }
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "tk-bump-"))
-  second = mkdtempSync(join(tmpdir(), "tk-bump-second-"))
+  root = mkdtempSync(join(tmpdir(), "fxts-tk-bump-"))
+  second = mkdtempSync(join(tmpdir(), "fxts-tk-bump-second-"))
 })
 
 afterEach(() => {

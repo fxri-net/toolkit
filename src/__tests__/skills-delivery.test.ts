@@ -46,8 +46,8 @@ function primaryState(name: string): string | undefined {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-delivery-"))
-  project = mkdtempSync(join(tmpdir(), "tk-delivery-proj-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-delivery-"))
+  project = mkdtempSync(join(tmpdir(), "fxts-tk-delivery-proj-"))
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   resetSkillsConfigWarnings()
@@ -139,7 +139,7 @@ describe("分发形态推导", () => {
 
 describe("技能包默认形态", () => {
   it("metadata.delivery 声明生效，非法取值告警后忽略", () => {
-    const root = mkdtempSync(join(tmpdir(), "tk-delivery-pkg-"))
+    const root = mkdtempSync(join(tmpdir(), "fxts-tk-delivery-pkg-"))
     mkdirSync(join(root, "skills", "demo-gated"), { recursive: true })
     writeFileSync(
       join(root, "skills", "demo-gated", "SKILL.md"),
@@ -190,7 +190,7 @@ describe("技能包默认形态", () => {
 
 describe("外部来源的声明参与解释", () => {
   it("状态登记的外部技能：metadata.gate:false 在解释中生效", () => {
-    const sourceRoot = mkdtempSync(join(tmpdir(), "tk-delivery-ext-"))
+    const sourceRoot = mkdtempSync(join(tmpdir(), "fxts-tk-delivery-ext-"))
     mkdirSync(join(sourceRoot, "skills", "ext-opt-out"), { recursive: true })
     writeFileSync(
       join(sourceRoot, "skills", "ext-opt-out", "SKILL.md"),

@@ -16,7 +16,7 @@ describe("Node API 导出面与文档一致", () => {
   })
 
   it("configStatus 返回三层报告结构", () => {
-    const dir = mkdtempSync(join(tmpdir(), "tk-api-exports-"))
+    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-api-exports-"))
     try {
       const report = api.configStatus(dir)
       expect(Array.isArray(report.levels)).toBe(true)

@@ -39,7 +39,7 @@ function stateEntries(dir: string, mode?: "link" | "copy" | "gate"): string[] {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-gate-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-gate-"))
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   resetScopeCache()
@@ -91,7 +91,7 @@ describe("内容闸门安装形态", () => {
   })
 
   it("metadata.gate 非法值告警一次并按未声明处理", () => {
-    const root = mkdtempSync(join(tmpdir(), "tk-gate-root-"))
+    const root = mkdtempSync(join(tmpdir(), "fxts-tk-gate-root-"))
     mkdirSync(join(root, "skills", "bad-gate"), { recursive: true })
     writeFileSync(
       join(root, "skills", "bad-gate", "SKILL.md"),
@@ -314,10 +314,10 @@ describe("guard 契约", () => {
   })
 
   it("外部来源技能按状态文件登记解析正文", () => {
-    const pkgRoot = mkdtempSync(join(tmpdir(), "tk-gate-pkg-"))
+    const pkgRoot = mkdtempSync(join(tmpdir(), "fxts-tk-gate-pkg-"))
     mkdirSync(join(pkgRoot, "skills"), { recursive: true })
     setPackageRootForTest(pkgRoot)
-    const sourceRoot = mkdtempSync(join(tmpdir(), "tk-gate-ext-"))
+    const sourceRoot = mkdtempSync(join(tmpdir(), "fxts-tk-gate-ext-"))
     mkdirSync(join(sourceRoot, "ext-skill"), { recursive: true })
     const body = "# 外部技能\n\n正文\n"
     writeFileSync(join(sourceRoot, "ext-skill", "SKILL.md"), body)

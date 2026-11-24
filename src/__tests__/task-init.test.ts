@@ -12,7 +12,7 @@ import { CARRIER_MARKER, ENTRY_MARKER, ENTRY_VERSION, HISTORY_TABLE_HEADER, HIST
 import { AGENTS_POINTER_END, AGENTS_POINTER_START, ENTRY_SHELL_NAME, FALLBACK_SKILL_DIR, SKILL_ENTRY } from "../conventions/entry"
 
 // 临时目录中执行 init 并清理
-function runInDir(prefix = "tk-init-"): { cwd: string; gitignore: () => string } {
+function runInDir(prefix = "fxts-tk-init-"): { cwd: string; gitignore: () => string } {
   const cwd = mkdtempSync(join(tmpdir(), prefix))
   return {
     cwd,
@@ -29,7 +29,7 @@ function track<T extends { cwd: string }>(result: T): T {
 
 describe("initWorkspace 骨架生成", () => {
   it("空目录生成 active/{当月}/、archive/ 与 .gitignore 片段", () => {
-    const { cwd } = track(runInDir("tk-init-empty-"))
+    const { cwd } = track(runInDir("fxts-tk-init-empty-"))
     initWorkspace(".tasks", cwd)
     const month = todayCompact().slice(0, 6)
     expect(existsSync(join(cwd, ".tasks", "active", month))).toBe(true)
@@ -39,7 +39,7 @@ describe("initWorkspace 骨架生成", () => {
   })
 
   it("重复执行幂等：目录与 .gitignore 内容不变", () => {
-    const { cwd, gitignore } = track(runInDir("tk-init-twice-"))
+    const { cwd, gitignore } = track(runInDir("fxts-tk-init-twice-"))
     initWorkspace(".tasks", cwd)
     const before = gitignore()
     initWorkspace(".tasks", cwd)
@@ -48,7 +48,7 @@ describe("initWorkspace 骨架生成", () => {
   })
 
   it("自定义 --dir：在指定目录生成骨架", () => {
-    const { cwd } = track(runInDir("tk-init-dir-"))
+    const { cwd } = track(runInDir("fxts-tk-init-dir-"))
     const month = todayCompact().slice(0, 6)
     initWorkspace("work", cwd)
     expect(existsSync(join(cwd, "work", "active", month))).toBe(true)
@@ -56,8 +56,8 @@ describe("initWorkspace 骨架生成", () => {
   })
 
   it("绝对路径 --dir：任务区生成到项目外指定目录", () => {
-    const { cwd } = track(runInDir("tk-init-abs-"))
-    const outer = mkdtempSync(join(tmpdir(), "tk-init-outer-"))
+    const { cwd } = track(runInDir("fxts-tk-init-abs-"))
+    const outer = mkdtempSync(join(tmpdir(), "fxts-tk-init-outer-"))
     track({ cwd: outer })
     const month = todayCompact().slice(0, 6)
     initWorkspace(outer, cwd)
@@ -68,7 +68,7 @@ describe("initWorkspace 骨架生成", () => {
   })
 
   it("--dry-run 不写盘，动作清单与真实执行同构", () => {
-    const { cwd } = track(runInDir("tk-init-dry-"))
+    const { cwd } = track(runInDir("fxts-tk-init-dry-"))
     const preview = initWorkspace(".tasks", cwd, { dryRun: true })
     // 预演后现场不应出现任何产物
     expect(existsSync(join(cwd, ".tasks"))).toBe(false)
@@ -80,7 +80,7 @@ describe("initWorkspace 骨架生成", () => {
 
 describe("initWorkspace 规范载体骨架", () => {
   it("空目录生成 index.md（三节，首行为 v3 标记，索引表为 v3 五列）与 history.md", () => {
-    const { cwd } = track(runInDir("tk-init-conv-"))
+    const { cwd } = track(runInDir("fxts-tk-init-conv-"))
     initWorkspace(".tasks", cwd)
     const index = readFileSync(join(cwd, ".tasks", "conventions", "index.md"), "utf8")
     expect(index.split(/\r?\n/, 1)[0]).toBe(CARRIER_MARKER)
@@ -96,7 +96,7 @@ describe("initWorkspace 规范载体骨架", () => {
   })
 
   it("重复执行与已有索引均不覆盖", () => {
-    const { cwd } = track(runInDir("tk-init-conv-keep-"))
+    const { cwd } = track(runInDir("fxts-tk-init-conv-keep-"))
     const index = join(cwd, ".tasks", "conventions", "index.md")
     mkdirSync(join(cwd, ".tasks", "conventions"), { recursive: true })
     writeFileSync(index, "custom", "utf8")
@@ -105,7 +105,7 @@ describe("initWorkspace 规范载体骨架", () => {
   })
 
   it("旧单文件 conventions.md 存在时不建空骨架（迁移由迁移流程接管）", () => {
-    const { cwd } = track(runInDir("tk-init-conv-legacy-"))
+    const { cwd } = track(runInDir("fxts-tk-init-conv-legacy-"))
     mkdirSync(join(cwd, ".tasks"), { recursive: true })
     writeFileSync(join(cwd, ".tasks", "conventions.md"), "# 旧规范\n", "utf8")
     initWorkspace(".tasks", cwd)
@@ -113,7 +113,7 @@ describe("initWorkspace 规范载体骨架", () => {
   })
 
   it("已有 v1 载体时保持不动并在报告里提示可升级", () => {
-    const { cwd } = track(runInDir("tk-init-conv-v1-"))
+    const { cwd } = track(runInDir("fxts-tk-init-conv-v1-"))
     const dir = join(cwd, ".tasks", "conventions")
     mkdirSync(dir, { recursive: true })
     const v1 =
@@ -130,7 +130,7 @@ describe("initWorkspace 规范载体骨架", () => {
 
 describe("initWorkspace 技能入口层", () => {
   it("生成入口壳（无候选目录时回落 .agents/skills）并在 AGENTS.md 已存在时追加指针块", () => {
-    const { cwd } = track(runInDir("tk-init-shell-"))
+    const { cwd } = track(runInDir("fxts-tk-init-shell-"))
     writeFileSync(join(cwd, "AGENTS.md"), "# AGENTS\n", "utf8")
 
     const report = initWorkspace(".tasks", cwd)
@@ -148,7 +148,7 @@ describe("initWorkspace 技能入口层", () => {
   })
 
   it("只落到已存在的候选目录，不另造 .agents/", () => {
-    const { cwd } = track(runInDir("tk-init-shelldir-"))
+    const { cwd } = track(runInDir("fxts-tk-init-shelldir-"))
     // 候选目录存在与否是假现场输入，落点路径按约定拼装；此处只存在非首个候选目录
     const skillDir = ".trae/skills"
     mkdirSync(join(cwd, skillDir), { recursive: true })
@@ -162,7 +162,7 @@ describe("initWorkspace 技能入口层", () => {
 
   // 同名文件占位时 mkdirSync 只抛 ENOENT，无从归因；须给出路径与可执行处置方式
   it("技能目录路径被文件占位时报出归因与处置方式", () => {
-    const { cwd } = track(runInDir("tk-init-blocked-"))
+    const { cwd } = track(runInDir("fxts-tk-init-blocked-"))
     writeFileSync(join(cwd, ".agents"), "占位文件", "utf8")
 
     expect(() => initWorkspace(".tasks", cwd)).toThrow(/\.agents 是文件而非目录/)
@@ -171,18 +171,18 @@ describe("initWorkspace 技能入口层", () => {
 
   // 任务区与规范载体同样可能被同名文件占用，归因口径须与入口壳一致
   it("任务区与规范载体路径被文件占位时同样报出归因", () => {
-    const blockedTasks = track(runInDir("tk-init-blocked-tasks-"))
+    const blockedTasks = track(runInDir("fxts-tk-init-blocked-tasks-"))
     writeFileSync(join(blockedTasks.cwd, ".tasks"), "占位文件", "utf8")
     expect(() => initWorkspace(".tasks", blockedTasks.cwd)).toThrow(/任务区无法创建：\.tasks 是文件而非目录/)
 
-    const blockedCarrier = track(runInDir("tk-init-blocked-carrier-"))
+    const blockedCarrier = track(runInDir("fxts-tk-init-blocked-carrier-"))
     mkdirSync(join(blockedCarrier.cwd, ".tasks"), { recursive: true })
     writeFileSync(join(blockedCarrier.cwd, ".tasks", "conventions"), "占位文件", "utf8")
     expect(() => initWorkspace(".tasks", blockedCarrier.cwd)).toThrow(/规范载体无法创建：\.tasks\/conventions 是文件而非目录/)
   })
 
   it("多个候选目录并存时各落一份入口壳，指针块去路径化覆盖全部落点", () => {
-    const { cwd } = track(runInDir("tk-init-shellmulti-"))
+    const { cwd } = track(runInDir("fxts-tk-init-shellmulti-"))
     const skillDirs = [".agents/skills", ".trae/skills"]
     for (const rel of skillDirs) mkdirSync(join(cwd, rel), { recursive: true })
     writeFileSync(join(cwd, "AGENTS.md"), "# AGENTS\n", "utf8")
@@ -200,7 +200,7 @@ describe("initWorkspace 技能入口层", () => {
   })
 
   it("重复执行幂等：入口壳与指针块均保持不动", () => {
-    const { cwd } = track(runInDir("tk-init-shelltwice-"))
+    const { cwd } = track(runInDir("fxts-tk-init-shelltwice-"))
     writeFileSync(join(cwd, "AGENTS.md"), "# AGENTS\n", "utf8")
     initWorkspace(".tasks", cwd)
     const agents = readFileSync(join(cwd, "AGENTS.md"), "utf8")
@@ -211,7 +211,7 @@ describe("initWorkspace 技能入口层", () => {
   })
 
   it("入口壳按标记版本分流：落后或无标记就地更新，标记不旧于当前保持不动", () => {
-    const { cwd } = track(runInDir("tk-init-shellver-"))
+    const { cwd } = track(runInDir("fxts-tk-init-shellver-"))
     const rel = `${FALLBACK_SKILL_DIR}/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}`
     const shellFile = join(cwd, rel)
     mkdirSync(join(cwd, FALLBACK_SKILL_DIR, ENTRY_SHELL_NAME), { recursive: true })
@@ -239,7 +239,7 @@ describe("initWorkspace 技能入口层", () => {
   })
 
   it("AGENTS.md 不存在时不新建，指针块记为跳过并提示全局技能仍可触达", () => {
-    const { cwd } = track(runInDir("tk-init-noagents-"))
+    const { cwd } = track(runInDir("fxts-tk-init-noagents-"))
     const report = initWorkspace(".tasks", cwd)
     expect(existsSync(join(cwd, "AGENTS.md"))).toBe(false)
     const skipped = report.products.find((p) => p.target === "AGENTS.md")
@@ -248,7 +248,7 @@ describe("initWorkspace 技能入口层", () => {
   })
 
   it("源仓库（package.json name 为 @fxri/toolkit）不生成入口壳与指针块", () => {
-    const { cwd } = track(runInDir("tk-init-src-"))
+    const { cwd } = track(runInDir("fxts-tk-init-src-"))
     writeFileSync(join(cwd, "package.json"), JSON.stringify({ name: "@fxri/toolkit", version: "0.0.0" }), "utf8")
     writeFileSync(join(cwd, "AGENTS.md"), "# AGENTS\n", "utf8")
 
@@ -263,7 +263,7 @@ describe("initWorkspace 全局技能安装态", () => {
   // home 注入独立临时目录：状态文件只读临时目录，不触碰真实用户全局技能目录
   let home = ""
   beforeEach(() => {
-    home = mkdtempSync(join(tmpdir(), "tk-init-home-"))
+    home = mkdtempSync(join(tmpdir(), "fxts-tk-init-home-"))
     setHomeDirForTest(home)
     resetToolkitConfigCache()
   })
@@ -282,7 +282,7 @@ describe("initWorkspace 全局技能安装态", () => {
   }
 
   it("未装全局技能时 skillsInstalled 为假，CLI 据此补一行 skills install 指引", () => {
-    const { cwd } = track(runInDir("tk-init-noskills-"))
+    const { cwd } = track(runInDir("fxts-tk-init-noskills-"))
     expect(initWorkspace(".tasks", cwd).skillsInstalled).toBe(false)
   })
 
@@ -290,7 +290,7 @@ describe("initWorkspace 全局技能安装态", () => {
     const installed = join(home, ".agents", "skills", "fxri-plan-task")
     mkdirSync(installed, { recursive: true })
     writeState(["fxri-plan-task"])
-    const { cwd } = track(runInDir("tk-init-hasskills-"))
+    const { cwd } = track(runInDir("fxts-tk-init-hasskills-"))
     expect(initWorkspace(".tasks", cwd).skillsInstalled).toBe(true)
     // 登记不等于现场：产物被删后回到未安装
     rmSync(installed, { recursive: true, force: true })
@@ -304,7 +304,7 @@ describe("initWorkspace .gitignore 处理", () => {
     content.split(/\r?\n/).map((item) => item.trim()).filter((item) => item === line).length
 
   it("已有 .gitignore 且结尾无换行：追加片段并保留原内容", () => {
-    const { cwd, gitignore } = track(runInDir("tk-init-append-"))
+    const { cwd, gitignore } = track(runInDir("fxts-tk-init-append-"))
     writeFileSync(join(cwd, ".gitignore"), "node_modules", "utf8")
     initWorkspace(".tasks", cwd)
     const content = gitignore()
@@ -315,7 +315,7 @@ describe("initWorkspace .gitignore 处理", () => {
   })
 
   it("片段部分已存在（CRLF 风格）时只补缺失行并保留原内容", () => {
-    const { cwd, gitignore } = track(runInDir("tk-init-partial-"))
+    const { cwd, gitignore } = track(runInDir("fxts-tk-init-partial-"))
     writeFileSync(join(cwd, ".gitignore"), "node_modules\r\n.archive.lock\r\n", "utf8")
     initWorkspace(".tasks", cwd)
     const content = gitignore()
@@ -326,7 +326,7 @@ describe("initWorkspace .gitignore 处理", () => {
   })
 
   it("用户已手写等价忽略写法时视为已覆盖，不再追加对应行", () => {
-    const { cwd, gitignore } = track(runInDir("tk-init-equiv-"))
+    const { cwd, gitignore } = track(runInDir("fxts-tk-init-equiv-"))
     writeFileSync(join(cwd, ".gitignore"), "node_modules\n*.local.json\n", "utf8")
     initWorkspace(".tasks", cwd)
     const content = gitignore()
@@ -338,7 +338,7 @@ describe("initWorkspace .gitignore 处理", () => {
   })
 
   it("旧注释文案陈旧时就地改写并补齐缺失行，不留双注释", () => {
-    const { cwd, gitignore } = track(runInDir("tk-init-stale-"))
+    const { cwd, gitignore } = track(runInDir("fxts-tk-init-stale-"))
     writeFileSync(join(cwd, ".gitignore"), "node_modules\n# @fxri/toolkit 归档排他锁（运行时文件，不入库）\n.archive.lock\n", "utf8")
     initWorkspace(".tasks", cwd)
     const content = gitignore()
@@ -349,7 +349,7 @@ describe("initWorkspace .gitignore 处理", () => {
   })
 
   it(".tasks 已存在时保留现有内容不覆盖", () => {
-    const { cwd } = track(runInDir("tk-init-keep-"))
+    const { cwd } = track(runInDir("fxts-tk-init-keep-"))
     mkdirSync(join(cwd, ".tasks", "active"), { recursive: true })
     writeFileSync(join(cwd, ".tasks", "active", "keep.md"), "keep", "utf8")
     initWorkspace(".tasks", cwd)
@@ -357,7 +357,7 @@ describe("initWorkspace .gitignore 处理", () => {
   })
 
   it("报告 detail 同时点明 .archive.lock 与 .toolkitrc.local.json 两个文件名", () => {
-    const { cwd } = track(runInDir("tk-init-detail-"))
+    const { cwd } = track(runInDir("fxts-tk-init-detail-"))
     const report = initWorkspace(".tasks", cwd)
     const product = report.products.find((p) => p.target === ".gitignore")
     expect(product?.action).toBe("created")
@@ -366,7 +366,7 @@ describe("initWorkspace .gitignore 处理", () => {
   })
 
   it("手删 .archive.lock 单行后重跑只补回该行，两行各出现一次", () => {
-    const { cwd, gitignore } = track(runInDir("tk-init-readd-"))
+    const { cwd, gitignore } = track(runInDir("fxts-tk-init-readd-"))
     initWorkspace(".tasks", cwd)
     // 模拟用户手删排他锁行，保留本地配置行
     const stripped = gitignore()
@@ -383,7 +383,7 @@ describe("initWorkspace .gitignore 处理", () => {
   })
 
   it("用户以前导斜杠写法 /（.toolkitrc.local.json）时视为已覆盖，只补排他锁", () => {
-    const { cwd, gitignore } = track(runInDir("tk-init-slash-"))
+    const { cwd, gitignore } = track(runInDir("fxts-tk-init-slash-"))
     writeFileSync(join(cwd, ".gitignore"), "node_modules\n/.toolkitrc.local.json\n", "utf8")
     initWorkspace(".tasks", cwd)
     const content = gitignore()
@@ -394,7 +394,7 @@ describe("initWorkspace .gitignore 处理", () => {
   })
 
   it("用户以 .toolkitrc.* 通配写法时视为已覆盖，不再追加本地配置行", () => {
-    const { cwd, gitignore } = track(runInDir("tk-init-glob-"))
+    const { cwd, gitignore } = track(runInDir("fxts-tk-init-glob-"))
     writeFileSync(join(cwd, ".gitignore"), "node_modules\n.toolkitrc.*\n", "utf8")
     initWorkspace(".tasks", cwd)
     const content = gitignore()
@@ -403,7 +403,7 @@ describe("initWorkspace .gitignore 处理", () => {
   })
 
   it("新建片段含 .git/info/exclude 出口指引，且认领注释行唯一", () => {
-    const { cwd, gitignore } = track(runInDir("tk-init-hint-"))
+    const { cwd, gitignore } = track(runInDir("fxts-tk-init-hint-"))
     initWorkspace(".tasks", cwd)
     const content = gitignore()
     // 出口指引为独立注释行，且不以 marker 开头（避免被误认领为第二条认领行）
@@ -412,7 +412,7 @@ describe("initWorkspace .gitignore 处理", () => {
   })
 
   it("片段头缺出口指引时重跑就地补上，且不重复追加忽略行", () => {
-    const { cwd, gitignore } = track(runInDir("tk-init-hint-add-"))
+    const { cwd, gitignore } = track(runInDir("fxts-tk-init-hint-add-"))
     // 旧式片段：有认领注释与全部忽略行，但缺出口指引
     writeFileSync(
       join(cwd, ".gitignore"),
@@ -432,7 +432,7 @@ describe("initWorkspace .gitignore 处理", () => {
 
   // 全量并行时 git 子进程启动开销可能超过默认 5 秒，单列超时避免高负载下误报
   it("git 仓库中通配写法已真实覆盖时整文件保持不动", { timeout: 15000 }, () => {
-    const { cwd, gitignore } = track(runInDir("tk-init-repo-covered-"))
+    const { cwd, gitignore } = track(runInDir("fxts-tk-init-repo-covered-"))
     execSync("git init -q", { cwd, stdio: "ignore" })
     // *.lock 命中 .archive.lock，`.toolkitrc.*` 命中本地配置与两份备份，均由 git 真实判定
     writeFileSync(join(cwd, ".gitignore"), "node_modules\n*.lock\n.toolkitrc.*\n", "utf8")
@@ -445,7 +445,7 @@ describe("initWorkspace .gitignore 处理", () => {
   })
 
   it("git 仓库中部分覆盖时只补缺失行", { timeout: 15000 }, () => {
-    const { cwd, gitignore } = track(runInDir("tk-init-repo-partial-"))
+    const { cwd, gitignore } = track(runInDir("fxts-tk-init-repo-partial-"))
     execSync("git init -q", { cwd, stdio: "ignore" })
     // *.lock 已覆盖 .archive.lock，本地配置行缺失，只应补后者
     writeFileSync(join(cwd, ".gitignore"), "node_modules\n*.lock\n", "utf8")
@@ -460,7 +460,7 @@ describe("initWorkspace .gitignore 处理", () => {
 
 describe("initWorkspace .prettierignore 托管", () => {
   it("宿主已用 prettier 时创建 .prettierignore 并写入任务区排除行", () => {
-    const { cwd } = track(runInDir("tk-init-pre-created-"))
+    const { cwd } = track(runInDir("fxts-tk-init-pre-created-"))
     writeFileSync(join(cwd, ".prettierrc"), "{}", "utf8")
     const report = initWorkspace(".tasks", cwd)
     const content = readFileSync(join(cwd, ".prettierignore"), "utf8")
@@ -470,7 +470,7 @@ describe("initWorkspace .prettierignore 托管", () => {
   })
 
   it("重复执行幂等：.prettierignore 内容不变", () => {
-    const { cwd } = track(runInDir("tk-init-pre-twice-"))
+    const { cwd } = track(runInDir("fxts-tk-init-pre-twice-"))
     writeFileSync(join(cwd, ".prettierrc"), "{}", "utf8")
     initWorkspace(".tasks", cwd)
     const before = readFileSync(join(cwd, ".prettierignore"), "utf8")
@@ -480,14 +480,14 @@ describe("initWorkspace .prettierignore 托管", () => {
   })
 
   it("package.json 声明 prettier 依赖时视作启用，写入排除行", () => {
-    const { cwd } = track(runInDir("tk-init-pre-dep-"))
+    const { cwd } = track(runInDir("fxts-tk-init-pre-dep-"))
     writeFileSync(join(cwd, "package.json"), JSON.stringify({ name: "host", devDependencies: { prettier: "^3.0.0" } }), "utf8")
     initWorkspace(".tasks", cwd)
     expect(readFileSync(join(cwd, ".prettierignore"), "utf8")).toContain(".tasks/")
   })
 
   it("未见 prettier 迹象时不写入 .prettierignore", () => {
-    const { cwd } = track(runInDir("tk-init-pre-nosign-"))
+    const { cwd } = track(runInDir("fxts-tk-init-pre-nosign-"))
     const report = initWorkspace(".tasks", cwd)
     expect(existsSync(join(cwd, ".prettierignore"))).toBe(false)
     const product = report.products.find((p) => p.target === ".prettierignore")
@@ -496,7 +496,7 @@ describe("initWorkspace .prettierignore 托管", () => {
   })
 
   it("已有 .prettierignore 时追加排除行并保留原内容", () => {
-    const { cwd } = track(runInDir("tk-init-pre-append-"))
+    const { cwd } = track(runInDir("fxts-tk-init-pre-append-"))
     writeFileSync(join(cwd, ".prettierrc"), "{}", "utf8")
     writeFileSync(join(cwd, ".prettierignore"), "dist\n", "utf8")
     const report = initWorkspace(".tasks", cwd)
@@ -507,7 +507,7 @@ describe("initWorkspace .prettierignore 托管", () => {
   })
 
   it("已有等价排除写法（前导斜杠）时视为已覆盖，保持不动", () => {
-    const { cwd } = track(runInDir("tk-init-pre-equiv-"))
+    const { cwd } = track(runInDir("fxts-tk-init-pre-equiv-"))
     writeFileSync(join(cwd, ".prettierrc"), "{}", "utf8")
     writeFileSync(join(cwd, ".prettierignore"), "/.tasks\n", "utf8")
     const report = initWorkspace(".tasks", cwd)
@@ -516,8 +516,8 @@ describe("initWorkspace .prettierignore 托管", () => {
   })
 
   it("任务区落在仓库外（绝对路径）时不写入排除行", () => {
-    const { cwd } = track(runInDir("tk-init-pre-outer-"))
-    const outer = mkdtempSync(join(tmpdir(), "tk-init-pre-outer-tasks-"))
+    const { cwd } = track(runInDir("fxts-tk-init-pre-outer-"))
+    const outer = mkdtempSync(join(tmpdir(), "fxts-tk-init-pre-outer-tasks-"))
     track({ cwd: outer })
     writeFileSync(join(cwd, ".prettierrc"), "{}", "utf8")
     const report = initWorkspace(outer, cwd)
@@ -526,7 +526,7 @@ describe("initWorkspace .prettierignore 托管", () => {
   })
 
   it("源仓库现场不写入 .prettierignore 托管", () => {
-    const { cwd } = track(runInDir("tk-init-pre-src-"))
+    const { cwd } = track(runInDir("fxts-tk-init-pre-src-"))
     writeFileSync(join(cwd, "package.json"), JSON.stringify({ name: "@fxri/toolkit", version: "0.0.0" }), "utf8")
     writeFileSync(join(cwd, ".prettierrc"), "{}", "utf8")
     const report = initWorkspace(".tasks", cwd)
@@ -535,7 +535,7 @@ describe("initWorkspace .prettierignore 托管", () => {
   })
 
   it("自定义 --dir 时排除行取实际任务目录名", () => {
-    const { cwd } = track(runInDir("tk-init-pre-dir-"))
+    const { cwd } = track(runInDir("fxts-tk-init-pre-dir-"))
     writeFileSync(join(cwd, ".prettierrc"), "{}", "utf8")
     initWorkspace("work", cwd)
     expect(readFileSync(join(cwd, ".prettierignore"), "utf8")).toContain("work/")
@@ -549,7 +549,7 @@ describe("initWorkspace prepare 刷新钩子", () => {
   const pkgProduct = (report: ReturnType<typeof initWorkspace>) => report.products.find((p) => p.target === "package.json")
 
   it("本地依赖存在且无 scripts 字段：补建 scripts.prepare，报告为更新", () => {
-    const { cwd } = track(runInDir("tk-init-prep-none-"))
+    const { cwd } = track(runInDir("fxts-tk-init-prep-none-"))
     writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
 
     const report = initWorkspace(".tasks", cwd)
@@ -559,7 +559,7 @@ describe("initWorkspace prepare 刷新钩子", () => {
   })
 
   it("已有 scripts：最小插入 prepare，保留其余脚本与字段", () => {
-    const { cwd } = track(runInDir("tk-init-prep-merge-"))
+    const { cwd } = track(runInDir("fxts-tk-init-prep-merge-"))
     writePkg(cwd, { name: "demo", scripts: { build: "tsc" }, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
 
     const report = initWorkspace(".tasks", cwd)
@@ -570,7 +570,7 @@ describe("initWorkspace prepare 刷新钩子", () => {
   })
 
   it("已有等价 prepare 钩子：保持不动", () => {
-    const { cwd } = track(runInDir("tk-init-prep-kept-"))
+    const { cwd } = track(runInDir("fxts-tk-init-prep-kept-"))
     writePkg(cwd, { name: "demo", scripts: { prepare: "toolkit skill install --refresh" }, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
     const before = readFileSync(pkgPath(cwd), "utf8")
 
@@ -580,7 +580,7 @@ describe("initWorkspace prepare 刷新钩子", () => {
   })
 
   it("旧版 prepare 钩子：原地升级为只刷新已有产物", () => {
-    const { cwd } = track(runInDir("tk-init-prep-legacy-"))
+    const { cwd } = track(runInDir("fxts-tk-init-prep-legacy-"))
     writePkg(cwd, { name: "demo", scripts: { prepare: "toolkit skills install --scope project" }, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
 
     const report = initWorkspace(".tasks", cwd)
@@ -590,7 +590,7 @@ describe("initWorkspace prepare 刷新钩子", () => {
   })
 
   it("已有非等价 prepare 钩子：跳过并提示，不改写", () => {
-    const { cwd } = track(runInDir("tk-init-prep-foreign-"))
+    const { cwd } = track(runInDir("fxts-tk-init-prep-foreign-"))
     writePkg(cwd, { name: "demo", scripts: { prepare: "husky install" }, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
     const before = readFileSync(pkgPath(cwd), "utf8")
 
@@ -602,7 +602,7 @@ describe("initWorkspace prepare 刷新钩子", () => {
   })
 
   it("--no-hooks：跳过写入且不改动文件", () => {
-    const { cwd } = track(runInDir("tk-init-prep-nohooks-"))
+    const { cwd } = track(runInDir("fxts-tk-init-prep-nohooks-"))
     writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
     const before = readFileSync(pkgPath(cwd), "utf8")
 
@@ -614,7 +614,7 @@ describe("initWorkspace prepare 刷新钩子", () => {
   })
 
   it("未声明本地依赖：跳过并提示手工写法", () => {
-    const { cwd } = track(runInDir("tk-init-prep-nodep-"))
+    const { cwd } = track(runInDir("fxts-tk-init-prep-nodep-"))
     writePkg(cwd, { name: "demo", scripts: { build: "tsc" } })
 
     const report = initWorkspace(".tasks", cwd)
@@ -626,16 +626,16 @@ describe("initWorkspace prepare 刷新钩子", () => {
   })
 
   it("package.json 不存在或解析失败：跳过并说明原因", () => {
-    const noFile = track(runInDir("tk-init-prep-nofile-"))
+    const noFile = track(runInDir("fxts-tk-init-prep-nofile-"))
     expect(pkgProduct(initWorkspace(".tasks", noFile.cwd))?.detail).toContain("不存在")
 
-    const broken = track(runInDir("tk-init-prep-badjson-"))
+    const broken = track(runInDir("fxts-tk-init-prep-badjson-"))
     writeFileSync(pkgPath(broken.cwd), "{ not json", "utf8")
     expect(pkgProduct(initWorkspace(".tasks", broken.cwd))?.detail).toContain("解析失败")
   })
 
   it("源仓库（package.json name 为 @fxri/toolkit）：跳过写入", () => {
-    const { cwd } = track(runInDir("tk-init-prep-src-"))
+    const { cwd } = track(runInDir("fxts-tk-init-prep-src-"))
     writePkg(cwd, { name: "@fxri/toolkit", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
 
     const report = initWorkspace(".tasks", cwd)
@@ -651,7 +651,7 @@ describe("initWorkspace 发布型包误打包提醒", () => {
   const writePkgRaw = (cwd: string, raw: string): void => writeFileSync(pkgPath(cwd), raw, "utf8")
 
   it("未标 private 且无 files：提示发布型包误打包风险，清单含内置任务区", () => {
-    const { cwd } = track(runInDir("tk-init-risk-open-"))
+    const { cwd } = track(runInDir("fxts-tk-init-risk-open-"))
     writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
 
     const report = initWorkspace(".tasks", cwd)
@@ -660,7 +660,7 @@ describe("initWorkspace 发布型包误打包提醒", () => {
   })
 
   it("--no-hooks：判据与钩子写入无关，同样提示", () => {
-    const { cwd } = track(runInDir("tk-init-risk-nohooks-"))
+    const { cwd } = track(runInDir("fxts-tk-init-risk-nohooks-"))
     writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
 
     const report = initWorkspace(".tasks", cwd, { hooks: false })
@@ -669,7 +669,7 @@ describe("initWorkspace 发布型包误打包提醒", () => {
   })
 
   it("未声明本地依赖（钩子 skipped）：同样提示", () => {
-    const { cwd } = track(runInDir("tk-init-risk-nodep-"))
+    const { cwd } = track(runInDir("fxts-tk-init-risk-nodep-"))
     writePkg(cwd, { name: "demo", scripts: { build: "tsc" } })
 
     const report = initWorkspace(".tasks", cwd)
@@ -678,7 +678,7 @@ describe("initWorkspace 发布型包误打包提醒", () => {
   })
 
   it("非等价 prepare（skipped）：同样提示", () => {
-    const { cwd } = track(runInDir("tk-init-risk-customhook-"))
+    const { cwd } = track(runInDir("fxts-tk-init-risk-customhook-"))
     writePkg(cwd, { name: "demo", scripts: { prepare: "husky install" }, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
 
     const report = initWorkspace(".tasks", cwd)
@@ -687,32 +687,32 @@ describe("initWorkspace 发布型包误打包提醒", () => {
   })
 
   it("已标 private：不提示", () => {
-    const { cwd } = track(runInDir("tk-init-risk-private-"))
+    const { cwd } = track(runInDir("fxts-tk-init-risk-private-"))
     writePkg(cwd, { name: "demo", private: true, devDependencies: { "@fxri/toolkit": "^1.0.0" } })
 
     expect(initWorkspace(".tasks", cwd).publishRiskHint).toBeUndefined()
   })
 
   it("有 files 白名单：不提示", () => {
-    const { cwd } = track(runInDir("tk-init-risk-files-"))
+    const { cwd } = track(runInDir("fxts-tk-init-risk-files-"))
     writePkg(cwd, { name: "demo", files: ["dist"], devDependencies: { "@fxri/toolkit": "^1.0.0" } })
 
     expect(initWorkspace(".tasks", cwd).publishRiskHint).toBeUndefined()
   })
 
   it("package.json 不存在：不提示", () => {
-    const { cwd } = track(runInDir("tk-init-risk-nopkg-"))
+    const { cwd } = track(runInDir("fxts-tk-init-risk-nopkg-"))
     expect(initWorkspace(".tasks", cwd).publishRiskHint).toBeUndefined()
   })
 
   it("package.json 解析失败：不提示", () => {
-    const { cwd } = track(runInDir("tk-init-risk-badjson-"))
+    const { cwd } = track(runInDir("fxts-tk-init-risk-badjson-"))
     writePkgRaw(cwd, "{ not valid json")
     expect(initWorkspace(".tasks", cwd).publishRiskHint).toBeUndefined()
   })
 
   it("任务区外置（相对路径）：清单不含任务目录、仍列另两项", () => {
-    const parent = mkdtempSync(join(tmpdir(), "tk-init-risk-ext-"))
+    const parent = mkdtempSync(join(tmpdir(), "fxts-tk-init-risk-ext-"))
     dirs.push(parent)
     const cwd = join(parent, "proj")
     mkdirSync(cwd)
@@ -725,7 +725,7 @@ describe("initWorkspace 发布型包误打包提醒", () => {
   })
 
   it("任务区外置（绝对路径）：清单不含任务目录", () => {
-    const parent = mkdtempSync(join(tmpdir(), "tk-init-risk-abs-"))
+    const parent = mkdtempSync(join(tmpdir(), "fxts-tk-init-risk-abs-"))
     dirs.push(parent)
     const cwd = join(parent, "proj")
     mkdirSync(cwd)
@@ -738,7 +738,7 @@ describe("initWorkspace 发布型包误打包提醒", () => {
   })
 
   it("现有候选技能目录：清单逐项列出该目录（入口薄壳落点）", () => {
-    const { cwd } = track(runInDir("tk-init-risk-candir-"))
+    const { cwd } = track(runInDir("fxts-tk-init-risk-candir-"))
     mkdirSync(join(cwd, ".claude", "skills"), { recursive: true })
     writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
 
@@ -749,7 +749,7 @@ describe("initWorkspace 发布型包误打包提醒", () => {
   })
 
   it("多候选技能目录并存：清单全部列出", () => {
-    const { cwd } = track(runInDir("tk-init-risk-multidir-"))
+    const { cwd } = track(runInDir("fxts-tk-init-risk-multidir-"))
     mkdirSync(join(cwd, ".windsurf", "skills"), { recursive: true })
     mkdirSync(join(cwd, ".trae", "skills"), { recursive: true })
     writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
@@ -760,7 +760,7 @@ describe("initWorkspace 发布型包误打包提醒", () => {
   })
 
   it(".agents/skills 同为真源与候选：清单只出现一次（去重）", () => {
-    const { cwd } = track(runInDir("tk-init-risk-dedup-"))
+    const { cwd } = track(runInDir("fxts-tk-init-risk-dedup-"))
     mkdirSync(join(cwd, ".agents", "skills"), { recursive: true })
     writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
 
@@ -769,7 +769,7 @@ describe("initWorkspace 发布型包误打包提醒", () => {
   })
 
   it("提醒独立于产物列表：不出现在任何 product 的 hint 中", () => {
-    const { cwd } = track(runInDir("tk-init-risk-detached-"))
+    const { cwd } = track(runInDir("fxts-tk-init-risk-detached-"))
     writePkg(cwd, { name: "demo", devDependencies: { "@fxri/toolkit": "^1.0.0" } })
 
     const report = initWorkspace(".tasks", cwd)

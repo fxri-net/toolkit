@@ -111,7 +111,7 @@ describe("跨平台字符串口径", () => {
   })
 
   it("真实符号链接不被解析：链接与目标各按自己的字符串匹配", () => {
-    const root = mkdtempSync(join(tmpdir(), "tk-scope-link-"))
+    const root = mkdtempSync(join(tmpdir(), "fxts-tk-scope-link-"))
     const real = join(root, "real")
     mkdirSync(real)
     const link = join(root, "link")

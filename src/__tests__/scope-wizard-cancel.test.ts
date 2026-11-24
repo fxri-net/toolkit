@@ -47,7 +47,7 @@ function setTty(value: boolean): void {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-scope-cancel-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-scope-cancel-"))
   setHomeDirForTest(home)
   answers.select.length = 0
   answers.selectCalls.length = 0

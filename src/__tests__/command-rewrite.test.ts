@@ -9,7 +9,7 @@ import { recordDeprecationHits, rewriteDeprecatedArgv, takeDeprecationHits } fro
 let home = ""
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-rewrite-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-rewrite-"))
   setHomeDirForTest(home)
   resetToolkitConfigCache()
 })

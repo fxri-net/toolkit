@@ -34,8 +34,8 @@ function writeUsageConfig(patch: Record<string, unknown> = {}): void {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-usage-queue-home-"))
-  dataDir = mkdtempSync(join(tmpdir(), "tk-usage-queue-data-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-usage-queue-home-"))
+  dataDir = mkdtempSync(join(tmpdir(), "fxts-tk-usage-queue-data-"))
   mkdirSync(join(home, ".trae-cn"), { recursive: true })
   process.env.FX_TOOLKIT_USAGE_NO_WORKER = "1"
   delete process.env.FX_TOOLKIT_USAGE_AGENT

@@ -22,7 +22,7 @@ function readActivation(): Record<string, unknown> {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-scope-edit-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-scope-edit-"))
   setHomeDirForTest(home)
   root = join(home, "repo")
   sub = join(root, "sub")

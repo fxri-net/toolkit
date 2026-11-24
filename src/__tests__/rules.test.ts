@@ -11,7 +11,7 @@ import { clearRulesSelection, readRulesSelection, rulesSelectionPath, writeRules
 let home = ""
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-rules-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-rules-"))
   setHomeDirForTest(home)
 })
 

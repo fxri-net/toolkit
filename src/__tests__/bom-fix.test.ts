@@ -5,7 +5,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fixArchive, checkArchive } from "../tasks/normalize"
 
-const taskDir = () => mkdtempSync(join(tmpdir(), "tk-bom-"))
+const taskDir = () => mkdtempSync(join(tmpdir(), "fxts-tk-bom-"))
 // 模拟 PowerShell 5 `Set-Content -Encoding UTF8` 产生的 UTF-8 BOM
 const withBom = (text: string) => "\uFEFF" + text
 

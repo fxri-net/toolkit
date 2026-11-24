@@ -8,7 +8,7 @@ import { inspectRuleSync, RULE_SYNC_TARGET, ruleSyncBody, writeRuleSync } from "
 let cwd = ""
 
 beforeEach(() => {
-  cwd = mkdtempSync(join(tmpdir(), "tk-rule-sync-"))
+  cwd = mkdtempSync(join(tmpdir(), "fxts-tk-rule-sync-"))
 })
 
 afterEach(() => {

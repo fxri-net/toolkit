@@ -20,7 +20,7 @@ const header = "---\nowner: 唐启云\nstatus: 待办\ncreated: 20260904\nupdate
 
 describe("规范载体形态告警", () => {
   it("旧单文件 conventions.md 提示迁移，且不被误判为游离任务文件", () => {
-    const dir = mkdtempSync(join(tmpdir(), "tk-conv-legacy-"))
+    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-conv-legacy-"))
     mkdirSync(join(dir, "active"), { recursive: true })
     writeFileSync(join(dir, "conventions.md"), "# 项目协作规范\n", "utf8")
 
@@ -31,7 +31,7 @@ describe("规范载体形态告警", () => {
   })
 
   it("目录形态缺 index.md 提示补齐", () => {
-    const dir = mkdtempSync(join(tmpdir(), "tk-conv-noindex-"))
+    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-conv-noindex-"))
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "conventions"), { recursive: true })
     writeFileSync(join(dir, "conventions", "web.md"), "# web 规范\n", "utf8")
@@ -42,7 +42,7 @@ describe("规范载体形态告警", () => {
   })
 
   it("新旧并存时提示清理旧文件，目录形态完整时无规范载体告警", () => {
-    const dir = mkdtempSync(join(tmpdir(), "tk-conv-both-"))
+    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-conv-both-"))
     mkdirSync(join(dir, "active", "202609"), { recursive: true })
     writeFileSync(join(dir, "active", "202609", "20260904-唐启云-正常任务.md"), header, "utf8")
     writeFileSync(join(dir, "conventions.md"), "# 旧规范\n", "utf8")
@@ -80,8 +80,8 @@ ${INDEX_TABLE_LINES}
 
 describe("规范载体 v2 形态告警", () => {
   it("v2 良构不告警，v1 合法存量同样不告警", () => {
-    const dir = makeTmp("tk-conv-v2-")
-    const cwd = makeTmp("tk-conv-v2-cwd-")
+    const dir = makeTmp("fxts-tk-conv-v2-")
+    const cwd = makeTmp("fxts-tk-conv-v2-cwd-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "conventions"), { recursive: true })
     writeFileSync(join(dir, "conventions", "index.md"), V2_INDEX, "utf8")
@@ -95,8 +95,8 @@ describe("规范载体 v2 形态告警", () => {
   })
 
   it("标为 v2 却缺 history.md 时告警并指向 conventions upgrade", () => {
-    const dir = makeTmp("tk-conv-v2nohist-")
-    const cwd = makeTmp("tk-conv-v2nohist-cwd-")
+    const dir = makeTmp("fxts-tk-conv-v2nohist-")
+    const cwd = makeTmp("fxts-tk-conv-v2nohist-cwd-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "conventions"), { recursive: true })
     writeFileSync(join(dir, "conventions", "index.md"), V2_INDEX, "utf8")
@@ -108,8 +108,8 @@ describe("规范载体 v2 形态告警", () => {
   })
 
   it("有 history.md 但索引表首列仍为序号时告警并交人工确认", () => {
-    const dir = makeTmp("tk-conv-abnormal-")
-    const cwd = makeTmp("tk-conv-abnormal-cwd-")
+    const dir = makeTmp("fxts-tk-conv-abnormal-")
+    const cwd = makeTmp("fxts-tk-conv-abnormal-cwd-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "conventions"), { recursive: true })
     writeFileSync(join(dir, "conventions", "index.md"), "# 项目协作规范索引\n\n| # | 规则 | 当前语义 |\n| --- | --- | --- |\n| 1 | 甲 | 乙 |\n", "utf8")
@@ -124,8 +124,8 @@ describe("规范载体 v2 形态告警", () => {
 
 describe("入口壳告警", () => {
   it("多壳标记与当前 toolkit 不一致（含无标记）时合并为一条，逐壳内联仓库相对路径与标记版本", () => {
-    const dir = makeTmp("tk-conv-shell-")
-    const cwd = makeTmp("tk-conv-shell-cwd-")
+    const dir = makeTmp("fxts-tk-conv-shell-")
+    const cwd = makeTmp("fxts-tk-conv-shell-cwd-")
     mkdirSync(join(dir, "active"), { recursive: true })
     const writeShell = (skillDir: string, content: string) => {
       const target = join(cwd, skillDir, ENTRY_SHELL_NAME)
@@ -151,8 +151,8 @@ describe("入口壳告警", () => {
   })
 
   it("单壳标记版本不一致时保留逐壳文案", () => {
-    const dir = makeTmp("tk-conv-shellone-")
-    const cwd = makeTmp("tk-conv-shellone-cwd-")
+    const dir = makeTmp("fxts-tk-conv-shellone-")
+    const cwd = makeTmp("fxts-tk-conv-shellone-cwd-")
     mkdirSync(join(dir, "active"), { recursive: true })
     const target = join(cwd, ".trae", "skills", ENTRY_SHELL_NAME)
     mkdirSync(target, { recursive: true })
@@ -165,8 +165,8 @@ describe("入口壳告警", () => {
   })
 
   it("--dir 指向其他仓库时按任务目录所属仓库查找入口壳，不受 cwd 影响", () => {
-    const repo = makeTmp("tk-conv-shellrepo-")
-    const otherCwd = makeTmp("tk-conv-shellrepo-cwd-")
+    const repo = makeTmp("fxts-tk-conv-shellrepo-")
+    const otherCwd = makeTmp("fxts-tk-conv-shellrepo-cwd-")
     mkdirSync(join(repo, ".tasks", "active"), { recursive: true })
     writeFileSync(join(repo, "package.json"), "{}\n", "utf8")
     const target = join(repo, ".agents", "skills", ENTRY_SHELL_NAME)
@@ -181,8 +181,8 @@ describe("入口壳告警", () => {
 
   // 真 git 用例：子进程启动在高负载下会超过 vitest 默认 5s，单例放宽，全局 testTimeout 保持默认
   it("壳路径被 gitignore 覆盖时告警并内联落点路径", { timeout: 15000 }, () => {
-    const dir = makeTmp("tk-conv-shellign-")
-    const cwd = makeTmp("tk-conv-shellign-cwd-")
+    const dir = makeTmp("fxts-tk-conv-shellign-")
+    const cwd = makeTmp("fxts-tk-conv-shellign-cwd-")
     mkdirSync(join(dir, "active"), { recursive: true })
     execSync("git init -q", { cwd })
     writeFileSync(join(cwd, ".gitignore"), ".trae/skills/\n", "utf8")
@@ -201,7 +201,7 @@ describe("入口壳告警", () => {
 
 describe("本地配置忽略告警", () => {
   it("本地配置命中上层目录时按相对 cwd 路径展示", { timeout: 15000 }, () => {
-    const repo = makeTmp("tk-conv-localcfg-")
+    const repo = makeTmp("fxts-tk-conv-localcfg-")
     const app = join(repo, "app")
     const dir = join(app, ".tasks")
     mkdirSync(join(dir, "active"), { recursive: true })
@@ -219,8 +219,8 @@ describe("本地配置忽略告警", () => {
 
 describe("表格形态告警", () => {
   it("载体表格被列对齐填充时告警并指向 conventions format，落点为任务区相对路径", () => {
-    const dir = makeTmp("tk-conv-table-")
-    const cwd = makeTmp("tk-conv-table-cwd-")
+    const dir = makeTmp("fxts-tk-conv-table-")
+    const cwd = makeTmp("fxts-tk-conv-table-cwd-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "conventions"), { recursive: true })
     const index =
@@ -246,8 +246,8 @@ describe("表格形态告警", () => {
   })
 
   it("表格均为紧凑形态时不产生表格形态告警", () => {
-    const dir = makeTmp("tk-conv-table-ok-")
-    const cwd = makeTmp("tk-conv-table-ok-cwd-")
+    const dir = makeTmp("fxts-tk-conv-table-ok-")
+    const cwd = makeTmp("fxts-tk-conv-table-ok-cwd-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "conventions"), { recursive: true })
     writeFileSync(join(dir, "conventions", "index.md"), V2_INDEX, "utf8")
@@ -271,8 +271,8 @@ describe("演进记录首列告警", () => {
   }
 
   it("v3 载体首列为规则名而非稳定 ID 时告警，内联行号且只报不改", () => {
-    const dir = makeTmp("tk-conv-hid-")
-    const cwd = makeTmp("tk-conv-hid-cwd-")
+    const dir = makeTmp("fxts-tk-conv-hid-")
+    const cwd = makeTmp("fxts-tk-conv-hid-cwd-")
     mkdirSync(join(dir, "active"), { recursive: true })
     makeV3(dir)
     writeFileSync(join(dir, "conventions", "history.md"), makeHistory("| 四级时间源 | 当场打点优先 | 建档评估 |\n"), "utf8")
@@ -286,8 +286,8 @@ describe("演进记录首列告警", () => {
   })
 
   it("v3 载体首列均为行内代码包裹的稳定 ID 时不告警", () => {
-    const dir = makeTmp("tk-conv-hid-ok-")
-    const cwd = makeTmp("tk-conv-hid-ok-cwd-")
+    const dir = makeTmp("fxts-tk-conv-hid-ok-")
+    const cwd = makeTmp("fxts-tk-conv-hid-ok-cwd-")
     mkdirSync(join(dir, "active"), { recursive: true })
     makeV3(dir)
     writeFileSync(join(dir, "conventions", "history.md"), makeHistory(`| \`${idOf(1)}\` | 当场打点优先 | 建档评估 |\n`), "utf8")
@@ -299,8 +299,8 @@ describe("演进记录首列告警", () => {
   })
 
   it("v3 载体首列为补零 ID 时告警并给出去补零写法", () => {
-    const dir = makeTmp("tk-conv-hid-pad-")
-    const cwd = makeTmp("tk-conv-hid-pad-cwd-")
+    const dir = makeTmp("fxts-tk-conv-hid-pad-")
+    const cwd = makeTmp("fxts-tk-conv-hid-pad-cwd-")
     mkdirSync(join(dir, "active"), { recursive: true })
     makeV3(dir)
     writeFileSync(join(dir, "conventions", "history.md"), makeHistory("| C-001 | 当场打点优先 | 建档评估 |\n"), "utf8")
@@ -328,8 +328,8 @@ describe("演进记录措辞告警", () => {
   }
 
   it("「修订内容」列含自指套话或重复索引列的条文去向时告警，内联行号与「另有 N 处」", () => {
-    const dir = makeTmp("tk-conv-hword-")
-    const cwd = makeTmp("tk-conv-hword-cwd-")
+    const dir = makeTmp("fxts-tk-conv-hword-")
+    const cwd = makeTmp("fxts-tk-conv-hword-cwd-")
     mkdirSync(join(dir, "active"), { recursive: true })
     makeV3(dir)
     const rows =
@@ -346,8 +346,8 @@ describe("演进记录措辞告警", () => {
   })
 
   it("「修订内容」列为归一词形时不告警", () => {
-    const dir = makeTmp("tk-conv-hword-ok-")
-    const cwd = makeTmp("tk-conv-hword-ok-cwd-")
+    const dir = makeTmp("fxts-tk-conv-hword-ok-")
+    const cwd = makeTmp("fxts-tk-conv-hword-ok-cwd-")
     mkdirSync(join(dir, "active"), { recursive: true })
     makeV3(dir)
     const rows =
@@ -380,8 +380,8 @@ ${rows}
   }
 
   it("单一事实源写成反引号分册名或裸文件名时告警并指向 conventions format", () => {
-    const dir = makeTmp("tk-conv-cell-source-")
-    const cwd = makeTmp("tk-conv-cell-source-cwd-")
+    const dir = makeTmp("fxts-tk-conv-cell-source-")
+    const cwd = makeTmp("fxts-tk-conv-cell-source-cwd-")
     build(dir, ["| C-1 | 四级时间源 | 建档时：当场打点优先 | common | `common.md` |", "| C-2 | 路径书写 | 写路径时：仓库根相对路径 | common | AGENTS.md 质量门 2 |"].join("\n"), {
       "common.md": "# 通用规范\n",
     })
@@ -396,8 +396,8 @@ ${rows}
   })
 
   it("归属列含反引号或链接时告警", () => {
-    const dir = makeTmp("tk-conv-cell-owner-")
-    const cwd = makeTmp("tk-conv-cell-owner-cwd-")
+    const dir = makeTmp("fxts-tk-conv-cell-owner-")
+    const cwd = makeTmp("fxts-tk-conv-cell-owner-cwd-")
     build(dir, "| C-1 | 四级时间源 | 建档时：当场打点优先 | `common` | [common.md](./common.md) |")
 
     const warns = warnTexts(dir, cwd)
@@ -408,8 +408,8 @@ ${rows}
   })
 
   it("当前语义缺全角冒号时告警，且合规行不产生单元格形态告警", () => {
-    const dir = makeTmp("tk-conv-cell-colon-")
-    const cwd = makeTmp("tk-conv-cell-colon-cwd-")
+    const dir = makeTmp("fxts-tk-conv-cell-colon-")
+    const cwd = makeTmp("fxts-tk-conv-cell-colon-cwd-")
     build(dir, "| C-1 | 四级时间源 | 当场打点优先 | common | [common.md](./common.md) |")
 
     const warns = warnTexts(dir, cwd)
@@ -424,8 +424,8 @@ ${rows}
   })
 
   it("归属分册与源列指向不同分册时告警", () => {
-    const dir = makeTmp("tk-conv-cell-owner-src-")
-    const cwd = makeTmp("tk-conv-cell-owner-src-cwd-")
+    const dir = makeTmp("fxts-tk-conv-cell-owner-src-")
+    const cwd = makeTmp("fxts-tk-conv-cell-owner-src-cwd-")
     build(dir, "| C-1 | 四级时间源 | 建档时：当场打点优先 | testing | [common.md](./common.md) |", {
       "common.md": "# 通用规范\n",
       "testing.md": "# 测试规范\n",
@@ -440,8 +440,8 @@ ${rows}
   })
 
   it("归属分册与源列链接一致时不告警", () => {
-    const dir = makeTmp("tk-conv-cell-owner-src-ok-")
-    const cwd = makeTmp("tk-conv-cell-owner-src-ok-cwd-")
+    const dir = makeTmp("fxts-tk-conv-cell-owner-src-ok-")
+    const cwd = makeTmp("fxts-tk-conv-cell-owner-src-ok-cwd-")
     build(dir, "| C-1 | 四级时间源 | 建档时：当场打点优先 | testing | [testing.md](./testing.md) |", {
       "testing.md": "# 测试规范\n",
     })

@@ -27,7 +27,7 @@ const fixtures: string[] = []
 
 // 建临时检查根
 function makeRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "tk-lint-"))
+  const root = mkdtempSync(join(tmpdir(), "fxts-tk-lint-"))
   fixtures.push(root)
   return root
 }
@@ -77,7 +77,7 @@ function git(root: string, args: string[]): string {
 
 // 建一个已提交技能的仓库，返回检查根（仓库内 skills/）
 function makeRepo(): string {
-  const root = mkdtempSync(join(tmpdir(), "tk-lint-git-"))
+  const root = mkdtempSync(join(tmpdir(), "fxts-tk-lint-git-"))
   fixtures.push(root)
   git(root, ["init"])
   const skills = join(root, "skills")
@@ -315,13 +315,13 @@ describe("版本递增（--base）", () => {
   })
 
   it("浅克隆缺基准提交时明确跳过", () => {
-    const source = mkdtempSync(join(tmpdir(), "tk-lint-src-"))
+    const source = mkdtempSync(join(tmpdir(), "fxts-tk-lint-src-"))
     fixtures.push(source)
     git(source, ["init"])
     writeSkill(join(source, "skills"), "fxri-alpha")
     git(source, ["add", "."])
     git(source, ["commit", "-m", "init"])
-    const clone = mkdtempSync(join(tmpdir(), "tk-lint-clone-"))
+    const clone = mkdtempSync(join(tmpdir(), "fxts-tk-lint-clone-"))
     fixtures.push(clone)
     git(dirname(clone), ["clone", "--depth", "1", "--no-local", source, clone])
     const report = lintSkills({ dirs: [join(clone, "skills")], base: "HEAD~1" })

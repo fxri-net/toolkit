@@ -84,7 +84,7 @@ describe("usage 向导默认值", () => {
   })
 
   it("--yes --dry-run 只预览计划，不写配置", async () => {
-    home = mkdtempSync(join(tmpdir(), "tk-usage-dry-"))
+    home = mkdtempSync(join(tmpdir(), "fxts-tk-usage-dry-"))
     setHomeDirForTest(home)
     resetToolkitConfigCache()
     const logs: string[] = []

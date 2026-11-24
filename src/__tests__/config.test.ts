@@ -20,7 +20,7 @@ const cwd = process.cwd()
 let home = ""
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-home-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-home-"))
   setHomeDirForTest(home)
 })
 
@@ -33,7 +33,7 @@ afterEach(() => {
 
 // 建一个空项目目录并进入（不含 .toolkitrc.json）
 function chdirIntoEmptyProject(): string {
-  const dir = mkdtempSync(join(tmpdir(), "tk-proj-"))
+  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-proj-"))
   process.chdir(dir)
   return dir
 }
@@ -57,7 +57,7 @@ describe("loadToolkitConfig 向上查找", () => {
   })
 
   it("子目录能找到上级配置（E6）", () => {
-    const dir = mkdtempSync(join(tmpdir(), "tk-cfg-up-"))
+    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-cfg-up-"))
     mkdirSync(join(dir, "a", "b"), { recursive: true })
     writeFileSync(join(dir, ".toolkitrc.json"), JSON.stringify({ check: { up: true } }), "utf8")
     process.chdir(join(dir, "a", "b"))
@@ -67,7 +67,7 @@ describe("loadToolkitConfig 向上查找", () => {
   })
 
   it("最近一层配置优先", () => {
-    const dir = mkdtempSync(join(tmpdir(), "tk-cfg-up2-"))
+    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-cfg-up2-"))
     mkdirSync(join(dir, "a"), { recursive: true })
     writeFileSync(join(dir, ".toolkitrc.json"), JSON.stringify({ check: { root: true } }), "utf8")
     writeFileSync(join(dir, "a", ".toolkitrc.json"), JSON.stringify({ check: { child: true } }), "utf8")
@@ -263,7 +263,7 @@ describe("本地配置层", () => {
 
   // 建独立临时树并登记清理；返回树根
   function makeTree(): string {
-    const dir = mkdtempSync(join(tmpdir(), "tk-local-"))
+    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-local-"))
     created.push(dir)
     return dir
   }

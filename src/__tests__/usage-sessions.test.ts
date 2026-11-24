@@ -40,7 +40,7 @@ const CLAUDE_LINES = [
 ]
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-usage-sessions-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-usage-sessions-"))
   setHomeDirForTest(home)
   resetToolkitConfigCache()
 })

@@ -75,7 +75,7 @@ describe("标准 Hook 事件解析", () => {
 
 describe("Hook 配置安装与卸载", () => {
   it("安装幂等、状态可查、卸载后不残留", () => {
-    const home = tempDir("tk-hook-home-")
+    const home = tempDir("fxts-tk-hook-home-")
     setHomeDirForTest(home)
     mkdirSync(join(home, ".trae-cn"), { recursive: true })
     const command = `"node" "cli.js" usage ingest --agent trae`
@@ -96,7 +96,7 @@ describe("Hook 配置安装与卸载", () => {
   })
 
   it("识别并清理旧版 telemetry Hook", () => {
-    const file = join(tempDir("tk-hook-legacy-"), "hooks.json")
+    const file = join(tempDir("fxts-tk-hook-legacy-"), "hooks.json")
     const legacy = `"node" "cli.js" telemetry ingest --agent trae`
     writeFileSync(
       file,
@@ -120,7 +120,7 @@ describe("Hook 配置安装与卸载", () => {
   })
 
   it("Hook 命令中的 node / CLI 路径失效时状态可报出", () => {
-    const file = join(tempDir("tk-hook-missing-"), "hooks.json")
+    const file = join(tempDir("fxts-tk-hook-missing-"), "hooks.json")
     const command = `"C:\\no-such-dir\\node.exe" "C:\\no-such-dir\\cli.js" usage ingest --agent trae`
     writeFileSync(file, JSON.stringify({ version: 1, hooks: { PostToolUse: [{ hooks: [{ type: "command", command, timeout: 10 }] }] } }), "utf8")
     const status = standardHookStatus(file, "trae", "Trae")
@@ -129,7 +129,7 @@ describe("Hook 配置安装与卸载", () => {
   })
 
   it("非法 JSON 不覆盖原文件", () => {
-    const file = join(tempDir("tk-hook-bad-"), "hooks.json")
+    const file = join(tempDir("fxts-tk-hook-bad-"), "hooks.json")
     writeFileSync(file, "{bad", "utf8")
     expect(() => installStandardHooks(file, "trae", "cmd")).toThrow()
     expect(readFileSync(file, "utf8")).toBe("{bad")
@@ -138,7 +138,7 @@ describe("Hook 配置安装与卸载", () => {
   })
 
   it("Claude 使用 settings.json 且保留其它设置", () => {
-    const home = tempDir("tk-hook-claude-")
+    const home = tempDir("fxts-tk-hook-claude-")
     setHomeDirForTest(home)
     mkdirSync(join(home, ".claude"), { recursive: true })
     const file = join(home, ".claude", "settings.json")
@@ -191,7 +191,7 @@ describe("Hook 命令的平台形态", () => {
   })
 
   it("旧形态命令在状态中标记为过期，新形态不标", () => {
-    const oldFile = join(tempDir("tk-hook-outdated-"), "hooks.json")
+    const oldFile = join(tempDir("fxts-tk-hook-outdated-"), "hooks.json")
     const old = `"C:\\no-such-dir\\node.exe" "C:\\no-such-dir\\cli.js" usage ingest --agent trae`
     writeFileSync(oldFile, JSON.stringify({ version: 1, hooks: { PostToolUse: [{ hooks: [{ type: "command", command: old, timeout: 10 }] }] } }), "utf8")
     const oldStatus = standardHookStatus(oldFile, "trae", "Trae")
@@ -199,7 +199,7 @@ describe("Hook 命令的平台形态", () => {
     // 旧形态仍按双引号提取路径，失效路径照常报出
     expect(oldStatus.missingPaths).toHaveLength(2)
 
-    const newFile = join(tempDir("tk-hook-current-"), "hooks.json")
+    const newFile = join(tempDir("fxts-tk-hook-current-"), "hooks.json")
     const current = buildHookCommand("trae", "/opt/cli.js", "/opt/node", process.platform)
     writeFileSync(newFile, JSON.stringify({ version: 1, hooks: { PostToolUse: [{ hooks: [{ type: "command", command: current, timeout: 10 }] }] } }), "utf8")
     const newStatus = standardHookStatus(newFile, "trae", "Trae")
@@ -208,7 +208,7 @@ describe("Hook 命令的平台形态", () => {
   })
 
   it("重装会把旧形态命令替换为新形态", () => {
-    const file = join(tempDir("tk-hook-replace-"), "hooks.json")
+    const file = join(tempDir("fxts-tk-hook-replace-"), "hooks.json")
     const old = `"node" "cli.js" usage ingest --agent trae`
     installStandardHooks(file, "trae", old)
     const next = buildHookCommand("trae", "/opt/cli.js", "/opt/node", process.platform)
@@ -236,7 +236,7 @@ describe("工具结果推断", () => {
 
 describe("Hook 事件处理", () => {
   it("缓存触发词并在 PostToolUse 中写入事件", () => {
-    const root = tempDir("tk-hook-ingest-")
+    const root = tempDir("fxts-tk-hook-ingest-")
     const paths = usagePaths(root)
     const config = enabledConfig()
     const promptEvent: NormalizedHookEvent = {
@@ -270,7 +270,7 @@ describe("Hook 事件处理", () => {
   })
 
   it("未启用时不写事件也不缓存触发词", () => {
-    const root = tempDir("tk-hook-disabled-")
+    const root = tempDir("fxts-tk-hook-disabled-")
     const paths = usagePaths(root)
     const config = { ...enabledConfig(), enabled: false }
     const promptEvent: NormalizedHookEvent = { agent: "trae", sessionId: "s1", prompt: "x", originAdapter: "trae-hooks" }

@@ -30,7 +30,7 @@ function buildDiff(lines: number[]): string {
 }
 
 function createFixture(options: FixtureOptions): string {
-  const root = mkdtempSync(join(tmpdir(), "fxri-coverage-"))
+  const root = mkdtempSync(join(tmpdir(), "fxts-tk-coverage-"))
   fixtures.push(root)
   const statements = options.statements
   const summary = options.summary ?? { statements: 90, branches: 90, functions: 90, lines: 90 }

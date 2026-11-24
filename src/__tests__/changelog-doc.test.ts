@@ -162,7 +162,7 @@ describe("buildDocPages：按主版本分页", () => {
   })
 
   it("语言目标归档到独立目录：中英互不覆盖", () => {
-    const dir = tempDir("tk-doc-")
+    const dir = tempDir("fxts-tk-doc-")
     const zh = prepare(dir, dual)
     const en = { ...options(dir), source: join(dir, "CHANGELOG.en.md"), target: join(dir, "docs", "changelog.en.md") }
     writeFileSync(en.source, dual, "utf8")
@@ -178,7 +178,7 @@ describe("buildDocPages：按主版本分页", () => {
 
 describe("syncDoc / checkDoc：落盘与一致性校验", () => {
   it("生成镜像后可校验一致，手改后校验失败并给出行号", () => {
-    const dir = tempDir("tk-doc-")
+    const dir = tempDir("fxts-tk-doc-")
     const opts = prepare(dir, minimal)
 
     const written = syncDoc(opts)
@@ -196,7 +196,7 @@ describe("syncDoc / checkDoc：落盘与一致性校验", () => {
   })
 
   it("再次同步不产生改动", () => {
-    const dir = tempDir("tk-doc-")
+    const dir = tempDir("fxts-tk-doc-")
     const opts = prepare(dir, minimal)
     syncDoc(opts)
     const again = syncDoc(opts)
@@ -205,7 +205,7 @@ describe("syncDoc / checkDoc：落盘与一致性校验", () => {
   })
 
   it("--check 能报缺页，同步后恢复一致", () => {
-    const dir = tempDir("tk-doc-")
+    const dir = tempDir("fxts-tk-doc-")
     const opts = prepare(dir, dual)
     syncDoc(opts)
     const archive = join(dir, "docs", "changelog", "1.x.md")
@@ -221,7 +221,7 @@ describe("syncDoc / checkDoc：落盘与一致性校验", () => {
   })
 
   it("内容差异定位到具体归档页", () => {
-    const dir = tempDir("tk-doc-")
+    const dir = tempDir("fxts-tk-doc-")
     const opts = prepare(dir, dual)
     syncDoc(opts)
     const archive = join(dir, "docs", "changelog", "1.x.md")
@@ -234,7 +234,7 @@ describe("syncDoc / checkDoc：落盘与一致性校验", () => {
   })
 
   it("同步只删除带生成标记的归档页，无标记多余页保留并报 error", () => {
-    const dir = tempDir("tk-doc-")
+    const dir = tempDir("fxts-tk-doc-")
     const opts = prepare(dir, dual)
     syncDoc(opts)
     const archiveDir = join(dir, "docs", "changelog")
@@ -256,7 +256,7 @@ describe("syncDoc / checkDoc：落盘与一致性校验", () => {
   })
 
   it("--dry-run 只报告将写入的清单，不写盘", () => {
-    const dir = tempDir("tk-doc-")
+    const dir = tempDir("fxts-tk-doc-")
     const opts = prepare(dir, dual)
     syncDoc(opts)
     const before = readFileSync(opts.target, "utf8")

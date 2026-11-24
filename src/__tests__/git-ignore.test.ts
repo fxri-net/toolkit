@@ -62,7 +62,7 @@ describe("isInsideWorktree 工作树归属", () => {
   })
 
   it("同一目录的两种书写形态均判为命中（Windows 8.3 短名 / 软链形态）", { timeout: 15000 }, () => {
-    const repo = makeRepo("tk-gi-form-")
+    const repo = makeRepo("fxts-tk-gi-form-")
     // 取磁盘真实形态：Windows CI 下 tmpdir 为 8.3 短名、git rev-parse 返回长名，两者形态不同但指向同一目录
     const canonical = realpathSync.native(repo)
     expect(isInsideWorktree(join(canonical, "a.txt"), repo)).toBe(true)
@@ -74,7 +74,7 @@ describe("isInsideWorktree 工作树归属", () => {
 // 含 git 子进程的组统一给 15s，混合组只放宽那一条；全局 testTimeout 保持默认，免得掩盖纯逻辑的性能退化
 describe("probeRepo 仓库探针", { timeout: 15000 }, () => {
   it("真仓库：根路径能涵盖仓库内文件", () => {
-    const repo = makeRepo("tk-gi-repo-")
+    const repo = makeRepo("fxts-tk-gi-repo-")
     const probe = probeRepo(repo)
     expect(probe.kind).toBe("repo")
     // 不直接比对根路径字符串（macOS 下 tmpdir 可能是软链），改用归属判定验证根有效
@@ -82,31 +82,31 @@ describe("probeRepo 仓库探针", { timeout: 15000 }, () => {
   })
 
   it("非仓库归 not-a-repo", () => {
-    expect(probeRepo(makeDir("tk-gi-norepo-")).kind).toBe("not-a-repo")
+    expect(probeRepo(makeDir("fxts-tk-gi-norepo-")).kind).toBe("not-a-repo")
   })
 })
 
 describe("checkIgnore 单文件忽略判定", { timeout: 15000 }, () => {
   it("仓库内无规则时未忽略", () => {
-    const repo = makeRepo("tk-gi-ign1-")
+    const repo = makeRepo("fxts-tk-gi-ign1-")
     writeFileSync(join(repo, "foo.txt"), "x", "utf8")
     expect(checkIgnore(join(repo, "foo.txt"))).toEqual({ state: "not-ignored" })
   })
 
   it("仓库内命中规则时已忽略", () => {
-    const repo = makeRepo("tk-gi-ign2-")
+    const repo = makeRepo("fxts-tk-gi-ign2-")
     writeFileSync(join(repo, ".gitignore"), "foo.txt\n", "utf8")
     writeFileSync(join(repo, "foo.txt"), "x", "utf8")
     expect(checkIgnore(join(repo, "foo.txt"))).toEqual({ state: "ignored" })
   })
 
   it("非仓库归 not-a-repo", () => {
-    const dir = makeDir("tk-gi-ign3-")
+    const dir = makeDir("fxts-tk-gi-ign3-")
     expect(checkIgnore(join(dir, "foo.txt"))).toEqual({ state: "not-a-repo" })
   })
 
   it("中文路径经 stdin 传入 git 仍正确判定", () => {
-    const repo = makeRepo("tk-gi-cjk-")
+    const repo = makeRepo("fxts-tk-gi-cjk-")
     writeFileSync(join(repo, ".gitignore"), "临时目录/\n", "utf8")
     mkdirSync(join(repo, "临时目录"), { recursive: true })
     writeFileSync(join(repo, "临时目录", "文件.txt"), "x", "utf8")
@@ -117,13 +117,13 @@ describe("checkIgnore 单文件忽略判定", { timeout: 15000 }, () => {
 
 describe("isTracked 已跟踪判定", { timeout: 15000 }, () => {
   it("未跟踪文件为 false", () => {
-    const repo = makeRepo("tk-gi-tr1-")
+    const repo = makeRepo("fxts-tk-gi-tr1-")
     writeFileSync(join(repo, "a.txt"), "x", "utf8")
     expect(isTracked(join(repo, "a.txt"))).toBe(false)
   })
 
   it("git add -f 后为 true", () => {
-    const repo = makeRepo("tk-gi-tr2-")
+    const repo = makeRepo("fxts-tk-gi-tr2-")
     writeFileSync(join(repo, ".gitignore"), "a.txt\n", "utf8")
     writeFileSync(join(repo, "a.txt"), "x", "utf8")
     execSync("git add -f a.txt", { cwd: repo, stdio: "ignore" })
@@ -133,11 +133,11 @@ describe("isTracked 已跟踪判定", { timeout: 15000 }, () => {
 
 describe("gitIgnoredSet 批量忽略判定", () => {
   it("空入参直接返回空集，不起子进程", () => {
-    expect(gitIgnoredSet(makeDir("tk-gi-set0-"), []).size).toBe(0)
+    expect(gitIgnoredSet(makeDir("fxts-tk-gi-set0-"), []).size).toBe(0)
   })
 
   it("只回填命中的相对路径", { timeout: 15000 }, () => {
-    const repo = makeRepo("tk-gi-set1-")
+    const repo = makeRepo("fxts-tk-gi-set1-")
     writeFileSync(join(repo, ".gitignore"), "a.txt\n", "utf8")
     const ignored = gitIgnoredSet(repo, ["a.txt", "b.txt"])
     expect(ignored.has("a.txt")).toBe(true)
@@ -147,7 +147,7 @@ describe("gitIgnoredSet 批量忽略判定", () => {
 
 describe("inspectLocalConfigIgnore 六态归因", { timeout: 15000 }, () => {
   it("已忽略：命中忽略规则且未被跟踪", () => {
-    const repo = makeRepo("tk-gi-st1-")
+    const repo = makeRepo("fxts-tk-gi-st1-")
     writeFileSync(join(repo, ".gitignore"), ".toolkitrc.local.json\n", "utf8")
     const file = join(repo, ".toolkitrc.local.json")
     writeFileSync(file, "{}", "utf8")
@@ -155,14 +155,14 @@ describe("inspectLocalConfigIgnore 六态归因", { timeout: 15000 }, () => {
   })
 
   it("未忽略：无忽略规则", () => {
-    const repo = makeRepo("tk-gi-st2-")
+    const repo = makeRepo("fxts-tk-gi-st2-")
     const file = join(repo, ".toolkitrc.local.json")
     writeFileSync(file, "{}", "utf8")
     expect(inspectLocalConfigIgnore(file, repo)).toEqual({ state: "not-ignored" })
   })
 
   it("已跟踪：规则已覆盖但历史 git add -f 过，先于忽略判定识别", () => {
-    const repo = makeRepo("tk-gi-st3-")
+    const repo = makeRepo("fxts-tk-gi-st3-")
     writeFileSync(join(repo, ".gitignore"), ".toolkitrc.local.json\n", "utf8")
     writeFileSync(join(repo, ".toolkitrc.local.json"), "{}", "utf8")
     execSync("git add -f .toolkitrc.local.json", { cwd: repo, stdio: "ignore" })
@@ -170,15 +170,15 @@ describe("inspectLocalConfigIgnore 六态归因", { timeout: 15000 }, () => {
   })
 
   it("非仓库归 not-a-repo", () => {
-    const dir = makeDir("tk-gi-st4-")
+    const dir = makeDir("fxts-tk-gi-st4-")
     const file = join(dir, ".toolkitrc.local.json")
     writeFileSync(file, "{}", "utf8")
     expect(inspectLocalConfigIgnore(file, dir)).toEqual({ state: "not-a-repo" })
   })
 
   it("位于仓库工作树之外归 outside-repo", () => {
-    const repo = makeRepo("tk-gi-st5-")
-    const outside = makeDir("tk-gi-st5-out-")
+    const repo = makeRepo("fxts-tk-gi-st5-")
+    const outside = makeDir("fxts-tk-gi-st5-out-")
     const file = join(outside, ".toolkitrc.local.json")
     writeFileSync(file, "{}", "utf8")
     expect(inspectLocalConfigIgnore(file, repo)).toEqual({ state: "outside-repo" })

@@ -21,7 +21,7 @@ function taskRaw(sep: string, body = "# t"): string {
 
 describe("文件卫生软告警", () => {
   it("含 UTF-8 BOM：告警但不阻断（errorCount 仍为 0）", () => {
-    const dir = makeTasksDir("tk-hyg-")
+    const dir = makeTasksDir("fxts-tk-hyg-")
     writeRaw(dir, "20260903-唐启云-BOM.md", "\uFEFF" + taskRaw("\n"))
     const result = validateTasks(dir)
     expect(result.errorCount).toBe(0)
@@ -32,7 +32,7 @@ describe("文件卫生软告警", () => {
   })
 
   it("行尾空白：定位到具体行并告警", () => {
-    const dir = makeTasksDir("tk-hyg-")
+    const dir = makeTasksDir("fxts-tk-hyg-")
     writeRaw(dir, "20260903-唐启云-行尾.md", taskRaw("\n", "# t\n正文有尾随空格   "))
     const hit = validateTasks(dir).issues.find((i) => i.message.includes("行尾有多余空白"))
     expect(hit?.level).toBe("warn")
@@ -42,7 +42,7 @@ describe("文件卫生软告警", () => {
   })
 
   it("换行符混用：同文件含 CRLF 与 LF 时告警", () => {
-    const dir = makeTasksDir("tk-hyg-")
+    const dir = makeTasksDir("fxts-tk-hyg-")
     // 正文用 CRLF、正文内嵌一段 LF，构成混用
     writeRaw(dir, "20260903-唐启云-混用.md", taskRaw("\r\n", "# t\n正文"))
     const hit = validateTasks(dir).issues.find((i) => i.message.includes("换行符混用"))
@@ -52,7 +52,7 @@ describe("文件卫生软告警", () => {
   })
 
   it("统一 CRLF：不告警（Windows 检出常态，避免跨平台误报）", () => {
-    const dir = makeTasksDir("tk-hyg-")
+    const dir = makeTasksDir("fxts-tk-hyg-")
     writeRaw(dir, "20260903-唐启云-统一CRLF.md", taskRaw("\r\n"))
     const issues = validateTasks(dir).issues
     expect(issues.some((i) => i.message.includes("换行符混用"))).toBe(false)
@@ -61,7 +61,7 @@ describe("文件卫生软告警", () => {
   })
 
   it("无 frontmatter 文件：既报缺少 frontmatter 也报卫生问题", () => {
-    const dir = makeTasksDir("tk-hyg-")
+    const dir = makeTasksDir("fxts-tk-hyg-")
     writeRaw(dir, "20260903-唐启云-裸文本.md", "\uFEFF这是无 frontmatter 的文本\n")
     const issues = validateTasks(dir).issues
     expect(issues.some((i) => i.level === "error" && i.message.includes("缺少 frontmatter"))).toBe(true)

@@ -8,7 +8,7 @@ import { validateTasks } from "../tasks/validate"
 import { archiveTasks } from "../tasks/archive"
 
 function taskDir(): string {
-  return mkdtempSync(join(tmpdir(), "tk-name-"))
+  return mkdtempSync(join(tmpdir(), "fxts-tk-name-"))
 }
 
 // 写 active 任务文件：标题与 owner 可按用例覆盖，其余字段为合法默认值

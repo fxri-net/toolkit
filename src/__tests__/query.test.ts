@@ -7,7 +7,7 @@ import { orderRows, queryTasks } from "../tasks/query"
 import type { TaskRow } from "../tasks/types"
 
 function makeDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), "tk-query-"))
+  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-query-"))
   mkdirSync(join(dir, "active", "202609"), { recursive: true })
   const put = (name: string, owner: string, scope: string) =>
     writeFileSync(
@@ -38,7 +38,7 @@ describe("queryTasks 过滤", () => {
   })
 
   it("scope 加号复合值按任一段命中（存储多值口径，active 与归档同逻辑）", () => {
-    const dir = mkdtempSync(join(tmpdir(), "tk-query-"))
+    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-query-"))
     mkdirSync(join(dir, "active", "202609"), { recursive: true })
     mkdirSync(join(dir, "archive", "202609"), { recursive: true })
     const put = (name: string, scope: string) =>

@@ -33,8 +33,8 @@ function enableAgent(configDir: string): void {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-skills-targets-"))
-  project = mkdtempSync(join(tmpdir(), "tk-skills-targets-project-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-skills-targets-"))
+  project = mkdtempSync(join(tmpdir(), "fxts-tk-skills-targets-project-"))
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   resetSkillsRootCache()

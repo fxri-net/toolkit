@@ -7,7 +7,7 @@ import { archiveTasks } from "../tasks/archive"
 
 // 临时任务区
 function taskDir(): string {
-  return mkdtempSync(join(tmpdir(), "tk-archive-task-"))
+  return mkdtempSync(join(tmpdir(), "fxts-tk-archive-task-"))
 }
 
 // 写 active 任务：status / completed / 正文可按用例覆盖

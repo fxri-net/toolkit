@@ -63,7 +63,7 @@ function writeLegacyState(entries: Array<{ name: string; version: string; summar
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-list-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-list-"))
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   process.env.CI = "1"

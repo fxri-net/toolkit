@@ -14,8 +14,8 @@ let home = ""
 let dataDir = ""
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-usage-upload-home-"))
-  dataDir = mkdtempSync(join(tmpdir(), "tk-usage-upload-data-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-usage-upload-home-"))
+  dataDir = mkdtempSync(join(tmpdir(), "fxts-tk-usage-upload-data-"))
   setHomeDirForTest(home)
   resetToolkitConfigCache()
 })

@@ -15,7 +15,7 @@ afterEach(() => vi.restoreAllMocks())
 // 造单任务档：body 为正文（不含 frontmatter），status / completed / updated 可覆盖
 // updated 缺省取当天：搁置天数以「今天」为基准，写死日期会让用例随运行日期漂移
 function makeTask(body: string, opts: { status?: string; completed?: string; updated?: string; name?: string } = {}): string {
-  const dir = mkdtempSync(join(tmpdir(), "tk-held-"))
+  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-held-"))
   mkdirSync(join(dir, "active", "202611"), { recursive: true })
   const status = opts.status ?? "搁置"
   const completed = opts.completed ?? ""

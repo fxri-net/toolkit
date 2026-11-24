@@ -55,7 +55,7 @@ const originalCwd = process.cwd()
 
 // 建现场目录：withTasks 为真时创建 .tasks/active 与 docs，模拟已初始化项目
 function makeDir(withTasks: boolean): string {
-  const dir = mkdtempSync(join(tmpdir(), "tk-status-"))
+  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-status-"))
   dirs.push(dir)
   if (withTasks) {
     mkdirSync(join(dir, ".tasks", "active"), { recursive: true })

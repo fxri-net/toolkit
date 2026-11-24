@@ -5,12 +5,12 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 // 创建随机临时目录并返回路径
-export function tempDir(prefix = "tk-"): string {
+export function tempDir(prefix = "fxts-tk-"): string {
   return mkdtempSync(join(tmpdir(), prefix))
 }
 
 // 建含 active/ + archive/ 骨架的 .tasks 目录
-export function makeTasksDir(prefix = "tk-tasks-"): string {
+export function makeTasksDir(prefix = "fxts-tk-tasks-"): string {
   const dir = tempDir(prefix)
   mkdirSync(join(dir, "active"), { recursive: true })
   mkdirSync(join(dir, "archive"), { recursive: true })

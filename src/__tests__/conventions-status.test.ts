@@ -95,8 +95,8 @@ function writeShell(cwd: string, skillDir: string, content: string): void {
 
 describe("未初始化提前返回", () => {
   it("无载体时报未初始化并指向 toolkit task init，不散成一堆异常项", () => {
-    const root = makeDir("tk-status-none-")
-    const cwd = makeDir("tk-status-none-cwd-")
+    const root = makeDir("fxts-tk-status-none-")
+    const cwd = makeDir("fxts-tk-status-none-cwd-")
 
     const report = conventionsStatus(root, cwd)
     expect(report.initialized).toBe(false)
@@ -109,8 +109,8 @@ describe("未初始化提前返回", () => {
   })
 
   it("仅存旧单文件 conventions.md 时指向 conventions-spec 迁移", () => {
-    const root = makeDir("tk-status-legacy-")
-    const cwd = makeDir("tk-status-legacy-cwd-")
+    const root = makeDir("fxts-tk-status-legacy-")
+    const cwd = makeDir("fxts-tk-status-legacy-cwd-")
     writeFileSync(join(root, "conventions.md"), "# 旧规范\n", "utf8")
 
     const report = conventionsStatus(root, cwd)
@@ -122,8 +122,8 @@ describe("未初始化提前返回", () => {
 
 describe("载体形态体检", () => {
   it("v1 形态提示可升级，且不做 ID 形态检查", () => {
-    const root = makeDir("tk-status-v1-")
-    const cwd = makeDir("tk-status-v1-cwd-")
+    const root = makeDir("fxts-tk-status-v1-")
+    const cwd = makeDir("fxts-tk-status-v1-cwd-")
     mkdirSync(join(root, "conventions"), { recursive: true })
     writeFileSync(join(root, "conventions", "index.md"), V1_INDEX, "utf8")
 
@@ -136,8 +136,8 @@ describe("载体形态体检", () => {
   })
 
   it("标为当前版本却缺 history.md 时判形态异常并交人工确认", () => {
-    const root = makeDir("tk-status-abn1-")
-    const cwd = makeDir("tk-status-abn1-cwd-")
+    const root = makeDir("fxts-tk-status-abn1-")
+    const cwd = makeDir("fxts-tk-status-abn1-cwd-")
     makeCarrier(root, cleanRows, { history: false })
 
     const report = conventionsStatus(root, cwd)
@@ -147,8 +147,8 @@ describe("载体形态体检", () => {
   })
 
   it("有 history.md 但索引表首列仍为序号时同样判形态异常", () => {
-    const root = makeDir("tk-status-abn2-")
-    const cwd = makeDir("tk-status-abn2-cwd-")
+    const root = makeDir("fxts-tk-status-abn2-")
+    const cwd = makeDir("fxts-tk-status-abn2-cwd-")
     mkdirSync(join(root, "conventions"), { recursive: true })
     writeFileSync(join(root, "conventions", "index.md"), V1_INDEX, "utf8")
     writeFileSync(join(root, "conventions", "history.md"), `${HISTORY_TITLE}\n`, "utf8")
@@ -159,8 +159,8 @@ describe("载体形态体检", () => {
   })
 
   it("旧单文件与目录形态并存时提示清理旧文件", () => {
-    const root = makeDir("tk-status-both-")
-    const cwd = makeDir("tk-status-both-cwd-")
+    const root = makeDir("fxts-tk-status-both-")
+    const cwd = makeDir("fxts-tk-status-both-cwd-")
     makeCarrier(root, cleanRows)
     writeFileSync(join(root, "conventions.md"), "# 旧规范\n", "utf8")
 
@@ -172,8 +172,8 @@ describe("载体形态体检", () => {
 
 describe("索引体检", () => {
   it("首列不合稳定 ID 形态时告警", () => {
-    const root = makeDir("tk-status-idshape-")
-    const cwd = makeDir("tk-status-idshape-cwd-")
+    const root = makeDir("fxts-tk-status-idshape-")
+    const cwd = makeDir("fxts-tk-status-idshape-cwd-")
     makeCarrier(root, "| X-1 | 四级时间源 | 建档时：当场打点优先 | common | [common.md](./common.md) |")
 
     const report = conventionsStatus(root, cwd)
@@ -182,8 +182,8 @@ describe("索引体检", () => {
   })
 
   it("首列为行内代码包裹的稳定 ID 时不误报形态", () => {
-    const root = makeDir("tk-status-idcode-")
-    const cwd = makeDir("tk-status-idcode-cwd-")
+    const root = makeDir("fxts-tk-status-idcode-")
+    const cwd = makeDir("fxts-tk-status-idcode-cwd-")
     makeCarrier(root, `| \`${idOf(1)}\` | 四级时间源 | 建档时：当场打点优先 | common | [common.md](./common.md) |`)
 
     const report = conventionsStatus(root, cwd)
@@ -192,8 +192,8 @@ describe("索引体检", () => {
   })
 
   it("首列为补零 ID 时告警并给出去补零写法", () => {
-    const root = makeDir("tk-status-idpad-")
-    const cwd = makeDir("tk-status-idpad-cwd-")
+    const root = makeDir("fxts-tk-status-idpad-")
+    const cwd = makeDir("fxts-tk-status-idpad-cwd-")
     makeCarrier(root, "| C-001 | 四级时间源 | 建档时：当场打点优先 | common | [common.md](./common.md) |")
 
     const report = conventionsStatus(root, cwd)
@@ -205,8 +205,8 @@ describe("索引体检", () => {
   })
 
   it("索引表存在重复 ID 时告警", () => {
-    const root = makeDir("tk-status-dupid-")
-    const cwd = makeDir("tk-status-dupid-cwd-")
+    const root = makeDir("fxts-tk-status-dupid-")
+    const cwd = makeDir("fxts-tk-status-dupid-cwd-")
     makeCarrier(
       root,
       `| ${idOf(1)} | 四级时间源 | 建档时：当场打点优先 | common | [common.md](./common.md) |
@@ -218,8 +218,8 @@ describe("索引体检", () => {
   })
 
   it("归属悬空时告警，保留归属 common / index 不误报", () => {
-    const root = makeDir("tk-status-owner-")
-    const cwd = makeDir("tk-status-owner-cwd-")
+    const root = makeDir("fxts-tk-status-owner-")
+    const cwd = makeDir("fxts-tk-status-owner-cwd-")
     makeCarrier(
       root,
       `| ${idOf(1)} | 四级时间源 | 建档时：当场打点优先 | web | [common.md](./common.md) |
@@ -235,8 +235,8 @@ describe("索引体检", () => {
   })
 
   it("归属取已存在的分类标签分册名时不判悬空", () => {
-    const root = makeDir("tk-status-label-")
-    const cwd = makeDir("tk-status-label-cwd-")
+    const root = makeDir("fxts-tk-status-label-")
+    const cwd = makeDir("fxts-tk-status-label-cwd-")
     const build = `# 构建规范
 
 ## ${idOf(1)}. 构建口径
@@ -252,8 +252,8 @@ describe("索引体检", () => {
   })
 
   it("归属 common 且语义含端限定语并提及端名时提示确认是否下沉", () => {
-    const root = makeDir("tk-status-common-")
-    const cwd = makeDir("tk-status-common-cwd-")
+    const root = makeDir("fxts-tk-status-common-")
+    const cwd = makeDir("fxts-tk-status-common-cwd-")
     makeCarrier(root, `| ${idOf(1)} | 网页端缓存 | 写缓存时：仅 web 端缓存走 CDN | common | [common.md](./common.md) |`)
 
     const report = conventionsStatus(root, cwd)
@@ -263,8 +263,8 @@ describe("索引体检", () => {
   })
 
   it("归属 common 语义提及端名但为例举（无端限定语）时不误报", () => {
-    const root = makeDir("tk-status-common-fp-")
-    const cwd = makeDir("tk-status-common-fp-cwd-")
+    const root = makeDir("fxts-tk-status-common-fp-")
+    const cwd = makeDir("fxts-tk-status-common-fp-cwd-")
     makeCarrier(root, `| ${idOf(1)} | 缓存口径 | 写缓存时：web 端缓存走 CDN | common | [common.md](./common.md) |`)
 
     const report = conventionsStatus(root, cwd)
@@ -273,8 +273,8 @@ describe("索引体检", () => {
   })
 
   it("端限定语后提及端名时大小写不敏感（大写 Web 亦命中）", () => {
-    const root = makeDir("tk-status-common-case-")
-    const cwd = makeDir("tk-status-common-case-cwd-")
+    const root = makeDir("fxts-tk-status-common-case-")
+    const cwd = makeDir("fxts-tk-status-common-case-cwd-")
     makeCarrier(root, `| ${idOf(1)} | 网页端缓存 | 写缓存时：仅 Web 端缓存走 CDN | common | [common.md](./common.md) |`)
 
     const report = conventionsStatus(root, cwd)
@@ -284,8 +284,8 @@ describe("索引体检", () => {
   })
 
   it("分册小节在索引表中无对应条目时告警，有对应条目的小节不告警", () => {
-    const root = makeDir("tk-status-orphan-")
-    const cwd = makeDir("tk-status-orphan-cwd-")
+    const root = makeDir("fxts-tk-status-orphan-")
+    const cwd = makeDir("fxts-tk-status-orphan-cwd-")
     const common = `# 公共规范
 
 ## ${idOf(1)}. 四级时间源
@@ -307,8 +307,8 @@ describe("索引体检", () => {
 
 describe("索引语义路由写法体检", () => {
   it("「当前语义」超过上限时提示改写为路由写法，只提示不阻断结论", () => {
-    const root = makeDir("tk-status-route-long-")
-    const cwd = makeDir("tk-status-route-long-cwd-")
+    const root = makeDir("fxts-tk-status-route-long-")
+    const cwd = makeDir("fxts-tk-status-route-long-cwd-")
     // 路由写法须含全角冒号，长度口径仍按整格字符数
     const tooLong = "适".repeat(SEMANTIC_MAX_CHARS) + "："
     makeCarrier(root, `| ${idOf(1)} | 长语义 | ${tooLong} | common | [common.md](./common.md) |`)
@@ -323,8 +323,8 @@ describe("索引语义路由写法体检", () => {
   })
 
   it("「当前语义」恰在上限内时不告警", () => {
-    const root = makeDir("tk-status-route-edge-")
-    const cwd = makeDir("tk-status-route-edge-cwd-")
+    const root = makeDir("fxts-tk-status-route-edge-")
+    const cwd = makeDir("fxts-tk-status-route-edge-cwd-")
     const exact = "适".repeat(SEMANTIC_MAX_CHARS - 1) + "："
     makeCarrier(root, `| ${idOf(1)} | 边界语义 | ${exact} | common | [common.md](./common.md) |`)
 
@@ -336,8 +336,8 @@ describe("索引语义路由写法体检", () => {
 
 describe("退休台账体检", () => {
   it("存在 retired.md 却定位不到退休表时告警", () => {
-    const root = makeDir("tk-status-retired-")
-    const cwd = makeDir("tk-status-retired-cwd-")
+    const root = makeDir("fxts-tk-status-retired-")
+    const cwd = makeDir("fxts-tk-status-retired-cwd-")
     makeCarrier(root, cleanRows, { extra: { [RETIRED_FILE]: `${RETIRED_TITLE}\n\n| ID | 规则 |\n| --- | --- |\n` } })
 
     const report = conventionsStatus(root, cwd)
@@ -347,8 +347,8 @@ describe("退休台账体检", () => {
   })
 
   it("退休 ID 与常驻索引活跃 ID 重叠时告警", () => {
-    const root = makeDir("tk-status-retired-overlap-")
-    const cwd = makeDir("tk-status-retired-overlap-cwd-")
+    const root = makeDir("fxts-tk-status-retired-overlap-")
+    const cwd = makeDir("fxts-tk-status-retired-overlap-cwd-")
     const retired = `${RETIRED_SKELETON}| ${idOf(1)} | 旧口径 | 已冻结语义 | common | — | — | 已删分册小节 \`common.md\` |\n`
     makeCarrier(root, cleanRows, { extra: { [RETIRED_FILE]: retired } })
 
@@ -359,8 +359,8 @@ describe("退休台账体检", () => {
   })
 
   it("退休台账合规（迁出条目与活跃条目无重叠）时不告警", () => {
-    const root = makeDir("tk-status-retired-ok-")
-    const cwd = makeDir("tk-status-retired-ok-cwd-")
+    const root = makeDir("fxts-tk-status-retired-ok-")
+    const cwd = makeDir("fxts-tk-status-retired-ok-cwd-")
     const retired = `${RETIRED_TITLE}\n\n${RETIRED_TABLE_HEADER}\n| --- | --- | --- | --- | --- | --- | --- |\n| ${idOf(9)} | 旧构建口径 | 以 npm 为准 | common | — | — | 已删分册小节 \`common.md\` |\n`
     makeCarrier(root, cleanRows, { extra: { [RETIRED_FILE]: retired } })
 
@@ -372,8 +372,8 @@ describe("退休台账体检", () => {
 
 describe("入口层体检", () => {
   it("无壳时只出提示不计入问题数，干净载体结论为无待处理项", () => {
-    const root = makeDir("tk-status-noshell-")
-    const cwd = makeDir("tk-status-noshell-cwd-")
+    const root = makeDir("fxts-tk-status-noshell-")
+    const cwd = makeDir("fxts-tk-status-noshell-cwd-")
     makeCarrier(root, cleanRows)
 
     const report = conventionsStatus(root, cwd)
@@ -389,8 +389,8 @@ describe("入口层体检", () => {
   })
 
   it("源仓库现场（package.json 的 name 为 @fxri/toolkit）不给补生成入口壳的提示", () => {
-    const root = makeDir("tk-status-src-")
-    const cwd = makeDir("tk-status-src-cwd-")
+    const root = makeDir("fxts-tk-status-src-")
+    const cwd = makeDir("fxts-tk-status-src-cwd-")
     makeCarrier(root, cleanRows)
     writeFileSync(join(cwd, "package.json"), JSON.stringify({ name: "@fxri/toolkit", version: "0.0.0" }), "utf8")
 
@@ -403,8 +403,8 @@ describe("入口层体检", () => {
   })
 
   it("多壳标记版本与当前 toolkit 不一致（含无标记）时合并为一条并列出落点", () => {
-    const root = makeDir("tk-status-shellver-")
-    const cwd = makeDir("tk-status-shellver-cwd-")
+    const root = makeDir("fxts-tk-status-shellver-")
+    const cwd = makeDir("fxts-tk-status-shellver-cwd-")
     makeCarrier(root, cleanRows)
     writeShell(cwd, ".trae/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n<!-- toolkit-conventions-entry: v${ENTRY_VERSION - 1} -->\n`)
     writeShell(cwd, ".windsurf/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n无标记壳\n`)
@@ -421,8 +421,8 @@ describe("入口层体检", () => {
 
   // 真 git 用例：子进程启动在高负载下会超过 vitest 默认 5s，单例放宽，全局 testTimeout 保持默认
   it("壳被 gitignore 覆盖时告警并内联落点路径", { timeout: 15000 }, () => {
-    const root = makeDir("tk-status-shellign-")
-    const cwd = makeDir("tk-status-shellign-cwd-")
+    const root = makeDir("fxts-tk-status-shellign-")
+    const cwd = makeDir("fxts-tk-status-shellign-cwd-")
     makeCarrier(root, cleanRows)
     execSync("git init -q", { cwd })
     writeFileSync(join(cwd, ".gitignore"), ".trae/skills/\n", "utf8")
@@ -438,8 +438,8 @@ describe("入口层体检", () => {
   })
 
   it("壳标记版本一致且未被忽略时不产生入口层问题", () => {
-    const root = makeDir("tk-status-shellok-")
-    const cwd = makeDir("tk-status-shellok-cwd-")
+    const root = makeDir("fxts-tk-status-shellok-")
+    const cwd = makeDir("fxts-tk-status-shellok-cwd-")
     makeCarrier(root, cleanRows)
     writeShell(cwd, ".trae/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n${ENTRY_MARKER}\n`)
 
@@ -454,8 +454,8 @@ describe("入口层体检", () => {
 
 describe("表格形态体检", () => {
   it("载体表格被列对齐填充时报一条告警并指向 conventions format", () => {
-    const root = makeDir("tk-status-table-")
-    const cwd = makeDir("tk-status-table-cwd-")
+    const root = makeDir("fxts-tk-status-table-")
+    const cwd = makeDir("fxts-tk-status-table-cwd-")
     makeCarrier(root, `| ${idOf(1)}     | 四级时间源 | 建档时：当场打点优先 | common | [common.md](./common.md) |`)
 
     const report = conventionsStatus(root, cwd)
@@ -469,8 +469,8 @@ describe("表格形态体检", () => {
   })
 
   it("表格均为紧凑形态时不产生表格形态告警", () => {
-    const root = makeDir("tk-status-table-ok-")
-    const cwd = makeDir("tk-status-table-ok-cwd-")
+    const root = makeDir("fxts-tk-status-table-ok-")
+    const cwd = makeDir("fxts-tk-status-table-ok-cwd-")
     makeCarrier(root, cleanRows)
 
     const report = conventionsStatus(root, cwd)
@@ -504,8 +504,8 @@ ${tableLines}
 `
 
   it("v3 载体索引表列集合偏离 v3 规范时软告警（须恰好五列）", () => {
-    const root = makeDir("tk-status-shape-col-")
-    const cwd = makeDir("tk-status-shape-col-cwd-")
+    const root = makeDir("fxts-tk-status-shape-col-")
+    const cwd = makeDir("fxts-tk-status-shape-col-cwd-")
     // 第 5 列残留 v2 的「状态」列（非「单一事实源」），列集合与次序均不同于 v3 五列
     writeCarrier(
       root,
@@ -526,8 +526,8 @@ ${tableLines}
   })
 
   it("v3 载体索引表列数不足五列时同样软告警", () => {
-    const root = makeDir("tk-status-shape-col-n-")
-    const cwd = makeDir("tk-status-shape-col-n-cwd-")
+    const root = makeDir("fxts-tk-status-shape-col-n-")
+    const cwd = makeDir("fxts-tk-status-shape-col-n-cwd-")
     // 三列表头配三格分隔：列数即偏离 v3 五列
     writeCarrier(
       root,
@@ -543,8 +543,8 @@ ${tableLines}
   })
 
   it("v3 载体 history.md 表头偏离 v3 规范时软告警", () => {
-    const root = makeDir("tk-status-shape-hist-")
-    const cwd = makeDir("tk-status-shape-hist-cwd-")
+    const root = makeDir("fxts-tk-status-shape-hist-")
+    const cwd = makeDir("fxts-tk-status-shape-hist-cwd-")
     makeCarrier(root, cleanRows)
     writeFileSync(join(root, "conventions", "history.md"), `${HISTORY_TITLE}\n\n| 规则 ID / 名称 | 修订内容 | 修订来源任务 |\n| --- | --- | --- |\n`, "utf8")
 
@@ -556,8 +556,8 @@ ${tableLines}
   })
 
   it("v3 载体 retired.md 表头偏离 v3 规范时软告警", () => {
-    const root = makeDir("tk-status-shape-ret-")
-    const cwd = makeDir("tk-status-shape-ret-cwd-")
+    const root = makeDir("fxts-tk-status-shape-ret-")
+    const cwd = makeDir("fxts-tk-status-shape-ret-cwd-")
     makeCarrier(root, cleanRows, {
       extra: { [RETIRED_FILE]: `${RETIRED_TITLE}\n\n| 规则 ID / 名称 | 规则 | ${RETIRED_ANCHOR_HEADER} |\n| --- | --- | --- |\n` },
     })
@@ -570,8 +570,8 @@ ${tableLines}
   })
 
   it("载体文件内表头与分隔行列数不一致时软告警", () => {
-    const root = makeDir("tk-status-shape-cols-")
-    const cwd = makeDir("tk-status-shape-cols-cwd-")
+    const root = makeDir("fxts-tk-status-shape-cols-")
+    const cwd = makeDir("fxts-tk-status-shape-cols-cwd-")
     // 分册内一张三列表头配两格分隔行：列数脱节
     makeCarrier(root, cleanRows, { extra: { "web.md": "# web 规范\n\n| 甲 | 乙 | 丙 |\n| --- | --- |\n| 1 | 2 |\n" } })
 
@@ -585,8 +585,8 @@ ${tableLines}
   })
 
   it("载体文件内表格被 fenced code block 包裹时不参与列数检测", () => {
-    const root = makeDir("tk-status-shape-fence-")
-    const cwd = makeDir("tk-status-shape-fence-cwd-")
+    const root = makeDir("fxts-tk-status-shape-fence-")
+    const cwd = makeDir("fxts-tk-status-shape-fence-cwd-")
     // 围栏内的表头 + 分隔行属示例，列数脱节不参与检测
     makeCarrier(root, cleanRows, { extra: { "web.md": "# web 规范\n\n```md\n| 甲 | 乙 | 丙 |\n| --- | --- |\n| 1 | 2 |\n```\n" } })
 
@@ -595,8 +595,8 @@ ${tableLines}
   })
 
   it("良构 v3 载体不产生表形态偏离告警", () => {
-    const root = makeDir("tk-status-shape-ok-")
-    const cwd = makeDir("tk-status-shape-ok-cwd-")
+    const root = makeDir("fxts-tk-status-shape-ok-")
+    const cwd = makeDir("fxts-tk-status-shape-ok-cwd-")
     makeCarrier(root, cleanRows)
 
     const report = conventionsStatus(root, cwd)
@@ -607,8 +607,8 @@ ${tableLines}
 
 describe("分册残留确立来源体检", () => {
   it("分册内残留「确立来源」子项时软告警并给出文件名与行号", () => {
-    const root = makeDir("tk-status-stray-src-")
-    const cwd = makeDir("tk-status-stray-src-cwd-")
+    const root = makeDir("fxts-tk-status-stray-src-")
+    const cwd = makeDir("fxts-tk-status-stray-src-cwd-")
     makeCarrier(root, cleanRows, { extra: { "web.md": "# web 规范\n\n## C-1. 示例\n\n- **要求**：示例。\n- **确立来源**：20261001 某任务。\n" } })
 
     const report = conventionsStatus(root, cwd)
@@ -621,8 +621,8 @@ describe("分册残留确立来源体检", () => {
   })
 
   it("分册内同一文件多处残留时只报首个命中行并计余量", () => {
-    const root = makeDir("tk-status-stray-src-many-")
-    const cwd = makeDir("tk-status-stray-src-many-cwd-")
+    const root = makeDir("fxts-tk-status-stray-src-many-")
+    const cwd = makeDir("fxts-tk-status-stray-src-many-cwd-")
     makeCarrier(root, cleanRows, { extra: { "web.md": "# web 规范\n\n- 确立来源：甲。\n\n- **确立来源**：乙。\n" } })
 
     const report = conventionsStatus(root, cwd)
@@ -633,8 +633,8 @@ describe("分册残留确立来源体检", () => {
   })
 
   it("分册内无「确立来源」子项时不告警", () => {
-    const root = makeDir("tk-status-stray-src-ok-")
-    const cwd = makeDir("tk-status-stray-src-ok-cwd-")
+    const root = makeDir("fxts-tk-status-stray-src-ok-")
+    const cwd = makeDir("fxts-tk-status-stray-src-ok-cwd-")
     makeCarrier(root, cleanRows, { extra: { "web.md": "# web 规范\n\n## C-1. 示例\n\n- **要求**：示例。\n- **理由**：示例。\n" } })
 
     const report = conventionsStatus(root, cwd)
@@ -642,8 +642,8 @@ describe("分册残留确立来源体检", () => {
   })
 
   it("分册内「确立来源」行位于 fenced code block 内时按示例处理不告警", () => {
-    const root = makeDir("tk-status-stray-src-fence-")
-    const cwd = makeDir("tk-status-stray-src-fence-cwd-")
+    const root = makeDir("fxts-tk-status-stray-src-fence-")
+    const cwd = makeDir("fxts-tk-status-stray-src-fence-cwd-")
     makeCarrier(root, cleanRows, { extra: { "web.md": "# web 规范\n\n```md\n- **确立来源**：示例。\n```\n" } })
 
     const report = conventionsStatus(root, cwd)
@@ -657,8 +657,8 @@ describe("演进记录首列体检", () => {
     `${HISTORY_TITLE}\n\n${HISTORY_TABLE_HEADER}\n| --- | --- | --- |\n${rows}\n`
 
   it("v3 载体首列为规则名而非稳定 ID 时告警，提示人工补录", () => {
-    const root = makeDir("tk-status-hid-")
-    const cwd = makeDir("tk-status-hid-cwd-")
+    const root = makeDir("fxts-tk-status-hid-")
+    const cwd = makeDir("fxts-tk-status-hid-cwd-")
     makeCarrier(root, cleanRows, { extra: { "history.md": makeHistory("| 四级时间源 | 当场打点优先 | 建档评估 |\n") } })
 
     const report = conventionsStatus(root, cwd)
@@ -669,8 +669,8 @@ describe("演进记录首列体检", () => {
   })
 
   it("v3 载体首列均为行内代码包裹的稳定 ID 时不告警", () => {
-    const root = makeDir("tk-status-hid-ok-")
-    const cwd = makeDir("tk-status-hid-ok-cwd-")
+    const root = makeDir("fxts-tk-status-hid-ok-")
+    const cwd = makeDir("fxts-tk-status-hid-ok-cwd-")
     makeCarrier(root, cleanRows, { extra: { "history.md": makeHistory(`| \`${idOf(1)}\` | 当场打点优先 | 建档评估 |\n| \`${idOf(2)}\` | 先查后写 | 建档评估 |\n`) } })
 
     const report = conventionsStatus(root, cwd)
@@ -679,8 +679,8 @@ describe("演进记录首列体检", () => {
   })
 
   it("v3 载体首列为补零 ID 时告警并给出去补零写法", () => {
-    const root = makeDir("tk-status-hid-pad-")
-    const cwd = makeDir("tk-status-hid-pad-cwd-")
+    const root = makeDir("fxts-tk-status-hid-pad-")
+    const cwd = makeDir("fxts-tk-status-hid-pad-cwd-")
     makeCarrier(root, cleanRows, { extra: { "history.md": makeHistory("| C-001 | 当场打点优先 | 建档评估 |\n") } })
 
     const report = conventionsStatus(root, cwd)
@@ -694,7 +694,7 @@ describe("演进记录首列体检", () => {
 
 describe("resolveCarrierRoot 体检扫描根推导", () => {
   it("任务目录位于仓库内时取仓库根", () => {
-    const repo = makeDir("tk-root-repo-")
+    const repo = makeDir("fxts-tk-root-repo-")
     const tasksDir = join(repo, ".tasks")
     mkdirSync(tasksDir, { recursive: true })
     writeFileSync(join(repo, "package.json"), "{}\n", "utf8")
@@ -702,14 +702,14 @@ describe("resolveCarrierRoot 体检扫描根推导", () => {
   })
 
   it("任务区即仓库根时取该目录自身", () => {
-    const root = makeDir("tk-root-self-")
+    const root = makeDir("fxts-tk-root-self-")
     mkdirSync(join(root, ".git"), { recursive: true })
     expect(resolveCarrierRoot(root)).toBe(root)
   })
 
   it("两处都没有仓库标记时回落到调用方基准", () => {
-    const loose = makeDir("tk-root-loose-")
-    const fallback = makeDir("tk-root-fallback-")
+    const loose = makeDir("fxts-tk-root-loose-")
+    const fallback = makeDir("fxts-tk-root-fallback-")
     expect(resolveCarrierRoot(join(loose, ".tasks"), fallback)).toBe(fallback)
   })
 })

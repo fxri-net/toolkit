@@ -12,7 +12,7 @@ const fixtures: string[] = []
 
 // 最小工程：带 .tasks 标记项目根，避免 findProjectRoot 向上越界
 function makeProject(files: Record<string, string>): string {
-  const root = mkdtempSync(join(tmpdir(), "tk-upgrade-"))
+  const root = mkdtempSync(join(tmpdir(), "fxts-tk-upgrade-"))
   fixtures.push(root)
   mkdirSync(join(root, ".tasks"), { recursive: true })
   for (const [rel, content] of Object.entries(files)) {

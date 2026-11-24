@@ -5,7 +5,7 @@ import { makeTasksDir, writeActiveTask, writeArchiveFile } from "./helpers"
 import { queryTasks } from "../tasks/query"
 
 function makeDir(): string {
-  const dir = makeTasksDir("tk-qd-")
+  const dir = makeTasksDir("fxts-tk-qd-")
   writeActiveTask(dir, "20260901-唐启云-a.md", { created: "20260901", scope: "x" })
   writeActiveTask(dir, "20260903-唐启云-b.md", { created: "20260903", scope: "x" })
   // 归档两条：完成时间 08-31 与 09-02，落到各自月份目录

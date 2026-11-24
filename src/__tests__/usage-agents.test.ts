@@ -73,7 +73,7 @@ describe("多 Agent 适配", () => {
 
 describe("跨适配器去重", () => {
   it("同一 session + toolUseId 被不同 Agent 捕获时只保留首条", () => {
-    const paths = usagePaths(tempDir("tk-usage-agents-"))
+    const paths = usagePaths(tempDir("fxts-tk-usage-agents-"))
     const config = DEFAULT_USAGE_CONFIG
     const first = makeEvent({ eventId: "sha256:a", agent: "trae", sessionId: "s1", toolUseId: "t1" })
     const second = makeEvent({ eventId: "sha256:b", agent: "claude", sessionId: "s1", toolUseId: "t1" })
@@ -83,7 +83,7 @@ describe("跨适配器去重", () => {
   })
 
   it("dedupe 清理历史跨适配器重复行", () => {
-    const root = tempDir("tk-usage-agents-dedupe-")
+    const root = tempDir("fxts-tk-usage-agents-dedupe-")
     const paths = usagePaths(root)
     const dir = join(root, "events")
     mkdirSync(dir, { recursive: true })

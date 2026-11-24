@@ -11,7 +11,7 @@ const TASK = `---\nowner: 唐启云\nstatus: 已完成\ncreated: 20260905\nupdat
 
 describe("UTF-8 BOM 兼容", () => {
   it("带 BOM 的任务文件不误报缺少 frontmatter，字段解析正常", () => {
-    const dir = mkdtempSync(join(tmpdir(), "tk-bom-"))
+    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-bom-"))
     mkdirSync(join(dir, "active", "202609"), { recursive: true })
     // "\uFEFF" 前缀写盘即产生 EF BB BF 字节序（模拟 PowerShell utf8 写出）
     writeFileSync(join(dir, "active", "202609", "20260905-唐启云-BOM任务.md"), "\uFEFF" + TASK, "utf8")

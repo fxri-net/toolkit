@@ -57,7 +57,7 @@ function setTty(value: boolean): void {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-scope-wizard-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-scope-wizard-"))
   configFile = join(home, ".toolkitrc.json")
   setHomeDirForTest(home)
   seed({ mode: "all", include: [], exclude: [] })
@@ -80,7 +80,7 @@ afterEach(() => {
 
 describe("层选择项", () => {
   it("项目层 / 本地层不可用时只显示层名，不展示不会写入的路径", () => {
-    const outside = mkdtempSync(join(tmpdir(), "tk-scope-layer-"))
+    const outside = mkdtempSync(join(tmpdir(), "fxts-tk-scope-layer-"))
     try {
       const choices = buildLayerChoices(outside)
       const global = choices.find((choice) => choice.value === "global")

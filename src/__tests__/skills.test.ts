@@ -126,7 +126,7 @@ function targetOf(report: ReturnType<typeof installSkills>, kind: "primary" | "a
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-skills-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-skills-"))
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   resetSkillsRootCache()
@@ -1279,7 +1279,7 @@ describe("项目侧技能分发（真源副本 + 薄壳）", () => {
   }
 
   beforeEach(() => {
-    project = mkdtempSync(join(home, "tk-proj-"))
+    project = mkdtempSync(join(home, "fxts-tk-proj-"))
     projects.push(project)
   })
 
@@ -1460,14 +1460,14 @@ describe("技能作用域判定", () => {
   })
 
   it("包根落在项目根之内时判为项目面", () => {
-    const root = tmpRoot("tk-scope-proj-")
+    const root = tmpRoot("fxts-tk-scope-proj-")
     writeFileSync(join(root, "package.json"), JSON.stringify({ name: "demo" }), "utf8")
     setPackageRootForTest(fakePackageRoot(root))
     expect(detectSkillScope(root)).toBe("project")
   })
 
   it("monorepo 子目录内执行同样判为项目面", () => {
-    const root = tmpRoot("tk-scope-mono-")
+    const root = tmpRoot("fxts-tk-scope-mono-")
     writeFileSync(join(root, "package.json"), JSON.stringify({ name: "root" }), "utf8")
     const sub = join(root, "packages", "app")
     mkdirSync(sub, { recursive: true })
@@ -1477,15 +1477,15 @@ describe("技能作用域判定", () => {
   })
 
   it("全局 CLI 在项目目录内执行仍判为全局面", () => {
-    const root = tmpRoot("tk-scope-cwd-")
+    const root = tmpRoot("fxts-tk-scope-cwd-")
     writeFileSync(join(root, "package.json"), JSON.stringify({ name: "demo" }), "utf8")
-    const globalHome = tmpRoot("tk-scope-global-")
+    const globalHome = tmpRoot("fxts-tk-scope-global-")
     setPackageRootForTest(fakePackageRoot(globalHome))
     expect(detectSkillScope(root)).toBe("global")
   })
 
   it("源仓库（包根即项目根）恒判为全局面", () => {
-    const root = tmpRoot("tk-scope-src-")
+    const root = tmpRoot("fxts-tk-scope-src-")
     writeFileSync(join(root, "package.json"), JSON.stringify({ name: "@fxri/toolkit" }), "utf8")
     setPackageRootForTest(root)
     expect(detectSkillScope(root)).toBe("global")

@@ -9,7 +9,7 @@ import { importTasks } from "../tasks/import"
 const warnTexts = (dir: string) => validateTasks(dir).issues.filter((i) => i.level === "warn").map((i) => i.message)
 
 function rootDir(): string {
-  return mkdtempSync(join(tmpdir(), "tk-lm-"))
+  return mkdtempSync(join(tmpdir(), "fxts-tk-lm-"))
 }
 
 describe("M1 标题含待办词不误报", () => {

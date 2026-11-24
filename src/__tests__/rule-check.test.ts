@@ -36,7 +36,7 @@ function fixture(a?: { b?: string; pageA?: string }): void {
 }
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "tk-rule-check-"))
+  root = mkdtempSync(join(tmpdir(), "fxts-tk-rule-check-"))
 })
 
 afterEach(() => {

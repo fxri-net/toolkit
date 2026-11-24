@@ -153,7 +153,7 @@ describe("载体形态识别", () => {
 
 describe("v1 → v2 → v3 链式升级", () => {
   it("发稳定 ID / 抽演进记录成 history.md / 内部引用改 ID / 节号重编 / 标题归一", () => {
-    const root = makeDir("tk-upgrade-")
+    const root = makeDir("fxts-tk-upgrade-")
     makeV1(root)
 
     const report = upgradeConventions(root)
@@ -189,7 +189,7 @@ describe("v1 → v2 → v3 链式升级", () => {
   })
 
   it("内部活引用改 ID，带外部文档限定词的引用一律不动", () => {
-    const root = makeDir("tk-upgrade-ref-")
+    const root = makeDir("fxts-tk-upgrade-ref-")
     makeV1(root)
 
     upgradeConventions(root)
@@ -201,7 +201,7 @@ describe("v1 → v2 → v3 链式升级", () => {
   })
 
   it("已为 v3 时幂等：状态为 already-v3 且不改动任何文件", () => {
-    const root = makeDir("tk-upgrade-idem-")
+    const root = makeDir("fxts-tk-upgrade-idem-")
     makeV1(root)
     upgradeConventions(root)
     const index = readIndex(root)
@@ -216,7 +216,7 @@ describe("v1 → v2 → v3 链式升级", () => {
   })
 
   it("--dry-run 只出报告不写盘", () => {
-    const root = makeDir("tk-upgrade-dry-")
+    const root = makeDir("fxts-tk-upgrade-dry-")
     makeV1(root)
 
     const report = upgradeConventions(root, { dryRun: true })
@@ -230,7 +230,7 @@ describe("v1 → v2 → v3 链式升级", () => {
 
 describe("v2 → v3 迁移", () => {
   it("删两列 / 退休条目迁入 retired.md 并物理删分册小节 / 标记升 v3", () => {
-    const root = makeDir("tk-upgrade-v2-")
+    const root = makeDir("fxts-tk-upgrade-v2-")
     makeV2(root)
 
     const report = upgradeConventions(root)
@@ -264,7 +264,7 @@ describe("v2 → v3 迁移", () => {
   })
 
   it("--dry-run 只出报告不写盘，不创建 retired.md", () => {
-    const root = makeDir("tk-upgrade-v2-dry-")
+    const root = makeDir("fxts-tk-upgrade-v2-dry-")
     makeV2(root)
 
     const report = upgradeConventions(root, { dryRun: true })
@@ -276,7 +276,7 @@ describe("v2 → v3 迁移", () => {
   })
 
   it("history 首列为行内代码包裹 ID 时不提示补录，为裸规则名时才提示", () => {
-    const root = makeDir("tk-upgrade-hid-")
+    const root = makeDir("fxts-tk-upgrade-hid-")
     makeV2(root)
     // 规范要求引用以反引号包裹：ID 单元格带反引号
     writeFileSync(
@@ -288,14 +288,14 @@ describe("v2 → v3 迁移", () => {
     expect(report.reviews.some((m) => m.includes(HISTORY_FILE) && m.includes("首列"))).toBe(false)
 
     // 首列仍为裸规则名（无 ID）时须提示人工补录
-    const root2 = makeDir("tk-upgrade-hid2-")
+    const root2 = makeDir("fxts-tk-upgrade-hid2-")
     makeV2(root2)
     const report2 = upgradeConventions(root2)
     expect(report2.reviews.some((m) => m.includes(HISTORY_FILE) && m.includes("请人工核对是否补录 ID"))).toBe(true)
   })
 
   it("index.md 正文残留 v2 措辞（确立来源任务 / 状态改为已废弃）列入复核项", () => {
-    const root = makeDir("tk-upgrade-stale-")
+    const root = makeDir("fxts-tk-upgrade-stale-")
     makeV2(root)
     const stale = V2_INDEX.replace("（说明略）", "新增条目时填「确立来源任务」；停用条目将「状态」改为「已废弃」。")
     writeFileSync(join(root, "conventions", "index.md"), stale, "utf8")
@@ -307,20 +307,20 @@ describe("v2 → v3 迁移", () => {
 
 describe("升级前先判，异常态拒绝", () => {
   it("未初始化时报错并提示先执行 toolkit task init，不写任何文件", () => {
-    const root = makeDir("tk-upgrade-none-")
+    const root = makeDir("fxts-tk-upgrade-none-")
     mkdirSync(join(root, "conventions"), { recursive: true })
     expect(() => upgradeConventions(root)).toThrow(/先执行 toolkit task init/)
   })
 
   it("仅存在旧单文件 conventions.md 时报错并指向 conventions-spec 迁移", () => {
-    const root = makeDir("tk-upgrade-legacy-")
+    const root = makeDir("fxts-tk-upgrade-legacy-")
     mkdirSync(join(root, "conventions"), { recursive: true })
     writeFileSync(join(root, "conventions.md"), "# 旧规范\n", "utf8")
     expect(() => upgradeConventions(root)).toThrow(/conventions-spec/)
   })
 
   it("形态异常（标记为当前版本却缺 history.md）时报错且原文件不动", () => {
-    const root = makeDir("tk-upgrade-abnormal-")
+    const root = makeDir("fxts-tk-upgrade-abnormal-")
     mkdirSync(join(root, "conventions"), { recursive: true })
     const abnormal = `${CARRIER_MARKER}\n# 项目协作规范索引\n\n## 二、索引\n\n| # | 规则 | 当前语义 |\n| --- | --- | --- |\n| 1 | 甲 | 乙 |\n`
     writeFileSync(join(root, "conventions", "index.md"), abnormal, "utf8")

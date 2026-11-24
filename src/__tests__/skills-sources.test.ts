@@ -43,8 +43,8 @@ function multiSource(root: string, name = "ext"): string {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-skills-source-home-"))
-  work = mkdtempSync(join(tmpdir(), "tk-skills-source-work-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-skills-source-home-"))
+  work = mkdtempSync(join(tmpdir(), "fxts-tk-skills-source-work-"))
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   resetSkillsRootCache()

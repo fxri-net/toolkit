@@ -9,7 +9,7 @@ const script = join(process.cwd(), "scripts", "check-docs-readability.mjs")
 const fixtures: string[] = []
 
 function createFixture(files: Record<string, string>): string {
-  const root = mkdtempSync(join(tmpdir(), "fxri-readability-"))
+  const root = mkdtempSync(join(tmpdir(), "fxts-tk-readability-"))
   fixtures.push(root)
   mkdirSync(join(root, "docs"), { recursive: true })
   mkdirSync(join(root, "skills"), { recursive: true })

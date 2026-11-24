@@ -18,8 +18,8 @@ let errors: string[] = []
 
 // 初始化现场：全局配置启用使用情况，数据目录指向临时目录
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-usage-cli-home-"))
-  dataDir = mkdtempSync(join(tmpdir(), "tk-usage-cli-data-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-usage-cli-home-"))
+  dataDir = mkdtempSync(join(tmpdir(), "fxts-tk-usage-cli-data-"))
   mkdirSync(join(home, ".trae-cn"), { recursive: true })
   writeFileSync(
     join(home, ".toolkitrc.json"),

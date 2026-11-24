@@ -83,7 +83,7 @@ describe("使用情况配置", () => {
   })
 
   it("只读全局层，并能写回 usage 段", () => {
-    const home = tempDir("tk-usage-home-")
+    const home = tempDir("fxts-tk-usage-home-")
     setHomeDirForTest(home)
     resetToolkitConfigCache()
     writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ task: { dir: "tasks" }, usage: { enabled: true } }), "utf8")
@@ -97,7 +97,7 @@ describe("使用情况配置", () => {
   })
 
   it("旧版 telemetry 段与数据目录只提示不生效", () => {
-    const home = tempDir("tk-usage-legacy-")
+    const home = tempDir("fxts-tk-usage-legacy-")
     setHomeDirForTest(home)
     resetToolkitConfigCache()
     writeFileSync(join(home, ".toolkitrc.json"), JSON.stringify({ telemetry: { enabled: true } }), "utf8")
@@ -169,7 +169,7 @@ describe("事件构造", () => {
 
 describe("存储与统计", () => {
   it("追加写、事件 ID 去重、统计与导出", () => {
-    const root = tempDir("tk-usage-store-")
+    const root = tempDir("fxts-tk-usage-store-")
     const paths = usagePaths(root)
     const config = enabledConfig()
     const first = makeEvent({ eventId: "sha256:a", occurredAt: "2026-11-06T10:00:00.000+08:00" })
@@ -199,7 +199,7 @@ describe("存储与统计", () => {
   })
 
   it("去重、按保留期清理与全量清理", () => {
-    const root = tempDir("tk-usage-maintenance-")
+    const root = tempDir("fxts-tk-usage-maintenance-")
     const paths = usagePaths(root)
     mkdirSync(paths.eventsDir, { recursive: true })
     const duplicate = makeEvent({ eventId: "sha256:dup", occurredAt: "2020-01-01T00:00:00.000+08:00" })

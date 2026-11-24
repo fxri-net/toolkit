@@ -9,7 +9,7 @@ import { cachePath, resolveCacheEntry, userCacheDir } from "../cache"
 let home = ""
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-cache-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-cache-"))
   setHomeDirForTest(home)
 })
 

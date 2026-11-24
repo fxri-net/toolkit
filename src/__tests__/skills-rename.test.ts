@@ -72,8 +72,8 @@ function view(name: string, source = "toolkit", sourceKind: "builtin" | "local" 
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-skills-rename-home-"))
-  work = mkdtempSync(join(tmpdir(), "tk-skills-rename-work-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-skills-rename-home-"))
+  work = mkdtempSync(join(tmpdir(), "fxts-tk-skills-rename-work-"))
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   resetSkillsRootCache()

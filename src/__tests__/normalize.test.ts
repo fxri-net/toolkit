@@ -10,7 +10,7 @@ import { acquireArchiveLock, releaseArchiveLock } from "../tasks/lock"
 
 // 建临时任务目录
 function makeDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), "tk-tasks-"))
+  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-tasks-"))
   mkdirSync(join(dir, "archive"), { recursive: true })
   return dir
 }

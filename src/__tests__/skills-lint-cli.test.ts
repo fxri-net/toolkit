@@ -29,7 +29,7 @@ function writeSkill(root: string, name: string, options: { license?: boolean; bo
 }
 
 function makeRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "tk-lint-cli-"))
+  const root = mkdtempSync(join(tmpdir(), "fxts-tk-lint-cli-"))
   fixtures.push(root)
   return root
 }
@@ -61,7 +61,7 @@ async function runCli(args: string[]): Promise<CliRun> {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-lint-cli-home-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-lint-cli-home-"))
   fixtures.push(home)
   process.env.CI = "1"
   process.env.FX_TOOLKIT_NO_UPDATE_CHECK = "1"

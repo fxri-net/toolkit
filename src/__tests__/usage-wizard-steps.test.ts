@@ -65,7 +65,7 @@ function setTty(value: boolean): void {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "tk-usage-steps-"))
+  home = mkdtempSync(join(tmpdir(), "fxts-tk-usage-steps-"))
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   calls.trigger = 0

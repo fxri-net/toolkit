@@ -20,7 +20,7 @@ function markHeld(key: string): void {
 }
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), "tk-task-edit-"))
+  dir = mkdtempSync(join(tmpdir(), "fxts-tk-task-edit-"))
   resetToolkitConfigCache()
 })
 

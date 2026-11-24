@@ -11,7 +11,7 @@ const header = "---\nowner: 唐启云\nstatus: 待办\ncreated: 20260904\nupdate
 
 describe("游离任务文件检测", () => {
   it("直放 .tasks 根目录的任务文件告警，README 不误报，正常位置不告警", () => {
-    const dir = mkdtempSync(join(tmpdir(), "tk-stray-"))
+    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-stray-"))
     // 游离：直放 .tasks 根目录（漏建 active 层的典型错位）
     writeFileSync(join(dir, "20260904-唐启云-错位任务.md"), header, "utf8")
     // 非任务文档：不带日期前缀，不应误报
@@ -27,7 +27,7 @@ describe("游离任务文件检测", () => {
   })
 
   it("游离于年月子目录（漏 active 层）与 active 根目录直放均告警", () => {
-    const dir = mkdtempSync(join(tmpdir(), "tk-stray-"))
+    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-stray-"))
     // 游离：漏建 active 层的 .tasks/202609/xxx.md
     mkdirSync(join(dir, "202609"), { recursive: true })
     writeFileSync(join(dir, "202609", "20260904-唐启云-漏层任务.md"), header, "utf8")

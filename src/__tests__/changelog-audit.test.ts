@@ -14,7 +14,7 @@ afterEach(() => {
 
 // 造变更集目录
 function changesetDir(files: Record<string, string>): string {
-  const dir = mkdtempSync(join(tmpdir(), "tk-audit-"))
+  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-audit-"))
   tempDirs.push(dir)
   const changeset = join(dir, ".changeset")
   mkdirSync(changeset, { recursive: true })

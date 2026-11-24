@@ -15,7 +15,7 @@ afterEach(() => {
 
 // 构造带 .toolkitrc.json 的临时目录并进入（结束后恢复 cwd）
 function enterCfgDir(cfg: string): string {
-  const dir = mkdtempSync(join(tmpdir(), "tk-redact-"))
+  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-redact-"))
   writeFileSync(join(dir, ".toolkitrc.json"), cfg, "utf8")
   process.chdir(dir)
   resetToolkitConfigCache()
