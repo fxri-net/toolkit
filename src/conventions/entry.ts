@@ -3,7 +3,7 @@
 import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { readTextFile } from "../read-text"
-import { ENTRY_MARKER, ENTRY_VERSION, readEntryVersion } from "./format"
+import { compareEntryVersion, ENTRY_MARKER, ENTRY_VERSION, entryVersionText, readEntryVersion, type EntryVersion } from "./format"
 
 // 入口壳名：与目录名同名（Agent Skills 标准要求 frontmatter 的 name 与父目录一致），带 toolkit 前缀以区分来源
 export const ENTRY_SHELL_NAME = "toolkit-conventions"
@@ -42,10 +42,12 @@ export const AGENTS_POINTER_START = "<!-- toolkit-conventions-pointer:start -->"
 export const AGENTS_POINTER_END = "<!-- toolkit-conventions-pointer:end -->"
 
 // 入口壳现场：dir / file 均为仓库根相对路径（统一 / 分隔），version 取自壳内标记（null 表无标记）
+// textStale 表示正文与当前模板逐字比对不一致——文案漂移不抬版本时靠它发现
 export interface EntryShell {
   dir: string
   file: string
-  version: number | null
+  version: EntryVersion | null
+  textStale: boolean
 }
 
 // 入口壳告警：file 为仓库根相对路径（供 check 定位跳转），message 内联全部落点路径
@@ -88,7 +90,8 @@ export function findEntryShells(cwd: string): EntryShell[] {
     const dir = `${rel}/${ENTRY_SHELL_NAME}`
     const file = `${dir}/${SKILL_ENTRY}`
     if (!existsSync(join(cwd, file))) continue
-    shells.push({ dir, file, version: readEntryVersion(readTextFile(join(cwd, file))) })
+    const content = readTextFile(join(cwd, file))
+    shells.push({ dir, file, version: readEntryVersion(content), textStale: content !== buildEntryShell() })
   }
   return shells
 }
@@ -99,18 +102,34 @@ export function findEntryShells(cwd: string): EntryShell[] {
 export function mismatchedShellAlert(shells: EntryShell[]): EntryShellAlert | null {
   const [first] = shells
   if (!first) return null
-  const mark = (s: EntryShell) => (s.version === null ? "无" : `v${s.version}`)
+  const mark = (s: EntryShell) => (s.version === null ? "无" : entryVersionText(s.version))
   if (shells.length === 1) {
     return {
       file: first.file,
-      message: `入口壳标记 ${mark(first)}，与当前 toolkit 的 v${ENTRY_VERSION} 不一致：重跑 toolkit task init 可补齐`,
+      message: `入口壳标记 ${mark(first)}，与当前 toolkit 的 ${entryVersionText(ENTRY_VERSION)} 不一致：重跑 toolkit task init 可补齐`,
     }
   }
   const list = shells.map((s) => `${s.file}（标记 ${mark(s)}）`).join("、")
   return {
     file: first.file,
-    message: `入口壳标记与当前 toolkit 的 v${ENTRY_VERSION} 不一致，共 ${shells.length} 处：${list}；重跑 toolkit task init 可一次性补齐`,
+    message: `入口壳标记与当前 toolkit 的 ${entryVersionText(ENTRY_VERSION)} 不一致，共 ${shells.length} 处：${list}；重跑 toolkit task init 可一次性补齐`,
   }
+}
+
+// 正文漂移告警：标记版本一致但正文与模板不同（文案改过却未抬版本时才会出现），与版本告警分开报，避免双重刷屏
+export function staleShellAlert(shells: EntryShell[]): EntryShellAlert | null {
+  const [first] = shells
+  if (!first) return null
+  if (shells.length === 1) {
+    return { file: first.file, message: `入口壳 ${first.file} 正文与当前模板不一致：重跑 toolkit task init 可补齐` }
+  }
+  const list = shells.map((s) => s.file).join("、")
+  return { file: first.file, message: `入口壳正文与当前模板不一致，共 ${shells.length} 处：${list}；重跑 toolkit task init 可一次性补齐` }
+}
+
+// 判壳版本是否与当前一致（供 check / status 复用同一判据）
+export function isCurrentEntryVersion(shell: EntryShell): boolean {
+  return shell.version !== null && compareEntryVersion(shell.version, ENTRY_VERSION) === 0
 }
 
 // gitignore 覆盖告警：同样多落点合并为一条并内联路径（单壳时也写路径，保证与 status 文案逐字一致）

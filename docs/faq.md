@@ -260,7 +260,7 @@ v2 有标记与稳定 ID 但无归档面，v1 连标记都没有。
 它是在**已存在的**项目级技能目录（如 `.agents/skills/toolkit-conventions/SKILL.md`）生成的**只作入口、不承载条文**的小技能壳。
 多个候选目录并存时每处各写一份，一个都不存在则回落 `.agents/skills/`；壳让 AI 在项目里能按需发现 `.tasks/conventions/` 载体，正文指回 `index.md`。
 它属侵入性写入，`init` 会逐项报告实际动作。落点被 `.gitignore` 覆盖时报告会提示（**不代改 `.gitignore`**），因为那样壳不会随 git 分发。
-不需要可直接删除，重跑 `init` 会补回；壳标记落后于当前 toolkit 时，重跑 `init` 会就地更新为当前版本。
+不需要可直接删除，重跑 `init` 会补回；壳标记落后于当前 toolkit、或标记一致但正文与模板不同时，重跑 `init` 都会就地更新为当前版本。
 
 ⚠️ 若只是某条旧规范过时（不换形态），走内容修订而非迁移：语义变更先在 `history.md` 留痕、再更新索引行；作废则迁入 `retired.md` 并删分册条文。
 口径见[完整攻略 · conventions/](./guide#conventions-规范沉淀地)，场景说法见[操作手册 · 规范载体迁移](./handbook#四、规范载体迁移)。

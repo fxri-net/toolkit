@@ -7,7 +7,6 @@ import { filledTableLines, listMarkdownFiles } from "./compact"
 import {
   CONVENTIONS_DIR,
   ENDPOINT_ANCHOR_HEADER,
-  ENTRY_VERSION,
   HISTORY_ANCHOR_HEADER,
   HISTORY_FILE,
   ID_HEADER,
@@ -28,7 +27,7 @@ import {
   type ConventionsForm,
 } from "./format"
 import { detectShapeDefects } from "./shape"
-import { findEntryShells, ignoredShellAlert, isToolkitSourceRepo, mismatchedShellAlert, type EntryShell } from "./entry"
+import { findEntryShells, ignoredShellAlert, isCurrentEntryVersion, isToolkitSourceRepo, mismatchedShellAlert, staleShellAlert, type EntryShell } from "./entry"
 import { gitIgnoredSet } from "../git-ignore"
 
 // 体检项：level 只分「待处理（warn）」与「提示（info）」，info 不计入问题数
@@ -39,9 +38,12 @@ export interface ConventionsStatusItem {
 }
 
 // 入口壳现场 + 是否被 git 忽略（被忽略的壳不会随 git 分发，等于只在生成者本机生效）
+// version 为主版本（保持既有 JSON 契约），minor 为次版本，textStale 表正文与当前模板不一致
 export interface EntryShellState {
   file: string
   version: number | null
+  minor: number
+  textStale: boolean
   ignored: boolean
 }
 
@@ -264,14 +266,23 @@ function checkEntryLayer(cwd: string, items: ConventionsStatusItem[]): EntryShel
   // 一次批量判定全部落点的 gitignore 状态，避免逐壳各起一个 git 子进程
   const ignored = gitIgnoredSet(cwd, shells.map((s) => s.file))
   const mismatchedShells: EntryShell[] = []
+  const staleShells: EntryShell[] = []
   const ignoredShells: EntryShell[] = []
   const states = shells.map((shell) => {
     const isIgnored = ignored.has(shell.file)
-    if (shell.version !== ENTRY_VERSION) mismatchedShells.push(shell)
+    // 版本不一致与正文漂移分开报：版本落后时正文必然也不同，双报只会刷屏
+    if (!isCurrentEntryVersion(shell)) mismatchedShells.push(shell)
+    else if (shell.textStale) staleShells.push(shell)
     if (isIgnored) ignoredShells.push(shell)
-    return { file: shell.file, version: shell.version, ignored: isIgnored }
+    return {
+      file: shell.file,
+      version: shell.version?.major ?? null,
+      minor: shell.version?.minor ?? 0,
+      textStale: shell.textStale,
+      ignored: isIgnored,
+    }
   })
-  for (const alert of [mismatchedShellAlert(mismatchedShells), ignoredShellAlert(ignoredShells)]) {
+  for (const alert of [mismatchedShellAlert(mismatchedShells), staleShellAlert(staleShells), ignoredShellAlert(ignoredShells)]) {
     if (alert) items.push({ level: "warn", scope: "入口层", message: alert.message })
   }
   if (shells.length === 0) {

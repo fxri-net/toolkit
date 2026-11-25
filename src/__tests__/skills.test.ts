@@ -6,7 +6,7 @@ import { tmpdir } from "node:os"
 import { join, normalize } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { removeArtifact } from "../skills/source/artifact"
-import { CARRIER_VERSION, ENTRY_VERSION } from "../conventions/format"
+import { CARRIER_VERSION, ENTRY_VERSION, entryVersionText } from "../conventions/format"
 import {
   AGENT_SKILL_DIRS,
   LEGACY_SKILL_DIRS,
@@ -316,9 +316,9 @@ describe("技能作者侧核对清单项门禁", () => {
           carrierHits += 1
           expect(Number(matched[1]), `${skill.name}/${doc} 的载体标记版本与 CARRIER_VERSION 不一致`).toBe(CARRIER_VERSION)
         }
-        for (const matched of content.matchAll(/<!--\s*toolkit-conventions-entry:\s*v(\d+)\s*-->/g)) {
+        for (const matched of content.matchAll(/<!--\s*toolkit-conventions-entry:\s*v(\d+(?:\.\d+)?)\s*-->/g)) {
           entryHits += 1
-          expect(Number(matched[1]), `${skill.name}/${doc} 的入口壳标记版本与 ENTRY_VERSION 不一致`).toBe(ENTRY_VERSION)
+          expect(`v${matched[1]}`, `${skill.name}/${doc} 的入口壳标记版本与 ENTRY_VERSION 不一致`).toBe(entryVersionText(ENTRY_VERSION))
         }
       }
     }

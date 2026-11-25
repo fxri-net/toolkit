@@ -3,9 +3,9 @@ import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { readTextFile } from "../read-text"
 import { resolveLocalConfigPath } from "../config"
-import { CARRIER_VERSION, CONVENTIONS_DIR, ENTRY_VERSION, HISTORY_ANCHOR_HEADER, HISTORY_FILE, ID_HEADER, INDEX_FILE, LEGACY_FILE, canonicalId, findTable, isIdCell, isPaddedIdCell, readCarrier, type CarrierState } from "../conventions/format"
+import { CARRIER_VERSION, CONVENTIONS_DIR, HISTORY_ANCHOR_HEADER, HISTORY_FILE, ID_HEADER, INDEX_FILE, LEGACY_FILE, canonicalId, findTable, isIdCell, isPaddedIdCell, readCarrier, type CarrierState } from "../conventions/format"
 import { detectShapeDefects } from "../conventions/shape"
-import { findEntryShells, ignoredShellAlert, mismatchedShellAlert } from "../conventions/entry"
+import { findEntryShells, ignoredShellAlert, isCurrentEntryVersion, mismatchedShellAlert, staleShellAlert } from "../conventions/entry"
 import { resolveCarrierRoot } from "../conventions/status"
 import { filledTableLines, listMarkdownFiles } from "../conventions/compact"
 import { gitIgnoredSet, inspectLocalConfigIgnore } from "../git-ignore"
@@ -75,7 +75,8 @@ export function validateConventions(tasksDir: string, cwd: string): CheckIssue[]
   // 一次批量判定全部落点的 gitignore 状态，避免逐壳各起一个 git 子进程
   const ignored = gitIgnoredSet(carrierRoot, shells.map((s) => s.file))
   const alerts = [
-    mismatchedShellAlert(shells.filter((s) => s.version !== ENTRY_VERSION)),
+    mismatchedShellAlert(shells.filter((s) => !isCurrentEntryVersion(s))),
+    staleShellAlert(shells.filter((s) => isCurrentEntryVersion(s) && s.textStale)),
     ignoredShellAlert(shells.filter((s) => ignored.has(s.file))),
   ]
   for (const alert of alerts) {

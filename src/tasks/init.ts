@@ -15,6 +15,8 @@ import {
   INDEX_TABLE_LINES,
   INDEX_TITLE,
   LEGACY_FILE,
+  compareEntryVersion,
+  entryVersionText,
   readCarrier,
   readEntryVersion,
 } from "../conventions/format"
@@ -426,19 +428,24 @@ function scaffoldEntryLayer(cwd: string, dryRun: boolean): InitProduct[] {
     assertCreatable(cwd, dir, "技能入口壳")
     const ignoredHere = ignored.has(rel)
     if (existsSync(file)) {
-      const version = readEntryVersion(readTextFile(file))
-      // 标记不旧于当前版本：保持不动（标记超前说明壳由更新版 toolkit 生成，本版不降级覆盖）
-      if (version !== null && version >= ENTRY_VERSION) {
+      const content = readTextFile(file)
+      const version = readEntryVersion(content)
+      const cmp = version === null ? -1 : compareEntryVersion(version, ENTRY_VERSION)
+      // 标记更新说明壳由更新版 toolkit 生成，本版不降级覆盖；同版本但正文与模板不一致（文案改过未抬版本）则就地重写
+      if (cmp > 0 || (cmp === 0 && content === buildEntryShell())) {
         const product: InitProduct = {
           target: rel,
           action: "kept",
-          detail: version === ENTRY_VERSION ? "已存在，标记版本一致，保持不变" : `已存在，标记 v${version} 较当前 v${ENTRY_VERSION} 更新，保持不变（不降级覆盖）`,
+          detail:
+            cmp > 0
+              ? `已存在，标记 ${entryVersionText(version!)} 较当前 ${entryVersionText(ENTRY_VERSION)} 更新，保持不变（不降级覆盖）`
+              : "已存在，标记与正文均与当前模板一致，保持不变",
         }
         if (ignoredHere) product.hint = gitHint
         products.push(product)
         continue
       }
-      // 标记缺失或落后：就地重写为当前版本壳，兑现「重跑 toolkit task init 即可补齐」
+      // 标记缺失、落后或正文漂移：就地重写为当前版本壳，兑现「重跑 toolkit task init 即可补齐」
       if (!dryRun) {
         mkdirSync(dir, { recursive: true })
         writeFileAtomic(file, buildEntryShell())
@@ -446,7 +453,12 @@ function scaffoldEntryLayer(cwd: string, dryRun: boolean): InitProduct[] {
       const product: InitProduct = {
         target: rel,
         action: "updated",
-        detail: version === null ? `无标记，已就地更新为 v${ENTRY_VERSION}` : `标记 v${version} 落后，已就地更新为 v${ENTRY_VERSION}`,
+        detail:
+          version === null
+            ? `无标记，已就地更新为 ${entryVersionText(ENTRY_VERSION)}`
+            : cmp < 0
+              ? `标记 ${entryVersionText(version)} 落后，已就地更新为 ${entryVersionText(ENTRY_VERSION)}`
+              : "标记版本一致但正文与模板不一致，已就地重写",
       }
       if (ignoredHere) product.hint = gitHint
       products.push(product)

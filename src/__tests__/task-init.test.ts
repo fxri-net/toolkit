@@ -9,7 +9,7 @@ import { isIgnoredByRules } from "../git-ignore"
 import { todayCompact } from "../date"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { skillsStateFile } from "../skills"
-import { CARRIER_MARKER, ENTRY_MARKER, ENTRY_VERSION, HISTORY_TABLE_HEADER, HISTORY_TITLE, INDEX_TABLE_LINES } from "../conventions/format"
+import { CARRIER_MARKER, ENTRY_MARKER, ENTRY_VERSION, HISTORY_TABLE_HEADER, HISTORY_TITLE, INDEX_TABLE_LINES, entryVersionText } from "../conventions/format"
 import { AGENTS_POINTER_END, AGENTS_POINTER_START, ENTRY_SHELL_NAME, FALLBACK_SKILL_DIR, SKILL_ENTRY } from "../conventions/entry"
 
 // 临时目录中执行 init 并清理
@@ -219,24 +219,31 @@ describe("initWorkspace 技能入口层", () => {
     const writeShell = (body: string) => writeFileSync(shellFile, `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n${body}\n`, "utf8")
 
     // 标记落后一版：就地更新为当前版本，并如实报「更新」而非「保持」——否则告警里的「重跑 init 可补齐」是空头承诺
-    writeShell(`<!-- toolkit-conventions-entry: v${ENTRY_VERSION - 1} -->\n人工补充的壳内容`)
+    writeShell(`<!-- toolkit-conventions-entry: v1.0 -->\n人工补充的壳内容`)
     const stale = initWorkspace(".tasks", cwd).products.find((p) => p.target === rel)
     expect(stale?.action).toBe("updated")
-    expect(stale?.detail).toContain(`已就地更新为 v${ENTRY_VERSION}`)
+    expect(stale?.detail).toContain(`已就地更新为 ${entryVersionText(ENTRY_VERSION)}`)
     expect(readFileSync(shellFile, "utf8")).toContain(ENTRY_MARKER)
 
     // 无标记壳（锚点改造前生成）：同样就地补上标记
     writeShell("无标记壳")
     const unmarked = initWorkspace(".tasks", cwd).products.find((p) => p.target === rel)
     expect(unmarked?.action).toBe("updated")
-    expect(unmarked?.detail).toContain(`无标记，已就地更新为 v${ENTRY_VERSION}`)
+    expect(unmarked?.detail).toContain(`无标记，已就地更新为 ${entryVersionText(ENTRY_VERSION)}`)
+
+    // 标记一致但正文被改过（文案漂移未抬版本）：仍就地重写为当前模板
+    writeShell(`${ENTRY_MARKER}\n人工改过的旧文案`)
+    const drifted = initWorkspace(".tasks", cwd).products.find((p) => p.target === rel)
+    expect(drifted?.action).toBe("updated")
+    expect(drifted?.detail).toContain("正文与模板不一致")
+    expect(readFileSync(shellFile, "utf8")).toContain("由 toolkit task init 生成")
 
     // 标记超前（壳由更新版 toolkit 生成）：不降级覆盖，如实报告保持
-    writeShell(`<!-- toolkit-conventions-entry: v${ENTRY_VERSION + 1} -->\n更新版壳内容`)
+    writeShell(`<!-- toolkit-conventions-entry: v9.9 -->\n更新版壳内容`)
     const ahead = initWorkspace(".tasks", cwd).products.find((p) => p.target === rel)
     expect(ahead?.action).toBe("kept")
     expect(ahead?.detail).toContain("不降级覆盖")
-    expect(readFileSync(shellFile, "utf8")).toContain(`v${ENTRY_VERSION + 1}`)
+    expect(readFileSync(shellFile, "utf8")).toContain("v9.9")
   })
 
   it("AGENTS.md 不存在时不新建，指针块记为跳过并提示全局技能仍可触达", () => {

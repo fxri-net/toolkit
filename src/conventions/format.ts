@@ -11,16 +11,31 @@ export const HISTORY_FILE = "history.md"
 export const RETIRED_FILE = "retired.md"
 export const LEGACY_FILE = "conventions.md"
 
-// 载体结构版本与入口壳结构版本各自独立编号，仅破坏性结构变更时 +1
+// 载体结构版本与入口壳结构版本各自独立编号：载体仅破坏性结构变更时 +1
 export const CARRIER_VERSION = 3
-export const ENTRY_VERSION = 2
+// 入口壳标记版本为两段式：正文文案变更抬次版本、结构或协议变更抬主版本
+export interface EntryVersion {
+  major: number
+  minor: number
+}
+export const ENTRY_VERSION: EntryVersion = { major: 2, minor: 1 }
+
+// 版本文本：两段式固定主.次（v2.1），便于旧壳与新壳统一比较与展示
+export function entryVersionText(version: EntryVersion): string {
+  return `v${version.major}.${version.minor}`
+}
+
+// 版本比较：主版本优先，其次次版本；任一侧不可解析按 0.0 处理
+export function compareEntryVersion(left: EntryVersion, right: EntryVersion): number {
+  return left.major - right.major || left.minor - right.minor
+}
 
 // 形态标记：载体标记置 index.md 首行，入口壳标记随 frontmatter 之后（Agent Skills 标准要求 frontmatter 置顶）
 export const CARRIER_MARKER = `<!-- toolkit-conventions: v${CARRIER_VERSION} -->`
-export const ENTRY_MARKER = `<!-- toolkit-conventions-entry: v${ENTRY_VERSION} -->`
+export const ENTRY_MARKER = `<!-- toolkit-conventions-entry: ${entryVersionText(ENTRY_VERSION)} -->`
 
 export const CARRIER_MARKER_RE = /<!--\s*toolkit-conventions:\s*v(\d+)\s*-->/
-const ENTRY_MARKER_RE = /<!--\s*toolkit-conventions-entry:\s*v(\d+)\s*-->/
+const ENTRY_MARKER_RE = /<!--\s*toolkit-conventions-entry:\s*v(\d+(?:\.\d+)?)\s*-->/
 
 // 索引表列头：`ID` 表 v2/v3 稳定标识，`#` 表 v1 序号；`当前语义` 为表格定位锚（v1/v2/v3 共有）
 export const ID_HEADER = "ID"
@@ -156,10 +171,13 @@ export function readCarrierVersion(content: string): number | null {
   return firstLineMarkerVersion(content, CARRIER_MARKER_RE)
 }
 
-// 读入口壳标记版本：壳首部为 frontmatter，标记退居其后，故全文件扫描
-export function readEntryVersion(content: string): number | null {
+// 读入口壳标记版本：壳首部为 frontmatter，标记退居其后，故全文件扫描；两段式标记解析为主 / 次两条
+export function readEntryVersion(content: string): EntryVersion | null {
   const m = ENTRY_MARKER_RE.exec(content)
-  return m ? Number(m[1]) : null
+  if (!m) return null
+  const text = m[1] ?? ""
+  const [major, minor] = text.split(".")
+  return { major: Number(major), minor: Number(minor ?? 0) }
 }
 
 // 收集载体存在性与首行标记（不解析内容，供 check 等只读场景复用）

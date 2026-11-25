@@ -6,8 +6,8 @@ import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { validateTasks } from "../tasks/validate"
-import { CARRIER_MARKER, ENTRY_MARKER, ENTRY_VERSION, HISTORY_TABLE_HEADER, HISTORY_TITLE, INDEX_TABLE_LINES, idOf } from "../conventions/format"
-import { ENTRY_SHELL_NAME, SKILL_ENTRY } from "../conventions/entry"
+import { CARRIER_MARKER, HISTORY_TABLE_HEADER, HISTORY_TITLE, INDEX_TABLE_LINES, idOf } from "../conventions/format"
+import { buildEntryShell, ENTRY_SHELL_NAME, SKILL_ENTRY } from "../conventions/entry"
 
 const warnTexts = (dir: string, cwd?: string) => validateTasks(dir, cwd).issues.filter((i) => i.level === "warn").map((i) => i.message)
 
@@ -132,15 +132,15 @@ describe("入口壳告警", () => {
       mkdirSync(target, { recursive: true })
       writeFileSync(join(target, SKILL_ENTRY), content, "utf8")
     }
-    writeShell(".trae/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n<!-- toolkit-conventions-entry: v${ENTRY_VERSION - 1} -->\n`)
+    writeShell(".trae/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n<!-- toolkit-conventions-entry: v1.0 -->\n`)
     writeShell(".windsurf/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n无标记壳\n`)
-    writeShell(".claude/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n${ENTRY_MARKER}\n`)
+    writeShell(".claude/skills", buildEntryShell())
 
     const warns = warnTexts(dir, cwd)
     const versionWarns = warns.filter((m) => m.includes("入口壳标记与当前 toolkit"))
     expect(versionWarns).toHaveLength(1)
     expect(versionWarns[0]).toContain("共 2 处")
-    expect(versionWarns[0]).toContain(`.trae/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 v${ENTRY_VERSION - 1}）`)
+    expect(versionWarns[0]).toContain(`.trae/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 v1.0）`)
     expect(versionWarns[0]).toContain(`.windsurf/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 无）`)
     // 版本一致的壳不进告警
     expect(versionWarns[0]).not.toContain(".claude/skills")
@@ -156,10 +156,10 @@ describe("入口壳告警", () => {
     mkdirSync(join(dir, "active"), { recursive: true })
     const target = join(cwd, ".trae", "skills", ENTRY_SHELL_NAME)
     mkdirSync(target, { recursive: true })
-    writeFileSync(join(target, SKILL_ENTRY), `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n<!-- toolkit-conventions-entry: v${ENTRY_VERSION - 1} -->\n`, "utf8")
+    writeFileSync(join(target, SKILL_ENTRY), `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n<!-- toolkit-conventions-entry: v1.0 -->\n`, "utf8")
 
     const warns = warnTexts(dir, cwd)
-    expect(warns.filter((m) => m.includes(`入口壳标记 v${ENTRY_VERSION - 1}，与当前 toolkit`))).toHaveLength(1)
+    expect(warns.filter((m) => m.includes(`入口壳标记 v1.0，与当前 toolkit`))).toHaveLength(1)
     rmSync(dir, { recursive: true, force: true })
     rmSync(cwd, { recursive: true, force: true })
   })
@@ -188,7 +188,7 @@ describe("入口壳告警", () => {
     writeFileSync(join(cwd, ".gitignore"), ".trae/skills/\n", "utf8")
     const target = join(cwd, ".trae", "skills", ENTRY_SHELL_NAME)
     mkdirSync(target, { recursive: true })
-    writeFileSync(join(target, SKILL_ENTRY), `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n${ENTRY_MARKER}\n`, "utf8")
+    writeFileSync(join(target, SKILL_ENTRY), buildEntryShell(), "utf8")
 
     const warns = warnTexts(dir, cwd)
     const ignored = warns.filter((m) => m.includes("被 gitignore 覆盖"))

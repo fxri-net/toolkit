@@ -1,0 +1,13 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`入口壳模板 > 正文与快照一致；改正文请运行 pnpm bump:entry-version 1`] = `
+"---
+name: toolkit-conventions
+description: 本项目协作规范入口。当需要查阅或遵循本项目沉淀的协作规范、判断某条规范如何落地、或新增与修订规范时使用。
+---
+
+<!-- toolkit-conventions-entry: v<version> -->
+<!-- 由 toolkit task init 生成，可安全删除；需要时重跑 toolkit task init 即可补齐 -->
+本技能只是入口，不承载条文：读本项目任务区（默认 \`.tasks\`，已配置 \`task.dir\` 时按配置声明）下的 \`conventions/index.md\`，按其「用法说明」节执行；条文以各文件的单一事实源为准。
+"
+`;

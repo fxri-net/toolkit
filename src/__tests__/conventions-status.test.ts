@@ -9,7 +9,6 @@ import { conventionsStatus, resolveCarrierRoot, SEMANTIC_MAX_CHARS } from "../co
 import {
   CARRIER_MARKER,
   CARRIER_VERSION,
-  ENTRY_MARKER,
   ENTRY_VERSION,
   HISTORY_TABLE_HEADER,
   HISTORY_FILE,
@@ -27,7 +26,7 @@ import {
   SOURCE_HEADER,
   idOf,
 } from "../conventions/format"
-import { ENTRY_SHELL_NAME, SKILL_ENTRY } from "../conventions/entry"
+import { buildEntryShell, ENTRY_SHELL_NAME, SKILL_ENTRY } from "../conventions/entry"
 
 // 各用例独立建临时目录，结束后统一清理
 const dirs: string[] = []
@@ -406,7 +405,7 @@ describe("入口层体检", () => {
     const root = makeDir("fxts-tk-status-shellver-")
     const cwd = makeDir("fxts-tk-status-shellver-cwd-")
     makeCarrier(root, cleanRows)
-    writeShell(cwd, ".trae/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n<!-- toolkit-conventions-entry: v${ENTRY_VERSION - 1} -->\n`)
+    writeShell(cwd, ".trae/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n<!-- toolkit-conventions-entry: v1.0 -->\n`)
     writeShell(cwd, ".windsurf/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n无标记壳\n`)
 
     const report = conventionsStatus(root, cwd)
@@ -414,7 +413,7 @@ describe("入口层体检", () => {
     const versionItems = report.items.filter((i) => i.message.includes("入口壳标记与当前 toolkit"))
     expect(versionItems).toHaveLength(1)
     expect(versionItems[0]!.message).toContain("共 2 处")
-    expect(versionItems[0]!.message).toContain(`.trae/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 v${ENTRY_VERSION - 1}）`)
+    expect(versionItems[0]!.message).toContain(`.trae/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 v1.0）`)
     expect(versionItems[0]!.message).toContain(`.windsurf/skills/${ENTRY_SHELL_NAME}/${SKILL_ENTRY}（标记 无）`)
     expect(report.summary).toContain("1 项待处理")
   })
@@ -426,7 +425,9 @@ describe("入口层体检", () => {
     makeCarrier(root, cleanRows)
     execSync("git init -q", { cwd })
     writeFileSync(join(cwd, ".gitignore"), ".trae/skills/\n", "utf8")
-    writeShell(cwd, ".trae/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n${ENTRY_MARKER}\n`)
+    // 写完整模板正文：只写标记会同时命中「正文与模板不一致」
+    mkdirSync(join(cwd, ".trae", "skills", ENTRY_SHELL_NAME), { recursive: true })
+    writeFileSync(join(cwd, ".trae", "skills", ENTRY_SHELL_NAME, SKILL_ENTRY), buildEntryShell(), "utf8")
 
     const report = conventionsStatus(root, cwd)
     expect(report.shells.filter((s) => s.ignored)).toHaveLength(1)
@@ -441,10 +442,12 @@ describe("入口层体检", () => {
     const root = makeDir("fxts-tk-status-shellok-")
     const cwd = makeDir("fxts-tk-status-shellok-cwd-")
     makeCarrier(root, cleanRows)
-    writeShell(cwd, ".trae/skills", `---\nname: ${ENTRY_SHELL_NAME}\n---\n\n${ENTRY_MARKER}\n`)
+    // 写完整模板正文：标记一致但正文不同会被判为「正文与模板不一致」
+    mkdirSync(join(cwd, ".trae", "skills", ENTRY_SHELL_NAME), { recursive: true })
+    writeFileSync(join(cwd, ".trae", "skills", ENTRY_SHELL_NAME, SKILL_ENTRY), buildEntryShell(), "utf8")
 
     const report = conventionsStatus(root, cwd)
-    expect(report.shells.filter((s) => s.version === ENTRY_VERSION)).toHaveLength(1)
+    expect(report.shells.filter((s) => s.version === ENTRY_VERSION.major && s.minor === ENTRY_VERSION.minor)).toHaveLength(1)
     expect(report.shells.filter((s) => s.ignored)).toEqual([])
     expect(report.items.filter((i) => i.scope === "入口层")).toEqual([])
     expect(report.warnings).toBe(0)

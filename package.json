@@ -64,6 +64,7 @@
     "changeset": "changeset",
     "sync:changelog-doc": "node dist/cli.js release mirror",
     "sync:docs-rules": "node scripts/generate-docs-rules.mjs",
+    "bump:entry-version": "node scripts/bump-entry-version.mjs",
     "docs:dev": "pnpm sync:docs-rules && vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
