@@ -1,5 +1,10 @@
 {
   "privacy": {
     "localPaths": "error"
+  },
+  "docs": {
+    "titles": {
+      "extraFiles": ["README.md"]
+    }
   }
 }

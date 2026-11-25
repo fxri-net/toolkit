@@ -342,6 +342,8 @@ const tailSteps = [
   { label: "文档无损（整句比对）", args: ["scripts/check-doc-loss.mjs"] },
   // 导航校验读 docs/site-nav.json，规则随包分发（不依赖文档构建产物）
   { label: "文档站导航规范（结构 / 命名 / 顶栏 / 侧栏）", args: ["dist/cli.js", "docs", "nav", "check"], env: cliEnv },
+  // 标题与索引校验由产品命令承担：页面 title/H1 与目录表文案同源，不再在 check-consistency 内复刻
+  { label: "文档站标题与索引（title/H1 与目录表文案）", args: ["dist/cli.js", "docs", "titles", "check"], env: cliEnv },
   // 镜像校验依赖 dist/cli.js，须置于构建之后；仅本仓自举产物，不依赖全局工具
   { label: "CHANGELOG 镜像一致（release mirror --check）", args: ["dist/cli.js", "release", "mirror", "--check"], env: cliEnv },
   // 产物断言依赖上一步 dist 与文档构建，跳过文档构建时一并跳过

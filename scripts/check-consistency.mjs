@@ -457,20 +457,6 @@ if (existsSync(join(root, "docs", "cli.md"))) {
   }
 }
 
-// 页面命名：声明了 frontmatter title 的页面须与首个 H1 逐字一致；配置分页索引文案须等于目标页标题
-// 只比对原文，不模拟 VitePress 的标题推导（未声明 title 的页面以 H1 为准，不强制补 frontmatter）
-function docPages(dir) {
-  const files = []
-  const skip = new Set(["node_modules", "cache", "public", ".vitepress"])
-  for (const entry of readdirSync(join(root, dir), { withFileTypes: true })) {
-    if (skip.has(entry.name)) continue
-    const rel = `${dir}/${entry.name}`
-    if (entry.isDirectory()) files.push(...docPages(rel))
-    else if (entry.name.endsWith(".md")) files.push(rel)
-  }
-  return files
-}
-
 // 首个一级标题：跳过 frontmatter 与 fenced 代码块，剥掉行内 HTML 锚点
 function firstH1(file) {
   const lines = read(file).split("\n")
@@ -507,48 +493,6 @@ function pageTitle(file) {
 }
 
 if (existsSync(join(root, "docs"))) {
-  for (const file of docPages("docs")) {
-    const text = read(file)
-    const declared = pageFrontmatterValue(text, "title")
-    if (!declared) continue
-    // 首页用 layout: home，没有正文 H1，title 由 frontmatter 单独承载
-    if (pageFrontmatterValue(text, "layout") === "home") continue
-    const h1 = firstH1(file)
-    if (!h1) errors.push(`${file} 声明了 frontmatter title 但缺少一级标题`)
-    else if (declared !== h1) errors.push(`${file} 的 title「${declared}」与一级标题「${h1}」不一致`)
-  }
-
-  // 目录表（文档索引 / 规则表 / 配置分页）的链接文案须等于目标页标题，与行内引用（用显示名）区分
-  function checkIndexLabels(file, heading, baseDir) {
-    const section = new RegExp(`## ${heading}\\n([\\s\\S]*?)\\n## `).exec(read(file))?.[1] ?? ""
-    if (!section) {
-      errors.push(`${file} 缺少「${heading}」小节`)
-      return
-    }
-    for (const matched of section.matchAll(/\[([^\]]+)\]\(([^)\s]+)\)/g)) {
-      const label = matched[1]
-      const href = matched[2]
-      // 外链与纯锚点不是站内页面，不参与标题比对
-      if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("#")) continue
-      const rel = join(baseDir, href.split("#")[0]).replace(/\\/g, "/")
-      // 目录与同名 .md 并存时取页面文件，避免把目录当页面读取
-      const page = [`${rel}.md`, `${rel}/index.md`, rel].find(
-        (candidate) => existsSync(join(root, candidate)) && statSync(join(root, candidate)).isFile(),
-      )
-      if (!page) {
-        errors.push(`${file} 的索引 ${href} 指向不存在的页面`)
-        continue
-      }
-      const title = pageTitle(page)
-      if (label !== title) errors.push(`${file} 的索引文案「${label}」≠ 目标页标题「${title}」（${page}）`)
-    }
-  }
-
-  if (existsSync(join(root, "docs", "config.md"))) checkIndexLabels("docs/config.md", "配置分页", "docs")
-  if (existsSync(join(root, "README.md"))) checkIndexLabels("README.md", "📚 文档", ".")
-  if (existsSync(join(root, "docs", "index.md"))) checkIndexLabels("docs/index.md", "文档索引", "docs")
-  if (existsSync(join(root, "docs", "rules", "index.md"))) checkIndexLabels("docs/rules/index.md", "整篇规则", "docs/rules")
-
   // 能力矩阵：行首「显示名（标识）」按标识定位 docs/cli/<标识>.md，文案须等于该页标题
   // 多页域（docs）、非页面能力（隐私脱敏 / Node API）与无标识行无法唯一定位，跳过
   function checkCapabilityMatrix(file, heading) {
