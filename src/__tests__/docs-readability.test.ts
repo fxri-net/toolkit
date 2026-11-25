@@ -63,7 +63,11 @@ describe("文档可读性检查：正文阈值", () => {
 describe("文档可读性检查：基线语义", () => {
   it("无基线文件时违规即阻断", () => {
     const root = createFixture({ "docs/long.md": `${"a".repeat(130)}\n` })
-    expect(run(root).status).toBe(1)
+    const result = run(root)
+    expect(result.status).toBe(1)
+    // 报错逐项标出阈值，长度超限可直接定位，不会与分号数混淆
+    expect(result.stderr).toContain(`长度 130（上限 120）`)
+    expect(result.stderr).toContain("分号 0（上限 2）")
   })
 
   it("基线按文件允许行数放行时退出 0", () => {

@@ -127,7 +127,11 @@ export function evaluate(counted, baseline) {
     const allowed = baseline[file] ?? 0
     if (violations.length <= allowed) continue
     for (const item of violations) {
-      failures.push(`${file}:${item.line} 长度 ${item.length} / 分号 ${item.semicolons}（允许行数 ${allowed}，实测 ${violations.length}）`)
+      // 逐项标出各自阈值：长度与分号并排时，任何一项超限都能直接看出该改哪个
+      failures.push(
+        `${file}:${item.line} 长度 ${item.length}（上限 ${MAX_CHARS}）/ 分号 ${item.semicolons}（上限 ${MAX_SEMICOLONS}）` +
+          `；该文件基线允许 ${allowed} 条、实际 ${violations.length} 条`,
+      )
     }
   }
   const stale = Object.keys(baseline).filter((file) => !counted.has(file))
