@@ -549,6 +549,26 @@ if (existsSync(join(root, "docs"))) {
   if (existsSync(join(root, "docs", "index.md"))) checkIndexLabels("docs/index.md", "文档索引", "docs")
   if (existsSync(join(root, "docs", "rules", "index.md"))) checkIndexLabels("docs/rules/index.md", "整篇规则", "docs/rules")
 
+  // 能力矩阵：行首「显示名（标识）」按标识定位 docs/cli/<标识>.md，文案须等于该页标题
+  // 多页域（docs）、非页面能力（隐私脱敏 / Node API）与无标识行无法唯一定位，跳过
+  function checkCapabilityMatrix(file, heading) {
+    const section = new RegExp(`## ${heading}\\n([\\s\\S]*?)\\n## `).exec(read(file))?.[1] ?? ""
+    if (!section) return
+    for (const line of section.split("\n")) {
+      if (!/^\|/.test(line)) continue
+      const cells = line.replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim())
+      const matched = /^(.+?)（([a-z0-9-]+)）$/.exec(cells[0] ?? "")
+      if (!matched) continue
+      const label = cells[0]
+      const page = `docs/cli/${matched[2]}.md`
+      if (!existsSync(join(root, page))) continue
+      const title = pageTitle(page)
+      if (label !== title) errors.push(`${file} 的能力矩阵文案「${label}」≠ 目标页标题「${title}」（${page}）`)
+    }
+  }
+
+  if (existsSync(join(root, "README.md"))) checkCapabilityMatrix("README.md", "✨ 能力矩阵")
+
   // 两份文档索引不做生成，但目标页集合必须一致：新增页面只登记一处即失败
   function readIndexPages(file) {
     const section = /## (?:📚 )?文档(?:索引)?\n([\s\S]*?)\n## /.exec(read(file))?.[1] ?? ""

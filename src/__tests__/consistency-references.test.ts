@@ -372,6 +372,52 @@ describe("规范一致性：目录表文案", () => {
   })
 })
 
+// 能力矩阵：行首「显示名（标识）」按标识校对 docs/cli/<标识>.md 的标题
+const matrixReadme = (label: string) =>
+  [
+    "# 方弦工具集",
+    "",
+    "## ✨ 能力矩阵",
+    "",
+    "| 能力 | 适用场景 | 文档 |",
+    "| --- | --- | --- |",
+    `| ${label} | 示例 | 无 |`,
+    "",
+    "## 📚 文档",
+    "",
+    "| 文档 | 适合谁 |",
+    "| --- | --- |",
+    "| [示例页](./docs/demo.md) | 示例 |",
+    "",
+    "## 其他",
+    "",
+  ].join("\n")
+
+describe("规范一致性：能力矩阵文案", () => {
+  it("能力矩阵文案与 CLI 页标题一致时通过", () => {
+    const root = createFixture({
+      "skills/fxri-demo/references/task-spec.md": "# 任务规范\n",
+      "docs/demo.md": titledPage("示例页", "示例页"),
+      "docs/cli/demo.md": titledPage("示例能力（demo）", "示例能力（demo）"),
+      "README.md": matrixReadme("示例能力（demo）"),
+    })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status, result.stderr).toBe(0)
+  })
+
+  it("能力矩阵文案与 CLI 页标题不一致时报 error", () => {
+    const root = createFixture({
+      "skills/fxri-demo/references/task-spec.md": "# 任务规范\n",
+      "docs/demo.md": titledPage("示例页", "示例页"),
+      "docs/cli/demo.md": titledPage("其他能力（demo）", "其他能力（demo）"),
+      "README.md": matrixReadme("示例能力（demo）"),
+    })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("README.md 的能力矩阵文案「示例能力（demo）」")
+  })
+})
+
 describe("规范一致性：规则块读者向措辞", () => {
   it("业务文本通过", () => {
     const root = createFixture({ ...ruleBase, "templates/rules/demo.md": moduleDoc("- 提交默认需确认，细节以技能为准。") })
