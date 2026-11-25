@@ -33,7 +33,7 @@ AI 参与开发后，方案与决策散落在对话记录里，会话一关什�
 # 1. 全局安装 CLI（npm 用户 npm add -g @fxri/toolkit）
 pnpm add -g @fxri/toolkit
 
-# 2. 全局接入：装技能、配规则、设生效范围（交互向导，可在任意目录执行）
+# 2. 本机接入：装技能、配规则、设生效范围（交互向导，可在任意目录执行）
 toolkit setup
 ```
 
@@ -45,23 +45,23 @@ toolkit setup
 之后：方案确认后由 AI 登记为 `.tasks/` 任务文件 → `toolkit task check` 校验 →
 完成后 `toolkit task archive` 归档并做规范沉淀。
 多任务 / 多仓方案先出纯展示计划表，确认后说「开始」即一次建完全部任务档并校验，再按序逐个交付提交。
-完整步骤见 [快速开始](./docs/getting-started.md)。按场景选路径见 [适用场景](./docs/scenarios.md)，整体结构见 [核心模型](./docs/concepts.md)。
+完整步骤见 [快速开始](./docs/getting-started.md)。按场景选路径见 [适用场景](./docs/scenarios.md)，整体结构见 [一图看懂](./docs/concepts.md)。
 
 ## ✨ 能力矩阵
 
 | 能力 | 适用场景 | 文档 |
 | --- | --- | --- |
 | 任务管理（task） | 方案落盘、总览过滤、校验归档、导入导出 CSV / XLSX / JSON | [CLI 参考](./docs/cli.md) · [任务文件规范](./docs/guide.md#任务文件规范) |
-| 协作规范载体（convention） | 把任务里提炼的规范收进 `.tasks/conventions/`，成为可检索、可校验的项目规范源；支持结构升级、表格与索引单元格形态归一、只读体检 | [CLI 参考](./docs/cli.md) · [完整攻略](./docs/guide.md#conventions-规范沉淀地) |
+| 规范载体（convention） | 把任务里提炼的规范收进 `.tasks/conventions/`，成为可检索、可校验的项目规范源；支持结构升级、表格与索引单元格形态归一、只读体检 | [CLI 参考](./docs/cli.md) · [完整攻略](./docs/guide.md#conventions-规范沉淀地) |
 | 整体状态（status） | 一条命令汇总任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项；`--check` 存在 error 时退出 1，可作自查门禁 | [CLI 参考](./docs/cli/status.md) |
-| AI 技能包（skill） | 不装本工具也能让 AI 按同一套规范干活；装了可一键分发技能（`--scope project` 随仓库入库、队友 clone 即用） | [完整攻略](./docs/guide.md#ai-技能包-skills) · [常见问题](./docs/faq.md#工具和-skills-都得装吗) |
+| 技能分发（skill） | 不装本工具也能让 AI 按同一套规范干活；装了可一键分发技能（`--scope project` 随仓库入库、队友 clone 即用） | [完整攻略](./docs/guide.md#ai-技能包-skills) · [常见问题](./docs/faq.md#工具和-skills-都得装吗) |
 | 全局规则（rule） | 按模块组合、排序与复制 AI 全局规则（含提交信息、技能使用情况等模块），预设与缓存随包分发 | [CLI 参考](./docs/cli/rule.md) |
 | 作用域（scope） | 按项目 / 目录决定技能是否生效：策略规则、白名单 / 黑名单、标记与 git 远端；默认全域；技能矩阵与内容闸门联动 | [CLI 参考](./docs/cli/scope.md) · [配置参考](./docs/config/activation.md) |
-| 技能使用统计（usage） | 统计技能调用次数、触发词与结果；默认关闭、不联网、数据只留本机 | [CLI 参考](./docs/cli/usage.md) · [使用统计](./docs/usage/index.md) |
-| 多语言 CHANGELOG（release） | 封装 changesets 发版、分组标题本地化 | [CLI 参考](./docs/cli/release.md) |
-| 文档站工具（docs） | 校验主题一致性、导航结构与构建产物，规则随包分发、跨仓样式漂移可发现 | [CLI 参考](./docs/cli/docs-theme.md) · [docs 校验](./docs/cli/docs-check.md) |
+| 技能使用情况（usage） | 统计技能调用次数、触发词与结果；默认关闭、不联网、数据只留本机 | [CLI 参考](./docs/cli/usage.md) · [技能使用情况概览](./docs/usage/index.md) |
+| 发版与更新日志（release） | 封装 changesets 发版、分组标题本地化 | [CLI 参考](./docs/cli/release.md) |
+| 文档站校验（docs） | 校验主题一致性、导航结构与构建产物，规则随包分发、跨仓样式漂移可发现 | [CLI 参考](./docs/cli/docs-theme.md) · [docs 校验](./docs/cli/docs-check.md) |
 | 隐私脱敏 | 落盘前自动掩码邮箱、手机号、密钥等 | [配置参考](./docs/config.md) |
-| 配置文件 | 三层（全局 / 项目 / 本地）定制脱敏、告警、导入列映射、语言表；`toolkit config status` 只读查看生效情况与来源 | [CLI 参考](./docs/cli/config.md) · [配置参考](./docs/config.md) |
+| 配置体检（config） | 三层（全局 / 项目 / 本地）定制脱敏、告警、导入列映射、语言表；`toolkit config status` 只读查看生效情况与来源 | [CLI 参考](./docs/cli/config.md) · [配置参考](./docs/config.md) |
 | 升级迁移（upgrade） | v1 工程一键迁移：三层配置、工程脚本、技能旧名与规范载体；支持预演、复检、备份恢复 | [升级迁移](./docs/cli/upgrade.md) |
 | Node API | 把上述能力嵌进脚本或平台 | [API 参考](./docs/api.md) |
 
@@ -71,19 +71,19 @@ toolkit setup
 | --- | --- |
 | [快速开始](./docs/getting-started.md) | 第一次接触，想 30 秒跑起来（含零基础术语表） |
 | [推荐技能包](./docs/packages.md) | 按场景选择技能源（含 playbook 等外部来源） |
-| [核心模型](./docs/concepts.md) | 一张图看懂五件套的组成、关系与配合 |
+| [一图看懂](./docs/concepts.md) | 一张图看懂五件套的组成、关系与配合 |
 | [适用场景](./docs/scenarios.md) | 按个人 / 团队 / 组织 / 沉淀者 / 维护者 / 存量迁移对号入座 |
-| [内网推广](./docs/adoption.md) | 组织内推广：一句话介绍、讲稿、试点方案与决策者问答 |
+| [内部推广](./docs/adoption.md) | 组织内推广：一句话介绍、讲稿、试点方案与决策者问答 |
 | [操作手册](./docs/handbook.md) | 日常照着做：每个场景该说什么、做什么 |
 | [完整攻略](./docs/guide.md) | 日常使用：工作流、Git 纳管、项目级激活、多语言 CHANGELOG |
 | [CLI 参考](./docs/cli.md) | 查命令、参数、默认值、退出码 |
 | [配置参考](./docs/config.md) | 查配置文件字段（全局 / 项目 / 本地三层） |
 | [API 参考](./docs/api.md) | 作为库引入 Node 项目 |
-| [全局规则索引](./docs/rules/index.md) | 规则组合器：模块自由勾选、排序与一键复制 |
-| [推荐 AI 全局规则](./docs/rules/ai.md) | 想让 AI 助手按本工具的最佳实践协作 |
-| [推荐提交信息规则](./docs/rules/commit.md) | 想让 AI 按统一格式写 git 提交信息 |
+| [全局规则](./docs/rules/index.md) | 规则组合器：模块自由勾选、排序与一键复制 |
+| [AI 全局规则](./docs/rules/ai.md) | 想让 AI 助手按本工具的最佳实践协作 |
+| [提交信息规则](./docs/rules/commit.md) | 想让 AI 按统一格式写 git 提交信息 |
 | [技能使用情况规则](./docs/rules/usage.md) | 启用本机使用统计后，约束 AI 不重复补记、不外传数据 |
-| [使用统计](./docs/usage/index.md) | 启用后可查技能调用次数、触发词与采集边界 |
+| [技能使用情况概览](./docs/usage/index.md) | 启用后可查技能调用次数、触发词与采集边界 |
 | [v1 → v2 升级](./docs/upgrade-v2.md) | 从 1.x 迁移：一键迁移与手工兜底 |
 | [常见问题](./docs/faq.md) | 遇到问题先来这里找 |
 | [更新日志](./docs/changelog.md) | 查各版本变更内容 |
@@ -104,7 +104,7 @@ pnpm dlx skills add fxri-net/toolkit                # 也可用上游安装器�
 - **默认形态**：`toolkit skill install` 默认软链，链接创建失败自动降级副本；`toolkit skill status` 查现场，`toolkit skill uninstall` 卸载
 - **交互两步**：先按 `metadata.tier` 选技能，再选目标（`canonical` 主目标 + 已检测 agent；项目面为候选薄壳目录）
   - `core`：`fxri-plan-task`、`fxri-plan-recap`、`fxri-plan-review`，`skills` 模式必装、`package` 模式可选
-  - `optional`：`fxri-release-changelog`、`fxri-code-encoding`、`fxri-writing-skill`、`fxri-writing-docs`
+  - `optional`：`fxri-release-changelog`、`fxri-code-encoding`、`fxri-writing-skill`、`fxri-writing-docs`、`fxri-test-tty`
 - **跳过交互**：`--skills` / `--all` / `--no-optional` / `--agent` / `--all-agents` / `--yes`
   首次按模式默认（`skills` 装 `core`、`package` 零装）与全部可用目标，`--no-save-agents` 只影响本次
 - **模式**：`--mode package` 切纯包管理器模式（core 也可不装、允许零选），`--no-skills` 仅本次零装
@@ -122,6 +122,8 @@ pnpm dlx skills add fxri-net/toolkit                # 也可用上游安装器�
 - [fxri-code-encoding](./skills/fxri-code-encoding/SKILL.md)：文本字节形态基线（文件、管道、命令行、API 请求体，含临时脚本与一次性命令），
   非 ASCII 文本丢失 / 乱码与首行报错的定位与修复
 - [fxri-writing-docs](./skills/fxri-writing-docs/SKILL.md)：文档站写作规范（分类骨架、页面标题「显示名（标识）」、索引与引用口径、导航短别名、顶栏与 404、代码块注释对齐）
+- [fxri-writing-skill](./skills/fxri-writing-skill/SKILL.md)：技能编写规范（统一骨架、references 拆分、安全边界，机械校验交给 lint 与 bump）
+- [fxri-test-tty](./skills/fxri-test-tty/SKILL.md)：交互路径真终端测试（PTY 驱动按键序列，断言退出码、落盘产物与沙箱隔离）
 
 skills 与工具的关系、只在公司项目激活等说明见 [常见问题](./docs/faq.md) 与 [完整攻略](./docs/guide.md#ai-技能包-skills)。
 

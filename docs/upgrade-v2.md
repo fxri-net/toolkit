@@ -1,8 +1,8 @@
 ---
-title: v1 → v2 升级（upgrade-v2）
+title: v1 → v2 升级
 ---
 
-# v1 → v2 升级（upgrade-v2）
+# v1 → v2 升级
 
 > 2.0.0 的破坏面集中在「脚本里的命令名」与「JSON 解析」；工程侧迁移由 `toolkit upgrade` 一次完成。
 
