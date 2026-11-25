@@ -173,6 +173,8 @@ exports[`各域行为与错误路径 > config list 1`] = `
   docs.dist.dir：未配置（默认 .vitepress/dist）
   docs.dist.sitemap：未配置（默认 error）
   docs.dist.searchProvider：未配置（默认 local）
+  docs.titles.extraFiles：未配置（默认 []）
+  docs.titles.exclude：未配置（默认 []）
   usage.enabled：未配置（默认 false）
   usage.channel：未配置（默认 hook）
   usage.sources.firstParty：未配置（默认 false）
@@ -192,7 +194,7 @@ exports[`各域行为与错误路径 > config list 1`] = `
   usage.upload.protocol：未配置（默认 webhook）
   usage.upload.endpoint：未配置
   usage.upload.batchSize：未配置（默认 100）
-共 44 个可写键；写入用 toolkit config set <key> <value>
+共 46 个可写键；写入用 toolkit config set <key> <value>
 --- stderr ---
 "
 `;
@@ -360,6 +362,18 @@ exports[`各域行为与错误路径 > config list JSON 1`] = `
         "source": null
       },
       {
+        "key": "docs.titles.extraFiles",
+        "type": "stringList",
+        "summary": "额外扫描的文件（相对仓库根，逗号分隔）",
+        "source": null
+      },
+      {
+        "key": "docs.titles.exclude",
+        "type": "stringList",
+        "summary": "豁免的文件或文件#小节（逗号分隔）",
+        "source": null
+      },
+      {
         "key": "usage.enabled",
         "type": "boolean",
         "summary": "技能使用情况总开关",
@@ -511,7 +525,9 @@ exports[`各域行为与错误路径 > config list 按层过滤 1`] = `
   docs.dist.dir：未写
   docs.dist.sitemap：未写
   docs.dist.searchProvider：未写
-共 23 个项目层可写键；写入用 toolkit config set <key> <value>
+  docs.titles.extraFiles：未写
+  docs.titles.exclude：未写
+共 25 个项目层可写键；写入用 toolkit config set <key> <value>
 --- stderr ---
 "
 `;

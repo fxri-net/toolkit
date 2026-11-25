@@ -2,7 +2,7 @@
 // 每个键声明类型、默认写入层、可写层与校验口径，读取实现只按段取值，写入实现只按本表落盘，避免两处漂移
 import type { ConfigLayerName } from "./config"
 // 默认值单源：域模块持有默认值，本表只做展示镜像（F-2 / F-16 / F-17）
-import { DEFAULT_DOCS_DIST, DEFAULT_DOCS_NAV } from "./docs/config"
+import { DEFAULT_DOCS_DIST, DEFAULT_DOCS_NAV, DEFAULT_DOCS_TITLES } from "./docs/config"
 import { DEFAULT_USAGE_CONFIG, DEFAULT_USAGE_DIR_LABEL } from "./usage/config"
 // 枚举取值单源：分发形态由技能域模块持有
 import { DELIVERY_MODES } from "./skills/delivery"
@@ -134,6 +134,21 @@ const CONFIG_KEY_DEFINITIONS: readonly ConfigKeySpec[] = [
     defaultLayer: "project",
     writableLayers: ALL_LAYERS,
   },
+  // 文档站标题与索引
+  {
+    key: "docs.titles.extraFiles",
+    type: "stringList",
+    summary: "额外扫描的文件（相对仓库根，逗号分隔）",
+    defaultLayer: "project",
+    writableLayers: ALL_LAYERS,
+  },
+  {
+    key: "docs.titles.exclude",
+    type: "stringList",
+    summary: "豁免的文件或文件#小节（逗号分隔）",
+    defaultLayer: "project",
+    writableLayers: ALL_LAYERS,
+  },
   // 使用情况（仅全局层，避免克隆仓库被动开启采集）
   { key: "usage.enabled", type: "boolean", summary: "技能使用情况总开关", defaultLayer: "global", writableLayers: GLOBAL_ONLY },
   { key: "usage.channel", type: "enum", values: ["rule", "hook"], summary: "采集通道", defaultLayer: "global", writableLayers: GLOBAL_ONLY },
@@ -202,6 +217,8 @@ const CONFIG_KEY_DEFAULTS: Readonly<Record<string, ConfigKeySpec["default"]>> = 
   "docs.dist.dir": DEFAULT_DOCS_DIST.dir,
   "docs.dist.sitemap": DEFAULT_DOCS_DIST.sitemap,
   "docs.dist.searchProvider": DEFAULT_DOCS_DIST.searchProvider,
+  "docs.titles.extraFiles": [...DEFAULT_DOCS_TITLES.extraFiles],
+  "docs.titles.exclude": [...DEFAULT_DOCS_TITLES.exclude],
   "usage.enabled": DEFAULT_USAGE_CONFIG.enabled,
   "usage.channel": DEFAULT_USAGE_CONFIG.channel,
   "usage.sources.firstParty": DEFAULT_USAGE_CONFIG.sources.firstParty,

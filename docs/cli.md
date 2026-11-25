@@ -20,7 +20,7 @@
 | `toolkit upgrade` | v1 工程一键迁移：配置段名、工程脚本、技能旧名、规范载体，含预演、复检与恢复 | — | [升级迁移](./cli/upgrade) |
 | `toolkit config` | 配置唯一写入口（键清单 + 分层写入）与只读体检 | `list` / `get` / `set` / `unset` / `status` | [配置体检](./cli/config) |
 | `toolkit privacy` | 隐私体检：本机绝对路径扫描与归一（按项目档位） | `scan` | [隐私体检](./cli/privacy) |
-| `toolkit docs` | 文档站全量校验（默认）、主题写入与分项校验 | `check` / `theme` / `nav` / `dist` | [文档站主题](./cli/docs-theme) · [文档站校验](./cli/docs-check) |
+| `toolkit docs` | 文档站全量校验（默认）、主题写入与分项校验 | `check` / `theme` / `nav` / `dist` / `titles` | [文档站主题](./cli/docs-theme) · [文档站校验](./cli/docs-check) |
 | `toolkit help` | 显示帮助 | — | — |
 
 ## 按场景找命令

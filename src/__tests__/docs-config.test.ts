@@ -5,7 +5,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { resolveDocsCheckConfig } from "../docs/config"
-import { DEFAULT_DOCS_DIST, DEFAULT_DOCS_NAV } from "../docs/config"
+import { DEFAULT_DOCS_DIST, DEFAULT_DOCS_NAV, DEFAULT_DOCS_TITLES } from "../docs/config"
 import { checkDocsNav } from "../docs/nav"
 import { checkDocsDist } from "../docs/dist"
 
@@ -68,6 +68,7 @@ describe("resolveDocsCheckConfig", () => {
     const config = resolveDocsCheckConfig()
     expect(config.nav).toEqual(DEFAULT_DOCS_NAV)
     expect(config.dist).toEqual(DEFAULT_DOCS_DIST)
+    expect(config.titles).toEqual(DEFAULT_DOCS_TITLES)
     expect(config.rules).toEqual({})
   })
 
@@ -76,6 +77,7 @@ describe("resolveDocsCheckConfig", () => {
       docs: {
         nav: { maxItems: 6, firstItem: "概览", helpChildren: ["FAQ", "Changelog"] },
         dist: { dir: "out", sitemap: "off", searchProvider: "none" },
+        titles: { extraFiles: ["README.md"], exclude: ["README.md#能力矩阵"] },
         rules: { "nav/page-size": "off", "nav/max-items": "warn" },
       },
     })
@@ -85,6 +87,7 @@ describe("resolveDocsCheckConfig", () => {
     expect(config.nav.helpChildren).toEqual(["FAQ", "Changelog"])
     expect(config.nav.lastItem).toBe(DEFAULT_DOCS_NAV.lastItem)
     expect(config.dist).toEqual({ dir: "out", sitemap: "off", searchProvider: "none" })
+    expect(config.titles).toEqual({ extraFiles: ["README.md"], exclude: ["README.md#能力矩阵"] })
     expect(config.rules).toEqual({ "nav/page-size": "off", "nav/max-items": "warn" })
   })
 
@@ -102,6 +105,7 @@ describe("resolveDocsCheckConfig", () => {
       docs: {
         nav: { maxItems: "6", helpChildren: [1, 2], maxPageLines: -1, dir: "" },
         dist: { sitemap: "ignore", searchProvider: "algolia" },
+        titles: { extraFiles: "README.md", exclude: [1, 2] },
         rules: { "nav/max-items": "fatal", "nav/page-size": "warn" },
       },
     })
@@ -112,6 +116,7 @@ describe("resolveDocsCheckConfig", () => {
     expect(config.nav.dir).toBe(DEFAULT_DOCS_NAV.dir)
     expect(config.dist.sitemap).toBe(DEFAULT_DOCS_DIST.sitemap)
     expect(config.dist.searchProvider).toBe(DEFAULT_DOCS_DIST.searchProvider)
+    expect(config.titles).toEqual(DEFAULT_DOCS_TITLES)
     expect(config.rules).toEqual({ "nav/page-size": "warn" })
   })
 })

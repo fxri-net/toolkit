@@ -1,25 +1,27 @@
 ---
-title: 文档站校验（docs nav / docs dist）
+title: 文档站校验（docs nav / docs dist / docs titles）
 ---
 
-# 文档站校验（docs nav / docs dist）
+# 文档站校验（docs nav / docs dist / docs titles）
 
-> 按同一份数据契约校验导航结构与构建产物；规则随包分发，各站点不再各自维护校验脚本。
+> 按同一份数据契约校验导航结构、构建产物与页面标题文案；规则随包分发，各站点不再各自维护校验脚本。
 
 ```bash
-toolkit docs nav check         # 校验 docs/site-nav.json 的结构与导航规则
-toolkit docs                   # 默认全量校验：主题 + 导航 + 产物
-toolkit docs check             # 与裸 docs 等价的显式写法
+toolkit docs nav check               # 校验 docs/site-nav.json 的结构与导航规则
+toolkit docs                         # 默认全量校验：主题 + 导航 + 产物
+toolkit docs check                   # 与裸 docs 等价的显式写法
 toolkit docs nav check --format json # 机器可读输出（含规则版本）
-toolkit docs nav check --dir <path> # 指定文档目录（缺省 docs）
-toolkit docs nav init          # 从站点配置抽取 nav / sidebar 生成 site-nav.json
-toolkit docs nav init --force  # 已存在 site-nav.json 时覆盖
-toolkit docs dist check        # 校验构建产物：404 不进 sitemap 与站内搜索索引
+toolkit docs nav check --dir <path>  # 指定文档目录（缺省 docs）
+toolkit docs nav init                # 从站点配置抽取 nav / sidebar 生成 site-nav.json
+toolkit docs nav init --force        # 已存在 site-nav.json 时覆盖
+toolkit docs dist check              # 校验构建产物：404 不进 sitemap 与站内搜索索引
 toolkit docs dist check --format json # 机器可读输出（含规则版本与跳过标记）
+toolkit docs titles check            # 校验页面 title/H1 与目录表链接文案
+toolkit docs titles check --dir <path> # 指定文档目录（缺省 docs）
 ```
 
-裸 `toolkit docs` / `toolkit docs check` 执行主题 + 导航 + 产物全量校验。
-裸 `toolkit docs nav` / `toolkit docs dist` 打印各自子命令帮助（列出 `check`）。
+裸 `toolkit docs` / `toolkit docs check` 执行主题 + 导航 + 产物 + 标题与索引全量校验。
+裸 `toolkit docs nav` / `toolkit docs dist` / `toolkit docs titles` 打印各自子命令帮助（列出 `check`）。
 
 ## 数据单一真源
 
@@ -60,6 +62,10 @@ export default defineConfig({
 | `dist/not-found-title` | error | `docs/404.md` 缺一级标题，无法断言搜索索引 |
 | `dist/search-404` | error | 站内搜索索引分块含 404 页标题 |
 | `dist/search-index-missing` | warn | 未启用本地搜索，跳过 404 索引断言 |
+| `title/h1-mismatch` | error | frontmatter `title` 与首个一级标题不一致 |
+| `title/h1-missing` | error | 声明了 `title` 但缺少一级标题；`layout: home` 豁免 |
+| `title/index-label` | error | 目录表链接文案 ≠ 目标页标题 |
+| `title/index-target` | error | 目录表链接指向的文件不存在 |
 
 ## 迁移
 
@@ -89,6 +95,7 @@ toolkit docs nav init --config <path>  # 指定站点配置文件
       "pageSizeExclude": ["changelog.md"]
     },
     "dist": { "dir": ".vitepress/dist", "sitemap": "error", "searchProvider": "local" },
+    "titles": { "extraFiles": [], "exclude": [] },
     "rules": { "nav/page-size": "off" }
   }
 }
@@ -107,6 +114,8 @@ toolkit docs nav init --config <path>  # 指定站点配置文件
 | `docs.dist.dir` | `.vitepress/dist` | 产物目录，相对文档目录 |
 | `docs.dist.sitemap` | `error` | sitemap 缺失时按 `error` / `warn` / `off` 处置 |
 | `docs.dist.searchProvider` | `local` | 设 `none` 时跳过搜索索引断言 |
+| `docs.titles.extraFiles` | `[]` | 额外扫描的文件（相对仓库根，如 `README.md`） |
+| `docs.titles.exclude` | `[]` | 豁免的文件或 `文件#小节`，跳过其中的目录表 |
 | `docs.rules` | `{}` | 按规则 id 覆盖级别，`off` 关闭该规则 |
 
 ⚠️ 类型非法或枚举取值不认识的键按未写处理并回落默认，不产出半截配置；存在规则覆盖时命令会打印覆盖清单。
@@ -124,9 +133,11 @@ toolkit docs nav init --config <path>  # 指定站点配置文件
 - 存在 error 级问题退出 1，仅 warn 退出 0。
 - 未检测到 `docs/` 目录时，裸 `toolkit docs` 跳过并退出 0；`docs/` 存在但缺主题或 `site-nav.json` 时按校验结论退出 1。
 - `docs dist check` 在产物目录缺失时跳过并退出 0，是否漏跑构建由调用方判断。
+- `docs titles check` 在文档目录缺失时跳过并退出 0；文档目录存在时按校验结论退出。
 - `--format json` 走统一信封（字段见[输出约定](../cli#输出约定)）。
-- `nav check` / `dist check` 的 `data` 含 `ruleVersion` / `problems`，`dist check` 另含 `skipped`。
-- 全量 `docs check` 的 `data` 按 `theme` / `nav` / `dist` 分块。
+- `nav check` / `dist check` / `titles check` 的 `data` 含 `ruleVersion` / `problems`。
+- `dist check` 的 `data` 另含 `skipped`，`titles check` 另含 `pageCount` / `tableCount`。
+- 全量 `docs check` 的 `data` 按 `theme` / `nav` / `dist` / `titles` 分块。
 - `problems` 每项含 `id` / `level` / `file` / `message` 四个字段；同一批问题映射到顶层 `issues[]`（`scope` 取规则 `id`），原始项保留在 `data` 内便于对照。
 - `code` 反映本次校验结论：存在 error 级问题时为 `422`，否则为 `200`；`dist check` 因产物缺失而跳过时仍为 `200`。
 - `ruleVersion` 独立于包版本，规则或结构变化时才递增，便于下游门禁比对。
@@ -144,6 +155,7 @@ toolkit docs nav init --config <path>  # 指定站点配置文件
 | `docs nav check` | 1.5.0 | 分组名长度改按显示单位计（CJK 按字、空格分词语言按词），配置键改为 `maxGroupUnits` | 1.17.7 |
 | `docs dist check` | 1.0.0 | 初版规则 | 1.16.11 |
 | `docs dist check` | 1.1.0 | sitemap 可降级；产物目录与搜索实现可配 | 1.16.12 |
+| `docs titles check` | 1.0.0 | 初版规则：页面 title/H1 与目录表文案 | 2.0.10 |
 
 ## 相关页面
 

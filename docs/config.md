@@ -137,7 +137,7 @@
 | [升级检查（updateCheck）](./config/update) | 提示频率、通道、registry、缓存与诊断 |
 | [缓存目录](./config/cache) | 本机缓存布局、迁移与清理 |
 | [使用情况配置](./usage/configuration) | 总开关、来源、技能范围、字段、存储与上传；仅全局层（跨组） |
-| [文档站校验（docs nav / docs dist）](./cli/docs-check#配置) | 导航阈值、产物目录、sitemap 策略、搜索实现与规则开关（跨组） |
+| [文档站校验（docs nav / docs dist / docs titles）](./cli/docs-check#配置) | 导航阈值、产物目录、sitemap 策略、搜索实现、标题扫描范围与豁免、规则开关（跨组） |
 
 ## 相关页面
 
