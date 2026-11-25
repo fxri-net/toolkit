@@ -20,7 +20,7 @@
    递增口径见 `skills/fxri-release-changelog/references/changelog-format.md` 的「版本口径」。
 4. **变更集**：凡影响对外行为的变更，任务归档前必须在 `.changeset/` 建变更集（标注 patch/minor/major 并写用户可感知的变更描述，
    条目须**逐条以 `- 类型：描述` 书写**——`- ` 列表标记让每条独立成项、`类型：` 前缀作归类信号，
-   前缀表见 `skills/fxri-release-changelog/SKILL.md`）；归档时出现「无变更集」提示即视为本质量门未过。
+   前缀表见 `skills/fxri-release-changelog/references/changelog-format.md`）；归档时出现「无变更集」提示即视为本质量门未过。
 5. **全局规则薄引用**：可变流程细节只进 skills（SKILL.md / references），`docs/rules/ai.md` 的「规则全文」保持薄壳——
    只承载稳定纪律、模块自有细节（无技能承载时）与用户可裁剪偏好（住 `personal` 模块），不复述可变流程细节；
    凡在规则全文复述了可变流程细节的改动即视为违背本规则，须收敛回 skill；个性化偏好不得以「非稳定纪律」为由删除，删除须显式确认。

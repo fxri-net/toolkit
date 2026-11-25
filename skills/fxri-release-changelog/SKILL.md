@@ -3,7 +3,7 @@ name: fxri-release-changelog
 description: 基于 changesets 的发版与多语言 CHANGELOG 维护流程：创建变更集、消费发版、把分组标题与条目转为项目语言风格、清理变更集、打标签发布；无 changesets 的项目提供同格式手工模式。用户表达发版或记录变更意图时使用——含创建变更集、changeset、发版、version、CHANGELOG 格式化等说法及口语近义表达（发一版、出个版本、记一下这次改动、生成更新日志）。⚠️ 注意区分：用户说「提交个版本 / 先提交一版 / commit」通常指 git 提交当前改动（走任务收尾后提交），**不是发版**。不用于日常 commit message 撰写、git 提交操作或与发版无关的文档修改。
 license: MIT
 metadata:
-  version: "1.4.4"
+  version: "1.4.6"
   tier: optional
   type: practice
   scope: general
@@ -14,7 +14,7 @@ metadata:
 
 # 发版与 CHANGELOG
 
-> 本技能版本 1.4.4（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.4.6（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -40,8 +40,8 @@ metadata:
 - ⚠️ 发版不是必经步骤：仅在用户明确要求，或用户全局 / 个人 / 项目规则约定时才进入本技能，不主动发版
 - ⚠️ **发版是收尾动作，不是任务**：本技能不为发版本身建档——发版的输入是「已归档的任务改动」，发版过程及其固有产物（版本号、更新日志、标签）不构成任务、不作为建档对象。例外：过程中暴露的、
    需改仓库文件才能修复的缺陷（打包配置错误、发布渠道错误、版本号冲突）→ 走 fxri-plan-task 先建档再改
-- `.tasks/active/` 存在未归档任务 → 先完成归档再发版（任务归档是发版的前置顺序）
-- **覆盖核对**：本次待发布的改动逐项确认已有归档记录；出现「有改动却无归档记录」→ 先补归档（fxri-plan-recap 模式一）再发版
+- `.tasks/active/` 存在未归档任务 → 先执行 `toolkit task archive` 归档再发版（任务归档是发版的前置顺序；无任务区则跳过）
+- **覆盖核对**：本次待发布的改动逐项确认已有归档记录；出现「有改动却无归档记录」→ 先补归档再发版（`toolkit task` 可建档与归档）
 - 项目根存在 `.changeset/` 目录 → 走「changesets 流程」
 - 不存在 → 走「手工模式」（规范见 `references/changelog-format.md`）
 
@@ -56,7 +56,8 @@ metadata:
 ## changesets 流程
 
 1. 记录变更：`npx changeset`（或项目包管理器等价脚本）
-   - **写法**：变更描述逐条以 `- 类型：描述` 书写——`类型：` 前缀（`新增：` / `修复：` / `优化：`）作归类信号，
+   - **写法**：变更描述逐条以 `- 类型：描述` 书写——`类型：` 前缀作归类信号（前缀表见 `references/changelog-format.md`：
+     重大 / 新增 / 修改 / 优化 / 修复 / 文档 / 清理，中英对照与语义槽位同表），
       `- ` 列表标记让每条独立成项（缺标记的裸行会被 changesets 并入相邻条目作续行，整段塌成一条、只有首行归组剥前缀）
    - **级别**：按用户影响阶梯选 bump（整体重做→major、破坏既有用法需改→minor、其余含新增小能力与同能力替代实现→patch，
       拿不准按 patch，升级须举证既有用法失效，含 SemVer 偏离与迁移护栏的完整口径见 `references/changelog-format.md` 的「版本口径」）；

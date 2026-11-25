@@ -118,7 +118,7 @@ pnpm dlx skills add fxri-net/toolkit                # 也可用上游安装器�
 - [fxri-plan-task](./skills/fxri-plan-task/SKILL.md)：方案确认后落盘为任务文件（任务分解与纯展示计划表、一次建完全部任务档、check、归档 + 任务级规范沉淀为强制终点）
 - [fxri-release-changelog](./skills/fxri-release-changelog/SKILL.md)：发版时创建变更集、格式化多语言 CHANGELOG
 - [fxri-plan-recap](./skills/fxri-plan-recap/SKILL.md)：会话收尾全量沉淀、新会话三层恢复、历史任务时间批量修正（1.7.0 新增技能）
-- [fxri-plan-review](./skills/fxri-plan-review/SKILL.md)：复核已落档任务拆分，输出新增疏漏、建议与修订计划表，按后续是否落档标记
+- [fxri-plan-review](./skills/fxri-plan-review/SKILL.md)：复核已落档任务拆分，输出新增疏漏与建议，按后续是否落档标记
 - [fxri-code-encoding](./skills/fxri-code-encoding/SKILL.md)：文本字节形态基线（文件、管道、命令行、API 请求体，含临时脚本与一次性命令），
   非 ASCII 文本丢失 / 乱码与首行报错的定位与修复
 - [fxri-writing-docs](./skills/fxri-writing-docs/SKILL.md)：文档站写作规范（分类骨架、页面标题「显示名（标识）」、索引与引用口径、导航短别名、顶栏与 404、代码块注释对齐）

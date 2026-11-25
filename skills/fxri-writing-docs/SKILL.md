@@ -3,7 +3,7 @@ name: fxri-writing-docs
 description: 文档站写作规范：分类骨架（开始 / 指南 / 参考 / 原理 / 升级 / 开发 / 帮助）、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏首末项与项数、旧 URL 不重定向、404 与索引排除、导航结构用工具命令校验、代码块内联注释对齐（分组 / 相对最长基准 / 目标列）。适用于新建或调整 VitePress 文档站的导航、分类、页面标题、站内引用与命令示例排版，含非中文站点的通用口径；不含正文文风、配图与视觉设计、部署流水线。
 license: MIT
 metadata:
-  version: "0.2.3"
+  version: "0.2.4"
   tier: optional
   previousNames: ["fxri-docs-writing"]
   type: profile
@@ -15,7 +15,7 @@ metadata:
 
 # 文档站写作规范
 
-> 本技能版本 0.2.3（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 0.2.4（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -123,7 +123,7 @@ toolkit scope          # （可选）限定生效范围，默认全域
 2. 改页面标题：先改 H1，已声明 `title` 的同步改；再改索引与行内引用。
 3. 修复站内链接与锚点（标题改名会改变页内锚点）。
 4. 把 `toolkit docs nav check` 与 `docs dist check` 纳入既有 verify 门禁，工具缺失时跳过。
-5. 记录 patch 变更集，按仓库发版链路发布。
+5. 记录 patch 变更集。
 
 ## 常见错误
 
