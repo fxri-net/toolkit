@@ -37,10 +37,17 @@ export interface DocsDistConfig {
   searchProvider: "local" | "none"
 }
 
-// 整体配置：rules 按规则 id 覆盖严重度，两个命令共用
+// 标题与索引校验默认口径：默认只扫文档目录，额外文件与豁免为空
+export interface DocsTitlesConfig {
+  extraFiles: string[]
+  exclude: string[]
+}
+
+// 整体配置：rules 按规则 id 覆盖严重度，各命令共用
 export interface DocsCheckConfig {
   nav: DocsNavConfig
   dist: DocsDistConfig
+  titles: DocsTitlesConfig
   rules: Record<string, RuleSetting>
 }
 
@@ -62,6 +69,11 @@ export const DEFAULT_DOCS_DIST: Readonly<DocsDistConfig> = {
   dir: ".vitepress/dist",
   sitemap: "error",
   searchProvider: "local",
+}
+
+export const DEFAULT_DOCS_TITLES: Readonly<DocsTitlesConfig> = {
+  extraFiles: [],
+  exclude: [],
 }
 
 // 判是否普通对象：配置段与字段对象都按此口径
@@ -145,12 +157,26 @@ function resolveRules(value: unknown): Record<string, RuleSetting> {
   return rules
 }
 
+// 解析标题校验配置：空数组合法，非字符串数组整项回落默认
+function resolveTitles(section: Record<string, unknown>): DocsTitlesConfig {
+  const list = (value: unknown, fallback: readonly string[]): string[] => {
+    if (value === undefined) return [...fallback]
+    if (!Array.isArray(value) || !value.every((item) => typeof item === "string" && item.trim() !== "")) return [...fallback]
+    return value as string[]
+  }
+  return {
+    extraFiles: list(section.extraFiles, DEFAULT_DOCS_TITLES.extraFiles),
+    exclude: list(section.exclude, DEFAULT_DOCS_TITLES.exclude),
+  }
+}
+
 // 读取生效配置：未配置 docs 段时全部落默认值
 export function resolveDocsCheckConfig(): DocsCheckConfig {
   const docs = getConfigSection("docs")
   const nav = isObject(docs?.nav) ? docs.nav : {}
   const dist = isObject(docs?.dist) ? docs.dist : {}
-  return { nav: resolveNav(nav), dist: resolveDist(dist), rules: resolveRules(docs?.rules) }
+  const titles = isObject(docs?.titles) ? docs.titles : {}
+  return { nav: resolveNav(nav), dist: resolveDist(dist), titles: resolveTitles(titles), rules: resolveRules(docs?.rules) }
 }
 
 // 规则生效级别：off 返回 null 表示不产出问题；未覆盖时用调用方声明的默认级别
