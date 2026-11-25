@@ -9,8 +9,10 @@ import {
   checkIgnore,
   gitIgnoredSet,
   inspectLocalConfigIgnore,
+  isIgnoredByRules,
   isInsideWorktree,
   isTracked,
+  lastIgnoreRule,
   normalizePathForCompare,
   probeRepo,
   toPosix,
@@ -142,6 +144,48 @@ describe("gitIgnoredSet 批量忽略判定", () => {
     const ignored = gitIgnoredSet(repo, ["a.txt", "b.txt"])
     expect(ignored.has("a.txt")).toBe(true)
     expect(ignored.has("b.txt")).toBe(false)
+  })
+})
+
+describe("isIgnoredByRules 忽略规则语义", () => {
+  // 通配 / 目录 / 否定写法都要认，不能只认全名
+  it("通配不跨目录，** 可跨目录", () => {
+    expect(isIgnoredByRules(["*.lock"], ".archive.lock")).toBe(true)
+    expect(isIgnoredByRules(["*.lock"], "sub/Cargo.lock")).toBe(true)
+    expect(isIgnoredByRules(["docs/*.md"], "docs/a.md")).toBe(true)
+    expect(isIgnoredByRules(["docs/*.md"], "docs/sub/a.md")).toBe(false)
+    expect(isIgnoredByRules(["docs/**/a.md"], "docs/sub/a.md")).toBe(true)
+  })
+
+  it("目录规则连同其下全部路径一并忽略", () => {
+    expect(isIgnoredByRules(["local"], "local/x.json")).toBe(true)
+    expect(isIgnoredByRules(["local/"], "local/x.json")).toBe(true)
+    expect(isIgnoredByRules(["local/"], "localx.json")).toBe(false)
+    expect(isIgnoredByRules(["/local/"], "sub/local/x.json")).toBe(false)
+  })
+
+  it("? 单字符与 [] 字符组", () => {
+    expect(isIgnoredByRules(["a?.txt"], "ab.txt")).toBe(true)
+    expect(isIgnoredByRules(["a?.txt"], "abc.txt")).toBe(false)
+    expect(isIgnoredByRules(["[ab].txt"], "a.txt")).toBe(true)
+    expect(isIgnoredByRules(["[ab].txt"], "c.txt")).toBe(false)
+  })
+
+  it("否定规则覆盖先前的命中", () => {
+    expect(isIgnoredByRules(["*.local.json", "!.toolkitrc.local.json"], ".toolkitrc.local.json")).toBe(false)
+    expect(isIgnoredByRules(["*.local.json"], ".toolkitrc.local.json")).toBe(true)
+  })
+
+  it("注释与空行不参与判定", () => {
+    expect(isIgnoredByRules(["# *.lock", "", ".archive.lock"], ".archive.lock")).toBe(true)
+    expect(isIgnoredByRules(["# *.lock", ""], ".archive.lock")).toBe(false)
+  })
+
+  it("lastIgnoreRule 返回最后命中的规则行，否定前缀原样保留", () => {
+    expect(lastIgnoreRule(["*.local.json", "!.toolkitrc.local.json"], ".toolkitrc.local.json")).toBe("!.toolkitrc.local.json")
+    expect(lastIgnoreRule([".archive.lock"], ".archive.lock")).toBe(".archive.lock")
+    expect(lastIgnoreRule(["*.lock"], ".archive.lock")).toBe("*.lock")
+    expect(lastIgnoreRule(["node_modules"], ".archive.lock")).toBeNull()
   })
 })
 

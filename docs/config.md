@@ -78,7 +78,7 @@
 
 本地层属个人私有配置，默认不入库，落地三机制：
 
-1. `toolkit task init` 幂等向 `.gitignore` 追加忽略行（已被既有规则覆盖则跳过；存量项目升级后需**重跑 `toolkit task init`** 补写，幂等可安全重跑）。
+1. `toolkit task init` 幂等补齐 `.gitignore` 忽略行（首次追加片段，之后按原位置就地重建；已被既有规则覆盖则跳过；存量项目升级后需**重跑 `toolkit task init`** 补写，幂等可安全重跑）。
     不想改团队 `.gitignore` 者，可自行把该行写进 `.git/info/exclude`（本地排除、不进版本控制，同样被 `git check-ignore` 识别）
 2. `toolkit task check` 检测到该文件存在但未被忽略时**软告警**（warn 级，不阻断）；
     已跟踪态提示 `git rm --cached`（`git check-ignore` 对已跟踪文件恒返回「未忽略」，须先移除跟踪）；非 git 仓库、或文件位于**当前仓库工作树之外**时判定不适用、不告警

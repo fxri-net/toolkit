@@ -151,3 +151,78 @@ export function probeRepo(cwd: string): RepoProbe {
 export function toPosix(p: string): string {
   return p.replace(/\\/g, "/")
 }
+
+// 单条忽略规则：否定标记、目录限定与编译后的正则
+// 单条忽略规则：目录限定与编译后的正则（`!` 前缀在编译时剥离，是否有否定由调用方按原行判断）
+interface IgnoreRule {
+  dirOnly: boolean
+  re: RegExp
+}
+
+// 通配转正则：* 不跨目录、? 单字符、** 跨目录、[] 字符组，其余字符按字面转义
+function globToRegExp(glob: string): string {
+  let out = ""
+  for (let i = 0; i < glob.length; i += 1) {
+    const ch = glob[i]!
+    if (ch === "*") {
+      if (glob[i + 1] === "*") {
+        // **/ 可匹配零到多级目录，其余 ** 跨任意字符
+        if (glob[i + 2] === "/") {
+          out += "(?:.*/)?"
+          i += 2
+        } else {
+          out += ".*"
+          i += 1
+        }
+      } else out += "[^/]*"
+    } else if (ch === "?") out += "[^/]"
+    else if (ch === "[") {
+      const close = glob.indexOf("]", i + 1)
+      if (close === -1) out += "\\["
+      else {
+        out += `[${glob.slice(i + 1, close).replace(/\\/g, "\\\\")}]`
+        i = close
+      }
+    } else out += ch.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")
+  }
+  return out
+}
+
+// 编译单行规则：注释与空行返回 null；含斜杠或以斜杠开头即锚定到 .gitignore 所在目录
+function compileIgnoreRule(line: string): IgnoreRule | null {
+  let raw = line.replace(/\s+$/, "")
+  if (raw === "" || raw.startsWith("#")) return null
+  if (raw.startsWith("!")) raw = raw.slice(1)
+  let dirOnly = false
+  if (raw.endsWith("/")) {
+    dirOnly = true
+    raw = raw.replace(/\/+$/, "")
+  }
+  if (raw === "") return null
+  const anchored = raw.includes("/")
+  const body = globToRegExp(raw.replace(/^\/+/, ""))
+  return { dirOnly, re: new RegExp(anchored ? `^${body}$` : `(^|/)${body}$`) }
+}
+
+// 返回最后命中该路径的规则行（保留 `!` 前缀，供调用方区分「被忽略」与「被显式取消忽略」）；无命中返回 null
+export function lastIgnoreRule(lines: string[], relPath: string): string | null {
+  const path = toPosix(relPath).replace(/^\.?\//, "")
+  const segments = path.split("/")
+  const dirs = segments.slice(0, -1).map((_segment, index) => segments.slice(0, index + 1).join("/"))
+  const candidates = [...dirs, path]
+  let hit: string | null = null
+  for (const line of lines) {
+    const rule = compileIgnoreRule(line)
+    if (!rule) continue
+    const targets = rule.dirOnly ? dirs : candidates
+    if (targets.some((target) => rule.re.test(target))) hit = line
+  }
+  return hit
+}
+
+// 判路径是否被忽略规则命中：按 gitignore 语义逐条应用，后命中覆盖先命中；目录命中的规则同样忽略其下全部路径
+// 用途：.gitignore 尚未纳入版本库（init 首跑）时也能按通配 / 目录 / 否定判定覆盖，不只认全名
+export function isIgnoredByRules(lines: string[], relPath: string): boolean {
+  const hit = lastIgnoreRule(lines, relPath)
+  return hit !== null && !hit.trimStart().startsWith("!")
+}

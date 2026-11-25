@@ -27,7 +27,7 @@ import {
   isToolkitSourceRepo,
   resolveProjectSkillDirs,
 } from "../conventions/entry"
-import { checkIgnore, gitIgnoredSet, probeRepo } from "../git-ignore"
+import { checkIgnore, gitIgnoredSet, isIgnoredByRules, lastIgnoreRule, probeRepo } from "../git-ignore"
 import { resolveLocalConfigPath, resolveProjectConfigPath, rewriteLegacySections } from "../config"
 import { todayCompact } from "../date"
 import { hasGlobalSkillsInstalled, PKG_NAME } from "../skills"
@@ -38,17 +38,13 @@ const GITIGNORE_MARKER = "# @fxri/toolkit"
 const GITIGNORE_COMMENT = `${GITIGNORE_MARKER} 忽略片段（运行时文件与个人本地配置，不入库）`
 // 片段出口指引：另起一行注释（不以 marker 开头，避免被误认领为第二条认领行），告知不想改团队 .gitignore 者的退路
 const GITIGNORE_EXIT_HINT = "# 不想改团队 .gitignore 者，可把这些忽略行写进 .git/info/exclude（本地排除、不进版本控制）"
-// 片段行清单与各行等价写法：git 可用时按真实忽略判定、否则按等价写法命中即视为该行已覆盖，不再追加，尊重用户手写习惯
-const GITIGNORE_ROWS: ReadonlyArray<{ row: string; patterns: RegExp[] }> = [
-  { row: ".archive.lock", patterns: [/^\/?\.archive\.lock$/] },
-  {
-    row: ".toolkitrc.local.json",
-    patterns: [/^\/?\.toolkitrc\.local\.json$/, /^\*\.local\.json$/, /^\.toolkitrc\.\*$/],
-  },
-  // 配置重写前的备份：init 改写团队配置与本地配置时各留一份 .bak，默认不入库
-  // `.toolkitrc.*` 通配同时覆盖两种备份写法，尊重用户手写的等价忽略行
-  { row: ".toolkitrc.json.bak", patterns: [/^\/?\.toolkitrc\.json\.bak$/, /^\.toolkitrc\.\*$/] },
-  { row: ".toolkitrc.local.json.bak", patterns: [/^\/?\.toolkitrc\.local\.json\.bak$/, /^\.toolkitrc\.\*$/] },
+// 忽略组：写入片段的最小单元；line 为写入形式，targets 为该行守护的实际文件
+// 写入形式的通用程度受限于「命中集合 ⊆ 本工具产物」：*.lock 会牵连 Cargo.lock 等业务锁文件、*.local.json 会牵连用户的本地覆盖文件，
+// 故这两条保持全名；两份配置备份合并为 .toolkitrc.*.bak（命中集合只有配置备份，不含团队配置本体）
+const IGNORE_GROUPS: ReadonlyArray<{ line: string; targets: string[] }> = [
+  { line: ".archive.lock", targets: [".archive.lock"] },
+  { line: ".toolkitrc.local.json", targets: [".toolkitrc.local.json"] },
+  { line: ".toolkitrc.*.bak", targets: [".toolkitrc.json.bak", ".toolkitrc.local.json.bak"] },
 ]
 
 // prepare 钩子脚本：只收敛项目面已存在的产物（不新增技能），幂等；挂在本地依赖 @fxri/toolkit 时才有意义
@@ -189,32 +185,72 @@ function isOwnedLine(line: string): boolean {
   return line.startsWith(GITIGNORE_MARKER) || line === GITIGNORE_EXIT_HINT
 }
 
-// 判某忽略行是否已被覆盖：优先用 git check-ignore 真实判定（含 .git/info/exclude、上层 .gitignore 等全部来源，能识破 *.lock 等通配）
-// 非 git 仓库或判定不可用时退回等价写法白名单；两条路径都让用户手写的等价写法原样保留、不再追加
-function isRowCovered(item: { row: string; patterns: RegExp[] }, cwd: string, lines: string[], inRepo: boolean): boolean {
-  if (inRepo && checkIgnore(join(cwd, item.row)).state === "ignored") return true
-  return lines.some((line) => item.patterns.some((re) => re.test(line.trim())))
+// 段内首尾空行归一：段与段之间统一用一个空行相接，重复执行不再漂移
+function trimBlankLines(list: string[]): string[] {
+  let start = 0
+  let stop = list.length
+  while (start < stop && list[start] === "") start += 1
+  while (stop > start && list[stop - 1] === "") stop -= 1
+  return list.slice(start, stop)
 }
 
-// 向 .gitignore 追加忽略片段：逐行判定覆盖情况、只补缺失行，重复执行不改动，用户手写的等价忽略写法原样保留
+// 判片段内某行是否属于某个忽略组：能覆盖该组全部目标才算，避免只覆盖一半的旧写法被沿用
+function lineCoversGroup(line: string, group: (typeof IGNORE_GROUPS)[number]): boolean {
+  return group.targets.every((target) => isIgnoredByRules([line], target))
+}
+
+// 向 .gitignore 追加忽略片段：逐组判定覆盖情况、只补缺失组，重复执行不改动，用户手写的通用写法原样保留
 export function appendGitignore(cwd: string, dryRun = false): InitProduct[] {
   const file = join(cwd, ".gitignore")
-  const cover = `覆盖 ${GITIGNORE_ROWS.map((item) => item.row).join(" / ")}`
+  const cover = `覆盖 ${IGNORE_GROUPS.map((group) => group.line).join(" / ")}`
   const head = [GITIGNORE_COMMENT, GITIGNORE_EXIT_HINT]
   if (!existsSync(file)) {
     // 无 .gitignore：直接创建并写入完整片段
-    if (!dryRun) writeFileAtomic(file, `${head.join("\n")}\n${GITIGNORE_ROWS.map((item) => item.row).join("\n")}\n`)
+    if (!dryRun) writeFileAtomic(file, `${head.join("\n")}\n${IGNORE_GROUPS.map((group) => group.line).join("\n")}\n`)
     return [{ target: ".gitignore", action: "created", detail: `已创建并写入 ${GITIGNORE_MARKER} 忽略片段（${cover}）` }]
   }
   const raw = readTextFile(file)
-  // 保留原换行风格；统一为 LF 后逐行判定，任一等价写法命中即该行已覆盖
+  // 保留原换行风格；统一为 LF 后逐行判定，任一通用写法命中即视为该目标已覆盖
   const eol = raw.includes("\r\n") ? "\r\n" : "\n"
   const lines = raw.replace(/\r\n/g, "\n").split("\n")
   const markerAt = lines.findIndex((line) => line.startsWith(GITIGNORE_MARKER))
   const inRepo = probeRepo(cwd).kind === "repo"
-  const missing = GITIGNORE_ROWS.filter((item) => !isRowCovered(item, cwd, lines, inRepo))
-  if (missing.length === 0) {
-    // 各行均已覆盖：无本工具认领片段则整文件保持不动（尊重用户手写）；片段头陈旧或缺出口指引时就地校正
+  // 片段范围：认领行之后连续属于该片段的行（认领行，或命中本工具任一目标的部分覆盖写法），遇空行 / 未知行即止
+  // 部分覆盖也要算在内：旧片段把备份拆成两行时，两行都须随片段重写，否则会被当成片段外写法而漏收敛
+  const touchesGroup = (line: string) =>
+    IGNORE_GROUPS.some((group) => group.targets.some((target) => isIgnoredByRules([line], target)))
+  let end = markerAt
+  if (markerAt >= 0) {
+    while (end + 1 < lines.length) {
+      const next = lines[end + 1]!
+      if (!isOwnedLine(next) && !touchesGroup(next)) break
+      end += 1
+    }
+  }
+  // 片段之外的行：片段内的旧行本轮会被重写，不能算作覆盖来源，否则「片段里两行各覆盖一半」会被误判为已覆盖而丢失规则
+  const outside = lines.filter((line, index) => !(index >= markerAt && index <= end) && !isOwnedLine(line))
+  // 覆盖判定：先按 gitignore 语义匹配片段之外的写法；无认领片段时再问 git（含 .git/info/exclude 与上层 .gitignore）
+  const isCovered = (target: string) =>
+    isIgnoredByRules(outside, target) || (markerAt < 0 && inRepo && checkIgnore(join(cwd, target)).state === "ignored")
+  const coveredGroup = (group: (typeof IGNORE_GROUPS)[number]) => group.targets.every(isCovered)
+  // 用户显式否定（片段之外最后命中的规则以 ! 开头）视为「不要忽略」：既不补写也不在片段内保留
+  const isNegated = (target: string) => {
+    const hit = lastIgnoreRule(outside, target)
+    return hit !== null && hit.trimStart().startsWith("!")
+  }
+  const negatedGroup = (group: (typeof IGNORE_GROUPS)[number]) => group.targets.every(isNegated)
+  // 片段内已有的写法保留原文（如 /.toolkitrc.local.json），但须覆盖整组，覆盖不全则改写成组的标准形式
+  const keptBy = new Map<string, string>()
+  for (const line of markerAt < 0 ? [] : lines.slice(markerAt + 1, end + 1)) {
+    const group = IGNORE_GROUPS.find((item) => !keptBy.has(item.line) && lineCoversGroup(line, item))
+    if (group) keptBy.set(group.line, line)
+  }
+  // 组内任一目标既未被片段之外的写法覆盖、也没有片段内的整组写法承接，才需要写入
+  const needWrite = IGNORE_GROUPS.filter((group) => !negatedGroup(group) && !coveredGroup(group) && !keptBy.has(group.line))
+  // 片段内残留着已被用户否定的行时同样要重建，把它清掉
+  const needDrop = IGNORE_GROUPS.filter((group) => negatedGroup(group) && keptBy.has(group.line))
+  if (needWrite.length === 0 && needDrop.length === 0) {
+    // 各组均已有覆盖来源：无本工具认领片段则整文件保持不动（尊重用户手写）；片段头陈旧或缺出口指引时就地校正
     if (markerAt === -1 || (lines[markerAt] === GITIGNORE_COMMENT && lines[markerAt + 1] === GITIGNORE_EXIT_HINT)) {
       return [{ target: ".gitignore", action: "kept", detail: `已含 ${GITIGNORE_MARKER} 忽略片段（${cover}）` }]
     }
@@ -222,12 +258,26 @@ export function appendGitignore(cwd: string, dryRun = false): InitProduct[] {
     if (!dryRun) writeFileAtomic(file, [...lines.slice(0, markerAt), ...head, ...tail].join(eol))
     return [{ target: ".gitignore", action: "updated", detail: `已就地把 ${GITIGNORE_MARKER} 片段头更新为当前文案（${cover}）` }]
   }
-  // 摘除本工具认领的旧片段行后重建，避免旧文案 / 旧指引残留
-  const body = lines.filter((line) => !isOwnedLine(line))
-  while (body.length > 0 && body[body.length - 1] === "") body.pop()
-  const block = [...head, ...missing.map((item) => item.row)]
-  const next = body.length > 0 ? `${body.join(eol)}${eol}${eol}${block.join(eol)}${eol}` : `${block.join(eol)}${eol}`
+  // 摘除整段片段后按原位置重建：前段留在片段之前、后段留在片段之后，避免把片段后的用户规则
+  // （尤其 ! 否定）翻到片段之前被我方忽略行重新覆盖
+  const outsideAt = (line: string, index: number) => !(index >= markerAt && index <= end) && !isOwnedLine(line)
+  const before = trimBlankLines(lines.filter((line, index) => (markerAt < 0 || index < markerAt) && outsideAt(line, index)))
+  const after = trimBlankLines(lines.filter((line, index) => markerAt >= 0 && index > end && outsideAt(line, index)))
+  const block = [
+    ...head,
+    ...IGNORE_GROUPS.flatMap((group) => {
+      if (negatedGroup(group)) return []
+      const kept = keptBy.get(group.line)
+      if (kept !== undefined) return [kept]
+      return coveredGroup(group) ? [] : [group.line]
+    }),
+  ]
+  const sections = [...(before.length > 0 ? [before.join(eol)] : []), block.join(eol), ...(after.length > 0 ? [after.join(eol)] : [])]
+  const next = `${sections.join(`${eol}${eol}`)}${eol}`
   if (!dryRun) writeFileAtomic(file, next)
+  if (markerAt >= 0) {
+    return [{ target: ".gitignore", action: "updated", detail: `已就地重建 ${GITIGNORE_MARKER} 忽略片段（${cover}）` }]
+  }
   return [{ target: ".gitignore", action: "appended", detail: `已追加 ${GITIGNORE_MARKER} 忽略片段（${cover}）` }]
 }
 
