@@ -3,7 +3,7 @@ name: fxri-writing-docs
 description: 文档站写作规范：分类骨架（开始 / 指南 / 参考 / 原理 / 升级 / 开发 / 帮助）、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏首末项与项数、旧 URL 不重定向、404 与索引排除、导航结构用工具命令校验、代码块内联注释对齐（分组 / 相对最长基准 / 目标列）。适用于新建或调整 VitePress 文档站的导航、分类、页面标题、站内引用与命令示例排版，含非中文站点的通用口径；不含正文文风、配图与视觉设计、部署流水线。
 license: MIT
 metadata:
-  version: "0.2.2"
+  version: "0.2.3"
   tier: optional
   previousNames: ["fxri-docs-writing"]
   type: profile
@@ -15,7 +15,7 @@ metadata:
 
 # 文档站写作规范
 
-> 本技能版本 0.2.2（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 0.2.3（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -114,7 +114,7 @@ toolkit scope          # （可选）限定生效范围，默认全域
   单页体量告警）与 `toolkit docs dist check`（构建产物中站点地图与搜索索引排除 404）。
 - 工具未安装时相关检查跳过并提示，不阻断与该工具无关的仓库；命令与本技能条款不一致时以条款为准，同时修命令。
 - 单页超过 300 行（排除 `changelog.md`）输出 warn，只提示不阻断；更严格的正文可读性门禁属站点自选。
-- 标题与索引的一致性由站点自检脚本守护：已声明 `title` 的页面校验 title=H1，索引链接文案校验等于目标页标题。
+- 标题与索引的一致性由 `toolkit docs titles check` 守护：已声明 `title` 的页面校验 title=H1，目录表链接文案校验等于目标页标题；工具未安装时跳过并提示。
 - 代码块内联注释对齐由仓库自检脚本守护（本包为 `scripts/check-docs-comments.mjs`，挂在 `pnpm verify`）；未接入脚本的站点按本节规则人工核对。
 
 ## 落地步骤
