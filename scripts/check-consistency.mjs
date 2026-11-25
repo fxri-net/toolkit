@@ -518,22 +518,36 @@ if (existsSync(join(root, "docs"))) {
     else if (declared !== h1) errors.push(`${file} 的 title「${declared}」与一级标题「${h1}」不一致`)
   }
 
-  // 配置分页索引属目录表：链接文案承载完整标题，与行内引用（用显示名）区分
-  if (existsSync(join(root, "docs", "config.md"))) {
-    const section = /## 配置分页\n([\s\S]*?)\n## /.exec(read("docs/config.md"))?.[1] ?? ""
-    if (!section) errors.push("docs/config.md 缺少「配置分页」小节")
+  // 目录表（文档索引 / 规则表 / 配置分页）的链接文案须等于目标页标题，与行内引用（用显示名）区分
+  function checkIndexLabels(file, heading, baseDir) {
+    const section = new RegExp(`## ${heading}\\n([\\s\\S]*?)\\n## `).exec(read(file))?.[1] ?? ""
+    if (!section) {
+      errors.push(`${file} 缺少「${heading}」小节`)
+      return
+    }
     for (const matched of section.matchAll(/\[([^\]]+)\]\(([^)\s]+)\)/g)) {
       const label = matched[1]
       const href = matched[2]
-      const page = resolveDocPage(href.split("#")[0].replace(/^\./, ""))
+      // 外链与纯锚点不是站内页面，不参与标题比对
+      if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("#")) continue
+      const rel = join(baseDir, href.split("#")[0]).replace(/\\/g, "/")
+      // 目录与同名 .md 并存时取页面文件，避免把目录当页面读取
+      const page = [`${rel}.md`, `${rel}/index.md`, rel].find(
+        (candidate) => existsSync(join(root, candidate)) && statSync(join(root, candidate)).isFile(),
+      )
       if (!page) {
-        errors.push(`docs/config.md 的索引 ${href} 指向不存在的页面`)
+        errors.push(`${file} 的索引 ${href} 指向不存在的页面`)
         continue
       }
       const title = pageTitle(page)
-      if (label !== title) errors.push(`docs/config.md 的索引文案「${label}」≠ 目标页标题「${title}」（${page}）`)
+      if (label !== title) errors.push(`${file} 的索引文案「${label}」≠ 目标页标题「${title}」（${page}）`)
     }
   }
+
+  if (existsSync(join(root, "docs", "config.md"))) checkIndexLabels("docs/config.md", "配置分页", "docs")
+  if (existsSync(join(root, "README.md"))) checkIndexLabels("README.md", "📚 文档", ".")
+  if (existsSync(join(root, "docs", "index.md"))) checkIndexLabels("docs/index.md", "文档索引", "docs")
+  if (existsSync(join(root, "docs", "rules", "index.md"))) checkIndexLabels("docs/rules/index.md", "整篇规则", "docs/rules")
 
   // 两份文档索引不做生成，但目标页集合必须一致：新增页面只登记一处即失败
   function readIndexPages(file) {

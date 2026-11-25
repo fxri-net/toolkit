@@ -318,6 +318,50 @@ describe("规范一致性：页面命名", () => {
   })
 })
 
+// 目录表文案：README / 文档索引 / 规则表与配置分页同一口径——链接文案须等于目标页标题
+const linkTable = (label: string, href: string) =>
+  ["| 文档 | 适合谁 |", "| --- | --- |", `| [${label}](${href}) | 示例 |`, ""].join("\n")
+const readmeDoc = (label: string) => ["# 方弦工具集", "", "## 📚 文档", "", linkTable(label, "./docs/demo.md"), "| [完整文档站](https://example.com) | 外链 |", "", "## 其他", ""].join("\n")
+const docsHome = (label: string) => ["# 首页", "", "## 文档索引", "", linkTable(label, "./demo.md"), "## 其他", ""].join("\n")
+const rulesIndexDoc = (label: string) => ["# 全局规则", "", "## 整篇规则", "", linkTable(label, "./ai.md"), "## 其他", ""].join("\n")
+
+describe("规范一致性：目录表文案", () => {
+  it("README / 文档索引 / 规则表的链接文案与目标页标题一致时通过", () => {
+    const root = createFixture({
+      "skills/fxri-demo/references/task-spec.md": "# 任务规范\n",
+      "docs/demo.md": titledPage("示例页", "示例页"),
+      "docs/rules/ai.md": titledPage("AI 全局规则", "AI 全局规则"),
+      "README.md": readmeDoc("示例页"),
+      "docs/index.md": docsHome("示例页"),
+      "docs/rules/index.md": rulesIndexDoc("AI 全局规则"),
+    })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status, result.stderr).toBe(0)
+  })
+
+  it("README 文档索引文案与目标页标题不一致时报 error", () => {
+    const root = createFixture({
+      "skills/fxri-demo/references/task-spec.md": "# 任务规范\n",
+      "docs/demo.md": titledPage("示例页", "示例页"),
+      "README.md": readmeDoc("示例"),
+    })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("README.md 的索引文案「示例」")
+  })
+
+  it("规则表文案与目标页标题不一致时报 error", () => {
+    const root = createFixture({
+      "skills/fxri-demo/references/task-spec.md": "# 任务规范\n",
+      "docs/rules/ai.md": titledPage("AI 全局规则", "AI 全局规则"),
+      "docs/rules/index.md": rulesIndexDoc("全局规则"),
+    })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("docs/rules/index.md 的索引文案「全局规则」")
+  })
+})
+
 describe("规范一致性：规则块读者向措辞", () => {
   it("业务文本通过", () => {
     const root = createFixture({ ...ruleBase, "templates/rules/demo.md": moduleDoc("- 提交默认需确认，细节以技能为准。") })

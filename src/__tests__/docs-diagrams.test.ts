@@ -1,4 +1,4 @@
-// 核心模型页的机检：图示链接可解析、能力全景覆盖全部命令域
+// 一图看懂页的机检：图示链接可解析、能力全景覆盖全部命令域
 // 现有 docs-consistency 只扫 markdown 渲染出的 href，看不到组件内部链接，故单列本用例
 import { describe, expect, it } from "vitest"
 import { existsSync, readFileSync } from "node:fs"
@@ -19,7 +19,7 @@ function resolveDocFile(target: string): string | null {
   return null
 }
 
-describe("核心模型页：图示与能力全景", () => {
+describe("一图看懂页：图示与能力全景", () => {
   it("图内每个跳转都指向存在的文档页，带锚点时锚点存在", async () => {
     const md = await createMarkdownRenderer(join(process.cwd(), "docs"))
     const problems: string[] = []
