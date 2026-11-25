@@ -14,6 +14,8 @@ toolkit skill bump fxri-plan-review --set 2.0.0  # 直接设定版本（与递�
 toolkit skill bump --dir skills --all patch      # 外部仓：对指定技能目录批量递增
 toolkit skill bump --dir a/skills --dir b/skills --all patch --yes # monorepo 多根
 toolkit skill bump fxri-plan-review --from body  # 两处版本不一致时以正文为准
+toolkit skill bump fxri-plan-task --sync-tables
+toolkit skill bump --dir skills --all patch --sync-tables skills/README.md docs/guide.md
 ```
 
 ## 行为
@@ -24,7 +26,9 @@ toolkit skill bump fxri-plan-review --from body  # 两处版本不一致时以�
 - **写回前校验**：按待写内容跑一遍 `toolkit skill lint`（内存校验，不重复落盘），存在错误时整体中止、不写半截
 - **预演**：`--dry-run` 只打印 `from → to`，不写盘，但仍按待写内容校验
 - **确认**：`--all` 在交互态需确认；非交互环境须显式 `--yes`
-- **输出**：stdout 为数据（文本或 `--format json` / `--json`），诊断写 stderr
+- **技能表同步**：`--sync-tables [files...]` 在递增后同步技能表版本列；缺省 `skills/README.md` 与 `docs/guide.md`，`--dir` 外部目录须显式传文件
+- **缺失处置**：文件或行缺失只告警不阻断，`--dry-run` 不写盘
+- **输出**：stdout 为数据（文本或 `--format json` / `--json`），诊断写 stderr；JSON 的 `data` 含 `skills` 与 `tables`
 
 ## 外部仓接入
 

@@ -3,7 +3,7 @@ name: fxri-writing-skill
 description: 编写或修改 AI 技能（SKILL.md 与 references）时加载：按统一骨架组织入口、判断何时拆 references、写清触发与不做，并复用 toolkit 的机械校验与版本递增。新建技能、调整技能结构、评审技能文案或把其他仓库的规范迁入技能时适用。不用于任务建档、发版流程或普通项目文档写作。
 license: MIT
 metadata:
-  version: "1.0.4"
+  version: "1.0.5"
   tier: optional
   previousNames: ["fxri-skill-authoring"]
   type: practice
@@ -15,7 +15,7 @@ metadata:
 
 # 技能编写规范
 
-> 本技能版本 1.0.4（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.0.5（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -42,8 +42,8 @@ metadata:
    统一由 `toolkit skill lint` 判定；技能正文只写判断口径，不复制阈值、正则或字段清单的判定实现。
 6. **版本独立递增**：技能内容变更时用 `toolkit skill bump` 同时改写两处版本声明；技能版本不跟随产品包版本，
    内容没变就不递增。两处版本不一致时先跑 lint 定位，再用 `--from` 显式选择源头。
-7. **收尾**：先跑 `toolkit skill lint skills/`，再同步技能表与文档索引，最后补 patch 变更集；
-   技能表里的版本与层级必须与真源一致。
+7. **收尾**：先跑 `toolkit skill lint skills/`；版本递增用 `toolkit skill bump`，可加 `--sync-tables` 同步技能表版本列（快照仍由测试 `-u` 生成）；
+   最后补 patch 变更集，技能表里的版本与层级必须与真源一致。
 
 ## 不做
 
