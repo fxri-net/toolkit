@@ -189,7 +189,7 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 | `fxri-plan-task` | 1.13.6 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
 | `fxri-plan-review` | 1.1.0 | 复核已落档任务拆分：输出新增疏漏、建议与修订计划表，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
 | `fxri-plan-recap` | 1.7.9 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
-| `fxri-release-changelog` | 1.4.2 | changesets 发版与多语言 CHANGELOG 维护 | optional |
+| `fxri-release-changelog` | 1.4.3 | changesets 发版与多语言 CHANGELOG 维护 | optional |
 | `fxri-writing-skill` | 1.0.5 | 技能编写规范：统一骨架、references 拆分、安全边界，把可机械检出的规则交给 lint、版本递增交给 bump | optional |
 | `fxri-writing-docs` | 0.2.3 | 文档站写作规范：分类骨架、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏与 404 兜底、导航用工具命令校验、代码块内联注释对齐 | optional |
 | `fxri-code-encoding` | 1.2.12 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
