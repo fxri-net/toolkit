@@ -35,7 +35,7 @@ import ModelMap from './.vitepress/theme/components/diagrams/ModelMap.vue'
 | `toolkit rule` | 全局规则组合与缓存 | `rule` | [全局规则](./cli/rule) |
 | `toolkit scope` | 按目录决定技能是否生效 | `scope` | [作用域](./cli/scope) |
 | `toolkit skill` | 技能分发、校验、版本与来源 | `skill` | [技能分发](./cli/skill) |
-| `toolkit usage` | 技能使用统计与导出（默认关闭） | `usage` | [技能使用情况](./cli/usage) |
+| `toolkit usage` | 技能使用情况：统计与导出（默认关闭） | `usage` | [技能使用情况](./cli/usage) |
 | `toolkit convention` | 规范载体升级、归一与体检 | `convention` | [规范载体](./cli/convention) |
 | `toolkit release` | 多语言 CHANGELOG 与发版 | `release` | [发版与更新日志](./cli/release) |
 | `toolkit upgrade` | v1 工程迁移 | `upgrade` | [升级迁移](./cli/upgrade) |
