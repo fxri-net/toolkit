@@ -783,6 +783,26 @@ describe("目标树补全与横切参数", () => {
     expect(r.log.join("\n")).toContain("跳过")
   })
 
+  it("skill bump --dry-run --sync-tables：预演不写盘并返回表格同步结果", async () => {
+    const r = await runCli([
+      "skill",
+      "bump",
+      "fxri-plan-task",
+      "--dir",
+      join(originalCwd, "skills"),
+      "--dry-run",
+      "--sync-tables",
+      join(originalCwd, "skills/README.md"),
+      join(originalCwd, "docs/guide.md"),
+      "--format",
+      "json",
+    ])
+    expect(r.code, r.err.join("\n")).toBe(0)
+    const parsed = JSON.parse(r.log.join("\n")) as { data?: { tables?: Array<{ file?: string; updated?: string[] }> } }
+    expect(parsed.data?.tables?.length).toBe(2)
+    expect(parsed.data?.tables?.every((table) => Array.isArray(table.updated))).toBe(true)
+  })
+
   it("全局 --cwd：以指定目录为查找起点", async () => {
     const r = await runCli(["--cwd", cfgDir, "config", "status"])
     expect(r.code).toBe(0)

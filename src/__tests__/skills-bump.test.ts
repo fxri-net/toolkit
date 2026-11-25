@@ -2,8 +2,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
-import { bumpSkillVersions } from "../skills/bump"
+import { dirname, join } from "node:path"
+import { bumpSkillVersions, syncSkillTables } from "../skills/bump"
 import { bumpVersion, isValidVersion } from "../skills/versioning"
 
 let root = ""
@@ -148,5 +148,47 @@ describe("bumpSkillVersions", () => {
     expect(isValidVersion("1.2.3")).toBe(true)
     expect(isValidVersion("1.2.3-beta.1")).toBe(true)
     expect(isValidVersion("1.2")).toBe(false)
+  })
+})
+
+// 技能表版本同步：两种首列写法、缺失行/文件、预演与幂等
+function writeTable(name: string, rows: string[]): string {
+  const file = join(root, name)
+  mkdirSync(dirname(file), { recursive: true })
+  writeFileSync(file, ["| 技能 | 版本 | 用途 |", "| --- | --- | --- |", ...rows, ""].join("\n"), "utf8")
+  return file
+}
+
+describe("syncSkillTables", () => {
+  it("两种首列写法都同步版本列，保留其他单元格", () => {
+    const file = writeTable("skills-table.md", ["| `fxri-alpha` | 1.0.0 | 示例 |", "| [fxri-beta](./x/SKILL.md) | 2.0.0 | 示例 |"])
+    const [result] = syncSkillTables([file], [
+      { name: "fxri-alpha", version: "1.0.1" },
+      { name: "fxri-beta", version: "2.0.1" },
+    ])
+    expect(result?.updated).toEqual(["fxri-alpha", "fxri-beta"])
+    expect(result?.missing).toEqual([])
+    const text = readFileSync(file, "utf8")
+    expect(text).toContain("| `fxri-alpha` | 1.0.1 | 示例 |")
+    expect(text).toContain("| [fxri-beta](./x/SKILL.md) | 2.0.1 | 示例 |")
+  })
+
+  it("缺失技能行与缺失文件都只记录，不抛错", () => {
+    const file = writeTable("min.md", ["| `fxri-alpha` | 1.0.0 | 示例 |"])
+    const results = syncSkillTables([file, join(root, "missing.md")], [
+      { name: "fxri-alpha", version: "1.0.1" },
+      { name: "fxri-beta", version: "2.0.1" },
+    ])
+    expect(results[0]?.missing).toEqual(["fxri-beta"])
+    expect(results[1]?.skipped).toBe("文件不存在")
+  })
+
+  it("dryRun 不写盘；重复同步幂等", () => {
+    const file = writeTable("dry.md", ["| `fxri-alpha` | 1.0.0 | 示例 |"])
+    syncSkillTables([file], [{ name: "fxri-alpha", version: "1.0.1" }], { dryRun: true })
+    expect(readFileSync(file, "utf8")).toContain("| `fxri-alpha` | 1.0.0 | 示例 |")
+    syncSkillTables([file], [{ name: "fxri-alpha", version: "1.0.1" }])
+    const [again] = syncSkillTables([file], [{ name: "fxri-alpha", version: "1.0.1" }])
+    expect(again?.updated).toEqual([])
   })
 })

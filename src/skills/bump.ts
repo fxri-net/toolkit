@@ -82,6 +82,62 @@ function collectSkills(dirs: string[]): Map<string, SkillEntry> {
   return out
 }
 
+// 表格版本同步结果：updated 为已改写技能的版本行，missing 为本表未找到的技能
+export interface TableSyncResult {
+  file: string
+  updated: string[]
+  missing: string[]
+  skipped?: string
+}
+
+// 技能表首列取技能名：`name` 或 [name](path) 两种写法
+function rowSkillName(cell: string): string | null {
+  const trimmed = cell.trim()
+  const link = /^\[([^\]]+)\]\([^)]*\)$/.exec(trimmed)
+  if (link) return (link[1] ?? "").trim()
+  const code = /^`([^`]+)`$/.exec(trimmed)
+  if (code) return (code[1] ?? "").trim()
+  return null
+}
+
+// 同步技能表版本列：只改首列命中技能名的行第三列，保留行尾与单元格间距
+export function syncSkillTables(files: string[], skills: Array<{ name: string; version: string }>, options: { dryRun?: boolean } = {}): TableSyncResult[] {
+  const versionByName = new Map(skills.map((item) => [item.name, item.version]))
+  const results: TableSyncResult[] = []
+  for (const file of files) {
+    if (!existsSync(file)) {
+      results.push({ file, updated: [], missing: [...versionByName.keys()], skipped: "文件不存在" })
+      continue
+    }
+    const raw = readTextFile(file)
+    const newline = raw.includes("\r\n") ? "\r\n" : "\n"
+    const found = new Set<string>()
+    const updated: string[] = []
+    const lines = raw.split(/\r?\n/).map((line) => {
+      if (!line.trim().startsWith("|")) return line
+      const parts = line.split("|")
+      // 至少 4 段：首尾空段 + 三列单元格
+      if (parts.length < 4) return line
+      const name = rowSkillName(parts[1] ?? "")
+      const next = name ? versionByName.get(name) : undefined
+      if (!name || !next) return line
+      found.add(name)
+      const cell = parts[2] ?? ""
+      const trimmed = cell.trim()
+      if (trimmed === "" || trimmed === next) return line
+      // 保留单元格前后空白，只替换中间值
+      const start = cell.indexOf(trimmed)
+      parts[2] = cell.slice(0, start) + next + cell.slice(start + trimmed.length)
+      updated.push(name)
+      return parts.join("|")
+    })
+    const missing = [...versionByName.keys()].filter((name) => !found.has(name))
+    if (!options.dryRun && updated.length > 0) writeFileAtomic(file, lines.join(newline))
+    results.push({ file, updated, missing })
+  }
+  return results
+}
+
 // 递增技能版本：逐项校验、可选预演；任一失败即抛错，不写半截
 export function bumpSkillVersions(options: BumpOptions): BumpResult[] {
   // 技能根按真实路径归一：与 lint 的 target.dir 同口径，避免链接别名（macOS /var、Windows 短名）导致覆盖键失配

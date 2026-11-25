@@ -1,5 +1,5 @@
 // skills 命令：技能分发、状态、卸载与来源管理的注册入口与报告打印
-import { join } from "node:path"
+import { join, resolve } from "node:path"
 import { Option, type Command } from "commander"
 import { getHomeDir } from "../config"
 import { assertJsonFormat, jsonEnvelope } from "../json-output"
@@ -60,6 +60,7 @@ import {
   skillsStatus,
   writeSkillsInstallConfig,
   bumpSkillVersions,
+  syncSkillTables,
   isValidVersion,
   lintSkills,
   BUILTIN_SOURCE,
@@ -1531,6 +1532,7 @@ export function registerSkillsCommands(program: Command): void {
     .argument("[type]", "patch / minor / major（缺省 patch）")
     .option("--all", "批量递增技能目录下的全部技能")
     .option("--dir <path>", "技能目录（可重复；缺省为本包 skills/）", collectDir, [])
+    .option("--sync-tables [files...]", "递增后同步技能表版本列（缺省 skills/README.md 与 docs/guide.md；外部目录须显式传文件）")
     .option("--set <version>", "直接设定版本（与递增类型互斥）")
     .option("--from <source>", "两处版本不一致时的取值源头：frontmatter / body（缺省报错）")
     .option("--dry-run", "只打印变更，不写盘")
@@ -1543,9 +1545,10 @@ export function registerSkillsCommands(program: Command): void {
         "",
         "外部仓用法：toolkit skill bump --dir skills --all patch",
         "两处版本不一致时默认报错；用 --from frontmatter|body 显式选择源头后再递增",
+        "--sync-tables 缺省同步 skills/README.md 与 docs/guide.md；外部目录须显式传文件",
       ].join("\n"),
     )
-    .action(async (name: string | undefined, type: string | undefined, options: { all?: boolean; dir?: string[]; set?: string; from?: string; dryRun?: boolean; yes?: boolean; json?: boolean; format?: string }) => {
+    .action(async (name: string | undefined, type: string | undefined, options: { all?: boolean; dir?: string[]; syncTables?: boolean | string[]; set?: string; from?: string; dryRun?: boolean; yes?: boolean; json?: boolean; format?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return
         if (options.all && name) {
@@ -1594,8 +1597,27 @@ export function registerSkillsCommands(program: Command): void {
           from: options.from as "frontmatter" | "body" | undefined,
           dryRun: options.dryRun,
         })
-        if (options.json || options.format === "json") printJson(jsonEnvelope({ command: "skill bump", data: { dryRun: Boolean(options.dryRun), skills: results } }))
-        else for (const item of results) console.log(`${options.dryRun ? "[预演] " : ""}${item.name}：${item.from} → ${item.to}（${item.file}）`)
+        // 技能表同步：缺省两文件仅在本包技能目录下启用；外部目录须显式传文件，不静默跳过
+        let tableFiles: string[] = []
+        let tableSkipReason = ""
+        if (options.syncTables !== undefined) {
+          const explicit = Array.isArray(options.syncTables) ? options.syncTables : []
+          const external = options.dir !== undefined && options.dir.length > 0
+          if (explicit.length > 0) tableFiles = explicit.map((file) => resolve(process.cwd(), file))
+          else if (external) tableSkipReason = "外部技能目录需显式传 --sync-tables <file...>"
+          else tableFiles = [join(process.cwd(), "skills/README.md"), join(process.cwd(), "docs/guide.md")]
+        }
+        const tables = tableFiles.length > 0 ? syncSkillTables(tableFiles, results.map((item) => ({ name: item.name, version: item.to })), { dryRun: options.dryRun }) : []
+        if (options.json || options.format === "json") printJson(jsonEnvelope({ command: "skill bump", data: { dryRun: Boolean(options.dryRun), skills: results, tables, tableSkipReason } }))
+        else {
+          for (const item of results) console.log(`${options.dryRun ? "[预演] " : ""}${item.name}：${item.from} → ${item.to}（${item.file}）`)
+          for (const table of tables) {
+            if (table.skipped) console.log(line.hint(`跳过技能表同步：${table.file}（${table.skipped}）`))
+            if (table.updated.length > 0) console.log(`${options.dryRun ? "[预演] " : ""}同步技能表：${table.file}（${table.updated.join("、")}）`)
+            if (table.missing.length > 0) console.warn(`⚠️ ${table.file} 未找到技能行：${table.missing.join("、")}`)
+          }
+          if (tableSkipReason) console.warn(`⚠️ ${tableSkipReason}，未同步技能表`)
+        }
       } catch (e) {
         // 交互确认中按 Ctrl+C 属取消而非失败：统一按 130 结束
         if (exitOnPromptCancel(e)) return
