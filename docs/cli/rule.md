@@ -8,7 +8,7 @@ title: 全局规则（rule）
 
 ## 用途与场景
 
-- 全局规则会整段进入 Agent 上下文，可按需组合模块（清单见[全局规则索引](../rules/)）。
+- 全局规则会整段进入 Agent 上下文，可按需组合模块（清单见[全局规则](../rules/)）。
 - 预设：`minimal`（极简，只含 `workflow`，适合自备代码规范）、
   `recommended`（推荐，默认：`core` + `output` + `workflow` + `practices` + `commit`，多数项目从零起步）、
   `full`（全部 6 个模块，适合已启用技能统计）。
@@ -78,5 +78,5 @@ toolkit rule sync --dry-run  # 只显示差异，不写盘
 
 ## 相关页面
 
-- 规则：[全局规则索引](../rules/) · [AI 全局规则](../rules/ai) · [技能使用情况规则](../rules/usage)
+- 规则：[全局规则](../rules/) · [AI 全局规则](../rules/ai) · [技能使用情况规则](../rules/usage)
 - 参考：[CLI 参考](../cli) · [缓存目录](../config/cache)

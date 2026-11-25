@@ -74,7 +74,7 @@ title: 适用场景
 
 **落地后得到什么**：贡献者的 AI 按同一格式产出；发版与文档漂移可机检。
 
-深入阅读：[发版与更新日志](./cli/release) · [文档站校验](./cli/docs-check) · [推荐提交信息规则](./rules/commit)
+深入阅读：[发版与更新日志](./cli/release) · [文档站校验](./cli/docs-check) · [提交信息规则](./rules/commit)
 
 ## v1 存量工程
 
