@@ -360,6 +360,16 @@ describe("规范一致性：目录表文案", () => {
     expect(result.status).toBe(1)
     expect(result.stderr).toContain("docs/rules/index.md 的索引文案「全局规则」")
   })
+
+  it("README 存在但缺少文档索引小节时报 error", () => {
+    const root = createFixture({
+      "skills/fxri-demo/references/task-spec.md": "# 任务规范\n",
+      "README.md": ["# 方弦工具集", "", "## 其他", ""].join("\n"),
+    })
+    const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("README.md 缺少「📚 文档」小节")
+  })
 })
 
 describe("规范一致性：规则块读者向措辞", () => {
