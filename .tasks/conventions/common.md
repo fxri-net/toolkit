@@ -97,7 +97,7 @@
 | F-15 | 项目候选技能目录 | `src/conventions/entry.ts`（包内 dist） | 生成 | 两处文档表改生成块 | B3 |
 | F-16 | usage 默认值 | `src/usage/config.ts`（包内 dist） | 派生 | 配置展示与向导取同源 | B2 |
 | F-17 | docs 默认值 | `src/docs/config.ts`（包内 dist） | 派生 | 与 F-2 同批 | B2 |
-| F-18 | 开工词闭集 | `skills/fxri-plan-task`（包内） | 散文单源 + 指针 | 规则层与手册删枚举 | B1 |
+| F-18 | 授权判据 | `skills/fxri-plan-task`（包内） | 散文单源 + 指针 | 规则层与手册删枚举 | B1 |
 | F-19 | 脱敏规则清单 | `src/privacy/redact.ts`（包内 dist） | 散文单源 + 指针 | 只在一页保留清单 | B1 |
 | F-20 | 脚本触达面清单 | `scripts/touch-surface.mjs`（本仓） | 派生 | 四个自检脚本共用 | B3 |
 | F-21 | 命令域清单 | 命令注册表（包内） | 派生 | 一致性检查改派生 | B3 |
