@@ -759,6 +759,30 @@ describe("目标树补全与横切参数", () => {
     expect(explicit.code).toBe(0)
   })
 
+  it("docs titles check --format json：统一信封且规则版本可读", async () => {
+    const r = await runCli(["docs", "titles", "check", "--dir", join(originalCwd, "docs"), "--format", "json"])
+    expect(r.code).toBe(0)
+    const parsed = JSON.parse(r.log.join("\n")) as { command?: string; data?: { ruleVersion?: string; problems?: unknown[] } }
+    expect(parsed.command).toBe("docs titles check")
+    expect(parsed.data?.ruleVersion).toBe("1.0.0")
+    expect(parsed.data?.problems).toEqual([])
+  })
+
+  it("docs titles check 在临时文档目录检出标题不一致并退出 1", async () => {
+    const docsDir = join(sandbox, "titles-docs")
+    mkdirSync(docsDir, { recursive: true })
+    writeFileSync(join(docsDir, "a.md"), "---\ntitle: 甲页\n---\n\n# 乙页\n", "utf8")
+    const r = await runCli(["docs", "titles", "check", "--dir", docsDir])
+    expect(r.code).toBe(1)
+    expect(r.err.join("\n")).toContain("title/h1-mismatch")
+  })
+
+  it("docs titles check 在文档目录缺失时跳过并退出 0", async () => {
+    const r = await runCli(["docs", "titles", "check", "--dir", join(sandbox, "no-docs")])
+    expect(r.code).toBe(0)
+    expect(r.log.join("\n")).toContain("跳过")
+  })
+
   it("全局 --cwd：以指定目录为查找起点", async () => {
     const r = await runCli(["--cwd", cfgDir, "config", "status"])
     expect(r.code).toBe(0)

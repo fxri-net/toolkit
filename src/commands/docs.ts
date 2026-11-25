@@ -5,6 +5,7 @@ import type { Command } from "commander"
 import { checkDocsTheme, writeDocsTheme } from "../docs/theme"
 import { checkDocsDist, DIST_RULES_VERSION } from "../docs/dist"
 import { checkDocsNav, NAV_RULES_VERSION } from "../docs/nav"
+import { checkDocsTitles, TITLES_RULES_VERSION } from "../docs/titles"
 import { migrateSiteNav } from "../docs/migrate"
 import { overriddenRules, resolveDocsCheckConfig } from "../docs/config"
 import type { DocsProblem } from "../docs/types"
@@ -38,12 +39,14 @@ export function registerDocsCommands(program: Command): void {
     }
     const nav = checkDocsNav(docsDir, { config: config.nav, rules: config.rules })
     const dist = checkDocsDist(docsDir, { config: config.dist, rules: config.rules })
-    const ok = theme.ok && nav.ok && dist.ok
+    const titles = checkDocsTitles(docsDir, { config: config.titles, rules: config.rules })
+    const ok = theme.ok && nav.ok && dist.ok && titles.ok
     if (options.format === "json") {
       const issues: JsonIssue[] = [
         ...theme.problems.map((message) => ({ level: "error" as const, scope: "theme", message })),
         ...toDocsIssues(nav.problems),
         ...toDocsIssues(dist.problems),
+        ...toDocsIssues(titles.problems),
       ]
       printJson(
         jsonEnvelope({
@@ -52,6 +55,7 @@ export function registerDocsCommands(program: Command): void {
             theme,
             nav: { ok: nav.ok, ruleVersion: NAV_RULES_VERSION, problems: nav.problems },
             dist: { ok: dist.ok, skipped: dist.skipped, ruleVersion: DIST_RULES_VERSION, problems: dist.problems },
+            titles: { ok: titles.ok, ruleVersion: TITLES_RULES_VERSION, pageCount: titles.pageCount, tableCount: titles.tableCount, problems: titles.problems },
           },
           issues,
           exitCode: ok ? 0 : 1,
@@ -67,12 +71,15 @@ export function registerDocsCommands(program: Command): void {
       else if (dist.ok) console.log(line.ok("产物校验通过"))
       else console.error(`⚠️ 产物校验失败（${dist.problems.filter((problem) => problem.level === "error").length} 项）`)
       if (!dist.skipped) printDocsProblems(dist.problems)
+      if (titles.ok) console.log(line.ok(`标题与索引校验通过：${titles.pageCount} 页、${titles.tableCount} 个目录表`))
+      else console.error(`⚠️ 标题与索引校验失败（${titles.problems.filter((problem) => problem.level === "error").length} 项）`)
+      printDocsProblems(titles.problems)
       printRuleOverrides(config.rules)
     }
     if (!ok) process.exitCode = 1
   }
 
-  const docsCmd = program.command("docs").description("文档站工具：默认全量校验（theme / nav / dist），另可按项校验与写入")
+  const docsCmd = program.command("docs").description("文档站工具：默认全量校验（theme / nav / dist / titles），另可按项校验与写入")
 
   // 默认主题目录：VitePress 约定的 docs/.vitepress/theme
   const THEME_DIR = "docs/.vitepress/theme"
@@ -236,10 +243,51 @@ export function registerDocsCommands(program: Command): void {
       if (!result.ok) process.exitCode = 1
     })
 
+  const titlesCmd = docsCmd.command("titles").description("文档站标题与索引：页面 title/H1 一致、目录表链接文案等于目标页标题")
+  titlesCmd.action(() => {
+    titlesCmd.help()
+  })
+
+  titlesCmd
+    .command("check")
+    .description("校验页面标题与目录表文案（默认动作）")
+    .option("--dir <path>", `文档目录（默认 ${DOCS_DIR}）`)
+    .option("--format <format>", "输出格式（json，输出到 stdout）")
+    .action((options: { dir?: string; format?: string }) => {
+      if (!assertJsonFormat(options.format)) return
+      const config = resolveDocsCheckConfig()
+      const docsDir = resolve(options.dir ?? config.nav.dir)
+      if (!existsSync(docsDir)) {
+        if (options.format === "json") printJson(jsonEnvelope({ command: "docs titles check", data: { skipped: true, reason: `未找到文档目录 ${docsDir}` } }))
+        else console.log(line.hint(`未检测到文档站，跳过：${docsDir}`))
+        return
+      }
+      const result = checkDocsTitles(docsDir, { config: config.titles, rules: config.rules })
+      if (options.format === "json") {
+        printJson(
+          jsonEnvelope({
+            command: "docs titles check",
+            data: { ruleVersion: TITLES_RULES_VERSION, pageCount: result.pageCount, tableCount: result.tableCount, problems: result.problems },
+            issues: toDocsIssues(result.problems),
+            exitCode: result.ok ? 0 : 1,
+          }),
+        )
+      } else if (result.ok) {
+        console.log(line.ok(`标题与索引校验通过：${result.pageCount} 页、${result.tableCount} 个目录表`))
+      } else {
+        console.error(`⚠️ 标题与索引校验失败（${result.problems.filter((problem) => problem.level === "error").length} 项）`)
+      }
+      if (options.format !== "json") {
+        printDocsProblems(result.problems)
+        printRuleOverrides(config.rules)
+      }
+      if (!result.ok) process.exitCode = 1
+    })
+
   // 裸 `toolkit docs` 与 `docs check`：默认全量校验
   docsCmd
     .command("check")
-    .description("文档站全量校验：主题 + 导航 + 产物（默认动作）")
+    .description("文档站全量校验：主题 + 导航 + 产物 + 标题与索引（默认动作）")
     .option("--dir <path>", `文档目录（默认 ${DOCS_DIR}）`)
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action((options: { dir?: string; format?: string }) => {

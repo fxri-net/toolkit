@@ -113,6 +113,8 @@ export const COMMAND_REGISTRY: readonly CommandEntry[] = [
   { path: "docs nav init", stage: "current" },
   { path: "docs dist", stage: "current" },
   { path: "docs dist check", stage: "current" },
+  { path: "docs titles", stage: "current" },
+  { path: "docs titles check", stage: "current" },
 
   { path: "usage", stage: "current" },
   { path: "usage show", stage: "current" },

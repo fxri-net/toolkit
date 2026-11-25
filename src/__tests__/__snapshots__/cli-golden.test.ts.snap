@@ -847,6 +847,7 @@ exports[`各域行为与错误路径 > docs 裸命令 1`] = `
 --- stdout ---
 ⚠️ 主题校验失败（2 项）
 跳过产物校验：未找到 .vitepress/dist（需先执行文档站构建）
+✔ 标题与索引校验通过：1 页、0 个目录表
 --- stderr ---
   ✖ 缺少 index.ts（执行 toolkit docs theme --write 生成）：<SANDBOX>/workspace/docs/.vitepress/theme/index.ts
   ✖ 缺少 custom.css（执行 toolkit docs theme --write 生成）：<SANDBOX>/workspace/docs/.vitepress/theme/custom.css
@@ -2312,18 +2313,19 @@ exports[`帮助与版本口径 > docs 帮助 1`] = `
 --- stdout ---
 Usage: toolkit docs [options] [command]
 
-文档站工具：默认全量校验（theme / nav / dist），另可按项校验与写入
+文档站工具：默认全量校验（theme / nav / dist / titles），另可按项校验与写入
 
 Options:
-  --dir <path>               文档目录（默认 docs）
-  --format <format>          输出格式（json，输出到 stdout）
-  -h, --help                 显示帮助
+  --dir <path>                文档目录（默认 docs）
+  --format <format>           输出格式（json，输出到 stdout）
+  -h, --help                  显示帮助
 
 Commands:
-  theme [options] [command]  统一文档站主题：校验或写入（公共规则随包分发，品牌段由各站自留）
-  nav [options] [command]    文档站导航：按 site-nav.json 校验顶栏、侧栏、命名与页面体量
-  dist [options] [command]   文档站产物：校验 404 不进站点地图与站内搜索索引（需先构建）
-  check [options]            文档站全量校验：主题 + 导航 + 产物（默认动作）
+  theme [options] [command]   统一文档站主题：校验或写入（公共规则随包分发，品牌段由各站自留）
+  nav [options] [command]     文档站导航：按 site-nav.json 校验顶栏、侧栏、命名与页面体量
+  dist [options] [command]    文档站产物：校验 404 不进站点地图与站内搜索索引（需先构建）
+  titles [options] [command]  文档站标题与索引：页面 title/H1 一致、目录表链接文案等于目标页标题
+  check [options]             文档站全量校验：主题 + 导航 + 产物 + 标题与索引（默认动作）
 
 --- stderr ---
 "
@@ -2361,7 +2363,8 @@ Commands:
                                   v3）、表格与索引单元格形态归一、只读体检（形态 / 索引 / 入口层）
   config [options] [command]      配置：list / get / set / unset 唯一写入口，另有 status
                                   只读体检三层配置文件
-  docs [options] [command]        文档站工具：默认全量校验（theme / nav / dist），另可按项校验与写入
+  docs [options] [command]        文档站工具：默认全量校验（theme / nav / dist /
+                                  titles），另可按项校验与写入
   privacy [options] [command]     隐私体检：本机绝对路径扫描与归一（按 privacy.localPaths 档位）
   task [options] [command]        任务管理
   release [options] [command]     多语言更新日志与发版（默认 status；封装 changesets）
@@ -2636,7 +2639,8 @@ Commands:
                                   v3）、表格与索引单元格形态归一、只读体检（形态 / 索引 / 入口层）
   config [options] [command]      配置：list / get / set / unset 唯一写入口，另有 status
                                   只读体检三层配置文件
-  docs [options] [command]        文档站工具：默认全量校验（theme / nav / dist），另可按项校验与写入
+  docs [options] [command]        文档站工具：默认全量校验（theme / nav / dist /
+                                  titles），另可按项校验与写入
   privacy [options] [command]     隐私体检：本机绝对路径扫描与归一（按 privacy.localPaths 档位）
   task [options] [command]        任务管理
   release [options] [command]     多语言更新日志与发版（默认 status；封装 changesets）
@@ -2683,7 +2687,8 @@ Commands:
                                   v3）、表格与索引单元格形态归一、只读体检（形态 / 索引 / 入口层）
   config [options] [command]      配置：list / get / set / unset 唯一写入口，另有 status
                                   只读体检三层配置文件
-  docs [options] [command]        文档站工具：默认全量校验（theme / nav / dist），另可按项校验与写入
+  docs [options] [command]        文档站工具：默认全量校验（theme / nav / dist /
+                                  titles），另可按项校验与写入
   privacy [options] [command]     隐私体检：本机绝对路径扫描与归一（按 privacy.localPaths 档位）
   task [options] [command]        任务管理
   release [options] [command]     多语言更新日志与发版（默认 status；封装 changesets）
