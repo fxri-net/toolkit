@@ -3,7 +3,7 @@ name: fxri-release-changelog
 description: 基于 changesets 的发版与多语言 CHANGELOG 维护流程：创建变更集、消费发版、把分组标题与条目转为项目语言风格、清理变更集、打标签发布；无 changesets 的项目提供同格式手工模式。用户表达发版或记录变更意图时使用——含创建变更集、changeset、发版、version、CHANGELOG 格式化等说法及口语近义表达（发一版、出个版本、记一下这次改动、生成更新日志）。⚠️ 注意区分：用户说「提交个版本 / 先提交一版 / commit」通常指 git 提交当前改动（走任务收尾后提交），**不是发版**。不用于日常 commit message 撰写、git 提交操作或与发版无关的文档修改。
 license: MIT
 metadata:
-  version: "1.4.3"
+  version: "1.4.4"
   tier: optional
   type: practice
   scope: general
@@ -14,7 +14,7 @@ metadata:
 
 # 发版与 CHANGELOG
 
-> 本技能版本 1.4.3（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.4.4（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -77,6 +77,7 @@ metadata:
     再跑一次 `toolkit release mirror`，否则镜像一致性校验会失败
 6. 清理：删除已消费的 `.changeset/*.md`
 7. 门禁：发布前跑一次项目的验收命令（如 `pnpm verify`）——**关卡设在发布前而非推送前**：发布到包仓库 / 制品库不可逆，推送失败重推即可，故必须拦在不可逆动作之前；任一步失败即中止发版，不进入提交、打标签、发布
+   - 文档站规则版本表（如 `docs/cli/docs-check.md`）新增行的「首次发布」须与本次版本一致；不一致先改文档再跑门禁
 8. 发布：提交版本与 CHANGELOG 改动 → 打 `vX.Y.Z` 标签 → 按项目渠道发布（如 `npm publish`）
 
 ⚠️ 自动生成的条目必须人工核对润色，与仓库既有 CHANGELOG 风格保持一致。
