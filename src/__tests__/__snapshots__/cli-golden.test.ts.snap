@@ -2468,6 +2468,39 @@ Options:
 "
 `;
 
+exports[`帮助与版本口径 > skills bump 帮助 1`] = `
+"退出码：0
+--- stdout ---
+Usage: toolkit skill bump [options] [name] [type]
+
+递增技能版本（两处版本声明同源改写；--all 批量、--set 直接设定、--dir 支持外部目录）
+
+Arguments:
+  name                      技能名；与 --all 二选一
+  type                      patch / minor / major（缺省 patch）
+
+Options:
+  --all                     批量递增技能目录下的全部技能
+  --dir <path>              技能目录（可重复；缺省为本包 skills/） (default: [])
+  --sync-tables [files...]  递增后同步技能表版本列（缺省 skills/README.md 与
+                            docs/guide.md；外部目录须显式传文件）
+  --set <version>           直接设定版本（与递增类型互斥）
+  --from <source>           两处版本不一致时的取值源头：frontmatter / body（缺省报错）
+  --dry-run                 只打印变更，不写盘
+  --yes                     批量写入时跳过确认（非交互环境必须显式给出）
+  --json                    输出格式（等价于 --format json）
+  --format <format>         输出格式（json，输出到 stdout）
+  -h, --help                显示帮助
+
+
+外部仓用法：toolkit skill bump --dir skills --all patch
+两处版本不一致时默认报错；用 --from frontmatter|body 显式选择源头后再递增
+--sync-tables 缺省同步 skills/README.md 与 docs/guide.md；外部目录须显式传文件
+
+--- stderr ---
+"
+`;
+
 exports[`帮助与版本口径 > skills install 帮助 1`] = `
 "退出码：0
 --- stdout ---

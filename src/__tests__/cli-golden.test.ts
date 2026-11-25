@@ -293,6 +293,7 @@ describe("帮助与版本口径", () => {
     ["tasks 帮助", ["task", "--help"]],
     ["skills 帮助", ["skill", "--help"]],
     ["skills install 帮助", ["skill", "install", "--help"]],
+    ["skills bump 帮助", ["skill", "bump", "--help"]],
     ["changelog 帮助", ["release", "--help"]],
     ["changelog bump 帮助", ["release", "bump", "--help"]],
     ["conventions 帮助", ["convention", "--help"]],
