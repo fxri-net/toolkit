@@ -191,4 +191,20 @@ describe("syncSkillTables", () => {
     const [again] = syncSkillTables([file], [{ name: "fxri-alpha", version: "1.0.1" }])
     expect(again?.updated).toEqual([])
   })
+
+  it("首列是技能名但第二列不是版本的表整表跳过", () => {
+    const file = join(root, "not-skill-table.md")
+    writeFileSync(file, ["| 名称 | 说明 |", "| --- | --- |", "| fxri-alpha | 示例 |", ""].join("\n"), "utf8")
+    const [result] = syncSkillTables([file], [{ name: "fxri-alpha", version: "1.0.1" }])
+    expect(result?.updated).toEqual([])
+    expect(readFileSync(file, "utf8")).toContain("| fxri-alpha | 示例 |")
+  })
+
+  it("版本列不在第二列时按表头定位改写", () => {
+    const file = join(root, "version-third.md")
+    writeFileSync(file, ["| 技能 | 用途 | 版本 |", "| --- | --- | --- |", "| `fxri-alpha` | 示例 | 1.0.0 |", ""].join("\n"), "utf8")
+    const [result] = syncSkillTables([file], [{ name: "fxri-alpha", version: "1.0.1" }])
+    expect(result?.updated).toEqual(["fxri-alpha"])
+    expect(readFileSync(file, "utf8")).toContain("| `fxri-alpha` | 示例 | 1.0.1 |")
+  })
 })

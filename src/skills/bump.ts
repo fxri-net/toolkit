@@ -100,7 +100,18 @@ function rowSkillName(cell: string): string | null {
   return null
 }
 
-// 同步技能表版本列：只改首列命中技能名的行第三列，保留行尾与单元格间距
+// 表格单元格拆分：去首尾竖线与空白
+function cellsOf(line: string): string[] {
+  return line.trim().replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim())
+}
+
+// 分隔行判据：全部单元格形如 --- / :--- / ---:
+function isSeparator(line: string): boolean {
+  const cells = cellsOf(line)
+  return cells.length > 0 && cells.every((cell) => /^:?-{1,}:?$/.test(cell))
+}
+
+// 同步技能表版本列：按表头定位技能列与版本列，只改命中技能名的行，保留行尾与单元格间距
 export function syncSkillTables(files: string[], skills: Array<{ name: string; version: string }>, options: { dryRun?: boolean } = {}): TableSyncResult[] {
   const versionByName = new Map(skills.map((item) => [item.name, item.version]))
   const results: TableSyncResult[] = []
@@ -113,21 +124,36 @@ export function syncSkillTables(files: string[], skills: Array<{ name: string; v
     const newline = raw.includes("\r\n") ? "\r\n" : "\n"
     const found = new Set<string>()
     const updated: string[] = []
+    let skillCol = -1
+    let versionCol = -1
     const lines = raw.split(/\r?\n/).map((line) => {
-      if (!line.trim().startsWith("|")) return line
+      if (!line.trim().startsWith("|")) {
+        skillCol = -1
+        versionCol = -1
+        return line
+      }
+      if (isSeparator(line)) return line
+      if (skillCol < 0) {
+        // 首行视为表头：必须同时有技能列与版本列，否则整表跳过
+        const header = cellsOf(line)
+        const skillIndex = header.findIndex((cell) => /技能|^name$|^skill$/i.test(cell))
+        const versionIndex = header.findIndex((cell) => /版本|version/i.test(cell))
+        skillCol = skillIndex >= 0 && versionIndex >= 0 && versionIndex !== skillIndex ? skillIndex : -1
+        versionCol = skillCol >= 0 ? versionIndex : -1
+        return line
+      }
       const parts = line.split("|")
-      // 至少 4 段：首尾空段 + 三列单元格
-      if (parts.length < 4) return line
-      const name = rowSkillName(parts[1] ?? "")
+      const name = rowSkillName(cellsOf(line)[skillCol] ?? "")
       const next = name ? versionByName.get(name) : undefined
       if (!name || !next) return line
       found.add(name)
-      const cell = parts[2] ?? ""
+      const cellIndex = versionCol + 1
+      const cell = parts[cellIndex] ?? ""
       const trimmed = cell.trim()
       if (trimmed === "" || trimmed === next) return line
       // 保留单元格前后空白，只替换中间值
       const start = cell.indexOf(trimmed)
-      parts[2] = cell.slice(0, start) + next + cell.slice(start + trimmed.length)
+      parts[cellIndex] = cell.slice(0, start) + next + cell.slice(start + trimmed.length)
       updated.push(name)
       return parts.join("|")
     })
