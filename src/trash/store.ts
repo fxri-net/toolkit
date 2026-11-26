@@ -1,6 +1,6 @@
 // 项目内回收站：用户可见删除先移动到本地 trash，由用户决定何时彻底清理
 import { cpSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, renameSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs"
-import { dirname, join, relative, resolve } from "node:path"
+import { dirname, isAbsolute, join, relative, resolve } from "node:path"
 import { getHomeDir } from "../config"
 import { findProjectRoot, isHomeDirectory } from "../scope/paths"
 import { assertWithinRoot, isSingleSegmentName, rootForPath, safeRemoveArtifact } from "../safe-remove"
@@ -25,6 +25,7 @@ export interface TrashEntry {
   command: string
   files: number
   bytes: number
+  status: TrashManifest["status"]
 }
 
 export interface TrashManifestEntry {
@@ -91,6 +92,10 @@ function readManifest(dir: string): TrashManifest | null {
   }
 }
 
+function writeManifest(dir: string, manifest: TrashManifest): void {
+  writeFileSync(join(dir, MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`, "utf8")
+}
+
 function sizeOf(target: string): number {
   try {
     const stat = lstatSync(target)
@@ -149,10 +154,10 @@ export function trashAwareRemove(target: string, root: string): void {
     manifest.entries.push(entry)
   } catch (error) {
     manifest.status = "partial"
-    writeFileSync(join(dir, MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`, "utf8")
+    writeManifest(dir, manifest)
     throw error
   }
-  writeFileSync(join(dir, MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`, "utf8")
+  writeManifest(dir, manifest)
 }
 
 // 列出回收站条目：按时间倒序
@@ -174,16 +179,23 @@ export function listTrash(cwd: string, scope: TrashScopeChoice = "all"): TrashEn
         command: manifest.command,
         files: manifest.entries.length,
         bytes: manifest.entries.reduce((sum, entry) => sum + entry.size, 0),
+        status: manifest.status,
       })
     }
   }
   return out.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }
 
+export interface TrashRestoreFailure {
+  path: string
+  message: string
+}
+
 export interface TrashRestoreResult {
   id: string
   restored: string[]
   skipped: string[]
+  failed: TrashRestoreFailure[]
   removedEntry: boolean
 }
 
@@ -198,7 +210,7 @@ export function restoreTrash(
   if (!entry) throw new Error(`未找到回收站条目：${idOrLatest}`)
   const manifest = readManifest(entry.dir)
   if (!manifest) throw new Error(`回收站清单损坏：${entry.dir}`)
-  const result: TrashRestoreResult = { id: entry.id, restored: [], skipped: [], removedEntry: false }
+  const result: TrashRestoreResult = { id: entry.id, restored: [], skipped: [], failed: [], removedEntry: false }
   for (const item of manifest.entries) {
     const base = options.to ? resolve(options.to) : manifest.root
     const rel = relative(manifest.root, item.original)
@@ -208,12 +220,34 @@ export function restoreTrash(
       result.skipped.push(item.original)
       continue
     }
-    if (existsSync(target)) {
-      if (!options.overwrite) {
-        result.skipped.push(item.original)
-        continue
-      }
-      if (!options.dryRun) {
+    if (existsSync(target) && !options.overwrite) {
+      result.skipped.push(item.original)
+      continue
+    }
+    const linkTarget = item.kind === "link" && item.linkTarget
+      ? (isAbsolute(item.linkTarget) ? item.linkTarget : resolve(dirname(target), item.linkTarget))
+      : ""
+    if (item.kind === "link" && !item.linkTarget) {
+      console.warn(`⚠️ 跳过清单缺少链接目标的条目：${item.original}`)
+      result.skipped.push(item.original)
+      continue
+    }
+    if (item.kind === "link" && !existsSync(linkTarget)) {
+      console.warn(`⚠️ 跳过悬空链接：${target}（目标不存在：${item.linkTarget}）`)
+      result.skipped.push(item.original)
+      continue
+    }
+    if (item.kind !== "link" && !item.stored) {
+      console.warn(`⚠️ 跳过清单缺少存储路径的条目：${item.original}`)
+      result.skipped.push(item.original)
+      continue
+    }
+    if (options.dryRun) {
+      result.restored.push(target)
+      continue
+    }
+    try {
+      if (existsSync(target)) {
         setTrashContext({ command: "trash restore", scope: "all", cwd })
         try {
           trashAwareRemove(target, dirname(target))
@@ -221,24 +255,28 @@ export function restoreTrash(
           setTrashContext(null)
         }
       }
-    }
-    if (options.dryRun) {
+      mkdirSync(dirname(target), { recursive: true })
+      if (item.kind === "link") {
+        const isDir = statSync(linkTarget).isDirectory()
+        symlinkSync(item.linkTarget as string, target, process.platform === "win32" ? (isDir ? "junction" : "file") : (isDir ? "dir" : "file"))
+      } else {
+        cpSync(item.stored, target, { recursive: item.kind === "dir" })
+      }
       result.restored.push(target)
-      continue
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.warn(`⚠️ 恢复失败：${target}（${message}）`)
+      result.failed.push({ path: item.original, message })
     }
-    mkdirSync(dirname(target), { recursive: true })
-    if (item.kind === "link" && item.linkTarget) {
-      const isDir = existsSync(item.linkTarget) && statSync(item.linkTarget).isDirectory()
-      symlinkSync(item.linkTarget, target, process.platform === "win32" ? (isDir ? "junction" : "file") : (isDir ? "dir" : "file"))
-    } else if (item.stored) {
-      cpSync(item.stored, target, { recursive: item.kind === "dir" })
-      safeRemoveArtifact(item.stored, entry.dir)
-    }
-    result.restored.push(target)
   }
-  if (result.skipped.length === 0 && !options.dryRun) {
-    safeRemoveArtifact(entry.dir, entry.root)
-    result.removedEntry = true
+  if (!options.dryRun) {
+    if (result.failed.length > 0) {
+      manifest.status = "partial"
+      writeManifest(entry.dir, manifest)
+    } else if (result.skipped.length === 0) {
+      safeRemoveArtifact(entry.dir, entry.root)
+      result.removedEntry = true
+    }
   }
   return result
 }

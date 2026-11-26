@@ -48,7 +48,8 @@ function printEntries(entries: TrashEntry[], scope: TrashScopeChoice): void {
   }
   console.log(`回收站条目（${scopeLabel(scope)}，共 ${entries.length} 条）：`)
   for (const entry of entries) {
-    console.log(`  ${style.accent(entry.id)}  ${entry.createdAt}  ${entry.scope}  ${entry.command}  ${entry.files} 项 / ${formatBytes(entry.bytes)}`)
+    const status = entry.status === "partial" ? "  部分失败" : ""
+    console.log(`  ${style.accent(entry.id)}  ${entry.createdAt}  ${entry.scope}  ${entry.command}  ${entry.files} 项 / ${formatBytes(entry.bytes)}${status}`)
   }
   console.log(line.hint("恢复：toolkit trash restore <id>（或 latest）；彻底清理：toolkit trash prune --all"))
 }
@@ -114,9 +115,12 @@ export function registerTrashCommands(program: Command): void {
           return
         }
         const tag = options.dryRun ? "[预演] " : ""
-        console.log(`${tag}恢复 ${result.id}：${result.restored.length} 项，跳过 ${result.skipped.length} 项`)
+        const failed = result.failed.length > 0 ? `，失败 ${result.failed.length} 项` : ""
+        console.log(`${tag}恢复 ${result.id}：${result.restored.length} 项，跳过 ${result.skipped.length} 项${failed}`)
         for (const file of result.restored) console.log(`  ${tag}还原 ${file}`)
-        if (result.skipped.length > 0) console.error(`⚠️ 跳过 ${result.skipped.length} 项（目标已存在或路径越界）`)
+        for (const item of result.failed) console.error(`⚠️ 失败 ${item.path}：${item.message}`)
+        if (result.skipped.length > 0) console.error(`⚠️ 跳过 ${result.skipped.length} 项（目标已存在、路径越界或链接悬空）`)
+        if (result.failed.length > 0) process.exitCode = 1
       } catch (error) {
         console.error(`⚠️ 恢复失败：${(error as Error).message}`)
         process.exitCode = 1

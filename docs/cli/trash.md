@@ -42,8 +42,10 @@ toolkit trash stats                     # 条数 / 占用 / 来源分布
   `upgrade --prune-backups`、`upgrade --restore`；加 `--no-trash` 才永久删除。
 - 条目存放在 `<项目根>/.toolkit/trash/<id>/` 与 `~/.toolkit/trash/<id>/`，`manifest.json` 记录来源命令、原路径与类型；
   `.toolkit/` 已在项目忽略范围内，回收站不随 git 提交。
-- 符号链接 / junction 只摘链，不搬目标内容；恢复时只恢复链接本身。
+- 符号链接 / junction 只摘链，不搬目标内容；恢复时只恢复链接本身，链接目标不存在按悬空链接跳过并告警。
 - 恢复前校验目标落在原根或 `--to` 根内；越界路径跳过并告警。
+- 恢复逐项继续：单项失败记入 `failed` 并在 stderr 报告，条目保留并把 `status` 标记为 `partial`；
+  修复现场后可重试，目标已存在时用 `--overwrite`。
 - **不自动清理**：是否清空、保留多久由 `trash prune` 决定；`list` / `stats` 只读，退出码恒 `0`。
 - 回收站不是备份：只防误删，不防磁盘损坏或外部清理工具。
 
@@ -53,8 +55,8 @@ toolkit trash stats                     # 条数 / 占用 / 来源分布
 
 | 命令 | 字段 |
 | --- | --- |
-| `list` | `scope` / `command` / `olderThan` / `entries`（id / createdAt / command / files / bytes） |
-| `restore` | `id` / `restored` / `skipped` / `removedEntry` |
+| `list` | `scope` / `command` / `olderThan` / `entries`（id / createdAt / command / files / bytes / status） |
+| `restore` | `id` / `restored` / `skipped` / `failed`（path / message） / `removedEntry` |
 | `prune` | `removed` / `kept` / `dryRun` |
 | `stats` | `entries` / `bytes` / `oldest` / `newest` / `byCommand` |
 

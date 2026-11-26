@@ -2,7 +2,7 @@
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { getHomeDir, setHomeDirForTest } from "../config"
 import { removeArtifact } from "../skills/source"
 import {
@@ -14,6 +14,27 @@ import {
   trashAwareRemove,
   type TrashManifest,
 } from "../trash/store"
+
+// 跨卷分支的可控故障开关：默认透传真实 fs，仅在用例内切换
+const fsFailure = vi.hoisted(() => ({ rename: false, copy: false }))
+vi.mock("node:fs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs")>()
+  return {
+    ...actual,
+    renameSync: ((from: string, to: string) => {
+      if (fsFailure.rename) {
+        const error = new Error("EXDEV: cross-device link not permitted") as NodeJS.ErrnoException
+        error.code = "EXDEV"
+        throw error
+      }
+      return actual.renameSync(from, to)
+    }) as typeof actual.renameSync,
+    cpSync: ((...args: Parameters<typeof actual.cpSync>) => {
+      if (fsFailure.copy) throw new Error("复制失败")
+      return actual.cpSync(...args)
+    }) as typeof actual.cpSync,
+  }
+})
 
 const fixtures: string[] = []
 
@@ -40,6 +61,8 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  fsFailure.rename = false
+  fsFailure.copy = false
   setTrashContext(null)
   setHomeDirForTest(undefined)
   for (const dir of fixtures.splice(0)) rmSync(dir, { recursive: true, force: true })
@@ -253,6 +276,92 @@ describe("项目内回收站", () => {
     const result = pruneTrash(root, { scope: "all", keep: 1 })
     expect(result.removed).toHaveLength(0)
     expect(result.kept).toHaveLength(2)
+  })
+
+  it("悬空链接恢复时跳过，不重建链接", () => {
+    const root = makeProject()
+    const real = join(root, "real")
+    const link = join(root, "link")
+    mkdirSync(real, { recursive: true })
+    symlinkSync(real, link, process.platform === "win32" ? "junction" : "dir")
+    setContext(root)
+    trashAwareRemove(link, root)
+    rmSync(real, { recursive: true, force: true })
+
+    const result = restoreTrash(root, "latest", { scope: "all" })
+    expect(result.restored).toEqual([])
+    expect(result.skipped).toEqual([link])
+    expect(result.failed).toEqual([])
+    expect(existsSync(link)).toBe(false)
+    expect(listTrash(root, "all")).toHaveLength(1)
+  })
+
+  it("部分恢复失败时继续其余条目，保留条目并标记 partial，修复后可重试", () => {
+    const root = makeProject()
+    const id = "20260101-000000-partial"
+    const dir = join(root, ".toolkit", "trash", id)
+    const okPath = join(root, "ok.txt")
+    const badPath = join(root, "bad.txt")
+    mkdirSync(join(dir, "items", "0"), { recursive: true })
+    writeFileSync(join(dir, "items", "0", "ok.txt"), "ok", "utf8")
+    const manifest: TrashManifest = {
+      schemaVersion: 1,
+      id,
+      createdAt: new Date().toISOString(),
+      command: "test",
+      scope: "project",
+      root,
+      entries: [
+        { original: okPath, stored: join(dir, "items", "0", "ok.txt"), kind: "file", size: 2 },
+        { original: badPath, stored: join(dir, "items", "1", "bad.txt"), kind: "file", size: 3 },
+      ],
+      status: "complete",
+    }
+    writeFileSync(join(dir, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8")
+
+    const first = restoreTrash(root, "latest", { scope: "all" })
+    expect(first.restored).toEqual([okPath])
+    expect(first.failed).toHaveLength(1)
+    expect(first.failed[0]!.path).toBe(badPath)
+    expect(first.removedEntry).toBe(false)
+    expect(readFileSync(okPath, "utf8")).toBe("ok")
+    expect(listTrash(root, "all")[0]!.status).toBe("partial")
+
+    rmSync(okPath, { force: true })
+    mkdirSync(join(dir, "items", "1"), { recursive: true })
+    writeFileSync(join(dir, "items", "1", "bad.txt"), "bad", "utf8")
+    const second = restoreTrash(root, "latest", { scope: "all" })
+    expect(second.restored.sort()).toEqual([badPath, okPath].sort())
+    expect(second.failed).toEqual([])
+    expect(second.removedEntry).toBe(true)
+    expect(listTrash(root, "all")).toHaveLength(0)
+  })
+
+  it("跨卷移动：rename 抛 EXDEV 时复制到回收站并删除源", () => {
+    const root = makeProject()
+    const target = join(root, ".agents", "skills", "demo")
+    setContext(root)
+    fsFailure.rename = true
+    trashAwareRemove(target, root)
+    fsFailure.rename = false
+
+    expect(existsSync(target)).toBe(false)
+    const entry = listTrash(root, "all")[0]!
+    const manifest = JSON.parse(readFileSync(join(entry.dir, "manifest.json"), "utf8")) as TrashManifest
+    expect(manifest.entries[0]!.kind).toBe("dir")
+    expect(readFileSync(join(manifest.entries[0]!.stored, "SKILL.md"), "utf8")).toBe("demo")
+  })
+
+  it("跨卷复制失败时保留源文件并留下 partial 条目", () => {
+    const root = makeProject()
+    const target = join(root, ".agents", "skills", "demo")
+    setContext(root)
+    fsFailure.rename = true
+    fsFailure.copy = true
+
+    expect(() => trashAwareRemove(target, root)).toThrow()
+    expect(readFileSync(join(target, "SKILL.md"), "utf8")).toBe("demo")
+    expect(listTrash(root, "all")[0]!.status).toBe("partial")
   })
 
   it("stats 汇总条数、占用与按来源命令分布", () => {
