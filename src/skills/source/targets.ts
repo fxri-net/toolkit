@@ -6,7 +6,7 @@ import { PROJECT_SKILL_DIRS, resolveProjectSkillDirs } from "../../conventions/e
 import { AGENT_SKILL_DIRS, CANONICAL_DIR, CANONICAL_LABEL, CANONICAL_TARGET_NAME, LEGACY_SKILL_DIRS, PROJECT_SOURCE_DIR, type AgentEntry, type ProjectTargets, type SkillScope, type SkillTarget, type TargetKind } from "../types"
 import { pnpmStableEntry, resolvePackageRoot } from "./package"
 import { pathKey, realPath, isInside } from "./paths"
-import { isHomeDirectory } from "../../scope/paths"
+import { findProjectRoot, isHomeDirectory } from "../../scope/paths"
 
 
 function envAbsoluteDir(name: string): string | undefined {
@@ -142,6 +142,10 @@ export function detectSkillScope(cwd = process.cwd()): SkillScope {
   if (installRoot) {
     const root = safeRealPath(installRoot)
     if (!isHomeDirectory(root) && (pathKey(start) === pathKey(root) || isInside(start, root))) return "project"
+  } else {
+    // 无 node_modules（Yarn PnP 等）：改看包根是否位于当前项目根内；全局缓存型安装的包根在项目外，仍判全局面
+    const root = safeRealPath(findProjectRoot(start))
+    if (!isHomeDirectory(root) && (pathKey(pkgRoot) === pathKey(root) || isInside(pkgRoot, root))) return "project"
   }
   return "global"
 }

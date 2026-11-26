@@ -1475,6 +1475,27 @@ describe("技能作用域判定", () => {
     expect(detectSkillScope(sub)).toBe("project")
   })
 
+  it("无 node_modules（如 Yarn PnP）时按包根是否位于项目根内判定", () => {
+    const root = tmpRoot("fxts-tk-scope-pnp-")
+    mkdirSync(join(root, ".git"), { recursive: true })
+    const pkgRoot = join(root, ".yarn", "cache", "@fxri-toolkit")
+    mkdirSync(pkgRoot, { recursive: true })
+    setPackageRootForTest(pkgRoot)
+    expect(detectSkillScope(root)).toBe("project")
+    const sub = join(root, "packages", "app")
+    mkdirSync(sub, { recursive: true })
+    expect(detectSkillScope(sub)).toBe("project")
+  })
+
+  it("全局缓存型安装的包根在项目外时仍判全局面", () => {
+    const root = tmpRoot("fxts-tk-scope-pnp-global-")
+    mkdirSync(join(root, ".git"), { recursive: true })
+    const pkgRoot = join(tmpRoot("fxts-tk-scope-yarn-cache-"), "@fxri-toolkit")
+    mkdirSync(pkgRoot, { recursive: true })
+    setPackageRootForTest(pkgRoot)
+    expect(detectSkillScope(root)).toBe("global")
+  })
+
   it("monorepo 子目录内执行同样判为项目面", () => {
     const root = tmpRoot("fxts-tk-scope-mono-")
     writeFileSync(join(root, "package.json"), JSON.stringify({ name: "root" }), "utf8")
