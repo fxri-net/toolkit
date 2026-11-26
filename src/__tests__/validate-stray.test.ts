@@ -21,7 +21,7 @@ describe("游离任务文件检测", () => {
     writeFileSync(join(dir, "active", "202609", "20260904-唐启云-正常任务.md"), header, "utf8")
 
     const warns = warnTexts(dir)
-    expect(warns.some((m) => m.includes("游离于 active/ 之外"))).toBe(true)
+    expect(warns.some((m) => m.includes("游离于 active/ 之外") && m.includes("/active/202609/"))).toBe(true)
     expect(warns.filter((m) => m.includes("游离于 active/ 之外"))).toHaveLength(1)
     rmSync(dir, { recursive: true, force: true })
   })
@@ -37,7 +37,7 @@ describe("游离任务文件检测", () => {
 
     const warns = warnTexts(dir)
     expect(warns.some((m) => m.includes("游离于 active/ 之外"))).toBe(true)
-    expect(warns.some((m) => m.includes("应放入 {YYYYMM} 月份子目录"))).toBe(true)
+    expect(warns.some((m) => m.includes("应放入 {YYYYMM} 月份子目录") && m.includes("active/202609/"))).toBe(true)
     rmSync(dir, { recursive: true, force: true })
   })
 })

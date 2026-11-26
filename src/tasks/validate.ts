@@ -40,13 +40,25 @@ export function validateTasks(tasksDir = ".tasks", cwd = process.cwd()): CheckRe
     issues.push(...validateTaskFile(f, endpoints))
     // 按规范 active 任务应放在 {YYYYMM}/ 月份子目录，直放 active 根目录给出软告警
     if (dirname(f) === activeDir) {
-      issues.push({ level: "warn", file: basename(f), message: "active 任务应放入 {YYYYMM} 月份子目录（当前直放 active 根目录）" })
+      const stem = basename(f, ".md")
+      const month = /^\d{8}-/.test(stem) ? stem.slice(0, 6) : "{YYYYMM}"
+      issues.push({
+        level: "warn",
+        file: basename(f),
+        message: `active 任务应放入 {YYYYMM} 月份子目录（当前直放 active 根目录）：移到 active/${month}/ 下`,
+      })
     }
   }
 
   // 游离于 active/ 之外的任务文件对 check/archive 均不可见，单独提示其修正位置
+  const root = tasksDir.replace(/\\/g, "/").replace(/\/$/, "")
   for (const s of strayTaskFiles(tasksDir)) {
-    issues.push({ level: "warn", file: s, message: "任务文件游离于 active/ 之外，tasks/check/archive 均不会读取，应移入 active/{YYYYMM}/ 月份子目录" })
+    const month = /^(\d{8})-/.exec(basename(s))?.[1]?.slice(0, 6) ?? "{YYYYMM}"
+    issues.push({
+      level: "warn",
+      file: s,
+      message: `任务文件游离于 active/ 之外，tasks/check/archive 均不会读取（当前路径 ${s}）：移到 ${root}/active/${month}/ 下`,
+    })
   }
 
   // 规范载体形态：仅查形态不读内容，故不影响任务校验的语义判断
@@ -61,14 +73,15 @@ export function validateTasks(tasksDir = ".tasks", cwd = process.cwd()): CheckRe
   // 归档块检查：复用 normalize 的单一实现（月份目录归属、元数据完整性、完成时间漂移/异常、排序、疑似任务块），
   // 避免 validate 与 normalize 各写一套导致判据漂移；归档问题一律 warn 级（明细与修复走 tasks normalize / normalize --fix）
   for (const i of checkArchive(tasksDir)) {
-    issues.push({ level: "warn", file: i.file, message: i.message })
+    // 逐条标注能否自动修复，避免用户反复试 --fix
+    issues.push({ level: "warn", file: i.file, message: `${i.message}（${i.fixable ? "运行 toolkit task normalize --fix 修复" : "需手改"}）` })
   }
 
   // 隐私扫描：档位开启时把任务区（含归档与规范载体）里的本机路径并入校验结果
   const tasksRoot = relative(cwd, join(cwd, tasksDir)).split("\\").join("/")
   const privacy = scanPrivacy(cwd, { roots: [tasksRoot || tasksDir] })
   for (const hit of privacy.hits) {
-    issues.push({ level: hit.level, file: hit.file, line: hit.line, message: `本机路径（privacy.localPaths）：${hit.text}` })
+    issues.push({ level: hit.level, file: hit.file, line: hit.line, message: `本机路径（privacy.localPaths）：${hit.text}（改为仓库相对路径，或按隐私规范占位）` })
   }
 
   // 跨文件重名检测：同名任务文件疑似重复建档
@@ -81,7 +94,7 @@ export function validateTasks(tasksDir = ".tasks", cwd = process.cwd()): CheckRe
   }
   for (const [name, list] of seen) {
     if (list.length > 1) {
-      issues.push({ level: "warn", file: name, message: `存在 ${list.length} 个同名任务文件，疑似重复建档` })
+      issues.push({ level: "warn", file: name, message: `存在 ${list.length} 个同名任务文件，疑似重复建档（保留一个，其余重命名或归档）` })
     }
   }
 

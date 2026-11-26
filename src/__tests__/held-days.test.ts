@@ -44,13 +44,13 @@ describe("搁置节形态校验", () => {
 
   it("status 搁置但缺少搁置节", () => {
     const dir = makeTask("## 背景\n\n说明\n")
-    expect(warned(dir).some((m) => m.includes("缺少「## 搁置」节"))).toBe(true)
+    expect(warned(dir).some((m) => m.includes("缺少「## 搁置」节") && m.includes("搁置原因") && m.includes("搁置日期"))).toBe(true)
     rmSync(dir, { recursive: true, force: true })
   })
 
   it("四行缺项", () => {
     const dir = makeTask("## 搁置\n\n- 搁置原因：本阶段不投入\n- 重启条件：契约提供\n- 进度锚点：未开工\n")
-    expect(warned(dir).some((m) => m.includes("缺少「搁置日期」一行"))).toBe(true)
+    expect(warned(dir).some((m) => m.includes("缺少「搁置日期」一行") && m.includes("- 搁置日期："))).toBe(true)
     rmSync(dir, { recursive: true, force: true })
   })
 

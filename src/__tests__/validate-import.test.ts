@@ -109,9 +109,9 @@ describe("validateTasks 依赖与命名校验", () => {
     putFile(dir, "zz-任务.md", "---\nstatus: 待办\ncreated: 20260903\nupdated: 20260903\ncompleted: ''\ndepends_on: []\nscope: 测\n---\n\n# 标题\n")
     putFile(dir, "20260902-唐启云-b.md", valid().replace("created: 20260903", "created: 20260905"))
     const warns = warnTexts(dir)
-    expect(warns.some((m) => m.includes("缺少 owner"))).toBe(true)
-    expect(warns.some((m) => m.includes("文件名不符合规范"))).toBe(true)
-    expect(warns.some((m) => m.includes("与 created"))).toBe(true)
+    expect(warns.some((m) => m.includes("缺少 owner") && m.includes("toolkit task update"))).toBe(true)
+    expect(warns.some((m) => m.includes("文件名不符合规范") && m.includes("建议重命名为"))).toBe(true)
+    expect(warns.some((m) => m.includes("与 created") && m.includes("重命名为"))).toBe(true)
     rmSync(dir, { recursive: true, force: true })
   })
 

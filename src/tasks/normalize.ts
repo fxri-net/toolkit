@@ -137,7 +137,7 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
     if (content.startsWith("\uFEFF")) {
       issues.push({
         file: display,
-        message: "归档文件含 UTF-8 BOM，可用 `toolkit task normalize --fix` 去除",
+        message: "归档文件含 UTF-8 BOM",
         fixable: true,
       })
     }
@@ -147,7 +147,7 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
     if (hasConflictMarkers(content)) {
       issues.push({
         file: display,
-        message: "归档文件含 git 冲突标记（pull 产生的同天归档冲突），可 --fix 按并集去重 + 降序重排自动解决",
+        message: "归档文件含 git 冲突标记（pull 产生的同天归档冲突）：修复按并集去重 + 降序重排",
         fixable: true,
       })
       continue
@@ -160,8 +160,8 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
     if (dirMonth && fileDate && dirMonth !== fileDate.slice(0, 6)) {
       issues.push({
         file: display,
-        message: `归档文件位于 ${dirMonth} 月份目录，与文件名日期 ${fileDate.slice(0, 6)} 不一致`,
-        fixable: false,
+        message: `归档文件位于 ${dirMonth} 月份目录，与文件名日期 ${fileDate.slice(0, 6)} 不一致（修复会移到 archive/${fileDate.slice(0, 6)}/；目标已有同名文件时需人工合并）`,
+        fixable: true,
       })
     }
 
@@ -169,7 +169,7 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
     for (const title of scanOrphanBlocks(blocks)) {
       issues.push({
         file: display,
-        message: `疑似任务块「${title}」缺少块间 \`---\` 分隔符，已被归入前一块正文（需人工确认）`,
+        message: `疑似任务块「${title}」缺少块间 \`---\` 分隔符，已被归入前一块正文：在该块标题前补一行 \`---\``,
         fixable: false,
       })
     }
@@ -192,13 +192,13 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
       if (!b.metaLine) {
         issues.push({
           file: display,
-          message: `块「${b.title}」缺少元数据行（负责人/状态/范围/完成时间）`,
+          message: `块「${b.title}」缺少元数据行（负责人/状态/范围/完成时间）：用「> 负责人：…　状态：…　范围：…　完成时间：…」补齐`,
           fixable: isRecognizableCompleted(b.completed),
         })
       } else if (!metaComplete(b.metaLine)) {
         issues.push({
           file: display,
-          message: `块「${b.title}」元数据行不完整（缺负责人/状态/范围之一）`,
+          message: `块「${b.title}」元数据行不完整（缺负责人/状态/范围之一）：补全该行的负责人 / 状态 / 范围段`,
           fixable: isRecognizableCompleted(b.completed),
         })
       }
@@ -208,14 +208,14 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
         if (seg.scope && /[、，,]/.test(seg.scope)) {
           issues.push({
             file: display,
-            message: `块「${b.title}」范围「${seg.scope}」含顿号/逗号疑似多值分隔，可 --fix 归一为半角加号`,
+            message: `块「${b.title}」范围「${seg.scope}」含顿号/逗号疑似多值分隔（多值改用半角加号连接），修复会归一为半角加号`,
             fixable: true,
           })
         }
         if (seg.scope && /[()（）]/.test(seg.scope)) {
           issues.push({
             file: display,
-            message: `块「${b.title}」范围「${seg.scope}」含括号疑似注释，删留需人工确认`,
+            message: `块「${b.title}」范围「${seg.scope}」含括号疑似注释（确认后删去括号内容或移入正文）`,
             fixable: false,
           })
         }
@@ -225,7 +225,7 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
       if (b.completed && !recognizable) {
         issues.push({
           file: display,
-          message: `块「${b.title}」完成时间「${b.completed}」无法识别为日期或日期+时分（需人工确认）`,
+          message: `块「${b.title}」完成时间「${b.completed}」无法识别为日期或日期+时分（改为 YYYY-MM-DD 或 YYYY-MM-DD HH:mm）`,
           fixable: false,
         })
       }
@@ -235,22 +235,22 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
       if (blockDate && fileDate && blockDate !== fileDate) {
         issues.push({
           file: display,
-          message: `块「${b.title}」完成时间 ${norm} 与归档文件日期 ${fileDate} 不一致`,
-          fixable: false,
+          message: `块「${b.title}」完成时间 ${norm} 与归档文件日期 ${fileDate} 不一致（修复会迁移到 ${blockDate}.md）`,
+          fixable: true,
         })
       }
       // 未来时间检测：完成时间晚于系统时间说明写入时时间源有误；定宽格式校验通过才可比对，留跨时区容差（详见 src/date.ts）避免 UTC 运行环境误报，无法自动修复需人工核实
       if (recognizable && isBeyondTzFuture(norm)) {
         issues.push({
           file: display,
-          message: `块「${b.title}」完成时间 ${norm} 晚于当前系统时间 ${MAX_UTC_OFFSET_HOURS} 小时以上，疑似时间源错误（需人工确认）`,
+          message: `块「${b.title}」完成时间 ${norm} 晚于当前系统时间 ${MAX_UTC_OFFSET_HOURS} 小时以上，疑似时间源错误（按实际完成时间改正）`,
           fixable: false,
         })
       } else if (recognizable && norm.endsWith(" 00:00")) {
         // 零点整检测：恰为 00:00 通常是只填日期被自动补零的特征（真实午夜收工属少量误报），无法自动修复需人工核实
         issues.push({
           file: display,
-          message: `块「${b.title}」完成时间 ${norm} 恰为零点整，疑似只填了日期被补零（需人工确认）`,
+          message: `块「${b.title}」完成时间 ${norm} 恰为零点整，疑似只填了日期被补零（核实后改成实际完成时间）`,
           fixable: false,
         })
       }
@@ -322,7 +322,7 @@ export function fixArchive(tasksDir = ".tasks"): NormalizeResult {
         fixed += fixArchiveFile(tasksDir, archiveDir, file0, issues)
       } catch (e) {
         // 单文件异常（文件损坏、权限、写盘失败等）不中断整轮，记入问题清单供人工处理
-        issues.push({ file: basename(file0), message: `归一化失败，已跳过该文件：${(e as Error).message}`, fixable: false })
+        issues.push({ file: basename(file0), message: `归一化失败，已跳过该文件（处理后重跑 toolkit task normalize --fix）：${(e as Error).message}`, fixable: false })
       }
     }
 
@@ -400,7 +400,7 @@ function fixArchiveFile(tasksDir: string, archiveDir: string, file0: string, iss
       fixed++
     }
     if (/[()（）]/.test(seg.scope)) {
-      issues.push({ file: name, message: `块「${b.title}」范围「${seg.scope}」含括号疑似注释，删留需人工确认`, fixable: false })
+      issues.push({ file: name, message: `块「${b.title}」范围「${seg.scope}」含括号疑似注释（确认后删去括号内容或移入正文）`, fixable: false })
     }
   }
 
@@ -410,7 +410,7 @@ function fixArchiveFile(tasksDir: string, archiveDir: string, file0: string, iss
   let migrated = 0
   for (const b of blocks) {
     if (b.completed && !isRecognizableCompleted(b.completed)) {
-      issues.push({ file: name, message: `块「${b.title}」完成时间「${b.completed}」无法识别，未迁移（需人工确认）`, fixable: false })
+      issues.push({ file: name, message: `块「${b.title}」完成时间「${b.completed}」无法识别，未迁移（改为 YYYY-MM-DD HH:mm 后重跑 --fix）`, fixable: false })
       keep.push(b)
       continue
     }

@@ -293,14 +293,15 @@ export function registerTasksCommands(program: Command): void {
         const bom = result.bomFixed ? `，去除 BOM ${result.bomFixed} 个文件` : ""
         console.log(line.ok(`已修复 ${result.fixed} 处${bom}`))
         if (result.issues.length > 0) {
-          console.log(line.hint("以下问题需人工确认："))
+          console.log(line.hint("以下问题需手改："))
           printIssues(result.issues)
         }
         return
       }
       const issues = checkArchive(ctx.dir)
       console.log(`归档归一化检查：发现 ${issues.length} 处问题`)
-      printIssues(issues)
+      // 逐条标注能否自动修复，避免用户反复试 --fix
+      printIssues(issues.map((i) => ({ ...i, message: `${i.message}（${i.fixable ? "--fix 可修" : "需手改"}）` })))
     } catch (e) {
       console.error(`⚠️ 操作失败：${(e as Error).message}`)
       process.exitCode = 1

@@ -31,7 +31,7 @@ describe("阻塞节形态校验", () => {
 
   it("status 阻塞但缺少阻塞节", () => {
     const dir = makeTask("## 背景\n\n说明\n")
-    expect(warned(dir).some((m) => m.includes("缺少「## 阻塞」节"))).toBe(true)
+    expect(warned(dir).some((m) => m.includes("缺少「## 阻塞」节") && m.includes("阻塞原因") && m.includes("阻塞日期"))).toBe(true)
     rmSync(dir, { recursive: true, force: true })
   })
 
@@ -65,7 +65,7 @@ describe("阻塞节形态校验", () => {
   it("已记录解除却仍为阻塞状态", () => {
     const body = okBody.replace("## 背景", "- 解除记录：2026-11-19 用户确认口径\n\n## 背景")
     const dir = makeTask(body.replace("2026-01-01", "2026-11-18"))
-    expect(warned(dir).some((m) => m.includes("但仍为阻塞状态"))).toBe(true)
+    expect(warned(dir).some((m) => m.includes("但仍为阻塞状态") && m.includes("toolkit task update"))).toBe(true)
     rmSync(dir, { recursive: true, force: true })
   })
 

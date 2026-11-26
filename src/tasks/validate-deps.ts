@@ -96,8 +96,8 @@ export function validateDependencies(files: string[], tasksDir: string): CheckIs
           level: "warn",
           file: name,
           message: where
-            ? `依赖的任务「${d}」不在 active 中（已归档于 ${where}，无需再依赖）`
-            : `依赖的任务「${d}」不在 active 中（可能已归档或文件名拼写错误）`,
+            ? `依赖的任务「${d}」不在 active 中（已归档于 ${where}，无需再依赖）：从 depends_on 删除「${d}」`
+            : `依赖的任务「${d}」不在 active 中（可能已归档或文件名拼写错误）：从 depends_on 删除「${d}」，或改为 active 内正确任务名`,
         })
       }
     }
@@ -124,7 +124,11 @@ export function validateDependencies(files: string[], tasksDir: string): CheckIs
     if ((color.get(name) ?? WHITE) === WHITE) {
       const loop = visit(name, [name])
       if (loop) {
-        issues.push({ level: "warn", file: name, message: `depends_on 存在循环依赖：${loop.join(" → ")}` })
+        issues.push({
+          level: "warn",
+          file: name,
+          message: `depends_on 存在循环依赖：${loop.join(" → ")}（解开任一条边即可，例如从「${loop[0]}」的 depends_on 删除「${loop[1]}」）`,
+        })
         break
       }
     }

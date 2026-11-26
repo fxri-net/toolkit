@@ -110,6 +110,9 @@ toolkit task check --strict       # 任务目录不存在时报错退出（默�
 - **归档块**：复用 `task normalize` 的同一检查实现（见下）
 - **文件卫生**：UTF-8 BOM、行尾多余空白、CRLF / LF 混用，统一软告警不阻断
 
+告警文案自带可照做的修复动作：能用 CLI 的直接附最短命令（如 `toolkit task update <键> --owner`、`toolkit task normalize --fix`），
+其余写明改哪个文件、哪一行、改成什么（如重命名目标、搁置 / 阻塞节模板）。
+
 ### normalize
 
 检查归档块，可选修复：

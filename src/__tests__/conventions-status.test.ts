@@ -259,7 +259,7 @@ describe("索引体检", () => {
     const report = conventionsStatus(root, cwd)
     const dangling = report.items.filter((i) => i.message.includes("不在端清单"))
     expect(dangling).toHaveLength(1)
-    expect(dangling.some((i) => i.message.includes("mobile"))).toBe(true)
+    expect(dangling.some((i) => i.message.includes("mobile") && i.message.includes("端清单登记"))).toBe(true)
   })
 
   it("归属取已存在的分类标签分册名时不判悬空", () => {
@@ -329,7 +329,7 @@ describe("索引体检", () => {
     const report = conventionsStatus(root, cwd)
     const orphan = report.items.filter((i) => i.message.includes("在索引表中无对应条目"))
     expect(orphan).toHaveLength(1)
-    expect(orphan.some((i) => i.message.includes("common.md") && i.message.includes("C-9"))).toBe(true)
+    expect(orphan.some((i) => i.message.includes("common.md") && i.message.includes("C-9") && i.message.includes("index.md"))).toBe(true)
   })
 })
 

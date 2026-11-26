@@ -86,14 +86,14 @@ function checkForm(state: CarrierState, items: ConventionsStatusItem[]): void {
     items.push({
       level: "warn",
       scope: "形态",
-      message: `载体形态异常（形态标记、${HISTORY_FILE} 与索引表首列三者不一致）：请人工确认后再处理，不要直接升级`,
+      message: `载体形态异常（形态标记、${HISTORY_FILE} 与索引表首列三者不一致）：核对 ${state.dir} 首行形态标记、${HISTORY_FILE} 是否存在、索引表首列是否为 ID，补齐缺失项后重跑 toolkit convention status（请人工确认，不要直接升级）`,
     })
   }
   if (state.hasLegacy) {
     items.push({
       level: "warn",
       scope: "形态",
-      message: `旧单文件 ${LEGACY_FILE} 与目录形态并存：确认内容已迁入后清理旧文件`,
+      message: `旧单文件 ${LEGACY_FILE} 与目录形态并存：确认内容已迁入 ${state.dir}/${INDEX_FILE} 后删除 ${state.dir}/${LEGACY_FILE}`,
     })
   }
 }
@@ -111,14 +111,14 @@ function checkIndex(state: CarrierState, items: ConventionsStatusItem[]): void {
       if (isIdCell(id)) continue
       // 补零与形态非法分开报：前者给出改法，后者才是命名不合规范
       if (isPaddedIdCell(id)) {
-        items.push({ level: "warn", scope: "索引", message: `索引表首列「${id}」为补零写法，稳定 ID 去补零（应写作 ${canonicalId(id)}）` })
+        items.push({ level: "warn", scope: "索引", message: `索引表首列「${id}」为补零写法，稳定 ID 去补零（应写作 ${canonicalId(id)}，改 ${INDEX_FILE} 该行首列）` })
         continue
       }
-      items.push({ level: "warn", scope: "索引", message: `索引表首列「${id}」不合稳定 ID 形态 C-<n>` })
+      items.push({ level: "warn", scope: "索引", message: `索引表首列「${id}」不合稳定 ID 形态 C-<n>（改为与 ${HISTORY_FILE} 一致的 ID）` })
     }
     const seen = new Set<string>()
     for (const id of ids) {
-      if (seen.has(id)) items.push({ level: "warn", scope: "索引", message: `索引表存在重复 ID ${id}` })
+      if (seen.has(id)) items.push({ level: "warn", scope: "索引", message: `索引表存在重复 ID ${id}（保留一条，另一条改用未占用的新 ID，并同步 ${HISTORY_FILE}）` })
       seen.add(id)
     }
   }
@@ -147,7 +147,7 @@ function checkIndex(state: CarrierState, items: ConventionsStatusItem[]): void {
       const owners = (entry.cells[ownerIdx] ?? "").split(/[、,，\s]+/).filter((o) => o !== "")
       for (const owner of owners) {
         if (!declared.has(owner) && !RESERVED_OWNERS.has(owner) && !volumeNames.has(owner)) {
-          items.push({ level: "warn", scope: "索引", message: `条目 ${entry.id} 的归属「${owner}」不在端清单、保留归属或分类标签分册中` })
+          items.push({ level: "warn", scope: "索引", message: `条目 ${entry.id} 的归属「${owner}」不在端清单、保留归属或分类标签分册中（在 ${INDEX_FILE} 端清单登记该端名，或把该条归属改为已登记端名 / common / 已有分册名）` })
         }
       }
       // common 锁死为「所有端都适用」：语义含端限定语且提及具体端名时（大小写不敏感）提示确认是否应下沉为端归属
@@ -157,7 +157,7 @@ function checkIndex(state: CarrierState, items: ConventionsStatusItem[]): void {
         const hit = END_QUALIFIER_RE.test(semantic)
           ? [...declared].find((name) => name !== "" && lower.includes(name.toLowerCase()))
           : undefined
-        if (hit) items.push({ level: "warn", scope: "索引", message: `条目 ${entry.id} 归属 common 但语义提及端「${hit}」，确认是否应下沉为端归属` })
+        if (hit) items.push({ level: "warn", scope: "索引", message: `条目 ${entry.id} 归属 common 但语义提及端「${hit}」，确认是否应下沉为端归属（改归属列为 ${hit}，并把条文移入 ${hit}.md）` })
       }
     }
   }
@@ -169,7 +169,7 @@ function checkIndex(state: CarrierState, items: ConventionsStatusItem[]): void {
     for (const line of readTextFile(file).split(/\r?\n/)) {
       const m = SUBHEAD_RE.exec(line)
       if (m && !idSet.has(m[1] ?? "")) {
-        items.push({ level: "warn", scope: "索引", message: `分册 ${name}.md 的小节 ${m[1]} 在索引表中无对应条目` })
+        items.push({ level: "warn", scope: "索引", message: `分册 ${name}.md 的小节 ${m[1]} 在索引表中无对应条目（在 ${INDEX_FILE} 补该 ID 条目，或删除分册内该小节）` })
       }
     }
   }
@@ -178,13 +178,13 @@ function checkIndex(state: CarrierState, items: ConventionsStatusItem[]): void {
   if (state.hasRetired) {
     const retiredTable = findTable(readTextFile(state.retiredFile).split(/\r?\n/), RETIRED_ANCHOR_HEADER)
     if (!retiredTable) {
-      items.push({ level: "warn", scope: "索引", message: `${RETIRED_FILE} 未定位到退休表（表头须含「${RETIRED_ANCHOR_HEADER}」）` })
+      items.push({ level: "warn", scope: "索引", message: `${RETIRED_FILE} 未定位到退休表（表头须含「${RETIRED_ANCHOR_HEADER}」）：在 ${RETIRED_FILE} 补建表头含该列的表格）` })
     } else {
       const idIdx = columnIndex(retiredTable.header, ID_HEADER)
       for (const row of retiredTable.rows) {
         const id = idIdx === -1 ? "" : (row[idIdx] ?? "")
         if (id !== "" && idSet.has(id)) {
-          items.push({ level: "warn", scope: "索引", message: `条目 ${id} 同时存在于索引表与 ${RETIRED_FILE}（退休条目须已迁出常驻索引）` })
+          items.push({ level: "warn", scope: "索引", message: `条目 ${id} 同时存在于索引表与 ${RETIRED_FILE}（退休条目须已迁出常驻索引：从 ${INDEX_FILE} 删除该条，条文移入 ${RETIRED_FILE}）` })
         }
       }
     }
@@ -204,7 +204,7 @@ function checkSemanticRouting(state: CarrierState, items: ConventionsStatusItem[
     items.push({
       level: "warn",
       scope: "索引",
-      message: `条目 ${entry.id} 的「${INDEX_ANCHOR_HEADER}」${length} 字符（上限 ${SEMANTIC_MAX_CHARS}）：建议改写为路由写法（何时适用 + 一句话要求），条文细节放归属分册`,
+      message: `条目 ${entry.id} 的「${INDEX_ANCHOR_HEADER}」${length} 字符（上限 ${SEMANTIC_MAX_CHARS}）：把 ${INDEX_FILE} 该条改写为路由写法（何时适用 + 一句话要求），条文细节移入归属分册`,
     })
   }
 }
@@ -226,7 +226,7 @@ function checkSourceLinks(state: CarrierState, items: ConventionsStatusItem[]): 
         items.push({
           level: "warn",
           scope: "索引",
-          message: `条目 ${entry.id} 的「${SOURCE_HEADER}」链接目标不存在：${target}`,
+          message: `条目 ${entry.id} 的「${SOURCE_HEADER}」链接目标不存在：${target}（改为存在的相对路径，或补建该文件）`,
         })
       }
     }
@@ -272,7 +272,7 @@ function checkHistoryIdColumn(state: CarrierState, items: ConventionsStatusItem[
     items.push({
       level: "warn",
       scope: "形态",
-      message: `${HISTORY_FILE} 有 ${padded} 行首列为补零 ID（应写作 ${canonicalId(cells.find((cell) => isPaddedIdCell(cell)) ?? "")}）：请人工核对，历史行只追加不自动改写`,
+      message: `${HISTORY_FILE} 有 ${padded} 行首列为补零 ID（应写作 ${canonicalId(cells.find((cell) => isPaddedIdCell(cell)) ?? "")}）：改 ${HISTORY_FILE} 该行首列，历史行只追加不自动改写`,
     })
   }
   const nonId = cells.filter((cell) => !isIdCell(cell) && !isPaddedIdCell(cell)).length
@@ -280,7 +280,7 @@ function checkHistoryIdColumn(state: CarrierState, items: ConventionsStatusItem[
     items.push({
       level: "warn",
       scope: "形态",
-      message: `${HISTORY_FILE} 有 ${nonId} 行首列不是稳定的规则 ID（应记行内代码包裹的 C-<n>）：请人工核对补录（历史行只追加，不自动改写）`,
+      message: `${HISTORY_FILE} 有 ${nonId} 行首列不是稳定的规则 ID：把该行首列改为行内代码包裹的 C-<n>（与 ${INDEX_FILE} 同 ID；历史行只追加，不自动改写）`,
     })
   }
 }

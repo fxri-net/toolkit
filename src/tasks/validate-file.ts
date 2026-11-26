@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { join, basename } from "node:path"
 import { readTextFile, stripBom } from "../read-text"
 import { parseFrontmatterRaw, stripFrontmatter, bodyWithoutTitle, titleOf, FRONTMATTER_RE } from "./parse"
-import { briefMatchesTitle, briefNameIssues, parseTaskName } from "./name"
+import { briefMatchesTitle, briefNameIssues, parseTaskName, taskBrief } from "./name"
 import { getConfigSection } from "../config"
 import { isBeyondTzFuture, MAX_UTC_OFFSET_HOURS, todayDash } from "../date"
 import { CONVENTIONS_DIR, ENDPOINT_ANCHOR_HEADER, INDEX_FILE, findTable } from "../conventions/format"
@@ -99,7 +99,7 @@ function hygieneIssues(name: string, raw: string): CheckIssue[] {
   const rawLines = raw.split(/\r?\n/)
   const twIdx = rawLines.findIndex((l) => /[ \t]+$/.test(l))
   if (twIdx >= 0) {
-    issues.push({ level: "warn", file: name, line: twIdx + 1, message: "行尾有多余空白（空格或制表符），建议去除" })
+    issues.push({ level: "warn", file: name, line: twIdx + 1, message: "行尾有多余空白（空格或制表符），删除该行行尾空白" })
   }
   // 定位首个孤立 LF（其前一字符非 CR）：存在即有混用
   let loneAt = -1
@@ -110,7 +110,7 @@ function hygieneIssues(name: string, raw: string): CheckIssue[] {
     }
   }
   if (loneAt >= 0 && raw.includes("\r\n")) {
-    issues.push({ level: "warn", file: name, line: raw.slice(0, loneAt).split("\n").length, message: "换行符混用（同文件同时含 CRLF 与 LF），建议统一为 LF" })
+    issues.push({ level: "warn", file: name, line: raw.slice(0, loneAt).split("\n").length, message: "换行符混用（同文件同时含 CRLF 与 LF），把该文件的 CRLF 统一改为 LF" })
   }
   return issues
 }
@@ -173,13 +173,17 @@ function heldSectionIssues(name: string, lines: string[], fmEnd: number, status:
   if (status !== "搁置") {
     // 已放弃允许保留该节——归档块内它就是「为何放弃」的终结理由；其余状态残留说明唤醒时未删节
     if (head >= 0 && status !== "已放弃") {
-      issues.push({ level: "warn", file: name, line: head + 1, message: "status 非搁置但正文残留「## 搁置」节，唤醒后应删除该节" })
+      issues.push({ level: "warn", file: name, line: head + 1, message: "status 非搁置但正文残留「## 搁置」节（删除该节，或改回 status: 搁置）" })
     }
     return issues
   }
 
   if (head < 0) {
-    issues.push({ level: "warn", file: name, message: "status 为搁置但正文缺少「## 搁置」节（四行摘要无处承载）" })
+    issues.push({
+      level: "warn",
+      file: name,
+      message: "status 为搁置但正文缺少「## 搁置」节（四行摘要无处承载）：在正文第一个二级标题处补「## 搁置」，依次写 - 搁置原因：… / - 重启条件：… / - 进度锚点：… / - 搁置日期：YYYY-MM-DD",
+    })
     return issues
   }
 
@@ -217,16 +221,16 @@ function heldSectionIssues(name: string, lines: string[], fmEnd: number, status:
     const label = HELD_LABELS[k] as string
     const hit = found.find((f) => f.label === label)
     if (!hit) {
-      issues.push({ level: "warn", file: name, line: head + 1, message: `搁置节缺少「${label}」一行` })
+      issues.push({ level: "warn", file: name, line: head + 1, message: `搁置节缺少「${label}」一行（在「## 搁置」节内补 - ${label}：…）` })
       continue
     }
     if (hit.colon !== "：") {
-      issues.push({ level: "warn", file: name, line: hit.line, message: `「${label}」须用全角冒号「：」` })
+      issues.push({ level: "warn", file: name, line: hit.line, message: `「${label}」须用全角冒号「：」（把当前半角冒号改为全角）` })
     }
     const prevLabel = k > 0 ? (HELD_LABELS[k - 1] as string) : ""
     const prev = prevLabel ? found.find((f) => f.label === prevLabel) : undefined
     if (prev && hit.line < prev.line) {
-      issues.push({ level: "warn", file: name, line: hit.line, message: `搁置四行顺序应为 ${HELD_LABELS.join(" / ")}` })
+      issues.push({ level: "warn", file: name, line: hit.line, message: `搁置四行顺序应为 ${HELD_LABELS.join(" / ")}（把「${label}」移到上一行之后）` })
     }
   }
 
@@ -236,12 +240,12 @@ function heldSectionIssues(name: string, lines: string[], fmEnd: number, status:
     if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
       issues.push({ level: "warn", file: name, line: dateItem.line, message: `搁置日期「${v}」格式非法，应为 YYYY-MM-DD` })
     } else if (!isRealDate(v)) {
-      issues.push({ level: "warn", file: name, line: dateItem.line, message: `搁置日期「${v}」日期不存在，请核对` })
+      issues.push({ level: "warn", file: name, line: dateItem.line, message: `搁置日期「${v}」日期不存在（改为真实存在的 YYYY-MM-DD）` })
     } else {
       // 未来日期检测留 1 天容差：UTC 与东八区运行环境下「今天」可能相差一天
       const expired = new Date(`${v}T00:00:00Z`).getTime() > new Date(`${todayDash()}T00:00:00Z`).getTime() + 86_400_000
       if (expired) {
-        issues.push({ level: "warn", file: name, line: dateItem.line, message: `搁置日期「${v}」晚于今天，疑似时间源错误，请核实` })
+        issues.push({ level: "warn", file: name, line: dateItem.line, message: `搁置日期「${v}」晚于今天，疑似时间源错误（按实际情况改为今天或更早的日期）` })
       }
     }
   }
@@ -268,7 +272,11 @@ function blockSectionIssues(name: string, lines: string[], fmEnd: number, status
     }
   }
   if (head < 0) {
-    issues.push({ level: "warn", file: name, message: "status 为阻塞但正文缺少「## 阻塞」节（三行摘要无处承载）" })
+    issues.push({
+      level: "warn",
+      file: name,
+      message: "status 为阻塞但正文缺少「## 阻塞」节（三行摘要无处承载）：在正文第一个二级标题处补「## 阻塞」，依次写 - 阻塞原因：… / - 解除条件：… / - 阻塞日期：YYYY-MM-DD",
+    })
     return issues
   }
 
@@ -310,16 +318,16 @@ function blockSectionIssues(name: string, lines: string[], fmEnd: number, status
     const label = BLOCK_LABELS[k] as string
     const hit = found.find((f) => f.label === label)
     if (!hit) {
-      issues.push({ level: "warn", file: name, line: head + 1, message: `阻塞节缺少「${label}」一行` })
+      issues.push({ level: "warn", file: name, line: head + 1, message: `阻塞节缺少「${label}」一行（在「## 阻塞」节内补 - ${label}：…）` })
       continue
     }
     if (hit.colon !== "：") {
-      issues.push({ level: "warn", file: name, line: hit.line, message: `「${label}」须用全角冒号「：」` })
+      issues.push({ level: "warn", file: name, line: hit.line, message: `「${label}」须用全角冒号「：」（把当前半角冒号改为全角）` })
     }
     const prevLabel = k > 0 ? (BLOCK_LABELS[k - 1] as string) : ""
     const prev = prevLabel ? found.find((f) => f.label === prevLabel) : undefined
     if (prev && hit.line < prev.line) {
-      issues.push({ level: "warn", file: name, line: hit.line, message: `阻塞三行顺序应为 ${BLOCK_LABELS.join(" / ")}` })
+      issues.push({ level: "warn", file: name, line: hit.line, message: `阻塞三行顺序应为 ${BLOCK_LABELS.join(" / ")}（把「${label}」移到上一行之后）` })
     }
   }
 
@@ -330,13 +338,13 @@ function blockSectionIssues(name: string, lines: string[], fmEnd: number, status
     if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
       issues.push({ level: "warn", file: name, line: dateItem.line, message: `阻塞日期「${v}」格式非法，应为 YYYY-MM-DD` })
     } else if (!isRealDate(v)) {
-      issues.push({ level: "warn", file: name, line: dateItem.line, message: `阻塞日期「${v}」日期不存在，请核对` })
+      issues.push({ level: "warn", file: name, line: dateItem.line, message: `阻塞日期「${v}」日期不存在（改为真实存在的 YYYY-MM-DD）` })
     } else {
       blockDate = v
       // 与搁置日期同口径：留 1 天容差，避免跨时区误报
       const expired = new Date(`${v}T00:00:00Z`).getTime() > new Date(`${todayDash()}T00:00:00Z`).getTime() + 86_400_000
       if (expired) {
-        issues.push({ level: "warn", file: name, line: dateItem.line, message: `阻塞日期「${v}」晚于今天，疑似时间源错误，请核实` })
+        issues.push({ level: "warn", file: name, line: dateItem.line, message: `阻塞日期「${v}」晚于今天，疑似时间源错误（按实际情况改为今天或更早的日期）` })
       }
     }
   }
@@ -349,7 +357,7 @@ function blockSectionIssues(name: string, lines: string[], fmEnd: number, status
         level: "warn",
         file: name,
         line: released.line,
-        message: "已记录解除（日期晚于阻塞日期）但仍为阻塞状态，请转回进行中（解除记录保留）",
+        message: `已记录解除（日期晚于阻塞日期）但仍为阻塞状态，运行 toolkit task update ${name.replace(/\.md$/, "")} --status 进行中 转回（解除记录保留）`,
       })
     }
   }
@@ -375,12 +383,12 @@ function abandonReasonIssues(name: string, lines: string[], fmEnd: number, statu
   }
   if (status === "已放弃") {
     if (line < 0) {
-      issues.push({ level: "warn", file: name, message: "status 为已放弃但正文缺少「> 放弃原因：」行" })
+      issues.push({ level: "warn", file: name, message: "status 为已放弃但正文缺少「> 放弃原因：」行（在计划位置行后补一行 > 放弃原因：<理由>）" })
     } else if (!value) {
-      issues.push({ level: "warn", file: name, line, message: "「> 放弃原因：」值为空，请写明放弃理由" })
+      issues.push({ level: "warn", file: name, line, message: "「> 放弃原因：」值为空（在冒号后补写放弃理由）" })
     }
   } else if (line >= 0) {
-    issues.push({ level: "warn", file: name, line, message: "status 非已放弃但正文残留「> 放弃原因：」行，状态改回后应删除" })
+    issues.push({ level: "warn", file: name, line, message: "status 非已放弃但正文残留「> 放弃原因：」行（删除该行）" })
   }
   return issues
 }
@@ -389,6 +397,8 @@ function abandonReasonIssues(name: string, lines: string[], fmEnd: number, statu
 export function validateTaskFile(file: string, endpoints: Set<string> | null = null): CheckIssue[] {
   const issues: CheckIssue[] = []
   const name = basename(file)
+  // 任务唯一键：告警里直接给出 toolkit task update 可复制的命令
+  const stem = name.replace(/\.md$/, "")
   // 卫生检查在原始文本上判定（stripBom 后的文本无从发现 BOM），且须早于 frontmatter 早退：无 frontmatter 也要报
   const raw = readFileSync(file, "utf8")
   issues.push(...hygieneIssues(name, raw))
@@ -412,7 +422,7 @@ export function validateTaskFile(file: string, endpoints: Set<string> | null = n
       level: "warn",
       file: name,
       line: fmKeyLine(lines, fmEnd, key),
-      message: `frontmatter 含未知字段「${key}」，本工具不读取（归档与归一化不会保留，请自行维护）`,
+      message: `frontmatter 含未知字段「${key}」，本工具不读取（归档与归一化不会保留；请从 frontmatter 删除，或改写进正文自行维护）`,
     })
   }
 
@@ -430,33 +440,34 @@ export function validateTaskFile(file: string, endpoints: Set<string> | null = n
     const c = fm.completed.trim()
     const line = fmKeyLine(lines, fmEnd, "completed")
     if (!COMPLETED_RE.test(c)) {
-      issues.push({ level: "warn", file: name, line, message: `completed「${fm.completed}」格式非法，应为 YYYY-MM-DD HH:mm` })
+      issues.push({ level: "warn", file: name, line, message: `completed「${fm.completed}」格式非法，应为 YYYY-MM-DD HH:mm（运行 toolkit task update ${stem} --completed "YYYY-MM-DD HH:mm" 改写）` })
     } else {
       const datePart = c.match(/^\d{4}-\d{1,2}-\d{1,2}/)?.[0] ?? c
       if (!isRealDate(datePart)) {
         issues.push({ level: "warn", file: name, line, message: `completed「${fm.completed}」日期不存在，请核对` })
       } else if (!COMPLETED_FULL_RE.test(c)) {
-        issues.push({ level: "warn", file: name, line, message: `completed「${fm.completed}」建议补全为完整时间 YYYY-MM-DD HH:mm` })
+        issues.push({ level: "warn", file: name, line, message: `completed「${fm.completed}」建议补全为完整时间 YYYY-MM-DD HH:mm（运行 toolkit task update ${stem} --completed "YYYY-MM-DD HH:mm"）` })
       } else if (isBeyondTzFuture(c)) {
         // 未来时间检测：写入时刻晚于系统时间说明时间源有误；留跨时区容差（详见 src/date.ts）避免 UTC 运行环境误报
-        issues.push({ level: "warn", file: name, line, message: `completed「${fm.completed}」晚于当前系统时间 ${MAX_UTC_OFFSET_HOURS} 小时以上，疑似时间源错误，请当场取系统时间核实` })
+        issues.push({ level: "warn", file: name, line, message: `completed「${fm.completed}」晚于当前系统时间 ${MAX_UTC_OFFSET_HOURS} 小时以上，疑似时间源错误（取系统当前时间，运行 toolkit task update ${stem} --completed "<实际时间>" 改正）` })
       } else if (/(?:[T\s]00:00(?::00)?)$/.test(c)) {
         // 零点整检测：恰为 00:00 通常是只填日期被自动补零的特征（真实午夜收工属少量误报，warn 级可接受）
-        issues.push({ level: "warn", file: name, line, message: `completed「${fm.completed}」恰为零点整，疑似只填了日期被补零，请核实实际完成时间` })
+        issues.push({ level: "warn", file: name, line, message: `completed「${fm.completed}」恰为零点整，疑似只填了日期被补零（核实后用 toolkit task update ${stem} --completed "<实际时间>" 改正）` })
       }
     }
   }
 
   // 元数据完整性（软告警）：负责人 / 创建日期 / 文件命名规范
   if (!fm.owner) {
-    issues.push({ level: "warn", file: name, line: fmKeyLine(lines, fmEnd, "owner"), message: "缺少 owner 负责人字段" })
+    issues.push({ level: "warn", file: name, line: fmKeyLine(lines, fmEnd, "owner"), message: `缺少 owner 负责人字段（运行 toolkit task update ${stem} --owner <负责人> 补填）` })
   }
   if (!fm.created) {
-    issues.push({ level: "warn", file: name, line: fmKeyLine(lines, fmEnd, "created"), message: "缺少 created 创建日期字段" })
+    issues.push({ level: "warn", file: name, line: fmKeyLine(lines, fmEnd, "created"), message: "缺少 created 创建日期字段（在 frontmatter 补一行 created: YYYYMMDD）" })
   } else if (!/^\d{8}$/.test(fm.created.trim())) {
-    issues.push({ level: "warn", file: name, line: fmKeyLine(lines, fmEnd, "created"), message: `created「${fm.created}」格式非法，应为 YYYYMMDD` })
+    const digits = fm.created.replace(/\D/g, "")
+    issues.push({ level: "warn", file: name, line: fmKeyLine(lines, fmEnd, "created"), message: `created「${fm.created}」格式非法，应为 8 位 YYYYMMDD（如 ${digits.length === 8 ? digits : "20261127"}）` })
   } else if (!isRealDate(fm.created.trim())) {
-    issues.push({ level: "warn", file: name, line: fmKeyLine(lines, fmEnd, "created"), message: `created「${fm.created}」日期不存在，请核对` })
+    issues.push({ level: "warn", file: name, line: fmKeyLine(lines, fmEnd, "created"), message: `created「${fm.created}」日期不存在（改为真实存在的 YYYYMMDD）` })
   }
   // 更新日早于创建日：时间线自相矛盾（两者均为合法 YYYYMMDD 时才可比对），属硬性错误
   if (fm.updated && fm.created && /^\d{8}$/.test(fm.updated.trim()) && /^\d{8}$/.test(fm.created.trim()) && fm.updated.trim() < fm.created.trim()) {
@@ -464,34 +475,51 @@ export function validateTaskFile(file: string, endpoints: Set<string> | null = n
       level: "error",
       file: name,
       line: fmKeyLine(lines, fmEnd, "updated"),
-      message: `updated ${fm.updated.trim()} 早于 created ${fm.created.trim()}，时间线矛盾`,
+      message: `updated ${fm.updated.trim()} 早于 created ${fm.created.trim()}，时间线矛盾（核对 created 后把 updated 改为不早于它）`,
     })
   }
   const nameMatch = name.match(/^(\d{8})-/)
+  const title = titleOf(content)
   if (!ACTIVE_NAME_RE.test(name)) {
-    issues.push({ level: "warn", file: name, message: "文件名不符合规范 {YYYYMMDD}-{负责人}-{简述}.md" })
+    // 结构不符时尽力拼出可照做的目标名，缺项保留占位
+    const datePart = /^\d{8}$/.test(fm.created?.trim() ?? "") ? fm.created!.trim() : (nameMatch?.[1] ?? "YYYYMMDD")
+    const ownerPart = fm.owner?.trim() || "负责人"
+    const briefPart = title ? taskBrief(title).brief : "简述"
+    issues.push({
+      level: "warn",
+      file: name,
+      message: `文件名不符合规范 {YYYYMMDD}-{负责人}-{简述}.md（建议重命名为 ${datePart}-${ownerPart}-${briefPart}.md）`,
+    })
   } else if (fm.created && /^\d{8}$/.test(fm.created.trim()) && nameMatch && fm.created.trim() !== nameMatch[1]) {
-    issues.push({ level: "warn", file: name, message: `文件名日期 ${nameMatch[1]} 与 created ${fm.created.trim()} 不一致` })
+    issues.push({
+      level: "warn",
+      file: name,
+      message: `文件名日期 ${nameMatch[1]} 与 created ${fm.created.trim()} 不一致（重命名为 ${name.replace(/^\d{8}-/, `${fm.created.trim()}-`)}）`,
+    })
   }
 
   // 文件名三段各对真源负责：日期↔created（上一条）、用户名↔owner、简述↔正文标题；
   // 判据只看是否源出标题，不限制语种——中文项目自然得中文名，英文项目自然得英文名
   const parsedName = parseTaskName(name)
   if (parsedName) {
-    const title = titleOf(content)
     if (title && !briefMatchesTitle(parsedName.brief, title)) {
+      const target = `${parsedName.date}-${parsedName.owner}-${taskBrief(title).brief}.md`
       issues.push({
         level: "warn",
         file: name,
-        message: `文件名简述「${parsedName.brief}」与正文标题「${title}」不同源，简述应取自标题（不翻译、不音译、不缩写）`,
+        message: `文件名简述「${parsedName.brief}」与正文标题「${title}」不同源，简述应取自标题（不翻译、不音译、不缩写；重命名为 ${target}）`,
       })
     }
     const formIssues = briefNameIssues(parsedName.brief)
     if (formIssues.length > 0) {
-      issues.push({ level: "warn", file: name, message: `文件名简述存在跨平台问题：${formIssues.join("；")}` })
+      issues.push({ level: "warn", file: name, message: `文件名简述存在跨平台问题：${formIssues.join("；")}（按提示修正文件名简述后重命名）` })
     }
     if (fm.owner && parsedName.owner.trim() !== fm.owner.trim()) {
-      issues.push({ level: "warn", file: name, message: `文件名用户名「${parsedName.owner}」与 owner「${fm.owner}」不一致` })
+      issues.push({
+        level: "warn",
+        file: name,
+        message: `文件名用户名「${parsedName.owner}」与 owner「${fm.owner}」不一致（重命名为 ${parsedName.date}-${fm.owner.trim()}-${parsedName.brief}.md，或运行 toolkit task update ${stem} --owner ${parsedName.owner} 改用文件名用户）`,
+      })
     }
   }
 
@@ -539,7 +567,7 @@ export function validateTaskFile(file: string, endpoints: Set<string> | null = n
       level: "warn",
       file: name,
       line: pending.line,
-      message: `正文含未闭合待办标记「${pending.word}」，建议拆分为独立 active 任务或明确闭环`,
+      message: `正文含未闭合待办标记「${pending.word}」，改写为已闭环结论，或拆分为独立 active 任务（toolkit task add --title <标题>）`,
     })
   }
 
@@ -550,7 +578,7 @@ export function validateTaskFile(file: string, endpoints: Set<string> | null = n
       level: "warn",
       file: name,
       line: bodyLine(lines, fmEnd, CHECKBOX_LINE_RE),
-      message: "正文含未勾选待办项「- [ ]」，建议拆分为独立 active 任务或勾选完成",
+      message: "正文含未勾选待办项「- [ ]」，勾选为「- [x]」，或拆分为独立 active 任务（toolkit task add --title <标题>）",
     })
   }
 

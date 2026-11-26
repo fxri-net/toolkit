@@ -37,6 +37,9 @@ toolkit convention format --format json        # JSON 输出：status、目录�
 ⚠️ `format` 只动形态、不改语义（紧凑是规范形态、填充是偏离；链接化只改「写在代码里还是链接里」）；当前语义的措辞重写不能机械化，缺全角冒号时只出清单。
 `task check` 与 `convention status` 会对填充态与单元格形态偏离给软告警、指向本命令，`task normalize --fix` 不代改空白层。
 
+`status` 的每条告警同样带修复动作：写明改 `index.md` / `history.md` 的哪一列、删哪行、迁 `retired.md` 还是补登记端名，
+能用 CLI 的直接附命令（如 `toolkit convention upgrade`），避免只报事实。
+
 ⚠️ 读取模型由 `index.md` 路由：按索引行的适用面判断是否命中，命中即读其「归属」分册或「单一事实源」，**无命中即止**；
 `common.md` 不再是恒读面，只是跨面原则所在的一个普通分册。
 

@@ -164,8 +164,10 @@ describe("checkArchive / fixArchive（漂移迁移 A2 + 排序）", () => {
     writeFileSync(join(month, "20260903.md"), content, "utf8")
 
     const before = checkArchive(dir)
-    expect(before.some((i) => i.message.includes("未按完成时间降序"))).toBe(true)
-    expect(before.some((i) => i.message.includes("与归档文件日期 20260903 不一致"))).toBe(true)
+    expect(before.some((i) => i.message.includes("未按完成时间降序") && i.fixable)).toBe(true)
+    const drift = before.find((i) => i.message.includes("与归档文件日期 20260903 不一致"))
+    expect(drift?.message).toContain("迁移到 20260905.md")
+    expect(drift?.fixable).toBe(true)
 
     const res = fixArchive(dir)
     expect(res.fixed).toBeGreaterThan(0)
