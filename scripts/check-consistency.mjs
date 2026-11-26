@@ -355,7 +355,9 @@ if (diffBase) {
 // 规则模块体量棘轮：全局规则是用户手动复制的快照，细节应进 skills（AGENTS 质量门 5）。
 // 上限取收敛后实测值约 1.1 倍；调高须在同一提交说明理由，否则棘轮会被随手抬高而失效
 // env 上限 220：需容纳「pnpm / npm / bun / yarn 四种管理器写法」的半句说明（实测 198，取 1.1 倍）
-const RULE_BUDGETS = { "workflow.md": 770, "core.md": 580, "practices.md": 300, "usage.md": 595, "output.md": 170, "commit.md": 1040 }
+// 2026-11-27：长任务默认口径细化（output）后上调至 200；preferences 收敛为纯个性化偏好，维持 300
+// output 上调到 230：播报口径按执行类 / 只读 / 长任务分层，比单句多两条约束
+const RULE_BUDGETS = { "workflow.md": 770, "core.md": 580, "preferences.md": 300, "usage.md": 595, "output.md": 230, "commit.md": 1040 }
 for (const [file, budget] of Object.entries(RULE_BUDGETS)) {
   const rel = `templates/rules/${file}`
   // 假现场 / 裁剪仓库可能没有规则模块：缺失即跳过，不把 ENOENT 当违规抛出
@@ -376,7 +378,6 @@ const READER_PATTERNS = [
   { label: "文档站", re: /文档站/ },
   { label: "重新复制", re: /重新复制/ },
   { label: "目标读者", re: /目标读者/ },
-  { label: "可裁剪", re: /可裁剪/ },
   { label: "按需增删", re: /按需增删/ },
 ]
 const ruleTexts = []

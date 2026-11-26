@@ -883,7 +883,7 @@ exports[`各域行为与错误路径 > rules compose 单模块 1`] = `
 --- stdout ---
 
 --- stderr ---
-⚠️ 未知规则模块「common」，可选：core / output / workflow / practices / commit / usage"
+⚠️ 未知规则模块「common」，可选：core / output / workflow / preferences / commit / usage"
 `;
 
 exports[`各域行为与错误路径 > rules compose 未知预设 1`] = `
@@ -897,7 +897,7 @@ exports[`各域行为与错误路径 > rules compose 未知预设 1`] = `
 exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 "退出码：0
 --- stdout ---
-> 规则更新时间 2026-11-27 01:21
+> 规则更新时间 2026-11-27 04:08
 
 你是一个严谨的编程助手，专注于产出可维护、风格一致的代码
 
@@ -917,6 +917,9 @@ exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 - 允许在末尾做跨方案对比、前提条件归纳或注意事项汇总，但必须包含前文未单独提及的判断结论
 - 提供代码时必须附带中文注释说明关键逻辑
 - 涉及注意事项时使用⚠️标记
+- 执行类任务开头一句目标与范围，结尾一句结论（给判断，不复述过程）
+- 只读请求只给结论，不套开头结尾
+- 长任务中间只报关键节点，不逐条播报
 
 ## 工作流
 
@@ -935,10 +938,9 @@ exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 - 目录能否用跑一次 \`toolkit scope status\`，同会话复用；入口壳未激活即停。
 - 任务管理细节以已加载的 fxri-* 技能为准。
 
-## 推荐做法
+## 可裁剪偏好
 
-- 以下条目优先于同类默认约定。
-- 任务收尾的提交自动执行：只提交归档与代码，active 默认不入库（要求才例外）。
+- 任务收尾的提交自动执行（覆写提交授权默认）：只提交归档与代码，active 默认不入库（要求才例外）。
 - **不自行安装**：任何安装动作（全局包、项目依赖、系统工具）都须先获用户明确授权。
 - **安装需求进方案**：交付需要安装或额外环境才能验证时，在方案里一次列清装什么、装在哪、验完怎么清理，随方案一并确认，不留到交付后补申请。
 - **破坏性操作先限定范围并预览**：删除 / 清理 / 覆盖前列出目标，能预览就先预览；用户可见删除优先可恢复，永久删除需确认；方案阶段先披露不可恢复部分。
@@ -1000,12 +1002,12 @@ exports[`各域行为与错误路径 > rules list 1`] = `
 --- stdout ---
 规则模块：
     core     2026-11-27 01:21  角色定位与代码规范（recommended / full）
-    output   2026-11-08 02:21  输出要求（recommended / full）
+    output   2026-11-27 04:08  输出要求（recommended / full）
     workflow 2026-11-26 23:05  工作流与方案落盘（minimal / recommended / full）
-    practices 2026-11-26 18:33  推荐做法（minimal / recommended / full）
+    preferences 2026-11-27 04:07  可裁剪偏好（minimal / recommended / full）
     commit   2026-11-24 12:39  提交信息规则（recommended / full）
     usage    2026-11-24 09:57  技能使用情况（full）
-预设：minimal=workflow+practices；recommended=core+output+workflow+practices+commit；full=core+output+workflow+practices+commit+usage
+预设：minimal=workflow+preferences；recommended=core+output+workflow+preferences+commit；full=core+output+workflow+preferences+commit+usage
 当前缓存：无（默认推荐组合 recommended）
 --- stderr ---
 "
@@ -1023,20 +1025,20 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
     "presets": {
       "minimal": {
         "label": "极简",
-        "summary": "已有自己的代码规范，只想补授权、落盘与推荐做法",
+        "summary": "已有自己的代码规范，只想补授权、落盘与可裁剪偏好",
         "modules": [
           "workflow",
-          "practices"
+          "preferences"
         ]
       },
       "recommended": {
         "label": "推荐",
-        "summary": "多数项目从零起步：代码规范、输出、工作流、推荐做法与提交信息",
+        "summary": "多数项目从零起步：代码规范、输出、工作流、可裁剪偏好与提交信息",
         "modules": [
           "core",
           "output",
           "workflow",
-          "practices",
+          "preferences",
           "commit"
         ]
       },
@@ -1047,7 +1049,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
           "core",
           "output",
           "workflow",
-          "practices",
+          "preferences",
           "commit",
           "usage"
         ]
@@ -1060,7 +1062,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
           "core",
           "output",
           "workflow",
-          "practices"
+          "preferences"
         ]
       },
       {
@@ -1093,7 +1095,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
         "title": "输出要求",
         "summary": "回答风格：直奔主题、不写客套话、代码附中文注释",
         "file": "output.md",
-        "anchor": "2026-11-08 02:21",
+        "anchor": "2026-11-27 04:08",
         "presets": [
           "recommended",
           "full"
@@ -1112,11 +1114,11 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
         ]
       },
       {
-        "id": "practices",
-        "title": "推荐做法",
-        "summary": "官方推荐的可裁剪做法：优先于同类默认约定",
-        "file": "practices.md",
-        "anchor": "2026-11-26 18:33",
+        "id": "preferences",
+        "title": "可裁剪偏好",
+        "summary": "个人可裁剪偏好：只放真正个性化的取舍，不承载通用纪律与能力说明",
+        "file": "preferences.md",
+        "anchor": "2026-11-27 04:07",
         "presets": [
           "minimal",
           "recommended",

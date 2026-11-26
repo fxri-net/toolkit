@@ -18,7 +18,7 @@
 | ID | 规则 | 当前语义 | 归属 | 单一事实源 |
 | --- | --- | --- | --- | --- |
 | C-2 | 能力终点与授权 | 做任务收尾时：归档 + 沉淀即终点，提交默认需确认（`推荐做法` 可覆写为自动提交），发版与推送须明确授权；写方向须满足授权判据（执行指向 + 范围唯一 + 已定稿），三类不构成授权见条文，只读按意图判；微操作仅限单文件 / 单命令 / 无派生改动，需同步生成物、测试或文档的不算微操作，先回方案态 | common | [ai.md](../../docs/rules/ai.md) 稳定纪律、[practices.md](../../templates/rules/practices.md) |
-| C-6 | 细节只进 skills | 写全局规则快照时：只做薄引用，可变流程细节只进 skills；`practices` 只收可被其它模块默认值覆写的偏好且覆写成对，不得按「非稳定纪律」删除，通用纪律与真源指向不得入内；与 C-48 配套 | common | [AGENTS.md](../../AGENTS.md) 质量门 5 |
+| C-6 | 细节只进 skills | 写全局规则快照时：只做薄引用，可变流程细节只进 skills；`preferences`（可裁剪偏好）只收真正个性化、可整体删除的偏好，不承载通用纪律 / 能力说明 / 真源指向；仅当明确覆盖某模块默认值时才成对书写，不为每条默认值强行造第二条；不得按「非稳定纪律」删除；与 C-48 配套 | common | [AGENTS.md](../../AGENTS.md) 质量门 5 |
 | C-7 | 触达核对前置 | 改能力或措辞前：先 grep 全仓定位触达点并另列仓库外平台侧（仓库简介 / social preview / npm 页），影响范围逐篇核对；触达面清单以 `scripts/touch-surface.mjs` 为单源 | common | [AGENTS.md](../../AGENTS.md) 质量门 2、`scripts/touch-surface.mjs` |
 | C-13 | 验收含类型与静态检查 | 定验收时：类型检查与静态检查属 `pnpm verify` 步骤，不得用 lint / build 替代 | common | [AGENTS.md](../../AGENTS.md) 验收方式 |
 | C-14 | 路径书写 | 写仓库引用时：用仓库根相对路径；本机绝对路径仅 active 暂留、归档归一 | common | [AGENTS.md](../../AGENTS.md) 协作流程约束 |

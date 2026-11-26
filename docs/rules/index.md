@@ -17,8 +17,8 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 
 | 预设 | 包含模块 | 适合谁 |
 | --- | --- | --- |
-| `minimal`（极简） | `workflow` + `practices` | 已有自己的代码规范，只想补授权、落盘与推荐做法 |
-| `recommended`（推荐，默认） | `core` + `output` + `workflow` + `practices` + `commit` | 多数项目从零起步 |
+| `minimal`（极简） | `workflow` + `preferences` | 已有自己的代码规范，只想补授权、落盘与可裁剪偏好 |
+| `recommended`（推荐，默认） | `core` + `output` + `workflow` + `preferences` + `commit` | 多数项目从零起步 |
 | `full`（全量） | 推荐组合 + `usage` | 已启用 toolkit 技能统计，需连同上报纪律一并下发 |
 
 - `commit` 与既有 Conventional Commits / commitlint 互斥；`usage` 仅在启用使用统计时参考。
@@ -35,7 +35,7 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 | `core` | 角色定位与代码规范 | 推荐 / 全量 |
 | `output` | 输出要求 | 推荐 / 全量 |
 | `workflow` | 工作流与方案落盘 | 极简 / 推荐 / 全量 |
-| `practices` | 推荐做法 | 极简 / 推荐 / 全量 |
+| `preferences` | 可裁剪偏好 | 极简 / 推荐 / 全量 |
 | `commit` | 提交信息规则 | 推荐 / 全量 |
 | `usage` | 技能使用情况 | 全量 |
 
@@ -50,7 +50,7 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 
 | 规则 | 适用对象 | 复制方式 |
 | --- | --- | --- |
-| [AI 全局规则](./ai) | 通用 AI 协作纪律：代码规范、输出要求、方案落盘与推荐做法 | 复制「规则全文」代码块 |
+| [AI 全局规则](./ai) | 通用 AI 协作纪律：代码规范、输出要求、方案落盘与可裁剪偏好 | 复制「规则全文」代码块 |
 | [提交信息规则](./commit) | 统一 git 提交信息格式与语义 | 复制「规则全文」代码块；与 Conventional Commits / commitlint 互斥 |
 | [技能使用情况规则](./usage) | 启用 toolkit 技能使用统计后，约束 AI 不重复补记、不外传数据 | 可选；复制「规则全文」代码块，或执行 `toolkit rule compose --module usage --no-cache` |
 

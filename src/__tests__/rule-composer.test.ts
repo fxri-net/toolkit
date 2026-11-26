@@ -45,7 +45,7 @@ function checkedStates(wrapper: ReturnType<typeof mount>): boolean[] {
 }
 
 describe("RuleComposer 交互", () => {
-  it("默认选中推荐集（core / output / workflow / practices / commit）", () => {
+  it("默认选中推荐集（core / output / workflow / preferences / commit）", () => {
     const wrapper = mount(RuleComposer)
     expect(checkedStates(wrapper)).toEqual([true, true, true, true, true, false])
     expect(wrapper.text()).not.toContain("自用全篇")
@@ -57,7 +57,7 @@ describe("RuleComposer 交互", () => {
     expect(button).toBeTruthy()
     await button!.trigger("click")
     expect(checkedStates(wrapper)).toEqual([true, true, true, true, true, true])
-    expect(wrapper.find(".rc-preview pre").text()).toContain("## 推荐做法")
+    expect(wrapper.find(".rc-preview pre").text()).toContain("## 可裁剪偏好")
   })
 
   it("预设由多切回少时整体覆盖，不保留上一次的模块", async () => {

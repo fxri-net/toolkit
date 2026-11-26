@@ -20,10 +20,10 @@
       "file": "workflow.md"
     },
     {
-      "id": "practices",
-      "title": "推荐做法",
-      "summary": "官方推荐的可裁剪做法：优先于同类默认约定",
-      "file": "practices.md"
+      "id": "preferences",
+      "title": "可裁剪偏好",
+      "summary": "个人可裁剪偏好：只放真正个性化的取舍，不承载通用纪律与能力说明",
+      "file": "preferences.md"
     },
     {
       "id": "commit",
@@ -41,22 +41,22 @@
   "presets": {
     "minimal": {
       "label": "极简",
-      "summary": "已有自己的代码规范，只想补授权、落盘与推荐做法",
-      "modules": ["workflow", "practices"]
+      "summary": "已有自己的代码规范，只想补授权、落盘与可裁剪偏好",
+      "modules": ["workflow", "preferences"]
     },
     "recommended": {
       "label": "推荐",
-      "summary": "多数项目从零起步：代码规范、输出、工作流、推荐做法与提交信息",
-      "modules": ["core", "output", "workflow", "practices", "commit"]
+      "summary": "多数项目从零起步：代码规范、输出、工作流、可裁剪偏好与提交信息",
+      "modules": ["core", "output", "workflow", "preferences", "commit"]
     },
     "full": {
       "label": "全量",
       "summary": "已启用 toolkit 技能统计，需要连同上报纪律一并下发",
-      "modules": ["core", "output", "workflow", "practices", "commit", "usage"]
+      "modules": ["core", "output", "workflow", "preferences", "commit", "usage"]
     }
   },
   "pages": [
-    { "page": "ai", "modules": ["core", "output", "workflow", "practices"] },
+    { "page": "ai", "modules": ["core", "output", "workflow", "preferences"] },
     { "page": "commit", "modules": ["commit"] },
     { "page": "usage", "modules": ["usage"] }
   ]

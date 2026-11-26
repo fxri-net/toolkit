@@ -12,6 +12,14 @@ export interface ComposeOptions {
 
 const ANCHOR_PATTERN = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/
 
+// 旧模块 id 迁移：practices 已更名为 preferences，命令行与旧缓存仍可沿用旧名
+export const RULE_MODULE_ALIASES: Readonly<Record<string, string>> = { practices: "preferences" }
+
+// 归一模块 id：命中别名时返回新 id，未命中原样返回
+export function normalizeRuleModuleId(id: string): string {
+  return RULE_MODULE_ALIASES[id] ?? id
+}
+
 // 锚点格式：YYYY-MM-DD HH:mm，固定宽度可直接按字符串比较新旧
 export function isRuleAnchor(value: string): boolean {
   return ANCHOR_PATTERN.test(value)
@@ -29,11 +37,12 @@ export function composeModules(modules: RuleModule[], ids: string[], options: Co
   const byId = new Map(modules.map((mod) => [mod.id, mod]))
   const ordered: RuleModule[] = []
   const seen = new Set<string>()
-  for (const id of ids) {
+  for (const raw of ids) {
+    const id = normalizeRuleModuleId(raw)
     if (seen.has(id)) continue
     const mod = byId.get(id)
-    if (!mod) throw new Error(`未知规则模块「${id}」，可选：${modules.map((item) => item.id).join(" / ")}`)
-    if (!isRuleAnchor(mod.anchor)) throw new Error(`规则模块「${id}」的更新时间格式不合法：${mod.anchor}`)
+    if (!mod) throw new Error(`未知规则模块「${raw}」，可选：${modules.map((item) => item.id).join(" / ")}`)
+    if (!isRuleAnchor(mod.anchor)) throw new Error(`规则模块「${raw}」的更新时间格式不合法：${mod.anchor}`)
     seen.add(id)
     ordered.push(mod)
   }

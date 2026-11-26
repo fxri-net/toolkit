@@ -2,6 +2,7 @@
 import { existsSync, mkdirSync, rmSync } from "node:fs"
 import { dirname } from "node:path"
 import { cachePath } from "../cache"
+import { normalizeRuleModuleId } from "./core"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
 
@@ -29,12 +30,17 @@ export function readRulesSelection(validIds?: string[]): RulesSelection | null {
   try {
     const parsed = JSON.parse(readTextFile(file)) as unknown
     if (!isRecord(parsed) || parsed.schema !== 1 || !Array.isArray(parsed.modules)) throw new Error("结构不兼容")
-    const ids = [...new Set(parsed.modules.filter((item): item is string => typeof item === "string" && item !== ""))]
+    const raw = [...new Set(parsed.modules.filter((item): item is string => typeof item === "string" && item !== ""))]
+    // 旧模块 id 自动迁移：practices → preferences，并回写缓存避免每次提示
+    const migrated = raw.some((id) => normalizeRuleModuleId(id) !== id)
+    if (migrated) console.warn("⚠️ 规则组合缓存含旧模块 id（practices），已自动迁移为 preferences")
+    const ids = raw.map((id) => normalizeRuleModuleId(id))
     const unknown = validIds ? ids.filter((id) => !validIds.includes(id)) : []
     if (unknown.length > 0) console.warn(`⚠️ 规则组合缓存含未知模块 id（${unknown.join("、")}），已忽略`)
     const modules = validIds ? ids.filter((id) => validIds.includes(id)) : ids
     if (modules.length === 0) throw new Error("模块列表为空")
     const preset = typeof parsed.preset === "string" && parsed.preset !== "" ? parsed.preset : undefined
+    if (migrated) writeRulesSelection(modules, preset)
     return preset ? { schema: 1, modules, preset } : { schema: 1, modules }
   } catch (error) {
     console.warn(`⚠️ 忽略规则组合缓存 ${file}：${(error as Error).message}，已回落推荐预设`)

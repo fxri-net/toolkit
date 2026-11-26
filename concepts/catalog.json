@@ -399,7 +399,7 @@
         "files": []
       },
       "cost": { "effort": "medium", "risk": "low", "reversible": true },
-      "examples": ["用 rule preset 只复制工作流与推荐做法"]
+      "examples": ["用 rule preset 只复制工作流与可裁剪偏好"]
     },
     {
       "id": "plan-first-authorization",
