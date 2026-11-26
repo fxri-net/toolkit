@@ -3,7 +3,7 @@ name: fxri-plan-task
 description: 将已确认的实施方案分解为可独立交付的任务并给出计划表，再落盘为标准任务文件并跟踪至归档：建档评估（查 active/archive 判同主题）、按模板建档、状态机更新（含搁置）、四级时间源取证、自查、任务级规范沉淀与归档。方案确认后表达「开始落地/登记记录」的意图，或即将改仓库文件时使用——含任务分解、建档、任务登记、落盘、归档、任务校验、规范载体迁移与升级（conventions 单文件升目录、v1 / v2 升 v3）等说法及口语近义表达（如记一下、建个任务跟踪、先落档）均触发。执行授权另按授权判据判定（执行指向 + 范围唯一 + 方案已定稿）：方案可以 / 定稿 / 落档 / 继续评估都不等于开工，见「开工闸门」。不用于方案未确认的对话、会话收尾整场沉淀（fxri-plan-recap 模式一）、与任务记录无关的普通 TODO、issue 管理或日常提交信息撰写。
 license: MIT
 metadata:
-  version: "1.13.19"
+  version: "1.13.20"
   tier: core
   previousNames: ["fxri-plan-to-task"]
   type: practice
@@ -15,7 +15,7 @@ metadata:
 
 # 方案落盘：任务建档与归档
 
-> 本技能版本 1.13.19（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.13.20（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -29,6 +29,7 @@ metadata:
 | 判定开工授权、歧义句、「继续」该不该动手 | `references/gate-auth.md` | 其余 |
 | 建档、填 frontmatter、归档、落档边界 | `references/task-spec.md` | 其余 |
 | 多任务冲突体检 | `references/conflict-check.md` | 其余 |
+| 判断方案适用哪些规范并留痕 | `references/norm-check.md` | 其余 |
 | 读写 / 修订载体、处置存量或 v1 / v2 升级、落笔条文与文风 | `conventions-spec.md`、`conventions-maintenance.md`、`conventions-migration.md`、`conventions-templates.md` | 无 |
 
 `task-spec.md`（任务文件规范）、`conventions-spec.md`（载体结构）与 `conventions-maintenance.md`（载体维护）是规则真源，本文件只写流程；不涉场景不读。
@@ -92,6 +93,8 @@ metadata:
 - 列出 `active/` 下全部 `.md`（含 `{YYYYMM}/` 一层），并核对 `archive/` 是否已有同主题任务
 - 读 conventions 载体（存在时）：只读 `index.md`，按索引行的适用面与归属读取命中的分册（或单一事实源）；**无命中即止，不兜底、不全读**；
    `history.md` / `retired.md` 按需读；旧单文件 `.tasks/conventions.md` 兼容读取并提示迁移（见 `conventions-maintenance.md`）；载体不属任务，不为其建档
+- **规范对照**：按 `references/norm-check.md` 判断本次命中哪些项目规范，把命中项与结论写进任务档的影响范围或验证方式；
+   无命中写理由；新概念 / 新事实先登记或请用户确认，不硬套旧条目
 - **同主题判别**（完整判别表见 `task-spec.md` §6.1）：active 同主题 → 更新原档；archive 有且本次不产生改动 → 不重复建档（仅修时间走 recap 模式三）；
   延续扩展 → 重新建档并标「延续 {原任务名}」；均无 → **建档后再动手**（硬前置）
 - **仓库文件改动口径**：需写入版本控制的工作区文件增 / 改 / 删计入（源码、配置、文档、技能、任务区自身），纯读取 / 执行 / 汇报不计；拿不准列差异问用户，不猜
