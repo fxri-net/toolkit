@@ -1006,7 +1006,7 @@ exports[`各域行为与错误路径 > rules list 1`] = `
     workflow 2026-11-27 04:20  工作流与方案落盘（minimal / recommended / full）
     preferences 2026-11-27 04:20  可裁剪偏好（minimal / recommended / full）
     commit   2026-11-24 12:39  提交信息规则（recommended / full）
-    usage    2026-11-24 09:57  技能使用情况（full）
+    usage    2026-11-27 04:21  技能使用情况（full）
 预设：minimal=workflow+preferences；recommended=core+output+workflow+preferences+commit；full=core+output+workflow+preferences+commit+usage
 当前缓存：无（默认推荐组合 recommended）
 --- stderr ---
@@ -1141,7 +1141,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
         "title": "技能使用情况",
         "summary": "Skill 调用后的本机使用上报与回复前自检",
         "file": "usage.md",
-        "anchor": "2026-11-24 09:57",
+        "anchor": "2026-11-27 04:21",
         "presets": [
           "full"
         ]
