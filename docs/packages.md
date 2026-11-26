@@ -17,7 +17,7 @@
 - **安装**：
 
 ```bash
-toolkit skill install --skills fxri-plan-task,fxri-plan-recap,fxri-plan-review,fxri-release-changelog,fxri-code-encoding
+toolkit skill install --skills fxri-plan-task,fxri-plan-recap,fxri-plan-review,fxri-release-changelog,fxri-base-encoding
 ```
 
 ### 通用开发规范（playbook）

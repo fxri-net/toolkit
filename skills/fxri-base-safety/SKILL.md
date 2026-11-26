@@ -1,10 +1,11 @@
 ---
-name: fxri-code-safety
+name: fxri-base-safety
 description: 在讨论、方案、评审或执行涉及删除、清理、覆盖、迁移、卸载、回收站等可能造成不可恢复后果的动作时加载：方案阶段先披露影响范围、不可恢复部分与回滚，执行前限定目标范围并预览，用户可见删除优先可恢复，误删后按止损与恢复顺序处理。不用于普通只读查询、无删除风险的代码修改、发版授权与提交信息撰写、文本编码与任务建档。
 license: MIT
 metadata:
-  version: "0.1.0"
+  version: "0.1.1"
   tier: core
+  previousNames: ["fxri-code-safety"]
   type: practice
   scope: general
   triggers: [删除, 清理, 覆盖, 迁移, 误删恢复, 破坏性操作]
@@ -14,7 +15,7 @@ metadata:
 
 # 破坏性操作安全
 
-> 本技能版本 0.1.0（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 0.1.1（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 

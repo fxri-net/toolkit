@@ -4,6 +4,6 @@
   "hookEventName": "PostToolUse",
   "toolUseId": "copilot-1",
   "toolName": "Read",
-  "toolInput": { "path": "/repo/skills/fxri-code-encoding/SKILL.md" },
+  "toolInput": { "path": "/repo/skills/fxri-base-encoding/SKILL.md" },
   "toolResponse": { "is_error": false }
 }

@@ -217,7 +217,7 @@
         { "id": "cross-device", "name": "跨卷复制", "summary": "rename 遇 EXDEV 时复制后删源。" }
       ],
       "related": ["trash", "path-boundary"],
-      "support": { "commands": ["toolkit trash"], "skills": ["fxri-code-safety"], "templates": [], "checks": [] },
+      "support": { "commands": ["toolkit trash"], "skills": ["fxri-base-safety"], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["列出所有删除入口"],
         "steps": [{ "title": "收敛删除入口", "detail": "所有递归删除走同一守卫函数，先校验根再删除。" }],
@@ -242,7 +242,7 @@
         { "id": "partial", "name": "部分失败", "summary": "恢复逐项继续，失败项保留并标记。" }
       ],
       "related": ["safe-delete", "migration-backup"],
-      "support": { "commands": ["toolkit trash"], "skills": ["fxri-code-safety"], "templates": [], "checks": [] },
+      "support": { "commands": ["toolkit trash"], "skills": ["fxri-base-safety"], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["有稳定的删除入口"],
         "steps": [{ "title": "接入回收站", "detail": "用户可见删除改为移动到项目内回收站，另设显式清理命令。" }],
@@ -267,7 +267,7 @@
         { "id": "restore", "name": "恢复", "summary": "按清单恢复并校验哈希。" }
       ],
       "related": ["safe-delete", "trash"],
-      "support": { "commands": ["toolkit upgrade"], "skills": ["fxri-code-safety"], "templates": [], "checks": [] },
+      "support": { "commands": ["toolkit upgrade"], "skills": ["fxri-base-safety"], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["列出迁移会写的文件"],
         "steps": [{ "title": "先备份再写", "detail": "建立备份会话，写入前记录原文件，完成后提供恢复命令。" }],
@@ -317,7 +317,7 @@
         { "id": "warn-skip", "name": "越界告警", "summary": "越界路径跳过并报告，不静默。" }
       ],
       "related": ["safe-delete", "privacy-redaction"],
-      "support": { "commands": [], "skills": ["fxri-code-safety"], "templates": [], "checks": [] },
+      "support": { "commands": [], "skills": ["fxri-base-safety"], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["列出接受外部路径的入口"],
         "steps": [{ "title": "统一守卫", "detail": "写入与删除前调用同一根校验函数，越界告警并跳过。" }],
@@ -643,7 +643,7 @@
         { "id": "eol", "name": "行尾", "summary": "按目标仓库统一 LF 或 CRLF。" }
       ],
       "related": ["atomic-idempotent", "cross-platform"],
-      "support": { "commands": [], "skills": ["fxri-code-encoding"], "templates": [], "checks": [] },
+      "support": { "commands": [], "skills": ["fxri-base-encoding"], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["识别文本经过的通道"],
         "steps": [{ "title": "定字节形态", "detail": "写脚本与生成器前，先确认读取方解码、BOM 与行尾要求。" }],

@@ -215,11 +215,11 @@ describe("技能矩阵", () => {
 
   it("全部允许模式只收集排除项", async () => {
     answers.select.push("global", "matrix", "cwd", "denylist", "exit")
-    answers.checkbox.push(["skill::fxri-code-encoding"])
+    answers.checkbox.push(["skill::fxri-base-encoding"])
     answers.input.push("", "")
     answers.confirm.push(true)
     await runScopeInteractive()
-    expect(matrixPolicy().skills).toEqual({ mode: "denylist", deny: ["fxri-code-encoding"] })
+    expect(matrixPolicy().skills).toEqual({ mode: "denylist", deny: ["fxri-base-encoding"] })
   })
 
   it("只允许模式可同时勾选档案与技能", async () => {

@@ -57,7 +57,9 @@ title: v1 → v2 升级
 | `fxri-session-recap` | `fxri-plan-recap` |
 | `fxri-skill-authoring` | `fxri-writing-skill` |
 | `fxri-docs-writing` | `fxri-writing-docs` |
-| `fxri-text-encoding` | `fxri-code-encoding` |
+| `fxri-text-encoding` | `fxri-base-encoding` |
+| `fxri-code-encoding` | `fxri-base-encoding` |
+| `fxri-code-safety` | `fxri-base-safety` |
 
 `fxri-plan-review` 与 `fxri-release-changelog` 保留原名；新增 `fxri-test-tty`（test 族）。
 旧名写入 `metadata.previousNames`，已保存选择集与安装迁移会自动跟随新名。

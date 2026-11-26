@@ -105,7 +105,7 @@ describe("decideScope", () => {
     expect(review.matchedRule).toContain("skill:fxri-plan-review:exclude:")
     expect(review.reason).toContain("技能级规则")
     // 未配置技能级规则的技能仍走目录级白名单
-    expect(decideScope(config, { ...base, skill: "fxri-code-encoding" }).active).toBe(true)
+    expect(decideScope(config, { ...base, skill: "fxri-base-encoding" }).active).toBe(true)
   })
 
   it("技能级键支持模式匹配", () => {

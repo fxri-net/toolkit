@@ -136,7 +136,7 @@ toolkit scope status               # 先看当前目录是否生效、命中的�
 toolkit scope                      # 交互菜单：设范围、管目录、切换配置层
 toolkit scope allow ~/work --tree  # 覆盖 ~/work 及其下所有项目（切到 allowlist 模式）
 toolkit scope allow --paths ~/work --skill fxri-plan-review --delivery gated # 按策略规则收口
-toolkit scope deny --paths ~/work --skill fxri-code-encoding # 排除指定技能
+toolkit scope deny --paths ~/work --skill fxri-base-encoding # 排除指定技能
 toolkit skill mount ~/work         # 在父目录下的项目里做项目面安装（技能物理落在仓库内）
 ```
 

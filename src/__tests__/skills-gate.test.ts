@@ -78,10 +78,10 @@ describe("内容闸门安装形态", () => {
   })
 
   it("include / exclude 规则裁剪接管范围", () => {
-    const report = installSkills({ gate: { include: ["fxri-*"], exclude: ["fxri-code-encoding"] } })
+    const report = installSkills({ gate: { include: ["fxri-*"], exclude: ["fxri-base-encoding"] } })
     const primary = primaryTarget(report)
     expect(primary.gates).toContain("fxri-plan-task")
-    expect(primary.gates).not.toContain("fxri-code-encoding")
+    expect(primary.gates).not.toContain("fxri-base-encoding")
   })
 
   it("技能声明 metadata.gate: false 时退出接管", () => {

@@ -243,7 +243,7 @@ describe("档案与快捷视图", () => {
   })
 
   it("档案写入未提供的名单会告警并展示清空结果", () => {
-    writeGlobal({ skillProfiles: { front: { allow: ["fxri-plan-review"], deny: ["fxri-code-encoding"] } } })
+    writeGlobal({ skillProfiles: { front: { allow: ["fxri-plan-review"], deny: ["fxri-base-encoding"] } } })
     const plan = planProfileUpsert(readPolicyState("global", project), {
       name: "front",
       allow: ["fxri-plan-task"],

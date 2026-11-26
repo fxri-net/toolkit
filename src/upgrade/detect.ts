@@ -20,7 +20,9 @@ export const LEGACY_SKILL_NAMES: Readonly<Record<string, string>> = {
   "fxri-session-recap": "fxri-plan-recap",
   "fxri-skill-authoring": "fxri-writing-skill",
   "fxri-docs-writing": "fxri-writing-docs",
-  "fxri-text-encoding": "fxri-code-encoding",
+  "fxri-text-encoding": "fxri-base-encoding",
+  "fxri-code-encoding": "fxri-base-encoding",
+  "fxri-code-safety": "fxri-base-safety",
 }
 
 // 迁移层全集：检测与 --layers 过滤共用

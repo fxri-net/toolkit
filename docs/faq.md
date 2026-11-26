@@ -111,7 +111,7 @@ toolkit skill install --force   # 把各目标下的同名旧副本重建为软�
 
 ### 清理工具把开发环境删了怎么办？
 
-先止损再重装：停掉清理任务与自动计划，用 `toolkit trash list --scope all`、清理工具日志与快照取证，再按 `fxri-code-safety` 的「误删恢复」顺序重建。
+先止损再重装：停掉清理任务与自动计划，用 `toolkit trash list --scope all`、清理工具日志与快照取证，再按 `fxri-base-safety` 的「误删恢复」顺序重建。
 日常清理不要整目录删除 `AppData` 下的开发工具目录，白名单见[操作手册 · 本机清理工具与开发目录](./handbook#本机清理工具与开发目录)。
 
 ## 技能与规则

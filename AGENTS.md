@@ -90,7 +90,7 @@
 - **破坏性文件操作先限定范围**：递归删除 / 清理 / 迁移只允许作用于仓库、临时目录、`.toolkit/backup` 与已登记技能目录；
   执行前列出目标并确认，优先用 `toolkit` 命令，不用原生 `Remove-Item -Recurse` / `rm -rf`；
   代码侧的递归删除统一走 `src/safe-remove.ts`，由 `scripts/check-destructive-fs.mjs` 门禁兜底；
-  披露口径、执行边界与误删恢复见 `skills/fxri-code-safety/`（随包分发）；
+  披露口径、执行边界与误删恢复见 `skills/fxri-base-safety/`（随包分发）；
 - 任务收尾按「改完文件 → 归档 → `pnpm verify` → 提交」执行，**验收须晚于归档**：
   归档会改写 `.tasks/`（写归档文件、删 active 源文件、清理空月份目录）而自身不做阻断式校验，早于归档跑验收就覆盖不到终态，归档产物等于无人校验；
   active 默认不提交，用户明确要求时才作为例外提交（`FX_TOOLKIT_ALLOW_ACTIVE_TASKS=1` 放行暂存检查）；

@@ -145,7 +145,7 @@ describe("resolveScope", () => {
     const review = resolveScope(project, "fxri-plan-review")
     expect(review.decision.active).toBe(false)
     expect(review.decision.reason).toContain("技能级规则")
-    expect(resolveScope(project, "fxri-code-encoding").decision.active).toBe(true)
+    expect(resolveScope(project, "fxri-base-encoding").decision.active).toBe(true)
   })
 
   it("技能级规则随所在层整体生效，不跨层合并", () => {
@@ -160,7 +160,7 @@ describe("resolveScope", () => {
     expect(review.decision.sourceFile?.endsWith(".toolkitrc.local.json")).toBe(true)
     expect(review.decision.active).toBe(true)
     expect(review.decision.reason).toContain("技能级规则")
-    expect(resolveScope(project, "fxri-code-encoding").decision.active).toBe(true)
+    expect(resolveScope(project, "fxri-base-encoding").decision.active).toBe(true)
   })
 })
 

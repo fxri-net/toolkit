@@ -36,7 +36,7 @@ function writeProjectConfig(value: unknown): void {
 
 // 安装两个技能：一个按规则收口、一个保持全文
 function installPair(): ReturnType<typeof installProjectSkills> {
-  return installProjectSkills({ cwd: project, skills: ["fxri-plan-task", "fxri-code-encoding"] })
+  return installProjectSkills({ cwd: project, skills: ["fxri-plan-task", "fxri-base-encoding"] })
 }
 
 // 项目面某目录下某技能的状态
@@ -75,7 +75,7 @@ afterEach(() => {
 describe("项目面分发形态", () => {
   it("未配置 skillsDelivery 时保持全文：真源副本 + 项目薄壳", () => {
     const report = installPair()
-    expect(report.source.created).toEqual(expect.arrayContaining(["fxri-plan-task", "fxri-code-encoding"]))
+    expect(report.source.created).toEqual(expect.arrayContaining(["fxri-plan-task", "fxri-base-encoding"]))
     const skill = { name: "fxri-plan-task", dir: join(project, ".agents/skills/fxri-plan-task") }
     const shell = readFileSync(join(project, SHELL_DIR, "fxri-plan-task", "SKILL.md"), "utf8")
     expect(isSkillGateShell(shell)).toBe(false)
@@ -84,7 +84,7 @@ describe("项目面分发形态", () => {
 
   it("安装完成后计划为零动作", () => {
     installPair()
-    const plan = planProjectSkills({ cwd: project, skills: ["fxri-plan-task", "fxri-code-encoding"] })
+    const plan = planProjectSkills({ cwd: project, skills: ["fxri-plan-task", "fxri-base-encoding"] })
     expect(plan.pending).toBe(0)
     expect(plan.targets.flatMap((target) => target.items).every((item) => item.action === "keep")).toBe(true)
   })
@@ -99,7 +99,7 @@ describe("项目面分发形态", () => {
     // 真源副本仍写入，作为 guard 的正文来源
     expect(existsSync(join(project, ".agents/skills/fxri-plan-task/SKILL.md"))).toBe(true)
     // 未被规则覆盖的技能仍是项目薄壳
-    const other = readFileSync(join(project, SHELL_DIR, "fxri-code-encoding", "SKILL.md"), "utf8")
+    const other = readFileSync(join(project, SHELL_DIR, "fxri-base-encoding", "SKILL.md"), "utf8")
     expect(isSkillGateShell(other)).toBe(false)
   })
 

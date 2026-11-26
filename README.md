@@ -105,7 +105,7 @@ pnpm dlx skills add fxri-net/toolkit                # 也可用上游安装器�
 - **默认形态**：`toolkit skill install` 默认软链，链接创建失败自动降级副本；`toolkit skill status` 查现场，`toolkit skill uninstall` 卸载
 - **交互两步**：先按 `metadata.tier` 选技能，再选目标（`canonical` 主目标 + 已检测 agent；项目面为候选薄壳目录）
   - `core`：`fxri-plan-task`、`fxri-plan-recap`、`fxri-plan-review`，`skills` 模式必装、`package` 模式可选
-  - `optional`：`fxri-release-changelog`、`fxri-code-encoding`、`fxri-writing-skill`、`fxri-writing-docs`、
+  - `optional`：`fxri-release-changelog`、`fxri-base-encoding`、`fxri-writing-skill`、`fxri-writing-docs`、
     `fxri-test-tty`、`fxri-base-adoption`
 - **跳过交互**：`--skills` / `--all` / `--no-optional` / `--agent` / `--all-agents` / `--yes`
   首次按模式默认（`skills` 装 `core`、`package` 零装）与全部可用目标，`--no-save-agents` 只影响本次
@@ -121,7 +121,7 @@ pnpm dlx skills add fxri-net/toolkit                # 也可用上游安装器�
 - [fxri-release-changelog](./skills/fxri-release-changelog/SKILL.md)：发版时创建变更集、格式化多语言 CHANGELOG
 - [fxri-plan-recap](./skills/fxri-plan-recap/SKILL.md)：会话收尾全量沉淀、新会话三层恢复、历史任务时间批量修正（1.7.0 新增技能）
 - [fxri-plan-review](./skills/fxri-plan-review/SKILL.md)：复核已落档任务拆分，输出新增疏漏与建议，按后续是否落档标记
-- [fxri-code-encoding](./skills/fxri-code-encoding/SKILL.md)：文本字节形态基线（文件、管道、命令行、API 请求体，含临时脚本与一次性命令），
+- [fxri-base-encoding](./skills/fxri-base-encoding/SKILL.md)：文本字节形态基线（文件、管道、命令行、API 请求体，含临时脚本与一次性命令），
   非 ASCII 文本丢失 / 乱码与首行报错的定位与修复
 - [fxri-writing-docs](./skills/fxri-writing-docs/SKILL.md)：文档站写作规范（分类骨架、页面标题「显示名（标识）」、索引与引用口径、导航短别名、顶栏与 404、代码块注释对齐）
 - [fxri-writing-skill](./skills/fxri-writing-skill/SKILL.md)：技能编写规范（统一骨架、references 拆分、安全边界，机械校验交给 lint 与 bump）

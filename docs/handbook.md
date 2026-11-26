@@ -164,7 +164,7 @@ pnpm remove -g @fxri/toolkit   # 2. 再卸 CLI
 - **删除走工具**：项目与技能产物用 `toolkit skill uninstall` / `upgrade --prune-backups` / `toolkit trash`，不直接删目录。
 - **可恢复优先**：用户可见删除默认进项目内回收站，误删可用 `toolkit trash restore <id>` 恢复；缓存、锁与临时目录仍永久删除。
 
-已经误删时先止损与取证，再按 `fxri-code-safety` 技能的「误删恢复」顺序重建，见[常见问题 · 清理工具把开发环境删了怎么办](./faq#清理工具把开发环境删了怎么办)。
+已经误删时先止损与取证，再按 `fxri-base-safety` 技能的「误删恢复」顺序重建，见[常见问题 · 清理工具把开发环境删了怎么办](./faq#清理工具把开发环境删了怎么办)。
 
 ## 相关页面
 

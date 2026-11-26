@@ -270,7 +270,7 @@ describe("技能选择落盘与未选择产物", () => {
 
 describe("skillInstall / projectSkill 分层配置", () => {
   it("skillInstall 只认全局层，写在项目层时告警并忽略", () => {
-    writeFileSync(join(project, ".toolkitrc.json"), JSON.stringify({ skillInstall: { selection: { toolkit: ["fxri-code-encoding"] } } }), "utf8")
+    writeFileSync(join(project, ".toolkitrc.json"), JSON.stringify({ skillInstall: { selection: { toolkit: ["fxri-base-encoding"] } } }), "utf8")
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const config = readSkillsInstallConfig(project)
     expect(config.selection).toBeUndefined()

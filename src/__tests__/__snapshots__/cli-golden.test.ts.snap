@@ -3,7 +3,7 @@
 exports[`写盘产物 > rules compose --dry-run 只预览，不写缓存 1`] = `
 "退出码：0
 --- stdout ---
-> 规则更新时间 2026-11-19 09:30
+> 规则更新时间 2026-11-27 01:21
 
 你是一个严谨的编程助手，专注于产出可维护、风格一致的代码
 
@@ -16,7 +16,7 @@ exports[`写盘产物 > rules compose --dry-run 只预览，不写缓存 1`] = `
 - 验证有上限：同一改动在提交前跑一次聚合门禁即可；失败则修复后重跑全量，通过后不再重复。已确认通过的检查，不因再次被询问而重跑；验证次数以交付需要为准，不为自我确认额外加跑
 - 面向用户的命令、表单与流程：先保证无参默认路径可用，能交互补齐或自动推断的不要求用户手填；给出的操作指引一律写成最短可执行形式
 - 脚本与文本文件按**读取方**定字节形态：\`.ps1\` / \`.sh\` / \`.bat\` 的 BOM 与行尾要求、跨进程 / 跨机器传递非 ASCII 文本的处置，
-  一律遵循已加载的 \`fxri-code-encoding\` 技能；写盘后复核首三字节与行尾，别只补产物不修产线
+  一律遵循已加载的 \`fxri-base-encoding\` 技能；写盘后复核首三字节与行尾，别只补产物不修产线
 --- stderr ---
 将记住本次组合（core）；--dry-run 未写入缓存"
 `;
@@ -890,7 +890,7 @@ exports[`各域行为与错误路径 > rules compose 未知预设 1`] = `
 exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 "退出码：0
 --- stdout ---
-> 规则更新时间 2026-11-26 23:05
+> 规则更新时间 2026-11-27 01:21
 
 你是一个严谨的编程助手，专注于产出可维护、风格一致的代码
 
@@ -903,7 +903,7 @@ exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 - 验证有上限：同一改动在提交前跑一次聚合门禁即可；失败则修复后重跑全量，通过后不再重复。已确认通过的检查，不因再次被询问而重跑；验证次数以交付需要为准，不为自我确认额外加跑
 - 面向用户的命令、表单与流程：先保证无参默认路径可用，能交互补齐或自动推断的不要求用户手填；给出的操作指引一律写成最短可执行形式
 - 脚本与文本文件按**读取方**定字节形态：\`.ps1\` / \`.sh\` / \`.bat\` 的 BOM 与行尾要求、跨进程 / 跨机器传递非 ASCII 文本的处置，
-  一律遵循已加载的 \`fxri-code-encoding\` 技能；写盘后复核首三字节与行尾，别只补产物不修产线
+  一律遵循已加载的 \`fxri-base-encoding\` 技能；写盘后复核首三字节与行尾，别只补产物不修产线
 
 ## 输出要求
 - 回答直奔主题，结尾不添加客套话、无信息增量的复述或万能兜底句
@@ -992,7 +992,7 @@ exports[`各域行为与错误路径 > rules list 1`] = `
 "退出码：0
 --- stdout ---
 规则模块：
-    core     2026-11-19 09:30  角色定位与代码规范（recommended / full）
+    core     2026-11-27 01:21  角色定位与代码规范（recommended / full）
     output   2026-11-08 02:21  输出要求（recommended / full）
     workflow 2026-11-26 23:05  工作流与方案落盘（minimal / recommended / full）
     practices 2026-11-26 18:33  推荐做法（minimal / recommended / full）
@@ -1075,7 +1075,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
         "title": "角色定位与代码规范",
         "summary": "角色约束与代码规范：注释语言、复用、风格、验收与文本编码纪律",
         "file": "core.md",
-        "anchor": "2026-11-19 09:30",
+        "anchor": "2026-11-27 01:21",
         "presets": [
           "recommended",
           "full"
@@ -1206,8 +1206,8 @@ exports[`各域行为与错误路径 > scope allow 名单预演 1`] = `
   新增：[白] <SANDBOX>/workspace/work
   技能形态变更（10 项）：
     全局面 · fxri-base-adoption：全文安装 → 入口壳
-    全局面 · fxri-code-encoding：全文安装 → 入口壳
-    全局面 · fxri-code-safety：全文安装 → 入口壳
+    全局面 · fxri-base-encoding：全文安装 → 入口壳
+    全局面 · fxri-base-safety：全文安装 → 入口壳
     全局面 · fxri-plan-recap：全文安装 → 入口壳
     全局面 · fxri-plan-review：全文安装 → 入口壳
     全局面 · fxri-plan-task：全文安装 → 入口壳
@@ -1232,8 +1232,8 @@ exports[`各域行为与错误路径 > scope allow 策略预演 1`] = `
   新增策略：golden-allow
   技能形态变更（9 项）：
     全局面 · fxri-base-adoption：全文安装 → 入口壳
-    全局面 · fxri-code-encoding：全文安装 → 入口壳
-    全局面 · fxri-code-safety：全文安装 → 入口壳
+    全局面 · fxri-base-encoding：全文安装 → 入口壳
+    全局面 · fxri-base-safety：全文安装 → 入口壳
     全局面 · fxri-plan-recap：全文安装 → 入口壳
     全局面 · fxri-plan-review：全文安装 → 入口壳
     全局面 · fxri-release-changelog：全文安装 → 入口壳
@@ -1272,8 +1272,8 @@ exports[`各域行为与错误路径 > scope deny 名单预演 1`] = `
   新增：[黑] <SANDBOX>/workspace/work
   技能形态变更（10 项）：
     全局面 · fxri-base-adoption：全文安装 → 入口壳
-    全局面 · fxri-code-encoding：全文安装 → 入口壳
-    全局面 · fxri-code-safety：全文安装 → 入口壳
+    全局面 · fxri-base-encoding：全文安装 → 入口壳
+    全局面 · fxri-base-safety：全文安装 → 入口壳
     全局面 · fxri-plan-recap：全文安装 → 入口壳
     全局面 · fxri-plan-review：全文安装 → 入口壳
     全局面 · fxri-plan-task：全文安装 → 入口壳
@@ -1299,8 +1299,8 @@ exports[`各域行为与错误路径 > scope deny 策略缺确认 1`] = `
   新增策略：golden-deny-all
   技能形态变更（10 项）：
     全局面 · fxri-base-adoption：全文安装 → 入口壳
-    全局面 · fxri-code-encoding：全文安装 → 入口壳
-    全局面 · fxri-code-safety：全文安装 → 入口壳
+    全局面 · fxri-base-encoding：全文安装 → 入口壳
+    全局面 · fxri-base-safety：全文安装 → 入口壳
     全局面 · fxri-plan-recap：全文安装 → 入口壳
     全局面 · fxri-plan-review：全文安装 → 入口壳
     全局面 · fxri-plan-task：全文安装 → 入口壳
@@ -1349,8 +1349,8 @@ exports[`各域行为与错误路径 > scope remove 互转预演 1`] = `
   转入：[黑] <SANDBOX>/workspace/work
   技能形态变更（10 项）：
     全局面 · fxri-base-adoption：全文安装 → 入口壳
-    全局面 · fxri-code-encoding：全文安装 → 入口壳
-    全局面 · fxri-code-safety：全文安装 → 入口壳
+    全局面 · fxri-base-encoding：全文安装 → 入口壳
+    全局面 · fxri-base-safety：全文安装 → 入口壳
     全局面 · fxri-plan-recap：全文安装 → 入口壳
     全局面 · fxri-plan-review：全文安装 → 入口壳
     全局面 · fxri-plan-task：全文安装 → 入口壳
@@ -1474,8 +1474,8 @@ exports[`各域行为与错误路径 > skills install 预演 1`] = `
 
 canonical（多家 agent 共读）：<SANDBOX>/home/.agents/skills
   换全文　fxri-base-adoption　全文安装　← 默认（未配置分发形态，按默认全文安装）
-  换全文　fxri-code-encoding　全文安装　← 默认（未配置分发形态，按默认全文安装）
-  换全文　fxri-code-safety　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-base-encoding　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-base-safety　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-plan-recap　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-plan-review　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-plan-task　全文安装　← 默认（未配置分发形态，按默认全文安装）
@@ -1510,15 +1510,15 @@ registry：registry.npmjs.org（来源：默认）
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
 技能源：<REPO>/skills
-技能版本：fxri-base-adoption@0.1.0、fxri-code-encoding@1.2.12、fxri-code-safety@0.1.0、fxri-plan-recap@1.7.11、fxri-plan-review@1.1.5、fxri-plan-task@1.13.19、fxri-release-changelog@1.4.9、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.7、fxri-writing-skill@1.0.5
+技能版本：fxri-base-adoption@0.1.0、fxri-base-encoding@1.2.13、fxri-base-safety@0.1.1、fxri-plan-recap@1.7.11、fxri-plan-review@1.1.5、fxri-plan-task@1.13.19、fxri-release-changelog@1.4.9、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.7、fxri-writing-skill@1.0.5
 内容闸门：未开启（全文安装）
-选择集（4）：fxri-code-safety、fxri-plan-recap、fxri-plan-review、fxri-plan-task
-来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-base-adoption、fxri-code-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
+选择集（4）：fxri-base-safety、fxri-plan-recap、fxri-plan-review、fxri-plan-task
+来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-base-adoption、fxri-base-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
 目标选择集：全部可用目标（未保存过目标选择）
 状态文件：<SANDBOX>/home/.agents/.toolkit-skills.json（未记录，尚未执行过 toolkit skill install）
 
 canonical（多家 agent 共读）：<SANDBOX>/home/.agents/skills（目录未创建）
-  fxri-code-safety：缺失
+  fxri-base-safety：缺失
   fxri-plan-recap：缺失
   fxri-plan-review：缺失
   fxri-plan-task：缺失
@@ -1591,14 +1591,14 @@ registry：registry.npmjs.org（来源：默认）
 
 项目面 · 项目根：<SANDBOX>/workspace
 项目面 · 技能真源：.agents/skills
-项目面 · 技能版本：fxri-base-adoption@0.1.0、fxri-code-encoding@1.2.12、fxri-code-safety@0.1.0、fxri-plan-recap@1.7.11、fxri-plan-review@1.1.5、fxri-plan-task@1.13.19、fxri-release-changelog@1.4.9、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.7、fxri-writing-skill@1.0.5
-项目面 · 选择集（4）：fxri-code-safety、fxri-plan-recap、fxri-plan-review、fxri-plan-task
-来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-base-adoption、fxri-code-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
+项目面 · 技能版本：fxri-base-adoption@0.1.0、fxri-base-encoding@1.2.13、fxri-base-safety@0.1.1、fxri-plan-recap@1.7.11、fxri-plan-review@1.1.5、fxri-plan-task@1.13.19、fxri-release-changelog@1.4.9、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.7、fxri-writing-skill@1.0.5
+项目面 · 选择集（4）：fxri-base-safety、fxri-plan-recap、fxri-plan-review、fxri-plan-task
+来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-base-adoption、fxri-base-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
 项目面 · 目录选择集：全部已存在候选目录（未保存过目录选择）
 项目面 · 状态文件：.toolkit/state.json（未记录，尚未执行过 toolkit task init / skill install）
 
 真源副本：.agents/skills
-  fxri-code-safety：缺失
+  fxri-base-safety：缺失
   fxri-plan-recap：缺失
   fxri-plan-review：缺失
   fxri-plan-task：缺失
@@ -1638,8 +1638,8 @@ exports[`各域行为与错误路径 > skills 项目面预演 1`] = `
 
 真源副本：.agents/skills
   换全文　fxri-base-adoption　全文安装　← 默认（未配置分发形态，按默认全文安装）
-  换全文　fxri-code-encoding　全文安装　← 默认（未配置分发形态，按默认全文安装）
-  换全文　fxri-code-safety　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-base-encoding　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-base-safety　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-plan-recap　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-plan-review　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-plan-task　全文安装　← 默认（未配置分发形态，按默认全文安装）

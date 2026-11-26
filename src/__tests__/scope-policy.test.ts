@@ -107,7 +107,7 @@ describe("decidePolicy 条件与默认值", () => {
     const allow = [
       { id: "skill-sub", when: { subpaths: ["src/**"] }, skills: { match: ["fxri-vue"] }, effect: "allow" as const },
     ]
-    expect(decide(allow, context({ skill: "fxri-code-encoding" })).active).toBe(true)
+    expect(decide(allow, context({ skill: "fxri-base-encoding" })).active).toBe(true)
     expect(decide(allow, context({ skill: "fxri-vue" })).active).toBe(false)
   })
 })
@@ -247,7 +247,7 @@ describe("legacyToPolicies 行为对拍", () => {
     const review = legacy(config, context({ skill: "fxri-plan-review" }))
     expect(review.active).toBe(false)
     expect(review.matchedRule).toContain("legacy:project:skill-exclude")
-    expect(legacy(config, context({ skill: "fxri-code-encoding" })).active).toBe(true)
+    expect(legacy(config, context({ skill: "fxri-base-encoding" })).active).toBe(true)
   })
 
   it("技能级 allowlist 在名单外按失败关闭拒绝", () => {
@@ -258,7 +258,7 @@ describe("legacyToPolicies 行为对拍", () => {
     const inWork = context({ baseDir: `${ROOT}/work/repo`, cwd: `${ROOT}/work/repo`, skill: "fxri-plan-review" })
     expect(legacy(config, inWork).active).toBe(true)
     expect(legacy(config, context({ skill: "fxri-plan-review" })).active).toBe(false)
-    expect(legacy(config, context({ skill: "fxri-code-encoding" })).active).toBe(true)
+    expect(legacy(config, context({ skill: "fxri-base-encoding" })).active).toBe(true)
   })
 
   it("技能级规则沿用目录级标记条件", () => {
@@ -269,7 +269,7 @@ describe("legacyToPolicies 行为对拍", () => {
     expect(legacy(config, context({ skill: "fxri-plan-review" })).active).toBe(false)
     expect(legacy(config, context({ skill: "fxri-plan-review", markers: new Set(["m"]) })).active).toBe(true)
     // 未命中技能选择器的技能仍走目录级判定
-    expect(legacy(config, context({ skill: "fxri-code-encoding" })).active).toBe(false)
+    expect(legacy(config, context({ skill: "fxri-base-encoding" })).active).toBe(false)
   })
 
   it("项目层旧 activation 优先于全局新策略", () => {

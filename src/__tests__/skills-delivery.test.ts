@@ -110,10 +110,10 @@ describe("分发形态推导", () => {
   })
 
   it("旧键 include / exclude 映射后保持排除优先", () => {
-    writeHomeConfig({ skillInstall: { gate: { include: ["fxri-*"], exclude: ["fxri-code-encoding"] } } })
+    writeHomeConfig({ skillInstall: { gate: { include: ["fxri-*"], exclude: ["fxri-base-encoding"] } } })
     const config = readSkillsDeliveryConfig("global", project)
     const gated = resolveDelivery({ name: "fxri-plan-task", config })
-    const excluded = resolveDelivery({ name: "fxri-code-encoding", config })
+    const excluded = resolveDelivery({ name: "fxri-base-encoding", config })
     expect(gated.mode).toBe("gated")
     expect(gated.source).toContain("旧键 skillInstall.gate.include")
     expect(excluded.mode).toBe("full")
@@ -265,10 +265,10 @@ describe("分发形态配置读取", () => {
 describe("安装与状态的分发形态口径", () => {
   it("规则指定 gated 只写入口壳，其余保持全文", () => {
     writeHomeConfig({ skillDelivery: { rules: [{ match: ["fxri-plan-task"], delivery: "gated" }] } })
-    const report = installSkills({ skills: ["fxri-plan-task", "fxri-code-encoding"] })
+    const report = installSkills({ skills: ["fxri-plan-task", "fxri-base-encoding"] })
     const primary = report.targets.find((target) => target.kind === "primary")
     expect(primary?.gates).toEqual(["fxri-plan-task"])
-    expect(primary?.links).toContain("fxri-code-encoding")
+    expect(primary?.links).toContain("fxri-base-encoding")
     expect(primaryState("fxri-plan-task")).toBe("gate")
   })
 

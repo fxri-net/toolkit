@@ -11,7 +11,7 @@ toolkit skill install                       # 安装包内技能（缺省按现�
 toolkit skill install --scope project       # 仅项目面：真源副本 + 候选目录薄壳
 toolkit skill install --scope global        # 仅全局面：软链 / 副本到 agent 目录
 toolkit skill install --scope all           # 项目面 + 全局面都执行
-toolkit skill install --skills fxri-plan-task,fxri-code-encoding # 只装指定技能（core 恒装）
+toolkit skill install --skills fxri-plan-task,fxri-base-encoding # 只装指定技能（core 恒装）
 toolkit skill install --all                 # 安装全部技能（含可选技能）
 toolkit skill install --no-optional         # 只装 core 技能
 toolkit skill install --yes                 # 非交互：跳过选择与确认，采用已保存选择
@@ -51,7 +51,7 @@ toolkit skill status --scope all             # 项目面与全局面都体检
 toolkit skill status --format json           # JSON 输出：scope、global / project 各自的现场报告
 toolkit skill status --explain fxri-plan-task # 解释该技能的分发形态推导过程
 toolkit skill uninstall                      # 卸载本包安装的技能产物（缺省按现场判定作用域；目标目录清空后一并回收）
-toolkit skill uninstall --skills fxri-code-encoding # 只卸载指定技能的选择与产物（逗号分隔）
+toolkit skill uninstall --skills fxri-base-encoding # 只卸载指定技能的选择与产物（逗号分隔）
 toolkit skill uninstall --scope all          # 项目面与全局面都卸载
 toolkit skill uninstall --dry-run            # 卸载预演（只预览将移除的条目）
 toolkit skill uninstall --format json        # JSON 输出：dryRun、scope 与 global / project 各自的卸载报告
@@ -230,8 +230,8 @@ toolkit skill list --format json             # JSON 输出：逐技能条目
 
 当前层级分布：
 
-- `core`：`fxri-plan-task`、`fxri-plan-recap`、`fxri-plan-review`、`fxri-code-safety`
-- `optional`：`fxri-release-changelog`、`fxri-code-encoding`、`fxri-writing-skill`、`fxri-writing-docs`、`fxri-test-tty`
+- `core`：`fxri-plan-task`、`fxri-plan-recap`、`fxri-plan-review`、`fxri-base-safety`
+- `optional`：`fxri-release-changelog`、`fxri-base-encoding`、`fxri-writing-skill`、`fxri-writing-docs`、`fxri-test-tty`
 
 模式优先级：`--mode package|skills` 先切换并持久化，再按新模式重建基线（`package` 为空、`skills` 为 `core`），不沿用旧模式的保存选择。
 
