@@ -136,7 +136,9 @@ function normalizeNotify(value: unknown, fallback: NotifyFrequency, label: strin
   if (value === undefined) return fallback
   if (value === "always" || value === "daily" || value === "weekly" || value === "off") return value
   const allowed = Object.values(notifyFrequencyText).join(" / ")
-  console.warn(`⚠️ ${label} 取值「${String(value)}」不支持，仅支持 ${allowed}，已回落 ${termText(notifyFrequencyText, fallback)}`)
+  console.warn(
+    `⚠️ ${label} 取值「${String(value)}」不支持，仅支持 ${allowed}，已回落 ${termText(notifyFrequencyText, fallback)}（在 ~/.toolkitrc.json 把该键改为 ${allowed} 之一）`,
+  )
   return fallback
 }
 
@@ -216,7 +218,9 @@ function readTrustedRegistries(): string[] | null {
   const projectConfig = layers.project.config
   const projectSection = projectConfig && isRecord(projectConfig.updateCheck) ? projectConfig.updateCheck : undefined
   if (projectSection?.trustedRegistries !== undefined) {
-    console.warn("⚠️ 项目层 updateCheck.trustedRegistries 已忽略：可信名单只能由全局层 / 本地层配置")
+    console.warn(
+      "⚠️ 项目层 updateCheck.trustedRegistries 已忽略：可信名单只能由全局层 / 本地层配置（运行 toolkit config unset updateCheck.trustedRegistries --layer project 清除，改在全局层配置）",
+    )
   }
   const entries: string[] = []
   let configured = false
@@ -226,12 +230,16 @@ function readTrustedRegistries(): string[] | null {
     if (list === undefined) continue
     configured = true
     if (!Array.isArray(list)) {
-      console.warn(`⚠️ ${layer === "global" ? "全局层" : "本地层"} updateCheck.trustedRegistries 须为字符串数组，已忽略`)
+      console.warn(
+        `⚠️ ${layer === "global" ? "全局层" : "本地层"} updateCheck.trustedRegistries 须为字符串数组，已忽略（运行 toolkit config set updateCheck.trustedRegistries <逗号分隔> --layer ${layer} 重设，或 toolkit config unset updateCheck.trustedRegistries --layer ${layer} 清除）`,
+      )
       continue
     }
     for (const item of list) {
       if (typeof item !== "string" || !item.trim()) {
-        console.warn(`⚠️ updateCheck.trustedRegistries 含非法条目「${String(item)}」，已忽略`)
+        console.warn(
+          `⚠️ updateCheck.trustedRegistries 含非法条目「${String(item)}」，已忽略（从名单删除该项，或运行 toolkit config set updateCheck.trustedRegistries <合法名单> --layer ${layer} 重设）`,
+        )
         continue
       }
       entries.push(item.trim())
@@ -265,7 +273,7 @@ function stripUserinfo(value: string, label: string): string | null {
   try {
     const url = new URL(value)
     if (url.username || url.password) {
-      console.warn(`⚠️ ${label} 含账号密码，已忽略并使用匿名地址`)
+      console.warn(`⚠️ ${label} 含账号密码，已忽略并使用匿名地址（在配置中改为不含凭据的 URL，如 https://registry.npmjs.org/）`)
       url.username = ""
       url.password = ""
     }

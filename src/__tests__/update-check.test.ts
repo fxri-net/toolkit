@@ -448,6 +448,17 @@ describe("runUpdateCheckWorker 后台刷新", () => {
     expect(mockedFetch.mock.calls[0]?.[1]).toBe("secret")
   })
 
+  it("名单类型不符（非数组）时告警并忽略", async () => {
+    useGlobalConfig({ updateCheck: { trustedRegistries: "npm.example" } })
+    delete process.env.NPM_TOKEN
+    useProjectNpmrc("registry=https://npm.example/\n")
+    mockedFetch.mockResolvedValue("2.0.0")
+    const out = captureOutput()
+    await runUpdateCheckWorker()
+    expect(out.warn.join("\n")).toContain("须为字符串数组")
+    expect(mockedFetch.mock.calls[0]?.[1]).toBeUndefined()
+  })
+
   it("名单含非法条目时告警并忽略", async () => {
     useGlobalConfig({ updateCheck: { trustedRegistries: ["", 123] } })
     process.env.NPM_TOKEN = "secret"

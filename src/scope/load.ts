@@ -80,11 +80,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function stringArray(value: unknown, key: string, file: string, warnings: string[]): string[] {
   if (value === undefined) return []
   if (!Array.isArray(value)) {
-    warnings.push(`${file} 的 activation.${key} 须为字符串数组，已忽略`)
+    warnings.push(`${file} 的 activation.${key} 须为字符串数组，已忽略（在该文件改为数组，或删除 activation.${key}）`)
     return []
   }
   const items = value.filter((item): item is string => typeof item === "string" && item.trim() !== "")
-  if (items.length !== value.length) warnings.push(`${file} 的 activation.${key} 有非字符串或空项，已剔除`)
+  if (items.length !== value.length) warnings.push(`${file} 的 activation.${key} 有非字符串或空项，已剔除（在该文件删除这些项或改为非空字符串）`)
   return items
 }
 
@@ -92,7 +92,7 @@ function stringArray(value: unknown, key: string, file: string, warnings: string
 function patternArray(value: unknown, key: string, file: string, warnings: string[]): string[] {
   return stringArray(value, key, file, warnings).filter((pattern) => {
     const compiled = compilePattern(pattern)
-    if (!compiled.ok) warnings.push(`${file} 的 activation.${key} 规则「${pattern}」已忽略：${compiled.reason}`)
+    if (!compiled.ok) warnings.push(`${file} 的 activation.${key} 规则「${pattern}」已忽略：${compiled.reason}（在该文件修正该通配符或删除该项）`)
     return compiled.ok
   })
 }
@@ -101,7 +101,7 @@ function patternArray(value: unknown, key: string, file: string, warnings: strin
 function parseActivation(raw: unknown, file: string, warnings: string[]): ActivationConfig | null {
   if (raw === null || raw === undefined) return null
   if (!isRecord(raw)) {
-    warnings.push(`${file} 的 activation 须为对象，已忽略该层`)
+    warnings.push(`${file} 的 activation 须为对象，已忽略该层（在该文件把 activation 改为对象，或删除该段）`)
     return null
   }
   const rawMode = raw.mode
@@ -109,11 +109,11 @@ function parseActivation(raw: unknown, file: string, warnings: string[]): Activa
   if (typeof rawMode === "string" && MODES.has(rawMode as ActivationMode)) {
     mode = rawMode as ActivationMode
   } else if (rawMode !== undefined) {
-    warnings.push(`${file} 的 activation.mode 非法（${String(rawMode)}），已回落 all`)
+    warnings.push(`${file} 的 activation.mode 非法（${String(rawMode)}），已回落 all（改为 all / allowlist / denylist）`)
   }
   const markers = isRecord(raw.markers) ? raw.markers : {}
   if (raw.markers !== undefined && !isRecord(raw.markers)) {
-    warnings.push(`${file} 的 activation.markers 须为对象，已忽略`)
+    warnings.push(`${file} 的 activation.markers 须为对象，已忽略（在该文件改为对象或删除该键）`)
   }
   return {
     mode,
@@ -136,18 +136,18 @@ function parseSkillRules(
 ): Record<string, SkillActivationConfig> | undefined {
   if (value === undefined) return undefined
   if (!isRecord(value)) {
-    warnings.push(`${file} 的 activation.skills 须为对象，已忽略`)
+    warnings.push(`${file} 的 activation.skills 须为对象，已忽略（在该文件改为对象或删除该键）`)
     return undefined
   }
   const out: Record<string, SkillActivationConfig> = {}
   for (const [key, raw] of Object.entries(value)) {
     const compiled = compilePattern(key)
     if (!key.trim() || !compiled.ok) {
-      warnings.push(`${file} 的 activation.skills 键「${key}」已忽略${compiled.ok ? "" : `：${compiled.reason}`}`)
+      warnings.push(`${file} 的 activation.skills 键「${key}」已忽略${compiled.ok ? "" : `：${compiled.reason}`}（修正该键或删除该项）`)
       continue
     }
     if (!isRecord(raw)) {
-      warnings.push(`${file} 的 activation.skills.${key} 须为对象，已忽略`)
+      warnings.push(`${file} 的 activation.skills.${key} 须为对象，已忽略（在该文件改为对象或删除该项）`)
       continue
     }
     const rule: SkillActivationConfig = {}

@@ -55,7 +55,7 @@ function warnMisplaced(section: string, file: string | null, expected: string, a
   if (warned.has(key)) return
   warned.add(key)
   console.warn(
-    `⚠️ 忽略配置段「${section}」${file ? `（${file}）` : ""}：该段仅支持${expected}，${actual}不参与读取；请移到${expected}，或运行 toolkit upgrade --prune-legacy 清理`,
+    `⚠️ 忽略配置段「${section}」${file ? `（${file}）` : ""}：该段仅支持${expected}，${actual}不参与读取；请移到${expected}（已登记键可用 toolkit config set <键> <值> --layer ${expected.startsWith("全局层") ? "global" : "project"}），或运行 toolkit upgrade --prune-legacy 清理`,
   )
 }
 
@@ -209,7 +209,7 @@ export function readSkillsDeliveryConfig(face: SkillsDeliveryFace = "global", st
   if (face === "global" && layers.project.config?.skillDelivery !== undefined && isPlainObject(layers.project.config.skillDelivery)) {
     warnOnce(
       `${layers.project.file ?? ""}\u0000skillDelivery\u0000global-face`,
-      `⚠️ 忽略配置段「skillDelivery」${layers.project.file ? `（${layers.project.file}）` : ""}：全局面不读取项目层配置，该段仅对项目面生效`,
+      `⚠️ 忽略配置段「skillDelivery」${layers.project.file ? `（${layers.project.file}）` : ""}：全局面不读取项目层配置，该段仅对项目面生效（把该段移到全局层 ~/.toolkitrc.json，或删除项目层的该段）`,
     )
   }
   const globalSection = asDeliverySection(layers.global.config?.skillDelivery)

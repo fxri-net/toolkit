@@ -127,8 +127,8 @@ function fallbackItems(fallbacks: ConfigFallback[]): ConfigStatusItem[] {
     scope: "配置",
     message:
       item.key === ""
-        ? `忽略配置文件「${item.file}」：${item.detail}，已按未配置处理`
-        : `忽略配置项「${item.key}」（${item.file}）：${item.detail}，已按未配置处理`,
+        ? `忽略配置文件「${item.file}」：${item.detail}，已按未配置处理（修正该文件 JSON 语法后重试）`
+        : `忽略配置项「${item.key}」（${item.file}）：${item.detail}，已按未配置处理（在 ${item.file} 修正或删除该键；已登记的键也可运行 toolkit config unset ${item.key} --layer <层>）`,
   }))
 }
 

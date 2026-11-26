@@ -188,7 +188,9 @@ export function syncDocAfterVersion(lang: string = DEFAULT_LANG): void {
   const options = resolveDocOptions({ lang })
   if (!existsSync(options.source)) return
   if (!existsSync(dirname(options.target))) {
-    console.warn(`⚠️ 未找到镜像目标目录「${dirname(options.target)}」，跳过 CHANGELOG 镜像同步`)
+    console.warn(
+      `⚠️ 未找到镜像目标目录「${dirname(options.target)}」，跳过 CHANGELOG 镜像同步（创建该目录，或删除 .toolkitrc.json 的 changelogDoc.target 回落到默认 docs/changelog.md）`,
+    )
     return
   }
   try {
@@ -319,7 +321,9 @@ function cleanupArchives(dir: string, expected: Set<string>, dryRun: boolean): {
 function pickSplit(value: unknown): DocSplit {
   if (value === undefined || value === null) return DEFAULT_SPLIT
   if (value === "major" || value === "none") return value
-  console.warn(`⚠️ 忽略配置项「changelogDoc.split」：只支持 major / none，已按 ${DEFAULT_SPLIT} 处理`)
+  console.warn(
+    `⚠️ 忽略配置项「changelogDoc.split」：只支持 major / none，已按 ${DEFAULT_SPLIT} 处理（在 .toolkitrc.json 把该键改为 major / none，或删除该键）`,
+  )
   return DEFAULT_SPLIT
 }
 
@@ -328,12 +332,12 @@ function pickString(cliValue: string | undefined, configValue: unknown, fallback
   if (cliValue !== undefined) {
     const trimmed = cliValue.trim()
     if (trimmed !== "") return trimmed
-    console.warn(`⚠️ 忽略空取值的「${key}」，已按默认值处理`)
+    console.warn(`⚠️ 忽略空取值的「${key}」，已按默认值处理（删除该参数，或在 .toolkitrc.json 修正「${key}」）`)
     return fallback
   }
   if (configValue === undefined || configValue === null) return fallback
   if (typeof configValue === "string" && configValue.trim() !== "") return configValue.trim()
-  console.warn(`⚠️ 忽略配置项「${key}」：须为非空字符串，已按默认值处理`)
+  console.warn(`⚠️ 忽略配置项「${key}」：须为非空字符串，已按默认值处理（在 .toolkitrc.json 修正或删除该键）`)
   return fallback
 }
 
@@ -342,6 +346,6 @@ function pickBoolean(cliValue: boolean | undefined, configValue: unknown, fallba
   if (cliValue !== undefined) return cliValue
   if (configValue === undefined || configValue === null) return fallback
   if (typeof configValue === "boolean") return configValue
-  console.warn(`⚠️ 忽略配置项「${key}」：须为布尔值，已按默认值处理`)
+  console.warn(`⚠️ 忽略配置项「${key}」：须为布尔值，已按默认值处理（在 .toolkitrc.json 修正或删除该键）`)
   return fallback
 }

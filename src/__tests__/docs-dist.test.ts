@@ -42,9 +42,10 @@ describe("checkDocsDist", () => {
     expect(result.problems).toEqual([])
   })
 
-  it("sitemap 含 404 页时报错", () => {
+  it("sitemap 含 404 页时报错并给出过滤动作", () => {
     writeDist({ sitemap: "<urlset><url><loc>https://example.com/404.html</loc></url></urlset>" })
-    expect(checkDocsDist(dir).problems.map((problem) => problem.id)).toContain("dist/sitemap-404")
+    const problem = checkDocsDist(dir).problems.find((item) => item.id === "dist/sitemap-404")
+    expect(problem?.message).toContain("sitemap.transformItems")
   })
 
   it("缺少 sitemap.xml 时报错", () => {
@@ -54,9 +55,10 @@ describe("checkDocsDist", () => {
     expect(checkDocsDist(dir).problems.map((problem) => problem.id)).toContain("dist/sitemap-missing")
   })
 
-  it("搜索索引分块含 404 页标题时报错", () => {
+  it("搜索索引分块含 404 页标题时报错并给出 search: false 动作", () => {
     writeDist({ chunks: { "@localSearchIndexroot.abc.js": "页面未找到" } })
-    expect(checkDocsDist(dir).problems.map((problem) => problem.id)).toContain("dist/search-404")
+    const problem = checkDocsDist(dir).problems.find((item) => item.id === "dist/search-404")
+    expect(problem?.message).toContain("search: false")
   })
 
   it("未启用本地搜索时只告警，不阻断", () => {

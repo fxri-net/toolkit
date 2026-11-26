@@ -862,7 +862,7 @@ exports[`各域行为与错误路径 > docs 导航校验 1`] = `
 
 --- stderr ---
 ⚠️ 导航校验失败（1 项）
-  ✖ [nav/file-missing] 未找到 docs/site-nav.json：把 config.mts 的 nav / sidebar 数组原样搬入该文件，配置改为 import 后引用（本命令只读数据，不解析源码）（docs/site-nav.json）"
+  ✖ [nav/file-missing] 未找到 docs/site-nav.json：把 config.mts 的 nav / sidebar 数组原样搬入该文件，配置改为 import nav from '../site-nav.json' 后在 themeConfig 引用（本命令只读数据，不解析源码）（docs/site-nav.json）"
 `;
 
 exports[`各域行为与错误路径 > docs 裸命令 1`] = `
@@ -875,7 +875,7 @@ exports[`各域行为与错误路径 > docs 裸命令 1`] = `
   ✖ 缺少 index.ts（执行 toolkit docs theme --write 生成）：<SANDBOX>/workspace/docs/.vitepress/theme/index.ts
   ✖ 缺少 custom.css（执行 toolkit docs theme --write 生成）：<SANDBOX>/workspace/docs/.vitepress/theme/custom.css
 ⚠️ 导航校验失败（1 项）
-  ✖ [nav/file-missing] 未找到 docs/site-nav.json：把 config.mts 的 nav / sidebar 数组原样搬入该文件，配置改为 import 后引用（本命令只读数据，不解析源码）（docs/site-nav.json）"
+  ✖ [nav/file-missing] 未找到 docs/site-nav.json：把 config.mts 的 nav / sidebar 数组原样搬入该文件，配置改为 import nav from '../site-nav.json' 后在 themeConfig 引用（本命令只读数据，不解析源码）（docs/site-nav.json）"
 `;
 
 exports[`各域行为与错误路径 > rules compose 单模块 1`] = `

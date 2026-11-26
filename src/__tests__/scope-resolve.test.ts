@@ -127,10 +127,28 @@ describe("resolveScope", () => {
     expect(skillHint.migrationHint ?? "").toContain("真实路径")
   })
 
+  it("activation 字段类型非法时逐项告警并忽略", () => {
+    writeGlobal({ activation: { mode: "all", include: "not-array", exclude: ["", 1], markers: "oops", skills: "oops" } })
+    const text = resolveScope(project).warnings.join("\n")
+    expect(text).toContain("activation.include 须为字符串数组")
+    expect(text).toContain("activation.exclude 有非字符串或空项")
+    expect(text).toContain("activation.markers 须为对象")
+    expect(text).toContain("activation.skills 须为对象")
+  })
+
+  it("activation.skills 非法键与取值逐项告警", () => {
+    writeGlobal({ activation: { mode: "all", skills: { "": { exclude: [] }, "re:(": { exclude: [] }, good: "oops" } } })
+    const text = resolveScope(project).warnings.join("\n")
+    expect(text).toContain("activation.skills 键「」已忽略")
+    expect(text).toContain("activation.skills 键「re:(」已忽略")
+    expect(text).toContain("activation.skills.good 须为对象")
+  })
+
   it("非法路径规则告警并剔除，不参与判定", () => {
     writeGlobal({ activation: { mode: "allowlist", include: ["re:("] } })
     const report = resolveScope(project)
     expect(report.warnings.join("\n")).toContain("已忽略")
+    expect(report.warnings.join("\n")).toContain("修正该通配符")
     expect(report.decision.active).toBe(false)
   })
 

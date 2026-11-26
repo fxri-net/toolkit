@@ -67,6 +67,8 @@ export default defineConfig({
 | `title/index-label` | error | 目录表链接文案 ≠ 目标页标题 |
 | `title/index-target` | error | 目录表链接指向的文件不存在 |
 
+每条问题的 `message` 自带修复动作：写明要改的文件 / 行与目标形态，可用 CLI 的直接附 `toolkit config set` 或重跑命令。
+
 ## 迁移
 
 已有站点用一次性助手抽取数据，省去手工搬运：

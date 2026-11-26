@@ -68,6 +68,13 @@ describe("checkDocsNav", () => {
     expect(checkDocsNav(dir).problems[0]?.message).toContain("site-nav.json")
   })
 
+  it("站点配置缺失时报配置未接线并给出 import 片段", () => {
+    writeFileSync(join(dir, "site-nav.json"), JSON.stringify(MINIMAL))
+    writeFileSync(join(dir, "404.md"), "---\nsearch: false\n---\n\n# 页面未找到\n")
+    const problem = checkDocsNav(dir).problems.find((item) => item.id === "nav/config-not-wired")
+    expect(problem?.message).toContain("import nav from '../site-nav.json'")
+  })
+
   it("顶栏超过 5 项时报错", () => {
     writeSite({
       ...MINIMAL,
@@ -81,6 +88,7 @@ describe("checkDocsNav", () => {
       ],
     })
     expect(ids()).toContain("nav/max-items")
+    expect(checkDocsNav(dir).problems.find((p) => p.id === "nav/max-items")?.message).toContain("toolkit config set docs.nav.maxItems")
   })
 
   it("首项与末项不是快速开始 / 帮助时报错", () => {

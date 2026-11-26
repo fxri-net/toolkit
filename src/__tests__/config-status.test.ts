@@ -161,6 +161,7 @@ describe("configStatus 降级项渲染", () => {
     const item = report.items.find((i) => i.message.includes("配置段须为对象"))
     expect(item?.level).toBe("warn")
     expect(item?.message).toContain("task")
+    expect(item?.message).toContain("toolkit config unset")
   })
 
   it("全局层段值非对象：告警配置段须为对象", () => {
@@ -235,7 +236,7 @@ describe("configStatus 提示项与文本折叠", () => {
     // JSON 报告保留绝对路径（供脚本定位，分隔符经 toPosix 归一后比较）
     expect(toPosix(item!.message)).toContain(toPosix(home))
     // 文本模式折叠为 ~/…：精确相等，避免弱断言
-    expect(foldHomeInText(item!.message)).toBe("忽略配置文件「~/.toolkitrc.json」：JSON 解析失败，已按未配置处理")
+    expect(foldHomeInText(item!.message)).toBe("忽略配置文件「~/.toolkitrc.json」：JSON 解析失败，已按未配置处理（修正该文件 JSON 语法后重试）")
     expect(foldHomeInText(item!.message)).not.toContain(home)
   })
 

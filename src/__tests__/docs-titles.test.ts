@@ -73,7 +73,10 @@ describe("docs titles：目录表", () => {
     write("index.md", ["# 索引", "", "## 文档索引", "", table([["甲", "./a.md"], ["乙页", "./b.md"]]), "## 其他", ""].join("\n"))
     const result = checkDocsTitles(docs)
     expect(ids(result)).toContain("title/index-label")
-    expect(result.problems.find((problem) => problem.id === "title/index-label")?.message).toContain("甲")
+    const message = result.problems.find((problem) => problem.id === "title/index-label")?.message ?? ""
+    expect(message).toContain("甲")
+    expect(message).toContain("第 7 行")
+    expect(message).toContain("文案改为「甲页」")
   })
 
   it("链接目标不存在时报 index-target", () => {

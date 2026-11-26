@@ -60,7 +60,9 @@ function warnInvalid(key: string, expected: string, actual: unknown): void {
   if (warnedInvalidKeys.has(key)) return
   warnedInvalidKeys.add(key)
   const type = actual === null ? "null" : Array.isArray(actual) ? "数组" : typeof actual
-  console.warn(`⚠️ 忽略技能使用情况配置项「${key}」：须为${expected}（实际：${type}），已按默认值处理`)
+  console.warn(
+    `⚠️ 忽略技能使用情况配置项「${key}」：须为${expected}（实际：${type}），已按默认值处理（在全局层 ~/.toolkitrc.json 修正，或运行 toolkit config set ${key} <合法值> --layer global）`,
+  )
 }
 
 // 读取布尔值：未写返回默认；类型不符告警并回落
@@ -212,7 +214,9 @@ function warnMisplacedLayer(record: ConfigLayerRecord, label: string): void {
   const key = `${label}:${record.file ?? ""}`
   if (warnedMisplacedLayers.has(key)) return
   warnedMisplacedLayers.add(key)
-  console.warn(`⚠️ 技能使用情况配置仅支持全局层 ~/.toolkitrc.json，已忽略${label}「${record.file ?? "未知路径"}」中的 usage 段`)
+  console.warn(
+    `⚠️ 技能使用情况配置仅支持全局层 ~/.toolkitrc.json，已忽略${label}「${record.file ?? "未知路径"}」中的 usage 段（把该段移到全局层，或删除该文件里的 usage 段）`,
+  )
 }
 
 // 旧版 telemetry 段提示：改名后不再读取，避免用户误以为配置仍生效

@@ -417,6 +417,11 @@ function warnConfigFallback(file: string, key: string, detail: string): void {
   const dedupKey = `${file}\u0000${key}`
   if (warnedConfigFallbacks.has(dedupKey)) return
   warnedConfigFallbacks.add(dedupKey)
-  const head = key === "" ? `⚠️ 忽略配置文件「${file}」` : `⚠️ 忽略配置项「${key}」${file ? `（${file}）` : ""}`
-  console.warn(`${head}：${detail}，已按未配置处理`)
+  if (key === "") {
+    console.warn(`⚠️ 忽略配置文件「${file}」：${detail}，已按未配置处理；修正该文件 JSON 语法后重试，无法定位时运行 toolkit config status 查看三层来源`)
+    return
+  }
+  console.warn(
+    `⚠️ 忽略配置项「${key}」${file ? `（${file}）` : ""}：${detail}，已按未配置处理（在 ${file || "配置文件"} 修正或删除该键；已登记的键也可运行 toolkit config unset ${key} --layer <global|project|local>）`,
+  )
 }

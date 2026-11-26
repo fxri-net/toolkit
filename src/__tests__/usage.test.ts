@@ -96,6 +96,27 @@ describe("使用情况配置", () => {
     expect(resolveUsageDir(undefined, config)).toBe(join(home, ".toolkit", "usage"))
   })
 
+  it("项目层误写 usage 段只告警、不生效", () => {
+    const cwd = process.cwd()
+    const project = tempDir("fxts-tk-usage-project-")
+    setHomeDirForTest(tempDir("fxts-tk-usage-home-"))
+    process.chdir(project)
+    resetToolkitConfigCache()
+    writeFileSync(join(project, ".toolkitrc.json"), JSON.stringify({ usage: { enabled: true } }), "utf8")
+    const warns: string[] = []
+    vi.spyOn(console, "warn").mockImplementation((message: unknown) => {
+      warns.push(String(message))
+    })
+    try {
+      const config = loadUsageConfig()
+      expect(config.enabled).toBe(false)
+      expect(warns.join("\n")).toContain("仅支持全局层")
+      expect(warns.join("\n")).toContain("移到全局层")
+    } finally {
+      process.chdir(cwd)
+    }
+  })
+
   it("旧版 telemetry 段与数据目录只提示不生效", () => {
     const home = tempDir("fxts-tk-usage-legacy-")
     setHomeDirForTest(home)

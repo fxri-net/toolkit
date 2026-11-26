@@ -210,11 +210,21 @@ function addWiringProblem(add: (id: string, message: string, level: ProblemLevel
   const dir = join(docsDir, ".vitepress")
   const found = CONFIG_FILES.map((name) => join(dir, name)).find((file) => existsSync(file))
   if (!found) {
-    add("nav/config-not-wired", "未找到 docs/.vitepress/config.*：无法确认站点配置引用了 site-nav.json", "error", displayPath(dir))
+    add(
+      "nav/config-not-wired",
+      "未找到 docs/.vitepress/config.*：无法确认站点配置引用了 site-nav.json（新建 config.mts 并写 import nav from '../site-nav.json'，再在 themeConfig 引用 nav / nav.sidebar）",
+      "error",
+      displayPath(dir),
+    )
     return
   }
   if (!readTextFile(found).includes("site-nav.json")) {
-    add("nav/config-not-wired", "站点配置未引用 site-nav.json，导航数据不会生效", "error", displayPath(found))
+    add(
+      "nav/config-not-wired",
+      "站点配置未引用 site-nav.json，导航数据不会生效（在该文件补 import nav from '../site-nav.json'，并在 themeConfig 引用 nav / nav.sidebar）",
+      "error",
+      displayPath(found),
+    )
   }
 }
 
@@ -262,7 +272,7 @@ export function checkDocsNav(
   if (!existsSync(navFile)) {
     add(
       "nav/file-missing",
-      "未找到 docs/site-nav.json：把 config.mts 的 nav / sidebar 数组原样搬入该文件，配置改为 import 后引用（本命令只读数据，不解析源码）",
+      "未找到 docs/site-nav.json：把 config.mts 的 nav / sidebar 数组原样搬入该文件，配置改为 import nav from '../site-nav.json' 后在 themeConfig 引用（本命令只读数据，不解析源码）",
     )
     return failed()
   }
@@ -303,7 +313,12 @@ export function checkDocsNav(
     // 语言包形态才标出语言键，单语言站的提示保持原样
     const tag = multiLocale ? `[${locale.key}] ` : ""
     const { nav } = locale
-    if (nav.length > config.maxItems) add("nav/max-items", `${tag}顶栏一级项 ${nav.length} 个，超过 ${config.maxItems} 个`)
+    if (nav.length > config.maxItems) {
+      add(
+        "nav/max-items",
+        `${tag}顶栏一级项 ${nav.length} 个，超过 ${config.maxItems} 个（合并或下沉 site-nav.json 的多余项，或运行 toolkit config set docs.nav.maxItems <n> --layer project 调高上限）`,
+      )
+    }
 
     // 语言相关规则需要该语言的期望文案：root 用默认口径，其余语言包须显式声明
     const expect =
@@ -311,40 +326,45 @@ export function checkDocsNav(
         ? { firstItem: config.firstItem, lastItem: config.lastItem, helpChildren: config.helpChildren }
         : config.locales[locale.key]
     if (!expect?.firstItem || !expect.lastItem || !expect.helpChildren) {
-      add("nav/locale-unconfigured", `${tag}该语言包未在 .toolkitrc 的 docs.locales 中声明首末项与帮助项，跳过语言相关规则`, "warn")
+      add("nav/locale-unconfigured", `${tag}该语言包未在 .toolkitrc 的 docs.locales 中声明首末项与帮助项，跳过语言相关规则（在 docs.locales.<语言> 补 firstItem / lastItem / helpChildren）`, "warn")
     } else {
       if (nav[0]?.text !== expect.firstItem) {
-        add("nav/first-item", `${tag}顶栏首项应为「${expect.firstItem}」，实际「${nav[0]?.text ?? "无"}」`)
+        add("nav/first-item", `${tag}顶栏首项应为「${expect.firstItem}」，实际「${nav[0]?.text ?? "无"}」（改 site-nav.json 首项 text，或运行 toolkit config set docs.nav.firstItem <名> --layer project 改期望值）`)
       }
       const last = nav[nav.length - 1]
       if (last?.text !== expect.lastItem) {
-        add("nav/last-item", `${tag}顶栏末项应为「${expect.lastItem}」，实际「${last?.text ?? "无"}」`)
+        add("nav/last-item", `${tag}顶栏末项应为「${expect.lastItem}」，实际「${last?.text ?? "无"}」（改 site-nav.json 末项 text，或运行 toolkit config set docs.nav.lastItem <名> --layer project 改期望值）`)
       }
       // 帮助下拉必须承载常见问题与更新日志，避免二者各占一级入口
       if (last?.text === expect.lastItem && !Array.isArray(last.items)) {
-        add("nav/help-children", `${tag}顶栏「${expect.lastItem}」须为下拉，含${expect.helpChildren.join("、")}`)
+        add("nav/help-children", `${tag}顶栏「${expect.lastItem}」须为下拉，含${expect.helpChildren.join("、")}（把末项改成 items 下拉，或运行 toolkit config set docs.nav.helpChildren <逗号分隔> --layer project 改期望清单）`)
       } else if (last?.text === expect.lastItem) {
         const children = new Set((last.items ?? []).map((item) => item.text))
         for (const required of expect.helpChildren) {
-          if (!children.has(required)) add("nav/help-children", `${tag}「${expect.lastItem}」下拉缺少「${required}」`)
+          if (!children.has(required)) add("nav/help-children", `${tag}「${expect.lastItem}」下拉缺少「${required}」（在 site-nav.json 该下拉补这一项）`)
         }
       }
     }
 
     for (const name of [...collectNavGroupNames(nav), ...sidebarGroups(locale.sidebar).map((group) => group.text)]) {
       const units = displayUnits(name)
-      if (units > config.maxGroupUnits) add("nav/group-name-length", `${tag}分组名「${name}」为 ${units} 个显示单位，超过 ${config.maxGroupUnits} 个`)
+      if (units > config.maxGroupUnits) {
+        add(
+          "nav/group-name-length",
+          `${tag}分组名「${name}」为 ${units} 个显示单位，超过 ${config.maxGroupUnits} 个（缩短 site-nav.json 该项 text，或运行 toolkit config set docs.nav.maxGroupUnits <n> --layer project）`,
+        )
+      }
     }
   }
 
   // 404 页须退出站内搜索：产物断言只验结果，frontmatter 缺失时结果仍可能侥幸通过
   const notFound = join(docsDir, "404.md")
   if (!existsSync(notFound)) {
-    add("nav/not-found-page", "缺少 docs/404.md 兜底页", "error", displayPath(notFound))
+    add("nav/not-found-page", "缺少 docs/404.md 兜底页（新建该文件，frontmatter 写 search: false）", "error", displayPath(notFound))
   } else {
     const head = /^---\r?\n([\s\S]*?)\r?\n---/.exec(readTextFile(notFound))
     if (!head || !/(^|\n)\s*search:\s*false\s*($|\n)/.test(head[1] ?? "")) {
-      add("nav/not-found-page", "docs/404.md 的 frontmatter 缺少 search: false，404 页会进入站内搜索索引", "error", displayPath(notFound))
+      add("nav/not-found-page", "docs/404.md 的 frontmatter 缺少 search: false（在该文件 frontmatter 补 search: false），404 页会进入站内搜索索引", "error", displayPath(notFound))
     }
   }
 
@@ -353,7 +373,14 @@ export function checkDocsNav(
   for (const page of walkFiles(docsDir, (name) => name.endsWith(".md"), { exclude: ["cache", "public"] })) {
     if (isPageSizeExcluded(page, docsDir, config.pageSizeExclude)) continue
     const lines = readTextFile(page).replace(/\r\n/g, "\n").split("\n").length
-    if (lines > config.maxPageLines) add("nav/page-size", `页面超过 ${config.maxPageLines} 行（${lines} 行），考虑拆分`, "warn", displayPath(page))
+    if (lines > config.maxPageLines) {
+      add(
+        "nav/page-size",
+        `页面超过 ${config.maxPageLines} 行（${lines} 行），考虑拆分（或运行 toolkit config set docs.nav.pageSizeExclude <文件或目录前缀> --layer project 豁免该页）`,
+        "warn",
+        displayPath(page),
+      )
+    }
   }
 
   return {

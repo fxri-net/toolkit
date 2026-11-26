@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
-import { ARCHIVE_MARKER, buildDocPage, buildDocPages, checkDoc, resolveDocOptions, syncDoc, type DocOptions } from "../changelog/doc"
+import { ARCHIVE_MARKER, buildDocPage, buildDocPages, checkDoc, resolveDocOptions, syncDoc, syncDocAfterVersion, type DocOptions } from "../changelog/doc"
 import { tempDir } from "./helpers"
 
 // 最小合法 CHANGELOG：H1 标题 + 一个版本块
@@ -307,6 +307,41 @@ describe("resolveDocOptions：split 配置", () => {
     writeConfig("minor")
     expect(resolveDocOptions().split).toBe("major")
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("changelogDoc.split"))
+    warn.mockRestore()
+  })
+
+  it("空 CLI 取值与非字符串配置告警并回落默认", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined)
+    writeConfig(undefined)
+    writeFileSync(join(project, ".toolkitrc.json"), JSON.stringify({ changelogDoc: { source: 123, title: "" } }), "utf8")
+    resetToolkitConfigCache()
+    const opts = resolveDocOptions({ from: "   " })
+    expect(opts.source).toBe("CHANGELOG.md")
+    expect(opts.title).not.toBe("")
+    const text = warn.mock.calls.map((call) => String(call[0])).join("\n")
+    expect(text).toContain("忽略空取值的「changelogDoc.source」")
+    expect(text).toContain("须为非空字符串")
+    warn.mockRestore()
+  })
+
+  it("布尔配置类型不符告警并回落默认", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined)
+    writeConfig(undefined)
+    writeFileSync(join(project, ".toolkitrc.json"), JSON.stringify({ changelogDoc: { frontmatter: "yes" } }), "utf8")
+    resetToolkitConfigCache()
+    expect(resolveDocOptions().frontmatter).toBe(true)
+    expect(warn.mock.calls.map((call) => String(call[0])).join("\n")).toContain("须为布尔值")
+    warn.mockRestore()
+  })
+
+  it("镜像目标目录缺失时告警并跳过", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined)
+    writeConfig(undefined)
+    writeFileSync(join(project, "CHANGELOG.md"), minimal, "utf8")
+    writeFileSync(join(project, ".toolkitrc.json"), JSON.stringify({ changelogDoc: { target: "missing/changelog.md" } }), "utf8")
+    resetToolkitConfigCache()
+    syncDocAfterVersion()
+    expect(warn.mock.calls.map((call) => String(call[0])).join("\n")).toContain("未找到镜像目标目录")
     warn.mockRestore()
   })
 })

@@ -132,6 +132,7 @@ function checkTables(
     }
     if (!/^\s*\|/.test(line)) continue
     // 收集连续表格行
+    const tableStart = index
     const block: string[] = []
     let cursor = index
     while (cursor < lines.length && /^\s*\|/.test(lines[cursor] as string)) {
@@ -140,7 +141,14 @@ function checkTables(
     }
     index = cursor - 1
     if (block.length < 3 || !isSeparator(block[1] as string)) continue
-    const rows = block.slice(2).map((row) => pageLinkCell(cellsOf(row)[0] ?? "")).filter((row) => row !== null)
+    // 行号随数据行携带：告警直接指出目录表应改的那一行（1 基）
+    const rows = block
+      .slice(2)
+      .map((row, offset) => {
+        const link = pageLinkCell(cellsOf(row)[0] ?? "")
+        return link ? { ...link, line: tableStart + 2 + offset + 1 } : null
+      })
+      .filter((row) => row !== null)
     if (rows.length < 2) continue
     // 整文件或整小节豁免：文件级跳过全部表格，小节级跳过该标题下的表格
     const sectionPatterns = patterns.filter((pattern) => names.includes(pattern.file))
@@ -151,13 +159,20 @@ function checkTables(
       const target = resolveTarget(file, row.href)
       if (!target) {
         const level = effectiveLevel(rules, "title/index-target", "error")
-        if (level) problems.push({ id: "title/index-target", level, file: display, message: `目录表链接「${row.href}」指向的文件不存在` })
+        if (level) problems.push({ id: "title/index-target", level, file: display, message: `目录表第 ${row.line} 行链接「${row.href}」指向的文件不存在（改正路径或删除该行）` })
         continue
       }
       const title = pageTitle(target)
       if (row.label !== title) {
         const level = effectiveLevel(rules, "title/index-label", "error")
-        if (level) problems.push({ id: "title/index-label", level, file: display, message: `目录表链接文案「${row.label}」≠ 目标页标题「${title}」（${displayPath(target)}）` })
+        if (level) {
+          problems.push({
+            id: "title/index-label",
+            level,
+            file: display,
+            message: `目录表第 ${row.line} 行链接文案「${row.label}」≠ 目标页标题「${title}」（把该行文案改为「${title}」，或改 ${displayPath(target)} 的 title / 一级标题）`,
+          })
+        }
       }
     }
   }
@@ -186,11 +201,11 @@ export function checkDocsTitles(docsDir: string, options: TitlesCheckOptions = {
       if (!h1) {
         if (frontmatterValue(fm, "layout") !== "home") {
           const level = effectiveLevel(rules, "title/h1-missing", "error")
-          if (level) problems.push({ id: "title/h1-missing", level, file: displayPath(file), message: "页面声明了 title 但缺少一级标题" })
+          if (level) problems.push({ id: "title/h1-missing", level, file: displayPath(file), message: `页面声明了 title 但缺少一级标题（在正文补「# ${title}」，或删除 frontmatter title 改由一级标题提供）` })
         }
       } else if (title !== h1) {
         const level = effectiveLevel(rules, "title/h1-mismatch", "error")
-        if (level) problems.push({ id: "title/h1-mismatch", level, file: displayPath(file), message: `页面 title「${title}」与一级标题「${h1}」不一致` })
+        if (level) problems.push({ id: "title/h1-mismatch", level, file: displayPath(file), message: `页面 title「${title}」与一级标题「${h1}」不一致（统一两处文案，或删除 frontmatter title 改由一级标题决定）` })
       }
     }
     tableCount += checkTables(file, [displayPath(file), relative(docsDir, file).replace(/\\/g, "/")], text, patterns, rules, problems)

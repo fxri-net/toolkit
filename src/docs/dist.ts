@@ -52,13 +52,27 @@ export function checkDocsDist(
   const sitemapFile = join(distDir, "sitemap.xml")
   if (!existsSync(sitemapFile)) {
     // 站点可有意禁用 sitemap：配置为 off 时整条断言跳过，warn 时只提示
-    if (config.sitemap !== "off") add("dist/sitemap-missing", "缺少 sitemap.xml 产物", config.sitemap, displayPath(sitemapFile))
+    if (config.sitemap !== "off") {
+      add(
+        "dist/sitemap-missing",
+        "缺少 sitemap.xml 产物（确认站点已开启 sitemap 后重新构建并重跑 toolkit docs dist；有意不生成时运行 toolkit config set docs.dist.sitemap off --layer project 关闭该断言）",
+        config.sitemap,
+        displayPath(sitemapFile),
+      )
+    }
   } else {
     // 兼容 cleanUrls 与默认 .html 两种写法：URL 可能是绝对地址、带前导斜杠或裸路径
     const hits = [...readTextFile(sitemapFile).matchAll(/<loc>([^<]+)<\/loc>/g)]
       .map((matched) => (matched[1] ?? "").replace(/^https?:\/\/[^/]+/, ""))
       .filter((url) => /(^|\/)404(\.html)?$/.test(url))
-    if (hits.length > 0) add("dist/sitemap-404", `sitemap.xml 含 404 页：${hits.join("、")}`, "error", displayPath(sitemapFile))
+    if (hits.length > 0) {
+      add(
+        "dist/sitemap-404",
+        `sitemap.xml 含 404 页：${hits.join("、")}（在 .vitepress/config 的 sitemap.transformItems 过滤 404 路由，重建后重跑 toolkit docs dist）`,
+        "error",
+        displayPath(sitemapFile),
+      )
+    }
   }
 
   // 站内搜索：仅本地搜索有可断言的索引分块，其他实现显式跳过
@@ -67,17 +81,26 @@ export function checkDocsDist(
   }
   const title = notFoundTitle(docsDir)
   if (!title) {
-    add("dist/not-found-title", "docs/404.md 缺失或没有一级标题，无法断言搜索索引", "error", displayPath(join(docsDir, "404.md")))
+    add("dist/not-found-title", "docs/404.md 缺失或没有一级标题，无法断言搜索索引（补该文件并写一级标题，如 # 页面不存在）", "error", displayPath(join(docsDir, "404.md")))
   } else {
     const chunksDir = join(distDir, "assets", "chunks")
     const indexFiles = existsSync(chunksDir) ? readdirSync(chunksDir).filter((name) => name.includes("localSearchIndex")) : []
     if (indexFiles.length === 0) {
       // 未启用本地搜索时该断言不适用，只提示不阻断
-      add("dist/search-index-missing", "未找到站内搜索索引分块，跳过 404 索引断言", "warn")
+      add(
+        "dist/search-index-missing",
+        "未找到站内搜索索引分块，跳过 404 索引断言（启用本地搜索时在 .vitepress/config 设 themeConfig.search.provider = 'local'，或运行 toolkit config set docs.dist.searchProvider none --layer project 关闭该提示）",
+        "warn",
+      )
     } else {
       for (const name of indexFiles) {
         if (readTextFile(join(chunksDir, name)).includes(title)) {
-          add("dist/search-404", `搜索索引 ${name} 含 404 页内容（${title}）`, "error", displayPath(join(chunksDir, name)))
+          add(
+            "dist/search-404",
+            `搜索索引 ${name} 含 404 页内容（${title}）：在 docs/404.md frontmatter 补 search: false，重建后重跑 toolkit docs dist`,
+            "error",
+            displayPath(join(chunksDir, name)),
+          )
         }
       }
     }

@@ -71,6 +71,8 @@
 - **字段级类型校验**：`task.dir`（须**非空**字符串）、
    `redact.enabled` / `updateCheck.enabled` / `check.warnings`（须布尔）类型不符时 stderr 告警并**按未写处理**（回落团队值 / 默认值）；
    `task.dir` 写空字符串同样告警并按未写处理、回落默认 `.tasks`
+- 降级告警均给出回改路径：已登记的键可直接运行 `toolkit config set <键> <值> --layer <层>` 改写，或 `toolkit config unset <键> --layer <层>` 清除；
+  未登记的键写明应改的配置文件；整文件解析失败则提示修正 JSON 后重试
 - 带 UTF-8 BOM 的配置文件可正常解析（Windows 下 PowerShell 写出场景）
 - 未找到：全部使用默认值
 - 不设强制 schema/版本字段：未知字段忽略，配置项变更随主版本记录于 CHANGELOG，读取向后兼容
