@@ -8,11 +8,12 @@ import {
   CONFIG_PROJECT_FILE,
   getHomeDir,
   inspectConfigLayers,
+  isGlobalConfigPath,
   resetToolkitConfigCache,
   type ConfigLayers,
 } from "./config"
 import { readTextFile } from "./read-text"
-import { findProjectRoot } from "./scope/paths"
+import { findProjectRoot, isHomeDirectory } from "./scope/paths"
 import { writeFileAtomic } from "./write-atomic"
 import type { ConfigKeyLayer } from "./config-keys"
 
@@ -110,6 +111,19 @@ export function configFileForLayer(layer: ConfigKeyLayer, cwd = process.cwd()): 
   return join(findProjectRoot(cwd), file)
 }
 
+// 非全局层写入守卫：家目录不作为项目根，且项目 / 本地层不得落到全局文件（避免把全局配置当项目配置改写）
+export function assertConfigLayerWritable(layer: ConfigKeyLayer, cwd = process.cwd()): void {
+  if (layer === "global") return
+  const label = layer === "project" ? "项目层" : "本地层"
+  if (isHomeDirectory(cwd)) {
+    throw new Error(`家目录不作为项目根，不能写入${label}配置：请进入项目目录，或改用 --layer global`)
+  }
+  const file = configFileForLayer(layer, cwd)
+  if (isGlobalConfigPath(file)) {
+    throw new Error(`${label}配置不能写入全局文件 ${file}：请进入项目目录，或改用 --layer global`)
+  }
+}
+
 // 读取配置文件根对象：不存在返回空对象；解析失败或顶层非对象直接报错（不覆盖用户配置）
 function readConfigRoot(file: string): Record<string, unknown> {
   if (!existsSync(file)) return {}
@@ -133,6 +147,7 @@ function persist(file: string, root: Record<string, unknown>): void {
 
 // 写单键：路径上中间层非对象时报错而非静默覆盖，其余段与字段原样保留
 export function writeConfigKey(layer: ConfigKeyLayer, key: string, value: unknown, cwd = process.cwd()): ConfigWriteResult {
+  assertConfigLayerWritable(layer, cwd)
   const file = configFileForLayer(layer, cwd)
   const root = readConfigRoot(file)
   const path = key.split(".")
@@ -159,6 +174,7 @@ export function writeConfigKey(layer: ConfigKeyLayer, key: string, value: unknow
 
 // 删单键：删除后逐级回收空对象与空段，避免留下 {} 残壳；键本就不存在时不写盘
 export function unsetConfigKey(layer: ConfigKeyLayer, key: string, cwd = process.cwd()): ConfigWriteResult & { removed: boolean } {
+  assertConfigLayerWritable(layer, cwd)
   const file = configFileForLayer(layer, cwd)
   if (!existsSync(file)) return { file, previous: undefined, removed: false }
   const root = readConfigRoot(file)

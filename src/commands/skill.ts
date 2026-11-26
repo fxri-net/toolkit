@@ -8,6 +8,7 @@ import { EXIT } from "../exit-codes"
 import { assertChoice } from "../cli-ui"
 import { runScopeMount } from "../scope/interactive"
 import { analyzeSkillLinkage, formatLinkageHints, type SkillLinkageReport } from "../scope/linkage"
+import { isHomeDirectory } from "../scope/paths"
 import { collectSkillVersionUpdates, type SkillVersionReport } from "../skills/version-status"
 import { DEFAULT_MAX_CHARS, DEFAULT_MAX_LINES, DEFAULT_WARN_LINES } from "../skills/lint"
 import { SKILL_PREFIX } from "../skills/prefix"
@@ -131,6 +132,25 @@ const SCOPE_LABEL: Record<ScopeChoice, string> = {
 // 作用域回显：标注取值来源（--scope 显式指定 / 按现场自动判定）
 function scopeHeadline(scope: { choice: ScopeChoice; explicit: boolean }): string {
   return `作用域：${SCOPE_LABEL[scope.choice]}（${scope.explicit ? "--scope 指定" : "按现场自动判定"}）`
+}
+
+// 家目录边界：home 不作为项目根；显式 project 报错，all 降级为全局面并告警
+// 返回实际生效的作用域与两面开关，调用方后续按返回值执行与回显
+function resolveSkillFaces(
+  scope: { choice: ScopeChoice; explicit: boolean },
+  action: string,
+): { scope: { choice: ScopeChoice; explicit: boolean }; runProject: boolean; runGlobal: boolean } | null {
+  const home = isHomeDirectory(process.cwd())
+  if (home && scope.choice === "project") {
+    console.error(`⚠️ 家目录不作为项目根，无法用项目面${action}；请进入项目仓库，或改用 --scope global`)
+    process.exitCode = 1
+    return null
+  }
+  if (home && scope.choice === "all") {
+    console.error("⚠️ 家目录不作为项目根，已跳过项目面，仅处理全局面")
+    return { scope: { choice: "global", explicit: scope.explicit }, runProject: false, runGlobal: true }
+  }
+  return { scope, runProject: scope.choice !== "global", runGlobal: scope.choice !== "project" }
 }
 
 // 技能现场状态的中文文案（status 逐项输出用）
@@ -943,8 +963,11 @@ export function registerSkillsCommands(program: Command): void {
     .action(async (options: { scope?: string; skills?: string; all?: boolean; optional?: boolean; source: string[]; from: string[]; save?: string | boolean; agent?: string; allAgents?: boolean; saveAgents?: boolean; yes?: boolean; useSaved?: boolean; copy?: boolean; dir: string[]; dryRun?: boolean; check?: boolean; refresh?: boolean; force?: boolean; prune?: boolean; mode?: string; gate?: boolean; embed?: boolean; format?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return
-        const scope = resolveScopeChoice(options.scope)
-        if (!scope) return
+        const rawScope = resolveScopeChoice(options.scope)
+        if (!rawScope) return
+        const faces = resolveSkillFaces(rawScope, "安装")
+        if (!faces) return
+        const scope = faces.scope
         const dryRun = Boolean(options.dryRun)
         // --no-skills 用 argv 判定：commander 的 --no- 前缀默认值会与 --skills 的字符串属性冲突
         const noSkills = process.argv.includes("--no-skills")
@@ -964,8 +987,8 @@ export function registerSkillsCommands(program: Command): void {
           return
         }
         if (!assertChoice(options.mode, ["skills", "package"], "--mode", "，未执行安装")) return
-        const runProject = scope.choice !== "global"
-        const runGlobal = scope.choice !== "project"
+        const runProject = faces.runProject
+        const runGlobal = faces.runGlobal
         // 兼容提示：项目面此前忽略 --gate / --embed，现已实际生效；随 2.0.0 移除
         if ((options.gate || options.embed) && runProject) {
           console.warn("⚠️ 项目面 --gate / --embed 现已生效（2.0.0 起移除该提示）")
@@ -1269,10 +1292,13 @@ export function registerSkillsCommands(program: Command): void {
           else printDeliveryExplanation(options.explain)
           return
         }
-        const scope = resolveScopeChoice(options.scope)
-        if (!scope) return
-        const runProject = scope.choice !== "global"
-        const runGlobal = scope.choice !== "project"
+        const rawScope = resolveScopeChoice(options.scope)
+        if (!rawScope) return
+        const faces = resolveSkillFaces(rawScope, "读取状态")
+        if (!faces) return
+        const scope = faces.scope
+        const runProject = faces.runProject
+        const runGlobal = faces.runGlobal
         const project = runProject ? projectSkillsStatus() : null
         const global = runGlobal ? skillsStatus() : null
         const latest = readCachedLatest()
@@ -1346,8 +1372,11 @@ export function registerSkillsCommands(program: Command): void {
     .action(async (options: { scope?: string; skills?: string; all?: boolean; yes?: boolean; source?: string; dryRun?: boolean; format?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return
-        const scope = resolveScopeChoice(options.scope)
-        if (!scope) return
+        const rawScope = resolveScopeChoice(options.scope)
+        if (!rawScope) return
+        const faces = resolveSkillFaces(rawScope, "卸载")
+        if (!faces) return
+        const scope = faces.scope
         // 显式传了 --skills 但取值为空时按非法处理，不静默当作清理全部
         const names = options.skills !== undefined ? (splitMulti(options.skills) ?? []) : undefined
         if (names && names.length === 0) {
@@ -1363,8 +1392,8 @@ export function registerSkillsCommands(program: Command): void {
         if (options.yes && !options.all) console.warn("⚠️ --yes 仅配合 --all 使用，已忽略")
         if (options.source !== undefined && scope.choice !== "global") console.warn("⚠️ --source 仅作用于全局面；项目面按全部来源清理")
         const dryRun = Boolean(options.dryRun)
-        const runProject = scope.choice !== "global"
-        const runGlobal = scope.choice !== "project"
+        const runProject = faces.runProject
+        const runGlobal = faces.runGlobal
         // --format json 视为非交互：交互 UI 不写入 stdout，避免污染机器可读输出
         const interactive = isInteractive() && options.format !== "json"
         let globalNames: string[] | undefined = names
@@ -1893,8 +1922,11 @@ export function registerSkillsCommands(program: Command): void {
     .action((options: { scope?: string; skills?: string; dryRun?: boolean; format?: string }) => {
       try {
         if (!assertJsonFormat(options.format)) return
-        const scope = resolveScopeChoice(options.scope)
-        if (!scope) return
+        const rawScope = resolveScopeChoice(options.scope)
+        if (!rawScope) return
+        const facesResolved = resolveSkillFaces(rawScope, "收敛")
+        if (!facesResolved) return
+        const scope = facesResolved.scope
         const names = options.skills !== undefined ? (splitMulti(options.skills) ?? []) : undefined
         if (names && names.length === 0) {
           console.error("⚠️ --skills 取值为空，未执行收敛")
@@ -1902,8 +1934,11 @@ export function registerSkillsCommands(program: Command): void {
           return
         }
         const dryRun = Boolean(options.dryRun)
-        const faces: Array<"global" | "project"> = scope.choice === "all" ? ["global", "project"] : [scope.choice]
-        const results = faces.map((face) => reconcileSkills({ scope: face, startDir: process.cwd(), skills: names, dryRun }))
+        const scopeFaces: Array<"global" | "project"> = [
+          ...(facesResolved.runGlobal ? (["global"] as const) : []),
+          ...(facesResolved.runProject ? (["project"] as const) : []),
+        ]
+        const results = scopeFaces.map((face) => reconcileSkills({ scope: face, startDir: process.cwd(), skills: names, dryRun }))
         if (options.format === "json") {
           printJson(jsonEnvelope({ command: "skill reconcile", data: { scope: scope.choice, dryRun, results } }))
         } else {

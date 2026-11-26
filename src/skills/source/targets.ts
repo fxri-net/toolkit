@@ -6,6 +6,7 @@ import { PROJECT_SKILL_DIRS, resolveProjectSkillDirs } from "../../conventions/e
 import { AGENT_SKILL_DIRS, CANONICAL_DIR, CANONICAL_LABEL, CANONICAL_TARGET_NAME, LEGACY_SKILL_DIRS, PROJECT_SOURCE_DIR, type AgentEntry, type ProjectTargets, type SkillScope, type SkillTarget, type TargetKind } from "../types"
 import { resolvePackageRoot } from "./package"
 import { pathKey, realPath, isInside } from "./paths"
+import { isHomeDirectory } from "../../scope/paths"
 
 
 function envAbsoluteDir(name: string): string | undefined {
@@ -132,6 +133,8 @@ export function detectSkillScope(cwd = process.cwd()): SkillScope {
   }
   let dir = resolve(cwd)
   for (;;) {
+    // 家目录视为边界：home 自身及其以上不作为项目根，避免全局 CLI 装在 home 下时把 home 判成项目面
+    if (isHomeDirectory(dir)) return "global"
     if (existsSync(join(dir, "package.json"))) {
       const root = realPath(dir)
       if (pathKey(root) === pathKey(pkgRoot)) return "global"

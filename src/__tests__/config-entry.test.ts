@@ -47,6 +47,13 @@ describe("配置键元数据", () => {
     expect(getConfigKey("skillInstall.mode")?.writableLayers).toEqual(["global"])
   })
 
+  it("家目录不作为项目根：项目层 / 本地层写入被拒绝", () => {
+    process.chdir(home)
+    expect(() => writeConfigKey("project", "task.dir", "home-tasks")).toThrow(/家目录不作为项目根/)
+    expect(() => writeConfigKey("local", "redact.enabled", true)).toThrow(/家目录不作为项目根/)
+    expect(() => unsetConfigKey("project", "task.dir")).toThrow(/家目录不作为项目根/)
+  })
+
   it("取值解析：布尔 / 整数 / 枚举 / 字符串数组", () => {
     expect(parseConfigValue(getConfigKey("check.warnings")!, "false").value).toBe(false)
     expect(parseConfigValue(getConfigKey("usage.storage.retentionDays")!, "30").value).toBe(30)

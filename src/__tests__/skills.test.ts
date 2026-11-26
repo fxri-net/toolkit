@@ -1490,4 +1490,23 @@ describe("技能作用域判定", () => {
     setPackageRootForTest(root)
     expect(detectSkillScope(root)).toBe("global")
   })
+
+  it("家目录含 package.json 且包根在其下时仍判为全局面", () => {
+    const home = tmpRoot("fxts-tk-scope-home-")
+    writeFileSync(join(home, "package.json"), JSON.stringify({ name: "home" }), "utf8")
+    setHomeDirForTest(home)
+    setPackageRootForTest(fakePackageRoot(home))
+    expect(detectSkillScope(home)).toBe("global")
+    const sub = join(home, "Downloads")
+    mkdirSync(sub, { recursive: true })
+    expect(detectSkillScope(sub)).toBe("global")
+  })
+
+  it("家目录下项目面安装被拒绝", () => {
+    const home = tmpRoot("fxts-tk-scope-install-home-")
+    writeFileSync(join(home, "package.json"), JSON.stringify({ name: "home" }), "utf8")
+    setHomeDirForTest(home)
+    setPackageRootForTest(fakePackageRoot(home))
+    expect(() => installProjectSkills({ cwd: home })).toThrow(/家目录不作为项目根/)
+  })
 })

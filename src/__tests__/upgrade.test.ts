@@ -4,9 +4,10 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
 import { rewriteConfigFile, rewritePackage } from "../upgrade/apply"
-import { buildUpgradePlan, runUpgrade, verifyUpgrade } from "../upgrade"
+import { buildUpgradePlan, checkVersionGate, runUpgrade, verifyUpgrade } from "../upgrade"
 import { latestBackup, restoreBackup } from "../upgrade/backup"
 import { planUpgradeDiffs } from "../upgrade/diff"
+import { setHomeDirForTest } from "../config"
 
 const fixtures: string[] = []
 
@@ -24,6 +25,7 @@ function makeProject(files: Record<string, string>): string {
 }
 
 afterEach(() => {
+  setHomeDirForTest(undefined)
   for (const dir of fixtures.splice(0)) rmSync(dir, { recursive: true, force: true })
 })
 
@@ -135,6 +137,17 @@ describe("升级迁移：计划与复检", () => {
     const ci = plan.items.find((item) => item.id === "project:ci")
     expect(ci?.status).toBe("manual")
     expect(plan.autoResidue).toBe(0)
+  })
+
+  it("家目录只生成全局层迁移项，版本门禁不拦截", () => {
+    const home = makeProject({
+      ".toolkitrc.json": legacyConfig,
+      "package.json": JSON.stringify({ name: "home", devDependencies: { "@fxri/toolkit": "^1.9.3" } }),
+    })
+    setHomeDirForTest(home)
+    const plan = buildUpgradePlan(home)
+    expect(plan.items.map((item) => item.id)).toEqual(["config:global"])
+    expect(checkVersionGate(home, plan.items).ok).toBe(true)
   })
 })
 

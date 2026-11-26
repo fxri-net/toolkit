@@ -3,8 +3,9 @@
 // 写配置只合并目标段、原子写、写前备份，写后重置配置缓存
 import { copyFileSync, existsSync, mkdirSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
-import { getHomeDir, inspectConfigLayers, resetToolkitConfigCache } from "../config"
+import { getHomeDir, inspectConfigLayers, isGlobalConfigPath, resetToolkitConfigCache } from "../config"
 import { compilePattern } from "../scope/pattern"
+import { isHomeDirectory } from "../scope/paths"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
 import { DELIVERY_MODES, gateRulesToDeliveryRules, type DeliveryMode, type DeliveryRule, type SkillsDeliveryConfig } from "./delivery"
@@ -371,9 +372,16 @@ export function writeSkillsDeliveryDefault(value: DeliveryMode): void {
 }
 
 // 写项目技能安装偏好：定位最近的项目层配置；不存在则在 cwd 下新建
+// 家目录不作为项目根，且项目层不得落到全局文件（两者同址时会把 projectSkill 写进全局层）
 export function writeProjectSkillsConfig(patch: Partial<ProjectSkillsConfig>, cwd = process.cwd()): void {
+  if (isHomeDirectory(cwd)) {
+    throw new Error("家目录不作为项目根，不能写入项目面技能配置：请进入项目仓库，或改用 --scope global")
+  }
   const layers = inspectConfigLayers(cwd)
   const file = layers.project.file ?? join(resolve(cwd), ".toolkitrc.json")
+  if (isGlobalConfigPath(file)) {
+    throw new Error(`项目面技能配置不能写入全局文件 ${file}：请进入项目目录，或改用 --scope global`)
+  }
   writeConfigSection(file, "projectSkill", patch as Record<string, unknown>)
 }
 

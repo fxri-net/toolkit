@@ -5,7 +5,7 @@ import type { Command } from "commander"
 import { configStatus, foldHome, type ConfigStatusReport } from "../config-status"
 import type { LocalConfigIgnoreState } from "../git-ignore"
 import { assertJsonFormat, jsonEnvelope } from "../json-output"
-import { readConfigKey, readConfigKeys, configFileForLayer, configLayerInRepo, unsetConfigKey, writeConfigKey } from "../config-edit"
+import { readConfigKey, readConfigKeys, assertConfigLayerWritable, configFileForLayer, configLayerInRepo, unsetConfigKey, writeConfigKey } from "../config-edit"
 import {
   CONFIG_KEYS,
   CONFIG_LAYER_LABELS,
@@ -75,6 +75,18 @@ function warnOutsideRepo(layer: ConfigKeyLayer, cwd: string | undefined): void {
   if (layer === "global" || configLayerInRepo(cwd)) return
   const file = configFileForLayer(layer, cwd)
   console.warn(`⚠️ 当前目录不在任何仓库内（缺少 .git / .tasks），${CONFIG_LAYER_LABELS[layer]}配置将写入 ${foldHome(file)}`)
+}
+
+// 写入可行性预检：家目录与非全局层落点同址时提前报错，避免 dry-run 给出可写假象
+function assertLayerWritable(layer: ConfigKeyLayer, cwd: string | undefined): boolean {
+  try {
+    assertConfigLayerWritable(layer, cwd)
+    return true
+  } catch (e) {
+    console.error(`⚠️ ${(e as Error).message}`)
+    process.exitCode = 1
+    return false
+  }
 }
 
 // 未知键告警：附最接近的候选，便于直接改正拼写
@@ -296,6 +308,7 @@ export function registerConfigCommands(program: Command): void {
         process.exitCode = 1
         return
       }
+      if (!assertLayerWritable(target, cwd)) return
       const parsed = parseConfigValue(spec, raw)
       if (parsed.error) {
         console.error(`⚠️ 配置键「${key}」取值非法：${parsed.error}（实际：${raw}）`)
@@ -385,6 +398,7 @@ export function registerConfigCommands(program: Command): void {
         process.exitCode = 1
         return
       }
+      if (!assertLayerWritable(target, cwd)) return
       if (options.dryRun) {
         if (options.format === "json") printJson(jsonEnvelope({ command: "config unset", data: { key, layer: target, dryRun: true, removed: null } }))
         else console.log(line.hint(`将从${CONFIG_LAYER_LABELS[target]}删除：${key}（--dry-run，未落盘）`))

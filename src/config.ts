@@ -158,6 +158,13 @@ export function getHomeDir(): string {
   return homeOverride ?? homedir()
 }
 
+// 判定某文件是否即全局配置文件：非全局层写入不得落到该文件（家目录下项目层回落会与全局层同址）
+export function isGlobalConfigPath(file: string): boolean {
+  const target = normalizePathForCompare(canonicalPath(resolve(file)))
+  const global = normalizePathForCompare(canonicalPath(join(getHomeDir(), ".toolkitrc.json")))
+  return target === global
+}
+
 // 某段是否显式写出有效叶子值：段为对象且该字段非 null / undefined；与合并逻辑共用同一叶子有效性判定
 function hasUsableLeaf(config: Record<string, unknown> | null, sectionName: string, fieldName: string): boolean {
   const section = config?.[sectionName]

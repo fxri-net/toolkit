@@ -64,6 +64,9 @@ toolkit skill list --format json             # JSON 输出：逐技能条目
 
 裸 `toolkit skill` 打印本域帮助（列出全部子命令）。
 
+- **家目录边界**：`~` 不作为项目根，缺省按现场判定为全局面；显式 `--scope project` 报错，
+  `--scope all` 跳过项目面并向 stderr 告警（home 下的 `.agents/skills` 与全局面 canonical 目录同址）
+
 ## 子命令
 
 ### install

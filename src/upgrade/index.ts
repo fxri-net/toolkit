@@ -29,13 +29,18 @@ export function verifyUpgrade(cwd: string, layers: readonly UpgradeLayer[] = ALL
 }
 
 // 版本门禁：项目依赖仍低于目标 major 时拒绝迁移（v1 CLI 读不懂 v2 配置）
+// 只迁移全局面时不涉及项目依赖，直接放行——否则在家目录或非项目目录会被无关的 package.json 拦下
 export interface VersionGate {
   ok: boolean
   detail: string
   blocking: boolean
 }
 
-export function checkVersionGate(cwd: string): VersionGate {
+export function checkVersionGate(cwd: string, items: readonly UpgradeItem[] = []): VersionGate {
+  const touchesProject = items.some((item) => item.layers.includes("project") || item.layers.includes("local"))
+  if (items.length > 0 && !touchesProject) {
+    return { ok: true, detail: "本次仅迁移全局面，跳过版本门禁", blocking: false }
+  }
   const file = join(cwd, "package.json")
   if (!existsSync(file)) return { ok: true, detail: "项目无 package.json，跳过版本门禁", blocking: false }
   let pkg: Record<string, unknown>

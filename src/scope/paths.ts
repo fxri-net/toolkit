@@ -3,7 +3,15 @@ import { spawnSync } from "node:child_process"
 import { existsSync } from "node:fs"
 import { homedir } from "node:os"
 import { dirname, isAbsolute, join, resolve } from "node:path"
-import { normalizePathForCompare } from "../git-ignore"
+import { getHomeDir } from "../config"
+import { canonicalPath, normalizePathForCompare } from "../git-ignore"
+
+// 家目录判定：同时比较注入 home 与真实 home，两侧均取磁盘真实形态后归一（Windows 短名 / 软链不误判）
+// 项目面写入与项目面安装不得以 home 为根，避免把全局层文件或全局 canonical 目录当成项目产物
+export function isHomeDirectory(input: string): boolean {
+  const target = normalizePathForCompare(canonicalPath(resolve(input)))
+  return [getHomeDir(), homedir()].some((home) => target === normalizePathForCompare(canonicalPath(home)))
+}
 
 // 展开 ~ 前缀；其余原样返回
 export function expandHome(input: string, home = homedir()): string {

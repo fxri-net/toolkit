@@ -2,12 +2,12 @@
 // 判定依据取「旧形态是否仍然存在」，不依赖旧补丁版本号
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { basename, join, resolve } from "node:path"
-import { CONFIG_LEGACY_SECTIONS, getHomeDir, loadToolkitConfig } from "../config"
+import { CONFIG_LEGACY_SECTIONS, getHomeDir, isGlobalConfigPath, loadToolkitConfig } from "../config"
 import { configFileForLayer } from "../config-edit"
 import { commandMigrationRows } from "../command-registry"
 import { conventionsStatus } from "../conventions/status"
 import { readTextFile } from "../read-text"
-import { findProjectRoot } from "../scope/paths"
+import { findProjectRoot, isHomeDirectory } from "../scope/paths"
 import { readProjectState, readSkillsState, skillsStateFile, projectStateFile } from "../skills/state"
 import { LEGACY_PREPARE_SCRIPTS } from "../tasks/init"
 import type { UpgradeItem, UpgradeLayer } from "./types"
@@ -55,8 +55,11 @@ export function legacyCommandIn(text: string): { from: string; to: string } | nu
 }
 
 // 配置文件检测：旧段名与旧闸门键各记一条，file 为实际命中的配置文件
+// 家目录不作为项目根；非全局层落点等于全局文件时跳过，避免同一文件被两层各报一条
 function detectConfigLayer(layer: UpgradeLayer, cwd: string): UpgradeItem[] {
+  if (layer !== "global" && isHomeDirectory(cwd)) return []
   const file = configFileForLayer(layer, cwd)
+  if (layer !== "global" && isGlobalConfigPath(file)) return []
   const data = readJsonObject(file)
   if (!data) return []
   const legacySections = Object.keys(CONFIG_LEGACY_SECTIONS).filter((key) => key in data)
@@ -276,8 +279,13 @@ function detectCi(cwd: string): UpgradeItem[] {
 }
 
 // 汇总检测：按固定顺序返回，保证计划与 diff 稳定
+// 家目录不作为项目根：project / local 面整体跳过，仅保留全局面迁移项
 export function detectUpgradeItems(cwd: string, layers: readonly UpgradeLayer[] = ALL_LAYERS): UpgradeItem[] {
   const enabled = new Set(layers)
+  if (isHomeDirectory(cwd)) {
+    enabled.delete("project")
+    enabled.delete("local")
+  }
   const items: UpgradeItem[] = []
   for (const layer of ALL_LAYERS) {
     if (enabled.has(layer)) items.push(...detectConfigLayer(layer, cwd))
@@ -285,8 +293,8 @@ export function detectUpgradeItems(cwd: string, layers: readonly UpgradeLayer[] 
   if (enabled.has("project")) {
     items.push(...detectPackage(cwd), ...detectConventions(cwd), ...detectCi(cwd))
   }
-  items.push(...detectSkills(cwd, layers))
-  items.push(...detectBackups(cwd, layers))
+  items.push(...detectSkills(cwd, [...enabled]))
+  items.push(...detectBackups(cwd, [...enabled]))
   return items
 }
 

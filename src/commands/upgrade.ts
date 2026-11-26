@@ -12,6 +12,7 @@ import { latestBackup, restoreBackup } from "../upgrade/backup"
 import { buildUpgradePlan, checkVersionGate, runUpgrade } from "../upgrade"
 import { ALL_LAYERS } from "../upgrade/detect"
 import { planUpgradeDiffs } from "../upgrade/diff"
+import { isHomeDirectory } from "../scope/paths"
 import type { UpgradeItem, UpgradeLayer } from "../upgrade/types"
 
 // 命令选项：与文档中的参数表保持一致
@@ -117,6 +118,11 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
   const cwd = resolve(options.cwd ?? process.cwd())
   const layers = parseLayers(options.layers)
   if (!layers) return
+  // 家目录不作为项目根：project / local 面整体跳过，并向 stderr 说明降级原因
+  const effectiveLayers = isHomeDirectory(cwd) ? layers.filter((layer) => layer === "global") : layers
+  if (effectiveLayers.length !== layers.length) {
+    console.error("⚠️ 家目录不作为项目根，已跳过 project / local 层，仅处理 global")
+  }
 
   // 恢复分支：不参与检测，直接从备份还原
   if (options.restore !== undefined) {
@@ -138,7 +144,7 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
     return
   }
 
-  const plan = buildUpgradePlan(cwd, { layers, only: parseIds(options.only), skip: parseIds(options.skip) })
+  const plan = buildUpgradePlan(cwd, { layers: effectiveLayers, only: parseIds(options.only), skip: parseIds(options.skip) })
   if (options.check) {
     if (options.format === "json") {
       printJson(jsonEnvelope({ command: "upgrade", data: { check: true, plan: plan.items, residue: plan.autoResidue, manual: plan.manual } }))
@@ -173,7 +179,7 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
     return
   }
 
-  const gate = checkVersionGate(cwd)
+  const gate = checkVersionGate(cwd, plan.items)
   if (!gate.ok && !options.allowOldDependency) {
     console.error(`⚠️ ${gate.detail}；确需继续加 --allow-old-dependency`)
     process.exitCode = 1
@@ -200,7 +206,7 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
     targets = plan.items.filter((item) => item.status === "planned")
   }
 
-  const result = runUpgrade(cwd, targets, { layers })
+  const result = runUpgrade(cwd, targets, { layers: effectiveLayers })
   if (options.format === "json") {
     printJson(
       jsonEnvelope({

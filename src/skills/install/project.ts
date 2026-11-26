@@ -4,6 +4,7 @@ import { join, resolve } from "node:path"
 import { readTextFile } from "../../read-text"
 import { assertUniqueSkillNames, buildSkillGateShell, buildSkillShell, isEmptyDir, isInside, isSkillGateShell, listPackageSkills, isPathPresent, readSkillDescription, readSkillShellVersion, removeArtifact, resolveProjectTargets, sourceSkillItems, toRepoRel } from "../source"
 import { acquireSkillsLock, projectSkillsLockFile } from "../lock"
+import { isHomeDirectory } from "../../scope/paths"
 import { projectStateFile, readProjectState, removeProjectStateFile, writeProjectState } from "../state"
 import { readProjectSkillsConfig, readSkillsDeliveryConfig, writeProjectSkillsConfig } from "../config"
 import { gateRulesToDeliveryRules, resolveDelivery, type DeliveryDecision, type DeliveryMode } from "../delivery"
@@ -41,6 +42,10 @@ export interface ProjectInstallOptions {
 
 export function installProjectSkills(options: ProjectInstallOptions = {}): ProjectInstallReport {
   const cwd = options.cwd ?? process.cwd()
+  // 家目录不作为项目根：项目面真源目录与全局 canonical 目录同址，落盘会互相覆盖
+  if (isHomeDirectory(cwd)) {
+    throw new Error("家目录不作为项目根，不能执行项目面安装：请进入项目仓库，或改用 --scope global")
+  }
   const sources = collectSources({ externalSources: options.externalSources, dryRun: options.dryRun })
   const allItems = sources.flatMap(sourceSkillItems)
   assertUniqueSkillNames(allItems)
@@ -375,6 +380,10 @@ function clearProjectSelection(cwd: string, skills?: string[]): void {
 // 顺序：先清项目选择配置（失败即中止）→ 清产物 → 重写/删除状态
 export function removeProjectSkills(options: { cwd?: string; dryRun?: boolean; skills?: string[] } = {}): ProjectRemoveReport {
   const cwd = options.cwd ?? process.cwd()
+  // 家目录不作为项目根：home 下的 .agents/skills 可能同时是全局面 canonical 真源，禁止按项目面删除
+  if (isHomeDirectory(cwd)) {
+    throw new Error("家目录不作为项目根，不能执行项目面卸载：请进入项目仓库，或改用 --scope global")
+  }
   const targets = resolveProjectTargets(cwd)
   const root = targets.root
   const file = projectStateFile(root)
