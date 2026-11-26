@@ -194,7 +194,7 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 | `fxri-plan-recap` | 1.7.11 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | `fxri-release-changelog` | 1.4.8 | changesets 发版与多语言 CHANGELOG 维护 | optional |
 | `fxri-writing-skill` | 1.0.5 | 技能编写规范：统一骨架、references 拆分、安全边界，把可机械检出的规则交给 lint、版本递增交给 bump | optional |
-| `fxri-writing-docs` | 0.2.6 | 文档站写作规范：分类骨架、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏与 404 兜底、导航用工具命令校验、代码块内联注释对齐 | optional |
+| `fxri-writing-docs` | 0.2.7 | 文档站写作规范：分类骨架、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏与 404 兜底、导航用工具命令校验、代码块内联注释对齐 | optional |
 | `fxri-code-encoding` | 1.2.12 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
 | `fxri-code-safety` | 0.1.0 | 破坏性操作安全：方案阶段披露影响与不可恢复部分，执行前限定范围并预览，用户可见删除优先进回收站，误删后按止损与恢复顺序处理 | core |
 | `fxri-test-tty` | 0.1.2 | 交互测试：PTY 驱动向导与多选，含断言清单 | optional |

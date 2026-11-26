@@ -1,7 +1,7 @@
 // 索引顺序与命令覆盖：命令总览 / 配置分页 / 两份文档索引的行序与覆盖，以 site-nav.json 与命令注册表为真源
 // 四处索引的行序是可用性契约（按频率排序），此前只能人工复核；本用例把「顺序」也纳入机检
 import { describe, expect, it } from "vitest"
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { COMMAND_REGISTRY } from "../command-registry"
 
@@ -154,5 +154,21 @@ describe("索引顺序与命令覆盖", () => {
       const expected = sidebarOrder.filter((path) => keys.includes(path))
       expect(inBoth, `${file} 的文档索引行序与侧栏不一致`).toEqual(expected)
     }
+  })
+
+  it("高层文档索引只收无标识入口页", () => {
+    const problems: string[] = []
+    for (const file of ["README.md", "docs/index.md"]) {
+      for (const cells of tableWithHeader(file, "文档").rows) {
+        const href = hrefOf(cells[0] as string)
+        if (!href.startsWith("./")) continue
+        const rel = canonical(href)
+        const page = [`docs/${rel}.md`, `docs/${rel}/index.md`].find((candidate) => existsSync(join(process.cwd(), candidate)))
+        if (!page) continue
+        const h1 = /^#\s+(.+)$/m.exec(readFileSync(join(process.cwd(), page), "utf8"))?.[1]?.trim() ?? ""
+        if (/（[^）]+）\s*$/.test(h1)) problems.push(`${file} 索引登记了带标识页面：${page}（${h1}）`)
+      }
+    }
+    expect(problems, "带标识的 CLI / 配置子页应由总页与侧栏承载，不进高层文档索引").toEqual([])
   })
 })
