@@ -1,5 +1,5 @@
 ---
-"@fxri/toolkit": minor
+"@fxri/toolkit": patch
 ---
 
 - 新增：`toolkit upgrade --prune-legacy` 删除已被新段覆盖或写错层的旧段，支持 `--dry-run` / `--diff` 预览
