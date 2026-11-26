@@ -1,10 +1,10 @@
 // 技能真源与现场（targets）：自 source.ts 按职责拆分，逻辑逐字未改
 import { existsSync } from "node:fs"
-import { dirname, isAbsolute, join, resolve } from "node:path"
+import { basename, dirname, isAbsolute, join, resolve } from "node:path"
 import { getHomeDir } from "../../config"
 import { PROJECT_SKILL_DIRS, resolveProjectSkillDirs } from "../../conventions/entry"
 import { AGENT_SKILL_DIRS, CANONICAL_DIR, CANONICAL_LABEL, CANONICAL_TARGET_NAME, LEGACY_SKILL_DIRS, PROJECT_SOURCE_DIR, type AgentEntry, type ProjectTargets, type SkillScope, type SkillTarget, type TargetKind } from "../types"
-import { resolvePackageRoot } from "./package"
+import { pnpmStableEntry, resolvePackageRoot } from "./package"
 import { pathKey, realPath, isInside } from "./paths"
 import { isHomeDirectory } from "../../scope/paths"
 
@@ -131,18 +131,39 @@ export function detectSkillScope(cwd = process.cwd()): SkillScope {
   } catch {
     return "global"
   }
-  let dir = resolve(cwd)
+  const start = safeRealPath(resolve(cwd))
+  // 家目录不作为项目根：全局 CLI 常装在 home 下，不能因此把 home 判成项目面
+  if (isHomeDirectory(start)) return "global"
+  // 位于包内（源仓库或包目录）恒按全局面
+  if (pathKey(start) === pathKey(pkgRoot) || isInside(start, pkgRoot)) return "global"
+  // 只按 CLI 安装位置判定：包所在 node_modules 的父目录即项目根，cwd 位于其内才判项目面
+  // 不依赖 package.json / 任何语言清单，非 Node 项目同样适用
+  const installRoot = resolveInstallRoot(pkgRoot)
+  if (installRoot) {
+    const root = safeRealPath(installRoot)
+    if (!isHomeDirectory(root) && (pathKey(start) === pathKey(root) || isInside(start, root))) return "project"
+  }
+  return "global"
+}
+
+// CLI 安装根：沿包根向上找到最近的 node_modules，其父目录即安装根；包根不在 node_modules 下返回 null
+// pnpm 布局优先取稳定入口，避免把 .pnpm 下的实体目录当成安装根
+function resolveInstallRoot(pkgRoot: string): string | null {
+  let dir = pnpmStableEntry(pkgRoot) || pkgRoot
   for (;;) {
-    // 家目录视为边界：home 自身及其以上不作为项目根，避免全局 CLI 装在 home 下时把 home 判成项目面
-    if (isHomeDirectory(dir)) return "global"
-    if (existsSync(join(dir, "package.json"))) {
-      const root = realPath(dir)
-      if (pathKey(root) === pathKey(pkgRoot)) return "global"
-      if (isInside(pkgRoot, root)) return "project"
-    }
     const parent = dirname(dir)
-    if (parent === dir) return "global"
+    if (parent === dir) return null
+    if (basename(dir) === "node_modules") return parent
     dir = parent
+  }
+}
+
+// 真实路径解析：目录不存在或权限不足时回落原路径，避免作用域判定因单次解析失败而中断
+function safeRealPath(dir: string): string {
+  try {
+    return realPath(dir)
+  } catch {
+    return dir
   }
 }
 

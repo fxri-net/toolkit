@@ -178,7 +178,7 @@ toolkit skill list --format json             # JSON 输出：逐技能条目
 
 ### mount
 
-- 在父目录（缺省当前目录）下扫一层仓库（`.git` / `package.json` / `.tasks`），交互多选并确认后逐仓安装；`--dry-run` 只预览
+- 在父目录（缺省当前目录）下扫一层仓库（`.git` / 项目标志 / `package.json + lock`），交互多选并确认后逐仓安装；`--dry-run` 只预览
 - 会向所选项目写入技能文件，确认信息写明项目数
 - 由 `toolkit scope mount` 迁入（该命令已移除），统一从 skill 域使用
 - 非 TTY 环境提示无法交互（无交互退出码，见[退出码](./exit-codes)），批量项目安装请在终端运行

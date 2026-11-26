@@ -6,6 +6,7 @@ import { join } from "node:path"
 import { inspectConfigLayers, resetToolkitConfigCache, rewriteLegacySections, setHomeDirForTest } from "../config"
 import { configKeyNames, getConfigKey, isConfigLayer, parseConfigValue, suggestConfigKeys } from "../config-keys"
 import { configFileForLayer, configLayerInRepo, readConfigKey, readConfigKeys, unsetConfigKey, writeConfigKey } from "../config-edit"
+import { writeUpdateCheckSourceNotify } from "../skills/config"
 import { COMMAND_REGISTRY, commandMigrationRows, removedCommandHint } from "../command-registry"
 
 // 临时 home 与项目目录：三层配置都只落在临时路径
@@ -157,7 +158,7 @@ describe("查找起点与批量读取", () => {
     expect(Object.keys(states)).toEqual(["task.dir", "check.warnings"])
   })
 
-  it("仓库判定：有 .git 或 .tasks 为真，都没有为假", () => {
+  it("项目根判定：有项目标志为真，都没有为假", () => {
     expect(configLayerInRepo(project)).toBe(true)
     const plain = mkdtempSync(join(tmpdir(), "fxts-tk-cfg-plain-"))
     try {
@@ -284,5 +285,22 @@ describe("命令注册表", () => {
     expect(removedCommandHint(["usage", "rule", "--format", "json"])).toContain("rule compose")
     expect(removedCommandHint(["usage", "stats"])).toBeNull()
     expect(removedCommandHint(["tasks"])).toBeNull()
+  })
+})
+
+describe("项目层更新提示写入", () => {
+  it("无 git 的项目目录按项目配置定位，不再要求 git 根", () => {
+    const plain = mkdtempSync(join(tmpdir(), "fxts-tk-update-notify-"))
+    try {
+      const file = writeUpdateCheckSourceNotify("play", "daily", "project", plain)
+      expect(file).toBe(join(plain, ".toolkitrc.json"))
+      expect(JSON.parse(readFileSync(file, "utf8"))).toMatchObject({ updateCheck: { sources: { play: { notify: "daily" } } } })
+    } finally {
+      rmSync(plain, { recursive: true, force: true })
+    }
+  })
+
+  it("家目录拒绝写入项目层提示", () => {
+    expect(() => writeUpdateCheckSourceNotify("play", "daily", "project", home)).toThrow(/家目录不作为项目根/)
   })
 })

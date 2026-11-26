@@ -1466,6 +1466,15 @@ describe("技能作用域判定", () => {
     expect(detectSkillScope(root)).toBe("project")
   })
 
+  it("无 package.json 的本地安装目录同样判为项目面", () => {
+    const root = tmpRoot("fxts-tk-scope-no-manifest-")
+    setPackageRootForTest(fakePackageRoot(root))
+    expect(detectSkillScope(root)).toBe("project")
+    const sub = join(root, "packages", "app")
+    mkdirSync(sub, { recursive: true })
+    expect(detectSkillScope(sub)).toBe("project")
+  })
+
   it("monorepo 子目录内执行同样判为项目面", () => {
     const root = tmpRoot("fxts-tk-scope-mono-")
     writeFileSync(join(root, "package.json"), JSON.stringify({ name: "root" }), "utf8")

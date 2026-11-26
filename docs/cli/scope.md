@@ -129,7 +129,8 @@ toolkit scope guard fxri-plan-task            # 内容闸门：按当前目录�
 3. 无策略命中默认允许
 
 旧 `activation` 加载时编译为同层策略：`exclude` / 标记排除为 deny，`include` 与启用条件为 allow，空 allowlist 产生兜底 deny，
-既有配置结论不变。判定目录为项目根：优先 git 根，其次最近 `.tasks` 根，都没有则回落当前目录。
+既有配置结论不变。判定目录为项目根：优先 git 根，其次最近的项目标志目录（项目配置 / 项目产物），都没有则回落当前目录；
+`.tasks` 是任务区路径、可配置到项目外，不参与项目根判定。
 `scope status --format json` 走统一信封，`data` 内含 `active` / `mode` / `baseDir` / `skill` /
 `sourceFile` / `matchedRule` / `reason`。
 `matchedRule` 为纯 `policy:<id>`（不含 name）；文本模式再按策略记录补中文名，名单配置生成的规则只显示中文名。

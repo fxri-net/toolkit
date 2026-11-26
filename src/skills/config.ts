@@ -3,9 +3,9 @@
 // 写配置只合并目标段、原子写、写前备份，写后重置配置缓存
 import { copyFileSync, existsSync, mkdirSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
-import { getHomeDir, inspectConfigLayers, isGlobalConfigPath, resetToolkitConfigCache } from "../config"
+import { CONFIG_PROJECT_FILE, getHomeDir, inspectConfigLayers, isGlobalConfigPath, resetToolkitConfigCache } from "../config"
 import { compilePattern } from "../scope/pattern"
-import { isHomeDirectory } from "../scope/paths"
+import { findProjectRoot, isHomeDirectory } from "../scope/paths"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
 import { DELIVERY_MODES, gateRulesToDeliveryRules, type DeliveryMode, type DeliveryRule, type SkillsDeliveryConfig } from "./delivery"
@@ -396,17 +396,6 @@ export function writeProjectSkillsConfig(patch: Partial<ProjectSkillsConfig>, cw
 // 升级提示频率：与 update-check 的取值保持一致
 export type UpdateNotifyFrequency = "always" | "daily" | "weekly" | "off"
 
-// 向上查找 git 仓库根：monorepo 子目录执行时也能把项目层配置写到仓库根
-function findGitRoot(start: string): string | null {
-  let dir = resolve(start)
-  while (true) {
-    if (existsSync(join(dir, ".git"))) return dir
-    const parent = dirname(dir)
-    if (parent === dir) return null
-    dir = parent
-  }
-}
-
 // 写单个第三方来源的提示频率：只合并 updateCheck.sources.<name>.notify，其余段原样保留
 export function writeUpdateCheckSourceNotify(
   name: string,
@@ -416,9 +405,8 @@ export function writeUpdateCheckSourceNotify(
 ): string {
   let file: string
   if (scope === "project") {
-    const root = findGitRoot(cwd)
-    if (!root) throw new Error("--scope project 需要在 git 仓库内执行")
-    file = inspectConfigLayers(cwd).project.file ?? join(root, ".toolkitrc.json")
+    if (isHomeDirectory(cwd)) throw new Error("家目录不作为项目根，不能写入项目层更新提示：请进入项目目录")
+    file = inspectConfigLayers(cwd).project.file ?? join(findProjectRoot(cwd), CONFIG_PROJECT_FILE)
   } else {
     file = join(getHomeDir(), ".toolkitrc.json")
   }

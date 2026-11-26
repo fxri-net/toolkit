@@ -3,7 +3,7 @@ import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { getHomeDir } from "../config"
 import { readTextFile } from "../read-text"
-import { findProjectRoot } from "./paths"
+import { findProjectRoot, isProjectRoot } from "./paths"
 import { writeFileAtomic } from "../write-atomic"
 
 // 配置层：全局跨项目、项目层随仓库共享、本地层不入库
@@ -28,14 +28,14 @@ export function globalConfigPath(): string {
 export function layerConfigTarget(layer: ConfigLayer, startDir = process.cwd()): LayerConfigTarget {
   if (layer === "global") return { layer, file: globalConfigPath(), root: null, available: true, reason: "" }
   const root = findProjectRoot(startDir)
-  const usable = existsSync(join(root, ".git")) || existsSync(join(root, ".tasks"))
+  const usable = isProjectRoot(root)
   const file = join(root, layer === "project" ? ".toolkitrc.json" : ".toolkitrc.local.json")
   return {
     layer,
     file,
     root,
     available: usable,
-    reason: usable ? "" : "当前目录不在任何仓库内，无法定位项目根",
+    reason: usable ? "" : "当前目录不在任何项目内，无法定位项目根",
   }
 }
 

@@ -74,7 +74,7 @@ function resolveCwdOption(options: { cwd?: string }): string | undefined | null 
 function warnOutsideRepo(layer: ConfigKeyLayer, cwd: string | undefined): void {
   if (layer === "global" || configLayerInRepo(cwd)) return
   const file = configFileForLayer(layer, cwd)
-  console.warn(`⚠️ 当前目录不在任何仓库内（缺少 .git / .tasks），${CONFIG_LAYER_LABELS[layer]}配置将写入 ${foldHome(file)}`)
+  console.warn(`⚠️ 当前目录不在任何项目内（缺少 .git、项目配置或项目产物），${CONFIG_LAYER_LABELS[layer]}配置将写入 ${foldHome(file)}`)
 }
 
 // 写入可行性预检：家目录与非全局层落点同址时提前报错，避免 dry-run 给出可写假象

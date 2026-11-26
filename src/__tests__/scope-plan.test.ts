@@ -16,11 +16,12 @@ afterEach(() => {
 })
 
 describe("scanRepositories", () => {
-  it("按 .git / package.json / .tasks 识别仓库并跳过依赖目录", () => {
+  it("按 .git / 项目标志 / package.json 识别仓库并跳过依赖目录", () => {
     mkdirSync(join(root, "repo-a", ".git"), { recursive: true })
     mkdirSync(join(root, "repo-b"), { recursive: true })
     writeFileSync(join(root, "repo-b", "package.json"), "{}")
-    mkdirSync(join(root, "repo-c", ".tasks"), { recursive: true })
+    mkdirSync(join(root, "repo-c"), { recursive: true })
+    writeFileSync(join(root, "repo-c", ".toolkitrc.json"), "{}")
     mkdirSync(join(root, "plain"), { recursive: true })
     mkdirSync(join(root, "node_modules", "x", ".git"), { recursive: true })
     writeFileSync(join(root, "file.txt"), "")
@@ -34,6 +35,12 @@ describe("scanRepositories", () => {
     mkdirSync(join(root, "中文仓库", ".git"), { recursive: true })
     expect(scanRepositories(root).map((repo) => repo.name)).toEqual(["Alpha", "beta", "中文仓库"])
     expect(scanRepositoryTree(root).repos.map((repo) => repo.name)).toEqual(["Alpha", "beta", "中文仓库"])
+  })
+
+  it("项目标志目录在递归扫描中识别为 project", () => {
+    mkdirSync(join(root, "flagged"), { recursive: true })
+    writeFileSync(join(root, "flagged", ".toolkitrc.json"), "{}")
+    expect(scanRepositoryTree(root).repos.find((repo) => repo.name === "flagged")?.kind).toBe("project")
   })
 })
 

@@ -1,10 +1,10 @@
 // 作用域配置加载：三层就近覆盖、来源文件与非法值告警
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { join, resolve } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
-import { resolveScope } from "../scope"
+import { findProjectRoot, resolveScope } from "../scope"
 
 let home = ""
 let project = ""
@@ -68,7 +68,7 @@ describe("resolveScope", () => {
   it("判定基准取项目根：子目录按项目根命中并给出迁移提示", () => {
     const subdir = join(project, "src")
     mkdirSync(subdir, { recursive: true })
-    mkdirSync(join(project, ".tasks"), { recursive: true })
+    writeFileSync(join(project, ".toolkitrc.json"), "{}")
     writeGlobal({ activation: { mode: "allowlist", include: [project.replace(/\\/g, "/")] } })
     const report = resolveScope(subdir)
     expect(report.decision.active).toBe(true)
@@ -161,5 +161,42 @@ describe("resolveScope", () => {
     expect(review.decision.active).toBe(true)
     expect(review.decision.reason).toContain("技能级规则")
     expect(resolveScope(project, "fxri-code-encoding").decision.active).toBe(true)
+  })
+})
+
+describe("findProjectRoot", () => {
+  it("父目录只有 .tasks 时不作为项目根", () => {
+    const parent = join(home, "work")
+    const repo = join(parent, "repo")
+    const sub = join(repo, "src")
+    mkdirSync(sub, { recursive: true })
+    mkdirSync(join(parent, ".tasks"), { recursive: true })
+    expect(findProjectRoot(sub)).toBe(sub)
+  })
+
+  it("项目配置与项目产物可定位项目根", () => {
+    const repo = join(home, "work", "repo")
+    const sub = join(repo, "src")
+    mkdirSync(sub, { recursive: true })
+    writeFileSync(join(repo, ".toolkitrc.json"), "{}")
+    expect(findProjectRoot(sub)).toBe(repo)
+    rmSync(join(repo, ".toolkitrc.json"))
+    mkdirSync(join(repo, ".agents", "skills"), { recursive: true })
+    expect(findProjectRoot(sub)).toBe(repo)
+  })
+
+  it("git 根优先于项目标志", () => {
+    const parent = join(home, "work")
+    const repo = join(parent, "repo")
+    const sub = join(repo, "src")
+    mkdirSync(sub, { recursive: true })
+    mkdirSync(join(parent, ".git"), { recursive: true })
+    writeFileSync(join(repo, ".toolkitrc.json"), "{}")
+    expect(findProjectRoot(sub)).toBe(parent)
+  })
+
+  it("盘根无项目标志时回落起点", () => {
+    const root = resolve("/")
+    expect(findProjectRoot(root)).toBe(root)
   })
 })

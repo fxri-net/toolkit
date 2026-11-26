@@ -13,7 +13,7 @@ import {
   type ConfigLayers,
 } from "./config"
 import { readTextFile } from "./read-text"
-import { findProjectRoot, isHomeDirectory } from "./scope/paths"
+import { findProjectRoot, isHomeDirectory, isProjectRoot } from "./scope/paths"
 import { writeFileAtomic } from "./write-atomic"
 import type { ConfigKeyLayer } from "./config-keys"
 
@@ -95,10 +95,9 @@ export function readConfigKeys(
   return out
 }
 
-// 判断项目根是否具备仓库标志（.git 或 .tasks）：供写入项目层 / 本地层前提示
+// 判断项目根是否具备项目标志（git / 项目配置 / 项目产物）：供写入项目层 / 本地层前提示
 export function configLayerInRepo(cwd = process.cwd()): boolean {
-  const root = findProjectRoot(cwd)
-  return existsSync(join(root, ".git")) || existsSync(join(root, ".tasks"))
+  return isProjectRoot(findProjectRoot(cwd))
 }
 
 // 定位某层的配置文件：已命中的就近文件优先，否则落到该层默认位置

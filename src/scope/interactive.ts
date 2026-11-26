@@ -209,7 +209,7 @@ async function pickFromScan(): Promise<string[] | null> {
         return {
           name: formatChoiceLine({
             name: label,
-            description: repo.kind === "npm" ? "非 git" : undefined,
+            description: repo.kind !== "git" ? "非 git" : undefined,
             reserved: 5,
             columns,
             path: true,

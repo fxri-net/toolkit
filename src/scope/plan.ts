@@ -2,6 +2,7 @@
 import { existsSync, readdirSync } from "node:fs"
 import { basename, join } from "node:path"
 import { normalizePathForCompare } from "../git-ignore"
+import { isProjectRoot } from "./paths"
 import type { ActivationMode } from "./types"
 
 // 扫描时跳过的目录：避免把依赖与产物当仓库
@@ -27,7 +28,7 @@ const SKIP_DIRS = new Set([
 // 非 git 项目的判定补充：存在任一 lock 才算真实项目，避免脚手架与 monorepo 子包误判
 const LOCK_FILES = ["pnpm-lock.yaml", "package-lock.json", "yarn.lock"]
 
-export type RepositoryKind = "git" | "tasks" | "npm"
+export type RepositoryKind = "git" | "project" | "npm"
 
 export interface RepositoryEntry {
   name: string
@@ -56,15 +57,17 @@ export interface ScanOptions {
   interrupted?: () => boolean
 }
 
-// 单目录身份判定：.git（目录或文件）优先，其次 .tasks，最后「package.json + lock」
+// 单目录身份判定：.git 优先，其次项目标志（配置 / 项目产物），最后「package.json + lock」作为非 git Node 项目线索
+// `.tasks` 是任务区路径、可配置到项目外，不参与项目身份
 function detectRepository(dir: string): RepositoryKind | null {
   if (existsSync(join(dir, ".git"))) return "git"
-  if (existsSync(join(dir, ".tasks"))) return "tasks"
+  if (isProjectRoot(dir)) return "project"
   if (existsSync(join(dir, "package.json")) && LOCK_FILES.some((file) => existsSync(join(dir, file)))) return "npm"
   return null
 }
 
-// 扫描父目录一层：以 .git / package.json / .tasks 任一存在判定为仓库，结果按名称排序
+// 扫描父目录一层：以 .git / 项目标志 / package.json 任一存在判定为仓库，结果按名称排序
+// 单层扫描沿用宽松口径（package.json 即可），递归扫描仍以 package.json + lock 识别非 git Node 项目
 export function scanRepositories(parent: string, limit = 500): RepositoryEntry[] {
   const entries = readdirSync(parent, { withFileTypes: true })
   const repos: RepositoryEntry[] = []
@@ -72,7 +75,7 @@ export function scanRepositories(parent: string, limit = 500): RepositoryEntry[]
     if (repos.length >= limit) break
     if (!entry.isDirectory() || SKIP_DIRS.has(entry.name)) continue
     const dir = join(parent, entry.name)
-    if (existsSync(join(dir, ".git")) || existsSync(join(dir, "package.json")) || existsSync(join(dir, ".tasks"))) {
+    if (existsSync(join(dir, ".git")) || isProjectRoot(dir) || existsSync(join(dir, "package.json"))) {
       repos.push({ name: entry.name, path: dir })
     }
   }

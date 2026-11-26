@@ -3,8 +3,24 @@ import { spawnSync } from "node:child_process"
 import { existsSync } from "node:fs"
 import { homedir } from "node:os"
 import { dirname, isAbsolute, join, resolve } from "node:path"
-import { getHomeDir } from "../config"
+import { CONFIG_LOCAL_FILE, CONFIG_PROJECT_FILE, getHomeDir } from "../config"
+import { PROJECT_SKILL_DIRS } from "../conventions/entry"
 import { canonicalPath, normalizePathForCompare } from "../git-ignore"
+import { PROJECT_STATE_DIR, PROJECT_STATE_FILE } from "../skills/types"
+
+// 项目标志：与语言、任务区位置无关。`.tasks` 是任务区路径（可配置到项目外），`package.json` 只证明 Node 项目，二者都不参与项目身份
+const PROJECT_MARKERS = [
+  ".git",
+  CONFIG_PROJECT_FILE,
+  CONFIG_LOCAL_FILE,
+  `${PROJECT_STATE_DIR}/${PROJECT_STATE_FILE}`,
+  ...PROJECT_SKILL_DIRS,
+]
+
+// 判定某目录是否具备项目标志：供项目根定位与写入可用性检查共用同一口径
+export function isProjectRoot(dir: string): boolean {
+  return PROJECT_MARKERS.some((marker) => existsSync(join(dir, marker)))
+}
 
 // 家目录判定：同时比较注入 home 与真实 home，两侧均取磁盘真实形态后归一（Windows 短名 / 软链不误判）
 // 项目面写入与项目面安装不得以 home 为根，避免把全局层文件或全局 canonical 目录当成项目产物
@@ -54,18 +70,21 @@ export function findGitRoot(start = process.cwd()): string | null {
   }
 }
 
-// 判定基准：项目根优先——git 根优先，其次向上最近的含 .tasks 的目录，都没有则回落起点
+// 判定基准：git 根优先，其次向上最近的项目标志目录（止于 home），都没有则回落起点
+// 不认 `.tasks`：任务区可配置到项目外，存在 `.tasks` 不代表该目录是项目根
 export function findProjectRoot(start = process.cwd()): string {
   const gitRoot = findGitRoot(start)
   if (gitRoot) return gitRoot
-  let current = resolve(start)
-  const origin = current
+  const origin = resolve(start)
+  let current = origin
   for (;;) {
-    if (existsSync(join(current, ".tasks"))) return current
+    if (isHomeDirectory(current)) break
+    if (isProjectRoot(current)) return current
     const parent = dirname(current)
-    if (parent === current) return origin
+    if (parent === current) break
     current = parent
   }
+  return origin
 }
 
 // 归一 git 远端：去掉协议与用户、把 scp 形式的 `host:path` 改为 `host/path`、去掉尾部 .git

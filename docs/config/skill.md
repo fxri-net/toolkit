@@ -220,8 +220,9 @@ DeepSeek Harness 的项目级技能目录与项目面真源同路径（`<仓库�
 薄壳的 `description` 派生自真源以保持触发面一致，正文只指向真源路径并带本包标记；未命中的候选目录只报告、不凭空建目录。
 不写到仓库之外：`--dir` 落在仓库外会告警剔除，不静默丢弃。不支持 `--copy`：真源恒为副本、薄壳非副本，传入时告警忽略。
 
-⚠️ **自动判定判据**：自当前工作目录逐级向上（**止于 home**），任一层含 `package.json` 且 CLI 包根真实落在其下 → `project`，否则 `global`。
-monorepo 子目录执行亦能命中项目面。
+⚠️ **自动判定判据**：CLI 安装在某个 `node_modules` 下时，取该 `node_modules` 的父目录为安装根。
+cwd 位于安装根内 → `project`；cwd 位于包内 → `global`，其余 → `global`。
+判定只看 CLI 安装位置，不依赖 `package.json` 或任何语言清单，非 Node 项目同样适用；monorepo 子目录执行亦能命中项目面。
 **家目录视为边界**：home 自身及其以上不作为项目根，在 `~` 下执行一律按 `global`；显式 `--scope project` 报错，`--scope all` 跳过项目面并告警。
 **本包源仓库自身视为 `global`**（维护者靠全局技能自举，不把自身 `skills/` 复制进自身仓库）。
 传入非法取值（非 `project` / `global` / `all`）时报错退出（退出码 1），不静默回落默认值。
