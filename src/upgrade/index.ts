@@ -10,12 +10,12 @@ import type { UpgradeApplyResult, UpgradeItem, UpgradeLayer, UpgradePlan } from 
 // 计划过滤：--only / --skip 都按稳定 id 匹配；不传即全选
 export function buildUpgradePlan(
   cwd: string,
-  options: { layers?: readonly UpgradeLayer[]; only?: string[]; skip?: string[]; dropLegacy?: boolean } = {},
+  options: { layers?: readonly UpgradeLayer[]; only?: string[]; skip?: string[]; pruneLegacy?: boolean } = {},
 ): UpgradePlan {
   const layers = options.layers ?? ALL_LAYERS
   const only = options.only && options.only.length > 0 ? new Set(options.only) : null
   const skip = new Set(options.skip ?? [])
-  const items = detectUpgradeItems(cwd, layers, { dropLegacy: options.dropLegacy }).filter(
+  const items = detectUpgradeItems(cwd, layers, { pruneLegacy: options.pruneLegacy }).filter(
     (item) => (only ? only.has(item.id) : true) && !skip.has(item.id),
   )
   return {
@@ -29,7 +29,7 @@ export function buildUpgradePlan(
 export function verifyUpgrade(
   cwd: string,
   layers: readonly UpgradeLayer[] = ALL_LAYERS,
-  options: { dropLegacy?: boolean } = {},
+  options: { pruneLegacy?: boolean } = {},
 ): UpgradeItem[] {
   return detectUpgradeItems(cwd, layers, options)
 }
@@ -82,10 +82,10 @@ export interface UpgradeRunResult extends UpgradeApplyResult {
 export function runUpgrade(
   cwd: string,
   items: UpgradeItem[],
-  options: { layers?: readonly UpgradeLayer[]; dropLegacy?: boolean } = {},
+  options: { layers?: readonly UpgradeLayer[]; pruneLegacy?: boolean } = {},
 ): UpgradeRunResult {
   const tasksDir = tasksDirFor(cwd)
   const scope = options.layers && options.layers.length === 1 && options.layers[0] === "global" ? "global" : "project"
-  const applied = applyUpgrade(items, { cwd, tasksDir, scope, dropLegacy: options.dropLegacy })
-  return { ...applied, residue: verifyUpgrade(cwd, options.layers, { dropLegacy: options.dropLegacy }).filter((item) => item.status === "planned"), tasksDir }
+  const applied = applyUpgrade(items, { cwd, tasksDir, scope, pruneLegacy: options.pruneLegacy })
+  return { ...applied, residue: verifyUpgrade(cwd, options.layers, { pruneLegacy: options.pruneLegacy }).filter((item) => item.status === "planned"), tasksDir }
 }

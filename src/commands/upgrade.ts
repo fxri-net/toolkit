@@ -8,7 +8,7 @@ import { askCheckbox } from "../cli-ui"
 import { formatChoiceLine, terminalColumns } from "../prompt-line"
 import { printJson } from "./shared"
 import { line, style } from "../term-style"
-import { latestBackup, cleanBackups, restoreBackup } from "../upgrade/backup"
+import { latestBackup, pruneBackups, pruneLayersFor, restoreBackup } from "../upgrade/backup"
 import { buildUpgradePlan, checkVersionGate, runUpgrade } from "../upgrade"
 import { ALL_LAYERS } from "../upgrade/detect"
 import { planUpgradeDiffs } from "../upgrade/diff"
@@ -26,11 +26,11 @@ interface UpgradeOptions {
   layers?: string
   only?: string
   skip?: string
-  dropLegacy?: boolean
+  pruneLegacy?: boolean
   allowOldDependency?: boolean
   restore?: string | boolean
   overwrite?: boolean
-  cleanBackups?: boolean
+  pruneBackups?: boolean
   keep?: string
 }
 
@@ -139,25 +139,25 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
   }
 
   // 备份清理分支：与恢复互斥；local 层没有备份根，告警后跳过
-  if (options.cleanBackups) {
+  if (options.pruneBackups) {
     if (options.restore !== undefined) {
-      console.error("⚠️ --clean-backups 与 --restore 不能同时使用")
+      console.error("⚠️ --prune-backups 与 --restore 不能同时使用")
       process.exitCode = 1
       return
     }
-    if (options.check) console.error("⚠️ --check 不适用于 --clean-backups，已忽略")
+    if (options.check) console.error("⚠️ --check 不适用于 --prune-backups，已忽略")
     const keep = parseKeep(options.keep)
     if (keep === false) return
-    const cleanLayers = effectiveLayers.filter((layer) => layer !== "local")
-    if (cleanLayers.length !== effectiveLayers.length) console.error("⚠️ local 层没有备份目录，已忽略")
-    if (cleanLayers.length === 0) {
+    const pruneLayers = pruneLayersFor(cwd, options.layers !== undefined ? effectiveLayers : undefined)
+    if (options.layers !== undefined && pruneLayers.length !== effectiveLayers.length) console.error("⚠️ local 层没有备份目录，已忽略")
+    if (pruneLayers.length === 0) {
       console.error("⚠️ 没有可清理的备份层")
       process.exitCode = 1
       return
     }
-    const result = cleanBackups({ cwd, layers: cleanLayers, keep, dryRun: Boolean(options.dryRun) })
+    const result = pruneBackups({ cwd, layers: pruneLayers, keep, dryRun: Boolean(options.dryRun) })
     if (options.format === "json") {
-      printJson(jsonEnvelope({ command: "upgrade", data: { cleanBackups: result } }))
+      printJson(jsonEnvelope({ command: "upgrade", data: { pruneBackups: result } }))
       return
     }
     const verb = result.dryRun ? "[预演] 将清理" : "已清理"
@@ -168,7 +168,7 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
     if (result.skipped.length > 0) console.error(`⚠️ 跳过 ${result.skipped.length} 个无法确认归属的目录：${result.skipped.join("、")}`)
     return
   }
-  if (options.keep !== undefined) console.error("⚠️ --keep 仅配合 --clean-backups 使用，已忽略")
+  if (options.keep !== undefined) console.error("⚠️ --keep 仅配合 --prune-backups 使用，已忽略")
 
   // 恢复分支：不参与检测，直接从备份还原
   if (options.restore !== undefined) {
@@ -194,7 +194,7 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
     layers: effectiveLayers,
     only: parseIds(options.only),
     skip: parseIds(options.skip),
-    dropLegacy: Boolean(options.dropLegacy),
+    pruneLegacy: Boolean(options.pruneLegacy),
   })
   if (options.check) {
     if (options.format === "json") {
@@ -210,7 +210,7 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
 
   if (options.dryRun || options.diff) {
     // --diff 在清单之后追加行级差异；--dry-run 仍只出清单，两者都不写盘
-    const diffs = options.diff ? planUpgradeDiffs(plan.items, { dropLegacy: Boolean(options.dropLegacy) }) : []
+    const diffs = options.diff ? planUpgradeDiffs(plan.items, { pruneLegacy: Boolean(options.pruneLegacy) }) : []
     if (options.format === "json") {
       const data = options.diff ? { dryRun: true, plan: plan.items, residue: plan.autoResidue, diffs } : { dryRun: true, plan: plan.items, residue: plan.autoResidue }
       printJson(jsonEnvelope({ command: "upgrade", data }))
@@ -257,7 +257,7 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
     targets = plan.items.filter((item) => item.status === "planned")
   }
 
-  const result = runUpgrade(cwd, targets, { layers: effectiveLayers, dropLegacy: Boolean(options.dropLegacy) })
+  const result = runUpgrade(cwd, targets, { layers: effectiveLayers, pruneLegacy: Boolean(options.pruneLegacy) })
   if (options.format === "json") {
     printJson(
       jsonEnvelope({
@@ -286,12 +286,12 @@ export function registerUpgradeCommands(program: Command): void {
     .option("--layers <layers>", "迁移层：global / project / local（逗号分隔，缺省全部）")
     .option("--only <ids>", "只执行指定迁移项（逗号分隔）")
     .option("--skip <ids>", "跳过指定迁移项（逗号分隔）")
-    .option("--drop-legacy", "删除已被新段覆盖或写错层的旧段（本就不生效）")
+    .option("--prune-legacy", "删除已被新段覆盖或写错层的旧段（本就不生效）")
     .option("--allow-old-dependency", "项目依赖仍低于当前 major 时仍继续迁移")
     .option("--restore [path]", "从备份恢复；省略或 latest 取最近一次")
     .option("--overwrite", "恢复时覆盖迁移后被修改的文件")
-    .option("--clean-backups", "清理迁移备份目录与本包已知的 .bak（配合 --keep / --layers）")
-    .option("--keep <n>", "配合 --clean-backups：每个备份根保留最近 n 个目录（缺省 0，全部清理）")
+    .option("--prune-backups", "清理迁移备份目录与本包已知的 .bak（配合 --keep / --layers）")
+    .option("--keep <n>", "配合 --prune-backups：每个备份根保留最近 n 个目录（缺省 0，全部清理）")
     .action(async (options: UpgradeOptions) => {
       try {
         await runUpgradeCommand(options)

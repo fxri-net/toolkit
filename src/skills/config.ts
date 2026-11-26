@@ -55,7 +55,7 @@ function warnMisplaced(section: string, file: string | null, expected: string, a
   if (warned.has(key)) return
   warned.add(key)
   console.warn(
-    `⚠️ 忽略配置段「${section}」${file ? `（${file}）` : ""}：该段仅支持${expected}，${actual}不参与读取；请移到${expected}，或运行 toolkit upgrade --drop-legacy 清理`,
+    `⚠️ 忽略配置段「${section}」${file ? `（${file}）` : ""}：该段仅支持${expected}，${actual}不参与读取；请移到${expected}，或运行 toolkit upgrade --prune-legacy 清理`,
   )
 }
 
@@ -222,7 +222,7 @@ export function readSkillsDeliveryConfig(face: SkillsDeliveryFace = "global", st
     if (legacy) {
       warnOnce(
         "skillDelivery\u0000legacy-ignored",
-        "⚠️ 忽略旧配置「skillInstall.gate」：已由配置段「skillDelivery」接管，旧键不再生效（2.1.0 起移除兼容）；可运行 toolkit upgrade --drop-legacy 清理",
+        "⚠️ 忽略旧配置「skillInstall.gate」：已由配置段「skillDelivery」接管，旧键不再生效（2.1.0 起移除兼容）；可运行 toolkit upgrade --prune-legacy 清理",
       )
     }
     return parseDeliverySection(merged)

@@ -5,7 +5,7 @@ import { join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
 import { rewriteConfigFile, rewritePackage } from "../upgrade/apply"
 import { buildUpgradePlan, checkVersionGate, runUpgrade, verifyUpgrade } from "../upgrade"
-import { latestBackup, cleanBackups, restoreBackup } from "../upgrade/backup"
+import { latestBackup, pruneBackups, pruneLayersFor, restoreBackup } from "../upgrade/backup"
 import { planUpgradeDiffs } from "../upgrade/diff"
 import { setHomeDirForTest } from "../config"
 
@@ -160,15 +160,15 @@ describe("升级迁移：人工项与旧段清理", () => {
     const item = plan.items.find((entry) => entry.id === "config:project")
     expect(item?.status).toBe("manual")
     expect(item?.manualHint).toContain(root)
-    expect(item?.manualHint).toContain("--drop-legacy")
+    expect(item?.manualHint).toContain("--prune-legacy")
     expect(plan.autoResidue).toBe(0)
   })
 
-  it("--drop-legacy 删除已被覆盖的旧段，复检残留归零", () => {
+  it("--prune-legacy 删除已被覆盖的旧段，复检残留归零", () => {
     const root = makeProject({ ".toolkitrc.json": conflictConfig })
-    const plan = buildUpgradePlan(root, { layers: ["project"], dropLegacy: true })
+    const plan = buildUpgradePlan(root, { layers: ["project"], pruneLegacy: true })
     expect(plan.items[0]?.status).toBe("planned")
-    const result = runUpgrade(root, plan.items, { layers: ["project"], dropLegacy: true })
+    const result = runUpgrade(root, plan.items, { layers: ["project"], pruneLegacy: true })
     expect(result.residue).toEqual([])
     const parsed = JSON.parse(readFileSync(join(root, ".toolkitrc.json"), "utf8")) as Record<string, unknown>
     expect(parsed.projectSkills).toBeUndefined()
@@ -191,8 +191,8 @@ describe("升级迁移：人工项与旧段清理", () => {
     expect(item?.status).toBe("manual")
     expect(item?.manualHint).toContain("写错层")
     expect(plan.autoResidue).toBe(0)
-    const dropped = buildUpgradePlan(root, { layers: ["project"], dropLegacy: true })
-    runUpgrade(root, dropped.items, { layers: ["project"], dropLegacy: true })
+    const dropped = buildUpgradePlan(root, { layers: ["project"], pruneLegacy: true })
+    runUpgrade(root, dropped.items, { layers: ["project"], pruneLegacy: true })
     expect((JSON.parse(readFileSync(join(root, ".toolkitrc.json"), "utf8")) as Record<string, unknown>).skillInstall).toBeUndefined()
   })
 
@@ -218,7 +218,7 @@ describe("升级迁移：备份清理", () => {
     mkdirSync(join(backupRoot, "foreign"), { recursive: true })
     writeFileSync(join(root, ".toolkitrc.json.bak"), "{}", "utf8")
     writeFileSync(join(root, "other.bak"), "{}", "utf8")
-    const result = cleanBackups({ cwd: root, layers: ["project"], keep: 1 })
+    const result = pruneBackups({ cwd: root, layers: ["project"], keep: 1 })
     expect(result.kept).toEqual([join(backupRoot, "20260102-000000")])
     expect(result.removed).toContain(join(backupRoot, "20260101-000000"))
     expect(result.removed).toContain(join(root, ".toolkitrc.json.bak"))
@@ -233,9 +233,32 @@ describe("升级迁移：备份清理", () => {
     const dir = join(root, ".toolkit", "backup", "20260101-000000")
     mkdirSync(dir, { recursive: true })
     writeFileSync(join(dir, "manifest.json"), "{}", "utf8")
-    const result = cleanBackups({ cwd: root, layers: ["project"], dryRun: true })
+    const result = pruneBackups({ cwd: root, layers: ["project"], dryRun: true })
     expect(result.removed).toEqual([dir])
     expect(existsSync(dir)).toBe(true)
+  })
+
+  it("prune 默认层：项目内只清项目，home 下只清全局", () => {
+    const project = makeProject({})
+    expect(pruneLayersFor(project)).toEqual(["project"])
+    const home = makeProject({})
+    setHomeDirForTest(home)
+    expect(pruneLayersFor(home)).toEqual(["global"])
+    expect(pruneLayersFor(project, ["global", "project", "local"])).toEqual(["global", "project"])
+  })
+})
+
+describe("升级迁移：备份归属", () => {
+  it("全局 .bak 单独成项并收编到全局备份根", () => {
+    const home = makeProject({ ".toolkitrc.json.bak": "{}" })
+    const project = makeProject({})
+    setHomeDirForTest(home)
+    const plan = buildUpgradePlan(project, { layers: ["global", "project"] })
+    const item = plan.items.find((entry) => entry.id === "backup:global")
+    expect(item?.layers).toEqual(["global"])
+    runUpgrade(project, plan.items, { layers: ["global", "project"] })
+    expect(existsSync(join(home, ".toolkit", "backup"))).toBe(true)
+    expect(existsSync(join(project, ".toolkit", "backup"))).toBe(false)
   })
 })
 

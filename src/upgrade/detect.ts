@@ -59,7 +59,7 @@ export function legacyCommandIn(text: string): { from: string; to: string } | nu
 // 配置文件检测：旧段名、旧闸门键与误放层段各记一条，file 为实际命中的配置文件
 // 家目录不作为项目根；非全局层落点等于全局文件时跳过，避免同一文件被两层各报一条
 // 新旧段内容不同等需用户取舍的情况在检测阶段即判 manual，避免「永远可自动处理」的死循环
-function detectConfigLayer(layer: UpgradeLayer, cwd: string, dropLegacy: boolean): UpgradeItem[] {
+function detectConfigLayer(layer: UpgradeLayer, cwd: string, pruneLegacy: boolean): UpgradeItem[] {
   if (layer !== "global" && isHomeDirectory(cwd)) return []
   const file = configFileForLayer(layer, cwd)
   if (layer !== "global" && isGlobalConfigPath(file)) return []
@@ -86,7 +86,7 @@ function detectConfigLayer(layer: UpgradeLayer, cwd: string, dropLegacy: boolean
   if (misplaced.length > 0) actions.push(`删除误放段：${misplaced.join("、")}（${layerLabel(layer)}不读取）`)
   if (gateSection) actions.push("把旧键 skillInstall.gate 映射为 skillDelivery")
   if (actions.length === 0) return []
-  const planned = planConfigContent(file, { dropLegacy, layer })
+  const planned = planConfigContent(file, { pruneLegacy, layer })
   return [
     {
       id: `config:${layer}`,
@@ -225,36 +225,47 @@ function detectConventions(cwd: string): UpgradeItem[] {
   ]
 }
 
-// 备份收编检测：配置文件与技能状态旁的 .bak（只扫本次选中的层）
-// layers 元数据按文件实际所属层生成，避免全局 .bak 被标成项目项后 --layers 过滤失真
+// 备份收编检测：全局面与项目面分开成项，避免全局 .bak 被收编进当前项目备份目录
+// layers 元数据按文件实际所属层生成，`--layers` 过滤不失真
 function detectBackups(cwd: string, layers: readonly UpgradeLayer[]): UpgradeItem[] {
   const enabled = new Set(layers)
-  const candidates: Array<{ file: string; layer: UpgradeLayer }> = []
-  for (const layer of ALL_LAYERS) {
-    if (enabled.has(layer)) candidates.push({ file: `${configFileForLayer(layer, cwd)}.bak`, layer })
+  const items: UpgradeItem[] = []
+  if (enabled.has("global")) {
+    const files = [...new Set([`${configFileForLayer("global", cwd)}.bak`, `${skillsStateFile()}.bak`])].filter((file) => existsSync(file))
+    if (files.length > 0) {
+      items.push({
+        id: "backup:global",
+        surface: "backup",
+        layers: ["global"],
+        action: `收编 ${files.length} 个全局 .bak 到全局备份目录`,
+        risk: "low",
+        files,
+        reason: "存在旧版遗留的全局面 .bak 备份文件",
+        status: "planned",
+      })
+    }
   }
-  if (enabled.has("global")) candidates.push({ file: `${skillsStateFile()}.bak`, layer: "global" })
-  if (enabled.has("project")) candidates.push({ file: `${projectStateFile(findProjectRoot(cwd))}.bak`, layer: "project" })
-  const files: string[] = []
-  const itemLayers = new Set<UpgradeLayer>()
-  for (const candidate of candidates) {
-    if (!existsSync(candidate.file) || files.includes(candidate.file)) continue
-    files.push(candidate.file)
-    itemLayers.add(candidate.layer)
+  if (enabled.has("project") || enabled.has("local")) {
+    const files = [
+      `${configFileForLayer("project", cwd)}.bak`,
+      `${configFileForLayer("local", cwd)}.bak`,
+      `${projectStateFile(findProjectRoot(cwd))}.bak`,
+    ]
+    const existing = [...new Set(files)].filter((file) => existsSync(file))
+    if (existing.length > 0) {
+      items.push({
+        id: "backup:legacy",
+        surface: "backup",
+        layers: ["project"],
+        action: `收编 ${existing.length} 个历史 .bak 到统一备份目录`,
+        risk: "low",
+        files: existing,
+        reason: "存在旧版遗留的 .bak 备份文件",
+        status: "planned",
+      })
+    }
   }
-  if (files.length === 0) return []
-  return [
-    {
-      id: "backup:legacy",
-      surface: "backup",
-      layers: [...itemLayers],
-      action: `收编 ${files.length} 个历史 .bak 到统一备份目录`,
-      risk: "low",
-      files,
-      reason: "存在旧版遗留的 .bak 备份文件",
-      status: "planned",
-    },
-  ]
+  return items
 }
 
 // CI 文本检测：按行找 toolkit 旧命令，跳过注释与 echo 一类的非执行行
@@ -299,7 +310,7 @@ function detectCi(cwd: string): UpgradeItem[] {
 export function detectUpgradeItems(
   cwd: string,
   layers: readonly UpgradeLayer[] = ALL_LAYERS,
-  options: { dropLegacy?: boolean } = {},
+  options: { pruneLegacy?: boolean } = {},
 ): UpgradeItem[] {
   const enabled = new Set(layers)
   if (isHomeDirectory(cwd)) {
@@ -308,7 +319,7 @@ export function detectUpgradeItems(
   }
   const items: UpgradeItem[] = []
   for (const layer of ALL_LAYERS) {
-    if (enabled.has(layer)) items.push(...detectConfigLayer(layer, cwd, Boolean(options.dropLegacy)))
+    if (enabled.has(layer)) items.push(...detectConfigLayer(layer, cwd, Boolean(options.pruneLegacy)))
   }
   if (enabled.has("project")) {
     items.push(...detectPackage(cwd), ...detectConventions(cwd), ...detectCi(cwd))

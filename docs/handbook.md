@@ -125,7 +125,7 @@ toolkit skill status       # 查 CLI 版本提示与技能现场
 1. **CLI** 更新
 2. **skills** 同步：软链形式随 CLI 自动更新；副本形式（`--copy` 或建链失败降级）需重跑 `toolkit skill install`；项目面由 `prepare` 钩子自动刷新
 3. **开新会话**：旧会话加载的仍是旧版技能
-4. **清理迁移备份（可选）**：确认升级稳定后执行 `toolkit upgrade --clean-backups --keep 1`（`--dry-run` 预览）；
+4. **清理迁移备份（可选）**：确认升级稳定后执行 `toolkit upgrade --prune-backups --keep 1`（`--dry-run` 预览）；
    只删 `.toolkit/backup` 下带 `manifest.json` 的目录与本包已知的 `.bak`，外来目录跳过并回报
 
 ⚠️ 软链落点是**写入穿透**形态：编辑落点文件等于编辑真源，要改技能内容请改真源（`toolkit skill status` 报告末尾也会提示）。

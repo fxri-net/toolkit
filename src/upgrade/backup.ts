@@ -4,6 +4,7 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync 
 import { basename, dirname, join } from "node:path"
 import { getHomeDir } from "../config"
 import { readTextFile } from "../read-text"
+import { isHomeDirectory } from "../scope/paths"
 import { PROJECT_STATE_DIR, PROJECT_STATE_FILE, SKILLS_STATE_FILE } from "../skills/types"
 import { writeFileAtomic } from "../write-atomic"
 import type { BackupEntry, BackupManifest, UpgradeLayer } from "./types"
@@ -129,10 +130,16 @@ function backupDirs(root: string): string[] {
     .map((name) => join(root, name))
 }
 
+// 清理层：显式 --layers 优先；缺省时项目内只清当前项目、home 下只清全局面；local 无备份根，剔除
+export function pruneLayersFor(cwd: string, explicitLayers?: readonly UpgradeLayer[]): UpgradeLayer[] {
+  const source = explicitLayers ?? (isHomeDirectory(cwd) ? (["global"] as const) : (["project"] as const))
+  return source.filter((layer) => layer !== "local")
+}
+
 // 清理迁移备份：只删已知备份根下含 manifest.json 的直接子目录，外来目录跳过并回报
 // 同时清理本包已知的散落 .bak（配置与技能状态旁），按固定清单匹配，不扫其他 .bak
 // keep 只作用于备份目录（每个根分别保留最近 n 个），.bak 无保留概念、随清理一并删除
-export function cleanBackups(options: { cwd: string; layers: readonly UpgradeLayer[]; keep?: number; dryRun?: boolean }): BackupCleanResult {
+export function pruneBackups(options: { cwd: string; layers: readonly UpgradeLayer[]; keep?: number; dryRun?: boolean }): BackupCleanResult {
   const keep = Math.max(0, Math.trunc(options.keep ?? 0))
   const dryRun = Boolean(options.dryRun)
   const result: BackupCleanResult = { removed: [], skipped: [], kept: [], dryRun }

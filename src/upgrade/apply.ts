@@ -113,7 +113,8 @@ function applyItem(
   cwd: string,
   tasksDir: string,
   session: BackupSession,
-  options: { dropLegacy?: boolean },
+  globalSession: BackupSession,
+  options: { pruneLegacy?: boolean },
 ): { manual: string[] } {
   if (item.surface === "config") {
     const captured = new Set<string>()
@@ -122,7 +123,7 @@ function applyItem(
       captured.add(file)
       session.capture([file])
     }
-    const results = item.files.map((file) => rewriteConfigFile(file, { dropLegacy: options.dropLegacy, layer: item.layers[0], beforeWrite }))
+    const results = item.files.map((file) => rewriteConfigFile(file, { pruneLegacy: options.pruneLegacy, layer: item.layers[0], beforeWrite }))
     return { manual: results.flatMap((result) => result.manual) }
   }
   if (item.id === "project:package") {
@@ -156,7 +157,9 @@ function applyItem(
     return { manual: foreign.length > 0 ? [`无法确认归属的旧名目录未删除：${foreign.join("、")}`] : [] }
   }
   if (item.surface === "backup") {
-    session.absorb(item.files)
+    // 全局 .bak 收到全局备份根，避免污染当前项目的备份目录
+    const target = item.id === "backup:global" ? globalSession : session
+    target.absorb(item.files)
     return { manual: [] }
   }
   return { manual: item.manualHint ? [item.manualHint] : [] }
@@ -165,14 +168,16 @@ function applyItem(
 // 应用整份计划：逐项执行，失败即停；手动项跳过并在结果中保留
 export function applyUpgrade(
   items: UpgradeItem[],
-  options: { cwd: string; tasksDir: string; scope?: "project" | "global"; dropLegacy?: boolean },
+  options: { cwd: string; tasksDir: string; scope?: "project" | "global"; pruneLegacy?: boolean },
 ): UpgradeApplyResult {
   const session = new BackupSession(options.cwd, options.scope ?? "project")
+  // 全局面迁移项复用同一会话，避免同一备份根被两个会话重复写清单
+  const globalSession = options.scope === "global" ? session : new BackupSession(options.cwd, "global")
   const result: UpgradeApplyResult = { applied: [], failed: [], backups: [] }
   for (const item of items) {
     if (item.status === "manual") continue
     try {
-      const outcome = applyItem(item, options.cwd, options.tasksDir, session, { dropLegacy: options.dropLegacy })
+      const outcome = applyItem(item, options.cwd, options.tasksDir, session, globalSession, { pruneLegacy: options.pruneLegacy })
       item.status = outcome.manual.length > 0 ? "manual" : "applied"
       if (outcome.manual.length > 0) item.manualHint = outcome.manual.join("；")
       else result.applied.push(item.id)
@@ -185,5 +190,9 @@ export function applyUpgrade(
   }
   const dir = session.finalize()
   if (dir) result.backups.push(dir)
+  if (globalSession !== session) {
+    const globalDir = globalSession.finalize()
+    if (globalDir) result.backups.push(globalDir)
+  }
   return result
 }

@@ -13,16 +13,16 @@ export interface UpgradeDiff {
 }
 
 // 取单项的文本改写预览：只有配置与 package.json 会产生行级差异，其余面由计划清单承载
-function previewOf(item: UpgradeItem, options: { dropLegacy?: boolean }): Array<{ file: string; changed: boolean; content?: string }> {
+function previewOf(item: UpgradeItem, options: { pruneLegacy?: boolean }): Array<{ file: string; changed: boolean; content?: string }> {
   if (item.surface === "config") {
-    return item.files.map((file) => ({ file, ...planConfigContent(file, { dropLegacy: options.dropLegacy, layer: item.layers[0] }) }))
+    return item.files.map((file) => ({ file, ...planConfigContent(file, { pruneLegacy: options.pruneLegacy, layer: item.layers[0] }) }))
   }
   if (item.id === "project:package") return item.files.map((file) => ({ file, ...planPackageContent(file) }))
   return []
 }
 
 // 汇总整份计划的差异：需人工项不参与预览，无变化或文件缺失时跳过
-export function planUpgradeDiffs(items: UpgradeItem[], options: { dropLegacy?: boolean } = {}): UpgradeDiff[] {
+export function planUpgradeDiffs(items: UpgradeItem[], options: { pruneLegacy?: boolean } = {}): UpgradeDiff[] {
   const diffs: UpgradeDiff[] = []
   for (const item of items) {
     if (item.status === "manual") continue

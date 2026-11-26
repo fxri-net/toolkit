@@ -121,7 +121,7 @@
 `projectSkills → projectSkill`、`tasks → task`。
 旧段名仍可读取，命中时 stderr 提示一次；`toolkit task init` 会把**项目层 / 本地层**配置文件里的旧段名重写为新段名（原文件备份为 `.bak`），
 全局层用 `toolkit upgrade --layers global`；新旧段并存且内容不同、或段写错层时，先按 `toolkit upgrade --check` 的提示确认，
-再加 `--drop-legacy` 删除已失效的旧段 / 误放段。2.1.0 移除兼容。
+再加 `--prune-legacy` 删除已失效的旧段 / 误放段。2.1.0 移除兼容。
 写入入口统一为 `toolkit config set`（`list` 查看可写键，`get --explain` 展示来源层与覆盖链）；
 可写范围仅简单叶子键，字符串数组键如 `docs.nav.helpChildren`、`docs.nav.pageSizeExclude` 可用逗号分隔写入，
 `redact.rules`、`changelog.languages` 等对象 / 嵌套字段仍手改文件。

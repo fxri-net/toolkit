@@ -4,9 +4,9 @@ import { readTextFile } from "../read-text"
 import { SKILL_SECTION_LAYERS } from "../skills/config"
 import type { UpgradeLayer } from "./types"
 
-// 配置改写选项：dropLegacy 删除已被忽略的旧段 / 误放段；layer 用于判定段归属与提示命令
+// 配置改写选项：pruneLegacy 删除已被忽略的旧段 / 误放段；layer 用于判定段归属与提示命令
 export interface ConfigPlanOptions {
-  dropLegacy?: boolean
+  pruneLegacy?: boolean
   layer?: UpgradeLayer
 }
 
@@ -50,7 +50,7 @@ function gateToDelivery(gate: unknown): Record<string, unknown> | null {
 
 // 单段提示后缀：给出可执行的清理命令，避免用户只能手改 JSON
 function cleanupCommand(layer: UpgradeLayer | undefined): string {
-  return layer ? `toolkit upgrade --only config:${layer} --drop-legacy` : "toolkit upgrade --drop-legacy"
+  return layer ? `toolkit upgrade --only config:${layer} --prune-legacy` : "toolkit upgrade --prune-legacy"
 }
 
 // 重写单个配置文件：段名整体搬移，旧闸门键映射，误放层段按归属清理
@@ -68,7 +68,7 @@ export function planConfigContent(file: string, options: ConfigPlanOptions = {})
       if (sameValue(data[canonical], data[legacy])) {
         delete data[legacy]
         changed = true
-      } else if (options.dropLegacy) {
+      } else if (options.pruneLegacy) {
         delete data[legacy]
         changed = true
       } else {
@@ -107,7 +107,7 @@ export function planConfigContent(file: string, options: ConfigPlanOptions = {})
   if (layer) {
     for (const [name, owners] of Object.entries(SKILL_SECTION_LAYERS)) {
       if (!(name in data) || owners.includes(layer)) continue
-      if (options.dropLegacy) {
+      if (options.pruneLegacy) {
         delete data[name]
         changed = true
       } else {

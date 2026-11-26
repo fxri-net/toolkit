@@ -285,7 +285,7 @@ function normalizeLegacySections(layer: ConfigLayerName, filePath: string, confi
     if (warnedLegacySections.has(key)) continue
     warnedLegacySections.add(key)
     if (duplicated) {
-      console.warn(`⚠️ 配置段「${legacy}」已更名为「${canonical}」（${filePath}）：同名新段已存在，旧段内容已忽略；确认后可运行 toolkit upgrade --drop-legacy 删除旧段`)
+      console.warn(`⚠️ 配置段「${legacy}」已更名为「${canonical}」（${filePath}）：同名新段已存在，旧段内容已忽略；确认后可运行 toolkit upgrade --prune-legacy 删除旧段`)
       continue
     }
     const hint =

@@ -8,7 +8,7 @@ title: 技能分发偏好（skills）
 
 ⚠️ **段名已统一为单数**：旧段名 `skillsInstall` / `skillsDelivery` / `projectSkills` 仍可读取（stderr 提示一次），
 `toolkit task init` 会把项目层 / 本地层配置文件就地重写为新段名（备份 `.bak`），全局层用 `toolkit upgrade --layers global`，
-新旧段并存且内容不同时加 `--drop-legacy` 删除已失效旧段，2.1.0 移除兼容。
+新旧段并存且内容不同时加 `--prune-legacy` 删除已失效旧段，2.1.0 移除兼容。
 
 ## skills：技能分发
 
