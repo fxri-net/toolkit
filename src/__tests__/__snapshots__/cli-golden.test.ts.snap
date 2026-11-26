@@ -890,7 +890,7 @@ exports[`各域行为与错误路径 > rules compose 未知预设 1`] = `
 exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 "退出码：0
 --- stdout ---
-> 规则更新时间 2026-11-25 11:55
+> 规则更新时间 2026-11-26 18:25
 
 你是一个严谨的编程助手，专注于产出可维护、风格一致的代码
 
@@ -913,19 +913,19 @@ exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 
 ## 工作流
 
-- 方案先行：动手前先给方案（目标 / 步骤 / 影响 / 验证与回滚）；**方案确认不等于执行授权**。
+- 方案先行：动手前先给方案（目标 / 步骤 / 影响 / 验证与回滚）；删除 / 清理 / 覆盖等不可逆动作须写明不可恢复部分与回滚；**方案确认不等于执行授权**。
 - 建议与加固须有触发证据，无证据的前瞻性扩面只作提示。
 - 授权判据：执行指向明确（开始 / 开工 / 处理 / 搞定 / 直接改 / 授权，示例非闭集）+ 范围唯一 + 方案已定稿才动手；
   同句只读诉求、方案未定稿、范围不唯一都不构成授权；「可以 / 定稿 / 落档 / 继续评估」也不等于开工。
 - **只读型请求默认只读**：意图是获取信息与判断（检查、核对、复核、评估、体检、列清单、解释现状）时只输出结论，
   不改仓库与远端；即便措辞像命令也不视为执行授权（示例非穷举），发现问题先报告。
   同句含执行段时先只读、再执行。
-- 微操作（明确指向单个文件 / 单条命令 / 单个改动）属对象级授权，范围止于指明对象。
+- 微操作（指向单个文件 / 单条命令 / 单个改动）属对象级授权，范围止于指明对象。
 - 「继续」按状态解释：未开工=继续评估；开工被打断=恢复执行（回显范围 → 复核现场 → 再动手）。
 - 不可逆动作（发布、推送、打远端标签、全局安装）逐次授权；计划表列出或上一任务执行过不构成授权；**当前指令已含授权则直接执行**，不重复询问。
-- 质量门：项目聚合验收命令必须通过，本地与 CI 共用同一份清单；skill 指引、help 输出与 check 反馈不一致时，以 check 的实际反馈为准。
-- 动作不算、改动才算：提交 / 发版 / 推送本身不构成任务；归档 + 规范沉淀即流程终点，提交是否执行由规则约定，未约定时需用户确认。
-- 判断目录能否用时跑一次 \`toolkit scope status\`，同会话复用；入口壳未激活即停。
+- 质量门：项目聚合验收命令必须通过，本地与 CI 同一份清单；skill / help 与 check 不一致时以 check 为准。
+- 动作不算、改动才算：提交 / 发版 / 推送本身不构成任务；归档 + 规范沉淀即流程终点，提交按规则或授权执行。
+- 目录能否用跑一次 \`toolkit scope status\`，同会话复用；入口壳未激活即停。
 - 任务管理细节以已加载的 fxri-* 技能为准。
 
 ## 推荐做法
@@ -934,6 +934,7 @@ exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 - 任务收尾的 git 提交自动执行。
 - **不自行安装**：任何安装动作（全局包、项目依赖、系统工具）都须先获用户明确授权。
 - **安装需求进方案**：交付需要安装或额外环境才能验证时，在方案里一次列清装什么、装在哪、验完怎么清理，随方案一并确认，不留到交付后补申请。
+- **破坏性操作先限定范围并预览**：删除 / 清理 / 覆盖前列出目标，能预览就先预览；用户可见删除优先可恢复，永久删除需确认；方案阶段先披露不可恢复部分。
 
 ## 提交信息规则
 
@@ -993,8 +994,8 @@ exports[`各域行为与错误路径 > rules list 1`] = `
 规则模块：
     core     2026-11-19 09:30  角色定位与代码规范（recommended / full）
     output   2026-11-08 02:21  输出要求（recommended / full）
-    workflow 2026-11-25 11:55  工作流与方案落盘（minimal / recommended / full）
-    practices 2026-11-24 23:37  推荐做法（recommended / full）
+    workflow 2026-11-26 18:25  工作流与方案落盘（minimal / recommended / full）
+    practices 2026-11-26 18:25  推荐做法（recommended / full）
     commit   2026-11-24 12:39  提交信息规则（recommended / full）
     usage    2026-11-24 09:57  技能使用情况（full）
 预设：minimal=workflow；recommended=core+output+workflow+practices+commit；full=core+output+workflow+practices+commit+usage
@@ -1095,7 +1096,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
         "title": "工作流与方案落盘",
         "summary": "方案先行、只读判定、授权边界、作用域查询与技能指针",
         "file": "workflow.md",
-        "anchor": "2026-11-25 11:55",
+        "anchor": "2026-11-26 18:25",
         "presets": [
           "minimal",
           "recommended",
@@ -1107,7 +1108,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
         "title": "推荐做法",
         "summary": "官方推荐的可裁剪做法：优先于同类默认约定",
         "file": "practices.md",
-        "anchor": "2026-11-24 23:37",
+        "anchor": "2026-11-26 18:25",
         "presets": [
           "recommended",
           "full"
@@ -1201,8 +1202,9 @@ exports[`各域行为与错误路径 > scope allow 名单预演 1`] = `
   写入：<SANDBOX>/home/.toolkitrc.json
   名单模式：仅名单内生效
   新增：[白] <SANDBOX>/workspace/work
-  技能形态变更（8 项）：
+  技能形态变更（9 项）：
     全局面 · fxri-code-encoding：全文安装 → 入口壳
+    全局面 · fxri-code-safety：全文安装 → 入口壳
     全局面 · fxri-plan-recap：全文安装 → 入口壳
     全局面 · fxri-plan-review：全文安装 → 入口壳
     全局面 · fxri-plan-task：全文安装 → 入口壳
@@ -1225,8 +1227,9 @@ exports[`各域行为与错误路径 > scope allow 策略预演 1`] = `
   条件：paths=work
   技能：mode=allowlist；allow=fxri-plan-task
   新增策略：golden-allow
-  技能形态变更（7 项）：
+  技能形态变更（8 项）：
     全局面 · fxri-code-encoding：全文安装 → 入口壳
+    全局面 · fxri-code-safety：全文安装 → 入口壳
     全局面 · fxri-plan-recap：全文安装 → 入口壳
     全局面 · fxri-plan-review：全文安装 → 入口壳
     全局面 · fxri-release-changelog：全文安装 → 入口壳
@@ -1263,8 +1266,9 @@ exports[`各域行为与错误路径 > scope deny 名单预演 1`] = `
   写入：<SANDBOX>/home/.toolkitrc.json
   名单模式：全部生效
   新增：[黑] <SANDBOX>/workspace/work
-  技能形态变更（8 项）：
+  技能形态变更（9 项）：
     全局面 · fxri-code-encoding：全文安装 → 入口壳
+    全局面 · fxri-code-safety：全文安装 → 入口壳
     全局面 · fxri-plan-recap：全文安装 → 入口壳
     全局面 · fxri-plan-review：全文安装 → 入口壳
     全局面 · fxri-plan-task：全文安装 → 入口壳
@@ -1288,8 +1292,9 @@ exports[`各域行为与错误路径 > scope deny 策略缺确认 1`] = `
   技能：无
   deny 规则会拒绝该范围全部技能；限定技能请改用 toolkit scope deny --skill
   新增策略：golden-deny-all
-  技能形态变更（8 项）：
+  技能形态变更（9 项）：
     全局面 · fxri-code-encoding：全文安装 → 入口壳
+    全局面 · fxri-code-safety：全文安装 → 入口壳
     全局面 · fxri-plan-recap：全文安装 → 入口壳
     全局面 · fxri-plan-review：全文安装 → 入口壳
     全局面 · fxri-plan-task：全文安装 → 入口壳
@@ -1336,8 +1341,9 @@ exports[`各域行为与错误路径 > scope remove 互转预演 1`] = `
   写入：<SANDBOX>/home/.toolkitrc.json
   名单模式：全部生效
   转入：[黑] <SANDBOX>/workspace/work
-  技能形态变更（8 项）：
+  技能形态变更（9 项）：
     全局面 · fxri-code-encoding：全文安装 → 入口壳
+    全局面 · fxri-code-safety：全文安装 → 入口壳
     全局面 · fxri-plan-recap：全文安装 → 入口壳
     全局面 · fxri-plan-review：全文安装 → 入口壳
     全局面 · fxri-plan-task：全文安装 → 入口壳
@@ -1457,10 +1463,11 @@ exports[`各域行为与错误路径 > skills install 预演 1`] = `
 --- stdout ---
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
-[预演] 技能分发计划（全局层）：8 个技能 · 1 个目标
+[预演] 技能分发计划（全局层）：9 个技能 · 1 个目标
 
 canonical（多家 agent 共读）：<SANDBOX>/home/.agents/skills
   换全文　fxri-code-encoding　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-code-safety　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-plan-recap　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-plan-review　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-plan-task　全文安装　← 默认（未配置分发形态，按默认全文安装）
@@ -1471,7 +1478,7 @@ canonical（多家 agent 共读）：<SANDBOX>/home/.agents/skills
 
 本机未检测到的 agent 65 个已跳过（不凭空创建目录）；如需装到未识别的 agent：toolkit skill install --dir <其全局技能目录>
 [预演] 状态文件：<SANDBOX>/home/.agents/.toolkit-skills.json
-[预演] 待收敛 8 项：执行 toolkit skill install 应用
+[预演] 待收敛 9 项：执行 toolkit skill install 应用
 --- stderr ---
 "
 `;
@@ -1495,22 +1502,23 @@ registry：registry.npmjs.org（来源：默认）
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
 技能源：<REPO>/skills
-技能版本：fxri-code-encoding@1.2.12、fxri-plan-recap@1.7.10、fxri-plan-review@1.1.3、fxri-plan-task@1.13.16、fxri-release-changelog@1.4.8、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.6、fxri-writing-skill@1.0.5
+技能版本：fxri-code-encoding@1.2.12、fxri-code-safety@0.1.0、fxri-plan-recap@1.7.10、fxri-plan-review@1.1.4、fxri-plan-task@1.13.17、fxri-release-changelog@1.4.8、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.6、fxri-writing-skill@1.0.5
 内容闸门：未开启（全文安装）
-选择集（3）：fxri-plan-recap、fxri-plan-review、fxri-plan-task
+选择集（4）：fxri-code-safety、fxri-plan-recap、fxri-plan-review、fxri-plan-task
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-code-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
 目标选择集：全部可用目标（未保存过目标选择）
 状态文件：<SANDBOX>/home/.agents/.toolkit-skills.json（未记录，尚未执行过 toolkit skill install）
 
 canonical（多家 agent 共读）：<SANDBOX>/home/.agents/skills（目录未创建）
+  fxri-code-safety：缺失
   fxri-plan-recap：缺失
   fxri-plan-review：缺失
   fxri-plan-task：缺失
 
 未安装的 agent 65 个未纳入分发（需要时用 toolkit skill install --dir <路径> 指定）
 
-✖ 共 3 处需处理：缺失 / 悬空 / 指向其他版本 / 副本漂移 / 入口壳过期用 toolkit skill install 补齐，同名冲突用 toolkit skill install --force 覆盖
-待收敛 3 项：运行 toolkit skill install 收敛（可先 toolkit skill install --dry-run 预览）
+✖ 共 4 处需处理：缺失 / 悬空 / 指向其他版本 / 副本漂移 / 入口壳过期用 toolkit skill install 补齐，同名冲突用 toolkit skill install --force 覆盖
+待收敛 4 项：运行 toolkit skill install 收敛（可先 toolkit skill install --dry-run 预览）
 
 全局面未评估技能矩阵联动；查看项目面请用 toolkit skill status --scope project
 --- stderr ---
@@ -1575,13 +1583,14 @@ registry：registry.npmjs.org（来源：默认）
 
 项目面 · 项目根：<SANDBOX>/workspace
 项目面 · 技能真源：.agents/skills
-项目面 · 技能版本：fxri-code-encoding@1.2.12、fxri-plan-recap@1.7.10、fxri-plan-review@1.1.3、fxri-plan-task@1.13.16、fxri-release-changelog@1.4.8、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.6、fxri-writing-skill@1.0.5
-项目面 · 选择集（3）：fxri-plan-recap、fxri-plan-review、fxri-plan-task
+项目面 · 技能版本：fxri-code-encoding@1.2.12、fxri-code-safety@0.1.0、fxri-plan-recap@1.7.10、fxri-plan-review@1.1.4、fxri-plan-task@1.13.17、fxri-release-changelog@1.4.8、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.6、fxri-writing-skill@1.0.5
+项目面 · 选择集（4）：fxri-code-safety、fxri-plan-recap、fxri-plan-review、fxri-plan-task
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-code-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
 项目面 · 目录选择集：全部已存在候选目录（未保存过目录选择）
 项目面 · 状态文件：.toolkit/state.json（未记录，尚未执行过 toolkit task init / skill install）
 
 真源副本：.agents/skills
+  fxri-code-safety：缺失
   fxri-plan-recap：缺失
   fxri-plan-review：缺失
   fxri-plan-task：缺失
@@ -1606,8 +1615,8 @@ registry：registry.npmjs.org（来源：默认）
   toolkit skill install --scope project --dir .roo/skills
   toolkit skill install --scope project --dir .windsurf/skills
 
-✖ 项目面共 3 处需处理：漂移 / 缺失用 toolkit skill install --scope project 补齐，同名冲突加 --force
-项目面待收敛 3 项：运行 toolkit skill install --scope project 收敛
+✖ 项目面共 4 处需处理：漂移 / 缺失用 toolkit skill install --scope project 补齐，同名冲突加 --force
+项目面待收敛 4 项：运行 toolkit skill install --scope project 收敛
 --- stderr ---
 "
 `;
@@ -1617,10 +1626,11 @@ exports[`各域行为与错误路径 > skills 项目面预演 1`] = `
 --- stdout ---
 作用域：项目面（仓库内唯一真源副本 + 各候选目录的项目面薄壳）（--scope 指定）
 
-[预演] 技能分发计划（项目层）：8 个技能 · 1 个目标
+[预演] 技能分发计划（项目层）：9 个技能 · 1 个目标
 
 真源副本：.agents/skills
   换全文　fxri-code-encoding　全文安装　← 默认（未配置分发形态，按默认全文安装）
+  换全文　fxri-code-safety　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-plan-recap　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-plan-review　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-plan-task　全文安装　← 默认（未配置分发形态，按默认全文安装）
@@ -1630,7 +1640,7 @@ exports[`各域行为与错误路径 > skills 项目面预演 1`] = `
   换全文　fxri-writing-skill　全文安装　← 默认（未配置分发形态，按默认全文安装）
 
 [预演] 状态文件：<SANDBOX>/workspace/.toolkit/state.json
-[预演] 待收敛 8 项：执行 toolkit skill install 应用
+[预演] 待收敛 9 项：执行 toolkit skill install 应用
 --- stderr ---
 "
 `;

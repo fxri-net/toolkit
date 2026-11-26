@@ -229,8 +229,8 @@ toolkit skill list --format json             # JSON 输出：逐技能条目
 
 当前层级分布：
 
-- `core`：`fxri-plan-task`、`fxri-plan-recap`、`fxri-plan-review`
-- `optional`：`fxri-release-changelog`、`fxri-code-encoding`、`fxri-writing-skill`、`fxri-writing-docs`
+- `core`：`fxri-plan-task`、`fxri-plan-recap`、`fxri-plan-review`、`fxri-code-safety`
+- `optional`：`fxri-release-changelog`、`fxri-code-encoding`、`fxri-writing-skill`、`fxri-writing-docs`、`fxri-test-tty`
 
 模式优先级：`--mode package|skills` 先切换并持久化，再按新模式重建基线（`package` 为空、`skills` 为 `core`），不沿用旧模式的保存选择。
 

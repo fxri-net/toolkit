@@ -4,7 +4,7 @@
 
 ## 解决什么问题
 
-快速开始讲最短路径、完整攻略讲全流程，但真实使用中的疑问是碎片化的。本篇按「问题 → 答案」直给。同一事实只在真源页维护一次：本篇只给结论与该问题特有的差异，细节指回真源。没找到答案可去提问：
+快速开始讲最短路径、完整攻略讲全流程，但真实使用中的疑问是碎片化的。本篇按「问题 → 答案」直给；同一事实只在真源页维护一次，细节指回真源。没找到答案可去提问：
 
 - [GitHub Issues](https://github.com/fxri-net/toolkit/issues)
 - [Gitee Issues](https://gitee.com/fxri/toolkit/issues)
@@ -15,7 +15,6 @@
 
 不是都得装。**skills 独立可用，工具是可选加速**：只装 skills 时 AI 照着技能里的规范纯手工跑通建档、校验、归档全流程（零依赖，纯 Markdown）；
 只装工具时人可以用 CLI，但 AI 侧没有规范指引；两者都装时 AI 自动校验、自动归档，体验最完整（推荐）。
-一句话：skills 教 AI 怎么做，CLI 帮人（和 AI）做得快。
 安装顺序见[快速开始 · 完整安装](./getting-started#完整安装)：全局装 CLI → `toolkit setup`（一次完成技能与规则接入）。
 
 ### 个人用，全局装还是每个项目里装？
@@ -24,9 +23,8 @@
 升级一条命令：`pnpm add -g @fxri/toolkit`。
 软链模式下技能随包自动更新；副本形式需重跑 `toolkit skill install`；skills 升级后开新会话，见「升级后要注意什么」。
 
-诚实代价：全局装的版本**不随项目锁定**，团队里会出现「各装各的」版本漂移。
-所以团队项目推荐工具走项目 devDependency、技能装进项目（`--scope project`），也可用上游安装器项目级安装并把 `skills-lock.json` 提交进仓库锁版本。
-只想在公司项目生效见下文「只在公司项目激活」。
+诚实代价：全局版本**不随项目锁定**，团队会出现版本漂移。团队项目推荐工具走项目 devDependency、技能装进项目（`--scope project`），
+或用上游安装器项目级安装并提交 `skills-lock.json` 锁版本。只想在公司项目生效见下文「只在公司项目激活」。
 
 ### 我只想当技能包管理器，不想装自带技能？
 
@@ -55,10 +53,10 @@
 ### Node 18 能用吗？
 
 能。运行时下限为 Node.js >= 18.17.0，全部命令（含交互式选择与 `release` 透传子命令）在该版本上可用。
-Node 18 已于 2025-04 EOL，只保证可运行、不再有安全补丁，条件允许时建议升级到 Node 20.19+。
+Node 18 已于 2025-04 EOL，只保证可运行、无安全补丁，建议升级 20.19+。
 低于 18.17.0 时 CLI 会输出中文提示并以非 0 退出，不静默降级。
 CLI 只使用该基线已稳定的 API，高版本才有的内置不会进入运行路径。
-Node 19 / 21 / 23 等非 LTS 版本只保证命令可运行，不纳入测试套件回归；开发测试以 20 / 22 / 24 LTS 为基线。
+Node 19 / 21 / 23 等非 LTS 版本只保证可运行，不纳入回归；测试以 20 / 22 / 24 LTS 为基线。
 
 ### 内网或离线环境怎么装？
 
@@ -82,7 +80,7 @@ Node 19 / 21 / 23 等非 LTS 版本只保证命令可运行，不纳入测试套
 [Gitee 镜像](https://gitee.com/fxri/toolkit) 与 GitHub 同源同步，国内访问最省心：
 
 - **源码浏览 / 克隆**：`https://gitee.com/fxri/toolkit`
-- **skills 安装**：装了 CLI（走 npm registry）后直接 `toolkit skill install`，技能随包分发、不碰 GitHub。
+- **skills 安装**：装 CLI 后直接 `toolkit skill install`，技能随包分发、不碰 GitHub。
 - **上游安装器**：只认 GitHub 源与本地路径。GitHub 不稳时先 clone 镜像、再对本地目录安装：
   ```bash
   git clone https://gitee.com/fxri/toolkit fxri-toolkit
@@ -102,8 +100,7 @@ toolkit skill install --force   # 把各目标下的同名旧副本重建为软�
 
 `--force` 只解除「同名非本包产物」的跳过判定，按默认形态重建这些未登记的目录；本包自己以 `--copy` 装出、且已在状态文件登记的副本不受影响。
 
-⚠️ 迁移后两条路径不要混用：再跑 `pnpm dlx skills update -g`（npm 用户 `npx skills update -g`）会把该目录重写回实体副本，冲突复发。
-迁移后 `skills-lock.json` 不再被任何一方维护，可删除，避免与内置命令的真实状态不一致。
+⚠️ 迁移后别再用上游更新：`pnpm dlx skills update -g`（npm 用户 `npx skills update -g`）会写回实体副本，冲突复发；`skills-lock.json` 已无维护方，可删除。
 
 ### 卸载工具时 skills 怎么办？
 
@@ -111,6 +108,11 @@ toolkit skill install --force   # 把各目标下的同名旧副本重建为软�
 ⚠️ 顺序别反：`skill uninstall` 要靠 CLI 与包内真源定位产物，CLI 卸了就没工具可用（重装一次再清即可）。
 软链会随 CLI 卸载悬空，`remove` 会一并摘除，漏摘时手工删 `~/.agents/skills/` 与各 agent 全局技能目录下的 `fxri-*` 链接。
 项目面产物用 `remove --scope project` 单独清（实体副本不随 CLI 卸载悬空）。完整步骤见[操作手册 · 升级与卸载](./handbook#七、升级与卸载)。
+
+### 清理工具把开发环境删了怎么办？
+
+先止损再重装：停掉清理任务与自动计划，用 `toolkit trash list --scope all`、清理工具日志与快照取证，再按 `fxri-code-safety` 的「误删恢复」顺序重建。
+日常清理不要整目录删除 `AppData` 下的开发工具目录，白名单见[操作手册 · 本机清理工具与开发目录](./handbook#本机清理工具与开发目录)。
 
 ## 技能与规则
 
