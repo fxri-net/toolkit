@@ -284,6 +284,8 @@ const parallelSteps = [
   { label: "文档可读性（段落行宽 / 分号）", args: ["scripts/check-docs-readability.mjs"] },
   // 仓库自检：代码块内联注释按分组基准对齐（C-40 配套，口径见 skills/fxri-writing-docs）
   { label: "文档注释对齐（代码块内联注释）", args: ["scripts/check-docs-comments.mjs"] },
+  // 仓库自检：命令总览引用的命令必须存在于命令注册表，防止已移除命令残留
+  { label: "命令总览对照（docs/cli.md × registry）", args: ["scripts/check-command-docs.mjs"] },
   // eslint 默认缓存加速本地重复运行；流水线与 --full 走冷缓存，且本地冷缓存抖动时缓存本身也会造成「本地绿、CI 红」，故只作本地提速手段
   // 告警与错误一并阻断：警告不许放行，避免靠提级规则层层补漏
   {
