@@ -64,7 +64,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
       if (target.kind === "agent" && !target.available) skippedTargets.push({ dir: target.dir, label: target.label })
     }
   }
-  const targets = resolved.targets
+  const targets = [...resolved.targets]
 
   const release = options.dryRun ? null : acquireSkillsLock(skillsLockFile(getHomeDir()))
   try {
@@ -75,6 +75,16 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
       const map = new Map<string, SkillStateTarget>()
       for (const target of source.targets) map.set(pathKey(target.dir), target)
       prevBySourceDir.set(sourceName, map)
+    }
+    // 改名收敛：历史目标目录里仍有旧名产物时纳入本次目标，让新名安装与旧名清理落到同一现场
+    const targetKeys = new Set(targets.map((target) => pathKey(target.dir)))
+    for (const item of items) {
+      for (const target of previous?.sources?.[item.source]?.targets ?? []) {
+        if (targetKeys.has(pathKey(target.dir)) || !existsSync(target.dir)) continue
+        if (!item.previousNames.some((old) => isPathPresent(join(target.dir, old)))) continue
+        targets.push({ name: "", dir: target.dir, label: "", kind: "custom", available: true, dirExists: true })
+        targetKeys.add(pathKey(target.dir))
+      }
     }
     const nextBySource = new Map<string, SkillStateTarget[]>()
     for (const source of sources) nextBySource.set(source.name, [])

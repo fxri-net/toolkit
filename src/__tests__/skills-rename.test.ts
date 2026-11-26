@@ -219,6 +219,24 @@ describe("改名后的现场与状态", () => {
     expect(stateNames(canonical)).not.toContain("alpha-old")
   })
 
+  it("改名后重装会收敛历史目标目录中的旧链接", () => {
+    const root = join(work, "src-extra")
+    const extra = join(work, "extra-target")
+    writeSkill(join(root, "skills", "extra-old"), "extra-old", "1.0.0")
+    writeManifest(root, ["skills/extra-old"])
+    const sources = [{ path: root, name: "ext", temporary: false }]
+    installSkills({ targets: ["canonical"], dirs: [extra], externalSources: sources })
+
+    renameSync(join(root, "skills", "extra-old"), join(root, "skills", "extra-new"))
+    writeSkill(join(root, "skills", "extra-new"), "extra-new", "2.0.0")
+    writeManifest(root, [{ path: "skills/extra-new", previousNames: ["extra-old"] }])
+    // 第二次不再显式传 dirs：历史目标目录里的旧链接也必须被收敛
+    installSkills({ targets: ["canonical"], externalSources: sources, skills: ["extra-new"] })
+
+    expect(existsSync(join(extra, "extra-old"))).toBe(false)
+    expect(lstatSync(join(extra, "extra-new")).isSymbolicLink()).toBe(true)
+  })
+
   it("来源改名未声明曾用名时，悬空旧登记保留在状态里可被 status 报出", () => {
     const root = join(work, "src2")
     writeSkill(join(root, "skills", "beta-old"), "beta-old", "1.0.0")

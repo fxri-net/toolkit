@@ -211,6 +211,7 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 
 **安装**：装了 CLI 后一键分发（推荐，技能随包分发、与 CLI 同一发布批次）用 `toolkit skill install`；
 也可用上游安装器 `pnpm dlx skills add fxri-net/toolkit --global` 从 GitHub 拉取。命令、作用域与全部选项见 [技能分发](./cli/skill)。
+技能改名后直接重跑 `toolkit skill install` 即可：历史目标目录中的旧名链接会按 `previousNames` 一并清理，无需先 uninstall。
 矩阵策略限制的技能会自动只发入口壳；也可用 `skillDelivery` 规则或 `skill install --gate` 显式指定，`--embed` 回退全文。
 
 **全局面分发目标三层**：主目标 `~/.agents/skills/`（多家 agent 共读，清单与判定口径见 [配置参考 · 作用域与安装面](./config/skill#作用域与安装面)）

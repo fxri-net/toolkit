@@ -82,6 +82,7 @@ toolkit skill list --format json             # JSON 输出：逐技能条目
 - **曾用名迁移**：来源声明 `previousNames` 时，旧名产物按归属清理（链接或同内容副本）并回显「已改名迁移：旧名 → 新名」
   - 仅在新名本次已新建 / 更新 / 跳过时清理；新名冲突或失败时保留旧名，沿用既有冲突 / 失败报告
   - 新名写入状态后旧名不再残留
+  - 历史目标目录（曾安装过、本次未显式选择）里仍有旧名链接时，重装也会纳入清理，结果与全新安装一致
 - **分发形态**：按 [`skillDelivery`](../config/skill#skilldelivery-技能分发形态) 推导，`gated` 只写入口壳、`off` 不写产物（残留由 `--prune` 清理）
   - 策略规则里显式写的 `delivery` 优先于名单推导（见[作用域策略](../config/activation#策略规则)）
   - `--gate` / `--embed` 为本次显式取值，成功后写 `skillDelivery.default`；项目面同样生效
