@@ -897,7 +897,7 @@ exports[`各域行为与错误路径 > rules compose 未知预设 1`] = `
 exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 "退出码：0
 --- stdout ---
-> 规则更新时间 2026-11-27 05:21
+> 规则更新时间 2026-11-27 07:27
 
 你是一个严谨的编程助手，专注于产出可维护、风格一致的代码
 
@@ -949,10 +949,9 @@ exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 
 ### 要求
 
-- 标题**全中文**，禁止英文格式头（feat:、fix: 等）
+- 标题以中文为主，包名 / API 名等专有名词可保留英文；禁止英文格式头（feat:、fix: 等）
 - 格式：\`类型：描述\`，全角冒号"："
 - 标题为祈使句、30 汉字内、句末不加句号
-- 包名/API 名等专有名词可保留英文
 - 复杂改动：标题后空一行，用"- "列表说明变更点和原因（可选）
 
 ### 类型字典
@@ -1005,7 +1004,7 @@ exports[`各域行为与错误路径 > rules list 1`] = `
     output   2026-11-27 04:08  输出要求（recommended / full）
     workflow 2026-11-27 05:21  工作流与方案落盘（minimal / recommended / full）
     preferences 2026-11-27 04:20  可裁剪偏好（minimal / recommended / full）
-    commit   2026-11-24 12:39  提交信息规则（recommended / full）
+    commit   2026-11-27 07:27  提交信息规则（recommended / full）
     usage    2026-11-27 04:21  技能使用情况（full）
 预设：minimal=workflow+preferences；recommended=core+output+workflow+preferences+commit；full=core+output+workflow+preferences+commit+usage
 当前缓存：无（默认推荐组合 recommended）
@@ -1130,7 +1129,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
         "title": "提交信息规则",
         "summary": "中文提交信息格式、类型字典与正反例",
         "file": "commit.md",
-        "anchor": "2026-11-24 12:39",
+        "anchor": "2026-11-27 07:27",
         "presets": [
           "recommended",
           "full"
