@@ -357,8 +357,8 @@ if (diffBase) {
 // env 上限 220：需容纳「pnpm / npm / bun / yarn 四种管理器写法」的半句说明（实测 198，取 1.1 倍）
 // 2026-11-27：长任务默认口径细化（output）后上调至 200；preferences 收敛为纯个性化偏好，维持 300
 // output 上调到 230：播报口径按执行类 / 只读 / 长任务分层，比单句多两条约束
-// workflow 上调到 790：只读段补「执行段按授权判据处理」，避免同句即直接执行
-const RULE_BUDGETS = { "workflow.md": 790, "core.md": 580, "preferences.md": 300, "usage.md": 595, "output.md": 230, "commit.md": 1040 }
+// workflow 上调到 840：补四项披露、跨会话「继续」与会话级授权，均属判定性限定词
+const RULE_BUDGETS = { "workflow.md": 840, "core.md": 580, "preferences.md": 300, "usage.md": 595, "output.md": 230, "commit.md": 1040 }
 for (const [file, budget] of Object.entries(RULE_BUDGETS)) {
   const rel = `templates/rules/${file}`
   // 假现场 / 裁剪仓库可能没有规则模块：缺失即跳过，不把 ENOENT 当违规抛出
