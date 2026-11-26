@@ -11,9 +11,9 @@
 | `toolkit setup` | 本机接入向导：安装 AI 技能、配置全局规则、设置生效范围（不初始化任务区） | — | [本机接入](./cli/setup) |
 | `toolkit task` | 任务管理：初始化、总览、建档、更新、归档、校验、归一、统计、导入导出 | `init` / `add` / `update` / `archive` / `check` / `normalize` / `stats` / `export` / `import` | [任务管理](./cli/task) |
 | `toolkit status` | 整体状态：只读聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项 | — | [整体状态](./cli/status) |
-| `toolkit rule` | 全局规则：列出模块、组合输出、锚点校验与缓存管理 | `list` / `compose` / `reset` / `check` | [全局规则](./cli/rule) |
+| `toolkit rule` | 全局规则：列出模块、组合输出、锚点校验与缓存管理 | `list` / `compose` / `reset` / `check` / `sync` | [全局规则](./cli/rule) |
 | `toolkit scope` | 作用域：按项目 / 目录判定技能是否生效（默认全域生效） | `status` / `allow` / `deny` / `remove` / `default` / `reset` / `profile` / `guard`（裸命令进交互，详见 scope 页） | [作用域](./cli/scope) |
-| `toolkit skill` | AI 技能分发：安装、分发预览、状态、卸载、来源与版本 | `install` / `status` / `uninstall` / `source` / `bump` / `lint` | [技能分发](./cli/skill) · [技能校验](./cli/skill-lint) · [技能版本递增](./cli/skill-bump) · [技能来源](./cli/skill-sources) |
+| `toolkit skill` | AI 技能分发：安装、分发预览、状态、卸载、来源与版本 | `install` / `status` / `uninstall` / `source` / `bump` / `lint` / `reconcile` / `list` | [技能分发](./cli/skill) · [技能校验](./cli/skill-lint) · [技能版本递增](./cli/skill-bump) · [技能来源](./cli/skill-sources) |
 | `toolkit usage` | 技能使用情况：开关、统计、导出与诊断（默认关闭） | `show` / `data` / `config` / `setup` / `record` | [技能使用情况](./cli/usage) |
 | `toolkit convention` | 规范载体：结构升级、表格与索引单元格归一、只读体检 | `upgrade` / `status` / `format` | [规范载体](./cli/convention) |
 | `toolkit release` | 多语言 CHANGELOG 与发版（封装 changesets，默认 `status`） | `status` / `bump` / `changelog` / `mirror` / `publish` / `audit` / `changeset` | [发版与更新日志](./cli/release) |
