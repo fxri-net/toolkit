@@ -8,6 +8,7 @@ import { importTasks } from "../tasks/import"
 import { archiveTasks } from "../tasks/archive"
 import { computeStats, renderStats } from "../tasks/stats"
 import { validateTasks, type CheckIssue } from "../tasks/validate"
+import { checkStagedActiveTasks } from "../tasks/staged"
 import { checkArchive, fixArchive } from "../tasks/normalize"
 import { createTask, defaultOwner, updateTask } from "../tasks/edit"
 import { inferScopeDefault } from "../tasks/scope-default"
@@ -223,14 +224,23 @@ export function registerTasksCommands(program: Command): void {
     }
   }
 
-  // 校验：任务区 error / warn 双报，存在 error 时退出码 1
-  function runTasksCheck(options: TasksCommonOptions): void {
+  // 校验：任务区 error / warn 双报，存在 error 时退出码 1；--staged 额外校验暂存区
+  function runTasksCheck(options: TasksCommonOptions & { staged?: boolean }): void {
     const ctx = resolveTasksContext(options)
     if (!ctx) return
     try {
       const result = validateTasks(ctx.dir)
       // 变更集缺前缀检测并入同一份问题清单（软告警关闭时不计不报）
       const issues = ctx.warn ? [...result.issues, ...changesetPrefixIssues()] : result.issues
+      if (options.staged) {
+        issues.push(
+          ...checkStagedActiveTasks({ cwd: process.cwd(), taskDir: ctx.dir }).map((item) => ({
+            level: "error" as const,
+            file: item.file,
+            message: item.message,
+          })),
+        )
+      }
       const errorCount = issues.filter((i) => i.level === "error").length
       console.log("任务校验：")
       console.log(`✖ 错误 ${errorCount} 项`)
@@ -531,7 +541,8 @@ export function registerTasksCommands(program: Command): void {
     })
 
   addTasksCommonOptions(tasksCmd.command("check").description("校验任务区：规则与变更集写法，存在错误时退出码 1"))
-    .action((options: TasksCommonOptions) => {
+    .option("--staged", "同时校验暂存区：active 任务档默认不入库（先归档再提交）")
+    .action((options: TasksCommonOptions & { staged?: boolean }) => {
       runTasksCheck(options)
     })
 

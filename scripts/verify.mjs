@@ -283,8 +283,6 @@ const parallelSteps = [
   { label: "规范一致性（技能版本 / 用途列 / 触达）", args: ["scripts/check-consistency.mjs"] },
   // 仓库自检：src 下除 safe-remove 与缓存白名单外，禁止裸递归删除
   { label: "破坏性删除检查", args: ["scripts/check-destructive-fs.mjs"] },
-  // 仓库自检：active 任务档默认不入库，暂存区命中即失败（归档后只提交 archive 与代码）
-  { label: "active 任务暂存检查", args: ["scripts/check-active-tasks-staged.mjs"] },
   // 仓库自检：正文段落单行行宽与分号数（规范 C-43），存量按基线棘轮、只在超出时失败
   { label: "文档可读性（段落行宽 / 分号）", args: ["scripts/check-docs-readability.mjs"] },
   // 仓库自检：代码块内联注释按分组基准对齐（C-40 配套，口径见 skills/fxri-writing-docs）
@@ -357,7 +355,7 @@ const tailSteps = [
   { label: "CLI 冒烟 release --help", args: ["dist/cli.js", "release", "--help"], env: cliEnv },
   // 技能规范：本仓技能必须通过 lint；--base 下内容变更未递增即失败，默认档只告警篇幅
   { label: "技能规范校验（skill lint）", args: ["dist/cli.js", "skill", "lint", "skills", "--base", skillBase], env: cliEnv },
-  { label: "任务区体检（task check）", args: ["dist/cli.js", "task", "check"], env: { TZ: "Asia/Shanghai", ...cliEnv } },
+  { label: "任务区体检与 active 暂存检查（task check --staged）", args: ["dist/cli.js", "task", "check", "--staged"], env: { TZ: "Asia/Shanghai", ...cliEnv } },
   // 隐私扫描：档位 off（未启用）时立即通过，业务仓库默认零噪音
   { label: "隐私扫描（privacy.localPaths 档位）", args: ["dist/cli.js", "privacy", "scan"], env: cliEnv },
   { label: "归档块归一核验（task normalize）", args: ["dist/cli.js", "task", "normalize"], env: { TZ: "Asia/Shanghai", ...cliEnv } },
