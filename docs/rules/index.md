@@ -17,7 +17,7 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 
 | 预设 | 包含模块 | 适合谁 |
 | --- | --- | --- |
-| `minimal`（极简） | `workflow` | 已有自己的代码规范，只想补授权与落盘纪律 |
+| `minimal`（极简） | `workflow` + `practices` | 已有自己的代码规范，只想补授权、落盘与推荐做法 |
 | `recommended`（推荐，默认） | `core` + `output` + `workflow` + `practices` + `commit` | 多数项目从零起步 |
 | `full`（全量） | 推荐组合 + `usage` | 已启用 toolkit 技能统计，需连同上报纪律一并下发 |
 
@@ -35,7 +35,7 @@ import RuleComposer from '../.vitepress/theme/components/RuleComposer.vue'
 | `core` | 角色定位与代码规范 | 推荐 / 全量 |
 | `output` | 输出要求 | 推荐 / 全量 |
 | `workflow` | 工作流与方案落盘 | 极简 / 推荐 / 全量 |
-| `practices` | 推荐做法 | 推荐 / 全量 |
+| `practices` | 推荐做法 | 极简 / 推荐 / 全量 |
 | `commit` | 提交信息规则 | 推荐 / 全量 |
 | `usage` | 技能使用情况 | 全量 |
 

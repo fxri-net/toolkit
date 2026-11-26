@@ -50,9 +50,10 @@ export const RULESET: Ruleset = {
   "presets": {
     "minimal": {
       "label": "极简",
-      "summary": "已有自己的代码规范，只想补授权与落盘纪律的项目",
+      "summary": "已有自己的代码规范，只想补授权、落盘与推荐做法",
       "modules": [
-        "workflow"
+        "workflow",
+        "practices"
       ]
     },
     "recommended": {

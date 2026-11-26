@@ -9,7 +9,7 @@ title: 全局规则（rule）
 ## 用途与场景
 
 - 全局规则会整段进入 Agent 上下文，可按需组合模块（清单见[全局规则](../rules/)）。
-- 预设：`minimal`（极简，只含 `workflow`，适合自备代码规范）、
+- 预设：`minimal`（极简：`workflow` + `practices`，适合自备代码规范、只补授权、落盘与推荐做法）、
   `recommended`（推荐，默认：`core` + `output` + `workflow` + `practices` + `commit`，多数项目从零起步）、
   `full`（全部 6 个模块，适合已启用技能统计）。
 - 交互选择时每项附一行说明；显示名、模块清单与适用面取自 `templates/rules/ruleset.json`，与文档站组合器同源。

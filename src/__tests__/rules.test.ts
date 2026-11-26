@@ -33,9 +33,9 @@ describe("规则清单与模块", () => {
     }
   })
 
-  it("极简预设只含工作流，推荐预设含推荐做法与提交信息", () => {
+  it("极简预设含工作流与推荐做法，推荐预设含推荐做法与提交信息", () => {
     const ruleset = loadRuleset()
-    expect(ruleset.presets.minimal?.modules).toEqual(["workflow"])
+    expect(ruleset.presets.minimal?.modules).toEqual(["workflow", "practices"])
     expect(ruleset.presets.recommended?.modules).toEqual(["core", "output", "workflow", "practices", "commit"])
     expect(ruleset.presets.complete).toBeUndefined()
     // 预设说明供交互与文档派生：显示名非空，说明写清适合谁
@@ -81,9 +81,11 @@ describe("规则清单与模块", () => {
   it("listRules 返回预设归属与当前锚点", () => {
     const listed = listRules()
     const workflow = listed.modules.find((mod) => mod.id === "workflow")
+    const practices = listed.modules.find((mod) => mod.id === "practices")
     const core = listed.modules.find((mod) => mod.id === "core")
     const coreAnchor = loadRuleModules().find((mod) => mod.id === "core")?.anchor
     expect(workflow?.presets).toEqual(expect.arrayContaining(["minimal", "recommended", "full"]))
+    expect(practices?.presets).toEqual(expect.arrayContaining(["minimal", "recommended", "full"]))
     expect(core?.presets).toEqual(expect.arrayContaining(["recommended", "full"]))
     expect(core?.anchor).toBe(coreAnchor)
   })

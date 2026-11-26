@@ -66,8 +66,8 @@ describe("RuleComposer 交互", () => {
     await presetButton("全量").trigger("click")
     expect(checkedStates(wrapper)).toEqual([true, true, true, true, true, true])
     await presetButton("极简").trigger("click")
-    expect(checkedStates(wrapper)).toEqual([false, false, true, false, false, false])
-    expect(wrapper.findAll(".rc-order li")).toHaveLength(1)
+    expect(checkedStates(wrapper)).toEqual([false, false, true, true, false, false])
+    expect(wrapper.findAll(".rc-order li")).toHaveLength(2)
   })
 
   it("手动调整后显示自定义状态，点预设后消失", async () => {

@@ -995,10 +995,10 @@ exports[`各域行为与错误路径 > rules list 1`] = `
     core     2026-11-19 09:30  角色定位与代码规范（recommended / full）
     output   2026-11-08 02:21  输出要求（recommended / full）
     workflow 2026-11-26 23:05  工作流与方案落盘（minimal / recommended / full）
-    practices 2026-11-26 18:33  推荐做法（recommended / full）
+    practices 2026-11-26 18:33  推荐做法（minimal / recommended / full）
     commit   2026-11-24 12:39  提交信息规则（recommended / full）
     usage    2026-11-24 09:57  技能使用情况（full）
-预设：minimal=workflow；recommended=core+output+workflow+practices+commit；full=core+output+workflow+practices+commit+usage
+预设：minimal=workflow+practices；recommended=core+output+workflow+practices+commit；full=core+output+workflow+practices+commit+usage
 当前缓存：无（默认推荐组合 recommended）
 --- stderr ---
 "
@@ -1016,9 +1016,10 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
     "presets": {
       "minimal": {
         "label": "极简",
-        "summary": "已有自己的代码规范，只想补授权与落盘纪律的项目",
+        "summary": "已有自己的代码规范，只想补授权、落盘与推荐做法",
         "modules": [
-          "workflow"
+          "workflow",
+          "practices"
         ]
       },
       "recommended": {
@@ -1110,6 +1111,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
         "file": "practices.md",
         "anchor": "2026-11-26 18:33",
         "presets": [
+          "minimal",
           "recommended",
           "full"
         ]
