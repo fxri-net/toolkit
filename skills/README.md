@@ -9,7 +9,7 @@ Cursor、Codex、Gemini CLI 等兼容 agent 按需加载。
 
 | 技能 | 版本 | 用途 | 层级 |
 | --- | --- | --- | --- |
-| [fxri-plan-task](./fxri-plan-task/SKILL.md) | 1.13.20 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
+| [fxri-plan-task](./fxri-plan-task/SKILL.md) | 1.13.21 | 方案落盘：任务分解与纯展示计划表 → 逐仓逐任务建档 → 校验 → 归档 → 任务级规范沉淀（能力终点）；开工闸门按闸门态 + 授权态判定；规范载体迁移与升级 | core |
 | [fxri-plan-review](./fxri-plan-review/SKILL.md) | 1.1.6 | 复核已落档任务拆分：输出新增疏漏与建议，按 `直接落档` / `需要确认` / `仅作提示` 标记后续是否落档 | core |
 | [fxri-plan-recap](./fxri-plan-recap/SKILL.md) | 1.7.11 | 会话收尾全量沉淀 + 规范沉淀 / 新会话三层恢复 / 历史任务时间批量修正 | core |
 | [fxri-release-changelog](./fxri-release-changelog/SKILL.md) | 1.4.9 | changesets 发版与多语言 CHANGELOG 维护 | optional |
