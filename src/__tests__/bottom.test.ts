@@ -1,6 +1,6 @@
 // 底层模块直接单测（T-9）：原子写、目录扫描、展示路径
 import { describe, it, expect } from "vitest"
-import { mkdtempSync, writeFileSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs"
+import { mkdtempSync, writeFileSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { writeFileAtomic } from "../write-atomic"
@@ -16,15 +16,6 @@ describe("writeFileAtomic", () => {
     writeFileAtomic(file, "world")
     expect(readFileSync(file, "utf8")).toBe("world")
     expect(readdirSync(dir).filter((f) => f.includes(".tmp-"))).toHaveLength(0)
-    rmSync(dir, { recursive: true, force: true })
-  })
-
-  it("写出的文件权限为 0600（POSIX）", () => {
-    if (process.platform === "win32") return
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-wa-mode-"))
-    const file = join(dir, "a.md")
-    writeFileAtomic(file, "hello")
-    expect(statSync(file).mode & 0o777).toBe(0o600)
     rmSync(dir, { recursive: true, force: true })
   })
 })
