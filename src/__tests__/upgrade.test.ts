@@ -151,6 +151,62 @@ describe("升级迁移：计划与复检", () => {
   })
 })
 
+describe("升级迁移：人工项与旧段清理", () => {
+  const conflictConfig = JSON.stringify({ projectSkills: { selection: ["old"] }, projectSkill: { selection: ["new"] } })
+
+  it("新旧段内容不同在检测阶段判人工，不再计入自动残留", () => {
+    const root = makeProject({ ".toolkitrc.json": conflictConfig })
+    const plan = buildUpgradePlan(root, { layers: ["project"] })
+    const item = plan.items.find((entry) => entry.id === "config:project")
+    expect(item?.status).toBe("manual")
+    expect(item?.manualHint).toContain(root)
+    expect(item?.manualHint).toContain("--drop-legacy")
+    expect(plan.autoResidue).toBe(0)
+  })
+
+  it("--drop-legacy 删除已被覆盖的旧段，复检残留归零", () => {
+    const root = makeProject({ ".toolkitrc.json": conflictConfig })
+    const plan = buildUpgradePlan(root, { layers: ["project"], dropLegacy: true })
+    expect(plan.items[0]?.status).toBe("planned")
+    const result = runUpgrade(root, plan.items, { layers: ["project"], dropLegacy: true })
+    expect(result.residue).toEqual([])
+    const parsed = JSON.parse(readFileSync(join(root, ".toolkitrc.json"), "utf8")) as Record<string, unknown>
+    expect(parsed.projectSkills).toBeUndefined()
+    expect(parsed.projectSkill).toEqual({ selection: ["new"] })
+  })
+
+  it("人工项无改动时不产生备份目录", () => {
+    const root = makeProject({ ".toolkitrc.json": conflictConfig })
+    const plan = buildUpgradePlan(root, { layers: ["project"] })
+    const result = runUpgrade(root, plan.items, { layers: ["project"] })
+    expect(result.applied).toEqual([])
+    expect(result.backups).toEqual([])
+    expect(existsSync(join(root, ".toolkit", "backup"))).toBe(false)
+  })
+
+  it("项目文件里的 skillInstall 判为误放层段并可清理", () => {
+    const root = makeProject({ ".toolkitrc.json": JSON.stringify({ skillInstall: { mode: "skills" } }) })
+    const plan = buildUpgradePlan(root, { layers: ["project"] })
+    const item = plan.items.find((entry) => entry.id === "config:project")
+    expect(item?.status).toBe("manual")
+    expect(item?.manualHint).toContain("写错层")
+    expect(plan.autoResidue).toBe(0)
+    const dropped = buildUpgradePlan(root, { layers: ["project"], dropLegacy: true })
+    runUpgrade(root, dropped.items, { layers: ["project"], dropLegacy: true })
+    expect((JSON.parse(readFileSync(join(root, ".toolkitrc.json"), "utf8")) as Record<string, unknown>).skillInstall).toBeUndefined()
+  })
+
+  it("全局文件里的 projectSkill 判为误放层段", () => {
+    const home = makeProject({ ".toolkitrc.json": JSON.stringify({ projectSkill: { selection: ["x"] } }) })
+    setHomeDirForTest(home)
+    const plan = buildUpgradePlan(home)
+    const item = plan.items.find((entry) => entry.id === "config:global")
+    expect(item?.status).toBe("manual")
+    expect(item?.manualHint).toContain("projectSkill")
+    expect(plan.autoResidue).toBe(0)
+  })
+})
+
 describe("升级迁移：备份恢复", () => {
   it("恢复还原改写前的文件；迁移后被改过的文件默认跳过，--overwrite 才覆盖", () => {
     const root = makeProject({ ".toolkitrc.json": legacyConfig })

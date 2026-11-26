@@ -1,7 +1,6 @@
 // 迁移应用：按迁移项执行具体改写，全部写前先进入备份会话
 import { existsSync, readdirSync } from "node:fs"
 import { join } from "node:path"
-import { CONFIG_LEGACY_SECTIONS } from "../config"
 import { upgradeConventions } from "../conventions/upgrade"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
@@ -11,6 +10,7 @@ import { commandMigrationRows } from "../command-registry"
 import { findProjectRoot } from "../scope/paths"
 import { removeSkills } from "../skills/install/global"
 import { removeProjectSkills } from "../skills/install/project"
+import { planConfigContent, type ConfigPlanOptions } from "./config-plan"
 import { legacySkillNames } from "./detect"
 import type { UpgradeApplyResult, UpgradeItem } from "./types"
 
@@ -27,96 +27,13 @@ function readObject(file: string): Record<string, unknown> | null {
   }
 }
 
-// 对象深比较：只用于新旧段“是否等价”的判定，不做语义推断
-function sameValue(left: unknown, right: unknown): boolean {
-  return JSON.stringify(left) === JSON.stringify(right)
-}
-
-// 旧闸门键转新段：布尔值转 default，include / exclude 转 rules 并保留排除优先
-function gateToDelivery(gate: unknown): Record<string, unknown> | null {
-  if (typeof gate === "boolean") return { default: gate ? "gated" : "full" }
-  if (!gate || typeof gate !== "object" || Array.isArray(gate)) return null
-  const raw = gate as Record<string, unknown>
-  const include = Array.isArray(raw.include) && raw.include.length > 0 ? raw.include.filter((item): item is string => typeof item === "string") : ["*"]
-  const exclude = Array.isArray(raw.exclude) ? raw.exclude.filter((item): item is string => typeof item === "string") : []
-  return {
-    rules: [
-      ...include.map((pattern) => ({ match: [pattern], delivery: "gated" })),
-      ...exclude.map((pattern) => ({ match: [pattern], delivery: "full" })),
-    ],
+// 改写单个配置文件：先算计划，仅在内容确有变化时调用 beforeWrite 备份并落盘
+export function rewriteConfigFile(file: string, options: ConfigPlanOptions & { beforeWrite?: (file: string) => void } = {}): { changed: boolean; manual: string[] } {
+  const planned = planConfigContent(file, options)
+  if (planned.changed && planned.content !== undefined) {
+    options.beforeWrite?.(file)
+    writeFileAtomic(file, planned.content)
   }
-}
-
-// 重写单个配置文件：段名整体搬移，旧闸门键映射；段内出现未知键时整段保留并记人工
-// 返回结果不写盘，供 upgrade --diff 预览与真正写入共用同一份转换
-export function planConfigContent(file: string): { changed: boolean; content?: string; manual: string[] } {
-  const data = readObject(file)
-  if (!data) return { changed: false, manual: [`配置文件解析失败，未改写：${file}`] }
-  const originalKeys = Object.keys(data)
-  const manual: string[] = []
-  let changed = false
-  for (const [legacy, canonical] of Object.entries(CONFIG_LEGACY_SECTIONS)) {
-    if (!(legacy in data)) continue
-    if (canonical in data) {
-      if (sameValue(data[canonical], data[legacy])) {
-        delete data[legacy]
-        changed = true
-      } else {
-        manual.push(`段「${legacy}」与「${canonical}」内容不同，保留新段并把旧段留给人工确认`)
-      }
-      continue
-    }
-    data[canonical] = data[legacy]
-    delete data[legacy]
-    changed = true
-  }
-  const section = data.skillInstall
-  if (section && typeof section === "object" && !Array.isArray(section)) {
-    const legacy = section as Record<string, unknown>
-    if ("gate" in legacy) {
-      const delivery = gateToDelivery(legacy.gate)
-      if (delivery && data.skillDelivery === undefined) {
-        data.skillDelivery = delivery
-        delete legacy.gate
-        changed = true
-        if (Object.keys(legacy).length === 0) delete data.skillInstall
-      } else if (data.skillDelivery !== undefined) {
-        // 新段已接管：旧键本就被忽略，直接删除
-        delete legacy.gate
-        changed = true
-        if (Object.keys(legacy).length === 0) delete data.skillInstall
-      } else {
-        manual.push("skillInstall.gate 形态无法识别，保留原键并交人工确认")
-      }
-    }
-  }
-  if (!changed) return { changed, manual }
-  // 按键序重建：旧段在原位置换成新段，闸门映射出的新段占据旧段位置，其余新键追加
-  const ordered: Record<string, unknown> = {}
-  for (const key of originalKeys) {
-    if (key in data) {
-      ordered[key] = data[key]
-      continue
-    }
-    const canonical = CONFIG_LEGACY_SECTIONS[key]
-    if (canonical && canonical in data && !(canonical in ordered)) {
-      ordered[canonical] = data[canonical]
-      continue
-    }
-    if ((key === "skillInstall" || key === "skillsInstall") && data.skillDelivery !== undefined) {
-      ordered.skillDelivery = data.skillDelivery
-    }
-  }
-  for (const [key, value] of Object.entries(data)) {
-    if (!(key in ordered)) ordered[key] = value
-  }
-  return { changed, content: `${JSON.stringify(ordered, null, 2)}\n`, manual }
-}
-
-// 改写单个配置文件：计算后落盘，行为与 planConfigContent 完全一致
-export function rewriteConfigFile(file: string): { changed: boolean; manual: string[] } {
-  const planned = planConfigContent(file)
-  if (planned.changed && planned.content !== undefined) writeFileAtomic(file, planned.content)
   return { changed: planned.changed, manual: planned.manual }
 }
 
@@ -171,10 +88,13 @@ export function planPackageContent(file: string): { changed: boolean; content?: 
   return { changed, content: `${JSON.stringify(pkg, null, indent)}\n`, manual }
 }
 
-// 改写 package.json：计算后落盘
-export function rewritePackage(file: string): { changed: boolean; manual: string[] } {
+// 改写 package.json：计算后落盘，仅在确有变化时备份
+export function rewritePackage(file: string, options: { beforeWrite?: (file: string) => void } = {}): { changed: boolean; manual: string[] } {
   const planned = planPackageContent(file)
-  if (planned.changed && planned.content !== undefined) writeFileAtomic(file, planned.content)
+  if (planned.changed && planned.content !== undefined) {
+    options.beforeWrite?.(file)
+    writeFileAtomic(file, planned.content)
+  }
   return { changed: planned.changed, manual: planned.manual }
 }
 
@@ -187,15 +107,32 @@ function conventionFiles(tasksDir: string): string[] {
     .map((name) => join(dir, name))
 }
 
-// 应用单个迁移项：返回是否成功与需人工说明
-function applyItem(item: UpgradeItem, cwd: string, tasksDir: string, session: BackupSession): { manual: string[] } {
+// 应用单个迁移项：返回需人工说明；配置与 package 仅在确有变化时进入备份会话
+function applyItem(
+  item: UpgradeItem,
+  cwd: string,
+  tasksDir: string,
+  session: BackupSession,
+  options: { dropLegacy?: boolean },
+): { manual: string[] } {
   if (item.surface === "config") {
-    session.capture(item.files)
-    return { manual: item.files.flatMap((file) => rewriteConfigFile(file).manual) }
+    const captured = new Set<string>()
+    const beforeWrite = (file: string): void => {
+      if (captured.has(file)) return
+      captured.add(file)
+      session.capture([file])
+    }
+    const results = item.files.map((file) => rewriteConfigFile(file, { dropLegacy: options.dropLegacy, layer: item.layers[0], beforeWrite }))
+    return { manual: results.flatMap((result) => result.manual) }
   }
   if (item.id === "project:package") {
-    session.capture(item.files)
-    return { manual: item.files.flatMap((file) => rewritePackage(file).manual) }
+    const captured = new Set<string>()
+    const beforeWrite = (file: string): void => {
+      if (captured.has(file)) return
+      captured.add(file)
+      session.capture([file])
+    }
+    return { manual: item.files.flatMap((file) => rewritePackage(file, { beforeWrite }).manual) }
   }
   if (item.surface === "convention") {
     const before = conventionFiles(tasksDir)
@@ -226,13 +163,16 @@ function applyItem(item: UpgradeItem, cwd: string, tasksDir: string, session: Ba
 }
 
 // 应用整份计划：逐项执行，失败即停；手动项跳过并在结果中保留
-export function applyUpgrade(items: UpgradeItem[], options: { cwd: string; tasksDir: string; scope?: "project" | "global" }): UpgradeApplyResult {
+export function applyUpgrade(
+  items: UpgradeItem[],
+  options: { cwd: string; tasksDir: string; scope?: "project" | "global"; dropLegacy?: boolean },
+): UpgradeApplyResult {
   const session = new BackupSession(options.cwd, options.scope ?? "project")
   const result: UpgradeApplyResult = { applied: [], failed: [], backups: [] }
   for (const item of items) {
     if (item.status === "manual") continue
     try {
-      const outcome = applyItem(item, options.cwd, options.tasksDir, session)
+      const outcome = applyItem(item, options.cwd, options.tasksDir, session, { dropLegacy: options.dropLegacy })
       item.status = outcome.manual.length > 0 ? "manual" : "applied"
       if (outcome.manual.length > 0) item.manualHint = outcome.manual.join("；")
       else result.applied.push(item.id)

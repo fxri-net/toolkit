@@ -285,12 +285,12 @@ function normalizeLegacySections(layer: ConfigLayerName, filePath: string, confi
     if (warnedLegacySections.has(key)) continue
     warnedLegacySections.add(key)
     if (duplicated) {
-      console.warn(`⚠️ 配置段「${legacy}」已更名为「${canonical}」（${filePath}）：同名新段已存在，旧段内容已忽略`)
+      console.warn(`⚠️ 配置段「${legacy}」已更名为「${canonical}」（${filePath}）：同名新段已存在，旧段内容已忽略；确认后可运行 toolkit upgrade --drop-legacy 删除旧段`)
       continue
     }
     const hint =
       layer === "全局层"
-        ? "全局层不归 toolkit task init 处置，请手动把该段改名为新段名（2.1.0 起不再兼容）"
+        ? "运行 toolkit upgrade --layers global 自动改名（2.1.0 起移除兼容）"
         : "本次按新段名读取，运行 toolkit task init 可自动重写"
     console.warn(`⚠️ 配置段「${legacy}」已更名为「${canonical}」（${filePath}）：${hint}`)
   }

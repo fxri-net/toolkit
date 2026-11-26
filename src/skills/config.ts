@@ -35,6 +35,12 @@ export interface ProjectSkillsConfig {
   mode?: SkillsMode
 }
 
+// 段归属层：只列只允许单一层读取的段，供升级识别「写错层」并按归属清理
+export const SKILL_SECTION_LAYERS: Readonly<Record<string, readonly ("global" | "project" | "local")[]>> = {
+  skillInstall: ["global"],
+  projectSkill: ["project"],
+}
+
 // 告警去重集合：同一进程内同一个「文件 + 段 + 原因」只提示一次，避免 status 多次读取刷屏
 const warned = new Set<string>()
 
@@ -43,12 +49,14 @@ export function resetSkillsConfigWarnings(): void {
   warned.clear()
 }
 
-// 段级误写告警：说清忽略了什么、该写在哪一层
-function warnMisplaced(section: string, file: string | null, expected: string): void {
+// 段级误写告警：说清忽略了什么、该写在哪一层，并给出清理入口
+function warnMisplaced(section: string, file: string | null, expected: string, actual: string): void {
   const key = `${file ?? ""}\u0000${section}\u0000layer`
   if (warned.has(key)) return
   warned.add(key)
-  console.warn(`⚠️ 忽略配置段「${section}」${file ? `（${file}）` : ""}：该段仅支持${expected}，本地层不参与技能安装偏好`)
+  console.warn(
+    `⚠️ 忽略配置段「${section}」${file ? `（${file}）` : ""}：该段仅支持${expected}，${actual}不参与读取；请移到${expected}，或运行 toolkit upgrade --drop-legacy 清理`,
+  )
 }
 
 // 字段类型非法告警：能继续执行则告警后按未配置处理（降级不静默）
@@ -119,8 +127,8 @@ function parseSources(value: unknown, file: string | null): Record<string, Exter
 // 读取全局技能安装偏好：只取全局层；项目层 / 本地层误写时告警并忽略
 export function readSkillsInstallConfig(startDir = process.cwd()): SkillsInstallConfig {
   const layers = inspectConfigLayers(startDir)
-  if (layers.project.config?.skillInstall !== undefined) warnMisplaced("skillInstall", layers.project.file, "全局层（~/.toolkitrc.json）")
-  if (layers.local.config?.skillInstall !== undefined) warnMisplaced("skillInstall", layers.local.file, "全局层（~/.toolkitrc.json）")
+  if (layers.project.config?.skillInstall !== undefined) warnMisplaced("skillInstall", layers.project.file, "全局层（~/.toolkitrc.json）", "项目层")
+  if (layers.local.config?.skillInstall !== undefined) warnMisplaced("skillInstall", layers.local.file, "全局层（~/.toolkitrc.json）", "本地层")
   const section = layers.global.config?.skillInstall
   if (!isPlainObject(section)) return {}
   return {
@@ -135,8 +143,8 @@ export function readSkillsInstallConfig(startDir = process.cwd()): SkillsInstall
 // 读取项目技能安装偏好：只取项目层；全局层 / 本地层误写时告警并忽略
 export function readProjectSkillsConfig(cwd = process.cwd()): ProjectSkillsConfig {
   const layers = inspectConfigLayers(cwd)
-  if (layers.global.config?.projectSkill !== undefined) warnMisplaced("projectSkill", layers.global.file, "项目层（.toolkitrc.json）")
-  if (layers.local.config?.projectSkill !== undefined) warnMisplaced("projectSkill", layers.local.file, "项目层（.toolkitrc.json）")
+  if (layers.global.config?.projectSkill !== undefined) warnMisplaced("projectSkill", layers.global.file, "项目层（.toolkitrc.json）", "全局层")
+  if (layers.local.config?.projectSkill !== undefined) warnMisplaced("projectSkill", layers.local.file, "项目层（.toolkitrc.json）", "本地层")
   const section = layers.project.config?.projectSkill
   if (!isPlainObject(section)) return {}
   return {
@@ -214,7 +222,7 @@ export function readSkillsDeliveryConfig(face: SkillsDeliveryFace = "global", st
     if (legacy) {
       warnOnce(
         "skillDelivery\u0000legacy-ignored",
-        "⚠️ 忽略旧配置「skillInstall.gate」：已由配置段「skillDelivery」接管，旧键不再生效（2.1.0 起移除兼容）",
+        "⚠️ 忽略旧配置「skillInstall.gate」：已由配置段「skillDelivery」接管，旧键不再生效（2.1.0 起移除兼容）；可运行 toolkit upgrade --drop-legacy 清理",
       )
     }
     return parseDeliverySection(merged)
@@ -222,7 +230,7 @@ export function readSkillsDeliveryConfig(face: SkillsDeliveryFace = "global", st
   if (legacy) {
     warnOnce(
       "skillDelivery\u0000legacy-migrated",
-      "⚠️ 检测到旧配置「skillInstall.gate」：已按「skillDelivery」等价值读取，建议迁移（2.1.0 起移除兼容）",
+      "⚠️ 检测到旧配置「skillInstall.gate」：已按「skillDelivery」等价值读取，建议迁移（2.1.0 起移除兼容）；可运行 toolkit upgrade --layers global 迁移",
     )
     return legacy
   }

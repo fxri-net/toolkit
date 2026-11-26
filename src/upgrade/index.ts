@@ -10,12 +10,14 @@ import type { UpgradeApplyResult, UpgradeItem, UpgradeLayer, UpgradePlan } from 
 // 计划过滤：--only / --skip 都按稳定 id 匹配；不传即全选
 export function buildUpgradePlan(
   cwd: string,
-  options: { layers?: readonly UpgradeLayer[]; only?: string[]; skip?: string[] } = {},
+  options: { layers?: readonly UpgradeLayer[]; only?: string[]; skip?: string[]; dropLegacy?: boolean } = {},
 ): UpgradePlan {
   const layers = options.layers ?? ALL_LAYERS
   const only = options.only && options.only.length > 0 ? new Set(options.only) : null
   const skip = new Set(options.skip ?? [])
-  const items = detectUpgradeItems(cwd, layers).filter((item) => (only ? only.has(item.id) : true) && !skip.has(item.id))
+  const items = detectUpgradeItems(cwd, layers, { dropLegacy: options.dropLegacy }).filter(
+    (item) => (only ? only.has(item.id) : true) && !skip.has(item.id),
+  )
   return {
     items,
     autoResidue: countAutoResidue(items),
@@ -24,8 +26,12 @@ export function buildUpgradePlan(
 }
 
 // 复检：迁移完成后仍有可自动处理的残留即视为未完成
-export function verifyUpgrade(cwd: string, layers: readonly UpgradeLayer[] = ALL_LAYERS): UpgradeItem[] {
-  return detectUpgradeItems(cwd, layers)
+export function verifyUpgrade(
+  cwd: string,
+  layers: readonly UpgradeLayer[] = ALL_LAYERS,
+  options: { dropLegacy?: boolean } = {},
+): UpgradeItem[] {
+  return detectUpgradeItems(cwd, layers, options)
 }
 
 // 版本门禁：项目依赖仍低于目标 major 时拒绝迁移（v1 CLI 读不懂 v2 配置）
@@ -76,10 +82,10 @@ export interface UpgradeRunResult extends UpgradeApplyResult {
 export function runUpgrade(
   cwd: string,
   items: UpgradeItem[],
-  options: { layers?: readonly UpgradeLayer[] } = {},
+  options: { layers?: readonly UpgradeLayer[]; dropLegacy?: boolean } = {},
 ): UpgradeRunResult {
   const tasksDir = tasksDirFor(cwd)
   const scope = options.layers && options.layers.length === 1 && options.layers[0] === "global" ? "global" : "project"
-  const applied = applyUpgrade(items, { cwd, tasksDir, scope })
-  return { ...applied, residue: verifyUpgrade(cwd, options.layers).filter((item) => item.status === "planned"), tasksDir }
+  const applied = applyUpgrade(items, { cwd, tasksDir, scope, dropLegacy: options.dropLegacy })
+  return { ...applied, residue: verifyUpgrade(cwd, options.layers, { dropLegacy: options.dropLegacy }).filter((item) => item.status === "planned"), tasksDir }
 }

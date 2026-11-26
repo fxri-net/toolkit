@@ -30,6 +30,7 @@ toolkit upgrade --restore latest  # 从最近一次备份恢复
 | `--format json` | 输出八键信封到 stdout |
 | `--layers <layers>` | `global` / `project` / `local`，逗号分隔，缺省全部 |
 | `--only <ids>` / `--skip <ids>` | 按迁移项 id 只做 / 跳过 |
+| `--drop-legacy` | 删除已被新段覆盖或写错层的旧段（本就不生效）；`--dry-run` / `--diff` 可预览 |
 | `--allow-old-dependency` | 项目依赖低于当前 major 时仍继续（默认拒绝） |
 | `--restore [path]` | 从备份恢复；省略或 `latest` 取最近一次 |
 | `--overwrite` | 恢复时覆盖迁移之后被修改过的文件 |
@@ -38,6 +39,8 @@ toolkit upgrade --restore latest  # 从最近一次备份恢复
 
 - 顺序固定：配置 → 工程文件 → 技能 → 规范载体 → 备份收编；规范载体目录取自迁移后的配置。
 - 配置以「段」为单位整体迁移：段内有未知子键时整段保留并列入人工项，不做半截搬移。
+- 新旧段并存且内容不同、或段写错层时在检测阶段即判人工项（`--check` 不计入残留），提示含文件路径、两段内容与可执行命令；
+  确认保留新段后加 `--drop-legacy` 删除旧段 / 误放段，只删本就不生效的内容。
 - 只支持「上一个 major → 当前 major」；跨多个 major 时命令会给出逐级升级步骤，不硬迁。
 - 备份集中在 `.toolkit/backup/<时间>/`（全局面为 `~/.toolkit/backup/<时间>/`），清单记录文件哈希；恢复时默认不覆盖迁移后被用户改过的文件。
 - 手动项（规则快照正文、CI 文件里的旧命令名、无法确认归属的目录）只告警，不阻断 CI。

@@ -71,8 +71,9 @@ title: v1 → v2 升级
 | `projectSkills` | `projectSkill` |
 | `tasks` | `task` |
 
-三层配置均由 `toolkit upgrade` 就地重写（含全局层 `~/.toolkitrc.json`）；手工兜底时，
-项目层与本地层可用 `toolkit task init`，全局层需手动改名，2.1.0 起移除兼容。
+三层配置均由 `toolkit upgrade` 就地重写（含全局层 `~/.toolkitrc.json`）；新旧段并存且内容不同、或段写错层时，
+先按 `toolkit upgrade --check` 的提示确认，再执行 `toolkit upgrade --drop-legacy` 删除已失效的旧段 / 误放段。
+手工兜底时，项目层与本地层可用 `toolkit task init`，全局层用 `toolkit upgrade --layers global`，2.1.0 起移除兼容。
 
 ## JSON 输出
 

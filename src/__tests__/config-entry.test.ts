@@ -223,7 +223,7 @@ describe("旧段名迁移提示", () => {
     }
     const text = warns.join("\n")
     expect(text).toContain("skillsInstall")
-    expect(text).toContain("请手动把该段改名")
+    expect(text).toContain("toolkit upgrade --layers global")
     expect(text).not.toContain("运行 toolkit task init")
   })
 

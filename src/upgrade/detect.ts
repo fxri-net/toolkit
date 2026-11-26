@@ -8,6 +8,8 @@ import { commandMigrationRows } from "../command-registry"
 import { conventionsStatus } from "../conventions/status"
 import { readTextFile } from "../read-text"
 import { findProjectRoot, isHomeDirectory } from "../scope/paths"
+import { SKILL_SECTION_LAYERS } from "../skills/config"
+import { planConfigContent, layerLabel } from "./config-plan"
 import { readProjectState, readSkillsState, skillsStateFile, projectStateFile } from "../skills/state"
 import { LEGACY_PREPARE_SCRIPTS } from "../tasks/init"
 import type { UpgradeItem, UpgradeLayer } from "./types"
@@ -54,29 +56,37 @@ export function legacyCommandIn(text: string): { from: string; to: string } | nu
   return null
 }
 
-// 配置文件检测：旧段名与旧闸门键各记一条，file 为实际命中的配置文件
+// 配置文件检测：旧段名、旧闸门键与误放层段各记一条，file 为实际命中的配置文件
 // 家目录不作为项目根；非全局层落点等于全局文件时跳过，避免同一文件被两层各报一条
-function detectConfigLayer(layer: UpgradeLayer, cwd: string): UpgradeItem[] {
+// 新旧段内容不同等需用户取舍的情况在检测阶段即判 manual，避免「永远可自动处理」的死循环
+function detectConfigLayer(layer: UpgradeLayer, cwd: string, dropLegacy: boolean): UpgradeItem[] {
   if (layer !== "global" && isHomeDirectory(cwd)) return []
   const file = configFileForLayer(layer, cwd)
   if (layer !== "global" && isGlobalConfigPath(file)) return []
   const data = readJsonObject(file)
   if (!data) return []
   const legacySections = Object.keys(CONFIG_LEGACY_SECTIONS).filter((key) => key in data)
+  const misplaced = Object.keys(SKILL_SECTION_LAYERS).filter(
+    (name) => name in data && !(SKILL_SECTION_LAYERS[name] as readonly UpgradeLayer[]).includes(layer),
+  )
   const gateSection = ["skillInstall", "skillsInstall"].find((name) => {
     const section = data[name]
     return Boolean(section && typeof section === "object" && !Array.isArray(section) && "gate" in (section as Record<string, unknown>))
   })
   const actions: string[] = []
-  if (legacySections.length > 0) {
-    actions.push(
-      `重写旧段名：${legacySections
-        .map((key) => `${key} → ${CONFIG_LEGACY_SECTIONS[key]}`)
-        .join("、")}`,
-    )
+  for (const legacy of legacySections) {
+    const canonical = CONFIG_LEGACY_SECTIONS[legacy] as string
+    if (canonical in data) {
+      const same = JSON.stringify(data[canonical]) === JSON.stringify(data[legacy])
+      actions.push(same ? `删除同内容的旧段：${legacy}` : `删除已被新段覆盖的旧段：${legacy}（与 ${canonical} 内容不同）`)
+      continue
+    }
+    actions.push(`重写旧段名：${legacy} → ${canonical}`)
   }
+  if (misplaced.length > 0) actions.push(`删除误放段：${misplaced.join("、")}（${layerLabel(layer)}不读取）`)
   if (gateSection) actions.push("把旧键 skillInstall.gate 映射为 skillDelivery")
   if (actions.length === 0) return []
+  const planned = planConfigContent(file, { dropLegacy, layer })
   return [
     {
       id: `config:${layer}`,
@@ -85,8 +95,10 @@ function detectConfigLayer(layer: UpgradeLayer, cwd: string): UpgradeItem[] {
       action: actions.join("；"),
       risk: "low",
       files: [file],
-      reason: "配置文件仍使用 v1 段名或旧闸门键",
-      status: "planned",
+      reason: "配置文件仍使用 v1 段名、误放层段或旧闸门键",
+      // 有可自动改写的内容即 planned；应用后仍未解决的部分会在结果里转人工项
+      status: planned.changed ? "planned" : "manual",
+      manualHint: planned.manual.length > 0 ? `${file}：${planned.manual.join("；")}` : undefined,
     },
   ]
 }
@@ -214,24 +226,28 @@ function detectConventions(cwd: string): UpgradeItem[] {
 }
 
 // 备份收编检测：配置文件与技能状态旁的 .bak（只扫本次选中的层）
+// layers 元数据按文件实际所属层生成，避免全局 .bak 被标成项目项后 --layers 过滤失真
 function detectBackups(cwd: string, layers: readonly UpgradeLayer[]): UpgradeItem[] {
   const enabled = new Set(layers)
-  const candidates = new Set<string>()
+  const candidates: Array<{ file: string; layer: UpgradeLayer }> = []
   for (const layer of ALL_LAYERS) {
-    if (enabled.has(layer)) candidates.add(`${configFileForLayer(layer, cwd)}.bak`)
+    if (enabled.has(layer)) candidates.push({ file: `${configFileForLayer(layer, cwd)}.bak`, layer })
   }
-  if (enabled.has("global")) candidates.add(`${skillsStateFile()}.bak`)
-  if (enabled.has("project")) {
-    const projectRoot = findProjectRoot(cwd)
-    candidates.add(`${projectStateFile(projectRoot)}.bak`)
+  if (enabled.has("global")) candidates.push({ file: `${skillsStateFile()}.bak`, layer: "global" })
+  if (enabled.has("project")) candidates.push({ file: `${projectStateFile(findProjectRoot(cwd))}.bak`, layer: "project" })
+  const files: string[] = []
+  const itemLayers = new Set<UpgradeLayer>()
+  for (const candidate of candidates) {
+    if (!existsSync(candidate.file) || files.includes(candidate.file)) continue
+    files.push(candidate.file)
+    itemLayers.add(candidate.layer)
   }
-  const files = [...candidates].filter((file) => existsSync(file))
   if (files.length === 0) return []
   return [
     {
       id: "backup:legacy",
       surface: "backup",
-      layers: ["project"],
+      layers: [...itemLayers],
       action: `收编 ${files.length} 个历史 .bak 到统一备份目录`,
       risk: "low",
       files,
@@ -280,7 +296,11 @@ function detectCi(cwd: string): UpgradeItem[] {
 
 // 汇总检测：按固定顺序返回，保证计划与 diff 稳定
 // 家目录不作为项目根：project / local 面整体跳过，仅保留全局面迁移项
-export function detectUpgradeItems(cwd: string, layers: readonly UpgradeLayer[] = ALL_LAYERS): UpgradeItem[] {
+export function detectUpgradeItems(
+  cwd: string,
+  layers: readonly UpgradeLayer[] = ALL_LAYERS,
+  options: { dropLegacy?: boolean } = {},
+): UpgradeItem[] {
   const enabled = new Set(layers)
   if (isHomeDirectory(cwd)) {
     enabled.delete("project")
@@ -288,7 +308,7 @@ export function detectUpgradeItems(cwd: string, layers: readonly UpgradeLayer[] 
   }
   const items: UpgradeItem[] = []
   for (const layer of ALL_LAYERS) {
-    if (enabled.has(layer)) items.push(...detectConfigLayer(layer, cwd))
+    if (enabled.has(layer)) items.push(...detectConfigLayer(layer, cwd, Boolean(options.dropLegacy)))
   }
   if (enabled.has("project")) {
     items.push(...detectPackage(cwd), ...detectConventions(cwd), ...detectCi(cwd))

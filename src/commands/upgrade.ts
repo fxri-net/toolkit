@@ -26,6 +26,7 @@ interface UpgradeOptions {
   layers?: string
   only?: string
   skip?: string
+  dropLegacy?: boolean
   allowOldDependency?: boolean
   restore?: string | boolean
   overwrite?: boolean
@@ -144,7 +145,12 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
     return
   }
 
-  const plan = buildUpgradePlan(cwd, { layers: effectiveLayers, only: parseIds(options.only), skip: parseIds(options.skip) })
+  const plan = buildUpgradePlan(cwd, {
+    layers: effectiveLayers,
+    only: parseIds(options.only),
+    skip: parseIds(options.skip),
+    dropLegacy: Boolean(options.dropLegacy),
+  })
   if (options.check) {
     if (options.format === "json") {
       printJson(jsonEnvelope({ command: "upgrade", data: { check: true, plan: plan.items, residue: plan.autoResidue, manual: plan.manual } }))
@@ -159,7 +165,7 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
 
   if (options.dryRun || options.diff) {
     // --diff 在清单之后追加行级差异；--dry-run 仍只出清单，两者都不写盘
-    const diffs = options.diff ? planUpgradeDiffs(plan.items) : []
+    const diffs = options.diff ? planUpgradeDiffs(plan.items, { dropLegacy: Boolean(options.dropLegacy) }) : []
     if (options.format === "json") {
       const data = options.diff ? { dryRun: true, plan: plan.items, residue: plan.autoResidue, diffs } : { dryRun: true, plan: plan.items, residue: plan.autoResidue }
       printJson(jsonEnvelope({ command: "upgrade", data }))
@@ -206,7 +212,7 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
     targets = plan.items.filter((item) => item.status === "planned")
   }
 
-  const result = runUpgrade(cwd, targets, { layers: effectiveLayers })
+  const result = runUpgrade(cwd, targets, { layers: effectiveLayers, dropLegacy: Boolean(options.dropLegacy) })
   if (options.format === "json") {
     printJson(
       jsonEnvelope({
@@ -235,6 +241,7 @@ export function registerUpgradeCommands(program: Command): void {
     .option("--layers <layers>", "迁移层：global / project / local（逗号分隔，缺省全部）")
     .option("--only <ids>", "只执行指定迁移项（逗号分隔）")
     .option("--skip <ids>", "跳过指定迁移项（逗号分隔）")
+    .option("--drop-legacy", "删除已被新段覆盖或写错层的旧段（本就不生效）")
     .option("--allow-old-dependency", "项目依赖仍低于当前 major 时仍继续迁移")
     .option("--restore [path]", "从备份恢复；省略或 latest 取最近一次")
     .option("--overwrite", "恢复时覆盖迁移后被修改的文件")
