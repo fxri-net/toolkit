@@ -49,7 +49,8 @@ export interface GateRules {
   exclude: string[]
 }
 
-// 内置 agent 全局技能目录快照（来源：上游 vercel-labs/skills 的 agent 表，77 条可安装项；另补本地核实的 DeepSeek Harness）
+// 内置 agent 全局技能目录快照：改编自 vercel-labs/skills 的 src/agents.ts
+// （MIT，Copyright (c) 2026 Vercel, Inc.，https://github.com/vercel-labs/skills）；另补本地核实的 DeepSeek Harness
 // dir 相对用户 home；dirEnv 指定改写 dir 首段的环境变量（如 CLAUDE_CONFIG_DIR）；detect 为额外存在性判据（相对 home 或绝对路径）
 // detectEnv 为仅用于探测的环境变量：键为变量名、值为相对变量值的路径后缀（空串表示变量值本身）
 // viaCanonical 标记该 agent 全局读取的就是 canonical 目录：共享主目标、无需单独写入，status 需单列呈现

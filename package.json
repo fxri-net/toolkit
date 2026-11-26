@@ -46,6 +46,7 @@
     "LICENSE",
     "TRADEMARK.md",
     "NOTICE",
+    "THIRD-PARTY-NOTICES.md",
     "package.json"
   ],
   "scripts": {
