@@ -31,7 +31,7 @@ export function inspectSetupSteps(preset: string, rulesPresetExplicit = false): 
     {
       id: "skills",
       label: "安装 AI 技能",
-      summary: "写到本机全局技能目录，各项目直接可用",
+      summary: "写到全局技能目录或项目内技能目录（按所处目录自动判定）",
       ready: skillsReady,
       // 技能安装是接入的第一步，已装也默认勾选，进交互可直接沿用上次选择
       selected: true,

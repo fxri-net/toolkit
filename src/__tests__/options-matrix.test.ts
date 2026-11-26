@@ -248,6 +248,18 @@ describe("顶层命令与外部域", () => {
     expect(text).toContain("文档站（在线，可选）")
   })
 
+  it("--help 不加载配置：旧段告警不出现", async () => {
+    const file = join(homeDir, ".toolkitrc.json")
+    writeFileSync(file, JSON.stringify({ skillsInstall: { mode: "skills" } }), "utf8")
+    try {
+      const r = await runCli(["--help"])
+      expect(r.code).toBe(0)
+      expect(`${r.err.join("\n")}${r.warn.join("\n")}`).not.toContain("skillsInstall")
+    } finally {
+      rmSync(file, { force: true })
+    }
+  })
+
   it("未知选项：退出码 1 且中文提示", async () => {
     const r = await runCli(["--bogus"])
     expect(r.code).toBe(1)

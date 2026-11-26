@@ -5,7 +5,7 @@ import { join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
 import { rewriteConfigFile, rewritePackage } from "../upgrade/apply"
 import { buildUpgradePlan, checkVersionGate, runUpgrade, verifyUpgrade } from "../upgrade"
-import { latestBackup, restoreBackup } from "../upgrade/backup"
+import { latestBackup, cleanBackups, restoreBackup } from "../upgrade/backup"
 import { planUpgradeDiffs } from "../upgrade/diff"
 import { setHomeDirForTest } from "../config"
 
@@ -204,6 +204,38 @@ describe("升级迁移：人工项与旧段清理", () => {
     expect(item?.status).toBe("manual")
     expect(item?.manualHint).toContain("projectSkill")
     expect(plan.autoResidue).toBe(0)
+  })
+})
+
+describe("升级迁移：备份清理", () => {
+  it("只删已知备份目录与固定 .bak，keep 保留最近一次，外来目录不动", () => {
+    const root = makeProject({})
+    const backupRoot = join(root, ".toolkit", "backup")
+    for (const name of ["20260101-000000", "20260102-000000"]) {
+      mkdirSync(join(backupRoot, name), { recursive: true })
+      writeFileSync(join(backupRoot, name, "manifest.json"), "{}", "utf8")
+    }
+    mkdirSync(join(backupRoot, "foreign"), { recursive: true })
+    writeFileSync(join(root, ".toolkitrc.json.bak"), "{}", "utf8")
+    writeFileSync(join(root, "other.bak"), "{}", "utf8")
+    const result = cleanBackups({ cwd: root, layers: ["project"], keep: 1 })
+    expect(result.kept).toEqual([join(backupRoot, "20260102-000000")])
+    expect(result.removed).toContain(join(backupRoot, "20260101-000000"))
+    expect(result.removed).toContain(join(root, ".toolkitrc.json.bak"))
+    expect(result.removed).not.toContain(join(root, "other.bak"))
+    expect(result.skipped).toContain(join(backupRoot, "foreign"))
+    expect(existsSync(join(root, "other.bak"))).toBe(true)
+    expect(existsSync(join(backupRoot, "foreign"))).toBe(true)
+  })
+
+  it("--dry-run 只报告不删除", () => {
+    const root = makeProject({})
+    const dir = join(root, ".toolkit", "backup", "20260101-000000")
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, "manifest.json"), "{}", "utf8")
+    const result = cleanBackups({ cwd: root, layers: ["project"], dryRun: true })
+    expect(result.removed).toEqual([dir])
+    expect(existsSync(dir)).toBe(true)
   })
 })
 

@@ -4,8 +4,9 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync 
 import { basename, dirname, join } from "node:path"
 import { getHomeDir } from "../config"
 import { readTextFile } from "../read-text"
+import { PROJECT_STATE_DIR, PROJECT_STATE_FILE, SKILLS_STATE_FILE } from "../skills/types"
 import { writeFileAtomic } from "../write-atomic"
-import type { BackupEntry, BackupManifest } from "./types"
+import type { BackupEntry, BackupManifest, UpgradeLayer } from "./types"
 
 const MANIFEST = "manifest.json"
 
@@ -107,6 +108,71 @@ export function latestBackup(cwd: string): string | null {
     }
   }
   return null
+}
+
+// 清理结果：removed 为已删（预演时为将删）路径，skipped 为无法确认归属的目录，kept 为按 keep 保留的目录
+export interface BackupCleanResult {
+  removed: string[]
+  skipped: string[]
+  kept: string[]
+  dryRun: boolean
+}
+
+// 某根下按时间戳命名的备份目录：目录名可字典序排序，倒序即最新在前
+function backupDirs(root: string): string[] {
+  if (!existsSync(root)) return []
+  return readdirSync(root, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort()
+    .reverse()
+    .map((name) => join(root, name))
+}
+
+// 清理迁移备份：只删已知备份根下含 manifest.json 的直接子目录，外来目录跳过并回报
+// 同时清理本包已知的散落 .bak（配置与技能状态旁），按固定清单匹配，不扫其他 .bak
+// keep 只作用于备份目录（每个根分别保留最近 n 个），.bak 无保留概念、随清理一并删除
+export function cleanBackups(options: { cwd: string; layers: readonly UpgradeLayer[]; keep?: number; dryRun?: boolean }): BackupCleanResult {
+  const keep = Math.max(0, Math.trunc(options.keep ?? 0))
+  const dryRun = Boolean(options.dryRun)
+  const result: BackupCleanResult = { removed: [], skipped: [], kept: [], dryRun }
+  const roots: string[] = []
+  if (options.layers.includes("global")) roots.push(backupRoot(options.cwd, "global"))
+  if (options.layers.includes("project") || options.layers.includes("local")) roots.push(backupRoot(options.cwd, "project"))
+  for (const root of [...new Set(roots)]) {
+    let keptCount = 0
+    for (const dir of backupDirs(root)) {
+      if (!existsSync(join(dir, MANIFEST))) {
+        result.skipped.push(dir)
+        continue
+      }
+      if (keptCount < keep) {
+        keptCount += 1
+        result.kept.push(dir)
+        continue
+      }
+      if (!dryRun) rmSync(dir, { recursive: true, force: true })
+      result.removed.push(dir)
+    }
+  }
+  const baks: string[] = []
+  if (options.layers.includes("global")) {
+    const home = getHomeDir()
+    baks.push(join(home, ".toolkitrc.json.bak"), join(home, ".agents", `${SKILLS_STATE_FILE}.bak`))
+  }
+  if (options.layers.includes("project") || options.layers.includes("local")) {
+    baks.push(
+      join(options.cwd, ".toolkitrc.json.bak"),
+      join(options.cwd, ".toolkitrc.local.json.bak"),
+      join(options.cwd, PROJECT_STATE_DIR, `${PROJECT_STATE_FILE}.bak`),
+    )
+  }
+  for (const file of [...new Set(baks)]) {
+    if (!existsSync(file)) continue
+    if (!dryRun) rmSync(file, { force: true })
+    result.removed.push(file)
+  }
+  return result
 }
 
 // 恢复结果：还原的文件、删除的新建文件与因冲突跳过的文件

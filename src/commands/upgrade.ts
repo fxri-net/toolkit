@@ -8,7 +8,7 @@ import { askCheckbox } from "../cli-ui"
 import { formatChoiceLine, terminalColumns } from "../prompt-line"
 import { printJson } from "./shared"
 import { line, style } from "../term-style"
-import { latestBackup, restoreBackup } from "../upgrade/backup"
+import { latestBackup, cleanBackups, restoreBackup } from "../upgrade/backup"
 import { buildUpgradePlan, checkVersionGate, runUpgrade } from "../upgrade"
 import { ALL_LAYERS } from "../upgrade/detect"
 import { planUpgradeDiffs } from "../upgrade/diff"
@@ -30,6 +30,8 @@ interface UpgradeOptions {
   allowOldDependency?: boolean
   restore?: string | boolean
   overwrite?: boolean
+  cleanBackups?: boolean
+  keep?: string
 }
 
 // 层参数：逗号分隔，非法值报错并由调用方中止
@@ -48,7 +50,18 @@ function parseLayers(value?: string): UpgradeLayer[] | null {
   return layers.length > 0 ? (layers as UpgradeLayer[]) : [...ALL_LAYERS]
 }
 
-// 多值 id 参数：逗号分隔
+// --keep 取值：缺省 undefined；非负整数返回数字；非法返回 false 由调用方中止
+function parseKeep(value?: string): number | undefined | false {
+  if (value === undefined) return undefined
+  if (!/^\d+$/.test(value.trim())) {
+    console.error(`⚠️ --keep 只接受非负整数（实际：${value}）`)
+    process.exitCode = 1
+    return false
+  }
+  return Number(value)
+}
+
+// 多项 id 参数：逗号分隔
 function parseIds(value?: string): string[] | undefined {
   const ids = value?.split(/[,，]/).map((item) => item.trim()).filter(Boolean)
   return ids && ids.length > 0 ? ids : undefined
@@ -124,6 +137,38 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
   if (effectiveLayers.length !== layers.length) {
     console.error("⚠️ 家目录不作为项目根，已跳过 project / local 层，仅处理 global")
   }
+
+  // 备份清理分支：与恢复互斥；local 层没有备份根，告警后跳过
+  if (options.cleanBackups) {
+    if (options.restore !== undefined) {
+      console.error("⚠️ --clean-backups 与 --restore 不能同时使用")
+      process.exitCode = 1
+      return
+    }
+    if (options.check) console.error("⚠️ --check 不适用于 --clean-backups，已忽略")
+    const keep = parseKeep(options.keep)
+    if (keep === false) return
+    const cleanLayers = effectiveLayers.filter((layer) => layer !== "local")
+    if (cleanLayers.length !== effectiveLayers.length) console.error("⚠️ local 层没有备份目录，已忽略")
+    if (cleanLayers.length === 0) {
+      console.error("⚠️ 没有可清理的备份层")
+      process.exitCode = 1
+      return
+    }
+    const result = cleanBackups({ cwd, layers: cleanLayers, keep, dryRun: Boolean(options.dryRun) })
+    if (options.format === "json") {
+      printJson(jsonEnvelope({ command: "upgrade", data: { cleanBackups: result } }))
+      return
+    }
+    const verb = result.dryRun ? "[预演] 将清理" : "已清理"
+    if (result.removed.length === 0) console.log(line.hint("未发现可清理的备份"))
+    else console.log(line.ok(`${verb} ${result.removed.length} 项备份`))
+    for (const file of result.removed) console.log(`  ${file}`)
+    if (result.kept.length > 0) console.log(line.hint(`保留最近 ${keep ?? 0} 个备份目录（${result.kept.length} 个）`))
+    if (result.skipped.length > 0) console.error(`⚠️ 跳过 ${result.skipped.length} 个无法确认归属的目录：${result.skipped.join("、")}`)
+    return
+  }
+  if (options.keep !== undefined) console.error("⚠️ --keep 仅配合 --clean-backups 使用，已忽略")
 
   // 恢复分支：不参与检测，直接从备份还原
   if (options.restore !== undefined) {
@@ -245,6 +290,8 @@ export function registerUpgradeCommands(program: Command): void {
     .option("--allow-old-dependency", "项目依赖仍低于当前 major 时仍继续迁移")
     .option("--restore [path]", "从备份恢复；省略或 latest 取最近一次")
     .option("--overwrite", "恢复时覆盖迁移后被修改的文件")
+    .option("--clean-backups", "清理迁移备份目录与本包已知的 .bak（配合 --keep / --layers）")
+    .option("--keep <n>", "配合 --clean-backups：每个备份根保留最近 n 个目录（缺省 0，全部清理）")
     .action(async (options: UpgradeOptions) => {
       try {
         await runUpgradeCommand(options)

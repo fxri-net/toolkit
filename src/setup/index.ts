@@ -45,7 +45,9 @@ function reportOutcome(steps: SetupStep[], outcomes: Map<string, StepOutcome>): 
   }
   console.log("")
   console.log(line.hint("下一步："))
-  console.log(line.hint("  把规则粘贴到所用 Agent 的全局规则入口（Trae 设置 → 规则 / Claude Code 的 CLAUDE.md / Cursor 的 User Rules）"))
+  if (outcomes.get("rules")?.status === "done") {
+    console.log(line.hint("  把规则粘贴到所用 Agent 的全局规则入口（Trae 设置 → 规则 / Claude Code 的 CLAUDE.md / Cursor 的 User Rules）"))
+  }
   console.log(line.hint("  进入项目后对 AI 说「初始化任务区」，由技能执行 toolkit task init"))
   console.log(line.hint(`  快速开始（在线，可选）：${INIT_LINKS.gettingStarted}`))
 }

@@ -16,6 +16,7 @@ toolkit upgrade --check           # 只读检查；有可自动处理的残留�
 toolkit upgrade                   # TTY 下逐项确认后执行
 toolkit upgrade --yes             # 非交互执行（CI / 脚本）
 toolkit upgrade --restore latest  # 从最近一次备份恢复
+toolkit upgrade --clean-backups   # 清理迁移备份（--dry-run 预览、--keep 1 保留最近一次）
 ```
 
 ## 参数
@@ -34,6 +35,8 @@ toolkit upgrade --restore latest  # 从最近一次备份恢复
 | `--allow-old-dependency` | 项目依赖低于当前 major 时仍继续（默认拒绝） |
 | `--restore [path]` | 从备份恢复；省略或 `latest` 取最近一次 |
 | `--overwrite` | 恢复时覆盖迁移之后被修改过的文件 |
+| `--clean-backups` | 清理迁移备份目录与本包已知的 `.bak`；与 `--restore` 互斥，`--dry-run` 预览 |
+| `--keep <n>` | 配合 `--clean-backups`：每个备份根保留最近 n 个目录（缺省 0，全部清理） |
 
 ## 行为
 
@@ -43,6 +46,8 @@ toolkit upgrade --restore latest  # 从最近一次备份恢复
   确认保留新段后加 `--drop-legacy` 删除旧段 / 误放段，只删本就不生效的内容。
 - 只支持「上一个 major → 当前 major」；跨多个 major 时命令会给出逐级升级步骤，不硬迁。
 - 备份集中在 `.toolkit/backup/<时间>/`（全局面为 `~/.toolkit/backup/<时间>/`），清单记录文件哈希；恢复时默认不覆盖迁移后被用户改过的文件。
+- `--clean-backups` 只删已知备份根下含 `manifest.json` 的直接子目录与固定清单内的 `.bak`（配置文件、技能状态旁），
+  外来目录跳过并回报；`--keep` 只作用于备份目录，`.bak` 随清理一并删除。
 - 手动项（规则快照正文、CI 文件里的旧命令名、无法确认归属的目录）只告警，不阻断 CI。
 - 交互多选按「迁移项 id｜动作」展示，超宽截断为单行；答案行只显示 id；按 ESC 取消（提示文案已标注）、以 `0` 结束，Ctrl+C 才按取消退出码 `130`，均不写任何文件。
 - `--diff` 的行级差异只覆盖会被文本改写的配置文件与 `package.json`；技能清理、载体升级等非文本迁移仍以计划清单呈现。
@@ -60,13 +65,14 @@ toolkit upgrade --restore latest  # 从最近一次备份恢复
 | `backups` | 本次备份目录 |
 | `residue` | 复检后仍可自动处理的项 |
 | `restore` | 恢复结果：`restored / removed / skipped / dir` |
+| `cleanBackups` | 清理结果：`removed / skipped / kept / dryRun` |
 
 ## 退出码
 
 | 码 | 含义 |
 | --- | --- |
 | `0` | 成功、已是当前形态，或无 v1 资产 |
-| `1` | 存在可自动处理的残留，或应用失败 |
+| `1` | 存在可自动处理的残留、应用失败，或参数组合非法（如 `--clean-backups` 与 `--restore` 同用） |
 | `2` | 用法错误，或非 TTY 缺少 `--yes` |
 | `130` | 交互中取消 |
 
