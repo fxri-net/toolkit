@@ -68,6 +68,7 @@ toolkit task check --strict       # 任务目录不存在时报错退出（默�
 ### archive
 
 - 条件：`status` 为 `已完成` / `已放弃` 且带 `completed`，按完成日期聚合归档
+- 归档后提交只带 archive 与代码；`.tasks/active/` 源文件默认不入库（用户明确要求才例外，校验放行 `FX_TOOLKIT_ALLOW_ACTIVE_TASKS=1`）
 - `--task <唯一键>` 只归档指定任务；键不存在或尚未终结时报错退出（退出码 1），不落到全量
 - 未指定 `--task` 且同时归档多个任务时，stderr 提示建议逐个归档以匹配逐任务提交（不阻断）
 - 排他锁防并发；缺 `completed` 的终结态任务跳过并提示

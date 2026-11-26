@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest"
 
 const scripts = [
   "scripts/check-exit-codes.mjs",
+  "scripts/check-active-tasks-staged.mjs",
   "scripts/generate-exit-codes.mjs",
   "scripts/generate-upgrade-table.mjs",
   "scripts/generate-skill-dirs.mjs",

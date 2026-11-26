@@ -283,6 +283,8 @@ const parallelSteps = [
   { label: "规范一致性（技能版本 / 用途列 / 触达）", args: ["scripts/check-consistency.mjs"] },
   // 仓库自检：src 下除 safe-remove 与缓存白名单外，禁止裸递归删除
   { label: "破坏性删除检查", args: ["scripts/check-destructive-fs.mjs"] },
+  // 仓库自检：active 任务档默认不入库，暂存区命中即失败（归档后只提交 archive 与代码）
+  { label: "active 任务暂存检查", args: ["scripts/check-active-tasks-staged.mjs"] },
   // 仓库自检：正文段落单行行宽与分号数（规范 C-43），存量按基线棘轮、只在超出时失败
   { label: "文档可读性（段落行宽 / 分号）", args: ["scripts/check-docs-readability.mjs"] },
   // 仓库自检：代码块内联注释按分组基准对齐（C-40 配套，口径见 skills/fxri-writing-docs）

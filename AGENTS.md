@@ -83,12 +83,14 @@
 - 动手前先做**建档评估**：涉及仓库文件改动的任务，动手前查 active/archive 判同主题——
   active 有同主题更新原文件、archive 有同主题且本次不产生仓库文件改动则不重复建档直接执行、均无则先建档再动手（判别细节以 fxri-plan-task 最新版为准）；
 - 任务管理全流程走 toolkit skill（先 `toolkit task init` 建任务区，再建档、执行、归档、沉淀）；
+  active 任务档默认不入库：建档后不 `git add .tasks/active`，也不加入 `.gitignore`；归档后只提交 archive 与代码；
 - **破坏性文件操作先限定范围**：递归删除 / 清理 / 迁移只允许作用于仓库、临时目录、`.toolkit/backup` 与已登记技能目录；
   执行前列出目标并确认，优先用 `toolkit` 命令，不用原生 `Remove-Item -Recurse` / `rm -rf`；
   代码侧的递归删除统一走 `src/safe-remove.ts`，由 `scripts/check-destructive-fs.mjs` 门禁兜底；
   披露口径、执行边界与误删恢复见 `skills/fxri-code-safety/`（随包分发）；
 - 任务收尾按「改完文件 → 归档 → `pnpm verify` → 提交」执行，**验收须晚于归档**：
   归档会改写 `.tasks/`（写归档文件、删 active 源文件、清理空月份目录）而自身不做阻断式校验，早于归档跑验收就覆盖不到终态，归档产物等于无人校验；
+  active 默认不提交，用户明确要求时才作为例外提交（`FX_TOOLKIT_ALLOW_ACTIVE_TASKS=1` 放行暂存检查）；
 - 任务时间字段按**四级时间源**取证，口径以 `skills/fxri-plan-task/references/task-spec.md` 最新版为准
   （当场打点 / 聊天记录时间戳 / git 提交时间 / 系统当前时间兜底并标注「收尾补记」）；禁止估算或时区换算，不留与 skill 重复的复制表述，避免版本漂移；
 - 代码注释只保留描述最终代码逻辑的必要注释，不留过程性解释（如「先这样、后来改成那样」的演进记录）；

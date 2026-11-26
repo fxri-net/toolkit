@@ -890,7 +890,7 @@ exports[`各域行为与错误路径 > rules compose 未知预设 1`] = `
 exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 "退出码：0
 --- stdout ---
-> 规则更新时间 2026-11-26 18:25
+> 规则更新时间 2026-11-26 18:33
 
 你是一个严谨的编程助手，专注于产出可维护、风格一致的代码
 
@@ -931,7 +931,7 @@ exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 ## 推荐做法
 
 - 以下条目优先于同类默认约定。
-- 任务收尾的 git 提交自动执行。
+- 任务收尾的提交自动执行：只提交归档与代码，active 默认不入库（要求才例外）。
 - **不自行安装**：任何安装动作（全局包、项目依赖、系统工具）都须先获用户明确授权。
 - **安装需求进方案**：交付需要安装或额外环境才能验证时，在方案里一次列清装什么、装在哪、验完怎么清理，随方案一并确认，不留到交付后补申请。
 - **破坏性操作先限定范围并预览**：删除 / 清理 / 覆盖前列出目标，能预览就先预览；用户可见删除优先可恢复，永久删除需确认；方案阶段先披露不可恢复部分。
@@ -995,7 +995,7 @@ exports[`各域行为与错误路径 > rules list 1`] = `
     core     2026-11-19 09:30  角色定位与代码规范（recommended / full）
     output   2026-11-08 02:21  输出要求（recommended / full）
     workflow 2026-11-26 18:25  工作流与方案落盘（minimal / recommended / full）
-    practices 2026-11-26 18:25  推荐做法（recommended / full）
+    practices 2026-11-26 18:33  推荐做法（recommended / full）
     commit   2026-11-24 12:39  提交信息规则（recommended / full）
     usage    2026-11-24 09:57  技能使用情况（full）
 预设：minimal=workflow；recommended=core+output+workflow+practices+commit；full=core+output+workflow+practices+commit+usage
@@ -1108,7 +1108,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
         "title": "推荐做法",
         "summary": "官方推荐的可裁剪做法：优先于同类默认约定",
         "file": "practices.md",
-        "anchor": "2026-11-26 18:25",
+        "anchor": "2026-11-26 18:33",
         "presets": [
           "recommended",
           "full"
@@ -1502,7 +1502,7 @@ registry：registry.npmjs.org（来源：默认）
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
 技能源：<REPO>/skills
-技能版本：fxri-code-encoding@1.2.12、fxri-code-safety@0.1.0、fxri-plan-recap@1.7.10、fxri-plan-review@1.1.4、fxri-plan-task@1.13.17、fxri-release-changelog@1.4.8、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.6、fxri-writing-skill@1.0.5
+技能版本：fxri-code-encoding@1.2.12、fxri-code-safety@0.1.0、fxri-plan-recap@1.7.11、fxri-plan-review@1.1.4、fxri-plan-task@1.13.18、fxri-release-changelog@1.4.8、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.6、fxri-writing-skill@1.0.5
 内容闸门：未开启（全文安装）
 选择集（4）：fxri-code-safety、fxri-plan-recap、fxri-plan-review、fxri-plan-task
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-code-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
@@ -1583,7 +1583,7 @@ registry：registry.npmjs.org（来源：默认）
 
 项目面 · 项目根：<SANDBOX>/workspace
 项目面 · 技能真源：.agents/skills
-项目面 · 技能版本：fxri-code-encoding@1.2.12、fxri-code-safety@0.1.0、fxri-plan-recap@1.7.10、fxri-plan-review@1.1.4、fxri-plan-task@1.13.17、fxri-release-changelog@1.4.8、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.6、fxri-writing-skill@1.0.5
+项目面 · 技能版本：fxri-code-encoding@1.2.12、fxri-code-safety@0.1.0、fxri-plan-recap@1.7.11、fxri-plan-review@1.1.4、fxri-plan-task@1.13.18、fxri-release-changelog@1.4.8、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.6、fxri-writing-skill@1.0.5
 项目面 · 选择集（4）：fxri-code-safety、fxri-plan-recap、fxri-plan-review、fxri-plan-task
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-code-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
 项目面 · 目录选择集：全部已存在候选目录（未保存过目录选择）
