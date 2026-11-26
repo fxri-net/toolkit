@@ -108,17 +108,31 @@ function skillsDomain(): DomainResult {
   const issues: StatusIssue[] = []
   if (report.pending.length > 0) {
     const names = report.pending.map((item) => item.name).join("、")
+    // 来源已无此名的旧名：install 无法补齐，必须按名字显式卸载
+    const stale = [
+      ...new Set(
+        report.targets.flatMap((target) =>
+          (target.items ?? [])
+            .filter((item) => item.source === "" && item.state !== "link" && item.state !== "installed-unselected")
+            .map((item) => item.name),
+        ),
+      ),
+    ]
+    const hints = [
+      stale.length > 0 ? `旧名残留先用 toolkit skill uninstall --scope global --skills ${stale.join(",")} 清理` : "",
+      report.pending.length - stale.length > 0 ? "其余运行 toolkit skill install" : "",
+    ].filter((hint) => hint !== "")
     issues.push({
       level: "warn",
       scope: "技能现场",
-      message: `待收敛 ${report.pending.length} 项：${names}（运行 toolkit skill install 可修复）`,
+      message: `待收敛 ${report.pending.length} 项：${names}（${hints.join("；")}）`,
     })
   }
   for (const mismatch of report.versionMismatches) {
     issues.push({
       level: "warn",
       scope: "技能现场",
-      message: `技能「${mismatch.name}」版本双写位不一致（frontmatter ${mismatch.frontmatter} / 正文 ${mismatch.body}），请同步递增`,
+      message: `技能「${mismatch.name}」版本双写位不一致（frontmatter ${mismatch.frontmatter} / 正文 ${mismatch.body}），运行 toolkit skill bump ${mismatch.name} patch 同步`,
     })
   }
   const summary = `已选择 ${report.selection.length} 个技能，${report.targets.length} 个安装目标`

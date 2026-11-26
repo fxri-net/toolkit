@@ -377,6 +377,17 @@ function currentFormLabel(current: CurrentForm): string {
   return deliveryModeLabel(current)
 }
 
+// 计划中的旧名残留：来源不可解析且需要动作的条目，install 无法补齐，只能按名字卸载
+function planStaleNames(report: SkillsPlanReport): string[] {
+  const names = new Set<string>()
+  for (const target of report.targets) {
+    for (const item of target.items ?? []) {
+      if (item.source === "来源不可解析" && item.action !== "keep") names.add(item.name)
+    }
+  }
+  return [...names]
+}
+
 // 打印分发计划：逐目标逐技能列出动作、目标形态与判定来源；install --dry-run 使用
 function printPlanReport(report: SkillsPlanReport): void {
   console.log(`[预演] 技能分发计划（${report.scope === "global" ? "全局层" : "项目层"}）：${report.skills.length} 个技能 · ${report.targets.length} 个目标`)
@@ -402,6 +413,14 @@ function printPlanReport(report: SkillsPlanReport): void {
       ? `[预演] 待收敛 ${report.pending} 项：执行 toolkit skill install 应用`
       : "[预演] 全部已就绪，无需写入",
   )
+  const stale = planStaleNames(report)
+  if (stale.length > 0) {
+    console.log(
+      line.hint(
+        `旧名残留 ${stale.length} 项无法由 install 补齐：toolkit skill uninstall --scope ${report.scope} --skills ${stale.join(",")}`,
+      ),
+    )
+  }
 }
 
 // --refresh 只刷新已存在产物：其余写选项无法采纳时明确告警，不静默忽略
@@ -453,7 +472,7 @@ function printStatusReport(report: SkillsStatusReport): void {
   console.log(`目标选择集：${report.targetSelection.length > 0 ? report.targetSelection.join("、") : "全部可用目标（未保存过目标选择）"}`)
   // 软告警：真源内版本双写位（frontmatter / 正文）不一致，提示按规则同步递增
   for (const m of report.versionMismatches) {
-    console.warn(`⚠️ 技能版本双写位不一致：${m.name}（frontmatter ${m.frontmatter} / 正文 ${m.body || "未声明"}）`)
+    console.warn(`⚠️ 技能版本双写位不一致：${m.name}（frontmatter ${m.frontmatter} / 正文 ${m.body || "未声明"}；运行 toolkit skill bump ${m.name} patch 同步）`)
   }
   console.log(`状态文件：${report.stateFile}${report.stateExists ? "" : "（未记录，尚未执行过 toolkit skill install）"}`)
   let problems = 0
@@ -702,7 +721,7 @@ function printProjectStatusReport(report: ProjectStatusReport): void {
   }
   console.log(`项目面 · 目录选择集：${report.targetSelection.length > 0 ? report.targetSelection.join("、") : "全部已存在候选目录（未保存过目录选择）"}`)
   for (const m of report.versionMismatches) {
-    console.warn(`⚠️ 技能版本双写位不一致：${m.name}（frontmatter ${m.frontmatter} / 正文 ${m.body || "未声明"}）`)
+    console.warn(`⚠️ 技能版本双写位不一致：${m.name}（frontmatter ${m.frontmatter} / 正文 ${m.body || "未声明"}；运行 toolkit skill bump ${m.name} patch 同步）`)
   }
   console.log(`项目面 · 状态文件：${report.stateFile}${report.stateExists ? "" : "（未记录，尚未执行过 toolkit task init / skill install）"}`)
   // 项目面曾用名视图：旧名副本无从校验、不自动删，但要让用户看清「这是旧名、该删哪个」

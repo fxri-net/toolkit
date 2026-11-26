@@ -81,8 +81,14 @@ export function printSkillMatrix(entries: SkillMatrixEntry[], startDir: string):
 // 旧配置迁移提示：只提示，不自动改写
 export function legacyShapeHints(startDir = process.cwd()): string[] {
   const hints: string[] = []
-  if (resolveScope(startDir).activation) {
-    hints.push("旧 activation 仍在生效（已编译为策略）：可用 scope allow --delivery 改写为矩阵规则")
+  const activation = resolveScope(startDir).activation
+  if (activation) {
+    const empty = (activation.include?.length ?? 0) === 0 && (activation.exclude?.length ?? 0) === 0
+    hints.push(
+      empty
+        ? "旧 activation 仍在生效但名单为空：可直接 toolkit config unset activation --layer <global|project|local> 删除（行为不变）"
+        : "旧 activation 仍在生效（已编译为策略）：先用 toolkit scope allow <路径> --delivery full|gated 或 deny <路径> 改写，确认后 toolkit config unset activation --layer <global|project|local>",
+    )
   }
   if (readSkillsDeliveryConfig("global", startDir).rules.length > 0) {
     hints.push("skillDelivery.rules 可迁移为策略 delivery；两条真源并存时以 rules 为准")

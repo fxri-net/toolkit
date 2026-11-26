@@ -574,7 +574,7 @@ function lintSkill(target: SkillTarget, options: LintRules, issues: SkillLintIss
   const bodyVersion = readBodyVersionFromContent(content)
   if (!bodyVersion) pushIssue(issues, entry, "error", "body-version-missing", "正文缺少「本技能版本」声明")
   else if (version && bodyVersion !== version) {
-    pushIssue(issues, entry, "error", "version-mismatch", `版本双写位不一致：frontmatter ${version} / 正文 ${bodyVersion}`)
+    pushIssue(issues, entry, "error", "version-mismatch", `版本双写位不一致：frontmatter ${version} / 正文 ${bodyVersion}（运行 toolkit skill bump ${target.name} patch 同步）`)
   }
   checkBudget(entry, issues, options, overrides)
   checkReferences(target, files, issues, overrides)
