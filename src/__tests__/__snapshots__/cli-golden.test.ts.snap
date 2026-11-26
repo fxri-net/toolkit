@@ -890,7 +890,7 @@ exports[`各域行为与错误路径 > rules compose 未知预设 1`] = `
 exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 "退出码：0
 --- stdout ---
-> 规则更新时间 2026-11-26 18:33
+> 规则更新时间 2026-11-26 23:05
 
 你是一个严谨的编程助手，专注于产出可维护、风格一致的代码
 
@@ -914,17 +914,17 @@ exports[`各域行为与错误路径 > rules compose 预设 1`] = `
 ## 工作流
 
 - 方案先行：动手前先给方案（目标 / 步骤 / 影响 / 验证与回滚）；删除 / 清理 / 覆盖等不可逆动作须写明不可恢复部分与回滚；**方案确认不等于执行授权**。
-- 建议与加固须有触发证据，无证据的前瞻性扩面只作提示。
+- 建议与加固须有触发证据，无证据的前瞻扩面只作提示。
 - 授权判据：执行指向明确（开始 / 开工 / 处理 / 搞定 / 直接改 / 授权，示例非闭集）+ 范围唯一 + 方案已定稿才动手；
   同句只读诉求、方案未定稿、范围不唯一都不构成授权；「可以 / 定稿 / 落档 / 继续评估」也不等于开工。
 - **只读型请求默认只读**：意图是获取信息与判断（检查、核对、复核、评估、体检、列清单、解释现状）时只输出结论，
   不改仓库与远端；即便措辞像命令也不视为执行授权（示例非穷举），发现问题先报告。
   同句含执行段时先只读、再执行。
-- 微操作（指向单个文件 / 单条命令 / 单个改动）属对象级授权，范围止于指明对象。
+- 微操作（单文件 / 单命令 / 无派生改动）属对象级授权，范围止于该对象；多文件同步先回方案态。
 - 「继续」按状态解释：未开工=继续评估；开工被打断=恢复执行（回显范围 → 复核现场 → 再动手）。
 - 不可逆动作（发布、推送、打远端标签、全局安装）逐次授权；计划表列出或上一任务执行过不构成授权；**当前指令已含授权则直接执行**，不重复询问。
 - 质量门：项目聚合验收命令必须通过，本地与 CI 同一份清单；skill / help 与 check 不一致时以 check 为准。
-- 动作不算、改动才算：提交 / 发版 / 推送本身不构成任务；归档 + 规范沉淀即流程终点，提交按规则或授权执行。
+- 动作不算、改动才算：提交 / 发版 / 推送本身不构成任务；归档 + 沉淀即终点，提交按规则或授权执行。
 - 目录能否用跑一次 \`toolkit scope status\`，同会话复用；入口壳未激活即停。
 - 任务管理细节以已加载的 fxri-* 技能为准。
 
@@ -994,7 +994,7 @@ exports[`各域行为与错误路径 > rules list 1`] = `
 规则模块：
     core     2026-11-19 09:30  角色定位与代码规范（recommended / full）
     output   2026-11-08 02:21  输出要求（recommended / full）
-    workflow 2026-11-26 18:25  工作流与方案落盘（minimal / recommended / full）
+    workflow 2026-11-26 23:05  工作流与方案落盘（minimal / recommended / full）
     practices 2026-11-26 18:33  推荐做法（recommended / full）
     commit   2026-11-24 12:39  提交信息规则（recommended / full）
     usage    2026-11-24 09:57  技能使用情况（full）
@@ -1096,7 +1096,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
         "title": "工作流与方案落盘",
         "summary": "方案先行、只读判定、授权边界、作用域查询与技能指针",
         "file": "workflow.md",
-        "anchor": "2026-11-26 18:25",
+        "anchor": "2026-11-26 23:05",
         "presets": [
           "minimal",
           "recommended",
@@ -1502,7 +1502,7 @@ registry：registry.npmjs.org（来源：默认）
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
 技能源：<REPO>/skills
-技能版本：fxri-code-encoding@1.2.12、fxri-code-safety@0.1.0、fxri-plan-recap@1.7.11、fxri-plan-review@1.1.4、fxri-plan-task@1.13.18、fxri-release-changelog@1.4.8、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.6、fxri-writing-skill@1.0.5
+技能版本：fxri-code-encoding@1.2.12、fxri-code-safety@0.1.0、fxri-plan-recap@1.7.11、fxri-plan-review@1.1.5、fxri-plan-task@1.13.19、fxri-release-changelog@1.4.8、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.6、fxri-writing-skill@1.0.5
 内容闸门：未开启（全文安装）
 选择集（4）：fxri-code-safety、fxri-plan-recap、fxri-plan-review、fxri-plan-task
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-code-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
@@ -1583,7 +1583,7 @@ registry：registry.npmjs.org（来源：默认）
 
 项目面 · 项目根：<SANDBOX>/workspace
 项目面 · 技能真源：.agents/skills
-项目面 · 技能版本：fxri-code-encoding@1.2.12、fxri-code-safety@0.1.0、fxri-plan-recap@1.7.11、fxri-plan-review@1.1.4、fxri-plan-task@1.13.18、fxri-release-changelog@1.4.8、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.6、fxri-writing-skill@1.0.5
+项目面 · 技能版本：fxri-code-encoding@1.2.12、fxri-code-safety@0.1.0、fxri-plan-recap@1.7.11、fxri-plan-review@1.1.5、fxri-plan-task@1.13.19、fxri-release-changelog@1.4.8、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.6、fxri-writing-skill@1.0.5
 项目面 · 选择集（4）：fxri-code-safety、fxri-plan-recap、fxri-plan-review、fxri-plan-task
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-code-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
 项目面 · 目录选择集：全部已存在候选目录（未保存过目录选择）
