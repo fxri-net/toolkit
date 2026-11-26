@@ -2,6 +2,7 @@
 import { existsSync, lstatSync, readdirSync } from "node:fs"
 import { basename, join, resolve } from "node:path"
 import { readTextFile } from "../../read-text"
+import { isSingleSegmentName } from "../../safe-remove"
 import { SKILL_ENTRY, type PackageSkill, type SkillTier, type SkillVersionMismatch } from "../types"
 import { readBodyVersionFromContent } from "../versioning"
 import { skillsSourceDir } from "./package"
@@ -294,6 +295,8 @@ function assertInsideSource(root: string, dir: string): string {
 // 构造包内技能条目：名称优先取 frontmatter name，其次目录名；清单声明的曾用名优先于 frontmatter
 function packageSkill(dir: string, name?: string, previousNames?: string[]): PackageSkill {
   const resolved = name || readSkillName(dir) || basename(dir)
+  // 名称必须为单段：安装与卸载会把名字 join 到目标目录，含分隔符或点段会越出目标目录
+  if (!isSingleSegmentName(resolved)) throw new Error(`技能名非法（须为单段名字，不含路径分隔符）：${resolved}（${dir}）`)
   return {
     name: resolved,
     dir,
@@ -314,7 +317,7 @@ export function assertSkillAliases(sourceName: string, skills: PackageSkill[]): 
   for (const skill of skills) {
     for (const old of skill.previousNames) {
       // 单段名字约束：含路径分隔符或点段会在安装清理阶段越出目标目录
-      if (old === "." || old === ".." || /[\\/]/.test(old)) throw new Error(`来源 ${sourceName} 内技能曾用名非法（须为单段名字）：${old}`)
+      if (!isSingleSegmentName(old)) throw new Error(`来源 ${sourceName} 内技能曾用名非法（须为单段名字）：${old}`)
       if (names.has(old)) throw new Error(`来源 ${sourceName} 内技能曾用名与现用名重复：${old}`)
       const previous = owners.get(old)
       if (previous !== undefined) throw new Error(`来源 ${sourceName} 内技能曾用名重复：${old}（${previous} / ${skill.name}）`)

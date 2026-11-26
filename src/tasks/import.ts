@@ -6,6 +6,7 @@ import { join } from "node:path"
 import { createRequire } from "node:module"
 import { readTextFile, stripBom } from "../read-text"
 import { normalizeIfEnabled, reportNormalizedPaths } from "../privacy/paths"
+import { isSingleSegmentName } from "../safe-remove"
 import { normalizeCompleted, parseArchiveBlocks, renderArchiveFile } from "./archive-block"
 import type { ArchiveBlockInfo } from "./archive-block"
 import { ALL_STATUSES, DONE_STATUSES, FRONTMATTER_KEYS, UNLABELED } from "./types"
@@ -224,6 +225,11 @@ function normalizeRecord(rec: Record<string, string>, options: ImportOptions, wa
   }
   let owner = (rec.owner || "").trim() || options.owner || ""
   owner = owner.replace(/\s+/g, "")
+  // 负责人会拼进任务文件名：非法取值告警并回落为未标注，不静默写入越界路径
+  if (owner && !isSingleSegmentName(owner)) {
+    warnings.push(`任务「${title}」负责人「${owner}」含路径分隔符或非法字符，已记为未标注`)
+    owner = ""
+  }
   const scope = (rec.scope || "").trim() || options.scope || "-"
   // 范围字段形态入口提示：表格单元格常见顿号/逗号列表写法，此处只提示不自动转换（转换存在「分隔还是内容」的语义二义）
   if (rec.scope && /[、，,()（）]/.test(rec.scope.trim())) {

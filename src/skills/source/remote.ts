@@ -6,6 +6,7 @@ import { tmpdir } from "node:os"
 import { basename, dirname, join } from "node:path"
 import { getHomeDir } from "../../config"
 import { resolveCacheEntry } from "../../cache"
+import { isSingleSegmentName } from "../../safe-remove"
 import { BUILTIN_SOURCE, type SkillItem } from "../types"
 import { assertSkillAliases, listPackageSkills, resolveLocalSource, type SkillSource } from "./metadata"
 import { packageVersion, skillsLinkDir, skillsPackageDir } from "./package"
@@ -21,11 +22,22 @@ function isRemoteSpec(spec: string): boolean {
   return /^(?:https?:\/\/|ssh:\/\/|git@|github:|file:\/\/)/.test(spec.trim())
 }
 
+// 分支 / 标签名约束：只允许字母、数字与 . _ / -，且首字符须为字母或数字——
+// 这样既不能以 - 开头被 git 当成选项，也不含 .. 之外的路径形态；`..` 额外显式拒绝
+const REMOTE_REF_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/
+
+function assertSafeRef(ref: string): void {
+  if (!REMOTE_REF_RE.test(ref) || ref.includes("..")) {
+    throw new Error(`远程 ref 非法：${ref}（只允许字母、数字与 . _ / -，且不能以 - 开头或含 ..）`)
+  }
+}
+
 // 解析远程地址：github: 简写展开、#ref 拆分、常见写法归一
 export function parseRemoteSpec(spec: string): RemoteSpec {
   const hash = spec.lastIndexOf("#")
   const rawUrl = hash > 0 ? spec.slice(0, hash) : spec
   const ref = hash > 0 ? spec.slice(hash + 1).trim() : ""
+  if (ref) assertSafeRef(ref)
   let url = rawUrl.trim()
   if (url.startsWith("github:")) url = `https://github.com/${url.slice("github:".length)}`
   if (!/^(?:https?:\/\/|ssh:\/\/|git@|file:\/\/)/.test(url)) throw new Error(`无法识别的技能来源：${spec}`)
@@ -79,12 +91,12 @@ function cloneRemote(spec: RemoteSpec, dest: string): void {
       mkdirSync(tmp, { recursive: true })
       runGit(["init", "-q", tmp])
       runGit(["-C", tmp, "remote", "add", "origin", spec.url])
-      runGit(["-C", tmp, "fetch", "--depth", "1", "origin", spec.ref])
+      runGit(["-C", tmp, "fetch", "--depth", "1", "--", "origin", spec.ref])
       runGit(["-C", tmp, "checkout", "-q", "FETCH_HEAD"])
     } else {
       const args = ["clone", "--depth", "1"]
       if (spec.ref) args.push("--branch", spec.ref)
-      args.push(spec.url, tmp)
+      args.push("--", spec.url, tmp)
       runGit(args)
     }
     if (existsSync(dest)) rmSync(dest, { recursive: true, force: true })
@@ -98,7 +110,7 @@ function cloneRemote(spec: RemoteSpec, dest: string): void {
 // 缓存刷新：失败保留旧缓存并告警，不阻断安装
 function refreshRemote(cacheDir: string, spec: RemoteSpec): void {
   const ref = spec.ref ?? "HEAD"
-  const fetched = spawnSync("git", ["-C", cacheDir, "fetch", "--depth", "1", "origin", ref], { encoding: "utf8" })
+  const fetched = spawnSync("git", ["-C", cacheDir, "fetch", "--depth", "1", "--", "origin", ref], { encoding: "utf8" })
   if (fetched.status !== 0) {
     console.warn(`⚠️ 远程来源刷新失败，使用本地缓存：${spec.url}`)
     return
@@ -161,6 +173,8 @@ export function sourceSkillItems(source: SkillSource): SkillItem[] {
 export function assertUniqueSkillNames(items: SkillItem[]): void {
   const seen = new Map<string, string>()
   for (const item of items) {
+    // 名称统一在此把关：安装 / 卸载会把名字 join 到目标目录，非单段名直接拒绝
+    if (!isSingleSegmentName(item.name)) throw new Error(`技能名非法（须为单段名字，不含路径分隔符）：${item.name}（来源 ${item.source}）`)
     const previous = seen.get(item.name)
     if (previous !== undefined) throw new Error(`技能名冲突：${item.name}（来源 ${previous} / ${item.source}）`)
     seen.set(item.name, item.source)

@@ -109,6 +109,23 @@ describe("外部来源解析", () => {
     expect(() => resolveLocalSource(root)).toThrow(/越出来源根/)
   })
 
+  it("技能名含路径分隔符时拒绝，避免安装落点越出来源目录", () => {
+    const root = join(work, "evil-name")
+    writeSkill(join(root, "skills", "evil"), "../escape")
+    expect(() => resolveLocalSource(root)).toThrow(/技能名非法/)
+  })
+
+  it("清单声明非法技能名同样拒绝", () => {
+    const root = join(work, "evil-manifest")
+    writeSkill(join(root, "skills", "ok"), "ok")
+    writeFileSync(
+      join(root, "skills.json"),
+      `${JSON.stringify({ formatVersion: 1, skills: [{ path: "skills/ok", name: "../escape" }] })}\n`,
+      "utf8",
+    )
+    expect(() => resolveLocalSource(root)).toThrow(/技能名非法/)
+  })
+
   it("同一来源内重名或跨来源同名都报错", () => {
     const root = join(work, "dup")
     writeSkill(join(root, "skills", "a"), "same")

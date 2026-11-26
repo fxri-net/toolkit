@@ -52,6 +52,12 @@ describe("createTask：按模板建档", () => {
     expect(existsSync(preview.file)).toBe(false)
   })
 
+  it("负责人名含路径分隔符时拒绝建档，不写到任务目录之外", () => {
+    const now = new Date("2026-11-21T10:00:00")
+    expect(() => createTask({ dir, title: "越界负责人", owner: "../escape", scope: "cli", now })).toThrow(/负责人名非法/)
+    expect(existsSync(join(dir, "active"))).toBe(false)
+  })
+
   it("简述规则：去非法字符、空白折叠、截断 24 字符", () => {
     expect(taskSlug("  A/B: C  ")).toBe("A-B-C")
     expect(taskSlug("一二三四五六七八九十一二三四五六七八九十一二三四五")).toHaveLength(24)

@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { userInfo } from "node:os"
 import { basename, join } from "node:path"
 import { normalizeIfEnabled, reportNormalizedPaths } from "../privacy/paths"
+import { isSingleSegmentName } from "../safe-remove"
 import { skillsPackageDir } from "../skills/source/package"
 import { ALL_STATUSES, DONE_STATUSES, type TaskStatus } from "./types"
 
@@ -102,6 +103,8 @@ export function createTask(input: AddTaskInput): { file: string; content: string
   const now = input.now ?? new Date()
   const stamp = todayStamp(now)
   const owner = input.owner?.trim() || defaultOwner()
+  // 负责人会拼进任务文件名：必须是单段名，避免 --owner ../x 把文件写到任务目录之外
+  if (!isSingleSegmentName(owner)) throw new Error(`负责人名非法：${owner}（不能含路径分隔符或 * ? " < > | 等字符）`)
   const slug = taskSlug(input.title)
   if (!slug) throw new Error("任务标题无法生成合法简述")
   const monthDir = join(input.dir, "active", stamp.slice(0, 6))

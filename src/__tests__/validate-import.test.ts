@@ -241,6 +241,19 @@ describe("importTasks 写入与映射", () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
+  it("负责人含路径分隔符时告警并记为未标注，不写到任务目录之外", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import-owner-"))
+    mkdirSync(join(dir, "active"), { recursive: true })
+    mkdirSync(join(dir, "archive"), { recursive: true })
+    const csv = join(dir, "in.csv")
+    writeFileSync(csv, "任务名,负责人,状态,创建日期\n越界负责人,../escape,待办,20260903\n", "utf8")
+    const res = await importTasks(csv, dir, {})
+    expect(res.warnings.some((w) => w.includes("负责人"))).toBe(true)
+    expect(existsSync(join(dir, "active", "202609", "20260903-未标注-越界负责人.md"))).toBe(true)
+    expect(existsSync(join(dir, "active", "escape-越界负责人.md"))).toBe(false)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
   it("纯日期 completed 落盘补 00:00（A4）", async () => {
     const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import2-"))
     mkdirSync(join(dir, "active"), { recursive: true })
