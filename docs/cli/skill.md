@@ -171,6 +171,7 @@ toolkit skill list --format json             # JSON 输出：逐技能条目
   - 该类名字若完全未命中可清理产物，stderr 告警「未找到可清理的产物」并说明未执行删除，退出码不变
 - 项目面按[作用域与安装面](../config/skill#作用域与安装面)清理归属账记载的条目
 - `--format json` 输出机器可读卸载报告到 stdout（含各目标 `dirReclaimed` 回收标记与 `dryRun` / `scope` 标记）
+- 状态账里越界的目标目录或含路径分隔符的条目名会被忽略并告警，不参与删除
 
 ### 分发形态（config）
 

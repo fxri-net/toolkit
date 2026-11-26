@@ -3,7 +3,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join, normalize } from "node:path"
+import { dirname, join, normalize } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { removeArtifact } from "../skills/source/artifact"
 import { CARRIER_VERSION, ENTRY_VERSION, entryVersionText } from "../conventions/format"
@@ -1137,7 +1137,7 @@ describe("悬空链接判定与自动清理", () => {
     mkdirSync(target, { recursive: true })
     symlinkSync(target, dest, LINK_TYPE)
     rmSync(target, { recursive: true, force: true })
-    removeArtifact(dest)
+    removeArtifact(dest, dirname(dest))
     expect(() => lstatSync(dest)).toThrow()
   })
 

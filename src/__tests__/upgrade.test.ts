@@ -272,12 +272,30 @@ describe("升级迁移：备份恢复", () => {
     const migrated = readFileSync(join(root, ".toolkitrc.json"), "utf8")
     // 模拟用户在迁移后继续编辑
     writeFileSync(join(root, ".toolkitrc.json"), `${migrated}\n`, "utf8")
-    const skipped = restoreBackup(dir as string)
+    const skipped = restoreBackup(dir as string, { roots: [root] })
     expect(skipped.skipped).toContain(join(root, ".toolkitrc.json"))
     expect(readFileSync(join(root, ".toolkitrc.json"), "utf8")).not.toBe(legacyConfig)
 
-    const forced = restoreBackup(dir as string, { overwrite: true })
+    const forced = restoreBackup(dir as string, { overwrite: true, roots: [root] })
     expect(forced.restored).toContain(join(root, ".toolkitrc.json"))
     expect(JSON.parse(readFileSync(join(root, ".toolkitrc.json"), "utf8"))).toMatchObject({ tasks: { dir: ".tasks" } })
+  })
+
+  it("清单里的越界路径被跳过，不删除允许根外文件", () => {
+    const root = makeProject({})
+    const backup = join(root, ".toolkit", "backup", "20260101-000000")
+    mkdirSync(backup, { recursive: true })
+    const outside = mkdtempSync(join(tmpdir(), "fxts-tk-restore-outside-"))
+    fixtures.push(outside)
+    const keep = join(outside, "keep.txt")
+    writeFileSync(keep, "keep", "utf8")
+    writeFileSync(
+      join(backup, "manifest.json"),
+      JSON.stringify({ createdAt: "2026-01-01T00:00:00.000Z", entries: [], created: [{ path: keep, postSha: "" }] }),
+      "utf8",
+    )
+    const result = restoreBackup(backup, { overwrite: true, roots: [root] })
+    expect(result.skipped).toContain(keep)
+    expect(existsSync(keep)).toBe(true)
   })
 })

@@ -35,13 +35,13 @@ function state(sources: SkillsState["sources"]): SkillsState {
   return { format: "fxri.toolkit.skills-state", schemaVersion: 1, updatedAt: "", sources }
 }
 
-function source(entries: Array<{ name: string; version: string; mode?: StateMode }>, extra: Record<string, unknown> = {}) {
+function source(entries: Array<{ name: string; version: string; mode?: StateMode }>, extra: Record<string, unknown> = {}, dir = targetDir) {
   return {
     kind: "local",
     version: "",
     temporary: false,
     root: sourceRoot,
-    targets: [{ id: "primary", dir: targetDir, label: "canonical", kind: "primary" as const, entries: entries.map((item) => ({ ...item, mode: item.mode ?? ("link" as const) })) }],
+    targets: [{ id: "primary", dir, label: "canonical", kind: "primary" as const, entries: entries.map((item) => ({ ...item, mode: item.mode ?? ("link" as const) })) }],
     ...extra,
   }
 }
@@ -59,10 +59,10 @@ function writeSourceSkill(name: string, version: string): void {
 }
 
 // 在目标目录写已装产物：link 模式软链指向的真源内容即这里的文件
-function writeInstalledSkill(name: string, version: string): void {
-  const dir = join(targetDir, name)
-  mkdirSync(dir, { recursive: true })
-  writeFileSync(join(dir, "SKILL.md"), skillMarkdown(name, version), "utf8")
+function writeInstalledSkill(name: string, version: string, dir = targetDir): void {
+  const skillDir = join(dir, name)
+  mkdirSync(skillDir, { recursive: true })
+  writeFileSync(join(skillDir, "SKILL.md"), skillMarkdown(name, version), "utf8")
 }
 
 beforeEach(() => {
@@ -187,11 +187,12 @@ describe("collectSkillVersionUpdates", () => {
   })
 
   it("项目态内置技能落后同样计入 builtin", () => {
-    writeInstalledSkill("fxri-plan-recap", "0.0.1")
+    const projectTarget = join(work, ".agents", "skills")
+    writeInstalledSkill("fxri-plan-recap", "0.0.1", projectTarget)
     mkdirSync(join(work, ".toolkit"), { recursive: true })
     writeFileSync(
       join(work, ".toolkit", "state.json"),
-      JSON.stringify(state({ toolkit: source([{ name: "fxri-plan-recap", version: "0.0.1" }], { kind: "builtin", version: "1.0.0" }) })),
+      JSON.stringify(state({ toolkit: source([{ name: "fxri-plan-recap", version: "0.0.1" }], { kind: "builtin", version: "1.0.0" }, projectTarget) })),
       "utf8",
     )
     const report = collectSkillVersionUpdates()

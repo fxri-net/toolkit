@@ -1,8 +1,9 @@
 // 迁移备份：集中存放、清单记录哈希，恢复时先校验再写回
 import { createHash } from "node:crypto"
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs"
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs"
 import { basename, dirname, join } from "node:path"
 import { getHomeDir } from "../config"
+import { rootForPath, safeRemoveArtifact, safeRemoveFile } from "../safe-remove"
 import { readTextFile } from "../read-text"
 import { isHomeDirectory } from "../scope/paths"
 import { PROJECT_STATE_DIR, PROJECT_STATE_FILE, SKILLS_STATE_FILE } from "../skills/types"
@@ -62,7 +63,9 @@ export class BackupSession {
       mkdirSync(join(this.dir, "files"), { recursive: true })
       copyFileSync(file, stored)
       this.entries.push({ original: file, stored, beforeSha: sha256(file), absorbed: true })
-      rmSync(file, { force: true })
+      const root = rootForPath(file, [this.cwd, getHomeDir()])
+      if (!root) throw new Error(`收编 .bak 时路径不在项目或家目录内：${file}`)
+      safeRemoveFile(file, root)
     }
   }
 
@@ -158,7 +161,7 @@ export function pruneBackups(options: { cwd: string; layers: readonly UpgradeLay
         result.kept.push(dir)
         continue
       }
-      if (!dryRun) rmSync(dir, { recursive: true, force: true })
+      if (!dryRun) safeRemoveArtifact(dir, root)
       result.removed.push(dir)
     }
   }
@@ -176,7 +179,13 @@ export function pruneBackups(options: { cwd: string; layers: readonly UpgradeLay
   }
   for (const file of [...new Set(baks)]) {
     if (!existsSync(file)) continue
-    if (!dryRun) rmSync(file, { force: true })
+    const root = rootForPath(file, [getHomeDir(), options.cwd])
+    if (!root) {
+      console.warn(`⚠️ 忽略不在项目或家目录内的备份文件：${file}`)
+      result.skipped.push(file)
+      continue
+    }
+    if (!dryRun) safeRemoveFile(file, root)
     result.removed.push(file)
   }
   return result
@@ -190,11 +199,18 @@ export interface RestoreResult {
   dir: string
 }
 
-// 从备份恢复：哈希不符的文件默认跳过，overwrite 为真才覆盖
-export function restoreBackup(dir: string, options: { overwrite?: boolean } = {}): RestoreResult {
+// 从备份恢复：哈希不符的文件默认跳过，overwrite 为真才覆盖；所有路径必须落在 cwd 或 home 内
+export function restoreBackup(dir: string, options: { overwrite?: boolean; roots?: string[] } = {}): RestoreResult {
   const manifest = JSON.parse(readTextFile(join(dir, MANIFEST))) as BackupManifest
+  const roots = options.roots ?? [getHomeDir()]
   const result: RestoreResult = { restored: [], removed: [], skipped: [], dir }
   for (const entry of manifest.entries) {
+    const root = rootForPath(entry.original, roots)
+    if (!root) {
+      console.warn(`⚠️ 忽略越界恢复路径：${entry.original}`)
+      result.skipped.push(entry.original)
+      continue
+    }
     const current = sha256(entry.original)
     const unchanged = entry.absorbed ? current === "" : entry.postSha !== undefined && current === entry.postSha
     if (!unchanged && !options.overwrite) {
@@ -211,11 +227,17 @@ export function restoreBackup(dir: string, options: { overwrite?: boolean } = {}
   }
   for (const item of manifest.created) {
     if (!existsSync(item.path)) continue
+    const root = rootForPath(item.path, roots)
+    if (!root) {
+      console.warn(`⚠️ 忽略越界删除路径：${item.path}`)
+      result.skipped.push(item.path)
+      continue
+    }
     if (sha256(item.path) !== item.postSha && !options.overwrite) {
       result.skipped.push(item.path)
       continue
     }
-    rmSync(item.path, { force: true })
+    safeRemoveFile(item.path, root)
     result.removed.push(item.path)
   }
   return result

@@ -1,7 +1,8 @@
 // 技能真源与现场（artifact）：自 source.ts 按职责拆分，逻辑逐字未改
-import { cpSync, existsSync, lstatSync, mkdirSync, readlinkSync, rmSync, symlinkSync, unlinkSync } from "node:fs"
+import { cpSync, existsSync, lstatSync, mkdirSync, readlinkSync, symlinkSync } from "node:fs"
 import { dirname, isAbsolute, join, resolve } from "node:path"
 import { writeFileAtomic } from "../../write-atomic"
+import { safeRemoveArtifact } from "../../safe-remove"
 import { SKILL_ENTRY, type ArtifactMode } from "../types"
 import { pathKey, isSameDirContent, stripTailSep } from "./paths"
 
@@ -50,17 +51,8 @@ export function classifyExisting(dest: string, source: string, entry?: EntryType
 }
 
 
-export function removeArtifact(dest: string): void {
-  try {
-    // Windows 上 Node 23 对悬空 junction 的 rmSync 是 no-op，需改用 unlink 才能真正摘除
-    if (lstatSync(dest).isSymbolicLink() && !existsSync(dest)) {
-      unlinkSync(dest)
-      return
-    }
-  } catch {
-    // 不存在或无法判型时按原逻辑 force 删除
-  }
-  rmSync(dest, { recursive: true, force: true })
+export function removeArtifact(dest: string, root: string): void {
+  safeRemoveArtifact(dest, root)
 }
 
 // 以副本形式写入（调用前需确保 dest 不存在，否则会复制到 dest 内部）

@@ -1,7 +1,8 @@
 ﻿// 技能安装与卸载（global）：自 install.ts 按面拆分，逻辑逐字未改
-import { existsSync, lstatSync, mkdirSync, rmSync } from "node:fs"
+import { existsSync, lstatSync, mkdirSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { getHomeDir } from "../../config"
+import { parentOf, safeRemoveEmptyDir, safeRemoveFile } from "../../safe-remove"
 import { readTextFile } from "../../read-text"
 import { writeFileAtomic } from "../../write-atomic"
 import { assertUniqueSkillNames, buildSkillGateShell, classifyExisting, isSameDir, isEmptyDir, isSkillGateShell, pathKey, isPathPresent, readSkillDescription, removeArtifact, resolveSkillTargets, resolveTargetsByName, skillTargetLabel, skillsSourceDir, sourceSkillItems, targetId, writeArtifact, writeGateArtifact, type SkillSource } from "../source"
@@ -161,7 +162,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
             continue
           }
           try {
-            if (kind !== "absent") removeArtifact(dest)
+            if (kind !== "absent") removeArtifact(dest, target.dir)
             writeGateArtifact(dest, expected)
             if (kind === "absent") result.created.push(item.name)
             else result.updated.push(item.name)
@@ -205,7 +206,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
           continue
         }
         try {
-          if (!(kind === "absent")) removeArtifact(dest)
+          if (!(kind === "absent")) removeArtifact(dest, target.dir)
           const written = writeArtifact(item.linkTarget, item.dir, dest, useCopy)
           if (kind === "absent") result.created.push(item.name)
           else result.updated.push(item.name)
@@ -236,7 +237,7 @@ export function installSkills(options: InstallOptions = {}): InstallReport {
           }
           if (!options.dryRun) {
             try {
-              removeArtifact(dest)
+              removeArtifact(dest, target.dir)
             } catch {
               result.failed.push({ name: old, reason: `旧名产物清理失败，需人工处理：${dest}` })
               continue
@@ -439,7 +440,7 @@ function writeGlobalSources(sources: Record<string, SkillStateSource>): void {
   const cleaned = Object.fromEntries(Object.entries(sources).filter(([, source]) => source.targets.length > 0))
   const file = skillsStateFile()
   if (Object.keys(cleaned).length === 0) {
-    rmSync(file, { force: true })
+    safeRemoveFile(file, getHomeDir())
     return
   }
   mkdirSync(dirname(file), { recursive: true })
@@ -527,7 +528,7 @@ export function removeSkills(options: RemoveSkillsOptions = {}): SkillsRemoveRep
               danglingLink = false
             }
             if (danglingLink && !options.dryRun) {
-              removeArtifact(dest)
+              removeArtifact(dest, target.dir)
               result.removed.push(entry.name)
               changed = true
               continue
@@ -560,7 +561,7 @@ export function removeSkills(options: RemoveSkillsOptions = {}): SkillsRemoveRep
             continue
           }
           try {
-            removeArtifact(dest)
+            removeArtifact(dest, target.dir)
             result.removed.push(entry.name)
             changed = true
           } catch {
@@ -572,8 +573,7 @@ export function removeSkills(options: RemoveSkillsOptions = {}): SkillsRemoveRep
         // 清理后目标目录已空则一并回收，避免留下空壳目录（dryRun 不动现场；非空或不可读时跳过）
         if (!options.dryRun && isEmptyDir(target.dir)) {
           try {
-            rmSync(target.dir, { recursive: true, force: true })
-            result.dirReclaimed = true
+            if (safeRemoveEmptyDir(target.dir, parentOf(target.dir))) result.dirReclaimed = true
           } catch {
             // 回收失败不影响卸载结果：产物已清理，仅多留一个空目录
           }
@@ -606,7 +606,7 @@ export function removeSkills(options: RemoveSkillsOptions = {}): SkillsRemoveRep
           if (!canRemoveOrphanArtifact(dest, [...roots])) continue
           if (!options.dryRun) {
             try {
-              removeArtifact(dest)
+              removeArtifact(dest, dir)
             } catch {
               failed = true
               continue
@@ -625,8 +625,7 @@ export function removeSkills(options: RemoveSkillsOptions = {}): SkillsRemoveRep
           const bucket = results.find((item) => pathKey(item.dir) === pathKey(dir))
           if (!bucket || bucket.removed.length === 0 || !isEmptyDir(dir)) continue
           try {
-            rmSync(dir, { recursive: true, force: true })
-            bucket.dirReclaimed = true
+            if (safeRemoveEmptyDir(dir, parentOf(dir))) bucket.dirReclaimed = true
           } catch {
             // 回收失败不影响移除结果：产物已清理，仅多留一个空目录
           }
@@ -637,7 +636,7 @@ export function removeSkills(options: RemoveSkillsOptions = {}): SkillsRemoveRep
     const nothingLeft = results.every((result) => result.skippedForeign.length === 0)
     const stateRemoved = !options.dryRun && !failed && nothingLeft && Object.keys(nextSources).length === 0
     if (!options.dryRun) {
-      if (stateRemoved) rmSync(stateFile, { force: true })
+      if (stateRemoved) safeRemoveFile(stateFile, getHomeDir())
       else if (changed || Object.keys(nextSources).length !== Object.keys(state.sources).length) {
         writeSkillsState({ format: STATE_FORMAT, schemaVersion: STATE_SCHEMA_VERSION, updatedAt: new Date().toISOString(), sources: nextSources })
       }

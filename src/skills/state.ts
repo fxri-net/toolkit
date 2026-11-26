@@ -1,11 +1,13 @@
 // 技能状态文件：全局 ~/.agents/.toolkit-skills.json 与项目 `<repo>/.toolkit/state.json` 同构
 // 新结构单文件（format + schemaVersion + sources）；读取旧结构时一次性导入为新结构，导入前备份 .bak
-import { copyFileSync, existsSync, mkdirSync, rmSync } from "node:fs"
-import { dirname, join } from "node:path"
+import { copyFileSync, existsSync, mkdirSync } from "node:fs"
+import { dirname, isAbsolute, join, resolve } from "node:path"
 import { getHomeDir } from "../config"
+import { isHomeDirectory } from "../scope/paths"
+import { isProtectedTarget, isSingleSegmentName, safeRemoveFile } from "../safe-remove"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
-import { classifyTargetKind, listPackageSkills, packageVersion, pathKey, skillTargetLabel, skillsPackageDir, targetId } from "./source"
+import { classifyTargetKind, isInside, listPackageSkills, packageVersion, pathKey, skillTargetLabel, skillsPackageDir, targetId } from "./source"
 import {
   BUILTIN_SOURCE,
   PROJECT_STATE_DIR,
@@ -124,17 +126,36 @@ function migrateLegacyProjectState(data: Record<string, unknown>): SkillsState {
   }
 }
 
+// 状态读取时的面：项目态目标必须在项目根内；全局态目标必须是绝对路径且不是受保护根本身
+export interface StateScope {
+  scope: "project" | "global"
+  root: string
+}
+
+// 目标目录是否可参与删除：项目态限根内，全局态限绝对路径且不落在受保护根
+function isSafeTargetDir(dir: string, options: StateScope): boolean {
+  if (options.scope === "project") return isInside(resolve(options.root, dir), options.root)
+  return isAbsolute(dir) && !isProtectedTarget(dir) && !isHomeDirectory(dir)
+}
+
 // 校验 sources 内每个来源的结构：非对象来源直接剔除，targets / entries 非法按空处理
-function normalizeSources(raw: Record<string, unknown>): Record<string, SkillStateSource> {
+function normalizeSources(raw: Record<string, unknown>, options: StateScope): Record<string, SkillStateSource> {
   const out: Record<string, SkillStateSource> = {}
   for (const [name, value] of Object.entries(raw)) {
     if (!isPlainObject(value)) continue
     const targets: SkillStateTarget[] = []
     for (const target of Array.isArray(value.targets) ? value.targets : []) {
       if (!isPlainObject(target) || typeof target.dir !== "string") continue
+      if (!isSafeTargetDir(target.dir, options)) {
+        console.warn(`⚠️ 忽略非法技能目标：${target.dir}`)
+        continue
+      }
       const entries: SkillStateEntry[] = []
       for (const entry of Array.isArray(target.entries) ? target.entries : []) {
-        if (!isPlainObject(entry) || typeof entry.name !== "string") continue
+        if (!isPlainObject(entry) || typeof entry.name !== "string" || !isSingleSegmentName(entry.name)) {
+          if (isPlainObject(entry) && typeof entry.name === "string") console.warn(`⚠️ 忽略非法技能名：${entry.name}`)
+          continue
+        }
         const mode = entry.mode === "copy" || entry.mode === "shell" || entry.mode === "gate" ? entry.mode : "link"
         const summary = typeof entry.summary === "string" && entry.summary.trim() !== "" ? entry.summary : undefined
         entries.push({ name: entry.name, version: typeof entry.version === "string" ? entry.version : "", mode, ...(summary ? { summary } : {}) })
@@ -166,14 +187,15 @@ export function readSkillsState(): SkillsState | null {
   const data = readJsonObject(file)
   if (!data) return null
   if (isCurrentState(data)) {
-    return { ...emptySkillsState(), updatedAt: typeof data.updatedAt === "string" ? data.updatedAt : "", sources: normalizeSources(data.sources as Record<string, unknown>) }
+    return { ...emptySkillsState(), updatedAt: typeof data.updatedAt === "string" ? data.updatedAt : "", sources: normalizeSources(data.sources as Record<string, unknown>, { scope: "global", root: getHomeDir() }) }
   }
   if (!Array.isArray(data.targets)) return null
   try {
     const migrated = migrateLegacyGlobalState(data)
+    const sanitized = { ...migrated, sources: normalizeSources(migrated.sources as unknown as Record<string, unknown>, { scope: "global", root: getHomeDir() }) }
     backupStateFile(file)
-    writeSkillsState(migrated)
-    return migrated
+    writeSkillsState(sanitized)
+    return sanitized
   } catch {
     // 导入失败按空状态重建：返回 null，调用方按未安装处理，后续 install 会写新结构
     return null
@@ -203,14 +225,15 @@ export function readProjectState(root: string): SkillsState | null {
   const data = readJsonObject(file)
   if (!data) return null
   if (isCurrentState(data)) {
-    return { ...emptySkillsState(), updatedAt: typeof data.updatedAt === "string" ? data.updatedAt : "", sources: normalizeSources(data.sources as Record<string, unknown>) }
+    return { ...emptySkillsState(), updatedAt: typeof data.updatedAt === "string" ? data.updatedAt : "", sources: normalizeSources(data.sources as Record<string, unknown>, { scope: "project", root }) }
   }
   if (!Array.isArray(data.shells) && typeof data.source !== "string") return null
   try {
     const migrated = migrateLegacyProjectState(data)
+    const sanitized = { ...migrated, sources: normalizeSources(migrated.sources as unknown as Record<string, unknown>, { scope: "project", root }) }
     backupStateFile(file)
-    writeSkillsStateAt(file, migrated)
-    return migrated
+    writeSkillsStateAt(file, sanitized)
+    return sanitized
   } catch {
     return null
   }
@@ -238,7 +261,7 @@ export function writeProjectState(root: string, sources: Record<string, SkillSta
 
 // 删除项目态账（清理干净后调用）
 export function removeProjectStateFile(root: string): void {
-  rmSync(projectStateFile(root), { force: true })
+  safeRemoveFile(projectStateFile(root), root)
 }
 
 // 状态目标映射：按路径键取目标，供 install 保留未参与本次运行的历史登记

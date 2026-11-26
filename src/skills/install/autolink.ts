@@ -55,7 +55,7 @@ export function autoLinkSkills(): number {
         if (!replaceForeign && (kind === "dir" || kind === "file")) return true
         // 悬空或指向其他版本：删链重建；实体目录/文件按开关先清理
         try {
-          if (kind !== "absent") removeArtifact(dest)
+          if (kind !== "absent") removeArtifact(dest, target.dir)
           symlinkSync(linkTarget, dest, linkType)
           repaired += 1
           return true

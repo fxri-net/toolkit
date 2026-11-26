@@ -1,6 +1,7 @@
 // 技能安装与卸载（project）：自 install.ts 按面拆分，逻辑逐字未改
-import { existsSync, rmSync } from "node:fs"
+import { existsSync } from "node:fs"
 import { join, resolve } from "node:path"
+import { safeRemoveEmptyDir } from "../../safe-remove"
 import { readTextFile } from "../../read-text"
 import { assertUniqueSkillNames, buildSkillGateShell, buildSkillShell, isEmptyDir, isInside, isSkillGateShell, listPackageSkills, isPathPresent, readSkillDescription, readSkillShellVersion, removeArtifact, resolveProjectTargets, sourceSkillItems, toRepoRel } from "../source"
 import { acquireSkillsLock, projectSkillsLockFile } from "../lock"
@@ -219,7 +220,7 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
             continue
           }
           try {
-            removeArtifact(oldDir)
+            removeArtifact(oldDir, join(root, dir))
             result.pruned.push(old)
           } catch {
             // 清理失败保留现场，由状态报告暴露
@@ -234,7 +235,7 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
             if (!existsSync(file)) continue
             const content = readTextFile(file)
             if (readSkillShellVersion(content) !== null || isSkillGateShell(content)) {
-              removeArtifact(join(root, dir, entry.name))
+              removeArtifact(join(root, dir, entry.name), join(root, dir))
               result.pruned.push(entry.name)
             }
           }
@@ -278,7 +279,7 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
               continue
             }
             try {
-              removeArtifact(skillDir)
+              removeArtifact(skillDir, join(root, prev.dir))
               result.pruned.push(entry.name)
             } catch {
               kept.push(entry)
@@ -429,7 +430,7 @@ export function removeProjectSkills(options: { cwd?: string; dryRun?: boolean; s
           continue
         }
         try {
-          removeArtifact(skillDir)
+          removeArtifact(skillDir, join(root, target.dir))
           result.removed.push(entry.name)
           changed = true
         } catch {
@@ -450,8 +451,7 @@ export function removeProjectSkills(options: { cwd?: string; dryRun?: boolean; s
       const abs = join(root, dir)
       if (!existsSync(abs) || !isEmptyDir(abs)) continue
       try {
-        rmSync(abs, { recursive: true, force: true })
-        reclaimed.push(dir)
+        if (safeRemoveEmptyDir(abs, root)) reclaimed.push(dir)
       } catch {
         // 回收失败不影响卸载结果：产物已清理，仅多留一个空目录
       }

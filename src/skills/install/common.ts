@@ -4,6 +4,7 @@ import { dirname, isAbsolute, join, resolve } from "node:path"
 import { writeFileAtomic } from "../../write-atomic"
 import { readTextFile } from "../../read-text"
 import { assertUniqueSkillNames, classifyExisting, copyArtifact, currentSkillShellVersion, isSameDir, expandSkillRequires, isInside, isSkillGateShell, isToolkitArtifactLink, pathKey, readSkillShellVersion, removeArtifact, resolveBuiltinSource, resolveLocalSource, resolveSource, sourceSkillItems, stripTailSep, type SkillSource } from "../source"
+import { isSingleSegmentName } from "../../safe-remove"
 import { readSkillsInstallConfig } from "../config"
 import { BUILTIN_SOURCE, SKILL_ENTRY, type GateRules, type ProjectDirResult, type SkillStateSource, type SkillStateTarget, type SkillItem, type SkillsMode } from "../types"
 
@@ -117,13 +118,17 @@ export function pruneEntries(
   const pruned: string[] = []
   for (const entry of previous.entries) {
     if (selected.has(entry.name)) continue
+    if (!isSingleSegmentName(entry.name)) {
+      console.warn(`⚠️ 忽略非法技能名：${entry.name}`)
+      continue
+    }
     const dest = join(dir, entry.name)
     const skill = byName.get(entry.name)
     if (!skill) {
       if (entry.mode !== "link") continue
       try {
         if (!lstatSync(dest).isSymbolicLink()) continue
-        removeArtifact(dest)
+        removeArtifact(dest, dir)
         pruned.push(entry.name)
       } catch {
         // 清理失败保留记录，下次再试
@@ -137,7 +142,7 @@ export function pruneEntries(
     const consistent = kind === "link-ok" || (kind === "dir" && existsSync(skill.dir) && isSameDir(skill.dir, dest)) || gateConsistent
     if (!consistent) continue
     try {
-      removeArtifact(dest)
+      removeArtifact(dest, dir)
       pruned.push(entry.name)
     } catch {
       // 清理失败保留记录，下次再试
@@ -191,7 +196,7 @@ export function applySourceCopy(source: string, dest: string, recorded: boolean,
   if (isSameDir(source, dest)) return "skipped"
   if (!recorded && !force) return "conflict"
   if (!dryRun) {
-    removeArtifact(dest)
+    removeArtifact(dest, dirname(dest))
     copyArtifact(source, dest)
   }
   return "updated"

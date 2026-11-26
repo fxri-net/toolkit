@@ -12,6 +12,7 @@ import { latestBackup, pruneBackups, pruneLayersFor, restoreBackup } from "../up
 import { buildUpgradePlan, checkVersionGate, runUpgrade } from "../upgrade"
 import { ALL_LAYERS } from "../upgrade/detect"
 import { planUpgradeDiffs } from "../upgrade/diff"
+import { getHomeDir } from "../config"
 import { isHomeDirectory } from "../scope/paths"
 import type { UpgradeItem, UpgradeLayer } from "../upgrade/types"
 
@@ -178,7 +179,7 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
       process.exitCode = 1
       return
     }
-    const result = restoreBackup(dir, { overwrite: Boolean(options.overwrite) })
+    const result = restoreBackup(dir, { overwrite: Boolean(options.overwrite), roots: [cwd, getHomeDir()] })
     if (options.format === "json") {
       printJson(jsonEnvelope({ command: "upgrade", data: { restore: result } }))
       return

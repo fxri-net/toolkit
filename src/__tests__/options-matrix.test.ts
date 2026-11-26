@@ -360,7 +360,7 @@ describe("顶层命令与外部域", () => {
       expect(text).toContain("--skills ghost-old")
       expect(text).toContain("--dry-run")
     } finally {
-      removeArtifact(stale)
+      removeArtifact(stale, dirname(stale))
     }
   })
 
@@ -419,7 +419,7 @@ describe("顶层命令与外部域", () => {
       expect(readFileSync(stateFile, "utf8")).toContain("fxri-plan-review")
     } finally {
       restoreTty()
-      removeArtifact(stale)
+      removeArtifact(stale, dirname(stale))
       rmSync(stateFile, { force: true })
     }
   })
@@ -549,7 +549,7 @@ describe("顶层命令与外部域", () => {
       expect(text).toContain("旧名残留")
       expect(text).toContain("--scope global --skills legacy-gone")
     } finally {
-      removeArtifact(stale)
+      removeArtifact(stale, dirname(stale))
       rmSync(stateFile, { force: true })
     }
   })
