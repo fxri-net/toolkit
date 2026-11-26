@@ -51,10 +51,10 @@ toolkit setup
 
 | 能力 | 适用场景 | 文档 |
 | --- | --- | --- |
-| 任务管理（task） | 方案落盘、总览过滤、校验归档、导入导出 CSV / XLSX / JSON | [CLI 参考](./docs/cli.md) · [任务文件规范](./docs/guide.md#任务文件规范) |
-| 规范载体（convention） | 把任务里提炼的规范收进 `.tasks/conventions/`，成为可检索、可校验的项目规范源；支持结构升级、表格与索引单元格形态归一、只读体检 | [CLI 参考](./docs/cli.md) · [完整攻略](./docs/guide.md#conventions-规范沉淀地) |
+| 任务管理（task） | 方案落盘、总览过滤、校验归档、导入导出 CSV / XLSX / JSON | [CLI 参考](./docs/cli/task.md) · [任务文件规范](./docs/guide.md#任务文件规范) |
+| 规范载体（convention） | 把任务里提炼的规范收进 `.tasks/conventions/`，成为可检索、可校验的项目规范源；支持结构升级、表格与索引单元格形态归一、只读体检 | [CLI 参考](./docs/cli/convention.md) · [完整攻略](./docs/guide.md#conventions-规范沉淀地) |
 | 整体状态（status） | 一条命令汇总任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项；`--check` 存在 error 时退出 1，可作自查门禁 | [CLI 参考](./docs/cli/status.md) |
-| 技能分发（skill） | 不装本工具也能让 AI 按同一套规范干活；装了可一键分发技能（`--scope project` 随仓库入库、队友 clone 即用） | [完整攻略](./docs/guide.md#ai-技能包-skills) · [常见问题](./docs/faq.md#工具和-skills-都得装吗) |
+| 技能分发（skill） | 不装本工具也能让 AI 按同一套规范干活；装了可一键分发技能（`--scope project` 随仓库入库、队友 clone 即用） | [CLI 参考](./docs/cli/skill.md) · [完整攻略](./docs/guide.md#ai-技能包-skills) · [常见问题](./docs/faq.md#工具和-skills-都得装吗) |
 | 全局规则（rule） | 按模块组合、排序与复制 AI 全局规则（含提交信息、技能使用情况等模块），预设与缓存随包分发 | [CLI 参考](./docs/cli/rule.md) |
 | 作用域（scope） | 按项目 / 目录决定技能是否生效：策略规则、白名单 / 黑名单、标记与 git 远端；默认全域；技能矩阵与内容闸门联动 | [CLI 参考](./docs/cli/scope.md) · [配置参考](./docs/config/activation.md) |
 | 技能使用情况（usage） | 统计技能调用次数、触发词与结果；默认关闭、不联网、数据只留本机 | [CLI 参考](./docs/cli/usage.md) · [技能使用情况概览](./docs/usage/index.md) |

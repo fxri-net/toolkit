@@ -39,4 +39,4 @@ toolkit privacy scan --format json    # 机器可读结果
 
 ## 相关页面
 
-- 参考：[配置参考 · 隐私脱敏](../config/redact) · [任务区](./task) · [退出码](./exit-codes)
+- 参考：[配置参考 · 隐私脱敏](../config/redact) · [任务管理](./task) · [退出码](./exit-codes)

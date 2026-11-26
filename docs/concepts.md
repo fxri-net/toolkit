@@ -30,7 +30,7 @@ import ModelMap from './.vitepress/theme/components/diagrams/ModelMap.vue'
 | 域 | 一句话 | 入口命令 | 命令页 |
 | --- | --- | --- | --- |
 | `toolkit setup` | 本机接入：技能、规则、生效范围 | `setup` | [本机接入](./cli/setup) |
-| `toolkit task` | 任务区：建档、校验、归档、统计 | `task` | [任务区](./cli/task) |
+| `toolkit task` | 任务管理：建档、校验、归档、统计 | `task` | [任务管理](./cli/task) |
 | `toolkit status` | 整体状态只读聚合 | `status` | [整体状态](./cli/status) |
 | `toolkit rule` | 全局规则组合与缓存 | `rule` | [全局规则](./cli/rule) |
 | `toolkit scope` | 按目录决定技能是否生效 | `scope` | [作用域](./cli/scope) |
