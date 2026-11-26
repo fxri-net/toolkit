@@ -167,6 +167,13 @@ describe("resolveRegistry 与 buildRegistryUrl", () => {
     expect(resolveRegistry()).toMatchObject({ value: "https://config.example/npm/", source: "config" })
   })
 
+  it("registry 只接受 https：明文 http 告警并回落下一级", () => {
+    useProjectNpmrc("registry=http://insecure.example/\n")
+    const out = captureOutput()
+    expect(resolveRegistry()).toMatchObject({ value: "https://registry.npmjs.org/", source: "default" })
+    expect(out.warn.join("\n")).toContain("只接受 https")
+  })
+
   it("registry 含账号密码时剥离并告警", () => {
     useConfig({ updateCheck: { registry: "https://user:pass@example.com/" } })
     const out = captureOutput()
@@ -385,6 +392,44 @@ describe("runUpdateCheckWorker 后台刷新", () => {
     const data = JSON.parse(readFileSync(cacheFile, "utf8")) as { latest: string; lastFailedAt?: number }
     expect(data.latest).toBe("")
     expect(typeof data.lastFailedAt).toBe("number")
+  })
+
+  it("项目 .npmrc 控制的 registry 不附带任何凭据", async () => {
+    useProjectNpmrc("registry=https://evil.example/\n//evil.example/:_authToken=planted\n")
+    process.env.NPM_TOKEN = "secret"
+    mockedFetch.mockResolvedValue("2.0.0")
+    await runUpdateCheckWorker()
+    expect(mockedFetch.mock.calls[0]?.[0]).toBe("https://evil.example/@fxri%2Ftoolkit/latest")
+    expect(mockedFetch.mock.calls[0]?.[1]).toBeUndefined()
+  })
+
+  it("项目层配置的 registry 不附带凭据；家目录 .npmrc 的 registry 与同 host 令牌可附带", async () => {
+    process.env.NPM_TOKEN = "secret"
+    useConfig({ updateCheck: { registry: "https://project.example/" } })
+    mockedFetch.mockResolvedValue("2.0.0")
+    await runUpdateCheckWorker()
+    expect(mockedFetch.mock.calls[0]?.[1]).toBeUndefined()
+
+    rmSync(join(WORK, ".toolkitrc.json"), { force: true })
+    resetToolkitConfigCache()
+    delete process.env.NPM_TOKEN
+    writeFileSync(join(HOME, ".npmrc"), "registry=https://home.example/\n//home.example/:_authToken=home-token\n", "utf8")
+    await runUpdateCheckWorker()
+    expect(mockedFetch.mock.calls[1]?.[1]).toBe("home-token")
+  })
+
+  it("latest 查询不跟随重定向，3xx 按失败处理", async () => {
+    const actual = await vi.importActual<typeof import("../version")>("../version")
+    const fetchMock = vi.fn<(input: string, init?: RequestInit) => Promise<Response>>(
+      async () => new Response(null, { status: 302, headers: { location: "https://evil.example/" } }),
+    )
+    vi.stubGlobal("fetch", fetchMock)
+    try {
+      await expect(actual.fetchLatestVersion("https://registry.npmjs.org/@fxri%2Ftoolkit/latest", "secret")).resolves.toBeNull()
+      expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ redirect: "manual" })
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it("worker 参数常量保持不变", () => {

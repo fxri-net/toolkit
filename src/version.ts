@@ -3,11 +3,12 @@
 const REGISTRY_URL = "https://registry.npmjs.org/@fxri%2Ftoolkit/latest"
 
 // 查询 registry 最新版本；网络失败、超时（1s）、响应异常一律返回 null（静默）
+// 不跟随重定向：避免带凭据的请求被 3xx 引到其他主机，3xx 直接按失败处理
 export async function fetchLatestVersion(url = REGISTRY_URL, token?: string): Promise<string | null> {
   try {
     const headers: Record<string, string> = { accept: "application/vnd.npm.install-v1+json" }
     if (token) headers.authorization = `Bearer ${token}`
-    const res = await fetch(url, { signal: AbortSignal.timeout(1000), headers })
+    const res = await fetch(url, { signal: AbortSignal.timeout(1000), headers, redirect: "manual" })
     if (!res.ok) return null
     const data = (await res.json()) as { version?: unknown }
     return typeof data.version === "string" ? data.version : null

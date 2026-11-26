@@ -32,8 +32,10 @@ registry 解析顺序（前者优先）：
 - 家目录 `.npmrc`
 - `https://registry.npmjs.org`
 
-- 仅接受 http / https；含账号密码的地址会剥离 userinfo 并告警
-- 认证读取 `NPM_TOKEN`，其次读取 `.npmrc` 中与 registry host 匹配的 `_authToken`；token 不写入日志、报告或缓存
+- 只接受 https；明文 http 的取值告警后回落下一级，含账号密码的地址剥离 userinfo 并告警
+- 认证只为可信来源附带：`NPM_TOKEN` 优先，其次家目录 `.npmrc` 中与 registry host 匹配的 `_authToken`；
+  项目 `.npmrc` 与项目层 `updateCheck.registry` 视为仓库可写来源，不附带凭据；token 不写入日志、报告或缓存
+- 请求不跟随重定向，3xx 按失败处理
 - Node fetch **不自动读取 `HTTP(S)_PROXY`**，代理环境下请求会静默失败，可用 `updateCheck.enabled: false` 关闭检查
 
 提示只在**命令成功**（退出码 0）时输出。以下情形不输出文本提示：

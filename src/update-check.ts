@@ -5,7 +5,7 @@ import { dirname, join } from "node:path"
 import { tmpdir } from "node:os"
 import { spawn } from "node:child_process"
 import { fetchLatestVersion, versionGt } from "./version"
-import { getConfigSection, getHomeDir } from "./config"
+import { getConfigSection, getHomeDir, inspectConfigLayers, resolveLeafSource } from "./config"
 import { resolveCacheEntry } from "./cache"
 import { readTextFile } from "./read-text"
 import { writeFileAtomic } from "./write-atomic"
@@ -196,11 +196,10 @@ function readNpmrcToken(file: string, host: string): string | undefined {
   return undefined
 }
 
-// 是否为合法 http(s) 地址
-function isHttpUrl(value: string): boolean {
+// 是否为合法 https 地址：升级检查只走加密链路，明文 http 一律不接受
+function isHttpsUrl(value: string): boolean {
   try {
-    const url = new URL(value)
-    return url.protocol === "http:" || url.protocol === "https:"
+    return new URL(value).protocol === "https:"
   } catch {
     return false
   }
@@ -226,23 +225,34 @@ function normalizeRegistry(value: string): string {
   return value.endsWith("/") ? value : `${value}/`
 }
 
+// 采纳一层 registry 取值：剥离账号密码、只接受 https；不合法时告警并回落下一级
+function acceptRegistry(value: string | undefined, label: string): string | null {
+  if (!value?.trim()) return null
+  const cleaned = stripUserinfo(value.trim(), label)
+  if (!cleaned) {
+    console.warn(`⚠️ ${label} 取值「${value.trim()}」不是合法地址，已回落下一级`)
+    return null
+  }
+  if (!isHttpsUrl(cleaned)) {
+    console.warn(`⚠️ ${label} 只接受 https 地址，已忽略并回落下一级：${value.trim()}`)
+    return null
+  }
+  return cleaned
+}
+
 // 解析有效 registry：配置 > npm_config_registry > 项目 .npmrc > 家目录 .npmrc > 默认
 export function resolveRegistry(): RegistryInfo {
   const configured = getConfigSection("updateCheck")?.registry
-  if (typeof configured === "string" && configured.trim()) {
-    const cleaned = stripUserinfo(configured.trim(), "updateCheck.registry")
-    if (cleaned && isHttpUrl(cleaned)) return { value: normalizeRegistry(cleaned), source: "config" }
-    console.warn(`⚠️ updateCheck.registry 取值「${configured}」不是合法 http(s) 地址，已回落下一级`)
+  if (typeof configured === "string") {
+    const cleaned = acceptRegistry(configured, "updateCheck.registry")
+    if (cleaned) return { value: normalizeRegistry(cleaned), source: "config" }
   }
-  const envRegistry = process.env.npm_config_registry
-  if (envRegistry) {
-    const cleaned = stripUserinfo(envRegistry, "npm_config_registry")
-    if (cleaned && isHttpUrl(cleaned)) return { value: normalizeRegistry(cleaned), source: "npm_config_registry" }
-  }
-  const project = readNpmrcRegistry(join(process.cwd(), ".npmrc"))
-  if (project && isHttpUrl(project)) return { value: normalizeRegistry(project), source: "npmrc-project" }
-  const home = readNpmrcRegistry(join(getHomeDir(), ".npmrc"))
-  if (home && isHttpUrl(home)) return { value: normalizeRegistry(home), source: "npmrc-home" }
+  const envRegistry = acceptRegistry(process.env.npm_config_registry, "npm_config_registry")
+  if (envRegistry) return { value: normalizeRegistry(envRegistry), source: "npm_config_registry" }
+  const project = acceptRegistry(readNpmrcRegistry(join(process.cwd(), ".npmrc")), "项目 .npmrc 的 registry")
+  if (project) return { value: normalizeRegistry(project), source: "npmrc-project" }
+  const home = acceptRegistry(readNpmrcRegistry(join(getHomeDir(), ".npmrc")), "家目录 .npmrc 的 registry")
+  if (home) return { value: normalizeRegistry(home), source: "npmrc-home" }
   return { value: "https://registry.npmjs.org/", source: "default" }
 }
 
@@ -251,12 +261,20 @@ export function buildRegistryUrl(registry: string): string {
   return new URL("@fxri%2Ftoolkit/latest", normalizeRegistry(registry)).toString()
 }
 
-// 解析认证 token：NPM_TOKEN 优先，其次项目 / 家目录 .npmrc 中与 host 匹配的 _authToken
-function resolveAuthToken(registry: string): string | undefined {
+// 地址来源是否可信：项目层配置与项目 .npmrc 随仓库分发，可被他人写入，不向其地址附带任何凭据
+function isTrustedRegistry(info: RegistryInfo): boolean {
+  if (info.source === "npmrc-project") return false
+  if (info.source === "config") return resolveLeafSource(inspectConfigLayers(), "updateCheck.registry") !== "项目层"
+  return true
+}
+
+// 解析认证 token：只为可信 registry 附带——NPM_TOKEN 优先，其次家目录 .npmrc 中与 host 匹配的 _authToken
+// 项目 .npmrc 的令牌不参与，避免仓库内配置把令牌引到任意地址
+function resolveAuthToken(info: RegistryInfo): string | undefined {
+  if (!isTrustedRegistry(info)) return undefined
   if (process.env.NPM_TOKEN) return process.env.NPM_TOKEN
   try {
-    const host = new URL(registry).host
-    return readNpmrcToken(join(process.cwd(), ".npmrc"), host) ?? readNpmrcToken(join(getHomeDir(), ".npmrc"), host)
+    return readNpmrcToken(join(getHomeDir(), ".npmrc"), new URL(info.value).host)
   } catch {
     return undefined
   }
@@ -398,7 +416,7 @@ function refreshCacheIfNeeded(): void {
 export async function runUpdateCheckWorker(): Promise<void> {
   const cached = readCache()
   const registry = resolveRegistry()
-  const fetched = await fetchLatestVersion(buildRegistryUrl(registry.value), resolveAuthToken(registry.value)).catch(() => null)
+  const fetched = await fetchLatestVersion(buildRegistryUrl(registry.value), resolveAuthToken(registry)).catch(() => null)
   writeCache({
     latest: fetched ?? cached?.latest ?? "",
     lastCheckedAt: fetched ? Date.now() : cached?.lastCheckedAt,
