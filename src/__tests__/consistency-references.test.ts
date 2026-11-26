@@ -58,6 +58,7 @@ describe("规范一致性：技能 references 引用", () => {
     const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
     expect(result.status).toBe(1)
     expect(result.stderr).toContain("引用的 references/task-spec.md 不存在")
+    expect(result.stderr).toContain("修复提示：补建该文件")
   })
 
   it("references 文件存在时通过", () => {

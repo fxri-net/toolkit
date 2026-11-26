@@ -157,6 +157,7 @@ export function run({ root = process.cwd() } = {}) {
     }
   }
   console.error(`共 ${total} 处未对齐（基准：分组相对最长，目标列 = 基准 + ${BASE_GAP}）`)
+  console.error("修复提示：调整该行注释前的空格数，使注释起始列等于同组基准 + 间距；同一代码块内以最长命令 / 代码行为基准")
   return 1
 }
 

@@ -592,6 +592,24 @@ if (existsSync(join(root, CONVENTIONS_COMMON))) {
   }
 }
 
+// 修复提示：按报错类别指向真源文件或同步命令，避免只报事实
+function fixHint(error) {
+  if (/版本双写位不一致|未声明 metadata\.version/.test(error)) return "运行 toolkit skill bump <技能名> patch 同步 frontmatter 与正文两处版本"
+  if (/技能表|skills\/README\.md|docs\/guide\.md/.test(error)) {
+    return "以 skills/<名>/SKILL.md 为准改该表对应行；版本先跑 toolkit skill bump <名> patch 再同步"
+  }
+  if (/references\/|引用的 .* 不存在|链接目标不存在/.test(error)) return "补建该文件，或把引用改为存在的相对路径"
+  if (/docs\/cli\.md/.test(error)) return "按 src/command-registry.ts 与 docs/cli/exit-codes.md 补齐该小节"
+  if (/site-nav\.json/.test(error)) return "改 docs/site-nav.json 的 link，或补目标页标题 / 锚点"
+  if (/文档索引|能力矩阵/.test(error)) return "让 README.md 与 docs/index.md 的索引集合一致；能力矩阵文案改为目标页标题"
+  if (/规则体量|超过上限/.test(error)) {
+    return "把流程细节移回 skills；确需放宽时说明理由后调整 scripts/check-consistency.mjs 的 RULE_BUDGETS"
+  }
+  if (/读者向措辞/.test(error)) return "从可复制正文删去该词，说明文字留在围栏外"
+  if (/触达/.test(error)) return "在对应任务「影响范围」补一行 - 文档触达：<路径>，或改回已登记路径"
+  return "按提示修正上述源文件后重跑 pnpm verify"
+}
+
 // 输出：error 阻断，warn 只提示
 if (warns.length > 0) {
   console.log("规范一致性检查：")
@@ -599,7 +617,10 @@ if (warns.length > 0) {
 }
 if (errors.length > 0) {
   console.error("规范一致性检查：")
-  for (const error of errors) console.error(`【error】${error}`)
+  for (const error of errors) {
+    console.error(`【error】${error}`)
+    console.error(`  ↳ 修复提示：${fixHint(error)}`)
+  }
   process.exit(1)
 }
 console.log(

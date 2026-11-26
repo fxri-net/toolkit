@@ -79,6 +79,7 @@ describe("覆盖率门禁：双轨判定", () => {
     expect(result.status).toBe(1)
     expect(result.stderr).toContain("改动行覆盖率 50.0%")
     expect(result.stderr).toContain("src/demo.ts:6")
+    expect(result.stderr).toContain("pnpm test:coverage")
   })
 
   it("没有新增行时结论注明未判定", () => {
@@ -112,7 +113,7 @@ describe("覆盖率门禁：双轨判定", () => {
     const root = createFixture({ statements: [{ line: 3, hits: 1 }], coverageMissing: true })
     const result = run(root)
     expect(result.status).toBe(1)
-    expect(result.stderr).toContain("请先执行带覆盖率的单测")
+    expect(result.stderr).toContain("请先执行带覆盖率的单测（pnpm test:coverage）")
   })
 
   it("--no-floors 时局部采集跳过全局下限", () => {

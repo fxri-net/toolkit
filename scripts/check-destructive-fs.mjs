@@ -76,6 +76,9 @@ const errors = scanFiles(files)
 if (errors.length > 0) {
   console.error("✖ 发现未收敛的递归删除（请改用 src/safe-remove.ts，或在脚本白名单说明理由）：")
   for (const item of errors) console.error(`  ${item}`)
+  console.error(
+    '修复提示：import { safeRemoveArtifact } from "<相对路径>/safe-remove" 后，用 safeRemoveArtifact(target, rootForPath(target, roots), "清理 xxx") 替代裸 rmSync(target, { recursive: true })；仅确属可重建缓存时才在 scripts/check-destructive-fs.mjs 的 ALLOW 白名单登记并写明理由',
+  )
   process.exit(1)
 }
 console.log(`✔ 破坏性删除检查通过（扫描 ${files.length} 个源文件，允许 ${ALLOW.size} 个缓存 / 临时目录）`)

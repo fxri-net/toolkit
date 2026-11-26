@@ -40,6 +40,7 @@ describe("注释对齐检查：分组与基准", () => {
     const result = run(createFixture({ "docs/bad.md": bad }))
     expect(result.status).toBe(1)
     expect(result.stderr).toContain("docs/bad.md:2: 期望列 17 实际 18")
+    expect(result.stderr).toContain("修复提示：调整该行注释前的空格数")
   })
 
   it("≥6 行时离群命令只留 1 个空格", () => {

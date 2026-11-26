@@ -223,7 +223,7 @@ function main() {
   const coverageFile = join(options.coverageDir, "coverage-final.json")
   const summaryFile = join(options.coverageDir, "coverage-summary.json")
   if (!existsSync(coverageFile) || !existsSync(summaryFile)) {
-    console.error(`✖ 覆盖率门禁：缺少 ${coverageFile} 或 ${summaryFile}，请先执行带覆盖率的单测`)
+    console.error(`✖ 覆盖率门禁：缺少 ${coverageFile} 或 ${summaryFile}，请先执行带覆盖率的单测（pnpm test:coverage）`)
     process.exit(1)
   }
   const coverage = JSON.parse(readFileSync(coverageFile, "utf8"))
@@ -236,6 +236,7 @@ function main() {
     // 失败：先给判定范围与附注，再逐条列失败原因
     for (const note of result.notes) console.log(`· ${note}`)
     for (const problem of result.problems) console.error(`✖ ${problem}`)
+    console.error("修复提示：为未覆盖行补测后重跑 pnpm test:coverage；全局下限跌破说明整体覆盖率塌方，需补测存量薄弱模块")
     process.exit(1)
   }
   // 通过：一行结论说清判了什么，附注说明本次没校验的范围（如局部采集不校验全局下限）

@@ -49,10 +49,14 @@ function reportToolchain() {
 
   console.log(`门禁校验：node ${actualNode}（仓库期望 ${expectedNode}）/ pnpm ${actualPnpm}（仓库期望 ${expectedPnpm}）`)
   if (actualNode !== expectedNode) {
-    console.warn(`⚠️ node 版本与 .node-version 不一致：本地 ${actualNode}、CI ${expectedNode}，行为差异需由 windows job 对向兜底`)
+    console.warn(
+      `⚠️ node 版本与 .node-version 不一致：本地 ${actualNode}、CI ${expectedNode}，行为差异需由 windows job 对向兜底（运行 fnm use ${expectedNode} 切换；未装 fnm 时先安装该 node 版本）`,
+    )
   }
   if (actualPnpm !== expectedPnpm) {
-    console.warn(`⚠️ pnpm 版本与 packageManager 不一致：本地 ${actualPnpm}、仓库声明 ${expectedPnpm}`)
+    console.warn(
+      `⚠️ pnpm 版本与 packageManager 不一致：本地 ${actualPnpm}、仓库声明 ${expectedPnpm}（运行 corepack use pnpm@${expectedPnpm} 切换后重跑 pnpm install）`,
+    )
   }
 }
 
