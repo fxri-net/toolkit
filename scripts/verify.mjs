@@ -4,6 +4,7 @@ import { createRequire } from "node:module"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { isTouchPath } from "./touch-surface.mjs"
+import { touchesBuild } from "./verify-logic.mjs"
 
 // 单一门禁真源：本仓库全部验收步骤由本脚本定义并按序执行，本地与四处 CI（GitHub check / windows / macos、GitLab test）共用同一份清单。
 // 目的：消除「各写一份步骤清单、彼此漂移」的结构性问题，使「本地自检通过、CI 才暴露」在清单层面不可能发生。
@@ -21,6 +22,8 @@ const testsOnly = flags.has("--tests-only")
 const forceLocal = flags.has("--local")
 // --full 强制全量：忽略本地缓存与改动面判断，等价于 CI 口径；与 --local 同时出现时以 --full 为准
 const full = flags.has("--full")
+// --preflight：只跑静态与仓库自检，不做安装 / 单测 / 构建 / 文档构建，用于归档前快速发现任务档与文档同步问题
+const preflight = flags.has("--preflight")
 // 覆盖率是门禁最重单项，本地口径默认跳过；提交前不带 --local 的全量仍跑覆盖率（--full 优先）
 const skipCoverage = flags.has("--skip-coverage") || testsOnly || (forceLocal && !full)
 // 流水线判别用仓库专用变量：通用 CI 会被 IDE / 终端注入，误判会静默关停本地自动修复与改动面裁剪
@@ -133,9 +136,6 @@ function needInstall() {
 }
 
 // 构建的触发面：dist/ 只由源码、构建配置与依赖决定；只改文档 / 技能 / 测试时复用既有产物，收尾步骤不受影响
-const BUILD_TOUCH_PREFIXES = ["src/"]
-const BUILD_TOUCH_FILES = new Set(["package.json", "pnpm-lock.yaml", "tsup.config.ts", "tsup.dev.config.ts"])
-
 /**
  * 判断本次是否需要重新构建。
  * @return {string} 空串表示需要构建；非空为跳过原因
@@ -148,12 +148,9 @@ function buildSkipReason() {
   // dist 缺失时无从复用
   if (!existsSync(join(root, "dist", "cli.js"))) return ""
   for (const name of names) {
-    if (BUILD_TOUCH_PREFIXES.some((prefix) => name.startsWith(prefix))) return ""
-    if (BUILD_TOUCH_FILES.has(name)) return ""
-    // 根 tsconfig 决定 dts 产物，派生配置同样可能影响构建
-    if (/^tsconfig[^/]*\.json$/.test(name)) return ""
+    if (touchesBuild(name)) return ""
   }
-  return "未触及 src/、构建配置与依赖"
+  return "未触及源码、构建配置与依赖"
 }
 
 // 单测的触发面：测试会读 docs/、skills/、templates/ 与根规则文件，只有任务区与变更集不影响测试结果；
@@ -410,6 +407,20 @@ function runSerial(steps) {
 
 reportToolchain()
 const startedAt = Date.now()
+
+// 预检口径：只复用静态与仓库自检清单，不安装依赖、不跑单测 / 构建 / 文档构建 / 收尾步骤
+if (preflight) {
+  console.log("\n⊘ 预检口径（--preflight）：只跑静态与仓库自检，跳过安装、单测、构建、文档构建与收尾步骤")
+  const preflightFailures = await runPhase("预检", parallelSteps)
+  const preflightSeconds = ((Date.now() - startedAt) / 1000).toFixed(1)
+  if (preflightFailures.length > 0) {
+    console.error(`\n✖ 预检未通过：${preflightFailures.length} 步失败（用时 ${preflightSeconds}s）`)
+    for (const label of preflightFailures) console.error(`  - ${label}`)
+    process.exit(1)
+  }
+  console.log(`\n✔ 预检通过（用时 ${preflightSeconds}s；不含安装 / 单测 / 构建 / 文档构建，不能替代全量 pnpm verify）`)
+  process.exit(0)
+}
 
 if (installNeeded) {
   console.log("\n▶ 安装依赖（frozen 锁文件）")
