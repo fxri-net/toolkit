@@ -29,7 +29,7 @@ toolkit upgrade --prune-backups   # 清理迁移备份（--dry-run 预览、--ke
 | `--diff` | 输出迁移计划与行级差异，不写盘 |
 | `--yes` | 非交互执行，跳过确认 |
 | `--format json` | 输出八键信封到 stdout |
-| `--layers <layers>` | `global` / `project` / `local`，逗号分隔，缺省全部 |
+| `--layers <layers>` | `global` / `project` / `local`，逗号分隔，缺省三层全迁（含全局面） |
 | `--only <ids>` / `--skip <ids>` | 按迁移项 id 只做 / 跳过 |
 | `--prune-legacy` | 删除已被新段覆盖或写错层的旧段（本就不生效）；`--dry-run` / `--diff` 可预览 |
 | `--allow-old-dependency` | 项目依赖低于当前 major 时仍继续（默认拒绝） |
@@ -41,6 +41,7 @@ toolkit upgrade --prune-backups   # 清理迁移备份（--dry-run 预览、--ke
 ## 行为
 
 - 顺序固定：配置 → 工程文件 → 技能 → 规范载体 → 备份收编；规范载体目录取自迁移后的配置。
+- 缺省迁移三层（含全局面）：在项目内执行会一并迁移 `~` 下的全局配置，只迁当前项目用 `--layers project`。
 - 配置以「段」为单位整体迁移：段内有未知子键时整段保留并列入人工项，不做半截搬移。
 - 新旧段并存且内容不同、或段写错层时在检测阶段即判人工项（`--check` 不计入残留），提示含文件路径、两段内容与可执行命令；
   确认保留新段后加 `--prune-legacy` 删除旧段 / 误放段，只删本就不生效的内容。
@@ -48,6 +49,7 @@ toolkit upgrade --prune-backups   # 清理迁移备份（--dry-run 预览、--ke
 - 备份集中在 `.toolkit/backup/<时间>/`（全局面为 `~/.toolkit/backup/<时间>/`），清单记录文件哈希；恢复时默认不覆盖迁移后被用户改过的文件。
 - `--prune-backups` 只删已知备份根下含 `manifest.json` 的直接子目录与固定清单内的 `.bak`（配置文件、技能状态旁），
   外来目录跳过并回报；`--keep` 只作用于备份目录，`.bak` 随清理一并删除。
+- `--prune-backups` 的缺省范围与迁移相反：项目内只清当前项目、`~` 下只清全局面；要清全局面需显式 `--layers global`。
 - 手动项（规则快照正文、CI 文件里的旧命令名、无法确认归属的目录）只告警，不阻断 CI。
 - 交互多选按「迁移项 id｜动作」展示，超宽截断为单行；答案行只显示 id；按 ESC 取消（提示文案已标注）、以 `0` 结束，Ctrl+C 才按取消退出码 `130`，均不写任何文件。
 - `--diff` 的行级差异只覆盖会被文本改写的配置文件与 `package.json`；技能清理、载体升级等非文本迁移仍以计划清单呈现。

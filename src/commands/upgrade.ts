@@ -283,7 +283,7 @@ export function registerUpgradeCommands(program: Command): void {
     .option("--diff", "输出迁移计划与行级差异（不写盘）")
     .option("--yes", "非交互执行，跳过确认")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
-    .option("--layers <layers>", "迁移层：global / project / local（逗号分隔，缺省全部）")
+    .option("--layers <layers>", "迁移层：global / project / local（逗号分隔，缺省三层全迁，含全局面）")
     .option("--only <ids>", "只执行指定迁移项（逗号分隔）")
     .option("--skip <ids>", "跳过指定迁移项（逗号分隔）")
     .option("--prune-legacy", "删除已被新段覆盖或写错层的旧段（本就不生效）")

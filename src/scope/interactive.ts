@@ -365,7 +365,7 @@ export async function runScopeMount(parent?: string, dryRun = false): Promise<vo
   // 挂载沿用一层扫描，避免把技能写进深层项目
   const repos = scanRepositories(root)
   if (repos.length === 0) {
-    console.log(line.hint("未发现仓库（按 .git / package.json / .tasks 识别）"))
+    console.log(line.hint("未发现仓库（按 .git / 项目标志 / package.json 识别）"))
     return
   }
   const picked = await askCheckbox({
