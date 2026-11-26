@@ -4,7 +4,8 @@ import { copyFileSync, existsSync, mkdirSync } from "node:fs"
 import { dirname, isAbsolute, join, resolve } from "node:path"
 import { getHomeDir } from "../config"
 import { isHomeDirectory } from "../scope/paths"
-import { isProtectedTarget, isSingleSegmentName, safeRemoveFile } from "../safe-remove"
+import { isProtectedTarget, isSingleSegmentName } from "../safe-remove"
+import { trashAwareRemove } from "../trash/store"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
 import { classifyTargetKind, isInside, listPackageSkills, packageVersion, pathKey, skillTargetLabel, skillsPackageDir, targetId } from "./source"
@@ -261,7 +262,7 @@ export function writeProjectState(root: string, sources: Record<string, SkillSta
 
 // 删除项目态账（清理干净后调用）
 export function removeProjectStateFile(root: string): void {
-  safeRemoveFile(projectStateFile(root), root)
+  trashAwareRemove(projectStateFile(root), root)
 }
 
 // 状态目标映射：按路径键取目标，供 install 保留未参与本次运行的历史登记

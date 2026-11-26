@@ -2,7 +2,7 @@
 import { cpSync, existsSync, lstatSync, mkdirSync, readlinkSync, symlinkSync } from "node:fs"
 import { dirname, isAbsolute, join, resolve } from "node:path"
 import { writeFileAtomic } from "../../write-atomic"
-import { safeRemoveArtifact } from "../../safe-remove"
+import { trashAwareRemove } from "../../trash/store"
 import { SKILL_ENTRY, type ArtifactMode } from "../types"
 import { pathKey, isSameDirContent, stripTailSep } from "./paths"
 
@@ -52,7 +52,7 @@ export function classifyExisting(dest: string, source: string, entry?: EntryType
 
 
 export function removeArtifact(dest: string, root: string): void {
-  safeRemoveArtifact(dest, root)
+  trashAwareRemove(dest, root)
 }
 
 // 以副本形式写入（调用前需确保 dest 不存在，否则会复制到 dest 内部）

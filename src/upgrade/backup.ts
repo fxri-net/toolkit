@@ -3,7 +3,8 @@ import { createHash } from "node:crypto"
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs"
 import { basename, dirname, join } from "node:path"
 import { getHomeDir } from "../config"
-import { rootForPath, safeRemoveArtifact, safeRemoveFile } from "../safe-remove"
+import { rootForPath } from "../safe-remove"
+import { trashAwareRemove } from "../trash/store"
 import { readTextFile } from "../read-text"
 import { isHomeDirectory } from "../scope/paths"
 import { PROJECT_STATE_DIR, PROJECT_STATE_FILE, SKILLS_STATE_FILE } from "../skills/types"
@@ -65,7 +66,7 @@ export class BackupSession {
       this.entries.push({ original: file, stored, beforeSha: sha256(file), absorbed: true })
       const root = rootForPath(file, [this.cwd, getHomeDir()])
       if (!root) throw new Error(`收编 .bak 时路径不在项目或家目录内：${file}`)
-      safeRemoveFile(file, root)
+      trashAwareRemove(file, root)
     }
   }
 
@@ -161,7 +162,7 @@ export function pruneBackups(options: { cwd: string; layers: readonly UpgradeLay
         result.kept.push(dir)
         continue
       }
-      if (!dryRun) safeRemoveArtifact(dir, root)
+      if (!dryRun) trashAwareRemove(dir, root)
       result.removed.push(dir)
     }
   }
@@ -185,7 +186,7 @@ export function pruneBackups(options: { cwd: string; layers: readonly UpgradeLay
       result.skipped.push(file)
       continue
     }
-    if (!dryRun) safeRemoveFile(file, root)
+    if (!dryRun) trashAwareRemove(file, root)
     result.removed.push(file)
   }
   return result
@@ -237,7 +238,7 @@ export function restoreBackup(dir: string, options: { overwrite?: boolean; roots
       result.skipped.push(item.path)
       continue
     }
-    safeRemoveFile(item.path, root)
+    trashAwareRemove(item.path, root)
     result.removed.push(item.path)
   }
   return result

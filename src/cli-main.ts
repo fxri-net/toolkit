@@ -3,6 +3,17 @@ import { resolve } from "node:path"
 import { warnLegacyEnvOnce } from "./legacy-env"
 import { installConsoleStyle, line, setStyleEnabled, style } from "./term-style"
 
+// 命令路径前若干段：用于回收站登记来源命令，遇到首个选项即停止
+function commandWordsOf(args: readonly string[]): string[] {
+  const words: string[] = []
+  for (const arg of args) {
+    if (arg.startsWith("-")) break
+    words.push(arg)
+    if (words.length === 3) break
+  }
+  return words
+}
+
 // 常规 CLI：命令注册、解析与统一收口；由入口按需加载，避免 guard 快速路径承担完整命令集的启动成本
 export async function runCli(version: string): Promise<void> {
   // 重度模块按需动态加载：命令模块与交互组件只为常规命令付出加载成本
@@ -28,6 +39,8 @@ export async function runCli(version: string): Promise<void> {
     { registerPrivacyCommands },
     { registerRulesCommands },
     { registerScopeCommands },
+    { registerTrashCommands },
+    { setTrashContext },
     { removedCommandHint, rewriteDeprecatedArgv, recordDeprecationHits },
   ] = await Promise.all([
     import("commander"),
@@ -51,6 +64,8 @@ export async function runCli(version: string): Promise<void> {
     import("./commands/privacy"),
     import("./commands/rule"),
     import("./commands/scope"),
+    import("./commands/trash"),
+    import("./trash/store"),
     import("./command-registry"),
   ])
 
@@ -100,6 +115,14 @@ export async function runCli(version: string): Promise<void> {
     process.exitCode = 1
     return
   }
+
+  // 用户可见删除默认进项目内回收站；--no-trash 显式永久删除。上下文只对 skill / upgrade 生效，trash 自身不递归
+  const trashDisabled = cliArgs.includes("--no-trash")
+  const commandWords = commandWordsOf(cliArgs)
+  const trashContext = (commandWords[0] === "skill" || commandWords[0] === "upgrade") && !trashDisabled
+    ? { command: commandWords.join(" "), scope: "all" as const, cwd: process.cwd() }
+    : null
+  setTrashContext(trashContext)
 
   const program = new Command()
 
@@ -157,6 +180,8 @@ export async function runCli(version: string): Promise<void> {
 
   registerRulesCommands(program)
   registerScopeCommands(program)
+  // 回收站：查看 / 恢复 / 按策略清理用户可见删除
+  registerTrashCommands(program)
 
   // 使用情况域：技能使用统计（默认关闭，本地存储）
   registerUsageCommands(program)

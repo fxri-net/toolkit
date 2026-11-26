@@ -2387,6 +2387,7 @@ Commands:
   release [options] [command]     多语言更新日志与发版（默认 status；封装 changesets）
   rule [options] [command]        全局规则：列出模块、组合输出与缓存管理
   scope [options] [command]       作用域：按项目 / 目录判定技能是否生效（默认全域生效）
+  trash [options] [command]       项目内回收站：查看、恢复与清理用户可见删除（默认列出条目）
   usage [options] [command]       技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
   help [command]                  显示帮助
 
@@ -2534,6 +2535,7 @@ Options:
                         gated
   --embed               回退内容闸门：把入口壳改回全文，成功后把 skillDelivery.default 设为 full
   --no-skills           本次不安装任何技能，不改模式与已保存选择
+  --no-trash            永久删除被替换的旧产物（默认进项目内回收站）
   --format <format>     输出格式（json，输出到 stdout）
   -h, --help            显示帮助
 
@@ -2696,6 +2698,7 @@ Commands:
   release [options] [command]     多语言更新日志与发版（默认 status；封装 changesets）
   rule [options] [command]        全局规则：列出模块、组合输出与缓存管理
   scope [options] [command]       作用域：按项目 / 目录判定技能是否生效（默认全域生效）
+  trash [options] [command]       项目内回收站：查看、恢复与清理用户可见删除（默认列出条目）
   usage [options] [command]       技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
   help [command]                  显示帮助
 
@@ -2744,6 +2747,7 @@ Commands:
   release [options] [command]     多语言更新日志与发版（默认 status；封装 changesets）
   rule [options] [command]        全局规则：列出模块、组合输出与缓存管理
   scope [options] [command]       作用域：按项目 / 目录判定技能是否生效（默认全域生效）
+  trash [options] [command]       项目内回收站：查看、恢复与清理用户可见删除（默认列出条目）
   usage [options] [command]       技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
   help [command]                  显示帮助
 

@@ -26,6 +26,12 @@ export const COMMAND_REGISTRY: readonly CommandEntry[] = [
   { path: "status", stage: "current" },
   { path: "upgrade", stage: "current" },
 
+  { path: "trash", stage: "current" },
+  { path: "trash list", stage: "current" },
+  { path: "trash restore", params: "[id]", stage: "current" },
+  { path: "trash prune", stage: "current" },
+  { path: "trash stats", stage: "current" },
+
   { path: "config", stage: "current" },
   { path: "config list", params: "[--layer <layer>]", stage: "current" },
   { path: "config get", params: "<key> [--explain]", stage: "current" },

@@ -39,6 +39,7 @@ import ModelMap from './.vitepress/theme/components/diagrams/ModelMap.vue'
 | `toolkit convention` | 规范载体升级、归一与体检 | `convention` | [规范载体](./cli/convention) |
 | `toolkit release` | 多语言 CHANGELOG 与发版 | `release` | [发版与更新日志](./cli/release) |
 | `toolkit upgrade` | v1 工程迁移 | `upgrade` | [升级迁移](./cli/upgrade) |
+| `toolkit trash` | 项目内回收站：查看、恢复与清理 | `list` / `restore` / `prune` / `stats` | [回收站](./cli/trash) |
 | `toolkit config` | 配置分层读写与体检 | `config` | [配置体检](./cli/config) |
 | `toolkit privacy` | 本机路径扫描与归一 | `privacy` | [隐私体检](./cli/privacy) |
 | `toolkit docs` | 文档站主题、导航与产物校验 | `docs` | [文档站校验](./cli/docs-check) |

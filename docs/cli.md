@@ -18,6 +18,7 @@
 | `toolkit convention` | 规范载体：结构升级、表格与索引单元格归一、只读体检 | `upgrade` / `status` / `format` | [规范载体](./cli/convention) |
 | `toolkit release` | 多语言 CHANGELOG 与发版（封装 changesets，默认 `status`） | `status` / `bump` / `changelog` / `mirror` / `publish` / `audit` / `changeset` | [发版与更新日志](./cli/release) |
 | `toolkit upgrade` | v1 工程一键迁移：配置段名、工程脚本、技能旧名、规范载体，含预演、复检与恢复 | — | [升级迁移](./cli/upgrade) |
+| `toolkit trash` | 项目内回收站：查看、恢复与清理用户可见删除 | `list` / `restore` / `prune` / `stats` | [回收站](./cli/trash) |
 | `toolkit config` | 配置唯一写入口（键清单 + 分层写入）与只读体检 | `list` / `get` / `set` / `unset` / `status` | [配置体检](./cli/config) |
 | `toolkit privacy` | 隐私体检：本机绝对路径扫描与归一（按项目档位） | `scan` | [隐私体检](./cli/privacy) |
 | `toolkit docs` | 文档站全量校验（默认）、主题写入与分项校验 | `check` / `theme` / `nav` / `dist` / `titles` | [文档站主题](./cli/docs-theme) · [文档站校验](./cli/docs-check) |
@@ -38,6 +39,7 @@
 | 排查配置 | `toolkit config status`（不打印配置值）→ `toolkit config get <key> --explain`（看来源层与覆盖链） |
 | 改配置 | `toolkit config set <key> <value>`（`--layer` 选层；非交互加 `--yes`），删除用 `config unset` |
 | 从 1.x 升级 | `toolkit status` 出现迁移提示 → `toolkit upgrade --dry-run` 看清单 → `toolkit upgrade` 执行 → 复检残留 |
+| 误删恢复 | `toolkit trash list` → `toolkit trash restore <id>`（或 `latest`）；确认不再需要再 `toolkit trash prune` |
 | 发版 | `toolkit release bump` → `pnpm verify` → 打标签发布 |
 | 看技能用了多少次 | `toolkit usage show stats`（`--by session` / `--by trigger` / `--limit`） |
 | 文档站主题漂移 | `toolkit docs theme check` |
@@ -55,6 +57,7 @@
 | `toolkit usage` | 交互菜单 | 输出 `show` 摘要与子命令提示，退出 0 | `usage setup --interactive`（无终端时按无交互退出码结束，见[退出码](./cli/exit-codes)） | `show` / `show stats` / `data doctor` 等 `--format json` |
 | `toolkit convention` | 打印本域帮助 | 同左，退出 0 | 无 | `status` / `format` / `upgrade --format json` |
 | `toolkit release` | 默认 `status` 只读概览 | 同左，退出 0 | 无 | `status` / `changeset list` 等 `--format json` |
+| `toolkit trash` | 列出回收站条目 | 同左，退出 0 | 无 | `list` / `restore` / `prune` / `stats --format json` |
 | `toolkit config` | 打印本域帮助 | 同左，退出 0 | 无 | `list` / `get` / `status --format json` |
 | `toolkit privacy` | 打印本域帮助 | 同左，退出 0 | 无 | `scan --format json` |
 | `toolkit docs` | 默认全量校验（theme / nav / dist） | 同左 | 无 | `nav` / `dist --format json` |
@@ -74,6 +77,7 @@
 | 策略 | 作用域规则条目：条件 + 技能维度 + allow / deny；按层与具体度取唯一命中 | `scope allow` / `deny`（带条件选项时）、`scope status --policies` |
 | 档案 | 可复用的技能名单，供策略 `skills.profiles` 引用 | `scope profile`、`skillProfiles` 配置段 |
 | 预演 | `--dry-run`：只打印将执行的动作，不写文件 / 剪贴板 / 缓存 | 全部写命令 |
+| 回收站 | 用户可见删除先移入项目内回收站，由用户决定恢复或彻底清理 | `toolkit trash`、`skill uninstall --no-trash`、`upgrade --no-trash` |
 | 确认 | 写前展示预览并交互确认；`--yes` 跳过确认 | `usage` / `skill` / `config` 写命令；`scope` 写命令在非 TTY 带显式参数直接执行 |
 | 来源 | 技能来源：内置 `toolkit` 源与 `--source` 外部来源 | `skill`、`skill source` |
 | 目标 | 技能安装目标：agent 全局目录 / 项目薄壳目录 | `skill install`、`skill status` |

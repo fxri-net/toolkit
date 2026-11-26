@@ -42,7 +42,7 @@ toolkit skill install      # 2. 把包内技能装到各 agent 的全局技能�
 toolkit skill status       # 查现场状态（悬空 / 指向其他版本 / 副本漂移 / 缺失 / 同名冲突 / 未选择但已安装；历史落点与疑似残留单列提示；--scope project 查项目面）
                             # 前五类重跑 toolkit skill install 补齐，同名冲突需 toolkit skill install --force 覆盖，未选择产物加 --prune 清理
                             # 来源已无此名的旧名（改名后）用 toolkit skill uninstall --skills <旧名> 清理
-toolkit skill uninstall       # 卸载本包装的产物（只清自己装的，不碰用户自装技能；--skills 只清指定技能，含未登记的旧名；--scope project 清项目面）
+toolkit skill uninstall       # 卸载本包装的产物（只清自己装的，不碰用户自装技能；--skills 只清指定技能，含未登记的旧名；--scope project 清项目面；--no-trash 永久删除，默认进回收站）
 ```
 
 - 真源唯一：技能取自已装 CLI 包内的 `skills/`；软链锚在 pnpm 稳定入口，升级 CLI 后自动指向新版（副本形式需重跑 `toolkit skill install`）

@@ -2,7 +2,8 @@
 import { existsSync, lstatSync, mkdirSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { getHomeDir } from "../../config"
-import { parentOf, safeRemoveEmptyDir, safeRemoveFile } from "../../safe-remove"
+import { parentOf, safeRemoveEmptyDir } from "../../safe-remove"
+import { trashAwareRemove } from "../../trash/store"
 import { readTextFile } from "../../read-text"
 import { writeFileAtomic } from "../../write-atomic"
 import { assertUniqueSkillNames, buildSkillGateShell, classifyExisting, isSameDir, isEmptyDir, isSkillGateShell, pathKey, isPathPresent, readSkillDescription, removeArtifact, resolveSkillTargets, resolveTargetsByName, skillTargetLabel, skillsSourceDir, sourceSkillItems, targetId, writeArtifact, writeGateArtifact, type SkillSource } from "../source"
@@ -440,7 +441,7 @@ function writeGlobalSources(sources: Record<string, SkillStateSource>): void {
   const cleaned = Object.fromEntries(Object.entries(sources).filter(([, source]) => source.targets.length > 0))
   const file = skillsStateFile()
   if (Object.keys(cleaned).length === 0) {
-    safeRemoveFile(file, getHomeDir())
+    trashAwareRemove(file, getHomeDir())
     return
   }
   mkdirSync(dirname(file), { recursive: true })
@@ -636,7 +637,7 @@ export function removeSkills(options: RemoveSkillsOptions = {}): SkillsRemoveRep
     const nothingLeft = results.every((result) => result.skippedForeign.length === 0)
     const stateRemoved = !options.dryRun && !failed && nothingLeft && Object.keys(nextSources).length === 0
     if (!options.dryRun) {
-      if (stateRemoved) safeRemoveFile(stateFile, getHomeDir())
+      if (stateRemoved) trashAwareRemove(stateFile, getHomeDir())
       else if (changed || Object.keys(nextSources).length !== Object.keys(state.sources).length) {
         writeSkillsState({ format: STATE_FORMAT, schemaVersion: STATE_SCHEMA_VERSION, updatedAt: new Date().toISOString(), sources: nextSources })
       }

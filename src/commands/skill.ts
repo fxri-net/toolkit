@@ -947,6 +947,7 @@ export function registerSkillsCommands(program: Command): void {
     .option("--gate", "开启内容闸门：本次把技能写入口壳（声明退出者除外），成功后把 skillDelivery.default 设为 gated")
     .option("--embed", "回退内容闸门：把入口壳改回全文，成功后把 skillDelivery.default 设为 full")
     .option("--no-skills", "本次不安装任何技能，不改模式与已保存选择")
+    .option("--no-trash", "永久删除被替换的旧产物（默认进项目内回收站）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .addHelpText(
       "after",
@@ -1368,6 +1369,7 @@ export function registerSkillsCommands(program: Command): void {
     .option("--yes", "配合 --all：非交互环境确认执行")
     .option("--source <name>", "只清理指定外部来源的登记与产物（仅全局面）")
     .option("--dry-run", "预演（按全量预览将要移除的条目，不删文件）")
+    .option("--no-trash", "永久删除产物（默认进项目内回收站）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action(async (options: { scope?: string; skills?: string; all?: boolean; yes?: boolean; source?: string; dryRun?: boolean; format?: string }) => {
       try {

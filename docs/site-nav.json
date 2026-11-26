@@ -87,7 +87,8 @@
               "items": [
                 { "text": "规范载体", "link": "/cli/convention" },
                 { "text": "发版与更新日志", "link": "/cli/release" },
-                { "text": "升级迁移", "link": "/cli/upgrade" }
+                { "text": "升级迁移", "link": "/cli/upgrade" },
+                { "text": "回收站", "link": "/cli/trash" }
               ]
             },
             {

@@ -293,6 +293,7 @@ export function registerUpgradeCommands(program: Command): void {
     .option("--overwrite", "恢复时覆盖迁移后被修改的文件")
     .option("--prune-backups", "清理迁移备份目录与本包已知的 .bak（配合 --keep / --layers）")
     .option("--keep <n>", "配合 --prune-backups：每个备份根保留最近 n 个目录（缺省 0，全部清理）")
+    .option("--no-trash", "永久删除迁移备份与旧产物（默认进项目内回收站）")
     .action(async (options: UpgradeOptions) => {
       try {
         await runUpgradeCommand(options)
