@@ -3,7 +3,7 @@ name: fxri-plan-task
 description: 将已确认的实施方案分解为可独立交付的任务并给出计划表，再落盘为标准任务文件并跟踪至归档：建档评估（查 active/archive 判同主题）、按模板建档、状态机更新（含搁置）、四级时间源取证、自查、任务级规范沉淀与归档。方案确认后表达「开始落地/登记记录」的意图，或即将改仓库文件时使用——含任务分解、建档、任务登记、落盘、归档、任务校验、规范载体迁移与升级（conventions 单文件升目录、v1 / v2 升 v3）等说法及口语近义表达（如记一下、建个任务跟踪、先落档）均触发。执行授权另按授权判据判定（执行指向 + 范围唯一 + 方案已定稿）：方案可以 / 定稿 / 落档 / 继续评估都不等于开工，见「开工闸门」。不用于方案未确认的对话、会话收尾整场沉淀（fxri-plan-recap 模式一）、与任务记录无关的普通 TODO、issue 管理或日常提交信息撰写。
 license: MIT
 metadata:
-  version: "1.13.21"
+  version: "1.13.22"
   tier: core
   previousNames: ["fxri-plan-to-task"]
   type: practice
@@ -15,7 +15,7 @@ metadata:
 
 # 方案落盘：任务建档与归档
 
-> 本技能版本 1.13.21（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.13.22（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -142,12 +142,6 @@ metadata:
 - **提交范围**：一次交付提交只带本任务归档与代码；其他任务档另起提交；active 默认不入库（例外 `FX_TOOLKIT_ALLOW_ACTIVE_TASKS=1`）
 - ⚠️ **验收须晚于归档**：归档会改写 `.tasks/` 且自身不做阻断式校验，早于归档跑验收就覆盖不到终态；归档块「完成情况」只记改动事实与所用验证命令，不抄验收输出
 
-## 失败模式与可选加速
+## 失败模式
 
-⚠️ 失败模式（同名档、缺档、下游先开工、展示表写进正文等）与处置见 `task-spec.md` §8。
-
-⚠️ 探测顺序：`pnpm exec toolkit --help`（npm 项目用 `npx toolkit`）→ `toolkit --help`；都不可用即未安装，按各步手工继续，**不安装、不阻塞**。命令按前缀执行：
-
-- `toolkit task` / `check` / `archive`：总览、自动校验、自动归档（替代第 1 / 4 / 5 步；`--dry-run` 预演）
-- `toolkit task normalize` / `convention status` / `upgrade` / `format`：归档核验修复、载体体检与升级、表格归一（幂等，`--dry-run` 预演）
-- 任务目录非默认 `.tasks` 时加 `--dir <path>`
+⚠️ 失败模式（同名档、缺档、下游先开工、展示表写进正文等）与处置见 `task-spec.md` §8；工具探测顺序与加速命令见 `task-spec.md` §9。

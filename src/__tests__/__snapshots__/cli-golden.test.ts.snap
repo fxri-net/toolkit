@@ -1519,7 +1519,7 @@ registry：registry.npmjs.org（来源：默认）
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
 技能源：<REPO>/skills
-技能版本：fxri-base-adoption@0.1.0、fxri-base-encoding@1.2.13、fxri-base-safety@0.1.1、fxri-plan-recap@1.7.12、fxri-plan-review@1.1.6、fxri-plan-task@1.13.21、fxri-release-changelog@1.4.9、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.7、fxri-writing-skill@1.0.5
+技能版本：fxri-base-adoption@0.1.0、fxri-base-encoding@1.2.13、fxri-base-safety@0.1.1、fxri-plan-recap@1.7.12、fxri-plan-review@1.1.6、fxri-plan-task@1.13.22、fxri-release-changelog@1.4.9、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.7、fxri-writing-skill@1.0.5
 内容闸门：未开启（全文安装）
 选择集（4）：fxri-base-safety、fxri-plan-recap、fxri-plan-review、fxri-plan-task
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-base-adoption、fxri-base-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
@@ -1600,7 +1600,7 @@ registry：registry.npmjs.org（来源：默认）
 
 项目面 · 项目根：<SANDBOX>/workspace
 项目面 · 技能真源：.agents/skills
-项目面 · 技能版本：fxri-base-adoption@0.1.0、fxri-base-encoding@1.2.13、fxri-base-safety@0.1.1、fxri-plan-recap@1.7.12、fxri-plan-review@1.1.6、fxri-plan-task@1.13.21、fxri-release-changelog@1.4.9、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.7、fxri-writing-skill@1.0.5
+项目面 · 技能版本：fxri-base-adoption@0.1.0、fxri-base-encoding@1.2.13、fxri-base-safety@0.1.1、fxri-plan-recap@1.7.12、fxri-plan-review@1.1.6、fxri-plan-task@1.13.22、fxri-release-changelog@1.4.9、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.7、fxri-writing-skill@1.0.5
 项目面 · 选择集（4）：fxri-base-safety、fxri-plan-recap、fxri-plan-review、fxri-plan-task
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-base-adoption、fxri-base-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
 项目面 · 目录选择集：全部已存在候选目录（未保存过目录选择）

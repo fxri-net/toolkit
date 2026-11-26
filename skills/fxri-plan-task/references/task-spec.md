@@ -266,3 +266,11 @@ scope: app            # 影响范围；只标本仓内的端 / 面（跨仓库�
 | 归档与校验类排障（创建日与 completed 不符 / 并发写归档冲突 / depends_on 指向已归档） | 见本文 §4–§6（四级时间源、`normalize --fix`、依赖随归档解除） |
 | 展示表被写进任务正文 | 表只在对话展示；正文只留「批次 / 计划位置 / 前置」一行 |
 
+## 9. 可选加速（不构成依赖）
+
+⚠️ 探测顺序：`pnpm exec toolkit --help`（npm 项目用 `npx toolkit`）→ `toolkit --help`；都不可用即未安装，按各步手工继续，**不安装、不阻塞**。命令按前缀执行：
+
+- `toolkit task` / `check` / `archive`：总览、自动校验、自动归档（替代第 1 / 4 / 5 步；`--dry-run` 预演）
+- `toolkit task normalize` / `convention status` / `upgrade` / `format`：归档核验修复、载体体检与升级、表格归一（幂等，`--dry-run` 预演）
+- 任务目录非默认 `.tasks` 时加 `--dir <path>`
+
