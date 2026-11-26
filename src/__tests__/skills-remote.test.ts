@@ -55,9 +55,12 @@ describe("parseRemoteSpec：远程地址解析", () => {
     })
   })
 
-  it("ref 以 - 开头或含 .. 时拒绝，避免被 git 当成选项", () => {
+  it("ref 拒绝选项注入与越界形态，但保留合法字符", () => {
     expect(() => parseRemoteSpec("github:fxri-net/playbook#--upload-pack=evil")).toThrow(/远程 ref 非法/)
     expect(() => parseRemoteSpec("https://github.com/fxri-net/playbook#v1..2")).toThrow(/远程 ref 非法/)
+    expect(() => parseRemoteSpec("https://github.com/fxri-net/playbook#a@{b")).toThrow(/远程 ref 非法/)
+    expect(parseRemoteSpec("https://github.com/fxri-net/playbook#v1.0.0+build").ref).toBe("v1.0.0+build")
+    expect(parseRemoteSpec("https://github.com/fxri-net/playbook#release@2024").ref).toBe("release@2024")
   })
 
   it("去末尾斜杠与 .git 后缀", () => {

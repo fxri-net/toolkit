@@ -22,14 +22,26 @@ function isRemoteSpec(spec: string): boolean {
   return /^(?:https?:\/\/|ssh:\/\/|git@|github:|file:\/\/)/.test(spec.trim())
 }
 
-// 分支 / 标签名约束：只允许字母、数字与 . _ / -，且首字符须为字母或数字——
-// 这样既不能以 - 开头被 git 当成选项，也不含 .. 之外的路径形态；`..` 额外显式拒绝
-const REMOTE_REF_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/
-
+// 分支 / 标签名约束：按 git check-ref-format 的主要禁用面校验，既拦选项注入与越界形态，
+// 又不误伤合法 ref（如 `v1.0.0+build`、`release@2024`）
 function assertSafeRef(ref: string): void {
-  if (!REMOTE_REF_RE.test(ref) || ref.includes("..")) {
-    throw new Error(`远程 ref 非法：${ref}（只允许字母、数字与 . _ / -，且不能以 - 开头或含 ..）`)
-  }
+  const hasControlOrSpace = [...ref].some((char) => {
+    const code = char.codePointAt(0) ?? 0
+    return code <= 0x20 || code === 0x7f
+  })
+  const invalid =
+    hasControlOrSpace ||
+    ref.includes("..") ||
+    ref.includes("@{") ||
+    /[~^:?*[\\]/.test(ref) ||
+    ref.startsWith("-") ||
+    ref.startsWith(".") ||
+    ref.startsWith("/") ||
+    ref.endsWith("/") ||
+    ref.endsWith(".") ||
+    ref.includes("//") ||
+    ref.split("/").some((segment) => segment.startsWith("-"))
+  if (invalid) throw new Error(`远程 ref 非法：${ref}（含空白 / 控制符 / .. / @{ / ~^:?*[\\ 或以 - 开头的段）`)
 }
 
 // 解析远程地址：github: 简写展开、#ref 拆分、常见写法归一

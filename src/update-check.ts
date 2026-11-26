@@ -5,7 +5,7 @@ import { dirname, join } from "node:path"
 import { tmpdir } from "node:os"
 import { spawn } from "node:child_process"
 import { fetchLatestVersion, versionGt } from "./version"
-import { getConfigSection, getHomeDir, inspectConfigLayers, resolveLeafSource } from "./config"
+import { getConfigSection, getHomeDir, inspectConfigLayers } from "./config"
 import { resolveCacheEntry } from "./cache"
 import { readTextFile } from "./read-text"
 import { writeFileAtomic } from "./write-atomic"
@@ -196,13 +196,68 @@ function readNpmrcToken(file: string, host: string): string | undefined {
   return undefined
 }
 
-// 是否为合法 https 地址：升级检查只走加密链路，明文 http 一律不接受
-function isHttpsUrl(value: string): boolean {
+// 是否为合法 http(s) 地址
+function isHttpUrl(value: string): boolean {
   try {
-    return new URL(value).protocol === "https:"
+    const url = new URL(value)
+    return url.protocol === "http:" || url.protocol === "https:"
   } catch {
     return false
   }
+}
+
+// 默认可信 registry：官方 npm 源；内网 / 本地地址由用户在全局层自行追加
+const DEFAULT_TRUSTED_REGISTRIES = ["registry.npmjs.org"]
+
+// 读取可信 registry 名单：只认全局层与本地层（个人可控）；项目层写入的名单一律忽略并告警
+// 返回 null 表示未配置（使用默认名单），空数组表示显式配置为「不信任任何来源」
+function readTrustedRegistries(): string[] | null {
+  const layers = inspectConfigLayers()
+  const projectConfig = layers.project.config
+  const projectSection = projectConfig && isRecord(projectConfig.updateCheck) ? projectConfig.updateCheck : undefined
+  if (projectSection?.trustedRegistries !== undefined) {
+    console.warn("⚠️ 项目层 updateCheck.trustedRegistries 已忽略：可信名单只能由全局层 / 本地层配置")
+  }
+  const entries: string[] = []
+  let configured = false
+  for (const layer of ["global", "local"] as const) {
+    const section = layer === "global" ? layers.global.config?.updateCheck : layers.local.config?.updateCheck
+    const list = isRecord(section) ? section.trustedRegistries : undefined
+    if (list === undefined) continue
+    configured = true
+    if (!Array.isArray(list)) {
+      console.warn(`⚠️ ${layer === "global" ? "全局层" : "本地层"} updateCheck.trustedRegistries 须为字符串数组，已忽略`)
+      continue
+    }
+    for (const item of list) {
+      if (typeof item !== "string" || !item.trim()) {
+        console.warn(`⚠️ updateCheck.trustedRegistries 含非法条目「${String(item)}」，已忽略`)
+        continue
+      }
+      entries.push(item.trim())
+    }
+  }
+  return configured ? [...new Set(entries)] : null
+}
+
+// 名单匹配：`*` 全信任；带协议的条目按规范化前缀匹配；纯 host 按 host / hostname 匹配
+function matchesTrusted(registry: string, entry: string): boolean {
+  if (entry === "*") return true
+  let url: URL
+  try {
+    url = new URL(registry)
+  } catch {
+    return false
+  }
+  if (entry.includes("://")) {
+    try {
+      return normalizeRegistry(registry).startsWith(normalizeRegistry(new URL(entry).toString()))
+    } catch {
+      return false
+    }
+  }
+  const value = entry.toLowerCase()
+  return url.host.toLowerCase() === value || url.hostname.toLowerCase() === value
 }
 
 // 剥离 URL 中的账号密码：命中时告警，返回清理后的地址
@@ -225,7 +280,7 @@ function normalizeRegistry(value: string): string {
   return value.endsWith("/") ? value : `${value}/`
 }
 
-// 采纳一层 registry 取值：剥离账号密码、只接受 https；不合法时告警并回落下一级
+// 采纳一层 registry 取值：剥离账号密码，http / https 都接受；明文 http 告警但不再丢弃
 function acceptRegistry(value: string | undefined, label: string): string | null {
   if (!value?.trim()) return null
   const cleaned = stripUserinfo(value.trim(), label)
@@ -233,9 +288,12 @@ function acceptRegistry(value: string | undefined, label: string): string | null
     console.warn(`⚠️ ${label} 取值「${value.trim()}」不是合法地址，已回落下一级`)
     return null
   }
-  if (!isHttpsUrl(cleaned)) {
-    console.warn(`⚠️ ${label} 只接受 https 地址，已忽略并回落下一级：${value.trim()}`)
+  if (!isHttpUrl(cleaned)) {
+    console.warn(`⚠️ ${label} 只接受 http(s) 地址，已回落下一级：${value.trim()}`)
     return null
+  }
+  if (new URL(cleaned).protocol === "http:") {
+    console.warn(`⚠️ ${label} 使用明文 HTTP：${value.trim()}；凭据只会发给可信名单内的地址`)
   }
   return cleaned
 }
@@ -261,17 +319,11 @@ export function buildRegistryUrl(registry: string): string {
   return new URL("@fxri%2Ftoolkit/latest", normalizeRegistry(registry)).toString()
 }
 
-// 地址来源是否可信：项目层配置与项目 .npmrc 随仓库分发，可被他人写入，不向其地址附带任何凭据
-function isTrustedRegistry(info: RegistryInfo): boolean {
-  if (info.source === "npmrc-project") return false
-  if (info.source === "config") return resolveLeafSource(inspectConfigLayers(), "updateCheck.registry") !== "项目层"
-  return true
-}
-
-// 解析认证 token：只为可信 registry 附带——NPM_TOKEN 优先，其次家目录 .npmrc 中与 host 匹配的 _authToken
-// 项目 .npmrc 的令牌不参与，避免仓库内配置把令牌引到任意地址
+// 解析认证 token：仅当 registry 命中可信名单才附带——NPM_TOKEN 优先，其次家目录 .npmrc 中同 host 的 _authToken
+// 未命中默认不发凭据，用户把地址加入 updateCheck.trustedRegistries 即可放行；项目 .npmrc 的令牌不参与
 function resolveAuthToken(info: RegistryInfo): string | undefined {
-  if (!isTrustedRegistry(info)) return undefined
+  const trusted = readTrustedRegistries() ?? DEFAULT_TRUSTED_REGISTRIES
+  if (!trusted.some((entry) => matchesTrusted(info.value, entry))) return undefined
   if (process.env.NPM_TOKEN) return process.env.NPM_TOKEN
   try {
     return readNpmrcToken(join(getHomeDir(), ".npmrc"), new URL(info.value).host)

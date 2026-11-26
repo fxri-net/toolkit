@@ -15,6 +15,7 @@ title: 升级检查（updateCheck）
 | `channels.externalSkills.notify` | string | 继承 `notify` | 第三方来源技能的默认提示频率 |
 | `sources.<name>.notify` | string | 继承 `channels.externalSkills` | 单个第三方来源独立覆盖 |
 | `registry` | string | 见下方解析顺序 | 查询最新版本的 registry 地址 |
+| `trustedRegistries` | string[] | `["registry.npmjs.org"]` | 允许附带凭据的 registry 名单：host 或 URL 前缀，`*` 表示全部；只认全局层 / 本地层 |
 
 提示频率优先级：`sources.<name>` > `channels.externalSkills` > `notify` 全局默认；CLI 走 `channels.cli` > 全局默认，内置技能默认 `inherit`。
 
@@ -32,9 +33,11 @@ registry 解析顺序（前者优先）：
 - 家目录 `.npmrc`
 - `https://registry.npmjs.org`
 
-- 只接受 https；明文 http 的取值告警后回落下一级，含账号密码的地址剥离 userinfo 并告警
-- 认证只为可信来源附带：`NPM_TOKEN` 优先，其次家目录 `.npmrc` 中与 registry host 匹配的 `_authToken`；
-  项目 `.npmrc` 与项目层 `updateCheck.registry` 视为仓库可写来源，不附带凭据；token 不写入日志、报告或缓存
+- http / https 都接受；明文 http 会告警，含账号密码的地址剥离 userinfo 并告警
+- 凭据只发给可信名单：`updateCheck.trustedRegistries`（host 或 URL 前缀），默认仅 `registry.npmjs.org`；
+  名单只认全局层 / 本地层，项目层写入的名单忽略并告警；未命中时不发凭据，命中后 `NPM_TOKEN` 优先，
+  其次家目录 `.npmrc` 中与 host 匹配的 `_authToken`；token 不写入日志、报告或缓存
+- `*` 等同于向所有地址发送凭据（含 http），仅在完全信任当前 registry 时使用
 - 请求不跟随重定向，3xx 按失败处理
 - Node fetch **不自动读取 `HTTP(S)_PROXY`**，代理环境下请求会静默失败，可用 `updateCheck.enabled: false` 关闭检查
 

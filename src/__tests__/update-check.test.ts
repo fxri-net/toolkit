@@ -87,6 +87,12 @@ function useProjectNpmrc(content: string): void {
   writeFileSync(join(WORK, ".npmrc"), content, "utf8")
 }
 
+// 全局层配置：可信名单只认个人层，测试必须写到 HOME 下的 .toolkitrc.json
+function useGlobalConfig(config: Record<string, unknown>): void {
+  writeFileSync(join(HOME, ".toolkitrc.json"), JSON.stringify(config), "utf8")
+  resetToolkitConfigCache()
+}
+
 beforeEach(() => {
   unrefSpy = vi.fn()
   mockedSpawn.mockReturnValue({ unref: unrefSpy } as unknown as ReturnType<typeof spawn>)
@@ -100,7 +106,9 @@ beforeEach(() => {
   Object.defineProperty(process.stdout, "isTTY", { value: false, configurable: true })
   rmSync(cacheFile, { force: true })
   rmSync(legacyCacheFile, { force: true })
-  for (const file of [join(WORK, ".toolkitrc.json"), join(WORK, ".npmrc"), join(HOME, ".npmrc")]) rmSync(file, { force: true })
+  for (const file of [join(WORK, ".toolkitrc.json"), join(WORK, ".npmrc"), join(HOME, ".npmrc"), join(HOME, ".toolkitrc.json")]) {
+    rmSync(file, { force: true })
+  }
 })
 
 afterEach(() => {
@@ -111,7 +119,9 @@ afterEach(() => {
   mockedSpawn.mockReset()
   rmSync(cacheFile, { force: true })
   rmSync(legacyCacheFile, { force: true })
-  for (const file of [join(WORK, ".toolkitrc.json"), join(WORK, ".npmrc"), join(HOME, ".npmrc")]) rmSync(file, { force: true })
+  for (const file of [join(WORK, ".toolkitrc.json"), join(WORK, ".npmrc"), join(HOME, ".npmrc"), join(HOME, ".toolkitrc.json")]) {
+    rmSync(file, { force: true })
+  }
 })
 
 afterAll(() => rmSync(sandbox, { recursive: true, force: true }))
@@ -167,11 +177,11 @@ describe("resolveRegistry 与 buildRegistryUrl", () => {
     expect(resolveRegistry()).toMatchObject({ value: "https://config.example/npm/", source: "config" })
   })
 
-  it("registry 只接受 https：明文 http 告警并回落下一级", () => {
+  it("registry 接受明文 http 并告警，不再回落丢弃", () => {
     useProjectNpmrc("registry=http://insecure.example/\n")
     const out = captureOutput()
-    expect(resolveRegistry()).toMatchObject({ value: "https://registry.npmjs.org/", source: "default" })
-    expect(out.warn.join("\n")).toContain("只接受 https")
+    expect(resolveRegistry()).toMatchObject({ value: "http://insecure.example/", source: "npmrc-project" })
+    expect(out.warn.join("\n")).toContain("明文 HTTP")
   })
 
   it("registry 含账号密码时剥离并告警", () => {
@@ -403,19 +413,50 @@ describe("runUpdateCheckWorker 后台刷新", () => {
     expect(mockedFetch.mock.calls[0]?.[1]).toBeUndefined()
   })
 
-  it("项目层配置的 registry 不附带凭据；家目录 .npmrc 的 registry 与同 host 令牌可附带", async () => {
+  it("可信名单命中时附带凭据；项目层写入的名单被忽略", async () => {
     process.env.NPM_TOKEN = "secret"
-    useConfig({ updateCheck: { registry: "https://project.example/" } })
+    useGlobalConfig({ updateCheck: { trustedRegistries: ["npm.example"] } })
+    useProjectNpmrc("registry=https://npm.example/\n")
     mockedFetch.mockResolvedValue("2.0.0")
     await runUpdateCheckWorker()
-    expect(mockedFetch.mock.calls[0]?.[1]).toBeUndefined()
+    expect(mockedFetch.mock.calls[0]?.[1]).toBe("secret")
 
-    rmSync(join(WORK, ".toolkitrc.json"), { force: true })
-    resetToolkitConfigCache()
+    // 项目层把自己加入名单：忽略并告警，未命中个人层名单 → 不发
+    useGlobalConfig({ updateCheck: { trustedRegistries: ["other.example"] } })
+    useConfig({ updateCheck: { trustedRegistries: ["npm.example"] } })
+    const out = captureOutput()
+    await runUpdateCheckWorker()
+    expect(mockedFetch.mock.calls[1]?.[1]).toBeUndefined()
+    expect(out.warn.join("\n")).toContain("项目层")
+  })
+
+  it("家目录 .npmrc 的同 host 令牌在命中名单时可用", async () => {
+    useGlobalConfig({ updateCheck: { trustedRegistries: ["home.example"] } })
     delete process.env.NPM_TOKEN
     writeFileSync(join(HOME, ".npmrc"), "registry=https://home.example/\n//home.example/:_authToken=home-token\n", "utf8")
+    mockedFetch.mockResolvedValue("2.0.0")
     await runUpdateCheckWorker()
-    expect(mockedFetch.mock.calls[1]?.[1]).toBe("home-token")
+    expect(mockedFetch.mock.calls[0]?.[1]).toBe("home-token")
+  })
+
+  it("名单为 * 时任意地址都附带凭据，作为显式放行口子", async () => {
+    useGlobalConfig({ updateCheck: { trustedRegistries: ["*"] } })
+    process.env.NPM_TOKEN = "secret"
+    useProjectNpmrc("registry=https://any.example/\n")
+    mockedFetch.mockResolvedValue("2.0.0")
+    await runUpdateCheckWorker()
+    expect(mockedFetch.mock.calls[0]?.[1]).toBe("secret")
+  })
+
+  it("名单含非法条目时告警并忽略", async () => {
+    useGlobalConfig({ updateCheck: { trustedRegistries: ["", 123] } })
+    process.env.NPM_TOKEN = "secret"
+    useProjectNpmrc("registry=https://any.example/\n")
+    mockedFetch.mockResolvedValue("2.0.0")
+    const out = captureOutput()
+    await runUpdateCheckWorker()
+    expect(out.warn.join("\n")).toContain("非法条目")
+    expect(mockedFetch.mock.calls[0]?.[1]).toBeUndefined()
   })
 
   it("latest 查询不跟随重定向，3xx 按失败处理", async () => {

@@ -62,6 +62,13 @@ const CONFIG_KEY_DEFINITIONS: readonly ConfigKeySpec[] = [
   { key: "check.warnings", type: "boolean", summary: "tasks check 输出软告警", defaultLayer: "global", writableLayers: ALL_LAYERS },
   // 升级检查
   { key: "updateCheck.enabled", type: "boolean", summary: "检查新版本并提示", defaultLayer: "global", writableLayers: ALL_LAYERS },
+  {
+    key: "updateCheck.trustedRegistries",
+    type: "stringList",
+    summary: "允许附带凭据的 registry 名单（host 或 URL 前缀，* 表示全部）",
+    defaultLayer: "global",
+    writableLayers: GLOBAL_ONLY,
+  },
   // 技能链接自愈
   { key: "skills.autoLink", type: "boolean", summary: "命令启动时自愈悬空技能链接", defaultLayer: "global", writableLayers: ALL_LAYERS },
   {
@@ -200,6 +207,7 @@ const CONFIG_KEY_DEFAULTS: Readonly<Record<string, ConfigKeySpec["default"]>> = 
   "privacy.localPaths": "off",
   "check.warnings": true,
   "updateCheck.enabled": true,
+  "updateCheck.trustedRegistries": ["registry.npmjs.org"],
   "skills.autoLink": true,
   "skills.autoLinkReplaceForeign": true,
   "skillInstall.mode": "skills",
