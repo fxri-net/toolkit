@@ -32,6 +32,10 @@ export const COMMAND_REGISTRY: readonly CommandEntry[] = [
   { path: "trash prune", stage: "current" },
   { path: "trash stats", stage: "current" },
 
+  { path: "concept", stage: "current" },
+  { path: "concept list", stage: "current" },
+  { path: "concept show", params: "<id>", stage: "current" },
+
   { path: "config", stage: "current" },
   { path: "config list", params: "[--layer <layer>]", stage: "current" },
   { path: "config get", params: "<key> [--explain]", stage: "current" },

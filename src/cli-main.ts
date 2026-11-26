@@ -40,6 +40,7 @@ export async function runCli(version: string): Promise<void> {
     { registerRulesCommands },
     { registerScopeCommands },
     { registerTrashCommands },
+    { registerConceptCommands },
     { setTrashContext },
     { removedCommandHint, rewriteDeprecatedArgv, recordDeprecationHits },
   ] = await Promise.all([
@@ -65,6 +66,7 @@ export async function runCli(version: string): Promise<void> {
     import("./commands/rule"),
     import("./commands/scope"),
     import("./commands/trash"),
+    import("./commands/concept"),
     import("./trash/store"),
     import("./command-registry"),
   ])
@@ -182,6 +184,8 @@ export async function runCli(version: string): Promise<void> {
   registerScopeCommands(program)
   // 回收站：查看 / 恢复 / 按策略清理用户可见删除
   registerTrashCommands(program)
+  // 概念目录：给 AI 读取的概念清单与采纳步骤
+  registerConceptCommands(program)
 
   // 使用情况域：技能使用统计（默认关闭，本地存储）
   registerUsageCommands(program)

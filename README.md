@@ -21,7 +21,7 @@ AI 参与开发后，方案与决策散落在对话记录里，会话一关什�
 
 三层能力覆盖全链路：**协作过程可校验**（任务、规范载体、整体状态）、**能力可分发**（技能包、全局规则、作用域、使用统计）、
 **交付可治理**（多语言 CHANGELOG、文档站校验、隐私脱敏、升级迁移）。落到命令域：协作侧 `task` / `convention` / `status`，
-分发侧 `skill` / `rule` / `scope` / `usage`，交付侧 `release` / `docs`，隐私脱敏与版本迁移贯穿其中。
+分发侧 `skill` / `rule` / `scope` / `usage` / `concept`，交付侧 `release` / `docs`，隐私脱敏与版本迁移贯穿其中。
 
 - **零依赖 AI 技能包（skills）**：方案落盘、会话收尾、发版 CHANGELOG 等工作流沉淀为 Agent Skills，不绑定任何 AI 工具；skills 可以独立工作，
   CLI 是可选加速——推荐都装，体验最完整（[什么关系？](./docs/faq.md#工具和-skills-都得装吗)）
@@ -60,6 +60,7 @@ toolkit setup
 | 技能使用情况（usage） | 统计技能调用次数、触发词与结果；默认关闭、不联网、数据只留本机 | [CLI 参考](./docs/cli/usage.md) · [技能使用情况概览](./docs/usage/index.md) |
 | 发版与更新日志（release） | 封装 changesets 发版、分组标题本地化 | [CLI 参考](./docs/cli/release.md) |
 | 文档站校验（docs） | 校验主题一致性、导航结构与构建产物，规则随包分发、跨仓样式漂移可发现 | [CLI 参考](./docs/cli/docs-theme.md) · [docs 校验](./docs/cli/docs-check.md) |
+| 概念目录（concept） | 按场景查看可引入的工程概念与采纳步骤，JSON 输出供 AI 读取 | [CLI 参考](./docs/cli/concept.md) |
 | 隐私脱敏 | 落盘前自动掩码邮箱、手机号、密钥等 | [配置参考](./docs/config.md) |
 | 配置体检（config） | 三层（全局 / 项目 / 本地）定制脱敏、告警、导入列映射、语言表；`toolkit config status` 只读查看生效情况与来源 | [CLI 参考](./docs/cli/config.md) · [配置参考](./docs/config.md) |
 | 升级迁移（upgrade） | v1 工程一键迁移：三层配置、工程脚本、技能旧名与规范载体；支持预演、复检、备份恢复 | [升级迁移](./docs/cli/upgrade.md) |
@@ -104,7 +105,8 @@ pnpm dlx skills add fxri-net/toolkit                # 也可用上游安装器�
 - **默认形态**：`toolkit skill install` 默认软链，链接创建失败自动降级副本；`toolkit skill status` 查现场，`toolkit skill uninstall` 卸载
 - **交互两步**：先按 `metadata.tier` 选技能，再选目标（`canonical` 主目标 + 已检测 agent；项目面为候选薄壳目录）
   - `core`：`fxri-plan-task`、`fxri-plan-recap`、`fxri-plan-review`，`skills` 模式必装、`package` 模式可选
-  - `optional`：`fxri-release-changelog`、`fxri-code-encoding`、`fxri-writing-skill`、`fxri-writing-docs`、`fxri-test-tty`
+  - `optional`：`fxri-release-changelog`、`fxri-code-encoding`、`fxri-writing-skill`、`fxri-writing-docs`、
+    `fxri-test-tty`、`fxri-base-adoption`
 - **跳过交互**：`--skills` / `--all` / `--no-optional` / `--agent` / `--all-agents` / `--yes`
   首次按模式默认（`skills` 装 `core`、`package` 零装）与全部可用目标，`--no-save-agents` 只影响本次
 - **模式**：`--mode package` 切纯包管理器模式（core 也可不装、允许零选），`--no-skills` 仅本次零装
@@ -124,6 +126,7 @@ pnpm dlx skills add fxri-net/toolkit                # 也可用上游安装器�
 - [fxri-writing-docs](./skills/fxri-writing-docs/SKILL.md)：文档站写作规范（分类骨架、页面标题「显示名（标识）」、索引与引用口径、导航短别名、顶栏与 404、代码块注释对齐）
 - [fxri-writing-skill](./skills/fxri-writing-skill/SKILL.md)：技能编写规范（统一骨架、references 拆分、安全边界，机械校验交给 lint 与 bump）
 - [fxri-test-tty](./skills/fxri-test-tty/SKILL.md)：交互路径真终端测试（PTY 驱动按键序列，断言退出码、落盘产物与沙箱隔离）
+- [fxri-base-adoption](./skills/fxri-base-adoption/SKILL.md)：概念目录与能力采纳（读取概念清单，按场景给候选与成本 / 风险，用户选择后逐步引入）
 
 skills 与工具的关系、只在公司项目激活等说明见 [常见问题](./docs/faq.md) 与 [完整攻略](./docs/guide.md#ai-技能包-skills)。
 

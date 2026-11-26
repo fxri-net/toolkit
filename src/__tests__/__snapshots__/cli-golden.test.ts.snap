@@ -1204,7 +1204,8 @@ exports[`各域行为与错误路径 > scope allow 名单预演 1`] = `
   写入：<SANDBOX>/home/.toolkitrc.json
   名单模式：仅名单内生效
   新增：[白] <SANDBOX>/workspace/work
-  技能形态变更（9 项）：
+  技能形态变更（10 项）：
+    全局面 · fxri-base-adoption：全文安装 → 入口壳
     全局面 · fxri-code-encoding：全文安装 → 入口壳
     全局面 · fxri-code-safety：全文安装 → 入口壳
     全局面 · fxri-plan-recap：全文安装 → 入口壳
@@ -1229,7 +1230,8 @@ exports[`各域行为与错误路径 > scope allow 策略预演 1`] = `
   条件：paths=work
   技能：mode=allowlist；allow=fxri-plan-task
   新增策略：golden-allow
-  技能形态变更（8 项）：
+  技能形态变更（9 项）：
+    全局面 · fxri-base-adoption：全文安装 → 入口壳
     全局面 · fxri-code-encoding：全文安装 → 入口壳
     全局面 · fxri-code-safety：全文安装 → 入口壳
     全局面 · fxri-plan-recap：全文安装 → 入口壳
@@ -1268,7 +1270,8 @@ exports[`各域行为与错误路径 > scope deny 名单预演 1`] = `
   写入：<SANDBOX>/home/.toolkitrc.json
   名单模式：全部生效
   新增：[黑] <SANDBOX>/workspace/work
-  技能形态变更（9 项）：
+  技能形态变更（10 项）：
+    全局面 · fxri-base-adoption：全文安装 → 入口壳
     全局面 · fxri-code-encoding：全文安装 → 入口壳
     全局面 · fxri-code-safety：全文安装 → 入口壳
     全局面 · fxri-plan-recap：全文安装 → 入口壳
@@ -1294,7 +1297,8 @@ exports[`各域行为与错误路径 > scope deny 策略缺确认 1`] = `
   技能：无
   deny 规则会拒绝该范围全部技能；限定技能请改用 toolkit scope deny --skill
   新增策略：golden-deny-all
-  技能形态变更（9 项）：
+  技能形态变更（10 项）：
+    全局面 · fxri-base-adoption：全文安装 → 入口壳
     全局面 · fxri-code-encoding：全文安装 → 入口壳
     全局面 · fxri-code-safety：全文安装 → 入口壳
     全局面 · fxri-plan-recap：全文安装 → 入口壳
@@ -1343,7 +1347,8 @@ exports[`各域行为与错误路径 > scope remove 互转预演 1`] = `
   写入：<SANDBOX>/home/.toolkitrc.json
   名单模式：全部生效
   转入：[黑] <SANDBOX>/workspace/work
-  技能形态变更（9 项）：
+  技能形态变更（10 项）：
+    全局面 · fxri-base-adoption：全文安装 → 入口壳
     全局面 · fxri-code-encoding：全文安装 → 入口壳
     全局面 · fxri-code-safety：全文安装 → 入口壳
     全局面 · fxri-plan-recap：全文安装 → 入口壳
@@ -1465,9 +1470,10 @@ exports[`各域行为与错误路径 > skills install 预演 1`] = `
 --- stdout ---
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
-[预演] 技能分发计划（全局层）：9 个技能 · 1 个目标
+[预演] 技能分发计划（全局层）：10 个技能 · 1 个目标
 
 canonical（多家 agent 共读）：<SANDBOX>/home/.agents/skills
+  换全文　fxri-base-adoption　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-code-encoding　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-code-safety　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-plan-recap　全文安装　← 默认（未配置分发形态，按默认全文安装）
@@ -1480,7 +1486,7 @@ canonical（多家 agent 共读）：<SANDBOX>/home/.agents/skills
 
 本机未检测到的 agent 65 个已跳过（不凭空创建目录）；如需装到未识别的 agent：toolkit skill install --dir <其全局技能目录>
 [预演] 状态文件：<SANDBOX>/home/.agents/.toolkit-skills.json
-[预演] 待收敛 9 项：执行 toolkit skill install 应用
+[预演] 待收敛 10 项：执行 toolkit skill install 应用
 --- stderr ---
 "
 `;
@@ -1504,10 +1510,10 @@ registry：registry.npmjs.org（来源：默认）
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
 技能源：<REPO>/skills
-技能版本：fxri-code-encoding@1.2.12、fxri-code-safety@0.1.0、fxri-plan-recap@1.7.11、fxri-plan-review@1.1.5、fxri-plan-task@1.13.19、fxri-release-changelog@1.4.8、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.6、fxri-writing-skill@1.0.5
+技能版本：fxri-base-adoption@0.1.0、fxri-code-encoding@1.2.12、fxri-code-safety@0.1.0、fxri-plan-recap@1.7.11、fxri-plan-review@1.1.5、fxri-plan-task@1.13.19、fxri-release-changelog@1.4.8、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.6、fxri-writing-skill@1.0.5
 内容闸门：未开启（全文安装）
 选择集（4）：fxri-code-safety、fxri-plan-recap、fxri-plan-review、fxri-plan-task
-来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-code-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
+来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-base-adoption、fxri-code-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
 目标选择集：全部可用目标（未保存过目标选择）
 状态文件：<SANDBOX>/home/.agents/.toolkit-skills.json（未记录，尚未执行过 toolkit skill install）
 
@@ -1585,9 +1591,9 @@ registry：registry.npmjs.org（来源：默认）
 
 项目面 · 项目根：<SANDBOX>/workspace
 项目面 · 技能真源：.agents/skills
-项目面 · 技能版本：fxri-code-encoding@1.2.12、fxri-code-safety@0.1.0、fxri-plan-recap@1.7.11、fxri-plan-review@1.1.5、fxri-plan-task@1.13.19、fxri-release-changelog@1.4.8、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.6、fxri-writing-skill@1.0.5
+项目面 · 技能版本：fxri-base-adoption@0.1.0、fxri-code-encoding@1.2.12、fxri-code-safety@0.1.0、fxri-plan-recap@1.7.11、fxri-plan-review@1.1.5、fxri-plan-task@1.13.19、fxri-release-changelog@1.4.8、fxri-test-tty@0.1.2、fxri-writing-docs@0.2.6、fxri-writing-skill@1.0.5
 项目面 · 选择集（4）：fxri-code-safety、fxri-plan-recap、fxri-plan-review、fxri-plan-task
-来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-code-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
+来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-base-adoption、fxri-code-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
 项目面 · 目录选择集：全部已存在候选目录（未保存过目录选择）
 项目面 · 状态文件：.toolkit/state.json（未记录，尚未执行过 toolkit task init / skill install）
 
@@ -1628,9 +1634,10 @@ exports[`各域行为与错误路径 > skills 项目面预演 1`] = `
 --- stdout ---
 作用域：项目面（仓库内唯一真源副本 + 各候选目录的项目面薄壳）（--scope 指定）
 
-[预演] 技能分发计划（项目层）：9 个技能 · 1 个目标
+[预演] 技能分发计划（项目层）：10 个技能 · 1 个目标
 
 真源副本：.agents/skills
+  换全文　fxri-base-adoption　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-code-encoding　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-code-safety　全文安装　← 默认（未配置分发形态，按默认全文安装）
   换全文　fxri-plan-recap　全文安装　← 默认（未配置分发形态，按默认全文安装）
@@ -1642,7 +1649,7 @@ exports[`各域行为与错误路径 > skills 项目面预演 1`] = `
   换全文　fxri-writing-skill　全文安装　← 默认（未配置分发形态，按默认全文安装）
 
 [预演] 状态文件：<SANDBOX>/workspace/.toolkit/state.json
-[预演] 待收敛 9 项：执行 toolkit skill install 应用
+[预演] 待收敛 10 项：执行 toolkit skill install 应用
 --- stderr ---
 "
 `;
@@ -2400,6 +2407,7 @@ Commands:
   rule [options] [command]        全局规则：列出模块、组合输出与缓存管理
   scope [options] [command]       作用域：按项目 / 目录判定技能是否生效（默认全域生效）
   trash [options] [command]       项目内回收站：查看、恢复与清理用户可见删除（默认列出条目）
+  concept [options] [command]     概念目录：查看可引入的工程概念与采纳步骤（默认列出）
   usage [options] [command]       技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
   help [command]                  显示帮助
 
@@ -2711,6 +2719,7 @@ Commands:
   rule [options] [command]        全局规则：列出模块、组合输出与缓存管理
   scope [options] [command]       作用域：按项目 / 目录判定技能是否生效（默认全域生效）
   trash [options] [command]       项目内回收站：查看、恢复与清理用户可见删除（默认列出条目）
+  concept [options] [command]     概念目录：查看可引入的工程概念与采纳步骤（默认列出）
   usage [options] [command]       技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
   help [command]                  显示帮助
 
@@ -2760,6 +2769,7 @@ Commands:
   rule [options] [command]        全局规则：列出模块、组合输出与缓存管理
   scope [options] [command]       作用域：按项目 / 目录判定技能是否生效（默认全域生效）
   trash [options] [command]       项目内回收站：查看、恢复与清理用户可见删除（默认列出条目）
+  concept [options] [command]     概念目录：查看可引入的工程概念与采纳步骤（默认列出）
   usage [options] [command]       技能使用情况：本机统计、开关与导出（默认关闭，数据只留在本机）
   help [command]                  显示帮助
 

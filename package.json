@@ -38,6 +38,7 @@
   "files": [
     "dist",
     "skills",
+    "concepts",
     "schemas",
     "templates",
     "README.md",

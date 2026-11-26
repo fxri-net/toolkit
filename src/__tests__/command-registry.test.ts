@@ -8,6 +8,7 @@ import { registerUpgradeCommands } from "../commands/upgrade"
 import { registerSkillsCommands } from "../commands/skill"
 import { registerTasksCommands } from "../commands/task"
 import { registerTrashCommands } from "../commands/trash"
+import { registerConceptCommands } from "../commands/concept"
 import { registerChangelogCommands } from "../commands/release"
 import { registerConventionsCommands } from "../commands/convention"
 import { registerConfigCommands } from "../commands/config"
@@ -24,6 +25,7 @@ function buildProgram(): Command {
   registerSetupCommands(program)
   registerUpgradeCommands(program)
   registerTrashCommands(program)
+  registerConceptCommands(program)
   registerSkillsCommands(program)
   registerConventionsCommands(program)
   registerConfigCommands(program)

@@ -198,8 +198,9 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 | `fxri-code-encoding` | 1.2.12 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
 | `fxri-code-safety` | 0.1.0 | 破坏性操作安全：方案阶段披露影响与不可恢复部分，执行前限定范围并预览，用户可见删除优先进回收站，误删后按止损与恢复顺序处理 | core |
 | `fxri-test-tty` | 0.1.2 | 交互测试：PTY 驱动向导与多选，含断言清单 | optional |
+| `fxri-base-adoption` | 0.1.0 | 概念目录与能力采纳：读取概念清单，按场景给候选与成本 / 风险，用户选择后逐步引入 | optional |
 
-表中按能力族（`plan` / `release` / `writing` / `code` / `test`）分组排列。
+表中按能力族（`plan` / `release` / `writing` / `code` / `test` / `base`）分组排列。
 族名与归属见 [skills/namespaces.json](https://github.com/fxri-net/toolkit/blob/main/skills/namespaces.json)。
 技能名统一为 `fxri-<族>-<主题>`。
 

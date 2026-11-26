@@ -25,7 +25,7 @@ import ModelMap from './.vitepress/theme/components/diagrams/ModelMap.vue'
 - 每块都可点击：想查细节直接点进对应分页；悬浮会提示目标。
 - 关系看完还想查全量命令，展开下面的完整结构。
 
-::: details 展开完整结构（13 个命令域）
+::: details 展开完整结构（命令域）
 
 | 域 | 一句话 | 入口命令 | 命令页 |
 | --- | --- | --- | --- |
@@ -40,6 +40,7 @@ import ModelMap from './.vitepress/theme/components/diagrams/ModelMap.vue'
 | `toolkit release` | 多语言 CHANGELOG 与发版 | `release` | [发版与更新日志](./cli/release) |
 | `toolkit upgrade` | v1 工程迁移 | `upgrade` | [升级迁移](./cli/upgrade) |
 | `toolkit trash` | 项目内回收站：查看、恢复与清理 | `list` / `restore` / `prune` / `stats` | [回收站](./cli/trash) |
+| `toolkit concept` | 概念目录：查看可引入的工程概念与采纳步骤 | `list` / `show` | [概念目录](./cli/concept) |
 | `toolkit config` | 配置分层读写与体检 | `config` | [配置体检](./cli/config) |
 | `toolkit privacy` | 本机路径扫描与归一 | `privacy` | [隐私体检](./cli/privacy) |
 | `toolkit docs` | 文档站主题、导航与产物校验 | `docs` | [文档站校验](./cli/docs-check) |

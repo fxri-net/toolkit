@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/fxri-net/toolkit/schemas/concept-catalog.schema.json",
+  "title": "概念目录",
+  "description": "concepts/catalog.json 的结构定义：toolkit concept list/show 与测试共用同一份字段契约。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "concepts", "bundles"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "concepts": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/concept" }
+    },
+    "bundles": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/bundle" }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "concept": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "aliases",
+        "category",
+        "summary",
+        "problem",
+        "value",
+        "maturity",
+        "signals",
+        "variants",
+        "related",
+        "support",
+        "adoption",
+        "cost",
+        "examples"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1 },
+        "aliases": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "category": {
+          "type": "string",
+          "enum": ["engineering", "delivery", "safety", "collaboration", "distribution", "platform"]
+        },
+        "summary": { "type": "string", "minLength": 1 },
+        "problem": { "type": "string", "minLength": 1 },
+        "value": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "maturity": { "type": "string", "enum": ["ready", "partial", "repo-only"] },
+        "signals": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "variants": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "name", "summary"],
+            "properties": {
+              "id": { "$ref": "#/$defs/id" },
+              "name": { "type": "string", "minLength": 1 },
+              "summary": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "related": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+        "support": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["commands", "skills", "templates", "checks"],
+          "properties": {
+            "commands": { "type": "array", "items": { "type": "string" } },
+            "skills": { "type": "array", "items": { "type": "string" } },
+            "templates": { "type": "array", "items": { "type": "string" } },
+            "checks": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "adoption": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["prerequisites", "steps", "files"],
+          "properties": {
+            "prerequisites": { "type": "array", "items": { "type": "string" } },
+            "steps": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["title", "detail"],
+                "properties": {
+                  "title": { "type": "string", "minLength": 1 },
+                  "detail": { "type": "string", "minLength": 1 }
+                }
+              }
+            },
+            "files": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "cost": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["effort", "risk", "reversible"],
+          "properties": {
+            "effort": { "type": "string", "enum": ["low", "medium", "high"] },
+            "risk": { "type": "string", "enum": ["low", "medium", "high"] },
+            "reversible": { "type": "boolean" }
+          }
+        },
+        "examples": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "bundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "summary", "concepts"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1 },
+        "summary": { "type": "string", "minLength": 1 },
+        "concepts": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/id" } }
+      }
+    }
+  }
+}

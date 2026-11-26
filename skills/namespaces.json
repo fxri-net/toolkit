@@ -6,6 +6,7 @@
     "release": { "semantics": "发版与更新日志", "skills": ["fxri-release-changelog"] },
     "writing": { "semantics": "写作与规范表达", "skills": ["fxri-writing-skill", "fxri-writing-docs"] },
     "code": { "semantics": "代码与工程规范", "skills": ["fxri-code-encoding", "fxri-code-safety"] },
-    "test": { "semantics": "测试与验证", "skills": ["fxri-test-tty"] }
+    "test": { "semantics": "测试与验证", "skills": ["fxri-test-tty"] },
+    "base": { "semantics": "基础与通用：跨语言、跨端、跨流程的抽象能力", "skills": ["fxri-base-adoption"] }
   }
 }
