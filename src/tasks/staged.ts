@@ -6,6 +6,8 @@ import { findGitRoot } from "../scope/paths"
 import { isInside } from "../skills/source/paths"
 
 export const ALLOW_ACTIVE_TASKS_ENV = "FX_TOOLKIT_ALLOW_ACTIVE_TASKS"
+// 流水线判别与 scripts/verify.mjs 同一口径：非空且非 0
+const PIPELINE_ENV = "FX_TOOLKIT_PIPELINE"
 
 export interface StagedActiveIssue {
   // 仓库根相对路径（正斜杠）
@@ -13,9 +15,12 @@ export interface StagedActiveIssue {
   message: string
 }
 
-// 暂存区内的 active 任务档：放行变量、非 git 或 git 不可用时返回空数组
+// 暂存区内的 active 任务档：放行变量、流水线环境、非 git 或 git 不可用时返回空数组
 export function checkStagedActiveTasks(options: { taskDir: string; cwd?: string }): StagedActiveIssue[] {
   if (process.env[ALLOW_ACTIVE_TASKS_ENV] === "1") return []
+  // CI 检出后暂存区恒空，直接短路：不遍历目录、不启动 git
+  const pipeline = process.env[PIPELINE_ENV] ?? ""
+  if (pipeline !== "" && pipeline !== "0") return []
   const cwd = options.cwd ?? process.cwd()
   const root = findGitRoot(cwd)
   if (!root) return []

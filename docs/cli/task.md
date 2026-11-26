@@ -82,7 +82,8 @@ toolkit task check --strict       # 任务目录不存在时报错退出（默�
 校验 active 任务与下列形态，只报不改：
 
 - **暂存区（`--staged`）**：读取一次 git 暂存区，`<任务区>/active/` 下的任务档默认不入库，命中即 error；
-  先 `toolkit task archive` 再提交，确需提交时用 `FX_TOOLKIT_ALLOW_ACTIVE_TASKS=1` 放行；未传该选项不读取 git
+  先 `toolkit task archive` 再提交，确需提交时用 `FX_TOOLKIT_ALLOW_ACTIVE_TASKS=1` 放行；未传该选项不读取 git；
+  流水线环境（`FX_TOOLKIT_PIPELINE` 非空且非 `0`）直接跳过，不启动 git
 - **任务字段**：frontmatter 合法性、owner / created / 命名规范、重名、`updated` 早于 `created`（error 级）、`depends_on` 闭环、未闭合待办与 `- [ ]`
 - **文件名三段**：日期↔`created`、用户名↔`owner`、简述↔正文标题；简述须源出标题（不翻译 / 不音译 / 不缩写），并检查跨平台非法字符、Windows 保留设备名、结尾点或空格、NFC 与长度（均软告警）
 - **时间**：completed 晚于当前系统时间超过 14 小时（跨时区容差）或恰为零点整时软告警

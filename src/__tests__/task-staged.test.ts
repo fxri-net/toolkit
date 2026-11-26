@@ -3,8 +3,11 @@ import { execFileSync } from "node:child_process"
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { ALLOW_ACTIVE_TASKS_ENV, checkStagedActiveTasks } from "../tasks/staged"
+
+const PIPELINE_ENV = "FX_TOOLKIT_PIPELINE"
+const originalPipeline = process.env[PIPELINE_ENV]
 
 const dirs: string[] = []
 
@@ -30,8 +33,15 @@ function repo(): string {
   return root
 }
 
+beforeEach(() => {
+  // 流水线环境下会短路，用例先在本地语境执行
+  delete process.env[PIPELINE_ENV]
+})
+
 afterEach(() => {
   delete process.env[ALLOW_ACTIVE_TASKS_ENV]
+  if (originalPipeline === undefined) delete process.env[PIPELINE_ENV]
+  else process.env[PIPELINE_ENV] = originalPipeline
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true })
 })
 
@@ -68,6 +78,19 @@ describe("active 任务暂存检查", () => {
     const outside = mkdtempSync(join(tmpdir(), "fxts-tk-task-staged-nogit-"))
     dirs.push(outside)
     expect(checkStagedActiveTasks({ cwd: outside, taskDir: ".tasks" })).toEqual([])
+  })
+
+  it("流水线环境下跳过，非空且非 0 才生效", () => {
+    const root = repo()
+    put(root, ".tasks/active/d.md")
+    git(root, ["add", "."])
+    process.env[PIPELINE_ENV] = "1"
+    expect(checkStagedActiveTasks({ cwd: root, taskDir: ".tasks" })).toEqual([])
+
+    process.env[PIPELINE_ENV] = "0"
+    expect(checkStagedActiveTasks({ cwd: root, taskDir: ".tasks" }).map((item) => item.file)).toEqual([
+      ".tasks/active/d.md",
+    ])
   })
 
   it("已跟踪 active 的暂存删除与改名到 archive 不误报", () => {
