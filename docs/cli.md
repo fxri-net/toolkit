@@ -53,7 +53,7 @@
 | `toolkit setup` | 本机接入向导 | 提示改用 `--yes`，按无交互退出码结束 | 无 | 无 |
 | `toolkit task` | 打印任务总览（默认视图） | 同左，退出 0 | 无 | `list` / `stats --format json`、`export` |
 | `toolkit rule` | 打印本域帮助 | 同左，退出 0 | 无 | `list` / `compose --format json` |
-| `toolkit scope` | 状态优先向导 | 输出状态摘要与子命令提示，退出 0 | `--interactive`（无终端时按无交互退出码结束，见[退出码](./cli/exit-codes)） | `status` / `list --format json` |
+| `toolkit scope` | 状态优先向导 | 输出状态摘要与子命令提示，退出 0 | `--interactive`（无终端时按无交互退出码结束，见[退出码](./cli/exit-codes)） | `status --format json` |
 | `toolkit skill` | 打印本域帮助 | 同左，退出 0 | `skill mount` 需交互（非 TTY 退 2） | 多数子命令 `--format json`（`mount` 等除外） |
 | `toolkit usage` | 交互菜单 | 输出 `show` 摘要与子命令提示，退出 0 | `usage setup --interactive`（无终端时按无交互退出码结束，见[退出码](./cli/exit-codes)） | `show` / `show stats` / `data doctor` 等 `--format json` |
 | `toolkit convention` | 打印本域帮助 | 同左，退出 0 | 无 | `status` / `format` / `upgrade --format json` |
@@ -62,7 +62,7 @@
 | `toolkit concept` | 列出概念目录 | 同左，退出 0 | 无 | `list` / `show <id> --format json` |
 | `toolkit config` | 打印本域帮助 | 同左，退出 0 | 无 | `list` / `get` / `status --format json` |
 | `toolkit privacy` | 打印本域帮助 | 同左，退出 0 | 无 | `scan --format json` |
-| `toolkit docs` | 默认全量校验（theme / nav / dist） | 同左 | 无 | `nav` / `dist --format json` |
+| `toolkit docs` | 默认全量校验（theme / nav / dist / titles） | 同左 | 无 | `--format json`（域级，如 `toolkit docs --format json nav`） |
 
 规则：查询型域给默认视图，配置 / 分发型域给帮助，交互型域给摘要与子命令提示；
 查询 / 分发型裸命令在非 TTY 退出 `0`；校验型裸命令（`toolkit docs`）按校验结论退出，存在 error 时为 `1`，

@@ -5,8 +5,8 @@ title: 作用域（scope）
 # 作用域（scope）
 
 > 按项目 / 目录决定技能是否生效。默认全域生效，只有写了作用域配置才出现局部生效。
-> `status` / 裸 `list` / `policy list` / `skills list` 只读；`list` 的 add / exclude / remove / default / reset
-> 与 `policy` / `skills` 写命令复用同一套预览与确认，预览会展示完整规则 / 档案内容。
+> `status` 与裸命令向导只读；名单与策略由 `allow` / `deny` / `remove` / `default` / `reset` 写入，
+> 档案由 `profile` 管理，写入前统一预览并确认。
 
 ## 用途与场景
 
