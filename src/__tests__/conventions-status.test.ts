@@ -119,6 +119,35 @@ describe("未初始化提前返回", () => {
   })
 })
 
+describe("单一事实源链接体检", () => {
+  it("链接目标存在时不报断链", () => {
+    const root = makeDir("fxts-tk-status-link-ok-")
+    const cwd = makeDir("fxts-tk-status-link-ok-cwd-")
+    makeCarrier(root, cleanRows)
+    const report = conventionsStatus(root, cwd)
+    expect(report.items.some((i) => i.message.includes("链接目标不存在"))).toBe(false)
+  })
+
+  it("相对链接目标缺失时报断链", () => {
+    const root = makeDir("fxts-tk-status-link-miss-")
+    const cwd = makeDir("fxts-tk-status-link-miss-cwd-")
+    makeCarrier(root, `| ${idOf(1)} | 四级时间源 | 建档时：当场打点优先 | common | [缺失](./absent.md) |`)
+    const report = conventionsStatus(root, cwd)
+    expect(report.items.some((i) => i.message.includes("链接目标不存在：./absent.md"))).toBe(true)
+  })
+
+  it("带锚点的链接只校验文件本体，外部链接与纯锚点跳过", () => {
+    const root = makeDir("fxts-tk-status-link-skip-")
+    const cwd = makeDir("fxts-tk-status-link-skip-cwd-")
+    makeCarrier(
+      root,
+      `| ${idOf(1)} | 四级时间源 | 建档时：当场打点优先 | common | [分节](./common.md#分节) [外链](https://example.com) [锚点](#索引) |`,
+    )
+    const report = conventionsStatus(root, cwd)
+    expect(report.items.some((i) => i.message.includes("链接目标不存在"))).toBe(false)
+  })
+})
+
 describe("载体形态体检", () => {
   it("v1 形态提示可升级，且不做 ID 形态检查", () => {
     const root = makeDir("fxts-tk-status-v1-")

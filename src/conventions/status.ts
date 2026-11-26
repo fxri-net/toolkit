@@ -16,6 +16,7 @@ import {
   OWNER_HEADER,
   RETIRED_ANCHOR_HEADER,
   RETIRED_FILE,
+  SOURCE_HEADER,
   carrierFiles,
   canonicalId,
   columnIndex,
@@ -208,6 +209,30 @@ function checkSemanticRouting(state: CarrierState, items: ConventionsStatusItem[
   }
 }
 
+// 单一事实源链接块：索引里登记的相对链接须能落到真实文件，断链会让读者按图索骥失败
+const MD_LINK_RE = /\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g
+function checkSourceLinks(state: CarrierState, items: ConventionsStatusItem[]): void {
+  const sourceIdx = columnIndex(state.header, SOURCE_HEADER)
+  if (sourceIdx === -1) return
+  const baseDir = dirname(state.indexFile)
+  for (const entry of state.entries) {
+    const cell = entry.cells[sourceIdx] ?? ""
+    for (const match of cell.matchAll(MD_LINK_RE)) {
+      const raw = (match[1] ?? "").trim()
+      if (raw === "" || /^(?:https?:|mailto:|#)/i.test(raw)) continue
+      const target = raw.split("#")[0] ?? ""
+      if (target === "") continue
+      if (!existsSync(resolve(baseDir, target))) {
+        items.push({
+          level: "warn",
+          scope: "索引",
+          message: `条目 ${entry.id} 的「${SOURCE_HEADER}」链接目标不存在：${target}`,
+        })
+      }
+    }
+  }
+}
+
 // 表形态速检块：形态判定只看标记 + history 存在 + 索引表首列，列集合与列数漂移捕获不到，故在此补齐
 // 判据与 tasks check 共用 detectShapeDefects，两处口径一致
 function checkTableShape(state: CarrierState, items: ConventionsStatusItem[]): void {
@@ -333,6 +358,7 @@ export function conventionsStatus(tasksDir = ".tasks", cwd = process.cwd()): Con
   checkForm(state, items)
   checkIndex(state, items)
   checkSemanticRouting(state, items)
+  checkSourceLinks(state, items)
   checkTableShape(state, items)
   checkTableForm(tasksDir, items)
   checkHistoryIdColumn(state, items)
