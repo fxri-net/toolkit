@@ -137,12 +137,33 @@ const HELD_HEADING_RE = /^##\s+搁置\s*$/
 const HELD_ITEM_RE = /^\s*[-*+]\s*(搁置原因|重启条件|进度锚点|搁置日期)\s*([：:])(.*)$/
 const H2_RE = /^##\s+\S/
 
+// HTML 注释覆盖的行：任务模板在注释里保留「## 搁置」占位，结构扫描须跳过，否则新建档即误报残留
+function commentLineMask(lines: string[]): boolean[] {
+  const mask = new Array<boolean>(lines.length).fill(false)
+  let inComment = false
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? ""
+    if (inComment) {
+      mask[i] = true
+      if (line.includes("-->")) inComment = false
+      continue
+    }
+    const start = line.indexOf("<!--")
+    if (start === -1) continue
+    mask[i] = true
+    if (line.indexOf("-->", start + 4) === -1) inComment = true
+  }
+  return mask
+}
+
 // 搁置节形态校验（软告警）：位置、四行、冒号与日期口径；非搁置档残留节同样提示
 function heldSectionIssues(name: string, lines: string[], fmEnd: number, status: string): CheckIssue[] {
   const issues: CheckIssue[] = []
+  const masked = commentLineMask(lines)
   // 只认精确标题，避免误命中「## 搁置方案」之类小节
   let head = -1
   for (let i = fmEnd; i < lines.length; i++) {
+    if (masked[i]) continue
     if (HELD_HEADING_RE.test(lines[i] ?? "")) {
       head = i
       break
@@ -164,6 +185,7 @@ function heldSectionIssues(name: string, lines: string[], fmEnd: number, status:
 
   // 位置：正文第一个二级标题须是本节（跳过 H1 与计划位置引用行），否则恢复时无法只读开头取摘要
   for (let i = fmEnd; i < lines.length; i++) {
+    if (masked[i]) continue
     if (!H2_RE.test(lines[i] ?? "")) continue
     if (i !== head) {
       issues.push({
@@ -179,6 +201,7 @@ function heldSectionIssues(name: string, lines: string[], fmEnd: number, status:
   // 节范围：到下一个二级标题或文件尾
   let end = lines.length
   for (let i = head + 1; i < lines.length; i++) {
+    if (masked[i]) continue
     if (H2_RE.test(lines[i] ?? "")) {
       end = i
       break

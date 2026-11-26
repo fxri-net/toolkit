@@ -90,6 +90,14 @@ describe("搁置节形态校验", () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
+  it("非搁置档的模板注释占位不算残留", () => {
+    const body =
+      "> 计划位置：第 1 个（共 1 个）；前置：无；后继：无\n\n<!-- 示例：\n## 搁置\n\n- 搁置原因：……\n-->\n\n## 背景\n\n说明\n"
+    const dir = makeTask(body, { status: "待办" })
+    expect(warned(dir).some((m) => m.includes("残留「## 搁置」节"))).toBe(false)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
   it("已放弃档允许保留搁置节作为终结理由", () => {
     const dir = makeTask(okBody(), { status: "已放弃", completed: "2026-01-02 10:00" })
     expect(warned(dir).some((m) => m.includes("残留「## 搁置」节"))).toBe(false)
