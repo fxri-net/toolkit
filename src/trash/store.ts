@@ -93,7 +93,7 @@ function readManifest(dir: string): TrashManifest | null {
 }
 
 function writeManifest(dir: string, manifest: TrashManifest): void {
-  writeFileSync(join(dir, MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`, "utf8")
+  writeFileSync(join(dir, MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`, { encoding: "utf8", mode: 0o600 })
 }
 
 function sizeOf(target: string): number {
@@ -138,7 +138,7 @@ export function trashAwareRemove(target: string, root: string): void {
   const id = `${stamp()}-${randomSuffix()}`
   const dir = join(base, id)
   const items = join(dir, "items")
-  mkdirSync(items, { recursive: true })
+  mkdirSync(items, { recursive: true, mode: 0o700 })
   const manifest: TrashManifest = {
     schemaVersion: 1,
     id,

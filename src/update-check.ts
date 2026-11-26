@@ -92,7 +92,7 @@ function readCache(): UpdateCache | null {
 // 写入缓存：失败静默（只读文件系统等场景不影响主流程）
 function writeCache(cache: UpdateCache): void {
   try {
-    mkdirSync(dirname(cacheFile()), { recursive: true })
+    mkdirSync(dirname(cacheFile()), { recursive: true, mode: 0o700 })
     writeFileAtomic(cacheFile(), JSON.stringify(cache))
   } catch {
     // 缓存写入失败忽略

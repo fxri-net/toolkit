@@ -1,6 +1,6 @@
 // 使用情况内核单测：默认关闭、过滤链、事件 ID、技能识别、存储去重与统计聚合
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
@@ -187,6 +187,18 @@ describe("存储与统计", () => {
     expect(eventsToCsv(readAllEvents(paths))).toContain("skillSource")
     expect(unusedSkills(readAllEvents(paths))).toContain("fxri-release-changelog")
     expect(filterEvents(readAllEvents(paths), { since: new Date("2026-11-06T10:30:00.000+08:00") })).toHaveLength(1)
+  })
+
+  it("事件目录与文件仅属主可访问（POSIX）", () => {
+    if (process.platform === "win32") return
+    const root = tempDir("fxts-tk-usage-perm-")
+    const paths = usagePaths(root)
+    appendEvent(paths, makeEvent(), enabledConfig())
+    expect(statSync(paths.eventsDir).mode & 0o777).toBe(0o700)
+    expect(statSync(paths.indexPath).mode & 0o777).toBe(0o600)
+    const eventFile = readdirSync(paths.eventsDir)[0] as string
+    expect(statSync(join(paths.eventsDir, eventFile)).mode & 0o777).toBe(0o600)
+    rmSync(root, { recursive: true, force: true })
   })
 
   it("触发词聚合记录首末调用时间", () => {

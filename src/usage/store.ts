@@ -30,9 +30,9 @@ export function usagePaths(root: string): UsagePaths {
   }
 }
 
-// 确保目录存在：幂等创建
+// 确保目录存在：幂等创建，仅属主可读写执行（事件含会话与技能使用明细）
 export function ensureDir(dir: string): void {
-  mkdirSync(dir, { recursive: true })
+  mkdirSync(dir, { recursive: true, mode: 0o700 })
 }
 
 // 本地月份串：用于按月轮转
@@ -149,7 +149,7 @@ export function appendEvent(paths: UsagePaths, event: SkillUsageEvent, config: U
   if (key && keys.has(key)) return { written: false, reason: "duplicate" }
   ensureDir(paths.eventsDir)
   const fileName = eventFileName(new Date(event.occurredAt), config.storage.rotation, paths, config.storage.maxFileBytes)
-  appendFileSync(join(paths.eventsDir, fileName), `${JSON.stringify(event)}\n`, "utf8")
+  appendFileSync(join(paths.eventsDir, fileName), `${JSON.stringify(event)}\n`, { encoding: "utf8", mode: 0o600 })
   index.eventIds.push(event.eventId)
   if (key) keys.add(key)
   index.keys = [...keys]

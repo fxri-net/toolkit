@@ -20,7 +20,7 @@ export function resolveCacheEntry(nextRel: string, legacyAbs: string, kind: "fil
   if (existsSync(next)) return next
   if (!existsSync(legacyAbs)) return next
   try {
-    mkdirSync(dirname(next), { recursive: true })
+    mkdirSync(dirname(next), { recursive: true, mode: 0o700 })
     try {
       renameSync(legacyAbs, next)
     } catch {

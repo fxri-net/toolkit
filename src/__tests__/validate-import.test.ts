@@ -241,6 +241,26 @@ describe("importTasks 写入与映射", () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
+  it("导入文件超过体积上限时拒绝，不进入解析", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import-size-"))
+    mkdirSync(join(dir, "active"), { recursive: true })
+    const csv = join(dir, "big.csv")
+    writeFileSync(csv, `任务名\n${"x".repeat(21 * 1024 * 1024)}`, "utf8")
+    await expect(importTasks(csv, dir, {})).rejects.toThrow(/导入文件过大/)
+    expect(existsSync(join(dir, "active", "202609"))).toBe(false)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("导入行数超过上限时拒绝", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import-rows-"))
+    mkdirSync(join(dir, "active"), { recursive: true })
+    const csv = join(dir, "many.csv")
+    const rows = Array.from({ length: 20001 }, (_, index) => `任务${index},甲,待办,20260903`)
+    writeFileSync(csv, ["任务名,负责人,状态,创建日期", ...rows].join("\n"), "utf8")
+    await expect(importTasks(csv, dir, {})).rejects.toThrow(/导入行数过多/)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
   it("负责人含路径分隔符时告警并记为未标注，不写到任务目录之外", async () => {
     const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import-owner-"))
     mkdirSync(join(dir, "active"), { recursive: true })

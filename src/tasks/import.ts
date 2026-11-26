@@ -1,7 +1,7 @@
 // 任务导入：读取 CSV / XLSX / JSON（兼容本工具三种导出与常见外部列名），生成任务文件
 // 列映射：内置别名表 + .toolkitrc.json 的 tasks.importColumns 自定义（配置优先）
 // 目标：active（默认，生成待完成任务文件）或 archive（直接写归档块）
-import { existsSync, mkdirSync } from "node:fs"
+import { existsSync, mkdirSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { createRequire } from "node:module"
 import { readTextFile, stripBom } from "../read-text"
@@ -19,6 +19,10 @@ import { displayRel } from "./paths"
 import { taskBrief } from "./name"
 
 const require = createRequire(import.meta.url)
+
+// 导入体量上限：先看文件大小与行数，超限直接拒绝，避免把超大外部数据读进内存
+const MAX_IMPORT_BYTES = 20 * 1024 * 1024
+const MAX_IMPORT_ROWS = 20000
 
 // 内置列别名表：列名（小写后匹配）→ 标准字段；空字符串 = 元信息列（忽略）
 const COLUMN_ALIASES: Record<string, string> = {
@@ -357,15 +361,24 @@ export async function importTasks(file: string, tasksDir = ".tasks", options: Im
   // 自定义列映射与内置别名一致按小写匹配（列名不区分大小写），避免英文大写键失效
   const custom = Object.fromEntries(Object.entries(options.importColumns ?? {}).map(([k, v]) => [String(k).trim().toLowerCase(), String(v)]))
   const ext = file.split(".").pop()?.toLowerCase()
+  if (ext !== "csv" && ext !== "xlsx" && ext !== "json") {
+    throw new Error(`不支持的导入格式「${ext || ""}」，仅支持 .csv / .xlsx / .json`)
+  }
+  // 体积检查在读入之前：超大文件直接拒绝，不进解析器
+  const size = existsSync(file) ? statSync(file).size : 0
+  if (size > MAX_IMPORT_BYTES) {
+    throw new Error(`导入文件过大：${(size / 1024 / 1024).toFixed(1)} MB（上限 20 MB）`)
+  }
   let records: Record<string, string>[]
   if (ext === "csv") {
     records = readRowsCSV(readTextFile(file), custom)
   } else if (ext === "xlsx") {
     records = await readRowsXLSX(file, custom)
-  } else if (ext === "json") {
-    records = readRowsJSON(readTextFile(file), custom)
   } else {
-    throw new Error(`不支持的导入格式「${ext || ""}」，仅支持 .csv / .xlsx / .json`)
+    records = readRowsJSON(readTextFile(file), custom)
+  }
+  if (records.length > MAX_IMPORT_ROWS) {
+    throw new Error(`导入行数过多：${records.length} 行（上限 ${MAX_IMPORT_ROWS} 行）`)
   }
   if (records.length === 0) {
     console.log(line.hint("未识别到可导入的任务行（检查表头是否包含「任务名/标题」等列名）"))
