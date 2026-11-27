@@ -470,6 +470,8 @@ function printStatusReport(report: SkillsStatusReport): void {
     console.log(`来源 ${item.source} 内未选择（不在选择集，也不计入问题）：${item.names.join("、")}`)
   }
   console.log(`目标选择集：${report.targetSelection.length > 0 ? report.targetSelection.join("、") : "全部可用目标（未保存过目标选择）"}`)
+  // 自定义目录不是内置 agent 技能目录：卸载清空后可能被回收，提前提示
+  for (const warning of report.targetWarnings) console.warn(`⚠️ ${warning.message}`)
   // 软告警：真源内版本双写位（frontmatter / 正文）不一致，提示按规则同步递增
   for (const m of report.versionMismatches) {
     console.warn(`⚠️ 技能版本双写位不一致：${m.name}（frontmatter ${m.frontmatter} / 正文 ${m.body || "未声明"}；运行 toolkit skill bump ${m.name} patch 同步）`)

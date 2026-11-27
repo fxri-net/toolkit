@@ -133,6 +133,7 @@ toolkit skill list --format json             # JSON 输出：逐技能条目
   - 状态文件登记但本次未解析到的目标（如 `--dir` 安装后不再传参、agent 目录已被移除）也补报，不静默丢弃
 - **历史落点**：Codex / Pi 的升级前落点（`~/.codex/skills`、`~/.pi/agent/skills`）在状态文件有登记且目录仍在时，标注为「历史落点」并在报告末尾单列「历史落点残留」
   - 只提示不自动删除，指引用 `uninstall --skills` 清理
+- **自定义目标提示**：全局面报告对非内置 agent 目录（`--dir` 或自定义配置）附一条回收风险提示，建议改用专用技能目录；仅提示，不改变卸载与回收行为
 - **疑似残留**：未在任何来源或状态登记、但指向技能源缓存（`~/.toolkit/cache/skill-sources/`）或本包技能目录的链接，单列「疑似残留（仅提示）」
   - 只报告不删除；给出含实际名字的 `uninstall` 命令
 - **矩阵联动**：仅项目面评估，全局面不评估并说明；矩阵限制的技能已按策略推导自动进入入口壳
@@ -141,7 +142,7 @@ toolkit skill list --format json             # JSON 输出：逐技能条目
 - **canonical 共读**：本机已安装且经 canonical 共读的 agent（按探测路径判定）另单列一行说明其读取主目标、无需单独写入
 - 项目面按[作用域与安装面](../config/skill#作用域与安装面)节体检
 - `--format json` 输出机器可读报告到 stdout（含 `scope`、`versionStatus`、`linkage`、`selection` 与 `targetSelection`）
-  - 两面报告含 `skillVersions`；全局面另含 `canonicalReaders` 与 `legacyTargets`
+  - 两面报告含 `skillVersions`；全局面另含 `canonicalReaders`、`legacyTargets` 与 `targetWarnings`
   - `gate` / `gateRules` 为旧键兼容字段，新消费方用 `delivery` 与 `pending`
   - 真源不可读时版本用状态登记值兜底，同名技能列入 `skillVersionsFromState`，人读视图标注「（登记值）」，不冒充当期真源版本
   - 折叠不丢信息（替代人读版），无末尾汇总行

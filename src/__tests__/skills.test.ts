@@ -756,6 +756,14 @@ describe("installSkills 安装", () => {
     removeSkills()
     expect(existsSync(join(extra, report.skills[0]!))).toBe(false)
   })
+
+  it("自定义全局目标在 status 中给出回收风险提示，内置目标不提示", () => {
+    const extra = join(home, "custom-skills")
+    installSkills({ dirs: [extra] })
+    const status = skillsStatus()
+    expect(status.targetWarnings.some((item) => item.dir === extra && item.message.includes("可能回收"))).toBe(true)
+    expect(status.targetWarnings.some((item) => item.dir === primaryDir())).toBe(false)
+  })
 })
 
 describe("hasGlobalSkillsInstalled 安装态探测", () => {

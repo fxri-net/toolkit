@@ -399,6 +399,14 @@ export function skillsStatus(): SkillsStatusReport {
         }
       }),
   )
+  // 自定义全局目标：卸载清空后可能回收目录本身，只提示、不改删除行为
+  const targetWarnings = out
+    .filter((target) => target.kind === "custom")
+    .map((target) => ({
+      dir: target.dir,
+      label: target.label,
+      message: `自定义技能目标「${target.dir}」不是内置 agent 目录：卸载清空后可能回收该目录，建议改用专用技能目录`,
+    }))
   const packageSkills = [...refs.entries()].map(([name, ref]) => ({ name, dir: ref.dir, version: ref.version, tier: ref.tier, requires: [], previousNames: ref.previousNames }))
   return {
     source: skillsSourceDir(),
@@ -417,6 +425,7 @@ export function skillsStatus(): SkillsStatusReport {
     stateFile: skillsStateFile(),
     stateExists: Boolean(state),
     targets: out,
+    targetWarnings,
     pendingAgents,
     canonicalReaders: resolveCanonicalReaders(),
     legacyTargets,

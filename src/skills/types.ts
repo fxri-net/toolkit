@@ -303,6 +303,8 @@ export interface SkillsStatusReport {
   stateFile: string
   stateExists: boolean
   targets: TargetStatus[]
+  // 自定义全局目标的回收风险提示：仅提示，不改变安装 / 卸载行为
+  targetWarnings: Array<{ dir: string; label: string; message: string }>
   pendingAgents: Array<{ dir: string; label: string }>
   // 本机已安装的 canonical 共读 agent：它们与主目标同路径，写入目标里看不到，需单列呈现
   canonicalReaders: CanonicalReader[]
