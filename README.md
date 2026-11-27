@@ -29,15 +29,16 @@ AI 参与开发后，方案与决策散落在对话记录里，会话一关什�
 
 ## 🚀 30 秒上手
 
-```bash
-# 1. 全局安装 CLI（npm 用户 npm add -g @fxri/toolkit）
-pnpm add -g @fxri/toolkit
+**30 秒**：全局装 CLI 后跑一次 `toolkit setup`（装技能、配规则、设生效范围）。
 
-# 2. 本机接入：装技能、配规则、设生效范围（交互向导，可在任意目录执行）
-toolkit setup
+```bash
+pnpm add -g @fxri/toolkit  # npm 用户 npm add -g @fxri/toolkit
+toolkit setup              # 装技能、配规则、设生效范围（交互向导，任意目录可执行）
 ```
 
-进入项目后，对 AI 说「初始化任务区」即可（AI 执行 `toolkit task init` 并完成建档与校验）。
+其他包管理器写法与完整步骤见 [快速开始](./docs/getting-started.md#_30-秒上手)。
+
+进入项目后技能会自行初始化任务区与规范载体；需要手工兜底时执行 `toolkit task init`。
 
 > 团队项目改用 devDependency 锁定版本：`pnpm add -D @fxri/toolkit` + `toolkit skill install --scope project`；
 > 项目内执行命令用 `pnpm exec toolkit`。

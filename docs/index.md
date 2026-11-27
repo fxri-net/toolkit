@@ -103,8 +103,8 @@ bun add -g @fxri/toolkit
 toolkit setup  # 装技能、配规则、设生效范围（交互向导，可在任意目录执行）
 ```
 
-任务区初始化交给 AI：进入项目后说「初始化任务区」即可（技能执行 `toolkit task init`）。团队项目改用 `pnpm add -D @fxri/toolkit` +
-`toolkit skill install --scope project` 锁定版本，项目内执行命令用 `pnpm exec toolkit`。
+内网方案与完整步骤见[快速开始](./getting-started#完整安装)。进入项目后技能会自行初始化任务区与规范载体，手工兜底用 `toolkit task init`；
+团队项目改用 `pnpm add -D @fxri/toolkit` + `toolkit skill install --scope project` 锁定版本，项目内执行命令用 `pnpm exec toolkit`。
 
 已装过旧版本：升级 CLI 后在项目内跑 `toolkit upgrade`，把旧工程与本机契约数据迁到当前版本（自带预览与确认）；`toolkit status` 可自查。
 

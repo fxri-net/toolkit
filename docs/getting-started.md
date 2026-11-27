@@ -24,8 +24,6 @@ toolkit setup              # 接入本机：装技能、配规则、设生效范
 
 > 已装过旧版本：升级 CLI 后在项目内跑 `toolkit upgrade`，把旧工程与本机契约数据迁到当前版本（自带预览与确认）；`toolkit status` 可自查。
 
-⚠️ `toolkit task init` 为 1.7.0 新增；旧版本请手工建 `.tasks/active/{YYYYMM}/` 目录结构。
-
 > 不想把 `.tasks/` 放项目里？配置 `"task": { "dir": "../my-tasks-repo" }` 指向独立仓库（或每次用 `--dir` 传参）。
 > 详见[配置参考 · 校验与任务区](./config/check-tasks)。
 

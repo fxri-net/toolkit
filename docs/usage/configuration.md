@@ -44,7 +44,7 @@ title: 使用情况配置
 | 字段 | 类型 | 默认 | 说明 |
 | --- | --- | --- | --- |
 | `enabled` | boolean | `false` | 总开关；关闭时 Hook 与规则上报都不写入 |
-| `channel` | string | `hook` | 采集通道：`rule`（全局规则上报）/ `hook`（Agent Hook）；只认一条，未写按 `hook` 兼容存量配置 |
+| `channel` | string | `hook` | 采集通道：`rule`（全局规则上报）/ `hook`（Agent Hook）；只认一条，配置缺省 `hook`（兼容存量），`usage setup` 向导默认写 `rule` |
 | `agents` | object | `{}` | Agent 开关，键为适配器 id（`trae` / `claude` / `cursor` / `codex` / `copilot`），未出现即关闭 |
 | `sources.firstParty` | boolean | `false` | toolkit 一方技能（`fxri-*`） |
 | `sources.thirdParty` | boolean | `false` | toolkit 分发的第三方技能 |
