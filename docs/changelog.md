@@ -8,6 +8,51 @@ outline: [2, 2]
 
 历史版本：[1.x](./changelog/1.x)
 
+## 2.0.11
+
+> 2026-11-27 发布
+
+### 🚨 重大变更
+
+- 对外 JSON 与数据文件的 `schemaVersion` / `formatVersion` 由整数改为 `MAJOR.MINOR` 两位字符串（如 `1.0`）；读取端兼容历史整数，写出端统一两位
+- 非交互执行 `toolkit upgrade` 现须 `--all --yes`，只给 `--yes` 会报错；原 `upgrade --yes` 脚本需补 `--all`
+- `toolkit status` 的区块机器 id 由 `migrate` 改为 `upgrade`，按 id 过滤 JSON 的脚本需同步
+- `toolkit usage data purge` 在非交互环境执行任意实际清理（`--all` / `--older-than` / 默认保留期）须加 `--yes`，否则报错退出 2
+
+### ✨ 新增功能
+
+- `toolkit upgrade` 检测并重写本机契约数据的 `schemaVersion`（技能状态、使用事件与索引、上报队列、上传账本、回收站清单），写前进入备份会话，可 `--restore` 回滚
+- `toolkit upgrade --skip-events` 跳过事件文件重写；`--all` 显式全选
+- 概念 `minimal-entry`（极简入口），规范索引新增 C-62 指针
+- `fxri-plan-task` 与 `fxri-plan-recap` 接入任务告警的轻量处置：`task check` / `status` 报 Tier 1 告警时，按修复命令逐条征得用户确认后执行
+- `fxri-plan-task/references/warning-actions.md` 作为 Tier 1 / Tier 2 / 只报告的统一映射
+
+### 🔧 功能调整
+
+- 概念目录的入口相关措辞改为相对表述，并在概念命令页说明「概念是可选采纳、不是硬性规则；安全 / 合规 / 授权硬约束仍按护栏执行」
+- `toolkit upgrade` 裸命令在 TTY 下改为交互多选且默认不全选；非 TTY 全量执行须 `--all --yes`；`--all` 与 `--only/--skip` 互斥
+- `toolkit status` 的迁移区块改名为「升级」，分布统计纳入本机数据
+- `toolkit upgrade --prune-backups` 清理含数据迁移的备份时额外提示，数据回滚点随之消失
+- 本机数据迁移遇到无法解析或版本缺失的文件时整项判人工，不部分重写
+
+### ⚡ 优化改进
+
+- 各契约独立声明版本常量、独立递增，不再共享同一个版本号
+- `pnpm verify` 的单测步骤前后按前缀与年龄门槛清扫过期临时目录，并检查本次新增残留
+- 运行时临时目录统一为 `fxts-tk-` 前缀，便于统一识别与回收
+
+### 🐛 问题修复
+
+- 测试临时目录增加清理兜底，漏删或进程中断不再在系统临时目录累积残留
+
+### 📝 文档更新
+
+- 事件 schema 更名为 `skill-usage-event.schema.json`（版本只写在文件内），相关 JSON 示例与状态文件说明同步两位口径
+- 概念目录改为「多方一致」口径，最少两方即成立，并把 support 引用纳入测试校验
+- 补充临时目录的清理要求（C-57 由前缀统一扩为前缀 + 清理兜底）
+- 补充大量事件数据下 `upgrade` 检测与备份成本提示
+- `toolkit upgrade` 相关文档的「一键」改为「统一入口」，避免与批量全做混淆
+
 ## 2.0.10
 
 > 2026-11-27 发布
