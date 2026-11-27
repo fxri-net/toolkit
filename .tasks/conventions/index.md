@@ -54,6 +54,7 @@
 | C-57 | 测试临时目录前缀与入口 | 建测试临时目录时：只能走 `helpers.tempDir` / `tempPath`（运行时校验 `fxts-tk-` 前缀），测试文件不得直接引用 `tmpdir` / `TEMP`；漏删由进程退出与跨运行过期清扫兜底 | testing | [testing.md](./testing.md) C-57 |
 | C-58 | 使用者文案口径 | 写使用者页面时：主语是工具、命令只进一次性接入或参考页、日常动作写结果、本仓纪律不写成义务 | docs | [docs.md](./docs.md) C-58 |
 | C-59 | 规则文本收件人 | 写规则模块或规则页可复制块时：收件人是 AI，凡指向用户的授权、确认与选择一律写「用户」，`你` 只用于给 AI 定角色 | common | [common.md](./common.md) C-59 |
+| C-60 | 能力变更多面一致 | 能力变更归档前：按面清单逐面核对并标注已同步 / 无触达；最少两方即成立，本仓面含能力自身、文档、skills、concepts、变更集、规则锚点、conventions | common | [AGENTS.md](../../AGENTS.md) 质量门 |
 
 ## 三、用法说明
 

@@ -52,28 +52,29 @@
     },
     {
       "id": "three-way-consistency",
-      "name": "三方一致",
-      "aliases": ["能力文档技能一致"],
+      "name": "多方一致",
+      "aliases": ["三方一致", "多面一致", "能力文档技能一致"],
       "category": "delivery",
-      "summary": "能力、文档与技能描述同步核对，任一方变更都要过一致性检查。",
-      "problem": "代码已改，文档和技能仍描述旧行为。",
+      "summary": "至少两个面（能力、文档、技能、概念目录等）保持同步；面清单按项目声明，任一面变更都要逐面核对。",
+      "problem": "代码已改，文档、技能或概念目录仍描述旧行为。",
       "value": ["用户看到的就是实际行为", "升级后不出现过期说明"],
       "maturity": "partial",
-      "signals": ["命令 help 与文档不一致", "技能版本与正文声明不一致"],
+      "signals": ["命令 help 与文档不一致", "技能版本与正文声明不一致", "概念目录引用了已不存在的命令"],
       "variants": [
         { "id": "version-double-write", "name": "版本双写", "summary": "同一版本在 frontmatter 与正文各写一次，由 lint 比对。" },
-        { "id": "touch-surface", "name": "触达面清单", "summary": "列出受影响的文档与技能，逐篇核对。" },
+        { "id": "touch-surface", "name": "触达面清单", "summary": "列出受影响的面，逐面核对并标注已同步或无触达。" },
+        { "id": "surface-list", "name": "面清单", "summary": "每个项目声明自己需要同步的面，最少两方即可成立。" },
         { "id": "anchor", "name": "更新锚点", "summary": "规则页与快照首行记录更新时间，便于自查是否落后。" }
       ],
       "related": ["single-source", "quality-gate", "docs-quality"],
       "support": { "commands": ["toolkit skill lint", "toolkit task check"], "skills": ["fxri-plan-review"], "templates": [], "checks": [] },
       "adoption": {
-        "prerequisites": ["能列出能力对应的文档与技能"],
+        "prerequisites": ["能列出能力对应的面（最少两方）"],
         "steps": [{ "title": "建一致性检查", "detail": "把版本、用途列、引用路径与触达面做成可执行检查，接入统一门禁。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "low", "reversible": true },
-      "examples": ["技能 frontmatter 与正文版本不一致时 lint 失败"]
+      "examples": ["技能 frontmatter 与正文版本不一致时 lint 失败", "概念目录引用不存在的命令时测试失败"]
     },
     {
       "id": "coverage-tiers",
@@ -705,8 +706,8 @@
   ],
   "bundles": [
     { "id": "ai-collaboration", "name": "AI 协作基线", "summary": "方案先行、任务生命周期与规范载体。", "concepts": ["plan-first-authorization", "task-lifecycle", "conventions-carrier"] },
-    { "id": "delivery-gate", "name": "交付门禁", "summary": "统一门禁、三方一致、覆盖率与文档质量。", "concepts": ["quality-gate", "three-way-consistency", "coverage-tiers", "docs-quality"] },
-    { "id": "docs-quality-pack", "name": "文档质量", "summary": "文档检查与三方一致。", "concepts": ["docs-quality", "three-way-consistency"] },
+    { "id": "delivery-gate", "name": "交付门禁", "summary": "统一门禁、多方一致、覆盖率与文档质量。", "concepts": ["quality-gate", "three-way-consistency", "coverage-tiers", "docs-quality"] },
+    { "id": "docs-quality-pack", "name": "文档质量", "summary": "文档检查与多方一致。", "concepts": ["docs-quality", "three-way-consistency"] },
     { "id": "safety-first", "name": "安全第一", "summary": "删除、回收站、迁移备份、脱敏与路径边界。", "concepts": ["safe-delete", "trash", "migration-backup", "privacy-redaction", "path-boundary"] },
     { "id": "multi-agent", "name": "多 agent 分发", "summary": "agent 清单、技能分发、作用域与配置分层。", "concepts": ["agent-catalog-adapters", "skill-distribution", "scope", "config-layers"] }
   ]
