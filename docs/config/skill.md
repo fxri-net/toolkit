@@ -257,6 +257,8 @@ cwd 位于安装根内 → `project`；cwd 位于包内 → `global`，其余 �
   - 结构为 `format`（`fxri.toolkit.skills-state`）+ `schemaVersion`（`"1.0"`）+ `sources`（来源 → 目标 → 逐技能条目）
   - 逐技能条目为 `name` / `version` / `mode` / `summary`（简介摘要，来源不可解析时供 `skill list` 兜底；旧账缺字段不报错，下次安装落盘）
   - 升级前的旧结构在首次读取时一次性导入并备份为 `.bak`
+  - 旧整数 `schemaVersion`（如 `1`）与更低版本不会因读取自动改写，由 `toolkit upgrade` 重写为当前两位版本并进入备份会话；
+    检测到高于当前 toolkit 的版本时只提示先升级，不降级写入
 
 ## 相关页面
 

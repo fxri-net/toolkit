@@ -17,7 +17,7 @@
 | `toolkit usage` | 技能使用情况：开关、统计、导出与诊断（默认关闭） | `show` / `data` / `config` / `setup` / `record` | [技能使用情况](./cli/usage) |
 | `toolkit convention` | 规范载体：结构升级、表格与索引单元格归一、只读体检 | `upgrade` / `status` / `format` | [规范载体](./cli/convention) |
 | `toolkit release` | 多语言 CHANGELOG 与发版（封装 changesets，默认 `status`） | `status` / `bump` / `changelog` / `mirror` / `publish` / `audit` / `changeset` | [发版与更新日志](./cli/release) |
-| `toolkit upgrade` | v1 工程一键迁移：配置段名、工程脚本、技能旧名、规范载体，含预演、复检与恢复 | — | [升级迁移](./cli/upgrade) |
+| `toolkit upgrade` | 旧工程与本机契约数据一键升级：配置段名、工程脚本、技能旧名、规范载体、状态与事件版本，含预演、复检与恢复 | — | [升级迁移](./cli/upgrade) |
 | `toolkit trash` | 项目内回收站：查看、恢复与清理用户可见删除 | `list` / `restore` / `prune` / `stats` | [回收站](./cli/trash) |
 | `toolkit concept` | 概念目录：查看可引入的工程概念与采纳步骤 | `list` / `show` | [概念目录](./cli/concept) |
 | `toolkit config` | 配置唯一写入口（键清单 + 分层写入）与只读体检 | `list` / `get` / `set` / `unset` / `status` | [配置体检](./cli/config) |
@@ -39,7 +39,7 @@
 | 规范沉淀 | `toolkit convention status` → `toolkit convention upgrade` / `format` |
 | 排查配置 | `toolkit config status`（不打印配置值）→ `toolkit config get <key> --explain`（看来源层与覆盖链） |
 | 改配置 | `toolkit config set <key> <value>`（`--layer` 选层；非交互加 `--yes`），删除用 `config unset` |
-| 从 1.x 升级 | `toolkit status` 出现迁移提示 → `toolkit upgrade --dry-run` 看清单 → `toolkit upgrade` 执行 → 复检残留 |
+| 从 1.x 升级 | `toolkit status` 出现升级提示 → `toolkit upgrade --dry-run` 看清单 → `toolkit upgrade` 执行（含本机数据版本）→ 复检残留 |
 | 误删恢复 | `toolkit trash list` → `toolkit trash restore <id>`（或 `latest`）；确认不再需要再 `toolkit trash prune` |
 | 发版 | `toolkit release bump` → `pnpm verify` → 打标签发布 |
 | 看技能用了多少次 | `toolkit usage show stats`（`--by session` / `--by trigger` / `--limit`） |

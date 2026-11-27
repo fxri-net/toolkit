@@ -5,6 +5,7 @@ title: 规范载体（convention）
 # 规范载体（convention）
 
 > 规范载体的结构升级、表格与索引单元格归一、只读体检。
+> 结构升级通常由 `toolkit upgrade` 一并完成；`toolkit convention upgrade` 保留为底层恢复入口，需单独重跑时使用。
 
 ```bash
 toolkit convention upgrade                     # 把 v1 / v2 规范载体升级为 v3（幂等，先判后写）

@@ -1,6 +1,6 @@
 // 升级迁移单测：配置 / 工程文件改写、计划检测与备份恢复
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
 import { rewriteConfigFile, rewritePackage } from "../upgrade/apply"
 import { buildUpgradePlan, checkVersionGate, runUpgrade, verifyUpgrade } from "../upgrade"
@@ -298,6 +298,132 @@ describe("升级迁移：子目录运行", () => {
     const result = runUpgrade(sub, plan.items, { layers: ["local"] })
     expect(result.failed).toEqual([])
     expect(existsSync(bak)).toBe(false)
+  })
+})
+
+describe("升级迁移：本机契约数据", () => {
+  // 旧整数版本的最小数据现场：技能状态、事件、索引、队列、账本与两个作用域的回收站清单
+  function seedLegacyData(home: string, project: string): void {
+    const write = (root: string, rel: string, data: unknown): void => {
+      const file = join(root, rel)
+      mkdirSync(dirname(file), { recursive: true })
+      writeFileSync(file, typeof data === "string" ? data : `${JSON.stringify(data, null, 2)}\n`, "utf8")
+    }
+    write(join(home, ".agents"), ".toolkit-skills.json", { format: "fxri.toolkit.skills-state", schemaVersion: 1, updatedAt: "", sources: {} })
+    write(join(project, ".toolkit"), "state.json", { format: "fxri.toolkit.skills-state", schemaVersion: 1, updatedAt: "", sources: {} })
+    write(
+      join(home, ".toolkit", "usage"),
+      "events/2026-11.jsonl",
+      '{"schemaVersion":1,"eventId":"e1","skill":"a"}\n{"schemaVersion":1,"eventId":"e2","skill":"b"}\n',
+    )
+    write(join(home, ".toolkit", "usage"), "index.json", { schemaVersion: 1, updatedAt: "", eventIds: [], keys: [] })
+    write(join(home, ".toolkit", "usage"), "state/queue/b1.json", {
+      schemaVersion: 1,
+      batchId: "b1",
+      sessionId: "s",
+      agentHint: "trae",
+      cwd: "",
+      occurredAt: "2026-11-27T00:00:00+08:00",
+      skills: ["a"],
+    })
+    write(join(home, ".toolkit", "usage"), "upload-ledger.json", { schemaVersion: 1, updatedAt: "", sent: [] })
+    for (const root of [home, project]) {
+      write(root, ".toolkit/trash/20260101-abcdef/manifest.json", {
+        schemaVersion: 1,
+        id: "20260101-abcdef",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        command: "skill uninstall",
+        scope: root === home ? "global" : "project",
+        root,
+        entries: [],
+        status: "complete",
+      })
+    }
+  }
+
+  it("检出旧整数写法并原地重写版本，纳入备份会话且可恢复，重复执行零变更", () => {
+    const home = makeProject({})
+    const project = makeProject({})
+    seedLegacyData(home, project)
+    setHomeDirForTest(home)
+
+    const plan = buildUpgradePlan(project, { layers: ["global", "project"] })
+    expect(plan.items.map((item) => item.id)).toEqual([
+      "data:skills-state-global",
+      "data:skills-state-project",
+      "data:usage-events",
+      "data:usage-index",
+      "data:usage-queue",
+      "data:usage-ledger",
+      "data:trash-global",
+      "data:trash-project",
+    ])
+    expect(plan.autoResidue).toBe(8)
+
+    const result = runUpgrade(project, plan.items, { layers: ["global", "project"] })
+    expect(result.failed).toEqual([])
+    expect(result.residue).toEqual([])
+
+    // 版本字段统一为两位，事件逐行重写且保留原有字段
+    const state = JSON.parse(readFileSync(join(home, ".agents", ".toolkit-skills.json"), "utf8")) as { schemaVersion: string }
+    expect(state.schemaVersion).toBe("1.0")
+    const events = readFileSync(join(home, ".toolkit", "usage", "events", "2026-11.jsonl"), "utf8")
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line) as { schemaVersion: string; eventId: string })
+    expect(events.map((event) => event.schemaVersion)).toEqual(["1.0", "1.0"])
+    expect(events.map((event) => event.eventId)).toEqual(["e1", "e2"])
+    const index = JSON.parse(readFileSync(join(home, ".toolkit", "usage", "index.json"), "utf8")) as { schemaVersion: string; eventIds: string[] }
+    expect(index.schemaVersion).toBe("1.0")
+    expect(index.eventIds).toEqual(["e1", "e2"])
+
+    // 幂等：同现场再检测不再产生数据项
+    const again = buildUpgradePlan(project, { layers: ["global", "project"] })
+    expect(again.items.filter((item) => item.surface === "data")).toEqual([])
+
+    // 数据文件与工程文件共用备份清单，--restore 可回滚到旧版本写法
+    const globalBackup = result.backups.find((dir) => dir.startsWith(join(home, ".toolkit", "backup")))
+    expect(globalBackup).toBeTruthy()
+    const restored = restoreBackup(globalBackup as string, { roots: upgradeRoots(project) })
+    expect(restored.restored).toContain(join(home, ".agents", ".toolkit-skills.json"))
+    expect((JSON.parse(readFileSync(join(home, ".agents", ".toolkit-skills.json"), "utf8")) as { schemaVersion: number }).schemaVersion).toBe(1)
+  })
+
+  it("--skip-events 跳过事件文件，索引就地改版本保留去重数据", () => {
+    const home = makeProject({})
+    const project = makeProject({})
+    seedLegacyData(home, project)
+    // 覆盖索引内容：验证跳过事件时索引就地改版本、不清空已有去重数据
+    writeFileSync(join(home, ".toolkit", "usage", "index.json"), `${JSON.stringify({ schemaVersion: 1, updatedAt: "", eventIds: ["keep"], keys: [] })}\n`, "utf8")
+    setHomeDirForTest(home)
+
+    const plan = buildUpgradePlan(project, { layers: ["global"], skipEvents: true })
+    expect(plan.items.some((item) => item.id === "data:usage-events")).toBe(false)
+    const result = runUpgrade(project, plan.items, { layers: ["global"], skipEvents: true })
+    expect(result.residue).toEqual([])
+
+    const events = readFileSync(join(home, ".toolkit", "usage", "events", "2026-11.jsonl"), "utf8")
+    expect(JSON.parse(events.trim().split("\n")[0] as string).schemaVersion).toBe(1)
+    const index = JSON.parse(readFileSync(join(home, ".toolkit", "usage", "index.json"), "utf8")) as { schemaVersion: string; eventIds: string[] }
+    expect(index.schemaVersion).toBe("1.0")
+    expect(index.eventIds).toEqual(["keep"])
+  })
+
+  it("高于当前 toolkit 的版本只列人工项，不降级写入", () => {
+    const home = makeProject({
+      ".toolkit/usage/events/2026-11.jsonl": '{"schemaVersion":"2.0","eventId":"e1","skill":"a"}\n',
+    })
+    const project = makeProject({})
+    setHomeDirForTest(home)
+
+    const plan = buildUpgradePlan(project, { layers: ["global"] })
+    const item = plan.items.find((entry) => entry.id === "data:usage-events")
+    expect(item?.status).toBe("manual")
+    expect(item?.manualHint).toContain("先升级 toolkit")
+    expect(plan.autoResidue).toBe(0)
+    const before = readFileSync(join(home, ".toolkit", "usage", "events", "2026-11.jsonl"), "utf8")
+    runUpgrade(project, plan.items, { layers: ["global"] })
+    expect(readFileSync(join(home, ".toolkit", "usage", "events", "2026-11.jsonl"), "utf8")).toBe(before)
   })
 })
 

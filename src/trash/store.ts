@@ -164,6 +164,20 @@ export function trashAwareRemove(target: string, root: string): void {
   writeManifest(dir, manifest)
 }
 
+// 列出回收站清单文件：只按目录与文件名扫描，不校验版本，供迁移重写旧清单
+export function listTrashManifests(cwd: string, scope: TrashScopeChoice = "all"): string[] {
+  const files: string[] = []
+  for (const { root } of rootsFor(cwd, scope)) {
+    if (!existsSync(root)) continue
+    for (const name of readdirSync(root)) {
+      if (!isSingleSegmentName(name)) continue
+      const file = join(root, name, MANIFEST)
+      if (existsSync(file)) files.push(file)
+    }
+  }
+  return files
+}
+
 // 列出回收站条目：按时间倒序
 export function listTrash(cwd: string, scope: TrashScopeChoice = "all"): TrashEntry[] {
   const out: TrashEntry[] = []

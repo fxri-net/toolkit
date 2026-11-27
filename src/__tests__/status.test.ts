@@ -139,7 +139,7 @@ describe("collectStatus 三现场", () => {
     expect(report.issues.some((issue) => issue.message.includes("nav/first-item"))).toBe(true)
   })
 
-  it("迁移提示：存在 v1 形态时追加 migrate 区块，不计入问题清单", () => {
+  it("升级提示：存在旧形态时追加 upgrade 区块，不计入问题清单", () => {
     stubs.detectUpgradeItems.mockReturnValue([
       { id: "config:project", surface: "config", layers: ["project"], action: "旧段名", risk: "low", files: [], reason: "", status: "planned" },
       { id: "project:package", surface: "project-file", layers: ["project"], action: "旧 prepare", risk: "low", files: [], reason: "", status: "manual" },
@@ -147,7 +147,7 @@ describe("collectStatus 三现场", () => {
     stubs.countAutoResidue.mockReturnValue(1)
 
     const report = collectStatus("1.2.3", makeDir(true))
-    const section = report.sections.find((item) => item.id === "migrate")
+    const section = report.sections.find((item) => item.id === "upgrade")
     expect(section?.summary).toContain("2 项")
     expect(section?.details).toContain("可自动 1 项 / 需人工 1 项")
     expect(report.issues).toEqual([])
@@ -226,7 +226,7 @@ describe("runStatus 输出与退出码", () => {
     expect(Object.keys(payload).sort()).toEqual(["code", "command", "data", "debug", "extend", "issues", "message", "schemaVersion"])
     expect(payload.issues).toEqual([])
     const data = payload.data as { sections: Array<{ id: string }> }
-    expect(data.sections.map((section) => section.id)).toContain("migrate")
+    expect(data.sections.map((section) => section.id)).toContain("upgrade")
   })
 
   it("非法 --format 报错退出 1，不做聚合", () => {

@@ -11,6 +11,7 @@ import { findProjectRoot } from "../scope/paths"
 import { removeSkills } from "../skills/install/global"
 import { removeProjectSkills } from "../skills/install/project"
 import { planConfigContent, type ConfigPlanOptions } from "./config-plan"
+import { applyDataItem } from "./data"
 import { legacySkillNames } from "./detect"
 import type { UpgradeApplyResult, UpgradeItem } from "./types"
 
@@ -161,6 +162,11 @@ function applyItem(
     const target = item.id === "backup:global" ? globalSession : session
     target.absorb(item.files)
     return { manual: [] }
+  }
+  if (item.surface === "data") {
+    // 项目面数据进项目备份根，全局面数据进全局备份根；恢复时共用同一份清单
+    const target = item.layers.includes("project") && !item.layers.includes("global") ? session : globalSession
+    return applyDataItem(item, target)
   }
   return { manual: item.manualHint ? [item.manualHint] : [] }
 }

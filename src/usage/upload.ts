@@ -31,14 +31,14 @@ export interface UploadResult {
   preview?: unknown
 }
 
-// 账本路径
-function ledgerPath(paths: UsagePaths): string {
+// 账本路径：上传账本固定落在数据根下
+export function uploadLedgerPath(paths: UsagePaths): string {
   return join(paths.root, "upload-ledger.json")
 }
 
 // 读取账本：损坏按空账本处理，最多导致一次重复上传
 function readLedger(paths: UsagePaths): UploadLedger {
-  const file = ledgerPath(paths)
+  const file = uploadLedgerPath(paths)
   if (!existsSync(file)) return { schemaVersion: USAGE_UPLOAD_VERSION, updatedAt: new Date().toISOString(), sent: [] }
   try {
     const parsed: unknown = JSON.parse(readFileSync(file, "utf8"))
@@ -57,7 +57,7 @@ function readLedger(paths: UsagePaths): UploadLedger {
 // 写入账本：原子写
 function writeLedger(paths: UsagePaths, ledger: UploadLedger): void {
   mkdirSync(paths.root, { recursive: true })
-  writeFileAtomic(ledgerPath(paths), `${JSON.stringify(ledger, null, 2)}\n`)
+  writeFileAtomic(uploadLedgerPath(paths), `${JSON.stringify(ledger, null, 2)}\n`)
 }
 
 // 是否本地地址：localhost / 127.0.0.1 / ::1 允许 HTTP

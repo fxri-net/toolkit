@@ -1,7 +1,7 @@
 // 升级迁移的公共类型：检测项、计划、报告与备份清单共用同一套字段
 
-// 迁移面：配置 / 工程文件 / 技能现场 / 规范载体 / 备份收编
-export type UpgradeSurface = "config" | "project-file" | "skill" | "convention" | "backup"
+// 迁移面：配置 / 工程文件 / 技能现场 / 规范载体 / 备份收编 / 本机契约数据
+export type UpgradeSurface = "config" | "project-file" | "skill" | "convention" | "backup" | "data"
 
 // 配置层：全局 / 项目 / 本地
 export type UpgradeLayer = "global" | "project" | "local"

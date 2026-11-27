@@ -35,9 +35,9 @@ const schema = readJson<Schema>("schemas/concept-catalog.schema.json")
 const catalog = readJson<Catalog>("concepts/catalog.json")
 
 describe("概念目录", () => {
-  it("包含 28 个概念与 5 个概念包", () => {
+  it("包含 29 个概念与 5 个概念包", () => {
     expect(catalog.schemaVersion).toBe(CONCEPT_CATALOG_VERSION)
-    expect(catalog.concepts).toHaveLength(28)
+    expect(catalog.concepts).toHaveLength(29)
     expect(catalog.bundles).toHaveLength(5)
   })
 

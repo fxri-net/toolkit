@@ -4,7 +4,7 @@ import { resolve } from "node:path"
 import type { Command } from "commander"
 import { assertJsonFormat, jsonEnvelope } from "../json-output"
 import { INTERACTIVE_EXIT, isInteractive, reportCancelled } from "../prompts"
-import { askCheckbox } from "../cli-ui"
+import { askCheckbox, askConfirm } from "../cli-ui"
 import { formatChoiceLine, terminalColumns } from "../prompt-line"
 import { printJson } from "./shared"
 import { line, style } from "../term-style"
@@ -32,7 +32,12 @@ interface UpgradeOptions {
   overwrite?: boolean
   pruneBackups?: boolean
   keep?: string
+  skipEvents?: boolean
+  all?: boolean
 }
+
+// 批量选择阈值：条目超过该数量时改为交互多选，默认不全选
+const BATCH_THRESHOLD = 5
 
 // 层参数：逗号分隔，非法值报错并由调用方中止
 function parseLayers(value?: string): UpgradeLayer[] | null {
@@ -77,7 +82,12 @@ function printPlan(items: UpgradeItem[]): void {
   for (const item of items) {
     const mark = item.status === "manual" ? "⚠️" : "·"
     console.log(`  ${mark} ${style.accent(item.id)}（${item.risk}）${item.action}`)
-    for (const file of item.files) console.log(line.hint(`      ${file}`))
+    // 数据项可能命中大量事件文件，超过两项时只报数量，避免刷屏
+    if (item.surface === "data" && item.files.length > 2) {
+      console.log(line.hint(`      ${item.files.length} 个文件`))
+    } else {
+      for (const file of item.files) console.log(line.hint(`      ${file}`))
+    }
     if (item.manualHint) console.log(line.hint(`      人工：${item.manualHint}`))
   }
 }
@@ -100,7 +110,8 @@ function printResult(applied: string[], failed: string[], backups: string[], res
 }
 
 // 交互式选择：返回勾选的迁移项；手动项不进入选择集，ESC 取消返回 null
-async function selectItems(items: UpgradeItem[]): Promise<UpgradeItem[] | null> {
+// defaultChecked 为假时全部不勾选，用于条目过多、需要用户逐项确认的场景
+async function selectItems(items: UpgradeItem[], defaultChecked: boolean): Promise<UpgradeItem[] | null> {
   const columns = terminalColumns()
   const choices = items
     .filter((item) => item.status === "planned")
@@ -114,7 +125,7 @@ async function selectItems(items: UpgradeItem[]): Promise<UpgradeItem[] | null> 
       }),
       short: item.id,
       value: item.id,
-      checked: item.risk !== "high",
+      checked: defaultChecked && item.risk !== "high",
     }))
   if (choices.length === 0) {
     console.log(line.hint("没有可自动迁移的项"))
@@ -195,6 +206,7 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
     only: parseIds(options.only),
     skip: parseIds(options.skip),
     pruneLegacy: Boolean(options.pruneLegacy),
+    skipEvents: Boolean(options.skipEvents),
   })
   if (options.check) {
     if (options.format === "json") {
@@ -238,26 +250,51 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
   }
   if (!gate.ok) console.error(`⚠️ ${gate.detail}（已按 --allow-old-dependency 继续）`)
 
+  const planned = plan.items.filter((item) => item.status === "planned")
+  if (planned.length === 0) {
+    printPlan(plan.items)
+    console.log(line.hint("没有可自动迁移的项"))
+    return
+  }
+
   let targets: UpgradeItem[]
   if (isInteractive()) {
     printPlan(plan.items)
-    const picked = await selectItems(plan.items)
-    // 首步取消（ESC 或选中「退出」）：按正常取消结束，不落任何写入
-    if (!picked) {
-      reportCancelled()
-      return
+    if (options.all || planned.length <= BATCH_THRESHOLD) {
+      // 条目不多或显式全选：一次确认即执行全部可自动项
+      const confirmed = await askConfirm({ message: `执行以上 ${planned.length} 项迁移？`, default: true })
+      if (confirmed !== true) {
+        reportCancelled()
+        return
+      }
+      targets = planned
+    } else {
+      // 条目过多：交互多选且默认不全选，避免一键把整份清单全做掉
+      const picked = await selectItems(plan.items, false)
+      if (!picked) {
+        reportCancelled()
+        return
+      }
+      if (picked.length === 0) {
+        console.log(line.hint("未选择任何迁移项，已取消"))
+        return
+      }
+      targets = picked
     }
-    targets = picked
   } else {
     if (!options.yes) {
       console.error("⚠️ 非交互环境须显式加 --yes 才能执行迁移；可先用 --dry-run / --check 查看计划")
       process.exitCode = INTERACTIVE_EXIT
       return
     }
-    targets = plan.items.filter((item) => item.status === "planned")
+    targets = planned
   }
 
-  const result = runUpgrade(cwd, targets, { layers: effectiveLayers, pruneLegacy: Boolean(options.pruneLegacy) })
+  const result = runUpgrade(cwd, targets, {
+    layers: effectiveLayers,
+    pruneLegacy: Boolean(options.pruneLegacy),
+    skipEvents: Boolean(options.skipEvents),
+  })
   if (options.format === "json") {
     printJson(
       jsonEnvelope({
@@ -276,12 +313,14 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
 export function registerUpgradeCommands(program: Command): void {
   program
     .command("upgrade")
-    .description("迁移 v1 项目到当前版本：配置段名 / 工程脚本 / 技能旧名 / 规范载体，支持预览、复检与恢复")
+    .description("迁移旧工程与本机契约数据到当前版本：配置段名 / 工程脚本 / 技能旧名 / 规范载体 / 状态与事件数据，支持预览、复检与恢复")
     .option("--cwd <path>", "项目根目录（缺省当前工作目录）")
     .option("--check", "只读检查；存在可自动处理的残留时退出 1")
     .option("--dry-run", "只输出迁移计划，不写盘")
     .option("--diff", "输出迁移计划与行级差异（不写盘）")
     .option("--yes", "非交互执行，跳过确认")
+    .option("--all", "全选所有可自动迁移项，不再逐项选择（脚本配合 --yes）")
+    .option("--skip-events", "跳过使用事件文件的契约版本重写（默认一并迁移）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .option("--layers <layers>", "迁移层：global / project / local（逗号分隔，缺省三层全迁，含全局面）")
     .option("--only <ids>", "只执行指定迁移项（逗号分隔）")

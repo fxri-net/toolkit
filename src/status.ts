@@ -26,7 +26,7 @@ export interface StatusIssue {
 
 // 区块摘要：counts 只统计本区块问题，ok 表示该区块无 error 级问题
 export interface StatusSection {
-  id: "tasks" | "skills" | "config" | "docs" | "version" | "migrate"
+  id: "tasks" | "skills" | "config" | "docs" | "version" | "upgrade"
   label: string
   ok: boolean
   summary: string
@@ -170,10 +170,11 @@ const SURFACE_LABELS: Record<UpgradeSurface, string> = {
   skill: "技能现场",
   convention: "规范载体",
   backup: "备份收编",
+  data: "本机数据",
 }
 
-// 迁移提示：只查项目与本地层（全局层与当前工程无关）；无残留时不占区块，也不产生 issue
-function migrateDomain(cwd: string): DomainResult | null {
+// 升级提示：只查项目与本地层（全局层与当前工程无关）；无残留时不占区块，也不产生 issue
+function upgradeDomain(cwd: string): DomainResult | null {
   let items: UpgradeItem[]
   try {
     items = detectUpgradeItems(cwd, ["project", "local"])
@@ -193,7 +194,7 @@ function migrateDomain(cwd: string): DomainResult | null {
   for (const item of items) counts.set(item.surface, (counts.get(item.surface) ?? 0) + 1)
   const distribution = [...counts].map(([surface, count]) => `${SURFACE_LABELS[surface]} ${count}`).join("、")
   return {
-    summary: items.length > 0 ? `发现 ${items.length} 项 v1 形态待迁移` : "存在旧作用域 / 分发配置（只提示，不影响使用）",
+    summary: items.length > 0 ? `发现 ${items.length} 项旧形态待升级` : "存在旧作用域 / 分发配置（只提示，不影响使用）",
     details: [
       ...(items.length > 0
         ? [`可自动 ${auto} 项 / 需人工 ${items.length - auto} 项`, `分布：${distribution}`, "运行 toolkit upgrade --check 查看完整清单（只提示，不自动修复）"]
@@ -240,9 +241,9 @@ export function collectStatus(version: string, cwd: string = process.cwd()): Sta
     guard("config", "配置层", () => configDomain(cwd)),
     guard("docs", "文档站", () => docsDomain(cwd)),
   ]
-  // 迁移提示为可选区块：检测不到 v1 形态时整节省略，不制造日常噪音
-  const migrate = migrateDomain(cwd)
-  if (migrate) results.push(guard("migrate", "迁移", () => migrate))
+  // 升级提示为可选区块：检测不到旧形态时整节省略，不制造日常噪音
+  const upgrade = upgradeDomain(cwd)
+  if (upgrade) results.push(guard("upgrade", "升级", () => upgrade))
   results.push(guard("version", "版本与弃用", () => versionDomain(version, deprecated, runtimeHits)))
   // 项目内提交规则快照：只提示漂移，不自动改写（规则改动属低频事件，由用户显式同步）
   const ruleSync = inspectRuleSync(cwd)

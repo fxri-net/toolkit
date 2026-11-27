@@ -428,6 +428,30 @@
       "examples": ["方案列影响范围、验证与回滚后再请求执行"]
     },
     {
+      "id": "minimal-entry",
+      "name": "极简入口",
+      "aliases": ["一键入口", "单一入口", "批量有界"],
+      "category": "collaboration",
+      "summary": "对外只留一条主入口，对内可自由拆分；批量动作先预览、有界选择，脚本才显式全量。",
+      "problem": "入口与参数越加越多，用户与 AI 都要记住何时用哪条；批量命令默认全做又容易误伤。",
+      "value": ["入口唯一、学习成本低", "批量动作可预期、可回滚"],
+      "maturity": "partial",
+      "signals": ["同一能力有多条等价命令", "批量命令没有预览就直接全做"],
+      "variants": [
+        { "id": "single-entry", "name": "单一入口", "summary": "日常只暴露一条主入口，细节拆到内部命令，用户不必区分同类动作。" },
+        { "id": "batch-guard", "name": "批量有界", "summary": "先预览影响范围；条目多时交互多选且默认不全选，脚本才用 --all --yes 显式全量。" }
+      ],
+      "related": ["plan-first-authorization", "quality-gate", "output-contract"],
+      "support": { "commands": ["toolkit upgrade"], "skills": [], "templates": [], "checks": [] },
+      "adoption": {
+        "prerequisites": ["盘点现有入口与批量命令"],
+        "steps": [{ "title": "收敛入口", "detail": "把同类动作并入一条主入口；批量命令补预览、选择与显式全量开关，破坏性动作默认不全选。" }],
+        "files": []
+      },
+      "cost": { "effort": "low", "risk": "low", "reversible": true },
+      "examples": ["工程迁移与本机数据升级都收进 toolkit upgrade", "条目多时默认不全选，脚本显式 --all --yes"]
+    },
+    {
       "id": "release-pipeline",
       "name": "发版链路",
       "aliases": ["changesets", "更新日志"],

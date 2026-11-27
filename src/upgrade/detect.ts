@@ -10,6 +10,7 @@ import { readTextFile } from "../read-text"
 import { findProjectRoot, isHomeDirectory } from "../scope/paths"
 import { SKILL_SECTION_LAYERS } from "../skills/config"
 import { planConfigContent, layerLabel } from "./config-plan"
+import { detectDataItems } from "./data"
 import { readProjectState, readSkillsState, skillsStateFile, projectStateFile } from "../skills/state"
 import { LEGACY_PREPARE_SCRIPTS } from "../tasks/init"
 import type { UpgradeItem, UpgradeLayer } from "./types"
@@ -312,7 +313,7 @@ function detectCi(cwd: string): UpgradeItem[] {
 export function detectUpgradeItems(
   cwd: string,
   layers: readonly UpgradeLayer[] = ALL_LAYERS,
-  options: { pruneLegacy?: boolean } = {},
+  options: { pruneLegacy?: boolean; skipEvents?: boolean } = {},
 ): UpgradeItem[] {
   const enabled = new Set(layers)
   if (isHomeDirectory(cwd)) {
@@ -328,6 +329,7 @@ export function detectUpgradeItems(
   }
   items.push(...detectSkills(cwd, [...enabled]))
   items.push(...detectBackups(cwd, [...enabled]))
+  items.push(...detectDataItems(cwd, [...enabled], { skipEvents: options.skipEvents }))
   return items
 }
 
