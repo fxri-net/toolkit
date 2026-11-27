@@ -74,7 +74,7 @@
 | 术语 | 含义 | 出现位置 |
 | --- | --- | --- |
 | 层 | 配置文件层级：全局（global）/ 项目（project）/ 本地（local） | `--layer`（scope 写命令；`source notify` 的 `--layer` 是它的别名） |
-| 面 | 技能安装面：全局面 global / 项目面 project | `skill install --scope`、`skill status` / `uninstall` |
+| 面 | 技能安装面：全局面（global）/ 项目面（project） | `skill install --scope`、`skill status` / `uninstall` |
 | 名单 | 作用域白名单（include）与黑名单（exclude） | `scope` 菜单与写命令、`scope status --lists` |
 | 策略 | 作用域规则条目：条件 + 技能维度 + allow / deny；按层与具体度取唯一命中 | `scope allow` / `deny`（带条件选项时）、`scope status --policies` |
 | 档案 | 可复用的技能名单，供策略 `skills.profiles` 引用 | `scope profile`、`skillProfiles` 配置段 |
@@ -96,7 +96,7 @@
 | 技能统计 | usage 域：采集通道、技能模式、轮转、更新提示频率 | `usage` |
 | 错误级 | 文档中的「error 级」指 JSON `level: error`；文本输出显示为「错误」 | `status --check`、`task check` |
 | 用户主目录 | 当前用户的主目录，命令与文档中以 `~` 表示；不作为项目根 | 全部命令与文档 |
-| 档位 | 脱敏严格度：关闭 off / 告警 warn / 阻断 error；文本输出只写中文，需要手写配置时才写「中文（原值）」 | `privacy.localPaths`、`privacy` 命令 |
+| 档位 | 脱敏严格度：关闭（off）/ 告警（warn）/ 阻断（error）；文本输出只写中文，需要手写配置时才写「中文（原值）」 | `privacy.localPaths`、`privacy` 命令 |
 
 ## 文案约定
 

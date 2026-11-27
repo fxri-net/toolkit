@@ -202,10 +202,10 @@
       "problem": "脚本在错误目录执行删除，越过项目边界。",
       "value": ["删除不会越界", "误删可恢复"],
       "adoptionLevel": "tooling",
-      "signals": ["删除逻辑接受任意路径", "在家目录执行清理命令"],
+      "signals": ["删除逻辑接受任意路径", "在用户主目录执行清理命令"],
       "variants": [
         { "id": "allowed-root", "name": "允许根", "summary": "目标必须位于调用方给定的根内。" },
-        { "id": "protected-root", "name": "受保护根", "summary": "盘根、家目录与系统目录不得作为删除目标。" },
+        { "id": "protected-root", "name": "受保护根", "summary": "盘根、用户主目录与系统目录不得作为删除目标。" },
         { "id": "link-unlink", "name": "软链摘链", "summary": "符号链接只摘链，不递归跟随。" },
         { "id": "cross-device", "name": "跨卷复制", "summary": "改名遇跨设备错误时复制后删源。" }
       ],
