@@ -119,14 +119,14 @@ toolkit usage data doctor
 - **异步消费**：`record` 只入队，随后由派生 worker 或下一次 `usage` 命令消费；
   `usage show stats` 可能有数秒到一条命令的延迟，`usage show` 的「队列」行显示积压条数。反查失败只丢明细字段，技能名与次数照常落盘。
 - **明细缺失的三个原因**：该 Agent 会话记录不可读（Trae 不落可读文件）、会话格式尚未适配（dsh 为 v4 事件流）、或记录已过期 / 被清理。
-   补救见 [Agent 接入 · 拿不到明细时的补救](../usage/agents#拿不到明细时的补救)：`usage log` 手工补录、改用 Hook 通道。
+   补救见 [Agent 接入 · 拿不到明细时的补救](../usage/agent-integration#拿不到明细时的补救)：`usage log` 手工补录、改用 Hook 通道。
 - 原 `usage rule` 的「当前配置不会统计任何技能」空转提示随命令移除；改用 `toolkit rule compose --module usage --no-cache` 时不再做该检查。
 - `usage show stats --by trigger` 每条输出「次数｜最近调用时间｜触发词｜技能」，便于看某技能的调用明细。
 - Hook 安装与采集开启是两步：先 `usage setup hooks install`，再 `toolkit config set usage.enabled true`。
-  支持 Agent 与配置路径见 [Agent 接入](../usage/agents)。
+  支持 Agent 与配置路径见 [Agent 接入](../usage/agent-integration)。
 - `usage setup hooks install` 只处理本机已检测到的 Agent；显式 `--agent` 未检测到时告警跳过，全部跳过才以非 0 退出。
    `usage setup hooks remove` / `usage setup uninstall` 不要求 Agent 仍在本机，便于清理残留配置。
-- DeepSeek Harness 还需安装官方桥接插件 `@deepseek-ai/dsh-hooks-claude-code`，步骤见 [Agent 接入](../usage/agents)。
+- DeepSeek Harness 还需安装官方桥接插件 `@deepseek-ai/dsh-hooks-claude-code`，步骤见 [Agent 接入](../usage/agent-integration)。
 - Hook 命令按当前平台生成：Windows 经 PowerShell 包装（`powershell -NoProfile -Command "& '…'"`），macOS / Linux 用单引号拼接；
    升级后重跑 `usage setup hooks install` 即可把存量旧形态刷成新形态，`usage setup hooks status` / `usage data doctor` 会提示形态过期。
 - `include` 空列表等同 `none`；`exclude` 只列出要排除的技能。

@@ -17,7 +17,9 @@
       "items": [
         { "text": "CLI 参考", "link": "/cli" },
         { "text": "配置参考", "link": "/config" },
-        { "text": "API 参考", "link": "/api" }
+        { "text": "API 参考", "link": "/api" },
+        { "text": "使用统计", "link": "/usage/" },
+        { "text": "升级", "link": "/upgrade-v2" }
       ]
     },
     {
@@ -136,7 +138,7 @@
       "items": [
         { "text": "概览", "link": "/usage/" },
         { "text": "配置", "link": "/usage/configuration" },
-        { "text": "Agent 接入", "link": "/usage/agents" },
+        { "text": "Agent 接入", "link": "/usage/agent-integration" },
         { "text": "隐私与数据边界", "link": "/usage/privacy" },
         { "text": "事件 Schema", "link": "/usage/schema" }
       ]

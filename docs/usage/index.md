@@ -74,5 +74,5 @@ toolkit usage show stats               # 查看统计
 
 ## 相关页面
 
-- 参考：[使用情况配置](./configuration) · [Agent 接入](./agents) · [隐私与数据边界](./privacy) · [事件 Schema](./schema) ·
+- 参考：[使用情况配置](./configuration) · [Agent 接入](./agent-integration) · [隐私与数据边界](./privacy) · [事件 Schema](./schema) ·
   [CLI 参考 · 技能使用情况](../cli/usage)
