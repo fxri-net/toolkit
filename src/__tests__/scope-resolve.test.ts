@@ -1,10 +1,10 @@
 // 作用域配置加载：三层就近覆盖、来源文件与非法值告警
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, realpathSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs"
 import { join, resolve } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { findProjectRoot, resolveScope, resetScopeCache } from "../scope"
+import { tempDir } from "./helpers"
 
 let home = ""
 let project = ""
@@ -16,7 +16,7 @@ function writeGlobal(config: unknown): void {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-scope-home-"))
+  home = tempDir("fxts-tk-scope-home-")
   project = join(home, "work", "repo")
   other = join(home, "personal")
   mkdirSync(project, { recursive: true })

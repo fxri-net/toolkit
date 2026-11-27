@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
+import { tempDir } from "./helpers"
 
 // 无损检查以 git tag 为基线，测试在临时仓库里造 tag 再比对，验证真实子进程行为
 const script = join(process.cwd(), "scripts", "check-doc-loss.mjs")
@@ -18,7 +18,7 @@ function git(root: string, args: string[]) {
 }
 
 function createRepo(files: Record<string, string>): string {
-  const root = mkdtempSync(join(tmpdir(), "fxts-tk-doc-loss-"))
+  const root = tempDir("fxts-tk-doc-loss-")
   fixtures.push(root)
   git(root, ["init"])
   for (const [rel, content] of Object.entries(files)) {

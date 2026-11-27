@@ -2,18 +2,18 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import { execFileSync } from "node:child_process"
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { installProjectSkills, parseRemoteSpec, resolveSource } from "../skills"
 import { installTempDirCleanup } from "../skills/source/remote"
+import { tempDir } from "./helpers"
 
 let home = ""
 
 // 临时目录名带空格：git 调用走参数数组直传，路径含空格时不得被 shell 拆成多个参数
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-remote-home-"))
+  home = tempDir("fxts-tk-remote-home-")
   setHomeDirForTest(home)
   resetToolkitConfigCache()
 })
@@ -100,7 +100,7 @@ describe("resolveSource：远程克隆与项目面状态", { timeout: 15000 }, (
 
 describe("dry-run 临时目录清理", () => {
   it("SIGINT / SIGTERM 都删除目录并按惯例退出码结束", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-cleanup-"))
+    const dir = tempDir("fxts-tk-cleanup-")
     const handlers = new Map<string, () => void>()
     const once = vi.spyOn(process, "once").mockImplementation(((event: string | symbol, listener: (...args: never[]) => void) => {
       handlers.set(String(event), listener as () => void)

@@ -1,15 +1,15 @@
 // 标题与索引文案校验：判据取原文比对，覆盖 title/H1 与目录表两条主线
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { checkDocsTitles } from "../docs/titles"
+import { tempDir } from "./helpers"
 
 let root: string
 let docs: string
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "fxts-tk-docs-titles-"))
+  root = tempDir("fxts-tk-docs-titles-")
   docs = join(root, "docs")
   mkdirSync(docs, { recursive: true })
 })

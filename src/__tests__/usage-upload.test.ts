@@ -1,21 +1,21 @@
 // 上传单测：端点校验、dry-run 不联网、文件导出、Webhook 发送与账本幂等
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { DEFAULT_USAGE_CONFIG, normalizeUsageConfig } from "../usage/config"
 import { appendEvent, usagePaths } from "../usage/store"
 import { buildOtlpPayload, uploadOnce, uploadStatus, validateUploadEndpoint } from "../usage/upload"
 import type { SkillUsageEvent } from "../usage/types"
+import { tempDir } from "./helpers"
 
 // 临时现场
 let home = ""
 let dataDir = ""
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-usage-upload-home-"))
-  dataDir = mkdtempSync(join(tmpdir(), "fxts-tk-usage-upload-data-"))
+  home = tempDir("fxts-tk-usage-upload-home-")
+  dataDir = tempDir("fxts-tk-usage-upload-data-")
   setHomeDirForTest(home)
   resetToolkitConfigCache()
 })

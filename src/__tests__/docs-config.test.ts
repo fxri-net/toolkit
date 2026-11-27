@@ -1,13 +1,13 @@
 // 文档站校验配置：三层 .toolkitrc 的 docs 段解析、默认值回落与规则覆盖
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { resolveDocsCheckConfig } from "../docs/config"
 import { DEFAULT_DOCS_DIST, DEFAULT_DOCS_NAV, DEFAULT_DOCS_TITLES } from "../docs/config"
 import { checkDocsNav } from "../docs/nav"
 import { checkDocsDist } from "../docs/dist"
+import { tempDir } from "./helpers"
 
 const cwd = process.cwd()
 
@@ -16,9 +16,9 @@ let home = ""
 let project = ""
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-docs-cfg-home-"))
+  home = tempDir("fxts-tk-docs-cfg-home-")
   setHomeDirForTest(home)
-  project = mkdtempSync(join(tmpdir(), "fxts-tk-docs-cfg-"))
+  project = tempDir("fxts-tk-docs-cfg-")
   process.chdir(project)
 })
 

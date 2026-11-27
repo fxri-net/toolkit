@@ -1,7 +1,6 @@
 // 配置查找与合并：项目级向上查找最近的 .toolkitrc.json（E6），全局 ~/.toolkitrc.json 段级合并
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, realpathSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, writeFileSync, rmSync, realpathSync } from "node:fs"
 import { join } from "node:path"
 import {
   loadToolkitConfig,
@@ -13,6 +12,7 @@ import {
   resolveLocalConfigPath,
   resolveLeafSource,
 } from "../config"
+import { tempDir } from "./helpers"
 
 const cwd = process.cwd()
 
@@ -20,7 +20,7 @@ const cwd = process.cwd()
 let home = ""
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-home-"))
+  home = tempDir("fxts-tk-home-")
   setHomeDirForTest(home)
 })
 
@@ -33,7 +33,7 @@ afterEach(() => {
 
 // 建一个空项目目录并进入（不含 .toolkitrc.json）
 function chdirIntoEmptyProject(): string {
-  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-proj-"))
+  const dir = tempDir("fxts-tk-proj-")
   process.chdir(dir)
   return dir
 }
@@ -57,7 +57,7 @@ describe("loadToolkitConfig 向上查找", () => {
   })
 
   it("子目录能找到上级配置（E6）", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-cfg-up-"))
+    const dir = tempDir("fxts-tk-cfg-up-")
     mkdirSync(join(dir, "a", "b"), { recursive: true })
     writeFileSync(join(dir, ".toolkitrc.json"), JSON.stringify({ check: { up: true } }), "utf8")
     process.chdir(join(dir, "a", "b"))
@@ -67,7 +67,7 @@ describe("loadToolkitConfig 向上查找", () => {
   })
 
   it("最近一层配置优先", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-cfg-up2-"))
+    const dir = tempDir("fxts-tk-cfg-up2-")
     mkdirSync(join(dir, "a"), { recursive: true })
     writeFileSync(join(dir, ".toolkitrc.json"), JSON.stringify({ check: { root: true } }), "utf8")
     writeFileSync(join(dir, "a", ".toolkitrc.json"), JSON.stringify({ check: { child: true } }), "utf8")
@@ -263,7 +263,7 @@ describe("本地配置层", () => {
 
   // 建独立临时树并登记清理；返回树根
   function makeTree(): string {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-local-"))
+    const dir = tempDir("fxts-tk-local-")
     created.push(dir)
     return dir
   }
@@ -385,7 +385,7 @@ describe("本地配置层", () => {
     const sub = join(root, "a", "b")
     mkdirSync(sub, { recursive: true })
     writeCfg(root, ".toolkitrc.local.json", { task: { dir: "at-home" } })
-    // home 取磁盘真实形态（Windows CI 下 tmpdir 为 8.3 短名，realpath 展开为长名），起点仍用 mkdtemp 原形态
+    // home 取磁盘真实形态（Windows CI 下系统临时目录为 8.3 短名，realpath 展开为长名），起点仍用 tempDir 原形态
     setHomeDirForTest(realpathSync.native(root))
 
     expect(resolveLocalConfigPath(sub)).toBeNull()

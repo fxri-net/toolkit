@@ -1,15 +1,15 @@
 // 文档站导航校验：数据契约优先，每条规则至少一正一反
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { checkDocsNav, CONFIG_FILES } from "../docs/nav"
+import { tempDir } from "./helpers"
 
 // 临时文档目录：每个用例独立，避免互相污染
 let dir: string
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), "fxts-tk-docs-nav-"))
+  dir = tempDir("fxts-tk-docs-nav-")
 })
 
 afterEach(() => {

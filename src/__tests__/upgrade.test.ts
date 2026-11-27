@@ -1,6 +1,5 @@
 // 升级迁移单测：配置 / 工程文件改写、计划检测与备份恢复
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
 import { rewriteConfigFile, rewritePackage } from "../upgrade/apply"
@@ -8,12 +7,13 @@ import { buildUpgradePlan, checkVersionGate, runUpgrade, verifyUpgrade } from ".
 import { latestBackup, pruneBackups, pruneLayersFor, restoreBackup, upgradeRoots } from "../upgrade/backup"
 import { planUpgradeDiffs } from "../upgrade/diff"
 import { setHomeDirForTest } from "../config"
+import { tempDir } from "./helpers"
 
 const fixtures: string[] = []
 
 // 最小工程：带 .tasks 标记项目根，避免 findProjectRoot 向上越界
 function makeProject(files: Record<string, string>): string {
-  const root = mkdtempSync(join(tmpdir(), "fxts-tk-upgrade-"))
+  const root = tempDir("fxts-tk-upgrade-")
   fixtures.push(root)
   mkdirSync(join(root, ".tasks"), { recursive: true })
   for (const [rel, content] of Object.entries(files)) {
@@ -324,7 +324,7 @@ describe("升级迁移：备份恢复", () => {
     const root = makeProject({})
     const backup = join(root, ".toolkit", "backup", "20260101-000000")
     mkdirSync(backup, { recursive: true })
-    const outside = mkdtempSync(join(tmpdir(), "fxts-tk-restore-outside-"))
+    const outside = tempDir("fxts-tk-restore-outside-")
     fixtures.push(outside)
     const keep = join(outside, "keep.txt")
     writeFileSync(keep, "keep", "utf8")

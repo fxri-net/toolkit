@@ -1,109 +1,119 @@
-// 测试临时目录前缀守卫：C-57 要求 src/__tests__ 下的临时目录一律以 fxts-tk- 开头，
-// 本文件直接扫描同目录源码，拦住新测试自起前缀——否则本机 TEMP 残留会碎成多套命名、无法按前缀批量清理
-import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs"
-import { join } from "node:path"
+// 测试临时目录守卫（C-57）：测试代码不得直接接触系统临时目录，只能走 helpers.tempDir / tempPath；
+// 从入口保证前缀统一为 fxts-tk-，新测试无法再自起一套命名而躲过统一清理
+import { readdirSync, readFileSync } from "node:fs"
+import { join, relative } from "node:path"
+import ts from "typescript"
 import { describe, expect, it } from "vitest"
 import { tempDir } from "./helpers"
-import { cleanupTrackedTempDirs } from "./temp-registry"
 
-// 约定的主段：fxts = 品牌 + test suite，产品段按项目追加（本项目为 tk）
-const PREFIX = "fxts-tk"
+// 测试目录与实现文件白名单：只有 helpers 负责真正触达系统临时目录
 const TEST_DIR = join(process.cwd(), "src", "__tests__")
-// 直接建临时目录的字面量前缀（引号形态兼容双引号 / 单引号 / 模板字符串）
-const MKDTEMP = /mkdtempSync\(\s*join\(\s*tmpdir\(\)\s*,\s*(["'`])([^"'`]*)\1/g
-// 包装函数首参的字面量前缀（helpers.tempDir / makeTasksDir 与各文件自建的同名包装）
-const WRAPPER = /\b(?:tempDir|makeTasksDir|makeDir|tmpRoot|makeRepo|runInDir)\(\s*(["'`])([^"'`]*)\1/g
-// 手工拼 TEMP 路径的沙箱名（vi.hoisted 内无法用 mkdtemp）：`${base}/<名>-${pid}` 或 `${base}${sep}<名>-${pid}`
-const TEMPLATE_LITERAL = /`[^`]*`/g
-// 只认引用 TEMP 基址的模板，避免把普通模板误判为临时目录
-const TEMP_BASE_REF = /process\.env\.(?:TEMP|TMP)\b|\$\{base\}/
-// 目录名段：插值前紧邻的字面量运行段（含连字符，取到最后一个 `-${` 之前）
-const NAME_BEFORE_INTERPOLATION = /([A-Za-z0-9_.-]+)-\$\{/g
+const ALLOW_FILES = new Set(["helpers.ts", "temp-registry.ts", "setup-temp.ts", "temp-prefix.test.ts"])
+// vi.hoisted 场景无法调用 helpers（导入尚未初始化），这些文件只能用 TEMP / TMP 拼沙箱；
+// 新增文件不在名单内，仍会被守卫拦下
+const ALLOW_TEMP_FILES = new Set([
+  "cli-golden.test.ts",
+  "env-override-effect.test.ts",
+  "options-matrix.test.ts",
+  "skills-check-cli.test.ts",
+  "update-check.test.ts",
+  "version-status.test.ts",
+])
 
-/**
- * 提取源码中创建临时目录时使用的前缀字面量及其行号。
- * 只认挂 tmpdir() 下的调用；join(home, …) 这类子目录不产生 TEMP 顶层残留，不纳入。
- * @param source 单个测试文件的源码
- * @return 前缀与所在行号（1 起）
- */
-function extractPrefixes(source: string): Array<{ prefix: string; line: number }> {
-  const found: Array<{ prefix: string; line: number }> = []
-  for (const pattern of [MKDTEMP, WRAPPER]) {
-    for (const match of source.matchAll(pattern)) {
-      const line = source.slice(0, match.index ?? 0).split("\n").length
-      found.push({ prefix: match[2]!, line })
-    }
+export interface Violation {
+  file: string
+  line: number
+  text: string
+}
+
+// 递归列出测试目录下的 .ts 文件，守卫范围覆盖子目录
+function listSourceFiles(dir: string, acc: string[] = []): string[] {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name)
+    if (entry.isDirectory()) listSourceFiles(full, acc)
+    else if (entry.name.endsWith(".ts")) acc.push(full)
   }
-  return found
+  return acc
+}
+
+// 取最近一层语句文本：TEMP 引用允许与 fxts-tk- 字面量出现在同一语句里
+function statementText(node: ts.Node): string {
+  let current: ts.Node = node
+  while (current.parent && !ts.isStatement(current)) current = current.parent
+  return current.getText()
 }
 
 /**
- * 提取源码中手工拼 TEMP 路径时使用的沙箱名前缀及其行号。
- * 只扫引用 TEMP 基址的模板字面量，避免把普通模板误判为临时目录。
- * @param source 单个测试文件的源码
- * @return 前缀与所在行号（1 起）
+ * 扫描单个源码，返回违规位置。
+ * @param source 源码文本
+ * @param fileName 相对测试目录的文件名，用于白名单判断
+ * @return 违规清单
  */
-function extractTemplatePrefixes(source: string): Array<{ prefix: string; line: number }> {
-  const found: Array<{ prefix: string; line: number }> = []
-  for (const literal of source.matchAll(TEMPLATE_LITERAL)) {
-    if (!TEMP_BASE_REF.test(literal[0])) continue
-    for (const match of literal[0].matchAll(NAME_BEFORE_INTERPOLATION)) {
-      const line = source.slice(0, (literal.index ?? 0) + (match.index ?? 0)).split("\n").length
-      found.push({ prefix: match[1]!, line })
-    }
+export function scanSource(source: string, fileName: string): Violation[] {
+  const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
+  const violations: Violation[] = []
+  const allowTemp = ALLOW_TEMP_FILES.has(fileName)
+  const report = (node: ts.Node, text: string): void => {
+    violations.push({ file: fileName, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, text })
   }
-  return found
+  const visit = (node: ts.Node): void => {
+    // tmpdir 标识符：导入、调用、别名一律不允许出现在测试里；对象字面量的键（vi.mock 替身）不算引用
+    if (ts.isIdentifier(node) && node.text === "tmpdir") {
+      const parent = node.parent
+      const isMockKey = ts.isPropertyAssignment(parent) && parent.name === node
+      if (!isMockKey) report(node, "直接引用 tmpdir")
+    }
+    // process.env.TEMP / TMP：hoisted 白名单之外，必须与 fxts-tk- 字面量同语句
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      node.expression.getText(sf) === "process.env" &&
+      (node.name.text === "TEMP" || node.name.text === "TMP") &&
+      !allowTemp &&
+      !/fxts-tk-/.test(statementText(node))
+    ) {
+      report(node, `直接引用 ${node.getText(sf)}`)
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(sf)
+  return violations
 }
 
-describe("测试临时目录前缀", () => {
-  it("同目录测试源码的前缀均为 fxts-tk- 开头", () => {
-    const offenders: string[] = []
-    for (const file of readdirSync(TEST_DIR).filter((name) => name.endsWith(".ts"))) {
-      for (const { prefix, line } of extractPrefixes(readFileSync(join(TEST_DIR, file), "utf8"))) {
-        if (!prefix.startsWith(PREFIX)) offenders.push(`${file}:${line} ${prefix}`)
-      }
+describe("测试临时目录守卫", () => {
+  it("测试目录内不直接引用系统临时目录", () => {
+    const violations: Violation[] = []
+    for (const file of listSourceFiles(TEST_DIR)) {
+      const rel = relative(TEST_DIR, file).replace(/\\/g, "/")
+      if (ALLOW_FILES.has(rel)) continue
+      violations.push(...scanSource(readFileSync(file, "utf8"), rel))
     }
-    expect(offenders).toEqual([])
+    expect(violations.map((item) => `${item.file}:${item.line} ${item.text}`)).toEqual([])
   })
 
-  it("双引号、单引号与模板字符串形态都能识别", () => {
-    // 样例由字符拼接生成，避免本文件自身被上一条用例扫成违规
-    const sample = (quote: string) => `mkdtempSync(join(tmpdir(), ${quote}legacy-suite-${quote}))`
-    for (const quote of ['"', "'", "`"]) {
-      expect(extractPrefixes(sample(quote))).toEqual([{ prefix: "legacy-suite-", line: 1 }])
-    }
+  it("字面前缀不合规会被识别", () => {
+    const sample = 'const dir = mkdtempSync(join(tmpdir(), "my-suite-"))'
+    expect(scanSource(sample, "sample.test.ts")).toHaveLength(1)
   })
 
-  it("手工拼 TEMP 路径的沙箱名同样以 fxts-tk- 开头", () => {
-    const offenders: string[] = []
-    // 本文件含守卫正则与样例构造，跳过自扫
-    for (const file of readdirSync(TEST_DIR).filter((name) => name.endsWith(".ts") && name !== "temp-prefix.test.ts")) {
-      for (const { prefix, line } of extractTemplatePrefixes(readFileSync(join(TEST_DIR, file), "utf8"))) {
-        if (!prefix.startsWith(PREFIX)) offenders.push(`${file}:${line} ${prefix}`)
-      }
-    }
-    expect(offenders).toEqual([])
+  it("os.tmpdir、导入别名与变量前缀同样被识别", () => {
+    expect(scanSource("const base = os.tmpdir()", "sample.test.ts")).toHaveLength(1)
+    expect(scanSource('import { tmpdir as sandbox } from "node:os"', "sample.test.ts")).toHaveLength(1)
+    expect(scanSource('const dir = mkdtempSync(join(tmpdir(), "my-"))', "sample.test.ts")).toHaveLength(1)
   })
 
-  it("模板字符串拼接的两类形态都能识别", () => {
-    const slash = "`${base}/legacy-sandbox-${process.pid}`"
-    const sep = "`${base}${sep}legacy-sandbox-${process.pid}`"
-    expect(extractTemplatePrefixes(slash)).toEqual([{ prefix: "legacy-sandbox", line: 1 }])
-    expect(extractTemplatePrefixes(sep)).toEqual([{ prefix: "legacy-sandbox", line: 1 }])
-  })
-})
-
-describe("临时目录登记与清理", () => {
-  it("登记后的目录可被统一清理", () => {
-    const dir = tempDir("fxts-tk-registry-")
-    expect(existsSync(dir)).toBe(true)
-    cleanupTrackedTempDirs()
-    expect(existsSync(dir)).toBe(false)
+  it("vi.mock 里的 tmpdir 替身键不算直接引用", () => {
+    const sample = 'vi.mock("node:os", () => ({ tmpdir: () => "/tmp" }))'
+    expect(scanSource(sample, "sample.test.ts")).toEqual([])
   })
 
-  it("目录已被提前删除时不重复报错", () => {
-    const dir = tempDir("fxts-tk-registry-gone-")
-    rmSync(dir, { recursive: true, force: true })
-    expect(cleanupTrackedTempDirs()).toEqual([])
+  it("非 fxts-tk- 前缀在入口处直接抛错", () => {
+    expect(() => tempDir("my-suite-")).toThrow(/fxts-tk-/)
+  })
+
+  it("hoisted 白名单文件允许 TEMP 拼沙箱，其他文件不允许", () => {
+    const sample = 'const base = (process.env.TEMP || process.env.TMP || "/tmp")'
+    expect(scanSource(sample, "cli-golden.test.ts")).toEqual([])
+    expect(scanSource(sample, "other.test.ts").length).toBe(2)
   })
 })

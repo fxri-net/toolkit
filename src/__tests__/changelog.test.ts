@@ -1,19 +1,19 @@
 // changelog 域单测：语义分组归类、标题多语言替换、commit hash 前缀清理、重复条目/依赖合并、发布日期补齐、脱敏
 import { describe, it, expect, vi } from "vitest"
 import { spawnSync } from "node:child_process"
-import { mkdtempSync, writeFileSync, mkdirSync, readFileSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { writeFileSync, mkdirSync, readFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { formatChangelog, formatChangelogs, localDate, countUntypedEntries, findUntypedChangesetEntries, findUnbulletedChangesetEntries } from "../changelog/format"
 import { collectChangelogs } from "../changelog/collect"
 import { languages, DEFAULT_LANG, resolveLang, type ChangelogLanguage } from "../changelog/languages"
+import { tempDir, tempPath } from "./helpers"
 
 const zh = languages[DEFAULT_LANG]!
 const en = languages.en!
 
 // 造临时 CHANGELOG 样本并在用例结束后清理（新增用例统一走此入口）
 function withChangelog(content: string, run: (file: string, dir: string) => void) {
-  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-cl-"))
+  const dir = tempDir("fxts-tk-cl-")
   const file = join(dir, "CHANGELOG.md")
   writeFileSync(file, content, "utf8")
   try {
@@ -32,7 +32,7 @@ const plainEn: ChangelogLanguage = {
 
 describe("formatChangelog", () => {
   it("标题语义分组、去 hash 前缀、去重、合并依赖并补发布日期（G1）", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-cl-"))
+    const dir = tempDir("fxts-tk-cl-")
     const file = join(dir, "CHANGELOG.md")
     const content = [
       "# pkg",
@@ -583,7 +583,7 @@ describe("formatChangelog", () => {
   })
 
   it("清理 changesets 双前缀伪影：首行 - - 与缩进续行还原为顶层条目", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-cl-"))
+    const dir = tempDir("fxts-tk-cl-")
     const file = join(dir, "CHANGELOG.md")
     // 模拟 changesets 对以「- 」开头的变更集条目二次加前缀的实际产物
     writeFileSync(
@@ -601,7 +601,7 @@ describe("formatChangelog", () => {
   })
 
   it("正常嵌套列表（首行非 - - 形态）不受伪影清理影响", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-cl-"))
+    const dir = tempDir("fxts-tk-cl-")
     const file = join(dir, "CHANGELOG.md")
     writeFileSync(file, "# pkg\n\n## 1.0.0\n\n- 总述：包含子项\n  - 子项甲\n  - 子项乙\n", "utf8")
     formatChangelog(file, "2026-09-05", zh)
@@ -611,7 +611,7 @@ describe("formatChangelog", () => {
   })
 
   it("日期行已存在时不重复插入", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-cl-"))
+    const dir = tempDir("fxts-tk-cl-")
     const file = join(dir, "CHANGELOG.md")
     // 日期行紧贴版本标题（无空行）时自愈补齐，且不重复插入新日期
     writeFileSync(file, "# pkg\n\n## 1.0.0\n> 2026-09-02 发布\n\n### Patch Changes\n\n- a\n", "utf8")
@@ -623,7 +623,7 @@ describe("formatChangelog", () => {
   })
 
   it("脱敏开关：默认掩码、false 原样", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-cl-"))
+    const dir = tempDir("fxts-tk-cl-")
     const on = join(dir, "on.md")
     writeFileSync(on, "# pkg\n\n## 1.0.0\n\n- 联系 tqy@fxri.net\n", "utf8")
     formatChangelog(on, "2026-09-03", zh)
@@ -697,7 +697,7 @@ describe("countUntypedEntries", () => {
 
 // 造临时 .changeset 目录样本并在用例结束后清理（缺前缀早期检测用例统一走此入口）
 function withChangesets(files: Record<string, string>, run: (dir: string) => void) {
-  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-cs-"))
+  const dir = tempDir("fxts-tk-cs-")
   for (const [name, content] of Object.entries(files)) writeFileSync(join(dir, name), content, "utf8")
   try {
     run(dir)
@@ -716,7 +716,7 @@ const customPrefixLang: ChangelogLanguage = {
 
 describe("findUntypedChangesetEntries", () => {
   it("目录不存在返回空数组（未使用 changesets 的项目零打扰）", () => {
-    const missing = join(tmpdir(), `fxts-tk-cs-missing-${process.pid}-${Date.now()}`)
+    const missing = tempPath("fxts-tk-cs-missing-")
     expect(findUntypedChangesetEntries(missing, Object.values(languages))).toEqual([])
   })
 
@@ -789,7 +789,7 @@ describe("findUntypedChangesetEntries", () => {
 
 describe("findUnbulletedChangesetEntries", () => {
   it("目录不存在返回空数组（未使用 changesets 的项目零打扰）", () => {
-    const missing = join(tmpdir(), `fxts-tk-cs-bare-missing-${process.pid}-${Date.now()}`)
+    const missing = tempPath("fxts-tk-cs-bare-missing-")
     expect(findUnbulletedChangesetEntries(missing)).toEqual([])
   })
 
@@ -865,7 +865,7 @@ describe("findUnbulletedChangesetEntries", () => {
 
 describe("collectChangelogs", () => {
   it("排除 node_modules/.git/dist/coverage（G1）", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-col-"))
+    const dir = tempDir("fxts-tk-col-")
     writeFileSync(join(dir, "CHANGELOG.md"), "", "utf8")
     mkdirSync(join(dir, "pkg"), { recursive: true })
     writeFileSync(join(dir, "pkg", "CHANGELOG.md"), "", "utf8")
@@ -881,7 +881,7 @@ describe("collectChangelogs", () => {
 
   // 依赖目录即便被提交到版本库也不属于本仓自己的包，仍须跳过（vendor 常被 PHP 项目整目录入库）
   it("跳过依赖安装目录与构建产物目录，不看是否被 git 跟踪（G2）", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-col-"))
+    const dir = tempDir("fxts-tk-col-")
     writeFileSync(join(dir, "CHANGELOG.md"), "", "utf8")
     for (const dep of ["vendor/acme/pkg", "node_modules/lib", "target/release", ".venv/lib/python3/site-packages/pkg"]) {
       mkdirSync(join(dir, dep), { recursive: true })
@@ -896,7 +896,7 @@ describe("collectChangelogs", () => {
   })
 
   it("composer 自定义依赖目录按 config.vendor-dir 一并跳过（G2）", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-col-"))
+    const dir = tempDir("fxts-tk-col-")
     writeFileSync(join(dir, "composer.json"), JSON.stringify({ config: { "vendor-dir": "libs/vendor" } }), "utf8")
     mkdirSync(join(dir, "libs", "vendor", "pkg"), { recursive: true })
     writeFileSync(join(dir, "libs", "vendor", "pkg", "CHANGELOG.md"), "", "utf8")
@@ -905,7 +905,7 @@ describe("collectChangelogs", () => {
   })
 
   it("exclude 追加跳过目录、include 强制放行（G3）", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-col-"))
+    const dir = tempDir("fxts-tk-col-")
     for (const sub of ["deps-mirror/x", "vendor/y"]) {
       mkdirSync(join(dir, sub), { recursive: true })
       writeFileSync(join(dir, sub, "CHANGELOG.md"), "", "utf8")
@@ -921,7 +921,7 @@ describe("collectChangelogs", () => {
 
   // gitignore 兜底：项目自造的依赖目录名不在内置名单里，靠忽略规则整棵跳过
   it("跳过被 gitignore 覆盖的目录（G4）", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-col-"))
+    const dir = tempDir("fxts-tk-col-")
     const git = (args: string[]) => spawnSync("git", args, { cwd: dir, encoding: "utf8" })
     git(["init", "-q"])
     writeFileSync(join(dir, ".gitignore"), "mirror/\n", "utf8")

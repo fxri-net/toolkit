@@ -1,10 +1,10 @@
 // completed 完成时间校验：未来时间（晚于系统时间）应软告警，过去时间不误报；跨时区容差边界单独校验
 import { describe, it, expect } from "vitest"
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { writeFileSync, mkdirSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { validateTasks } from "../tasks/validate"
 import { isBeyondTzFuture, MAX_UTC_OFFSET_MS } from "../date"
+import { tempDir } from "./helpers"
 
 const HOUR = 60 * 60 * 1000
 
@@ -19,7 +19,7 @@ const warnTexts = (dir: string) => validateTasks(dir).issues.filter((i) => i.lev
 
 // 建指定 completed 值的已完成任务（文件名与 created 用 20990101，避免与当前日期耦合）
 function withCompleted(completed: string): string {
-  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-completed-"))
+  const dir = tempDir("fxts-tk-completed-")
   mkdirSync(join(dir, "active", "209901"), { recursive: true })
   writeFileSync(
     join(dir, "active", "209901", "20990101-唐启云-时间校验.md"),
@@ -31,7 +31,7 @@ function withCompleted(completed: string): string {
 
 describe("搁置状态校验", () => {
   it("搁置属合法状态且不要求 completed", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-held-"))
+    const dir = tempDir("fxts-tk-held-")
     mkdirSync(join(dir, "active", "209901"), { recursive: true })
     writeFileSync(
       join(dir, "active", "209901", "20990101-唐启云-搁置校验.md"),

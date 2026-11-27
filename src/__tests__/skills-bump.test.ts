@@ -1,10 +1,10 @@
 // 技能版本递增：两处版本声明同源改写、多根目录、两处不一致的显式取舍、写回前 lint 校验
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { bumpSkillVersions, syncSkillTables } from "../skills/bump"
 import { bumpVersion, isValidVersion } from "../skills/versioning"
+import { tempDir } from "./helpers"
 
 let root = ""
 let second = ""
@@ -38,8 +38,8 @@ function versions(name: string, dir = root): { frontmatter: string; body: string
 }
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "fxts-tk-bump-"))
-  second = mkdtempSync(join(tmpdir(), "fxts-tk-bump-second-"))
+  root = tempDir("fxts-tk-bump-")
+  second = tempDir("fxts-tk-bump-second-")
 })
 
 afterEach(() => {

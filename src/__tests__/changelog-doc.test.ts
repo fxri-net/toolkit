@@ -1,7 +1,6 @@
 // 文档站镜像回归：转换、分页、校验与幂等行为须被覆盖，防止站点更新页静默产出错页
 import { describe, it, expect, afterEach, vi } from "vitest"
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { ARCHIVE_MARKER, buildDocPage, buildDocPages, checkDoc, resolveDocOptions, syncDoc, syncDocAfterVersion, type DocOptions } from "../changelog/doc"
@@ -296,8 +295,8 @@ describe("resolveDocOptions：split 配置", () => {
 
   // 写项目层配置并清缓存，使下一次读取生效；目录登记到 docDirs，同一用例多次调用也不留孤儿
   function writeConfig(split: unknown): void {
-    const homeDir = mkdtempSync(join(tmpdir(), "fxts-tk-doc-split-home-"))
-    const projectDir = mkdtempSync(join(tmpdir(), "fxts-tk-doc-split-"))
+    const homeDir = tempDir("fxts-tk-doc-split-home-")
+    const projectDir = tempDir("fxts-tk-doc-split-")
     docDirs.push(homeDir, projectDir)
     home = homeDir
     project = projectDir

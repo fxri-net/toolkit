@@ -1,7 +1,6 @@
 // 搁置档规范：节位置、四行形态与日期口径的软告警；以及搁置天数在查询、看板与导出中的呈现
 import { describe, it, expect, vi, afterEach } from "vitest"
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { writeFileSync, mkdirSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { validateTasks } from "../tasks/validate"
 import { queryTasks } from "../tasks/query"
@@ -9,13 +8,14 @@ import { printTaskBoard } from "../tasks/list"
 import { toCSV, toJSON } from "../tasks/export"
 import { todayCompact, todayDash } from "../date"
 import type { TaskSummary } from "../tasks/types"
+import { tempDir } from "./helpers"
 
 afterEach(() => vi.restoreAllMocks())
 
 // 造单任务档：body 为正文（不含 frontmatter），status / completed / updated 可覆盖
 // updated 缺省取当天：搁置天数以「今天」为基准，写死日期会让用例随运行日期漂移
 function makeTask(body: string, opts: { status?: string; completed?: string; updated?: string; name?: string } = {}): string {
-  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-held-"))
+  const dir = tempDir("fxts-tk-held-")
   mkdirSync(join(dir, "active", "202611"), { recursive: true })
   const status = opts.status ?? "搁置"
   const completed = opts.completed ?? ""

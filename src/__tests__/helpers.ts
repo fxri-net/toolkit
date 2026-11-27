@@ -5,9 +5,28 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { trackTempDir } from "./temp-registry"
 
+// 临时目录主前缀：测试与生产共用同一前缀族，便于按前缀统一识别与回收
+export const TEMP_PREFIX = "fxts-tk-"
+
+// 校验前缀：不合规直接抛错，避免新写测试时自起一套命名而无法统一清理
+function assertTempPrefix(prefix: string): void {
+  if (!prefix.startsWith(TEMP_PREFIX)) {
+    throw new Error(`临时目录前缀必须以 ${TEMP_PREFIX} 开头，收到「${prefix}」；改用 tempDir("${TEMP_PREFIX}…") 或复用默认值`)
+  }
+}
+
 // 创建随机临时目录并返回路径；登记后由文件结束与进程退出兜底清理
-export function tempDir(prefix = "fxts-tk-"): string {
+export function tempDir(prefix = TEMP_PREFIX): string {
+  assertTempPrefix(prefix)
   return trackTempDir(mkdtempSync(join(tmpdir(), prefix)))
+}
+
+// 生成一个不存在的唯一路径（不建目录）：供 vi.hoisted 沙箱与「路径不存在」用例使用
+let tempPathSeq = 0
+export function tempPath(prefix = TEMP_PREFIX): string {
+  assertTempPrefix(prefix)
+  const suffix = `${process.pid.toString(36)}-${(tempPathSeq++).toString(36)}-${Date.now().toString(36)}`
+  return trackTempDir(join(tmpdir(), `${prefix}${suffix}`))
 }
 
 // 建含 active/ + archive/ 骨架的 .tasks 目录

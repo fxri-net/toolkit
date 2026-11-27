@@ -1,15 +1,15 @@
 // 任务周期统计单测：周期计算边界（同日、跨月、缺日期跳过、已放弃排除）、滞留口径、分布分段、过滤联动、JSON 输出契约
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, writeFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { computeStats, renderStats } from "../tasks/stats"
 import { jsonEnvelope, toJsonText } from "../json-output"
+import { tempDir } from "./helpers"
 
 // 临时目录收集，用例结束后统一清理
 const dirs: string[] = []
 function makeDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-stats-"))
+  const dir = tempDir("fxts-tk-stats-")
   dirs.push(dir)
   return dir
 }

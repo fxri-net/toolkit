@@ -1,15 +1,15 @@
 // task add 影响范围默认值：取项目内最近任务（含归档），读不到回落 cli
 import { afterEach, describe, expect, it } from "vitest"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
-import { tmpdir } from "node:os"
 import { inferScopeDefault } from "../tasks/scope-default"
+import { tempDir } from "./helpers"
 
 let dir = ""
 
 // 建临时任务目录：前缀固定，避免污染其它用例
 function makeTasksDir(): string {
-  dir = mkdtempSync(join(tmpdir(), "fxts-tk-scope-default-"))
+  dir = tempDir("fxts-tk-scope-default-")
   return dir
 }
 

@@ -1,10 +1,10 @@
 // 任务建档与改字段：模板落盘、命名规则、终态 completed 约束与正文保留
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { createTask, findActiveTask, taskSlug, updateTask } from "../tasks/edit"
 import { resetToolkitConfigCache } from "../config"
+import { tempDir } from "./helpers"
 
 let dir = ""
 
@@ -20,7 +20,7 @@ function markHeld(key: string): void {
 }
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), "fxts-tk-task-edit-"))
+  dir = tempDir("fxts-tk-task-edit-")
   resetToolkitConfigCache()
 })
 

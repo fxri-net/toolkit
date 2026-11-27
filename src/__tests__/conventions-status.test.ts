@@ -2,8 +2,7 @@
 // 期望值直接取真实实现导出的常量（idOf / CARRIER_MARKER / CARRIER_VERSION / ENTRY_VERSION 等），不在测试内重写派生逻辑
 import { describe, it, expect, afterAll } from "vitest"
 import { execSync } from "node:child_process"
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, writeFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { conventionsStatus, resolveCarrierRoot, SEMANTIC_MAX_CHARS } from "../conventions/status"
 import {
@@ -27,11 +26,12 @@ import {
   idOf,
 } from "../conventions/format"
 import { buildEntryShell, ENTRY_SHELL_NAME, SKILL_ENTRY } from "../conventions/entry"
+import { tempDir } from "./helpers"
 
 // 各用例独立建临时目录，结束后统一清理
 const dirs: string[] = []
 function makeDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix))
+  const dir = tempDir(prefix)
   dirs.push(dir)
   return dir
 }

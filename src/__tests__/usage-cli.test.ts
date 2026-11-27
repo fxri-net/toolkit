@@ -1,14 +1,14 @@
 // 使用情况 CLI 单测：命令注册、配置写入、统计查询、导出导入与 Hook 管理
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { Command } from "commander"
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { registerUsageCommands } from "../usage/commands"
 import { recordHookActivity } from "../usage/ingest"
 import { readAllEvents, usagePaths } from "../usage/store"
 import type { SkillUsageEvent } from "../usage/types"
+import { tempDir } from "./helpers"
 
 // 临时目录与输出缓存
 let home = ""
@@ -18,8 +18,8 @@ let errors: string[] = []
 
 // 初始化现场：全局配置启用使用情况，数据目录指向临时目录
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-usage-cli-home-"))
-  dataDir = mkdtempSync(join(tmpdir(), "fxts-tk-usage-cli-data-"))
+  home = tempDir("fxts-tk-usage-cli-home-")
+  dataDir = tempDir("fxts-tk-usage-cli-data-")
   mkdirSync(join(home, ".trae-cn"), { recursive: true })
   writeFileSync(
     join(home, ".toolkitrc.json"),

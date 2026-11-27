@@ -1,9 +1,9 @@
 // 整体状态聚合单测：健康 / 有问题 / 未初始化三种现场，以及 --check 退出码与统一信封
 // 各域取数一律 mock 真实实现的导出函数，只验证聚合层的问题映射与计数，不在测试内复刻域内规则
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync } from "node:fs"
 import { join } from "node:path"
+import { tempDir } from "./helpers"
 
 const stubs = vi.hoisted(() => ({
   skillsStatus: vi.fn(),
@@ -55,7 +55,7 @@ const originalCwd = process.cwd()
 
 // 建现场目录：withTasks 为真时创建 .tasks/active 与 docs，模拟已初始化项目
 function makeDir(withTasks: boolean): string {
-  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-status-"))
+  const dir = tempDir("fxts-tk-status-")
   dirs.push(dir)
   if (withTasks) {
     mkdirSync(join(dir, ".tasks", "active"), { recursive: true })

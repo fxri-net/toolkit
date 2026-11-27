@@ -1,11 +1,11 @@
 // 矩阵视图：逐技能给出产物形态、当前目录形态与命中依据；旧配置给迁移提示
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { resetScopeCache } from "../scope/load"
 import { buildSkillMatrix, legacyShapeHints, resetSkillsConfigWarnings } from "../skills"
+import { tempDir } from "./helpers"
 
 let home = ""
 let project = ""
@@ -19,7 +19,7 @@ function writeProject(config: unknown): void {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-skills-matrix-"))
+  home = tempDir("fxts-tk-skills-matrix-")
   project = join(home, "repo")
   mkdirSync(project, { recursive: true })
   setHomeDirForTest(home)

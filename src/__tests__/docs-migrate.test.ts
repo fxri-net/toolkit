@@ -1,14 +1,14 @@
 // 导航数据迁移助手：从站点配置抽取字面量生成 site-nav.json
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { migrateSiteNav } from "../docs/migrate"
+import { tempDir } from "./helpers"
 
 let dir = ""
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), "fxts-tk-docs-migrate-"))
+  dir = tempDir("fxts-tk-docs-migrate-")
   mkdirSync(join(dir, ".vitepress"), { recursive: true })
 })
 

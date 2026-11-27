@@ -1,15 +1,15 @@
 // 注释对齐检查的假现场用例：以子进程实跑脚本，验证真实退出码与报错文案
 import { spawnSync } from "node:child_process"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
+import { tempDir } from "./helpers"
 
 const script = join(process.cwd(), "scripts", "check-docs-comments.mjs")
 const fixtures: string[] = []
 
 function createFixture(files: Record<string, string>): string {
-  const root = mkdtempSync(join(tmpdir(), "fxts-tk-comments-"))
+  const root = tempDir("fxts-tk-comments-")
   fixtures.push(root)
   for (const [rel, content] of Object.entries(files)) {
     const target = join(root, rel)

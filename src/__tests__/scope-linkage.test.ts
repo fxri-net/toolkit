@@ -1,11 +1,11 @@
 // 技能矩阵与内容闸门联动：闸门未接管、策略失效与死技能提示
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { analyzeSkillLinkage, formatLinkageHints, listInstalledSkillNames } from "../scope/linkage"
 import { resetScopeCache } from "../scope/load"
+import { tempDir } from "./helpers"
 
 let home = ""
 let project = ""
@@ -15,7 +15,7 @@ function writeGlobal(config: unknown): void {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-scope-linkage-"))
+  home = tempDir("fxts-tk-scope-linkage-")
   project = join(home, "repo")
   mkdirSync(join(project, ".tasks"), { recursive: true })
   setHomeDirForTest(home)

@@ -1,13 +1,13 @@
 // 归档命令的单任务入口与多任务提示：逐个归档对齐逐任务提交，键非法时不落到全量
 import { describe, it, expect } from "vitest"
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { archiveTasks } from "../tasks/archive"
+import { tempDir } from "./helpers"
 
 // 临时任务区
 function taskDir(): string {
-  return mkdtempSync(join(tmpdir(), "fxts-tk-archive-task-"))
+  return tempDir("fxts-tk-archive-task-")
 }
 
 // 写 active 任务：status / completed / 正文可按用例覆盖

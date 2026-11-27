@@ -2,25 +2,25 @@
 // 入口层告警：壳标记与当前 toolkit 不一致 / 壳被 gitignore 覆盖；均软告警，不读条文内容
 import { describe, it, expect } from "vitest"
 import { execSync } from "node:child_process"
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { writeFileSync, mkdirSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { validateTasks } from "../tasks/validate"
 import { CARRIER_MARKER, HISTORY_TABLE_HEADER, HISTORY_TITLE, INDEX_TABLE_LINES, idOf } from "../conventions/format"
 import { buildEntryShell, ENTRY_SHELL_NAME, SKILL_ENTRY } from "../conventions/entry"
+import { tempDir } from "./helpers"
 
 const warnTexts = (dir: string, cwd?: string) => validateTasks(dir, cwd).issues.filter((i) => i.level === "warn").map((i) => i.message)
 
 // 空临时目录（作为 cwd 隔离入口层探测，避免读到本仓库真实壳）
 function makeTmp(prefix: string): string {
-  return mkdtempSync(join(tmpdir(), prefix))
+  return tempDir(prefix)
 }
 
 const header = "---\nowner: 唐启云\nstatus: 待办\ncreated: 20260904\nupdated: 20260904\ncompleted: ''\ndepends_on: []\nscope: x\n---\n\n# t\n"
 
 describe("规范载体形态告警", () => {
   it("旧单文件 conventions.md 提示迁移，且不被误判为游离任务文件", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-conv-legacy-"))
+    const dir = tempDir("fxts-tk-conv-legacy-")
     mkdirSync(join(dir, "active"), { recursive: true })
     writeFileSync(join(dir, "conventions.md"), "# 项目协作规范\n", "utf8")
 
@@ -31,7 +31,7 @@ describe("规范载体形态告警", () => {
   })
 
   it("目录形态缺 index.md 提示补齐", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-conv-noindex-"))
+    const dir = tempDir("fxts-tk-conv-noindex-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "conventions"), { recursive: true })
     writeFileSync(join(dir, "conventions", "web.md"), "# web 规范\n", "utf8")
@@ -42,7 +42,7 @@ describe("规范载体形态告警", () => {
   })
 
   it("新旧并存时提示清理旧文件，目录形态完整时无规范载体告警", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-conv-both-"))
+    const dir = tempDir("fxts-tk-conv-both-")
     mkdirSync(join(dir, "active", "202609"), { recursive: true })
     writeFileSync(join(dir, "active", "202609", "20260904-唐启云-正常任务.md"), header, "utf8")
     writeFileSync(join(dir, "conventions.md"), "# 旧规范\n", "utf8")

@@ -1,6 +1,5 @@
 // 策略写命令计划层：新增 / 移除 / 清除 / 档案与技能快捷视图的校验与落盘结果
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
@@ -17,6 +16,7 @@ import {
   readPolicyState,
 } from "../scope/edit-policy"
 import { resetScopeCache } from "../scope/load"
+import { tempDir } from "./helpers"
 
 let home = ""
 let project = ""
@@ -38,7 +38,7 @@ function readGlobal(): Record<string, unknown> {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-scope-policy-command-"))
+  home = tempDir("fxts-tk-scope-policy-command-")
   project = join(home, "repo")
   mkdirSync(join(project, ".tasks"), { recursive: true })
   setHomeDirForTest(home)

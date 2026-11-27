@@ -1,6 +1,5 @@
 // 项目内回收站：移动、查看、恢复、按策略清理与统计
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, lstatSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { getHomeDir, setHomeDirForTest } from "../config"
@@ -14,6 +13,7 @@ import {
   trashAwareRemove,
   type TrashManifest,
 } from "../trash/store"
+import { tempDir } from "./helpers"
 
 // 跨卷分支的可控故障开关：默认透传真实 fs，仅在用例内切换
 const fsFailure = vi.hoisted(() => ({ rename: false, copy: false }))
@@ -39,7 +39,7 @@ vi.mock("node:fs", async (importOriginal) => {
 const fixtures: string[] = []
 
 function tmpRoot(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix))
+  const dir = tempDir(prefix)
   fixtures.push(dir)
   return dir
 }

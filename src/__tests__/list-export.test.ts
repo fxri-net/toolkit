@@ -1,18 +1,18 @@
 // 展示层：未知状态兜底分组、导出目录自动创建、导出脱敏覆盖面
 import { describe, it, expect, vi, afterEach } from "vitest"
-import { mkdtempSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { printTaskBoard } from "../tasks/list"
 import { exportTasks, toCSV, toJSON } from "../tasks/export"
 import { queryTasks } from "../tasks/query"
 import type { TaskRow } from "../tasks/types"
+import { tempDir } from "./helpers"
 
 afterEach(() => vi.restoreAllMocks())
 
 describe("printTaskBoard 未知状态（K1）", () => {
   it("归档 meta 中的未知状态不再静默丢弃，以兜底分组展示", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-board-"))
+    const dir = tempDir("fxts-tk-board-")
     mkdirSync(join(dir, "archive", "202609"), { recursive: true })
     writeFileSync(
       join(dir, "archive", "202609", "20260903.md"),
@@ -33,7 +33,7 @@ describe("printTaskBoard 未知状态（K1）", () => {
 
 describe("printTaskBoard 统一汇总维度", () => {
   it("看板汇总含状态 / 负责人 / 范围 / 批次四类维度", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-board-sum-"))
+    const dir = tempDir("fxts-tk-board-sum-")
     mkdirSync(join(dir, "active", "202609"), { recursive: true })
     writeFileSync(
       join(dir, "active", "202609", "20260901-张三-a.md"),
@@ -56,7 +56,7 @@ describe("printTaskBoard 统一汇总维度", () => {
 
 describe("exportTasks 目录自动创建（K3）", () => {
   it("嵌套目录不存在时自动创建", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-exp-"))
+    const dir = tempDir("fxts-tk-exp-")
     const rows = queryTasks(join(dir, ".tasks"), "active", {}).rows
     const target = join(dir, "a", "b", "out.json")
     await exportTasks(target, rows, { total: 0, byStatus: {}, byOwner: {} })

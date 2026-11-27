@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
+import { tempDir } from "./helpers"
 
 // 被测脚本以 process.cwd() 为仓库根，测试用临时目录模拟最小仓库结构并以子进程实跑
 const script = join(process.cwd(), "scripts", "check-consistency.mjs")
@@ -32,7 +32,7 @@ const skillTable = [
 ].join("\n")
 
 function createFixture(references: Record<string, string>): string {
-  const root = mkdtempSync(join(tmpdir(), "fxts-tk-consistency-"))
+  const root = tempDir("fxts-tk-consistency-")
   fixtures.push(root)
   const files: Record<string, string> = {
     "skills/fxri-demo/SKILL.md": skillDoc,

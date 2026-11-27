@@ -1,11 +1,11 @@
 // scope 写命令计划：相对基准、白黑互转、移除 / 转入、默认值与清除、denylist 兼容
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join, resolve } from "node:path"
-import { tmpdir } from "node:os"
 import { setHomeDirForTest } from "../config"
 import { applyPlan, describePlan, modeLabel, planAdd, planDefault, planRemove, planReset, readScopeState } from "../scope/edit"
 import { isLiteralPath, toTreePattern } from "../scope/paths"
+import { tempDir } from "./helpers"
 
 let home = ""
 let root = ""
@@ -22,7 +22,7 @@ function readActivation(): Record<string, unknown> {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-scope-edit-"))
+  home = tempDir("fxts-tk-scope-edit-")
   setHomeDirForTest(home)
   root = join(home, "repo")
   sub = join(root, "sub")

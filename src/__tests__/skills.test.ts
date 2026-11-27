@@ -2,7 +2,6 @@
 // 用例统一把 home 注入独立临时目录，产物只落在临时目录，绝不触碰真实用户全局技能目录
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
 import { dirname, join, normalize } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { removeArtifact } from "../skills/source/artifact"
@@ -40,6 +39,7 @@ import {
   skillsStatus,
   skillTargetLabel,
 } from "../skills"
+import { tempDir } from "./helpers"
 
 // 软链类型：Windows 必须用 junction（免管理员、免开发者模式）
 const LINK_TYPE = process.platform === "win32" ? "junction" : "dir"
@@ -126,7 +126,7 @@ function targetOf(report: ReturnType<typeof installSkills>, kind: "primary" | "a
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-skills-"))
+  home = tempDir("fxts-tk-skills-")
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   resetSkillsRootCache()
@@ -1451,7 +1451,7 @@ describe("技能作用域判定", () => {
 
   // 建临时目录并纳入统一清理
   function tmpRoot(prefix: string): string {
-    const dir = mkdtempSync(join(tmpdir(), prefix))
+    const dir = tempDir(prefix)
     roots.push(dir)
     return dir
   }

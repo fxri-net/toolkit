@@ -1,12 +1,12 @@
 // 作用域写入联动：写前预演形态变化、写后收敛产物、重复执行幂等
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { applyArtifactLinkage, previewShapeChanges } from "../scope/artifact-linkage"
 import { resetScopeCache } from "../scope/load"
 import { isSkillGateShell, reconcileSkills, resetDeliveryWarnings, resetSkillsConfigWarnings, resetSkillsRootCache } from "../skills"
+import { tempDir } from "./helpers"
 
 let home = ""
 let project = ""
@@ -22,7 +22,7 @@ const gatedConfig = {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-scope-linkage-"))
+  home = tempDir("fxts-tk-scope-linkage-")
   project = join(home, "repo")
   mkdirSync(project, { recursive: true })
   setHomeDirForTest(home)

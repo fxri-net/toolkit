@@ -1,11 +1,10 @@
 // 交互取消：验证取消向外传播、返回项、退出码与 ESC 返回键
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { mkdtempSync, rmSync } from "node:fs"
-import { join } from "node:path"
-import { tmpdir } from "node:os"
+import { rmSync } from "node:fs"
 import { setHomeDirForTest } from "../config"
 import { askWithBack, exitOnPromptCancel, exitWithCancel, isPromptCancel } from "../prompts"
 import { runScopeInteractive } from "../scope/interactive"
+import { tempDir } from "./helpers"
 
 let home = ""
 
@@ -47,7 +46,7 @@ function setTty(value: boolean): void {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-scope-cancel-"))
+  home = tempDir("fxts-tk-scope-cancel-")
   setHomeDirForTest(home)
   answers.select.length = 0
   answers.selectCalls.length = 0

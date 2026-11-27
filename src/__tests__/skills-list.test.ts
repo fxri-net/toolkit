@@ -1,7 +1,6 @@
 // skill list：已装 / 未装 / 来源不可用兜底三类输出，旧账缺 summary 不报错
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import {
@@ -15,6 +14,7 @@ import {
   STATE_FORMAT,
   STATE_SCHEMA_VERSION,
 } from "../skills"
+import { tempDir } from "./helpers"
 
 // 临时 home：产物只落临时目录，不触碰真实用户全局技能目录
 let home = ""
@@ -63,7 +63,7 @@ function writeLegacyState(entries: Array<{ name: string; version: string; summar
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-list-"))
+  home = tempDir("fxts-tk-list-")
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   process.env.CI = "1"

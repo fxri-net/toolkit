@@ -1,11 +1,11 @@
 // 作用域 glob 与路径展开：最小子集语义与边界
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, realpathSync, rmSync, symlinkSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { matchGlob } from "../scope/glob"
 import { compilePattern, matchPathPattern, matchPattern } from "../scope/pattern"
 import { expandHome, normalizeRemote, resolveComparablePath } from "../scope/paths"
+import { tempDir } from "./helpers"
 
 describe("matchGlob", () => {
   it("** 可跨层且允许零层", () => {
@@ -111,7 +111,7 @@ describe("跨平台字符串口径", () => {
   })
 
   it("真实符号链接不被解析：链接与目标各按自己的字符串匹配", () => {
-    const root = mkdtempSync(join(tmpdir(), "fxts-tk-scope-link-"))
+    const root = tempDir("fxts-tk-scope-link-")
     const real = join(root, "real")
     mkdirSync(real)
     const link = join(root, "link")

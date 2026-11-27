@@ -1,7 +1,6 @@
 // 外部技能来源：三种来源形态、路径越界、同名冲突、临时 / 永久落点、按来源卸载与操作锁
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, lstatSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import {
@@ -18,6 +17,7 @@ import {
   skillsStatus,
   writeSkillsInstallConfig,
 } from "../skills"
+import { tempDir } from "./helpers"
 
 // 临时 home（状态 / 配置落点）
 let home = ""
@@ -43,8 +43,8 @@ function multiSource(root: string, name = "ext"): string {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-skills-source-home-"))
-  work = mkdtempSync(join(tmpdir(), "fxts-tk-skills-source-work-"))
+  home = tempDir("fxts-tk-skills-source-home-")
+  work = tempDir("fxts-tk-skills-source-work-")
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   resetSkillsRootCache()

@@ -2,11 +2,11 @@
 // 期望值直接取真实实现导出的常量（CONFIG_DISPLAY_KEYS / CONFIG_ENV_OVERRIDES 等），不在测试内重写派生逻辑
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { configStatus, foldHomeInText, CONFIG_KNOWN_SECTIONS } from "../config-status"
 import { CONFIG_DISPLAY_KEYS, CONFIG_ENV_OVERRIDES, CONFIG_ENV_BYPASS, CONFIG_LOCAL_FILE, setHomeDirForTest } from "../config"
 import { toPosix } from "../git-ignore"
+import { tempDir } from "./helpers"
 
 // 会被本文件读到的环境变量：逐条保存 / 清空 / 还原，避免宿主机环境串味
 const ENV_KEYS = ["CI", "FX_TOOLKIT_REDACT", "FX_TOOLKIT_NO_UPDATE_CHECK", "FX_TOOLKIT_CHECK_WARN"]
@@ -28,7 +28,7 @@ beforeEach(() => {
     delete process.env[key]
   }
   // home 指向独立临时目录：全局层不读到真实用户 ~/.toolkitrc.json
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-cfgst-home-"))
+  home = tempDir("fxts-tk-cfgst-home-")
   setHomeDirForTest(home)
 })
 

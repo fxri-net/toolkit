@@ -1,11 +1,11 @@
 // 策略配置加载：三层合并、档案覆盖、旧字段编译、非法项剔除与父目录继承
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { resetScopeCache, resolveScope } from "../scope/load"
 import { isLegacyPolicyId, readPolicyStats, resetPolicyStats } from "../scope/policy"
+import { tempDir } from "./helpers"
 
 let home = ""
 let project = ""
@@ -29,7 +29,7 @@ function writeLocal(config: unknown, dir = project): void {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-scope-policy-home-"))
+  home = tempDir("fxts-tk-scope-policy-home-")
   project = join(home, "work", "repo")
   personal = join(home, "personal")
   mkdirSync(project, { recursive: true })

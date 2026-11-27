@@ -1,12 +1,12 @@
 // 接入向导：默认勾选、勾选记忆、非交互与预演路径（真实 TTY 多选另由 tty 测试覆盖）
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { dirname, join } from "node:path"
-import { tmpdir } from "node:os"
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
+import { dirname } from "node:path"
 import { setHomeDirForTest } from "../config"
 import { runSetupWizard } from "../setup"
 import { inspectSetupSteps } from "../setup/steps"
 import { readSetupSelection, setupSelectionPath, writeSetupSelection } from "../setup/selection"
+import { tempDir } from "./helpers"
 
 // 交互应答与调用记录：picks 按调用顺序消费，prompts 留存每次勾选页选项
 const harness = vi.hoisted(() => ({
@@ -65,7 +65,7 @@ function checkedOfPrompt(): Record<string, boolean | undefined> {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-setup-"))
+  home = tempDir("fxts-tk-setup-")
   setHomeDirForTest(home)
   setTty(false)
   harness.picks.length = 0

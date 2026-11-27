@@ -1,8 +1,8 @@
 // skills lint 命令行面：退出码、stdout 纯净度、JSON 结构与基准跳过提示
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { tempDir } from "./helpers"
 
 const originalArgv = process.argv
 const fixtures: string[] = []
@@ -29,7 +29,7 @@ function writeSkill(root: string, name: string, options: { license?: boolean; bo
 }
 
 function makeRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "fxts-tk-lint-cli-"))
+  const root = tempDir("fxts-tk-lint-cli-")
   fixtures.push(root)
   return root
 }
@@ -61,7 +61,7 @@ async function runCli(args: string[]): Promise<CliRun> {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-lint-cli-home-"))
+  home = tempDir("fxts-tk-lint-cli-home-")
   fixtures.push(home)
   process.env.CI = "1"
   process.env.FX_TOOLKIT_NO_UPDATE_CHECK = "1"

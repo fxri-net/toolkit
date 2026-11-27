@@ -1,12 +1,12 @@
 // 作用域向导：菜单退出、加白 / 加黑、条目互转、默认值、清除限制与高级规则
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
-import { tmpdir } from "node:os"
 import { setHomeDirForTest } from "../config"
 import { buildLayerChoices, runScopeInteractive, scanRangeChoices } from "../scope/interactive"
 import { toTreePattern } from "../scope/paths"
 import * as skills from "../skills"
+import { tempDir } from "./helpers"
 
 // 提示应答队列：按调用顺序消费
 const answers = vi.hoisted(() => ({
@@ -57,7 +57,7 @@ function setTty(value: boolean): void {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-scope-interactive-"))
+  home = tempDir("fxts-tk-scope-interactive-")
   configFile = join(home, ".toolkitrc.json")
   setHomeDirForTest(home)
   seed({ mode: "all", include: [], exclude: [] })
@@ -80,7 +80,7 @@ afterEach(() => {
 
 describe("层选择项", () => {
   it("项目层 / 本地层不可用时只显示层名，不展示不会写入的路径", () => {
-    const outside = mkdtempSync(join(tmpdir(), "fxts-tk-scope-layer-"))
+    const outside = tempDir("fxts-tk-scope-layer-")
     try {
       const choices = buildLayerChoices(outside)
       const global = choices.find((choice) => choice.value === "global")

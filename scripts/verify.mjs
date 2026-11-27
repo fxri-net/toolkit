@@ -398,6 +398,11 @@ async function runPhase(label, steps) {
  */
 async function runTestsPhase(label, steps) {
   if (steps.every((step) => step.skip)) return runPhase(label, steps)
+  // 保留现场开关下跳过清扫与残留判定：否则超过 6 小时的现场会被下一次门禁静默删除
+  if (process.env.FX_TOOLKIT_KEEP_TEST_TEMP) {
+    console.log("\n▶ 保留测试临时目录（FX_TOOLKIT_KEEP_TEST_TEMP 已开启，跳过过期清扫与残留判定）")
+    return runPhase(label, steps)
+  }
   const before = new Set(listTempDirs().map((dir) => dir.name))
   const swept = sweepTempDirs()
   const sweptNames = new Set(swept.removed.map((dir) => dir.name))

@@ -1,15 +1,15 @@
 // 文档站产物校验：只读构建产物，产物缺失即跳过
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { checkDocsDist } from "../docs/dist"
+import { tempDir } from "./helpers"
 
 // 临时文档目录：每个用例独立
 let dir: string
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), "fxts-tk-docs-dist-"))
+  dir = tempDir("fxts-tk-docs-dist-")
   writeFileSync(join(dir, "404.md"), "---\nsearch: false\n---\n\n# 页面未找到\n")
 })
 

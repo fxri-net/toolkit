@@ -1,15 +1,15 @@
 // 用户级缓存目录单测：路径约定与惰性迁移（文件 / 目录 / 新路径已存在）
 import { describe, expect, it, beforeEach, afterEach } from "vitest"
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
-import { tmpdir } from "node:os"
 import { setHomeDirForTest } from "../config"
 import { cachePath, resolveCacheEntry, userCacheDir } from "../cache"
+import { tempDir } from "./helpers"
 
 let home = ""
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-cache-"))
+  home = tempDir("fxts-tk-cache-")
   setHomeDirForTest(home)
 })
 

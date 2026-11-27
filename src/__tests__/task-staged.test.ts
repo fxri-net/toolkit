@@ -1,10 +1,10 @@
 // active 任务暂存检查：任务目录配置感知、放行变量、暂存删除与重命名不误报
 import { execFileSync } from "node:child_process"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { ALLOW_ACTIVE_TASKS_ENV, checkStagedActiveTasks } from "../tasks/staged"
+import { tempDir } from "./helpers"
 
 const PIPELINE_ENV = "FX_TOOLKIT_PIPELINE"
 const originalPipeline = process.env[PIPELINE_ENV]
@@ -22,7 +22,7 @@ function put(root: string, rel: string): void {
 
 // 带初始提交的 git 仓库：后续可 reset / rm --cached
 function repo(): string {
-  const root = mkdtempSync(join(tmpdir(), "fxts-tk-task-staged-"))
+  const root = tempDir("fxts-tk-task-staged-")
   dirs.push(root)
   git(root, ["init", "-q"])
   git(root, ["config", "user.email", "test@example.com"])
@@ -75,7 +75,7 @@ describe("active 任务暂存检查", () => {
     expect(checkStagedActiveTasks({ cwd: root, taskDir: ".tasks" })).toEqual([])
     delete process.env[ALLOW_ACTIVE_TASKS_ENV]
 
-    const outside = mkdtempSync(join(tmpdir(), "fxts-tk-task-staged-nogit-"))
+    const outside = tempDir("fxts-tk-task-staged-nogit-")
     dirs.push(outside)
     expect(checkStagedActiveTasks({ cwd: outside, taskDir: ".tasks" })).toEqual([])
   })

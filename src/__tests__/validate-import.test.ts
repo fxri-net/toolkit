@@ -1,13 +1,13 @@
 // active 校验与导入单测：依赖引用归一、元数据/命名软告警、复选框开关、冲突序号与截断告警、自定义列映射、扩展字段透传
 import { describe, it, expect, afterEach } from "vitest"
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync, existsSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { writeFileSync, mkdirSync, rmSync, readFileSync, existsSync } from "node:fs"
 import { join } from "node:path"
 import { validateTasks } from "../tasks/validate"
 import { importTasks } from "../tasks/import"
 import { parseTaskName } from "../tasks/name"
 import { resetToolkitConfigCache } from "../config"
 import { todayCompact } from "../date"
+import { tempDir } from "./helpers"
 
 const cwd = process.cwd()
 
@@ -17,7 +17,7 @@ afterEach(() => {
 })
 
 function taskDir(): string {
-  return mkdtempSync(join(tmpdir(), "fxts-tk-active-"))
+  return tempDir("fxts-tk-active-")
 }
 
 // 写 active 文件（202609 子目录）；正文标题按文件名简述回填，夹具自身满足「简述源出标题」
@@ -159,7 +159,7 @@ describe("validateTasks 依赖与命名校验", () => {
     expect(warnTexts(dir).some((m) => m.includes("未闭合待办标记"))).toBe(true)
 
     // 配置关闭：词标记不再告警
-    const cfgDir = mkdtempSync(join(tmpdir(), "fxts-tk-cfg-pm-"))
+    const cfgDir = tempDir("fxts-tk-cfg-pm-")
     writeFileSync(join(cfgDir, ".toolkitrc.json"), JSON.stringify({ check: { pendingMarkers: false } }), "utf8")
     process.chdir(cfgDir)
     resetToolkitConfigCache()
@@ -176,7 +176,7 @@ describe("validateTasks 依赖与命名校验", () => {
     expect(warnTexts(dir).some((m) => m.includes("未勾选"))).toBe(true)
 
     // 关闭复选框扫描：进入带 .toolkitrc.json 的临时目录再校验
-    const cfgDir = mkdtempSync(join(tmpdir(), "fxts-tk-cfg-"))
+    const cfgDir = tempDir("fxts-tk-cfg-")
     writeFileSync(join(cfgDir, ".toolkitrc.json"), JSON.stringify({ check: { includeCheckbox: false } }), "utf8")
     process.chdir(cfgDir)
     resetToolkitConfigCache()
@@ -227,7 +227,7 @@ describe("validateTasks 新增校验（缺陷 16、17）", () => {
 
 describe("importTasks 写入与映射", () => {
   it("冲突序号从 -1 起、超长标题截断告警（A7）", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import-"))
+    const dir = tempDir("fxts-tk-import-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "archive"), { recursive: true })
     const csv = join(dir, "in.csv")
@@ -242,7 +242,7 @@ describe("importTasks 写入与映射", () => {
   })
 
   it("导入文件超过体积上限时拒绝，不进入解析", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import-size-"))
+    const dir = tempDir("fxts-tk-import-size-")
     mkdirSync(join(dir, "active"), { recursive: true })
     const csv = join(dir, "big.csv")
     writeFileSync(csv, `任务名\n${"x".repeat(21 * 1024 * 1024)}`, "utf8")
@@ -252,7 +252,7 @@ describe("importTasks 写入与映射", () => {
   })
 
   it("导入行数超过上限时拒绝", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import-rows-"))
+    const dir = tempDir("fxts-tk-import-rows-")
     mkdirSync(join(dir, "active"), { recursive: true })
     const csv = join(dir, "many.csv")
     const rows = Array.from({ length: 20001 }, (_, index) => `任务${index},甲,待办,20260903`)
@@ -262,7 +262,7 @@ describe("importTasks 写入与映射", () => {
   })
 
   it("负责人含路径分隔符时告警并记为未标注，不写到任务目录之外", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import-owner-"))
+    const dir = tempDir("fxts-tk-import-owner-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "archive"), { recursive: true })
     const csv = join(dir, "in.csv")
@@ -275,7 +275,7 @@ describe("importTasks 写入与映射", () => {
   })
 
   it("纯日期 completed 落盘补 00:00（A4）", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import2-"))
+    const dir = tempDir("fxts-tk-import2-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "archive"), { recursive: true })
     const csv = join(dir, "in.csv")
@@ -287,7 +287,7 @@ describe("importTasks 写入与映射", () => {
   })
 
   it("来源含更新日期时按原值写入；缺省回退当天（缺陷 20）", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import-upd-"))
+    const dir = tempDir("fxts-tk-import-upd-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "archive"), { recursive: true })
     // 含更新日期列：按来源真实时间写入，不被导入抹平为当天
@@ -304,7 +304,7 @@ describe("importTasks 写入与映射", () => {
   })
 
   it("归档块正文不含重复 H1 标题（缺陷 21）", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import-h1-"))
+    const dir = tempDir("fxts-tk-import-h1-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "archive"), { recursive: true })
     const csv = join(dir, "in.csv")
@@ -320,7 +320,7 @@ describe("importTasks 写入与映射", () => {
   })
 
   it("英文大写自定义列映射生效（C5）", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import3-"))
+    const dir = tempDir("fxts-tk-import3-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "archive"), { recursive: true })
     const csv = join(dir, "in.csv")
@@ -334,7 +334,7 @@ describe("importTasks 写入与映射", () => {
   })
 
   it("导入范围含顿号/括号给单值提示（入口防线，不自动转换）", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import4-"))
+    const dir = tempDir("fxts-tk-import4-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "archive"), { recursive: true })
     const csv = join(dir, "in.csv")
@@ -347,7 +347,7 @@ describe("importTasks 写入与映射", () => {
   })
 
   it("归档导入的状态取自数据，不硬编码已完成", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import-arch1-"))
+    const dir = tempDir("fxts-tk-import-arch1-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "archive"), { recursive: true })
     const csv = join(dir, "in.csv")
@@ -360,7 +360,7 @@ describe("importTasks 写入与映射", () => {
   })
 
   it("重复导入同名归档任务不产生重复块（幂等）", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import-arch2-"))
+    const dir = tempDir("fxts-tk-import-arch2-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "archive"), { recursive: true })
     const csv = join(dir, "in.csv")
@@ -373,7 +373,7 @@ describe("importTasks 写入与映射", () => {
   })
 
   it("归档导入按目标日期分组写入：同日多记录一次落盘仍保持去重与降序", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import-arch3-"))
+    const dir = tempDir("fxts-tk-import-arch3-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "archive"), { recursive: true })
     const csv = join(dir, "in.csv")
@@ -402,7 +402,7 @@ describe("importTasks 写入与映射", () => {
   })
 
   it("自定义列映射到非标准字段时透传为 frontmatter 扩展字段，且排在已知字段之后", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import-extra1-"))
+    const dir = tempDir("fxts-tk-import-extra1-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "archive"), { recursive: true })
     const csv = join(dir, "in.csv")
@@ -417,7 +417,7 @@ describe("importTasks 写入与映射", () => {
   })
 
   it("扩展字段列名非法或值含换行时不写入 frontmatter 并告警", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import-extra2-"))
+    const dir = tempDir("fxts-tk-import-extra2-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "archive"), { recursive: true })
     const csv = join(dir, "in.csv")
@@ -433,7 +433,7 @@ describe("importTasks 写入与映射", () => {
   })
 
   it("archive 目标无 frontmatter 承载位：扩展字段不落盘并显式告警", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import-extra3-"))
+    const dir = tempDir("fxts-tk-import-extra3-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "archive"), { recursive: true })
     const csv = join(dir, "in.csv")
@@ -448,7 +448,7 @@ describe("importTasks 写入与映射", () => {
 
 describe("import --target archive 的放弃理由告警", () => {
   it("多条缺理由记录合并为一条告警", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import-abandon-"))
+    const dir = tempDir("fxts-tk-import-abandon-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "archive"), { recursive: true })
     const csv = join(dir, "in.csv")
@@ -461,7 +461,7 @@ describe("import --target archive 的放弃理由告警", () => {
   })
 
   it("备注带放弃原因时不告警，理由随正文进归档块", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import-abandon2-"))
+    const dir = tempDir("fxts-tk-import-abandon2-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "archive"), { recursive: true })
     const csv = join(dir, "in.csv")
@@ -473,7 +473,7 @@ describe("import --target archive 的放弃理由告警", () => {
   })
 
   it("JSON 来源无正文列时告警文案说明数据缺失", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-import-abandon3-"))
+    const dir = tempDir("fxts-tk-import-abandon3-")
     mkdirSync(join(dir, "active"), { recursive: true })
     mkdirSync(join(dir, "archive"), { recursive: true })
     const json = join(dir, "in.json")

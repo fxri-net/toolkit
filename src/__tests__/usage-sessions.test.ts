@@ -1,12 +1,12 @@
 // 会话反查单测：JSONL 解析、Claude 会话定位、Agent 识别与不可用降级
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { parseSessionJsonl } from "../usage/sessions/jsonl"
 import { findClaudeSessionFile, lookupClaudeSession } from "../usage/sessions/claude"
 import { detectAgent } from "../usage/sessions"
+import { tempDir } from "./helpers"
 
 let home = ""
 
@@ -40,7 +40,7 @@ const CLAUDE_LINES = [
 ]
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-usage-sessions-"))
+  home = tempDir("fxts-tk-usage-sessions-")
   setHomeDirForTest(home)
   resetToolkitConfigCache()
 })

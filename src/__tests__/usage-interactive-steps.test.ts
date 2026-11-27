@@ -1,11 +1,10 @@
 // usage init 步骤机：前进、ESC 回上一步与取消传播
-import { mkdtempSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { rmSync } from "node:fs"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { loadUsageConfig } from "../usage/config"
 import { runUsageInitInteractive, runUsageInteractive } from "../usage/interactive"
+import { tempDir } from "./helpers"
 
 // 调用计数：用于断言某一步被重新提问
 const calls = vi.hoisted(() => ({
@@ -65,7 +64,7 @@ function setTty(value: boolean): void {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-usage-steps-"))
+  home = tempDir("fxts-tk-usage-steps-")
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   calls.trigger = 0

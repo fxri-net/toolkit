@@ -2,7 +2,6 @@
 // 用例把 home 与项目目录注入临时目录，产物只落在临时目录
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import {
@@ -26,6 +25,7 @@ import {
   writeProjectSkillsConfig,
   writeSkillsInstallConfig,
 } from "../skills"
+import { tempDir } from "./helpers"
 
 // 临时 home（全局层配置与状态文件落点）
 let home = ""
@@ -45,7 +45,7 @@ function readGlobalConfig(): Record<string, unknown> {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-skills-select-"))
+  home = tempDir("fxts-tk-skills-select-")
   // 项目目录落在注入的 home 下：项目层查找止于 home，避免向上命中真实用户配置
   project = mkdtempSync(join(home, "fxts-tk-skills-project-"))
   setHomeDirForTest(home)

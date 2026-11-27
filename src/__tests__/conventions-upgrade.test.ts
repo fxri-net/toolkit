@@ -1,15 +1,15 @@
 // 规范载体结构升级单测（v1 / v2 → v3）：形态识别、ID 发放、演进记录外置、退休迁出与分册小节清理、内部引用改写边界、幂等与异常态拒绝
 import { describe, it, expect, afterAll } from "vitest"
-import { existsSync, mkdtempSync, readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { upgradeConventions } from "../conventions/upgrade"
 import { CARRIER_MARKER, CARRIER_VERSION, HISTORY_FILE, HISTORY_TITLE, INDEX_FILE, RETIRED_FILE, detectForm, idOf, readCarrier } from "../conventions/format"
+import { tempDir } from "./helpers"
 
 // 各用例独立建临时目录，结束后统一清理
 const dirs: string[] = []
 function makeDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix))
+  const dir = tempDir(prefix)
   dirs.push(dir)
   return dir
 }

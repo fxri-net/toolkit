@@ -1,16 +1,16 @@
 // 表格归一单测：单行改写的各边界（填充、缩进、对齐标记、转义竖线、非表格行）、代码块豁免、
 // 行尾符保留、1 基行号、填充态检出、文件递归收集，以及 formatConventions 的写盘 / 幂等 / 预演 / 目录缺失
 import { describe, it, expect, afterAll } from "vitest"
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join, relative } from "node:path"
 import { compactMarkdown, compactTableLine, filledTableLines, formatConventions, listMarkdownFiles } from "../conventions/compact"
 import { CARRIER_MARKER, INDEX_TABLE_LINES } from "../conventions/format"
+import { tempDir } from "./helpers"
 
 // 各用例独立建临时目录，结束后统一清理
 const dirs: string[] = []
 function makeDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix))
+  const dir = tempDir(prefix)
   dirs.push(dir)
   return dir
 }

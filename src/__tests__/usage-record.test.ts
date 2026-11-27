@@ -1,8 +1,7 @@
 // 规则上报队列与 worker 单测：按次计数、基础事件必成、反查补字段与失败降级
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { Command } from "commander"
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { registerUsageCommands } from "../usage/commands"
@@ -11,6 +10,7 @@ import { ingestFromStdin } from "../usage/ingest"
 import { listQueueFiles, queueDir } from "../usage/queue"
 import { createBatchId, resolveRecordSession } from "../usage/record"
 import { readAllEvents, usagePaths } from "../usage/store"
+import { tempDir } from "./helpers"
 
 let home = ""
 let dataDir = ""
@@ -34,8 +34,8 @@ function writeUsageConfig(patch: Record<string, unknown> = {}): void {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-usage-queue-home-"))
-  dataDir = mkdtempSync(join(tmpdir(), "fxts-tk-usage-queue-data-"))
+  home = tempDir("fxts-tk-usage-queue-home-")
+  dataDir = tempDir("fxts-tk-usage-queue-data-")
   mkdirSync(join(home, ".trae-cn"), { recursive: true })
   process.env.FX_TOOLKIT_USAGE_NO_WORKER = "1"
   delete process.env.FX_TOOLKIT_USAGE_AGENT

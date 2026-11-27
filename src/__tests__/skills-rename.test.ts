@@ -1,7 +1,6 @@
 // 技能改名：曾用名声明、选择集迁移、断链登记保留与清理、未登记旧名卸载、疑似残留提示
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, lstatSync, mkdirSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import {
@@ -23,6 +22,7 @@ import {
   writeSkillsInstallConfig,
   type SelectionSkill,
 } from "../skills"
+import { tempDir } from "./helpers"
 
 // 临时 home（全局状态与配置落点）
 let home = ""
@@ -72,8 +72,8 @@ function view(name: string, source = "toolkit", sourceKind: "builtin" | "local" 
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-skills-rename-home-"))
-  work = mkdtempSync(join(tmpdir(), "fxts-tk-skills-rename-work-"))
+  home = tempDir("fxts-tk-skills-rename-home-")
+  work = tempDir("fxts-tk-skills-rename-work-")
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   resetSkillsRootCache()

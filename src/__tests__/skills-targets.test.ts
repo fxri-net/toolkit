@@ -1,7 +1,6 @@
 // 目标选择：全局 agent 与项目薄壳目录的长期选择、取消保留、--prune 清理与状态单列
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, mkdirSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import {
@@ -21,6 +20,7 @@ import {
   resolveTargetsByName,
   skillsStatus,
 } from "../skills"
+import { tempDir } from "./helpers"
 
 // 临时 home（全局配置 / 状态与 agent 目录落点）
 let home = ""
@@ -33,8 +33,8 @@ function enableAgent(configDir: string): void {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-skills-targets-"))
-  project = mkdtempSync(join(tmpdir(), "fxts-tk-skills-targets-project-"))
+  home = tempDir("fxts-tk-skills-targets-")
+  project = tempDir("fxts-tk-skills-targets-project-")
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   resetSkillsRootCache()

@@ -1,14 +1,14 @@
 // 作用域向导计划：目录扫描与配置段合并
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { dedupe, mergeActivation, scanRepositories, scanRepositoryTree } from "../scope/plan"
+import { tempDir } from "./helpers"
 
 let root = ""
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "fxts-tk-scope-plan-"))
+  root = tempDir("fxts-tk-scope-plan-")
 })
 
 afterEach(() => {

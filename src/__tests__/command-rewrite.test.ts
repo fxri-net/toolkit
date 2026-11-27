@@ -1,15 +1,14 @@
 // 旧路径重写与命中记录：覆盖分组迁移、参数保留、门闸取值映射与非命令位置不误改
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { mkdtempSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { rmSync } from "node:fs"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { recordDeprecationHits, rewriteDeprecatedArgv, takeDeprecationHits } from "../command-registry"
+import { tempDir } from "./helpers"
 
 let home = ""
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-rewrite-"))
+  home = tempDir("fxts-tk-rewrite-")
   setHomeDirForTest(home)
   resetToolkitConfigCache()
 })

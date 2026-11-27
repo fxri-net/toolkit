@@ -1,11 +1,11 @@
 // 归一化 --fix 去 BOM：只对带 BOM 的任务档写回，内容与换行风格不变
 import { describe, it, expect } from "vitest"
-import { mkdtempSync, writeFileSync, mkdirSync, readFileSync, statSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { writeFileSync, mkdirSync, readFileSync, statSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { fixArchive, checkArchive } from "../tasks/normalize"
+import { tempDir } from "./helpers"
 
-const taskDir = () => mkdtempSync(join(tmpdir(), "fxts-tk-bom-"))
+const taskDir = () => tempDir("fxts-tk-bom-")
 // 模拟 PowerShell 5 `Set-Content -Encoding UTF8` 产生的 UTF-8 BOM
 const withBom = (text: string) => "\uFEFF" + text
 

@@ -1,16 +1,16 @@
 // 归档块解析与归一化单测：normalizeCompleted 补位、分隔符清理、孤儿块扫描、漂移迁移与排序
 import { describe, it, expect } from "vitest"
-import { mkdtempSync, writeFileSync, readFileSync, mkdirSync, rmSync, existsSync, readdirSync, utimesSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { writeFileSync, readFileSync, mkdirSync, rmSync, existsSync, readdirSync, utimesSync } from "node:fs"
 import { join } from "node:path"
 import { normalizeCompleted, parseArchiveBlocks, renderBlock, scanOrphanBlocks } from "../tasks/archive-block"
 import { checkArchive, fixArchive } from "../tasks/normalize"
 import { archiveTasks } from "../tasks/archive"
 import { acquireArchiveLock, releaseArchiveLock } from "../tasks/lock"
+import { tempDir } from "./helpers"
 
 // 建临时任务目录
 function makeDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-tasks-"))
+  const dir = tempDir("fxts-tk-tasks-")
   mkdirSync(join(dir, "archive"), { recursive: true })
   return dir
 }

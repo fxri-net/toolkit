@@ -1,10 +1,10 @@
 // 覆盖率双轨门禁：改动行判定与全局下限的假现场用例（C-44）
 // 被测脚本按 process.cwd() 读 coverage 报告，测试用临时目录充当仓库根并以子进程实跑，验证真实退出码与输出
 import { spawnSync } from "node:child_process"
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
+import { tempDir } from "./helpers"
 
 const script = join(process.cwd(), "scripts", "check-coverage.mjs")
 const fixtures: string[] = []
@@ -32,7 +32,7 @@ function buildDiff(lines: number[], file = "src/demo.ts"): string {
 }
 
 function createFixture(options: FixtureOptions): string {
-  const root = mkdtempSync(join(tmpdir(), "fxts-tk-coverage-"))
+  const root = tempDir("fxts-tk-coverage-")
   fixtures.push(root)
   const statements = options.statements
   const summary = options.summary ?? { statements: 90, branches: 90, functions: 90, lines: 90 }

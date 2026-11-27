@@ -1,13 +1,13 @@
 // 放弃理由：已放弃须在正文写非空「> 放弃原因：」，其它状态不得残留该行
 import { describe, it, expect } from "vitest"
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { writeFileSync, mkdirSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { validateTasks } from "../tasks/validate"
+import { tempDir } from "./helpers"
 
 // 造单任务档：默认已放弃，status / completed / 正文可按用例覆盖
 function makeTask(body: string, status = "已放弃", completed = "2026-11-20 10:00"): string {
-  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-abandon-"))
+  const dir = tempDir("fxts-tk-abandon-")
   mkdirSync(join(dir, "active", "202611"), { recursive: true })
   writeFileSync(
     join(dir, "active", "202611", "20261120-唐启云-放弃样例.md"),

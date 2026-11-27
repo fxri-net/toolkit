@@ -1,14 +1,14 @@
 // 提交规则显式同步：无差异 / 有差异 / 预演不写盘 / 不存在时创建
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
-import { tmpdir } from "node:os"
 import { inspectRuleSync, RULE_SYNC_TARGET, ruleSyncBody, writeRuleSync } from "../rules/sync"
+import { tempDir } from "./helpers"
 
 let cwd = ""
 
 beforeEach(() => {
-  cwd = mkdtempSync(join(tmpdir(), "fxts-tk-rule-sync-"))
+  cwd = tempDir("fxts-tk-rule-sync-")
 })
 
 afterEach(() => {

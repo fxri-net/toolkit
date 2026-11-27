@@ -1,13 +1,13 @@
 // 阻塞节形态：三行固定、位置、日期与「已解除未转态」；非阻塞档保留该节不校验
 import { describe, it, expect } from "vitest"
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { writeFileSync, mkdirSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { validateTasks } from "../tasks/validate"
+import { tempDir } from "./helpers"
 
 // 造单任务档：默认阻塞态、无完成时间
 function makeTask(body: string, status = "阻塞", completed = ""): string {
-  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-block-"))
+  const dir = tempDir("fxts-tk-block-")
   mkdirSync(join(dir, "active", "202611"), { recursive: true })
   writeFileSync(
     join(dir, "active", "202611", "20261120-唐启云-阻塞样例.md"),

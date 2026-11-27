@@ -2,8 +2,7 @@
 // 真 git 用例走 execSync("git init")；归因分支（exit 128 的 stderr 细分）用 spawnSync 桩构造，避免依赖 git 的具体报错文案
 import { describe, it, expect, afterAll, vi } from "vitest"
 import { execSync } from "node:child_process"
-import { mkdirSync, mkdtempSync, writeFileSync, rmSync, realpathSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, writeFileSync, rmSync, realpathSync } from "node:fs"
 import { join } from "node:path"
 import {
   checkIgnore,
@@ -17,11 +16,12 @@ import {
   probeRepo,
   toPosix,
 } from "../git-ignore"
+import { tempDir } from "./helpers"
 
 // 各用例独立建临时目录，结束后统一清理
 const dirs: string[] = []
 function makeDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix))
+  const dir = tempDir(prefix)
   dirs.push(dir)
   return dir
 }
@@ -65,7 +65,7 @@ describe("isInsideWorktree 工作树归属", () => {
 
   it("同一目录的两种书写形态均判为命中（Windows 8.3 短名 / 软链形态）", { timeout: 15000 }, () => {
     const repo = makeRepo("fxts-tk-gi-form-")
-    // 取磁盘真实形态：Windows CI 下 tmpdir 为 8.3 短名、git rev-parse 返回长名，两者形态不同但指向同一目录
+    // 取磁盘真实形态：Windows CI 下系统临时目录为 8.3 短名、git rev-parse 返回长名，两者形态不同但指向同一目录
     const canonical = realpathSync.native(repo)
     expect(isInsideWorktree(join(canonical, "a.txt"), repo)).toBe(true)
     expect(isInsideWorktree(join(repo, "a.txt"), canonical)).toBe(true)
@@ -79,7 +79,7 @@ describe("probeRepo 仓库探针", { timeout: 15000 }, () => {
     const repo = makeRepo("fxts-tk-gi-repo-")
     const probe = probeRepo(repo)
     expect(probe.kind).toBe("repo")
-    // 不直接比对根路径字符串（macOS 下 tmpdir 可能是软链），改用归属判定验证根有效
+    // 不直接比对根路径字符串（macOS 下系统临时目录可能是软链），改用归属判定验证根有效
     if (probe.kind === "repo") expect(isInsideWorktree(join(repo, "a.txt"), probe.root)).toBe(true)
   })
 

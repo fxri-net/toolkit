@@ -1,9 +1,8 @@
 // 上传向导三步：第 2、3 步可退回上一步，首步取消即整体退出，确认后写配置
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { mkdtempSync, rmSync } from "node:fs"
-import { join } from "node:path"
-import { tmpdir } from "node:os"
+import { rmSync } from "node:fs"
 import { setHomeDirForTest } from "../config"
+import { tempDir } from "./helpers"
 
 const ui = vi.hoisted(() => ({
   selects: [] as unknown[],
@@ -52,7 +51,7 @@ import { runUploadSetup } from "../usage/upload"
 let home = ""
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-upload-"))
+  home = tempDir("fxts-tk-upload-")
   setHomeDirForTest(home)
   ui.selects.length = 0
   ui.inputs.length = 0

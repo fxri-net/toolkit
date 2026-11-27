@@ -1,15 +1,15 @@
 // M1 标题误报 / M3 已归档依赖去向 / L3 导入写锁
 import { describe, it, expect } from "vitest"
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync, existsSync, utimesSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { writeFileSync, mkdirSync, rmSync, existsSync, utimesSync } from "node:fs"
 import { join } from "node:path"
 import { validateTasks } from "../tasks/validate"
 import { importTasks } from "../tasks/import"
+import { tempDir } from "./helpers"
 
 const warnTexts = (dir: string) => validateTasks(dir).issues.filter((i) => i.level === "warn").map((i) => i.message)
 
 function rootDir(): string {
-  return mkdtempSync(join(tmpdir(), "fxts-tk-lm-"))
+  return tempDir("fxts-tk-lm-")
 }
 
 describe("M1 标题含待办词不误报", () => {

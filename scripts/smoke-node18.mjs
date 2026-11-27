@@ -64,7 +64,7 @@ if (major < needMajor || (major === needMajor && minor < needMinor)) {
 runCli(["--version"], process.cwd())
 probePrompts(packageRoot)
 
-const work = mkdtempSync(join(tmpdir(), "toolkit-node18-"))
+const work = mkdtempSync(join(tmpdir(), "fxts-tk-node18-"))
 try {
   runCli(["task", "list"], work)
   runCli(["skill", "install", "--scope", "global", "--dry-run", "--yes"], work)

@@ -1,15 +1,15 @@
 // 底层模块直接单测（T-9）：原子写、目录扫描、展示路径
 import { describe, it, expect } from "vitest"
-import { mkdtempSync, writeFileSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { writeFileSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { writeFileAtomic } from "../write-atomic"
 import { listTaskFiles, dateFromFileName } from "../tasks/scan"
 import { displayRel } from "../tasks/paths"
+import { tempDir, tempPath } from "./helpers"
 
 describe("writeFileAtomic", () => {
   it("写入内容并原子替换，不残留临时文件", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-wa-"))
+    const dir = tempDir("fxts-tk-wa-")
     const file = join(dir, "a.md")
     writeFileAtomic(file, "hello")
     expect(readFileSync(file, "utf8")).toBe("hello")
@@ -22,7 +22,7 @@ describe("writeFileAtomic", () => {
 
 describe("scan.listTaskFiles", () => {
   it("收集一层年月子目录与根目录的 .md，忽略更深层与非 .md", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-scan-"))
+    const dir = tempDir("fxts-tk-scan-")
     mkdirSync(join(dir, "202609", "deep"), { recursive: true })
     writeFileSync(join(dir, "root.md"), "x", "utf8")
     writeFileSync(join(dir, "202609", "a.md"), "x", "utf8")
@@ -37,11 +37,11 @@ describe("scan.listTaskFiles", () => {
   })
 
   it("目录不存在返回空数组", () => {
-    expect(listTaskFiles(join(tmpdir(), "fxts-tk-absent-" + Date.now()))).toEqual([])
+    expect(listTaskFiles(tempPath("fxts-tk-absent-"))).toEqual([])
   })
 
   it("months 白名单跳过范围外年月目录，非年月目录与根目录文件不被误伤", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-scan-range-"))
+    const dir = tempDir("fxts-tk-scan-range-")
     mkdirSync(join(dir, "202601"), { recursive: true })
     mkdirSync(join(dir, "202609"), { recursive: true })
     mkdirSync(join(dir, "legacy"), { recursive: true })
@@ -65,7 +65,7 @@ describe("scan.listTaskFiles", () => {
 
 describe("paths.displayRel", () => {
   it("返回相对 tasksDir 且统一 / 分隔（跨平台路径安全）", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-path-"))
+    const dir = tempDir("fxts-tk-path-")
     const tasks = join(dir, ".tasks")
     const file = join(tasks, "active", "202609", "a.md")
     expect(displayRel(tasks, file)).toBe("active/202609/a.md")

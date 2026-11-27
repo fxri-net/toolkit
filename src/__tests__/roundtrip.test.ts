@@ -1,19 +1,19 @@
 // 导出→导入往返单测（T-7）：CSV/JSON/XLSX 三种格式写出后可被导入端回读，
 // 覆盖 CSV 特殊字符转义、UTF-8 BOM、XLSX 多 sheet（待完成/已归档）与汇总 sheet 跳过、JSON schemaVersion
 import { describe, it, expect } from "vitest"
-import { mkdtempSync, writeFileSync, mkdirSync, existsSync, rmSync, readdirSync, readFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { writeFileSync, mkdirSync, existsSync, rmSync, readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { exportTasks } from "../tasks/export"
 import { importTasks } from "../tasks/import"
 import { queryTasks } from "../tasks/query"
 import type { TaskSummary } from "../tasks/types"
+import { tempDir } from "./helpers"
 
 const summary: TaskSummary = { total: 0, byStatus: {}, byOwner: {} }
 
 // 造含 CSV 特殊字符标题的 active 源目录
 function makeActiveSource(): string {
-  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-rt-src-"))
+  const dir = tempDir("fxts-tk-rt-src-")
   mkdirSync(join(dir, "active", "202609"), { recursive: true })
   const put = (name: string, title: string) =>
     writeFileSync(
@@ -38,7 +38,7 @@ function appendArchived(dir: string): void {
 
 // 导入目标空目录
 function emptyTasksDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-rt-dst-"))
+  const dir = tempDir("fxts-tk-rt-dst-")
   mkdirSync(join(dir, "active"), { recursive: true })
   mkdirSync(join(dir, "archive"), { recursive: true })
   return dir
@@ -59,7 +59,7 @@ function activeText(dir: string): string {
 describe("导出→导入往返", () => {
   it("CSV 写出含 BOM 与引号转义，往返不丢特殊字符", async () => {
     const src = makeActiveSource()
-    const outDir = mkdtempSync(join(tmpdir(), "fxts-tk-rt-out-"))
+    const outDir = tempDir("fxts-tk-rt-out-")
     const out = join(outDir, "out.csv")
     const { rows } = queryTasks(src, "active", {})
     expect(rows).toHaveLength(2)
@@ -83,7 +83,7 @@ describe("导出→导入往返", () => {
 
   it("JSON 写出含 schemaVersion 字段，往返可回读", async () => {
     const src = makeActiveSource()
-    const outDir = mkdtempSync(join(tmpdir(), "fxts-tk-rt-out-"))
+    const outDir = tempDir("fxts-tk-rt-out-")
     const out = join(outDir, "out.json")
     const { rows } = queryTasks(src, "active", {})
     await exportTasks(out, rows, summary)
@@ -105,7 +105,7 @@ describe("导出→导入往返", () => {
   it("XLSX 待完成/已归档双 sheet 往返（汇总 sheet 跳过）", async () => {
     const src = makeActiveSource()
     appendArchived(src)
-    const outDir = mkdtempSync(join(tmpdir(), "fxts-tk-rt-out-"))
+    const outDir = tempDir("fxts-tk-rt-out-")
     const out = join(outDir, "out.xlsx")
     const { rows } = queryTasks(src, "all", {})
     expect(rows).toHaveLength(3)

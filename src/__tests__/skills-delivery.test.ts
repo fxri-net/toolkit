@@ -1,7 +1,6 @@
 // 分发形态模型：优先级推导、两个安装面的配置读取、旧键映射与 off 的安装 / 状态 / 清理口径
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import {
@@ -17,6 +16,7 @@ import {
   setPackageRootForTest,
   skillsStatus,
 } from "../skills"
+import { tempDir } from "./helpers"
 
 // 临时 home 与项目目录：产物与配置都只落在临时路径
 let home = ""
@@ -46,8 +46,8 @@ function primaryState(name: string): string | undefined {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-delivery-"))
-  project = mkdtempSync(join(tmpdir(), "fxts-tk-delivery-proj-"))
+  home = tempDir("fxts-tk-delivery-")
+  project = tempDir("fxts-tk-delivery-proj-")
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   resetSkillsConfigWarnings()
@@ -139,7 +139,7 @@ describe("分发形态推导", () => {
 
 describe("技能包默认形态", () => {
   it("metadata.delivery 声明生效，非法取值告警后忽略", () => {
-    const root = mkdtempSync(join(tmpdir(), "fxts-tk-delivery-pkg-"))
+    const root = tempDir("fxts-tk-delivery-pkg-")
     mkdirSync(join(root, "skills", "demo-gated"), { recursive: true })
     writeFileSync(
       join(root, "skills", "demo-gated", "SKILL.md"),
@@ -190,7 +190,7 @@ describe("技能包默认形态", () => {
 
 describe("外部来源的声明参与解释", () => {
   it("状态登记的外部技能：metadata.gate:false 在解释中生效", () => {
-    const sourceRoot = mkdtempSync(join(tmpdir(), "fxts-tk-delivery-ext-"))
+    const sourceRoot = tempDir("fxts-tk-delivery-ext-")
     mkdirSync(join(sourceRoot, "skills", "ext-opt-out"), { recursive: true })
     writeFileSync(
       join(sourceRoot, "skills", "ext-opt-out", "SKILL.md"),

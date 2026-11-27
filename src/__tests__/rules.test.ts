@@ -1,18 +1,18 @@
 // 规则模块化单测：清单校验、组合顺序、锚点取值、缓存与剪贴板
 import { describe, expect, it, beforeEach, afterEach } from "vitest"
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { dirname, join } from "node:path"
-import { tmpdir } from "node:os"
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { dirname } from "node:path"
 import { setHomeDirForTest } from "../config"
 import { composeRules, listRules, loadRuleModules, loadRuleset } from "../rules"
 import { CLIP_FILE_ENV, clipboardCommands, copyToClipboard } from "../rules/clipboard"
 import { clearRulesSelection, readRulesSelection, rulesSelectionPath, writeRulesSelection } from "../rules/cache"
 import { CUSTOM_PRESET, defaultPreset } from "../rules/select"
+import { tempDir } from "./helpers"
 
 let home = ""
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-rules-"))
+  home = tempDir("fxts-tk-rules-")
   setHomeDirForTest(home)
 })
 

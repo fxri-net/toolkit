@@ -1,6 +1,5 @@
 // 安全删除与状态路径约束：越界目标必须拒绝，正常临时目录可清理
-import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
 import {
@@ -12,11 +11,12 @@ import {
 } from "../safe-remove"
 import { readProjectState } from "../skills/state"
 import { STATE_FORMAT, STATE_SCHEMA_VERSION } from "../skills/types"
+import { tempDir } from "./helpers"
 
 const fixtures: string[] = []
 
 function tmpRoot(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix))
+  const dir = tempDir(prefix)
   fixtures.push(dir)
   return dir
 }

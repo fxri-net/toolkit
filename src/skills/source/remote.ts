@@ -158,7 +158,7 @@ export function resolveRemoteSource(spec: string, options: { name?: string; temp
     refreshRemote(cacheDir, remote)
     root = cacheDir
   } else if (options.dryRun) {
-    root = mkdtempSync(join(tmpdir(), "toolkit-src-"))
+    root = mkdtempSync(join(tmpdir(), "fxts-tk-src-"))
     installTempDirCleanup(root)
     cloneRemote(remote, root)
   } else {

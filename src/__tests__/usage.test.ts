@@ -1,7 +1,6 @@
 // 使用情况内核单测：默认关闭、过滤链、事件 ID、技能识别、存储去重与统计聚合
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { buildEvent, computeEventId, extractSkillName, resolveSkillMeta, toLocalIsoString } from "../usage/event"
@@ -10,6 +9,7 @@ import { DEFAULT_USAGE_CONFIG, loadUsageConfig, normalizeUsageConfig, resetUsage
 import { appendEvent, dedupeStore, purgeEvents, readAllEvents, readIndex, usagePaths } from "../usage/store"
 import { eventsToCsv, filterEvents, parseSince, summarize, unusedSkills } from "../usage/stats"
 import type { SkillUsageEvent, UsageConfig } from "../usage/types"
+import { tempDir } from "./helpers"
 
 // 造一个全开配置：便于测试过滤链与事件字段
 function enabledConfig(patch: Partial<UsageConfig> = {}): UsageConfig {
@@ -41,21 +41,11 @@ function makeEvent(overrides: Partial<SkillUsageEvent> = {}): SkillUsageEvent {
   }
 }
 
-// 临时目录：用例结束统一清理
-const tempDirs: string[] = []
-
-function tempDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix))
-  tempDirs.push(dir)
-  return dir
-}
-
 afterEach(() => {
   vi.restoreAllMocks()
   setHomeDirForTest(undefined)
   resetToolkitConfigCache()
   resetUsageConfigWarnings()
-  for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true })
 })
 
 describe("使用情况配置", () => {

@@ -1,10 +1,10 @@
 // 隐私脱敏规则单测：内置格式命中 / 长度门槛防误伤 / 自定义规则与禁用（C3 配置即时生效）
 import { describe, it, expect, afterEach } from "vitest"
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { writeFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { redactText } from "../privacy/redact"
 import { resetToolkitConfigCache } from "../config"
+import { tempDir } from "./helpers"
 
 const cwd = process.cwd()
 
@@ -15,7 +15,7 @@ afterEach(() => {
 
 // 构造带 .toolkitrc.json 的临时目录并进入（结束后恢复 cwd）
 function enterCfgDir(cfg: string): string {
-  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-redact-"))
+  const dir = tempDir("fxts-tk-redact-")
   writeFileSync(join(dir, ".toolkitrc.json"), cfg, "utf8")
   process.chdir(dir)
   resetToolkitConfigCache()

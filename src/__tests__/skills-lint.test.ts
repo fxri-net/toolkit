@@ -1,10 +1,10 @@
 // 技能规范校验：合规放行、结构错误、预算两档、references、敏感信息、目标解析与版本递增
 import { spawnSync } from "node:child_process"
-import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
 import { lintSkills, type SkillLintReport } from "../skills/lint"
+import { tempDir } from "./helpers"
 
 interface SkillOptions {
   version?: string
@@ -27,7 +27,7 @@ const fixtures: string[] = []
 
 // 建临时检查根
 function makeRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "fxts-tk-lint-"))
+  const root = tempDir("fxts-tk-lint-")
   fixtures.push(root)
   return root
 }
@@ -77,7 +77,7 @@ function git(root: string, args: string[]): string {
 
 // 建一个已提交技能的仓库，返回检查根（仓库内 skills/）
 function makeRepo(): string {
-  const root = mkdtempSync(join(tmpdir(), "fxts-tk-lint-git-"))
+  const root = tempDir("fxts-tk-lint-git-")
   fixtures.push(root)
   git(root, ["init"])
   const skills = join(root, "skills")
@@ -315,13 +315,13 @@ describe("版本递增（--base）", () => {
   })
 
   it("浅克隆缺基准提交时明确跳过", () => {
-    const source = mkdtempSync(join(tmpdir(), "fxts-tk-lint-src-"))
+    const source = tempDir("fxts-tk-lint-src-")
     fixtures.push(source)
     git(source, ["init"])
     writeSkill(join(source, "skills"), "fxri-alpha")
     git(source, ["add", "."])
     git(source, ["commit", "-m", "init"])
-    const clone = mkdtempSync(join(tmpdir(), "fxts-tk-lint-clone-"))
+    const clone = tempDir("fxts-tk-lint-clone-")
     fixtures.push(clone)
     git(dirname(clone), ["clone", "--depth", "1", "--no-local", source, clone])
     const report = lintSkills({ dirs: [join(clone, "skills")], base: "HEAD~1" })

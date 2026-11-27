@@ -1,29 +1,18 @@
 // 任务扫描：链接月份目录跳过扫描并软告警，避免读写任务区外的同名文件
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, symlinkSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
-import { afterEach, describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest"
 import { listTaskFiles } from "../tasks/scan"
 import { validateTasks } from "../tasks/validate"
 import { checkArchive } from "../tasks/normalize"
+import { tempDir } from "./helpers"
 
-const dirs: string[] = []
 const linkType = process.platform === "win32" ? "junction" : "dir"
 
 // 最小合规任务档：日期与文件名一致，避免叠加命名告警
 function task(date: string, title: string): string {
   return `---\nowner: 唐启云\nstatus: 待办\ncreated: ${date}\nupdated: ${date}\ncompleted: ''\ndepends_on: []\nscope: 测\n---\n\n# ${title}\n`
 }
-
-function tempDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix))
-  dirs.push(dir)
-  return dir
-}
-
-afterEach(() => {
-  for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true })
-})
 
 describe("任务扫描跳过链接月份目录", () => {
   it("active 链接月份目录不被列出，并给出软告警", () => {

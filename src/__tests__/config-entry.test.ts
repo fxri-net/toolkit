@@ -1,13 +1,13 @@
 // 配置单一入口：键元数据、三层写入往返、旧段名迁移与命令注册表不变量
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { inspectConfigLayers, resetToolkitConfigCache, rewriteLegacySections, setHomeDirForTest } from "../config"
 import { configKeyNames, getConfigKey, isConfigLayer, parseConfigValue, suggestConfigKeys } from "../config-keys"
 import { configFileForLayer, configLayerInRepo, readConfigKey, readConfigKeys, unsetConfigKey, writeConfigKey } from "../config-edit"
 import { writeUpdateCheckSourceNotify } from "../skills/config"
 import { COMMAND_REGISTRY, commandMigrationRows, removedCommandHint } from "../command-registry"
+import { tempDir } from "./helpers"
 
 // 临时 home 与项目目录：三层配置都只落在临时路径
 let home = ""
@@ -15,8 +15,8 @@ let project = ""
 const originalCwd = process.cwd()
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-cfg-entry-home-"))
-  project = mkdtempSync(join(tmpdir(), "fxts-tk-cfg-entry-proj-"))
+  home = tempDir("fxts-tk-cfg-entry-home-")
+  project = tempDir("fxts-tk-cfg-entry-proj-")
   // 项目根判定依赖 .git 或 .tasks，这里放一个空 .git 目录
   mkdirSync(join(project, ".git"), { recursive: true })
   setHomeDirForTest(home)
@@ -136,7 +136,7 @@ describe("三层写入往返", () => {
 
 describe("查找起点与批量读取", () => {
   it("传入目录参数时读写落在该目录", () => {
-    const other = mkdtempSync(join(tmpdir(), "fxts-tk-cfg-other-"))
+    const other = tempDir("fxts-tk-cfg-other-")
     try {
       mkdirSync(join(other, ".git"), { recursive: true })
       writeConfigKey("project", "task.dir", "other-tasks", other)
@@ -160,7 +160,7 @@ describe("查找起点与批量读取", () => {
 
   it("项目根判定：有项目标志为真，都没有为假", () => {
     expect(configLayerInRepo(project)).toBe(true)
-    const plain = mkdtempSync(join(tmpdir(), "fxts-tk-cfg-plain-"))
+    const plain = tempDir("fxts-tk-cfg-plain-")
     try {
       expect(configLayerInRepo(plain)).toBe(false)
     } finally {
@@ -290,7 +290,7 @@ describe("命令注册表", () => {
 
 describe("项目层更新提示写入", () => {
   it("无 git 的项目目录按项目配置定位，不再要求 git 根", () => {
-    const plain = mkdtempSync(join(tmpdir(), "fxts-tk-update-notify-"))
+    const plain = tempDir("fxts-tk-update-notify-")
     try {
       const file = writeUpdateCheckSourceNotify("play", "daily", "project", plain)
       expect(file).toBe(join(plain, ".toolkitrc.json"))

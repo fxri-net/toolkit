@@ -1,10 +1,10 @@
 // 本机路径归一：默认关闭；开启后归一盘符与 POSIX 家目录，占位符不动且幂等
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { normalizeIfEnabled, normalizeLocalPaths, resolveLocalPathLevel } from "../privacy/paths"
+import { tempDir } from "./helpers"
 
 let home = ""
 let originalCwd = ""
@@ -17,7 +17,7 @@ function writeConfig(config: unknown): void {
 
 beforeEach(() => {
   originalCwd = process.cwd()
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-privacy-paths-"))
+  home = tempDir("fxts-tk-privacy-paths-")
   setHomeDirForTest(home)
   // 切到临时目录：避免读到本仓 .toolkitrc.json 的项目层配置
   process.chdir(home)

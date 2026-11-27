@@ -1,9 +1,9 @@
 // 净变更审计单测：同对象多类型候选、不同对象不误报、审计不修改文件
 import { afterEach, describe, expect, it } from "vitest"
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { auditChangesets, formatAuditReport } from "../changelog/audit"
+import { tempDir } from "./helpers"
 
 // 临时目录统一清理
 const tempDirs: string[] = []
@@ -14,7 +14,7 @@ afterEach(() => {
 
 // 造变更集目录
 function changesetDir(files: Record<string, string>): string {
-  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-audit-"))
+  const dir = tempDir("fxts-tk-audit-")
   tempDirs.push(dir)
   const changeset = join(dir, ".changeset")
   mkdirSync(changeset, { recursive: true })

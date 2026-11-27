@@ -1,7 +1,6 @@
 // 多 Agent 适配单测：camelCase 兼容、transcript 提取与跨适配器去重
-import { afterEach, describe, expect, it } from "vitest"
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { describe, expect, it } from "vitest"
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { codexAdapter } from "../usage/adapters/codex"
@@ -11,19 +10,7 @@ import { DEFAULT_USAGE_CONFIG } from "../usage/config"
 import { appendEvent, dedupeStore, readAllEvents, usagePaths } from "../usage/store"
 import { parseTranscript } from "../usage/transcript"
 import type { SkillUsageEvent } from "../usage/types"
-
-// 临时目录统一清理
-const tempDirs: string[] = []
-
-function tempDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix))
-  tempDirs.push(dir)
-  return dir
-}
-
-afterEach(() => {
-  for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true })
-})
+import { tempDir } from "./helpers"
 
 // 夹具路径：ESM 下没有 __dirname
 function fixture(name: string): string {

@@ -1,9 +1,9 @@
 // 规则锚点检查：模块与规则页同源、格式校验与非法现场报错
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { checkRuleAnchors } from "../commands/rule"
+import { tempDir } from "./helpers"
 
 let root = ""
 
@@ -36,7 +36,7 @@ function fixture(a?: { b?: string; pageA?: string }): void {
 }
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "fxts-tk-rule-check-"))
+  root = tempDir("fxts-tk-rule-check-")
 })
 
 afterEach(() => {

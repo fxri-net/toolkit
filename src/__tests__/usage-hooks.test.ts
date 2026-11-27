@@ -1,7 +1,6 @@
 // Hook 适配器单测：标准事件解析、安装 / 状态 / 卸载往返、触发词缓存与事件落盘
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
@@ -13,21 +12,12 @@ import { DEFAULT_USAGE_CONFIG } from "../usage/config"
 import { extractOutcome, processHookEvent, readPromptCache } from "../usage/ingest"
 import { readAllEvents, usagePaths } from "../usage/store"
 import type { NormalizedHookEvent, UsageConfig } from "../usage/types"
-
-// 临时目录统一清理
-const tempDirs: string[] = []
-
-function tempDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix))
-  tempDirs.push(dir)
-  return dir
-}
+import { tempDir } from "./helpers"
 
 afterEach(() => {
   vi.restoreAllMocks()
   setHomeDirForTest(undefined)
   resetToolkitConfigCache()
-  for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true })
 })
 
 // 全开配置：Hook 事件可直接落盘

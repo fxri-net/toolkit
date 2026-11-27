@@ -1,12 +1,12 @@
 // 内容闸门：入口壳产物、幂等切换、状态展示、卸载归属与 guard 的激活 / 未激活契约
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, lstatSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { runGuard } from "../scope/guard"
 import { resetScopeCache } from "../scope/load"
 import { autoLinkSkills, installSkills, isSkillGateShell, isSkillGated, listPackageSkills, readSkillsDeliveryConfig, readSkillsInstallConfig, readSkillsState, removeSkills, resetSkillGateWarnings, resetSkillsRootCache, setPackageRootForTest, skillsSourceDir, skillsStateFile, skillsStatus } from "../skills"
+import { tempDir } from "./helpers"
 
 // 默认全部技能都被接管（include: ["*"]）
 const ALL_SKILLS = listPackageSkills().map((skill) => skill.name)
@@ -39,7 +39,7 @@ function stateEntries(dir: string, mode?: "link" | "copy" | "gate"): string[] {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-gate-"))
+  home = tempDir("fxts-tk-gate-")
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   resetScopeCache()
@@ -91,7 +91,7 @@ describe("内容闸门安装形态", () => {
   })
 
   it("metadata.gate 非法值告警一次并按未声明处理", () => {
-    const root = mkdtempSync(join(tmpdir(), "fxts-tk-gate-root-"))
+    const root = tempDir("fxts-tk-gate-root-")
     mkdirSync(join(root, "skills", "bad-gate"), { recursive: true })
     writeFileSync(
       join(root, "skills", "bad-gate", "SKILL.md"),
@@ -314,10 +314,10 @@ describe("guard 契约", () => {
   })
 
   it("外部来源技能按状态文件登记解析正文", () => {
-    const pkgRoot = mkdtempSync(join(tmpdir(), "fxts-tk-gate-pkg-"))
+    const pkgRoot = tempDir("fxts-tk-gate-pkg-")
     mkdirSync(join(pkgRoot, "skills"), { recursive: true })
     setPackageRootForTest(pkgRoot)
-    const sourceRoot = mkdtempSync(join(tmpdir(), "fxts-tk-gate-ext-"))
+    const sourceRoot = tempDir("fxts-tk-gate-ext-")
     mkdirSync(join(sourceRoot, "ext-skill"), { recursive: true })
     const body = "# 外部技能\n\n正文\n"
     writeFileSync(join(sourceRoot, "ext-skill", "SKILL.md"), body)

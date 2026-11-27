@@ -1,14 +1,14 @@
 // 任务文件名简述：派生规则、跨平台形态、简述与标题同源、用户名与 owner 一致、归档前固化提示
 import { describe, it, expect } from "vitest"
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, writeFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { briefMatchesTitle, briefNameIssues, parseTaskName, taskBrief } from "../tasks/name"
 import { validateTasks } from "../tasks/validate"
 import { archiveTasks } from "../tasks/archive"
+import { tempDir } from "./helpers"
 
 function taskDir(): string {
-  return mkdtempSync(join(tmpdir(), "fxts-tk-name-"))
+  return tempDir("fxts-tk-name-")
 }
 
 // 写 active 任务文件：标题与 owner 可按用例覆盖，其余字段为合法默认值

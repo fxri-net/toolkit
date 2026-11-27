@@ -40,7 +40,7 @@ export function copyToClipboard(
 ): ClipboardResult {
   // Windows：文本走临时文件，绕开 stdin 的 ANSI 解码；成功与失败路径都要清理
   if (platform === "win32") {
-    const dir = mkdtempSync(join(tmpdir(), "toolkit-clip-"))
+    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-clip-"))
     try {
       const file = join(dir, "content.txt")
       writeFileSync(file, text, "utf8")

@@ -1,15 +1,15 @@
 // 文档站统一主题：校验 / 写入的行为边界与品牌段保护
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
-import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { readFileSync, rmSync, writeFileSync, mkdirSync } from "node:fs"
 import { join } from "node:path"
 import { checkDocsTheme, writeDocsTheme, THEME_VERSION } from "../docs/theme"
+import { tempDir } from "./helpers"
 
 // 临时主题目录：每个用例独立，避免互相污染
 let dir: string
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), "fxts-tk-docs-theme-"))
+  dir = tempDir("fxts-tk-docs-theme-")
 })
 
 afterEach(() => {
@@ -134,7 +134,7 @@ describe("writeDocsTheme / checkDocsTheme", () => {
   })
 
   it("模板首行版本与 THEME_VERSION 不一致时校验失败", () => {
-    const templateDir = mkdtempSync(join(tmpdir(), "fxts-tk-docs-theme-tpl-"))
+    const templateDir = tempDir("fxts-tk-docs-theme-tpl-")
     const realTemplate = join(process.cwd(), "templates", "docs-theme")
     writeFileSync(join(templateDir, "index.ts"), readFileSync(join(realTemplate, "index.ts"), "utf8"))
     const staleCss = readFileSync(join(realTemplate, "custom.css"), "utf8").replace(

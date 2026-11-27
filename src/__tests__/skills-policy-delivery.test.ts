@@ -1,7 +1,6 @@
 // 策略推导：矩阵声明直接决定分发形态，显式规则仍可覆盖；解释接口逐级复述命中情况
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import {
@@ -15,6 +14,7 @@ import {
 } from "../skills"
 import { legacyToPolicies } from "../scope/policy"
 import type { ActivationConfig } from "../scope/types"
+import { tempDir } from "./helpers"
 
 // 临时 home：矩阵与产物只落在临时目录
 let home = ""
@@ -26,7 +26,7 @@ function primaryDir(): string {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-policy-delivery-"))
+  home = tempDir("fxts-tk-policy-delivery-")
   setHomeDirForTest(home)
   resetToolkitConfigCache()
   resetSkillsConfigWarnings()

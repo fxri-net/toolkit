@@ -1,7 +1,6 @@
 // DeepSeek Harness 适配单测：cordis.patch.yml 标记块、桥接插件检测、Hook 安装往返与事件解析
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { resolveAdapters } from "../usage/adapters"
@@ -17,11 +16,12 @@ import {
 } from "../usage/dsh-profile"
 import { extractSkillName } from "../usage/event"
 import { buildHookCommand } from "../usage/hook-command"
+import { tempDir } from "./helpers"
 
 let home = ""
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-dsh-home-"))
+  home = tempDir("fxts-tk-dsh-home-")
   setHomeDirForTest(home)
   // 显式钉住 dsh 家目录，避免读本机真实配置
   process.env.DSH_HOME = join(home, ".dsh")

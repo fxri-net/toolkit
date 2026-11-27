@@ -1,10 +1,10 @@
 // 隐私扫描：按路径范围分级，档位 off 跳过；--fix 只改任务区
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { resetToolkitConfigCache } from "../config"
 import { fixPrivacyPaths, scanPrivacy } from "../privacy/scan"
+import { tempDir } from "./helpers"
 
 let root = ""
 let originalCwd = ""
@@ -26,7 +26,7 @@ function writeLevel(level: string): void {
 
 beforeEach(() => {
   originalCwd = process.cwd()
-  root = mkdtempSync(join(tmpdir(), "fxts-tk-privacy-scan-"))
+  root = tempDir("fxts-tk-privacy-scan-")
   process.chdir(root)
   resetToolkitConfigCache()
 })

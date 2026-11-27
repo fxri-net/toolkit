@@ -1,12 +1,11 @@
 // usage 向导默认值单测：重复执行 init 时应沿用历史选择
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { mkdtempSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { rmSync } from "node:fs"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { DEFAULT_USAGE_CONFIG, loadUsageConfig, resetUsageConfigWarnings } from "../usage/config"
 import { DEFAULT_INIT_PRESET, PRESET_LABELS, resolveInitDefaults, runUsageInitInteractive } from "../usage/interactive"
 import type { UsageConfig } from "../usage/types"
+import { tempDir } from "./helpers"
 
 let home = ""
 
@@ -84,7 +83,7 @@ describe("usage 向导默认值", () => {
   })
 
   it("--yes --dry-run 只预览计划，不写配置", async () => {
-    home = mkdtempSync(join(tmpdir(), "fxts-tk-usage-dry-"))
+    home = tempDir("fxts-tk-usage-dry-")
     setHomeDirForTest(home)
     resetToolkitConfigCache()
     const logs: string[] = []

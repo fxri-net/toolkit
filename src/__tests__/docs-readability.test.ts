@@ -1,15 +1,15 @@
 import { spawnSync } from "node:child_process"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
+import { tempDir } from "./helpers"
 
 // 被测脚本按 process.cwd() 定位任务区，测试用临时目录充当仓库根并以子进程实跑，验证真实退出码与输出
 const script = join(process.cwd(), "scripts", "check-docs-readability.mjs")
 const fixtures: string[] = []
 
 function createFixture(files: Record<string, string>): string {
-  const root = mkdtempSync(join(tmpdir(), "fxts-tk-readability-"))
+  const root = tempDir("fxts-tk-readability-")
   fixtures.push(root)
   mkdirSync(join(root, "docs"), { recursive: true })
   mkdirSync(join(root, "skills"), { recursive: true })

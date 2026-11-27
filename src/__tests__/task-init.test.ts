@@ -1,7 +1,6 @@
 // init 命令单测：骨架生成、重复执行幂等、.gitignore 追加与跳过、技能入口层、全局技能安装态
 import { describe, it, expect, beforeEach, afterEach, afterAll } from "vitest"
-import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, mkdtempSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { execSync } from "node:child_process"
 import { initWorkspace } from "../tasks/init"
@@ -11,10 +10,11 @@ import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { skillsStateFile } from "../skills"
 import { CARRIER_MARKER, ENTRY_MARKER, ENTRY_VERSION, HISTORY_TABLE_HEADER, HISTORY_TITLE, INDEX_TABLE_LINES, entryVersionText } from "../conventions/format"
 import { AGENTS_POINTER_END, AGENTS_POINTER_START, ENTRY_SHELL_NAME, FALLBACK_SKILL_DIR, SKILL_ENTRY } from "../conventions/entry"
+import { tempDir } from "./helpers"
 
 // 临时目录中执行 init 并清理
 function runInDir(prefix = "fxts-tk-init-"): { cwd: string; gitignore: () => string } {
-  const cwd = mkdtempSync(join(tmpdir(), prefix))
+  const cwd = tempDir(prefix)
   return {
     cwd,
     gitignore: () => readFileSync(join(cwd, ".gitignore"), "utf8"),
@@ -58,7 +58,7 @@ describe("initWorkspace 骨架生成", () => {
 
   it("绝对路径 --dir：任务区生成到项目外指定目录", () => {
     const { cwd } = track(runInDir("fxts-tk-init-abs-"))
-    const outer = mkdtempSync(join(tmpdir(), "fxts-tk-init-outer-"))
+    const outer = tempDir("fxts-tk-init-outer-")
     track({ cwd: outer })
     const month = todayCompact().slice(0, 6)
     initWorkspace(outer, cwd)
@@ -271,7 +271,7 @@ describe("initWorkspace 全局技能安装态", () => {
   // home 注入独立临时目录：状态文件只读临时目录，不触碰真实用户全局技能目录
   let home = ""
   beforeEach(() => {
-    home = mkdtempSync(join(tmpdir(), "fxts-tk-init-home-"))
+    home = tempDir("fxts-tk-init-home-")
     setHomeDirForTest(home)
     resetToolkitConfigCache()
   })
@@ -632,7 +632,7 @@ describe("initWorkspace .prettierignore 托管", () => {
 
   it("任务区落在仓库外（绝对路径）时不写入排除行", () => {
     const { cwd } = track(runInDir("fxts-tk-init-pre-outer-"))
-    const outer = mkdtempSync(join(tmpdir(), "fxts-tk-init-pre-outer-tasks-"))
+    const outer = tempDir("fxts-tk-init-pre-outer-tasks-")
     track({ cwd: outer })
     writeFileSync(join(cwd, ".prettierrc"), "{}", "utf8")
     const report = initWorkspace(outer, cwd)
@@ -827,7 +827,7 @@ describe("initWorkspace 发布型包误打包提醒", () => {
   })
 
   it("任务区外置（相对路径）：清单不含任务目录、仍列另两项", () => {
-    const parent = mkdtempSync(join(tmpdir(), "fxts-tk-init-risk-ext-"))
+    const parent = tempDir("fxts-tk-init-risk-ext-")
     dirs.push(parent)
     const cwd = join(parent, "proj")
     mkdirSync(cwd)
@@ -840,7 +840,7 @@ describe("initWorkspace 发布型包误打包提醒", () => {
   })
 
   it("任务区外置（绝对路径）：清单不含任务目录", () => {
-    const parent = mkdtempSync(join(tmpdir(), "fxts-tk-init-risk-abs-"))
+    const parent = tempDir("fxts-tk-init-risk-abs-")
     dirs.push(parent)
     const cwd = join(parent, "proj")
     mkdirSync(cwd)

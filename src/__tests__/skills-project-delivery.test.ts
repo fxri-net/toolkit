@@ -1,7 +1,6 @@
 // 项目面分发形态：gated 落入口壳、off 不落产物、状态与 guard 按项目层配置判定
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { resolveGuard } from "../scope/guard"
@@ -18,6 +17,7 @@ import {
   resetSkillsConfigWarnings,
   resetSkillsRootCache,
 } from "../skills"
+import { tempDir } from "./helpers"
 
 // 临时 home 与项目：配置与产物只落在临时目录
 let home = ""
@@ -45,7 +45,7 @@ function stateIn(dir: string, name: string): string | undefined {
 }
 
 beforeEach(() => {
-  home = mkdtempSync(join(tmpdir(), "fxts-tk-proj-delivery-"))
+  home = tempDir("fxts-tk-proj-delivery-")
   project = mkdtempSync(join(home, "repo-"))
   setHomeDirForTest(home)
   mkdirSync(join(project, ".tasks"), { recursive: true })

@@ -1,13 +1,13 @@
 // 过滤与视图单测：owner/scope 多值、单值、状态与日期组合
 import { describe, it, expect } from "vitest"
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { writeFileSync, mkdirSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { orderRows, queryTasks } from "../tasks/query"
 import type { TaskRow } from "../tasks/types"
+import { tempDir } from "./helpers"
 
 function makeDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), "fxts-tk-query-"))
+  const dir = tempDir("fxts-tk-query-")
   mkdirSync(join(dir, "active", "202609"), { recursive: true })
   const put = (name: string, owner: string, scope: string) =>
     writeFileSync(
@@ -38,7 +38,7 @@ describe("queryTasks 过滤", () => {
   })
 
   it("scope 加号复合值按任一段命中（存储多值口径，active 与归档同逻辑）", () => {
-    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-query-"))
+    const dir = tempDir("fxts-tk-query-")
     mkdirSync(join(dir, "active", "202609"), { recursive: true })
     mkdirSync(join(dir, "archive", "202609"), { recursive: true })
     const put = (name: string, scope: string) =>
