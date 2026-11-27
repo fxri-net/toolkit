@@ -39,7 +39,7 @@
 | 规范沉淀 | `toolkit convention status` → `toolkit convention upgrade` / `format` |
 | 排查配置 | `toolkit config status`（不打印配置值）→ `toolkit config get <key> --explain`（看来源层与覆盖链） |
 | 改配置 | `toolkit config set <key> <value>`（`--layer` 选层；非交互加 `--yes`），删除用 `config unset` |
-| 从 1.x 升级 | `toolkit status` 出现升级提示 → `toolkit upgrade --dry-run` 看清单 → `toolkit upgrade` 执行（含本机数据版本）→ 复检残留 |
+| 工具升级后 / 从 1.x 升级 | `toolkit status` 出现升级提示 → 项目内跑 `toolkit upgrade`（预览后确认，含本机数据版本）→ 再 `toolkit status` 复检 |
 | 误删恢复 | `toolkit trash list` → `toolkit trash restore <id>`（或 `latest`）；确认不再需要再 `toolkit trash prune` |
 | 发版 | `toolkit release bump` → `pnpm verify` → 打标签发布 |
 | 看技能用了多少次 | `toolkit usage show stats`（`--by session` / `--by trigger` / `--limit`） |

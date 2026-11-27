@@ -72,7 +72,7 @@ function parseIds(value?: string): string[] | undefined {
 // 文本清单：按迁移面分组，标出状态与风险
 function printPlan(items: UpgradeItem[]): void {
   if (items.length === 0) {
-    console.log(line.ok("未检测到 v1 资产，无需迁移"))
+    console.log(line.ok("未检测到旧资产，无需迁移"))
     return
   }
   console.log("迁移计划：")
@@ -98,7 +98,7 @@ function printResult(applied: string[], failed: string[], backups: string[], res
   if (residue.length > 0) {
     console.error(`⚠️ 仍有 ${residue.length} 项可自动处理：${residue.map((item) => item.id).join("、")}`)
   } else {
-    console.log(line.ok("复检通过：未发现可自动处理的 v1 残留"))
+    console.log(line.ok("复检通过：未发现可自动处理的旧形态残留"))
   }
   if (manual.length > 0) {
     console.log(line.hint("需人工处理："))
@@ -222,7 +222,9 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
     } else {
       printPlan(plan.items)
       console.log("")
-      console.log(plan.autoResidue > 0 ? line.hint(`存在 ${plan.autoResidue} 项可自动处理的 v1 残留`) : line.ok("未发现可自动处理的 v1 残留"))
+      console.log(
+        plan.autoResidue > 0 ? line.hint(`存在 ${plan.autoResidue} 项可自动处理的旧形态残留`) : line.ok("未发现可自动处理的旧形态残留"),
+      )
     }
     if (plan.autoResidue > 0) process.exitCode = 1
     return
@@ -246,7 +248,7 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
 
   if (plan.items.length === 0) {
     if (options.format === "json") printJson(jsonEnvelope({ command: "upgrade", data: { plan: [], residue: 0 } }))
-    else console.log(line.ok("未检测到 v1 资产，无需迁移"))
+    else console.log(line.ok("未检测到旧资产，无需迁移"))
     return
   }
 

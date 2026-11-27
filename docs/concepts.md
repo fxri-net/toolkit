@@ -38,7 +38,7 @@ import ModelMap from './.vitepress/theme/components/diagrams/ModelMap.vue'
 | `toolkit usage` | 技能使用情况：统计与导出（默认关闭） | `usage` | [技能使用情况](./cli/usage) |
 | `toolkit convention` | 规范载体升级、归一与体检 | `convention` | [规范载体](./cli/convention) |
 | `toolkit release` | 多语言 CHANGELOG 与发版 | `release` | [发版与更新日志](./cli/release) |
-| `toolkit upgrade` | v1 工程迁移 | `upgrade` | [升级迁移](./cli/upgrade) |
+| `toolkit upgrade` | 旧工程与本机契约数据迁移 | `upgrade` | [升级迁移](./cli/upgrade) |
 | `toolkit trash` | 项目内回收站：查看、恢复与清理 | `list` / `restore` / `prune` / `stats` | [回收站](./cli/trash) |
 | `toolkit concept` | 概念目录：查看可引入的工程概念与采纳步骤 | `list` / `show` | [概念目录](./cli/concept) |
 | `toolkit config` | 配置分层读写与体检 | `config` | [配置体检](./cli/config) |

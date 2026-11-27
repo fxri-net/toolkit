@@ -85,8 +85,8 @@ title: 适用场景
 **迁移三步**（一次性）：
 
 1. `toolkit status` 看迁移提示
-2. `toolkit upgrade --dry-run` 预览清单
-3. `toolkit upgrade` 执行，再 `toolkit status` 复检
+2. `toolkit upgrade` 预览后确认执行
+3. 再 `toolkit status` 复检
 
 **落地后得到什么**：迁移可回滚、可复检，不用手工改一堆文件。
 

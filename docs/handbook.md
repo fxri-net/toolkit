@@ -117,15 +117,17 @@ pnpm exec toolkit release mirror         # 同步文档站更新日志镜像（b
 ```bash
 pnpm add -g @fxri/toolkit  # 全局安装（推荐）
 pnpm up @fxri/toolkit      # 项目内（版本随仓库锁定）
+toolkit upgrade            # 项目内迁旧工程与本机契约数据（预览后确认）
 toolkit skill status       # 查 CLI 版本提示与技能现场
 ```
 
-升级三步检查：
+升级检查（按序）：
 
 1. **CLI** 更新
-2. **skills** 同步：软链形式随 CLI 自动更新；副本形式（`--copy` 或建链失败降级）需重跑 `toolkit skill install`；项目面由 `prepare` 钩子自动刷新
-3. **开新会话**：旧会话加载的仍是旧版技能
-4. **清理迁移备份（可选）**：确认升级稳定后执行 `toolkit upgrade --prune-backups --keep 1`（`--dry-run` 预览）；
+2. **旧资产迁移**：在项目内跑 `toolkit upgrade`（自带预览与确认），把旧工程配置、技能旧名与本机契约数据迁到当前版本；`toolkit status` 可自查
+3. **skills** 同步：软链形式随 CLI 自动更新；副本形式（`--copy` 或建链失败降级）需重跑 `toolkit skill install`；项目面由 `prepare` 钩子自动刷新
+4. **开新会话**：旧会话加载的仍是旧版技能
+5. **清理迁移备份（可选）**：确认升级稳定后执行 `toolkit upgrade --prune-backups --keep 1`（`--dry-run` 预览）；
    只删 `.toolkit/backup` 下带 `manifest.json` 的目录与本包已知的 `.bak`，外来目录跳过并回报
 
 ⚠️ 软链落点是**写入穿透**形态：编辑落点文件等于编辑真源，要改技能内容请改真源（`toolkit skill status` 报告末尾也会提示）。

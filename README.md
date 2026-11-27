@@ -47,6 +47,8 @@ toolkit setup
 多任务 / 多仓方案先出纯展示计划表，确认后说「开始」即一次建完全部任务档并校验，再按序逐个交付提交。
 完整步骤见 [快速开始](./docs/getting-started.md)。按场景选路径见 [适用场景](./docs/scenarios.md)，整体结构见 [一图看懂](./docs/concepts.md)。
 
+> 已装过旧版本：升级 CLI 后在项目内跑 `toolkit upgrade`，把旧工程与本机契约数据迁到当前版本（自带预览与确认）；`toolkit status` 可自查。
+
 ## ✨ 能力矩阵
 
 | 能力 | 适用场景 | 文档 |
@@ -63,7 +65,7 @@ toolkit setup
 | 概念目录（concept） | 按场景查看可引入的工程概念与采纳步骤，JSON 输出供 AI 读取 | [CLI 参考](./docs/cli/concept.md) |
 | 隐私脱敏 | 落盘前自动掩码邮箱、手机号、密钥等 | [配置参考](./docs/config.md) |
 | 配置体检（config） | 三层（全局 / 项目 / 本地）定制脱敏、告警、导入列映射、语言表；`toolkit config status` 只读查看生效情况与来源 | [CLI 参考](./docs/cli/config.md) · [配置参考](./docs/config.md) |
-| 升级迁移（upgrade） | v1 工程一键迁移：三层配置、工程脚本、技能旧名与规范载体；支持预演、复检、备份恢复 | [升级迁移](./docs/cli/upgrade.md) |
+| 升级迁移（upgrade） | 旧工程与本机契约数据一键迁移：三层配置、工程脚本、技能旧名、规范载体与状态 / 事件版本；支持预演、复检、备份恢复 | [升级迁移](./docs/cli/upgrade.md) |
 | Node API | 把上述能力嵌进脚本或平台 | [API 参考](./docs/api.md) |
 
 ## 📚 文档

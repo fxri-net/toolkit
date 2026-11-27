@@ -10,7 +10,7 @@ title: v1 → v2 升级
 
 1. 升级 CLI：`pnpm add -g @fxri/toolkit`（项目内依赖用 `pnpm add -D @fxri/toolkit@2`）
 2. 在当前工程执行 `toolkit upgrade`（TTY 预览后确认；CI / 脚本用 `toolkit upgrade --all --yes`）
-   - 先看计划：`toolkit upgrade --dry-run`；作为门禁：`toolkit upgrade --check`
+   - 需要只读门禁时用 `toolkit upgrade --check`（有可自动处理的残留时退出 1）
    - 自动处理三层配置段名、`package.json` 旧钩子与旧命令名、技能旧名登记、规范载体、历史 `.bak`，
      以及技能状态 / 使用事件 / 索引 / 队列 / 上传账本 / 回收站清单的旧版本写法
 3. 重新生成规则快照：`toolkit rule compose --copy --no-cache`，把输出粘贴回 Agent 全局规则入口
