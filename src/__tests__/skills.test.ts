@@ -1545,6 +1545,13 @@ describe("技能作用域判定", () => {
     writeFileSync(join(home, "package.json"), JSON.stringify({ name: "home" }), "utf8")
     setHomeDirForTest(home)
     setPackageRootForTest(fakePackageRoot(home))
-    expect(() => installProjectSkills({ cwd: home })).toThrow(/家目录不作为项目根/)
+    expect(() => installProjectSkills({ cwd: home })).toThrow(/用户主目录不作为项目根/)
+  })
+
+  it("用户主目录下项目面卸载被拒绝", () => {
+    const home = tmpRoot("fxts-tk-scope-uninstall-home-")
+    writeFileSync(join(home, "package.json"), JSON.stringify({ name: "home" }), "utf8")
+    setHomeDirForTest(home)
+    expect(() => removeProjectSkills({ cwd: home })).toThrow(/用户主目录不作为项目根/)
   })
 })

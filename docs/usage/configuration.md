@@ -70,7 +70,7 @@ title: 使用情况配置
 
 `--dir` > `FX_TOOLKIT_USAGE_DIR` > `storage.dir` > `~/.toolkit/usage`。
 
-相对路径按 `process.cwd()` 解析；`~` 展开为当前用户家目录。
+相对路径按 `process.cwd()` 解析；`~` 展开为当前用户主目录。
 
 ## 过滤顺序
 

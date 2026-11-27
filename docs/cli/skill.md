@@ -64,7 +64,7 @@ toolkit skill list --format json             # JSON 输出：逐技能条目
 
 裸 `toolkit skill` 打印本域帮助（列出全部子命令）。
 
-- **家目录边界**：`~` 不作为项目根，缺省按现场判定为全局面；显式 `--scope project` 报错，
+- **用户主目录边界**：`~` 不作为项目根，缺省按现场判定为全局面；显式 `--scope project` 报错，
   `--scope all` 跳过项目面并向 stderr 告警（home 下的 `.agents/skills` 与全局面 canonical 目录同址）
 
 ## 子命令
@@ -194,7 +194,7 @@ toolkit skill list --format json             # JSON 输出：逐技能条目
   - 技能清单里状态有登记但当前来源已无的名字标注「（已失效）」；`--format json` 的 `skills` 数组保持原样，不加标记
 - `source notify <name> --frequency <always|daily|weekly|off>`：写单个来源的提示频率
   - 默认写全局层；`--scope project` 或等价的 `--layer project` 写项目层并向上找 git 根，非 git 仓库报错
-  - 此处 `--scope` 指**配置层**，与安装面的 `--scope`（project / global / all）不同；两者冲突时报错
+  - 此处 `--scope` 指**配置层**，与安装面的 `--scope`（项目面 project / 全局面 global / 全部 all）不同；两者冲突时报错
 - `source refresh [name]`：刷新来源缓存与版本，只更新元数据、不自动安装；`--dry-run` 只列出将刷新的来源
 - `source remove <name>`：注销登记（产物与状态保留）；加 `--prune` 一并清理产物、状态与提示配置
 - `--format json` 输出机器可读清单与刷新报告

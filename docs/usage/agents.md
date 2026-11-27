@@ -112,7 +112,7 @@ dsh 不直接读 `hooks.json`，要经 Claude Code 兼容层桥接插件才生�
 
 profile 级提示（桥接条目 / 插件缺失）只在 Hook 已安装时出现；使用 rule 通道时无需处理这些提示。
 
-⚠️ **运行沙箱限制**：dsh 的 Hook 进程受运行时文件沙箱约束，可能无法写家目录下的统计库，
+⚠️ **运行沙箱限制**：dsh 的 Hook 进程受运行时文件沙箱约束，可能无法写用户主目录下的统计库，
 表现为 `usage data doctor` / `usage setup hooks status` 报 `Access to the path ... is denied` 或始终「暂无记录」。此时 Hook 通道不可用，
 改用规则通道（`toolkit usage config channel rule` + 复制 [技能使用情况规则](../rules/usage)），不依赖任何 Agent 配置。
 

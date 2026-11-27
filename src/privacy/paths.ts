@@ -15,7 +15,7 @@ export function resolveLocalPathLevel(): LocalPathLevel {
   const raw = getConfigSection("privacy")?.localPaths
   if (raw === undefined) return "off"
   if (typeof raw === "string" && (LOCAL_PATH_LEVELS as readonly string[]).includes(raw)) return raw as LocalPathLevel
-  console.warn(`⚠️ privacy.localPaths 取值非法（${String(raw)}），已按 off 处理`)
+  console.warn(`⚠️ privacy.localPaths 取值非法（${String(raw)}），已按关闭（off）处理`)
   return "off"
 }
 

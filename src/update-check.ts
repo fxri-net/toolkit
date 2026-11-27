@@ -317,7 +317,7 @@ export function resolveRegistry(): RegistryInfo {
   if (envRegistry) return { value: normalizeRegistry(envRegistry), source: "npm_config_registry" }
   const project = acceptRegistry(readNpmrcRegistry(join(process.cwd(), ".npmrc")), "项目 .npmrc 的 registry")
   if (project) return { value: normalizeRegistry(project), source: "npmrc-project" }
-  const home = acceptRegistry(readNpmrcRegistry(join(getHomeDir(), ".npmrc")), "家目录 .npmrc 的 registry")
+  const home = acceptRegistry(readNpmrcRegistry(join(getHomeDir(), ".npmrc")), "用户主目录 .npmrc 的 registry")
   if (home) return { value: normalizeRegistry(home), source: "npmrc-home" }
   return { value: "https://registry.npmjs.org/", source: "default" }
 }

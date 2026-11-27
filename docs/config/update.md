@@ -30,13 +30,13 @@ registry 解析顺序（前者优先）：
 - `updateCheck.registry` 配置
 - 环境变量 `npm_config_registry`
 - 项目 `.npmrc`
-- 家目录 `.npmrc`
+- 用户主目录 `.npmrc`
 - `https://registry.npmjs.org`
 
 - http / https 都接受；明文 http 会告警，含账号密码的地址剥离 userinfo 并告警
 - 凭据只发给可信名单：`updateCheck.trustedRegistries`（host 或 URL 前缀），默认仅 `registry.npmjs.org`；
   名单只认全局层 / 本地层，项目层写入的名单忽略并告警；未命中时不发凭据，命中后 `NPM_TOKEN` 优先，
-  其次家目录 `.npmrc` 中与 host 匹配的 `_authToken`；token 不写入日志、报告或缓存
+  其次用户主目录 `.npmrc` 中与 host 匹配的 `_authToken`；token 不写入日志、报告或缓存
 - `*` 等同于向所有地址发送凭据（含 http），仅在完全信任当前 registry 时使用
 - 请求不跟随重定向，3xx 按失败处理
 - Node fetch **不自动读取 `HTTP(S)_PROXY`**，代理环境下请求会静默失败，可用 `updateCheck.enabled: false` 关闭检查

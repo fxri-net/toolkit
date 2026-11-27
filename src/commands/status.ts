@@ -91,7 +91,7 @@ export function registerStatusCommands(program: Command, version: string): void 
   program
     .command("status")
     .description("整体状态：聚合任务区 / 技能现场 / 配置层 / 文档站 / 版本与弃用项（只读）")
-    .option("--check", "存在 error 级问题时退出 1")
+    .option("--check", "存在错误级问题时退出 1")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action((options: StatusOptions) => {
       runStatus(options, version)

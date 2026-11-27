@@ -16,7 +16,7 @@ interface CommonOptions {
 function parseScope(value: string | undefined): TrashScopeChoice | null {
   if (value === undefined || value === "all") return "all"
   if (value === "project" || value === "global") return value
-  console.error(`⚠️ --scope 只接受 project / global / all（实际：${value}）`)
+  console.error(`⚠️ --scope 只接受 项目面（project）/ 全局面（global）/ 全部（all）（实际：${value}）`)
   process.exitCode = 1
   return null
 }
@@ -68,7 +68,7 @@ export function registerTrashCommands(program: Command): void {
   const trashCmd = program.command("trash").description("项目内回收站：查看、恢复与清理用户可见删除（默认列出条目）")
 
   const addCommon = (cmd: Command): Command =>
-    cmd.option("--scope <scope>", "作用域：project 项目 / global 全局 / all 两者（缺省 all）").option("--format <format>", "输出格式（json，输出到 stdout）")
+    cmd.option("--scope <scope>", "作用域：项目面（project）/ 全局面（global）/ 全部（all，两者；缺省 all）").option("--format <format>", "输出格式（json，输出到 stdout）")
 
   addCommon(trashCmd).action((options: CommonOptions) => {
     const scope = parseScope(options.scope)

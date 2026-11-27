@@ -11,7 +11,7 @@ export function registerSetupCommands(program: Command): void {
     .option("--yes", "非交互：按默认值执行（设置生效范围与开启使用统计不执行）")
     .option("--dry-run", "只预览将执行的动作，不写盘")
     .option("--rules <preset>", "全局规则预设：minimal / recommended / full")
-    .option("--skills <scope>", "技能分发范围：global / project / all")
+    .option("--skills <scope>", "技能分发范围：全局面（global）/ 项目面（project）/ 全部（all）")
     .option("--no-scope", "不设置生效范围")
     .option("--no-usage", "不开启使用统计")
     .action(async (options: SetupOptions) => {

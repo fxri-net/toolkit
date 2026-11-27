@@ -53,7 +53,7 @@ export const EXIT_CODE_TABLE: readonly ExitCodeRow[] = [
   {
     code: 1,
     name: "FAIL",
-    meaning: "操作失败或校验存在 error 级问题（参数冲突、非法子命令、文件 / 目录异常等）",
+    meaning: "操作失败或校验存在错误级问题（参数冲突、非法子命令、文件 / 目录异常等）",
     scene: "全部命令",
   },
   {

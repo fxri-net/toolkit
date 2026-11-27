@@ -351,6 +351,11 @@ export const CONFIG_LAYER_LABELS: Record<ConfigKeyLayer, ConfigLayerName> = {
   local: "本地层",
 }
 
+// 层名候选文案：报错与 help 复用「中文（原值）」形式
+export const CONFIG_LAYER_CHOICES = Object.entries(CONFIG_LAYER_LABELS)
+  .map(([key, label]) => `${label}（${key}）`)
+  .join(" / ")
+
 // 层参数判定：供命令层区分「未指定」与「非法取值」
 export function isConfigLayer(value: string | undefined): value is ConfigKeyLayer {
   return value === "global" || value === "project" || value === "local"

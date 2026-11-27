@@ -110,12 +110,12 @@ export function configFileForLayer(layer: ConfigKeyLayer, cwd = process.cwd()): 
   return join(findProjectRoot(cwd), file)
 }
 
-// 非全局层写入守卫：家目录不作为项目根，且项目 / 本地层不得落到全局文件（避免把全局配置当项目配置改写）
+// 非全局层写入守卫：用户主目录不作为项目根，且项目 / 本地层不得落到全局文件（避免把全局配置当项目配置改写）
 export function assertConfigLayerWritable(layer: ConfigKeyLayer, cwd = process.cwd()): void {
   if (layer === "global") return
   const label = layer === "project" ? "项目层" : "本地层"
   if (isHomeDirectory(cwd)) {
-    throw new Error(`家目录不作为项目根，不能写入${label}配置：请进入项目目录，或改用 --layer global`)
+    throw new Error(`用户主目录不作为项目根，不能写入${label}配置：请进入项目目录，或改用 --layer global`)
   }
   const file = configFileForLayer(layer, cwd)
   if (isGlobalConfigPath(file)) {

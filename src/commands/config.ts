@@ -8,6 +8,7 @@ import { assertJsonFormat, jsonEnvelope } from "../json-output"
 import { readConfigKey, readConfigKeys, assertConfigLayerWritable, configFileForLayer, configLayerInRepo, unsetConfigKey, writeConfigKey } from "../config-edit"
 import {
   CONFIG_KEYS,
+  CONFIG_LAYER_CHOICES,
   CONFIG_LAYER_LABELS,
   configKeyTypeLabel,
   getConfigKey,
@@ -51,7 +52,7 @@ function renderSource(layer: ConfigKeyLayer | null): string {
 function resolveLayerOption(options: { layer?: string }): ConfigKeyLayer | undefined | null {
   if (options.layer === undefined) return undefined
   if (!isConfigLayer(options.layer)) {
-    console.error(`⚠️ --layer 取值须为 global / project / local（实际：${options.layer}）`)
+    console.error(`⚠️ --layer 只接受 ${CONFIG_LAYER_CHOICES}（实际：${options.layer}）`)
     process.exitCode = 1
     return null
   }
@@ -163,7 +164,7 @@ export function registerConfigCommands(program: Command): void {
   configCmd
     .command("list")
     .description("列出可写配置键：生效值与来源层（--layer 只看该层可写键）")
-    .option("--layer <layer>", "只看指定层：global / project / local")
+    .option("--layer <layer>", `只看指定层：${CONFIG_LAYER_CHOICES}`)
     .option("--cwd <path>", "查找起点（缺省当前工作目录）")
     .option("--reveal", "输出敏感值原文（默认打码）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
@@ -282,7 +283,7 @@ export function registerConfigCommands(program: Command): void {
   configCmd
     .command("set <key> <value>")
     .description("写入单个配置键（默认落该键的默认层；非交互环境须加 --yes）")
-    .option("--layer <layer>", "写入层：global / project / local")
+    .option("--layer <layer>", `写入层：${CONFIG_LAYER_CHOICES}`)
     .option("--cwd <path>", "查找起点（缺省当前工作目录）")
     .option("--dry-run", "只预览将写入的内容，不落盘")
     .option("--yes", "非交互环境确认写入")
@@ -372,7 +373,7 @@ export function registerConfigCommands(program: Command): void {
   configCmd
     .command("unset <key>")
     .description("删除单个配置键（默认删该键的默认层；非交互环境须加 --yes）")
-    .option("--layer <layer>", "删除层：global / project / local")
+    .option("--layer <layer>", `删除层：${CONFIG_LAYER_CHOICES}`)
     .option("--cwd <path>", "查找起点（缺省当前工作目录）")
     .option("--dry-run", "只预览将删除的键，不落盘")
     .option("--yes", "非交互环境确认删除")

@@ -196,9 +196,9 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 | `fxri-writing-skill` | 1.0.5 | 技能编写规范：统一骨架、references 拆分、安全边界，把可机械检出的规则交给 lint、版本递增交给 bump | optional |
 | `fxri-writing-docs` | 0.2.7 | 文档站写作规范：分类骨架、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏与 404 兜底、导航用工具命令校验、代码块内联注释对齐 | optional |
 | `fxri-base-encoding` | 1.2.13 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
-| `fxri-base-safety` | 0.1.1 | 破坏性操作安全：方案阶段披露影响与不可恢复部分，执行前限定范围并预览，用户可见删除优先进回收站，误删后按止损与恢复顺序处理 | core |
+| `fxri-base-safety` | 0.1.2 | 破坏性操作安全：方案阶段披露影响与不可恢复部分，执行前限定范围并预览，用户可见删除优先进回收站，误删后按止损与恢复顺序处理 | core |
 | `fxri-base-adoption` | 0.1.2 | 概念目录与能力采纳：读取概念清单，按场景给候选与成本 / 风险，用户选择后逐步引入 | optional |
-| `fxri-test-tty` | 0.1.4 | 交互测试：PTY 驱动向导与多选，含断言清单 | optional |
+| `fxri-test-tty` | 0.1.5 | 交互测试：PTY 驱动向导与多选，含断言清单 | optional |
 
 表中按能力族（`plan` / `release` / `writing` / `base` / `test`）分组排列。
 族名与归属见 [skills/namespaces.json](https://github.com/fxri-net/toolkit/blob/main/skills/namespaces.json)。
@@ -236,7 +236,7 @@ Z3 归档 `history.md` / `retired.md`（仅审计 / 恢复时读）。不变量�
 **路径一 · 项目面分发（团队推荐，clone 即用）**：项目里以 devDependency 装 CLI，执行 `toolkit skill install --scope project`——
 技能真源与项目面薄壳一并入库，队友 `pnpm install` 即补齐；个人项目不装 CLI 即不受影响。
 `--scope` 缺省时按 CLI 安装位置自动判定（项目内装的走项目面，全局装的走全局面）。
-**家目录视为边界**：在 `~` 执行一律按全局面，不把 home 判成项目面。
+**用户主目录视为边界**：在 `~` 执行一律按全局面，不把 home 判成项目面。
 
 **路径二 · 全局面 + rules 选择性引用**（仓库根放引用文件并提交）：
 

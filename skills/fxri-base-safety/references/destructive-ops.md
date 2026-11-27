@@ -7,11 +7,11 @@
 | 侧 | 允许根 | 说明 |
 | --- | --- | --- |
 | 项目 | 仓库根及其子目录 | 以 git 根或 `.tasks` 根判定，不以当前目录猜 |
-| 全局 | 家目录下的本工具目录与已登记技能目录 | `~/.agents/skills`、各 agent 全局技能目录、`~/.toolkit` |
+| 全局 | 用户主目录下的本工具目录与已登记技能目录 | `~/.agents/skills`、各 agent 全局技能目录、`~/.toolkit` |
 | 备份 | 项目与全局 `.toolkit/backup` | 只清带 `manifest.json` 的已知目录 |
 | 临时 | 系统临时目录下自建目录 | 一次性产物，可安全删除 |
 
-受保护目标本身不得作为删除对象：磁盘根、家目录、`AppData` / `LocalAppData` / `ProgramData`、`Program Files`、`Windows`。
+受保护目标本身不得作为删除对象：磁盘根、用户主目录、`AppData` / `LocalAppData` / `ProgramData`、`Program Files`、`Windows`。
 其子目录仍按所属允许根判断——「在允许根内」不等于「可以整目录清空」。
 
 ## 二、预览与确认

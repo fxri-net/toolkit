@@ -5,7 +5,7 @@ import { join } from "node:path"
 import { inspectConfigLayers, resetToolkitConfigCache, rewriteLegacySections, setHomeDirForTest } from "../config"
 import { configKeyNames, getConfigKey, isConfigLayer, parseConfigValue, suggestConfigKeys } from "../config-keys"
 import { configFileForLayer, configLayerInRepo, readConfigKey, readConfigKeys, unsetConfigKey, writeConfigKey } from "../config-edit"
-import { writeUpdateCheckSourceNotify } from "../skills/config"
+import { writeProjectSkillsConfig, writeUpdateCheckSourceNotify } from "../skills/config"
 import { COMMAND_REGISTRY, commandMigrationRows, removedCommandHint } from "../command-registry"
 import { tempDir } from "./helpers"
 
@@ -50,9 +50,9 @@ describe("配置键元数据", () => {
 
   it("家目录不作为项目根：项目层 / 本地层写入被拒绝", () => {
     process.chdir(home)
-    expect(() => writeConfigKey("project", "task.dir", "home-tasks")).toThrow(/家目录不作为项目根/)
-    expect(() => writeConfigKey("local", "redact.enabled", true)).toThrow(/家目录不作为项目根/)
-    expect(() => unsetConfigKey("project", "task.dir")).toThrow(/家目录不作为项目根/)
+    expect(() => writeConfigKey("project", "task.dir", "home-tasks")).toThrow(/用户主目录不作为项目根/)
+    expect(() => writeConfigKey("local", "redact.enabled", true)).toThrow(/用户主目录不作为项目根/)
+    expect(() => unsetConfigKey("project", "task.dir")).toThrow(/用户主目录不作为项目根/)
   })
 
   it("取值解析：布尔 / 整数 / 枚举 / 字符串数组", () => {
@@ -301,6 +301,10 @@ describe("项目层更新提示写入", () => {
   })
 
   it("家目录拒绝写入项目层提示", () => {
-    expect(() => writeUpdateCheckSourceNotify("play", "daily", "project", home)).toThrow(/家目录不作为项目根/)
+    expect(() => writeUpdateCheckSourceNotify("play", "daily", "project", home)).toThrow(/用户主目录不作为项目根/)
+  })
+
+  it("用户主目录拒绝写入项目面技能配置", () => {
+    expect(() => writeProjectSkillsConfig({}, home)).toThrow(/用户主目录不作为项目根/)
   })
 })

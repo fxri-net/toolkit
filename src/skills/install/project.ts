@@ -45,7 +45,7 @@ export function installProjectSkills(options: ProjectInstallOptions = {}): Proje
   const cwd = options.cwd ?? process.cwd()
   // 家目录不作为项目根：项目面真源目录与全局 canonical 目录同址，落盘会互相覆盖
   if (isHomeDirectory(cwd)) {
-    throw new Error("家目录不作为项目根，不能执行项目面安装：请进入项目仓库，或改用 --scope global")
+    throw new Error("用户主目录不作为项目根，不能执行项目面安装：请进入项目仓库，或改用 --scope global")
   }
   const sources = collectSources({ externalSources: options.externalSources, dryRun: options.dryRun })
   const allItems = sources.flatMap(sourceSkillItems)
@@ -383,7 +383,7 @@ export function removeProjectSkills(options: { cwd?: string; dryRun?: boolean; s
   const cwd = options.cwd ?? process.cwd()
   // 家目录不作为项目根：home 下的 .agents/skills 可能同时是全局面 canonical 真源，禁止按项目面删除
   if (isHomeDirectory(cwd)) {
-    throw new Error("家目录不作为项目根，不能执行项目面卸载：请进入项目仓库，或改用 --scope global")
+    throw new Error("用户主目录不作为项目根，不能执行项目面卸载：请进入项目仓库，或改用 --scope global")
   }
   const targets = resolveProjectTargets(cwd)
   const root = targets.root

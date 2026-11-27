@@ -22,7 +22,7 @@ toolkit privacy scan --format json    # 机器可读结果
 | `.changeset/` | 阻断（内容会进 CHANGELOG 并随包分发） | 只报告 |
 | `docs/`、`skills/`、`templates/rules/`、`README.md`、`SPEC.md`、`AGENTS.md` | 提示 | 只报告 |
 
-- 命中形态：盘符路径（`D:\…`、`D:/…`）与 POSIX 家目录路径（`/Users/…`、`/home/…`）；`<本机>`、`~/`、`%USERPROFILE%` 等占位符不算命中
+- 命中形态：盘符路径（`D:\…`、`D:/…`）与 POSIX 用户主目录路径（`/Users/…`、`/home/…`）；`<本机>`、`~/`、`%USERPROFILE%` 等占位符不算命中
 - 通配写法（含 `*` / `?`）与裸目录（如 `/Users/`）不命中，避免把规则示例判成泄露
 - 档位 `off`（默认）：整次扫描跳过、退出码 0；`warn`：只提示；`error`：阻断项存在时退出码 1
 - `--dry-run` 只与 `--fix` 搭配生效：输出与真实归一同一份「将改写的文件 + 处数」清单，不写盘；

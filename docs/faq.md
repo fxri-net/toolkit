@@ -35,7 +35,7 @@
 ### 项目内装的技能放在哪、队友 clone 后要重装吗？
 
 项目面分发（`toolkit skill install --scope project`；`--scope` 缺省时项目内装的 CLI 会自动走此面）只保留**一份唯一真源**：`<仓库根>/.agents/skills/`。
-**家目录不作为项目根**：在 `~` 下缺省按全局面处理，显式 `--scope project` 报错——home 下的 `.agents/skills` 与全局面 canonical 目录同址，按项目面写入会互相覆盖。
+**用户主目录不作为项目根**：在 `~` 下缺省按全局面处理，显式 `--scope project` 报错——home 下的 `.agents/skills` 与全局面 canonical 目录同址，按项目面写入会互相覆盖。
 其余**已存在**的候选目录各放**每个技能一个** `SKILL.md` 薄壳，description 从真源派生、正文指明真源路径与版本标记，不重复承载内容。
 某个候选目录不存在就不凭空创建，候选目录清单见 [配置参考 · 作用域与安装面](./config/skill#作用域与安装面)。真源、薄壳与归属账（`<仓库根>/.toolkit/state.json`）都要**入库**。
 队友 clone 后**不必逐台手动重装**：`prepare` 刷新钩子在 `pnpm install` 时自动刷新已有产物（仅当本地依赖含 `@fxri/toolkit`）；极少需要时也可手动重跑 install。

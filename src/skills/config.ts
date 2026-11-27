@@ -268,7 +268,7 @@ function parseDeliverySection(section: Record<string, unknown>): SkillsDeliveryC
 function parseDeliveryMode(field: string, value: unknown): DeliveryMode | undefined {
   if (value === undefined) return undefined
   if (typeof value === "string" && DELIVERY_MODES.includes(value as DeliveryMode)) return value as DeliveryMode
-  warnInvalid("skillDelivery", field, null, "须为 full / gated / off")
+  warnInvalid("skillDelivery", field, null, "须为 全文（full）/ 入口壳（gated）/ 关闭（off）")
   return undefined
 }
 
@@ -383,7 +383,7 @@ export function writeSkillsDeliveryDefault(value: DeliveryMode): void {
 // 家目录不作为项目根，且项目层不得落到全局文件（两者同址时会把 projectSkill 写进全局层）
 export function writeProjectSkillsConfig(patch: Partial<ProjectSkillsConfig>, cwd = process.cwd()): void {
   if (isHomeDirectory(cwd)) {
-    throw new Error("家目录不作为项目根，不能写入项目面技能配置：请进入项目仓库，或改用 --scope global")
+    throw new Error("用户主目录不作为项目根，不能写入项目面技能配置：请进入项目仓库，或改用 --scope global")
   }
   const layers = inspectConfigLayers(cwd)
   const file = layers.project.file ?? join(resolve(cwd), ".toolkitrc.json")
@@ -405,7 +405,7 @@ export function writeUpdateCheckSourceNotify(
 ): string {
   let file: string
   if (scope === "project") {
-    if (isHomeDirectory(cwd)) throw new Error("家目录不作为项目根，不能写入项目层更新提示：请进入项目目录")
+    if (isHomeDirectory(cwd)) throw new Error("用户主目录不作为项目根，不能写入项目层更新提示：请进入项目目录")
     file = inspectConfigLayers(cwd).project.file ?? join(findProjectRoot(cwd), CONFIG_PROJECT_FILE)
   } else {
     file = join(getHomeDir(), ".toolkitrc.json")

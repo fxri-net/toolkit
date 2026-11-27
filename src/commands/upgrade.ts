@@ -11,6 +11,7 @@ import { line, style } from "../term-style"
 import { latestBackup, pruneBackups, pruneLayersFor, restoreBackup, upgradeRoots } from "../upgrade/backup"
 import { buildUpgradePlan, checkVersionGate, runUpgrade } from "../upgrade"
 import { ALL_LAYERS } from "../upgrade/detect"
+import { CONFIG_LAYER_CHOICES, CONFIG_LAYER_LABELS } from "../config-keys"
 import { planUpgradeDiffs } from "../upgrade/diff"
 import { isHomeDirectory } from "../scope/paths"
 import type { UpgradeItem, UpgradeLayer } from "../upgrade/types"
@@ -45,7 +46,7 @@ function parseLayers(value?: string): UpgradeLayer[] | null {
     .filter(Boolean)
   const invalid = layers.filter((layer) => !ALL_LAYERS.includes(layer as UpgradeLayer))
   if (invalid.length > 0) {
-    console.error(`⚠️ --layers 只接受 global / project / local（非法：${invalid.join("、")}）`)
+    console.error(`⚠️ --layers 只接受 ${CONFIG_LAYER_CHOICES}（非法：${invalid.join("、")}）`)
     process.exitCode = 1
     return null
   }
@@ -143,7 +144,9 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
   // 家目录不作为项目根：project / local 面整体跳过，并向 stderr 说明降级原因
   const effectiveLayers = isHomeDirectory(cwd) ? layers.filter((layer) => layer === "global") : layers
   if (effectiveLayers.length !== layers.length) {
-    console.error("⚠️ 家目录不作为项目根，已跳过 project / local 层，仅处理 global")
+    console.error(
+      `⚠️ 用户主目录不作为项目根，已跳过${CONFIG_LAYER_LABELS.project}与${CONFIG_LAYER_LABELS.local}，仅处理${CONFIG_LAYER_LABELS.global}`,
+    )
   }
 
   // 备份清理分支：与恢复互斥；local 层没有备份根，告警后跳过
@@ -157,7 +160,7 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
     const keep = parseKeep(options.keep)
     if (keep === false) return
     const pruneLayers = pruneLayersFor(cwd, options.layers !== undefined ? effectiveLayers : undefined)
-    if (options.layers !== undefined && pruneLayers.length !== effectiveLayers.length) console.error("⚠️ local 层没有备份目录，已忽略")
+    if (options.layers !== undefined && pruneLayers.length !== effectiveLayers.length) console.error(`⚠️ ${CONFIG_LAYER_LABELS.local}没有备份目录，已忽略`)
     if (pruneLayers.length === 0) {
       console.error("⚠️ 没有可清理的备份层")
       process.exitCode = 1
@@ -342,7 +345,7 @@ export function registerUpgradeCommands(program: Command): void {
     .option("--all", "全选所有可自动迁移项（与 --only / --skip 互斥）")
     .option("--skip-events", "跳过使用事件文件的契约版本重写（默认一并迁移）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
-    .option("--layers <layers>", "迁移层：global / project / local（逗号分隔，缺省三层全迁，含全局面）")
+    .option("--layers <layers>", `迁移层：${CONFIG_LAYER_CHOICES}（逗号分隔，缺省三层全迁，含全局面）`)
     .option("--only <ids>", "只执行指定迁移项（逗号分隔）")
     .option("--skip <ids>", "跳过指定迁移项（逗号分隔）")
     .option("--prune-legacy", "删除已被新段覆盖或写错层的旧段（本就不生效）")

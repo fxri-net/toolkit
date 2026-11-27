@@ -117,7 +117,7 @@ type ScopeChoice = "project" | "global" | "all"
 function resolveScopeChoice(value: string | undefined): { choice: ScopeChoice; explicit: boolean } | null {
   if (value === undefined || value === "") return { choice: detectSkillScope(), explicit: false }
   if (value === "project" || value === "global" || value === "all") return { choice: value, explicit: true }
-  console.error(`⚠️ 不支持的 --scope 取值「${value}」，仅支持 project / global / all`)
+  console.error(`⚠️ 不支持的 --scope 取值「${value}」，仅支持 项目面（project）/ 全局面（global）/ 全部（all）`)
   process.exitCode = 1
   return null
 }
@@ -134,7 +134,7 @@ function scopeHeadline(scope: { choice: ScopeChoice; explicit: boolean }): strin
   return `作用域：${SCOPE_LABEL[scope.choice]}（${scope.explicit ? "--scope 指定" : "按现场自动判定"}）`
 }
 
-// 家目录边界：home 不作为项目根；显式 project 报错，all 降级为全局面并告警
+// 用户主目录边界：home 不作为项目根；显式 project 报错，all 降级为全局面并告警
 // 返回实际生效的作用域与两面开关，调用方后续按返回值执行与回显
 function resolveSkillFaces(
   scope: { choice: ScopeChoice; explicit: boolean },
@@ -142,12 +142,12 @@ function resolveSkillFaces(
 ): { scope: { choice: ScopeChoice; explicit: boolean }; runProject: boolean; runGlobal: boolean } | null {
   const home = isHomeDirectory(process.cwd())
   if (home && scope.choice === "project") {
-    console.error(`⚠️ 家目录不作为项目根，无法用项目面${action}；请进入项目仓库，或改用 --scope global`)
+    console.error(`⚠️ 用户主目录不作为项目根，无法用项目面${action}；请进入项目仓库，或改用 --scope global`)
     process.exitCode = 1
     return null
   }
   if (home && scope.choice === "all") {
-    console.error("⚠️ 家目录不作为项目根，已跳过项目面，仅处理全局面")
+    console.error("⚠️ 用户主目录不作为项目根，已跳过项目面，仅处理全局面")
     return { scope: { choice: "global", explicit: scope.explicit }, runProject: false, runGlobal: true }
   }
   return { scope, runProject: scope.choice !== "global", runGlobal: scope.choice !== "project" }
@@ -163,7 +163,7 @@ const SKILL_STATE_LABEL: Record<SkillItemState, string> = {
   gate: "入口壳（正文由 toolkit scope guard 按作用域下发）",
   "gate-drift": "入口壳已过期（与当前版本不一致，运行 toolkit skill install 刷新）",
   "form-drift": "产物形态与目标分发形态不一致（运行 toolkit skill install 收敛）",
-  residue: "分发形态为 off，存在残留（运行 toolkit skill install --prune 清理）",
+  residue: "分发形态为关闭（off），存在残留（运行 toolkit skill install --prune 清理）",
   missing: "缺失",
   conflict: "同名冲突（非本包产物）",
   "not-selected": "未选择",
@@ -554,7 +554,7 @@ function printStatusReport(report: SkillsStatusReport): void {
     console.log(line.hint(`未选择但已安装 ${unselectedCount} 项：保留不影响使用，需要清理时运行 toolkit skill install --prune`))
   }
   if (residueCount > 0) {
-    console.log(line.hint(`分发形态为 off 的残留 ${residueCount} 项：运行 toolkit skill install --prune 清理`))
+    console.log(line.hint(`分发形态为关闭（off）的残留 ${residueCount} 项：运行 toolkit skill install --prune 清理`))
   }
   if (report.pending.length > 0) {
     console.log(line.hint(`待收敛 ${report.pending.length} 项：运行 toolkit skill install 收敛（可先 toolkit skill install --dry-run 预览）`))
@@ -658,7 +658,7 @@ const PROJECT_STATE_LABEL: Record<ProjectItemState, string> = {
   missing: "缺失",
   "not-selected": "未选择",
   "installed-unselected": "未选择但已安装",
-  residue: "分发形态为 off，存在残留（运行 toolkit skill install --scope project --prune 清理）",
+  residue: "分发形态为关闭（off），存在残留（运行 toolkit skill install --scope project --prune 清理）",
 }
 
 // 项目面需处理的异常状态：status 汇总提示与 install 修复范围
@@ -771,7 +771,7 @@ function printProjectStatusReport(report: ProjectStatusReport): void {
     console.log(line.hint(`项目面未选择但已安装 ${unselectedCount} 项：保留不影响使用，需要清理时运行 toolkit skill install --scope project --prune`))
   }
   if (residueCount > 0) {
-    console.log(line.hint(`项目面分发形态为 off 的残留 ${residueCount} 项：运行 toolkit skill install --scope project --prune 清理`))
+    console.log(line.hint(`项目面分发形态为关闭的残留 ${residueCount} 项：运行 toolkit skill install --scope project --prune 清理`))
   }
   if (report.pending.length > 0) {
     console.log(line.hint(`项目面待收敛 ${report.pending.length} 项：运行 toolkit skill install --scope project 收敛`))
@@ -821,7 +821,7 @@ const REGISTRY_SOURCE_LABEL: Record<RegistryInfo["source"], string> = {
   config: "配置",
   npm_config_registry: "环境变量",
   "npmrc-project": "项目 .npmrc",
-  "npmrc-home": "家目录 .npmrc",
+  "npmrc-home": "用户主目录 .npmrc",
   default: "默认",
 }
 
@@ -963,7 +963,7 @@ export function registerSkillsCommands(program: Command): void {
     .option("--check", "只报告待收敛项：有漂移时退出码 1（不写文件，供 CI 使用）")
     .option("--refresh", "只收敛已存在的项目面产物，不新增技能；非 TTY / CI 下只打印漂移（prepare 钩子）")
     .option("--force", "覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）")
-    .option("--prune", "清理未选择或 off 形态残留、且内容与本包真源一致的旧产物（只清本包登记条目）")
+    .option("--prune", "清理未选择或关闭（off）形态残留、且内容与本包真源一致的旧产物（只清本包登记条目）")
     .option("--mode <mode>", "技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）")
     .option("--gate", "开启内容闸门：本次把技能写入口壳（声明退出者除外），成功后把 skillDelivery.default 设为 gated")
     .option("--embed", "回退内容闸门：把入口壳改回全文，成功后把 skillDelivery.default 设为 full")
@@ -1760,8 +1760,8 @@ export function registerSkillsCommands(program: Command): void {
     .command("notify")
     .description("设置单个第三方来源的更新提示频率（只写 updateCheck.sources.<name>.notify）")
     .argument("<name>", "来源名")
-    .requiredOption("--frequency <frequency>", "更新提示频率：always / daily / weekly / off")
-    .option("--scope <layer>", "写入层：global（默认）/ project；此处指配置层，与安装面的 --scope 语义不同")
+    .requiredOption("--frequency <frequency>", "更新提示频率：每次（always）/ 每天（daily）/ 每周（weekly）/ 关闭（off）")
+    .option("--scope <layer>", "写入层：全局层（global，默认）/ 项目层（project）；此处指配置层，与安装面的 --scope 语义不同")
     .option("--layer <layer>", "写入层别名（与 --scope 等价，先按配置层术语表达）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .action((name: string, options: { frequency: string; scope?: string; layer?: string; format?: string }) => {

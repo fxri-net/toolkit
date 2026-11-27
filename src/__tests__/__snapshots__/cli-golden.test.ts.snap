@@ -1518,7 +1518,7 @@ registry：registry.npmjs.org（来源：默认）
 作用域：全局面（软链 / 副本到各 agent 全局技能目录）（--scope 指定）
 
 技能源：<REPO>/skills
-技能版本：fxri-base-adoption@0.1.2、fxri-base-encoding@1.2.13、fxri-base-safety@0.1.1、fxri-plan-recap@1.7.13、fxri-plan-review@1.1.6、fxri-plan-task@1.13.24、fxri-release-changelog@1.4.9、fxri-test-tty@0.1.4、fxri-writing-docs@0.2.7、fxri-writing-skill@1.0.5
+技能版本：fxri-base-adoption@0.1.2、fxri-base-encoding@1.2.13、fxri-base-safety@0.1.2、fxri-plan-recap@1.7.13、fxri-plan-review@1.1.6、fxri-plan-task@1.13.24、fxri-release-changelog@1.4.9、fxri-test-tty@0.1.5、fxri-writing-docs@0.2.7、fxri-writing-skill@1.0.5
 内容闸门：未开启（全文安装）
 选择集（4）：fxri-base-safety、fxri-plan-recap、fxri-plan-review、fxri-plan-task
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-base-adoption、fxri-base-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
@@ -1599,7 +1599,7 @@ registry：registry.npmjs.org（来源：默认）
 
 项目面 · 项目根：<SANDBOX>/workspace
 项目面 · 技能真源：.agents/skills
-项目面 · 技能版本：fxri-base-adoption@0.1.2、fxri-base-encoding@1.2.13、fxri-base-safety@0.1.1、fxri-plan-recap@1.7.13、fxri-plan-review@1.1.6、fxri-plan-task@1.13.24、fxri-release-changelog@1.4.9、fxri-test-tty@0.1.4、fxri-writing-docs@0.2.7、fxri-writing-skill@1.0.5
+项目面 · 技能版本：fxri-base-adoption@0.1.2、fxri-base-encoding@1.2.13、fxri-base-safety@0.1.2、fxri-plan-recap@1.7.13、fxri-plan-review@1.1.6、fxri-plan-task@1.13.24、fxri-release-changelog@1.4.9、fxri-test-tty@0.1.5、fxri-writing-docs@0.2.7、fxri-writing-skill@1.0.5
 项目面 · 选择集（4）：fxri-base-safety、fxri-plan-recap、fxri-plan-review、fxri-plan-task
 来源 toolkit 内未选择（不在选择集，也不计入问题）：fxri-base-adoption、fxri-base-encoding、fxri-release-changelog、fxri-test-tty、fxri-writing-docs、fxri-writing-skill
 项目面 · 目录选择集：全部已存在候选目录（未保存过目录选择）
@@ -2489,7 +2489,7 @@ Options:
   --yes             非交互：按默认值执行（设置生效范围与开启使用统计不执行）
   --dry-run         只预览将执行的动作，不写盘
   --rules <preset>  全局规则预设：minimal / recommended / full
-  --skills <scope>  技能分发范围：global / project / all
+  --skills <scope>  技能分发范围：全局面（global）/ 项目面（project）/ 全部（all）
   --no-scope        不设置生效范围
   --no-usage        不开启使用统计
   -h, --help        显示帮助
@@ -2557,7 +2557,7 @@ Options:
   --check               只报告待收敛项：有漂移时退出码 1（不写文件，供 CI 使用）
   --refresh             只收敛已存在的项目面产物，不新增技能；非 TTY / CI 下只打印漂移（prepare 钩子）
   --force               覆盖同名非本包产物（默认跳过，避免破坏用户自装技能；不改本包已登记副本的形态）
-  --prune               清理未选择或 off 形态残留、且内容与本包真源一致的旧产物（只清本包登记条目）
+  --prune               清理未选择或关闭（off）形态残留、且内容与本包真源一致的旧产物（只清本包登记条目）
   --mode <mode>         技能安装模式：skills（core 必装）/ package（纯包管理器，允许零选）
   --gate                开启内容闸门：本次把技能写入口壳（声明退出者除外），成功后把 skillDelivery.default 设为
                         gated

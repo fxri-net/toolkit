@@ -3,7 +3,7 @@ name: fxri-base-safety
 description: 在讨论、方案、评审或执行涉及删除、清理、覆盖、迁移、卸载、回收站等可能造成不可恢复后果的动作时加载：方案阶段先披露影响范围、不可恢复部分与回滚，执行前限定目标范围并预览，用户可见删除优先可恢复，误删后按止损与恢复顺序处理。不用于普通只读查询、无删除风险的代码修改、发版授权与提交信息撰写、文本编码与任务建档。
 license: MIT
 metadata:
-  version: "0.1.1"
+  version: "0.1.2"
   tier: core
   previousNames: ["fxri-code-safety"]
   type: practice
@@ -15,7 +15,7 @@ metadata:
 
 # 破坏性操作安全
 
-> 本技能版本 0.1.1（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 0.1.2（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -50,7 +50,7 @@ metadata:
 | --- | --- | --- |
 | 缓存 / 锁 / 临时 / 派生 | 缓存目录、锁文件、构建产物 | 永久删除 |
 | 用户可见产物 | 技能产物、薄壳、状态账、迁移备份 | 项目内回收站；显式永久删除才跳过 |
-| 外部 / 系统目录 | 家目录、AppData、Windows、Program Files | 拒绝删除，交人工确认 |
+| 外部 / 系统目录 | 用户主目录、AppData、Windows、Program Files | 拒绝删除，交人工确认 |
 
 分层按路径根与归属账判定，不按名字猜；符号链接与 junction 只摘链，不搬目标内容。
 

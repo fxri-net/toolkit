@@ -271,7 +271,7 @@ export const DEPRECATED_REWRITES: readonly DeprecatedRewrite[] = [
       const mapped = value === "on" ? "gated" : value === "off" ? "full" : value
       return ["config", "set", "skillDelivery.default", mapped, ...options, "--yes"]
     },
-    note: "on → gated、off → full；查询改用 config get skillDelivery.default",
+    note: "开（on）→ 入口壳（gated）、关（off）→ 全文（full）；查询改用 config get skillDelivery.default",
   },
   // 顶层对象改名：放在表末，确保上面的长路径（changelog version / skills path 等）先匹配
   { from: ["tasks"], to: ["task"] },

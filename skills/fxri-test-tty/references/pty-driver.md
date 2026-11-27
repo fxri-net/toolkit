@@ -205,7 +205,7 @@ try {
 | 噪声 | 退出时可能输出 `AttachConsole failed`；conhost 短暂残留 | 一般无附加行；重绘仍会产生 CSI 序列 |
 | 中断键 | `\x03` 被当作控制台事件，可能直接终止进程 | `\x03` 投递给前台进程组，SIGINT 可捕获 |
 | 终止 | `kill()` 结束 pty 进程 | `kill()` 后可能残留子进程，需补 `SIGKILL` |
-| 家目录变量 | `USERPROFILE`、`APPDATA`、`LOCALAPPDATA` | `HOME`、`XDG_CONFIG_HOME` |
+| 用户主目录变量 | `USERPROFILE`、`APPDATA`、`LOCALAPPDATA` | `HOME`、`XDG_CONFIG_HOME` |
 | 临时目录 | `os.tmpdir()` 无软链 | macOS 的 `/var` 指向 `/private/var`，必须 `realpath` |
 | 颜色 | 由 ConPTY 决定是否启用 | 依赖 `TERM`，未设置时先设 `TERM=xterm-256color` |
 

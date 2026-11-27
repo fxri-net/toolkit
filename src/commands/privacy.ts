@@ -6,19 +6,22 @@ import { printJson } from "./shared"
 import { line } from "../term-style"
 import { fixPrivacyPaths, scanPrivacy, type PrivacyScanReport } from "../privacy/scan"
 
+// 档位中文：文本层只写中文，原值只进 JSON
+const LEVEL_LABELS = { off: "关闭", warn: "告警", error: "阻断" } as const
+
 // 文本报告：逐条 file:line + 类型；结尾给处置建议
 function printScan(report: PrivacyScanReport): void {
   if (report.skipped) {
-    console.log(line.hint("隐私扫描：privacy.localPaths 为 off（未启用），跳过"))
+    console.log(line.hint("隐私扫描：privacy.localPaths 为关闭（off），跳过"))
     return
   }
-  console.log(`隐私扫描（只读，档位 ${report.level}，扫描 ${report.scannedFiles} 个文件）：`)
+  console.log(`隐私扫描（只读，档位 ${LEVEL_LABELS[report.level]}，扫描 ${report.scannedFiles} 个文件）：`)
   if (report.hits.length === 0) {
     console.log("  未发现本机绝对路径")
     return
   }
   for (const hit of report.hits) {
-    const kind = hit.kind === "windows" ? "盘符" : "家目录"
+    const kind = hit.kind === "windows" ? "盘符" : "用户主目录"
     const tag = hit.level === "error" ? "阻断" : "提示"
     console.log(`  ${hit.file}:${hit.line}  ${kind} / ${tag}  ${hit.text}`)
   }
@@ -35,7 +38,7 @@ export function registerPrivacyCommands(program: Command): void {
 
   privacyCmd
     .command("scan")
-    .description("扫描任务区 / 变更集 / 文档 / 技能里的本机绝对路径；档位 off 时跳过")
+    .description("扫描任务区 / 变更集 / 文档 / 技能里的本机绝对路径；档位为关闭（off）时跳过")
     .option("--fix", "自动归一任务区与规范载体里的路径（文档与技能只报告）")
     .option("--dry-run", "配合 --fix 只列出将改写的文件与处数，不写盘")
     .option("--format <format>", "输出格式（json，输出到 stdout）")

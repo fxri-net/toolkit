@@ -544,7 +544,7 @@ async function runDefault(value: string | undefined, options: { layer?: string; 
     return
   }
   if (value !== "on" && value !== "off") {
-    fail("取值须为 on / off")
+    fail("取值须为 开（on）/ 关（off）")
     return
   }
   await applyScopePlan(value === "on" ? "作用域：默认全部生效" : "作用域：默认仅名单内生效", planDefault(state, value === "on"), options)
@@ -741,7 +741,7 @@ export function registerScopeCommands(program: Command): void {
 
   scopeCmd
     .command("default [value]")
-    .description("查看或切换名单外目录的处理：on（全部生效）/ off（仅名单内生效）")
+    .description("查看或切换名单外目录的处理：开（on，全部生效）/ 关（off，仅名单内生效）")
     .option("--layer <layer>", "配置层：全局（global，默认）/ 项目（project）/ 本地（local）")
     .option("--dry-run", "只预览，不写配置")
     .option("--yes", "跳过写前确认（预览照常打印）")

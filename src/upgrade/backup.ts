@@ -71,7 +71,7 @@ export class BackupSession {
       copyFileSync(file, stored)
       this.entries.push({ original: file, stored, beforeSha: sha256(file), absorbed: true })
       const root = rootForPath(file, upgradeRoots(this.cwd))
-      if (!root) throw new Error(`收编 .bak 时路径不在项目或家目录内：${file}`)
+      if (!root) throw new Error(`收编 .bak 时路径不在项目或用户主目录内：${file}`)
       trashAwareRemove(file, root)
     }
   }
@@ -207,7 +207,7 @@ export function pruneBackups(options: { cwd: string; layers: readonly UpgradeLay
     if (!existsSync(file)) continue
     const root = rootForPath(file, [getHomeDir(), options.cwd])
     if (!root) {
-      console.warn(`⚠️ 忽略不在项目或家目录内的备份文件：${file}`)
+      console.warn(`⚠️ 忽略不在项目或用户主目录内的备份文件：${file}`)
       result.skipped.push(file)
       continue
     }
