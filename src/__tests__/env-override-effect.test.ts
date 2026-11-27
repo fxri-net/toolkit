@@ -9,7 +9,7 @@ import { join } from "node:path"
 // 沙箱路径用 vi.hoisted 构造（mock 工厂早于模块顶层求值执行，不能引用未初始化的顶层变量）
 const sandbox = vi.hoisted(() => {
   const base = (process.env.TEMP || process.env.TMP || "/tmp").replace(/[\\/]+$/, "")
-  return `${base}/tk-envfx-sandbox-${process.pid.toString(36)}`
+  return `${base}/fxts-tk-envfx-sandbox-${process.pid.toString(36)}`
 })
 
 // tmpdir 重定向：旧缓存兼容路径落沙箱内；升级缓存本身落在注入 home 的 ~/.toolkit/cache

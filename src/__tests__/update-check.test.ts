@@ -7,7 +7,7 @@ import { resetToolkitConfigCache } from "../config"
 
 const sandbox = vi.hoisted(() => {
   const base = (process.env.TEMP || process.env.TMP || "/tmp").replace(/[\\/]+$/, "")
-  return `${base}/tk-upd-sandbox-${process.pid.toString(36)}`
+  return `${base}/fxts-tk-upd-sandbox-${process.pid.toString(36)}`
 })
 const HOME = `${sandbox}/home`
 const WORK = `${sandbox}/work`

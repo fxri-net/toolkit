@@ -8,7 +8,7 @@ import { collectSkillVersionUpdates } from "../skills/version-status"
 import { writeSkillsState } from "../skills/state"
 import type { SkillsState, StateMode } from "../skills/types"
 
-const sandbox = `${(process.env.TEMP || process.env.TMP || "/tmp").replace(/[\\/]+$/, "")}/tk-version-status-${process.pid.toString(36)}`
+const sandbox = `${(process.env.TEMP || process.env.TMP || "/tmp").replace(/[\\/]+$/, "")}/fxts-tk-version-status-${process.pid.toString(36)}`
 const home = join(sandbox, "home")
 const work = join(sandbox, "work")
 const sourceRoot = join(work, "source")
@@ -196,6 +196,23 @@ describe("collectSkillVersionUpdates", () => {
       "utf8",
     )
     const report = collectSkillVersionUpdates()
+    expect(report.builtin.map((item) => item.name)).toContain("fxri-plan-recap")
+  })
+
+  it("项目态账写逻辑路径、项目根取物理路径时仍计入", () => {
+    // 模拟 macOS /tmp → /private/tmp：同一目录两种写法，账里写别名、root 用真实路径
+    const realRoot = join(sandbox, "real-root")
+    const aliasRoot = join(sandbox, "alias-root")
+    mkdirSync(realRoot, { recursive: true })
+    symlinkSync(realRoot, aliasRoot, process.platform === "win32" ? "junction" : "dir")
+    writeInstalledSkill("fxri-plan-recap", "0.0.1", join(realRoot, ".agents", "skills"))
+    mkdirSync(join(realRoot, ".toolkit"), { recursive: true })
+    writeFileSync(
+      join(realRoot, ".toolkit", "state.json"),
+      JSON.stringify(state({ toolkit: source([{ name: "fxri-plan-recap", version: "0.0.1" }], { kind: "builtin", version: "1.0.0" }, join(aliasRoot, ".agents", "skills")) })),
+      "utf8",
+    )
+    const report = collectSkillVersionUpdates(realRoot)
     expect(report.builtin.map((item) => item.name)).toContain("fxri-plan-recap")
   })
 })

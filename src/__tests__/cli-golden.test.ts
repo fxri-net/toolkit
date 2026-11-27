@@ -10,7 +10,7 @@ import { dirname, join, relative } from "node:path"
 const sandbox = vi.hoisted(() => {
   const base = (process.env.TEMP || process.env.TMP || "/tmp").replace(/[\\/]+$/, "")
   const sep = base.includes("\\") ? "\\" : "/"
-  return `${base}${sep}tk-golden-sandbox-${process.pid.toString(36)}`
+  return `${base}${sep}fxts-tk-golden-sandbox-${process.pid.toString(36)}`
 })
 
 // 临时目录重定向到沙箱：升级缓存等落沙箱内

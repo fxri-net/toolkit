@@ -8,7 +8,7 @@ import { isProtectedTarget, isSingleSegmentName } from "../safe-remove"
 import { trashAwareRemove } from "../trash/store"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
-import { classifyTargetKind, isInside, listPackageSkills, packageVersion, pathKey, skillTargetLabel, skillsPackageDir, targetId } from "./source"
+import { classifyTargetKind, isInside, listPackageSkills, packageVersion, pathKey, realPath, skillTargetLabel, skillsPackageDir, targetId } from "./source"
 import {
   BUILTIN_SOURCE,
   PROJECT_STATE_DIR,
@@ -134,8 +134,10 @@ export interface StateScope {
 }
 
 // 目标目录是否可参与删除：项目态限根内，全局态限绝对路径且不落在受保护根
+// 项目态比较前统一解析真实路径：macOS /tmp → /private/tmp、项目位于软链下时，
+// 账中逻辑路径与 process.cwd() 物理路径前缀不同，纯文本比较会把合法目标整条丢弃
 function isSafeTargetDir(dir: string, options: StateScope): boolean {
-  if (options.scope === "project") return isInside(resolve(options.root, dir), options.root)
+  if (options.scope === "project") return isInside(realPath(resolve(options.root, dir)), realPath(options.root))
   return isAbsolute(dir) && !isProtectedTarget(dir) && !isHomeDirectory(dir)
 }
 

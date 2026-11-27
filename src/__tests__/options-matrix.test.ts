@@ -9,7 +9,7 @@ import { removeArtifact } from "../skills/source/artifact"
 // 沙箱路径用 vi.hoisted 构造（mock 工厂早于模块顶层求值执行，不能引用未初始化的顶层变量）
 const sandbox = vi.hoisted(() => {
   const base = (process.env.TEMP || process.env.TMP || "/tmp").replace(/[\\/]+$/, "")
-  return `${base}/tk-matrix-sandbox-${process.pid.toString(36)}`
+  return `${base}/fxts-tk-matrix-sandbox-${process.pid.toString(36)}`
 })
 
 // tmpdir 重定向到沙箱：升级缓存文件落沙箱内，用例可精确预置 / 清理

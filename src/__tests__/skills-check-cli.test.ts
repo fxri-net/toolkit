@@ -6,7 +6,7 @@ import { join } from "node:path"
 // 沙箱路径：home 指向临时目录，产物不外溢
 const sandbox = vi.hoisted(() => {
   const base = (process.env.TEMP || process.env.TMP || "/tmp").replace(/[\\/]+$/, "")
-  return `${base}/tk-check-sandbox-${process.pid.toString(36)}`
+  return `${base}/fxts-tk-check-sandbox-${process.pid.toString(36)}`
 })
 const home = join(sandbox, "home")
 const originalArgv = process.argv
