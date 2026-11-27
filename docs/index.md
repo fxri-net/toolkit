@@ -13,7 +13,7 @@ hero:
       link: ./getting-started
     - theme: alt
       text: 一图看懂
-      link: ./concepts
+      link: ./overview
     - theme: alt
       text: 完整攻略
       link: ./guide
@@ -104,7 +104,7 @@ toolkit setup  # 装技能、配规则、设生效范围（交互向导，可在
 | --- | --- |
 | [快速开始](./getting-started) | 第一次接触，想 30 秒跑起来 |
 | [推荐技能包](./packages) | 按场景选择技能源（含外部来源） |
-| [一图看懂](./concepts) | 一张图看懂五件套的组成、关系与配合 |
+| [一图看懂](./overview) | 一张图看懂五件套的组成、关系与配合 |
 | [适用场景](./scenarios) | 按个人 / 团队 / 组织 / 沉淀者 / 维护者 / 存量迁移对号入座 |
 | [内部推广](./adoption) | 组织内推广：一句话介绍、讲稿、试点方案与决策者问答 |
 | [操作手册](./handbook) | 日常照着做：每个场景该说什么、做什么 |

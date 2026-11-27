@@ -64,4 +64,4 @@ title: 内部推广
 
 ## 相关页面
 
-- 参考：[适用场景](./scenarios) · [一图看懂](./concepts) · [隐私与数据边界](./usage/privacy) · [快速开始](./getting-started)
+- 参考：[适用场景](./scenarios) · [一图看懂](./overview) · [隐私与数据边界](./usage/privacy) · [快速开始](./getting-started)

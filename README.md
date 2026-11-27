@@ -45,7 +45,7 @@ toolkit setup
 之后：方案确认后由 AI 登记为 `.tasks/` 任务文件 → `toolkit task check` 校验 →
 完成后 `toolkit task archive` 归档并做规范沉淀。
 多任务 / 多仓方案先出纯展示计划表，确认后说「开始」即一次建完全部任务档并校验，再按序逐个交付提交。
-完整步骤见 [快速开始](./docs/getting-started.md)。按场景选路径见 [适用场景](./docs/scenarios.md)，整体结构见 [一图看懂](./docs/concepts.md)。
+完整步骤见 [快速开始](./docs/getting-started.md)。按场景选路径见 [适用场景](./docs/scenarios.md)，整体结构见 [一图看懂](./docs/overview.md)。
 
 > 已装过旧版本：升级 CLI 后在项目内跑 `toolkit upgrade`，把旧工程与本机契约数据迁到当前版本（自带预览与确认）；`toolkit status` 可自查。
 
@@ -74,7 +74,7 @@ toolkit setup
 | --- | --- |
 | [快速开始](./docs/getting-started.md) | 第一次接触，想 30 秒跑起来（含零基础术语表） |
 | [推荐技能包](./docs/packages.md) | 按场景选择技能源（含 playbook 等外部来源） |
-| [一图看懂](./docs/concepts.md) | 一张图看懂五件套的组成、关系与配合 |
+| [一图看懂](./docs/overview.md) | 一张图看懂五件套的组成、关系与配合 |
 | [适用场景](./docs/scenarios.md) | 按个人 / 团队 / 组织 / 沉淀者 / 维护者 / 存量迁移对号入座 |
 | [内部推广](./docs/adoption.md) | 组织内推广：一句话介绍、讲稿、试点方案与决策者问答 |
 | [操作手册](./docs/handbook.md) | 日常照着做：每个场景该说什么、做什么 |

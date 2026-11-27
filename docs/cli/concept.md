@@ -60,4 +60,4 @@ toolkit concept show quality-gate --format json
 
 ## 相关页面
 
-- [一图看懂](../concepts) · [CLI 参考](../cli) · [推荐技能包](../packages)
+- [一图看懂](../overview) · [CLI 参考](../cli) · [推荐技能包](../packages)

@@ -39,7 +39,7 @@ describe("一图看懂页：图示与能力全景", () => {
   })
 
   it("能力全景表覆盖命令注册表的全部顶层域（新增命令漏登记即失败）", () => {
-    const page = readFileSync(join(process.cwd(), "docs/concepts.md"), "utf8")
+    const page = readFileSync(join(process.cwd(), "docs/overview.md"), "utf8")
     const listed = new Set([...page.matchAll(/^\| `toolkit ([a-z-]+)`/gm)].map((m) => m[1] as string))
     const domains = COMMAND_REGISTRY.filter(
       (entry) => entry.stage === "current" && !entry.deprecatesTo && !entry.path.includes(" ") && entry.path !== "help",

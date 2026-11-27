@@ -4,7 +4,7 @@
     {
       "text": "指南",
       "items": [
-        { "text": "一图看懂", "link": "/concepts" },
+        { "text": "一图看懂", "link": "/overview" },
         { "text": "适用场景", "link": "/scenarios" },
         { "text": "内部推广", "link": "/adoption" },
         { "text": "操作手册", "link": "/handbook" },
@@ -49,7 +49,7 @@
     {
       "text": "指南",
       "items": [
-        { "text": "一图看懂", "link": "/concepts" },
+        { "text": "一图看懂", "link": "/overview" },
         { "text": "适用场景", "link": "/scenarios" },
         { "text": "内部推广", "link": "/adoption" },
         { "text": "操作手册", "link": "/handbook" },
