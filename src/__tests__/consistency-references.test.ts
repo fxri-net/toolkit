@@ -1,7 +1,8 @@
 import { spawnSync } from "node:child_process"
-import { mkdirSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
+import { COMMAND_REGISTRY } from "../command-registry"
 import { tempDir } from "./helpers"
 
 // 被测脚本以 process.cwd() 为仓库根，测试用临时目录模拟最小仓库结构并以子进程实跑
@@ -305,6 +306,19 @@ describe("规范一致性：能力矩阵文案", () => {
     const result = spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" })
     expect(result.status).toBe(1)
     expect(result.stderr).toContain("README.md 的能力矩阵文案「示例能力（demo）」")
+  })
+})
+
+// README 能力矩阵：每个当前顶层命令域都必须出现（按「显示名（标识）」中的标识匹配）
+describe("规范一致性：README 能力矩阵覆盖全部命令域", () => {
+  it("命令注册表中的当前顶层域都在矩阵里有一行", () => {
+    const readme = readFileSync(join(process.cwd(), "README.md"), "utf8")
+    const matrix = (readme.split("## ✨ 能力矩阵")[1] ?? "").split("\n## ")[0] ?? ""
+    const labels = new Set([...matrix.matchAll(/^\| [^|\n]*（([a-z][a-z0-9-]*)）/gm)].map((match) => match[1] as string))
+    const domains = COMMAND_REGISTRY.filter(
+      (entry) => entry.stage === "current" && !entry.deprecatesTo && !entry.path.includes(" ") && entry.path !== "help",
+    ).map((entry) => entry.path)
+    expect(domains.filter((domain) => !labels.has(domain))).toEqual([])
   })
 })
 

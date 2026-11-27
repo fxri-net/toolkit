@@ -60,13 +60,13 @@ import ModelMap from './.vitepress/theme/components/diagrams/ModelMap.vue'
 
 <ModelMap />
 
-| 件套 | 解决什么 | 存放位置 | 入口命令 | 谁维护 |
-| --- | --- | --- | --- | --- |
-| 任务文件 | 方案、决策与交付落盘 | `.tasks/active/`、`.tasks/archive/` | `toolkit task` | 人 + AI |
-| 规范载体 | 从任务里提炼可检索的规范 | `.tasks/conventions/` | `toolkit convention` | 人 + AI |
-| AI 技能 | 让 AI 按同一套规范干活 | 全局技能目录 / 项目薄壳 | `toolkit skill` | 随包分发 |
-| 全局规则 | 约束 AI 的角色、输出与工作流 | Agent 的全局规则入口 | `toolkit rule` | 人复制 |
-| 配置与作用域 | 决定上面几件在哪些项目生效 | `.toolkitrc.json` 三层 | `toolkit config` / `scope` | 项目 + 个人 |
+| 件套 | 所属层 | 解决什么 | 存放位置 | 入口命令 | 谁维护 |
+| --- | --- | --- | --- | --- | --- |
+| 任务文件 | 协作过程 | 方案、决策与交付落盘 | `.tasks/active/`、`.tasks/archive/` | `toolkit task` | 人 + AI |
+| 规范载体 | 协作过程 | 从任务里提炼可检索的规范 | `.tasks/conventions/` | `toolkit convention` | 人 + AI |
+| AI 技能 | 能力分发 | 让 AI 按同一套规范干活 | 全局技能目录 / 项目薄壳 | `toolkit skill` | 随包分发 |
+| 全局规则 | 能力分发 | 约束 AI 的角色、输出与工作流 | Agent 的全局规则入口 | `toolkit rule` | 人复制 |
+| 配置与作用域 | 贯穿分发与治理 | 决定上面几件在哪些项目生效 | `.toolkitrc.json` 三层 | `toolkit config` / `scope` | 项目 + 个人 |
 
 ## 我该用哪一件
 
