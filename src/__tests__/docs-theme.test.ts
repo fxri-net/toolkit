@@ -23,6 +23,24 @@ describe("writeDocsTheme / checkDocsTheme", () => {
     expect(checkDocsTheme(dir)).toEqual({ ok: true, problems: [] })
   })
 
+  it("覆盖自定义 index.ts 前先备份，原内容可读回", () => {
+    writeDocsTheme(dir)
+    const indexPath = join(dir, "index.ts")
+    const template = readFileSync(indexPath, "utf8")
+    const custom = `${template}\n// custom\n`
+    writeFileSync(indexPath, custom)
+
+    const result = writeDocsTheme(dir)
+    expect(result.backups).toHaveLength(1)
+    expect(readFileSync(result.backups[0]!, "utf8")).toBe(custom)
+    expect(readFileSync(indexPath, "utf8")).toBe(template)
+  })
+
+  it("index.ts 与模板一致时不产生备份", () => {
+    writeDocsTheme(dir)
+    expect(writeDocsTheme(dir).backups).toEqual([])
+  })
+
   it("品牌段改动不影响校验，公共段改动会被行号定位", () => {
     writeDocsTheme(dir)
     const cssPath = join(dir, "custom.css")

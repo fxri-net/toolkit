@@ -121,6 +121,7 @@ export function registerDocsCommands(program: Command): void {
         const result = writeDocsTheme(themeDir, { force: options.force })
         for (const file of result.written) console.log(line.ok(`写入：${style.accent(file)}`))
         for (const file of result.kept) console.log(line.hint(`保留品牌段：${file}`))
+        for (const file of result.backups) console.log(line.hint(`已备份原 index.ts：${file}`))
       } catch (e) {
         console.error(`⚠️ ${(e as Error).message}`)
         process.exitCode = 1

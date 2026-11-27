@@ -18,7 +18,7 @@ toolkit docs theme check --dir <path>  # 指定主题目录（缺省 docs/.vitep
 | 子命令 | 行为 |
 | --- | --- |
 | `check` | 校验主题与模板是否一致：`index.ts` 与模板全文一致、`custom.css` 首行版本标记一致、公共段逐字一致（报出首个差异行号）；品牌段改动不影响结果，但仍用 1.x 的 `--site-*` 令牌时报废弃提示；不一致时退出码 1 |
-| `write` | 写入或刷新模板：保留既有品牌段，并把 `--site-accent` / `--site-glow` / `--site-shadow` / `--site-hero-angle` 迁移为 `--fx-accent` / `--fx-accent-soft` / `--fx-shadow` / `--fx-hero-angle`，只替换页头与公共段；既有文件缺少标记行时报错，需加 `--force` 才覆盖 |
+| `write` | 写入或刷新模板：保留既有品牌段，并把 `--site-accent` / `--site-glow` / `--site-shadow` / `--site-hero-angle` 迁移为 `--fx-accent` / `--fx-accent-soft` / `--fx-shadow` / `--fx-hero-angle`，只替换页头与公共段；`index.ts` 与模板不同时先备份为 `index.ts.toolkit-backup-<时间戳>` 再覆盖；既有 `custom.css` 缺少标记行时报错，需加 `--force` 才覆盖 |
 
 模板随包分发（`templates/docs-theme/`），`custom.css` 以 `/* fxri-docs-theme: 2.2 */` 标记版本（视觉调整升次版本、结构变更升主版本），
 `brand-start` 与 `brand-end` 之间为品牌与装饰变量，其后的公共视觉规则须逐字一致。

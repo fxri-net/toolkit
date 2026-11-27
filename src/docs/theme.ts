@@ -1,5 +1,5 @@
 // 文档站统一主题：模板随包分发，--check 校验公共规则未漂移，--write 刷新模板并保留各站品牌段
-import { existsSync, mkdirSync } from "node:fs"
+import { copyFileSync, existsSync, mkdirSync } from "node:fs"
 import { join } from "node:path"
 import { readTextFile } from "../read-text"
 import { writeFileAtomic } from "../write-atomic"
@@ -42,10 +42,23 @@ export interface ThemeCheckResult {
   problems: string[]
 }
 
-// 写入结果：kept 为保留了既有品牌段的文件，便于调用方如实报告
+// 写入结果：kept 为保留了既有品牌段的文件，backups 为覆盖前备份的 index.ts，便于调用方如实报告
 export interface ThemeWriteResult {
   written: string[]
   kept: string[]
+  backups: string[]
+}
+
+// 覆盖前备份 index.ts：同秒多次写入时追加序号，避免备份互相覆盖
+function backupIndex(indexPath: string): string {
+  const now = new Date()
+  const pad = (value: number): string => String(value).padStart(2, "0")
+  const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+  let file = `${indexPath}.toolkit-backup-${stamp}`
+  let seq = 1
+  while (existsSync(file)) file = `${indexPath}.toolkit-backup-${stamp}-${seq++}`
+  copyFileSync(indexPath, file)
+  return file
 }
 
 // 换行归一：Windows 检出（core.autocrlf）为 CRLF，逐字比对前须统一
@@ -138,9 +151,14 @@ export function writeDocsTheme(
 
   const written: string[] = []
   const kept: string[] = []
+  const backups: string[] = []
   mkdirSync(themeDir, { recursive: true })
 
   const indexPath = join(themeDir, "index.ts")
+  // index.ts 是用户可能定制的文件：内容与模板不同时先备份，避免 --write 静默丢改动
+  if (existsSync(indexPath) && normalize(readTextFile(indexPath)) !== normalize(templateIndex)) {
+    backups.push(backupIndex(indexPath))
+  }
   writeFileAtomic(indexPath, templateIndex)
   written.push(indexPath)
 
@@ -157,5 +175,5 @@ export function writeDocsTheme(
   }
   writeFileAtomic(cssPath, `${parsed.header}\n${BRAND_START}\n${brand}\n${BRAND_END}\n${parsed.common}\n`)
   written.push(cssPath)
-  return { written, kept }
+  return { written, kept, backups }
 }
