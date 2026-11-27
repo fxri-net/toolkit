@@ -4,12 +4,15 @@ import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import type { Command } from "commander"
 import { assertJsonFormat, jsonEnvelope } from "../json-output"
+import { isContractVersion, type ContractVersion } from "../contract-version"
 import { line, style } from "../term-style"
 import { printJson } from "./shared"
 
 // 概念分类与成熟度：与 schemas/concept-catalog.schema.json 的枚举一致
 export const CONCEPT_CATEGORIES = ["engineering", "delivery", "safety", "collaboration", "distribution", "platform"] as const
 export const CONCEPT_MATURITY = ["ready", "partial", "repo-only"] as const
+
+export const CONCEPT_CATALOG_VERSION: ContractVersion = "1.0"
 
 export type ConceptCategory = (typeof CONCEPT_CATEGORIES)[number]
 export type ConceptMaturity = (typeof CONCEPT_MATURITY)[number]
@@ -46,7 +49,7 @@ export interface ConceptBundle {
 }
 
 export interface ConceptCatalog {
-  schemaVersion: number
+  schemaVersion: ContractVersion
   concepts: Concept[]
   bundles: ConceptBundle[]
 }
@@ -83,6 +86,9 @@ export function readConceptCatalog(): ConceptCatalog {
   const catalog = parsed as ConceptCatalog
   if (!Array.isArray(catalog.concepts) || !Array.isArray(catalog.bundles)) {
     throw new Error(`概念目录结构异常：${file}`)
+  }
+  if (!isContractVersion(catalog.schemaVersion, CONCEPT_CATALOG_VERSION)) {
+    throw new Error(`概念目录契约版本应为 ${CONCEPT_CATALOG_VERSION}（实际：${String(catalog.schemaVersion)}）：${file}`)
   }
   cached = catalog
   return catalog

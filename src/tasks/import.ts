@@ -8,6 +8,7 @@ import { readTextFile, stripBom } from "../read-text"
 import { normalizeIfEnabled, reportNormalizedPaths } from "../privacy/paths"
 import { isSingleSegmentName } from "../safe-remove"
 import { normalizeCompleted, parseArchiveBlocks, renderArchiveFile } from "./archive-block"
+import { normalizeContractVersion } from "../contract-version"
 import type { ArchiveBlockInfo } from "./archive-block"
 import { ALL_STATUSES, DONE_STATUSES, FRONTMATTER_KEYS, UNLABELED } from "./types"
 import { toYmd, toYmdCompact, todayCompact } from "../date"
@@ -164,11 +165,12 @@ async function readRowsXLSX(file: string, custom: Record<string, string>): Promi
 
 // JSON 读取：兼容 { schemaVersion, summary, items } / { summary, items } 与裸数组，字段英文 key + 中文别名（小写）
 function readRowsJSON(content: string, custom: Record<string, string>): Record<string, string>[] {
-  const data = JSON.parse(content) as { schemaVersion?: number; items?: unknown } | unknown[]
-  // 导出自更高 schema 版本时提示（仍尽力按当前字段映射解析）
-  if (!Array.isArray(data) && typeof (data as { schemaVersion?: number }).schemaVersion === "number") {
-    const sv = (data as { schemaVersion: number }).schemaVersion
-    if (sv > 1) console.warn(`⚠️ 导入 JSON 来自更高 schema 版本 v${sv}，字段解析可能不完整`)
+  const data = JSON.parse(content) as { schemaVersion?: unknown; items?: unknown } | unknown[]
+  // 导出自更高主版本时提示（仍尽力按当前字段映射解析）；历史整数写法按 N.0 归一
+  if (!Array.isArray(data)) {
+    const version = normalizeContractVersion((data as { schemaVersion?: unknown }).schemaVersion)
+    const major = version === null ? 0 : Number(version.split(".")[0])
+    if (major > 1) console.warn(`⚠️ 导入 JSON 来自更高契约版本 v${version}，字段解析可能不完整`)
   }
   const items = Array.isArray(data) ? data : Array.isArray((data as { items?: unknown }).items) ? (data as { items: unknown[] }).items : []
   const out: Record<string, string>[] = []

@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/fxri-net/toolkit/schemas/skill-usage-event.v1.json",
+  "$id": "https://github.com/fxri-net/toolkit/schemas/skill-usage-event.schema.json",
   "title": "SkillUsageEvent",
-  "description": "toolkit 技能使用事件 v1：新增字段只增不改，破坏性变更升 schemaVersion",
+  "description": "toolkit 技能使用事件 1.0：契约版本为 MAJOR.MINOR，新增字段只增不改（MINOR），破坏性变更升 MAJOR",
   "type": "object",
   "additionalProperties": true,
   "required": [
@@ -18,7 +18,7 @@
     "toolkitVersion"
   ],
   "properties": {
-    "schemaVersion": { "const": 1 },
+    "schemaVersion": { "const": "1.0" },
     "eventId": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
     "occurredAt": { "type": "string", "format": "date-time" },
     "agent": {

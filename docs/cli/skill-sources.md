@@ -20,10 +20,10 @@ title: 技能来源（skill source）
 
 按优先级识别：
 
-1. `skills.json` 清单，`formatVersion` 非 `1` 直接报错、不静默回退目录扫描：
+1. `skills.json` 清单，`formatVersion` 非 `"1.0"` 直接报错、不静默回退目录扫描：
 
    ```json
-   { "formatVersion": 1, "name": "...", "version": "...", "skills": ["skills/a", { "path": "skills/b", "name": "b", "previousNames": ["b-old"] }] }
+   { "formatVersion": "1.0", "name": "...", "version": "...", "skills": ["skills/a", { "path": "skills/b", "name": "b", "previousNames": ["b-old"] }] }
    ```
 
 2. 根 `SKILL.md`：单技能来源，名称取 frontmatter `name`，缺失时取目录名

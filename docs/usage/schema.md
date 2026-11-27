@@ -4,13 +4,13 @@ title: 事件 Schema
 
 # 事件 Schema
 
-> `schemaVersion` 当前为 `1`；新增字段只增不改，破坏性变更升版本并提供迁移命令。
+> `schemaVersion` 当前为 `1.0`（MAJOR.MINOR）；新增字段只增不改（MINOR），破坏性变更升 MAJOR 并提供迁移命令。
 
 ## 字段
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `schemaVersion` | number | 是 | 固定 `1` |
+| `schemaVersion` | string | 是 | 固定 `"1.0"`（MAJOR.MINOR） |
 | `eventId` | string | 是 | `sha256:` 前缀的稳定 ID |
 | `occurredAt` | string | 是 | 本地时区 ISO 时间 |
 | `agent` | string | 是 | 适配器 id：`trae` / `claude` / `cursor` / `codex` / `copilot` / `manual` / `rule`（规则上报） |
@@ -32,7 +32,7 @@ title: 事件 Schema
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": "1.0",
   "eventId": "sha256:9f2c…",
   "occurredAt": "2026-11-06T10:12:33.123+08:00",
   "agent": "trae",
@@ -55,9 +55,9 @@ title: 事件 Schema
 - 规则通道：`toolUseId` 为 `rule:<批次ID>:<批次内序号>`，同一技能调用几次就生成几条，不互相去重。
 - 缺少 `toolUseId`：`sessionId + skill + 2 秒窗口`。
 
-机器可读 schema 见 [skill-usage-event.v1.json][schema]。
+机器可读 schema 见 [skill-usage-event.schema.json][schema]。
 
-[schema]: https://github.com/fxri-net/toolkit/blob/main/schemas/skill-usage-event.v1.json
+[schema]: https://github.com/fxri-net/toolkit/blob/main/schemas/skill-usage-event.schema.json
 
 ## 兼容策略
 

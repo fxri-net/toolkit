@@ -4,6 +4,7 @@ import { dirname, resolve } from "node:path"
 import type { Command } from "commander"
 import { assertJsonFormat, jsonEnvelope } from "../../json-output"
 import { line } from "../../term-style"
+import { USAGE_EVENT_VERSION } from "../types"
 import { AGENT_ADAPTERS } from "../adapters"
 import { processHookEvent } from "../ingest"
 import { parseTranscript } from "../transcript"
@@ -28,7 +29,7 @@ export function exportUsageEvents(options: { type?: string; out?: string; since?
   if (since === null) return
   const { paths } = createContext(options.dir)
   const events = filterEvents(readAllEvents(paths), { since })
-  const content = format === "csv" ? eventsToCsv(events) : format === "jsonl" ? eventsToJsonl(events) : `${JSON.stringify({ schemaVersion: 1, events }, null, 2)}\n`
+  const content = format === "csv" ? eventsToCsv(events) : format === "jsonl" ? eventsToJsonl(events) : `${JSON.stringify({ schemaVersion: USAGE_EVENT_VERSION, events }, null, 2)}\n`
   if (!options.out) {
     process.stdout.write(content)
     return

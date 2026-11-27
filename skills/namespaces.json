@@ -1,5 +1,5 @@
 {
-  "formatVersion": 1,
+  "formatVersion": "1.0",
   "source": "https://github.com/fxri-net/playbook",
   "families": {
     "plan": { "semantics": "规划与复盘", "skills": ["fxri-plan-task", "fxri-plan-review", "fxri-plan-recap"] },

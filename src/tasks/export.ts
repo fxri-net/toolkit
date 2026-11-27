@@ -7,6 +7,10 @@ import { toYmd } from "../date"
 import { redactText } from "../privacy/redact"
 import { writeFileAtomic } from "../write-atomic"
 import type { TaskRow, TaskSummary } from "./types"
+import type { ContractVersion } from "../contract-version"
+
+// 任务导出 JSON 契约版本：独立升版，与 JSON 信封 / 事件等契约互不联动
+export const TASKS_EXPORT_VERSION: ContractVersion = "1.0"
 
 const require = createRequire(import.meta.url)
 
@@ -96,7 +100,7 @@ export function toJSONData(rows: TaskRow[], summary: TaskSummary, redact = true)
 
 // 生成 JSON 文本：{ schemaVersion, summary, items }，导出文件格式保持不变
 export function toJSON(rows: TaskRow[], summary: TaskSummary, redact = true): string {
-  return JSON.stringify({ schemaVersion: 1, ...toJSONData(rows, summary, redact) }, null, 2)
+  return JSON.stringify({ schemaVersion: TASKS_EXPORT_VERSION, ...toJSONData(rows, summary, redact) }, null, 2)
 }
 
 // 生成 xlsx 工作簿 Buffer：固定三 sheet（待完成 / 已归档 / 汇总）

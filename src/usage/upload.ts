@@ -8,10 +8,14 @@ import { askInput, askSelectOrExit, confirmWrite } from "../cli-ui"
 import { loadUsageConfig, resolveUsageDir, updateUsageConfig } from "./config"
 import { readAllEvents, usagePaths, type UsagePaths } from "./store"
 import type { SkillUsageEvent, UsageConfig, UsageUploadProtocol } from "./types"
+import type { ContractVersion } from "../contract-version"
+
+// 上传协议与账本契约版本：内部台账，独立升版
+export const USAGE_UPLOAD_VERSION: ContractVersion = "1.0"
 
 // 上传账本：记录已成功发送的 eventId，重试不重复
 interface UploadLedger {
-  schemaVersion: 1
+  schemaVersion: ContractVersion
   updatedAt: string
   sent: string[]
 }
@@ -35,18 +39,18 @@ function ledgerPath(paths: UsagePaths): string {
 // 读取账本：损坏按空账本处理，最多导致一次重复上传
 function readLedger(paths: UsagePaths): UploadLedger {
   const file = ledgerPath(paths)
-  if (!existsSync(file)) return { schemaVersion: 1, updatedAt: new Date().toISOString(), sent: [] }
+  if (!existsSync(file)) return { schemaVersion: USAGE_UPLOAD_VERSION, updatedAt: new Date().toISOString(), sent: [] }
   try {
     const parsed: unknown = JSON.parse(readFileSync(file, "utf8"))
-    if (typeof parsed !== "object" || parsed === null) return { schemaVersion: 1, updatedAt: new Date().toISOString(), sent: [] }
+    if (typeof parsed !== "object" || parsed === null) return { schemaVersion: USAGE_UPLOAD_VERSION, updatedAt: new Date().toISOString(), sent: [] }
     const ledger = parsed as Partial<UploadLedger>
     return {
-      schemaVersion: 1,
+      schemaVersion: USAGE_UPLOAD_VERSION,
       updatedAt: typeof ledger.updatedAt === "string" ? ledger.updatedAt : new Date().toISOString(),
       sent: Array.isArray(ledger.sent) ? ledger.sent.filter((id): id is string => typeof id === "string") : [],
     }
   } catch {
-    return { schemaVersion: 1, updatedAt: new Date().toISOString(), sent: [] }
+    return { schemaVersion: USAGE_UPLOAD_VERSION, updatedAt: new Date().toISOString(), sent: [] }
   }
 }
 
@@ -148,7 +152,7 @@ export async function uploadOnce(options: { dryRun?: boolean; limit?: number } =
       dryRun: true,
       protocol: config.upload.protocol,
       endpoint: config.upload.endpoint,
-      preview: config.upload.protocol === "otlp-http" ? buildOtlpPayload(batch) : { schemaVersion: 1, events: batch },
+      preview: config.upload.protocol === "otlp-http" ? buildOtlpPayload(batch) : { schemaVersion: USAGE_UPLOAD_VERSION, events: batch },
     }
   }
   if (batch.length === 0) {
@@ -162,10 +166,10 @@ export async function uploadOnce(options: { dryRun?: boolean; limit?: number } =
   } else if (config.upload.protocol === "otlp-http") {
     await postJson(config.upload.endpoint, buildOtlpPayload(batch), config.upload.headers)
   } else {
-    await postJson(config.upload.endpoint, { schemaVersion: 1, events: batch }, config.upload.headers)
+    await postJson(config.upload.endpoint, { schemaVersion: USAGE_UPLOAD_VERSION, events: batch }, config.upload.headers)
   }
   for (const event of batch) sent.add(event.eventId)
-  writeLedger(resolved, { schemaVersion: 1, updatedAt: new Date().toISOString(), sent: [...sent] })
+  writeLedger(resolved, { schemaVersion: USAGE_UPLOAD_VERSION, updatedAt: new Date().toISOString(), sent: [...sent] })
   return {
     sent: batch.length,
     pending: pending.length - batch.length,

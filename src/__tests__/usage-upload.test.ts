@@ -51,7 +51,7 @@ function writeConfig(upload: Record<string, unknown>): void {
 // 造一条事件并写入本地存储
 function seedEvent(): SkillUsageEvent {
   const event: SkillUsageEvent = {
-    schemaVersion: 1,
+    schemaVersion: "1.0",
     eventId: "sha256:upload-1",
     occurredAt: "2026-11-06T10:00:00.000+08:00",
     agent: "trae",

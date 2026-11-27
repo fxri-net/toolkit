@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { computeStats, renderStats } from "../tasks/stats"
-import { jsonEnvelope, toJsonText } from "../json-output"
+import { jsonEnvelope, toJsonText, JSON_ENVELOPE_VERSION } from "../json-output"
 import { tempDir } from "./helpers"
 
 // 临时目录收集，用例结束后统一清理
@@ -189,7 +189,7 @@ describe("stats JSON 输出", () => {
     writeTask(dir, "20260901-李四-滞留任务", { owner: "李四", status: "待办", created: "20260901", updated: "20260901", completed: "", depends_on: "[]", scope: "core" })
     const stats = computeStats(dir)
     const parsed = JSON.parse(toJsonText(jsonEnvelope({ command: "task stats", data: stats }))) as Record<string, unknown>
-    expect(parsed.schemaVersion).toBe(1)
+    expect(parsed.schemaVersion).toBe(JSON_ENVELOPE_VERSION)
     expect(parsed.command).toBe("task stats")
     expect(parsed.code).toBe(200)
     expect(parsed.message).toBe("成功")

@@ -40,6 +40,7 @@ vi.mock("../command-registry", async (importOriginal) => {
 
 import { collectStatus } from "../status"
 import { runStatus } from "../commands/status"
+import { JSON_ENVELOPE_VERSION } from "../json-output"
 
 // 健康现场的各域返回值：只含聚合层读取的字段
 function healthyDomains(): void {
@@ -199,7 +200,7 @@ describe("runStatus 输出与退出码", () => {
 
     runStatus({ format: "json" }, "1.2.3")
     const payload = JSON.parse(log.mock.calls.map((call) => call.join(" ")).join("\n")) as Record<string, unknown>
-    expect(payload.schemaVersion).toBe(1)
+    expect(payload.schemaVersion).toBe(JSON_ENVELOPE_VERSION)
     expect(payload.command).toBe("status")
     expect(payload.code).toBe(200)
     expect(payload.message).toBe("成功")

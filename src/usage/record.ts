@@ -3,7 +3,7 @@
 import { randomBytes } from "node:crypto"
 import { loadUsageConfig, resolveUsageDir } from "./config"
 import { spawnFlushWorker } from "./flush"
-import { enqueueRecord, type UsageQueueEntry } from "./queue"
+import { enqueueRecord, type UsageQueueEntry, USAGE_QUEUE_VERSION } from "./queue"
 import { detectAgent } from "./sessions"
 import { usagePaths } from "./store"
 import { ENV_USAGE_SESSION } from "../env"
@@ -60,7 +60,7 @@ export function recordSkills(options: RecordOptions): RecordResult {
   if (skills.length === 0) return { queued: 0, channel: "rule" }
   const paths = usagePaths(resolveUsageDir(options.dir, config))
   const entry: UsageQueueEntry = {
-    schemaVersion: 1,
+    schemaVersion: USAGE_QUEUE_VERSION,
     batchId: createBatchId(),
     sessionId: resolveRecordSession(options.session),
     agentHint: detectAgent(),

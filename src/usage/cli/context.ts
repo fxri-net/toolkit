@@ -5,6 +5,7 @@ import { line, termText, usageChannelText, usageRotationText, usageSkillsModeTex
 import { redactText, resolveRedactEnabled } from "../../privacy/redact"
 import { uploadStatus } from "../upload"
 import { resolveSkillMeta } from "../event"
+import { USAGE_EVENT_VERSION } from "../types"
 import { AGENT_ADAPTERS } from "../adapters"
 import { queueCount } from "../queue"
 import { loadUsageConfig, resolveUsageDir, usageConfigPath } from "../config"
@@ -218,7 +219,7 @@ export function normalizeImportedEvent(raw: unknown): SkillUsageEvent | null {
     ? (item.skillSource as UsageSkillSource)
     : meta.source
   const event: SkillUsageEvent = {
-    schemaVersion: 1,
+    schemaVersion: USAGE_EVENT_VERSION,
     eventId: item.eventId,
     occurredAt: item.occurredAt,
     agent: item.agent,

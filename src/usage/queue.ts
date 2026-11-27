@@ -2,11 +2,15 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync } from "node:fs"
 import { join } from "node:path"
 import { writeFileAtomic } from "../write-atomic"
+import { isContractVersion, type ContractVersion } from "../contract-version"
+
+// 队列条目契约版本：内部台账，独立升版
+export const USAGE_QUEUE_VERSION: ContractVersion = "1.0"
 import type { UsagePaths } from "./store"
 
 // 队列条目：技能数组保留重复与顺序，按出现次数计数
 export interface UsageQueueEntry {
-  schemaVersion: 1
+  schemaVersion: ContractVersion
   batchId: string
   sessionId: string
   agentHint: string
@@ -43,12 +47,12 @@ export function readQueueEntry(file: string): UsageQueueEntry | null {
     const parsed: unknown = JSON.parse(readFileSync(file, "utf8"))
     if (typeof parsed !== "object" || parsed === null) return null
     const entry = parsed as Partial<UsageQueueEntry>
-    if (entry.schemaVersion !== 1 || typeof entry.batchId !== "string") return null
+    if (!isContractVersion(entry.schemaVersion, USAGE_QUEUE_VERSION) || typeof entry.batchId !== "string") return null
     if (typeof entry.sessionId !== "string" || typeof entry.occurredAt !== "string") return null
     if (!Array.isArray(entry.skills)) return null
     if (!entry.skills.every((skill) => typeof skill === "string" && skill.trim() !== "")) return null
     return {
-      schemaVersion: 1,
+      schemaVersion: USAGE_QUEUE_VERSION,
       batchId: entry.batchId,
       sessionId: entry.sessionId,
       agentHint: typeof entry.agentHint === "string" ? entry.agentHint : "unknown",

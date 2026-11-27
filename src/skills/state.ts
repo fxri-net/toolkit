@@ -2,6 +2,7 @@
 // 新结构单文件（format + schemaVersion + sources）；读取旧结构时一次性导入为新结构，导入前备份 .bak
 import { copyFileSync, existsSync, mkdirSync } from "node:fs"
 import { dirname, isAbsolute, join, resolve } from "node:path"
+import { isContractVersion } from "../contract-version"
 import { getHomeDir } from "../config"
 import { isHomeDirectory } from "../scope/paths"
 import { isProtectedTarget, isSingleSegmentName } from "../safe-remove"
@@ -50,7 +51,7 @@ function readJsonObject(file: string): Record<string, unknown> | null {
 
 // 新结构判定：format / schemaVersion / sources 三段齐备且 sources 为对象
 function isCurrentState(data: Record<string, unknown>): boolean {
-  return data.format === STATE_FORMAT && data.schemaVersion === STATE_SCHEMA_VERSION && isPlainObject(data.sources)
+  return data.format === STATE_FORMAT && isContractVersion(data.schemaVersion, STATE_SCHEMA_VERSION) && isPlainObject(data.sources)
 }
 
 // 空状态：导入失败或首次写入时的兜底

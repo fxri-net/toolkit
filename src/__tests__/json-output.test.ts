@@ -1,7 +1,7 @@
 // 机器可读输出单测：JSON 序列化的 schemaVersion 锚点契约、统一信封字段与缺省推导，以及 --format 取值门禁
 // 门禁覆盖各命令的 --format 校验（非法值告警并置退出码 1），防止新增命令漏接校验
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { toJsonText, assertJsonFormat, jsonEnvelope } from "../json-output"
+import { toJsonText, assertJsonFormat, jsonEnvelope, JSON_ENVELOPE_VERSION } from "../json-output"
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -11,8 +11,8 @@ afterEach(() => {
 describe("toJsonText", () => {
   it("顶层前置 schemaVersion 锚点，载荷字段保持原位", () => {
     const text = toJsonText({ duration: { count: 1 } })
-    expect(text.startsWith('{\n  "schemaVersion": 1,')).toBe(true)
-    expect(JSON.parse(text)).toEqual({ schemaVersion: 1, duration: { count: 1 } })
+    expect(text.startsWith(`{\n  "schemaVersion": "${JSON_ENVELOPE_VERSION}",`)).toBe(true)
+    expect(JSON.parse(text)).toEqual({ schemaVersion: JSON_ENVELOPE_VERSION, duration: { count: 1 } })
   })
 })
 
@@ -21,7 +21,7 @@ describe("jsonEnvelope", () => {
     const parsed = JSON.parse(toJsonText(jsonEnvelope({ command: "status", data: { initialized: true } }))) as Record<string, unknown>
     expect(Object.keys(parsed)).toEqual(["schemaVersion", "command", "code", "message", "data", "extend", "debug", "issues"])
     expect(parsed).toEqual({
-      schemaVersion: 1,
+      schemaVersion: JSON_ENVELOPE_VERSION,
       command: "status",
       code: 200,
       message: "成功",

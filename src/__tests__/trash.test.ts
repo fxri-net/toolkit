@@ -305,7 +305,7 @@ describe("项目内回收站", () => {
     mkdirSync(join(dir, "items", "0"), { recursive: true })
     writeFileSync(join(dir, "items", "0", "ok.txt"), "ok", "utf8")
     const manifest: TrashManifest = {
-      schemaVersion: 1,
+      schemaVersion: "1.0",
       id,
       createdAt: new Date().toISOString(),
       command: "test",

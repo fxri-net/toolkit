@@ -115,7 +115,7 @@ exports[`各域行为与错误路径 > config get 敏感键 JSON 1`] = `
 "退出码：0
 --- stdout ---
 {
-  "schemaVersion": 1,
+  "schemaVersion": "1.0",
   "command": "config get",
   "code": 200,
   "message": "成功",
@@ -204,7 +204,7 @@ exports[`各域行为与错误路径 > config list JSON 1`] = `
 "退出码：0
 --- stdout ---
 {
-  "schemaVersion": 1,
+  "schemaVersion": "1.0",
   "command": "config list",
   "code": 200,
   "message": "成功",
@@ -610,7 +610,7 @@ exports[`各域行为与错误路径 > config status JSON 1`] = `
 "退出码：0
 --- stdout ---
 {
-  "schemaVersion": 1,
+  "schemaVersion": "1.0",
   "command": "config status",
   "code": 200,
   "message": "成功",
@@ -755,7 +755,7 @@ exports[`各域行为与错误路径 > conventions status JSON 1`] = `
 "退出码：0
 --- stdout ---
 {
-  "schemaVersion": 1,
+  "schemaVersion": "1.0",
   "command": "convention status",
   "code": 200,
   "message": "成功（1 项提示）",
@@ -1016,7 +1016,7 @@ exports[`各域行为与错误路径 > rules list JSON 1`] = `
 "退出码：0
 --- stdout ---
 {
-  "schemaVersion": 1,
+  "schemaVersion": "1.0",
   "command": "rule list",
   "code": 200,
   "message": "成功",
@@ -1428,7 +1428,7 @@ exports[`各域行为与错误路径 > scope status --policies JSON 1`] = `
 "退出码：0
 --- stdout ---
 {
-  "schemaVersion": 1,
+  "schemaVersion": "1.0",
   "command": "scope status",
   "code": 200,
   "message": "成功",
@@ -1732,7 +1732,7 @@ exports[`各域行为与错误路径 > tasks stats JSON 1`] = `
 "退出码：0
 --- stdout ---
 {
-  "schemaVersion": 1,
+  "schemaVersion": "1.0",
   "command": "task stats",
   "code": 200,
   "message": "成功",
@@ -1837,7 +1837,7 @@ exports[`各域行为与错误路径 > tasks 总览 JSON 1`] = `
 "退出码：0
 --- stdout ---
 {
-  "schemaVersion": 1,
+  "schemaVersion": "1.0",
   "command": "task",
   "code": 200,
   "message": "成功",
@@ -1961,7 +1961,7 @@ exports[`各域行为与错误路径 > usage config 来源 JSON 1`] = `
 "退出码：0
 --- stdout ---
 {
-  "schemaVersion": 1,
+  "schemaVersion": "1.0",
   "command": "usage config origins",
   "code": 200,
   "message": "成功",
@@ -2022,7 +2022,7 @@ exports[`各域行为与错误路径 > usage data 导出空数据 1`] = `
 "退出码：0
 --- stdout ---
 {
-  "schemaVersion": 1,
+  "schemaVersion": "1.0",
   "events": []
 }
 
@@ -2134,7 +2134,7 @@ exports[`各域行为与错误路径 > usage 开启 JSON（config set） 1`] = `
 "退出码：0
 --- stdout ---
 {
-  "schemaVersion": 1,
+  "schemaVersion": "1.0",
   "command": "config set",
   "code": 200,
   "message": "成功",

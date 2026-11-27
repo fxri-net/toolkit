@@ -3,6 +3,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { tempDir } from "./helpers"
+import { JSON_ENVELOPE_VERSION } from "../json-output"
 
 const originalArgv = process.argv
 const fixtures: string[] = []
@@ -106,13 +107,13 @@ describe("skills lint", () => {
     writeSkill(root, "fxri-alpha")
     const result = await runCli(["skill", "lint", root, "--json"])
     const payload = JSON.parse(result.log.join("\n")) as {
-      schemaVersion: number
+      schemaVersion: string
       command: string
       code: number
       data: { files: string[]; issues: unknown[]; summary: { skills: number } }
       issues: unknown[]
     }
-    expect(payload.schemaVersion).toBe(1)
+    expect(payload.schemaVersion).toBe(JSON_ENVELOPE_VERSION)
     expect(payload.command).toBe("skill lint")
     expect(payload.code).toBe(200)
     expect(payload.data.files).toHaveLength(1)

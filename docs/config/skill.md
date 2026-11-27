@@ -254,7 +254,7 @@ cwd 位于安装根内 → `project`；cwd 位于包内 → `global`，其余 �
   - `status` 在存在软链落点时于报告末尾提示「写入将穿透至技能真源目录，改内容请改真源」
 - `skills.autoLink` / `autoLinkReplaceForeign` 控制软链自愈（默认开；不含首次安装与副本升级，`CI` 自动跳过），边界见「skillInstall：全局技能安装偏好」一节
 - 状态文件为**用户级**（`~/.agents/.toolkit-skills.json`），与上游安装器的 `skills-lock.json` 相互独立
-  - 结构为 `format`（`fxri.toolkit.skills-state`）+ `schemaVersion`（`1`）+ `sources`（来源 → 目标 → 逐技能条目）
+  - 结构为 `format`（`fxri.toolkit.skills-state`）+ `schemaVersion`（`"1.0"`）+ `sources`（来源 → 目标 → 逐技能条目）
   - 逐技能条目为 `name` / `version` / `mode` / `summary`（简介摘要，来源不可解析时供 `skill list` 兜底；旧账缺字段不报错，下次安装落盘）
   - 升级前的旧结构在首次读取时一次性导入并备份为 `.bak`
 

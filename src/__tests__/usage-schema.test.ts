@@ -10,6 +10,7 @@ import {
   USAGE_MANAGED_BY,
   USAGE_OUTCOMES,
   USAGE_SKILL_SOURCES,
+  USAGE_EVENT_VERSION,
   type SkillUsageEvent,
 } from "../usage/types"
 
@@ -20,7 +21,7 @@ interface EventSchema {
 
 // 读取随包分发的事件 schema：路径相对测试文件定位，避免依赖运行目录
 function readSchema(): EventSchema {
-  const file = join(process.cwd(), "schemas", "skill-usage-event.v1.json")
+  const file = join(process.cwd(), "schemas", "skill-usage-event.schema.json")
   return JSON.parse(readFileSync(file, "utf8")) as EventSchema
 }
 
@@ -49,7 +50,7 @@ describe("技能使用事件 schema 与类型一致", () => {
     expect(schema.properties.skillSource?.enum).toEqual([...USAGE_SKILL_SOURCES])
     expect(schema.properties.managedBy?.enum).toEqual([...USAGE_MANAGED_BY])
     expect(schema.properties.outcome?.enum).toEqual([...USAGE_OUTCOMES])
-    expect(schema.properties.schemaVersion?.const).toBe(1)
+    expect(schema.properties.schemaVersion?.const).toBe(USAGE_EVENT_VERSION)
   })
 
   it("内置适配器的 id 均在 agent 枚举内", () => {

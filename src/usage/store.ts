@@ -2,6 +2,8 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { writeFileAtomic } from "../write-atomic"
+import { isContractVersion, type ContractVersion } from "../contract-version"
+import { USAGE_EVENT_VERSION } from "./types"
 import type {
   AppendResult,
   SkillUsageEvent,
@@ -9,6 +11,9 @@ import type {
   UsageIndex,
   UsageRotation,
 } from "./types"
+
+// 事件索引契约版本：内部台账，独立升版
+export const USAGE_INDEX_VERSION: ContractVersion = "1.0"
 
 // 存储路径集合：事件、会话状态与索引分目录存放
 export interface UsagePaths {
@@ -78,7 +83,7 @@ function parseEventLine(line: string): SkillUsageEvent | null {
     const parsed: unknown = JSON.parse(text)
     if (typeof parsed !== "object" || parsed === null) return null
     const event = parsed as Partial<SkillUsageEvent>
-    if (event.schemaVersion !== 1 || typeof event.eventId !== "string" || typeof event.skill !== "string") return null
+    if (!isContractVersion(event.schemaVersion, USAGE_EVENT_VERSION) || typeof event.eventId !== "string" || typeof event.skill !== "string") return null
     return event as SkillUsageEvent
   } catch {
     return null
@@ -105,7 +110,7 @@ export function readAllEvents(paths: UsagePaths): SkillUsageEvent[] {
 
 // 空索引：文件不存在或损坏时使用
 function emptyIndex(): UsageIndex {
-  return { schemaVersion: 1, updatedAt: new Date().toISOString(), eventIds: [], keys: [] }
+  return { schemaVersion: USAGE_INDEX_VERSION, updatedAt: new Date().toISOString(), eventIds: [], keys: [] }
 }
 
 // 跨适配器去重键：同一 session + toolUseId 只保留首条；缺少 toolUseId 时返回 null
@@ -120,9 +125,9 @@ export function readIndex(paths: UsagePaths): UsageIndex {
     const parsed: unknown = JSON.parse(readFileSync(paths.indexPath, "utf8"))
     if (typeof parsed !== "object" || parsed === null) return emptyIndex()
     const index = parsed as Partial<UsageIndex>
-    if (index.schemaVersion !== 1 || !Array.isArray(index.eventIds)) return emptyIndex()
+    if (!isContractVersion(index.schemaVersion, USAGE_INDEX_VERSION) || !Array.isArray(index.eventIds)) return emptyIndex()
     return {
-      schemaVersion: 1,
+      schemaVersion: USAGE_INDEX_VERSION,
       updatedAt: typeof index.updatedAt === "string" ? index.updatedAt : new Date().toISOString(),
       eventIds: index.eventIds.filter((id): id is string => typeof id === "string"),
       keys: Array.isArray(index.keys) ? index.keys.filter((key): key is string => typeof key === "string") : [],
@@ -170,7 +175,7 @@ export function rebuildIndex(paths: UsagePaths): number {
     const key = eventKey(event)
     if (key) keys.add(key)
   }
-  writeIndex(paths, { schemaVersion: 1, updatedAt: new Date().toISOString(), eventIds, keys: [...keys] })
+  writeIndex(paths, { schemaVersion: USAGE_INDEX_VERSION, updatedAt: new Date().toISOString(), eventIds, keys: [...keys] })
   return eventIds.length
 }
 
@@ -204,7 +209,7 @@ export function dedupeStore(paths: UsagePaths): number {
     }
     writeFileSync(file, kept.length > 0 ? `${kept.join("\n")}\n` : "", "utf8")
   }
-  writeIndex(paths, { schemaVersion: 1, updatedAt: new Date().toISOString(), eventIds: [...seen], keys: [...keys] })
+  writeIndex(paths, { schemaVersion: USAGE_INDEX_VERSION, updatedAt: new Date().toISOString(), eventIds: [...seen], keys: [...keys] })
   return removed
 }
 
@@ -251,6 +256,6 @@ export function purgeEvents(paths: UsagePaths, options: { olderThanDays?: number
     }
     writeFileSync(file, kept.length > 0 ? `${kept.join("\n")}\n` : "", "utf8")
   }
-  writeIndex(paths, { schemaVersion: 1, updatedAt: new Date().toISOString(), eventIds: keptIds, keys: keptKeys })
+  writeIndex(paths, { schemaVersion: USAGE_INDEX_VERSION, updatedAt: new Date().toISOString(), eventIds: keptIds, keys: keptKeys })
   return removed
 }

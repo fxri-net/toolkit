@@ -2,6 +2,7 @@
 import { existsSync, lstatSync, readdirSync } from "node:fs"
 import { basename, join, resolve } from "node:path"
 import { readTextFile } from "../../read-text"
+import { normalizeContractVersion, type ContractVersion } from "../../contract-version"
 import { isSingleSegmentName } from "../../safe-remove"
 import { SKILL_ENTRY, type PackageSkill, type SkillTier, type SkillVersionMismatch } from "../types"
 import { readBodyVersionFromContent } from "../versioning"
@@ -202,7 +203,8 @@ export function readSkillName(dir: string): string {
 
 // 外部来源清单文件名与当前格式版本
 export const SKILLS_MANIFEST_FILE = "skills.json"
-const MANIFEST_FORMAT_VERSION = 1
+// 技能清单格式契约版本：独立升版，与状态文件契约互不联动
+const MANIFEST_FORMAT_VERSION: ContractVersion = "1.0"
 
 // 清单条目：path 相对来源根；name 可覆盖目录名；previousNames 声明曾用名
 interface ManifestEntry {
@@ -212,7 +214,7 @@ interface ManifestEntry {
 }
 
 interface SkillsManifest {
-  formatVersion: number
+  formatVersion: ContractVersion
   name?: string
   version?: string
   skills: ManifestEntry[]
@@ -244,7 +246,7 @@ function readManifest(root: string): SkillsManifest | null {
   }
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) throw new Error(`技能清单顶层须为对象：${file}`)
   const data = parsed as Record<string, unknown>
-  if (data.formatVersion !== MANIFEST_FORMAT_VERSION) {
+  if (normalizeContractVersion(data.formatVersion) !== MANIFEST_FORMAT_VERSION) {
     throw new Error(`技能清单 formatVersion 须为 ${MANIFEST_FORMAT_VERSION}（实际：${String(data.formatVersion)}）：${file}`)
   }
   if (!Array.isArray(data.skills) || data.skills.length === 0) throw new Error(`技能清单 skills 须为非空数组：${file}`)

@@ -32,7 +32,7 @@ vi.mock("../skills/source", async (importOriginal) => {
 })
 
 function state(sources: SkillsState["sources"]): SkillsState {
-  return { format: "fxri.toolkit.skills-state", schemaVersion: 1, updatedAt: "", sources }
+  return { format: "fxri.toolkit.skills-state", schemaVersion: "1.0", updatedAt: "", sources }
 }
 
 function source(entries: Array<{ name: string; version: string; mode?: StateMode }>, extra: Record<string, unknown> = {}, dir = targetDir) {

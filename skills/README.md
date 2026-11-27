@@ -60,7 +60,7 @@ toolkit skill uninstall       # 卸载本包装的产物（只清自己装的，
 - 默认软链（锚在 pnpm 稳定入口，升级不失效）；链接创建失败自动降级为副本并打印 ⚠️（如无权限建链）；`--copy` 强制副本、`--dry-run` 预演、
    `--force` 覆盖同名非本包产物（不改本包已登记副本的形态）、`--prune` 清理未选择且内容一致的旧产物
 - 改 `skills/` 须发版才触达用户：技能随包同源分发，调整只有随 `@fxri/toolkit` 发版、使用者升级后才生效（软链自动跟随新包），未发版的改动只存在于本仓库
-- 产物记录在状态文件 `~/.agents/.toolkit-skills.json`（`format` + `schemaVersion` + `sources` 结构，旧结构首次读取时导入并备份 `.bak`）；
+- 产物记录在状态文件 `~/.agents/.toolkit-skills.json`（`format` + `schemaVersion`（`1.0`）+ `sources` 结构，旧结构首次读取时导入并备份 `.bak`）；
    卸载 CLI 前先跑 `toolkit skill uninstall`，避免留下悬空链接（清理后目标目录若已空会一并回收）
 - **项目面（`--scope project`）**：`--scope` 缺省时按 CLI 安装位置自动判定（项目内装 CLI → 项目面）
   - 真源落 `<仓库根>/.agents/skills/`（完整副本），其余**已存在**的候选目录各放每个技能一份入口薄壳指向真源

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
+import { STATE_SCHEMA_VERSION } from "../skills/types"
 import {
   buildSkillChoices,
   coreSkillNames,
@@ -194,7 +195,7 @@ describe("状态文件新结构与旧结构导入", () => {
 
     const state = readSkillsState()
     expect(state?.format).toBe("fxri.toolkit.skills-state")
-    expect(state?.schemaVersion).toBe(1)
+    expect(state?.schemaVersion).toBe(STATE_SCHEMA_VERSION)
     const target = state?.sources["toolkit"]?.targets[0]
     expect(target?.dir).toBe(join(home, ".agents", "skills"))
     expect(target?.entries).toEqual([

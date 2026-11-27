@@ -1,5 +1,6 @@
 // 事件构造：把 Hook 载荷归一为固定 schema，并解析技能来源、生成稳定 eventId
 import { createHash } from "node:crypto"
+import { USAGE_EVENT_VERSION } from "./types"
 import { listPackageSkills, readSkillsState } from "../skills"
 import { redactText, resolveRedactEnabled } from "../privacy/redact"
 import type {
@@ -178,7 +179,7 @@ export function buildEvent(input: UsageEventInput, config: UsageConfig): SkillUs
   const meta = resolveSkillMeta(input.skill)
   const redactEnabled = resolveRedactEnabled(undefined)
   const event: SkillUsageEvent = {
-    schemaVersion: 1,
+    schemaVersion: USAGE_EVENT_VERSION,
     eventId: computeEventId(input.agent, input.sessionId, input.toolUseId, input.skill, occurredAt),
     occurredAt: toLocalIsoString(occurredAt),
     agent: input.agent,

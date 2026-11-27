@@ -1,5 +1,6 @@
 // 技能分发的公共类型与常量：模块间共享的契约集中在此，避免各处重复声明导致口径漂移
 import { FALLBACK_SKILL_DIR } from "../conventions/entry"
+import type { ContractVersion } from "../contract-version"
 
 // 本包名：从模块位置向上定位包根，npm / pnpm / yarn / bun 装的都通用，不依赖 pnpm root -g 之类猜路径
 export const PKG_NAME = "@fxri/toolkit"
@@ -20,7 +21,8 @@ export const LEGACY_SKILL_DIRS: Array<{ dir: string; label: string }> = [
 export const SKILLS_STATE_FILE = ".toolkit-skills.json"
 // 状态文件格式标识与当前 schema 版本：单文件新结构，不做旧版兼容（旧结构读取时一次性导入）
 export const STATE_FORMAT = "fxri.toolkit.skills-state"
-export const STATE_SCHEMA_VERSION = 1
+// 技能状态文件契约版本：独立升版，与清单格式等契约互不联动
+export const STATE_SCHEMA_VERSION: ContractVersion = "1.0"
 // 内置技能来源名：本任务只支持包内源，外部来源由后续能力扩展
 export const BUILTIN_SOURCE = "toolkit"
 // 项目侧真源目录（仓库根相对、posix 分隔）：完整副本只此一份，其余候选目录放薄壳指向它

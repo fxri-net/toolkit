@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { COMMAND_REGISTRY } from "../command-registry"
+import { CONCEPT_CATALOG_VERSION } from "../commands/concept"
 
 const root = process.cwd()
 
@@ -25,7 +26,7 @@ interface Schema {
 }
 
 interface Catalog {
-  schemaVersion: number
+  schemaVersion: string
   concepts: Array<Record<string, unknown> & { id: string; related: string[]; variants: Array<{ id: string }>; support: ConceptSupport }>
   bundles: Array<Record<string, unknown> & { id: string; concepts: string[] }>
 }
@@ -35,7 +36,7 @@ const catalog = readJson<Catalog>("concepts/catalog.json")
 
 describe("概念目录", () => {
   it("包含 28 个概念与 5 个概念包", () => {
-    expect(catalog.schemaVersion).toBe(1)
+    expect(catalog.schemaVersion).toBe(CONCEPT_CATALOG_VERSION)
     expect(catalog.concepts).toHaveLength(28)
     expect(catalog.bundles).toHaveLength(5)
   })

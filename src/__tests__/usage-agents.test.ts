@@ -20,7 +20,7 @@ function fixture(name: string): string {
 // 造一条最小事件
 function makeEvent(overrides: Partial<SkillUsageEvent> = {}): SkillUsageEvent {
   return {
-    schemaVersion: 1,
+    schemaVersion: "1.0",
     eventId: overrides.eventId ?? `sha256:${Math.random().toString(16).slice(2)}`,
     occurredAt: "2026-11-06T10:00:00.000+08:00",
     agent: "trae",

@@ -5,6 +5,10 @@ import { getHomeDir } from "../config"
 import { findProjectRoot, isHomeDirectory } from "../scope/paths"
 import { assertWithinRoot, isSingleSegmentName, rootForPath, safeRemoveArtifact } from "../safe-remove"
 import { isInside as isPathInside } from "../skills/source/paths"
+import { isContractVersion, type ContractVersion } from "../contract-version"
+
+// 回收站清单契约版本：内部台账，独立升版
+export const TRASH_MANIFEST_VERSION: ContractVersion = "1.0"
 
 export type TrashScope = "project" | "global"
 export type TrashScopeChoice = TrashScope | "all"
@@ -37,7 +41,7 @@ export interface TrashManifestEntry {
 }
 
 export interface TrashManifest {
-  schemaVersion: 1
+  schemaVersion: ContractVersion
   id: string
   createdAt: string
   command: string
@@ -86,7 +90,7 @@ function trashRootFor(target: string, context: TrashContext): { scope: TrashScop
 function readManifest(dir: string): TrashManifest | null {
   try {
     const data = JSON.parse(readFileSync(join(dir, MANIFEST), "utf8")) as TrashManifest
-    return data && data.schemaVersion === 1 && Array.isArray(data.entries) ? data : null
+    return data && isContractVersion(data.schemaVersion, TRASH_MANIFEST_VERSION) && Array.isArray(data.entries) ? data : null
   } catch {
     return null
   }
@@ -140,7 +144,7 @@ export function trashAwareRemove(target: string, root: string): void {
   const items = join(dir, "items")
   mkdirSync(items, { recursive: true })
   const manifest: TrashManifest = {
-    schemaVersion: 1,
+    schemaVersion: TRASH_MANIFEST_VERSION,
     id,
     createdAt: new Date().toISOString(),
     command: context.command,

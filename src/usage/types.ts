@@ -1,4 +1,8 @@
 // 使用情况公共类型：配置、事件、统计与 Hook 归一化事件集中定义，避免各模块重复声明导致口径漂移
+import type { ContractVersion } from "../contract-version"
+
+// 技能使用事件契约版本：独立升版，与 JSON 信封 / 任务导出等契约互不联动
+export const USAGE_EVENT_VERSION: ContractVersion = "1.0"
 
 // 事件文件轮转方式：按月（默认）/ 按文件大小 / 不轮转
 export type UsageRotation = "monthly" | "size" | "none"
@@ -27,7 +31,7 @@ export type UsageChannel = "rule" | "hook"
 export const USAGE_OUTCOMES = ["success", "failure", "unknown"] as const
 export type UsageOutcome = (typeof USAGE_OUTCOMES)[number]
 
-// 事件必填与可选字段清单：与 schemas/skill-usage-event.v1.json 的一致性由单测锁定
+// 事件必填与可选字段清单：与 schemas/skill-usage-event.schema.json 的一致性由单测锁定
 export const SKILL_USAGE_EVENT_REQUIRED = [
   "schemaVersion",
   "eventId",
@@ -101,7 +105,7 @@ export interface UsageSkillMeta {
 
 // 单条技能使用事件：schemaVersion 为 1，新增字段只增不改
 export interface SkillUsageEvent {
-  schemaVersion: 1
+  schemaVersion: ContractVersion
   eventId: string
   occurredAt: string
   agent: string
@@ -199,7 +203,7 @@ export interface UsageSummary {
 
 // 事件索引：eventId 去重与会话摘要的持久化读模型
 export interface UsageIndex {
-  schemaVersion: 1
+  schemaVersion: ContractVersion
   updatedAt: string
   eventIds: string[]
   // 跨适配器去重键：sessionId + toolUseId；同一调用被多个 Agent 适配器捕获时只保留首条

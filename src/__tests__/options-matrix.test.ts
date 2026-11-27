@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } 
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { removeArtifact } from "../skills/source/artifact"
+import { JSON_ENVELOPE_VERSION } from "../json-output"
 
 // 沙箱路径用 vi.hoisted 构造（mock 工厂早于模块顶层求值执行，不能引用未初始化的顶层变量）
 const sandbox = vi.hoisted(() => {
@@ -281,8 +282,8 @@ describe("顶层命令与外部域", () => {
   it("skills status --path --format json：统一信封且 data 带技能清单", async () => {
     const r = await runCli(["skill", "status", "--path", "--format", "json"])
     expect(r.code).toBe(0)
-    const payload = JSON.parse(r.log.join("\n")) as { schemaVersion: number; command: string; code: number; data: { skills: string[] }; issues: unknown[] }
-    expect(payload.schemaVersion).toBe(1)
+    const payload = JSON.parse(r.log.join("\n")) as { schemaVersion: string; command: string; code: number; data: { skills: string[] }; issues: unknown[] }
+    expect(payload.schemaVersion).toBe(JSON_ENVELOPE_VERSION)
     expect(payload.command).toBe("skill status")
     expect(payload.code).toBe(200)
     expect(payload.issues).toEqual([])
@@ -839,13 +840,13 @@ describe("config 域只读体检", () => {
     const r = await runCli(["config", "status", "--cwd", cfgDir, "--format", "json"])
     expect(r.code).toBe(0)
     const parsed = JSON.parse(r.log.join("\n")) as {
-      schemaVersion: number
+      schemaVersion: string
       command: string
       code: number
       data: { warnings: number; levels: unknown[] }
       issues: unknown[]
     }
-    expect(parsed.schemaVersion).toBe(1)
+    expect(parsed.schemaVersion).toBe(JSON_ENVELOPE_VERSION)
     expect(parsed.command).toBe("config status")
     expect(parsed.code).toBe(200)
     expect(typeof parsed.data.warnings).toBe("number")

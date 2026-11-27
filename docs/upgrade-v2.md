@@ -83,7 +83,7 @@ title: v1 → v2 升级
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": "1.0",
   "command": "task stats",
   "code": 200,
   "message": "成功",

@@ -165,11 +165,11 @@ toolkit task --view active --status 待办,进行中,阻塞
 
 | 子命令 | 说明 |
 | --- | --- |
-| `export <path>` | 按扩展名驱动：`.csv`（UTF-8 BOM 超集列）/ `.xlsx`（三 sheet）/ `.json`（`{ schemaVersion: 1, summary, items }`）；目录不存在自动创建；支持 `--view` 与过滤参数 |
+| `export <path>` | 按扩展名驱动：`.csv`（UTF-8 BOM 超集列）/ `.xlsx`（三 sheet）/ `.json`（`{ schemaVersion: "1.0", summary, items }`）；目录不存在自动创建；支持 `--view` 与过滤参数 |
 | `import <file>` | 从 `.csv`/`.xlsx`/`.json` 导入；`--target active`（默认，生成任务文件）/ `--target archive`（直接写归档块）；`--dry-run` 预演；`--owner`/`--scope` 作为导入行缺失字段的默认值 |
 
 `--format json` 只用于 `task` 总览与 `task stats` 的 stdout（报告类走统一信封，数据在 `data`）；
-导出文件是数据流例外，格式由 `export <path>` 的扩展名决定，`.json` 仍为 `{ schemaVersion: 1, summary, items }`。
+导出文件是数据流例外，格式由 `export <path>` 的扩展名决定，`.json` 仍为 `{ schemaVersion: "1.0", summary, items }`。
 
 导出产物含派生列「搁置天数」（JSON items 为 `heldDays` / `heldDaysApprox`，非搁置行为空；归档 sheet 不含）：由正文「搁置日期」计算，
 导入端不识别该列、按未知列忽略，不写入任何任务字段。

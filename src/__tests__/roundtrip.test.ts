@@ -3,7 +3,7 @@
 import { describe, it, expect } from "vitest"
 import { writeFileSync, mkdirSync, existsSync, rmSync, readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
-import { exportTasks } from "../tasks/export"
+import { exportTasks, TASKS_EXPORT_VERSION } from "../tasks/export"
 import { importTasks } from "../tasks/import"
 import { queryTasks } from "../tasks/query"
 import type { TaskSummary } from "../tasks/types"
@@ -89,7 +89,7 @@ describe("导出→导入往返", () => {
     await exportTasks(out, rows, summary)
 
     const parsed = JSON.parse(readFileSync(out, "utf8"))
-    expect(parsed.schemaVersion).toBe(1)
+    expect(parsed.schemaVersion).toBe(TASKS_EXPORT_VERSION)
     expect(parsed.items).toHaveLength(2)
 
     const dst = emptyTasksDir()

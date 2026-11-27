@@ -63,7 +63,7 @@ async function run(args: string[]): Promise<void> {
 // 造一条可导入事件
 function event(overrides: Partial<SkillUsageEvent> = {}): SkillUsageEvent {
   return {
-    schemaVersion: 1,
+    schemaVersion: "1.0",
     eventId: "sha256:imported",
     occurredAt: "2026-11-06T10:00:00.000+08:00",
     agent: "trae",
