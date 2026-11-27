@@ -47,7 +47,7 @@ toolkit usage data doctor
 | `data rebuild` | 从事件文件重建索引 | `--dir` |
 | `data doctor` | 诊断目录、索引与重复 | `--dir`、`--format json` |
 
-`data purge --all` 在非 TTY 环境须同时给 `--yes`，否则报错退出 2；`--dry-run` 只读，不要求 `--yes`。
+`data purge` 的任意实际清理（`--all` / `--older-than` / 默认保留期）在非 TTY 环境须给 `--yes`，否则报错退出 2；`--dry-run` 只读，不要求 `--yes`。
 
 ### config：采集配置
 

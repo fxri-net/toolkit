@@ -58,14 +58,14 @@ export async function purgeUsageEvents(options: { olderThan?: string; all?: bool
     console.log(`[预演] 将删除 ${count} 条记录`)
     return
   }
-  // 全量清理与同类批量命令同口径：非交互必须 --yes，交互先确认
-  if (options.all && !options.yes) {
+  // 任意实际清理与同类批量命令同口径：非交互必须 --yes，交互先确认；--dry-run 已提前返回
+  if (!options.yes) {
     if (!isInteractive()) {
-      console.error("⚠️ 非交互环境清理全部事件需显式加 --yes，未执行清理")
+      console.error("⚠️ 非交互环境清理事件需显式加 --yes，未执行清理")
       process.exitCode = INTERACTIVE_EXIT
       return
     }
-    const confirmed = await askConfirm({ message: "确认删除全部事件？", default: false })
+    const confirmed = await askConfirm({ message: "确认清理所选事件？", default: false })
     if (confirmed !== true) {
       reportCancelled()
       return
@@ -325,7 +325,7 @@ export function registerUsageDataCommands(data: Command, usage: Command): void {
       .description("清理本地事件（按保留期或全部）")
       .option("--older-than <duration>", "删除早于指定时长的记录，如 30d / 24h / 60m（缺省用配置保留期）")
       .option("--all", "删除全部事件")
-      .option("--yes", "非交互环境确认执行（配合 --all）")
+      .option("--yes", "非交互环境确认执行（--all / --older-than / 默认保留期均适用）")
       .option("--dry-run", "只预览将删除的记录数，不写盘")
       .option("--dir <path>", "本次使用的数据目录")
       .action(async (options: { olderThan?: string; all?: boolean; dryRun?: boolean; dir?: string; yes?: boolean }) => {

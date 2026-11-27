@@ -63,6 +63,8 @@ toolkit upgrade --prune-backups   # 清理迁移备份（--dry-run 预览、--ke
 - 版本状态判定见 `src/contract-version.ts`：整数与低版本为 legacy，等于当前为 current，高于当前为 newer。
 - 使用数据目录取 `usage.storage.dir` / `FX_TOOLKIT_USAGE_DIR` / 默认 `~/.toolkit/usage`，与 `usage` 命令同源；
   `--cwd` 只影响工程侧，不改变使用数据目录。
+- 事件检测会读取全部事件文件；事件量很大时，`--check` / `--dry-run` 的耗时与备份占用会随数据量增长。
+  建议在低峰执行；只需迁移其它数据时可用 `--skip-events` 跳过事件文件。
 
 ## 行为
 

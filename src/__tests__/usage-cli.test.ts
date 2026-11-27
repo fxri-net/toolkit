@@ -127,6 +127,13 @@ describe("usage CLI", () => {
     expect(logs.join("\n")).toContain("[预演] 将删除")
     expect(readAllEvents(usagePaths(dataDir))).toHaveLength(2)
 
+    await run(["data", "purge", "--older-than", "30d"])
+    expect(process.exitCode).toBe(2)
+    expect(errors.join("\n")).toContain("需显式加 --yes")
+    expect(readAllEvents(usagePaths(dataDir))).toHaveLength(2)
+    process.exitCode = 0
+    await run(["data", "purge", "--older-than", "30d", "--yes"])
+    expect(readAllEvents(usagePaths(dataDir))).toHaveLength(2)
     await run(["data", "purge", "--all"])
     expect(process.exitCode).toBe(2)
     expect(errors.join("\n")).toContain("需显式加 --yes")

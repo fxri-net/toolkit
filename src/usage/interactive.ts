@@ -826,7 +826,7 @@ async function maintenanceFlow(): Promise<void> {
   await purgeUsageEvents({ dryRun: true })
   const confirmed = await askConfirm({ message: "确认删除上述记录？（ESC 返回上一步）", default: false })
   if (confirmed !== true) return
-  await purgeUsageEvents({})
+  await purgeUsageEvents({ yes: true })
 }
 
 // 菜单子页：总开关
