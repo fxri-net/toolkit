@@ -324,7 +324,7 @@ const heavySteps = [
       "--exclude",
       "src/__tests__/warn-threshold.test.ts",
     ],
-    env: { TZ: "UTC" },
+    env: { TZ: "UTC", ...(isCI ? { FX_TOOLKIT_KEEP_TEST_TEMP: "" } : {}) },
     skip: testSkip,
   },
 ]

@@ -53,19 +53,34 @@ export function scanSource(source: string, fileName: string): Violation[] {
   const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
   const violations: Violation[] = []
   const allowTemp = ALLOW_TEMP_FILES.has(fileName)
+  // node:os 的命名空间导入别名：os.tmpdir 无论叫什么名字都算系统临时目录
+  const osNamespaces = new Set<string>()
+  for (const stmt of sf.statements) {
+    if (!ts.isImportDeclaration(stmt) || !stmt.moduleSpecifier.getText(sf).includes("node:os")) continue
+    const bindings = stmt.importClause?.namedBindings
+    if (bindings && ts.isNamespaceImport(bindings)) osNamespaces.add(bindings.name.text)
+  }
   const report = (node: ts.Node, text: string): void => {
     violations.push({ file: fileName, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, text })
   }
   const visit = (node: ts.Node): void => {
-    // tmpdir 标识符：导入、调用、别名一律不允许出现在测试里；对象字面量的键（vi.mock 替身）不算引用
+    const parent = node.parent
+    // tmpdir 标识符：导入、调用、别名不允许；对象字面量键与无关对象的同名属性不算引用
     if (ts.isIdentifier(node) && node.text === "tmpdir") {
-      const parent = node.parent
       const isMockKey = ts.isPropertyAssignment(parent) && parent.name === node
-      if (!isMockKey) report(node, "直接引用 tmpdir")
+      const isMemberName = ts.isPropertyAccessExpression(parent) && parent.name === node
+      const memberReceiver = isMemberName ? parent.expression.getText(sf) : ""
+      const isTempMember = isMemberName && (memberReceiver === "os" || osNamespaces.has(memberReceiver))
+      if (!isMockKey && !(isMemberName && !isTempMember)) report(node, "直接引用 tmpdir")
     }
-    // 计算属性写法：os["tmpdir"] 与 process["env"]["TEMP"] 同样算直接引用
+    // 计算属性：只有 os / process / process.env / env 的字符串键才算系统临时目录引用
+    const receiver = ts.isElementAccessExpression(node) ? node.expression.getText(sf) : ""
+    const tempReceiver =
+      /^(os|process|process\.env|env)$/.test(receiver) || osNamespaces.has(receiver) || /^process\[["']env["']\]$/.test(receiver)
     const computedKey =
-      ts.isElementAccessExpression(node) && ts.isStringLiteral(node.argumentExpression) ? node.argumentExpression.text : undefined
+      ts.isElementAccessExpression(node) && tempReceiver && ts.isStringLiteral(node.argumentExpression)
+        ? node.argumentExpression.text
+        : undefined
     if (computedKey === "tmpdir") report(node, "直接引用 tmpdir")
     // process.env.TEMP / TMP / TMPDIR：hoisted 白名单之外，必须与 fxts-tk- 字面量同语句
     const envHolder = ts.isPropertyAccessExpression(node) ? node.expression.getText(sf) : ""
@@ -114,6 +129,17 @@ describe("测试临时目录守卫", () => {
     expect(scanSource('os["tmpdir"]()', "sample.test.ts")).toHaveLength(1)
     expect(scanSource('process["env"]["TEMP"] || "/tmp"', "sample.test.ts")).toHaveLength(1)
     expect(scanSource('process.env.TMPDIR || "/tmp"', "sample.test.ts")).toHaveLength(1)
+  })
+
+  it("无关对象的同名键不误报", () => {
+    expect(scanSource('const map = { tmpdir: "/x" }\nmap["tmpdir"]', "sample.test.ts")).toEqual([])
+    expect(scanSource('const config = { TEMP: "/x" }\nconfig["TEMP"]', "sample.test.ts")).toEqual([])
+    expect(scanSource('const item = { tmpdir: "/x" }\nitem.tmpdir', "sample.test.ts")).toEqual([])
+  })
+
+  it("node:os 命名空间别名仍被识别", () => {
+    const sample = 'import * as osAlias from "node:os"\nconst dir = osAlias.tmpdir()'
+    expect(scanSource(sample, "sample.test.ts")).toHaveLength(1)
   })
 
   it("生产短命目录前缀与测试前缀族一致", () => {
