@@ -75,6 +75,17 @@ function prepare(dir: string, text: string): DocOptions {
   return opts
 }
 
+// 本文件临时目录登记：用例结束统一删除，避免每跑一次在 %TEMP% 留下 fxts-tk-doc-*
+const docDirs: string[] = []
+function makeDocDir(): string {
+  const dir = tempDir("fxts-tk-doc-")
+  docDirs.push(dir)
+  return dir
+}
+afterEach(() => {
+  for (const dir of docDirs.splice(0)) rmSync(dir, { recursive: true, force: true })
+})
+
 describe("buildDocPage：更新日志镜像转换", () => {
   it("CRLF 输入产出 LF 页：源标题被剥离、版本块保留", () => {
     const page = buildDocPage(minimal.replace(/\n/g, "\r\n"))
@@ -162,7 +173,7 @@ describe("buildDocPages：按主版本分页", () => {
   })
 
   it("语言目标归档到独立目录：中英互不覆盖", () => {
-    const dir = tempDir("fxts-tk-doc-")
+    const dir = makeDocDir()
     const zh = prepare(dir, dual)
     const en = { ...options(dir), source: join(dir, "CHANGELOG.en.md"), target: join(dir, "docs", "changelog.en.md") }
     writeFileSync(en.source, dual, "utf8")
@@ -178,7 +189,7 @@ describe("buildDocPages：按主版本分页", () => {
 
 describe("syncDoc / checkDoc：落盘与一致性校验", () => {
   it("生成镜像后可校验一致，手改后校验失败并给出行号", () => {
-    const dir = tempDir("fxts-tk-doc-")
+    const dir = makeDocDir()
     const opts = prepare(dir, minimal)
 
     const written = syncDoc(opts)
@@ -196,7 +207,7 @@ describe("syncDoc / checkDoc：落盘与一致性校验", () => {
   })
 
   it("再次同步不产生改动", () => {
-    const dir = tempDir("fxts-tk-doc-")
+    const dir = makeDocDir()
     const opts = prepare(dir, minimal)
     syncDoc(opts)
     const again = syncDoc(opts)
@@ -205,7 +216,7 @@ describe("syncDoc / checkDoc：落盘与一致性校验", () => {
   })
 
   it("--check 能报缺页，同步后恢复一致", () => {
-    const dir = tempDir("fxts-tk-doc-")
+    const dir = makeDocDir()
     const opts = prepare(dir, dual)
     syncDoc(opts)
     const archive = join(dir, "docs", "changelog", "1.x.md")
@@ -221,7 +232,7 @@ describe("syncDoc / checkDoc：落盘与一致性校验", () => {
   })
 
   it("内容差异定位到具体归档页", () => {
-    const dir = tempDir("fxts-tk-doc-")
+    const dir = makeDocDir()
     const opts = prepare(dir, dual)
     syncDoc(opts)
     const archive = join(dir, "docs", "changelog", "1.x.md")
@@ -234,7 +245,7 @@ describe("syncDoc / checkDoc：落盘与一致性校验", () => {
   })
 
   it("同步只删除带生成标记的归档页，无标记多余页保留并报 error", () => {
-    const dir = tempDir("fxts-tk-doc-")
+    const dir = makeDocDir()
     const opts = prepare(dir, dual)
     syncDoc(opts)
     const archiveDir = join(dir, "docs", "changelog")
@@ -256,7 +267,7 @@ describe("syncDoc / checkDoc：落盘与一致性校验", () => {
   })
 
   it("--dry-run 只报告将写入的清单，不写盘", () => {
-    const dir = tempDir("fxts-tk-doc-")
+    const dir = makeDocDir()
     const opts = prepare(dir, dual)
     syncDoc(opts)
     const before = readFileSync(opts.target, "utf8")
@@ -279,17 +290,18 @@ describe("resolveDocOptions：split 配置", () => {
     process.chdir(cwd)
     resetToolkitConfigCache()
     setHomeDirForTest(undefined)
-    if (home) rmSync(home, { recursive: true, force: true })
-    if (project) rmSync(project, { recursive: true, force: true })
     home = ""
     project = ""
   })
 
-  // 写项目层配置并清缓存，使下一次读取生效
+  // 写项目层配置并清缓存，使下一次读取生效；目录登记到 docDirs，同一用例多次调用也不留孤儿
   function writeConfig(split: unknown): void {
-    home = mkdtempSync(join(tmpdir(), "fxts-tk-doc-split-home-"))
+    const homeDir = mkdtempSync(join(tmpdir(), "fxts-tk-doc-split-home-"))
+    const projectDir = mkdtempSync(join(tmpdir(), "fxts-tk-doc-split-"))
+    docDirs.push(homeDir, projectDir)
+    home = homeDir
+    project = projectDir
     setHomeDirForTest(home)
-    project = mkdtempSync(join(tmpdir(), "fxts-tk-doc-split-"))
     process.chdir(project)
     writeFileSync(join(project, ".toolkitrc.json"), JSON.stringify({ changelogDoc: { split } }), "utf8")
     resetToolkitConfigCache()

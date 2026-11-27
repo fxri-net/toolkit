@@ -1,12 +1,13 @@
 // 远程技能来源：地址解析、file:// 克隆与项目面状态不落本机缓存路径
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import { execFileSync } from "node:child_process"
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
 import { installProjectSkills, parseRemoteSpec, resolveSource } from "../skills"
+import { installTempDirCleanup } from "../skills/source/remote"
 
 let home = ""
 
@@ -94,5 +95,31 @@ describe("resolveSource：远程克隆与项目面状态", { timeout: 15000 }, (
       sources: Record<string, { root: string; url?: string; ref?: string }>
     }
     expect(state.sources["remote-demo"]).toMatchObject({ root: "", url, ref: "v1.0.0" })
+  })
+})
+
+describe("dry-run 临时目录清理", () => {
+  it("SIGINT / SIGTERM 都删除目录并按惯例退出码结束", () => {
+    const dir = mkdtempSync(join(tmpdir(), "fxts-tk-cleanup-"))
+    const handlers = new Map<string, () => void>()
+    const once = vi.spyOn(process, "once").mockImplementation(((event: string | symbol, listener: (...args: never[]) => void) => {
+      handlers.set(String(event), listener as () => void)
+      return process
+    }) as typeof process.once)
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never)
+    try {
+      installTempDirCleanup(dir)
+      handlers.get("SIGINT")!()
+      expect(existsSync(dir)).toBe(false)
+      expect(exit).toHaveBeenCalledWith(130)
+      mkdirSync(dir, { recursive: true })
+      handlers.get("SIGTERM")!()
+      expect(existsSync(dir)).toBe(false)
+      expect(exit).toHaveBeenCalledWith(143)
+    } finally {
+      once.mockRestore()
+      exit.mockRestore()
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })

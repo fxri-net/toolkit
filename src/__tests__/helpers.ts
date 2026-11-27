@@ -3,10 +3,11 @@
 import { mkdtempSync, writeFileSync, mkdirSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { trackTempDir } from "./temp-registry"
 
-// 创建随机临时目录并返回路径
+// 创建随机临时目录并返回路径；登记后由文件结束与进程退出兜底清理
 export function tempDir(prefix = "fxts-tk-"): string {
-  return mkdtempSync(join(tmpdir(), prefix))
+  return trackTempDir(mkdtempSync(join(tmpdir(), prefix)))
 }
 
 // 建含 active/ + archive/ 骨架的 .tasks 目录

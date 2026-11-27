@@ -1,8 +1,10 @@
 // 测试临时目录前缀守卫：C-57 要求 src/__tests__ 下的临时目录一律以 fxts-tk- 开头，
 // 本文件直接扫描同目录源码，拦住新测试自起前缀——否则本机 TEMP 残留会碎成多套命名、无法按前缀批量清理
-import { readdirSync, readFileSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
+import { tempDir } from "./helpers"
+import { cleanupTrackedTempDirs } from "./temp-registry"
 
 // 约定的主段：fxts = 品牌 + test suite，产品段按项目追加（本项目为 tk）
 const PREFIX = "fxts-tk"
@@ -88,5 +90,20 @@ describe("测试临时目录前缀", () => {
     const sep = "`${base}${sep}legacy-sandbox-${process.pid}`"
     expect(extractTemplatePrefixes(slash)).toEqual([{ prefix: "legacy-sandbox", line: 1 }])
     expect(extractTemplatePrefixes(sep)).toEqual([{ prefix: "legacy-sandbox", line: 1 }])
+  })
+})
+
+describe("临时目录登记与清理", () => {
+  it("登记后的目录可被统一清理", () => {
+    const dir = tempDir("fxts-tk-registry-")
+    expect(existsSync(dir)).toBe(true)
+    cleanupTrackedTempDirs()
+    expect(existsSync(dir)).toBe(false)
+  })
+
+  it("目录已被提前删除时不重复报错", () => {
+    const dir = tempDir("fxts-tk-registry-gone-")
+    rmSync(dir, { recursive: true, force: true })
+    expect(cleanupTrackedTempDirs()).toEqual([])
   })
 })

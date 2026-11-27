@@ -6,10 +6,14 @@ import { tmpdir } from "node:os"
 import { basename, dirname, join } from "node:path"
 import { getHomeDir } from "../../config"
 import { resolveCacheEntry } from "../../cache"
+import { childExitCode, EXIT } from "../../exit-codes"
 import { isSingleSegmentName } from "../../safe-remove"
 import { BUILTIN_SOURCE, type SkillItem } from "../types"
 import { assertSkillAliases, listPackageSkills, resolveLocalSource, type SkillSource } from "./metadata"
 import { packageVersion, skillsLinkDir, skillsPackageDir } from "./package"
+
+// 被 SIGTERM 终止时的惯例退出码（128 + 15），与子进程信号映射同源
+const SIGTERM_EXIT = childExitCode({ status: null, signal: "SIGTERM" })
 
 
 export interface RemoteSpec {
@@ -131,6 +135,20 @@ function refreshRemote(cacheDir: string, spec: RemoteSpec): void {
   if (checked.status !== 0) console.warn(`⚠️ 远程来源检出失败，使用本地缓存：${spec.url}`)
 }
 
+// dry-run 临时目录的退出与信号清理：Ctrl+C 或进程被终止时不在 %TEMP% 留半截克隆
+export function installTempDirCleanup(root: string): void {
+  const cleanup = (): void => rmSync(root, { recursive: true, force: true })
+  process.once("exit", cleanup)
+  process.once("SIGINT", () => {
+    cleanup()
+    process.exit(EXIT.CANCEL)
+  })
+  process.once("SIGTERM", () => {
+    cleanup()
+    process.exit(SIGTERM_EXIT)
+  })
+}
+
 // 解析远程来源：缓存命中直接复用；dry-run 不写持久缓存
 export function resolveRemoteSource(spec: string, options: { name?: string; temporary?: boolean; dryRun?: boolean } = {}): SkillSource {
   const remote = parseRemoteSpec(spec)
@@ -141,7 +159,7 @@ export function resolveRemoteSource(spec: string, options: { name?: string; temp
     root = cacheDir
   } else if (options.dryRun) {
     root = mkdtempSync(join(tmpdir(), "toolkit-src-"))
-    process.once("exit", () => rmSync(root, { recursive: true, force: true }))
+    installTempDirCleanup(root)
     cloneRemote(remote, root)
   } else {
     cloneRemote(remote, cacheDir)

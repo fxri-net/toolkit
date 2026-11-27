@@ -5,6 +5,7 @@ import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { isTouchPath } from "./touch-surface.mjs"
 import { touchesBuild } from "./verify-logic.mjs"
+import { DEFAULT_MAX_AGE_MINUTES, listTempDirs, sweepTempDirs } from "./clean-temp-residue.mjs"
 
 // 单一门禁真源：本仓库全部验收步骤由本脚本定义并按序执行，本地与四处 CI（GitHub check / windows / macos、GitLab test）共用同一份清单。
 // 目的：消除「各写一份步骤清单、彼此漂移」的结构性问题，使「本地自检通过、CI 才暴露」在清单层面不可能发生。
@@ -390,6 +391,30 @@ async function runPhase(label, steps) {
 }
 
 /**
+ * 单测阶段：开跑前清扫过期临时目录，跑完比对新增；流水线失败、本地只告警，避免并发运行误判。
+ * @param {string} label 阶段名
+ * @param {object[]} steps 步骤定义
+ * @return {Promise<string[]>} 失败步骤标签
+ */
+async function runTestsPhase(label, steps) {
+  if (steps.every((step) => step.skip)) return runPhase(label, steps)
+  const before = new Set(listTempDirs().map((dir) => dir.name))
+  const swept = sweepTempDirs()
+  const sweptNames = new Set(swept.removed.map((dir) => dir.name))
+  if (swept.removed.length > 0) console.log(`\n▶ 清理过期测试临时目录：${swept.removed.length} 个（早于 ${DEFAULT_MAX_AGE_MINUTES} 分钟）`)
+  const failures = await runPhase(label, steps)
+  const leaked = listTempDirs().map((dir) => dir.name).filter((name) => !before.has(name) && !sweptNames.has(name))
+  if (leaked.length === 0) return failures
+  const names = `${leaked.slice(0, 10).join("、")}${leaked.length > 10 ? " 等" : ""}`
+  if (isCI) {
+    console.error(`\n✖ 测试临时目录残留 ${leaked.length} 个：${names}（查用例是否漏写清理，或进程是否被强杀）`)
+    return [...failures, "测试临时目录残留"]
+  }
+  console.warn(`\n⚠️ 测试临时目录残留 ${leaked.length} 个：${names}（查用例是否漏写清理；本地不阻断，流水线会失败）`)
+  return failures
+}
+
+/**
  * 串行执行收尾步骤，保留实时输出。
  * @param {object[]} steps 步骤定义
  * @return {string[]} 失败步骤标签
@@ -444,7 +469,7 @@ if (installNeeded) {
 // 跨平台 job 的裁剪口径：只跑安装与单测，其余步骤已由 ubuntu 全量承担
 if (testsOnly) {
   console.log("\n⊘ 仅单测口径（--tests-only）：跳过静态检查、构建、文档与收尾 CLI 步骤")
-  const testsFailures = await runPhase("单元测试（单测口径）", heavySteps)
+  const testsFailures = await runTestsPhase("单元测试（单测口径）", heavySteps)
   const testsSeconds = ((Date.now() - startedAt) / 1000).toFixed(1)
   if (testsFailures.length > 0) {
     console.error(`\n✖ 门禁未通过：${testsFailures.length} 步失败（用时 ${testsSeconds}s）`)
@@ -469,7 +494,7 @@ if (isCI || full) {
 const phaseStarted = Date.now()
 const failures = [
   ...(await runPhase("并行检查", parallelSteps)),
-  ...(await runPhase("重步骤（单测独占）", heavySteps)),
+  ...(await runTestsPhase("重步骤（单测独占）", heavySteps)),
   ...(await runPhase("构建与文档", buildSteps)),
   ...runSerial(tailSteps),
 ]

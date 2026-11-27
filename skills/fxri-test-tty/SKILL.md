@@ -3,7 +3,7 @@ name: fxri-test-tty
 description: 对 CLI 交互路径（向导、单选 / 多选、确认与取消）做真终端（PTY）端到端实测时加载：用 node-pty 驱动按键序列，按提示文案等待，断言退出码、落盘产物与沙箱隔离。适用于安装 / 初始化向导、多选列表、确认框、取消路径的验证，以及 ConPTY 噪声、沙箱 home 穿透等交互测试故障的定位。不用于单元测试、快照测试、非 TTY 的纯命令输出断言与浏览器 UI 自动化。
 license: MIT
 metadata:
-  version: "0.1.2"
+  version: "0.1.3"
   tier: optional
   type: practice
   scope: cli
@@ -14,7 +14,7 @@ metadata:
 
 # 交互路径真终端测试
 
-> 本技能版本 0.1.2（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 0.1.3（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 本技能沉淀自一轮 `node-pty` + Windows ConPTY 真机实测：5 条交互路径、13 项断言全部通过，覆盖选择与取消、两级向导、多选与确认；
 抽象为「CLI 入口 + 交互用例表」，不绑定具体命令。
