@@ -6,7 +6,7 @@ title: v1 → v2 升级
 
 > 2.0.0 的破坏面集中在「脚本里的命令名」与「JSON 解析」；工程侧迁移由 `toolkit upgrade` 一次完成。
 
-## 一键迁移（推荐）
+## 统一入口迁移（推荐）
 
 1. 升级 CLI：`pnpm add -g @fxri/toolkit`（项目内依赖用 `pnpm add -D @fxri/toolkit@2`）
 2. 在当前工程执行 `toolkit upgrade`（TTY 预览后确认；CI / 脚本用 `toolkit upgrade --all --yes`）
@@ -109,7 +109,7 @@ title: v1 → v2 升级
 
 ## 新命令
 
-`task add` / `task update`、`rule check`、`upgrade`（v1 工程一键迁移）、`docs`（默认全量校验，`docs check` 同义）。
+`task add` / `task update`、`rule check`、`upgrade`（v1 工程统一入口迁移）、`docs`（默认全量校验，`docs check` 同义）。
 
 ## 安装旧版本
 

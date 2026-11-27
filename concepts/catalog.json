@@ -6,8 +6,8 @@
       "name": "单一真源",
       "aliases": ["SSOT", "单源"],
       "category": "engineering",
-      "summary": "同一事实只保留一个 owner，其余位置用派生、指针或校验，不各写一份。",
-      "problem": "同一份清单、阈值或文案散落多处，改动后必然漂移。",
+      "summary": "同一事实尽量只保留一个 owner，其余位置用派生、指针或校验，不各写一份。",
+      "problem": "同一份清单、阈值或文案散落多处，改动后容易漂移。",
       "value": ["改一处即全量生效", "漂移可被检查发现"],
       "maturity": "partial",
       "signals": ["同一个数字或清单在多处维护", "文档与代码说法不一致"],
@@ -30,8 +30,8 @@
       "name": "质量门禁",
       "aliases": ["verify", "门禁"],
       "category": "delivery",
-      "summary": "用一份步骤清单统一本地与 CI 的验收，失败即阻断交付。",
-      "problem": "每处各写一份检查清单，本地与 CI 必然漂移。",
+      "summary": "通常用一份步骤清单统一本地与 CI 的验收，以失败阻断交付。",
+      "problem": "每处各写一份检查清单，本地与 CI 容易漂移。",
       "value": ["本地能复现 CI", "失败时定位到具体步骤"],
       "maturity": "partial",
       "signals": ["本地通过、CI 才报错", "检查步骤散落在多个配置里"],
@@ -363,7 +363,7 @@
       "maturity": "partial",
       "signals": ["同一约定被反复提醒", "新人不知道项目有哪些规范"],
       "variants": [
-        { "id": "index", "name": "索引", "summary": "唯一入口，只凭索引判断适用条款。" },
+        { "id": "index", "name": "索引", "summary": "通常作为唯一入口，优先只凭索引判断适用条款。" },
         { "id": "history", "name": "历史", "summary": "只追加语义变更，不改旧行。" },
         { "id": "entry-shell", "name": "入口壳", "summary": "把载体摘要放进项目级技能目录，让 AI 自动读到。" }
       ],
@@ -432,24 +432,24 @@
       "name": "极简入口",
       "aliases": ["一键入口", "单一入口", "批量有界"],
       "category": "collaboration",
-      "summary": "对外只留一条主入口，对内可自由拆分；批量动作先预览、有界选择，脚本才显式全量。",
-      "problem": "入口与参数越加越多，用户与 AI 都要记住何时用哪条；批量命令默认全做又容易误伤。",
-      "value": ["入口唯一、学习成本低", "批量动作可预期、可回滚"],
+      "summary": "对外尽量收敛为一条主入口，对内实现可按需拆分；批量动作先预览，条目较多时按需选择，脚本场景再显式全量。",
+      "problem": "入口与参数越加越多，用户与 AI 都要记住何时用哪条；批量命令若默认全做，又容易误伤。",
+      "value": ["主入口收敛、学习成本低", "批量动作可预期、可回滚"],
       "maturity": "partial",
       "signals": ["同一能力有多条等价命令", "批量命令没有预览就直接全做"],
       "variants": [
-        { "id": "single-entry", "name": "单一入口", "summary": "日常只暴露一条主入口，细节拆到内部命令，用户不必区分同类动作。" },
-        { "id": "batch-guard", "name": "批量有界", "summary": "先预览影响范围；条目多时交互多选且默认不全选，脚本才用 --all --yes 显式全量。" }
+        { "id": "single-entry", "name": "单一入口", "summary": "日常尽量只暴露一条主入口，细节按需拆到内部命令，减少用户区分同类动作的负担。" },
+        { "id": "batch-guard", "name": "批量有界", "summary": "先预览影响范围；条目较多时通常交互多选且默认不全选，脚本场景再用 --all --yes 显式全量。" }
       ],
       "related": ["plan-first-authorization", "quality-gate", "output-contract"],
       "support": { "commands": ["toolkit upgrade"], "skills": [], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["盘点现有入口与批量命令"],
-        "steps": [{ "title": "收敛入口", "detail": "把同类动作并入一条主入口；批量命令补预览、选择与显式全量开关，破坏性动作默认不全选。" }],
+        "steps": [{ "title": "收敛入口", "detail": "把同类动作尽量并入一条主入口；批量命令补预览、选择与显式全量开关，破坏性动作按需默认不全选。" }],
         "files": []
       },
       "cost": { "effort": "low", "risk": "low", "reversible": true },
-      "examples": ["工程迁移与本机数据升级都收进 toolkit upgrade", "条目多时默认不全选，脚本显式 --all --yes"]
+      "examples": ["工程迁移与本机数据升级都收进 toolkit upgrade", "条目较多时通常默认不全选，脚本可显式 --all --yes"]
     },
     {
       "id": "release-pipeline",

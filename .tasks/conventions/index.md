@@ -56,7 +56,7 @@
 | C-59 | 规则文本收件人 | 写规则模块或规则页可复制块时：收件人是 AI，凡指向用户的授权、确认与选择一律写「用户」，`你` 只用于给 AI 定角色 | common | [common.md](./common.md) C-59 |
 | C-60 | 能力变更多面一致 | 能力变更归档前：按面清单逐面核对并标注已同步 / 无触达；最少两方即成立，本仓面含能力自身、文档、skills、concepts、变更集、规则锚点、conventions | common | [AGENTS.md](../../AGENTS.md) 质量门 |
 | C-61 | 契约版本格式 | 写契约或 schema 版本时：格式统一 `MAJOR.MINOR` 两位，各契约独立声明与递增；读取端兼容历史整数（N 视为 N.0），写出端统一两位；磁盘旧写法由 `toolkit upgrade` 检测并重写 | common | `src/contract-version.ts` |
-| C-62 | 极简入口与批量有界 | 设计命令入口时：同一能力只留一条主入口；批量动作先预览，条目多时交互多选且默认不全选，脚本才用 `--all --yes`；语义真源见概念 `minimal-entry` | common | [concepts/catalog.json](../../concepts/catalog.json) |
+| C-62 | 极简入口与批量有界 | 设计命令入口时：同一能力尽量只留一条主入口；批量动作先预览，条目较多时通常交互多选且默认不全选，脚本场景再用 `--all --yes`；语义真源见概念 `minimal-entry` | common | [concepts/catalog.json](../../concepts/catalog.json) |
 
 ## 三、用法说明
 

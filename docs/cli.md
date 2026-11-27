@@ -17,7 +17,7 @@
 | `toolkit usage` | 技能使用情况：开关、统计、导出与诊断（默认关闭） | `show` / `data` / `config` / `setup` / `record` | [技能使用情况](./cli/usage) |
 | `toolkit convention` | 规范载体：结构升级、表格与索引单元格归一、只读体检 | `upgrade` / `status` / `format` | [规范载体](./cli/convention) |
 | `toolkit release` | 多语言 CHANGELOG 与发版（封装 changesets，默认 `status`） | `status` / `bump` / `changelog` / `mirror` / `publish` / `audit` / `changeset` | [发版与更新日志](./cli/release) |
-| `toolkit upgrade` | 旧工程与本机契约数据一键升级：配置段名、工程脚本、技能旧名、规范载体、状态与事件版本，含预演、复检与恢复 | — | [升级迁移](./cli/upgrade) |
+| `toolkit upgrade` | 旧工程与本机契约数据统一入口升级：配置段名、工程脚本、技能旧名、规范载体、状态与事件版本，含预演、复检与恢复 | — | [升级迁移](./cli/upgrade) |
 | `toolkit trash` | 项目内回收站：查看、恢复与清理用户可见删除 | `list` / `restore` / `prune` / `stats` | [回收站](./cli/trash) |
 | `toolkit concept` | 概念目录：查看可引入的工程概念与采纳步骤 | `list` / `show` | [概念目录](./cli/concept) |
 | `toolkit config` | 配置唯一写入口（键清单 + 分层写入）与只读体检 | `list` / `get` / `set` / `unset` / `status` | [配置体检](./cli/config) |
