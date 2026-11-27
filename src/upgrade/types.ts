@@ -55,4 +55,6 @@ export interface BackupManifest {
   createdAt: string
   entries: BackupEntry[]
   created: Array<{ path: string; postSha: string }>
+  // 本次备份是否收过本机契约数据；清理备份时据此提示数据回滚点
+  data?: boolean
 }

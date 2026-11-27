@@ -2,7 +2,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import type { Command } from "commander"
+import { askConfirm } from "../../cli-ui"
 import { assertJsonFormat, jsonEnvelope } from "../../json-output"
+import { INTERACTIVE_EXIT, isInteractive, reportCancelled } from "../../prompts"
 import { line } from "../../term-style"
 import { USAGE_EVENT_VERSION } from "../types"
 import { AGENT_ADAPTERS } from "../adapters"
@@ -41,7 +43,7 @@ export function exportUsageEvents(options: { type?: string; out?: string; since?
 }
 
 // 清理事件：按保留期或全部；菜单与 purge 子命令共用
-export function purgeUsageEvents(options: { olderThan?: string; all?: boolean; dryRun?: boolean; dir?: string }): void {
+export async function purgeUsageEvents(options: { olderThan?: string; all?: boolean; dryRun?: boolean; dir?: string; yes?: boolean }): Promise<void> {
   const { config, paths } = createContext(options.dir)
   const days = options.olderThan !== undefined ? parseOlderThanDays(options.olderThan) : config.storage.retentionDays
   if (days === null) {
@@ -55,6 +57,19 @@ export function purgeUsageEvents(options: { olderThan?: string; all?: boolean; d
     const count = options.all ? events.length : events.filter((event) => new Date(event.occurredAt).getTime() < cutoff).length
     console.log(`[预演] 将删除 ${count} 条记录`)
     return
+  }
+  // 全量清理与同类批量命令同口径：非交互必须 --yes，交互先确认
+  if (options.all && !options.yes) {
+    if (!isInteractive()) {
+      console.error("⚠️ 非交互环境清理全部事件需显式加 --yes，未执行清理")
+      process.exitCode = INTERACTIVE_EXIT
+      return
+    }
+    const confirmed = await askConfirm({ message: "确认删除全部事件？", default: false })
+    if (confirmed !== true) {
+      reportCancelled()
+      return
+    }
   }
   const removed = purgeEvents(paths, options.all ? { all: true } : { olderThanDays: days })
   console.log(options.all ? line.ok(`已删除全部 ${removed} 条记录`) : line.ok(`已删除 ${removed} 条早于 ${options.olderThan ?? `${days} 天`}的记录`))
@@ -310,10 +325,11 @@ export function registerUsageDataCommands(data: Command, usage: Command): void {
       .description("清理本地事件（按保留期或全部）")
       .option("--older-than <duration>", "删除早于指定时长的记录，如 30d / 24h / 60m（缺省用配置保留期）")
       .option("--all", "删除全部事件")
+      .option("--yes", "非交互环境确认执行（配合 --all）")
       .option("--dry-run", "只预览将删除的记录数，不写盘")
       .option("--dir <path>", "本次使用的数据目录")
-      .action((options: { olderThan?: string; all?: boolean; dryRun?: boolean; dir?: string }) => {
-        purgeUsageEvents(options)
+      .action(async (options: { olderThan?: string; all?: boolean; dryRun?: boolean; dir?: string; yes?: boolean }) => {
+        await purgeUsageEvents(options)
       })
 
     // 诊断：目录、索引、重复与配置边界

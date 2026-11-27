@@ -130,7 +130,7 @@
 
 **批量参数**：目标集合是命令主语时省略参数即全部（如 `skill source refresh`）。
 
-否则须显式 `--all`（如 `usage data purge --all`、`skill install --all`、`skill bump --all`）。
+否则须显式 `--all`（如 `usage data purge --all`、`skill install --all`、`skill bump --all`）；非交互环境批量写入还须 `--yes`。
 
 开关为**双向三档**，优先级从高到低：CLI 参数 > 环境变量 > 配置文件 > 默认开启。
 

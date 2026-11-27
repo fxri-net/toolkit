@@ -432,14 +432,14 @@
       "name": "极简入口",
       "aliases": ["一键入口", "单一入口", "批量有界"],
       "category": "collaboration",
-      "summary": "对外尽量收敛为一条主入口，对内实现可按需拆分；批量动作先预览，条目较多时按需选择，脚本场景再显式全量。",
+      "summary": "对外尽量收敛为一条主入口，对内实现可按需拆分；批量动作先预览，交互时按需选择，脚本场景再显式全量。",
       "problem": "入口与参数越加越多，用户与 AI 都要记住何时用哪条；批量命令若默认全做，又容易误伤。",
       "value": ["主入口收敛、学习成本低", "批量动作可预期、可回滚"],
       "maturity": "partial",
       "signals": ["同一能力有多条等价命令", "批量命令没有预览就直接全做"],
       "variants": [
         { "id": "single-entry", "name": "单一入口", "summary": "日常尽量只暴露一条主入口，细节按需拆到内部命令，减少用户区分同类动作的负担。" },
-        { "id": "batch-guard", "name": "批量有界", "summary": "先预览影响范围；条目较多时通常交互多选且默认不全选，脚本场景再用 --all --yes 显式全量。" }
+        { "id": "batch-guard", "name": "批量有界", "summary": "先预览影响范围；交互时通常多选且默认不全选，脚本场景再用 --all --yes 显式全量。" }
       ],
       "related": ["plan-first-authorization", "quality-gate", "output-contract"],
       "support": { "commands": ["toolkit upgrade"], "skills": [], "templates": [], "checks": [] },
@@ -449,7 +449,7 @@
         "files": []
       },
       "cost": { "effort": "low", "risk": "low", "reversible": true },
-      "examples": ["工程迁移与本机数据升级都收进 toolkit upgrade", "条目较多时通常默认不全选，脚本可显式 --all --yes"]
+      "examples": ["工程迁移与本机数据升级都收进 toolkit upgrade", "交互时通常默认不全选，脚本可显式 --all --yes"]
     },
     {
       "id": "release-pipeline",

@@ -36,9 +36,6 @@ interface UpgradeOptions {
   all?: boolean
 }
 
-// 批量选择阈值：条目超过该数量时改为交互多选，默认不全选
-const BATCH_THRESHOLD = 5
-
 // 层参数：逗号分隔，非法值报错并由调用方中止
 function parseLayers(value?: string): UpgradeLayer[] | null {
   if (value === undefined) return [...ALL_LAYERS]
@@ -110,8 +107,8 @@ function printResult(applied: string[], failed: string[], backups: string[], res
 }
 
 // 交互式选择：返回勾选的迁移项；手动项不进入选择集，ESC 取消返回 null
-// defaultChecked 为假时全部不勾选，用于条目过多、需要用户逐项确认的场景
-async function selectItems(items: UpgradeItem[], defaultChecked: boolean): Promise<UpgradeItem[] | null> {
+// 裸命令一律默认不勾选，与 skill uninstall 等同类批量命令保持一致
+async function selectItems(items: UpgradeItem[]): Promise<UpgradeItem[] | null> {
   const columns = terminalColumns()
   const choices = items
     .filter((item) => item.status === "planned")
@@ -125,7 +122,7 @@ async function selectItems(items: UpgradeItem[], defaultChecked: boolean): Promi
       }),
       short: item.id,
       value: item.id,
-      checked: defaultChecked && item.risk !== "high",
+      checked: false,
     }))
   if (choices.length === 0) {
     console.log(line.hint("没有可自动迁移的项"))
@@ -177,6 +174,9 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
     for (const file of result.removed) console.log(`  ${file}`)
     if (result.kept.length > 0) console.log(line.hint(`保留最近 ${keep ?? 0} 个备份目录（${result.kept.length} 个）`))
     if (result.skipped.length > 0) console.error(`⚠️ 跳过 ${result.skipped.length} 个无法确认归属的目录：${result.skipped.join("、")}`)
+    if (result.dataBackups.length > 0) {
+      console.error(`⚠️ ${result.dryRun ? "预演：将清理" : "已清理"} ${result.dataBackups.length} 个含本机数据迁移的备份：数据回滚点随之消失`)
+    }
     return
   }
   if (options.keep !== undefined) console.error("⚠️ --keep 仅配合 --prune-backups 使用，已忽略")
@@ -201,10 +201,18 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
     return
   }
 
+  // 显式全选与显式筛选互斥：两者都在定义选择集，同时出现时无法判断意图
+  const only = parseIds(options.only)
+  const skip = parseIds(options.skip)
+  if (options.all && (only !== undefined || skip !== undefined)) {
+    console.error("⚠️ --all 与 --only / --skip 不能同时使用，未执行迁移")
+    process.exitCode = 1
+    return
+  }
   const plan = buildUpgradePlan(cwd, {
     layers: effectiveLayers,
-    only: parseIds(options.only),
-    skip: parseIds(options.skip),
+    only,
+    skip,
     pruneLegacy: Boolean(options.pruneLegacy),
     skipEvents: Boolean(options.skipEvents),
   })
@@ -257,20 +265,25 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
     return
   }
 
+  // 显式选择来源：--all 全选，或 --only / --skip 已把计划筛成确定集合
+  const explicit = Boolean(options.all) || only !== undefined || skip !== undefined
   let targets: UpgradeItem[]
   if (isInteractive()) {
     printPlan(plan.items)
-    if (options.all || planned.length <= BATCH_THRESHOLD) {
-      // 条目不多或显式全选：一次确认即执行全部可自动项
-      const confirmed = await askConfirm({ message: `执行以上 ${planned.length} 项迁移？`, default: true })
+    if (options.yes && !explicit) {
+      console.warn("⚠️ --yes 仅配合 --all / --only / --skip 使用，已忽略")
+    }
+    if (explicit) {
+      // 显式选择一次确认；--yes 已在交互态跳过确认
+      const confirmed = options.yes ? true : await askConfirm({ message: `执行以上 ${planned.length} 项迁移？`, default: true })
       if (confirmed !== true) {
         reportCancelled()
         return
       }
       targets = planned
     } else {
-      // 条目过多：交互多选且默认不全选，避免一键把整份清单全做掉
-      const picked = await selectItems(plan.items, false)
+      // 裸命令：交互多选且默认不全选，与同类批量命令一致
+      const picked = await selectItems(plan.items)
       if (!picked) {
         reportCancelled()
         return
@@ -283,7 +296,12 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
     }
   } else {
     if (!options.yes) {
-      console.error("⚠️ 非交互环境须显式加 --yes 才能执行迁移；可先用 --dry-run / --check 查看计划")
+      console.error("⚠️ 非交互环境须同时给 --all --yes 才能全量迁移；只迁移部分项用 --only / --skip 配合 --yes")
+      process.exitCode = INTERACTIVE_EXIT
+      return
+    }
+    if (!explicit) {
+      console.error("⚠️ 非交互环境全量迁移须显式给 --all --yes；只迁移部分项用 --only / --skip 配合 --yes")
       process.exitCode = INTERACTIVE_EXIT
       return
     }
@@ -318,8 +336,8 @@ export function registerUpgradeCommands(program: Command): void {
     .option("--check", "只读检查；存在可自动处理的残留时退出 1")
     .option("--dry-run", "只输出迁移计划，不写盘")
     .option("--diff", "输出迁移计划与行级差异（不写盘）")
-    .option("--yes", "非交互执行，跳过确认")
-    .option("--all", "全选所有可自动迁移项，不再逐项选择（脚本配合 --yes）")
+    .option("--yes", "配合 --all / --only / --skip：跳过确认；非交互环境必须显式给出")
+    .option("--all", "全选所有可自动迁移项（与 --only / --skip 互斥）")
     .option("--skip-events", "跳过使用事件文件的契约版本重写（默认一并迁移）")
     .option("--format <format>", "输出格式（json，输出到 stdout）")
     .option("--layers <layers>", "迁移层：global / project / local（逗号分隔，缺省三层全迁，含全局面）")

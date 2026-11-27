@@ -54,10 +54,11 @@ title: 隐私与数据边界
 
 ```bash
 toolkit usage data purge --older-than 30d
-toolkit usage data purge --all
+toolkit usage data purge --all --yes
 ```
 
 `usage data purge` 只删事件文件并重建索引；上传账本与配置保留，避免误删后重复上传或丢失授权记录。
+`--all` 在非 TTY 环境须加 `--yes`；交互态会先确认。
 
 ## 相关页面
 

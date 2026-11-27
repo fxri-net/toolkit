@@ -128,6 +128,11 @@ describe("usage CLI", () => {
     expect(readAllEvents(usagePaths(dataDir))).toHaveLength(2)
 
     await run(["data", "purge", "--all"])
+    expect(process.exitCode).toBe(2)
+    expect(errors.join("\n")).toContain("需显式加 --yes")
+    expect(readAllEvents(usagePaths(dataDir))).toHaveLength(2)
+    process.exitCode = 0
+    await run(["data", "purge", "--all", "--yes"])
     expect(readAllEvents(usagePaths(dataDir))).toHaveLength(0)
   })
 

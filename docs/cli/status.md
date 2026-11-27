@@ -42,6 +42,8 @@ toolkit status --format json  # 统一信封输出到 stdout（诊断仍走 stde
 
 只查项目层与本地层（全局层与当前工程无关）。升级项不进入 `issues`，`--check` 退出码不受影响。
 
+> 机器 id 由 `migrate` 改为 `upgrade`；按 `sections[].id` 过滤 JSON 的脚本需同步。
+
 ## 规则快照提示
 
 项目内存在 `.trae/rules/git-commit-message.md` 且正文与当前版本不一致时，追加一条 `info` 级提示（只提示、不改文件）：

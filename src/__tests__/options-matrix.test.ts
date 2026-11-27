@@ -1199,3 +1199,63 @@ describe("release 透传子进程退出码", () => {
     expect(exit).toHaveBeenCalledWith(143)
   })
 })
+
+// upgrade 批量口径：--all 选择、--yes 确认；非 TTY 全量必须两者同时给出
+describe("upgrade 批量参数", () => {
+  // 每个用例独立工程：旧段名保证至少有一个可自动迁移项
+  function makeUpgradeProject(name: string): string {
+    const dir = join(sandbox, `upgrade-${name}`)
+    mkdirSync(join(dir, ".tasks"), { recursive: true })
+    writeFileSync(join(dir, ".toolkitrc.json"), JSON.stringify({ skillsInstall: { gate: { include: ["*"] } } }), "utf8")
+    return dir
+  }
+
+  afterEach(() => {
+    restoreTty()
+  })
+
+  it("非 TTY 只给 --yes 时报错退出 2，并提示补 --all", async () => {
+    const dir = makeUpgradeProject("yes-only")
+    const r = await runCli(["upgrade", "--cwd", dir, "--layers", "project", "--yes"])
+    expect(r.code).toBe(2)
+    expect(r.err.join("\n")).toContain("--all --yes")
+  })
+
+  it("非 TTY --all --yes 执行迁移", async () => {
+    const dir = makeUpgradeProject("all-yes")
+    const r = await runCli(["upgrade", "--cwd", dir, "--layers", "project", "--all", "--yes"])
+    expect(r.code).toBe(0)
+    expect(r.log.join("\n")).toContain("已迁移")
+  })
+
+  it("--all 与 --only 互斥", async () => {
+    const dir = makeUpgradeProject("conflict")
+    const r = await runCli(["upgrade", "--cwd", dir, "--layers", "project", "--all", "--only", "config:project"])
+    expect(r.code).toBe(1)
+    expect(r.err.join("\n")).toContain("不能同时使用")
+  })
+
+  it("TTY 裸命令多选默认不全选，空选择即取消", async () => {
+    const dir = makeUpgradeProject("bare")
+    setTty(true)
+    const r = await runCli(["upgrade", "--cwd", dir, "--layers", "project"])
+    expect(r.code).toBe(0)
+    expect(r.log.join("\n")).toContain("未选择任何迁移项，已取消")
+  })
+
+  it("TTY --all 确认后全量执行", async () => {
+    const dir = makeUpgradeProject("all-confirm")
+    setTty(true)
+    const r = await runCli(["upgrade", "--cwd", dir, "--layers", "project", "--all"])
+    expect(r.code).toBe(0)
+    expect(r.log.join("\n")).toContain("已迁移")
+  })
+
+  it("TTY --yes 缺 --all 时告警忽略，仍走多选", async () => {
+    const dir = makeUpgradeProject("yes-ignored")
+    setTty(true)
+    const r = await runCli(["upgrade", "--cwd", dir, "--layers", "project", "--yes"])
+    expect(r.warn.join("\n")).toContain("--yes 仅配合")
+    expect(r.log.join("\n")).toContain("未选择任何迁移项，已取消")
+  })
+})

@@ -228,6 +228,18 @@ describe("升级迁移：备份清理", () => {
     expect(existsSync(join(backupRoot, "foreign"))).toBe(true)
   })
 
+  it("含本机数据迁移的备份单独回报，便于清理时提示回滚点", () => {
+    const root = makeProject({})
+    const backupRoot = join(root, ".toolkit", "backup")
+    const dataDir = join(backupRoot, "20260103-000000")
+    const plainDir = join(backupRoot, "20260104-000000")
+    for (const dir of [dataDir, plainDir]) mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dataDir, "manifest.json"), JSON.stringify({ createdAt: "", entries: [], created: [], data: true }), "utf8")
+    writeFileSync(join(plainDir, "manifest.json"), JSON.stringify({ createdAt: "", entries: [], created: [] }), "utf8")
+    const result = pruneBackups({ cwd: root, layers: ["project"], keep: 0 })
+    expect(result.dataBackups).toEqual([dataDir])
+  })
+
   it("--dry-run 只报告不删除", () => {
     const root = makeProject({})
     const dir = join(root, ".toolkit", "backup", "20260101-000000")
@@ -384,6 +396,7 @@ describe("升级迁移：本机契约数据", () => {
     // 数据文件与工程文件共用备份清单，--restore 可回滚到旧版本写法
     const globalBackup = result.backups.find((dir) => dir.startsWith(join(home, ".toolkit", "backup")))
     expect(globalBackup).toBeTruthy()
+    expect((JSON.parse(readFileSync(join(globalBackup as string, "manifest.json"), "utf8")) as { data?: boolean }).data).toBe(true)
     const restored = restoreBackup(globalBackup as string, { roots: upgradeRoots(project) })
     expect(restored.restored).toContain(join(home, ".agents", ".toolkit-skills.json"))
     expect((JSON.parse(readFileSync(join(home, ".agents", ".toolkit-skills.json"), "utf8")) as { schemaVersion: number }).schemaVersion).toBe(1)
@@ -424,6 +437,58 @@ describe("升级迁移：本机契约数据", () => {
     const before = readFileSync(join(home, ".toolkit", "usage", "events", "2026-11.jsonl"), "utf8")
     runUpgrade(project, plan.items, { layers: ["global"] })
     expect(readFileSync(join(home, ".toolkit", "usage", "events", "2026-11.jsonl"), "utf8")).toBe(before)
+  })
+
+  it("同项内混有损坏文件时整项判人工，不部分重写", () => {
+    const home = makeProject({})
+    const project = makeProject({})
+    const trashRoot = join(project, ".toolkit", "trash")
+    mkdirSync(join(trashRoot, "a"), { recursive: true })
+    mkdirSync(join(trashRoot, "b"), { recursive: true })
+    writeFileSync(join(trashRoot, "a", "manifest.json"), JSON.stringify({ schemaVersion: 1, entries: [] }), "utf8")
+    writeFileSync(join(trashRoot, "b", "manifest.json"), "{", "utf8")
+    setHomeDirForTest(home)
+
+    const plan = buildUpgradePlan(project, { layers: ["project"] })
+    const item = plan.items.find((entry) => entry.id === "data:trash-project")
+    expect(item?.status).toBe("manual")
+    expect(item?.manualHint).toContain("无法解析")
+    const before = readFileSync(join(trashRoot, "a", "manifest.json"), "utf8")
+    runUpgrade(project, plan.items, { layers: ["project"] })
+    expect(readFileSync(join(trashRoot, "a", "manifest.json"), "utf8")).toBe(before)
+  })
+
+  it("版本字段缺失按人工项处理并显示「缺失」", () => {
+    const home = makeProject({})
+    const project = makeProject({})
+    mkdirSync(join(project, ".toolkit", "trash", "c"), { recursive: true })
+    writeFileSync(join(project, ".toolkit", "trash", "c", "manifest.json"), JSON.stringify({ entries: [] }), "utf8")
+    setHomeDirForTest(home)
+
+    const plan = buildUpgradePlan(project, { layers: ["project"] })
+    const item = plan.items.find((entry) => entry.id === "data:trash-project")
+    expect(item?.status).toBe("manual")
+    expect(`${item?.action}${item?.manualHint}`).toContain("缺失")
+  })
+
+  it("事件文件同时含旧版本与无法识别行时，旧行重写并把无法识别文件列入提示", () => {
+    const home = makeProject({
+      ".toolkit/usage/events/2026-11.jsonl": '{"schemaVersion":1,"eventId":"e1","skill":"a"}\n{"schemaVersion":"x","eventId":"e2","skill":"b"}\n',
+    })
+    const project = makeProject({})
+    setHomeDirForTest(home)
+
+    const plan = buildUpgradePlan(project, { layers: ["global"] })
+    const item = plan.items.find((entry) => entry.id === "data:usage-events")
+    expect(item?.status).toBe("planned")
+    expect(item?.manualHint).toContain("无法识别")
+    const result = runUpgrade(project, plan.items, { layers: ["global"] })
+    expect(result.residue).toEqual([])
+    const lines = readFileSync(join(home, ".toolkit", "usage", "events", "2026-11.jsonl"), "utf8")
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line) as { schemaVersion: string })
+    expect(lines.map((line) => line.schemaVersion)).toEqual(["1.0", "x"])
   })
 })
 

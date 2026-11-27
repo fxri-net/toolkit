@@ -41,6 +41,7 @@ export class BackupSession {
   readonly dir: string
   private readonly entries: BackupEntry[] = []
   private readonly created: Array<{ path: string; postSha: string }> = []
+  private dataTouched = false
   private saved = false
 
   constructor(
@@ -75,6 +76,11 @@ export class BackupSession {
     }
   }
 
+  // 标记本次备份包含本机契约数据：清理备份时据此提示数据回滚点
+  markData(): void {
+    this.dataTouched = true
+  }
+
   // 记录本次新建的文件：恢复时按改后哈希判断是否可安全删除
   trackCreated(files: string[]): void {
     for (const file of files) {
@@ -89,6 +95,7 @@ export class BackupSession {
       createdAt: new Date().toISOString(),
       entries: this.entries.map((entry) => ({ ...entry, postSha: sha256(entry.original) })),
       created: this.created,
+      ...(this.dataTouched ? { data: true } : {}),
     }
     mkdirSync(this.dir, { recursive: true })
     writeFileAtomic(join(this.dir, MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`)
@@ -125,6 +132,8 @@ export interface BackupCleanResult {
   removed: string[]
   skipped: string[]
   kept: string[]
+  // 被清理（或预演将清理）的备份里含本机契约数据：清掉后数据回滚点消失
+  dataBackups: string[]
   dryRun: boolean
 }
 
@@ -139,6 +148,16 @@ function backupDirs(root: string): string[] {
     .map((name) => join(root, name))
 }
 
+// 备份清单是否收过本机契约数据：解析失败按未标记处理，不阻断清理
+function readManifestDataFlag(dir: string): boolean {
+  try {
+    const manifest = JSON.parse(readTextFile(join(dir, MANIFEST))) as BackupManifest
+    return manifest.data === true
+  } catch {
+    return false
+  }
+}
+
 // 清理层：显式 --layers 优先；缺省时项目内只清当前项目、home 下只清全局面；local 无备份根，剔除
 export function pruneLayersFor(cwd: string, explicitLayers?: readonly UpgradeLayer[]): UpgradeLayer[] {
   const source = explicitLayers ?? (isHomeDirectory(cwd) ? (["global"] as const) : (["project"] as const))
@@ -151,7 +170,7 @@ export function pruneLayersFor(cwd: string, explicitLayers?: readonly UpgradeLay
 export function pruneBackups(options: { cwd: string; layers: readonly UpgradeLayer[]; keep?: number; dryRun?: boolean }): BackupCleanResult {
   const keep = Math.max(0, Math.trunc(options.keep ?? 0))
   const dryRun = Boolean(options.dryRun)
-  const result: BackupCleanResult = { removed: [], skipped: [], kept: [], dryRun }
+  const result: BackupCleanResult = { removed: [], skipped: [], kept: [], dataBackups: [], dryRun }
   const roots: string[] = []
   if (options.layers.includes("global")) roots.push(backupRoot(options.cwd, "global"))
   if (options.layers.includes("project") || options.layers.includes("local")) roots.push(backupRoot(options.cwd, "project"))
@@ -167,6 +186,7 @@ export function pruneBackups(options: { cwd: string; layers: readonly UpgradeLay
         result.kept.push(dir)
         continue
       }
+      if (readManifestDataFlag(dir)) result.dataBackups.push(dir)
       if (!dryRun) trashAwareRemove(dir, root)
       result.removed.push(dir)
     }

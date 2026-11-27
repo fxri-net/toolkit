@@ -43,9 +43,11 @@ toolkit usage data doctor
 | `data export` | 导出事件 | `--type csv\|json\|jsonl`、`--out`、`--since`、`--dir` |
 | `data import` | 导入事件或 transcript | `--type json\|jsonl\|transcript`、`--file`、`--agent`、`--dry-run`、`--dir` |
 | `data dedupe` | 压缩重复事件并重建索引 | `--dir` |
-| `data purge` | 按保留期或全部清理 | `--older-than 30d`、`--all`、`--dry-run`、`--dir` |
+| `data purge` | 按保留期或全部清理 | `--older-than 30d`、`--all`、`--yes`、`--dry-run`、`--dir` |
 | `data rebuild` | 从事件文件重建索引 | `--dir` |
 | `data doctor` | 诊断目录、索引与重复 | `--dir`、`--format json` |
+
+`data purge --all` 在非 TTY 环境须同时给 `--yes`，否则报错退出 2；`--dry-run` 只读，不要求 `--yes`。
 
 ### config：采集配置
 

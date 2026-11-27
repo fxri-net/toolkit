@@ -66,7 +66,9 @@ function scanJsonFile(file: string, expected: ContractVersion, requireFormat = f
   if (requireFormat && data.format !== STATE_FORMAT) return null
   const state = contractVersionState(data.schemaVersion, expected)
   if (state === "current") return null
-  return { file, state, version: String(data.schemaVersion) }
+  const raw = data.schemaVersion
+  const version = raw === undefined || raw === null || raw === "" ? "缺失" : String(raw)
+  return { file, state, version }
 }
 
 // 扫描事件文件逐行版本：只统计非空且可解析的行，损坏行原样保留
@@ -129,17 +131,18 @@ function dataItem(
       manualHint: "请先升级 toolkit 后再执行迁移",
     }
   }
-  if (unknown.length === scans.length) {
+  // 同项内混有无法解析或版本缺失的文件时整项判人工：避免部分重写后中断，损坏文件也无从安全修正
+  if (unknown.length > 0) {
     return {
       id,
       surface: "data",
       layers,
-      action: `跳过 ${label}：契约版本无法识别（${versions}）`,
+      action: `跳过 ${label}：${unknown.length} 个文件无法解析或版本缺失`,
       risk: "high",
       files,
       reason: "文件损坏或版本字段缺失，无法安全重写",
       status: "manual",
-      manualHint: "确认文件内容后手工修正 schemaVersion，或删除损坏文件后重试",
+      manualHint: `${unknown.map((scan) => `${scan.file}（${scan.version}）`).join("、")}；确认后手工修正 schemaVersion，或删除损坏文件后重试`,
     }
   }
   return {
@@ -197,6 +200,11 @@ function eventItem(files: LineVersionScan[]): UpgradeItem | null {
     files: legacy.map((scan) => scan.file),
     reason: "使用事件仍使用旧版契约写法，严格读取端会丢弃这些记录",
     status: "planned",
+    // 同文件里无法识别的行不改写，但要让用户看见，避免迁移后仍是告警却无人处理
+    manualHint:
+      unknown.length > 0
+        ? `${unknown.length} 个文件含无法识别的版本行，未自动重写：${unknown.map((scan) => scan.file).join("、")}`
+        : undefined,
   }
 }
 
@@ -275,7 +283,8 @@ function rewriteEventFile(file: string, expected: ContractVersion): boolean {
     } catch {
       return line
     }
-    if (!isPlainObject(parsed) || contractVersionState(parsed.schemaVersion, expected) === "current") return line
+    // 只改旧版本行；更高版本与无法识别的行原样保留，由人工项提示
+    if (!isPlainObject(parsed) || contractVersionState(parsed.schemaVersion, expected) !== "legacy") return line
     changed = true
     return JSON.stringify({ schemaVersion: expected, ...withoutVersion(parsed) })
   })
@@ -302,6 +311,7 @@ function rewriteIndexFile(file: string, expected: ContractVersion): void {
 export function applyDataItem(item: UpgradeItem, session: BackupSession): { manual: string[] } {
   const expected = DATA_VERSIONS[item.id]
   if (!expected) return { manual: [`未知的数据迁移项：${item.id}`] }
+  session.markData()
   for (const file of item.files) {
     if (!existsSync(file)) continue
     session.capture([file])
