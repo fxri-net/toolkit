@@ -14,7 +14,7 @@ import type {
   UsageUploadProtocol,
 } from "./types"
 
-// 展示口径的默认数据目录：resolveUsageDir 未配置时回落到同一路径（家目录 + .toolkit/usage）
+// 展示口径的默认数据目录：resolveUsageDir 未配置时回落到同一路径（用户主目录 + .toolkit/usage）
 export const DEFAULT_USAGE_DIR_LABEL = "~/.toolkit/usage"
 
 // 默认配置：任何开关未显式写出时都按关闭处理
@@ -239,7 +239,7 @@ export function loadUsageConfig(): UsageConfig {
   return normalizeUsageConfig(layers.global.config?.usage)
 }
 
-// 展开家目录简写：仅处理 ~ 与 ~/ 前缀
+// 展开用户主目录简写：仅处理 ~ 与 ~/ 前缀
 function expandHome(path: string): string {
   if (path === "~") return getHomeDir()
   if (path.startsWith("~/") || path.startsWith("~\\")) return join(getHomeDir(), path.slice(2))

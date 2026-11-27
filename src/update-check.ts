@@ -306,7 +306,7 @@ function acceptRegistry(value: string | undefined, label: string): string | null
   return cleaned
 }
 
-// 解析有效 registry：配置 > npm_config_registry > 项目 .npmrc > 家目录 .npmrc > 默认
+// 解析有效 registry：配置 > npm_config_registry > 项目 .npmrc > 用户主目录 .npmrc > 默认
 export function resolveRegistry(): RegistryInfo {
   const configured = getConfigSection("updateCheck")?.registry
   if (typeof configured === "string") {
@@ -327,7 +327,7 @@ export function buildRegistryUrl(registry: string): string {
   return new URL("@fxri%2Ftoolkit/latest", normalizeRegistry(registry)).toString()
 }
 
-// 解析认证 token：仅当 registry 命中可信名单才附带——NPM_TOKEN 优先，其次家目录 .npmrc 中同 host 的 _authToken
+// 解析认证 token：仅当 registry 命中可信名单才附带——NPM_TOKEN 优先，其次用户主目录 .npmrc 中同 host 的 _authToken
 // 未命中默认不发凭据，用户把地址加入 updateCheck.trustedRegistries 即可放行；项目 .npmrc 的令牌不参与
 function resolveAuthToken(info: RegistryInfo): string | undefined {
   const trusted = readTrustedRegistries() ?? DEFAULT_TRUSTED_REGISTRIES

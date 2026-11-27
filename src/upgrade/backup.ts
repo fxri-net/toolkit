@@ -24,7 +24,7 @@ function backupRoot(cwd: string, scope: "project" | "global"): string {
   return scope === "global" ? join(getHomeDir(), ".toolkit", "backup") : join(cwd, ".toolkit", "backup")
 }
 
-// 迁移允许根：当前目录 + 项目根 + 家目录；从子目录执行时祖先配置与 .bak 仍可恢复/收编
+// 迁移允许根：当前目录 + 项目根 + 用户主目录；从子目录执行时祖先配置与 .bak 仍可恢复/收编
 export function upgradeRoots(cwd: string): string[] {
   return [...new Set([resolve(cwd), findProjectRoot(cwd), getHomeDir()])]
 }

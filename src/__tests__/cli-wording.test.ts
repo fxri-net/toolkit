@@ -18,7 +18,7 @@ describe("CLI 文案中英混用检查", () => {
 
   it("字符串与模板字面量参与扫描，注释不参与", () => {
     const source = [
-      "// 家目录与 project 层只是注释",
+      "// 用户主目录与 project 层只是注释",
       'const a = "跳过 project 层"',
       "const b = `仅处理 ${x} 层`",
       "const c = `仅处理 global`",

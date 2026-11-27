@@ -430,7 +430,7 @@ describe("runUpdateCheckWorker 后台刷新", () => {
     expect(out.warn.join("\n")).toContain("项目层")
   })
 
-  it("家目录 .npmrc 的同 host 令牌在命中名单时可用", async () => {
+  it("用户主目录 .npmrc 的同 host 令牌在命中名单时可用", async () => {
     useGlobalConfig({ updateCheck: { trustedRegistries: ["home.example"] } })
     delete process.env.NPM_TOKEN
     writeFileSync(join(HOME, ".npmrc"), "registry=https://home.example/\n//home.example/:_authToken=home-token\n", "utf8")

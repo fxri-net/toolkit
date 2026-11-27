@@ -141,7 +141,7 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
   const cwd = resolve(options.cwd ?? process.cwd())
   const layers = parseLayers(options.layers)
   if (!layers) return
-  // 家目录不作为项目根：project / local 面整体跳过，并向 stderr 说明降级原因
+  // 用户主目录不作为项目根：project / local 面整体跳过，并向 stderr 说明降级原因
   const effectiveLayers = isHomeDirectory(cwd) ? layers.filter((layer) => layer === "global") : layers
   if (effectiveLayers.length !== layers.length) {
     console.error(

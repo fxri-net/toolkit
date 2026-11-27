@@ -139,7 +139,7 @@ describe("升级迁移：计划与复检", () => {
     expect(plan.autoResidue).toBe(0)
   })
 
-  it("家目录只生成全局层迁移项，版本门禁不拦截", () => {
+  it("用户主目录只生成全局层迁移项，版本门禁不拦截", () => {
     const home = makeProject({
       ".toolkitrc.json": legacyConfig,
       "package.json": JSON.stringify({ name: "home", devDependencies: { "@fxri/toolkit": "^1.9.3" } }),

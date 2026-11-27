@@ -380,7 +380,7 @@ export function writeSkillsDeliveryDefault(value: DeliveryMode): void {
 }
 
 // 写项目技能安装偏好：定位最近的项目层配置；不存在则在 cwd 下新建
-// 家目录不作为项目根，且项目层不得落到全局文件（两者同址时会把 projectSkill 写进全局层）
+// 用户主目录不作为项目根，且项目层不得落到全局文件（两者同址时会把 projectSkill 写进全局层）
 export function writeProjectSkillsConfig(patch: Partial<ProjectSkillsConfig>, cwd = process.cwd()): void {
   if (isHomeDirectory(cwd)) {
     throw new Error("用户主目录不作为项目根，不能写入项目面技能配置：请进入项目仓库，或改用 --scope global")

@@ -24,7 +24,7 @@ function protectedRoots(): string[] {
   ].filter((value): value is string => Boolean(value))
 }
 
-// 目标本身是否就是受保护根（根目录 / 家目录 / AppData / Windows / Program Files 等）
+// 目标本身是否就是受保护根（根目录 / 用户主目录 / AppData / Windows / Program Files 等）
 export function isProtectedTarget(target: string): boolean {
   const key = pathKey(target)
   if (isHomeDirectory(target)) return true

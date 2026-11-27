@@ -48,7 +48,7 @@ describe("配置键元数据", () => {
     expect(getConfigKey("skillInstall.mode")?.writableLayers).toEqual(["global"])
   })
 
-  it("家目录不作为项目根：项目层 / 本地层写入被拒绝", () => {
+  it("用户主目录不作为项目根：项目层 / 本地层写入被拒绝", () => {
     process.chdir(home)
     expect(() => writeConfigKey("project", "task.dir", "home-tasks")).toThrow(/用户主目录不作为项目根/)
     expect(() => writeConfigKey("local", "redact.enabled", true)).toThrow(/用户主目录不作为项目根/)
@@ -300,7 +300,7 @@ describe("项目层更新提示写入", () => {
     }
   })
 
-  it("家目录拒绝写入项目层提示", () => {
+  it("用户主目录拒绝写入项目层提示", () => {
     expect(() => writeUpdateCheckSourceNotify("play", "daily", "project", home)).toThrow(/用户主目录不作为项目根/)
   })
 

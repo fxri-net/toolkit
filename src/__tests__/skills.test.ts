@@ -1529,7 +1529,7 @@ describe("技能作用域判定", () => {
     expect(detectSkillScope(root)).toBe("global")
   })
 
-  it("家目录含 package.json 且包根在其下时仍判为全局面", () => {
+  it("用户主目录含 package.json 且包根在其下时仍判为全局面", () => {
     const home = tmpRoot("fxts-tk-scope-home-")
     writeFileSync(join(home, "package.json"), JSON.stringify({ name: "home" }), "utf8")
     setHomeDirForTest(home)
@@ -1540,7 +1540,7 @@ describe("技能作用域判定", () => {
     expect(detectSkillScope(sub)).toBe("global")
   })
 
-  it("家目录下项目面安装被拒绝", () => {
+  it("用户主目录下项目面安装被拒绝", () => {
     const home = tmpRoot("fxts-tk-scope-install-home-")
     writeFileSync(join(home, "package.json"), JSON.stringify({ name: "home" }), "utf8")
     setHomeDirForTest(home)

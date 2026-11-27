@@ -78,7 +78,7 @@ function warnOutsideRepo(layer: ConfigKeyLayer, cwd: string | undefined): void {
   console.warn(`⚠️ 当前目录不在任何项目内（缺少 .git、项目配置或项目产物），${CONFIG_LAYER_LABELS[layer]}配置将写入 ${foldHome(file)}`)
 }
 
-// 写入可行性预检：家目录与非全局层落点同址时提前报错，避免 dry-run 给出可写假象
+// 写入可行性预检：用户主目录与非全局层落点同址时提前报错，避免 dry-run 给出可写假象
 function assertLayerWritable(layer: ConfigKeyLayer, cwd: string | undefined): boolean {
   try {
     assertConfigLayerWritable(layer, cwd)

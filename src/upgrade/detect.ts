@@ -60,7 +60,7 @@ export function legacyCommandIn(text: string): { from: string; to: string } | nu
 }
 
 // 配置文件检测：旧段名、旧闸门键与误放层段各记一条，file 为实际命中的配置文件
-// 家目录不作为项目根；非全局层落点等于全局文件时跳过，避免同一文件被两层各报一条
+// 用户主目录不作为项目根；非全局层落点等于全局文件时跳过，避免同一文件被两层各报一条
 // 新旧段内容不同等需用户取舍的情况在检测阶段即判 manual，避免「永远可自动处理」的死循环
 function detectConfigLayer(layer: UpgradeLayer, cwd: string, pruneLegacy: boolean): UpgradeItem[] {
   if (layer !== "global" && isHomeDirectory(cwd)) return []
@@ -309,7 +309,7 @@ function detectCi(cwd: string): UpgradeItem[] {
 }
 
 // 汇总检测：按固定顺序返回，保证计划与 diff 稳定
-// 家目录不作为项目根：project / local 面整体跳过，仅保留全局面迁移项
+// 用户主目录不作为项目根：project / local 面整体跳过，仅保留全局面迁移项
 export function detectUpgradeItems(
   cwd: string,
   layers: readonly UpgradeLayer[] = ALL_LAYERS,

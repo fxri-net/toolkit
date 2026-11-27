@@ -23,7 +23,7 @@ let home = ""
 beforeEach(() => {
   home = tempDir("fxts-tk-dsh-home-")
   setHomeDirForTest(home)
-  // 显式钉住 dsh 家目录，避免读本机真实配置
+  // 显式钉住 dsh 用户主目录，避免读本机真实配置
   process.env.DSH_HOME = join(home, ".dsh")
   resetToolkitConfigCache()
 })

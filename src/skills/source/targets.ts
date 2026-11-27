@@ -132,7 +132,7 @@ export function detectSkillScope(cwd = process.cwd()): SkillScope {
     return "global"
   }
   const start = safeRealPath(resolve(cwd))
-  // 家目录不作为项目根：全局 CLI 常装在 home 下，不能因此把 home 判成项目面
+  // 用户主目录不作为项目根：全局 CLI 常装在 home 下，不能因此把 home 判成项目面
   if (isHomeDirectory(start)) return "global"
   // 位于包内（源仓库或包目录）恒按全局面
   if (pathKey(start) === pathKey(pkgRoot) || isInside(start, pkgRoot)) return "global"

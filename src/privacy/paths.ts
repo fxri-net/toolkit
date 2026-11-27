@@ -5,7 +5,7 @@ import { getConfigSection } from "../config"
 export const LOCAL_PATH_LEVELS = ["off", "warn", "error"] as const
 export type LocalPathLevel = (typeof LOCAL_PATH_LEVELS)[number]
 
-// 盘符路径与 POSIX 家目录路径：占位符（<本机> / ~/ / %USERPROFILE%）不会被匹配；
+// 盘符路径与 POSIX 用户主目录路径：占位符（<本机> / ~/ / %USERPROFILE%）不会被匹配；
 // 通配规则（含 `*` / `?`）与裸目录写法（如 `/Users/`）原样保留，避免把文档里的规则示例改坏
 const WINDOWS_PATH = /(?<![A-Za-z0-9])[A-Za-z]:[\\/][^\s`"'()<>|，。；：、]*/g
 const POSIX_HOME_PATH = /(?:\/Users|\/home)\/[^\s`"'()<>|，。；：、*?]+/g
@@ -25,7 +25,7 @@ function lastSegment(path: string): string {
   return parts.at(-1) ?? ""
 }
 
-// 归一：盘符 → <本机>/…/末段，POSIX 家目录 → ~/…/末段；结果不含原始路径，重复执行不再命中
+// 归一：盘符 → <本机>/…/末段，POSIX 用户主目录 → ~/…/末段；结果不含原始路径，重复执行不再命中
 export function normalizeLocalPaths(text: string): { text: string; count: number } {
   let count = 0
   const out = text
@@ -44,7 +44,7 @@ export function normalizeLocalPaths(text: string): { text: string; count: number
   return { text: out, count }
 }
 
-// 单条路径命中：value 为原文片段，kind 区分盘符与 POSIX 家目录
+// 单条路径命中：value 为原文片段，kind 区分盘符与 POSIX 用户主目录
 export interface LocalPathHit {
   value: string
   kind: "windows" | "posix-home"

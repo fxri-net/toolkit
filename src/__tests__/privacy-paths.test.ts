@@ -1,4 +1,4 @@
-// 本机路径归一：默认关闭；开启后归一盘符与 POSIX 家目录，占位符不动且幂等
+// 本机路径归一：默认关闭；开启后归一盘符与 POSIX 用户主目录，占位符不动且幂等
 import { rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -39,7 +39,7 @@ describe("本机路径归一", () => {
     expect(normalizeIfEnabled(text)).toEqual({ text, count: 0 })
   })
 
-  it("开启后归一盘符与家目录路径，保留末段名", () => {
+  it("开启后归一盘符与用户主目录路径，保留末段名", () => {
     writeConfig({ privacy: { localPaths: "warn" } })
     expect(resolveLocalPathLevel()).toBe("warn")
     const result = normalizeIfEnabled("D:\\Work\\demo\\toolkit 与 /home/me/proj 与 C:/Users/me/app")

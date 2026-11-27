@@ -17,7 +17,7 @@ const DSH_BLOCK_ID = "toolkit-usage-hooks"
 // UTF-8 BOM：写回时按原文件形态保留
 const BOM = "\uFEFF"
 
-// dsh 家目录：DSH_HOME 可为绝对路径或相对 home 的目录名
+// dsh 用户主目录：DSH_HOME 可为绝对路径或相对 home 的目录名
 export function dshHome(): string {
   const env = process.env.DSH_HOME
   if (env) return isAbsolute(env) ? env : join(getHomeDir(), env)

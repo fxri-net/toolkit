@@ -35,7 +35,7 @@ export function verifyUpgrade(
 }
 
 // 版本门禁：项目依赖仍低于目标 major 时拒绝迁移（v1 CLI 读不懂 v2 配置）
-// 只迁移全局面时不涉及项目依赖，直接放行——否则在家目录或非项目目录会被无关的 package.json 拦下
+// 只迁移全局面时不涉及项目依赖，直接放行——否则在用户主目录或非项目目录会被无关的 package.json 拦下
 export interface VersionGate {
   ok: boolean
   detail: string
