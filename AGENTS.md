@@ -36,8 +36,9 @@
    纪律：模块正文变更须以变更时刻更新该模块锚点；未变更的模块不得刷新。
    同一批改动取同一时间；只随内容变更递增、不随发版例行抬高。
    原因：用户会把规则复制成个人快照，快照首行与页面 / 组合当前值不一致即说明已失同步，时间戳还能看出落后多久。
-7. **概念目录**：`concepts/catalog.json` 的 `summary` / `variants` / `support` / `adoption` 须与当前能力一致；
-   `support.commands` / `skills` / `templates` / `checks` 引用必须可解析（由 `src/__tests__/concept.test.ts` 校验）；
+7. **概念目录**：`concepts/catalog.json` 只描述可迁移的工程概念，`summary` / `variants` / `adoption` 与 `adoptionLevel`
+   须与概念实际一致，正文不得出现本仓实现标记（由 `src/__tests__/concept.test.ts` 扫描）；
+   本仓命令 / 技能 / 模板 / 检查统一登记在 `concepts/reference.json`，引用必须可解析（同一测试校验）；
    无触达时在任务文件「影响范围」节写明理由。
 
 面清单不是固定三面：最少两方（如代码 ↔ 文档）即构成一致性要求；本仓按上述 7 面逐面核对，项目可按自身情况增删面。

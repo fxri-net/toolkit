@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/fxri-net/toolkit/schemas/concept-reference.schema.json",
+  "title": "概念参考实现",
+  "description": "concepts/reference.json 的结构定义：把本仓的命令、技能、模板与检查按概念 id 登记，供已安装本工具的用户参考；不属于概念本体。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "note", "references"],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.1" },
+    "note": { "type": "string", "minLength": 1 },
+    "references": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" },
+      "additionalProperties": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commands", "skills", "templates", "checks"],
+      "properties": {
+        "commands": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "skills": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "templates": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "checks": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.1",
+  "note": "本仓参考实现：仅在安装 @fxri/toolkit 后可用，不属于概念本体。",
+  "references": {
+    "three-way-consistency": { "commands": ["toolkit skill lint", "toolkit task check"], "skills": ["fxri-plan-review"], "templates": [], "checks": [] },
+    "docs-quality": { "commands": ["toolkit docs"], "skills": ["fxri-writing-docs"], "templates": ["templates/docs-theme"], "checks": [] },
+    "test-tiers": { "commands": [], "skills": ["fxri-test-tty"], "templates": [], "checks": [] },
+    "safe-delete": { "commands": ["toolkit trash"], "skills": ["fxri-base-safety"], "templates": [], "checks": [] },
+    "trash": { "commands": ["toolkit trash"], "skills": ["fxri-base-safety"], "templates": [], "checks": [] },
+    "migration-backup": { "commands": ["toolkit upgrade"], "skills": ["fxri-base-safety"], "templates": [], "checks": [] },
+    "privacy-redaction": { "commands": ["toolkit privacy"], "skills": [], "templates": [], "checks": [] },
+    "path-boundary": { "commands": [], "skills": ["fxri-base-safety"], "templates": [], "checks": [] },
+    "task-lifecycle": { "commands": ["toolkit task"], "skills": ["fxri-plan-task", "fxri-plan-recap"], "templates": [], "checks": [] },
+    "conventions-carrier": { "commands": ["toolkit convention"], "skills": ["fxri-plan-task"], "templates": [], "checks": [] },
+    "rule-modules": { "commands": ["toolkit rule"], "skills": [], "templates": ["templates/rules"], "checks": [] },
+    "plan-first-authorization": { "commands": [], "skills": ["fxri-plan-task", "fxri-plan-review"], "templates": [], "checks": [] },
+    "minimal-entry": { "commands": ["toolkit upgrade"], "skills": [], "templates": [], "checks": [] },
+    "release-pipeline": { "commands": ["toolkit release"], "skills": ["fxri-release-changelog"], "templates": [], "checks": [] },
+    "agent-catalog-adapters": { "commands": ["toolkit skill"], "skills": [], "templates": [], "checks": [] },
+    "skill-distribution": { "commands": ["toolkit skill"], "skills": ["fxri-writing-skill"], "templates": [], "checks": [] },
+    "scope": { "commands": ["toolkit scope"], "skills": [], "templates": [], "checks": [] },
+    "usage-telemetry": { "commands": ["toolkit usage"], "skills": [], "templates": [], "checks": [] },
+    "config-layers": { "commands": ["toolkit config"], "skills": [], "templates": [], "checks": [] },
+    "encoding-eol": { "commands": [], "skills": ["fxri-base-encoding"], "templates": [], "checks": [] },
+    "capability-bundles": { "commands": ["toolkit concept"], "skills": ["fxri-base-adoption"], "templates": [], "checks": [] }
+  }
+}

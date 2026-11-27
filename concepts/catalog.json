@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0",
+  "schemaVersion": "1.1",
   "concepts": [
     {
       "id": "single-source",
@@ -9,21 +9,20 @@
       "summary": "同一事实尽量只保留一个 owner，其余位置用派生、指针或校验，不各写一份。",
       "problem": "同一份清单、阈值或文案散落多处，改动后容易漂移。",
       "value": ["改一处即全量生效", "漂移可被检查发现"],
-      "maturity": "partial",
+      "adoptionLevel": "generic",
       "signals": ["同一个数字或清单在多处维护", "文档与代码说法不一致"],
       "variants": [
         { "id": "fact-registry", "name": "事实注册表", "summary": "把事实登记成表，标明 owner、层级、生成或校验手段。" },
-        { "id": "generated-mirror", "name": "生成物镜像", "summary": "由单源生成文档或数据块，并用 --check 防漂移。" }
+        { "id": "generated-mirror", "name": "生成物镜像", "summary": "由单源生成文档或数据块，并用检查模式防漂移。" }
       ],
       "related": ["three-way-consistency", "quality-gate"],
-      "support": { "commands": [], "skills": [], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["先盘点重复事实"],
         "steps": [{ "title": "登记单源", "detail": "为每类事实选一个 owner，其余位置改为派生或指针；新增事实先登记。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "low", "reversible": true },
-      "examples": ["版本号只写在 package.json，CHANGELOG 与文档由它派生"]
+      "examples": ["版本号只写在一处，更新日志与文档由它派生"]
     },
     {
       "id": "quality-gate",
@@ -33,7 +32,7 @@
       "summary": "通常用一份步骤清单统一本地与 CI 的验收，以失败阻断交付。",
       "problem": "每处各写一份检查清单，本地与 CI 容易漂移。",
       "value": ["本地能复现 CI", "失败时定位到具体步骤"],
-      "maturity": "partial",
+      "adoptionLevel": "tooling",
       "signals": ["本地通过、CI 才报错", "检查步骤散落在多个配置里"],
       "variants": [
         { "id": "single-step-list", "name": "单一步骤清单", "summary": "所有步骤由一份脚本定义，CI 只调用入口。" },
@@ -41,40 +40,38 @@
         { "id": "changed-surface", "name": "改动面裁剪", "summary": "按改动文件跳过无关步骤，保留全量入口。" }
       ],
       "related": ["coverage-tiers", "docs-quality", "build-trigger"],
-      "support": { "commands": [], "skills": [], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["确定可重复的验收命令"],
         "steps": [{ "title": "收敛入口", "detail": "把安装、静态检查、测试、构建收敛到一个脚本；CI 只调用该脚本。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "low", "reversible": true },
-      "examples": ["package.json 只保留 verify，CI 复用同一入口"]
+      "examples": ["所有检查收敛到一条命令，CI 只调用这一条"]
     },
     {
       "id": "three-way-consistency",
       "name": "多方一致",
       "aliases": ["三方一致", "多面一致", "能力文档技能一致"],
       "category": "delivery",
-      "summary": "至少两个面（能力、文档、技能、概念目录等）保持同步；面清单按项目声明，任一面变更都要逐面核对。",
-      "problem": "代码已改，文档、技能或概念目录仍描述旧行为。",
+      "summary": "至少两个面（能力、文档、技能等）保持同步；面清单按项目声明，任一面变更都要逐面核对。",
+      "problem": "代码已改，文档或技能仍描述旧行为。",
       "value": ["用户看到的就是实际行为", "升级后不出现过期说明"],
-      "maturity": "partial",
-      "signals": ["命令 help 与文档不一致", "技能版本与正文声明不一致", "概念目录引用了已不存在的命令"],
+      "adoptionLevel": "tooling",
+      "signals": ["命令帮助与文档不一致", "技能版本与正文声明不一致", "目录引用了已不存在的入口"],
       "variants": [
-        { "id": "version-double-write", "name": "版本双写", "summary": "同一版本在 frontmatter 与正文各写一次，由 lint 比对。" },
+        { "id": "version-double-write", "name": "版本双写", "summary": "同一版本在两处各写一次，由检查比对是否一致。" },
         { "id": "touch-surface", "name": "触达面清单", "summary": "列出受影响的面，逐面核对并标注已同步或无触达。" },
         { "id": "surface-list", "name": "面清单", "summary": "每个项目声明自己需要同步的面，最少两方即可成立。" },
         { "id": "anchor", "name": "更新锚点", "summary": "规则页与快照首行记录更新时间，便于自查是否落后。" }
       ],
       "related": ["single-source", "quality-gate", "docs-quality"],
-      "support": { "commands": ["toolkit skill lint", "toolkit task check"], "skills": ["fxri-plan-review"], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["能列出能力对应的面（最少两方）"],
         "steps": [{ "title": "建一致性检查", "detail": "把版本、用途列、引用路径与触达面做成可执行检查，接入统一门禁。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "low", "reversible": true },
-      "examples": ["技能 frontmatter 与正文版本不一致时 lint 失败", "概念目录引用不存在的命令时测试失败"]
+      "examples": ["两处版本声明不一致时检查失败", "文档引用了已删除的入口时测试失败"]
     },
     {
       "id": "coverage-tiers",
@@ -84,22 +81,21 @@
       "summary": "核心域按改动行要求覆盖率，编排层由契约测试守，不搞一刀切。",
       "problem": "全员追一个总覆盖率数字，编排与文案层被迫写无意义测试。",
       "value": ["核心逻辑有真实覆盖", "编排层用契约测试守住"],
-      "maturity": "partial",
+      "adoptionLevel": "tooling",
       "signals": ["覆盖率数字很高但没有断言行为", "命令注册层被要求写单测"],
       "variants": [
         { "id": "changed-lines", "name": "改动行覆盖", "summary": "只对本次改动的核心源文件要求阈值。" },
-        { "id": "exempt-layer", "name": "编排层豁免", "summary": "命令注册、输出文案与向导不参与改动行判定。" },
+        { "id": "exempt-layer", "name": "编排层豁免", "summary": "命令注册、输出文案与交互向导等编排代码不参与改动行判定。" },
         { "id": "global-floor", "name": "全局下限", "summary": "流水线保留全局最低线，本地按改动面采集。" }
       ],
       "related": ["quality-gate", "test-tiers"],
-      "support": { "commands": [], "skills": [], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["能区分核心域与编排层"],
         "steps": [{ "title": "定义分层", "detail": "列出核心域前缀与豁免层，阈值只在一处维护。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "low", "reversible": true },
-      "examples": ["核心目录改动行覆盖 ≥80%，命令注册层不参与改动行判定"]
+      "examples": ["核心模块改动行覆盖 ≥80%，编排层不参与改动行判定"]
     },
     {
       "id": "docs-quality",
@@ -109,7 +105,7 @@
       "summary": "把行宽、分号、标题、死链与索引一致性做成可执行检查。",
       "problem": "文档靠人工 review，格式与死链问题反复出现。",
       "value": ["文档问题提前暴露", "索引与导航不漂移"],
-      "maturity": "partial",
+      "adoptionLevel": "tooling",
       "signals": ["文档站出现死链", "目录与导航不一致"],
       "variants": [
         { "id": "readability", "name": "可读性阈值", "summary": "限制单行长度、分号数与页面体量。" },
@@ -117,14 +113,13 @@
         { "id": "dead-link", "name": "死链与索引", "summary": "构建时发现死链，404 页不进索引。" }
       ],
       "related": ["three-way-consistency", "quality-gate"],
-      "support": { "commands": ["toolkit docs"], "skills": ["fxri-writing-docs"], "templates": ["templates/docs-theme"], "checks": [] },
       "adoption": {
         "prerequisites": ["文档站有稳定构建入口"],
         "steps": [{ "title": "接入文档检查", "detail": "先做死链与标题检查，再加行宽与索引顺序。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "low", "reversible": true },
-      "examples": ["新增页面未进两份文档索引时检查失败"]
+      "examples": ["新增页面未进索引与导航时检查失败"]
     },
     {
       "id": "build-trigger",
@@ -134,7 +129,7 @@
       "summary": "只有影响产物的文件才触发构建，测试与文档改动复用既有产物。",
       "problem": "每次改文档都重新构建，等待时间无谓增加。",
       "value": ["缩短本地验收", "构建结果仍由源码决定"],
-      "maturity": "partial",
+      "adoptionLevel": "tooling",
       "signals": ["只改测试却触发完整构建", "构建产物明明未受影响"],
       "variants": [
         { "id": "test-inert", "name": "测试不触发", "summary": "测试文件改动不触发构建。" },
@@ -142,14 +137,13 @@
         { "id": "cache-reuse", "name": "缓存复用", "summary": "依赖未变时跳过安装。" }
       ],
       "related": ["quality-gate", "coverage-tiers"],
-      "support": { "commands": [], "skills": [], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["明确产物由哪些文件决定"],
         "steps": [{ "title": "列触发面", "detail": "把源码、构建配置与依赖列为触发面，其余改动跳过构建。" }],
         "files": []
       },
       "cost": { "effort": "low", "risk": "low", "reversible": true },
-      "examples": ["只改 src/__tests__ 时 verify 跳过 build"]
+      "examples": ["只改测试文件时跳过构建，产物缺失时强制构建"]
     },
     {
       "id": "test-tiers",
@@ -159,22 +153,21 @@
       "summary": "单元、契约、快照与真终端测试各守一层，按风险选择。",
       "problem": "所有测试都写成单元测试，交互与契约问题漏检。",
       "value": ["不同风险有对应测试", "测试运行时间可控"],
-      "maturity": "partial",
-      "signals": ["CLI 交互无人测", "只测内部函数不测输出契约"],
+      "adoptionLevel": "tooling",
+      "signals": ["交互路径无人测", "只测内部函数不测输出契约"],
       "variants": [
-        { "id": "contract", "name": "CLI 契约", "summary": "断言命令输出、JSON 信封与退出码。" },
+        { "id": "contract", "name": "契约测试", "summary": "断言命令输出、结构化返回与退出码。" },
         { "id": "snapshot", "name": "快照", "summary": "锁定长文本与帮助输出。" },
-        { "id": "tty", "name": "真终端", "summary": "用 PTY 驱动交互路径，断言按键与落盘。" }
+        { "id": "tty", "name": "真终端", "summary": "用伪终端驱动交互路径，断言按键与落盘。" }
       ],
       "related": ["coverage-tiers", "quality-gate"],
-      "support": { "commands": [], "skills": ["fxri-test-tty"], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["识别交互与契约边界"],
-        "steps": [{ "title": "分层补测", "detail": "核心逻辑用单元测试，命令输出用契约测试，交互用 PTY 测试。" }],
+        "steps": [{ "title": "分层补测", "detail": "核心逻辑用单元测试，命令输出用契约测试，交互用终端测试。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "low", "reversible": true },
-      "examples": ["命令 JSON 输出用契约测试，向导用 PTY 测试"]
+      "examples": ["命令输出用契约测试，交互路径用真终端测试"]
     },
     {
       "id": "atomic-idempotent",
@@ -184,7 +177,7 @@
       "summary": "写失败不留半成品，重复执行结果一致。",
       "problem": "写到一半失败留下损坏文件，重跑又产生重复内容。",
       "value": ["失败可重试", "重复执行不改字节"],
-      "maturity": "partial",
+      "adoptionLevel": "tooling",
       "signals": ["中断后留下临时文件", "第二次执行产生重复段落"],
       "variants": [
         { "id": "tmp-rename", "name": "临时文件加改名", "summary": "同目录写临时文件后原子改名。" },
@@ -192,14 +185,13 @@
         { "id": "lock", "name": "锁", "summary": "并发写同一区时用锁或陈旧判定。" }
       ],
       "related": ["single-source", "path-boundary"],
-      "support": { "commands": [], "skills": [], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["识别需要重复执行的写入口"],
         "steps": [{ "title": "原子化", "detail": "先写临时文件再改名；已有内容按标记块幂等更新。" }],
         "files": []
       },
       "cost": { "effort": "low", "risk": "low", "reversible": true },
-      "examples": ["配置写入先落临时文件，再 rename 覆盖"]
+      "examples": ["配置写入先落临时文件，再改名覆盖"]
     },
     {
       "id": "safe-delete",
@@ -209,23 +201,22 @@
       "summary": "删除必须限定允许根与受保护根，优先可恢复。",
       "problem": "脚本在错误目录执行删除，越过项目边界。",
       "value": ["删除不会越界", "误删可恢复"],
-      "maturity": "partial",
+      "adoptionLevel": "tooling",
       "signals": ["删除逻辑接受任意路径", "在家目录执行清理命令"],
       "variants": [
         { "id": "allowed-root", "name": "允许根", "summary": "目标必须位于调用方给定的根内。" },
         { "id": "protected-root", "name": "受保护根", "summary": "盘根、家目录与系统目录不得作为删除目标。" },
         { "id": "link-unlink", "name": "软链摘链", "summary": "符号链接只摘链，不递归跟随。" },
-        { "id": "cross-device", "name": "跨卷复制", "summary": "rename 遇 EXDEV 时复制后删源。" }
+        { "id": "cross-device", "name": "跨卷复制", "summary": "改名遇跨设备错误时复制后删源。" }
       ],
       "related": ["trash", "path-boundary"],
-      "support": { "commands": ["toolkit trash"], "skills": ["fxri-base-safety"], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["列出所有删除入口"],
         "steps": [{ "title": "收敛删除入口", "detail": "所有递归删除走同一守卫函数，先校验根再删除。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "low", "reversible": true },
-      "examples": ["删除技能目录前校验目标位于项目根内"]
+      "examples": ["删除插件目录前校验目标位于项目根内"]
     },
     {
       "id": "trash",
@@ -235,7 +226,7 @@
       "summary": "用户可见删除先入回收站，清理由人决定。",
       "problem": "误删后无法恢复，只能重装或重建。",
       "value": ["误删可恢复", "清理时机由用户掌握"],
-      "maturity": "partial",
+      "adoptionLevel": "tooling",
       "signals": ["删除后才发现删错", "清理策略没有人工确认"],
       "variants": [
         { "id": "scope", "name": "作用域", "summary": "项目内与全局回收站分开。" },
@@ -243,14 +234,13 @@
         { "id": "partial", "name": "部分失败", "summary": "恢复逐项继续，失败项保留并标记。" }
       ],
       "related": ["safe-delete", "migration-backup"],
-      "support": { "commands": ["toolkit trash"], "skills": ["fxri-base-safety"], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["有稳定的删除入口"],
         "steps": [{ "title": "接入回收站", "detail": "用户可见删除改为移动到项目内回收站，另设显式清理命令。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "low", "reversible": true },
-      "examples": ["卸载技能时旧产物进入回收站，可 restore 恢复"]
+      "examples": ["卸载插件时旧产物进入回收站，可按清单恢复"]
     },
     {
       "id": "migration-backup",
@@ -260,7 +250,7 @@
       "summary": "迁移前先备份，manifest 与哈希保证可恢复。",
       "problem": "迁移改坏配置后无法回到迁移前。",
       "value": ["迁移可回滚", "备份可安全清理"],
-      "maturity": "partial",
+      "adoptionLevel": "tooling",
       "signals": ["迁移脚本直接覆盖原文件", "失败后无法定位改了哪些文件"],
       "variants": [
         { "id": "session", "name": "备份会话", "summary": "一次迁移的所有写入进入同一备份会话。" },
@@ -268,14 +258,13 @@
         { "id": "restore", "name": "恢复", "summary": "按清单恢复并校验哈希。" }
       ],
       "related": ["safe-delete", "trash"],
-      "support": { "commands": ["toolkit upgrade"], "skills": ["fxri-base-safety"], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["列出迁移会写的文件"],
         "steps": [{ "title": "先备份再写", "detail": "建立备份会话，写入前记录原文件，完成后提供恢复命令。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "low", "reversible": true },
-      "examples": ["升级迁移前备份配置，失败后可 restore"]
+      "examples": ["升级迁移前先备份，失败后可按清单回滚"]
     },
     {
       "id": "privacy-redaction",
@@ -285,22 +274,21 @@
       "summary": "落盘前扫描本机路径与敏感信息，按档位告警或修复。",
       "problem": "任务与日志把本机路径、邮箱、令牌带进仓库。",
       "value": ["仓库不含本机隐私", "问题可被门禁发现"],
-      "maturity": "partial",
+      "adoptionLevel": "tooling",
       "signals": ["提交里出现用户名路径", "日志包含令牌"],
       "variants": [
         { "id": "rules", "name": "规则集", "summary": "内置规则与自定义规则共用一份清单。" },
-        { "id": "levels", "name": "档位", "summary": "off / warn / error 三档决定阻断与否。" },
+        { "id": "levels", "name": "档位", "summary": "关闭 / 告警 / 阻断三档决定是否拦截。" },
         { "id": "path-normalize", "name": "路径归一", "summary": "把本机绝对路径归一为占位形式。" }
       ],
       "related": ["path-boundary", "docs-quality"],
-      "support": { "commands": ["toolkit privacy"], "skills": [], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["确定要扫描的目录"],
-        "steps": [{ "title": "接入扫描", "detail": "先以 warn 档接入，稳定后再升 error 并接入门禁。" }],
+        "steps": [{ "title": "接入扫描", "detail": "先以告警档接入，稳定后再升阻断档并接入门禁。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "low", "reversible": true },
-      "examples": ["任务归档前把本机路径归一为 <本机>/…"]
+      "examples": ["提交前把本机绝对路径归一为占位形式"]
     },
     {
       "id": "path-boundary",
@@ -310,15 +298,14 @@
       "summary": "所有写入与删除先过根校验、单段名校验与链接处理。",
       "problem": "路径拼接被用户输入或清单内容穿越。",
       "value": ["写删不越界", "异常路径有明确告警"],
-      "maturity": "partial",
+      "adoptionLevel": "tooling",
       "signals": ["路径来自配置文件或清单", "路径中间可能含软链"],
       "variants": [
-        { "id": "single-segment", "name": "单段名", "summary": "名称不得含分隔符或 ..。" },
-        { "id": "realpath", "name": "真实路径", "summary": "存在时用 realpath 比较，防软链逃逸。" },
+        { "id": "single-segment", "name": "单段名", "summary": "名称不得含分隔符或上级目录符号。" },
+        { "id": "realpath", "name": "真实路径", "summary": "存在时用真实路径比较，防软链逃逸。" },
         { "id": "warn-skip", "name": "越界告警", "summary": "越界路径跳过并报告，不静默。" }
       ],
       "related": ["safe-delete", "privacy-redaction"],
-      "support": { "commands": [], "skills": ["fxri-base-safety"], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["列出接受外部路径的入口"],
         "steps": [{ "title": "统一守卫", "detail": "写入与删除前调用同一根校验函数，越界告警并跳过。" }],
@@ -335,22 +322,21 @@
       "summary": "方案确认后建档，按状态机推进，完成后归档并沉淀规范。",
       "problem": "决策只留在对话里，会话结束就丢失。",
       "value": ["任务可追踪", "决策与交付留在仓库"],
-      "maturity": "partial",
+      "adoptionLevel": "generic",
       "signals": ["多人多会话协作", "方案确认后没有落盘"],
       "variants": [
         { "id": "state-machine", "name": "状态机", "summary": "待办 / 进行中 / 阻塞 / 搁置 / 已完成 / 已放弃。" },
-        { "id": "time-source", "name": "四级时间源", "summary": "完成时间按当场打点、记录、提交时间、系统时间取证。" },
+        { "id": "time-source", "name": "时间取证", "summary": "完成时间按当场打点、记录、提交时间、系统时间依次取证。" },
         { "id": "plan-table", "name": "计划表", "summary": "多任务先出顺序表，再逐任务建档。" }
       ],
       "related": ["conventions-carrier", "plan-first-authorization"],
-      "support": { "commands": ["toolkit task"], "skills": ["fxri-plan-task", "fxri-plan-recap"], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["团队接受任务文件入库"],
-        "steps": [{ "title": "初始化任务区", "detail": "建 .tasks 骨架与规范载体，约定建档、校验、归档命令。" }],
+        "steps": [{ "title": "初始化任务区", "detail": "建任务目录骨架与规范载体，约定建档、校验、归档方式。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "low", "reversible": true },
-      "examples": ["方案确认后建档，完成后 task archive 归档"]
+      "examples": ["方案确认后建档，完成后归档并沉淀规范"]
     },
     {
       "id": "conventions-carrier",
@@ -360,15 +346,14 @@
       "summary": "把跨任务复用的规范收进索引、分册与历史，形成可检索载体。",
       "problem": "同一约定反复口头说明，换人就丢。",
       "value": ["规范可检索", "语义演进有留痕"],
-      "maturity": "partial",
+      "adoptionLevel": "generic",
       "signals": ["同一约定被反复提醒", "新人不知道项目有哪些规范"],
       "variants": [
         { "id": "index", "name": "索引", "summary": "通常作为唯一入口，优先只凭索引判断适用条款。" },
         { "id": "history", "name": "历史", "summary": "只追加语义变更，不改旧行。" },
-        { "id": "entry-shell", "name": "入口壳", "summary": "把载体摘要放进项目级技能目录，让 AI 自动读到。" }
+        { "id": "entry-shell", "name": "入口壳", "summary": "把载体摘要放进 agent 可自动读取的位置。" }
       ],
       "related": ["rule-modules", "task-lifecycle"],
-      "support": { "commands": ["toolkit convention"], "skills": ["fxri-plan-task"], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["有稳定的任务归档流程"],
         "steps": [{ "title": "建载体", "detail": "从归档任务提炼规范，写索引行并归入分册；语义变更写历史。" }],
@@ -385,7 +370,7 @@
       "summary": "规则按模块组合，快照首行带更新时间锚点。",
       "problem": "一份长规则无法按需裁剪，复制后也不知道是否过期。",
       "value": ["按需组合", "快照可自查"],
-      "maturity": "partial",
+      "adoptionLevel": "generic",
       "signals": ["用户只想要部分规则", "复制后不知道有没有更新"],
       "variants": [
         { "id": "preset", "name": "预设", "summary": "极简 / 推荐 / 全量等模块组合。" },
@@ -393,14 +378,13 @@
         { "id": "pointer", "name": "指针", "summary": "模块数量与清单指向单一数据文件。" }
       ],
       "related": ["conventions-carrier", "single-source"],
-      "support": { "commands": ["toolkit rule"], "skills": [], "templates": ["templates/rules"], "checks": [] },
       "adoption": {
         "prerequisites": ["规则可拆成独立模块"],
-        "steps": [{ "title": "模块化", "detail": "把规则拆成可独立读通的模块，提供预设与组合命令。" }],
+        "steps": [{ "title": "模块化", "detail": "把规则拆成可独立读通的模块，提供预设与组合方式。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "low", "reversible": true },
-      "examples": ["用 rule preset 只复制工作流与可裁剪偏好"]
+      "examples": ["用预设只复制工作流与可裁剪偏好"]
     },
     {
       "id": "plan-first-authorization",
@@ -410,7 +394,7 @@
       "summary": "先出结构化方案，方案定稿且范围唯一后才执行写操作。",
       "problem": "AI 未确认就改文件，方向错了再回滚。",
       "value": ["改动前先对齐", "不可逆动作有披露"],
-      "maturity": "partial",
+      "adoptionLevel": "generic",
       "signals": ["AI 直接开动", "方案范围含糊"],
       "variants": [
         { "id": "auth-criteria", "name": "授权判据", "summary": "执行指向明确、范围唯一、方案已定稿。" },
@@ -418,7 +402,6 @@
         { "id": "scope-reset", "name": "扩面回方案", "summary": "范围扩大时回到方案态重新确认。" }
       ],
       "related": ["task-lifecycle", "conventions-carrier"],
-      "support": { "commands": [], "skills": ["fxri-plan-task", "fxri-plan-review"], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["团队接受写前确认"],
         "steps": [{ "title": "写进技能", "detail": "把方案模板、授权判据与不可逆披露写进 AI 技能，而不是靠口头。" }],
@@ -435,21 +418,20 @@
       "summary": "对外尽量收敛为一条主入口，对内实现可按需拆分；批量动作先预览，交互时按需选择，脚本场景再显式全量。",
       "problem": "入口与参数越加越多，用户与 AI 都要记住何时用哪条；批量命令若默认全做，又容易误伤。",
       "value": ["主入口收敛、学习成本低", "批量动作可预期、可回滚"],
-      "maturity": "partial",
+      "adoptionLevel": "generic",
       "signals": ["同一能力有多条等价命令", "批量命令没有预览就直接全做"],
       "variants": [
-        { "id": "single-entry", "name": "单一入口", "summary": "日常尽量只暴露一条主入口，细节按需拆到内部命令，减少用户区分同类动作的负担。" },
-        { "id": "batch-guard", "name": "批量有界", "summary": "先预览影响范围；交互时通常多选且默认不全选，脚本场景再用 --all --yes 显式全量。" }
+        { "id": "single-entry", "name": "单一入口", "summary": "日常尽量只暴露一条主入口，细节按需拆到内部实现，减少用户区分同类动作的负担。" },
+        { "id": "batch-guard", "name": "批量有界", "summary": "先预览影响范围；交互时通常多选且默认不全选，脚本场景再显式请求全量。" }
       ],
       "related": ["plan-first-authorization", "quality-gate", "output-contract"],
-      "support": { "commands": ["toolkit upgrade"], "skills": [], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["盘点现有入口与批量命令"],
         "steps": [{ "title": "收敛入口", "detail": "把同类动作尽量并入一条主入口；批量命令补预览、选择与显式全量开关，破坏性动作按需默认不全选。" }],
         "files": []
       },
       "cost": { "effort": "low", "risk": "low", "reversible": true },
-      "examples": ["工程迁移与本机数据升级都收进 toolkit upgrade", "交互时通常默认不全选，脚本可显式 --all --yes"]
+      "examples": ["同类动作收进一条主入口", "批量动作先预览，交互时默认不全选"]
     },
     {
       "id": "release-pipeline",
@@ -459,22 +441,21 @@
       "summary": "变更集到版本号、CHANGELOG、标签与发布的全链路可回放。",
       "problem": "发版靠记忆，版本号与日志不一致。",
       "value": ["发版步骤固定", "日志与包内容一致"],
-      "maturity": "partial",
+      "adoptionLevel": "tooling",
       "signals": ["版本号与日志对不上", "发版步骤每次不同"],
       "variants": [
-        { "id": "changeset", "name": "变更集", "summary": "逐条记录用户可感知变化并声明 bump。" },
+        { "id": "changeset", "name": "变更集", "summary": "逐条记录用户可感知变化并声明版本类型。" },
         { "id": "net-change", "name": "净变更合并", "summary": "同对象多次改动合并为最终效果。" },
-        { "id": "mirror", "name": "镜像", "summary": "CHANGELOG 镜像到文档站，保持同源。" }
+        { "id": "mirror", "name": "镜像", "summary": "更新日志镜像到文档站，保持同源。" }
       ],
       "related": ["three-way-consistency", "quality-gate"],
-      "support": { "commands": ["toolkit release"], "skills": ["fxri-release-changelog"], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["使用 changesets 或等价变更集"],
         "steps": [{ "title": "固化链路", "detail": "按消费变更集、门禁、提交、标签、发布、推送的顺序执行。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "medium", "reversible": false },
-      "examples": ["release bump 生成版本块并同步文档站镜像"]
+      "examples": ["发版脚本生成版本块并同步文档站镜像"]
     },
     {
       "id": "agent-catalog-adapters",
@@ -484,7 +465,7 @@
       "summary": "维护 agent 的全局与项目目录清单，并用适配器处理配置差异。",
       "problem": "每个 agent 目录与配置格式不同，能力分发靠手工复制。",
       "value": ["一处安装多处可用", "新 agent 可渐进接入"],
-      "maturity": "partial",
+      "adoptionLevel": "tooling",
       "signals": ["团队混用多个 agent", "技能要复制到多个目录"],
       "variants": [
         { "id": "global-dir", "name": "全局目录", "summary": "按 agent 维护全局技能目录与环境变量。" },
@@ -492,14 +473,13 @@
         { "id": "hook", "name": "Hook 适配", "summary": "按 agent 的 hook 配置格式写入与备份。" }
       ],
       "related": ["skill-distribution", "scope"],
-      "support": { "commands": ["toolkit skill"], "skills": [], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["列出团队使用的 agent"],
         "steps": [{ "title": "建清单", "detail": "把目录、探测方式与环境变量集中成表，安装与状态共用。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "low", "reversible": true },
-      "examples": ["同一技能软链到 canonical 与各 agent 目录"]
+      "examples": ["同一份技能内容链接到多个 agent 目录"]
     },
     {
       "id": "skill-distribution",
@@ -509,23 +489,22 @@
       "summary": "技能可安装、可校验、可升级，产物归属可追踪。",
       "problem": "技能散落在各目录，升级后真假难辨。",
       "value": ["安装与卸载可逆", "版本与内容可校验"],
-      "maturity": "partial",
+      "adoptionLevel": "tooling",
       "signals": ["不知道装了哪些技能", "升级后出现旧名残留"],
       "variants": [
         { "id": "link-copy", "name": "软链与副本", "summary": "优先软链，失败降级副本。" },
         { "id": "gate", "name": "内容闸门", "summary": "按技能矩阵只发入口壳或全文。" },
         { "id": "source", "name": "来源登记", "summary": "外部来源可登记、刷新与注销。" },
-        { "id": "rename", "name": "改名迁移", "summary": "previousNames 迁移选择集与旧产物。" }
+        { "id": "rename", "name": "改名迁移", "summary": "改名后按旧名登记迁移选择集与旧产物。" }
       ],
       "related": ["agent-catalog-adapters", "scope"],
-      "support": { "commands": ["toolkit skill"], "skills": ["fxri-writing-skill"], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["技能有统一入口文件"],
         "steps": [{ "title": "建账本", "detail": "安装时登记来源、目标目录与产物形态，卸载只清理归属产物。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "low", "reversible": true },
-      "examples": ["skill uninstall 只删本包登记的产物"]
+      "examples": ["卸载只清理本包登记的产物"]
     },
     {
       "id": "scope",
@@ -535,22 +514,21 @@
       "summary": "按目录名单、条件策略与技能档案决定技能是否生效。",
       "problem": "同一台机器上不同项目需要不同技能集合。",
       "value": ["按项目隔离", "策略可解释"],
-      "maturity": "ready",
+      "adoptionLevel": "tooling",
       "signals": ["公司项目与个人项目要不同技能", "某些目录不应加载技能"],
       "variants": [
-        { "id": "lists", "name": "名单", "summary": "allow / deny 目录名单。" },
+        { "id": "lists", "name": "名单", "summary": "允许 / 拒绝的目录名单。" },
         { "id": "policy", "name": "条件策略", "summary": "按路径、标记、git 远端或技能矩阵设定。" },
         { "id": "guard", "name": "guard", "summary": "未生效时以非 0 退出码阻断。" }
       ],
       "related": ["skill-distribution", "config-layers"],
-      "support": { "commands": ["toolkit scope"], "skills": [], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["确定生效判定依据"],
         "steps": [{ "title": "建策略", "detail": "先写目录名单，再按需加条件策略与技能档案。" }],
         "files": []
       },
       "cost": { "effort": "low", "risk": "low", "reversible": true },
-      "examples": ["scope status 展示当前目录的生效判定"]
+      "examples": ["状态命令展示当前目录的生效判定"]
     },
     {
       "id": "usage-telemetry",
@@ -560,7 +538,7 @@
       "summary": "本机记录技能调用，默认关闭、可导出与清理。",
       "problem": "不知道技能是否被使用，优化没有依据。",
       "value": ["使用有据可查", "数据留在本机"],
-      "maturity": "partial",
+      "adoptionLevel": "tooling",
       "signals": ["想淘汰从未使用的技能", "需要证明技能价值"],
       "variants": [
         { "id": "local-events", "name": "本机事件", "summary": "只写本机事件文件，不默认上传。" },
@@ -568,14 +546,13 @@
         { "id": "hooks", "name": "Hook 采集", "summary": "从 agent hook 摄取调用事件。" }
       ],
       "related": ["config-layers", "privacy-redaction"],
-      "support": { "commands": ["toolkit usage"], "skills": [], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["明确隐私边界"],
         "steps": [{ "title": "默认关闭", "detail": "先实现本机存储与导出，再决定是否接 hook 与上传。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "medium", "reversible": true },
-      "examples": ["usage stats 查看技能调用次数"]
+      "examples": ["按会话统计技能调用次数"]
     },
     {
       "id": "config-layers",
@@ -585,22 +562,21 @@
       "summary": "全局、项目、本地三层覆盖，来源可解释。",
       "problem": "配置散落，用户不知道某个值从哪来。",
       "value": ["覆盖关系明确", "团队与个人配置分离"],
-      "maturity": "ready",
+      "adoptionLevel": "tooling",
       "signals": ["同一配置在不同项目不同", "不知道值来自哪一层"],
       "variants": [
         { "id": "priority", "name": "优先级", "summary": "本地覆盖项目，项目覆盖全局。" },
-        { "id": "explain", "name": "来源解释", "summary": "get --explain 展示定义位置。" },
+        { "id": "explain", "name": "来源解释", "summary": "读取时展示值的定义位置。" },
         { "id": "degrade", "name": "降级告警", "summary": "显式值无法采纳时告警并说明回落。" }
       ],
       "related": ["output-contract", "scope"],
-      "support": { "commands": ["toolkit config"], "skills": [], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["列出可配置项与默认值"],
         "steps": [{ "title": "建三层", "detail": "定义全局、项目、本地三层文件与覆盖顺序，读写都走同一入口。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "low", "reversible": true },
-      "examples": ["config get --explain 显示值来自项目层"]
+      "examples": ["来源解释显示某个值来自项目层"]
     },
     {
       "id": "output-contract",
@@ -610,7 +586,7 @@
       "summary": "机器可读输出固定信封与退出码，stdout 与 stderr 分离。",
       "problem": "脚本解析 CLI 输出时字段不稳定，错误与数据混在一起。",
       "value": ["脚本可稳定消费", "错误可区分"],
-      "maturity": "ready",
+      "adoptionLevel": "tooling",
       "signals": ["输出字段在不同版本变化", "错误信息混进 stdout"],
       "variants": [
         { "id": "envelope", "name": "JSON 信封", "summary": "固定 command / code / message / data 等键。" },
@@ -618,14 +594,13 @@
         { "id": "channels", "name": "通道分离", "summary": "stdout 只放数据，stderr 放诊断。" }
       ],
       "related": ["config-layers", "three-way-consistency"],
-      "support": { "commands": [], "skills": [], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["列出机器可读命令"],
         "steps": [{ "title": "定契约", "detail": "固定信封键与退出码，文档只在一处维护，测试锁定输出。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "low", "reversible": false },
-      "examples": ["toolkit concept list --format json 输出统一信封"]
+      "examples": ["机器可读输出固定信封，退出码集中定义"]
     },
     {
       "id": "cross-platform",
@@ -633,24 +608,23 @@
       "aliases": ["跨平台"],
       "category": "platform",
       "summary": "平台差异只进适配层，两平台各有测试。",
-      "problem": "业务逻辑里散落 platform 分支，单平台验证就发布。",
+      "problem": "业务逻辑里散落平台分支，单平台验证就发布。",
       "value": ["Windows 与 POSIX 行为一致", "差异集中可测"],
-      "maturity": "partial",
+      "adoptionLevel": "tooling",
       "signals": ["只有本机平台验证", "路径与命令分支散落各处"],
       "variants": [
         { "id": "adapter", "name": "适配层", "summary": "路径、命令与 shell 差异集中到适配模块。" },
         { "id": "ci-matrix", "name": "CI 矩阵", "summary": "关键平台各有回归入口。" },
-        { "id": "tty-noise", "name": "终端噪声", "summary": "交互测试处理 ConPTY 等平台噪声。" }
+        { "id": "tty-noise", "name": "终端噪声", "summary": "交互测试处理不同终端的噪声差异。" }
       ],
       "related": ["test-tiers", "quality-gate"],
-      "support": { "commands": [], "skills": [], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["列出支持的平台"],
-        "steps": [{ "title": "抽适配层", "detail": "把平台分支收进适配模块，业务逻辑不出现 platform 判断。" }],
+        "steps": [{ "title": "抽适配层", "detail": "把平台分支收进适配模块，业务逻辑不出现平台判断。" }],
         "files": []
       },
       "cost": { "effort": "medium", "risk": "low", "reversible": true },
-      "examples": ["Windows 与 POSIX 各有路径与命令单测"]
+      "examples": ["两个平台各有路径与命令单测"]
     },
     {
       "id": "encoding-eol",
@@ -660,7 +634,7 @@
       "summary": "写文本前先确定读取方的解码与字节形态，避免 BOM 与行尾错配。",
       "problem": "非 ASCII 文本在管道或子进程里丢失或乱码。",
       "value": ["跨边界文本不失真", "行尾稳定"],
-      "maturity": "partial",
+      "adoptionLevel": "generic",
       "signals": ["输出到文件后中文乱码", "Windows 上出现 CRLF 混入"],
       "variants": [
         { "id": "consumer-decode", "name": "读取方解码", "summary": "按读取方默认解码决定写入编码。" },
@@ -668,7 +642,6 @@
         { "id": "eol", "name": "行尾", "summary": "按目标仓库统一 LF 或 CRLF。" }
       ],
       "related": ["atomic-idempotent", "cross-platform"],
-      "support": { "commands": [], "skills": ["fxri-base-encoding"], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["识别文本经过的通道"],
         "steps": [{ "title": "定字节形态", "detail": "写脚本与生成器前，先确认读取方解码、BOM 与行尾要求。" }],
@@ -685,7 +658,7 @@
       "summary": "记录依赖与改编内容的许可证、版权行与分发范围。",
       "problem": "搬了第三方内容却没有署名或许可文本。",
       "value": ["合规可追溯", "用户知道来源"],
-      "maturity": "partial",
+      "adoptionLevel": "generic",
       "signals": ["复制第三方代码或数据表", "包内缺少 NOTICE"],
       "variants": [
         { "id": "notices", "name": "第三方声明", "summary": "集中记录上游、版权、许可与改编范围。" },
@@ -693,7 +666,6 @@
         { "id": "files-whitelist", "name": "包白名单", "summary": "声明文件必须随包分发。" }
       ],
       "related": ["single-source", "docs-quality"],
-      "support": { "commands": [], "skills": [], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["盘点第三方来源"],
         "steps": [{ "title": "补声明", "detail": "新增第三方声明文件并加入发布白名单，代码旁补来源注释。" }],
@@ -710,7 +682,7 @@
       "summary": "把一组概念或能力打包成可一次引入的预设，并保留回滚路径。",
       "problem": "一个个概念单独引入成本高，用户不知道从哪开始。",
       "value": ["按场景一次引入", "可回滚"],
-      "maturity": "partial",
+      "adoptionLevel": "generic",
       "signals": ["用户想要一整套能力", "逐个安装太零散"],
       "variants": [
         { "id": "bundle", "name": "概念包", "summary": "按场景组合多个概念。" },
@@ -718,7 +690,6 @@
         { "id": "adoption-plan", "name": "采纳计划", "summary": "分阶段引入并给出验证与回滚。" }
       ],
       "related": ["quality-gate", "skill-distribution"],
-      "support": { "commands": ["toolkit concept"], "skills": ["fxri-base-adoption"], "templates": [], "checks": [] },
       "adoption": {
         "prerequisites": ["已有可复用的概念清单"],
         "steps": [{ "title": "组合成包", "detail": "按场景选概念，写清依赖、验证与回滚，再提供一键引入入口。" }],

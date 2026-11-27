@@ -109,7 +109,7 @@
 | F-27 | 阈值类事实 | 各域模块（包内 dist） | 派生 + 机检比对 | 搁置 90 天 / 1 年、14 小时、分页等；文档数字由 `thresholds.test.ts` 与常量比对 | B2 |
 | F-28 | 技能内重复条文 | `references/*`（包内） | 散文单源 + 指针 | SKILL 只留要点 | B1 |
 | F-29 | 文档索引目标页集合 | 两份索引（包内 + 文档站） | 机检 | 只校验集合一致，不生成 | B3 |
-| F-30 | 概念目录 | `concepts/catalog.json`（包内） | 契约 + 机检 | schema 与 CLI 同源；测试从 schema 读取 required / 枚举 | B3 |
+| F-30 | 概念目录与参考实现 | `concepts/catalog.json`、`concepts/reference.json`（包内） | 契约 + 机检 | 概念本体与参考实现分层，各自 schema 与 CLI 同源；测试从 schema 读取 required / 枚举，并扫描正文的本仓标记 | B3 |
 
 ## C-49. 工具与技能离线自包含
 

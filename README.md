@@ -62,7 +62,7 @@ toolkit setup
 | 技能使用情况（usage） | 统计技能调用次数、触发词与结果；默认关闭、不联网、数据只留本机 | [CLI 参考](./docs/cli/usage.md) · [技能使用情况概览](./docs/usage/index.md) |
 | 发版与更新日志（release） | 封装 changesets 发版、分组标题本地化 | [CLI 参考](./docs/cli/release.md) |
 | 文档站校验（docs） | 校验主题一致性、导航结构与构建产物，规则随包分发、跨仓样式漂移可发现 | [CLI 参考](./docs/cli/docs-theme.md) · [docs 校验](./docs/cli/docs-check.md) |
-| 概念目录（concept） | 按场景查看可引入的工程概念与采纳步骤，JSON 输出供 AI 读取 | [CLI 参考](./docs/cli/concept.md) |
+| 概念目录（concept） | 按场景查看可迁移的工程概念与采纳步骤，概念本体不绑定工具；本仓参考实现单独登记，JSON 输出供 AI 读取 | [CLI 参考](./docs/cli/concept.md) |
 | 隐私脱敏 | 落盘前自动掩码邮箱、手机号、密钥等 | [配置参考](./docs/config.md) |
 | 配置体检（config） | 三层（全局 / 项目 / 本地）定制脱敏、告警、导入列映射、语言表；`toolkit config status` 只读查看生效情况与来源 | [CLI 参考](./docs/cli/config.md) · [配置参考](./docs/config.md) |
 | 升级迁移（upgrade） | 旧工程与本机契约数据一键迁移：三层配置、工程脚本、技能旧名、规范载体与状态 / 事件版本；支持预演、复检、备份恢复 | [升级迁移](./docs/cli/upgrade.md) |

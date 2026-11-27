@@ -19,7 +19,7 @@
 | `toolkit release` | 多语言 CHANGELOG 与发版（封装 changesets，默认 `status`） | `status` / `bump` / `changelog` / `mirror` / `publish` / `audit` / `changeset` | [发版与更新日志](./cli/release) |
 | `toolkit upgrade` | 旧工程与本机契约数据统一入口升级：配置段名、工程脚本、技能旧名、规范载体、状态与事件版本，含预演、复检与恢复 | — | [升级迁移](./cli/upgrade) |
 | `toolkit trash` | 项目内回收站：查看、恢复与清理用户可见删除 | `list` / `restore` / `prune` / `stats` | [回收站](./cli/trash) |
-| `toolkit concept` | 概念目录：查看可引入的工程概念与采纳步骤 | `list` / `show` | [概念目录](./cli/concept) |
+| `toolkit concept` | 概念目录：查看可迁移的工程概念与采纳步骤（本仓参考实现单独登记） | `list` / `show` | [概念目录](./cli/concept) |
 | `toolkit config` | 配置唯一写入口（键清单 + 分层写入）与只读体检 | `list` / `get` / `set` / `unset` / `status` | [配置体检](./cli/config) |
 | `toolkit privacy` | 隐私体检：本机绝对路径扫描与归一（按项目档位） | `scan` | [隐私体检](./cli/privacy) |
 | `toolkit docs` | 文档站全量校验（默认）、主题写入与分项校验 | `check` / `theme` / `nav` / `dist` / `titles` | [文档站主题](./cli/docs-theme) · [文档站校验](./cli/docs-check) |
@@ -80,7 +80,7 @@
 | 档案 | 可复用的技能名单，供策略 `skills.profiles` 引用 | `scope profile`、`skillProfiles` 配置段 |
 | 预演 | `--dry-run`：只打印将执行的动作，不写文件 / 剪贴板 / 缓存 | 全部写命令 |
 | 回收站 | 用户可见删除先移入项目内回收站，由用户决定恢复或彻底清理 | `toolkit trash`、`skill uninstall --no-trash`、`upgrade --no-trash` |
-| 概念目录 | 可引入的工程概念清单，含变体、成本与采纳步骤；与「规范载体」不是一回事 | `toolkit concept` |
+| 概念目录 | 可迁移的工程概念清单，含变体、成本与采纳步骤，概念本体不绑定具体工具；与「规范载体」不是一回事 | `toolkit concept` |
 | 概念包 | 一组概念的预设组合（bundle），与规则「预设」、技能「推荐包」区分 | `toolkit concept list --format json` |
 | 确认 | 写前展示预览并交互确认；`--yes` 跳过确认 | `usage` / `skill` / `config` 写命令；`scope` 写命令在非 TTY 带显式参数直接执行 |
 | 来源 | 技能来源：内置 `toolkit` 源与 `--source` 外部来源 | `skill`、`skill source` |

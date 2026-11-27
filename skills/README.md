@@ -17,7 +17,7 @@ Cursor、Codex、Gemini CLI 等兼容 agent 按需加载。
 | [fxri-writing-docs](./fxri-writing-docs/SKILL.md) | 0.2.7 | 文档站写作规范：分类骨架、页面标题「显示名（标识）」、索引与行内引用口径、导航短别名唯一、顶栏与 404 兜底、导航用工具命令校验、代码块内联注释对齐 | optional |
 | [fxri-base-encoding](./fxri-base-encoding/SKILL.md) | 1.2.13 | 文本编码：写脚本 / 配置 / 数据交换文本与跨进程 / 跨机器传递前按「生产者 × 消费者」定字节形态（临时任务同样适用），含非 ASCII 丢失 / 变形、乱码反查与首行报错 | optional |
 | [fxri-base-safety](./fxri-base-safety/SKILL.md) | 0.1.1 | 破坏性操作安全：方案阶段披露影响与不可恢复部分，执行前限定范围并预览，用户可见删除优先进回收站，误删后按止损与恢复顺序处理 | core |
-| [fxri-base-adoption](./fxri-base-adoption/SKILL.md) | 0.1.1 | 概念目录与能力采纳：读取概念清单，按场景给候选与成本 / 风险，用户选择后逐步引入 | optional |
+| [fxri-base-adoption](./fxri-base-adoption/SKILL.md) | 0.1.2 | 概念目录与能力采纳：读取概念清单，按场景给候选与成本 / 风险，用户选择后逐步引入 | optional |
 | [fxri-test-tty](./fxri-test-tty/SKILL.md) | 0.1.4 | 交互测试：PTY 驱动向导与多选，含断言清单 | optional |
 
 表中按能力族（`plan` / `release` / `writing` / `base` / `test`）分组排列，族名与归属见 [namespaces.json](./namespaces.json)；
