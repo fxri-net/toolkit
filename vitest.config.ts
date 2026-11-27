@@ -9,7 +9,7 @@ export default defineConfig({
     // 临时目录兜底：文件结束与进程退出时删净登记项，漏写清理的用例也不在 %TEMP% 留残留
     setupFiles: ["./src/__tests__/setup-temp.ts"],
     // 测试收集面限定在 src/__tests__，避免测试文件落在临时目录守卫的扫描范围之外
-    include: ["src/__tests__/**/*.test.ts"],
+    include: ["src/__tests__/**/*.test.ts", "src/__tests__/**/*.spec.ts"],
     // 覆盖率插桩与并行加载会把重用例推过默认 5 秒阈值；门禁并发重步骤时进一步拉长，留足余量避免随机红
     testTimeout: 30000,
     hookTimeout: 30000,

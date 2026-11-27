@@ -38,6 +38,13 @@ export function cleanupTrackedTempDirs(): string[] {
   return failed
 }
 
+// 保留现场开关：只认 1 / true，避免 FX_TOOLKIT_KEEP_TEST_TEMP=0 被误判为开启
+export function isKeepTestTemp(): boolean {
+  const value = process.env.FX_TOOLKIT_KEEP_TEST_TEMP
+  if (value === undefined || value === "") return false
+  return ["1", "true"].includes(value.trim().toLowerCase())
+}
+
 // 装进程退出兜底：只清本进程登记的目录；排查现场时按 FX_TOOLKIT_KEEP_TEST_TEMP 保留并打印路径
 // 不拦截 SIGINT / SIGTERM：那会抢走 vitest 自身的关闭流程，强杀场景交由跨运行过期清扫兜住
 export function installTempCleanup(): void {
@@ -45,7 +52,7 @@ export function installTempCleanup(): void {
   if (reg.hooked) return
   reg.hooked = true
   process.once("exit", () => {
-    if (process.env.FX_TOOLKIT_KEEP_TEST_TEMP) {
+    if (isKeepTestTemp()) {
       for (const dir of reg.dirs) console.warn(`⚠️ 保留测试临时目录：${dir}`)
       return
     }

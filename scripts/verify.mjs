@@ -30,6 +30,9 @@ const skipCoverage = flags.has("--skip-coverage") || testsOnly || (forceLocal &&
 // 流水线判别用仓库专用变量：通用 CI 会被 IDE / 终端注入，误判会静默关停本地自动修复与改动面裁剪
 const pipelineValue = process.env.FX_TOOLKIT_PIPELINE ?? ""
 const isCI = !forceLocal && pipelineValue !== "" && pipelineValue !== "0"
+// 保留现场开关：只认 1 / true；CI 下忽略，避免环境变量误配把残留门禁静默关掉
+const keepTestTempRequested = ["1", "true"].includes((process.env.FX_TOOLKIT_KEEP_TEST_TEMP ?? "").trim().toLowerCase())
+const keepTestTemp = keepTestTempRequested && !isCI
 
 /**
  * 读取文本文件并去除首尾空白。
@@ -399,7 +402,8 @@ async function runPhase(label, steps) {
 async function runTestsPhase(label, steps) {
   if (steps.every((step) => step.skip)) return runPhase(label, steps)
   // 保留现场开关下跳过清扫与残留判定：否则超过 6 小时的现场会被下一次门禁静默删除
-  if (process.env.FX_TOOLKIT_KEEP_TEST_TEMP) {
+  if (keepTestTempRequested && isCI) console.warn("⚠️ CI 下忽略 FX_TOOLKIT_KEEP_TEST_TEMP，残留判定继续生效")
+  if (keepTestTemp) {
     console.log("\n▶ 保留测试临时目录（FX_TOOLKIT_KEEP_TEST_TEMP 已开启，跳过过期清扫与残留判定）")
     return runPhase(label, steps)
   }

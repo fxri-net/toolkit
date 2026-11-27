@@ -63,15 +63,18 @@ export function scanSource(source: string, fileName: string): Violation[] {
       const isMockKey = ts.isPropertyAssignment(parent) && parent.name === node
       if (!isMockKey) report(node, "直接引用 tmpdir")
     }
-    // process.env.TEMP / TMP：hoisted 白名单之外，必须与 fxts-tk- 字面量同语句
-    if (
+    // 计算属性写法：os["tmpdir"] 与 process["env"]["TEMP"] 同样算直接引用
+    const computedKey =
+      ts.isElementAccessExpression(node) && ts.isStringLiteral(node.argumentExpression) ? node.argumentExpression.text : undefined
+    if (computedKey === "tmpdir") report(node, "直接引用 tmpdir")
+    // process.env.TEMP / TMP / TMPDIR：hoisted 白名单之外，必须与 fxts-tk- 字面量同语句
+    const envHolder = ts.isPropertyAccessExpression(node) ? node.expression.getText(sf) : ""
+    const tempEnvKey =
       ts.isPropertyAccessExpression(node) &&
-      ts.isPropertyAccessExpression(node.expression) &&
-      node.expression.getText(sf) === "process.env" &&
-      (node.name.text === "TEMP" || node.name.text === "TMP") &&
-      !allowTemp &&
-      !/fxts-tk-/.test(statementText(node))
-    ) {
+      /^process(\.env|\[["']env["']\])$/.test(envHolder) &&
+      ["TEMP", "TMP", "TMPDIR"].includes(node.name.text)
+    const computedTempKey = computedKey === "TEMP" || computedKey === "TMP" || computedKey === "TMPDIR"
+    if ((tempEnvKey || computedTempKey) && !allowTemp && !/fxts-tk-/.test(statementText(node))) {
       report(node, `直接引用 ${node.getText(sf)}`)
     }
     ts.forEachChild(node, visit)
@@ -105,6 +108,23 @@ describe("测试临时目录守卫", () => {
   it("vi.mock 里的 tmpdir 替身键不算直接引用", () => {
     const sample = 'vi.mock("node:os", () => ({ tmpdir: () => "/tmp" }))'
     expect(scanSource(sample, "sample.test.ts")).toEqual([])
+  })
+
+  it("计算属性与 TMPDIR 同样被识别", () => {
+    expect(scanSource('os["tmpdir"]()', "sample.test.ts")).toHaveLength(1)
+    expect(scanSource('process["env"]["TEMP"] || "/tmp"', "sample.test.ts")).toHaveLength(1)
+    expect(scanSource('process.env.TMPDIR || "/tmp"', "sample.test.ts")).toHaveLength(1)
+  })
+
+  it("生产短命目录前缀与测试前缀族一致", () => {
+    const expectations: Array<[string, string]> = [
+      ["src/rules/clipboard.ts", '"fxts-tk-clip-"'],
+      ["src/skills/source/remote.ts", '"fxts-tk-src-"'],
+      ["scripts/smoke-node18.mjs", '"fxts-tk-node18-"'],
+    ]
+    for (const [file, literal] of expectations) {
+      expect(readFileSync(join(process.cwd(), file), "utf8")).toContain(literal)
+    }
   })
 
   it("非 fxts-tk- 前缀在入口处直接抛错", () => {

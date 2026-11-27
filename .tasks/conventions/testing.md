@@ -41,7 +41,7 @@
 
 - **入口**：`tempDir(prefix)` 建目录并登记，`tempPath(prefix)` 只生成唯一路径（供 `vi.hoisted` 沙箱与「路径不存在」用例）；两者运行时校验前缀，非 `fxts-tk-` 直接抛错。测试文件（除 `helpers.ts` 等实现文件）不得出现 `tmpdir` 标识符；`process.env.TEMP|TMP` 仅允许 `vi.hoisted` 白名单文件使用。
 - **前缀**：`fxts` 为品牌段、`tk` 为产品段，测试与生产短命目录共用同一前缀族（`fxts-tk-clip-` / `fxts-tk-src-` / `fxts-tk-node18-`），便于按前缀统一识别与回收；历史前缀 `fxri-` / `tk-` 不再新增，需要时用 `--prefix` 一次性清理。
-- **兜底**：`setup-temp.ts` 在文件结束与进程退出时删除登记项；`scripts/clean-temp-residue.mjs` 在 `pnpm verify` 单测前后按前缀与年龄门槛清扫。`FX_TOOLKIT_KEEP_TEST_TEMP=1` 保留现场时，`verify` 跳过清扫与残留判定，保留只到下次不设开关的门禁。
+- **兜底**：`setup-temp.ts` 在文件结束与进程退出时删除登记项；`scripts/clean-temp-residue.mjs` 在 `pnpm verify` 单测前后按前缀与年龄门槛清扫。`FX_TOOLKIT_KEEP_TEST_TEMP=1`（只认 `1` / `true`，CI 下忽略）保留现场时，`verify` 跳过清扫与残留判定，保留只到下次不设开关的门禁。
 - **反例**：自起 `fxri-` / `tk-` 前缀；把前缀放进变量再传给本地 wrapper；给 `makeDir("my-")` 这类非白名单包装传参；在 `src/__tests__` 之外放测试文件。
 - **理由**：系统不回收 `%TEMP%`（Windows 无自动清理，POSIX 轮转周期以天计），`mkdtemp` 只保证唯一；只统一前缀仍可被变量与包装绕过，入口化 + 运行时断言 + 守卫才能根治。
 - **配套**：与 `C-56`（测试文件按被测主题归并）同册——C-56 管测试文件组织，本条管临时目录命名、入口与回收。
