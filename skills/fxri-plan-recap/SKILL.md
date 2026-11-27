@@ -3,7 +3,7 @@ name: fxri-plan-recap
 description: 会话收尾的工作记忆沉淀 + 新会话开场恢复 + 历史任务时间修正：收尾时把整场会话的全部任务完整建档归档，按四级时间源还原真实完成时间，沉淀规范进 conventions 载体；新会话开场按三层恢复（全量索引 + active 精读 + 近窗归档）重建现场并核对规范；也可批量修正历史归档时间。用户表达会话收尾意图（今天先到这、收个尾、归档本次会话、把结论记下来）、接续意图（恢复上下文、继续上次、上次做到哪）或修正历史任务时间时使用。不用于会话中途的常规方案建档（那是 fxri-plan-task 的职责）、与工作交接无关的代码技术总结。
 license: MIT
 metadata:
-  version: "1.7.12"
+  version: "1.7.13"
   tier: core
   previousNames: ["fxri-session-recap"]
   type: practice
@@ -15,7 +15,7 @@ metadata:
 
 # 会话归档、上下文恢复与历史修正
 
-> 本技能版本 1.7.12（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
+> 本技能版本 1.7.13（随 @fxri/toolkit 同批分发）。被问版本时即报此值（不读磁盘、不跑 CLI）；与 `toolkit skill status` 的磁盘值不一致即说明会话上下文已过期，开新会话即可。
 
 ## 何时使用
 
@@ -38,6 +38,7 @@ metadata:
 | 收尾沉淀 | 本文件 R1–R3、规范提炼子流程、模式一 | 模式二 / 三 |
 | 开场恢复 | 本文件 R1 / R2 + `references/mode-2-recovery.md` | 模式一 / 三 |
 | 批量修正历史时间 | 本文件 R1 + `references/mode-3-time-fix.md` | 模式一 / 二 |
+| 收尾 / 恢复时 `task check` 报可修复告警 | `../fxri-plan-task/references/warning-actions.md` | 其余 |
 | 读写 conventions 载体 | 本文件 R3 + `../fxri-plan-task/references/conventions-spec.md`、`conventions-maintenance.md` | 其余 |
 
 兄弟技能路径不存在时，改读 `toolkit skill status` 打印的「技能源」目录下同名文件。
@@ -62,6 +63,9 @@ created / completed / updated 一律按四级时间源取证，禁止估算、�
   （兄弟技能路径不存在时，改读 `toolkit skill status` 打印的「技能源」目录下同名文件）
 - 会话特有：规范沉淀与会话级提炼同落点、与已有规范合并去重；会话内发现的缺失归档须补档
 - **跨仓库会话各自归档**：各仓在各自仓库建档归档，任务档只记本仓改动与动机；`scope` 只标本仓内的端 / 面
+- **可自动修复告警**：收尾 / 恢复时 `task check` / `status` 报 Tier 1 告警，
+  按 `../fxri-plan-task/references/warning-actions.md`（兄弟技能路径不存在时读 `toolkit skill status` 的技能源目录）逐命令给「摘要 + 命令 + 影响」，
+  用户确认或拒绝均可（表达不限）；确认后执行，拒绝则记录并继续；非 TTY / CI 只报告。恢复主体仍只读，确认前不写盘
 
 ### R3 规范落点：`.tasks/conventions/` 载体
 
