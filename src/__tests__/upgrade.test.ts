@@ -5,7 +5,7 @@ import { join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
 import { rewriteConfigFile, rewritePackage } from "../upgrade/apply"
 import { buildUpgradePlan, checkVersionGate, runUpgrade, verifyUpgrade } from "../upgrade"
-import { latestBackup, pruneBackups, pruneLayersFor, restoreBackup } from "../upgrade/backup"
+import { latestBackup, pruneBackups, pruneLayersFor, restoreBackup, upgradeRoots } from "../upgrade/backup"
 import { planUpgradeDiffs } from "../upgrade/diff"
 import { setHomeDirForTest } from "../config"
 
@@ -259,6 +259,45 @@ describe("升级迁移：备份归属", () => {
     runUpgrade(project, plan.items, { layers: ["global", "project"] })
     expect(existsSync(join(home, ".toolkit", "backup"))).toBe(true)
     expect(existsSync(join(project, ".toolkit", "backup"))).toBe(false)
+  })
+})
+
+describe("升级迁移：子目录运行", () => {
+  it("从子目录执行后 --restore 可恢复祖先本地配置", () => {
+    const root = makeProject({})
+    const sub = join(root, "packages", "app")
+    mkdirSync(sub, { recursive: true })
+    const local = join(root, ".toolkitrc.local.json")
+    const original = JSON.stringify({ tasks: { dir: "old" } })
+    writeFileSync(local, original, "utf8")
+
+    const plan = buildUpgradePlan(sub, { layers: ["local"] })
+    expect(plan.items.some((item) => item.id === "config:local")).toBe(true)
+    const result = runUpgrade(sub, plan.items, { layers: ["local"] })
+    expect(result.failed).toEqual([])
+    expect(readFileSync(local, "utf8")).not.toBe(original)
+
+    const dir = latestBackup(sub)
+    expect(dir).not.toBeNull()
+    const restored = restoreBackup(dir!, { overwrite: true, roots: upgradeRoots(sub) })
+    expect(restored.restored).toContain(local)
+    expect(readFileSync(local, "utf8")).toBe(original)
+  })
+
+  it("从子目录执行可收编祖先 .bak", () => {
+    const root = makeProject({})
+    const sub = join(root, "packages", "app")
+    mkdirSync(sub, { recursive: true })
+    // 祖先本地配置同时作为项目标志，使项目根可被定位
+    writeFileSync(join(root, ".toolkitrc.local.json"), "{}", "utf8")
+    const bak = join(root, ".toolkitrc.local.json.bak")
+    writeFileSync(bak, "{}", "utf8")
+
+    const plan = buildUpgradePlan(sub, { layers: ["local"] })
+    expect(plan.items.some((item) => item.id === "backup:legacy")).toBe(true)
+    const result = runUpgrade(sub, plan.items, { layers: ["local"] })
+    expect(result.failed).toEqual([])
+    expect(existsSync(bak)).toBe(false)
   })
 })
 

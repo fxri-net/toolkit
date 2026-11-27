@@ -84,6 +84,8 @@ toolkit upgrade --prune-backups   # 清理迁移备份（--dry-run 预览、--ke
 ## 边界与注意
 
 - ⚠️ 迁移会改写 `package.json` 与配置文件；执行前先 `--dry-run`，必要时用 `--restore` 回滚。
+- ⚠️ 建议在项目根执行；从子目录执行时，恢复允许根为「当前目录 + 项目根 + 家目录」，祖先目录的配置与 `.bak` 仍可恢复 / 收编。
+- ⚠️ `--restore` 只恢复配置、工程文件与状态文件；迁移时删除的技能产物已进回收站，需用 `toolkit trash restore` 找回。
 - ⚠️ 规则快照保存在各 Agent 的全局规则入口，`upgrade` 无法安全改写，需按提示重新 `toolkit rule compose --copy --no-cache` 后粘贴（`--no-cache` 避免这次快照改写默认组合）。
 - ⚠️ 无法确认归属的技能目录不会删除，只列入人工项，避免误删上游安装器产物。
 

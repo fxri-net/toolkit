@@ -8,11 +8,10 @@ import { askCheckbox } from "../cli-ui"
 import { formatChoiceLine, terminalColumns } from "../prompt-line"
 import { printJson } from "./shared"
 import { line, style } from "../term-style"
-import { latestBackup, pruneBackups, pruneLayersFor, restoreBackup } from "../upgrade/backup"
+import { latestBackup, pruneBackups, pruneLayersFor, restoreBackup, upgradeRoots } from "../upgrade/backup"
 import { buildUpgradePlan, checkVersionGate, runUpgrade } from "../upgrade"
 import { ALL_LAYERS } from "../upgrade/detect"
 import { planUpgradeDiffs } from "../upgrade/diff"
-import { getHomeDir } from "../config"
 import { isHomeDirectory } from "../scope/paths"
 import type { UpgradeItem, UpgradeLayer } from "../upgrade/types"
 
@@ -179,7 +178,7 @@ async function runUpgradeCommand(options: UpgradeOptions): Promise<void> {
       process.exitCode = 1
       return
     }
-    const result = restoreBackup(dir, { overwrite: Boolean(options.overwrite), roots: [cwd, getHomeDir()] })
+    const result = restoreBackup(dir, { overwrite: Boolean(options.overwrite), roots: upgradeRoots(cwd) })
     if (options.format === "json") {
       printJson(jsonEnvelope({ command: "upgrade", data: { restore: result } }))
       return

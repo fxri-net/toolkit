@@ -1,12 +1,12 @@
 // 迁移备份：集中存放、清单记录哈希，恢复时先校验再写回
 import { createHash } from "node:crypto"
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs"
-import { basename, dirname, join } from "node:path"
+import { basename, dirname, join, resolve } from "node:path"
 import { getHomeDir } from "../config"
 import { rootForPath } from "../safe-remove"
 import { trashAwareRemove } from "../trash/store"
 import { readTextFile } from "../read-text"
-import { isHomeDirectory } from "../scope/paths"
+import { findProjectRoot, isHomeDirectory } from "../scope/paths"
 import { PROJECT_STATE_DIR, PROJECT_STATE_FILE, SKILLS_STATE_FILE } from "../skills/types"
 import { writeFileAtomic } from "../write-atomic"
 import type { BackupEntry, BackupManifest, UpgradeLayer } from "./types"
@@ -22,6 +22,11 @@ function sha256(file: string): string {
 // 备份目录根：项目面落 .toolkit/backup，全局面落 ~/.toolkit/backup
 function backupRoot(cwd: string, scope: "project" | "global"): string {
   return scope === "global" ? join(getHomeDir(), ".toolkit", "backup") : join(cwd, ".toolkit", "backup")
+}
+
+// 迁移允许根：当前目录 + 项目根 + 家目录；从子目录执行时祖先配置与 .bak 仍可恢复/收编
+export function upgradeRoots(cwd: string): string[] {
+  return [...new Set([resolve(cwd), findProjectRoot(cwd), getHomeDir()])]
 }
 
 // 时间戳目录名：本地时间，秒级足够区分一次迁移
@@ -64,7 +69,7 @@ export class BackupSession {
       mkdirSync(join(this.dir, "files"), { recursive: true })
       copyFileSync(file, stored)
       this.entries.push({ original: file, stored, beforeSha: sha256(file), absorbed: true })
-      const root = rootForPath(file, [this.cwd, getHomeDir()])
+      const root = rootForPath(file, upgradeRoots(this.cwd))
       if (!root) throw new Error(`收编 .bak 时路径不在项目或家目录内：${file}`)
       trashAwareRemove(file, root)
     }
