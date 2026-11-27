@@ -1,7 +1,7 @@
 // active 任务校验：frontmatter 合法性、完成时间格式、重名、方案正文子项未闭合
 // 供 tasks check 使用，输出问题清单；error 为硬性错误，warn 为软告警（默认开启可关）
 import { join, basename, dirname, relative } from "node:path"
-import { listTaskFiles } from "./scan"
+import { listLinkedMonthDirs, listTaskFiles } from "./scan"
 import { scanPrivacy } from "../privacy/scan"
 import { checkArchive } from "./normalize"
 import { readDeclaredEndpoints, validateTaskFile } from "./validate-file"
@@ -48,6 +48,15 @@ export function validateTasks(tasksDir = ".tasks", cwd = process.cwd()): CheckRe
         message: `active 任务应放入 {YYYYMM} 月份子目录（当前直放 active 根目录）：移到 active/${month}/ 下`,
       })
     }
+  }
+
+  // 月份目录是链接时已跳过扫描：显式提示，避免任务从看板上静默消失
+  for (const month of listLinkedMonthDirs(activeDir)) {
+    issues.push({
+      level: "warn",
+      file: `active/${month}`,
+      message: "active 月份目录为链接，已跳过扫描（移到真实目录后再归档）",
+    })
   }
 
   // 游离于 active/ 之外的任务文件对 check/archive 均不可见，单独提示其修正位置

@@ -5,7 +5,7 @@ import { join, basename, dirname } from "node:path"
 import { normalizeCompleted, isRecognizableCompleted, parseArchiveBlocks, completeMetaLine, scanOrphanBlocks, renderArchiveFile } from "./archive-block"
 import { parseMetaSegments } from "./meta"
 import { removeEmptyDirs } from "./archive"
-import { listTaskFiles } from "./scan"
+import { listLinkedMonthDirs, listTaskFiles } from "./scan"
 import { displayRel } from "./paths"
 import { isBeyondTzFuture, MAX_UTC_OFFSET_HOURS } from "../date"
 import type { ArchiveBlockInfo } from "./archive-block"
@@ -127,6 +127,14 @@ export function checkArchive(tasksDir = ".tasks"): NormalizeIssue[] {
   const archiveDir = join(tasksDir, "archive")
   const files = listTaskFiles(archiveDir)
   const issues: NormalizeIssue[] = []
+  // 月份目录是链接时已跳过扫描：显式提示，避免归档文件静默不被检查
+  for (const month of listLinkedMonthDirs(archiveDir)) {
+    issues.push({
+      file: displayRel(tasksDir, join(archiveDir, month)),
+      message: "归档月份目录为链接，已跳过扫描（移到真实目录后再归一化）",
+      fixable: false,
+    })
+  }
   for (const file of files) {
     // 展示路径取相对任务目录（如 archive/202609/20260903.md），便于 validate 复用后直接指明文件位置
     const display = displayRel(tasksDir, file)
