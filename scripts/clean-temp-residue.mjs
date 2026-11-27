@@ -4,8 +4,8 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 
-// 默认前缀：fxts-tk- 为测试沙箱（C-57），其余为本仓历史前缀与生产短命目录
-export const DEFAULT_PREFIXES = ["fxts-tk-", "fxri-", "tk-", "toolkit-"]
+// 默认只清扫测试沙箱前缀（C-57）；历史前缀（fxri- / tk-）与生产短命目录（toolkit-）不参与自动删除，需要时显式传 --prefix
+export const DEFAULT_PREFIXES = ["fxts-tk-"]
 // 默认年龄门槛：6 小时，足以避开并发运行中的测试
 export const DEFAULT_MAX_AGE_MINUTES = 6 * 60
 
