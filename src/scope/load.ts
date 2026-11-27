@@ -1,6 +1,6 @@
 // 作用域配置加载：三层策略合并、旧 activation 编译、档案解析与一次性编译缓存
 import { createHash } from "node:crypto"
-import { existsSync, statSync } from "node:fs"
+import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { getHomeDir, inspectConfigLayers, type ConfigLayerName, type ConfigLayers } from "../config"
 import { canonicalPath } from "../git-ignore"
@@ -531,19 +531,17 @@ function snapshotFor(key: string, build: () => ScopeSnapshot): ScopeSnapshot {
   return snapshot
 }
 
-// 配置文件指纹：路径 + 修改时间 + 大小，配置改动或增删层都能被识别，且不必逐次序列化整份配置
+// 配置文件指纹：路径 + 解析后配置的 JSON 内容 + 降级记录，配置改动或增删层都能被识别。
+// 不用 mtime / size：文件系统时间戳粒度不足时，同长度改写会被漏判，进而复用旧快照
 function layerSignature(layers: ConfigLayers): string {
-  return [layers.global, layers.project, layers.local]
-    .map((record) => {
-      if (!record.file) return ""
-      try {
-        const info = statSync(record.file)
-        return `${record.file}\u0000${info.mtimeMs}\u0000${info.size}`
-      } catch {
-        return `${record.file}\u0000missing`
-      }
-    })
-    .join("\u0001")
+  const parts = [layers.global, layers.project, layers.local].map((record) => {
+    if (!record.file) return ""
+    const body = record.config === null ? "null" : JSON.stringify(record.config)
+    return `${record.file}\u0000${createHash("sha1").update(body).digest("hex")}`
+  })
+  // 解析失败时 config 恒为 null：不同错误须由降级记录区分，避免复用旧告警
+  parts.push(createHash("sha1").update(JSON.stringify(layers.fallbacks)).digest("hex"))
+  return parts.join("\u0001")
 }
 
 // 最近一层含策略 / 档案的配置文件：status / list 展示策略来源

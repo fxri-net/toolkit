@@ -1,10 +1,10 @@
 // 作用域配置加载：三层就近覆盖、来源文件与非法值告警
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { resetToolkitConfigCache, setHomeDirForTest } from "../config"
-import { findProjectRoot, resolveScope } from "../scope"
+import { findProjectRoot, resolveScope, resetScopeCache } from "../scope"
 
 let home = ""
 let project = ""
@@ -23,11 +23,13 @@ beforeEach(() => {
   mkdirSync(other, { recursive: true })
   setHomeDirForTest(home)
   resetToolkitConfigCache()
+  resetScopeCache()
 })
 
 afterEach(() => {
   setHomeDirForTest(undefined)
   resetToolkitConfigCache()
+  resetScopeCache()
   rmSync(home, { recursive: true, force: true })
 })
 
@@ -110,6 +112,7 @@ describe("resolveScope", () => {
     // 规则按链接路径书写时本就命中，不应触发迁移提示
     writeGlobal({ activation: { mode: "allowlist", include: [link.replace(/\\/g, "/")] } })
     resetToolkitConfigCache()
+    resetScopeCache()
     const matched = resolveScope(link)
     expect(matched.decision.active).toBe(true)
     expect(matched.migrationHint).toBeNull()
@@ -125,6 +128,25 @@ describe("resolveScope", () => {
     resetToolkitConfigCache()
     const skillHint = resolveScope(link, "fxri-plan-review")
     expect(skillHint.migrationHint ?? "").toContain("真实路径")
+  })
+
+  it("配置同长度改写且时间戳未变时仍按新内容判定", () => {
+    // 快照指纹只认内容：mtime / size 相同也必须识别改写，否则会复用旧判定
+    const first = join(home, "proj-a")
+    const second = join(home, "proj-b")
+    mkdirSync(first, { recursive: true })
+    mkdirSync(second, { recursive: true })
+    const fixed = new Date("2026-01-01T00:00:00Z")
+    const configFile = join(home, ".toolkitrc.json")
+    writeGlobal({ activation: { mode: "allowlist", include: [first.replace(/\\/g, "/")] } })
+    utimesSync(configFile, fixed, fixed)
+    expect(resolveScope(first).decision.active).toBe(true)
+    expect(resolveScope(second).decision.active).toBe(false)
+
+    // 两份白名单路径等长（proj-a / proj-b），字节数与修改时间都被固定
+    writeGlobal({ activation: { mode: "allowlist", include: [second.replace(/\\/g, "/")] } })
+    utimesSync(configFile, fixed, fixed)
+    expect(resolveScope(second).decision.active).toBe(true)
   })
 
   it("activation 字段类型非法时逐项告警并忽略", () => {

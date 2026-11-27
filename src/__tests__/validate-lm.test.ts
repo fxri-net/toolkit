@@ -1,6 +1,6 @@
 // M1 标题误报 / M3 已归档依赖去向 / L3 导入写锁
 import { describe, it, expect } from "vitest"
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs"
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync, existsSync, utimesSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { validateTasks } from "../tasks/validate"
@@ -48,6 +48,32 @@ describe("M3 依赖指向已归档任务给出去向", () => {
     )
     const warns = warnTexts(dir)
     expect(warns.some((m) => m.includes("已归档于 archive/202609/20260903.md"))).toBe(true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("归档文件改写后不复用旧标题索引", () => {
+    const dir = rootDir()
+    mkdirSync(join(dir, "active", "202609"), { recursive: true })
+    mkdirSync(join(dir, "archive", "202609"), { recursive: true })
+    const archiveFile = join(dir, "archive", "202609", "20260903.md")
+    const header = "# 20260903 归档\n\n> 负责人：唐启云　状态：已完成　范围：x　完成时间：2026-09-03 10:00\n\n"
+    const content = (title: string) => `${header}## ${title}\n\ndone\n`
+    const fixed = new Date("2026-01-01T00:00:00Z")
+    writeFileSync(archiveFile, content("20260903-唐启云-done"), "utf8")
+    utimesSync(archiveFile, fixed, fixed)
+    writeFileSync(
+      join(dir, "active", "202609", "20260903-唐启云-a.md"),
+      "---\nowner: 唐启云\nstatus: 进行中\ncreated: 20260903\nupdated: 20260903\ncompleted: ''\ndepends_on: [20260903-唐启云-done]\nscope: x\n---\n\n# a\n",
+      "utf8",
+    )
+    expect(warnTexts(dir).some((m) => m.includes("已归档于 archive/202609/20260903.md"))).toBe(true)
+
+    // 改写为不同字节数并固定修改时间：旧实现只比 mtimeMs，会复用旧标题
+    writeFileSync(archiveFile, content("20260903-唐启云-archived"), "utf8")
+    utimesSync(archiveFile, fixed, fixed)
+    const warns = warnTexts(dir)
+    expect(warns.some((m) => m.includes("已归档于"))).toBe(false)
+    expect(warns.some((m) => m.includes("可能已归档或文件名拼写错误"))).toBe(true)
     rmSync(dir, { recursive: true, force: true })
   })
 })

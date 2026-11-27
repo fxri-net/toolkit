@@ -31,15 +31,16 @@ export function strayTaskFiles(tasksDir: string): string[] {
 }
 
 
-// 已归档索引缓存：键为归档文件路径，值为 { mtimeMs, titles }；
-// 同一进程内多次 check（库调用 / 连续触发）复用未变更文件的解析结果，避免重复读盘（N2）
-const archivedIndexCache = new Map<string, { mtimeMs: number; titles: string[] }>()
+// 已归档索引缓存：键为归档文件路径，值为 { mtimeNs, size, titles }；
+// 同一进程内多次 check（库调用 / 连续触发）复用未变更文件的解析结果，避免重复读盘（N2）。
+// 时间戳取纳秒并叠加字节数：毫秒粒度在同长度改写时可能撞车，纳秒 + size 才能挡住实际改写
+const archivedIndexCache = new Map<string, { mtimeNs: bigint; size: bigint; titles: string[] }>()
 
 // 读单个归档文件的任务块标题集（mtime 感知缓存；文件损坏时按空集处理，仅影响去向提示精确度）
 function archivedTitles(file: string): string[] {
-  const st = statSync(file)
+  const st = statSync(file, { bigint: true })
   const hit = archivedIndexCache.get(file)
-  if (hit && hit.mtimeMs === st.mtimeMs) return hit.titles
+  if (hit && hit.mtimeNs === st.mtimeNs && hit.size === st.size) return hit.titles
   const titles: string[] = []
   const seen = new Set<string>()
   try {
@@ -52,7 +53,7 @@ function archivedTitles(file: string): string[] {
   } catch {
     // 忽略损坏文件
   }
-  archivedIndexCache.set(file, { mtimeMs: st.mtimeMs, titles })
+  archivedIndexCache.set(file, { mtimeNs: st.mtimeNs, size: st.size, titles })
   return titles
 }
 
