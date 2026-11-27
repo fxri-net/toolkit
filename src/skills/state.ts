@@ -135,9 +135,13 @@ export interface StateScope {
 
 // 目标目录是否可参与删除：项目态限根内，全局态限绝对路径且不落在受保护根
 // 项目态比较前统一解析真实路径：macOS /tmp → /private/tmp、项目位于软链下时，
-// 账中逻辑路径与 process.cwd() 物理路径前缀不同，纯文本比较会把合法目标整条丢弃
+// 账中逻辑路径与 process.cwd() 物理路径前缀不同，纯文本比较会把合法目标整条丢弃。
+// 先归一 root 再拼相对路径，保证目标目录不存在（realpath 回落 resolve）时两侧仍同一形态
 function isSafeTargetDir(dir: string, options: StateScope): boolean {
-  if (options.scope === "project") return isInside(realPath(resolve(options.root, dir)), realPath(options.root))
+  if (options.scope === "project") {
+    const root = realPath(options.root)
+    return isInside(realPath(resolve(root, dir)), root)
+  }
   return isAbsolute(dir) && !isProtectedTarget(dir) && !isHomeDirectory(dir)
 }
 

@@ -1,5 +1,5 @@
 // 安全删除与状态路径约束：越界目标必须拒绝，正常临时目录可清理
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
@@ -98,5 +98,29 @@ describe("状态读取：越界目标与非法名字被剔除", () => {
     expect(targets.some((target) => target.dir === "../../outside")).toBe(false)
     expect(targets.flatMap((target) => target.entries).some((entry) => entry.name === "../escape")).toBe(false)
     expect(targets.flatMap((target) => target.entries).some((entry) => entry.name === "fxri-plan-task")).toBe(true)
+  })
+
+  it("项目根是链接别名、目标目录尚未创建时仍保留合法目标", () => {
+    // 模拟 process.cwd() 物理路径与账中逻辑路径写法不同；目标目录不存在时 realpath 回落 resolve
+    const realRoot = tmpRoot("fxts-tk-state-real-")
+    const aliasRoot = join(realRoot, "alias")
+    symlinkSync(realRoot, aliasRoot, process.platform === "win32" ? "junction" : "dir")
+    mkdirSync(join(aliasRoot, ".toolkit"), { recursive: true })
+    const state = {
+      format: STATE_FORMAT,
+      schemaVersion: STATE_SCHEMA_VERSION,
+      updatedAt: "2026-11-26T00:00:00.000Z",
+      sources: {
+        toolkit: {
+          kind: "builtin",
+          version: "test",
+          targets: [{ id: "good", dir: ".agents/skills", label: "good", kind: "source", entries: [{ name: "fxri-plan-task", version: "", mode: "copy" }] }],
+        },
+      },
+    }
+    writeFileSync(join(aliasRoot, ".toolkit/state.json"), JSON.stringify(state), "utf8")
+    const read = readProjectState(aliasRoot)
+    const names = (read?.sources.toolkit?.targets ?? []).flatMap((target) => target.entries).map((entry) => entry.name)
+    expect(names).toContain("fxri-plan-task")
   })
 })
